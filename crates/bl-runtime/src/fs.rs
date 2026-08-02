@@ -16,7 +16,7 @@ pub fn fs_builtin_list() -> Vec<(&'static str, Arity)> {
         ("basename", Arity::Exact(1)),
         ("dirname", Arity::Exact(1)),
         ("extension", Arity::Exact(1)),
-        ("path_join", Arity::Exact(2)),
+        ("path_join", Arity::AtLeast(2)),
         ("abs_path", Arity::Exact(1)),
         ("file_size", Arity::Exact(1)),
         ("is_dir", Arity::Exact(1)),
@@ -260,10 +260,16 @@ fn builtin_extension(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Str(ext))
 }
 
+/// Join two or more path segments.
+///
+/// Variadic because `path_join(a, b, c)` is what every other language's path
+/// join accepts and what the examples were already written against; the
+/// two-argument form is unaffected.
 fn builtin_path_join(args: Vec<Value>) -> Result<Value> {
-    let base = require_str(&args[0], "path_join")?;
-    let child = require_str(&args[1], "path_join")?;
-    let joined = std::path::Path::new(base).join(child);
+    let mut joined = std::path::PathBuf::from(require_str(&args[0], "path_join")?);
+    for arg in &args[1..] {
+        joined.push(require_str(arg, "path_join")?);
+    }
     Ok(Value::Str(joined.to_string_lossy().to_string()))
 }
 

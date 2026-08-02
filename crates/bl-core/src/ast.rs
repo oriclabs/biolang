@@ -33,6 +33,16 @@ pub enum Stmt {
     },
     /// `name = expr` (reassignment)
     Assign { name: String, value: Spanned<Expr> },
+    /// `name[index] = expr` — update one element in place.
+    ///
+    /// Without this, building a table meant rebuilding whole rows, which turns
+    /// an O(n*m) dynamic programme into something far worse and puts search
+    /// over large state spaces out of reach entirely.
+    IndexAssign {
+        name: String,
+        index: Spanned<Expr>,
+        value: Spanned<Expr>,
+    },
     /// Expression used as a statement
     Expr(Spanned<Expr>),
     /// `return expr`

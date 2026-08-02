@@ -197,6 +197,10 @@ impl Interpreter {
 
     #[inline(never)]
     pub fn exec_stmt(&mut self, stmt: &Spanned<Stmt>) -> Result<Value> {
+        // Lets `print`/`println` report which statement produced a value, so a
+        // structured front end can put the result next to the line that made
+        // it rather than only in a linear log.
+        crate::builtins::set_current_offset(Some(stmt.span.start));
         match &stmt.node {
             Stmt::Let { name, value, .. } => {
                 let val = self.eval_expr(value)?;
@@ -337,6 +341,73 @@ impl Interpreter {
                 }
                 let val = self.eval_expr(value)?;
                 self.env.set(name, val, Some(stmt.span))?;
+                Ok(Value::Nil)
+            }
+            Stmt::IndexAssign { name, index, value } => {
+                let index_value = self.eval_expr(index)?;
+                let new_value = self.eval_expr(value)?;
+                let target = self.env.get(name, Some(stmt.span))?.clone();
+
+                let updated = match target {
+                    Value::List(mut items) => {
+                        let position = match index_value {
+                            Value::Int(n) if n >= 0 => n as usize,
+                            Value::Int(n) => {
+                                return Err(BioLangError::runtime(
+                                    ErrorKind::IndexOutOfBounds,
+                                    format!("index {n} is negative"),
+                                    Some(index.span),
+                                ))
+                            }
+                            other => {
+                                return Err(BioLangError::type_error(
+                                    format!("list index must be Int, got {}", other.type_of()),
+                                    Some(index.span),
+                                ))
+                            }
+                        };
+                        let slots = std::sync::Arc::make_mut(&mut items);
+                        if position >= slots.len() {
+                            return Err(BioLangError::runtime(
+                                ErrorKind::IndexOutOfBounds,
+                                format!(
+                                    "index {position} out of bounds for a list of length {}",
+                                    slots.len()
+                                ),
+                                Some(index.span),
+                            ));
+                        }
+                        slots[position] = new_value;
+                        Value::List(items)
+                    }
+                    Value::Map(mut entries) => {
+                        let key = match index_value {
+                            Value::Str(s) => s,
+                            other => format!("{other}"),
+                        };
+                        std::sync::Arc::make_mut(&mut entries).insert(key, new_value);
+                        Value::Map(entries)
+                    }
+                    Value::Record(mut entries) => {
+                        let key = match index_value {
+                            Value::Str(s) => s,
+                            other => format!("{other}"),
+                        };
+                        std::sync::Arc::make_mut(&mut entries).insert(key, new_value);
+                        Value::Record(entries)
+                    }
+                    other => {
+                        return Err(BioLangError::type_error(
+                            format!(
+                                "cannot assign into {} — only lists, maps and records support indexed assignment",
+                                other.type_of()
+                            ),
+                            Some(stmt.span),
+                        ))
+                    }
+                };
+
+                self.env.set(name, updated, Some(stmt.span))?;
                 Ok(Value::Nil)
             }
             Stmt::Expr(expr) => self.eval_expr(expr),
@@ -1106,9 +1177,22 @@ impl Interpreter {
             ));
         }
         if let Some(rest) = import_path.strip_prefix("pkg/") {
-            // Package: ~/.biolang/packages/<rest>/lib.bl or <rest>.bl
+            // Package: honor `[lib].entry`, then legacy lib.bl or <rest>.bl.
             if let Some(ref bl_dir) = biolang_dir {
-                let pkg_lib = bl_dir.join("packages").join(rest).join("lib.bl");
+                let package_dir = bl_dir.join("packages").join(rest);
+                if package_dir.is_dir() {
+                    match crate::package::resolve_library_entry(&package_dir) {
+                        Ok(Some(entry)) => return Ok(entry),
+                        Ok(None) => {}
+                        Err(e) => {
+                            return Err(BioLangError::import_error(
+                                format!("cannot resolve '{import_path}': {e}"),
+                                span,
+                            ));
+                        }
+                    }
+                }
+                let pkg_lib = package_dir.join("lib.bl");
                 if pkg_lib.is_file() {
                     return pkg_lib.canonicalize().map_err(|e| {
                         BioLangError::import_error(
@@ -1173,15 +1257,45 @@ impl Interpreter {
         }
 
         for dir in &search_dirs {
-            // Try <path>.br
+            // Try the path exactly as written. Only `<path>.bl` was attempted
+            // before, so an import that already carried the extension resolved
+            // to `utils.bl.bl` and never matched — which is how every example
+            // and doc comment writing `import "lib/io.bl"` was written.
+            if import_path.ends_with(".bl") {
+                let literal = dir.join(import_path);
+                if literal.is_file() {
+                    return literal.canonicalize().map_err(|e| {
+                        BioLangError::import_error(
+                            format!("cannot resolve '{import_path}': {e}"),
+                            span,
+                        )
+                    });
+                }
+            }
+            // Try <path>.bl
             let as_file = dir.join(format!("{import_path}.bl"));
             if as_file.is_file() {
                 return as_file.canonicalize().map_err(|e| {
                     BioLangError::import_error(format!("cannot resolve '{import_path}': {e}"), span)
                 });
             }
-            // Try <path>/main.br
-            let as_dir = dir.join(import_path).join("main.bl");
+            // A package manifest's explicit library entrypoint takes precedence
+            // over the conventional <path>/main.bl module.
+            let module_dir = dir.join(import_path);
+            if module_dir.is_dir() {
+                match crate::package::resolve_library_entry(&module_dir) {
+                    Ok(Some(entry)) => return Ok(entry),
+                    Ok(None) => {}
+                    Err(e) => {
+                        return Err(BioLangError::import_error(
+                            format!("cannot resolve '{import_path}': {e}"),
+                            span,
+                        ));
+                    }
+                }
+            }
+            // Try <path>/main.bl
+            let as_dir = module_dir.join("main.bl");
             if as_dir.is_file() {
                 return as_dir.canonicalize().map_err(|e| {
                     BioLangError::import_error(format!("cannot resolve '{import_path}': {e}"), span)

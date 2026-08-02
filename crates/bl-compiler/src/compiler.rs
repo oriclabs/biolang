@@ -318,6 +318,16 @@ impl Compiler {
                     self.emit(OpCode::DefineGlobal(idx));
                 }
             }
+            // Indexed assignment mutates a value in place, which the stack
+            // machine has no opcode for. Reject it explicitly so callers fall
+            // back to the tree-walking interpreter rather than silently
+            // compiling something with different semantics.
+            Stmt::IndexAssign { .. } => {
+                return Err(CompileError::new(
+                    "indexed assignment (x[i] = v) is not supported in compiled mode",
+                    Some(stmt.span),
+                ));
+            }
             Stmt::Assign { name, value } => {
                 self.compile_expr(value)?;
                 if let Some(slot) = self.resolve_local(name) {

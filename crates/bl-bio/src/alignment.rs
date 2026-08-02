@@ -8,7 +8,7 @@ pub fn alignment_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
         // bl-runtime dispatches align() through its sequence implementation
         // before reaching this compatibility implementation.
-        ("align", Arity::Range(2, 6)),
+        ("align", Arity::Range(2, 7)),
         ("score_matrix", Arity::Exact(1)),
         ("edit_distance", Arity::Exact(2)),
         ("hamming_distance", Arity::Exact(2)),

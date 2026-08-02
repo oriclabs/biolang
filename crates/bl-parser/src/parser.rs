@@ -154,6 +154,7 @@ impl Parser {
             TokenKind::Ident(s) if s == "type" && self.is_type_alias() => self.parse_type_alias(),
             TokenKind::Ident(_) if self.is_nil_assign() => self.parse_nil_assign(),
             TokenKind::Ident(_) if self.is_compound_assignment() => self.parse_compound_assign(),
+            TokenKind::Ident(_) if self.is_index_assignment() => self.parse_index_assign(),
             TokenKind::Ident(_) if self.is_assignment() => self.parse_assign(),
             _ => self.parse_expr_stmt(),
         }
@@ -184,6 +185,57 @@ impl Parser {
     /// Check if current position is `ident =` (assignment, not `==`).
     fn is_assignment(&self) -> bool {
         self.pos + 1 < self.tokens.len() && matches!(self.tokens[self.pos + 1].kind, TokenKind::Eq)
+    }
+
+    /// Check for `ident[...] = ` — an element update rather than a rebind.
+    ///
+    /// The brackets are scanned with a depth counter so a nested index such as
+    /// `row[cols[j]] = v` is matched as one target.
+    fn is_index_assignment(&self) -> bool {
+        if !matches!(self.current_kind(), TokenKind::Ident(_)) {
+            return false;
+        }
+        if !matches!(
+            self.tokens.get(self.pos + 1).map(|t| &t.kind),
+            Some(TokenKind::LBracket)
+        ) {
+            return false;
+        }
+        let mut depth = 0usize;
+        let mut i = self.pos + 1;
+        while i < self.tokens.len() {
+            match self.tokens[i].kind {
+                TokenKind::LBracket => depth += 1,
+                TokenKind::RBracket => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return matches!(
+                            self.tokens.get(i + 1).map(|t| &t.kind),
+                            Some(TokenKind::Eq)
+                        );
+                    }
+                }
+                TokenKind::Newline => return false,
+                _ => {}
+            }
+            i += 1;
+        }
+        false
+    }
+
+    fn parse_index_assign(&mut self) -> Result<Spanned<Stmt>> {
+        let start = self.current_span();
+        let name = self.expect_ident()?;
+        self.expect(TokenKind::LBracket)?;
+        let index = self.parse_expr()?;
+        self.expect(TokenKind::RBracket)?;
+        self.expect(TokenKind::Eq)?;
+        let value = self.parse_expr()?;
+        let span = start.merge(value.span);
+        Ok(Spanned::new(
+            Stmt::IndexAssign { name, index, value },
+            span,
+        ))
     }
 
     fn parse_assign(&mut self) -> Result<Spanned<Stmt>> {
@@ -1221,6 +1273,12 @@ impl Parser {
                 } else if self.peek_past_newlines_is(&TokenKind::Dot) {
                     self.skip_newlines();
                     self.current_precedence()
+                } else if self.peek_past_newlines_is_continuation() {
+                    // A line beginning with an operator that cannot start an
+                    // expression is continuing this one, so multi-line formulae
+                    // read the way they are written.
+                    self.skip_newlines();
+                    self.current_precedence()
                 } else {
                     Precedence::None
                 }
@@ -1860,6 +1918,7 @@ impl Parser {
             TokenKind::Const => self.parse_const(),
             TokenKind::Ident(_) if self.is_nil_assign() => self.parse_nil_assign(),
             TokenKind::Ident(_) if self.is_compound_assignment() => self.parse_compound_assign(),
+            TokenKind::Ident(_) if self.is_index_assignment() => self.parse_index_assign(),
             TokenKind::Ident(_) if self.is_assignment() => self.parse_assign(),
             _ => self.parse_expr_stmt(),
         }
@@ -2189,7 +2248,15 @@ impl Parser {
                         span,
                     ));
                 }
-                let right = self.parse_precedence(prec)?;
+                // Parsed tightly on purpose. Using the pipe's own precedence
+                // here let the right-hand side swallow any following binary
+                // operator, so `xs |> count(f) == 2` became
+                // `xs |> (count(f) == 2)` and `xs |> sum() % m` became
+                // `xs |> (sum() % m)` — both then failed as arity errors
+                // pointing at the wrong call. Binding tighter than every binary
+                // operator makes `a |> f(x) OP b` mean `(a |> f(x)) OP b`,
+                // which is what it reads like and what Elixir and F# do.
+                let right = self.parse_precedence(Precedence::Multiply)?;
                 // Trailing lambda: `|> each |p| expr` → `|> each(|p| expr)`
                 let right = if matches!(right.node, Expr::Ident(_)) && self.check(&TokenKind::Bar) {
                     let lambda = self.parse_lambda()?;
@@ -2852,12 +2919,81 @@ impl Parser {
                 self.advance();
                 Ok(name)
             }
+            // A keyword here is almost always someone naming a variable after
+            // an ordinary word that happens to be reserved — `from`, `to`,
+            // `end`, `match` all read as perfectly good names. Saying only
+            // "expected identifier" leaves them hunting for a typo, so name the
+            // real problem and suggest a way out.
+            other if Self::is_keyword(&other) => Err(BioLangError::new(
+                ErrorKind::ExpectedToken,
+                format!("'{other}' is a reserved word, so it cannot be used as a name"),
+                Some(self.current_span()),
+            )
+            .with_suggestion(format!(
+                "rename it — `{other}_` or a more specific word such as `{other}_index` both work"
+            ))),
             other => Err(BioLangError::new(
                 ErrorKind::ExpectedToken,
                 format!("expected identifier, found '{other}'"),
                 Some(self.current_span()),
             )),
         }
+    }
+
+    /// Whether a token is a reserved word rather than punctuation or a literal.
+    ///
+    /// The list is deliberately broad. Several of these — `from`, `to`, `end`,
+    /// `match`, `where`, `stage` — are ordinary English words that read as
+    /// natural variable names, which is exactly why the error needs to say they
+    /// are reserved instead of asking for an identifier that is already there.
+    fn is_keyword(kind: &TokenKind) -> bool {
+        matches!(
+            kind,
+            TokenKind::Let
+                | TokenKind::Fn
+                | TokenKind::If
+                | TokenKind::Else
+                | TokenKind::For
+                | TokenKind::While
+                | TokenKind::Break
+                | TokenKind::Continue
+                | TokenKind::Match
+                | TokenKind::Return
+                | TokenKind::Assert
+                | TokenKind::Try
+                | TokenKind::Catch
+                | TokenKind::Pipeline
+                | TokenKind::Import
+                | TokenKind::True
+                | TokenKind::False
+                | TokenKind::Nil
+                | TokenKind::Yield
+                | TokenKind::Enum
+                | TokenKind::Struct
+                | TokenKind::Async
+                | TokenKind::Await
+                | TokenKind::Trait
+                | TokenKind::Impl
+                | TokenKind::Const
+                | TokenKind::With
+                | TokenKind::Then
+                | TokenKind::Unless
+                | TokenKind::Guard
+                | TokenKind::Do
+                | TokenKind::End
+                | TokenKind::When
+                | TokenKind::Defer
+                | TokenKind::As
+                | TokenKind::Stage
+                | TokenKind::Parallel
+                | TokenKind::Not
+                | TokenKind::From
+                | TokenKind::Where
+                | TokenKind::In
+                | TokenKind::And
+                | TokenKind::Or
+                | TokenKind::Into
+        )
     }
 
     /// Accept an identifier or a keyword as a field name (e.g., `.end`, `.in`, `.as`).
@@ -2921,6 +3057,43 @@ impl Parser {
     }
 
     /// Peek past any newlines without consuming them, check if the token matches.
+    /// True when the first token after one or more newlines is an operator that
+    /// cannot begin an expression — so the line must be continuing the previous
+    /// one rather than starting a statement.
+    ///
+    /// `-` is deliberately absent: `-5` is a perfectly good expression, so a
+    /// line opening with it is genuinely ambiguous and is left to terminate the
+    /// statement as before. Unary `+` is not valid, so `+` is unambiguous.
+    fn peek_past_newlines_is_continuation(&self) -> bool {
+        let mut i = self.pos;
+        while i < self.tokens.len() && matches!(self.tokens[i].kind, TokenKind::Newline) {
+            i += 1;
+        }
+        i < self.tokens.len()
+            && matches!(
+                self.tokens[i].kind,
+                TokenKind::Plus
+                    | TokenKind::PlusPlus
+                    | TokenKind::Star
+                    | TokenKind::Slash
+                    | TokenKind::Percent
+                    | TokenKind::StarStar
+                    | TokenKind::EqEq
+                    | TokenKind::Neq
+                    | TokenKind::Lt
+                    | TokenKind::Gt
+                    | TokenKind::Le
+                    | TokenKind::Ge
+                    | TokenKind::And
+                    | TokenKind::Or
+                    | TokenKind::QuestionQuestion
+                    | TokenKind::Shl
+                    | TokenKind::Shr
+                    | TokenKind::In
+                    | TokenKind::As
+            )
+    }
+
     fn peek_past_newlines_is(&self, kind: &TokenKind) -> bool {
         let mut i = self.pos;
         while i < self.tokens.len() && matches!(self.tokens[i].kind, TokenKind::Newline) {

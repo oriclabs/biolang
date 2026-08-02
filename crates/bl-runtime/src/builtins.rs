@@ -9,6 +9,13 @@ use std::sync::{Arc, Mutex};
 thread_local! {
     static OUTPUT_BUFFER: std::cell::RefCell<Option<Arc<Mutex<String>>>> =
         std::cell::RefCell::new(None);
+    static OUTPUT_SINK: std::cell::RefCell<Option<Arc<dyn Fn(&str) + Send + Sync>>> =
+        std::cell::RefCell::new(None);
+    static DISPLAY_SINK: std::cell::RefCell<Option<Arc<dyn Fn(&Value, Option<usize>) + Send + Sync>>> =
+        std::cell::RefCell::new(None);
+    /// Byte offset of the statement currently executing, for attributing
+    /// printed values back to the line that produced them.
+    static CURRENT_OFFSET: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
     /// True when the last write_output call did not end with a newline.
     static NEEDS_NEWLINE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
@@ -18,19 +25,74 @@ pub fn set_output_buffer(buf: Option<Arc<Mutex<String>>>) {
     OUTPUT_BUFFER.with(|cell| *cell.borrow_mut() = buf);
 }
 
+/// Set a live thread-local output sink. The sink takes precedence over buffered
+/// capture and is used by structured CLI integrations to stream print output.
+pub fn set_output_sink(sink: Option<Arc<dyn Fn(&str) + Send + Sync>>) {
+    OUTPUT_SINK.with(|cell| *cell.borrow_mut() = sink);
+}
+
+/// Set a thread-local observer notified with every value handed to `print` or
+/// `println`.
+///
+/// Structured front ends previously derived typed results from the program's
+/// final value alone, so `println(table)` — the spelling every example and
+/// every book chapter uses — produced ASCII in the log and nothing else. A
+/// displayed value is exactly the value the author wanted to look at, so it is
+/// the right thing to promote to a typed result.
+/// The sink also receives the byte offset of the statement that produced the
+/// value, so front ends can show a result beside the line that printed it.
+pub fn set_display_sink(sink: Option<Arc<dyn Fn(&Value, Option<usize>) + Send + Sync>>) {
+    DISPLAY_SINK.with(|cell| *cell.borrow_mut() = sink);
+}
+
+/// Record which statement is executing.
+///
+/// Set by the interpreter as it walks statements. It is a plain `Cell` write on
+/// a hot path, so it stays a single machine word and does nothing at all when
+/// no front end has installed a display sink.
+pub fn set_current_offset(offset: Option<usize>) {
+    CURRENT_OFFSET.with(|cell| cell.set(offset));
+}
+
+/// Byte offset of the statement currently executing, if the interpreter set one.
+pub fn current_offset() -> Option<usize> {
+    CURRENT_OFFSET.with(|cell| cell.get())
+}
+
+fn observe_display(values: &[Value]) {
+    let sink = DISPLAY_SINK.with(|cell| cell.borrow().clone());
+    if let Some(sink) = sink {
+        let offset = current_offset();
+        for value in values {
+            sink(value, offset);
+        }
+    }
+}
+
 pub(crate) fn write_output(text: &str) {
-    OUTPUT_BUFFER.with(|cell| {
-        let borrow = cell.borrow();
-        if let Some(ref buf) = *borrow {
-            if let Ok(mut s) = buf.lock() {
-                s.push_str(text);
-            }
+    let handled = OUTPUT_SINK.with(|cell| {
+        let sink = cell.borrow().clone();
+        if let Some(sink) = sink {
+            sink(text);
+            true
         } else {
-            print!("{text}");
-            let _ = std::io::stdout().flush();
-            NEEDS_NEWLINE.with(|flag| flag.set(!text.ends_with('\n')));
+            false
         }
     });
+    if !handled {
+        OUTPUT_BUFFER.with(|cell| {
+            let borrow = cell.borrow();
+            if let Some(ref buf) = *borrow {
+                if let Ok(mut s) = buf.lock() {
+                    s.push_str(text);
+                }
+            } else {
+                print!("{text}");
+                let _ = std::io::stdout().flush();
+            }
+        });
+    }
+    NEEDS_NEWLINE.with(|flag| flag.set(!text.ends_with('\n')));
 }
 
 /// If the last `print()` call left the cursor mid-line, emit a newline.
@@ -38,7 +100,7 @@ pub(crate) fn write_output(text: &str) {
 pub fn flush_trailing_newline() {
     NEEDS_NEWLINE.with(|flag| {
         if flag.get() {
-            println!();
+            write_output("\n");
             flag.set(false);
         }
     });
@@ -246,6 +308,18 @@ pub fn register_builtins(env: &mut Environment) {
     // Add filesystem builtins (native only)
     #[cfg(feature = "native")]
     for (name, arity) in crate::fs::fs_builtin_list() {
+        builtins.push((name, arity));
+    }
+
+    // Named reference genome builds (native only: the registry is a file).
+    #[cfg(feature = "native")]
+    for (name, arity) in crate::references::reference_builtin_list() {
+        builtins.push((name, arity));
+    }
+
+    // Inline Python and R (native only: both spawn an interpreter).
+    #[cfg(feature = "native")]
+    for (name, arity) in crate::interop::interop_builtin_list() {
         builtins.push((name, arity));
     }
 
@@ -978,6 +1052,12 @@ pub fn all_builtin_names() -> Vec<&'static str> {
         for (n, _) in crate::fs::fs_builtin_list() {
             names.push(n);
         }
+        for (n, _) in crate::references::reference_builtin_list() {
+            names.push(n);
+        }
+        for (n, _) in crate::interop::interop_builtin_list() {
+            names.push(n);
+        }
         for (n, _) in crate::http::http_builtin_list() {
             names.push(n);
         }
@@ -1126,11 +1206,13 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "print" => {
             let parts: Vec<String> = args.iter().map(|a| format_for_print(a)).collect();
             write_output(&parts.join(" "));
+            observe_display(&args);
             Ok(Value::Nil)
         }
         "println" => {
             let parts: Vec<String> = args.iter().map(|a| format_for_print(a)).collect();
             write_output(&format!("{}\n", parts.join(" ")));
+            observe_display(&args);
             Ok(Value::Nil)
         }
         "len" => match &args[0] {
@@ -1287,7 +1369,18 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 None,
             )),
         },
-        "str" | "to_string" => Ok(Value::Str(format!("{}", args[0]))),
+        // str() converts to a string, so a sequence yields its residues.
+        //
+        // It used to defer to Display, which renders `dna"ACGT"` as "DNA(ACGT)"
+        // to show the type. That is useful when printing a value on its own,
+        // but as a conversion it is a trap: `substr(str(seq), ...)` silently
+        // sliced the wrapper, and printed results disagreed with the expected
+        // values beside them. Display is unchanged, so `println(seq)` still
+        // reports the type.
+        "str" | "to_string" => Ok(Value::Str(match &args[0] {
+            Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) => seq.data.clone(),
+            other => format!("{other}"),
+        })),
         "bool" => Ok(Value::Bool(args[0].is_truthy())),
         "parse_json" => {
             let s = match &args[0] {
@@ -2568,8 +2661,21 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 // Delegate to table_ops concat which supports variadic
                 crate::table_ops::call_table_builtin("concat", args)
             }
+            // Building a longer sequence from parts is the obvious reading of
+            // concat() on two sequences, and what the tutorials assume. Joining
+            // different alphabets is a mistake rather than a coercion, so the
+            // mixed cases fall through to the error below.
+            (Value::DNA(a), Value::DNA(b)) => Ok(Value::DNA(bl_core::value::BioSequence {
+                data: format!("{}{}", a.data, b.data),
+            })),
+            (Value::RNA(a), Value::RNA(b)) => Ok(Value::RNA(bl_core::value::BioSequence {
+                data: format!("{}{}", a.data, b.data),
+            })),
+            (Value::Protein(a), Value::Protein(b)) => Ok(Value::Protein(bl_core::value::BioSequence {
+                data: format!("{}{}", a.data, b.data),
+            })),
             _ => Err(BioLangError::type_error(
-                "concat() requires two Lists, Strs, or Tables",
+                "concat() requires two Lists, Strs, Tables, or two sequences of the same kind",
                 None,
             )),
         },
@@ -2896,6 +3002,14 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         _ if crate::json::is_json_builtin(name) => crate::json::call_json_builtin(name, args),
         #[cfg(feature = "native")]
         _ if crate::fs::is_fs_builtin(name) => crate::fs::call_fs_builtin(name, args),
+        #[cfg(feature = "native")]
+        _ if crate::references::is_reference_builtin(name) => {
+            crate::references::call_reference_builtin(name, args)
+        }
+        #[cfg(feature = "native")]
+        _ if crate::interop::is_interop_builtin(name) => {
+            crate::interop::call_interop_builtin(name, args)
+        }
         #[cfg(feature = "native")]
         _ if crate::http::is_http_builtin(name) => crate::http::call_http_builtin(name, args),
         _ if crate::regex_ops::is_regex_builtin(name) => {

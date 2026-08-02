@@ -2189,3 +2189,57 @@ if x > 0 { "pos" } else { "neg" }
 "#,
     );
 }
+
+// ============================================================
+// Reserved words are named as such
+//
+// `from`, `to`, `end`, `match` and `where` all read as ordinary variable
+// names, and the parser used to reject them with "expected identifier" —
+// which sends the reader hunting for a typo that is not there.
+// ============================================================
+
+fn parse_error_text(input: &str) -> String {
+    let tokens = Lexer::new(input).tokenize().unwrap();
+    let result = Parser::new(tokens).parse().unwrap();
+    result
+        .errors
+        .iter()
+        .map(|e| format!("{e}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn reserved_words_say_they_are_reserved() {
+    for word in ["from", "end", "match", "where", "as", "in"] {
+        let text = parse_error_text(&format!("let {word} = 1"));
+        assert!(
+            text.contains("reserved word"),
+            "`{word}` should report as reserved, got: {text}"
+        );
+        assert!(
+            text.contains(word),
+            "the message should name `{word}`, got: {text}"
+        );
+    }
+}
+
+#[test]
+fn reserved_word_errors_suggest_a_way_out() {
+    let text = parse_error_text("let from = 1");
+    assert!(
+        text.contains("from_"),
+        "expected a rename suggestion, got: {text}"
+    );
+}
+
+#[test]
+fn ordinary_names_are_still_accepted() {
+    // Guards against the keyword list swallowing normal identifiers.
+    for name in ["source", "target", "start", "finish", "matched"] {
+        assert!(
+            !parse_has_errors(&format!("let {name} = 1")),
+            "`{name}` should be a usable name"
+        );
+    }
+}

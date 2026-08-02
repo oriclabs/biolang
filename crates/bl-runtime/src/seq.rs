@@ -58,7 +58,13 @@ pub fn seq_builtin_list() -> Vec<(&'static str, Arity)> {
         ("windows", Arity::Range(2, 3)),
         ("gc_skew", Arity::Range(1, 2)),
         ("restriction_sites", Arity::Exact(2)),
-        ("align", Arity::Range(2, 6)),
+        ("align", Arity::Range(2, 7)),
+        // Pure string distances. They also exist in bl-bio's compatibility
+        // layer, but that crate is native-only, which left the browser build
+        // without two primitives that need nothing native.
+        ("hamming_distance", Arity::Exact(2)),
+        ("edit_distance", Arity::Exact(2)),
+        ("score_matrix", Arity::Exact(1)),
         ("consensus", Arity::Exact(1)),
         ("entropy", Arity::Range(1, 3)),
         ("iupac_match", Arity::Exact(2)),
@@ -119,6 +125,9 @@ pub fn is_seq_builtin(name: &str) -> bool {
             | "gc_skew"
             | "restriction_sites"
             | "align"
+            | "hamming_distance"
+            | "edit_distance"
+            | "score_matrix"
             | "consensus"
             | "entropy"
             | "iupac_match"
@@ -634,6 +643,9 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "gc_skew" => builtin_gc_skew(args),
         "restriction_sites" => builtin_restriction_sites(args),
         "align" => builtin_align(args),
+        "hamming_distance" => builtin_hamming_distance(args),
+        "edit_distance" => builtin_edit_distance(args),
+        "score_matrix" => builtin_score_matrix(args),
         "consensus" => builtin_consensus(args),
         "entropy" => builtin_entropy(args),
         "iupac_match" => builtin_iupac_match(args),
@@ -3880,9 +3892,155 @@ fn builtin_restriction_sites(args: Vec<Value>) -> Result<Value> {
     Ok(Value::List((all_hits).into()))
 }
 
+// ── hamming_distance(a, b) / edit_distance(a, b) ─────────────────────
+//
+// These live here rather than only in bl-bio so the browser build has them:
+// the logic is pure string comparison, but bl-bio is gated behind the `native`
+// feature as a whole because of its filesystem and matrix dependencies.
+//
+// Because bl-runtime is consulted before bl-bio, this is now the implementation
+// the native build uses too, so it deliberately mirrors bl-bio's argument
+// handling rather than reusing `get_seq_data_or_str`: that helper upper-cases
+// Str, which would change the length-mismatch error text for a lower-case
+// input. Case folding belongs to `bio_core`, which compares ASCII-insensitively.
+
+fn distance_arg(val: &Value, func: &str) -> Result<String> {
+    match val {
+        Value::Str(s) => Ok(s.clone()),
+        Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) => Ok(seq.data.clone()),
+        other => Err(BioLangError::type_error(
+            format!(
+                "{func}() requires Str/DNA/RNA/Protein, got {}",
+                other.type_of()
+            ),
+            None,
+        )),
+    }
+}
+
+fn builtin_hamming_distance(args: Vec<Value>) -> Result<Value> {
+    let seq1 = distance_arg(&args[0], "hamming_distance")?;
+    let seq2 = distance_arg(&args[1], "hamming_distance")?;
+    let distance = bl_core::bio_core::alignment::hamming_distance(&seq1, &seq2)
+        .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None))?;
+    Ok(Value::Int(distance as i64))
+}
+
+fn builtin_edit_distance(args: Vec<Value>) -> Result<Value> {
+    let seq1 = distance_arg(&args[0], "edit_distance")?;
+    let seq2 = distance_arg(&args[1], "edit_distance")?;
+    Ok(Value::Int(
+        bl_core::bio_core::alignment::edit_distance(&seq1, &seq2) as i64,
+    ))
+}
+
+/// score_matrix(name) — BLOSUM62, PAM250 or BLOSUM45 as a named 20x20 matrix.
+///
+/// Here rather than only in bl-bio for the same reason as the distances above:
+/// the substitution tables are static data in `bio_core`, so nothing about them
+/// needs the native feature, and the browser build was missing them.
+fn builtin_score_matrix(args: Vec<Value>) -> Result<Value> {
+    use bl_core::bio_core::alignment::{scoring_matrix, AA_ORDER};
+
+    let name = match &args[0] {
+        Value::Str(s) => s.as_str(),
+        other => {
+            return Err(BioLangError::type_error(
+                format!("score_matrix() requires Str, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+
+    let matrix = scoring_matrix(name).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "score_matrix() unknown matrix '{name}', expected 'blosum62', 'pam250', or 'blosum45'"
+            ),
+            None,
+        )
+    })?;
+
+    let data: Vec<f64> = matrix
+        .iter()
+        .flat_map(|row| row.iter().map(|&v| v as f64))
+        .collect();
+    let mut m = bl_core::matrix::Matrix::new(data, 20, 20)
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+
+    let residues: Vec<String> = AA_ORDER.iter().map(|&b| (b as char).to_string()).collect();
+    m.row_names = Some(residues.clone());
+    m.col_names = Some(residues);
+
+    Ok(Value::Matrix(m))
+}
+
 // ── align(a, b, mode="global", match_score=2, mismatch=-1, gap=-2) ───
 
+/// align(a, b, mode="global", match=2, mismatch=-1, gap=-2, gap_open=0)
+///
+/// Delegates to `bio_core::alignment::align`, which implements affine gaps with
+/// the usual three matrices. This builtin previously carried its own linear-gap
+/// DP, so the affine implementation already in the tree was unreachable from
+/// BioLang and `result.gaps` — part of the core's result — did not exist.
+///
+/// `gap` is the per-residue extension penalty and `gap_open` the additional
+/// cost of starting a gap. `gap_open` defaults to 0, which makes a gap of
+/// length L cost `L * gap` exactly as the previous linear scoring did, so
+/// existing callers are unaffected.
 fn builtin_align(args: Vec<Value>) -> Result<Value> {
+    use bl_core::bio_core::alignment::{align as core_align, AlignMode, AlignParams};
+
+    let seq_a = get_seq_data_or_str(&args[0], "align")?;
+    let seq_b = get_seq_data_or_str(&args[1], "align")?;
+
+    let mode = if args.len() > 2 {
+        match &args[2] {
+            Value::Str(s) => s.to_lowercase(),
+            _ => "global".to_string(),
+        }
+    } else {
+        "global".to_string()
+    };
+
+    let arg_int = |index: usize, fallback: i64| -> Result<i64> {
+        if args.len() > index {
+            require_int(&args[index], "align")
+        } else {
+            Ok(fallback)
+        }
+    };
+
+    let params = AlignParams {
+        match_score: arg_int(3, 2)? as i32,
+        mismatch_score: arg_int(4, -1)? as i32,
+        gap_extend: arg_int(5, -2)? as i32,
+        gap_open: arg_int(6, 0)? as i32,
+        mode: match mode.as_str() {
+            "local" | "sw" => AlignMode::Local,
+            _ => AlignMode::Global,
+        },
+    };
+
+    let result = core_align(&seq_a, &seq_b, &params);
+
+    let mut fields = HashMap::new();
+    fields.insert("score".to_string(), Value::Int(result.score as i64));
+    fields.insert("identity".to_string(), Value::Float(result.identity));
+    fields.insert("gaps".to_string(), Value::Int(result.gaps as i64));
+    fields.insert("cigar".to_string(), Value::Str(result.cigar));
+    // Both spellings: `aligned_a`/`aligned_b` is what this builtin has always
+    // returned, `aligned1`/`aligned2` is what the core calls them.
+    fields.insert("aligned_a".to_string(), Value::Str(result.aligned1.clone()));
+    fields.insert("aligned_b".to_string(), Value::Str(result.aligned2.clone()));
+    fields.insert("aligned1".to_string(), Value::Str(result.aligned1));
+    fields.insert("aligned2".to_string(), Value::Str(result.aligned2));
+    return Ok(Value::Record((fields).into()));
+}
+
+#[allow(dead_code)]
+fn builtin_align_legacy(args: Vec<Value>) -> Result<Value> {
     let seq_a = get_seq_data_or_str(&args[0], "align")?;
     let seq_b = get_seq_data_or_str(&args[1], "align")?;
 

@@ -1779,6 +1779,14 @@ fn val_to_i64(val: &Value, func: &str, field: &str) -> Result<i64> {
 /// For fasta/fastq: check if user explicitly passed {stream: false} to get table mode.
 fn wants_no_stream(args: &[Value]) -> bool {
     if args.len() > 1 {
+        // `fasta(path, "table")` is the form the quickstart, the tutorials, and
+        // the docs all use — ten call sites against two for the record form.
+        // Only the record was ever implemented, so the string was accepted and
+        // silently ignored, handing back a Stream to code that then called
+        // nrow() on it.
+        if let Value::Str(mode) = &args[1] {
+            return mode.eq_ignore_ascii_case("table");
+        }
         if let Value::Record(opts) = &args[1] {
             if let Some(v) = opts.get("stream") {
                 return !v.is_truthy();
@@ -1794,6 +1802,10 @@ fn wants_no_stream(args: &[Value]) -> bool {
 
 fn wants_stream(args: &[Value]) -> bool {
     if args.len() > 1 {
+        // Mirror of the string form accepted by `wants_no_stream`.
+        if let Value::Str(mode) = &args[1] {
+            return mode.eq_ignore_ascii_case("stream");
+        }
         if let Value::Record(opts) = &args[1] {
             return opts.get("stream").map(|v| v.is_truthy()).unwrap_or(false);
         }
