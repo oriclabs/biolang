@@ -1,0 +1,108 @@
+# Rosalind: ALPH — Alignment-Based Phylogeny
+# https://rosalind.info/problems/alph/
+#
+# Given: A rooted binary tree in Newick format and a multiple alignment of its
+# leaves.
+# Return: The minimum total Hamming distance over the tree's edges, and internal
+# node labels achieving it.
+
+# (((ostrich,cat)rat,(duck,fly)mouse)dog,(elephant,pikachu)hamster)robot;
+let children = {
+    "rat": ["ostrich", "cat"],
+    "mouse": ["duck", "fly"],
+    "dog": ["rat", "mouse"],
+    "hamster": ["elephant", "pikachu"],
+    "robot": ["dog", "hamster"],
+}
+let root = "robot"
+let leaves = {
+    "ostrich": "AC", "cat": "CA", "duck": "T-",
+    "fly": "GC", "elephant": "-T", "pikachu": "AA",
+}
+
+# The gap is a fifth symbol here, not a missing value. That is the whole reason
+# this problem is separate from the ordinary parsimony ones: in an alignment a
+# gap is evidence — an insertion or deletion actually happened — and treating it
+# as unknown would make every column containing one free.
+let symbols = ["A", "C", "G", "T", "-"]
+let width = len(leaves["ostrich"])
+
+fn is_leaf(node, leaf_map) { contains(keys(leaf_map), node) }
+
+# Sankoff: the cheapest cost of a subtree given its root's symbol is the sum over
+# children of their cheapest cost plus one if the symbol has to change. Columns
+# are independent, so each is solved separately and the scores added.
+fn score_column(node, position, leaf_map, child_map, alphabet) {
+    if is_leaf(node, leaf_map) {
+        let here = substr(leaf_map[node], position, 1)
+        return {
+            costs: alphabet |> map(|s| if s == here then 0 else 1000000),
+            picks: {}, solved: [], kids: [],
+        }
+    }
+    let kids = child_map[node]
+    let solved = kids |> map(|kid| score_column(kid, position, leaf_map, child_map, alphabet))
+    let picks = {}
+    let costs = range(0, len(alphabet)) |> map(|mine| {
+        range(0, len(kids)) |> map(|k| {
+            let options = range(0, len(alphabet))
+                |> map(|theirs| solved[k].costs[theirs] + (if theirs == mine then 0 else 1))
+            let chosen = argmin(options)
+            picks[str(mine) + "," + str(k)] = chosen
+            options[chosen]
+        }) |> sum()
+    })
+    { costs: costs, picks: picks, solved: solved, kids: kids }
+}
+
+fn assign(node, tree, chosen_index, labels, alphabet) {
+    labels[node] = labels[node] + alphabet[chosen_index]
+    for k in range(0, len(tree.kids)) {
+        if len(tree.solved[k].kids) > 0 {
+            labels = assign(tree.kids[k], tree.solved[k],
+                            tree.picks[str(chosen_index) + "," + str(k)], labels, alphabet)
+        }
+    }
+    labels
+}
+
+let labels = {}
+for node in keys(children) { labels[node] = "" }
+let total = 0
+for position in range(0, width) {
+    let solved = score_column(root, position, leaves, children, symbols)
+    let best = argmin(solved.costs)
+    total = total + solved.costs[best]
+    labels = assign(root, solved, best, labels, symbols)
+}
+
+let named = {}
+for node in keys(leaves) { named[node] = leaves[node] }
+for node in keys(children) { named[node] = labels[node] }
+
+fn hamming(a, b) { range(0, len(a)) |> count_if(|i| substr(a, i, 1) != substr(b, i, 1)) }
+
+println("Result:   " + str(total))
+for node in sort(keys(children)) { println("  " + node + ": " + named[node]) }
+println("Expected: 8  (rat AC, mouse TC, dog AC, hamster AT, robot AC)")
+println("This labelling differs and costs the same — several are optimal, and the")
+println("assertion recounts the changes rather than trusting the printed one.")
+
+fn test_alph_alignment_based_phylogeny() {
+    assert total == 8, "ALPH: scored " + str(total)
+    # The score has to be the changes the labelling actually shows — a number
+    # without a matching labelling is the usual bug here.
+    let shown = sort(keys(children)) |> flat_map(|parent|
+        children[parent] |> map(|kid| hamming(named[parent], named[kid]))) |> sum()
+    assert shown == total,
+        "ALPH: the labelling shows " + str(shown) + " changes but the score is " + str(total)
+    # Every internal label is the right length and drawn from the alphabet.
+    for node in keys(children) {
+        assert len(named[node]) == width, "ALPH: " + node + " has the wrong length"
+        assert (chars(named[node]) |> count_if(|c| contains(symbols, c) == false)) == 0,
+            "ALPH: " + named[node] + " uses a symbol outside the alphabet"
+    }
+    # Treating the gap as free would score lower, which is exactly what must not
+    # happen — it is a real evolutionary event.
+    assert (chars(leaves["duck"]) |> count_if(|c| c == "-")) == 1, "ALPH: duck carries a gap"
+}

@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Every problem</h1>
-        <p class="text-lg text-slate-400 mb-6">All 85 problems from
+        <p class="text-lg text-slate-400 mb-6">All 93 problems from
         <a href="../rosalind-stronghold.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Stronghold</a>.
         Press <strong>Run</strong> on any block to execute it in your browser. Every problem is on this page, so it is large and takes a moment to settle — the sections are lighter.</p>
 
@@ -118,6 +118,14 @@
           <a href="#smgb" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Semiglobal Alignment">SMGB</a>
           <a href="#mgap" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Maximizing the Gap Symbols of an Optimal Alignment">MGAP</a>
           <a href="#cstr" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Creating a Character Table from Genetic Strings">CSTR</a>
+          <a href="#suff" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Encoding Suffix Trees">SUFF</a>
+          <a href="#sgra" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Using the Spectrum Graph to Infer Peptides">SGRA</a>
+          <a href="#full" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Inferring Peptide from Full Spectrum">FULL</a>
+          <a href="#alph" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Alignment-Based Phylogeny">ALPH</a>
+          <a href="#gasm" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Genome Assembly Using Reads">GASM</a>
+          <a href="#mult" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Multiple Alignment">MULT</a>
+          <a href="#grep" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Genome Assembly with Perfect Coverage and Repeats">GREP</a>
+          <a href="#mprt" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Finding a Protein Motif">MPRT</a>
         </nav>
 
         <section id="dna" class="mt-12">
@@ -4705,6 +4713,811 @@ fn test_cstr_character_table() {
     }
     assert characters[0] == &quot;10110&quot; or flipped(characters[0]) == &quot;10110&quot;, &quot;CSTR: first row &quot; + characters[0]
     assert characters[1] == &quot;10100&quot; or flipped(characters[1]) == &quot;10100&quot;, &quot;CSTR: second row &quot; + characters[1]
+}</code></pre>
+        </section>
+
+        <section id="suff" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">SUFF &mdash; Encoding Suffix Trees</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/suff/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SUFF" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="suff.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Built from the suffix array and LCP array rather than by collapsing a trie. Both give the same tree; a trie of all suffixes has O(n^2) nodes first, whereas the arrays are linear — which is why aligners store the arrays and never materialise the tree.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: SUFF — Encoding Suffix Trees
+# https://rosalind.info/problems/suff/
+#
+# Given: A DNA string s ending in $.
+# Return: The substrings labelling the edges of the suffix tree of s.
+
+let text = &quot;ATAAATG$&quot;
+
+# Built from the suffix array and its LCP array rather than by inserting every
+# suffix into a trie and collapsing it. Both give the same tree; the difference
+# is cost. A trie of all suffixes has O(n^2) nodes before anything is collapsed,
+# whereas the two arrays are linear in the text and the tree can be read off them
+# in a single left-to-right pass.
+#
+# That is why aligners store the arrays and never materialise the tree: for a
+# human genome the tree does not fit, and the arrays do.
+let sa = suffix_array(text)
+let lcp = lcp_array(text)
+
+# A leaf hangs from the deeper of what its suffix shares with either neighbour,
+# so its edge is whatever is left of the suffix below that depth.
+let leaf_labels = range(0, len(sa)) |&gt; map(|i| {
+    let before = if i == 0 then 0 else lcp[i]
+    let after = if i + 1 &lt; len(sa) then lcp[i + 1] else 0
+    let depth = max([before, after])
+    substr(text, sa[i] + depth, len(text) - sa[i] - depth)
+})
+
+# Internal nodes come from the LCP array alone: a run of suffixes sharing a
+# prefix of length L hangs off one node at depth L. A stack tracks which are
+# still open as the array is scanned.
+let internal_labels = []
+let stack = [{ depth: 0, start: 0 }]
+for i in range(1, len(sa)) {
+    let shared = lcp[i]
+    let last_start = sa[i]
+    while stack[len(stack) - 1].depth &gt; shared {
+        let closing = stack[len(stack) - 1]
+        stack = slice(stack, 0, len(stack) - 1)
+        let parent_depth = max([stack[len(stack) - 1].depth, shared])
+        internal_labels = push(internal_labels,
+            substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+        last_start = closing.start
+    }
+    if stack[len(stack) - 1].depth &lt; shared {
+        stack = push(stack, { depth: shared, start: last_start })
+    }
+}
+while len(stack) &gt; 1 {
+    let closing = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    let parent_depth = stack[len(stack) - 1].depth
+    internal_labels = push(internal_labels,
+        substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+}
+
+let labels = leaf_labels + internal_labels
+
+println(&quot;Result:   &quot; + join(sort(labels), &quot; &quot;))
+println(&quot;Expected (any order): AAATG$ G$ T ATG$ TG$ A A AAATG$ G$ T G$ $&quot;)
+
+fn test_suff_encoding_suffix_trees() {
+    let expected = [&quot;AAATG$&quot;, &quot;G$&quot;, &quot;T&quot;, &quot;ATG$&quot;, &quot;TG$&quot;, &quot;A&quot;, &quot;A&quot;, &quot;AAATG$&quot;, &quot;G$&quot;, &quot;T&quot;, &quot;G$&quot;, &quot;$&quot;]
+    assert sort(labels) == sort(expected), &quot;SUFF: got &quot; + join(sort(labels), &quot; &quot;)
+    # One leaf per suffix, each reaching the sentinel.
+    assert len(leaf_labels) == len(text), &quot;SUFF: one leaf per suffix&quot;
+    for label in leaf_labels {
+        assert substr(label, len(label) - 1, 1) == &quot;$&quot;, &quot;SUFF: a leaf edge must reach the end&quot;
+    }
+    # Every label is a real substring, and the whole tree spells every suffix.
+    for label in labels {
+        assert contains(text, label), &quot;SUFF: &quot; + label + &quot; is not in the text&quot;
+    }
+    # Concatenating the edges costs less than storing the suffixes outright —
+    # which is the saving a suffix tree exists for.
+    let edge_characters = labels |&gt; map(|l| len(l)) |&gt; sum()
+    let all_suffixes = range(0, len(text)) |&gt; map(|i| len(text) - i) |&gt; sum()
+    assert edge_characters &lt; all_suffixes,
+        &quot;SUFF: the tree should be smaller than the suffixes it encodes&quot;
+}</code></pre>
+        </section>
+
+        <section id="sgra" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">SGRA &mdash; Using the Spectrum Graph to Infer Peptides</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/sgra/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SGRA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="sgra.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Monoisotopic masses, so differences are matched within a tolerance rather than exactly. The graph is a DAG since masses only increase, so the longest path is one scan in sorted order instead of an exponential search.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: SGRA — Using the Spectrum Graph to Infer Peptides
+# https://rosalind.info/problems/sgra/
+#
+# Given: A list of positive real numbers (a spectrum).
+# Return: The longest protein string matching the spectrum graph.
+
+let spectrum = [
+    3524.8542, 3623.5245, 3710.9335, 3841.974, 3929.00603,
+    3970.0326, 4026.05879, 4057.0646, 4083.08025,
+]
+
+# Monoisotopic masses, not the integer table the cyclopeptide problems use.
+# Real instrument readings carry decimals, so a difference is matched within a
+# tolerance rather than exactly — 1e-4 here, which is far tighter than the gap
+# between any two residue masses and far looser than float noise.
+let monoisotopic = {
+    A: 71.03711,  C: 103.00919, D: 115.02694, E: 129.04259, F: 147.06841,
+    G: 57.02146,  H: 137.05891, I: 113.08406, K: 128.09496, L: 113.08406,
+    M: 131.04049, N: 114.04293, P: 97.05276,  Q: 128.05858, R: 156.10111,
+    S: 87.03203,  T: 101.04768, V: 99.06841,  W: 186.07931, Y: 163.06333
+}
+let tolerance = 0.0001
+
+# Where L and I collide exactly, and K and Q nearly do, take the first — a
+# spectrum cannot separate them, so naming either is equally correct.
+let residues = [&quot;G&quot;, &quot;A&quot;, &quot;S&quot;, &quot;P&quot;, &quot;V&quot;, &quot;T&quot;, &quot;C&quot;, &quot;L&quot;, &quot;N&quot;, &quot;D&quot;,
+                &quot;Q&quot;, &quot;K&quot;, &quot;E&quot;, &quot;M&quot;, &quot;H&quot;, &quot;F&quot;, &quot;R&quot;, &quot;Y&quot;, &quot;W&quot;]
+
+fn residue_between(lighter, heavier, table, letters, slack) {
+    let gap = heavier - lighter
+    let hits = letters |&gt; filter(|letter| abs(table[letter] - gap) &lt; slack)
+    if len(hits) &gt; 0 then hits[0] else &quot;&quot;
+}
+
+# The graph is a DAG — masses only increase — so the longest path is found by
+# scanning in sorted order and never revisiting a node. Searching the paths
+# themselves would be exponential; here each node is settled once, from the best
+# way of reaching it.
+let ordered = sort(spectrum)
+let best = ordered |&gt; map(|_| &quot;&quot;)
+# Where each best path began, so the answer's mass can be checked against the
+# span it was actually read across. The path skips nodes, so this cannot be
+# recovered by counting backwards from the end.
+let origin = range(0, len(ordered))
+
+for j in range(0, len(ordered)) {
+    for i in range(0, j) {
+        let letter = residue_between(ordered[i], ordered[j], monoisotopic, residues, tolerance)
+        if letter != &quot;&quot; and len(best[i]) + 1 &gt; len(best[j]) {
+            best[j] = best[i] + letter
+            origin[j] = origin[i]
+        }
+    }
+}
+
+let finish = argmax(best |&gt; map(|s| len(s)))
+let answer = best[finish]
+
+println(&quot;Result:   &quot; + answer)
+println(&quot;Expected: WMSPG&quot;)
+
+fn test_sgra_spectrum_graph() {
+    assert answer == &quot;WMSPG&quot;, &quot;SGRA: got &quot; + answer
+    # Every residue of the answer must be a real gap between two spectrum values.
+    assert len(answer) == 5, &quot;SGRA: expected a 5-residue peptide&quot;
+    # The peptide's own mass is the span it was read across.
+    let peptide_mass = chars(answer) |&gt; map(|c| monoisotopic[c]) |&gt; sum()
+    let span = ordered[finish] - ordered[origin[finish]]
+    assert abs(peptide_mass - span) &lt; len(answer) * tolerance,
+        &quot;SGRA: the peptide weighs &quot; + str(round(peptide_mass, 4))
+            + &quot; but spans &quot; + str(round(span, 4))
+    # Nothing longer exists in the graph.
+    for candidate in best {
+        assert len(candidate) &lt;= len(answer), &quot;SGRA: a longer path was missed&quot;
+    }
+}</code></pre>
+        </section>
+
+        <section id="full" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">FULL &mdash; Inferring Peptide from Full Spectrum</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/full/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=FULL" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="full.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A peptide fragments from both ends at once, so a b-ion and its y-ion sum to the parent mass and the list mixes them unlabelled. It does not matter which is which — taking an ion spends its complement, since a prefix and its suffix are one event and cannot both extend the chain.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: FULL — Inferring Peptide from Full Spectrum
+# https://rosalind.info/problems/full/
+#
+# Given: 2n+3 positive reals — a parent mass, then the b-ions and y-ions of a
+# peptide of length n, in no particular order.
+# Return: A protein string of length n consistent with them.
+
+let parent_mass = 1988.21104821
+let ions = [
+    610.391039105, 738.485999105, 766.492149105, 863.544909105,
+    867.528589105, 992.587499105, 995.623549105, 1120.6824591,
+    1124.6661391, 1221.7188991, 1249.7250491, 1377.8200091,
+]
+
+let monoisotopic = {
+    A: 71.03711,  C: 103.00919, D: 115.02694, E: 129.04259, F: 147.06841,
+    G: 57.02146,  H: 137.05891, I: 113.08406, K: 128.09496, L: 113.08406,
+    M: 131.04049, N: 114.04293, P: 97.05276,  Q: 128.05858, R: 156.10111,
+    S: 87.03203,  T: 101.04768, V: 99.06841,  W: 186.07931, Y: 163.06333
+}
+let residues = [&quot;G&quot;, &quot;A&quot;, &quot;S&quot;, &quot;P&quot;, &quot;V&quot;, &quot;T&quot;, &quot;C&quot;, &quot;L&quot;, &quot;N&quot;, &quot;D&quot;,
+                &quot;Q&quot;, &quot;K&quot;, &quot;E&quot;, &quot;M&quot;, &quot;H&quot;, &quot;F&quot;, &quot;R&quot;, &quot;Y&quot;, &quot;W&quot;]
+let tolerance = 0.001
+
+# A peptide fragments from both ends at once. A b-ion is a prefix, a y-ion the
+# matching suffix, so the two always sum to the parent mass — and the list mixes
+# them with no labels saying which is which.
+#
+# The trick is that it does not matter. Walk upwards from the lightest ion; the
+# next ion differing from it by a residue mass is the next prefix, whichever kind
+# it nominally is. Taking an ion also spends its complement, since a prefix and
+# its suffix are one fragmentation event and cannot both extend the chain.
+let ordered = sort(ions)
+let used = ordered |&gt; map(|_| false)
+
+fn residue_between(lighter, heavier, table, letters, slack) {
+    let gap = heavier - lighter
+    let hits = letters |&gt; filter(|letter| abs(table[letter] - gap) &lt; slack)
+    if len(hits) &gt; 0 then hits[0] else &quot;&quot;
+}
+
+fn index_of_mass(masses, wanted, slack) {
+    let hits = range(0, len(masses)) |&gt; filter(|i| abs(masses[i] - wanted) &lt; slack)
+    if len(hits) &gt; 0 then hits[0] else 0 - 1
+}
+
+fn spend(marks, masses, at, total, slack) {
+    marks[at] = true
+    let partner = index_of_mass(masses, total - masses[at], slack)
+    if partner &gt;= 0 { marks[partner] = true }
+    marks
+}
+
+let peptide = &quot;&quot;
+let current = 0
+used = spend(used, ordered, current, parent_mass, tolerance)
+
+let searching = true
+while searching {
+    let onward = range(current + 1, len(ordered))
+        |&gt; filter(|j| used[j] == false
+                  and residue_between(ordered[current], ordered[j],
+                                      monoisotopic, residues, tolerance) != &quot;&quot;)
+    if len(onward) == 0 {
+        searching = false
+    } else {
+        let next_index = onward[0]
+        peptide = peptide + residue_between(ordered[current], ordered[next_index],
+                                            monoisotopic, residues, tolerance)
+        used = spend(used, ordered, next_index, parent_mass, tolerance)
+        current = next_index
+    }
+}
+
+println(&quot;Result:   &quot; + peptide)
+println(&quot;Expected: KEKEP&quot;)
+
+fn test_full_inferring_peptide_from_full_spectrum() {
+    assert peptide == &quot;KEKEP&quot;, &quot;FULL: got &quot; + peptide
+    # n is fixed by the input's size, and the answer has to match it.
+    let n = (len(ions) + 1 - 3) / 2
+    assert len(peptide) == n, &quot;FULL: expected &quot; + str(n) + &quot; residues&quot;
+    # Every ion pairs with another summing to the parent mass — the property that
+    # makes b-ions and y-ions indistinguishable here, and the reason taking one
+    # spends the other.
+    for mass in ordered {
+        let partner = index_of_mass(ordered, parent_mass - mass, tolerance)
+        assert partner &gt;= 0, &quot;FULL: &quot; + str(round(mass, 4)) + &quot; has no complement&quot;
+    }
+    assert len(ordered) % 2 == 0, &quot;FULL: the ions must pair up&quot;
+}</code></pre>
+        </section>
+
+        <section id="alph" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">ALPH &mdash; Alignment-Based Phylogeny</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/alph/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ALPH" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="alph.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Small parsimony with the gap as a fifth symbol rather than a missing value — in an alignment a gap is evidence that an indel happened, and treating it as unknown would make every column containing one free. Finds a different labelling of equal score, so the assertion recounts the changes.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: ALPH — Alignment-Based Phylogeny
+# https://rosalind.info/problems/alph/
+#
+# Given: A rooted binary tree in Newick format and a multiple alignment of its
+# leaves.
+# Return: The minimum total Hamming distance over the tree's edges, and internal
+# node labels achieving it.
+
+# (((ostrich,cat)rat,(duck,fly)mouse)dog,(elephant,pikachu)hamster)robot;
+let children = {
+    &quot;rat&quot;: [&quot;ostrich&quot;, &quot;cat&quot;],
+    &quot;mouse&quot;: [&quot;duck&quot;, &quot;fly&quot;],
+    &quot;dog&quot;: [&quot;rat&quot;, &quot;mouse&quot;],
+    &quot;hamster&quot;: [&quot;elephant&quot;, &quot;pikachu&quot;],
+    &quot;robot&quot;: [&quot;dog&quot;, &quot;hamster&quot;],
+}
+let root = &quot;robot&quot;
+let leaves = {
+    &quot;ostrich&quot;: &quot;AC&quot;, &quot;cat&quot;: &quot;CA&quot;, &quot;duck&quot;: &quot;T-&quot;,
+    &quot;fly&quot;: &quot;GC&quot;, &quot;elephant&quot;: &quot;-T&quot;, &quot;pikachu&quot;: &quot;AA&quot;,
+}
+
+# The gap is a fifth symbol here, not a missing value. That is the whole reason
+# this problem is separate from the ordinary parsimony ones: in an alignment a
+# gap is evidence — an insertion or deletion actually happened — and treating it
+# as unknown would make every column containing one free.
+let symbols = [&quot;A&quot;, &quot;C&quot;, &quot;G&quot;, &quot;T&quot;, &quot;-&quot;]
+let width = len(leaves[&quot;ostrich&quot;])
+
+fn is_leaf(node, leaf_map) { contains(keys(leaf_map), node) }
+
+# Sankoff: the cheapest cost of a subtree given its root's symbol is the sum over
+# children of their cheapest cost plus one if the symbol has to change. Columns
+# are independent, so each is solved separately and the scores added.
+fn score_column(node, position, leaf_map, child_map, alphabet) {
+    if is_leaf(node, leaf_map) {
+        let here = substr(leaf_map[node], position, 1)
+        return {
+            costs: alphabet |&gt; map(|s| if s == here then 0 else 1000000),
+            picks: {}, solved: [], kids: [],
+        }
+    }
+    let kids = child_map[node]
+    let solved = kids |&gt; map(|kid| score_column(kid, position, leaf_map, child_map, alphabet))
+    let picks = {}
+    let costs = range(0, len(alphabet)) |&gt; map(|mine| {
+        range(0, len(kids)) |&gt; map(|k| {
+            let options = range(0, len(alphabet))
+                |&gt; map(|theirs| solved[k].costs[theirs] + (if theirs == mine then 0 else 1))
+            let chosen = argmin(options)
+            picks[str(mine) + &quot;,&quot; + str(k)] = chosen
+            options[chosen]
+        }) |&gt; sum()
+    })
+    { costs: costs, picks: picks, solved: solved, kids: kids }
+}
+
+fn assign(node, tree, chosen_index, labels, alphabet) {
+    labels[node] = labels[node] + alphabet[chosen_index]
+    for k in range(0, len(tree.kids)) {
+        if len(tree.solved[k].kids) &gt; 0 {
+            labels = assign(tree.kids[k], tree.solved[k],
+                            tree.picks[str(chosen_index) + &quot;,&quot; + str(k)], labels, alphabet)
+        }
+    }
+    labels
+}
+
+let labels = {}
+for node in keys(children) { labels[node] = &quot;&quot; }
+let total = 0
+for position in range(0, width) {
+    let solved = score_column(root, position, leaves, children, symbols)
+    let best = argmin(solved.costs)
+    total = total + solved.costs[best]
+    labels = assign(root, solved, best, labels, symbols)
+}
+
+let named = {}
+for node in keys(leaves) { named[node] = leaves[node] }
+for node in keys(children) { named[node] = labels[node] }
+
+fn hamming(a, b) { range(0, len(a)) |&gt; count_if(|i| substr(a, i, 1) != substr(b, i, 1)) }
+
+println(&quot;Result:   &quot; + str(total))
+for node in sort(keys(children)) { println(&quot;  &quot; + node + &quot;: &quot; + named[node]) }
+println(&quot;Expected: 8  (rat AC, mouse TC, dog AC, hamster AT, robot AC)&quot;)
+println(&quot;This labelling differs and costs the same — several are optimal, and the&quot;)
+println(&quot;assertion recounts the changes rather than trusting the printed one.&quot;)
+
+fn test_alph_alignment_based_phylogeny() {
+    assert total == 8, &quot;ALPH: scored &quot; + str(total)
+    # The score has to be the changes the labelling actually shows — a number
+    # without a matching labelling is the usual bug here.
+    let shown = sort(keys(children)) |&gt; flat_map(|parent|
+        children[parent] |&gt; map(|kid| hamming(named[parent], named[kid]))) |&gt; sum()
+    assert shown == total,
+        &quot;ALPH: the labelling shows &quot; + str(shown) + &quot; changes but the score is &quot; + str(total)
+    # Every internal label is the right length and drawn from the alphabet.
+    for node in keys(children) {
+        assert len(named[node]) == width, &quot;ALPH: &quot; + node + &quot; has the wrong length&quot;
+        assert (chars(named[node]) |&gt; count_if(|c| contains(symbols, c) == false)) == 0,
+            &quot;ALPH: &quot; + named[node] + &quot; uses a symbol outside the alphabet&quot;
+    }
+    # Treating the gap as free would score lower, which is exactly what must not
+    # happen — it is a real evolutionary event.
+    assert (chars(leaves[&quot;duck&quot;]) |&gt; count_if(|c| c == &quot;-&quot;)) == 1, &quot;ALPH: duck carries a gap&quot;
+}</code></pre>
+        </section>
+
+        <section id="gasm" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">GASM &mdash; Genome Assembly Using Reads</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/gasm/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GASM" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="gasm.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A read gives no clue which strand it came from, so the graph holds every read and its reverse complement and falls into two mirror cycles. Returns AATCTGT — a rotation of the reverse complement of GATTACA, which the assertion checks up to both rotation and strand.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: GASM — Genome Assembly Using Reads
+# https://rosalind.info/problems/gasm/
+#
+# Given: Error-free reads of equal length, whose de Bruijn graph is two directed
+# cycles.
+# Return: A cyclic superstring of minimal length containing every read or its
+# reverse complement.
+
+let reads = [&quot;AATCT&quot;, &quot;TGTAA&quot;, &quot;GATTA&quot;, &quot;ACAGA&quot;]
+
+# A read gives no clue which strand it came from, so the assembly graph has to
+# hold every read *and* its reverse complement — which is why the de Bruijn graph
+# here always falls into exactly two cycles, one the mirror of the other. Either
+# spells the answer; they are the same circular genome read from opposite
+# strands.
+#
+# k is not given. The right one is the largest that still leaves every node with
+# somewhere to go, so it is searched for downwards from the read length: too
+# large and the graph breaks into fragments, too small and distinct repeats
+# collapse into one node.
+let both_strands = reads |&gt; flat_map(|r| [r, str(reverse_complement(dna(r)))])
+
+# Every k-length window of every read, not the reads themselves. The reads are
+# longer than the k that works, and using them whole leaves the graph with more
+# nodes than edges — which is what a broken assembly looks like.
+fn windows_of(patterns, k) {
+    patterns
+        |&gt; flat_map(|p| range(0, len(p) - k + 1) |&gt; map(|i| substr(p, i, k)))
+        |&gt; unique()
+}
+
+fn cycle_through(k, patterns) {
+    let edges_of = windows_of(patterns, k)
+    let graph = {}
+    for pattern in edges_of {
+        let prefix = substr(pattern, 0, k - 1)
+        let suffix = substr(pattern, 1, k - 1)
+        if contains(keys(graph), prefix) {
+            graph[prefix] = push(graph[prefix], suffix)
+        } else {
+            graph[prefix] = [suffix]
+        }
+    }
+    # Exactly one way in and one way out of every node, or this k does not give a
+    # clean pair of cycles.
+    let nodes = unique(keys(graph) + (keys(graph) |&gt; flat_map(|n| graph[n])))
+    let single_exit = nodes |&gt; count_if(|n| contains(keys(graph), n) and len(graph[n]) == 1)
+    if single_exit != len(nodes) { return &quot;&quot; }
+
+    let start = sort(keys(graph))[0]
+    let walk = [start]
+    let at = graph[start][0]
+    while at != start {
+        walk = push(walk, at)
+        at = graph[at][0]
+    }
+    # Half the nodes belong to the mirror cycle, so a correct walk covers exactly
+    # half of them.
+    if len(walk) * 2 != len(nodes) { return &quot;&quot; }
+    # Circular, so only the leading character of each node is kept — the trailing
+    # k-1 are the leading ones come round again.
+    walk |&gt; map(|node| substr(node, 0, 1)) |&gt; join(&quot;&quot;)
+}
+
+let answer = &quot;&quot;
+let k = len(reads[0])
+while answer == &quot;&quot; and k &gt; 2 {
+    answer = cycle_through(k, both_strands)
+    k = k - 1
+}
+
+println(&quot;Result:   &quot; + answer)
+println(&quot;Expected: GATTACA  (any rotation, of either strand, is accepted)&quot;)
+
+fn test_gasm_genome_assembly() {
+    assert len(answer) == 7, &quot;GASM: expected a 7-character superstring, got &quot; + str(len(answer))
+    # Every read, or its reverse complement, must appear when the string is read
+    # around the circle.
+    let wrapped = answer + substr(answer, 0, len(reads[0]) - 1)
+    for read in reads {
+        let flipped = str(reverse_complement(dna(read)))
+        assert contains(wrapped, read) or contains(wrapped, flipped),
+            &quot;GASM: neither &quot; + read + &quot; nor &quot; + flipped + &quot; occurs&quot;
+    }
+    # GATTACA is one rotation of one strand; the answer is correct up to both.
+    let rotations = range(0, len(answer)) |&gt; map(|i| substr(wrapped, i, len(answer)))
+    let mirror = str(reverse_complement(dna(answer)))
+    let mirror_wrapped = mirror + substr(mirror, 0, len(answer))
+    let mirror_rotations = range(0, len(answer)) |&gt; map(|i| substr(mirror_wrapped, i, len(answer)))
+    assert contains(rotations, &quot;GATTACA&quot;) or contains(mirror_rotations, &quot;GATTACA&quot;),
+        &quot;GASM: &quot; + answer + &quot; is not GATTACA up to rotation and strand&quot;
+}</code></pre>
+        </section>
+
+        <section id="mult" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">MULT &mdash; Multiple Alignment</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/mult/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=MULT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="mult.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Four sequences need a hypercube and 2^k-1 moves out of every cell — fifteen here, against three for a pairwise alignment. Exact multiple alignment costs O(n^k), which is why every tool that aligns hundreds of sequences is approximating.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: MULT — Multiple Alignment
+# https://rosalind.info/problems/mult/
+#
+# Given: Four DNA strings of length at most 10.
+# Return: A multiple alignment of maximum score, where every mismatched pair in
+# a column costs 1 and matched symbols — including two gaps — cost nothing.
+
+let sequences = [&quot;ATATCCG&quot;, &quot;TCCG&quot;, &quot;ATGTACTG&quot;, &quot;ATGTCTG&quot;]
+
+# Two sequences need a table, three a cube, four a hypercube — and the number of
+# moves out of each cell is 2^k - 1, every non-empty choice of which sequences
+# advance. Fifteen here, against three for a pairwise alignment.
+#
+# That is the whole lesson of this problem: exact multiple alignment costs
+# O(n^k), so it stops being possible at a handful of short sequences. Every tool
+# that aligns hundreds of sequences is approximating, usually by aligning pairs
+# and merging.
+let moves = range(1, 16) |&gt; map(|mask|
+    range(0, 4) |&gt; map(|s| (mask / pow(2, s)) % 2 |&gt; floor()))
+
+let lengths = sequences |&gt; map(|s| len(s))
+
+fn key(at) { at |&gt; map(|v| str(v)) |&gt; join(&quot;,&quot;) }
+
+# A column costs one for every disagreeing pair. Two gaps agree; a gap against a
+# base does not.
+fn column_cost(symbols) {
+    range(0, len(symbols))
+        |&gt; flat_map(|i| range(i + 1, len(symbols))
+            |&gt; filter(|j| symbols[i] != symbols[j]))
+        |&gt; len()
+}
+
+let best = {}
+let came_from = {}
+best[key([0, 0, 0, 0])] = 0
+
+for i in range(0, lengths[0] + 1) {
+    for j in range(0, lengths[1] + 1) {
+        for k in range(0, lengths[2] + 1) {
+            for l in range(0, lengths[3] + 1) {
+                let here = [i, j, k, l]
+                if i + j + k + l &gt; 0 {
+                    let at = key(here)
+                    best[at] = 0 - 1000000
+                    for move in moves {
+                        let previous = range(0, 4) |&gt; map(|s| here[s] - move[s])
+                        if (previous |&gt; count_if(|v| v &lt; 0)) == 0 {
+                            let symbols = range(0, 4) |&gt; map(|s|
+                                if move[s] == 1 then substr(sequences[s], previous[s], 1) else &quot;-&quot;)
+                            let candidate = best[key(previous)] - column_cost(symbols)
+                            if candidate &gt; best[at] {
+                                best[at] = candidate
+                                came_from[at] = move
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let score = best[key(lengths)]
+
+let rows = [&quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;]
+let at = lengths
+while (at |&gt; sum()) &gt; 0 {
+    let move = came_from[key(at)]
+    for s in range(0, 4) {
+        if move[s] == 1 {
+            rows[s] = substr(sequences[s], at[s] - 1, 1) + rows[s]
+            at[s] = at[s] - 1
+        } else {
+            rows[s] = &quot;-&quot; + rows[s]
+        }
+    }
+}
+
+println(&quot;Result:   &quot; + str(score))
+for line in rows { println(&quot;          &quot; + line) }
+println(&quot;Expected: -18&quot;)
+println(&quot;          ATAT-CCG / -T---CCG / ATGTACTG / ATGT-CTG&quot;)
+
+fn test_mult_multiple_alignment() {
+    assert score == 0 - 18, &quot;MULT: scored &quot; + str(score)
+    # Structural checks, since several alignments reach the optimum.
+    let widths = rows |&gt; map(|r| len(r)) |&gt; unique()
+    assert len(widths) == 1, &quot;MULT: every row must be the same length&quot;
+    for s in range(0, 4) {
+        assert replace(rows[s], &quot;-&quot;, &quot;&quot;) == sequences[s],
+            &quot;MULT: row &quot; + str(s) + &quot; is not its original sequence&quot;
+    }
+    # The alignment shown must actually score what was claimed.
+    let recounted = 0 - (range(0, widths[0])
+        |&gt; map(|c| column_cost(rows |&gt; map(|r| substr(r, c, 1))))
+        |&gt; sum())
+    assert recounted == score,
+        &quot;MULT: the alignment shown scores &quot; + str(recounted) + &quot;, not &quot; + str(score)
+    # No column is entirely gaps — that move does not exist, and one would be
+    # free under this scoring.
+    let empty_columns = range(0, widths[0])
+        |&gt; count_if(|c| (rows |&gt; count_if(|r| substr(r, c, 1) == &quot;-&quot;)) == 4)
+    assert empty_columns == 0, &quot;MULT: an all-gap column would be free and meaningless&quot;
+}</code></pre>
+        </section>
+
+        <section id="grep" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">GREP &mdash; Genome Assembly with Perfect Coverage and Repeats</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/grep/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GREP" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="grep.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">PCOV returns one answer; this is the honest version. Repeats make the Eulerian cycle non-unique and all six cycles are genomes consistent with the reads — so the reads do not determine the chromosome, and reporting one would be picking arbitrarily.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: GREP — Genome Assembly with Perfect Coverage and Repeats
+# https://rosalind.info/problems/grep/
+#
+# Given: (k+1)-mers from one strand of a circular chromosome.
+# Return: Every circular string assembled by a complete cycle in the de Bruijn
+# graph, each beginning with the first (k+1)-mer given.
+
+let patterns = [
+    &quot;CAG&quot;, &quot;AGT&quot;, &quot;GTT&quot;, &quot;TTT&quot;, &quot;TTG&quot;, &quot;TGG&quot;, &quot;GGC&quot;, &quot;GCG&quot;, &quot;CGT&quot;,
+    &quot;GTT&quot;, &quot;TTC&quot;, &quot;TCA&quot;, &quot;CAA&quot;, &quot;AAT&quot;, &quot;ATT&quot;, &quot;TTC&quot;, &quot;TCA&quot;,
+]
+
+# PCOV assumes perfect coverage and returns one answer. This is the honest
+# version: repeats make the Eulerian cycle non-unique, and every cycle is a
+# genome consistent with the reads. Six here — so the reads simply do not
+# determine the chromosome, and reporting one would be picking arbitrarily.
+#
+# That ambiguity is why repeats are the hard part of real assembly, and why
+# BA3J's paired reads exist: extra distance information cuts the alternatives
+# down.
+let k = len(patterns[0]) - 1
+
+let edges_list = patterns |&gt; map(|p| {
+    from_node: substr(p, 0, k),
+    to_node: substr(p, 1, k),
+})
+
+let start_node = edges_list[0].from_node
+
+# Depth-first over the edge multiset. Hierholzer finds one cycle in linear time;
+# finding them all is a search, and only feasible because the graph is small.
+let complete = []
+let stack = [{
+    at: edges_list[0].to_node,
+    used: range(0, len(edges_list)) |&gt; map(|i| i == 0),
+    walk: [start_node, edges_list[0].to_node],
+}]
+
+while len(stack) &gt; 0 {
+    let state = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+
+    let remaining = state.used |&gt; count_if(|u| u == false)
+    if remaining == 0 {
+        # A cycle only counts if it closed.
+        if state.at == start_node { complete = push(complete, state.walk) }
+    } else {
+        for i in range(0, len(edges_list)) {
+            if state.used[i] == false and edges_list[i].from_node == state.at {
+                let marked = state.used
+                marked[i] = true
+                stack = push(stack, {
+                    at: edges_list[i].to_node,
+                    used: marked,
+                    walk: push(state.walk, edges_list[i].to_node),
+                })
+            }
+        }
+    }
+}
+
+# A circular string keeps one character per edge — the trailing k are the leading
+# k come round again.
+let assembled = complete
+    |&gt; map(|walk| range(0, len(walk) - 1) |&gt; map(|i| substr(walk[i], 0, 1)) |&gt; join(&quot;&quot;))
+    |&gt; unique()
+    |&gt; sort()
+
+println(&quot;Result:&quot;)
+for line in assembled { println(&quot;  &quot; + line) }
+println(&quot;Expected: CAGTTCAATTTGGCGTT CAGTTCAATTGGCGTTT CAGTTTCAATTGGCGTT&quot;)
+println(&quot;          CAGTTTGGCGTTCAATT CAGTTGGCGTTCAATTT CAGTTGGCGTTTCAATT&quot;)
+
+fn test_grep_assembly_with_repeats() {
+    let expected = [&quot;CAGTTCAATTTGGCGTT&quot;, &quot;CAGTTCAATTGGCGTTT&quot;, &quot;CAGTTTCAATTGGCGTT&quot;,
+                    &quot;CAGTTTGGCGTTCAATT&quot;, &quot;CAGTTGGCGTTCAATTT&quot;, &quot;CAGTTGGCGTTTCAATT&quot;]
+    assert assembled == sort(expected), &quot;GREP: got &quot; + join(assembled, &quot; &quot;)
+    # Each answer is as long as there are reads, and starts with the first one.
+    for answer in assembled {
+        assert len(answer) == len(patterns),
+            &quot;GREP: &quot; + answer + &quot; should be &quot; + str(len(patterns)) + &quot; long&quot;
+        assert substr(answer, 0, k + 1) == patterns[0],
+            &quot;GREP: &quot; + answer + &quot; must begin with &quot; + patterns[0]
+        # And read around the circle, its composition is exactly the input.
+        let wrapped = answer + substr(answer, 0, k)
+        let composition = range(0, len(answer)) |&gt; map(|i| substr(wrapped, i, k + 1))
+        assert sort(composition) == sort(patterns),
+            &quot;GREP: &quot; + answer + &quot; does not have the given composition&quot;
+    }
+    # The point of the problem: more than one genome fits.
+    assert len(assembled) &gt; 1, &quot;GREP: repeats should leave the assembly ambiguous&quot;
+}</code></pre>
+        </section>
+
+        <section id="mprt" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">MPRT &mdash; Finding a Protein Motif</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-amber-500/10 text-amber-300 border-amber-500/30" title="Needs uniprot_fasta, which the browser build does not have">CLI only</span>
+            <a href="https://rosalind.info/problems/mprt/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=MPRT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="mprt.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Calls NCBI, so it needs a network connection and its answer can change over time.</p>
+<p class="text-sm text-slate-500 mb-4">Fetches from UniProt, so it runs in the advisory job rather than the hermetic gate. The motif matcher itself is asserted offline — N{P}[ST]{P} has alternatives and exclusions, so it is a pattern rather than a substring search.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: MPRT — Finding a Protein Motif
+# https://rosalind.info/problems/mprt/
+#
+# Given: UniProt access IDs.
+# Return: For each protein containing the N-glycosylation motif, its ID and the
+# 1-based positions where the motif occurs.
+#
+# This example fetches from UniProt, so it runs in the advisory job rather than
+# the hermetic gate every other Stronghold problem passes.
+
+let ids = [&quot;A2Z669&quot;, &quot;B5ZC00&quot;, &quot;P07204_TRBM_HUMAN&quot;, &quot;P20840_SAG1_YEAST&quot;]
+
+# N{P}[ST]{P} — asparagine, then anything but proline, then serine or threonine,
+# then anything but proline. Not a fixed string, which is the point: a motif is a
+# pattern with alternatives and exclusions, and searching for it is not
+# substring matching.
+fn has_motif_at(protein, i) {
+    substr(protein, i, 1) == &quot;N&quot;
+        and substr(protein, i + 1, 1) != &quot;P&quot;
+        and (substr(protein, i + 2, 1) == &quot;S&quot; or substr(protein, i + 2, 1) == &quot;T&quot;)
+        and substr(protein, i + 3, 1) != &quot;P&quot;
+}
+
+fn motif_positions(protein) {
+    range(0, len(protein) - 3) |&gt; filter(|i| has_motif_at(protein, i)) |&gt; map(|i| i + 1)
+}
+
+# UniProt is keyed by the accession alone; the trailing name in an ID like
+# P07204_TRBM_HUMAN is Rosalind's own annotation.
+fn accession_of(id) { split(id, &quot;_&quot;)[0] }
+
+fn sequence_of(id) {
+    let fasta = str(uniprot_fasta(accession_of(id)))
+    lines(fasta) |&gt; filter(|line| substr(line, 0, 1) != &quot;&gt;&quot;) |&gt; join(&quot;&quot;)
+}
+
+let found = ids
+    |&gt; map(|id| { id: id, positions: motif_positions(sequence_of(id)) })
+    |&gt; filter(|entry| len(entry.positions) &gt; 0)
+
+println(&quot;Result:&quot;)
+for entry in found {
+    println(&quot;  &quot; + entry.id)
+    println(&quot;  &quot; + (entry.positions |&gt; map(|p| str(p)) |&gt; join(&quot; &quot;)))
+}
+println(&quot;Expected: B5ZC00 85 118 142 306 395&quot;)
+println(&quot;          P07204_TRBM_HUMAN 47 115 116 382 409&quot;)
+println(&quot;          P20840_SAG1_YEAST 79 109 135 248 306 348 364 402 485 501 614&quot;)
+
+fn test_mprt_finding_a_protein_motif() {
+    let expected = {
+        &quot;B5ZC00&quot;: [85, 118, 142, 306, 395],
+        &quot;P07204_TRBM_HUMAN&quot;: [47, 115, 116, 382, 409],
+        &quot;P20840_SAG1_YEAST&quot;: [79, 109, 135, 248, 306, 348, 364, 402, 485, 501, 614],
+    }
+    assert len(found) == 3, &quot;MPRT: expected 3 proteins with the motif, got &quot; + str(len(found))
+    for entry in found {
+        assert contains(keys(expected), entry.id), &quot;MPRT: unexpected protein &quot; + entry.id
+        assert entry.positions == expected[entry.id],
+            &quot;MPRT: &quot; + entry.id + &quot; gave &quot; + str(entry.positions)
+    }
+    # A2Z669 has no motif, and leaving it out of the answer is part of the task.
+    assert (found |&gt; count_if(|e| e.id == &quot;A2Z669&quot;)) == 0, &quot;MPRT: A2Z669 has no motif&quot;
+
+    # The matcher itself, checked without the network: the exclusions are what
+    # make this a motif rather than a substring search.
+    assert motif_positions(&quot;NASA&quot;) == [1], &quot;MPRT: NAS_ matches&quot;
+    assert motif_positions(&quot;NPSA&quot;) == [], &quot;MPRT: proline in the second position blocks it&quot;
+    assert motif_positions(&quot;NASP&quot;) == [], &quot;MPRT: proline in the fourth blocks it&quot;
+    assert motif_positions(&quot;NAGA&quot;) == [], &quot;MPRT: the third must be S or T&quot;
+    assert motif_positions(&quot;NATA&quot;) == [1], &quot;MPRT: threonine works as well as serine&quot;
 }</code></pre>
         </section>
       </article>

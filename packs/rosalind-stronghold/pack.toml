@@ -863,3 +863,34 @@ status = "solved"
 asserted = true
 note = "A read gives no clue which strand it came from, so the graph holds every read and its reverse complement and falls into two mirror cycles. Returns AATCTGT — a rotation of the reverse complement of GATTACA, which the assertion checks up to both rotation and strand."
 topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "MULT"
+title = "Multiple Alignment"
+file = "examples/mult.bl"
+url = "https://rosalind.info/problems/mult/"
+status = "solved"
+asserted = true
+note = "Four sequences need a hypercube and 2^k-1 moves out of every cell — fifteen here, against three for a pairwise alignment. Exact multiple alignment costs O(n^k), which is why every tool that aligns hundreds of sequences is approximating."
+topics = ["alignment", "dynamic-programming"]
+
+[[problem]]
+id = "GREP"
+title = "Genome Assembly with Perfect Coverage and Repeats"
+file = "examples/grep.bl"
+url = "https://rosalind.info/problems/grep/"
+status = "solved"
+asserted = true
+note = "PCOV returns one answer; this is the honest version. Repeats make the Eulerian cycle non-unique and all six cycles are genomes consistent with the reads — so the reads do not determine the chromosome, and reporting one would be picking arbitrarily."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "MPRT"
+title = "Finding a Protein Motif"
+file = "examples/mprt.bl"
+url = "https://rosalind.info/problems/mprt/"
+status = "solved"
+network = true
+asserted = true
+note = "Fetches from UniProt, so it runs in the advisory job rather than the hermetic gate. The motif matcher itself is asserted offline — N{P}[ST]{P} has alternatives and exclusions, so it is a pattern rather than a substring search."
+topics = ["motifs", "databases"]

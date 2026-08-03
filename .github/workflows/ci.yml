@@ -156,7 +156,8 @@ jobs:
           status=0
           for file in packs/rosalind-armory/examples/frmt.bl \
                       packs/rosalind-armory/examples/gbk.bl \
-                      packs/rosalind-armory/examples/need.bl; do
+                      packs/rosalind-armory/examples/need.bl \
+                      packs/rosalind-stronghold/examples/mprt.bl; do
             echo "=== $file"
             ./target/debug/bl run "$file" || status=1
           done

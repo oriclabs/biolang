@@ -4258,3 +4258,776 @@ fn test_cstr_character_table() {
 }
 ```
 
+## SUFF — Encoding Suffix Trees
+
+[Problem statement](https://rosalind.info/problems/suff/)
+
+```biolang
+# Rosalind: SUFF — Encoding Suffix Trees
+# https://rosalind.info/problems/suff/
+#
+# Given: A DNA string s ending in $.
+# Return: The substrings labelling the edges of the suffix tree of s.
+
+let text = "ATAAATG$"
+
+# Built from the suffix array and its LCP array rather than by inserting every
+# suffix into a trie and collapsing it. Both give the same tree; the difference
+# is cost. A trie of all suffixes has O(n^2) nodes before anything is collapsed,
+# whereas the two arrays are linear in the text and the tree can be read off them
+# in a single left-to-right pass.
+#
+# That is why aligners store the arrays and never materialise the tree: for a
+# human genome the tree does not fit, and the arrays do.
+let sa = suffix_array(text)
+let lcp = lcp_array(text)
+
+# A leaf hangs from the deeper of what its suffix shares with either neighbour,
+# so its edge is whatever is left of the suffix below that depth.
+let leaf_labels = range(0, len(sa)) |> map(|i| {
+    let before = if i == 0 then 0 else lcp[i]
+    let after = if i + 1 < len(sa) then lcp[i + 1] else 0
+    let depth = max([before, after])
+    substr(text, sa[i] + depth, len(text) - sa[i] - depth)
+})
+
+# Internal nodes come from the LCP array alone: a run of suffixes sharing a
+# prefix of length L hangs off one node at depth L. A stack tracks which are
+# still open as the array is scanned.
+let internal_labels = []
+let stack = [{ depth: 0, start: 0 }]
+for i in range(1, len(sa)) {
+    let shared = lcp[i]
+    let last_start = sa[i]
+    while stack[len(stack) - 1].depth > shared {
+        let closing = stack[len(stack) - 1]
+        stack = slice(stack, 0, len(stack) - 1)
+        let parent_depth = max([stack[len(stack) - 1].depth, shared])
+        internal_labels = push(internal_labels,
+            substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+        last_start = closing.start
+    }
+    if stack[len(stack) - 1].depth < shared {
+        stack = push(stack, { depth: shared, start: last_start })
+    }
+}
+while len(stack) > 1 {
+    let closing = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    let parent_depth = stack[len(stack) - 1].depth
+    internal_labels = push(internal_labels,
+        substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+}
+
+let labels = leaf_labels + internal_labels
+
+println("Result:   " + join(sort(labels), " "))
+println("Expected (any order): AAATG$ G$ T ATG$ TG$ A A AAATG$ G$ T G$ $")
+
+fn test_suff_encoding_suffix_trees() {
+    let expected = ["AAATG$", "G$", "T", "ATG$", "TG$", "A", "A", "AAATG$", "G$", "T", "G$", "$"]
+    assert sort(labels) == sort(expected), "SUFF: got " + join(sort(labels), " ")
+    # One leaf per suffix, each reaching the sentinel.
+    assert len(leaf_labels) == len(text), "SUFF: one leaf per suffix"
+    for label in leaf_labels {
+        assert substr(label, len(label) - 1, 1) == "$", "SUFF: a leaf edge must reach the end"
+    }
+    # Every label is a real substring, and the whole tree spells every suffix.
+    for label in labels {
+        assert contains(text, label), "SUFF: " + label + " is not in the text"
+    }
+    # Concatenating the edges costs less than storing the suffixes outright —
+    # which is the saving a suffix tree exists for.
+    let edge_characters = labels |> map(|l| len(l)) |> sum()
+    let all_suffixes = range(0, len(text)) |> map(|i| len(text) - i) |> sum()
+    assert edge_characters < all_suffixes,
+        "SUFF: the tree should be smaller than the suffixes it encodes"
+}
+```
+
+## SGRA — Using the Spectrum Graph to Infer Peptides
+
+[Problem statement](https://rosalind.info/problems/sgra/)
+
+```biolang
+# Rosalind: SGRA — Using the Spectrum Graph to Infer Peptides
+# https://rosalind.info/problems/sgra/
+#
+# Given: A list of positive real numbers (a spectrum).
+# Return: The longest protein string matching the spectrum graph.
+
+let spectrum = [
+    3524.8542, 3623.5245, 3710.9335, 3841.974, 3929.00603,
+    3970.0326, 4026.05879, 4057.0646, 4083.08025,
+]
+
+# Monoisotopic masses, not the integer table the cyclopeptide problems use.
+# Real instrument readings carry decimals, so a difference is matched within a
+# tolerance rather than exactly — 1e-4 here, which is far tighter than the gap
+# between any two residue masses and far looser than float noise.
+let monoisotopic = {
+    A: 71.03711,  C: 103.00919, D: 115.02694, E: 129.04259, F: 147.06841,
+    G: 57.02146,  H: 137.05891, I: 113.08406, K: 128.09496, L: 113.08406,
+    M: 131.04049, N: 114.04293, P: 97.05276,  Q: 128.05858, R: 156.10111,
+    S: 87.03203,  T: 101.04768, V: 99.06841,  W: 186.07931, Y: 163.06333
+}
+let tolerance = 0.0001
+
+# Where L and I collide exactly, and K and Q nearly do, take the first — a
+# spectrum cannot separate them, so naming either is equally correct.
+let residues = ["G", "A", "S", "P", "V", "T", "C", "L", "N", "D",
+                "Q", "K", "E", "M", "H", "F", "R", "Y", "W"]
+
+fn residue_between(lighter, heavier, table, letters, slack) {
+    let gap = heavier - lighter
+    let hits = letters |> filter(|letter| abs(table[letter] - gap) < slack)
+    if len(hits) > 0 then hits[0] else ""
+}
+
+# The graph is a DAG — masses only increase — so the longest path is found by
+# scanning in sorted order and never revisiting a node. Searching the paths
+# themselves would be exponential; here each node is settled once, from the best
+# way of reaching it.
+let ordered = sort(spectrum)
+let best = ordered |> map(|_| "")
+# Where each best path began, so the answer's mass can be checked against the
+# span it was actually read across. The path skips nodes, so this cannot be
+# recovered by counting backwards from the end.
+let origin = range(0, len(ordered))
+
+for j in range(0, len(ordered)) {
+    for i in range(0, j) {
+        let letter = residue_between(ordered[i], ordered[j], monoisotopic, residues, tolerance)
+        if letter != "" and len(best[i]) + 1 > len(best[j]) {
+            best[j] = best[i] + letter
+            origin[j] = origin[i]
+        }
+    }
+}
+
+let finish = argmax(best |> map(|s| len(s)))
+let answer = best[finish]
+
+println("Result:   " + answer)
+println("Expected: WMSPG")
+
+fn test_sgra_spectrum_graph() {
+    assert answer == "WMSPG", "SGRA: got " + answer
+    # Every residue of the answer must be a real gap between two spectrum values.
+    assert len(answer) == 5, "SGRA: expected a 5-residue peptide"
+    # The peptide's own mass is the span it was read across.
+    let peptide_mass = chars(answer) |> map(|c| monoisotopic[c]) |> sum()
+    let span = ordered[finish] - ordered[origin[finish]]
+    assert abs(peptide_mass - span) < len(answer) * tolerance,
+        "SGRA: the peptide weighs " + str(round(peptide_mass, 4))
+            + " but spans " + str(round(span, 4))
+    # Nothing longer exists in the graph.
+    for candidate in best {
+        assert len(candidate) <= len(answer), "SGRA: a longer path was missed"
+    }
+}
+```
+
+## FULL — Inferring Peptide from Full Spectrum
+
+[Problem statement](https://rosalind.info/problems/full/)
+
+```biolang
+# Rosalind: FULL — Inferring Peptide from Full Spectrum
+# https://rosalind.info/problems/full/
+#
+# Given: 2n+3 positive reals — a parent mass, then the b-ions and y-ions of a
+# peptide of length n, in no particular order.
+# Return: A protein string of length n consistent with them.
+
+let parent_mass = 1988.21104821
+let ions = [
+    610.391039105, 738.485999105, 766.492149105, 863.544909105,
+    867.528589105, 992.587499105, 995.623549105, 1120.6824591,
+    1124.6661391, 1221.7188991, 1249.7250491, 1377.8200091,
+]
+
+let monoisotopic = {
+    A: 71.03711,  C: 103.00919, D: 115.02694, E: 129.04259, F: 147.06841,
+    G: 57.02146,  H: 137.05891, I: 113.08406, K: 128.09496, L: 113.08406,
+    M: 131.04049, N: 114.04293, P: 97.05276,  Q: 128.05858, R: 156.10111,
+    S: 87.03203,  T: 101.04768, V: 99.06841,  W: 186.07931, Y: 163.06333
+}
+let residues = ["G", "A", "S", "P", "V", "T", "C", "L", "N", "D",
+                "Q", "K", "E", "M", "H", "F", "R", "Y", "W"]
+let tolerance = 0.001
+
+# A peptide fragments from both ends at once. A b-ion is a prefix, a y-ion the
+# matching suffix, so the two always sum to the parent mass — and the list mixes
+# them with no labels saying which is which.
+#
+# The trick is that it does not matter. Walk upwards from the lightest ion; the
+# next ion differing from it by a residue mass is the next prefix, whichever kind
+# it nominally is. Taking an ion also spends its complement, since a prefix and
+# its suffix are one fragmentation event and cannot both extend the chain.
+let ordered = sort(ions)
+let used = ordered |> map(|_| false)
+
+fn residue_between(lighter, heavier, table, letters, slack) {
+    let gap = heavier - lighter
+    let hits = letters |> filter(|letter| abs(table[letter] - gap) < slack)
+    if len(hits) > 0 then hits[0] else ""
+}
+
+fn index_of_mass(masses, wanted, slack) {
+    let hits = range(0, len(masses)) |> filter(|i| abs(masses[i] - wanted) < slack)
+    if len(hits) > 0 then hits[0] else 0 - 1
+}
+
+fn spend(marks, masses, at, total, slack) {
+    marks[at] = true
+    let partner = index_of_mass(masses, total - masses[at], slack)
+    if partner >= 0 { marks[partner] = true }
+    marks
+}
+
+let peptide = ""
+let current = 0
+used = spend(used, ordered, current, parent_mass, tolerance)
+
+let searching = true
+while searching {
+    let onward = range(current + 1, len(ordered))
+        |> filter(|j| used[j] == false
+                  and residue_between(ordered[current], ordered[j],
+                                      monoisotopic, residues, tolerance) != "")
+    if len(onward) == 0 {
+        searching = false
+    } else {
+        let next_index = onward[0]
+        peptide = peptide + residue_between(ordered[current], ordered[next_index],
+                                            monoisotopic, residues, tolerance)
+        used = spend(used, ordered, next_index, parent_mass, tolerance)
+        current = next_index
+    }
+}
+
+println("Result:   " + peptide)
+println("Expected: KEKEP")
+
+fn test_full_inferring_peptide_from_full_spectrum() {
+    assert peptide == "KEKEP", "FULL: got " + peptide
+    # n is fixed by the input's size, and the answer has to match it.
+    let n = (len(ions) + 1 - 3) / 2
+    assert len(peptide) == n, "FULL: expected " + str(n) + " residues"
+    # Every ion pairs with another summing to the parent mass — the property that
+    # makes b-ions and y-ions indistinguishable here, and the reason taking one
+    # spends the other.
+    for mass in ordered {
+        let partner = index_of_mass(ordered, parent_mass - mass, tolerance)
+        assert partner >= 0, "FULL: " + str(round(mass, 4)) + " has no complement"
+    }
+    assert len(ordered) % 2 == 0, "FULL: the ions must pair up"
+}
+```
+
+## ALPH — Alignment-Based Phylogeny
+
+[Problem statement](https://rosalind.info/problems/alph/)
+
+```biolang
+# Rosalind: ALPH — Alignment-Based Phylogeny
+# https://rosalind.info/problems/alph/
+#
+# Given: A rooted binary tree in Newick format and a multiple alignment of its
+# leaves.
+# Return: The minimum total Hamming distance over the tree's edges, and internal
+# node labels achieving it.
+
+# (((ostrich,cat)rat,(duck,fly)mouse)dog,(elephant,pikachu)hamster)robot;
+let children = {
+    "rat": ["ostrich", "cat"],
+    "mouse": ["duck", "fly"],
+    "dog": ["rat", "mouse"],
+    "hamster": ["elephant", "pikachu"],
+    "robot": ["dog", "hamster"],
+}
+let root = "robot"
+let leaves = {
+    "ostrich": "AC", "cat": "CA", "duck": "T-",
+    "fly": "GC", "elephant": "-T", "pikachu": "AA",
+}
+
+# The gap is a fifth symbol here, not a missing value. That is the whole reason
+# this problem is separate from the ordinary parsimony ones: in an alignment a
+# gap is evidence — an insertion or deletion actually happened — and treating it
+# as unknown would make every column containing one free.
+let symbols = ["A", "C", "G", "T", "-"]
+let width = len(leaves["ostrich"])
+
+fn is_leaf(node, leaf_map) { contains(keys(leaf_map), node) }
+
+# Sankoff: the cheapest cost of a subtree given its root's symbol is the sum over
+# children of their cheapest cost plus one if the symbol has to change. Columns
+# are independent, so each is solved separately and the scores added.
+fn score_column(node, position, leaf_map, child_map, alphabet) {
+    if is_leaf(node, leaf_map) {
+        let here = substr(leaf_map[node], position, 1)
+        return {
+            costs: alphabet |> map(|s| if s == here then 0 else 1000000),
+            picks: {}, solved: [], kids: [],
+        }
+    }
+    let kids = child_map[node]
+    let solved = kids |> map(|kid| score_column(kid, position, leaf_map, child_map, alphabet))
+    let picks = {}
+    let costs = range(0, len(alphabet)) |> map(|mine| {
+        range(0, len(kids)) |> map(|k| {
+            let options = range(0, len(alphabet))
+                |> map(|theirs| solved[k].costs[theirs] + (if theirs == mine then 0 else 1))
+            let chosen = argmin(options)
+            picks[str(mine) + "," + str(k)] = chosen
+            options[chosen]
+        }) |> sum()
+    })
+    { costs: costs, picks: picks, solved: solved, kids: kids }
+}
+
+fn assign(node, tree, chosen_index, labels, alphabet) {
+    labels[node] = labels[node] + alphabet[chosen_index]
+    for k in range(0, len(tree.kids)) {
+        if len(tree.solved[k].kids) > 0 {
+            labels = assign(tree.kids[k], tree.solved[k],
+                            tree.picks[str(chosen_index) + "," + str(k)], labels, alphabet)
+        }
+    }
+    labels
+}
+
+let labels = {}
+for node in keys(children) { labels[node] = "" }
+let total = 0
+for position in range(0, width) {
+    let solved = score_column(root, position, leaves, children, symbols)
+    let best = argmin(solved.costs)
+    total = total + solved.costs[best]
+    labels = assign(root, solved, best, labels, symbols)
+}
+
+let named = {}
+for node in keys(leaves) { named[node] = leaves[node] }
+for node in keys(children) { named[node] = labels[node] }
+
+fn hamming(a, b) { range(0, len(a)) |> count_if(|i| substr(a, i, 1) != substr(b, i, 1)) }
+
+println("Result:   " + str(total))
+for node in sort(keys(children)) { println("  " + node + ": " + named[node]) }
+println("Expected: 8  (rat AC, mouse TC, dog AC, hamster AT, robot AC)")
+println("This labelling differs and costs the same — several are optimal, and the")
+println("assertion recounts the changes rather than trusting the printed one.")
+
+fn test_alph_alignment_based_phylogeny() {
+    assert total == 8, "ALPH: scored " + str(total)
+    # The score has to be the changes the labelling actually shows — a number
+    # without a matching labelling is the usual bug here.
+    let shown = sort(keys(children)) |> flat_map(|parent|
+        children[parent] |> map(|kid| hamming(named[parent], named[kid]))) |> sum()
+    assert shown == total,
+        "ALPH: the labelling shows " + str(shown) + " changes but the score is " + str(total)
+    # Every internal label is the right length and drawn from the alphabet.
+    for node in keys(children) {
+        assert len(named[node]) == width, "ALPH: " + node + " has the wrong length"
+        assert (chars(named[node]) |> count_if(|c| contains(symbols, c) == false)) == 0,
+            "ALPH: " + named[node] + " uses a symbol outside the alphabet"
+    }
+    # Treating the gap as free would score lower, which is exactly what must not
+    # happen — it is a real evolutionary event.
+    assert (chars(leaves["duck"]) |> count_if(|c| c == "-")) == 1, "ALPH: duck carries a gap"
+}
+```
+
+## GASM — Genome Assembly Using Reads
+
+[Problem statement](https://rosalind.info/problems/gasm/)
+
+```biolang
+# Rosalind: GASM — Genome Assembly Using Reads
+# https://rosalind.info/problems/gasm/
+#
+# Given: Error-free reads of equal length, whose de Bruijn graph is two directed
+# cycles.
+# Return: A cyclic superstring of minimal length containing every read or its
+# reverse complement.
+
+let reads = ["AATCT", "TGTAA", "GATTA", "ACAGA"]
+
+# A read gives no clue which strand it came from, so the assembly graph has to
+# hold every read *and* its reverse complement — which is why the de Bruijn graph
+# here always falls into exactly two cycles, one the mirror of the other. Either
+# spells the answer; they are the same circular genome read from opposite
+# strands.
+#
+# k is not given. The right one is the largest that still leaves every node with
+# somewhere to go, so it is searched for downwards from the read length: too
+# large and the graph breaks into fragments, too small and distinct repeats
+# collapse into one node.
+let both_strands = reads |> flat_map(|r| [r, str(reverse_complement(dna(r)))])
+
+# Every k-length window of every read, not the reads themselves. The reads are
+# longer than the k that works, and using them whole leaves the graph with more
+# nodes than edges — which is what a broken assembly looks like.
+fn windows_of(patterns, k) {
+    patterns
+        |> flat_map(|p| range(0, len(p) - k + 1) |> map(|i| substr(p, i, k)))
+        |> unique()
+}
+
+fn cycle_through(k, patterns) {
+    let edges_of = windows_of(patterns, k)
+    let graph = {}
+    for pattern in edges_of {
+        let prefix = substr(pattern, 0, k - 1)
+        let suffix = substr(pattern, 1, k - 1)
+        if contains(keys(graph), prefix) {
+            graph[prefix] = push(graph[prefix], suffix)
+        } else {
+            graph[prefix] = [suffix]
+        }
+    }
+    # Exactly one way in and one way out of every node, or this k does not give a
+    # clean pair of cycles.
+    let nodes = unique(keys(graph) + (keys(graph) |> flat_map(|n| graph[n])))
+    let single_exit = nodes |> count_if(|n| contains(keys(graph), n) and len(graph[n]) == 1)
+    if single_exit != len(nodes) { return "" }
+
+    let start = sort(keys(graph))[0]
+    let walk = [start]
+    let at = graph[start][0]
+    while at != start {
+        walk = push(walk, at)
+        at = graph[at][0]
+    }
+    # Half the nodes belong to the mirror cycle, so a correct walk covers exactly
+    # half of them.
+    if len(walk) * 2 != len(nodes) { return "" }
+    # Circular, so only the leading character of each node is kept — the trailing
+    # k-1 are the leading ones come round again.
+    walk |> map(|node| substr(node, 0, 1)) |> join("")
+}
+
+let answer = ""
+let k = len(reads[0])
+while answer == "" and k > 2 {
+    answer = cycle_through(k, both_strands)
+    k = k - 1
+}
+
+println("Result:   " + answer)
+println("Expected: GATTACA  (any rotation, of either strand, is accepted)")
+
+fn test_gasm_genome_assembly() {
+    assert len(answer) == 7, "GASM: expected a 7-character superstring, got " + str(len(answer))
+    # Every read, or its reverse complement, must appear when the string is read
+    # around the circle.
+    let wrapped = answer + substr(answer, 0, len(reads[0]) - 1)
+    for read in reads {
+        let flipped = str(reverse_complement(dna(read)))
+        assert contains(wrapped, read) or contains(wrapped, flipped),
+            "GASM: neither " + read + " nor " + flipped + " occurs"
+    }
+    # GATTACA is one rotation of one strand; the answer is correct up to both.
+    let rotations = range(0, len(answer)) |> map(|i| substr(wrapped, i, len(answer)))
+    let mirror = str(reverse_complement(dna(answer)))
+    let mirror_wrapped = mirror + substr(mirror, 0, len(answer))
+    let mirror_rotations = range(0, len(answer)) |> map(|i| substr(mirror_wrapped, i, len(answer)))
+    assert contains(rotations, "GATTACA") or contains(mirror_rotations, "GATTACA"),
+        "GASM: " + answer + " is not GATTACA up to rotation and strand"
+}
+```
+
+## MULT — Multiple Alignment
+
+[Problem statement](https://rosalind.info/problems/mult/)
+
+```biolang
+# Rosalind: MULT — Multiple Alignment
+# https://rosalind.info/problems/mult/
+#
+# Given: Four DNA strings of length at most 10.
+# Return: A multiple alignment of maximum score, where every mismatched pair in
+# a column costs 1 and matched symbols — including two gaps — cost nothing.
+
+let sequences = ["ATATCCG", "TCCG", "ATGTACTG", "ATGTCTG"]
+
+# Two sequences need a table, three a cube, four a hypercube — and the number of
+# moves out of each cell is 2^k - 1, every non-empty choice of which sequences
+# advance. Fifteen here, against three for a pairwise alignment.
+#
+# That is the whole lesson of this problem: exact multiple alignment costs
+# O(n^k), so it stops being possible at a handful of short sequences. Every tool
+# that aligns hundreds of sequences is approximating, usually by aligning pairs
+# and merging.
+let moves = range(1, 16) |> map(|mask|
+    range(0, 4) |> map(|s| (mask / pow(2, s)) % 2 |> floor()))
+
+let lengths = sequences |> map(|s| len(s))
+
+fn key(at) { at |> map(|v| str(v)) |> join(",") }
+
+# A column costs one for every disagreeing pair. Two gaps agree; a gap against a
+# base does not.
+fn column_cost(symbols) {
+    range(0, len(symbols))
+        |> flat_map(|i| range(i + 1, len(symbols))
+            |> filter(|j| symbols[i] != symbols[j]))
+        |> len()
+}
+
+let best = {}
+let came_from = {}
+best[key([0, 0, 0, 0])] = 0
+
+for i in range(0, lengths[0] + 1) {
+    for j in range(0, lengths[1] + 1) {
+        for k in range(0, lengths[2] + 1) {
+            for l in range(0, lengths[3] + 1) {
+                let here = [i, j, k, l]
+                if i + j + k + l > 0 {
+                    let at = key(here)
+                    best[at] = 0 - 1000000
+                    for move in moves {
+                        let previous = range(0, 4) |> map(|s| here[s] - move[s])
+                        if (previous |> count_if(|v| v < 0)) == 0 {
+                            let symbols = range(0, 4) |> map(|s|
+                                if move[s] == 1 then substr(sequences[s], previous[s], 1) else "-")
+                            let candidate = best[key(previous)] - column_cost(symbols)
+                            if candidate > best[at] {
+                                best[at] = candidate
+                                came_from[at] = move
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let score = best[key(lengths)]
+
+let rows = ["", "", "", ""]
+let at = lengths
+while (at |> sum()) > 0 {
+    let move = came_from[key(at)]
+    for s in range(0, 4) {
+        if move[s] == 1 {
+            rows[s] = substr(sequences[s], at[s] - 1, 1) + rows[s]
+            at[s] = at[s] - 1
+        } else {
+            rows[s] = "-" + rows[s]
+        }
+    }
+}
+
+println("Result:   " + str(score))
+for line in rows { println("          " + line) }
+println("Expected: -18")
+println("          ATAT-CCG / -T---CCG / ATGTACTG / ATGT-CTG")
+
+fn test_mult_multiple_alignment() {
+    assert score == 0 - 18, "MULT: scored " + str(score)
+    # Structural checks, since several alignments reach the optimum.
+    let widths = rows |> map(|r| len(r)) |> unique()
+    assert len(widths) == 1, "MULT: every row must be the same length"
+    for s in range(0, 4) {
+        assert replace(rows[s], "-", "") == sequences[s],
+            "MULT: row " + str(s) + " is not its original sequence"
+    }
+    # The alignment shown must actually score what was claimed.
+    let recounted = 0 - (range(0, widths[0])
+        |> map(|c| column_cost(rows |> map(|r| substr(r, c, 1))))
+        |> sum())
+    assert recounted == score,
+        "MULT: the alignment shown scores " + str(recounted) + ", not " + str(score)
+    # No column is entirely gaps — that move does not exist, and one would be
+    # free under this scoring.
+    let empty_columns = range(0, widths[0])
+        |> count_if(|c| (rows |> count_if(|r| substr(r, c, 1) == "-")) == 4)
+    assert empty_columns == 0, "MULT: an all-gap column would be free and meaningless"
+}
+```
+
+## GREP — Genome Assembly with Perfect Coverage and Repeats
+
+[Problem statement](https://rosalind.info/problems/grep/)
+
+```biolang
+# Rosalind: GREP — Genome Assembly with Perfect Coverage and Repeats
+# https://rosalind.info/problems/grep/
+#
+# Given: (k+1)-mers from one strand of a circular chromosome.
+# Return: Every circular string assembled by a complete cycle in the de Bruijn
+# graph, each beginning with the first (k+1)-mer given.
+
+let patterns = [
+    "CAG", "AGT", "GTT", "TTT", "TTG", "TGG", "GGC", "GCG", "CGT",
+    "GTT", "TTC", "TCA", "CAA", "AAT", "ATT", "TTC", "TCA",
+]
+
+# PCOV assumes perfect coverage and returns one answer. This is the honest
+# version: repeats make the Eulerian cycle non-unique, and every cycle is a
+# genome consistent with the reads. Six here — so the reads simply do not
+# determine the chromosome, and reporting one would be picking arbitrarily.
+#
+# That ambiguity is why repeats are the hard part of real assembly, and why
+# BA3J's paired reads exist: extra distance information cuts the alternatives
+# down.
+let k = len(patterns[0]) - 1
+
+let edges_list = patterns |> map(|p| {
+    from_node: substr(p, 0, k),
+    to_node: substr(p, 1, k),
+})
+
+let start_node = edges_list[0].from_node
+
+# Depth-first over the edge multiset. Hierholzer finds one cycle in linear time;
+# finding them all is a search, and only feasible because the graph is small.
+let complete = []
+let stack = [{
+    at: edges_list[0].to_node,
+    used: range(0, len(edges_list)) |> map(|i| i == 0),
+    walk: [start_node, edges_list[0].to_node],
+}]
+
+while len(stack) > 0 {
+    let state = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+
+    let remaining = state.used |> count_if(|u| u == false)
+    if remaining == 0 {
+        # A cycle only counts if it closed.
+        if state.at == start_node { complete = push(complete, state.walk) }
+    } else {
+        for i in range(0, len(edges_list)) {
+            if state.used[i] == false and edges_list[i].from_node == state.at {
+                let marked = state.used
+                marked[i] = true
+                stack = push(stack, {
+                    at: edges_list[i].to_node,
+                    used: marked,
+                    walk: push(state.walk, edges_list[i].to_node),
+                })
+            }
+        }
+    }
+}
+
+# A circular string keeps one character per edge — the trailing k are the leading
+# k come round again.
+let assembled = complete
+    |> map(|walk| range(0, len(walk) - 1) |> map(|i| substr(walk[i], 0, 1)) |> join(""))
+    |> unique()
+    |> sort()
+
+println("Result:")
+for line in assembled { println("  " + line) }
+println("Expected: CAGTTCAATTTGGCGTT CAGTTCAATTGGCGTTT CAGTTTCAATTGGCGTT")
+println("          CAGTTTGGCGTTCAATT CAGTTGGCGTTCAATTT CAGTTGGCGTTTCAATT")
+
+fn test_grep_assembly_with_repeats() {
+    let expected = ["CAGTTCAATTTGGCGTT", "CAGTTCAATTGGCGTTT", "CAGTTTCAATTGGCGTT",
+                    "CAGTTTGGCGTTCAATT", "CAGTTGGCGTTCAATTT", "CAGTTGGCGTTTCAATT"]
+    assert assembled == sort(expected), "GREP: got " + join(assembled, " ")
+    # Each answer is as long as there are reads, and starts with the first one.
+    for answer in assembled {
+        assert len(answer) == len(patterns),
+            "GREP: " + answer + " should be " + str(len(patterns)) + " long"
+        assert substr(answer, 0, k + 1) == patterns[0],
+            "GREP: " + answer + " must begin with " + patterns[0]
+        # And read around the circle, its composition is exactly the input.
+        let wrapped = answer + substr(answer, 0, k)
+        let composition = range(0, len(answer)) |> map(|i| substr(wrapped, i, k + 1))
+        assert sort(composition) == sort(patterns),
+            "GREP: " + answer + " does not have the given composition"
+    }
+    # The point of the problem: more than one genome fits.
+    assert len(assembled) > 1, "GREP: repeats should leave the assembly ambiguous"
+}
+```
+
+## MPRT — Finding a Protein Motif
+
+[Problem statement](https://rosalind.info/problems/mprt/)
+
+```biolang
+# @skip  (needs a network connection — remove this line to run it)
+# Rosalind: MPRT — Finding a Protein Motif
+# https://rosalind.info/problems/mprt/
+#
+# Given: UniProt access IDs.
+# Return: For each protein containing the N-glycosylation motif, its ID and the
+# 1-based positions where the motif occurs.
+#
+# This example fetches from UniProt, so it runs in the advisory job rather than
+# the hermetic gate every other Stronghold problem passes.
+
+let ids = ["A2Z669", "B5ZC00", "P07204_TRBM_HUMAN", "P20840_SAG1_YEAST"]
+
+# N{P}[ST]{P} — asparagine, then anything but proline, then serine or threonine,
+# then anything but proline. Not a fixed string, which is the point: a motif is a
+# pattern with alternatives and exclusions, and searching for it is not
+# substring matching.
+fn has_motif_at(protein, i) {
+    substr(protein, i, 1) == "N"
+        and substr(protein, i + 1, 1) != "P"
+        and (substr(protein, i + 2, 1) == "S" or substr(protein, i + 2, 1) == "T")
+        and substr(protein, i + 3, 1) != "P"
+}
+
+fn motif_positions(protein) {
+    range(0, len(protein) - 3) |> filter(|i| has_motif_at(protein, i)) |> map(|i| i + 1)
+}
+
+# UniProt is keyed by the accession alone; the trailing name in an ID like
+# P07204_TRBM_HUMAN is Rosalind's own annotation.
+fn accession_of(id) { split(id, "_")[0] }
+
+fn sequence_of(id) {
+    let fasta = str(uniprot_fasta(accession_of(id)))
+    lines(fasta) |> filter(|line| substr(line, 0, 1) != ">") |> join("")
+}
+
+let found = ids
+    |> map(|id| { id: id, positions: motif_positions(sequence_of(id)) })
+    |> filter(|entry| len(entry.positions) > 0)
+
+println("Result:")
+for entry in found {
+    println("  " + entry.id)
+    println("  " + (entry.positions |> map(|p| str(p)) |> join(" ")))
+}
+println("Expected: B5ZC00 85 118 142 306 395")
+println("          P07204_TRBM_HUMAN 47 115 116 382 409")
+println("          P20840_SAG1_YEAST 79 109 135 248 306 348 364 402 485 501 614")
+
+fn test_mprt_finding_a_protein_motif() {
+    let expected = {
+        "B5ZC00": [85, 118, 142, 306, 395],
+        "P07204_TRBM_HUMAN": [47, 115, 116, 382, 409],
+        "P20840_SAG1_YEAST": [79, 109, 135, 248, 306, 348, 364, 402, 485, 501, 614],
+    }
+    assert len(found) == 3, "MPRT: expected 3 proteins with the motif, got " + str(len(found))
+    for entry in found {
+        assert contains(keys(expected), entry.id), "MPRT: unexpected protein " + entry.id
+        assert entry.positions == expected[entry.id],
+            "MPRT: " + entry.id + " gave " + str(entry.positions)
+    }
+    # A2Z669 has no motif, and leaving it out of the answer is part of the task.
+    assert (found |> count_if(|e| e.id == "A2Z669")) == 0, "MPRT: A2Z669 has no motif"
+
+    # The matcher itself, checked without the network: the exclusions are what
+    # make this a motif rather than a substring search.
+    assert motif_positions("NASA") == [1], "MPRT: NAS_ matches"
+    assert motif_positions("NPSA") == [], "MPRT: proline in the second position blocks it"
+    assert motif_positions("NASP") == [], "MPRT: proline in the fourth blocks it"
+    assert motif_positions("NAGA") == [], "MPRT: the third must be S or T"
+    assert motif_positions("NATA") == [1], "MPRT: threonine works as well as serine"
+}
+```
+
