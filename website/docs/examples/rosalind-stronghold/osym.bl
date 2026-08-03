@@ -1,0 +1,79 @@
+# Rosalind: OSYM — Isolating Symbols in Alignments
+# https://rosalind.info/problems/osym/
+#
+# Given: Two DNA strings.
+# Return: The maximum global alignment score, and the sum over all (j,k) of the
+# best score of any alignment that pairs s[j] with t[k].
+# Matches score +1, mismatches and gaps -1.
+
+let first_string = "ATAGATA"
+let second_string = "ACAGGTA"
+let gap = 0 - 1
+
+fn substitution(a, b) { if a == b then 1 else 0 - 1 }
+
+# The question is not what the best alignment is, but how good the best
+# alignment *through each particular pairing* would be. Recomputing an alignment
+# for every one of the 49 pairs would be quadratic work repeated quadratically.
+#
+# Instead: the best alignment through (j,k) is the best way of reaching it plus
+# the best way of leaving it. One table filled forwards and one filled backwards
+# answer every pair at once — the same trick BA5K uses to find a middle edge.
+fn forward_table(rows, columns, indel) {
+    let table = [range(0, len(columns) + 1) |> map(|j| j * indel)]
+    for i in range(1, len(rows) + 1) {
+        let line = [i * indel]
+        for j in range(1, len(columns) + 1) {
+            let diagonal = table[i - 1][j - 1]
+                + substitution(substr(rows, i - 1, 1), substr(columns, j - 1, 1))
+            let up = table[i - 1][j] + indel
+            let left = line[j - 1] + indel
+            line = push(line, max([diagonal, up, left]))
+        }
+        table = push(table, line)
+    }
+    table
+}
+
+let forward = forward_table(first_string, second_string, gap)
+# The backward table is the forward one on both strings reversed, so only one
+# direction has to be written.
+let backward_reversed = forward_table(reverse(first_string), reverse(second_string), gap)
+
+let n = len(first_string)
+let m = len(second_string)
+
+fn backward_at(table, i, j, rows, columns) {
+    # Score of aligning s[i..) with t[j..), read out of the reversed table.
+    table[rows - i][columns - j]
+}
+
+let best_score = forward[n][m]
+
+let total = range(1, n + 1) |> flat_map(|j| range(1, m + 1) |> map(|k| {
+    let paired = substitution(substr(first_string, j - 1, 1), substr(second_string, k - 1, 1))
+    forward[j - 1][k - 1] + paired + backward_at(backward_reversed, j, k, n, m)
+})) |> sum()
+
+println("Result:   " + str(best_score))
+println("          " + str(total))
+println("Expected: 3")
+println("          -139")
+
+fn test_osym_isolating_symbols() {
+    assert best_score == 3, "OSYM: the best alignment scores " + str(best_score)
+    assert total == 0 - 139, "OSYM: the sum is " + str(total)
+
+    # No pairing can beat the unconstrained optimum, and at least one must reach
+    # it — the best alignment pairs something.
+    let every = range(1, n + 1) |> flat_map(|j| range(1, m + 1) |> map(|k| {
+        let paired = substitution(substr(first_string, j - 1, 1), substr(second_string, k - 1, 1))
+        forward[j - 1][k - 1] + paired + backward_at(backward_reversed, j, k, n, m)
+    }))
+    assert max(every) == best_score,
+        "OSYM: the best constrained score should equal the unconstrained one"
+    for value in every {
+        assert value <= best_score, "OSYM: a constrained alignment cannot beat the optimum"
+    }
+    assert len(every) == n * m, "OSYM: one entry per pair of positions"
+}

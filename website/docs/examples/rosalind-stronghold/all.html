@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Every problem</h1>
-        <p class="text-lg text-slate-400 mb-6">All 93 problems from
+        <p class="text-lg text-slate-400 mb-6">All 105 problems from
         <a href="../rosalind-stronghold.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Stronghold</a>.
         Press <strong>Run</strong> on any block to execute it in your browser. Every problem is on this page, so it is large and takes a moment to settle — the sections are lighter.</p>
 
@@ -126,6 +126,18 @@
           <a href="#mult" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Multiple Alignment">MULT</a>
           <a href="#grep" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Genome Assembly with Perfect Coverage and Repeats">GREP</a>
           <a href="#mprt" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Finding a Protein Motif">MPRT</a>
+          <a href="#osym" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Isolating Symbols in Alignments">OSYM</a>
+          <a href="#itwv" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Finding Disjoint Motifs in a Gene">ITWV</a>
+          <a href="#cntq" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Counting Quartets">CNTQ</a>
+          <a href="#qrt" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Quartets">QRT</a>
+          <a href="#chbp" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Character-Based Phylogeny">CHBP</a>
+          <a href="#eubt" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Enumerating Unrooted Binary Trees">EUBT</a>
+          <a href="#qrtd" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Quartet Distance">QRTD</a>
+          <a href="#rnas" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Wobble Bonding and RNA Secondary Structures">RNAS</a>
+          <a href="#ksim" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Finding All Similar Motifs">KSIM</a>
+          <a href="#rsub" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Identifying Reversing Substitutions">RSUB</a>
+          <a href="#rear" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Reversal Distance">REAR</a>
+          <a href="#sort" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Sorting by Reversals">SORT</a>
         </nav>
 
         <section id="dna" class="mt-12">
@@ -5518,6 +5530,1034 @@ fn test_mprt_finding_a_protein_motif() {
     assert motif_positions(&quot;NASP&quot;) == [], &quot;MPRT: proline in the fourth blocks it&quot;
     assert motif_positions(&quot;NAGA&quot;) == [], &quot;MPRT: the third must be S or T&quot;
     assert motif_positions(&quot;NATA&quot;) == [1], &quot;MPRT: threonine works as well as serine&quot;
+}</code></pre>
+        </section>
+
+        <section id="osym" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">OSYM &mdash; Isolating Symbols in Alignments</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/osym/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=OSYM" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="osym.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The best alignment through a given pairing is the best way of reaching it plus the best way of leaving it, so one forward table and one backward table answer all 49 pairs at once — the same trick BA5K uses to find a middle edge.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: OSYM — Isolating Symbols in Alignments
+# https://rosalind.info/problems/osym/
+#
+# Given: Two DNA strings.
+# Return: The maximum global alignment score, and the sum over all (j,k) of the
+# best score of any alignment that pairs s[j] with t[k].
+# Matches score +1, mismatches and gaps -1.
+
+let first_string = &quot;ATAGATA&quot;
+let second_string = &quot;ACAGGTA&quot;
+let gap = 0 - 1
+
+fn substitution(a, b) { if a == b then 1 else 0 - 1 }
+
+# The question is not what the best alignment is, but how good the best
+# alignment *through each particular pairing* would be. Recomputing an alignment
+# for every one of the 49 pairs would be quadratic work repeated quadratically.
+#
+# Instead: the best alignment through (j,k) is the best way of reaching it plus
+# the best way of leaving it. One table filled forwards and one filled backwards
+# answer every pair at once — the same trick BA5K uses to find a middle edge.
+fn forward_table(rows, columns, indel) {
+    let table = [range(0, len(columns) + 1) |&gt; map(|j| j * indel)]
+    for i in range(1, len(rows) + 1) {
+        let line = [i * indel]
+        for j in range(1, len(columns) + 1) {
+            let diagonal = table[i - 1][j - 1]
+                + substitution(substr(rows, i - 1, 1), substr(columns, j - 1, 1))
+            let up = table[i - 1][j] + indel
+            let left = line[j - 1] + indel
+            line = push(line, max([diagonal, up, left]))
+        }
+        table = push(table, line)
+    }
+    table
+}
+
+let forward = forward_table(first_string, second_string, gap)
+# The backward table is the forward one on both strings reversed, so only one
+# direction has to be written.
+let backward_reversed = forward_table(reverse(first_string), reverse(second_string), gap)
+
+let n = len(first_string)
+let m = len(second_string)
+
+fn backward_at(table, i, j, rows, columns) {
+    # Score of aligning s[i..) with t[j..), read out of the reversed table.
+    table[rows - i][columns - j]
+}
+
+let best_score = forward[n][m]
+
+let total = range(1, n + 1) |&gt; flat_map(|j| range(1, m + 1) |&gt; map(|k| {
+    let paired = substitution(substr(first_string, j - 1, 1), substr(second_string, k - 1, 1))
+    forward[j - 1][k - 1] + paired + backward_at(backward_reversed, j, k, n, m)
+})) |&gt; sum()
+
+println(&quot;Result:   &quot; + str(best_score))
+println(&quot;          &quot; + str(total))
+println(&quot;Expected: 3&quot;)
+println(&quot;          -139&quot;)
+
+fn test_osym_isolating_symbols() {
+    assert best_score == 3, &quot;OSYM: the best alignment scores &quot; + str(best_score)
+    assert total == 0 - 139, &quot;OSYM: the sum is &quot; + str(total)
+
+    # No pairing can beat the unconstrained optimum, and at least one must reach
+    # it — the best alignment pairs something.
+    let every = range(1, n + 1) |&gt; flat_map(|j| range(1, m + 1) |&gt; map(|k| {
+        let paired = substitution(substr(first_string, j - 1, 1), substr(second_string, k - 1, 1))
+        forward[j - 1][k - 1] + paired + backward_at(backward_reversed, j, k, n, m)
+    }))
+    assert max(every) == best_score,
+        &quot;OSYM: the best constrained score should equal the unconstrained one&quot;
+    for value in every {
+        assert value &lt;= best_score, &quot;OSYM: a constrained alignment cannot beat the optimum&quot;
+    }
+    assert len(every) == n * m, &quot;OSYM: one entry per pair of positions&quot;
+}</code></pre>
+        </section>
+
+        <section id="itwv" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">ITWV &mdash; Finding Disjoint Motifs in a Gene</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/itwv/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ITWV" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="itwv.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Two motifs competing for the same characters, which is what makes this different from finding each separately. Every reachable state must consume the current character or the window ends — carrying one forward unconsumed would let the motifs match unrelated parts of the sequence.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: ITWV — Finding Disjoint Motifs in a Gene
+# https://rosalind.info/problems/itwv/
+#
+# Given: A DNA string s and a collection of patterns.
+# Return: The matrix M where M[j][k] = 1 if patterns j and k can be interwoven
+# into some substring of s.
+
+let text = &quot;GACCACGGTT&quot;
+let patterns = [&quot;ACAG&quot;, &quot;GT&quot;, &quot;CCG&quot;]
+
+# Two motifs are interwoven when a stretch of the sequence spells both at once,
+# each as a subsequence, using every character for at most one of them. That is
+# what makes this different from finding each motif separately: they compete for
+# the same characters, so the question is whether a shared stretch can satisfy
+# both — which matters when asking whether two binding sites can overlap.
+#
+# The state is (how much of t is placed, how much of u is placed), and the
+# characters of s are consumed in order. Each character extends whichever motif
+# it matches, so a cell is reachable from at most two others.
+fn can_interweave(source, start, left, right) {
+    let rows = len(left)
+    let columns = len(right)
+    # reached[a][b] — the first a of `left` and first b of `right` are placed.
+    let reached = range(0, rows + 1) |&gt; map(|_| range(0, columns + 1) |&gt; map(|_| false))
+    reached[0] = reached[0]
+    let seed = reached[0]
+    seed[0] = true
+    reached[0] = seed
+
+    let at = start
+    let done = false
+    while at &lt; len(source) and done == false {
+        let symbol = substr(source, at, 1)
+        let next = range(0, rows + 1) |&gt; map(|a| range(0, columns + 1) |&gt; map(|_| false))
+        for a in range(0, rows + 1) {
+            let line = next[a]
+            for b in range(0, columns + 1) {
+                if reached[a][b] {
+                    # The character can be skipped only by ending the window, so
+                    # every reachable state must consume it or the window stops
+                    # here. Carrying it forward unconsumed is what would let the
+                    # two motifs be found in unrelated parts of the sequence.
+                    if a &lt; rows and substr(left, a, 1) == symbol {
+                        let advanced = next[a + 1]
+                        advanced[b] = true
+                        next[a + 1] = advanced
+                    }
+                    if b &lt; columns and substr(right, b, 1) == symbol {
+                        line[b + 1] = true
+                    }
+                }
+            }
+            next[a] = line
+        }
+        reached = next
+        if reached[rows][columns] { done = true }
+        at = at + 1
+    }
+    done
+}
+
+fn interwoven_anywhere(source, left, right) {
+    (range(0, len(source)) |&gt; count_if(|start| can_interweave(source, start, left, right))) &gt; 0
+}
+
+let pairings = range(0, len(patterns)) |&gt; map(|j|
+    range(0, len(patterns)) |&gt; map(|k|
+        if interwoven_anywhere(text, patterns[j], patterns[k]) then 1 else 0))
+
+println(&quot;Result:&quot;)
+for line in pairings { println(&quot;  &quot; + (line |&gt; map(|v| str(v)) |&gt; join(&quot; &quot;))) }
+println(&quot;Expected: 0 0 1 / 0 1 0 / 1 0 0&quot;)
+
+fn test_itwv_disjoint_motifs() {
+    let shown = pairings |&gt; map(|line| line |&gt; map(|v| str(v)) |&gt; join(&quot; &quot;)) |&gt; join(&quot; / &quot;)
+    assert shown == &quot;0 0 1 / 0 1 0 / 1 0 0&quot;, &quot;ITWV: got &quot; + shown
+    # The relation is symmetric — interweaving t with u is the same question as
+    # interweaving u with t.
+    for j in range(0, len(patterns)) {
+        for k in range(0, len(patterns)) {
+            assert pairings[j][k] == pairings[k][j], &quot;ITWV: the pairings must be symmetric&quot;
+        }
+    }
+    # GT with itself works: GACCACGGTT contains GGTT, which spells GT twice using
+    # disjoint characters.
+    assert pairings[1][1] == 1, &quot;ITWV: GT interweaves with itself&quot;
+    # ACAG with itself does not — there are not enough characters to spell it
+    # twice disjointly anywhere.
+    assert pairings[0][0] == 0, &quot;ITWV: ACAG cannot be interwoven with itself&quot;
+}</code></pre>
+        </section>
+
+        <section id="cntq" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">CNTQ &mdash; Counting Quartets</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/cntq/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CNTQ" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="cntq.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The answer is C(n,4), and the reason matters more than the number: in a fully resolved tree any four taxa are separated into two pairs by some edge, so the shape never enters into it. The assertion enumerates all 15 subsets and confirms it rather than trusting the formula.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: CNTQ — Counting Quartets
+# https://rosalind.info/problems/cntq/
+#
+# Given: n and an unrooted binary tree on n taxa in Newick format.
+# Return: The number of quartets consistent with the tree, modulo 1,000,000.
+
+let taxa = [&quot;lobster&quot;, &quot;cat&quot;, &quot;dog&quot;, &quot;caterpillar&quot;, &quot;elephant&quot;, &quot;mouse&quot;]
+# (lobster,(cat,dog),(caterpillar,(elephant,mouse)));
+# Each internal edge splits the taxa in two; these are the non-trivial sides.
+let clades = [
+    [&quot;cat&quot;, &quot;dog&quot;],
+    [&quot;caterpillar&quot;, &quot;elephant&quot;, &quot;mouse&quot;],
+    [&quot;elephant&quot;, &quot;mouse&quot;],
+]
+
+# The answer is simply C(n,4), and the reason is worth more than the number: in a
+# *fully resolved* binary tree, any four taxa are separated by some internal edge
+# into two pairs, so every four-taxon set contributes exactly one consistent
+# quartet. Nothing about the tree's shape enters into it.
+#
+# That stops being true the moment the tree has an unresolved node, which is why
+# QRT and CHBP — where splits are partial — are real problems and this one is
+# not.
+let n = len(taxa)
+let answer = choose(n, 4) % 1000000
+
+println(&quot;Result:   &quot; + str(answer))
+println(&quot;Expected: 15&quot;)
+
+fn test_cntq_counting_quartets() {
+    assert answer == 15, &quot;CNTQ: got &quot; + str(answer)
+
+    # Demonstrated rather than asserted: enumerate all four-taxon subsets and
+    # confirm each really is separated into two pairs by some edge.
+    fn subsets_of_four(items) {
+        range(0, len(items)) |&gt; flat_map(|a|
+            range(a + 1, len(items)) |&gt; flat_map(|b|
+                range(b + 1, len(items)) |&gt; flat_map(|c|
+                    range(c + 1, len(items)) |&gt; map(|d|
+                        [items[a], items[b], items[c], items[d]]))))
+    }
+
+    let quartets = subsets_of_four(taxa)
+    assert len(quartets) == choose(n, 4), &quot;CNTQ: C(6,4) is 15 subsets&quot;
+
+    let consistent = quartets |&gt; count_if(|four|
+        (clades |&gt; count_if(|clade|
+            (four |&gt; count_if(|t| contains(clade, t))) == 2)) &gt; 0)
+    assert consistent == len(quartets),
+        &quot;CNTQ: &quot; + str(consistent) + &quot; of &quot; + str(len(quartets)) + &quot; subsets are separated&quot;
+    assert consistent == answer, &quot;CNTQ: the count and the formula must agree&quot;
+}</code></pre>
+        </section>
+
+        <section id="qrt" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">QRT &mdash; Quartets</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/qrt/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=QRT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="qrt.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">An 'x' means not scored, not a third state — so a partial character still separates the taxa it did see, and missing data does not make it useless. Quartets are recorded canonically because neither side nor the order within a side carries meaning, and two characters often support the same one.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: QRT — Quartets
+# https://rosalind.info/problems/qrt/
+#
+# Given: A partial character table.
+# Return: Every quartet inferable from the splits its characters describe.
+
+let taxa = [&quot;cat&quot;, &quot;dog&quot;, &quot;elephant&quot;, &quot;ostrich&quot;, &quot;mouse&quot;, &quot;rabbit&quot;, &quot;robot&quot;]
+let characters = [
+    &quot;01xxx00&quot;,
+    &quot;x11xx00&quot;,
+    &quot;111x00x&quot;,
+]
+
+# A partial character is one that could not be scored for every taxon — an 'x'
+# means &quot;not known&quot;, not &quot;third state&quot;. So a character constrains only the taxa
+# it actually saw, and the quartets it supports are pairs drawn from its two
+# scored groups.
+#
+# The whole point is that missing data does not make a character useless. It
+# still separates the taxa it did score, and those separations are what a tree
+# gets built from.
+fn group_of(character, symbol, names) {
+    range(0, len(names)) |&gt; filter(|i| substr(character, i, 1) == symbol) |&gt; map(|i| names[i])
+}
+
+fn pairs_of(items) {
+    range(0, len(items)) |&gt; flat_map(|a|
+        range(a + 1, len(items)) |&gt; map(|b| [items[a], items[b]]))
+}
+
+# A quartet has no orientation — {a,b}|{c,d} is the same as {c,d}|{a,b} — so each
+# is recorded in a canonical form and duplicates dropped. Two characters often
+# support the same quartet, and counting it twice would overstate the evidence.
+fn canonical(left, right) {
+    let one = join(sort(left), &quot;,&quot;)
+    let two = join(sort(right), &quot;,&quot;)
+    if one &lt; two then one + &quot;|&quot; + two else two + &quot;|&quot; + one
+}
+
+let seen = {}
+let quartets = []
+for character in characters {
+    let zeros = group_of(character, &quot;0&quot;, taxa)
+    let ones = group_of(character, &quot;1&quot;, taxa)
+    for left in pairs_of(zeros) {
+        for right in pairs_of(ones) {
+            let key = canonical(left, right)
+            if contains(keys(seen), key) == false {
+                seen[key] = true
+                quartets = push(quartets, { left: left, right: right })
+            }
+        }
+    }
+}
+
+let written = quartets
+    |&gt; map(|q| &quot;{&quot; + join(q.left, &quot;, &quot;) + &quot;} {&quot; + join(q.right, &quot;, &quot;) + &quot;}&quot;)
+    |&gt; sort()
+
+println(&quot;Result:&quot;)
+for line in written { println(&quot;  &quot; + line) }
+println(&quot;Expected (any order): {elephant, dog} {rabbit, robot} / {cat, dog} {mouse, rabbit}&quot;)
+println(&quot;                      {mouse, rabbit} {cat, elephant} / {dog, elephant} {mouse, rabbit}&quot;)
+
+fn test_qrt_quartets() {
+    assert len(quartets) == 4, &quot;QRT: expected 4 quartets, got &quot; + str(len(quartets))
+    # Compared as unordered pairs of unordered pairs, since neither side nor the
+    # order within a side carries meaning.
+    let expected = [
+        canonical([&quot;elephant&quot;, &quot;dog&quot;], [&quot;rabbit&quot;, &quot;robot&quot;]),
+        canonical([&quot;cat&quot;, &quot;dog&quot;], [&quot;mouse&quot;, &quot;rabbit&quot;]),
+        canonical([&quot;mouse&quot;, &quot;rabbit&quot;], [&quot;cat&quot;, &quot;elephant&quot;]),
+        canonical([&quot;dog&quot;, &quot;elephant&quot;], [&quot;mouse&quot;, &quot;rabbit&quot;]),
+    ]
+    let got = quartets |&gt; map(|q| canonical(q.left, q.right))
+    assert sort(got) == sort(expected), &quot;QRT: got &quot; + join(sort(got), &quot; &quot;)
+    # Every quartet's four taxa are distinct and really were scored by some
+    # character — an 'x' can never appear in one.
+    for q in quartets {
+        let four = q.left + q.right
+        assert len(unique(four)) == 4, &quot;QRT: a quartet must name four different taxa&quot;
+        let supporting = characters |&gt; count_if(|c|
+            (q.left |&gt; count_if(|t| substr(c, (range(0, len(taxa))
+                |&gt; filter(|i| taxa[i] == t))[0], 1) == &quot;0&quot;)) == 2
+            and (q.right |&gt; count_if(|t| substr(c, (range(0, len(taxa))
+                |&gt; filter(|i| taxa[i] == t))[0], 1) == &quot;1&quot;)) == 2)
+        assert supporting &gt; 0, &quot;QRT: no character supports &quot; + canonical(q.left, q.right)
+    }
+}</code></pre>
+        </section>
+
+        <section id="chbp" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">CHBP &mdash; Character-Based Phylogeny</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/chbp/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CHBP" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="chbp.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The inverse of CTBL. It works because a consistent table's splits are laminar — any two nested or disjoint, never crossing — and a laminar family is exactly a tree. Returns a differently-rooted Newick, so the assertion compares induced splits rather than a formatting choice.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: CHBP — Character-Based Phylogeny
+# https://rosalind.info/problems/chbp/
+#
+# Given: Species names and a consistent character table.
+# Return: An unrooted binary tree in Newick format modelling the table.
+
+let taxa = [&quot;cat&quot;, &quot;dog&quot;, &quot;elephant&quot;, &quot;mouse&quot;, &quot;rabbit&quot;, &quot;rat&quot;]
+let characters = [&quot;011101&quot;, &quot;001101&quot;, &quot;001100&quot;]
+
+# The inverse of CTBL: there, a tree produced splits; here the splits have to
+# produce the tree. It works because a consistent table's splits are *laminar* —
+# any two are nested or disjoint, never crossing — and a laminar family is
+# exactly a tree.
+#
+# An unrooted tree has no first node, so a reference taxon is picked and every
+# split is taken from the side away from it. That makes the clades nest, and the
+# reference becomes the outermost branch.
+let reference = taxa[0]
+
+fn side_away_from(character, names, anchor) {
+    let anchor_index = (range(0, len(names)) |&gt; filter(|i| names[i] == anchor))[0]
+    let anchor_state = substr(character, anchor_index, 1)
+    range(0, len(names))
+        |&gt; filter(|i| substr(character, i, 1) != anchor_state)
+        |&gt; map(|i| names[i])
+}
+
+let clades = characters |&gt; map(|c| side_away_from(c, taxa, reference))
+
+fn is_subset(small, big) { (small |&gt; count_if(|x| contains(big, x) == false)) == 0 }
+
+fn build(members, groups) {
+    # The groups strictly inside this one, and of those the maximal — anything
+    # contained in another is handled a level deeper.
+    let inside = groups |&gt; filter(|g| is_subset(g, members) and len(g) &lt; len(members))
+    let maximal = inside |&gt; filter(|g|
+        (inside |&gt; count_if(|other| len(other) &gt; len(g) and is_subset(g, other))) == 0)
+    let covered = maximal |&gt; flat_map(|g| g)
+    let loose = members |&gt; filter(|m| contains(covered, m) == false)
+    let parts = (maximal |&gt; map(|g| build(g, groups))) + loose
+    if len(parts) == 1 then parts[0] else &quot;(&quot; + join(parts, &quot;,&quot;) + &quot;)&quot;
+}
+
+let rest = taxa |&gt; filter(|t| t != reference)
+let inner = build(rest, clades)
+# The reference sits alongside the rest at the unrooted centre, so its branch is
+# spliced in rather than wrapped around.
+let newick = &quot;(&quot; + reference + &quot;,&quot; + substr(inner, 1, len(inner) - 2) + &quot;);&quot;
+
+println(&quot;Result:   &quot; + newick)
+println(&quot;Expected: (dog,(cat,rabbit),(rat,(elephant,mouse)));&quot;)
+println(&quot;Both describe one unrooted tree — they differ only in which branch is&quot;)
+println(&quot;written first, which an unrooted tree does not fix.&quot;)
+
+fn test_chbp_character_based_phylogeny() {
+    # The real requirement is that the tree induces exactly the table's splits.
+    # Newick is not canonical for an unrooted tree, so comparing strings would be
+    # comparing a formatting choice.
+    fn splits_of(tree_text, names) {
+        # Every parenthesised group is a clade; take each as a split.
+        let found = []
+        let stack = []
+        for i in range(0, len(tree_text)) {
+            let symbol = substr(tree_text, i, 1)
+            if symbol == &quot;(&quot; { stack = push(stack, i) }
+            if symbol == &quot;)&quot; {
+                let opened = stack[len(stack) - 1]
+                stack = slice(stack, 0, len(stack) - 1)
+                let inner_text = substr(tree_text, opened + 1, i - opened - 1)
+                let members = names |&gt; filter(|t| contains(inner_text, t))
+                if len(members) &gt; 1 and len(members) &lt; len(names) {
+                    found = push(found, join(sort(members), &quot;,&quot;))
+                }
+            }
+        }
+        unique(found)
+    }
+
+    let mine = splits_of(newick, taxa)
+    let published = splits_of(&quot;(dog,(cat,rabbit),(rat,(elephant,mouse)));&quot;, taxa)
+
+    # A split and its complement are the same split, so compare canonically.
+    fn canonical_splits(raw, names) {
+        raw |&gt; map(|s| {
+            let members = split(s, &quot;,&quot;)
+            let other = names |&gt; filter(|t| contains(members, t) == false)
+            let one = join(sort(members), &quot;,&quot;)
+            let two = join(sort(other), &quot;,&quot;)
+            if one &lt; two then one else two
+        }) |&gt; unique() |&gt; sort()
+    }
+
+    assert canonical_splits(mine, taxa) == canonical_splits(published, taxa),
+        &quot;CHBP: splits &quot; + join(canonical_splits(mine, taxa), &quot; | &quot;)
+            + &quot; against &quot; + join(canonical_splits(published, taxa), &quot; | &quot;)
+    # And those splits are exactly the ones the characters describe.
+    let from_characters = canonical_splits(
+        clades |&gt; map(|c| join(sort(c), &quot;,&quot;)), taxa)
+    assert canonical_splits(mine, taxa) == from_characters,
+        &quot;CHBP: the tree must induce the table's splits and no others&quot;
+}</code></pre>
+        </section>
+
+        <section id="eubt" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">EUBT &mdash; Enumerating Unrooted Binary Trees</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/eubt/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=EUBT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="eubt.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Built by insertion: every unrooted binary tree arises exactly once by splitting an edge and hanging the next taxon off it, which is why the count is (2n-5)!! — fifteen trees at n=5, over two million at n=10. That growth is why nobody enumerates trees to find the best one.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: EUBT — Enumerating Unrooted Binary Trees
+# https://rosalind.info/problems/eubt/
+#
+# Given: n taxa.
+# Return: Every unrooted binary tree on those taxa, in Newick format.
+
+let taxa = [&quot;dog&quot;, &quot;cat&quot;, &quot;mouse&quot;, &quot;elephant&quot;]
+
+# Built by insertion: start with the only tree on three taxa — a star — then add
+# each remaining taxon by splitting one existing edge in two and hanging it off
+# the new node. Every unrooted binary tree arises exactly once this way, which is
+# why the count is the double factorial (2n-5)!! and why it explodes: fifteen
+# trees at n=5, over two million at n=10.
+#
+# That growth is the reason nobody enumerates trees to find the best one. It is
+# also why the parsimony and distance methods in this pack exist.
+let edges_start = [
+    { a: &quot;center&quot;, b: taxa[0] },
+    { a: &quot;center&quot;, b: taxa[1] },
+    { a: &quot;center&quot;, b: taxa[2] },
+]
+
+let trees = [edges_start]
+for step in range(3, len(taxa)) {
+    let leaf = taxa[step]
+    let grown = []
+    for tree in trees {
+        for i in range(0, len(tree)) {
+            let fresh = &quot;node&quot; + str(step) + &quot;_&quot; + str(i)
+            let split_edge = tree[i]
+            let others = range(0, len(tree)) |&gt; filter(|j| j != i) |&gt; map(|j| tree[j])
+            grown = push(grown, others + [
+                { a: split_edge.a, b: fresh },
+                { a: fresh, b: split_edge.b },
+                { a: fresh, b: leaf },
+            ])
+        }
+    }
+    trees = grown
+}
+
+fn neighbours_of(tree, node) {
+    (tree |&gt; filter(|e| e.a == node) |&gt; map(|e| e.b))
+        + (tree |&gt; filter(|e| e.b == node) |&gt; map(|e| e.a))
+}
+
+fn is_taxon(node, names) { contains(names, node) }
+
+fn walk(tree, node, parent, names) {
+    if is_taxon(node, names) { return node }
+    let children = neighbours_of(tree, node) |&gt; filter(|c| c != parent)
+    &quot;(&quot; + (children |&gt; map(|c| walk(tree, c, node, names)) |&gt; join(&quot;,&quot;)) + &quot;)&quot;
+}
+
+# Written from the first taxon, which an unrooted tree does not privilege — it
+# is just somewhere to start reading.
+fn to_newick(tree, names) {
+    let anchor = names[0]
+    let hub = neighbours_of(tree, anchor)[0]
+    let branches = neighbours_of(tree, hub) |&gt; filter(|c| c != anchor)
+    &quot;(&quot; + anchor + &quot;,&quot; + (branches |&gt; map(|c| walk(tree, c, hub, names)) |&gt; join(&quot;,&quot;)) + &quot;);&quot;
+}
+
+let written = trees |&gt; map(|t| to_newick(t, taxa))
+
+println(&quot;Result:&quot;)
+for line in written { println(&quot;  &quot; + line) }
+println(&quot;Expected: three trees — (mouse,cat)|(elephant,dog), (elephant,mouse)|(cat,dog),&quot;)
+println(&quot;          (elephant,cat)|(mouse,dog), written from a different anchor.&quot;)
+
+fn test_eubt_enumerating_unrooted_binary_trees() {
+    # (2n-5)!! trees: 1 x 3 for n = 4.
+    assert len(trees) == 3, &quot;EUBT: expected 3 trees, got &quot; + str(len(trees))
+    assert len(unique(written)) == 3, &quot;EUBT: the trees must be distinct&quot;
+
+    # A tree on n taxa has 2n-3 edges and n-2 internal nodes.
+    for tree in trees {
+        assert len(tree) == 2 * len(taxa) - 3,
+            &quot;EUBT: expected &quot; + str(2 * len(taxa) - 3) + &quot; edges, got &quot; + str(len(tree))
+        for taxon in taxa {
+            assert len(neighbours_of(tree, taxon)) == 1, &quot;EUBT: &quot; + taxon + &quot; must be a leaf&quot;
+        }
+    }
+
+    # The three topologies are exactly the three ways of pairing four taxa. That
+    # is the whole content of the answer, and it does not depend on how the
+    # Newick is rooted.
+    fn pairing_of(tree, names) {
+        # The one internal edge separates the taxa into two pairs. Which side the
+        # edge happens to be stored from is arbitrary, so the smaller of the two
+        # names the topology.
+        let internal = tree |&gt; filter(|e|
+            is_taxon(e.a, names) == false and is_taxon(e.b, names) == false)
+        let side = neighbours_of(tree, internal[0].a) |&gt; filter(|x| is_taxon(x, names))
+        let other = names |&gt; filter(|t| contains(side, t) == false)
+        let one = join(sort(side), &quot;,&quot;)
+        let two = join(sort(other), &quot;,&quot;)
+        if one &lt; two then one else two
+    }
+    let pairings = trees |&gt; map(|t| pairing_of(t, taxa)) |&gt; sort()
+    assert len(unique(pairings)) == 3, &quot;EUBT: each tree must pair the taxa differently&quot;
+    # With four taxa the topology is fixed by which one cat is paired with, and
+    # all three possibilities appear exactly once.
+    assert pairings == sort([&quot;cat,dog&quot;, &quot;cat,mouse&quot;, &quot;cat,elephant&quot;]),
+        &quot;EUBT: got pairings &quot; + join(pairings, &quot; | &quot;)
+}</code></pre>
+        </section>
+
+        <section id="qrtd" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">QRTD &mdash; Quartet Distance</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/qrtd/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=QRTD" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="qrtd.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Quartets degrade gracefully where splits do not: moving one taxon changes a handful of quartets but can destroy every split at once. Asserted to be zero between a tree and itself, which is the identity any distance must satisfy.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: QRTD — Quartet Distance
+# https://rosalind.info/problems/qrtd/
+#
+# Given: n taxa and two unrooted binary trees.
+# Return: The quartet distance between them.
+
+let taxa = [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;, &quot;E&quot;]
+# (A,C,((B,D),E));   and   (C,(B,D),(A,E));
+# Each internal edge is a split; these are the non-trivial sides.
+let first_clades = [[&quot;B&quot;, &quot;D&quot;], [&quot;B&quot;, &quot;D&quot;, &quot;E&quot;]]
+let second_clades = [[&quot;B&quot;, &quot;D&quot;], [&quot;A&quot;, &quot;E&quot;]]
+
+# Two trees can share every taxon and still disagree about almost everything, so
+# comparing them needs a measure. Quartets give one: each set of four taxa is
+# separated into two pairs by exactly one edge, and two trees either agree about
+# that pairing or they do not.
+#
+# It beats counting shared splits because it degrades gracefully — moving one
+# taxon changes a handful of quartets, where it can destroy every split at once.
+fn pairing_in(four, clades) {
+    # The clade cutting these four 2-and-2 names the quartet.
+    let cutting = clades |&gt; filter(|c| (four |&gt; count_if(|t| contains(c, t))) == 2)
+    if len(cutting) == 0 { return &quot;&quot; }
+    let side = four |&gt; filter(|t| contains(cutting[0], t))
+    let other = four |&gt; filter(|t| contains(cutting[0], t) == false)
+    let one = join(sort(side), &quot;,&quot;)
+    let two = join(sort(other), &quot;,&quot;)
+    if one &lt; two then one + &quot;|&quot; + two else two + &quot;|&quot; + one
+}
+
+fn subsets_of_four(items) {
+    range(0, len(items)) |&gt; flat_map(|a|
+        range(a + 1, len(items)) |&gt; flat_map(|b|
+            range(b + 1, len(items)) |&gt; flat_map(|c|
+                range(c + 1, len(items)) |&gt; map(|d|
+                    [items[a], items[b], items[c], items[d]]))))
+}
+
+let quartets = subsets_of_four(taxa)
+let shared = quartets |&gt; count_if(|four| {
+    let one = pairing_in(four, first_clades)
+    let two = pairing_in(four, second_clades)
+    one != &quot;&quot; and one == two
+})
+
+# Both trees are fully resolved, so each induces exactly one quartet per subset.
+let first_count = quartets |&gt; count_if(|four| pairing_in(four, first_clades) != &quot;&quot;)
+let second_count = quartets |&gt; count_if(|four| pairing_in(four, second_clades) != &quot;&quot;)
+let distance = first_count + second_count - 2 * shared
+
+println(&quot;Result:   &quot; + str(distance))
+println(&quot;Expected: 4&quot;)
+println(&quot;(&quot; + str(len(quartets)) + &quot; quartets each, &quot; + str(shared) + &quot; agreeing)&quot;)
+
+fn test_qrtd_quartet_distance() {
+    assert distance == 4, &quot;QRTD: got &quot; + str(distance)
+    # A resolved tree resolves every four-taxon subset, which CNTQ established.
+    assert first_count == choose(len(taxa), 4), &quot;QRTD: the first tree resolves all 5&quot;
+    assert second_count == choose(len(taxa), 4), &quot;QRTD: and so does the second&quot;
+    assert shared == 3, &quot;QRTD: 3 of the 5 quartets agree&quot;
+
+    # A tree against itself is distance zero — the identity any distance must
+    # satisfy, and worth checking rather than assuming.
+    let self_shared = quartets |&gt; count_if(|four| pairing_in(four, first_clades) != &quot;&quot;)
+    assert first_count + first_count - 2 * self_shared == 0,
+        &quot;QRTD: a tree must be distance 0 from itself&quot;
+    # The two disagreeing quartets are the ones involving both B,D and A,E.
+    let disagreeing = quartets |&gt; filter(|four|
+        pairing_in(four, first_clades) != pairing_in(four, second_clades))
+    assert len(disagreeing) == 2, &quot;QRTD: exactly two quartets differ&quot;
+}</code></pre>
+        </section>
+
+        <section id="rnas" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">RNAS &mdash; Wobble Bonding and RNA Secondary Structures</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/rnas/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=RNAS" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="rnas.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Real RNA pairs U-G nearly as readily as A-U, so a count excluding wobble understates what a molecule can fold into. Memoised with has_key — contains(keys(memo), k) rebuilds the key list on every probe and would make the lookup the bottleneck the memo was meant to remove.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: RNAS — Wobble Bonding and RNA Secondary Structures
+# https://rosalind.info/problems/rnas/
+#
+# Given: An RNA string.
+# Return: The number of valid non-crossing matchings of its bonding graph,
+# allowing wobble (U-G) pairs, where no bond spans fewer than 4 intervening
+# positions.
+
+let rna_string = &quot;AUGCUAGUACGGAGCGAGUCUAGCGAGCGAUGUCGUGAGUACUAUAUAUGCGCAUAAGCCACGU&quot;
+
+# Real RNA does not only pair A-U and C-G. The wobble pair U-G is nearly as
+# stable and appears throughout functional RNA, so a structure count that
+# excludes it understates what a molecule can fold into.
+#
+# The other constraint is physical: a hairpin cannot turn in fewer than about
+# four bases, so a bond between positions closer than that is impossible however
+# well the bases match.
+fn can_pair(a, b) {
+    (a == &quot;A&quot; and b == &quot;U&quot;) or (a == &quot;U&quot; and b == &quot;A&quot;)
+        or (a == &quot;C&quot; and b == &quot;G&quot;) or (a == &quot;G&quot; and b == &quot;C&quot;)
+        or (a == &quot;U&quot; and b == &quot;G&quot;) or (a == &quot;G&quot; and b == &quot;U&quot;)
+}
+
+# Counting by recursion over intervals: position i either stays unpaired, or
+# bonds with some k, which splits the interval into two independent halves. Both
+# halves are asked about repeatedly, so without a memo the same interval is
+# recomputed exponentially often.
+#
+# `has_key` is what makes the memo worth having — `contains(keys(memo), k)`
+# rebuilds the whole key list on every probe, turning the lookup itself into the
+# bottleneck it was meant to remove.
+let memo = {}
+
+fn count_matchings(i, j) {
+    if j - i &lt; 5 { return 1 }
+    let key = str(i) + &quot;,&quot; + str(j)
+    if has_key(memo, key) { return memo[key] }
+
+    # i unpaired.
+    let total = count_matchings(i + 1, j)
+    # i bonded to k, which must leave four bases inside the loop.
+    for k in range(i + 4, j) {
+        if can_pair(substr(rna_string, i, 1), substr(rna_string, k, 1)) {
+            total = total + count_matchings(i + 1, k) * count_matchings(k + 1, j)
+        }
+    }
+    memo[key] = total
+    total
+}
+
+let answer = count_matchings(0, len(rna_string))
+
+println(&quot;Result:   &quot; + str(answer))
+println(&quot;Expected: 284850219977421&quot;)
+
+fn test_rnas_wobble_bonding() {
+    assert answer == 284850219977421, &quot;RNAS: got &quot; + str(answer)
+    # The memo is doing real work: far fewer intervals than the recursion visits.
+    assert len(keys(memo)) &lt; len(rna_string) * len(rna_string),
+        &quot;RNAS: the memo should hold at most one entry per interval&quot;
+    assert len(keys(memo)) &gt; 0, &quot;RNAS: the memo should be used at all&quot;
+
+    # Wobble pairs genuinely matter — U-G is accepted where a strict
+    # Watson-Crick rule would reject it.
+    assert can_pair(&quot;U&quot;, &quot;G&quot;) and can_pair(&quot;G&quot;, &quot;U&quot;), &quot;RNAS: wobble pairs bond&quot;
+    assert can_pair(&quot;A&quot;, &quot;G&quot;) == false, &quot;RNAS: A-G does not&quot;
+    # A string too short to turn a hairpin has exactly one matching: the empty one.
+    assert count_matchings(0, 4) == 1, &quot;RNAS: nothing can bond within four bases&quot;
+    # The empty matching is always counted, so the total is never zero.
+    assert answer &gt; 0, &quot;RNAS: the empty matching always counts&quot;
+}</code></pre>
+        </section>
+
+        <section id="ksim" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">KSIM &mdash; Finding All Similar Motifs</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ksim/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=KSIM" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ksim.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A binding site is a tendency rather than a fixed string, so exact search finds a fraction of real sites — the motif here does not occur exactly at all. Checks every (start, length) pair directly, which is O(n^2) and stated as such: a 50 kbp genome would need the fitting-alignment form instead.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: KSIM — Finding All Similar Motifs
+# https://rosalind.info/problems/ksim/
+#
+# Given: k, a motif s, and a genome t.
+# Return: Every substring of t within edit distance k of s, as (position, length).
+
+let k = 2
+let motif = &quot;ACGTAG&quot;
+let sequence = &quot;ACGGATCGGCATCGT&quot;
+
+# Approximate matching, which is what real motif search always is: a binding site
+# is a tendency rather than a fixed string, and an exact search finds a fraction
+# of the real sites.
+#
+# A caveat worth stating rather than hiding: this checks every (start, length)
+# pair directly, which is O(n^2) edit-distance computations. It is clear and it
+# is correct, and at 15 bases it is instant — but the problem permits a 50 kbp
+# genome, where it would not finish. The scalable form is a fitting alignment:
+# one pass that lets the match begin anywhere in t for free, so every end
+# position is scored at once instead of every pair being scored separately.
+let matches = range(0, len(sequence)) |&gt; flat_map(|start|
+    range(1, len(sequence) - start + 1)
+        |&gt; filter(|length| edit_distance(motif, substr(sequence, start, length)) &lt;= k)
+        |&gt; map(|length| { start: start + 1, length: length }))
+
+println(&quot;Result:&quot;)
+for hit in matches { println(&quot;  &quot; + str(hit.start) + &quot; &quot; + str(hit.length)) }
+println(&quot;Expected: 1 4 / 1 5 / 1 6&quot;)
+
+fn test_ksim_finding_all_similar_motifs() {
+    let written = matches |&gt; map(|m| str(m.start) + &quot; &quot; + str(m.length))
+    assert sort(written) == sort([&quot;1 4&quot;, &quot;1 5&quot;, &quot;1 6&quot;]), &quot;KSIM: got &quot; + join(written, &quot; / &quot;)
+
+    # Every reported substring really is within k, and every one omitted is not —
+    # the second half is the part a filter can silently get wrong.
+    for hit in matches {
+        let piece = substr(sequence, hit.start - 1, hit.length)
+        assert edit_distance(motif, piece) &lt;= k,
+            &quot;KSIM: &quot; + piece + &quot; is further than &quot; + str(k)
+    }
+    let missed = range(0, len(sequence)) |&gt; flat_map(|start|
+        range(1, len(sequence) - start + 1)
+            |&gt; filter(|length| edit_distance(motif, substr(sequence, start, length)) &lt;= k)
+            |&gt; filter(|length| (matches |&gt; count_if(|m|
+                m.start == start + 1 and m.length == length)) == 0))
+    assert len(missed) == 0, &quot;KSIM: a qualifying substring was not reported&quot;
+
+    # An exact search finds nothing here, which is the whole point of allowing k.
+    assert contains(sequence, motif) == false, &quot;KSIM: the motif does not occur exactly&quot;
+    assert len(matches) &gt; 0, &quot;KSIM: yet three approximate matches exist&quot;
+}</code></pre>
+        </section>
+
+        <section id="rsub" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">RSUB &mdash; Identifying Reversing Substitutions</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/rsub/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=RSUB" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="rsub.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A site that mutates and mutates back looks, from the tips alone, as though nothing happened — which is exactly what makes distant relationships hard to recover. Only the internal labels reveal it, which is why the problem supplies them.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: RSUB — Identifying Reversing Substitutions
+# https://rosalind.info/problems/rsub/
+#
+# Given: A rooted binary tree with every node labelled by a string.
+# Return: Every reversing substitution — a change that later changes back, with
+# no other change in between.
+
+# (((ostrich,cat)rat,mouse)dog,elephant)robot;
+let children = {
+    &quot;robot&quot;: [&quot;dog&quot;, &quot;elephant&quot;],
+    &quot;dog&quot;: [&quot;rat&quot;, &quot;mouse&quot;],
+    &quot;rat&quot;: [&quot;ostrich&quot;, &quot;cat&quot;],
+}
+let sequences = {
+    &quot;robot&quot;: &quot;AATTG&quot;, &quot;dog&quot;: &quot;GGGCA&quot;, &quot;mouse&quot;: &quot;AAGAC&quot;, &quot;rat&quot;: &quot;GTTGT&quot;,
+    &quot;cat&quot;: &quot;GAGGC&quot;, &quot;ostrich&quot;: &quot;GTGTC&quot;, &quot;elephant&quot;: &quot;AATTC&quot;,
+}
+let root = &quot;robot&quot;
+
+# A site that mutates and later mutates back looks, from the tips alone, as
+# though nothing ever happened — the ancestor and the descendant agree. Only the
+# internal labels reveal it, which is why this problem hands them over rather
+# than asking for them.
+#
+# It matters because reversing substitutions are exactly what makes distant
+# relationships hard to recover: the signal erases itself, and two lineages look
+# more similar than their history warrants.
+fn kids_of(node) { if has_key(children, node) then children[node] else [] }
+
+# Walk down from a node where a change occurred, following only lineages that
+# still carry the new character, and report wherever it changes back.
+fn reversions_below(start, position, was, became) {
+    let found = []
+    let frontier = kids_of(start)
+    while len(frontier) &gt; 0 {
+        let node = frontier[0]
+        frontier = slice(frontier, 1, len(frontier))
+        let here = substr(sequences[node], position, 1)
+        if here == was {
+            # Changed back, with nothing else in between.
+            found = push(found, node)
+        } else {
+            # Still carrying the substitution; keep descending. Any third
+            # character ends the lineage's relevance.
+            if here == became { frontier = frontier + kids_of(node) }
+        }
+    }
+    found
+}
+
+let width = len(sequences[root])
+let reported = []
+let stack = [root]
+while len(stack) &gt; 0 {
+    let parent = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    for child in kids_of(parent) {
+        stack = push(stack, child)
+        for i in range(0, width) {
+            let was = substr(sequences[parent], i, 1)
+            let became = substr(sequences[child], i, 1)
+            if was != became {
+                for reverted in reversions_below(child, i, was, became) {
+                    reported = push(reported, child + &quot; &quot; + reverted + &quot; &quot; + str(i + 1)
+                        + &quot; &quot; + was + &quot;-&gt;&quot; + became + &quot;-&gt;&quot; + was)
+                }
+            }
+        }
+    }
+}
+
+println(&quot;Result:&quot;)
+for line in sort(reported) { println(&quot;  &quot; + line) }
+println(&quot;Expected (any order): dog mouse 1 A-&gt;G-&gt;A / dog mouse 2 A-&gt;G-&gt;A&quot;)
+println(&quot;                      rat ostrich 3 G-&gt;T-&gt;G / rat cat 3 G-&gt;T-&gt;G / dog rat 3 T-&gt;G-&gt;T&quot;)
+
+fn test_rsub_reversing_substitutions() {
+    let expected = [&quot;dog mouse 1 A-&gt;G-&gt;A&quot;, &quot;dog mouse 2 A-&gt;G-&gt;A&quot;,
+                    &quot;rat ostrich 3 G-&gt;T-&gt;G&quot;, &quot;rat cat 3 G-&gt;T-&gt;G&quot;, &quot;dog rat 3 T-&gt;G-&gt;T&quot;]
+    assert sort(reported) == sort(expected), &quot;RSUB: got &quot; + join(sort(reported), &quot; / &quot;)
+
+    # Every report must describe a real reversion: the character genuinely
+    # differs from the parent and genuinely returns at the named descendant.
+    for line in reported {
+        let parts = split(line, &quot; &quot;)
+        let changed = parts[0]
+        let reverted = parts[1]
+        let position = int(parts[2]) - 1
+        assert substr(sequences[changed], position, 1) != substr(sequences[reverted], position, 1),
+            &quot;RSUB: &quot; + line + &quot; does not actually revert&quot;
+    }
+    # The tips alone hide this: robot and mouse agree at position 1 despite two
+    # substitutions on the path between them.
+    assert substr(sequences[&quot;robot&quot;], 0, 1) == substr(sequences[&quot;mouse&quot;], 0, 1),
+        &quot;RSUB: the endpoints agree, which is what makes the change invisible&quot;
+    assert substr(sequences[&quot;dog&quot;], 0, 1) != substr(sequences[&quot;robot&quot;], 0, 1),
+        &quot;RSUB: yet the intermediate differs from both&quot;
+}</code></pre>
+        </section>
+
+        <section id="rear" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">REAR &mdash; Reversal Distance</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/rear/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=REAR" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="rear.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Where BA6C's 2-break distance had a closed form, this has none at size 10 and must be searched: 45 reversals per step, 3.6 million reachable orders, distance reaching 9. The builtin searches from both ends and meets in the middle, so each side only reaches depth 4 or 5.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: REAR — Reversal Distance
+# https://rosalind.info/problems/rear/
+#
+# Given: Up to five pairs of permutations of length 10.
+# Return: The reversal distance for each pair.
+
+let pairs = [
+    { from_order: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],  to_order: [3, 1, 5, 2, 7, 4, 9, 6, 10, 8] },
+    { from_order: [3, 10, 8, 2, 5, 4, 7, 1, 6, 9],  to_order: [5, 2, 3, 1, 7, 4, 10, 8, 6, 9] },
+    { from_order: [8, 6, 7, 9, 4, 1, 3, 10, 2, 5],  to_order: [8, 2, 7, 6, 9, 1, 5, 3, 10, 4] },
+    { from_order: [3, 9, 10, 4, 1, 8, 6, 7, 5, 2],  to_order: [2, 9, 8, 5, 1, 7, 3, 4, 6, 10] },
+    { from_order: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],  to_order: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+]
+
+# The 2-break distance in BA6C had a closed form — blocks minus cycles. Reversal
+# distance has no such formula at this size, so it has to be searched for, and
+# the search is why `reversal_distance` is a builtin rather than written here:
+# ten elements admit 45 reversals and 3.6 million reachable orders, and the
+# distance reaches 9. A one-sided search to that depth is hopeless; the builtin
+# searches from both ends and meets in the middle, so each side only reaches
+# depth 4 or 5.
+let distances = pairs |&gt; map(|pair| reversal_distance(pair.from_order, pair.to_order))
+
+println(&quot;Result:   &quot; + (distances |&gt; map(|d| str(d)) |&gt; join(&quot; &quot;)))
+println(&quot;Expected: 9 4 5 7 0&quot;)
+
+fn test_rear_reversal_distance() {
+    assert (distances |&gt; map(|d| str(d)) |&gt; join(&quot; &quot;)) == &quot;9 4 5 7 0&quot;,
+        &quot;REAR: got &quot; + str(distances)
+    # Identical permutations are no distance apart, and the measure is symmetric
+    # because a reversal undoes itself.
+    assert distances[4] == 0, &quot;REAR: the last pair is already sorted&quot;
+    for pair in pairs {
+        assert reversal_distance(pair.to_order, pair.from_order)
+            == reversal_distance(pair.from_order, pair.to_order),
+            &quot;REAR: the distance must be symmetric&quot;
+    }
+}</code></pre>
+        </section>
+
+        <section id="sort" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">SORT &mdash; Sorting by Reversals</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/sort/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SORT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="sort.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">REAR asks how far apart two gene orders are; this asks for the route, which is what actually says how the rearrangement happened. The assertion applies the reversals and checks they produce the target — a plausible list that does not sort is the failure this invites.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: SORT — Sorting by Reversals
+# https://rosalind.info/problems/sort/
+#
+# Given: Two permutations of length 10.
+# Return: The reversal distance, and a shortest collection of reversals taking
+# the first to the second.
+
+let from_order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+let to_order = [1, 8, 9, 3, 2, 7, 6, 5, 4, 10]
+
+# REAR asks how far apart two gene orders are; this asks for the route. The
+# search is the same — the distance is just the length of what comes back — but
+# the sequence is what actually says how the rearrangement happened, and a
+# distance without one is unfalsifiable.
+#
+# Any shortest sequence is correct. Reversals commute in some orders and not
+# others, so several routes of the same length usually exist.
+let steps = sorting_reversals(from_order, to_order)
+
+println(&quot;Result:   &quot; + str(len(steps)))
+for step in steps { println(&quot;          &quot; + str(step[0]) + &quot; &quot; + str(step[1])) }
+println(&quot;Expected: 2, then 4 9 and 2 5 — any shortest route is accepted&quot;)
+
+fn test_sort_sorting_by_reversals() {
+    assert len(steps) == 2, &quot;SORT: expected 2 reversals, got &quot; + str(len(steps))
+    assert len(steps) == reversal_distance(from_order, to_order),
+        &quot;SORT: the route must be as long as the distance&quot;
+
+    # The route has to work. Applying the reversals in order must produce the
+    # target — a plausible-looking list that does not sort is the failure this
+    # problem invites.
+    let current = from_order
+    for step in steps {
+        let from_index = step[0] - 1
+        let to_index = step[1] - 1
+        let head = range(0, from_index) |&gt; map(|i| current[i])
+        let middle = range(from_index, to_index + 1)
+            |&gt; map(|i| current[to_index - (i - from_index)])
+        let tail = range(to_index + 1, len(current)) |&gt; map(|i| current[i])
+        current = head + middle + tail
+    }
+    assert current == to_order,
+        &quot;SORT: the reversals give &quot; + str(current) + &quot;, not &quot; + str(to_order)
+
+    # Every interval is a real one, and reverses more than a single element.
+    for step in steps {
+        assert step[0] &gt;= 1 and step[1] &lt;= len(from_order), &quot;SORT: interval out of range&quot;
+        assert step[0] &lt; step[1], &quot;SORT: reversing one element does nothing&quot;
+    }
 }</code></pre>
         </section>
       </article>

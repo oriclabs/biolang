@@ -994,3 +994,23 @@ status = "solved"
 asserted = true
 note = "A site that mutates and mutates back looks, from the tips alone, as though nothing happened — which is exactly what makes distant relationships hard to recover. Only the internal labels reveal it, which is why the problem supplies them."
 topics = ["phylogeny"]
+
+[[problem]]
+id = "REAR"
+title = "Reversal Distance"
+file = "examples/rear.bl"
+url = "https://rosalind.info/problems/rear/"
+status = "solved"
+asserted = true
+note = "Where BA6C's 2-break distance had a closed form, this has none at size 10 and must be searched: 45 reversals per step, 3.6 million reachable orders, distance reaching 9. The builtin searches from both ends and meets in the middle, so each side only reaches depth 4 or 5."
+topics = ["rearrangements", "search"]
+
+[[problem]]
+id = "SORT"
+title = "Sorting by Reversals"
+file = "examples/sort.bl"
+url = "https://rosalind.info/problems/sort/"
+status = "solved"
+asserted = true
+note = "REAR asks how far apart two gene orders are; this asks for the route, which is what actually says how the rearrangement happened. The assertion applies the reversals and checks they produce the target — a plausible list that does not sort is the failure this invites."
+topics = ["rearrangements", "search"]

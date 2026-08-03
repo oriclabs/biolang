@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Motifs</h1>
-        <p class="text-lg text-slate-400 mb-6">4 problems from
+        <p class="text-lg text-slate-400 mb-6">6 problems from
         <a href="../rosalind-stronghold.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Stronghold</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -37,6 +37,8 @@
           <a href="#lcsm" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Finding a Shared Motif">LCSM</a>
           <a href="#sseq" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Finding a Spliced Motif">SSEQ</a>
           <a href="#mprt" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Finding a Protein Motif">MPRT</a>
+          <a href="#itwv" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Finding Disjoint Motifs in a Gene">ITWV</a>
+          <a href="#ksim" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Finding All Similar Motifs">KSIM</a>
         </nav>
 
         <section id="subs" class="mt-12">
@@ -243,6 +245,169 @@ fn test_mprt_finding_a_protein_motif() {
     assert motif_positions(&quot;NASP&quot;) == [], &quot;MPRT: proline in the fourth blocks it&quot;
     assert motif_positions(&quot;NAGA&quot;) == [], &quot;MPRT: the third must be S or T&quot;
     assert motif_positions(&quot;NATA&quot;) == [1], &quot;MPRT: threonine works as well as serine&quot;
+}</code></pre>
+        </section>
+
+        <section id="itwv" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">ITWV &mdash; Finding Disjoint Motifs in a Gene</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/itwv/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ITWV" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="itwv.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Two motifs competing for the same characters, which is what makes this different from finding each separately. Every reachable state must consume the current character or the window ends — carrying one forward unconsumed would let the motifs match unrelated parts of the sequence.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: ITWV — Finding Disjoint Motifs in a Gene
+# https://rosalind.info/problems/itwv/
+#
+# Given: A DNA string s and a collection of patterns.
+# Return: The matrix M where M[j][k] = 1 if patterns j and k can be interwoven
+# into some substring of s.
+
+let text = &quot;GACCACGGTT&quot;
+let patterns = [&quot;ACAG&quot;, &quot;GT&quot;, &quot;CCG&quot;]
+
+# Two motifs are interwoven when a stretch of the sequence spells both at once,
+# each as a subsequence, using every character for at most one of them. That is
+# what makes this different from finding each motif separately: they compete for
+# the same characters, so the question is whether a shared stretch can satisfy
+# both — which matters when asking whether two binding sites can overlap.
+#
+# The state is (how much of t is placed, how much of u is placed), and the
+# characters of s are consumed in order. Each character extends whichever motif
+# it matches, so a cell is reachable from at most two others.
+fn can_interweave(source, start, left, right) {
+    let rows = len(left)
+    let columns = len(right)
+    # reached[a][b] — the first a of `left` and first b of `right` are placed.
+    let reached = range(0, rows + 1) |&gt; map(|_| range(0, columns + 1) |&gt; map(|_| false))
+    reached[0] = reached[0]
+    let seed = reached[0]
+    seed[0] = true
+    reached[0] = seed
+
+    let at = start
+    let done = false
+    while at &lt; len(source) and done == false {
+        let symbol = substr(source, at, 1)
+        let next = range(0, rows + 1) |&gt; map(|a| range(0, columns + 1) |&gt; map(|_| false))
+        for a in range(0, rows + 1) {
+            let line = next[a]
+            for b in range(0, columns + 1) {
+                if reached[a][b] {
+                    # The character can be skipped only by ending the window, so
+                    # every reachable state must consume it or the window stops
+                    # here. Carrying it forward unconsumed is what would let the
+                    # two motifs be found in unrelated parts of the sequence.
+                    if a &lt; rows and substr(left, a, 1) == symbol {
+                        let advanced = next[a + 1]
+                        advanced[b] = true
+                        next[a + 1] = advanced
+                    }
+                    if b &lt; columns and substr(right, b, 1) == symbol {
+                        line[b + 1] = true
+                    }
+                }
+            }
+            next[a] = line
+        }
+        reached = next
+        if reached[rows][columns] { done = true }
+        at = at + 1
+    }
+    done
+}
+
+fn interwoven_anywhere(source, left, right) {
+    (range(0, len(source)) |&gt; count_if(|start| can_interweave(source, start, left, right))) &gt; 0
+}
+
+let pairings = range(0, len(patterns)) |&gt; map(|j|
+    range(0, len(patterns)) |&gt; map(|k|
+        if interwoven_anywhere(text, patterns[j], patterns[k]) then 1 else 0))
+
+println(&quot;Result:&quot;)
+for line in pairings { println(&quot;  &quot; + (line |&gt; map(|v| str(v)) |&gt; join(&quot; &quot;))) }
+println(&quot;Expected: 0 0 1 / 0 1 0 / 1 0 0&quot;)
+
+fn test_itwv_disjoint_motifs() {
+    let shown = pairings |&gt; map(|line| line |&gt; map(|v| str(v)) |&gt; join(&quot; &quot;)) |&gt; join(&quot; / &quot;)
+    assert shown == &quot;0 0 1 / 0 1 0 / 1 0 0&quot;, &quot;ITWV: got &quot; + shown
+    # The relation is symmetric — interweaving t with u is the same question as
+    # interweaving u with t.
+    for j in range(0, len(patterns)) {
+        for k in range(0, len(patterns)) {
+            assert pairings[j][k] == pairings[k][j], &quot;ITWV: the pairings must be symmetric&quot;
+        }
+    }
+    # GT with itself works: GACCACGGTT contains GGTT, which spells GT twice using
+    # disjoint characters.
+    assert pairings[1][1] == 1, &quot;ITWV: GT interweaves with itself&quot;
+    # ACAG with itself does not — there are not enough characters to spell it
+    # twice disjointly anywhere.
+    assert pairings[0][0] == 0, &quot;ITWV: ACAG cannot be interwoven with itself&quot;
+}</code></pre>
+        </section>
+
+        <section id="ksim" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">KSIM &mdash; Finding All Similar Motifs</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ksim/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=KSIM" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ksim.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A binding site is a tendency rather than a fixed string, so exact search finds a fraction of real sites — the motif here does not occur exactly at all. Checks every (start, length) pair directly, which is O(n^2) and stated as such: a 50 kbp genome would need the fitting-alignment form instead.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: KSIM — Finding All Similar Motifs
+# https://rosalind.info/problems/ksim/
+#
+# Given: k, a motif s, and a genome t.
+# Return: Every substring of t within edit distance k of s, as (position, length).
+
+let k = 2
+let motif = &quot;ACGTAG&quot;
+let sequence = &quot;ACGGATCGGCATCGT&quot;
+
+# Approximate matching, which is what real motif search always is: a binding site
+# is a tendency rather than a fixed string, and an exact search finds a fraction
+# of the real sites.
+#
+# A caveat worth stating rather than hiding: this checks every (start, length)
+# pair directly, which is O(n^2) edit-distance computations. It is clear and it
+# is correct, and at 15 bases it is instant — but the problem permits a 50 kbp
+# genome, where it would not finish. The scalable form is a fitting alignment:
+# one pass that lets the match begin anywhere in t for free, so every end
+# position is scored at once instead of every pair being scored separately.
+let matches = range(0, len(sequence)) |&gt; flat_map(|start|
+    range(1, len(sequence) - start + 1)
+        |&gt; filter(|length| edit_distance(motif, substr(sequence, start, length)) &lt;= k)
+        |&gt; map(|length| { start: start + 1, length: length }))
+
+println(&quot;Result:&quot;)
+for hit in matches { println(&quot;  &quot; + str(hit.start) + &quot; &quot; + str(hit.length)) }
+println(&quot;Expected: 1 4 / 1 5 / 1 6&quot;)
+
+fn test_ksim_finding_all_similar_motifs() {
+    let written = matches |&gt; map(|m| str(m.start) + &quot; &quot; + str(m.length))
+    assert sort(written) == sort([&quot;1 4&quot;, &quot;1 5&quot;, &quot;1 6&quot;]), &quot;KSIM: got &quot; + join(written, &quot; / &quot;)
+
+    # Every reported substring really is within k, and every one omitted is not —
+    # the second half is the part a filter can silently get wrong.
+    for hit in matches {
+        let piece = substr(sequence, hit.start - 1, hit.length)
+        assert edit_distance(motif, piece) &lt;= k,
+            &quot;KSIM: &quot; + piece + &quot; is further than &quot; + str(k)
+    }
+    let missed = range(0, len(sequence)) |&gt; flat_map(|start|
+        range(1, len(sequence) - start + 1)
+            |&gt; filter(|length| edit_distance(motif, substr(sequence, start, length)) &lt;= k)
+            |&gt; filter(|length| (matches |&gt; count_if(|m|
+                m.start == start + 1 and m.length == length)) == 0))
+    assert len(missed) == 0, &quot;KSIM: a qualifying substring was not reported&quot;
+
+    # An exact search finds nothing here, which is the whole point of allowing k.
+    assert contains(sequence, motif) == false, &quot;KSIM: the motif does not occur exactly&quot;
+    assert len(matches) &gt; 0, &quot;KSIM: yet three approximate matches exist&quot;
 }</code></pre>
         </section>
       </article>
