@@ -280,6 +280,51 @@ ncbi_gene("BRCA1") |> println()</code></pre>
   </section>
 
   <!-- Try it live — interactive WASM examples -->
+  <!-- Rosalind coverage: the one claim on this page a stranger can check -->
+  <section class="py-20 border-b border-slate-800/50">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-3xl font-bold text-white text-center mb-4">136 Rosalind problems, every answer checked</h2>
+      <p class="text-slate-400 text-center mb-2 max-w-3xl mx-auto">
+        <a href="https://rosalind.info" class="text-violet-400 hover:text-violet-300">Rosalind</a> is the bioinformatics
+        problem set used in teaching worldwide. We did not pick these problems and we do not mark our own homework: each
+        solution is asserted against the official answer, and every one is re-run on each commit &mdash; natively, and
+        again through the same WebAssembly build this site serves.
+      </p>
+      <p class="text-slate-500 text-center mb-8 text-sm">Two of the four tracks are complete. The other two are not, and the numbers below say so.</p>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <a href="/docs/examples/rosalind-armory.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
+          <div class="text-2xl font-bold text-green-400">15 / 15</div>
+          <div class="text-sm text-slate-300 mt-1">Armory</div>
+          <div class="text-xs text-slate-500">complete</div>
+        </a>
+        <a href="/docs/examples/rosalind-algorithmic-heights.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
+          <div class="text-2xl font-bold text-green-400">34 / 34</div>
+          <div class="text-sm text-slate-300 mt-1">Algorithmic Heights</div>
+          <div class="text-xs text-slate-500">complete</div>
+        </a>
+        <a href="/docs/examples/rosalind-stronghold.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
+          <div class="text-2xl font-bold text-violet-400">79 / 105</div>
+          <div class="text-sm text-slate-300 mt-1">Stronghold</div>
+          <div class="text-xs text-slate-500">in progress</div>
+        </a>
+        <a href="/docs/examples/rosalind-textbook.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
+          <div class="text-2xl font-bold text-violet-400">8 / 154</div>
+          <div class="text-sm text-slate-300 mt-1">Textbook Track</div>
+          <div class="text-xs text-slate-500">a showcase, by design</div>
+        </a>
+      </div>
+
+      <p class="text-center">
+        <a href="/docs/examples/rosalind-stronghold/sequence.html" class="inline-block px-6 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors">Open one and press Run</a>
+      </p>
+      <p class="text-slate-500 text-xs text-center mt-6">
+        Solutions are MIT. Problem statements belong to <a href="https://rosalind.info" class="text-violet-400 hover:text-violet-300">rosalind.info</a> &mdash;
+        each example paraphrases Given/Return in a line or two and links to the original rather than reproducing it.
+      </p>
+    </div>
+  </section>
+
   <section class="py-20 bg-slate-900/30 border-b border-slate-800/50">
     <div class="max-w-4xl mx-auto px-6">
       <h2 class="text-3xl font-bold text-white text-center mb-4">Try it in your browser</h2>
@@ -377,7 +422,8 @@ print(df.describe())</code></pre>
   <section class="py-20 bg-slate-900/30">
     <div class="max-w-5xl mx-auto px-6">
       <h2 class="text-3xl font-bold text-white text-center mb-4">Benchmarked against BioPython &amp; Bioconductor</h2>
-      <p class="text-slate-400 text-center mb-8">30 bioinformatics tasks on real-world data (NCBI, UniProt, ClinVar, ENCODE). Correctness validated on both synthetic and real biological data (E. coli, yeast, ClinVar) against BioPython and Bioconductor.</p>
+      <p class="text-slate-400 text-center mb-2">30 bioinformatics tasks on real-world data (NCBI, UniProt, ClinVar, ENCODE). Correctness validated on both synthetic and real biological data (E.&nbsp;coli, yeast, ClinVar) against BioPython and Bioconductor.</p>
+      <p class="text-slate-400 text-center mb-8 text-sm">These are <strong class="text-slate-300">whole-script times</strong>, measured the way you would run the script: interpreter startup and library imports included. That is what a one-off analysis actually costs &mdash; <code class="text-violet-300">bl</code> starts in 33&nbsp;ms, while <code class="text-violet-300">import Bio</code> alone takes 400&nbsp;ms or more. It is <em>not</em> a per-operation measurement, and the two tell different stories.</p>
 
       <!-- Top wins highlight cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -423,6 +469,8 @@ print(df.describe())</code></pre>
       </div>
 
       <p class="text-slate-500 text-xs mb-6">Linux (WSL2) &mdash; Intel i9-12900K, 16 GB RAM. Python wins on VCF/CSV text parsing where C extensions dominate. K-mer counting uses canonical (strand-agnostic) 21-mers &mdash; BioLang does strictly more work.</p>
+
+      <p class="text-slate-500 text-xs mb-6">Take the startup out and the picture changes, so here it is too. Timed per operation on a 1&nbsp;Mb genome, median of seven runs, every implementation checked to return the same answer: translation <strong class="text-slate-400">13.9&times; faster</strong> than BioPython and GC content <strong class="text-slate-400">1.9&times; faster</strong> than the Python standard library, but reverse complement 1.4&times; <em>slower</em>, FASTA parsing 1.7&times; slower, and edit distance 3.9&times; slower than <a href="https://github.com/Martinsos/edlib" class="text-violet-400 hover:text-violet-300">edlib</a>, which is SIMD C. The harness that produces all of it is <a href="https://github.com/oriclabs/biolang/blob/main/bench/harness.py" class="text-violet-400 hover:text-violet-300">bench/harness.py</a> &mdash; seeded inputs, recorded versions, run it yourself.</p>
 
       <div class="text-center">
         <a href="benchmarks.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition-colors border border-slate-700">

@@ -22,6 +22,32 @@ reads
   |> write_fastq("filtered.fq.gz")
 ```
 
+## Verified against Rosalind
+
+[Rosalind](https://rosalind.info) is the bioinformatics problem set used in teaching
+worldwide. We did not choose these problems, and we do not mark our own homework: every
+solution is asserted against the official answer and re-run on each commit — natively, and
+again through the same WebAssembly build the website serves.
+
+| Track | Covered | |
+|---|---|---|
+| [Armory](https://lang.bio/docs/examples/rosalind-armory.html) | **15 / 15** | complete |
+| [Algorithmic Heights](https://lang.bio/docs/examples/rosalind-algorithmic-heights.html) | **34 / 34** | complete |
+| [Stronghold](https://lang.bio/docs/examples/rosalind-stronghold.html) | 79 / 105 | in progress |
+| [Textbook Track](https://lang.bio/docs/examples/rosalind-textbook.html) | 8 / 154 | a showcase, by design |
+
+**136 problems; 133 are checked on every commit.** The other three reach out to NCBI, so
+they run in a separate advisory job rather than gating the build on a remote service being
+up. Two of the four tracks are complete; the
+other two are not, and the numbers say so.
+
+Writing them is also what surfaced most of the language fixes in recent releases: `{}`
+parsing as a block rather than an empty map, quadratic `push` and `unique`, and an
+alignment builtin that could not reach a substitution matrix.
+
+Solutions are MIT. Problem statements belong to rosalind.info — each example paraphrases
+Given/Return in a line or two and links to the original rather than reproducing it.
+
 ## Features
 
 - **Bio-native types** -- DNA, RNA, Protein, Interval, Variant, Gene, AlignedRead, Quality
