@@ -115,3 +115,6 @@ node_modules/
 # endings, so a Windows and a Linux build produce different files from identical
 # sources. The .html, .bln and .bl beside them are text and stay committed.
 /website/docs/examples/*.zip
+
+# Written by the doc-example sweep for the CLI checker to consume.
+/website/tests/cli-only-blocks.json

@@ -75,12 +75,12 @@ print(head(counts, 5))
 
 # Define sample groups
 let design = from_records([
-  { sample: "ctrl_1", group: "control" },
-  { sample: "ctrl_2", group: "control" },
-  { sample: "ctrl_3", group: "control" },
-  { sample: "treat_1", group: "treated" },
-  { sample: "treat_2", group: "treated" },
-  { sample: "treat_3", group: "treated" },
+  { sample: "S1_ctrl", group: "control" },
+  { sample: "S2_ctrl", group: "control" },
+  { sample: "S3_ctrl", group: "control" },
+  { sample: "S1_treat", group: "treated" },
+  { sample: "S2_treat", group: "treated" },
+  { sample: "S3_treat", group: "treated" },
 ])
 
 print("Design:")
@@ -89,7 +89,7 @@ print(design)</code></pre>
         <!-- Step 2 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Exploratory Data Analysis</h2>
         <pre><code class="language-biolang"># Library sizes (total reads per sample)
-let sample_cols = ["ctrl_1", "ctrl_2", "ctrl_3", "treat_1", "treat_2", "treat_3"]
+let sample_cols = ["S1_ctrl", "S2_ctrl", "S3_ctrl", "S1_treat", "S2_treat", "S3_treat"]
 
 let lib_sizes = sample_cols
   |> map(|s| { sample: s, total_reads: sum(col(counts, s)) })
@@ -169,9 +169,10 @@ for s in sample_cols {
         <!-- Step 4 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Differential Expression Testing</h2>
         <pre><code class="language-biolang"># Run differential expression analysis
-# diff_expr takes the count table and the number of control columns
-# Columns should be ordered: gene, control_1..N, treated_1..M
-let de_results = diff_expr(expressed, 3)
+# diff_expr takes the count table and a group label per sample column,
+# in the order the columns appear: 0 for control, 1 for treated.
+let groups = [0, 0, 0, 1, 1, 1]
+let de_results = diff_expr(expressed, groups)
 
 print("DE results:")
 print(head(de_results, 5))
@@ -183,7 +184,7 @@ print(head(de_results, 5))
 # │ ...    │    ...   │    ...   │    ...   │     ...  │
 
 # Count significant genes
-de_results |> filter(|row| row["fdr"] &lt; 0.05 and abs(row["log2fc"]) > 1.0) |> into sig
+de_results |> filter(|row| row["padj"] &lt; 0.05 and abs(row["log2fc"]) > 1.0) |> into sig
 sig |> filter(|row| row["log2fc"] > 0.0) |> into up
 sig |> filter(|row| row["log2fc"] &lt; 0.0) |> into down
 
@@ -203,7 +204,7 @@ let pvals = col(de_results, "pvalue")
 let bonf = mutate(de_results, "bonf_pvalue", |row| min(row.pvalue * n_genes, 1.0))
 
 # Compare methods
-let n_bh = nrow(filter(bh, |row| row["fdr"] &lt; 0.05))
+let n_bh = nrow(filter(bh, |row| row["padj"] &lt; 0.05))
 let n_bonf = nrow(filter(bonf, |row| row["bonf_pvalue"] &lt; 0.05))
 
 print("Significant genes (FDR&lt;0.05):")
@@ -244,13 +245,13 @@ print("MA plot saved")</code></pre>
         <!-- Step 8 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Heatmap of Top Genes</h2>
         <pre><code class="language-biolang"># Select top 50 DE genes for heatmap
-let top_sorted = de_results |> arrange("fdr") |> head(50)
+let top_sorted = de_results |> arrange("padj") |> head(50)
 let top_genes = col(top_sorted, "gene")
 
 # Extract normalized expression for these genes
 let heatmap_data = log_cpm
   |> filter(|row| row["gene"] in top_genes)
-  |> select("gene", "ctrl_1", "ctrl_2", "ctrl_3", "treat_1", "treat_2", "treat_3")
+  |> select("gene", "S1_ctrl", "S2_ctrl", "S3_ctrl", "S1_treat", "S2_treat", "S3_treat")
 
 # Z-score normalize each sample column for visualization
 let z_scored = heatmap_data
@@ -317,13 +318,13 @@ fn run_de_analysis(counts_file, design_file, output_dir) {
   )
 
   # Differential expression
-  let de = diff_expr(expressed, n_ctrl)
+  let de = diff_expr(expressed, groups)
 
   # Write full results
   write_csv(de, f"{output_dir}/de_results.csv")
 
   # Significant genes
-  let sig = de |> filter(|r| r["fdr"] &lt; 0.05 and abs(r["log2fc"]) > 1.0)
+  let sig = de |> filter(|r| r["padj"] &lt; 0.05 and abs(r["log2fc"]) > 1.0)
   write_csv(sig, f"{output_dir}/significant_genes.csv")
 
   # Plots
