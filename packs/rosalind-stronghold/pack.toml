@@ -26,6 +26,7 @@ file = "examples/dna.bl"
 url = "https://rosalind.info/problems/dna/"
 status = "solved"
 asserted = true
+note = "A warm-up for the site's input format rather than a biological question — but the four counts it produces are exactly what GC content is computed from, and a lopsided base composition is the first thing a QC tool flags as contamination or adapter read-through."
 topics = ["sequence", "counting"]
 
 [[problem]]
@@ -35,6 +36,7 @@ file = "examples/rna.bl"
 url = "https://rosalind.info/problems/rna/"
 status = "solved"
 asserted = true
+note = "One character substituted for another, which is a fair summary of transcription only if you ignore splicing, capping and polyadenylation. SPLC covers the part this leaves out."
 topics = ["sequence", "transcription"]
 
 [[problem]]
@@ -44,6 +46,7 @@ file = "examples/revc.bl"
 url = "https://rosalind.info/problems/revc/"
 status = "solved"
 asserted = true
+note = "The most-used operation in the whole track. A read carries no record of which strand it came from, so a motif present on one strand appears as its reverse complement on the other — which is why REVP, BA6E and GASM all have to search both."
 topics = ["sequence"]
 
 [[problem]]
@@ -53,6 +56,7 @@ file = "examples/hamm.bl"
 url = "https://rosalind.info/problems/hamm/"
 status = "solved"
 asserted = true
+note = "Counts differing positions, which undercounts mutations: a site can change and change back, leaving no trace. RSUB shows exactly that happening, and it is why distance models correct for unseen substitutions rather than using raw counts."
 topics = ["sequence", "mutations"]
 
 [[problem]]
@@ -62,6 +66,7 @@ file = "examples/fib.bl"
 url = "https://rosalind.info/problems/fib/"
 status = "solved"
 asserted = true
+note = "A recurrence-relation exercise wearing rabbits, not population biology — nothing here dies, competes or mutates. WFMD and EBIN are where real population dynamics appear."
 topics = ["combinatorics", "recurrence"]
 
 [[problem]]
@@ -71,6 +76,7 @@ file = "examples/gc.bl"
 url = "https://rosalind.info/problems/gc/"
 status = "solved"
 asserted = true
+note = "GC content ranges from about 16 to 75 percent across bacteria, and a difference under 5 percent is taken as evidence of the same species — which is why a fragment's GC content alone narrows down where it came from. It also biases sequencing: GC-rich regions amplify poorly and end up under-covered."
 topics = ["sequence", "fasta"]
 
 [[problem]]
@@ -80,6 +86,7 @@ file = "examples/prot.bl"
 url = "https://rosalind.info/problems/prot/"
 status = "solved"
 asserted = true
+note = "Sixty-four codons encode twenty amino acids and a stop, so the code is degenerate and translation discards information. MRNA counts exactly how much."
 topics = ["translation"]
 
 [[problem]]
@@ -89,6 +96,7 @@ file = "examples/subs.bl"
 url = "https://rosalind.info/problems/subs/"
 status = "solved"
 asserted = true
+note = "Finding every occurrence, overlaps included, because real motifs do overlap. The motifs worth finding are restriction sites (REVP) and binding sites — though a real binding site is a tendency rather than a fixed string, which KSIM and MPRT address."
 topics = ["motifs"]
 
 [[problem]]
@@ -98,6 +106,7 @@ file = "examples/fibd.bl"
 url = "https://rosalind.info/problems/fibd/"
 status = "solved"
 asserted = true
+note = "FIB with a death clock added. Still a recurrence exercise rather than population biology, and useful mainly for showing that the state has to widen from one number to an age profile."
 topics = ["combinatorics", "recurrence"]
 
 [[problem]]
@@ -107,6 +116,7 @@ file = "examples/iprb.bl"
 url = "https://rosalind.info/problems/iprb/"
 status = "solved"
 asserted = true
+note = "Mendel's first law as a probability question. The whole content is that two alleles segregate independently, which is what makes the offspring distribution a product rather than something requiring simulation."
 topics = ["probability", "genetics"]
 
 [[problem]]
@@ -116,6 +126,7 @@ file = "examples/iev.bl"
 url = "https://rosalind.info/problems/iev/"
 status = "solved"
 asserted = true
+note = "Expectation is linear whether or not the events are independent, so the answer is a weighted sum with no interaction between genotypes to model. That property is why expected values are reached for far more often than full distributions."
 topics = ["probability", "genetics"]
 
 [[problem]]
@@ -125,6 +136,7 @@ file = "examples/mrna.bl"
 url = "https://rosalind.info/problems/mrna/"
 status = "solved"
 asserted = true
+note = "The reverse of PROT, and it cannot be done — the code is degenerate, so a protein maps back to many mRNAs. Leucine, serine and arginine take six codons each. Counting them needs a modulus because the total outgrows any integer."
 topics = ["combinatorics", "translation"]
 
 [[problem]]
@@ -134,6 +146,7 @@ file = "examples/prtm.bl"
 url = "https://rosalind.info/problems/prtm/"
 status = "solved"
 asserted = true
+note = "Monoisotopic masses, which is what a high-resolution instrument reports when it can resolve individual isotope peaks; low-resolution and high-mass measurements give average masses instead, differing by roughly 0.06 percent. Everything in the mass-spectrometry chapter rests on this sum."
 topics = ["protein", "mass-spectrometry"]
 
 [[problem]]
@@ -143,6 +156,7 @@ file = "examples/perm.bl"
 url = "https://rosalind.info/problems/perm/"
 status = "solved"
 asserted = true
+note = "Permutations as gene orders. n! grows fast enough that enumeration stops being possible almost immediately, which is the premise SIGN, REAR and SORT build on — there, gene order is the data and the question is how few reversals separate two of them."
 topics = ["combinatorics"]
 
 [[problem]]

@@ -148,7 +148,7 @@
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=DNA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="dna.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A warm-up for the site's input format rather than a biological question — but the four counts it produces are exactly what GC content is computed from, and a lopsided base composition is the first thing a QC tool flags as contamination or adapter read-through.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: DNA — Counting DNA Nucleotides
 # https://rosalind.info/problems/dna/
 #
@@ -176,7 +176,7 @@ fn test_dna_nucleotide_counts() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=RNA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="rna.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">One character substituted for another, which is a fair summary of transcription only if you ignore splicing, capping and polyadenylation. SPLC covers the part this leaves out.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: RNA — Transcribing DNA into RNA
 # https://rosalind.info/problems/rna/
 #
@@ -202,7 +202,7 @@ fn test_rna_transcription() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=REVC" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="revc.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The most-used operation in the whole track. A read carries no record of which strand it came from, so a motif present on one strand appears as its reverse complement on the other — which is why REVP, BA6E and GASM all have to search both.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: REVC — Complementing a Strand of DNA
 # https://rosalind.info/problems/revc/
 #
@@ -228,7 +228,7 @@ fn test_revc_reverse_complement() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=HAMM" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="hamm.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Counts differing positions, which undercounts mutations: a site can change and change back, leaving no trace. RSUB shows exactly that happening, and it is why distance models correct for unseen substitutions rather than using raw counts.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: HAMM — Counting Point Mutations
 # https://rosalind.info/problems/hamm/
 #
@@ -256,7 +256,7 @@ fn test_hamm_point_mutations() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=FIB" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="fib.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A recurrence-relation exercise wearing rabbits, not population biology — nothing here dies, competes or mutates. WFMD and EBIN are where real population dynamics appear.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: FIB — Rabbits and Recurrence Relations
 # https://rosalind.info/problems/fib/
 #
@@ -298,7 +298,7 @@ fn test_fib_rabbit_pairs() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GC" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="gc.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">GC content ranges from about 16 to 75 percent across bacteria, and a difference under 5 percent is taken as evidence of the same species — which is why a fragment's GC content alone narrows down where it came from. It also biases sequencing: GC-rich regions amplify poorly and end up under-covered.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: GC — Computing GC Content
 # https://rosalind.info/problems/gc/
 #
@@ -331,7 +331,7 @@ fn test_gc_highest_content() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PROT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="prot.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Sixty-four codons encode twenty amino acids and a stop, so the code is degenerate and translation discards information. MRNA counts exactly how much.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PROT — Translating RNA into Protein
 # https://rosalind.info/problems/prot/
 #
@@ -359,7 +359,7 @@ fn test_prot_translation() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SUBS" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="subs.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Finding every occurrence, overlaps included, because real motifs do overlap. The motifs worth finding are restriction sites (REVP) and binding sites — though a real binding site is a tendency rather than a fixed string, which KSIM and MPRT address.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: SUBS — Finding a Motif in DNA
 # https://rosalind.info/problems/subs/
 #
@@ -389,7 +389,7 @@ fn test_subs_motif_positions() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=FIBD" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="fibd.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">FIB with a death clock added. Still a recurrence exercise rather than population biology, and useful mainly for showing that the state has to widen from one number to an age profile.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: FIBD — Mortal Fibonacci Rabbits
 # https://rosalind.info/problems/fibd/
 #
@@ -431,7 +431,7 @@ fn test_fibd_mortal_rabbits() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=IPRB" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="iprb.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Mendel's first law as a probability question. The whole content is that two alleles segregate independently, which is what makes the offspring distribution a product rather than something requiring simulation.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: IPRB — Mendel's First Law
 # https://rosalind.info/problems/iprb/
 #
@@ -472,7 +472,7 @@ fn test_iprb_dominant_probability() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=IEV" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="iev.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Expectation is linear whether or not the events are independent, so the answer is a weighted sum with no interaction between genotypes to model. That property is why expected values are reached for far more often than full distributions.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: IEV — Calculating Expected Offspring
 # https://rosalind.info/problems/iev/
 #
@@ -507,7 +507,7 @@ fn test_iev_expected_offspring() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=MRNA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="mrna.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The reverse of PROT, and it cannot be done — the code is degenerate, so a protein maps back to many mRNAs. Leucine, serine and arginine take six codons each. Counting them needs a modulus because the total outgrows any integer.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: MRNA — Inferring mRNA from Protein
 # https://rosalind.info/problems/mrna/
 #
@@ -545,7 +545,7 @@ fn test_mrna_possible_rna_strings() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PRTM" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="prtm.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Monoisotopic masses, which is what a high-resolution instrument reports when it can resolve individual isotope peaks; low-resolution and high-mass measurements give average masses instead, differing by roughly 0.06 percent. Everything in the mass-spectrometry chapter rests on this sum.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PRTM — Calculating Protein Mass
 # https://rosalind.info/problems/prtm/
 #
@@ -581,7 +581,7 @@ fn test_prtm_protein_mass() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PERM" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="perm.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Permutations as gene orders. n! grows fast enough that enumeration stops being possible almost immediately, which is the premise SIGN, REAR and SORT build on — there, gene order is the data and the question is how few reversals separate two of them.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PERM — Enumerating Gene Orders
 # https://rosalind.info/problems/perm/
 #
