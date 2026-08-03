@@ -730,3 +730,63 @@ status = "solved"
 asserted = true
 note = "Reading positions from pairwise distances, the same shape of problem as reading a peptide from fragment masses. Backtracking on the largest unplaced distance, which must reach one of the two ends — so each step has two choices rather than a search over all subsets."
 topics = ["mass-spectrometry", "search"]
+
+[[problem]]
+id = "BA5B"
+title = "Find the Length of a Longest Path in a Manhattan-like Grid"
+file = "examples/ba5b.bl"
+url = "https://rosalind.info/problems/ba5b/"
+status = "solved"
+asserted = true
+note = "The grid is filled once in order and never revisited. Enumerating the paths would mean C(n+m, n) of them — 70 here, exponential in general. Longest path is NP-hard in general graphs; it is easy here only because the grid is acyclic."
+topics = ["dynamic-programming", "graphs"]
+
+[[problem]]
+id = "BA5D"
+title = "Find the Longest Path in a DAG"
+file = "examples/ba5d.bl"
+url = "https://rosalind.info/problems/ba5d/"
+status = "solved"
+asserted = true
+note = "Easy for one reason: the graph is acyclic, so its nodes can be ordered with every edge pointing forwards and each score is final when read. Unreachable nodes stay at negative infinity rather than 0, or a detour through one could outscore a real path."
+topics = ["dynamic-programming", "graphs"]
+
+[[problem]]
+id = "BA5K"
+title = "Find a Middle Edge in an Alignment Graph in Linear Space"
+file = "examples/ba5k.bl"
+url = "https://rosalind.info/problems/ba5k/"
+status = "solved"
+asserted = true
+note = "A full alignment table costs O(nm) memory; one column costs O(n). Two linear-space sweeps meeting in the middle locate where the best alignment crosses it. Asserted against the full aligner: the middle node's total equals the alignment's own score."
+topics = ["alignment", "dynamic-programming"]
+
+[[problem]]
+id = "BA5L"
+title = "Align Two Strings Using Linear Space"
+file = "examples/ba5l.bl"
+url = "https://rosalind.info/problems/ba5l/"
+status = "solved"
+asserted = true
+note = "Hirschberg's algorithm on BA5K's middle edge. Each half is re-swept, but the halves shrink geometrically so the total stays O(nm) while memory drops from a table to a column — the trade that makes whole-genome alignment possible. Reproduces the published alignment exactly."
+topics = ["alignment", "dynamic-programming"]
+
+[[problem]]
+id = "BA5M"
+title = "Find a Highest-Scoring Multiple Sequence Alignment"
+file = "examples/ba5m.bl"
+url = "https://rosalind.info/problems/ba5m/"
+status = "solved"
+asserted = true
+note = "Three sequences need a cube, and each cell has seven predecessors rather than three. The cost is O(n^k), which is why exact multiple alignment stops being possible at a handful of sequences and real tools use heuristics. Returns a different optimal alignment from the published one; the assertion recounts the agreeing columns."
+topics = ["alignment", "dynamic-programming"]
+
+[[problem]]
+id = "BA5N"
+title = "Find a Topological Ordering of a DAG"
+file = "examples/ba5n.bl"
+url = "https://rosalind.info/problems/ba5n/"
+status = "solved"
+asserted = true
+note = "Kahn's algorithm with a FIFO queue. This is what BA5B and BA5D stand on: a longest path can be found in one sweep only if each node is reached after everything leading into it. Several orderings are valid, so the assertion checks every edge points forwards."
+topics = ["graphs"]

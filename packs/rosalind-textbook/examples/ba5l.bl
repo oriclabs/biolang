@@ -1,0 +1,101 @@
+# Rosalind: BA5L — Align Two Strings Using Linear Space
+# https://rosalind.info/problems/ba5l/
+#
+# Given: Two amino acid strings.
+# Return: Their maximum global alignment score, and an alignment achieving it,
+# using BLOSUM62 and a linear indel penalty of 5.
+
+let first_string = "PLEASANTLY"
+let second_string = "MEANLY"
+let blosum = score_matrix("BLOSUM62")
+let gap = 5
+
+# Hirschberg's algorithm, built on BA5K's middle edge. The full alignment table
+# needs O(nm) memory — for two chromosomes that is terabytes — but a single
+# column needs only O(n). Finding where the best alignment crosses the middle
+# column costs two linear-space sweeps, and then the problem splits into two
+# halves that are solved the same way.
+#
+# The work roughly doubles (each half is re-swept) but the total stays O(nm),
+# because the halves shrink geometrically: nm/2 + nm/4 + ... < nm. Memory drops
+# from a table to a column, which is the trade that makes whole-genome alignment
+# possible at all.
+fn column_scores(rows, columns, matrix, indel) {
+    let column = range(0, len(rows) + 1) |> map(|i| 0 - i * indel)
+    for j in range(1, len(columns) + 1) {
+        let next = [0 - j * indel]
+        for i in range(1, len(rows) + 1) {
+            let diagonal = column[i - 1]
+                + substitution_score(matrix, substr(rows, i - 1, 1), substr(columns, j - 1, 1))
+            let down = next[i - 1] - indel
+            let across = column[i] - indel
+            next = push(next, max([diagonal, down, across]))
+        }
+        column = next
+    }
+    column
+}
+
+# Returns the two aligned strings for the given pair.
+fn hirschberg(rows, columns, matrix, indel) {
+    if len(columns) == 0 {
+        return [rows, range(0, len(rows)) |> map(|_| "-") |> join("")]
+    }
+    if len(rows) == 0 {
+        return [range(0, len(columns)) |> map(|_| "-") |> join(""), columns]
+    }
+    if len(rows) == 1 or len(columns) == 1 {
+        # Small enough that a full table is a column; fall back to the ordinary
+        # alignment rather than recursing further.
+        let small = align(protein(rows), protein(columns), "global", 0, 0, 0 - indel, 0, "blosum62")
+        return [str(small.aligned_a), str(small.aligned_b)]
+    }
+
+    let middle = floor(len(columns) / 2)
+    let left = column_scores(rows, substr(columns, 0, middle), matrix, indel)
+    let right = column_scores(reverse(rows), reverse(substr(columns, middle, len(columns) - middle)),
+                              matrix, indel) |> reverse()
+    let split_at = argmax(range(0, len(rows) + 1) |> map(|i| left[i] + right[i]))
+
+    let top = hirschberg(substr(rows, 0, split_at), substr(columns, 0, middle), matrix, indel)
+    let bottom = hirschberg(substr(rows, split_at, len(rows) - split_at),
+                            substr(columns, middle, len(columns) - middle), matrix, indel)
+    [top[0] + bottom[0], top[1] + bottom[1]]
+}
+
+let aligned = hirschberg(first_string, second_string, blosum, gap)
+
+fn alignment_score(a, b, matrix, indel) {
+    range(0, len(a)) |> map(|i| {
+        let x = substr(a, i, 1)
+        let y = substr(b, i, 1)
+        if x == "-" or y == "-" then 0 - indel else substitution_score(matrix, x, y)
+    }) |> sum()
+}
+
+let score = alignment_score(aligned[0], aligned[1], blosum, gap)
+
+println("Result:   " + str(int(score)))
+println("          " + aligned[0])
+println("          " + aligned[1])
+println("Expected: 8")
+println("          PLEASANTLY")
+println("          -MEA--N-LY")
+
+fn test_ba5l_linear_space_alignment() {
+    assert score == 8, "BA5L: scored " + str(score)
+    # Any alignment achieving the optimum is accepted, so the checks are
+    # structural: both rows the same length, gaps never opposite gaps, and each
+    # row reduces to its original string.
+    assert len(aligned[0]) == len(aligned[1]), "BA5L: the rows must line up"
+    let both_gaps = range(0, len(aligned[0]))
+        |> count_if(|i| substr(aligned[0], i, 1) == "-" and substr(aligned[1], i, 1) == "-")
+    assert both_gaps == 0, "BA5L: a column of two gaps is not an alignment"
+    assert replace(aligned[0], "-", "") == first_string, "BA5L: row one is not the first string"
+    assert replace(aligned[1], "-", "") == second_string, "BA5L: row two is not the second string"
+    # And it matches what the quadratic-space aligner computes.
+    let reference = align(protein(first_string), protein(second_string),
+                          "global", 0, 0, 0 - gap, 0, "blosum62")
+    assert score == reference.score,
+        "BA5L: linear space scored " + str(score) + " but the table scored " + str(reference.score)
+}

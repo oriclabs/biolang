@@ -1,0 +1,89 @@
+# Rosalind: BA5D — Find the Longest Path in a DAG
+# https://rosalind.info/problems/ba5d/
+#
+# Given: A source, a sink, and an edge-weighted directed acyclic graph.
+# Return: The length of a longest path from source to sink, and the path.
+
+let source = "0"
+let sink = "4"
+let arcs = [
+    { from_node: "0", to_node: "1", weight: 7 },
+    { from_node: "0", to_node: "2", weight: 4 },
+    { from_node: "2", to_node: "3", weight: 2 },
+    { from_node: "1", to_node: "4", weight: 1 },
+    { from_node: "3", to_node: "4", weight: 3 },
+]
+
+# Longest path is NP-hard in general — in a graph with a positive cycle there is
+# no longest path at all. It is easy here for exactly one reason: the graph is
+# acyclic, so its vertices can be put in an order where every edge points forwards,
+# and then each node's best score is final by the time it is read.
+let incoming = {}
+let vertices = sort(unique((arcs |> map(|e| e.from_node)) + (arcs |> map(|e| e.to_node))))
+for node in vertices { incoming[node] = [] }
+for edge in arcs { incoming[edge.to_node] = push(incoming[edge.to_node], edge) }
+
+# Topological order, as in BA5N.
+let pending = {}
+for node in vertices { pending[node] = len(incoming[node]) }
+let ready = vertices |> filter(|node| pending[node] == 0)
+let order = []
+while len(ready) > 0 {
+    let node = ready[0]
+    ready = slice(ready, 1, len(ready))
+    order = push(order, node)
+    for edge in arcs {
+        if edge.from_node == node {
+            pending[edge.to_node] = pending[edge.to_node] - 1
+            if pending[edge.to_node] == 0 { ready = push(ready, edge.to_node) }
+        }
+    }
+}
+
+# Score every node in that order. Nodes unreachable from the source stay at
+# "impossible" rather than 0 — otherwise a detour through one could look better
+# than a real path.
+let impossible = -1000000
+let best = {}
+let came_from = {}
+for node in vertices { best[node] = impossible }
+best[source] = 0
+
+for node in order {
+    for edge in incoming[node] {
+        let candidate = best[edge.from_node] + edge.weight
+        if best[edge.from_node] > impossible and candidate > best[node] {
+            best[node] = candidate
+            came_from[node] = edge.from_node
+        }
+    }
+}
+
+let path = [sink]
+let walk = sink
+while walk != source {
+    walk = came_from[walk]
+    path = push(path, walk)
+}
+path = reverse(path)
+
+println("Result:   " + str(best[sink]))
+println("          " + join(path, "->"))
+println("Expected: 9")
+println("          0->2->3->4")
+
+fn test_ba5d_longest_path_in_a_dag() {
+    assert best[sink] == 9, "BA5D: got " + str(best[sink])
+    assert join(path, "->") == "0->2->3->4", "BA5D: got " + join(path, "->")
+    # The path must start and end where asked, and its weights must add up to the
+    # reported length — a length without a matching path is the usual bug here.
+    assert path[0] == source and path[len(path) - 1] == sink, "BA5D: wrong endpoints"
+    let walked = range(1, len(path)) |> map(|i| {
+        let matching = arcs |> filter(|e| e.from_node == path[i - 1] and e.to_node == path[i])
+        assert len(matching) > 0, "BA5D: " + path[i - 1] + "->" + path[i] + " is not an edge"
+        matching[0].weight
+    })
+    assert sum(walked) == best[sink], "BA5D: the path's weights do not sum to its length"
+    # The direct route 0->1->4 scores 8, so 9 really is better.
+    assert best[sink] > 8, "BA5D: 0->1->4 scores 8 and must be beaten"
+}
