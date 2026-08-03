@@ -1544,17 +1544,22 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             }
         }
         "push" => {
-            let mut list = match &args[0] {
-                Value::List(l) => l.clone(),
-                other => {
-                    return Err(BioLangError::type_error(
-                        format!("push() requires List, got {}", other.type_of()),
-                        None,
-                    ))
+            // Move both arguments out rather than cloning them. Cloning the
+            // list handle left the vector with two owners, so make_mut copied
+            // every element — which turned building a list one element at a
+            // time, the commonest shape in the examples, into quadratic work.
+            let mut args = args;
+            let item = args.pop().expect("push takes two arguments");
+            match args.pop().expect("push takes two arguments") {
+                Value::List(mut list) => {
+                    Arc::make_mut(&mut list).push(item);
+                    Ok(Value::List(list))
                 }
-            };
-            Arc::make_mut(&mut list).push(args[1].clone());
-            Ok(Value::List(list))
+                other => Err(BioLangError::type_error(
+                    format!("push() requires List, got {}", other.type_of()),
+                    None,
+                )),
+            }
         }
         "pop" => {
             let mut list = match &args[0] {

@@ -314,3 +314,67 @@ fn logical_or_still_works_everywhere_else() {
     assert_eq!(eval("false || false"), Value::Bool(false));
     assert_eq!(eval_int("if false || true then 1 else 0"), 1);
 }
+
+// `xs = push(xs, item)` is how every example builds a list, and it was
+// quadratic: evaluating the argument left the list with two owners, so push
+// copied the whole thing to append one element. Building 16,000 elements took
+// 11 seconds. The assignment now hands push the only reference, which is only
+// sound while a second name for the same list still cannot see the append.
+
+#[test]
+fn appending_to_a_list_does_not_disturb_another_name_for_it() {
+    let code = "let a = [1, 2]\nlet b = a\na = push(a, 3)\nlen(b)";
+    assert_eq!(eval_int(code), 2);
+}
+
+#[test]
+fn the_appended_list_does_grow() {
+    let code = "let a = [1, 2]\nlet b = a\na = push(a, 3)\nlen(a)";
+    assert_eq!(eval_int(code), 3);
+}
+
+#[test]
+fn the_item_may_read_the_list_being_appended_to() {
+    // The item is evaluated before the list is taken out of the binding.
+    let code = "let xs = [5, 6]\nxs = push(xs, len(xs))\nxs[2]";
+    assert_eq!(eval_int(code), 2);
+}
+
+#[test]
+fn push_outside_self_append_position_is_unchanged() {
+    let code = "let p = [1]\nlet q = push(p, 9)\nlen(p) * 10 + len(q)";
+    assert_eq!(eval_int(code), 12);
+}
+
+#[test]
+fn appending_to_a_non_list_still_reports_the_type() {
+    let code = "let n = 5\nn = push(n, 1)";
+    let tokens = Lexer::new(code).tokenize().unwrap();
+    let parsed = Parser::new(tokens).parse().unwrap();
+    let mut interp = Interpreter::new();
+    let error = interp.run(&parsed.program).unwrap_err();
+    assert!(
+        format!("{error}").contains("push() requires List"),
+        "expected a push type error, got: {error}"
+    );
+}
+
+#[test]
+fn building_a_list_stays_linear() {
+    // 4000 elements is 4x the work of 1000, not 16x. A generous bound: the
+    // quadratic version was around 200x slower at this size.
+    let build = |n: usize| {
+        let code = format!(
+            "let xs = []\nlet i = 0\nwhile i < {n} {{\n xs = push(xs, i)\n i = i + 1\n}}\nlen(xs)"
+        );
+        let start = std::time::Instant::now();
+        assert_eq!(eval_int(&code), n as i64);
+        start.elapsed().as_secs_f64()
+    };
+    let small = build(1000);
+    let large = build(4000);
+    assert!(
+        large < small * 40.0 + 1.0,
+        "appending looks superlinear: 1000 took {small:.4}s, 4000 took {large:.4}s"
+    );
+}

@@ -356,6 +356,34 @@ impl Interpreter {
                         Some(stmt.span),
                     ));
                 }
+                // `xs = push(xs, item)` is how every example builds a list, and
+                // it was quadratic: evaluating the argument `xs` left the list
+                // with two owners — the binding and the argument — so push had
+                // to copy all of it to append one element. Handing push the only
+                // reference makes the append amortised constant instead.
+                //
+                // The item is evaluated first, so an error in it cannot leave
+                // the binding holding the Nil put there while the list is out.
+                if let Some(item_expr) = self_appending_push(name, value) {
+                    let item = self.eval_expr(item_expr)?;
+                    if let Some(slot) = self.env.get_mut(name) {
+                        if matches!(slot, Value::List(_)) {
+                            let taken = std::mem::replace(slot, Value::Nil);
+                            let pushed = call_builtin("push", vec![taken, item])?;
+                            self.env.set(name, pushed, Some(stmt.span))?;
+                            return Ok(Value::Nil);
+                        }
+                        // Not a list after all — fall through to the ordinary
+                        // path so push reports the type error it always would.
+                    }
+                    let val = call_builtin(
+                        "push",
+                        vec![self.env.get(name, Some(stmt.span))?.clone(), item],
+                    )?;
+                    self.env.set(name, val, Some(stmt.span))?;
+                    return Ok(Value::Nil);
+                }
+
                 let val = self.eval_expr(value)?;
                 self.env.set(name, val, Some(stmt.span))?;
                 Ok(Value::Nil)
@@ -5677,5 +5705,29 @@ fn verbose_expr_label(expr: &Expr) -> String {
             format!("{}.{field}", verbose_expr_label(&object.node))
         }
         _ => "expr".into(),
+    }
+}
+
+/// Recognise `name = push(name, item)` and hand back the item expression.
+///
+/// Only the exact shape qualifies: two positional arguments, no names, no
+/// spread, and the first naming the same binding being assigned. Anything else
+/// takes the ordinary path.
+fn self_appending_push<'a>(name: &str, value: &'a Spanned<Expr>) -> Option<&'a Spanned<Expr>> {
+    let Expr::Call { callee, args } = &value.node else {
+        return None;
+    };
+    let Expr::Ident(func) = &callee.node else {
+        return None;
+    };
+    if func != "push" || args.len() != 2 {
+        return None;
+    }
+    if args.iter().any(|a| a.name.is_some() || a.spread) {
+        return None;
+    }
+    match &args[0].value.node {
+        Expr::Ident(first) if first == name => Some(&args[1].value),
+        _ => None,
     }
 }
