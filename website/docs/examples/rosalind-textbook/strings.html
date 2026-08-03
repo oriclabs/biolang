@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Strings</h1>
-        <p class="text-lg text-slate-400 mb-6">9 problems from
+        <p class="text-lg text-slate-400 mb-6">12 problems from
         <a href="../rosalind-textbook.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Textbook Track</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -42,6 +42,9 @@
           <a href="#ba1i" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Most Frequent Words with Mismatches">BA1I</a>
           <a href="#ba1j" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Frequent Words with Mismatches and Reverse Complements">BA1J</a>
           <a href="#ba1n" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Generate the d-Neighborhood of a String">BA1N</a>
+          <a href="#ba2a" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement MotifEnumeration">BA2A</a>
+          <a href="#ba2b" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find a Median String">BA2B</a>
+          <a href="#ba2h" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement DistanceBetweenPatternAndStrings">BA2H</a>
         </nav>
 
         <section id="ba1a" class="mt-12">
@@ -478,6 +481,188 @@ fn test_ba1n_neighbourhood() {
     assert contains(result, pattern), &quot;BA1N: the pattern is missing from its own neighbourhood&quot;
     let too_far = result |&gt; filter(|n| hamming_distance(n, pattern) &gt; d)
     assert len(too_far) == 0, &quot;BA1N: these exceed d — &quot; + str(too_far)
+}</code></pre>
+        </section>
+
+        <section id="ba2a" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA2A &mdash; Implement MotifEnumeration</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba2a/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA2A" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba2a.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A motif need not occur exactly anywhere, so the candidates are the neighbourhoods of the first string's windows: anything qualifying must be within d of one of them.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA2A — Implement MotifEnumeration
+# https://rosalind.info/problems/ba2a/
+#
+# Given: Integers k and d, followed by a collection of strings Dna.
+# Return: All (k, d)-motifs in Dna.
+
+let k = 3
+let d = 1
+let strings = [&quot;ATTTGGC&quot;, &quot;TGCCTTA&quot;, &quot;CGGTATC&quot;, &quot;GAAAATT&quot;]
+
+# A (k, d)-motif appears in every string with at most d mismatches. It need not
+# appear exactly anywhere, so the candidates are the neighbourhoods of the
+# windows of the first string — anything qualifying must be within d of one of
+# them.
+fn neighbourhood(pattern, allowed) {
+    let bases = [&quot;A&quot;, &quot;C&quot;, &quot;G&quot;, &quot;T&quot;]
+    let partial = [{ prefix: &quot;&quot;, used: 0 }]
+    for i in range(0, len(pattern)) {
+        let here = substr(pattern, i, 1)
+        let next = []
+        for candidate in partial {
+            for base in bases {
+                let cost = if base == here then 0 else 1
+                if candidate.used + cost &lt;= allowed {
+                    next = push(next, { prefix: candidate.prefix + base, used: candidate.used + cost })
+                }
+            }
+        }
+        partial = next
+    }
+    partial |&gt; map(|c| c.prefix)
+}
+
+fn appears_in(text, motif, allowed) {
+    let hits = range(0, len(text) - len(motif) + 1)
+      |&gt; filter(|i| hamming_distance(substr(text, i, len(motif)), motif) &lt;= allowed)
+    len(hits) &gt; 0
+}
+
+let leader = strings[0]
+let seen = []
+for i in range(0, len(leader) - k + 1) {
+    for candidate in neighbourhood(substr(leader, i, k), d) {
+        if contains(seen, candidate) == false {
+            let missing = strings |&gt; filter(|s| appears_in(s, candidate, d) == false)
+            if len(missing) == 0 {
+                seen = push(seen, candidate)
+            }
+        }
+    }
+}
+
+let result = sort(seen) |&gt; join(&quot; &quot;)
+
+println(&quot;Result:   &quot; + result)
+println(&quot;Expected: ATA ATT GTT TTT&quot;)
+
+fn test_ba2a_motif_enumeration() {
+    assert result == &quot;ATA ATT GTT TTT&quot;, &quot;BA2A: got &quot; + result
+}</code></pre>
+        </section>
+
+        <section id="ba2b" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA2B &mdash; Find a Median String</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba2b/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA2B" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba2b.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Every k-mer is a candidate, not only those occurring in the strings. Any minimiser is accepted, so the assertion checks the distance rather than the string: this finds ACG where the sample shows GAC, and both score 2.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA2B — Find a Median String
+# https://rosalind.info/problems/ba2b/
+#
+# Given: An integer k and a collection of strings Dna.
+# Return: A k-mer minimising d(Pattern, Dna) over all k-mers.
+
+let k = 3
+let strings = [&quot;AAATTGACGCAT&quot;, &quot;GACGACCACGTT&quot;, &quot;CGTCAGCGCCTG&quot;, &quot;GCTGAGCACCGG&quot;, &quot;AGTACGGGACAG&quot;]
+
+fn distance_to(text, motif) {
+    range(0, len(text) - len(motif) + 1)
+      |&gt; map(|i| hamming_distance(substr(text, i, len(motif)), motif))
+      |&gt; min()
+}
+
+fn total_distance(motif) {
+    strings |&gt; map(|s| distance_to(s, motif)) |&gt; sum()
+}
+
+# Every k-mer is a candidate, not only those occurring in the strings — the
+# median may appear in none of them. 4^k of them, enumerated as base-4 numbers.
+let symbols = [&quot;A&quot;, &quot;C&quot;, &quot;G&quot;, &quot;T&quot;]
+fn number_to_pattern(index, width) {
+    let out = &quot;&quot;
+    let remaining = index
+    let position = 0
+    while position &lt; width {
+        let power = 1
+        let e = 0
+        while e &lt; width - position - 1 {
+            power = power * 4
+            e = e + 1
+        }
+        let digit = int(remaining / power)
+        out = out + symbols[digit]
+        remaining = remaining - digit * power
+        position = position + 1
+    }
+    out
+}
+
+let total_kmers = 1
+let e = 0
+while e &lt; k {
+    total_kmers = total_kmers * 4
+    e = e + 1
+}
+
+let candidates = range(0, total_kmers) |&gt; map(|i| number_to_pattern(i, k))
+let scores = candidates |&gt; map(|c| total_distance(c))
+let best = min(scores)
+let best_kmer = candidates[argmin(scores)]
+
+println(&quot;Result:   &quot; + best_kmer + &quot;  (distance &quot; + str(best) + &quot;)&quot;)
+println(&quot;Expected: GAC   (any k-mer achieving the minimum is accepted)&quot;)
+
+fn test_ba2b_median_string() {
+    assert total_distance(best_kmer) == best, &quot;BA2B: the reported best_kmer is not minimal&quot;
+    assert total_distance(&quot;GAC&quot;) == best, &quot;BA2B: GAC should achieve the same minimum&quot;
+    assert len(best_kmer) == k, &quot;BA2B: wrong length&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba2h" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA2H &mdash; Implement DistanceBetweenPatternAndStrings</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba2h/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA2H" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba2h.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Best per string, summed across them: a motif only has to occur once in each.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA2H — Implement DistanceBetweenPatternAndStrings
+# https://rosalind.info/problems/ba2h/
+#
+# Given: A DNA string Pattern and a collection of DNA strings Dna.
+# Return: DistanceBetweenPatternAndStrings(Pattern, Dna).
+
+let pattern = &quot;AAA&quot;
+let strings = [&quot;TTACCTTAAC&quot;, &quot;GATATCTGTC&quot;, &quot;ACGGCGTTCG&quot;, &quot;CCCTAAAGAG&quot;, &quot;CGTCAGAGGT&quot;]
+
+# The distance to one string is the best any window of it can do; the distance
+# to the collection is the sum over strings. Best, not total, because a motif
+# only has to occur once per string.
+fn distance_to(text, motif) {
+    range(0, len(text) - len(motif) + 1)
+      |&gt; map(|i| hamming_distance(substr(text, i, len(motif)), motif))
+      |&gt; min()
+}
+
+let total = strings |&gt; map(|s| distance_to(s, pattern)) |&gt; sum()
+
+println(&quot;Result:   &quot; + str(total))
+println(&quot;Expected: 5&quot;)
+
+fn test_ba2h_distance_between_pattern_and_strings() {
+    assert total == 5, &quot;BA2H: got &quot; + str(total)
+    # A pattern present exactly in every string would score zero.
+    assert distance_to(&quot;AAACCC&quot;, &quot;AAA&quot;) == 0, &quot;BA2H: an exact occurrence should cost nothing&quot;
 }</code></pre>
         </section>
       </article>

@@ -190,3 +190,43 @@ status = "solved"
 asserted = true
 note = "Grown one position at a time, dropping any prefix that has already spent more than d substitutions."
 topics = ["strings", "mutations"]
+
+[[problem]]
+id = "BA2A"
+title = "Implement MotifEnumeration"
+file = "examples/ba2a.bl"
+url = "https://rosalind.info/problems/ba2a/"
+status = "solved"
+asserted = true
+note = "A motif need not occur exactly anywhere, so the candidates are the neighbourhoods of the first string's windows: anything qualifying must be within d of one of them."
+topics = ["strings", "motifs"]
+
+[[problem]]
+id = "BA2B"
+title = "Find a Median String"
+file = "examples/ba2b.bl"
+url = "https://rosalind.info/problems/ba2b/"
+status = "solved"
+asserted = true
+note = "Every k-mer is a candidate, not only those occurring in the strings. Any minimiser is accepted, so the assertion checks the distance rather than the string: this finds ACG where the sample shows GAC, and both score 2."
+topics = ["strings", "motifs"]
+
+[[problem]]
+id = "BA2C"
+title = "Find a Profile-most Probable k-mer"
+file = "examples/ba2c.bl"
+url = "https://rosalind.info/problems/ba2c/"
+status = "solved"
+asserted = true
+note = "The product down the profile's columns. Every entry here is non-zero so no window is ruled out, which is the situation pseudocounts exist to fix in the problems that follow."
+topics = ["motifs", "probability"]
+
+[[problem]]
+id = "BA2H"
+title = "Implement DistanceBetweenPatternAndStrings"
+file = "examples/ba2h.bl"
+url = "https://rosalind.info/problems/ba2h/"
+status = "solved"
+asserted = true
+note = "Best per string, summed across them: a motif only has to occur once in each."
+topics = ["strings", "motifs"]

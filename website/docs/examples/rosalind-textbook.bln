@@ -700,3 +700,223 @@ fn test_ba1n_neighbourhood() {
 }
 ```
 
+## BA2A — Implement MotifEnumeration
+
+[Problem statement](https://rosalind.info/problems/ba2a/)
+
+```biolang
+# Rosalind: BA2A — Implement MotifEnumeration
+# https://rosalind.info/problems/ba2a/
+#
+# Given: Integers k and d, followed by a collection of strings Dna.
+# Return: All (k, d)-motifs in Dna.
+
+let k = 3
+let d = 1
+let strings = ["ATTTGGC", "TGCCTTA", "CGGTATC", "GAAAATT"]
+
+# A (k, d)-motif appears in every string with at most d mismatches. It need not
+# appear exactly anywhere, so the candidates are the neighbourhoods of the
+# windows of the first string — anything qualifying must be within d of one of
+# them.
+fn neighbourhood(pattern, allowed) {
+    let bases = ["A", "C", "G", "T"]
+    let partial = [{ prefix: "", used: 0 }]
+    for i in range(0, len(pattern)) {
+        let here = substr(pattern, i, 1)
+        let next = []
+        for candidate in partial {
+            for base in bases {
+                let cost = if base == here then 0 else 1
+                if candidate.used + cost <= allowed {
+                    next = push(next, { prefix: candidate.prefix + base, used: candidate.used + cost })
+                }
+            }
+        }
+        partial = next
+    }
+    partial |> map(|c| c.prefix)
+}
+
+fn appears_in(text, motif, allowed) {
+    let hits = range(0, len(text) - len(motif) + 1)
+      |> filter(|i| hamming_distance(substr(text, i, len(motif)), motif) <= allowed)
+    len(hits) > 0
+}
+
+let leader = strings[0]
+let seen = []
+for i in range(0, len(leader) - k + 1) {
+    for candidate in neighbourhood(substr(leader, i, k), d) {
+        if contains(seen, candidate) == false {
+            let missing = strings |> filter(|s| appears_in(s, candidate, d) == false)
+            if len(missing) == 0 {
+                seen = push(seen, candidate)
+            }
+        }
+    }
+}
+
+let result = sort(seen) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: ATA ATT GTT TTT")
+
+fn test_ba2a_motif_enumeration() {
+    assert result == "ATA ATT GTT TTT", "BA2A: got " + result
+}
+```
+
+## BA2B — Find a Median String
+
+[Problem statement](https://rosalind.info/problems/ba2b/)
+
+```biolang
+# Rosalind: BA2B — Find a Median String
+# https://rosalind.info/problems/ba2b/
+#
+# Given: An integer k and a collection of strings Dna.
+# Return: A k-mer minimising d(Pattern, Dna) over all k-mers.
+
+let k = 3
+let strings = ["AAATTGACGCAT", "GACGACCACGTT", "CGTCAGCGCCTG", "GCTGAGCACCGG", "AGTACGGGACAG"]
+
+fn distance_to(text, motif) {
+    range(0, len(text) - len(motif) + 1)
+      |> map(|i| hamming_distance(substr(text, i, len(motif)), motif))
+      |> min()
+}
+
+fn total_distance(motif) {
+    strings |> map(|s| distance_to(s, motif)) |> sum()
+}
+
+# Every k-mer is a candidate, not only those occurring in the strings — the
+# median may appear in none of them. 4^k of them, enumerated as base-4 numbers.
+let symbols = ["A", "C", "G", "T"]
+fn number_to_pattern(index, width) {
+    let out = ""
+    let remaining = index
+    let position = 0
+    while position < width {
+        let power = 1
+        let e = 0
+        while e < width - position - 1 {
+            power = power * 4
+            e = e + 1
+        }
+        let digit = int(remaining / power)
+        out = out + symbols[digit]
+        remaining = remaining - digit * power
+        position = position + 1
+    }
+    out
+}
+
+let total_kmers = 1
+let e = 0
+while e < k {
+    total_kmers = total_kmers * 4
+    e = e + 1
+}
+
+let candidates = range(0, total_kmers) |> map(|i| number_to_pattern(i, k))
+let scores = candidates |> map(|c| total_distance(c))
+let best = min(scores)
+let best_kmer = candidates[argmin(scores)]
+
+println("Result:   " + best_kmer + "  (distance " + str(best) + ")")
+println("Expected: GAC   (any k-mer achieving the minimum is accepted)")
+
+fn test_ba2b_median_string() {
+    assert total_distance(best_kmer) == best, "BA2B: the reported best_kmer is not minimal"
+    assert total_distance("GAC") == best, "BA2B: GAC should achieve the same minimum"
+    assert len(best_kmer) == k, "BA2B: wrong length"
+}
+```
+
+## BA2C — Find a Profile-most Probable k-mer
+
+[Problem statement](https://rosalind.info/problems/ba2c/)
+
+```biolang
+# Rosalind: BA2C — Find a Profile-most Probable k-mer in a String
+# https://rosalind.info/problems/ba2c/
+#
+# Given: A string Text, an integer k, and a 4 x k matrix Profile.
+# Return: A Profile-most probable k-mer in Text.
+
+let text = "ACCTGTTTATTGCCTAAGTTCCGAACAAACCCAATATAGCCCGAGGGCCT"
+let k = 5
+
+# Rows are A, C, G, T; columns are the positions of the k-mer.
+let profile = [
+    [0.2, 0.2, 0.3, 0.2, 0.3],
+    [0.4, 0.3, 0.1, 0.5, 0.1],
+    [0.3, 0.3, 0.5, 0.2, 0.4],
+    [0.1, 0.2, 0.1, 0.1, 0.2],
+]
+
+fn row_of(symbol) {
+    if symbol == "A" then 0
+    else if symbol == "C" then 1
+    else if symbol == "G" then 2
+    else 3
+}
+
+# A k-mer's probability is the product down its columns. Every entry here is
+# non-zero, so no window is ruled out; a profile with a zero would silently
+# eliminate one, which is why pseudocounts exist in the problems that follow.
+fn probability(kmer) {
+    range(0, len(kmer))
+      |> reduce(|acc, i| acc * profile[row_of(substr(kmer, i, 1))][i], 1.0)
+}
+
+let kmer_windows = range(0, len(text) - k + 1) |> map(|i| substr(text, i, k))
+let scores = kmer_windows |> map(|w| probability(w))
+let best = kmer_windows[argmax(scores)]
+
+println("Result:   " + best)
+println("Expected: CCGAG")
+
+fn test_ba2c_profile_most_probable() {
+    assert best == "CCGAG", "BA2C: got " + best
+    assert probability(best) == max(scores), "BA2C: the reported k-mer is not the most probable"
+}
+```
+
+## BA2H — Implement DistanceBetweenPatternAndStrings
+
+[Problem statement](https://rosalind.info/problems/ba2h/)
+
+```biolang
+# Rosalind: BA2H — Implement DistanceBetweenPatternAndStrings
+# https://rosalind.info/problems/ba2h/
+#
+# Given: A DNA string Pattern and a collection of DNA strings Dna.
+# Return: DistanceBetweenPatternAndStrings(Pattern, Dna).
+
+let pattern = "AAA"
+let strings = ["TTACCTTAAC", "GATATCTGTC", "ACGGCGTTCG", "CCCTAAAGAG", "CGTCAGAGGT"]
+
+# The distance to one string is the best any window of it can do; the distance
+# to the collection is the sum over strings. Best, not total, because a motif
+# only has to occur once per string.
+fn distance_to(text, motif) {
+    range(0, len(text) - len(motif) + 1)
+      |> map(|i| hamming_distance(substr(text, i, len(motif)), motif))
+      |> min()
+}
+
+let total = strings |> map(|s| distance_to(s, pattern)) |> sum()
+
+println("Result:   " + str(total))
+println("Expected: 5")
+
+fn test_ba2h_distance_between_pattern_and_strings() {
+    assert total == 5, "BA2H: got " + str(total)
+    # A pattern present exactly in every string would score zero.
+    assert distance_to("AAACCC", "AAA") == 0, "BA2H: an exact occurrence should cost nothing"
+}
+```
+
