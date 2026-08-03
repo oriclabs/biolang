@@ -964,3 +964,33 @@ status = "solved"
 asserted = true
 note = "Quartets degrade gracefully where splits do not: moving one taxon changes a handful of quartets but can destroy every split at once. Asserted to be zero between a tree and itself, which is the identity any distance must satisfy."
 topics = ["phylogeny"]
+
+[[problem]]
+id = "RNAS"
+title = "Wobble Bonding and RNA Secondary Structures"
+file = "examples/rnas.bl"
+url = "https://rosalind.info/problems/rnas/"
+status = "solved"
+asserted = true
+note = "Real RNA pairs U-G nearly as readily as A-U, so a count excluding wobble understates what a molecule can fold into. Memoised with has_key — contains(keys(memo), k) rebuilds the key list on every probe and would make the lookup the bottleneck the memo was meant to remove."
+topics = ["rna", "dynamic-programming"]
+
+[[problem]]
+id = "KSIM"
+title = "Finding All Similar Motifs"
+file = "examples/ksim.bl"
+url = "https://rosalind.info/problems/ksim/"
+status = "solved"
+asserted = true
+note = "A binding site is a tendency rather than a fixed string, so exact search finds a fraction of real sites — the motif here does not occur exactly at all. Checks every (start, length) pair directly, which is O(n^2) and stated as such: a 50 kbp genome would need the fitting-alignment form instead."
+topics = ["motifs", "alignment"]
+
+[[problem]]
+id = "RSUB"
+title = "Identifying Reversing Substitutions"
+file = "examples/rsub.bl"
+url = "https://rosalind.info/problems/rsub/"
+status = "solved"
+asserted = true
+note = "A site that mutates and mutates back looks, from the tips alone, as though nothing happened — which is exactly what makes distant relationships hard to recover. Only the internal labels reveal it, which is why the problem supplies them."
+topics = ["phylogeny"]
