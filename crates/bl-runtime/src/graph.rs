@@ -21,6 +21,7 @@ pub fn graph_builtin_list() -> Vec<(&'static str, Arity)> {
         ("node_attr", Arity::Exact(2)),
         ("node_count", Arity::Exact(1)),
         ("edge_count", Arity::Exact(1)),
+        ("topological_sort", Arity::Exact(1)),
     ]
 }
 
@@ -36,6 +37,7 @@ pub fn is_graph_builtin(name: &str) -> bool {
             | "degree"
             | "shortest_path"
             | "connected_components"
+            | "topological_sort"
             | "nodes"
             | "edges"
             | "has_node"
@@ -58,6 +60,7 @@ pub fn call_graph_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "degree" => builtin_degree(args),
         "shortest_path" => builtin_shortest_path(args),
         "connected_components" => builtin_connected_components(args),
+        "topological_sort" => builtin_topological_sort(args),
         "nodes" => builtin_nodes(args),
         "edges" => builtin_edges(args),
         "has_node" => builtin_has_node(args),
@@ -595,4 +598,58 @@ fn builtin_node_attr(args: Vec<Value>) -> Result<Value> {
         Some(v) => Ok(v.clone()),
         None => Ok(Value::Nil),
     }
+}
+
+/// Order the nodes so every edge points forwards.
+///
+/// Returns an empty list when the graph has a cycle, so `len(result) ==
+/// node_count(g)` is also the acyclicity test — which is the question four of
+/// the Algorithmic Heights problems actually ask. Kahn's algorithm, taking the
+/// alphabetically first ready node each time so one graph gives one answer.
+fn builtin_topological_sort(args: Vec<Value>) -> Result<Value> {
+    let g = extract_graph(&args[0])?;
+    let nodes = get_nodes(g);
+    let edges = get_edges(g);
+
+    let mut adjacent: HashMap<String, Vec<String>> = HashMap::new();
+    let mut indegree: HashMap<String, usize> = HashMap::new();
+    for id in nodes.keys() {
+        adjacent.entry(id.clone()).or_default();
+        indegree.entry(id.clone()).or_insert(0);
+    }
+    for e in &edges {
+        if let Some((from, to)) = edge_endpoints(e) {
+            adjacent.entry(from).or_default().push(to.clone());
+            *indegree.entry(to).or_insert(0) += 1;
+        }
+    }
+
+    let mut ready: Vec<String> = indegree
+        .iter()
+        .filter(|(_, &d)| d == 0)
+        .map(|(id, _)| id.clone())
+        .collect();
+    ready.sort();
+
+    let mut out: Vec<Value> = Vec::with_capacity(nodes.len());
+    while let Some(current) = ready.first().cloned() {
+        ready.remove(0);
+        out.push(Value::Str(current.clone()));
+        if let Some(next_nodes) = adjacent.get(&current) {
+            for next in next_nodes.clone() {
+                if let Some(d) = indegree.get_mut(&next) {
+                    *d -= 1;
+                    if *d == 0 {
+                        ready.push(next);
+                        ready.sort();
+                    }
+                }
+            }
+        }
+    }
+
+    if out.len() != nodes.len() {
+        return Ok(Value::List(std::sync::Arc::new(Vec::new())));
+    }
+    Ok(Value::List(std::sync::Arc::new(out)))
 }

@@ -28,6 +28,17 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("ceil", Arity::Exact(1)),
         ("floor", Arity::Exact(1)),
         ("round", Arity::Range(1, 2)),
+        // Combinatorics, search and ordering
+        ("factorial", Arity::Exact(1)),
+        ("choose", Arity::Exact(2)),
+        ("permutations", Arity::Exact(1)),
+        ("is_subsequence", Arity::Exact(2)),
+        ("lcs", Arity::Exact(2)),
+        ("binary_search", Arity::Exact(2)),
+        ("argmin", Arity::Exact(1)),
+        ("argmax", Arity::Exact(1)),
+        ("swap", Arity::Exact(3)),
+        ("substitution_score", Arity::Exact(3)),
         // String
         ("upper", Arity::Exact(1)),
         ("lower", Arity::Exact(1)),
@@ -154,6 +165,16 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "ceil"
             | "floor"
             | "round"
+            | "factorial"
+            | "choose"
+            | "permutations"
+            | "is_subsequence"
+            | "lcs"
+            | "binary_search"
+            | "argmin"
+            | "argmax"
+            | "swap"
+            | "substitution_score"
             | "upper"
             | "lower"
             | "trim"
@@ -266,6 +287,16 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "exp" => builtin_exp(args),
         "ceil" => builtin_ceil(args),
         "floor" => builtin_floor(args),
+        "factorial" => builtin_factorial(args),
+        "choose" => builtin_choose(args),
+        "permutations" => builtin_permutations(args),
+        "is_subsequence" => builtin_is_subsequence(args),
+        "lcs" => builtin_lcs(args),
+        "binary_search" => builtin_binary_search(args),
+        "argmin" => builtin_argmin(args),
+        "argmax" => builtin_argmax(args),
+        "swap" => builtin_swap(args),
+        "substitution_score" => builtin_substitution_score(args),
         "round" => builtin_round(args),
         "upper" => builtin_upper(args),
         "lower" => builtin_lower(args),
@@ -4247,4 +4278,283 @@ fn require_matrix_from_value(val: &Value, func: &str) -> Result<Vec<Vec<f64>>> {
             None,
         )),
     }
+}
+
+// ── Combinatorics, search and ordering ───────────────────────────
+//
+// Every one of these was written by hand in the example packs, several of them
+// more than once: factorial in five files, choose in three, a permutation
+// generator and a subsequence test in two each. They are small enough that
+// rewriting them is easy and just often enough that nobody should have to.
+
+/// Largest n whose factorial fits in an i64. 21! overflows.
+const FACTORIAL_INT_LIMIT: i64 = 20;
+
+fn builtin_factorial(args: Vec<Value>) -> Result<Value> {
+    let n = require_int(&args[0], "factorial")?;
+    if n < 0 {
+        return Err(BioLangError::type_error(
+            format!("factorial() requires a non-negative Int, got {n}"),
+            None,
+        ));
+    }
+    // Exact while it fits, then float. Combinatorics problems routinely ask for
+    // counts past 20!, and refusing them would be less useful than losing the
+    // low digits — but an exact answer is worth keeping while one is available.
+    if n <= FACTORIAL_INT_LIMIT {
+        Ok(Value::Int((1..=n).product()))
+    } else {
+        Ok(Value::Float((1..=n).map(|i| i as f64).product()))
+    }
+}
+
+fn builtin_choose(args: Vec<Value>) -> Result<Value> {
+    let n = require_int(&args[0], "choose")?;
+    let k = require_int(&args[1], "choose")?;
+    if n < 0 || k < 0 {
+        return Err(BioLangError::type_error(
+            format!("choose() requires non-negative Ints, got {n} and {k}"),
+            None,
+        ));
+    }
+    if k > n {
+        return Ok(Value::Int(0));
+    }
+    // Multiplied and divided in step, and against the smaller of k and n-k, so
+    // the running value stays near the answer instead of building n! first and
+    // overflowing on inputs whose result is small.
+    let k = k.min(n - k);
+    let mut result: i128 = 1;
+    for i in 0..k {
+        result = result * (n - i) as i128 / (i + 1) as i128;
+    }
+    match i64::try_from(result) {
+        Ok(exact) => Ok(Value::Int(exact)),
+        Err(_) => Ok(Value::Float(result as f64)),
+    }
+}
+
+fn builtin_permutations(args: Vec<Value>) -> Result<Value> {
+    let items = match &args[0] {
+        Value::List(items) => items.as_ref().clone(),
+        other => {
+            return Err(BioLangError::type_error(
+                format!("permutations() requires List, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+    // n! grows fast enough that a slip here means an unresponsive session rather
+    // than an error, so it is refused rather than attempted.
+    if items.len() > 10 {
+        return Err(BioLangError::type_error(
+            format!(
+                "permutations() of {} items would be {}! results — too many to build",
+                items.len(),
+                items.len()
+            ),
+            None,
+        ));
+    }
+
+    let mut out: Vec<Value> = Vec::new();
+    let mut current: Vec<Value> = Vec::with_capacity(items.len());
+    let mut used = vec![false; items.len()];
+    permute(&items, &mut used, &mut current, &mut out);
+    Ok(Value::List(std::sync::Arc::new(out)))
+}
+
+fn permute(items: &[Value], used: &mut Vec<bool>, current: &mut Vec<Value>, out: &mut Vec<Value>) {
+    if current.len() == items.len() {
+        out.push(Value::List(std::sync::Arc::new(current.clone())));
+        return;
+    }
+    for i in 0..items.len() {
+        if used[i] {
+            continue;
+        }
+        used[i] = true;
+        current.push(items[i].clone());
+        permute(items, used, current, out);
+        current.pop();
+        used[i] = false;
+    }
+}
+
+fn builtin_is_subsequence(args: Vec<Value>) -> Result<Value> {
+    let needle = require_str(&args[0], "is_subsequence")?;
+    let haystack = require_str(&args[1], "is_subsequence")?;
+    // Subsequence, not substring: the characters must appear in order but need
+    // not be adjacent, which is what the spliced-motif problems ask for.
+    let mut chars = haystack.chars();
+    let found = needle.chars().all(|want| chars.any(|have| have == want));
+    Ok(Value::Bool(found))
+}
+
+fn builtin_lcs(args: Vec<Value>) -> Result<Value> {
+    let a: Vec<char> = require_str(&args[0], "lcs")?.chars().collect();
+    let b: Vec<char> = require_str(&args[1], "lcs")?.chars().collect();
+
+    // The usual table, then walked backwards to recover one longest common
+    // subsequence. There is generally more than one and this returns the one
+    // that prefers characters earlier in `a`.
+    let mut table = vec![vec![0usize; b.len() + 1]; a.len() + 1];
+    for i in 1..=a.len() {
+        for j in 1..=b.len() {
+            table[i][j] = if a[i - 1] == b[j - 1] {
+                table[i - 1][j - 1] + 1
+            } else {
+                table[i - 1][j].max(table[i][j - 1])
+            };
+        }
+    }
+
+    let mut out: Vec<char> = Vec::with_capacity(table[a.len()][b.len()]);
+    let (mut i, mut j) = (a.len(), b.len());
+    while i > 0 && j > 0 {
+        if a[i - 1] == b[j - 1] {
+            out.push(a[i - 1]);
+            i -= 1;
+            j -= 1;
+        } else if table[i - 1][j] >= table[i][j - 1] {
+            i -= 1;
+        } else {
+            j -= 1;
+        }
+    }
+    out.reverse();
+    Ok(Value::Str(out.into_iter().collect()))
+}
+
+fn builtin_binary_search(args: Vec<Value>) -> Result<Value> {
+    let items = match &args[0] {
+        Value::List(items) => items,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("binary_search() requires List, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+    let key = require_num(&args[1], "binary_search")?;
+    // Returns -1 when absent, as index_of and find_index do. The list must
+    // already be sorted; an unsorted one gives a meaningless answer rather than
+    // an error, which is the usual bargain for a binary search.
+    let (mut lo, mut hi) = (0i64, items.len() as i64 - 1);
+    while lo <= hi {
+        let mid = (lo + hi) / 2;
+        let value = require_num(&items[mid as usize], "binary_search")?;
+        if value == key {
+            return Ok(Value::Int(mid));
+        } else if value < key {
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    Ok(Value::Int(-1))
+}
+
+fn extreme_index(args: Vec<Value>, func: &str, want_min: bool) -> Result<Value> {
+    // An empty list is an error, not -1: require_num_list rejects it, as it does
+    // for mean and the rest of this module, and one convention beats two.
+    let nums = require_num_list(&args[0], func)?;
+    // First position wins a tie, so the answer is stable and matches what a
+    // hand-written scan with a strict comparison produces.
+    let mut best = 0usize;
+    for (i, &value) in nums.iter().enumerate() {
+        let better = if want_min {
+            value < nums[best]
+        } else {
+            value > nums[best]
+        };
+        if better {
+            best = i;
+        }
+    }
+    Ok(Value::Int(best as i64))
+}
+
+fn builtin_argmin(args: Vec<Value>) -> Result<Value> {
+    extreme_index(args, "argmin", true)
+}
+
+fn builtin_argmax(args: Vec<Value>) -> Result<Value> {
+    extreme_index(args, "argmax", false)
+}
+
+// ── List helpers ─────────────────────────────────────────────────
+
+fn builtin_swap(args: Vec<Value>) -> Result<Value> {
+    let items = match &args[0] {
+        Value::List(items) => items,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("swap() requires List, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+    let i = require_int(&args[1], "swap")?;
+    let j = require_int(&args[2], "swap")?;
+    let len = items.len() as i64;
+    if i < 0 || j < 0 || i >= len || j >= len {
+        return Err(BioLangError::runtime(
+            bl_core::error::ErrorKind::IndexOutOfBounds,
+            format!("swap(): index {i} or {j} is out of bounds for a list of length {len}"),
+            None,
+        ));
+    }
+    let mut out = items.as_ref().clone();
+    out.swap(i as usize, j as usize);
+    Ok(Value::List(std::sync::Arc::new(out)))
+}
+
+/// Score one residue pair against a substitution matrix.
+///
+/// `score_matrix("blosum62")` has been available for a while, but nothing could
+/// read a pair out of it, so every alignment example that wanted BLOSUM62 wrote
+/// the same two helpers: find a residue's row, then index `data` by row times
+/// width plus column. Four files carried both.
+fn builtin_substitution_score(args: Vec<Value>) -> Result<Value> {
+    let matrix = match &args[0] {
+        Value::Matrix(m) => m,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "substitution_score() requires a Matrix from score_matrix(), got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    let a = require_str(&args[1], "substitution_score")?;
+    let b = require_str(&args[2], "substitution_score")?;
+
+    let names = matrix.row_names.as_ref().ok_or_else(|| {
+        BioLangError::type_error(
+            String::from(
+                "substitution_score() needs a matrix with row names, as score_matrix() returns",
+            ),
+            None,
+        )
+    })?;
+
+    // Residues are looked up by name rather than by position, so the caller does
+    // not have to know the matrix's ordering — which differs between matrices.
+    let find = |residue: &str| -> Result<usize> {
+        names
+            .iter()
+            .position(|name| name.eq_ignore_ascii_case(residue))
+            .ok_or_else(|| {
+                BioLangError::type_error(
+                    format!("substitution_score(): '{residue}' is not in this matrix"),
+                    None,
+                )
+            })
+    };
+    let (row, col) = (find(a)?, find(b)?);
+
+    Ok(Value::Float(matrix.data[row * matrix.ncol + col]))
 }

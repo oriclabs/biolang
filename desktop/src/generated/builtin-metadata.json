@@ -381,6 +381,40 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "argmax",
+      "signature": "argmax(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "argmin",
+      "signature": "argmin(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "ari",
       "signature": "ari(arg1, arg2)",
       "category": "runtime",
@@ -920,6 +954,24 @@
         "kind": "exact",
         "minimum": 1,
         "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "binary_search",
+      "signature": "binary_search(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
       },
       "metadataQuality": "runtime"
     },
@@ -1584,6 +1636,24 @@
         "maximum": 2
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "choose",
+      "signature": "choose(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "chr",
@@ -4511,6 +4581,23 @@
         "maximum": 1
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "factorial",
+      "signature": "factorial(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "fasta",
@@ -7572,6 +7659,24 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "is_subsequence",
+      "signature": "is_subsequence(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "is_subset",
       "signature": "is_subset(a, b) → Bool",
       "category": "list",
@@ -8220,6 +8325,24 @@
         "kind": "exact",
         "minimum": 1,
         "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "lcs",
+      "signature": "lcs(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
       },
       "metadataQuality": "runtime"
     },
@@ -11164,6 +11287,23 @@
         "kind": "exact",
         "minimum": 3,
         "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "permutations",
+      "signature": "permutations(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
       },
       "metadataQuality": "runtime"
     },
@@ -14898,6 +15038,25 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "substitution_score",
+      "signature": "substitution_score(arg1, arg2, arg3)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "substr",
       "signature": "substr(str, start, len?) → Str",
       "category": "string",
@@ -15000,6 +15159,25 @@
         "kind": "exact",
         "minimum": 1,
         "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "swap",
+      "signature": "swap(arg1, arg2, arg3)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
       },
       "metadataQuality": "runtime"
     },
@@ -15742,6 +15920,23 @@
         "kind": "range",
         "minimum": 1,
         "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "topological_sort",
+      "signature": "topological_sort(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
       },
       "metadataQuality": "runtime"
     },

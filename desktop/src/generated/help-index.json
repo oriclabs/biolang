@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 29,
-    "builtin": 980,
+    "builtin": 991,
     "tutorial": 71,
     "example": 250
   },
@@ -621,6 +621,34 @@
       "keywords": "append_text append_text(path, text) fs biolang fs builtin."
     },
     {
+      "id": "builtin:argmax",
+      "kind": "builtin",
+      "title": "argmax",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# argmax\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nargmax(arg1)\n```\n\n**Arity:** exact, minimum 1, maximum 1",
+      "signature": "argmax(arg1)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "argmax argmax(arg1) runtime registered biolang builtin accepting 1 argument(s)."
+    },
+    {
+      "id": "builtin:argmin",
+      "kind": "builtin",
+      "title": "argmin",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# argmin\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nargmin(arg1)\n```\n\n**Arity:** exact, minimum 1, maximum 1",
+      "signature": "argmin(arg1)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "argmin argmin(arg1) runtime registered biolang builtin accepting 1 argument(s)."
+    },
+    {
       "id": "builtin:ari",
       "kind": "builtin",
       "title": "ari",
@@ -1053,6 +1081,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "bh_adjust bh_adjust(arg1) runtime 1"
+    },
+    {
+      "id": "builtin:binary_search",
+      "kind": "builtin",
+      "title": "binary_search",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "body": "# binary_search\n\nRegistered BioLang builtin accepting 2 argument(s).\n\n## Signature\n\n```biolang\nbinary_search(arg1, arg2)\n```\n\n**Arity:** exact, minimum 2, maximum 2",
+      "signature": "binary_search(arg1, arg2)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "binary_search binary_search(arg1, arg2) runtime registered biolang builtin accepting 2 argument(s)."
     },
     {
       "id": "builtin:bind_cols",
@@ -1571,6 +1613,20 @@
       "returnType": "Record{chi2,p,df}",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "chi_square chi_square(obs, exp) → record{chi2,p,df} stats 2"
+    },
+    {
+      "id": "builtin:choose",
+      "kind": "builtin",
+      "title": "choose",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "body": "# choose\n\nRegistered BioLang builtin accepting 2 argument(s).\n\n## Signature\n\n```biolang\nchoose(arg1, arg2)\n```\n\n**Arity:** exact, minimum 2, maximum 2",
+      "signature": "choose(arg1, arg2)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "choose choose(arg1, arg2) runtime registered biolang builtin accepting 2 argument(s)."
     },
     {
       "id": "builtin:chr",
@@ -3881,6 +3937,20 @@
       "returnType": "Matrix (identity)",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "eye eye(n) → matrix (identity) matrix n x n identity matrix"
+    },
+    {
+      "id": "builtin:factorial",
+      "kind": "builtin",
+      "title": "factorial",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# factorial\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nfactorial(arg1)\n```\n\n**Arity:** exact, minimum 1, maximum 1",
+      "signature": "factorial(arg1)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "factorial factorial(arg1) runtime registered biolang builtin accepting 1 argument(s)."
     },
     {
       "id": "builtin:fasta",
@@ -6319,6 +6389,20 @@
       "keywords": "is_stream is_stream(value) → bool type biolang type builtin."
     },
     {
+      "id": "builtin:is_subsequence",
+      "kind": "builtin",
+      "title": "is_subsequence",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "body": "# is_subsequence\n\nRegistered BioLang builtin accepting 2 argument(s).\n\n## Signature\n\n```biolang\nis_subsequence(arg1, arg2)\n```\n\n**Arity:** exact, minimum 2, maximum 2",
+      "signature": "is_subsequence(arg1, arg2)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "is_subsequence is_subsequence(arg1, arg2) runtime registered biolang builtin accepting 2 argument(s)."
+    },
+    {
       "id": "builtin:is_subset",
       "kind": "builtin",
       "title": "is_subset",
@@ -6835,6 +6919,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "last last(arg1) runtime last element"
+    },
+    {
+      "id": "builtin:lcs",
+      "kind": "builtin",
+      "title": "lcs",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "body": "# lcs\n\nRegistered BioLang builtin accepting 2 argument(s).\n\n## Signature\n\n```biolang\nlcs(arg1, arg2)\n```\n\n**Arity:** exact, minimum 2, maximum 2",
+      "signature": "lcs(arg1, arg2)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "lcs lcs(arg1, arg2) runtime registered biolang builtin accepting 2 argument(s)."
     },
     {
       "id": "builtin:ld_decay",
@@ -9159,6 +9257,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "permutation_test permutation_test(arg1, arg2, arg3) runtime 3"
+    },
+    {
+      "id": "builtin:permutations",
+      "kind": "builtin",
+      "title": "permutations",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# permutations\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\npermutations(arg1)\n```\n\n**Arity:** exact, minimum 1, maximum 1",
+      "signature": "permutations(arg1)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "permutations permutations(arg1) runtime registered biolang builtin accepting 1 argument(s)."
     },
     {
       "id": "builtin:pexp",
@@ -12087,6 +12199,20 @@
       "keywords": "subseq subseq(arg1, arg2, arg3?) runtime registered biolang builtin accepting 2 argument(s)."
     },
     {
+      "id": "builtin:substitution_score",
+      "kind": "builtin",
+      "title": "substitution_score",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "body": "# substitution_score\n\nRegistered BioLang builtin accepting 3 argument(s).\n\n## Signature\n\n```biolang\nsubstitution_score(arg1, arg2, arg3)\n```\n\n**Arity:** exact, minimum 3, maximum 3",
+      "signature": "substitution_score(arg1, arg2, arg3)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "substitution_score substitution_score(arg1, arg2, arg3) runtime registered biolang builtin accepting 3 argument(s)."
+    },
+    {
       "id": "builtin:substr",
       "kind": "builtin",
       "title": "substr",
@@ -12169,6 +12295,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "svd svd(arg1) runtime singular value decomposition; returns {u, s, vt}"
+    },
+    {
+      "id": "builtin:swap",
+      "kind": "builtin",
+      "title": "swap",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "body": "# swap\n\nRegistered BioLang builtin accepting 3 argument(s).\n\n## Signature\n\n```biolang\nswap(arg1, arg2, arg3)\n```\n\n**Arity:** exact, minimum 3, maximum 3",
+      "signature": "swap(arg1, arg2, arg3)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "swap swap(arg1, arg2, arg3) runtime registered biolang builtin accepting 3 argument(s)."
     },
     {
       "id": "builtin:symmetric_difference",
@@ -12771,6 +12911,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "top_loci top_loci(arg1, arg2?) runtime 2"
+    },
+    {
+      "id": "builtin:topological_sort",
+      "kind": "builtin",
+      "title": "topological_sort",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# topological_sort\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\ntopological_sort(arg1)\n```\n\n**Arity:** exact, minimum 1, maximum 1",
+      "signature": "topological_sort(arg1)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "topological_sort topological_sort(arg1) runtime registered biolang builtin accepting 1 argument(s)."
     },
     {
       "id": "builtin:tpm",
