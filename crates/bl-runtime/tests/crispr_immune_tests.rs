@@ -13,11 +13,8 @@ fn test_guide_counts_parses_tsv() {
                guide_A\tGENE1\t100\t110\t10\t12\n\
                guide_B\tGENE1\t90\t95\t8\t9\n\
                guide_C\tGENE2\t80\t85\t200\t210\n";
-    let result = crispr::call_crispr_builtin(
-        "guide_counts",
-        vec![Value::Str(tsv.to_string())],
-    )
-    .unwrap();
+    let result =
+        crispr::call_crispr_builtin("guide_counts", vec![Value::Str(tsv.to_string())]).unwrap();
     let table = match result {
         Value::Table(t) => t,
         _ => panic!("expected Table"),
@@ -35,11 +32,8 @@ fn test_guide_counts_parses_tsv() {
 #[test]
 fn test_guide_counts_skips_comments() {
     let tsv = "# comment line\nsgRNA\tgene\ts1\nguide_X\tGENE\t50\n";
-    let result = crispr::call_crispr_builtin(
-        "guide_counts",
-        vec![Value::Str(tsv.to_string())],
-    )
-    .unwrap();
+    let result =
+        crispr::call_crispr_builtin("guide_counts", vec![Value::Str(tsv.to_string())]).unwrap();
     let table = match result {
         Value::Table(t) => t,
         _ => panic!("expected Table"),
@@ -99,12 +93,18 @@ fn test_lfc_guides_computes_correctly() {
         Value::Float(f) => *f,
         _ => panic!("lfc must be Float"),
     };
-    assert!(lfc_g1 < 0.0, "guide depleted in treatment should have negative lfc");
+    assert!(
+        lfc_g1 < 0.0,
+        "guide depleted in treatment should have negative lfc"
+    );
     let lfc_g2 = match &t.rows[1][lfc_col] {
         Value::Float(f) => *f,
         _ => panic!("lfc must be Float"),
     };
-    assert!(lfc_g2 > 0.0, "guide enriched in treatment should have positive lfc");
+    assert!(
+        lfc_g2 > 0.0,
+        "guide enriched in treatment should have positive lfc"
+    );
 }
 
 #[test]
@@ -116,10 +116,30 @@ fn test_mageck_score_gene_aggregation() {
         "trt1".to_string(),
     ];
     let rows = vec![
-        vec![Value::Str("g1".to_string()), Value::Str("GENE1".to_string()), Value::Int(100), Value::Int(5)],
-        vec![Value::Str("g2".to_string()), Value::Str("GENE1".to_string()), Value::Int(100), Value::Int(6)],
-        vec![Value::Str("g3".to_string()), Value::Str("GENE2".to_string()), Value::Int(50), Value::Int(200)],
-        vec![Value::Str("g4".to_string()), Value::Str("GENE2".to_string()), Value::Int(50), Value::Int(180)],
+        vec![
+            Value::Str("g1".to_string()),
+            Value::Str("GENE1".to_string()),
+            Value::Int(100),
+            Value::Int(5),
+        ],
+        vec![
+            Value::Str("g2".to_string()),
+            Value::Str("GENE1".to_string()),
+            Value::Int(100),
+            Value::Int(6),
+        ],
+        vec![
+            Value::Str("g3".to_string()),
+            Value::Str("GENE2".to_string()),
+            Value::Int(50),
+            Value::Int(200),
+        ],
+        vec![
+            Value::Str("g4".to_string()),
+            Value::Str("GENE2".to_string()),
+            Value::Int(50),
+            Value::Int(180),
+        ],
     ];
     let table = Value::Table(Table::new(col_names, rows));
     let result = crispr::call_crispr_builtin(
@@ -144,21 +164,15 @@ fn test_mageck_score_gene_aggregation() {
 #[test]
 fn test_guide_gc() {
     // ATGCATGC → 4 GC out of 8 = 0.5
-    let result = crispr::call_crispr_builtin(
-        "guide_gc",
-        vec![Value::Str("ATGCATGC".to_string())],
-    )
-    .unwrap();
+    let result =
+        crispr::call_crispr_builtin("guide_gc", vec![Value::Str("ATGCATGC".to_string())]).unwrap();
     match result {
         Value::Float(f) => assert!((f - 0.5).abs() < 1e-9),
         _ => panic!("expected Float"),
     }
     // all GC
-    let r2 = crispr::call_crispr_builtin(
-        "guide_gc",
-        vec![Value::Str("GCGCGC".to_string())],
-    )
-    .unwrap();
+    let r2 =
+        crispr::call_crispr_builtin("guide_gc", vec![Value::Str("GCGCGC".to_string())]).unwrap();
     match r2 {
         Value::Float(f) => assert!((f - 1.0).abs() < 1e-9),
         _ => panic!("expected Float"),
@@ -174,15 +188,28 @@ fn test_crispr_qc_metrics() {
         "s2".to_string(),
     ];
     let rows = vec![
-        vec![Value::Str("g1".to_string()), Value::Str("A".to_string()), Value::Int(100), Value::Int(100)],
-        vec![Value::Str("g2".to_string()), Value::Str("A".to_string()), Value::Int(50), Value::Int(50)],
-        vec![Value::Str("g3".to_string()), Value::Str("B".to_string()), Value::Int(0), Value::Int(0)],
+        vec![
+            Value::Str("g1".to_string()),
+            Value::Str("A".to_string()),
+            Value::Int(100),
+            Value::Int(100),
+        ],
+        vec![
+            Value::Str("g2".to_string()),
+            Value::Str("A".to_string()),
+            Value::Int(50),
+            Value::Int(50),
+        ],
+        vec![
+            Value::Str("g3".to_string()),
+            Value::Str("B".to_string()),
+            Value::Int(0),
+            Value::Int(0),
+        ],
     ];
-    let result = crispr::call_crispr_builtin(
-        "crispr_qc",
-        vec![Value::Table(Table::new(col_names, rows))],
-    )
-    .unwrap();
+    let result =
+        crispr::call_crispr_builtin("crispr_qc", vec![Value::Table(Table::new(col_names, rows))])
+            .unwrap();
     let rec = match result {
         Value::Record(r) => r,
         _ => panic!("expected Record"),
@@ -204,11 +231,8 @@ fn test_parse_vdj_csv() {
                AAACCC,clonotype1,TRAV1-2,TRAJ33,CAVSLDSNYQLIW,5\n\
                AAAGGG,clonotype1,TRAV1-2,TRAJ33,CAVSLDSNYQLIW,8\n\
                AAATTT,clonotype2,TRAV12-2,TRAJ6,CAVNLDSNYQLIW,3\n";
-    let result = immune::call_immune_builtin(
-        "parse_vdj",
-        vec![Value::Str(csv.to_string())],
-    )
-    .unwrap();
+    let result =
+        immune::call_immune_builtin("parse_vdj", vec![Value::Str(csv.to_string())]).unwrap();
     let t = match result {
         Value::Table(t) => t,
         _ => panic!("expected Table"),
@@ -286,16 +310,26 @@ fn test_clonal_expansion_threshold() {
 fn test_vj_usage_sorted() {
     let col_names = vec!["v_gene".to_string(), "cdr3".to_string()];
     let rows = vec![
-        vec![Value::Str("TRAV1".to_string()), Value::Str("SEQ1".to_string())],
-        vec![Value::Str("TRAV1".to_string()), Value::Str("SEQ2".to_string())],
-        vec![Value::Str("TRAV1".to_string()), Value::Str("SEQ3".to_string())],
-        vec![Value::Str("TRAV2".to_string()), Value::Str("SEQ4".to_string())],
+        vec![
+            Value::Str("TRAV1".to_string()),
+            Value::Str("SEQ1".to_string()),
+        ],
+        vec![
+            Value::Str("TRAV1".to_string()),
+            Value::Str("SEQ2".to_string()),
+        ],
+        vec![
+            Value::Str("TRAV1".to_string()),
+            Value::Str("SEQ3".to_string()),
+        ],
+        vec![
+            Value::Str("TRAV2".to_string()),
+            Value::Str("SEQ4".to_string()),
+        ],
     ];
-    let result = immune::call_immune_builtin(
-        "vj_usage",
-        vec![Value::Table(Table::new(col_names, rows))],
-    )
-    .unwrap();
+    let result =
+        immune::call_immune_builtin("vj_usage", vec![Value::Table(Table::new(col_names, rows))])
+            .unwrap();
     let t = match result {
         Value::Table(t) => t,
         _ => panic!("expected Table"),

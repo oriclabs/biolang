@@ -307,10 +307,9 @@ fn builtin_eye(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_dim(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "dim")?;
-    Ok(Value::List((vec![
-        Value::Int(m.nrow as i64),
-        Value::Int(m.ncol as i64),
-    ]).into()))
+    Ok(Value::List(
+        (vec![Value::Int(m.nrow as i64), Value::Int(m.ncol as i64)]).into(),
+    ))
 }
 
 fn builtin_transpose(args: Vec<Value>) -> Result<Value> {
@@ -363,28 +362,44 @@ fn builtin_dot(args: Vec<Value>) -> Result<Value> {
 fn builtin_row_sums(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "row_sums")?;
     Ok(Value::List(
-        m.row_sums().into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+        m.row_sums()
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
 fn builtin_col_sums(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "col_sums")?;
     Ok(Value::List(
-        m.col_sums().into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+        m.col_sums()
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
 fn builtin_row_means(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "row_means")?;
     Ok(Value::List(
-        m.row_means().into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+        m.row_means()
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
 fn builtin_col_means(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "col_means")?;
     Ok(Value::List(
-        m.col_means().into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+        m.col_means()
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -412,7 +427,8 @@ fn builtin_pca(args: Vec<Value>) -> Result<Value> {
             res.explained_variance
                 .into_iter()
                 .map(Value::Float)
-                .collect::<Vec<_>>().into(),
+                .collect::<Vec<_>>()
+                .into(),
         ),
     );
     result.insert(
@@ -421,7 +437,8 @@ fn builtin_pca(args: Vec<Value>) -> Result<Value> {
             res.explained_variance_ratio
                 .into_iter()
                 .map(Value::Float)
-                .collect::<Vec<_>>().into(),
+                .collect::<Vec<_>>()
+                .into(),
         ),
     );
 
@@ -553,7 +570,11 @@ fn builtin_row(args: Vec<Value>) -> Result<Value> {
         ));
     }
     Ok(Value::List(
-        m.row(i).into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+        m.row(i)
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -579,7 +600,11 @@ fn builtin_mat_col(args: Vec<Value>) -> Result<Value> {
         ));
     }
     Ok(Value::List(
-        m.col(j).into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+        m.col(j)
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -637,7 +662,9 @@ fn builtin_solve(args: Vec<Value>) -> Result<Value> {
     let x = a
         .solve(&b_vec)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::List(x.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        x.into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+    ))
 }
 
 fn builtin_eigenvalues(args: Vec<Value>) -> Result<Value> {
@@ -648,7 +675,12 @@ fn builtin_eigenvalues(args: Vec<Value>) -> Result<Value> {
     let mut result = HashMap::new();
     result.insert(
         "values".to_string(),
-        Value::List(vals.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
+        Value::List(
+            vals.into_iter()
+                .map(Value::Float)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     result.insert("vectors".to_string(), Value::Matrix(vecs));
     Ok(Value::Record((result).into()))

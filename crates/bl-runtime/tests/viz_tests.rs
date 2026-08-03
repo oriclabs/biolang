@@ -13,13 +13,16 @@ fn make_table(cols: Vec<&str>, rows: Vec<Vec<Value>>) -> Value {
 
 #[test]
 fn test_sparkline_basic() {
-    let list = Value::List((vec![
-        Value::Float(1.0),
-        Value::Float(3.0),
-        Value::Float(7.0),
-        Value::Float(2.0),
-        Value::Float(5.0),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Float(1.0),
+            Value::Float(3.0),
+            Value::Float(7.0),
+            Value::Float(2.0),
+            Value::Float(5.0),
+        ])
+        .into(),
+    );
     let result = call_viz_builtin("sparkline", vec![list]).unwrap();
     if let Value::Str(s) = result {
         assert_eq!(s.chars().count(), 5);
@@ -30,11 +33,7 @@ fn test_sparkline_basic() {
 
 #[test]
 fn test_sparkline_all_equal() {
-    let list = Value::List((vec![
-        Value::Float(5.0),
-        Value::Float(5.0),
-        Value::Float(5.0),
-    ]).into());
+    let list = Value::List((vec![Value::Float(5.0), Value::Float(5.0), Value::Float(5.0)]).into());
     let result = call_viz_builtin("sparkline", vec![list]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.chars().all(|c| c == '\u{2584}')); // '▄'
@@ -55,12 +54,15 @@ fn test_sparkline_empty() {
 
 #[test]
 fn test_sparkline_negative_values() {
-    let list = Value::List((vec![
-        Value::Float(-5.0),
-        Value::Float(-3.0),
-        Value::Float(-1.0),
-        Value::Float(-4.0),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Float(-5.0),
+            Value::Float(-3.0),
+            Value::Float(-1.0),
+            Value::Float(-4.0),
+        ])
+        .into(),
+    );
     let result = call_viz_builtin("sparkline", vec![list]).unwrap();
     if let Value::Str(s) = result {
         assert_eq!(s.chars().count(), 4);
@@ -85,11 +87,8 @@ fn test_sparkline_single_value() {
 
 #[test]
 fn test_sparkline_very_large_values() {
-    let list = Value::List((vec![
-        Value::Float(1e15),
-        Value::Float(2e15),
-        Value::Float(3e15),
-    ]).into());
+    let list =
+        Value::List((vec![Value::Float(1e15), Value::Float(2e15), Value::Float(3e15)]).into());
     let result = call_viz_builtin("sparkline", vec![list]).unwrap();
     if let Value::Str(s) = result {
         assert_eq!(s.chars().count(), 3);
@@ -108,10 +107,13 @@ fn test_sparkline_wrong_type() {
 
 #[test]
 fn test_bar_chart_record() {
-    let rec = Value::Record((HashMap::from([
-        ("gene1".into(), Value::Int(100)),
-        ("gene2".into(), Value::Int(50)),
-    ])).into());
+    let rec = Value::Record(
+        (HashMap::from([
+            ("gene1".into(), Value::Int(100)),
+            ("gene2".into(), Value::Int(50)),
+        ]))
+        .into(),
+    );
     let result = call_viz_builtin("bar_chart", vec![rec]).unwrap();
     assert!(matches!(result, Value::Nil));
 }
@@ -158,18 +160,21 @@ fn test_bar_chart_many_items() {
 
 #[test]
 fn test_boxplot_list() {
-    let list = Value::List((vec![
-        Value::Float(1.0),
-        Value::Float(2.0),
-        Value::Float(3.0),
-        Value::Float(4.0),
-        Value::Float(5.0),
-        Value::Float(6.0),
-        Value::Float(7.0),
-        Value::Float(8.0),
-        Value::Float(9.0),
-        Value::Float(10.0),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Float(1.0),
+            Value::Float(2.0),
+            Value::Float(3.0),
+            Value::Float(4.0),
+            Value::Float(5.0),
+            Value::Float(6.0),
+            Value::Float(7.0),
+            Value::Float(8.0),
+            Value::Float(9.0),
+            Value::Float(10.0),
+        ])
+        .into(),
+    );
     let result = call_viz_builtin("boxplot", vec![list]).unwrap();
     assert!(matches!(result, Value::Nil));
 }
@@ -191,13 +196,16 @@ fn test_boxplot_table() {
 
 #[test]
 fn test_boxplot_all_identical_values() {
-    let list = Value::List((vec![
-        Value::Float(7.0),
-        Value::Float(7.0),
-        Value::Float(7.0),
-        Value::Float(7.0),
-        Value::Float(7.0),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Float(7.0),
+            Value::Float(7.0),
+            Value::Float(7.0),
+            Value::Float(7.0),
+            Value::Float(7.0),
+        ])
+        .into(),
+    );
     let result = call_viz_builtin("boxplot", vec![list]).unwrap();
     assert!(matches!(result, Value::Nil));
 }
@@ -266,7 +274,8 @@ fn test_coverage_list() {
     let list = Value::List(
         (0..100)
             .map(|i| Value::Float((i as f64 * 0.1).sin().abs() * 10.0))
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     );
     let result = call_viz_builtin("coverage", vec![list]).unwrap();
     assert!(matches!(result, Value::Nil));
@@ -477,13 +486,16 @@ fn test_alignment_view_wrong_type() {
 
 #[test]
 fn test_quality_plot_single() {
-    let quals = Value::List((vec![
-        Value::Int(35),
-        Value::Int(30),
-        Value::Int(25),
-        Value::Int(15),
-        Value::Int(40),
-    ]).into());
+    let quals = Value::List(
+        (vec![
+            Value::Int(35),
+            Value::Int(30),
+            Value::Int(25),
+            Value::Int(15),
+            Value::Int(40),
+        ])
+        .into(),
+    );
     let result = call_viz_builtin("quality_plot", vec![quals]).unwrap();
     assert!(matches!(result, Value::Nil));
 }
@@ -500,13 +512,16 @@ fn test_quality_plot_multi() {
 
 #[test]
 fn test_quality_plot_svg() {
-    let quals = Value::List((vec![
-        Value::Int(35),
-        Value::Int(30),
-        Value::Int(25),
-        Value::Int(15),
-        Value::Int(40),
-    ]).into());
+    let quals = Value::List(
+        (vec![
+            Value::Int(35),
+            Value::Int(30),
+            Value::Int(25),
+            Value::Int(15),
+            Value::Int(40),
+        ])
+        .into(),
+    );
     let opts = Value::Record((HashMap::from([("format".into(), Value::Str("svg".into()))])).into());
     let result = call_viz_builtin("quality_plot", vec![quals, opts]).unwrap();
     if let Value::Str(s) = result {
@@ -608,10 +623,13 @@ fn test_dotplot_custom_window() {
     let s2 = Value::DNA(BioSequence {
         data: "ATCGATCGATCGATCGATCGATCGATCG".to_string(),
     });
-    let opts = Value::Record((HashMap::from([
-        ("window".into(), Value::Int(3)),
-        ("threshold".into(), Value::Int(2)),
-    ])).into());
+    let opts = Value::Record(
+        (HashMap::from([
+            ("window".into(), Value::Int(3)),
+            ("threshold".into(), Value::Int(2)),
+        ]))
+        .into(),
+    );
     let result = call_viz_builtin("dotplot", vec![s1, s2, opts]).unwrap();
     assert!(matches!(result, Value::Nil));
 }
@@ -621,11 +639,14 @@ fn test_dotplot_custom_window() {
 #[test]
 fn test_alignment_view_msa_list() {
     // MSA as list of aligned strings
-    let msa = Value::List((vec![
-        Value::Str("ATCG-ATCG".into()),
-        Value::Str("ATCGAATCG".into()),
-        Value::Str("AT-GAATCG".into()),
-    ]).into());
+    let msa = Value::List(
+        (vec![
+            Value::Str("ATCG-ATCG".into()),
+            Value::Str("ATCGAATCG".into()),
+            Value::Str("AT-GAATCG".into()),
+        ])
+        .into(),
+    );
     let result = call_viz_builtin("alignment_view", vec![msa]).unwrap();
     assert!(matches!(result, Value::Nil));
 }
@@ -633,12 +654,15 @@ fn test_alignment_view_msa_list() {
 #[test]
 fn test_alignment_view_msa_many() {
     // MSA with more sequences
-    let msa = Value::List((vec![
-        Value::Str("ATCG-ATCG".into()),
-        Value::Str("ATCGAATCG".into()),
-        Value::Str("AT-GAATCG".into()),
-        Value::Str("ATCG-ATCG".into()),
-    ]).into());
+    let msa = Value::List(
+        (vec![
+            Value::Str("ATCG-ATCG".into()),
+            Value::Str("ATCGAATCG".into()),
+            Value::Str("AT-GAATCG".into()),
+            Value::Str("ATCG-ATCG".into()),
+        ])
+        .into(),
+    );
     let result = call_viz_builtin("alignment_view", vec![msa]).unwrap();
     assert!(matches!(result, Value::Nil));
 }
@@ -684,12 +708,15 @@ fn test_alignment_view_complex_cigar() {
 
 #[test]
 fn test_bar_chart_with_sort() {
-    let rec = Value::Record((HashMap::from([
-        ("alpha".into(), Value::Int(30)),
-        ("beta".into(), Value::Int(10)),
-        ("gamma".into(), Value::Int(50)),
-        ("delta".into(), Value::Int(20)),
-    ])).into());
+    let rec = Value::Record(
+        (HashMap::from([
+            ("alpha".into(), Value::Int(30)),
+            ("beta".into(), Value::Int(10)),
+            ("gamma".into(), Value::Int(50)),
+            ("delta".into(), Value::Int(20)),
+        ]))
+        .into(),
+    );
     let opts = Value::Record((HashMap::from([("sort".into(), Value::Bool(true))])).into());
     let result = call_viz_builtin("bar_chart", vec![rec, opts]).unwrap();
     assert!(matches!(result, Value::Nil));
@@ -709,12 +736,15 @@ fn test_bar_chart_with_limit() {
 
 #[test]
 fn test_bar_chart_list_input() {
-    let list = Value::List((vec![
-        Value::Float(10.0),
-        Value::Float(25.0),
-        Value::Float(15.0),
-        Value::Float(30.0),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Float(10.0),
+            Value::Float(25.0),
+            Value::Float(15.0),
+            Value::Float(30.0),
+        ])
+        .into(),
+    );
     let result = call_viz_builtin("bar_chart", vec![list]).unwrap();
     assert!(matches!(result, Value::Nil));
 }
@@ -726,7 +756,8 @@ fn test_boxplot_many_values() {
     let list = Value::List(
         (0..1000)
             .map(|i| Value::Float((i as f64 * 0.7).sin()))
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     );
     let result = call_viz_builtin("boxplot", vec![list]).unwrap();
     assert!(matches!(result, Value::Nil));
@@ -775,11 +806,14 @@ fn test_heatmap_ascii_negative_and_positive() {
 #[test]
 fn test_coverage_interval_pairs() {
     // List of [start, end] pairs
-    let list = Value::List((vec![
-        Value::List((vec![Value::Int(0), Value::Int(100)]).into()),
-        Value::List((vec![Value::Int(50), Value::Int(150)]).into()),
-        Value::List((vec![Value::Int(200), Value::Int(300)]).into()),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::List((vec![Value::Int(0), Value::Int(100)]).into()),
+            Value::List((vec![Value::Int(50), Value::Int(150)]).into()),
+            Value::List((vec![Value::Int(200), Value::Int(300)]).into()),
+        ])
+        .into(),
+    );
     let result = call_viz_builtin("coverage", vec![list]).unwrap();
     assert!(matches!(result, Value::Nil));
 }
@@ -788,13 +822,16 @@ fn test_coverage_interval_pairs() {
 
 #[test]
 fn test_sparkline_with_integers() {
-    let list = Value::List((vec![
-        Value::Int(1),
-        Value::Int(5),
-        Value::Int(3),
-        Value::Int(8),
-        Value::Int(2),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Int(1),
+            Value::Int(5),
+            Value::Int(3),
+            Value::Int(8),
+            Value::Int(2),
+        ])
+        .into(),
+    );
     let result = call_viz_builtin("sparkline", vec![list]).unwrap();
     if let Value::Str(s) = result {
         assert_eq!(s.chars().count(), 5);
@@ -805,12 +842,15 @@ fn test_sparkline_with_integers() {
 
 #[test]
 fn test_sparkline_mixed_int_float() {
-    let list = Value::List((vec![
-        Value::Int(1),
-        Value::Float(2.5),
-        Value::Int(4),
-        Value::Float(0.5),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Int(1),
+            Value::Float(2.5),
+            Value::Int(4),
+            Value::Float(0.5),
+        ])
+        .into(),
+    );
     let result = call_viz_builtin("sparkline", vec![list]).unwrap();
     if let Value::Str(s) = result {
         assert_eq!(s.chars().count(), 4);

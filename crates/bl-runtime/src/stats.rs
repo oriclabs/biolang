@@ -1388,28 +1388,33 @@ fn builtin_wilcoxon(args: Vec<Value>) -> Result<Value> {
 fn builtin_p_adjust(args: Vec<Value>) -> Result<Value> {
     let pvals = require_num_list(&args[0], "p_adjust")?;
     let method = require_str(&args[1], "p_adjust")?;
-    let adjusted =
-        match method {
-            "bh" | "BH" | "fdr" => {
-                bl_core::bio_core::stats_ops::benjamini_hochberg_correction(&pvals, 0.05)
-                    .adjusted_p_values
-            }
-            "bonferroni" => {
-                bl_core::bio_core::stats_ops::bonferroni_correction(&pvals).adjusted_p_values
-            }
-            "holm" => {
-                bl_core::bio_core::stats_ops::holm_bonferroni_correction(&pvals).adjusted_p_values
-            }
-            _ => return Err(BioLangError::runtime(
+    let adjusted = match method {
+        "bh" | "BH" | "fdr" => {
+            bl_core::bio_core::stats_ops::benjamini_hochberg_correction(&pvals, 0.05)
+                .adjusted_p_values
+        }
+        "bonferroni" => {
+            bl_core::bio_core::stats_ops::bonferroni_correction(&pvals).adjusted_p_values
+        }
+        "holm" => {
+            bl_core::bio_core::stats_ops::holm_bonferroni_correction(&pvals).adjusted_p_values
+        }
+        _ => {
+            return Err(BioLangError::runtime(
                 ErrorKind::TypeError,
                 format!(
                     "p_adjust() unknown method '{method}', expected 'bh', 'bonferroni', or 'holm'"
                 ),
                 None,
-            )),
-        };
+            ))
+        }
+    };
     Ok(Value::List(
-        adjusted.into_iter().map(Value::Float).collect::<Vec<_>>().into(),
+        adjusted
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -1451,15 +1456,23 @@ fn builtin_normalize(args: Vec<Value>) -> Result<Value> {
             }
             result
         }
-        _ => return Err(BioLangError::runtime(
-            ErrorKind::TypeError,
-            format!(
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!(
                 "normalize() unknown method '{method}', expected 'zscore', 'minmax', or 'quantile'"
             ),
-            None,
-        )),
+                None,
+            ))
+        }
     };
-    Ok(Value::List(result.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        result
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 fn builtin_lm(args: Vec<Value>) -> Result<Value> {
@@ -1499,19 +1512,43 @@ fn builtin_lm(args: Vec<Value>) -> Result<Value> {
                 Ok(make_record(vec![
                     (
                         "coefficients",
-                        Value::List(res.coefficients.iter().map(|&c| Value::Float(c)).collect::<Vec<_>>().into()),
+                        Value::List(
+                            res.coefficients
+                                .iter()
+                                .map(|&c| Value::Float(c))
+                                .collect::<Vec<_>>()
+                                .into(),
+                        ),
                     ),
                     (
                         "std_errors",
-                        Value::List(res.std_errors.iter().map(|&s| Value::Float(s)).collect::<Vec<_>>().into()),
+                        Value::List(
+                            res.std_errors
+                                .iter()
+                                .map(|&s| Value::Float(s))
+                                .collect::<Vec<_>>()
+                                .into(),
+                        ),
                     ),
                     (
                         "t_values",
-                        Value::List(res.t_values.iter().map(|&t| Value::Float(t)).collect::<Vec<_>>().into()),
+                        Value::List(
+                            res.t_values
+                                .iter()
+                                .map(|&t| Value::Float(t))
+                                .collect::<Vec<_>>()
+                                .into(),
+                        ),
                     ),
                     (
                         "p_values",
-                        Value::List(res.p_values.iter().map(|&p| Value::Float(p)).collect::<Vec<_>>().into()),
+                        Value::List(
+                            res.p_values
+                                .iter()
+                                .map(|&p| Value::Float(p))
+                                .collect::<Vec<_>>()
+                                .into(),
+                        ),
                     ),
                     ("r_squared", Value::Float(res.r_squared)),
                     ("adj_r_squared", Value::Float(res.adj_r_squared)),
@@ -1708,23 +1745,53 @@ fn builtin_kaplan_meier(args: Vec<Value>) -> Result<Value> {
     Ok(make_record(vec![
         (
             "times",
-            Value::List(res.times.iter().map(|&t| Value::Float(t)).collect::<Vec<_>>().into()),
+            Value::List(
+                res.times
+                    .iter()
+                    .map(|&t| Value::Float(t))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         ),
         (
             "survival",
-            Value::List(res.survival.iter().map(|&s| Value::Float(s)).collect::<Vec<_>>().into()),
+            Value::List(
+                res.survival
+                    .iter()
+                    .map(|&s| Value::Float(s))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         ),
         (
             "ci_lower",
-            Value::List(res.ci_lower.iter().map(|&c| Value::Float(c)).collect::<Vec<_>>().into()),
+            Value::List(
+                res.ci_lower
+                    .iter()
+                    .map(|&c| Value::Float(c))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         ),
         (
             "ci_upper",
-            Value::List(res.ci_upper.iter().map(|&c| Value::Float(c)).collect::<Vec<_>>().into()),
+            Value::List(
+                res.ci_upper
+                    .iter()
+                    .map(|&c| Value::Float(c))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         ),
         (
             "at_risk",
-            Value::List(res.at_risk.iter().map(|&n| Value::Int(n as i64)).collect::<Vec<_>>().into()),
+            Value::List(
+                res.at_risk
+                    .iter()
+                    .map(|&n| Value::Int(n as i64))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         ),
     ]))
 }
@@ -1774,15 +1841,33 @@ fn builtin_cox_ph(args: Vec<Value>) -> Result<Value> {
     Ok(make_record(vec![
         (
             "coefficients",
-            Value::List(res.coefficients.iter().map(|&c| Value::Float(c)).collect::<Vec<_>>().into()),
+            Value::List(
+                res.coefficients
+                    .iter()
+                    .map(|&c| Value::Float(c))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         ),
         (
             "hazard_ratios",
-            Value::List(res.hazard_ratios.iter().map(|&h| Value::Float(h)).collect::<Vec<_>>().into()),
+            Value::List(
+                res.hazard_ratios
+                    .iter()
+                    .map(|&h| Value::Float(h))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         ),
         (
             "pvalues",
-            Value::List(res.p_values.iter().map(|&p| Value::Float(p)).collect::<Vec<_>>().into()),
+            Value::List(
+                res.p_values
+                    .iter()
+                    .map(|&p| Value::Float(p))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         ),
         ("concordance", Value::Float(res.concordance)),
     ]))
@@ -1911,11 +1996,23 @@ fn builtin_glm(args: Vec<Value>) -> Result<Value> {
                 Ok(make_record(vec![
                     (
                         "coefficients",
-                        Value::List(res.coefficients.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
+                        Value::List(
+                            res.coefficients
+                                .into_iter()
+                                .map(Value::Float)
+                                .collect::<Vec<_>>()
+                                .into(),
+                        ),
                     ),
                     (
                         "p_values",
-                        Value::List(res.p_values.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
+                        Value::List(
+                            res.p_values
+                                .into_iter()
+                                .map(Value::Float)
+                                .collect::<Vec<_>>()
+                                .into(),
+                        ),
                     ),
                     ("log_likelihood", Value::Float(res.log_likelihood)),
                     ("aic", Value::Float(res.aic)),
@@ -1941,11 +2038,23 @@ fn builtin_glm(args: Vec<Value>) -> Result<Value> {
                 Ok(make_record(vec![
                     (
                         "coefficients",
-                        Value::List(res.0.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
+                        Value::List(
+                            res.0
+                                .into_iter()
+                                .map(Value::Float)
+                                .collect::<Vec<_>>()
+                                .into(),
+                        ),
                     ),
                     (
                         "p_values",
-                        Value::List(res.1.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
+                        Value::List(
+                            res.1
+                                .into_iter()
+                                .map(Value::Float)
+                                .collect::<Vec<_>>()
+                                .into(),
+                        ),
                     ),
                     ("log_likelihood", Value::Float(res.2)),
                     ("aic", Value::Float(res.3)),
@@ -1977,11 +2086,23 @@ fn builtin_glm(args: Vec<Value>) -> Result<Value> {
             Ok(make_record(vec![
                 (
                     "coefficients",
-                    Value::List(res.0.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
+                    Value::List(
+                        res.0
+                            .into_iter()
+                            .map(Value::Float)
+                            .collect::<Vec<_>>()
+                            .into(),
+                    ),
                 ),
                 (
                     "p_values",
-                    Value::List(res.1.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
+                    Value::List(
+                        res.1
+                            .into_iter()
+                            .map(Value::Float)
+                            .collect::<Vec<_>>()
+                            .into(),
+                    ),
                 ),
                 ("deviance", Value::Float(res.2)),
                 ("aic", Value::Float(res.3)),
@@ -2443,7 +2564,8 @@ fn builtin_kmeans(args: Vec<Value>) -> Result<Value> {
                 res.clusters
                     .into_iter()
                     .map(|c| Value::Int(c as i64))
-                    .collect::<Vec<_>>().into(),
+                    .collect::<Vec<_>>()
+                    .into(),
             ),
         ),
         (
@@ -2775,7 +2897,10 @@ fn builtin_tpm(args: Vec<Value>) -> Result<Value> {
     }
     let scale = 1_000_000.0 / rpk_sum;
     Ok(Value::List(
-        rpk.into_iter().map(|r| Value::Float(r * scale)).collect::<Vec<_>>().into(),
+        rpk.into_iter()
+            .map(|r| Value::Float(r * scale))
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -2914,7 +3039,13 @@ fn builtin_fst(args: Vec<Value>) -> Result<Value> {
         ("fst_mean", Value::Float(fst_mean)),
         (
             "fst_per_locus",
-            Value::List(fst_per_locus.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
+            Value::List(
+                fst_per_locus
+                    .into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         ),
         ("n_loci", Value::Int(n_loci as i64)),
     ]))
@@ -3169,7 +3300,8 @@ fn builtin_pca(args: Vec<Value>) -> Result<Value> {
         scores_matrix
             .into_iter()
             .map(|row| Value::List(row.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     );
 
     // loadings: n_features x n_components
@@ -3180,17 +3312,31 @@ fn builtin_pca(args: Vec<Value>) -> Result<Value> {
         loadings_by_feature
             .into_iter()
             .map(|row| Value::List(row.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     );
 
-    let ev_val = Value::List(variances.into_iter().map(Value::Float).collect::<Vec<_>>().into());
+    let ev_val = Value::List(
+        variances
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    );
     let evr_val = Value::List(
         explained_variance_ratio
             .into_iter()
             .map(Value::Float)
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     );
-    let mean_val = Value::List(col_means.into_iter().map(Value::Float).collect::<Vec<_>>().into());
+    let mean_val = Value::List(
+        col_means
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    );
 
     Ok(make_record(vec![
         ("scores", scores_val),
@@ -3362,7 +3508,8 @@ fn builtin_quantile_norm(args: Vec<Value>) -> Result<Value> {
             matrix
                 .into_iter()
                 .map(|r| Value::List(r.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
-                .collect::<Vec<_>>().into(),
+                .collect::<Vec<_>>()
+                .into(),
         ));
     }
 
@@ -3411,7 +3558,8 @@ fn builtin_quantile_norm(args: Vec<Value>) -> Result<Value> {
         result
             .into_iter()
             .map(|row| Value::List(row.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -3501,7 +3649,8 @@ fn builtin_batch_correct(args: Vec<Value>) -> Result<Value> {
         result
             .into_iter()
             .map(|row| Value::List(row.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -3592,7 +3741,13 @@ fn builtin_bootstrap(args: Vec<Value>) -> Result<Value> {
         ("n_samples", Value::Int(n_samples as i64)),
         (
             "estimates",
-            Value::List(estimates.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
+            Value::List(
+                estimates
+                    .into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         ),
     ]))
 }

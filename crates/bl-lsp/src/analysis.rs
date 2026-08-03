@@ -204,7 +204,10 @@ pub fn analyze_source(
 
     for statement in &statements {
         match &statement.node {
-            Stmt::Import { path, alias: Some(alias) } => {
+            Stmt::Import {
+                path,
+                alias: Some(alias),
+            } => {
                 let module = loader.load_module(path, source_path);
                 let type_info = module
                     .map(|value| TypeInfo::Module(Box::new(value)))
@@ -514,13 +517,7 @@ fn infer_block(body: &[Spanned<Stmt>], env: &BTreeMap<String, Symbol>) -> TypeIn
                     .unwrap_or_else(|| infer_expr(value, &local));
                 local.insert(
                     name.clone(),
-                    simple_symbol(
-                        name,
-                        SymbolKind::Variable,
-                        statement.span,
-                        type_info,
-                        None,
-                    ),
+                    simple_symbol(name, SymbolKind::Variable, statement.span, type_info, None),
                 );
             }
             Stmt::Assign { name, value } | Stmt::NilAssign { name, value } => {
@@ -883,10 +880,9 @@ fn parse_type(value: &str) -> TypeInfo {
 
 pub fn keywords() -> &'static [&'static str] {
     &[
-        "let", "const", "fn", "if", "else", "for", "in", "while", "break", "continue",
-        "return", "match", "import", "as", "true", "false", "nil", "and", "or", "not",
-        "try", "catch", "pipeline", "stage", "assert", "yield", "enum", "struct", "trait",
-        "impl",
+        "let", "const", "fn", "if", "else", "for", "in", "while", "break", "continue", "return",
+        "match", "import", "as", "true", "false", "nil", "and", "or", "not", "try", "catch",
+        "pipeline", "stage", "assert", "yield", "enum", "struct", "trait", "impl",
     ]
 }
 
@@ -926,17 +922,14 @@ pub fn word_at(source: &str, offset: usize) -> Option<(String, Option<String>)> 
     if word.is_empty() {
         return None;
     }
-    let qualifier = source
-        .get(..start)?
-        .strip_suffix('.')
-        .and_then(|before| {
-            let begin = before
-                .rfind(|character: char| !character.is_alphanumeric() && character != '_')
-                .map(|index| index + 1)
-                .unwrap_or(0);
-            let value = &before[begin..];
-            (!value.is_empty()).then(|| value.to_string())
-        });
+    let qualifier = source.get(..start)?.strip_suffix('.').and_then(|before| {
+        let begin = before
+            .rfind(|character: char| !character.is_alphanumeric() && character != '_')
+            .map(|index| index + 1)
+            .unwrap_or(0);
+        let value = &before[begin..];
+        (!value.is_empty()).then(|| value.to_string())
+    });
     Some((word, qualifier))
 }
 

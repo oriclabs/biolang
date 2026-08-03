@@ -18,7 +18,9 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::capabilities::{cached_env, find_capability, registry, select_backend, SelectionContext};
+use crate::capabilities::{
+    cached_env, find_capability, registry, select_backend, SelectionContext,
+};
 
 pub fn provenance_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
@@ -56,7 +58,10 @@ fn builtin_plan_backend(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => s.clone(),
         other => {
             return Err(BioLangError::type_error(
-                format!("plan_backend() requires a capability name (Str), got {}", other.type_of()),
+                format!(
+                    "plan_backend() requires a capability name (Str), got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -90,12 +95,20 @@ fn builtin_plan_backend(args: Vec<Value>) -> Result<Value> {
         .as_ref()
         .map(|b| b.label())
         .unwrap_or_else(|| "unavailable".into());
-    eprintln!("\u{2139} {}: {} — {}", cap.name, backend_label, decision.reason);
+    eprintln!(
+        "\u{2139} {}: {} — {}",
+        cap.name, backend_label, decision.reason
+    );
     for w in &decision.warnings {
         eprintln!("  \u{26a0} {w}");
     }
 
-    append_ledger(&cap.name, &backend_label, &decision.reason, &decision.warnings);
+    append_ledger(
+        &cap.name,
+        &backend_label,
+        &decision.reason,
+        &decision.warnings,
+    );
 
     // Return as a Record.
     let mut rec = HashMap::new();
@@ -111,7 +124,15 @@ fn builtin_plan_backend(args: Vec<Value>) -> Result<Value> {
     rec.insert("reason".into(), Value::Str(decision.reason.clone()));
     rec.insert(
         "warnings".into(),
-        Value::List(decision.warnings.iter().cloned().map(Value::Str).collect::<Vec<_>>().into()),
+        Value::List(
+            decision
+                .warnings
+                .iter()
+                .cloned()
+                .map(Value::Str)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     Ok(Value::Record((rec).into()))
 }
@@ -171,7 +192,9 @@ fn json_to_value(j: &serde_json::Value) -> Value {
             }
         }
         serde_json::Value::String(s) => Value::Str(s.clone()),
-        serde_json::Value::Array(a) => Value::List(a.iter().map(json_to_value).collect::<Vec<_>>().into()),
+        serde_json::Value::Array(a) => {
+            Value::List(a.iter().map(json_to_value).collect::<Vec<_>>().into())
+        }
         serde_json::Value::Object(o) => {
             let mut rec = HashMap::new();
             for (k, v) in o {
@@ -195,7 +218,10 @@ fn to_labels(v: &Value, func: &str) -> Result<Vec<String>> {
             })
             .collect()),
         other => Err(BioLangError::type_error(
-            format!("{func}() requires a List of labels, got {}", other.type_of()),
+            format!(
+                "{func}() requires a List of labels, got {}",
+                other.type_of()
+            ),
             None,
         )),
     }
@@ -217,7 +243,9 @@ pub fn adjusted_rand_index(a: &[String], b: &[String]) -> f64 {
     let mut a_counts: HashMap<&str, u64> = HashMap::new();
     let mut b_counts: HashMap<&str, u64> = HashMap::new();
     for i in 0..n {
-        *contingency.entry((a[i].as_str(), b[i].as_str())).or_insert(0) += 1;
+        *contingency
+            .entry((a[i].as_str(), b[i].as_str()))
+            .or_insert(0) += 1;
         *a_counts.entry(a[i].as_str()).or_insert(0) += 1;
         *b_counts.entry(b[i].as_str()).or_insert(0) += 1;
     }
@@ -227,7 +255,11 @@ pub fn adjusted_rand_index(a: &[String], b: &[String]) -> f64 {
     let sum_b: f64 = b_counts.values().map(|&c| choose2(c)).sum();
     let total = choose2(n as u64);
 
-    let expected = if total > 0.0 { sum_a * sum_b / total } else { 0.0 };
+    let expected = if total > 0.0 {
+        sum_a * sum_b / total
+    } else {
+        0.0
+    };
     let max_index = 0.5 * (sum_a + sum_b);
     let denom = max_index - expected;
 
@@ -245,7 +277,11 @@ fn builtin_ari(args: Vec<Value>) -> Result<Value> {
     if a.len() != b.len() {
         return Err(BioLangError::runtime(
             ErrorKind::TypeError,
-            format!("ari() label lists differ in length ({} vs {})", a.len(), b.len()),
+            format!(
+                "ari() label lists differ in length ({} vs {})",
+                a.len(),
+                b.len()
+            ),
             None,
         ));
     }

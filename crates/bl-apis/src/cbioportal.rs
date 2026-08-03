@@ -73,9 +73,9 @@ impl CbioPortalClient {
     pub fn studies(&self, keyword: Option<&str>) -> Result<Vec<CancerStudy>> {
         let base = base_url();
         let url = match keyword {
-            Some(kw) => format!(
-                "{base}/studies?keyword={kw}&pageSize=50&sortBy=studyId&direction=ASC"
-            ),
+            Some(kw) => {
+                format!("{base}/studies?keyword={kw}&pageSize=50&sortBy=studyId&direction=ASC")
+            }
             None => format!("{base}/studies?pageSize=50&sortBy=studyId&direction=ASC"),
         };
         let json = self.base.get_json(&url)?;
@@ -97,9 +97,8 @@ impl CbioPortalClient {
     /// Get clinical data for all samples in a study.
     pub fn clinical_data(&self, study_id: &str) -> Result<Vec<ClinicalAttribute>> {
         let base = base_url();
-        let url = format!(
-            "{base}/studies/{study_id}/clinical-data?clinicalDataType=SAMPLE&pageSize=500"
-        );
+        let url =
+            format!("{base}/studies/{study_id}/clinical-data?clinicalDataType=SAMPLE&pageSize=500");
         let json = self.base.get_json(&url)?;
         parse_clinical_data(&json)
     }
@@ -137,10 +136,12 @@ impl CbioPortalClient {
         let base = base_url();
         let url = format!("{base}/genes/{hugo_symbol}");
         let json = self.base.get_json(&url)?;
-        let entrez_id = json["entrezGeneId"].as_i64().ok_or_else(|| ApiError::Parse {
-            context: "cBioPortal gene".into(),
-            source: format!("no entrezGeneId for {hugo_symbol}"),
-        })?;
+        let entrez_id = json["entrezGeneId"]
+            .as_i64()
+            .ok_or_else(|| ApiError::Parse {
+                context: "cBioPortal gene".into(),
+                source: format!("no entrezGeneId for {hugo_symbol}"),
+            })?;
         let symbol = json["hugoGeneSymbol"]
             .as_str()
             .unwrap_or(hugo_symbol)
@@ -202,7 +203,10 @@ fn parse_mutations(json: &serde_json::Value) -> Result<Vec<MutationRecord>> {
                 .unwrap_or_default()
                 .to_string(),
             start_position: m["startPosition"].as_i64().unwrap_or(0),
-            ref_allele: m["referenceAllele"].as_str().unwrap_or_default().to_string(),
+            ref_allele: m["referenceAllele"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
             alt_allele: m["variantAllele"]
                 .as_str()
                 .or_else(|| m["altAllele"].as_str())
@@ -245,10 +249,7 @@ fn parse_expression(json: &serde_json::Value, gene: &str) -> Result<Vec<GeneExpr
         .filter_map(|e| {
             let value = e["value"].as_f64()?;
             let sample_id = e["sampleId"].as_str().unwrap_or_default().to_string();
-            let gene_sym = e["hugoGeneSymbol"]
-                .as_str()
-                .unwrap_or(gene)
-                .to_string();
+            let gene_sym = e["hugoGeneSymbol"].as_str().unwrap_or(gene).to_string();
             Some(GeneExpression {
                 sample_id,
                 gene: gene_sym,

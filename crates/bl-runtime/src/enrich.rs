@@ -169,7 +169,9 @@ fn builtin_enrich(args: Vec<Value>, func: &str) -> Result<Value> {
         Value::List(_) => parse_gene_set_list(&args[1], func)?,
         _ => {
             return Err(BioLangError::type_error(
-                format!("{func}() second arg must be a Map of gene sets, or a List of {{name, genes}}"),
+                format!(
+                    "{func}() second arg must be a Map of gene sets, or a List of {{name, genes}}"
+                ),
                 None,
             ))
         }

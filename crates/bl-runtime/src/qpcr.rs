@@ -53,9 +53,7 @@ fn to_f64(v: &Value) -> Option<f64> {
 }
 
 fn require_f64(val: &Value, func: &str) -> Result<f64> {
-    to_f64(val).ok_or_else(|| {
-        BioLangError::type_error(format!("{func}() requires a number"), None)
-    })
+    to_f64(val).ok_or_else(|| BioLangError::type_error(format!("{func}() requires a number"), None))
 }
 
 fn require_float_list(val: &Value, func: &str) -> Result<Vec<f64>> {
@@ -105,12 +103,16 @@ fn require_table_clone(val: &Value, func: &str) -> Result<Table> {
 }
 
 fn vec_mean(v: &[f64]) -> f64 {
-    if v.is_empty() { return 0.0; }
+    if v.is_empty() {
+        return 0.0;
+    }
     v.iter().sum::<f64>() / v.len() as f64
 }
 
 fn vec_stdev(v: &[f64]) -> f64 {
-    if v.len() < 2 { return 0.0; }
+    if v.len() < 2 {
+        return 0.0;
+    }
     let m = vec_mean(v);
     let var = v.iter().map(|&x| (x - m).powi(2)).sum::<f64>() / (v.len() - 1) as f64;
     var.sqrt()
@@ -119,12 +121,20 @@ fn vec_stdev(v: &[f64]) -> f64 {
 /// Linear regression slope for (x, y) pairs.
 fn linreg_slope(x: &[f64], y: &[f64]) -> Option<f64> {
     let n = x.len().min(y.len()) as f64;
-    if n < 2.0 { return None; }
+    if n < 2.0 {
+        return None;
+    }
     let mx = x.iter().sum::<f64>() / n;
     let my = y.iter().sum::<f64>() / n;
-    let num: f64 = x.iter().zip(y).map(|(&xi, &yi)| (xi - mx) * (yi - my)).sum();
+    let num: f64 = x
+        .iter()
+        .zip(y)
+        .map(|(&xi, &yi)| (xi - mx) * (yi - my))
+        .sum();
     let den: f64 = x.iter().map(|&xi| (xi - mx).powi(2)).sum();
-    if den.abs() < 1e-15 { return None; }
+    if den.abs() < 1e-15 {
+        return None;
+    }
     Some(num / den)
 }
 
@@ -155,7 +165,11 @@ fn builtin_delta_ct(args: Vec<Value>) -> Result<Value> {
                 ));
             }
             Ok(Value::List(
-                s.iter().zip(r.iter()).map(|(&a, &b)| Value::Float(a - b)).collect::<Vec<_>>().into(),
+                s.iter()
+                    .zip(r.iter())
+                    .map(|(&a, &b)| Value::Float(a - b))
+                    .collect::<Vec<_>>()
+                    .into(),
             ))
         }
         _ => Err(BioLangError::type_error(
@@ -194,7 +208,8 @@ fn builtin_delta_delta_ct(args: Vec<Value>) -> Result<Value> {
                 s.iter()
                     .zip(c.iter())
                     .map(|(&si, &ci)| Value::Float(2f64.powf(-(si - ci))))
-                    .collect::<Vec<_>>().into(),
+                    .collect::<Vec<_>>()
+                    .into(),
             ))
         }
         _ => Err(BioLangError::type_error(
@@ -209,7 +224,7 @@ fn builtin_delta_delta_ct(args: Vec<Value>) -> Result<Value> {
 // efficiency = 10^(-1/slope) - 1, clamped to [0.0, 1.5].
 
 fn builtin_pcr_efficiency(args: Vec<Value>) -> Result<Value> {
-    let cts  = require_float_list(&args[0], "pcr_efficiency")?;
+    let cts = require_float_list(&args[0], "pcr_efficiency")?;
     let ldil = require_float_list(&args[1], "pcr_efficiency")?;
     if cts.len() < 2 || cts.len() != ldil.len() {
         return Err(BioLangError::runtime(
@@ -224,7 +239,11 @@ fn builtin_pcr_efficiency(args: Vec<Value>) -> Result<Value> {
     }
 
     let slope = linreg_slope(&ldil, &cts).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::DivisionByZero, "pcr_efficiency(): zero variance in dilutions", None)
+        BioLangError::runtime(
+            ErrorKind::DivisionByZero,
+            "pcr_efficiency(): zero variance in dilutions",
+            None,
+        )
     })?;
 
     let efficiency = (10f64.powf(-1.0 / slope) - 1.0).clamp(0.0, 1.5);
@@ -259,7 +278,9 @@ fn builtin_reference_normalize(args: Vec<Value>) -> Result<Value> {
         if idx >= ngenes {
             return Err(BioLangError::runtime(
                 ErrorKind::IndexOutOfBounds,
-                format!("reference_normalize(): ref index {idx} out of range (table has {ngenes} rows)"),
+                format!(
+                    "reference_normalize(): ref index {idx} out of range (table has {ngenes} rows)"
+                ),
                 None,
             ));
         }
@@ -272,7 +293,10 @@ fn builtin_reference_normalize(args: Vec<Value>) -> Result<Value> {
             .iter()
             .map(|v| {
                 to_f64(v).ok_or_else(|| {
-                    BioLangError::type_error("reference_normalize(): table must contain numbers", None)
+                    BioLangError::type_error(
+                        "reference_normalize(): table must contain numbers",
+                        None,
+                    )
                 })
             })
             .collect::<Result<_>>()?;
@@ -326,7 +350,9 @@ fn builtin_genorm_stability(args: Vec<Value>) -> Result<Value> {
         if idx >= ngenes {
             return Err(BioLangError::runtime(
                 ErrorKind::IndexOutOfBounds,
-                format!("genorm_stability(): ref index {idx} out of range (table has {ngenes} rows)"),
+                format!(
+                    "genorm_stability(): ref index {idx} out of range (table has {ngenes} rows)"
+                ),
                 None,
             ));
         }
@@ -340,7 +366,10 @@ fn builtin_genorm_stability(args: Vec<Value>) -> Result<Value> {
                 .iter()
                 .map(|v| {
                     to_f64(v).ok_or_else(|| {
-                        BioLangError::type_error("genorm_stability(): table must contain numbers", None)
+                        BioLangError::type_error(
+                            "genorm_stability(): table must contain numbers",
+                            None,
+                        )
                     })
                 })
                 .collect::<Result<Vec<_>>>()
@@ -353,7 +382,9 @@ fn builtin_genorm_stability(args: Vec<Value>) -> Result<Value> {
     for i in 0..nref {
         let mut pairwise_stdevs: Vec<f64> = Vec::new();
         for j in 0..nref {
-            if i == j { continue; }
+            if i == j {
+                continue;
+            }
             // log2(Ct_i / Ct_j) per sample; skip if either is 0
             let ratios: Vec<f64> = (0..nsamples)
                 .filter_map(|s| {

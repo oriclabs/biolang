@@ -19,8 +19,7 @@ fn s(x: &str) -> Value {
 }
 
 fn rec(pairs: Vec<(&str, Value)>) -> Value {
-    let m: HashMap<String, Value> =
-        pairs.into_iter().map(|(k, v)| (k.to_string(), v)).collect();
+    let m: HashMap<String, Value> = pairs.into_iter().map(|(k, v)| (k.to_string(), v)).collect();
     Value::Record(m.into())
 }
 
@@ -84,8 +83,14 @@ fn a_table_stays_a_table() {
 #[test]
 fn map_and_record_stay_distinct() {
     let m: HashMap<String, Value> = [("a".to_string(), Value::Int(1))].into_iter().collect();
-    assert!(matches!(roundtrip(&Value::Map(m.clone().into())), Value::Map(_)));
-    assert!(matches!(roundtrip(&Value::Record(m.into())), Value::Record(_)));
+    assert!(matches!(
+        roundtrip(&Value::Map(m.clone().into())),
+        Value::Map(_)
+    ));
+    assert!(matches!(
+        roundtrip(&Value::Record(m.into())),
+        Value::Record(_)
+    ));
 }
 
 #[test]
@@ -94,7 +99,10 @@ fn a_record_key_named_like_the_tag_is_not_confused_for_one() {
     let Value::Record(got) = roundtrip(&v) else {
         panic!("not a record")
     };
-    assert_eq!(got.get("__t").map(|x| format!("{x}")), Some("table".to_string()));
+    assert_eq!(
+        got.get("__t").map(|x| format!("{x}")),
+        Some("table".to_string())
+    );
     assert!(matches!(got.get("real"), Some(Value::Int(1))));
 }
 
@@ -116,7 +124,10 @@ fn sequences_and_matrices_survive() {
     };
     assert_eq!((got.nrow, got.ncol), (2, 2));
     assert_eq!(got.data, vec![1.0, 2.0, 3.0, 4.0]);
-    assert_eq!(got.row_names, Some(vec!["r1".to_string(), "r2".to_string()]));
+    assert_eq!(
+        got.row_names,
+        Some(vec!["r1".to_string(), "r2".to_string()])
+    );
 }
 
 #[test]
@@ -136,13 +147,17 @@ fn nested_single_cell_shaped_object_survives() {
         ("n_cells", Value::Int(2)),
     ]);
     let got = roundtrip(&obj);
-    let Value::Record(r) = &got else { panic!("not a record") };
+    let Value::Record(r) = &got else {
+        panic!("not a record")
+    };
     assert!(matches!(r.get("n_cells"), Some(Value::Int(2))));
     let Some(Value::List(rows)) = r.get("matrix") else {
         panic!("matrix missing")
     };
     assert_eq!(rows.len(), 2);
-    let Value::List(row0) = &rows[0] else { panic!() };
+    let Value::List(row0) = &rows[0] else {
+        panic!()
+    };
     assert!(matches!(row0[1], Value::Float(f) if (f - 2.5).abs() < 1e-12));
 }
 
@@ -164,11 +179,13 @@ fn save_and_load_a_file() {
         let path = dir.path().join(name);
         let path = path.to_str().unwrap();
 
-        let table = Value::Table(Table::new(
-            vec!["g".into()],
-            vec![vec![s("CD3E")]],
-        ));
-        let big = Value::List((0..500).map(|i| Value::Float(i as f64 / 3.0)).collect::<Vec<_>>().into());
+        let table = Value::Table(Table::new(vec!["g".into()], vec![vec![s("CD3E")]]));
+        let big = Value::List(
+            (0..500)
+                .map(|i| Value::Float(i as f64 / 3.0))
+                .collect::<Vec<_>>()
+                .into(),
+        );
         let fnval = Value::NativeFunction {
             name: "len".to_string(),
             arity: bl_core::value::Arity::Exact(1),
@@ -196,13 +213,23 @@ fn save_and_load_a_file() {
 #[test]
 fn gzip_actually_shrinks_a_repetitive_workspace() {
     let dir = tempfile::tempdir().unwrap();
-    let big = Value::List((0..5000).map(|_| Value::Float(1.0)).collect::<Vec<_>>().into());
+    let big = Value::List(
+        (0..5000)
+            .map(|_| Value::Float(1.0))
+            .collect::<Vec<_>>()
+            .into(),
+    );
 
     let plain = dir.path().join("w.json");
     let gz = dir.path().join("w.json.gz");
     let a = workspace::save(plain.to_str().unwrap(), vec![("x", &big)]).unwrap();
     let b = workspace::save(gz.to_str().unwrap(), vec![("x", &big)]).unwrap();
-    assert!(b.bytes < a.bytes / 2, "gzip did not compress: {} vs {}", b.bytes, a.bytes);
+    assert!(
+        b.bytes < a.bytes / 2,
+        "gzip did not compress: {} vs {}",
+        b.bytes,
+        a.bytes
+    );
 }
 
 #[test]

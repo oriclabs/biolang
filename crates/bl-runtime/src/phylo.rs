@@ -22,11 +22,7 @@ pub fn phylo_builtin_list() -> Vec<(&'static str, Arity)> {
 pub fn is_phylo_builtin(name: &str) -> bool {
     matches!(
         name,
-        "nw_parse"
-            | "tree_leaves"
-            | "patristic_distance"
-            | "nw_to_distance_matrix"
-            | "upgma"
+        "nw_parse" | "tree_leaves" | "patristic_distance" | "nw_to_distance_matrix" | "upgma"
     )
 }
 
@@ -50,7 +46,7 @@ pub fn call_phylo_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
 #[derive(Debug, Clone)]
 struct Node {
     id: i64,
-    parent: i64,   // -1 = root
+    parent: i64, // -1 = root
     label: String,
     branch_length: f64,
 }
@@ -133,7 +129,13 @@ fn parse_label_and_bl(chars: &[char], start: usize) -> (String, f64, usize) {
     if i < chars.len() && chars[i] == ':' {
         i += 1;
         let mut bl_str = String::new();
-        while i < chars.len() && (chars[i].is_ascii_digit() || chars[i] == '.' || chars[i] == '-' || chars[i] == 'e' || chars[i] == 'E') {
+        while i < chars.len()
+            && (chars[i].is_ascii_digit()
+                || chars[i] == '.'
+                || chars[i] == '-'
+                || chars[i] == 'e'
+                || chars[i] == 'E')
+        {
             bl_str.push(chars[i]);
             i += 1;
         }
@@ -188,23 +190,24 @@ fn table_to_nodes(table: &Table) -> Result<Vec<Node>> {
                 Value::Int(n) => *n as f64,
                 _ => 0.0,
             };
-            Ok(Node { id, parent, label, branch_length: bl })
+            Ok(Node {
+                id,
+                parent,
+                label,
+                branch_length: bl,
+            })
         })
         .collect()
 }
 
 fn col_index(table: &Table, name: &str, func: &str) -> Result<usize> {
-    table
-        .columns
-        .iter()
-        .position(|c| c == name)
-        .ok_or_else(|| {
-            BioLangError::runtime(
-                ErrorKind::NameError,
-                format!("{func}(): column '{name}' not found"),
-                None,
-            )
-        })
+    table.columns.iter().position(|c| c == name).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("{func}(): column '{name}' not found"),
+            None,
+        )
+    })
 }
 
 fn require_table<'a>(val: &'a Value, func: &str) -> Result<&'a Table> {
@@ -351,15 +354,20 @@ fn builtin_nw_to_distance_matrix(args: Vec<Value>) -> Result<Value> {
         loop {
             dist.insert(cur, acc);
             if let Some(n) = id_map.get(&cur) {
-                if n.parent == -1 { break; }
+                if n.parent == -1 {
+                    break;
+                }
                 acc += n.branch_length;
                 cur = n.parent;
-            } else { break; }
+            } else {
+                break;
+            }
         }
         dist
     }
 
-    let paths: Vec<HashMap<i64, f64>> = leaves.iter().map(|n| path_to_root(n.id, &id_map)).collect();
+    let paths: Vec<HashMap<i64, f64>> =
+        leaves.iter().map(|n| path_to_root(n.id, &id_map)).collect();
 
     let mut out_rows: Vec<Vec<Value>> = Vec::new();
     for i in 0..n {
@@ -412,11 +420,7 @@ fn builtin_upgma(args: Vec<Value>) -> Result<Value> {
     let mut dist: Vec<Vec<f64>> = dist_table
         .rows
         .iter()
-        .map(|row| {
-            row.iter()
-                .map(|v| to_f64(v))
-                .collect::<Vec<f64>>()
-        })
+        .map(|row| row.iter().map(|v| to_f64(v)).collect::<Vec<f64>>())
         .collect::<Vec<Vec<f64>>>();
 
     // Pad or trim to n×n
@@ -460,8 +464,8 @@ fn builtin_upgma(args: Vec<Value>) -> Result<Value> {
             if k == a || k == b {
                 continue;
             }
-            let new_d = (dist[a][k] * sizes[a] as f64 + dist[b][k] * sizes[b] as f64)
-                / new_size as f64;
+            let new_d =
+                (dist[a][k] * sizes[a] as f64 + dist[b][k] * sizes[b] as f64) / new_size as f64;
             dist[a][k] = new_d;
             dist[k][a] = new_d;
         }

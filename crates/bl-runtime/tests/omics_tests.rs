@@ -8,24 +8,35 @@ mod proteomics;
 mod methylation;
 
 use bl_core::value::Value;
-use proteomics::call_proteomics_builtin;
 use methylation::call_methylation_builtin;
+use proteomics::call_proteomics_builtin;
 
 // ── helpers ───────────────────────────────────────────────────────────
 
 fn float_list(vals: &[f64]) -> Value {
-    Value::List(vals.iter().map(|&v| Value::Float(v)).collect::<Vec<_>>().into())
+    Value::List(
+        vals.iter()
+            .map(|&v| Value::Float(v))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn int_list(vals: &[i64]) -> Value {
-    Value::List(vals.iter().map(|&v| Value::Int(v)).collect::<Vec<_>>().into())
+    Value::List(
+        vals.iter()
+            .map(|&v| Value::Int(v))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn matrix(rows: Vec<Vec<f64>>) -> Value {
     Value::List(
         rows.into_iter()
             .map(|r| Value::List(r.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     )
 }
 
@@ -33,11 +44,14 @@ fn table_col(val: &Value, col: &str) -> Vec<f64> {
     match val {
         Value::Table(t) => {
             let idx = t.columns.iter().position(|c| c == col).unwrap();
-            t.rows.iter().map(|row| match &row[idx] {
-                Value::Float(f) => *f,
-                Value::Int(n) => *n as f64,
-                _ => f64::NAN,
-            }).collect()
+            t.rows
+                .iter()
+                .map(|row| match &row[idx] {
+                    Value::Float(f) => *f,
+                    Value::Int(n) => *n as f64,
+                    _ => f64::NAN,
+                })
+                .collect()
         }
         _ => panic!("expected Table"),
     }
@@ -47,10 +61,13 @@ fn table_str_col(val: &Value, col: &str) -> Vec<String> {
     match val {
         Value::Table(t) => {
             let idx = t.columns.iter().position(|c| c == col).unwrap();
-            t.rows.iter().map(|row| match &row[idx] {
-                Value::Str(s) => s.clone(),
-                _ => "".to_string(),
-            }).collect()
+            t.rows
+                .iter()
+                .map(|row| match &row[idx] {
+                    Value::Str(s) => s.clone(),
+                    _ => "".to_string(),
+                })
+                .collect()
         }
         _ => panic!("expected Table"),
     }
@@ -58,11 +75,14 @@ fn table_str_col(val: &Value, col: &str) -> Vec<String> {
 
 fn list_floats(val: &Value) -> Vec<f64> {
     match val {
-        Value::List(items) => items.iter().map(|v| match v {
-            Value::Float(f) => *f,
-            Value::Int(n) => *n as f64,
-            _ => f64::NAN,
-        }).collect(),
+        Value::List(items) => items
+            .iter()
+            .map(|v| match v {
+                Value::Float(f) => *f,
+                Value::Int(n) => *n as f64,
+                _ => f64::NAN,
+            })
+            .collect(),
         _ => panic!("expected List"),
     }
 }
@@ -86,14 +106,8 @@ fn log2_transform_adds_one_and_logs() {
 #[test]
 fn impute_minvalue_replaces_zeros() {
     // Column mins (non-zero): col0=2, col1=4 → impute at 0.5× → 1.0, 2.0
-    let mat = matrix(vec![
-        vec![2.0, 0.0],
-        vec![0.0, 4.0],
-    ]);
-    let result = call_proteomics_builtin(
-        "impute_minvalue",
-        vec![mat, Value::Float(0.5)],
-    ).unwrap();
+    let mat = matrix(vec![vec![2.0, 0.0], vec![0.0, 4.0]]);
+    let result = call_proteomics_builtin("impute_minvalue", vec![mat, Value::Float(0.5)]).unwrap();
     let rows = match &result {
         Value::List(r) => r.clone(),
         _ => panic!(),
@@ -113,19 +127,30 @@ fn protein_ttest_detects_difference() {
     // Protein 1: all = 5 → no difference
     let mat = matrix(vec![
         vec![10.0, 10.0, 10.0, 0.0, 0.0, 0.0],
-        vec![ 5.0,  5.0,  5.0, 5.0, 5.0, 5.0],
+        vec![5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
     ]);
     let idx_a = int_list(&[0, 1, 2]);
     let idx_b = int_list(&[3, 4, 5]);
-    let result =
-        call_proteomics_builtin("protein_ttest", vec![mat, idx_a, idx_b]).unwrap();
+    let result = call_proteomics_builtin("protein_ttest", vec![mat, idx_a, idx_b]).unwrap();
     let pvals = table_col(&result, "p_value");
-    let fcs   = table_col(&result, "log2fc");
+    let fcs = table_col(&result, "log2fc");
     // Protein 0: significant, positive FC
-    assert!(pvals[0] < 0.05, "protein 0 p_value should be < 0.05, got {}", pvals[0]);
-    assert!(fcs[0] > 1.0, "protein 0 log2fc should be > 1, got {}", fcs[0]);
+    assert!(
+        pvals[0] < 0.05,
+        "protein 0 p_value should be < 0.05, got {}",
+        pvals[0]
+    );
+    assert!(
+        fcs[0] > 1.0,
+        "protein 0 log2fc should be > 1, got {}",
+        fcs[0]
+    );
     // Protein 1: not significant (same in both groups)
-    assert!(pvals[1] >= 0.999, "protein 1 p_value should be ~1, got {}", pvals[1]);
+    assert!(
+        pvals[1] >= 0.999,
+        "protein 1 p_value should be ~1, got {}",
+        pvals[1]
+    );
 }
 
 // ── methylation tests ─────────────────────────────────────────────────
@@ -148,11 +173,8 @@ fn beta_mvalue_roundtrip() {
 #[test]
 fn cpg_density_counts_dinucleotides() {
     // "ACGCGT" has CpG at pos 1 and 3 → 2 CpGs, length 6, density = 2/5 * 100 = 40
-    let result = call_methylation_builtin(
-        "cpg_density",
-        vec![Value::Str("ACGCGT".to_string())],
-    )
-    .unwrap();
+    let result =
+        call_methylation_builtin("cpg_density", vec![Value::Str("ACGCGT".to_string())]).unwrap();
     let count = table_col(&result, "cpg_count");
     let density = table_col(&result, "density");
     assert_eq!(count[0] as i64, 2);
@@ -172,15 +194,28 @@ fn differential_methylation_finds_hyper_cpgs() {
     ]);
     let idx_a = int_list(&[0, 1]);
     let idx_b = int_list(&[2, 3]);
-    let result = call_methylation_builtin(
-        "differential_methylation",
-        vec![mat, idx_a, idx_b],
-    )
-    .unwrap();
+    let result =
+        call_methylation_builtin("differential_methylation", vec![mat, idx_a, idx_b]).unwrap();
     let deltas = table_col(&result, "delta_beta");
-    let pvals  = table_col(&result, "p_value");
-    assert!(deltas[0] > 0.5, "CpG 0 delta should be ~0.7, got {}", deltas[0]);
-    assert!(deltas[1] < -0.5, "CpG 1 delta should be ~-0.7, got {}", deltas[1]);
-    assert!(pvals[0] < 0.05, "CpG 0 p_value should be significant, got {}", pvals[0]);
-    assert!((deltas[2]).abs() < 1e-9, "CpG 2 delta should be 0, got {}", deltas[2]);
+    let pvals = table_col(&result, "p_value");
+    assert!(
+        deltas[0] > 0.5,
+        "CpG 0 delta should be ~0.7, got {}",
+        deltas[0]
+    );
+    assert!(
+        deltas[1] < -0.5,
+        "CpG 1 delta should be ~-0.7, got {}",
+        deltas[1]
+    );
+    assert!(
+        pvals[0] < 0.05,
+        "CpG 0 p_value should be significant, got {}",
+        pvals[0]
+    );
+    assert!(
+        (deltas[2]).abs() < 1e-9,
+        "CpG 2 delta should be 0, got {}",
+        deltas[2]
+    );
 }

@@ -391,7 +391,13 @@ fn parse_aligned_fasta(fasta: &str) -> std::result::Result<Value, String> {
     let mut record = HashMap::new();
     record.insert(
         "sequences".to_string(),
-        Value::List(sequences.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
+        Value::List(
+            sequences
+                .into_iter()
+                .map(Value::Str)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     record.insert(
         "names".to_string(),
@@ -450,7 +456,13 @@ fn progressive_align(seqs: &[(String, String)]) -> Result<Value> {
     let mut record = HashMap::new();
     record.insert(
         "sequences".to_string(),
-        Value::List(aligned.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
+        Value::List(
+            aligned
+                .into_iter()
+                .map(Value::Str)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     record.insert(
         "names".to_string(),

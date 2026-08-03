@@ -88,10 +88,7 @@ fn require_int_list(val: &Value, func: &str) -> Result<Vec<i64>> {
             .iter()
             .map(|v| {
                 val_to_i64(v).ok_or_else(|| {
-                    BioLangError::type_error(
-                        format!("{func}() list must contain integers"),
-                        None,
-                    )
+                    BioLangError::type_error(format!("{func}() list must contain integers"), None)
                 })
             })
             .collect(),
@@ -121,8 +118,9 @@ fn erfc(x: f64) -> f64 {
         return 2.0 - erfc(-x);
     }
     let t = 1.0 / (1.0 + 0.3275911 * x);
-    let poly = t * (0.254829592
-        + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+    let poly = t
+        * (0.254829592
+            + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
     poly * (-x * x).exp()
 }
 
@@ -131,15 +129,15 @@ fn erfc(x: f64) -> f64 {
 // n_aa: homozygous reference, n_ab: heterozygous, n_bb: homozygous alt.
 
 fn builtin_hwe_test(args: Vec<Value>) -> Result<Value> {
-    let n_aa = val_to_i64(&args[0]).ok_or_else(|| {
-        BioLangError::type_error("hwe_test() n_aa must be Int", None)
-    })? as f64;
-    let n_ab = val_to_i64(&args[1]).ok_or_else(|| {
-        BioLangError::type_error("hwe_test() n_ab must be Int", None)
-    })? as f64;
-    let n_bb = val_to_i64(&args[2]).ok_or_else(|| {
-        BioLangError::type_error("hwe_test() n_bb must be Int", None)
-    })? as f64;
+    let n_aa = val_to_i64(&args[0])
+        .ok_or_else(|| BioLangError::type_error("hwe_test() n_aa must be Int", None))?
+        as f64;
+    let n_ab = val_to_i64(&args[1])
+        .ok_or_else(|| BioLangError::type_error("hwe_test() n_ab must be Int", None))?
+        as f64;
+    let n_bb = val_to_i64(&args[2])
+        .ok_or_else(|| BioLangError::type_error("hwe_test() n_bb must be Int", None))?
+        as f64;
     let n = n_aa + n_ab + n_bb;
     if n == 0.0 {
         return Err(BioLangError::runtime(
@@ -225,7 +223,11 @@ fn builtin_fst_weir_cockerham(args: Vec<Value>) -> Result<Value> {
         denom_sum += a + b;
         let _ = n_bar; // used implicitly via n_c
     }
-    let fst = if denom_sum > 0.0 { num_sum / denom_sum } else { 0.0 };
+    let fst = if denom_sum > 0.0 {
+        num_sum / denom_sum
+    } else {
+        0.0
+    };
     Ok(Value::Float(fst.clamp(0.0, 1.0)))
 }
 
@@ -236,16 +238,10 @@ fn parse_allele_counts(val: &Value, func: &str) -> Result<Vec<(i64, i64)>> {
             .map(|row| match row {
                 Value::List(pair) if pair.len() >= 2 => {
                     let n_ref = val_to_i64(&pair[0]).ok_or_else(|| {
-                        BioLangError::type_error(
-                            format!("{func}() n_ref must be Int"),
-                            None,
-                        )
+                        BioLangError::type_error(format!("{func}() n_ref must be Int"), None)
                     })?;
                     let n_tot = val_to_i64(&pair[1]).ok_or_else(|| {
-                        BioLangError::type_error(
-                            format!("{func}() n_total must be Int"),
-                            None,
-                        )
+                        BioLangError::type_error(format!("{func}() n_total must be Int"), None)
                     })?;
                     Ok((n_ref, n_tot))
                 }
@@ -280,9 +276,8 @@ fn parse_allele_counts(val: &Value, func: &str) -> Result<Vec<(i64, i64)>> {
 
 fn builtin_tajima_d(args: Vec<Value>) -> Result<Value> {
     let seg_counts = require_int_list(&args[0], "tajima_d")?;
-    let n = val_to_i64(&args[1]).ok_or_else(|| {
-        BioLangError::type_error("tajima_d() n_sequences must be Int", None)
-    })?;
+    let n = val_to_i64(&args[1])
+        .ok_or_else(|| BioLangError::type_error("tajima_d() n_sequences must be Int", None))?;
     if n < 2 {
         return Err(BioLangError::runtime(
             ErrorKind::TypeError,
@@ -336,7 +331,7 @@ fn builtin_ld_r2(args: Vec<Value>) -> Result<Value> {
     let n = a.len() as f64;
     let pa = a.iter().map(|&x| x as f64).sum::<f64>() / n; // freq of allele 1 at locus A
     let pb = b.iter().map(|&x| x as f64).sum::<f64>() / n; // freq of allele 1 at locus B
-    // Frequency of haplotype (A=1, B=1)
+                                                           // Frequency of haplotype (A=1, B=1)
     let p_ab = a
         .iter()
         .zip(b.iter())
@@ -392,7 +387,11 @@ fn builtin_allele_freq_spectrum(args: Vec<Value>) -> Result<Value> {
         })
         .collect();
     Ok(Value::Table(Table::new(
-        vec!["count".to_string(), "frequency".to_string(), "n_sites".to_string()],
+        vec![
+            "count".to_string(),
+            "frequency".to_string(),
+            "n_sites".to_string(),
+        ],
         rows,
     )))
 }

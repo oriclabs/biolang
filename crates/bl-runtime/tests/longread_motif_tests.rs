@@ -33,11 +33,8 @@ fn sample_fastq() -> &'static str {
 
 #[test]
 fn test_fastq_stats_basic() {
-    let result = longread::call_longread_builtin(
-        "fastq_stats",
-        vec![str_val(sample_fastq())],
-    )
-    .unwrap();
+    let result =
+        longread::call_longread_builtin("fastq_stats", vec![str_val(sample_fastq())]).unwrap();
     if let Value::Record(rec) = result {
         assert_eq!(rec["n_reads"], Value::Int(3));
         assert_eq!(rec["total_bases"], Value::Int(60));
@@ -64,7 +61,13 @@ fn test_n50_known() {
     // sorted desc: [10,8,6,5,3], cumsum: 10, 18 → N50=8
     let result = longread::call_longread_builtin(
         "n50",
-        vec![list_val(vec![int_val(10), int_val(8), int_val(6), int_val(5), int_val(3)])],
+        vec![list_val(vec![
+            int_val(10),
+            int_val(8),
+            int_val(6),
+            int_val(5),
+            int_val(3),
+        ])],
     )
     .unwrap();
     assert_eq!(result, Value::Int(8));
@@ -79,7 +82,8 @@ fn test_n50_single() {
 #[test]
 fn test_read_length_hist_bins() {
     let lengths = list_val(vec![int_val(100), int_val(200), int_val(300), int_val(400)]);
-    let result = longread::call_longread_builtin("read_length_hist", vec![lengths, int_val(2)]).unwrap();
+    let result =
+        longread::call_longread_builtin("read_length_hist", vec![lengths, int_val(2)]).unwrap();
     if let Value::Table(t) = result {
         assert_eq!(t.rows.len(), 2);
         assert_eq!(t.columns, vec!["bin_start", "bin_end", "count"]);
@@ -131,11 +135,8 @@ fn test_gc_per_read() {
 #[test]
 fn test_iupac_scan_exact() {
     // Pattern "ATG" in "CCATGCC" at position 2
-    let result = motif::call_motif_builtin(
-        "iupac_scan",
-        vec![str_val("CCATGCC"), str_val("ATG")],
-    )
-    .unwrap();
+    let result =
+        motif::call_motif_builtin("iupac_scan", vec![str_val("CCATGCC"), str_val("ATG")]).unwrap();
     assert_eq!(result, Value::List((vec![Value::Int(2)]).into()));
 }
 
@@ -145,12 +146,12 @@ fn test_iupac_scan_degenerate() {
     // seq: A T C A G C
     // pos: 0 1 2 3 4 5
     // R matches A or G: positions 0, 3, 4
-    let result = motif::call_motif_builtin(
-        "iupac_scan",
-        vec![str_val("ATCAGC"), str_val("R")],
-    )
-    .unwrap();
-    assert_eq!(result, Value::List((vec![Value::Int(0), Value::Int(3), Value::Int(4)]).into()));
+    let result =
+        motif::call_motif_builtin("iupac_scan", vec![str_val("ATCAGC"), str_val("R")]).unwrap();
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(0), Value::Int(3), Value::Int(4)]).into())
+    );
 }
 
 #[test]
@@ -163,9 +164,20 @@ fn test_pwm_from_seqs_basic() {
         assert_eq!(t.columns[0], "pos");
         // At pos 0, A should have the highest weight (all seqs have A there)
         let row0 = &t.rows[0];
-        let wa = if let Value::Float(f) = row0[1] { f } else { 0.0 };
-        let wc = if let Value::Float(f) = row0[2] { f } else { 0.0 };
-        assert!(wa > wc, "A weight {wa} should exceed C weight {wc} at pos 0");
+        let wa = if let Value::Float(f) = row0[1] {
+            f
+        } else {
+            0.0
+        };
+        let wc = if let Value::Float(f) = row0[2] {
+            f
+        } else {
+            0.0
+        };
+        assert!(
+            wa > wc,
+            "A weight {wa} should exceed C weight {wc} at pos 0"
+        );
     } else {
         panic!("expected Table");
     }
@@ -177,11 +189,8 @@ fn test_pwm_scan_finds_match() {
     let seqs = list_val(vec![str_val("ACG"), str_val("ACG")]);
     let pwm = motif::call_motif_builtin("pwm_from_seqs", vec![seqs]).unwrap();
 
-    let result = motif::call_motif_builtin(
-        "pwm_scan",
-        vec![str_val("XACGX"), pwm, float_val(0.5)],
-    )
-    .unwrap();
+    let result =
+        motif::call_motif_builtin("pwm_scan", vec![str_val("XACGX"), pwm, float_val(0.5)]).unwrap();
     if let Value::Table(t) = result {
         assert!(!t.rows.is_empty(), "expected at least one match");
         // First match should be at start=1 (0-based, after X)
@@ -214,11 +223,8 @@ fn test_motif_consensus_acgt() {
 #[test]
 fn test_gc_bias_window() {
     // AAAA GCGC → first half GC=0, second half GC=1
-    let result = motif::call_motif_builtin(
-        "gc_bias",
-        vec![str_val("AAAAGCGC"), int_val(4)],
-    )
-    .unwrap();
+    let result =
+        motif::call_motif_builtin("gc_bias", vec![str_val("AAAAGCGC"), int_val(4)]).unwrap();
     if let Value::Table(t) = result {
         assert!(!t.rows.is_empty());
         // First window AAAA: gc_fraction = 0

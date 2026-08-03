@@ -116,10 +116,8 @@ fn test_plot_unknown_type_error() {
         vec!["x", "y"],
         vec![vec![Value::Float(1.0), Value::Float(2.0)]],
     );
-    let opts = Value::Record((HashMap::from([(
-        "type".into(),
-        Value::Str("invalid".into()),
-    )])).into());
+    let opts =
+        Value::Record((HashMap::from([("type".into(), Value::Str("invalid".into()))])).into());
     let result = call_plot_builtin("plot", vec![table, opts]);
     assert!(result.is_err());
 }
@@ -128,14 +126,17 @@ fn test_plot_unknown_type_error() {
 
 #[test]
 fn test_histogram_returns_svg() {
-    let list = Value::List((vec![
-        Value::Float(1.0),
-        Value::Float(2.0),
-        Value::Float(3.0),
-        Value::Float(4.0),
-        Value::Float(5.0),
-        Value::Float(3.0),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Float(1.0),
+            Value::Float(2.0),
+            Value::Float(3.0),
+            Value::Float(4.0),
+            Value::Float(5.0),
+            Value::Float(3.0),
+        ])
+        .into(),
+    );
     let result = call_plot_builtin("histogram", vec![list]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("<svg"));
@@ -159,12 +160,15 @@ fn test_histogram_single_value() {
 
 #[test]
 fn test_histogram_all_same_values() {
-    let list = Value::List((vec![
-        Value::Float(3.0),
-        Value::Float(3.0),
-        Value::Float(3.0),
-        Value::Float(3.0),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Float(3.0),
+            Value::Float(3.0),
+            Value::Float(3.0),
+            Value::Float(3.0),
+        ])
+        .into(),
+    );
     let result = call_plot_builtin("histogram", vec![list]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("<svg"));
@@ -407,10 +411,13 @@ fn test_ma_plot_custom_columns() {
             vec![Value::Float(20.0), Value::Float(-0.5)],
         ],
     );
-    let opts = Value::Record((HashMap::from([
-        ("a".into(), Value::Str("avg_expr".into())),
-        ("m".into(), Value::Str("fold_change".into())),
-    ])).into());
+    let opts = Value::Record(
+        (HashMap::from([
+            ("a".into(), Value::Str("avg_expr".into())),
+            ("m".into(), Value::Str("fold_change".into())),
+        ]))
+        .into(),
+    );
     let result = call_plot_builtin("ma_plot", vec![table, opts]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("<svg"));
@@ -453,10 +460,9 @@ fn test_genome_track_with_title() {
             Value::Str("+".into()),
         ]],
     );
-    let opts = Value::Record((HashMap::from([(
-        "title".into(),
-        Value::Str("Gene Features".into()),
-    )])).into());
+    let opts = Value::Record(
+        (HashMap::from([("title".into(), Value::Str("Gene Features".into()))])).into(),
+    );
     let result = call_plot_builtin("genome_track", vec![table, opts]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("<svg"));
@@ -539,10 +545,13 @@ fn test_genome_track_custom_dimensions() {
             Value::Int(1000),
         ]],
     );
-    let opts = Value::Record((HashMap::from([
-        ("width".into(), Value::Float(1200.0)),
-        ("height".into(), Value::Float(400.0)),
-    ])).into());
+    let opts = Value::Record(
+        (HashMap::from([
+            ("width".into(), Value::Float(1200.0)),
+            ("height".into(), Value::Float(400.0)),
+        ]))
+        .into(),
+    );
     let result = call_plot_builtin("genome_track", vec![table, opts]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("1200"));
@@ -556,7 +565,12 @@ fn test_genome_track_custom_dimensions() {
 
 #[test]
 fn test_histogram_custom_bins() {
-    let list = Value::List((0..100).map(|i| Value::Float(i as f64)).collect::<Vec<_>>().into());
+    let list = Value::List(
+        (0..100)
+            .map(|i| Value::Float(i as f64))
+            .collect::<Vec<_>>()
+            .into(),
+    );
     let opts = Value::Record((HashMap::from([("bins".into(), Value::Int(5))])).into());
     let result = call_plot_builtin("histogram", vec![list, opts]).unwrap();
     if let Value::Str(s) = result {
@@ -574,15 +588,10 @@ fn test_histogram_custom_bins() {
 
 #[test]
 fn test_histogram_with_title() {
-    let list = Value::List((vec![
-        Value::Float(1.0),
-        Value::Float(2.0),
-        Value::Float(3.0),
-    ]).into());
-    let opts = Value::Record((HashMap::from([(
-        "title".into(),
-        Value::Str("My Histogram".into()),
-    )])).into());
+    let list = Value::List((vec![Value::Float(1.0), Value::Float(2.0), Value::Float(3.0)]).into());
+    let opts = Value::Record(
+        (HashMap::from([("title".into(), Value::Str("My Histogram".into()))])).into(),
+    );
     let result = call_plot_builtin("histogram", vec![list, opts]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("My Histogram"));
@@ -602,10 +611,8 @@ fn test_plot_with_title_and_labels() {
             vec![Value::Float(3.0), Value::Float(4.0)],
         ],
     );
-    let opts = Value::Record((HashMap::from([(
-        "title".into(),
-        Value::Str("Test Plot".into()),
-    )])).into());
+    let opts =
+        Value::Record((HashMap::from([("title".into(), Value::Str("Test Plot".into()))])).into());
     let result = call_plot_builtin("plot", vec![table, opts]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("Test Plot"));
@@ -620,10 +627,13 @@ fn test_plot_custom_dimensions() {
         vec!["x", "y"],
         vec![vec![Value::Float(1.0), Value::Float(2.0)]],
     );
-    let opts = Value::Record((HashMap::from([
-        ("width".into(), Value::Float(400.0)),
-        ("height".into(), Value::Float(300.0)),
-    ])).into());
+    let opts = Value::Record(
+        (HashMap::from([
+            ("width".into(), Value::Float(400.0)),
+            ("height".into(), Value::Float(300.0)),
+        ]))
+        .into(),
+    );
     let result = call_plot_builtin("plot", vec![table, opts]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("400"));
@@ -645,10 +655,13 @@ fn test_plot_with_data_key_record() {
             vec![Value::Float(3.0), Value::Float(4.0)],
         ],
     );
-    let input = Value::Record((HashMap::from([
-        ("data".into(), table),
-        ("title".into(), Value::Str("From Record".into())),
-    ])).into());
+    let input = Value::Record(
+        (HashMap::from([
+            ("data".into(), table),
+            ("title".into(), Value::Str("From Record".into())),
+        ]))
+        .into(),
+    );
     let result = call_plot_builtin("plot", vec![input]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("<svg"));
@@ -661,17 +674,19 @@ fn test_plot_with_data_key_record() {
 #[test]
 fn test_histogram_with_values_key_record() {
     // {values: list, bins: 5} calling convention
-    let list = Value::List((vec![
-        Value::Float(1.0),
-        Value::Float(2.0),
-        Value::Float(3.0),
-        Value::Float(4.0),
-        Value::Float(5.0),
-    ]).into());
-    let input = Value::Record((HashMap::from([
-        ("values".into(), list),
-        ("bins".into(), Value::Int(3)),
-    ])).into());
+    let list = Value::List(
+        (vec![
+            Value::Float(1.0),
+            Value::Float(2.0),
+            Value::Float(3.0),
+            Value::Float(4.0),
+            Value::Float(5.0),
+        ])
+        .into(),
+    );
+    let input = Value::Record(
+        (HashMap::from([("values".into(), list), ("bins".into(), Value::Int(3))])).into(),
+    );
     let result = call_plot_builtin("histogram", vec![input]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("<svg"));
@@ -710,10 +725,13 @@ fn test_volcano_with_custom_thresholds() {
             vec![Value::Float(0.1), Value::Float(0.5)],
         ],
     );
-    let opts = Value::Record((HashMap::from([
-        ("fc_threshold".into(), Value::Float(2.0)),
-        ("p_threshold".into(), Value::Float(0.001)),
-    ])).into());
+    let opts = Value::Record(
+        (HashMap::from([
+            ("fc_threshold".into(), Value::Float(2.0)),
+            ("p_threshold".into(), Value::Float(0.001)),
+        ]))
+        .into(),
+    );
     let result = call_plot_builtin("volcano", vec![table, opts]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("<svg"));
@@ -755,10 +773,9 @@ fn test_heatmap_with_title() {
             vec![Value::Float(3.0), Value::Float(4.0)],
         ],
     );
-    let opts = Value::Record((HashMap::from([(
-        "title".into(),
-        Value::Str("Expression Heatmap".into()),
-    )])).into());
+    let opts = Value::Record(
+        (HashMap::from([("title".into(), Value::Str("Expression Heatmap".into()))])).into(),
+    );
     let result = call_plot_builtin("heatmap", vec![table, opts]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("Expression Heatmap"));

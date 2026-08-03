@@ -62,17 +62,13 @@ fn require_table<'a>(val: &'a Value, func: &str) -> Result<&'a Table> {
 }
 
 fn col_index(table: &Table, name: &str, func: &str) -> Result<usize> {
-    table
-        .columns
-        .iter()
-        .position(|c| c == name)
-        .ok_or_else(|| {
-            BioLangError::runtime(
-                ErrorKind::NameError,
-                format!("{func}(): column '{name}' not found"),
-                None,
-            )
-        })
+    table.columns.iter().position(|c| c == name).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("{func}(): column '{name}' not found"),
+            None,
+        )
+    })
 }
 
 fn to_f64(v: &Value) -> f64 {
@@ -84,16 +80,20 @@ fn to_f64(v: &Value) -> f64 {
 }
 
 fn is_transition(r: &str, a: &str) -> bool {
-    matches!(
-        (r, a),
-        ("A", "G") | ("G", "A") | ("C", "T") | ("T", "C")
-    )
+    matches!((r, a), ("A", "G") | ("G", "A") | ("C", "T") | ("T", "C"))
 }
 
 fn is_transversion(r: &str, a: &str) -> bool {
     matches!(
         (r, a),
-        ("A", "C") | ("C", "A") | ("A", "T") | ("T", "A") | ("G", "C") | ("C", "G") | ("G", "T") | ("T", "G")
+        ("A", "C")
+            | ("C", "A")
+            | ("A", "T")
+            | ("T", "A")
+            | ("G", "C")
+            | ("C", "G")
+            | ("G", "T")
+            | ("T", "G")
     )
 }
 
@@ -101,10 +101,12 @@ fn is_transversion(r: &str, a: &str) -> bool {
 
 fn builtin_vcf_parse(args: Vec<Value>) -> Result<Value> {
     let text = require_str(&args[0], "vcf_parse")?;
-    let columns = ["chrom", "pos", "id", "ref_", "alt", "qual", "filter", "info"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect::<Vec<_>>();
+    let columns = [
+        "chrom", "pos", "id", "ref_", "alt", "qual", "filter", "info",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect::<Vec<_>>();
 
     let mut rows: Vec<Vec<Value>> = Vec::new();
     for line in text.lines() {
@@ -304,7 +306,8 @@ fn builtin_allele_freq(args: Vec<Value>) -> Result<Value> {
             }
             Value::Float(0.0)
         })
-        .collect::<Vec<_>>().into();
+        .collect::<Vec<_>>()
+        .into();
 
     Ok(Value::List(freqs))
 }

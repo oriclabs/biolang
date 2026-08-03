@@ -301,8 +301,10 @@ impl Interpreter {
                         .iter()
                         .map(|(n, _)| Value::Str(n.clone()))
                         .collect();
-                    self.env
-                        .define(format!("__named_returns_{name}"), Value::List((names).into()));
+                    self.env.define(
+                        format!("__named_returns_{name}"),
+                        Value::List((names).into()),
+                    );
                 }
                 // If there's a where clause, prepend it as a guard to the function body
                 if let Some(where_expr) = where_clause {
@@ -608,9 +610,9 @@ impl Interpreter {
                             let item = items.get(i).cloned().unwrap_or(Value::Nil);
                             self.env.define(name.clone(), item);
                         }
-                        let rest: Vec<Value> =
-                            items.iter().skip(elements.len()).cloned().collect();
-                        self.env.define(rest_name.clone(), Value::List((rest).into()));
+                        let rest: Vec<Value> = items.iter().skip(elements.len()).cloned().collect();
+                        self.env
+                            .define(rest_name.clone(), Value::List((rest).into()));
                     }
                     DestructPattern::Record(names) => {
                         let map = match &val {
@@ -647,7 +649,8 @@ impl Interpreter {
                             .filter(|(k, _)| !field_set.contains(k))
                             .map(|(k, v)| (k.clone(), v.clone()))
                             .collect();
-                        self.env.define(rest_name.clone(), Value::Record((rest).into()));
+                        self.env
+                            .define(rest_name.clone(), Value::Record((rest).into()));
                     }
                 }
                 Ok(Value::Nil)
@@ -709,7 +712,8 @@ impl Interpreter {
                         Ok(resolved) => {
                             let exports = self.load_module(&resolved, Some(stmt.span))?;
                             if let Some(alias_name) = alias {
-                                self.env.define(alias_name.clone(), Value::Record((exports).into()));
+                                self.env
+                                    .define(alias_name.clone(), Value::Record((exports).into()));
                             } else {
                                 for (name, value) in exports {
                                     self.env.define(name, value);
@@ -726,7 +730,8 @@ impl Interpreter {
                                 ));
                             }
                             if let Some(alias_name) = alias {
-                                self.env.define(alias_name.clone(), Value::Record((exports).into()));
+                                self.env
+                                    .define(alias_name.clone(), Value::Record((exports).into()));
                             } else {
                                 for (name, value) in exports {
                                     self.env.define(name, value);
@@ -839,8 +844,10 @@ impl Interpreter {
                 struct_meta.insert("__type".to_string(), Value::Str("struct_def".to_string()));
                 struct_meta.insert("name".to_string(), Value::Str(name.clone()));
                 struct_meta.insert("fields".to_string(), Value::List((field_meta).into()));
-                self.env
-                    .define(format!("__struct_{name}"), Value::Record((struct_meta).into()));
+                self.env.define(
+                    format!("__struct_{name}"),
+                    Value::Record((struct_meta).into()),
+                );
 
                 // Register constructor function
                 let _struct_name = name.clone();
@@ -1784,7 +1791,11 @@ impl Interpreter {
                     }
                     (Value::Table(t), Value::Str(col_name)) => match t.col_index(col_name) {
                         Some(ci) => Ok(Value::List(
-                            t.rows.iter().map(|row| row[ci].clone()).collect::<Vec<_>>().into(),
+                            t.rows
+                                .iter()
+                                .map(|row| row[ci].clone())
+                                .collect::<Vec<_>>()
+                                .into(),
                         )),
                         None => Err(BioLangError::name_error(
                             format!("no column '{col_name}' in table"),
@@ -3868,7 +3879,13 @@ impl Interpreter {
                 let mut y_out: Vec<Vec<Value>> = (0..n).map(|i| vec![Value::Float(y[i])]).collect();
 
                 let call_f = |interp: &mut Self, t_val: f64, y_val: &[f64]| -> Result<Vec<f64>> {
-                    let y_list = Value::List(y_val.iter().map(|&v| Value::Float(v)).collect::<Vec<_>>().into());
+                    let y_list = Value::List(
+                        y_val
+                            .iter()
+                            .map(|&v| Value::Float(v))
+                            .collect::<Vec<_>>()
+                            .into(),
+                    );
                     let result =
                         interp.call_value(&func, vec![Value::Float(t_val), y_list], span)?;
                     match result {
@@ -4206,7 +4223,10 @@ impl Interpreter {
                 {
                     let mut kept = Vec::new();
                     for item in items.iter().cloned() {
-                        if self.call_value(&func, vec![item.clone()], span)?.is_truthy() {
+                        if self
+                            .call_value(&func, vec![item.clone()], span)?
+                            .is_truthy()
+                        {
                             kept.push(item);
                         }
                     }
@@ -4620,7 +4640,9 @@ impl Interpreter {
                         rest.push(item);
                     }
                 }
-                Ok(Value::List((vec![Value::List((matching).into()), Value::List((rest).into())]).into()))
+                Ok(Value::List(
+                    (vec![Value::List((matching).into()), Value::List((rest).into())]).into(),
+                ))
             }
             "sort_by" => {
                 if args.len() != 2 {
@@ -4766,7 +4788,9 @@ impl Interpreter {
                                 keyed.push((key, item));
                             }
                             keyed.sort_by(|(ka, _), (kb, _)| cmp_keys(ka, kb));
-                            Ok(Value::List(keyed.into_iter().map(|(_, v)| v).collect::<Vec<_>>().into()))
+                            Ok(Value::List(
+                                keyed.into_iter().map(|(_, v)| v).collect::<Vec<_>>().into(),
+                            ))
                         }
                         Value::Table(tbl) => {
                             let cols = &tbl.columns;
@@ -4778,7 +4802,11 @@ impl Interpreter {
                                         rec.insert(col.clone(), row[j].clone());
                                     }
                                 }
-                                let key = self.call_value(&func, vec![Value::Record((rec).into())], span)?;
+                                let key = self.call_value(
+                                    &func,
+                                    vec![Value::Record((rec).into())],
+                                    span,
+                                )?;
                                 keyed.push((key, i));
                             }
                             keyed.sort_by(|(ka, _), (kb, _)| cmp_keys(ka, kb));
@@ -4881,7 +4909,8 @@ impl Interpreter {
             if param.rest {
                 // Rest param: collect all remaining positional args into a List
                 let rest_vals: Vec<Value> = positional[pos_idx..].to_vec();
-                self.env.define(param.name.clone(), Value::List((rest_vals).into()));
+                self.env
+                    .define(param.name.clone(), Value::List((rest_vals).into()));
                 pos_idx = positional.len();
             } else {
                 let val = if let Some((_, v)) = named.iter().find(|(n, _)| n == &param.name) {

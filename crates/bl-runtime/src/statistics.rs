@@ -89,30 +89,39 @@ fn require_int(val: &Value, func: &str) -> Result<i64> {
 }
 
 fn require_float(val: &Value, func: &str) -> Result<f64> {
-    to_f64(val).ok_or_else(|| {
-        BioLangError::type_error(format!("{func}() requires a number"), None)
-    })
+    to_f64(val).ok_or_else(|| BioLangError::type_error(format!("{func}() requires a number"), None))
 }
 
 /// Standard normal CDF using Hart's approximation.
 fn standard_normal_cdf(z: f64) -> f64 {
-    if z < -8.0 { return 0.0; }
-    if z > 8.0  { return 1.0; }
+    if z < -8.0 {
+        return 0.0;
+    }
+    if z > 8.0 {
+        return 1.0;
+    }
     // Abramowitz & Stegun 26.2.17
     let t = 1.0 / (1.0 + 0.2316419 * z.abs());
-    let poly = t * (0.319381530
-        + t * (-0.356563782
-        + t * (1.781477937
-        + t * (-1.821255978 + t * 1.330274429))));
+    let poly = t
+        * (0.319381530
+            + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
     let pdf = (-0.5 * z * z).exp() / (2.0 * std::f64::consts::PI).sqrt();
     let cdf_pos = 1.0 - pdf * poly;
-    if z >= 0.0 { cdf_pos } else { 1.0 - cdf_pos }
+    if z >= 0.0 {
+        cdf_pos
+    } else {
+        1.0 - cdf_pos
+    }
 }
 
 /// Inverse normal CDF via Beasley-Springer-Moro algorithm.
 fn probit(p: f64) -> f64 {
-    if p <= 0.0 { return -8.0; }
-    if p >= 1.0 { return  8.0; }
+    if p <= 0.0 {
+        return -8.0;
+    }
+    if p >= 1.0 {
+        return 8.0;
+    }
     // rational approximation; splits at p = 0.5
     let (sign, q) = if p < 0.5 { (-1.0, p) } else { (1.0, 1.0 - p) };
     let r = (-2.0 * q.ln()).sqrt();
@@ -129,7 +138,9 @@ fn probit(p: f64) -> f64 {
 
 /// Log of n! using Stirling / log-gamma (Lanczos approximation).
 fn log_factorial(n: u64) -> f64 {
-    if n <= 1 { return 0.0; }
+    if n <= 1 {
+        return 0.0;
+    }
     // use precomputed small values for speed
     let mut sum = 0.0f64;
     for k in 2..=n {
@@ -139,7 +150,9 @@ fn log_factorial(n: u64) -> f64 {
 }
 
 fn log_binom(n: u64, k: u64) -> f64 {
-    if k > n { return f64::NEG_INFINITY; }
+    if k > n {
+        return f64::NEG_INFINITY;
+    }
     log_factorial(n) - log_factorial(k) - log_factorial(n - k)
 }
 
@@ -159,12 +172,16 @@ fn lcg_shuffle(data: &mut Vec<f64>, seed: u64) {
 }
 
 fn vec_mean(v: &[f64]) -> f64 {
-    if v.is_empty() { return 0.0; }
+    if v.is_empty() {
+        return 0.0;
+    }
     v.iter().sum::<f64>() / v.len() as f64
 }
 
 fn vec_median(v: &mut Vec<f64>) -> f64 {
-    if v.is_empty() { return 0.0; }
+    if v.is_empty() {
+        return 0.0;
+    }
     v.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let n = v.len();
     if n % 2 == 0 {
@@ -205,7 +222,13 @@ fn builtin_bh_adjust(args: Vec<Value>) -> Result<Value> {
         result[orig] = adjusted[rank];
     }
 
-    Ok(Value::List(result.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        result
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 // ── bonferroni_adjust(p_values) ───────────────────────────────────────
@@ -213,10 +236,7 @@ fn builtin_bh_adjust(args: Vec<Value>) -> Result<Value> {
 fn builtin_bonferroni_adjust(args: Vec<Value>) -> Result<Value> {
     let ps = require_float_list(&args[0], "bonferroni_adjust")?;
     let n = ps.len() as f64;
-    let adjusted: Vec<Value> = ps
-        .iter()
-        .map(|&p| Value::Float((p * n).min(1.0)))
-        .collect();
+    let adjusted: Vec<Value> = ps.iter().map(|&p| Value::Float((p * n).min(1.0))).collect();
     Ok(Value::List((adjusted).into()))
 }
 
@@ -232,7 +252,7 @@ fn builtin_fisher_exact(args: Vec<Value>) -> Result<Value> {
     let n = a + b + c + d;
     let r1 = a + b;
     let r2 = c + d;
-    let k  = a + c; // column 1 total
+    let k = a + c; // column 1 total
 
     // Log probability of the observed table
     let log_p_obs = log_binom(r1, a) + log_binom(r2, c) - log_binom(n, k);
@@ -307,7 +327,11 @@ fn builtin_chi_square(args: Vec<Value>) -> Result<Value> {
         1.0 - standard_normal_cdf(z)
     };
 
-    let columns = vec!["statistic".to_string(), "df".to_string(), "p_value".to_string()];
+    let columns = vec![
+        "statistic".to_string(),
+        "df".to_string(),
+        "p_value".to_string(),
+    ];
     let rows = vec![vec![
         Value::Float(statistic),
         Value::Int(df),
@@ -343,7 +367,11 @@ fn builtin_permutation_test(args: Vec<Value>) -> Result<Value> {
         }
     }
 
-    let p = if n_perms == 0 { 1.0 } else { extreme as f64 / n_perms as f64 };
+    let p = if n_perms == 0 {
+        1.0
+    } else {
+        extreme as f64 / n_perms as f64
+    };
     Ok(Value::Float(p))
 }
 
@@ -363,8 +391,18 @@ fn builtin_bootstrap_ci(args: Vec<Value>) -> Result<Value> {
     };
 
     if vals.is_empty() {
-        let columns = vec!["mean".to_string(), "lower".to_string(), "upper".to_string(), "std_err".to_string()];
-        let rows = vec![vec![Value::Float(0.0), Value::Float(0.0), Value::Float(0.0), Value::Float(0.0)]];
+        let columns = vec![
+            "mean".to_string(),
+            "lower".to_string(),
+            "upper".to_string(),
+            "std_err".to_string(),
+        ];
+        let rows = vec![vec![
+            Value::Float(0.0),
+            Value::Float(0.0),
+            Value::Float(0.0),
+            Value::Float(0.0),
+        ]];
         return Ok(Value::Table(Table::new(columns, rows)));
     }
 
@@ -390,10 +428,19 @@ fn builtin_bootstrap_ci(args: Vec<Value>) -> Result<Value> {
     let lower = boot_means[lo_idx];
     let upper = boot_means[hi_idx];
 
-    let variance = boot_means.iter().map(|&m| (m - observed_mean).powi(2)).sum::<f64>() / n_boot as f64;
+    let variance = boot_means
+        .iter()
+        .map(|&m| (m - observed_mean).powi(2))
+        .sum::<f64>()
+        / n_boot as f64;
     let std_err = variance.sqrt();
 
-    let columns = vec!["mean".to_string(), "lower".to_string(), "upper".to_string(), "std_err".to_string()];
+    let columns = vec![
+        "mean".to_string(),
+        "lower".to_string(),
+        "upper".to_string(),
+        "std_err".to_string(),
+    ];
     let rows = vec![vec![
         Value::Float(observed_mean),
         Value::Float(lower),
@@ -449,7 +496,11 @@ fn builtin_pearson_correlation(args: Vec<Value>) -> Result<Value> {
     let mx = vec_mean(&x);
     let my = vec_mean(&y);
 
-    let num: f64 = x.iter().zip(y.iter()).map(|(&xi, &yi)| (xi - mx) * (yi - my)).sum();
+    let num: f64 = x
+        .iter()
+        .zip(y.iter())
+        .map(|(&xi, &yi)| (xi - mx) * (yi - my))
+        .sum();
     let denom_x: f64 = x.iter().map(|&xi| (xi - mx).powi(2)).sum::<f64>().sqrt();
     let denom_y: f64 = y.iter().map(|&yi| (yi - my).powi(2)).sum::<f64>().sqrt();
 

@@ -140,11 +140,14 @@ fn test_score_matrix_blosum62() {
 fn test_msa_basic_three_sequences() {
     let result = call_alignment_builtin(
         "msa",
-        vec![Value::List((vec![
-            Value::Str("ACGTACGT".into()),
-            Value::Str("ACGTACGT".into()),
-            Value::Str("ACGTACGT".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![
+                Value::Str("ACGTACGT".into()),
+                Value::Str("ACGTACGT".into()),
+                Value::Str("ACGTACGT".into()),
+            ])
+            .into(),
+        )],
     )
     .unwrap();
 
@@ -166,11 +169,14 @@ fn test_msa_basic_three_sequences() {
 fn test_msa_with_divergent_sequences() {
     let result = call_alignment_builtin(
         "msa",
-        vec![Value::List((vec![
-            Value::Str("ACGTACGT".into()),
-            Value::Str("ACGACGT".into()), // one deletion
-            Value::Str("ACGTACG".into()), // shorter
-        ]).into())],
+        vec![Value::List(
+            (vec![
+                Value::Str("ACGTACGT".into()),
+                Value::Str("ACGACGT".into()), // one deletion
+                Value::Str("ACGTACG".into()), // shorter
+            ])
+            .into(),
+        )],
     )
     .unwrap();
 
@@ -197,14 +203,17 @@ fn test_msa_with_divergent_sequences() {
 fn test_msa_with_dna_values() {
     let result = call_alignment_builtin(
         "msa",
-        vec![Value::List((vec![
-            Value::DNA(BioSequence {
-                data: "ACGT".into(),
-            }),
-            Value::DNA(BioSequence {
-                data: "ACGT".into(),
-            }),
-        ]).into())],
+        vec![Value::List(
+            (vec![
+                Value::DNA(BioSequence {
+                    data: "ACGT".into(),
+                }),
+                Value::DNA(BioSequence {
+                    data: "ACGT".into(),
+                }),
+            ])
+            .into(),
+        )],
     )
     .unwrap();
 
@@ -213,7 +222,10 @@ fn test_msa_with_dna_values() {
 
 #[test]
 fn test_msa_requires_at_least_two() {
-    let result = call_alignment_builtin("msa", vec![Value::List((vec![Value::Str("ACGT".into())]).into())]);
+    let result = call_alignment_builtin(
+        "msa",
+        vec![Value::List((vec![Value::Str("ACGT".into())]).into())],
+    );
     assert!(result.is_err());
 }
 
@@ -229,10 +241,9 @@ fn test_msa_rejects_non_list() {
 fn test_distance_matrix_identical() {
     let result = call_alignment_builtin(
         "distance_matrix",
-        vec![Value::List((vec![
-            Value::Str("ACGT".into()),
-            Value::Str("ACGT".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![Value::Str("ACGT".into()), Value::Str("ACGT".into())]).into(),
+        )],
     )
     .unwrap();
 
@@ -256,10 +267,9 @@ fn test_distance_matrix_identical() {
 fn test_distance_matrix_different() {
     let result = call_alignment_builtin(
         "distance_matrix",
-        vec![Value::List((vec![
-            Value::Str("AAAA".into()),
-            Value::Str("TTTT".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![Value::Str("AAAA".into()), Value::Str("TTTT".into())]).into(),
+        )],
     )
     .unwrap();
 
@@ -277,10 +287,9 @@ fn test_distance_matrix_different() {
 fn test_distance_matrix_p_distance_half() {
     let result = call_alignment_builtin(
         "distance_matrix",
-        vec![Value::List((vec![
-            Value::Str("AATT".into()),
-            Value::Str("AAAA".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![Value::Str("AATT".into()), Value::Str("AAAA".into())]).into(),
+        )],
     )
     .unwrap();
 
@@ -340,11 +349,14 @@ fn test_distance_matrix_jc_model() {
 fn test_distance_matrix_three_seqs() {
     let result = call_alignment_builtin(
         "distance_matrix",
-        vec![Value::List((vec![
-            Value::Str("ACGT".into()),
-            Value::Str("ACGA".into()),
-            Value::Str("TTTT".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![
+                Value::Str("ACGT".into()),
+                Value::Str("ACGA".into()),
+                Value::Str("TTTT".into()),
+            ])
+            .into(),
+        )],
     )
     .unwrap();
 
@@ -367,10 +379,9 @@ fn test_distance_matrix_from_msa_record() {
     // First run MSA, then pass result to distance_matrix
     let msa = call_alignment_builtin(
         "msa",
-        vec![Value::List((vec![
-            Value::Str("ACGTACGT".into()),
-            Value::Str("ACGTACGT".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![Value::Str("ACGTACGT".into()), Value::Str("ACGTACGT".into())]).into(),
+        )],
     )
     .unwrap();
 
@@ -401,10 +412,9 @@ fn test_distance_matrix_unknown_model() {
 fn test_distance_matrix_gaps_ignored() {
     let result = call_alignment_builtin(
         "distance_matrix",
-        vec![Value::List((vec![
-            Value::Str("AC-GT".into()),
-            Value::Str("AC-GT".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![Value::Str("AC-GT".into()), Value::Str("AC-GT".into())]).into(),
+        )],
     )
     .unwrap();
 
@@ -421,11 +431,14 @@ fn test_distance_matrix_gaps_ignored() {
 fn test_conservation_perfectly_conserved() {
     let result = call_alignment_builtin(
         "conservation_scores",
-        vec![Value::List((vec![
-            Value::Str("ACGT".into()),
-            Value::Str("ACGT".into()),
-            Value::Str("ACGT".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![
+                Value::Str("ACGT".into()),
+                Value::Str("ACGT".into()),
+                Value::Str("ACGT".into()),
+            ])
+            .into(),
+        )],
     )
     .unwrap();
 
@@ -447,12 +460,15 @@ fn test_conservation_perfectly_conserved() {
 fn test_conservation_no_conservation() {
     let result = call_alignment_builtin(
         "conservation_scores",
-        vec![Value::List((vec![
-            Value::Str("AAAA".into()),
-            Value::Str("CCCC".into()),
-            Value::Str("GGGG".into()),
-            Value::Str("TTTT".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![
+                Value::Str("AAAA".into()),
+                Value::Str("CCCC".into()),
+                Value::Str("GGGG".into()),
+                Value::Str("TTTT".into()),
+            ])
+            .into(),
+        )],
     )
     .unwrap();
 
@@ -476,12 +492,15 @@ fn test_conservation_partial() {
     // 3 out of 4 sequences match at each position
     let result = call_alignment_builtin(
         "conservation_scores",
-        vec![Value::List((vec![
-            Value::Str("ACGT".into()),
-            Value::Str("ACGT".into()),
-            Value::Str("ACGT".into()),
-            Value::Str("TTTT".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![
+                Value::Str("ACGT".into()),
+                Value::Str("ACGT".into()),
+                Value::Str("ACGT".into()),
+                Value::Str("TTTT".into()),
+            ])
+            .into(),
+        )],
     )
     .unwrap();
 
@@ -504,10 +523,9 @@ fn test_conservation_partial() {
 fn test_conservation_with_gaps() {
     let result = call_alignment_builtin(
         "conservation_scores",
-        vec![Value::List((vec![
-            Value::Str("A-GT".into()),
-            Value::Str("A-GT".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![Value::Str("A-GT".into()), Value::Str("A-GT".into())]).into(),
+        )],
     )
     .unwrap();
 
@@ -526,10 +544,9 @@ fn test_conservation_with_gaps() {
 fn test_conservation_from_msa_record() {
     let msa = call_alignment_builtin(
         "msa",
-        vec![Value::List((vec![
-            Value::Str("ACGTACGT".into()),
-            Value::Str("ACGTACGT".into()),
-        ]).into())],
+        vec![Value::List(
+            (vec![Value::Str("ACGTACGT".into()), Value::Str("ACGTACGT".into())]).into(),
+        )],
     )
     .unwrap();
 

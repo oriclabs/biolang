@@ -97,23 +97,25 @@ pub fn evaluate(source: &str) -> String {
     let traced: Arc<Mutex<Vec<serde_json::Value>>> = Arc::new(Mutex::new(Vec::new()));
     let tracer = traced.clone();
     let line_index = LineIndex::new(source);
-    set_display_sink(Some(Arc::new(move |value: &Value, offset: Option<usize>| {
-        if let (Some(offset), Ok(mut trace)) = (offset, tracer.lock()) {
-            if trace.len() < MAX_DISPLAYED_RESULTS {
-                trace.push(serde_json::json!({
-                    "line": line_index.line_of(offset),
-                    "text": preview_of(value),
-                }));
-            }
-        }
-        if let Some(structured) = structured_value(value) {
-            if let Ok(mut seen) = collector.lock() {
-                if seen.len() < MAX_DISPLAYED_RESULTS {
-                    seen.push(structured);
+    set_display_sink(Some(Arc::new(
+        move |value: &Value, offset: Option<usize>| {
+            if let (Some(offset), Ok(mut trace)) = (offset, tracer.lock()) {
+                if trace.len() < MAX_DISPLAYED_RESULTS {
+                    trace.push(serde_json::json!({
+                        "line": line_index.line_of(offset),
+                        "text": preview_of(value),
+                    }));
                 }
             }
-        }
-    })));
+            if let Some(structured) = structured_value(value) {
+                if let Ok(mut seen) = collector.lock() {
+                    if seen.len() < MAX_DISPLAYED_RESULTS {
+                        seen.push(structured);
+                    }
+                }
+            }
+        },
+    )));
 
     // Held as a plain local, NOT a RefCell borrow, so a panic below cannot
     // poison the module for every subsequent call.
@@ -163,7 +165,8 @@ pub fn evaluate(source: &str) -> String {
                 let type_name = value.type_of().to_string();
                 let preview = format_value(&value);
                 let final_structured = structured_value(&value);
-                let mut results = displayed.lock()
+                let mut results = displayed
+                    .lock()
                     .map(|seen| seen.clone())
                     .unwrap_or_default();
                 // A script that both prints a value and returns it would
@@ -242,13 +245,27 @@ fn value_members(value: &Value) -> Vec<String> {
         Value::Record(fields) | Value::Map(fields) => fields.keys().cloned().collect(),
         Value::Table(table) => table.columns.clone(),
         Value::Gene { .. } => vec![
-            "symbol", "gene_id", "chrom", "start", "end", "strand", "biotype", "description",
+            "symbol",
+            "gene_id",
+            "chrom",
+            "start",
+            "end",
+            "strand",
+            "biotype",
+            "description",
         ]
         .into_iter()
         .map(str::to_string)
         .collect(),
         Value::Variant { .. } => vec![
-            "chrom", "pos", "id", "ref_allele", "alt_allele", "quality", "filter", "info",
+            "chrom",
+            "pos",
+            "id",
+            "ref_allele",
+            "alt_allele",
+            "quality",
+            "filter",
+            "info",
         ]
         .into_iter()
         .map(str::to_string)
@@ -296,8 +313,10 @@ pub fn import_source(source: &str, format: &str, filename: &str) -> String {
 /// Validate a BioLang script or BioLang notebook without executing it.
 #[wasm_bindgen]
 pub fn validate_import(source: &str, notebook: bool) -> String {
-    serde_json::to_string(&bl_import::validate_biolang(source, notebook))
-        .unwrap_or_else(|error| serde_json::json!({ "valid": false, "diagnostics": [{ "message": error.to_string() }] }).to_string())
+    serde_json::to_string(&bl_import::validate_biolang(source, notebook)).unwrap_or_else(|error| {
+        serde_json::json!({ "valid": false, "diagnostics": [{ "message": error.to_string() }] })
+            .to_string()
+    })
 }
 
 /// List all builtin functions. Returns JSON array of {name, signature, category}.
@@ -442,21 +461,34 @@ fn structured_value(value: &Value) -> Option<serde_json::Value> {
             "totalRows": matrix.nrow,
             "truncated": matrix.nrow > MAX_ROWS,
         })),
-        Value::List(items) if !items.is_empty()
-            && items.iter().all(|item| matches!(item, Value::Record(_))) =>
+        Value::List(items)
+            if !items.is_empty() && items.iter().all(|item| matches!(item, Value::Record(_))) =>
         {
-            let mut columns = items.iter().flat_map(|item| match item {
-                Value::Record(record) => record.keys().cloned().collect::<Vec<_>>(),
-                _ => Vec::new(),
-            }).collect::<Vec<_>>();
+            let mut columns = items
+                .iter()
+                .flat_map(|item| match item {
+                    Value::Record(record) => record.keys().cloned().collect::<Vec<_>>(),
+                    _ => Vec::new(),
+                })
+                .collect::<Vec<_>>();
             columns.sort();
             columns.dedup();
-            let rows = items.iter().take(MAX_ROWS).map(|item| match item {
-                Value::Record(record) => columns.iter()
-                    .map(|column| record.get(column).map(json_cell).unwrap_or(serde_json::Value::Null))
-                    .collect::<Vec<_>>(),
-                _ => Vec::new(),
-            }).collect::<Vec<_>>();
+            let rows = items
+                .iter()
+                .take(MAX_ROWS)
+                .map(|item| match item {
+                    Value::Record(record) => columns
+                        .iter()
+                        .map(|column| {
+                            record
+                                .get(column)
+                                .map(json_cell)
+                                .unwrap_or(serde_json::Value::Null)
+                        })
+                        .collect::<Vec<_>>(),
+                    _ => Vec::new(),
+                })
+                .collect::<Vec<_>>();
             Some(serde_json::json!({
                 "kind": "table",
                 "name": "Result records",

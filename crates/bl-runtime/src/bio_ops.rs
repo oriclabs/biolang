@@ -153,7 +153,13 @@ fn builtin_neighbor_joining(args: Vec<Value>) -> Result<Value> {
             rec.insert("distance".into(), Value::Float(n.distance));
             rec.insert(
                 "children".into(),
-                Value::List(n.children.iter().map(|&c| Value::Int(c as i64)).collect::<Vec<_>>().into()),
+                Value::List(
+                    n.children
+                        .iter()
+                        .map(|&c| Value::Int(c as i64))
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
             );
             Value::Record((rec).into())
         })
@@ -305,7 +311,11 @@ fn builtin_leiden(args: Vec<Value>) -> Result<Value> {
 
     let clusters = bl_core::bio_core::cluster_ops::leiden(&adj, resolution);
     Ok(Value::List(
-        clusters.into_iter().map(|c| Value::Int(c as i64)).collect::<Vec<_>>().into(),
+        clusters
+            .into_iter()
+            .map(|c| Value::Int(c as i64))
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 

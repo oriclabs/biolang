@@ -127,16 +127,19 @@ impl OpenTargetsClient {
                 }
             }
         "#;
-        let resp = self.gql::<serde_json::Value>(
-            query,
-            json!({ "id": gene_id }),
-            &["data", "target"],
-        )?;
+        let resp =
+            self.gql::<serde_json::Value>(query, json!({ "id": gene_id }), &["data", "target"])?;
 
         Ok(TargetInfo {
             id: resp["id"].as_str().unwrap_or_default().to_string(),
-            approved_symbol: resp["approvedSymbol"].as_str().unwrap_or_default().to_string(),
-            approved_name: resp["approvedName"].as_str().unwrap_or_default().to_string(),
+            approved_symbol: resp["approvedSymbol"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            approved_name: resp["approvedName"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
             biotype: resp["biotype"].as_str().unwrap_or_default().to_string(),
             chromosome: resp["genomicLocation"]["chromosome"]
                 .as_str()
@@ -152,7 +155,11 @@ impl OpenTargetsClient {
     }
 
     /// Fetch disease associations for a gene (sorted by overall score descending).
-    pub fn disease_associations(&self, gene_id: &str, max: usize) -> Result<Vec<DiseaseAssociation>> {
+    pub fn disease_associations(
+        &self,
+        gene_id: &str,
+        max: usize,
+    ) -> Result<Vec<DiseaseAssociation>> {
         let query = r#"
             query Associations($id: String!, $size: Int!) {
                 target(ensemblId: $id) {
@@ -180,8 +187,14 @@ impl OpenTargetsClient {
         let mut out = Vec::new();
         for row in rows {
             out.push(DiseaseAssociation {
-                disease_id: row["disease"]["id"].as_str().unwrap_or_default().to_string(),
-                disease_name: row["disease"]["name"].as_str().unwrap_or_default().to_string(),
+                disease_id: row["disease"]["id"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string(),
+                disease_name: row["disease"]["name"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string(),
                 score: row["score"].as_f64().unwrap_or(0.0),
                 datatypes_score: row["datatypeScores"]
                     .as_array()
@@ -223,9 +236,15 @@ impl OpenTargetsClient {
             out.push(DrugRecord {
                 id: row["drug"]["id"].as_str().unwrap_or_default().to_string(),
                 name: row["drug"]["name"].as_str().unwrap_or_default().to_string(),
-                molecule_type: row["drug"]["moleculeType"].as_str().unwrap_or_default().to_string(),
+                molecule_type: row["drug"]["moleculeType"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string(),
                 max_clinical_trial_phase: row["drug"]["maxPhase"].as_i64().unwrap_or(0) as i32,
-                indication: row["disease"]["name"].as_str().unwrap_or_default().to_string(),
+                indication: row["disease"]["name"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string(),
             });
         }
         Ok(out)
@@ -303,19 +322,28 @@ mod tests {
 
     #[test]
     fn test_parse_target_info() {
-        let json: serde_json::Value = serde_json::from_str(r#"{
+        let json: serde_json::Value = serde_json::from_str(
+            r#"{
             "id": "ENSG00000157764",
             "approvedSymbol": "BRAF",
             "approvedName": "B-Raf proto-oncogene",
             "biotype": "protein_coding",
             "genomicLocation": { "chromosome": "7" },
             "functionDescriptions": ["Protein kinase involved in MAPK signaling"]
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         let info = TargetInfo {
             id: json["id"].as_str().unwrap_or_default().to_string(),
-            approved_symbol: json["approvedSymbol"].as_str().unwrap_or_default().to_string(),
-            approved_name: json["approvedName"].as_str().unwrap_or_default().to_string(),
+            approved_symbol: json["approvedSymbol"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            approved_name: json["approvedName"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
             biotype: json["biotype"].as_str().unwrap_or_default().to_string(),
             chromosome: json["genomicLocation"]["chromosome"]
                 .as_str()
@@ -333,12 +361,16 @@ mod tests {
         assert_eq!(info.approved_symbol, "BRAF");
         assert_eq!(info.biotype, "protein_coding");
         assert_eq!(info.chromosome, "7");
-        assert_eq!(info.description, "Protein kinase involved in MAPK signaling");
+        assert_eq!(
+            info.description,
+            "Protein kinase involved in MAPK signaling"
+        );
     }
 
     #[test]
     fn test_parse_disease_associations() {
-        let json: serde_json::Value = serde_json::from_str(r#"[
+        let json: serde_json::Value = serde_json::from_str(
+            r#"[
             {
                 "disease": { "id": "EFO_0000616", "name": "melanoma" },
                 "score": 0.85,
@@ -349,7 +381,9 @@ mod tests {
                 "score": 0.72,
                 "datatypeScores": []
             }
-        ]"#).unwrap();
+        ]"#,
+        )
+        .unwrap();
 
         let rows = json.as_array().unwrap();
         let first = &rows[0];
@@ -359,7 +393,8 @@ mod tests {
 
     #[test]
     fn test_parse_drug_record() {
-        let json: serde_json::Value = serde_json::from_str(r#"{
+        let json: serde_json::Value = serde_json::from_str(
+            r#"{
             "drug": {
                 "id": "CHEMBL1336",
                 "name": "VEMURAFENIB",
@@ -367,14 +402,25 @@ mod tests {
                 "maxPhase": 4
             },
             "disease": { "name": "melanoma" }
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         let rec = DrugRecord {
             id: json["drug"]["id"].as_str().unwrap_or_default().to_string(),
-            name: json["drug"]["name"].as_str().unwrap_or_default().to_string(),
-            molecule_type: json["drug"]["moleculeType"].as_str().unwrap_or_default().to_string(),
+            name: json["drug"]["name"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
+            molecule_type: json["drug"]["moleculeType"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
             max_clinical_trial_phase: json["drug"]["maxPhase"].as_i64().unwrap_or(0) as i32,
-            indication: json["disease"]["name"].as_str().unwrap_or_default().to_string(),
+            indication: json["disease"]["name"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
         };
 
         assert_eq!(rec.id, "CHEMBL1336");
@@ -385,19 +431,28 @@ mod tests {
 
     #[test]
     fn test_parse_safety_event() {
-        let json: serde_json::Value = serde_json::from_str(r#"{
+        let json: serde_json::Value = serde_json::from_str(
+            r#"{
             "event": "cardiotoxicity",
             "effects": [
                 { "direction": "activation", "dosing": "high" }
             ],
             "datasource": [{ "id": "FDA" }]
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         let effects: Vec<String> = json["effects"]
             .as_array()
             .unwrap()
             .iter()
-            .map(|e| format!("{} ({})", e["direction"].as_str().unwrap_or(""), e["dosing"].as_str().unwrap_or("")))
+            .map(|e| {
+                format!(
+                    "{} ({})",
+                    e["direction"].as_str().unwrap_or(""),
+                    e["dosing"].as_str().unwrap_or("")
+                )
+            })
             .collect();
 
         assert_eq!(json["event"].as_str().unwrap(), "cardiotoxicity");

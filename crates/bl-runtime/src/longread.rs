@@ -200,12 +200,7 @@ fn builtin_n50(args: Vec<Value>) -> Result<Value> {
                 )),
             })
             .collect::<Result<_>>()?,
-        _ => {
-            return Err(BioLangError::type_error(
-                "n50() requires List[Int]",
-                None,
-            ))
-        }
+        _ => return Err(BioLangError::type_error("n50() requires List[Int]", None)),
     };
     Ok(Value::Int(compute_n50(&lengths) as i64))
 }
@@ -244,7 +239,11 @@ fn builtin_read_length_hist(args: Vec<Value>) -> Result<Value> {
 
     if lengths.is_empty() {
         return Ok(Value::Table(Table::new(
-            vec!["bin_start".to_string(), "bin_end".to_string(), "count".to_string()],
+            vec![
+                "bin_start".to_string(),
+                "bin_end".to_string(),
+                "count".to_string(),
+            ],
             vec![],
         )));
     }
@@ -277,7 +276,11 @@ fn builtin_read_length_hist(args: Vec<Value>) -> Result<Value> {
         .collect();
 
     Ok(Value::Table(Table::new(
-        vec!["bin_start".to_string(), "bin_end".to_string(), "count".to_string()],
+        vec![
+            "bin_start".to_string(),
+            "bin_end".to_string(),
+            "count".to_string(),
+        ],
         rows,
     )))
 }

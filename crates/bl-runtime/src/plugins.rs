@@ -377,13 +377,16 @@ mod tests {
 
     #[test]
     fn test_value_json_roundtrip() {
-        let original = Value::List((vec![
-            Value::Int(1),
-            Value::Float(2.5),
-            Value::Str("test".into()),
-            Value::Bool(false),
-            Value::Nil,
-        ]).into());
+        let original = Value::List(
+            (vec![
+                Value::Int(1),
+                Value::Float(2.5),
+                Value::Str("test".into()),
+                Value::Bool(false),
+                Value::Nil,
+            ])
+            .into(),
+        );
         let json = value_to_json(&original);
         let roundtripped = json_to_value(json);
         assert_eq!(original, roundtripped);
@@ -608,13 +611,16 @@ mod tests {
         outer_rec.insert("inner".to_string(), Value::Record((inner_rec).into()));
         outer_rec.insert(
             "list".to_string(),
-            Value::List((vec![
-                Value::Int(1),
-                Value::Float(2.5),
-                Value::Bool(true),
-                Value::Nil,
-                Value::List((vec![Value::Str("deep".into())]).into()),
-            ]).into()),
+            Value::List(
+                (vec![
+                    Value::Int(1),
+                    Value::Float(2.5),
+                    Value::Bool(true),
+                    Value::Nil,
+                    Value::List((vec![Value::Str("deep".into())]).into()),
+                ])
+                .into(),
+            ),
         );
         outer_rec.insert("flag".to_string(), Value::Bool(false));
 

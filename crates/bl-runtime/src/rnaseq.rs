@@ -84,10 +84,18 @@ fn pearson(a: &[f64], b: &[f64]) -> f64 {
     }
     let mean_a = a.iter().sum::<f64>() / n;
     let mean_b = b.iter().sum::<f64>() / n;
-    let num: f64 = a.iter().zip(b.iter()).map(|(x, y)| (x - mean_a) * (y - mean_b)).sum();
+    let num: f64 = a
+        .iter()
+        .zip(b.iter())
+        .map(|(x, y)| (x - mean_a) * (y - mean_b))
+        .sum();
     let da: f64 = a.iter().map(|x| (x - mean_a).powi(2)).sum::<f64>().sqrt();
     let db: f64 = b.iter().map(|y| (y - mean_b).powi(2)).sum::<f64>().sqrt();
-    if da == 0.0 || db == 0.0 { 0.0 } else { num / (da * db) }
+    if da == 0.0 || db == 0.0 {
+        0.0
+    } else {
+        num / (da * db)
+    }
 }
 
 fn median(vals: &mut Vec<f64>) -> f64 {
@@ -245,10 +253,7 @@ fn builtin_filter_low_counts(args: Vec<Value>) -> Result<Value> {
         .rows
         .into_iter()
         .filter(|row| {
-            let passing = row
-                .iter()
-                .filter(|v| to_f64(v) >= min_count as f64)
-                .count();
+            let passing = row.iter().filter(|v| to_f64(v) >= min_count as f64).count();
             passing >= min_samples
         })
         .collect();

@@ -213,25 +213,12 @@ fn parse_gds_summaries(json: &serde_json::Value) -> Result<Vec<GeoSeries>> {
 
         series.push(GeoSeries {
             accession,
-            title: entry["title"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
-            summary: entry["summary"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
-            organism: entry["organism"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
+            title: entry["title"].as_str().unwrap_or_default().to_string(),
+            summary: entry["summary"].as_str().unwrap_or_default().to_string(),
+            organism: entry["organism"].as_str().unwrap_or_default().to_string(),
             n_samples: entry["n_samples"]
                 .as_u64()
-                .or_else(|| {
-                    entry["n_samples"]
-                        .as_str()
-                        .and_then(|s| s.parse().ok())
-                })
+                .or_else(|| entry["n_samples"].as_str().and_then(|s| s.parse().ok()))
                 .unwrap_or(0),
             platform: entry["GPL"]
                 .as_str()
@@ -279,10 +266,7 @@ fn parse_gsm_summaries(json: &serde_json::Value) -> Result<Vec<GeoSample>> {
             });
 
         samples.push(GeoSample {
-            accession: entry["Accession"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
+            accession: entry["Accession"].as_str().unwrap_or_default().to_string(),
             title: entry["title"].as_str().unwrap_or_default().to_string(),
             source: entry["source_name_ch1"]
                 .as_str()
@@ -320,19 +304,10 @@ fn parse_gpl_summaries(json: &serde_json::Value) -> Result<Vec<GeoPlatform>> {
             continue;
         }
         platforms.push(GeoPlatform {
-            accession: entry["Accession"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
+            accession: entry["Accession"].as_str().unwrap_or_default().to_string(),
             title: entry["title"].as_str().unwrap_or_default().to_string(),
-            organism: entry["organism"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
-            technology: entry["technology"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
+            organism: entry["organism"].as_str().unwrap_or_default().to_string(),
+            technology: entry["technology"].as_str().unwrap_or_default().to_string(),
             n_samples: entry["n_samples"].as_u64().unwrap_or(0),
         });
     }

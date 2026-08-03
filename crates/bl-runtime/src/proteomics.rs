@@ -116,7 +116,8 @@ fn matrix_to_value(mat: Vec<Vec<f64>>) -> Value {
     Value::List(
         mat.into_iter()
             .map(|row| Value::List(row.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     )
 }
 
@@ -149,7 +150,11 @@ fn welch_ttest(a: &[f64], b: &[f64]) -> (f64, f64) {
     if se == 0.0 {
         // No within-group variance — if means differ the groups are perfectly separated
         let diff = (vec_mean(a) - vec_mean(b)).abs();
-        return if diff > 0.0 { (f64::INFINITY, 0.0) } else { (0.0, 1.0) };
+        return if diff > 0.0 {
+            (f64::INFINITY, 0.0)
+        } else {
+            (0.0, 1.0)
+        };
     }
     let t = (vec_mean(a) - vec_mean(b)) / se;
     // Welch-Satterthwaite df
@@ -223,7 +228,10 @@ fn builtin_load_maxquant(args: Vec<Value>) -> Result<Value> {
     })?;
 
     let cols: Vec<&str> = header.split('\t').collect();
-    let protein_col = cols.iter().position(|c| c.contains("Protein IDs")).unwrap_or(0);
+    let protein_col = cols
+        .iter()
+        .position(|c| c.contains("Protein IDs"))
+        .unwrap_or(0);
     let gene_col = cols
         .iter()
         .position(|c| c.contains("Gene names"))
@@ -254,15 +262,9 @@ fn builtin_load_maxquant(args: Vec<Value>) -> Result<Value> {
             continue;
         }
         let gene = fields.get(gene_col).copied().unwrap_or("").to_string();
-        let mut row: Vec<Value> = vec![
-            Value::Str(protein.to_string()),
-            Value::Str(gene),
-        ];
+        let mut row: Vec<Value> = vec![Value::Str(protein.to_string()), Value::Str(gene)];
         for &idx in &sample_indices {
-            let val: f64 = fields
-                .get(idx)
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(0.0);
+            let val: f64 = fields.get(idx).and_then(|s| s.parse().ok()).unwrap_or(0.0);
             row.push(Value::Float(val));
         }
         rows.push(row);
@@ -407,14 +409,8 @@ fn builtin_protein_ttest(args: Vec<Value>) -> Result<Value> {
 
     let mut rows: Vec<Vec<Value>> = Vec::with_capacity(mat.len());
     for (i, row) in mat.iter().enumerate() {
-        let a: Vec<f64> = idx_a
-            .iter()
-            .filter_map(|&j| row.get(j).copied())
-            .collect();
-        let b: Vec<f64> = idx_b
-            .iter()
-            .filter_map(|&j| row.get(j).copied())
-            .collect();
+        let a: Vec<f64> = idx_a.iter().filter_map(|&j| row.get(j).copied()).collect();
+        let b: Vec<f64> = idx_b.iter().filter_map(|&j| row.get(j).copied()).collect();
         let mean_a = vec_mean(&a);
         let mean_b = vec_mean(&b);
         let log2fc = if mean_b > 0.0 {

@@ -34,9 +34,7 @@ pub fn discover(program: &Program) -> Vec<String> {
         .stmts
         .iter()
         .filter_map(|statement| match &statement.node {
-            Stmt::Fn { name, params, .. }
-                if name.starts_with(TEST_PREFIX) && params.is_empty() =>
-            {
+            Stmt::Fn { name, params, .. } if name.starts_with(TEST_PREFIX) && params.is_empty() => {
                 Some(name.clone())
             }
             _ => None,
@@ -162,7 +160,10 @@ mod tests {
 
     #[test]
     fn describes_names_as_readable_labels() {
-        assert_eq!(describe("test_gc_content_is_a_fraction"), "gc content is a fraction");
+        assert_eq!(
+            describe("test_gc_content_is_a_fraction"),
+            "gc content is a fraction"
+        );
     }
 
     #[test]

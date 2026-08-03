@@ -55,11 +55,13 @@ pub fn ipynb_to_bln(source: &str, filename: &str) -> String {
         .and_then(|l| l.as_str())
         .unwrap_or("python");
 
-    let lang = if kernel.eq_ignore_ascii_case("r") { "r" } else { "python" };
+    let lang = if kernel.eq_ignore_ascii_case("r") {
+        "r"
+    } else {
+        "python"
+    };
 
-    let mut out = format!(
-        "# Converted from: {filename}\n# Original kernel: {kernel}\n\n"
-    );
+    let mut out = format!("# Converted from: {filename}\n# Original kernel: {kernel}\n\n");
 
     for (i, cell) in nb.cells.iter().enumerate() {
         let raw = cell.source.join();
@@ -76,8 +78,7 @@ pub fn ipynb_to_bln(source: &str, filename: &str) -> String {
                 out.push('\n');
             }
             "code" | "raw" => {
-                let converted =
-                    super::convert_cell(&raw, lang, &format!("{filename}[cell {i}]"));
+                let converted = super::convert_cell(&raw, lang, &format!("{filename}[cell {i}]"));
                 let trimmed = converted.trim_end();
                 if !trimmed.is_empty() {
                     out.push_str("```biolang\n");

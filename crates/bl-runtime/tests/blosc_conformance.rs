@@ -35,7 +35,10 @@ fn load() -> (Vec<Case>, Vec<u8>) {
     let dir = data_dir();
     let json = std::fs::read_to_string(dir.join("vectors.json")).expect("vectors.json");
     let bin = std::fs::read(dir.join("vectors.bin")).expect("vectors.bin");
-    (serde_json::from_str(&json).expect("parse vectors.json"), bin)
+    (
+        serde_json::from_str(&json).expect("parse vectors.json"),
+        bin,
+    )
 }
 
 #[test]
@@ -60,7 +63,9 @@ fn decompresses_every_conformance_vector() {
         match blosc::decompress(comp) {
             Ok(got) if got == expect => {
                 if !c.memcpyed {
-                    *covered.entry((c.cname.clone(), c.shuffle.clone())).or_default() += 1;
+                    *covered
+                        .entry((c.cname.clone(), c.shuffle.clone()))
+                        .or_default() += 1;
                 }
             }
             Ok(got) => {
@@ -89,7 +94,10 @@ fn decompresses_every_conformance_vector() {
             // lz4hc shares lz4's codec id in the header; numcodecs still emits
             // it as a distinct cname, so only require coverage where vectors exist.
             let key = (cname.to_string(), sh.to_string());
-            if cases.iter().any(|c| !c.memcpyed && c.cname == cname && c.shuffle == sh) {
+            if cases
+                .iter()
+                .any(|c| !c.memcpyed && c.cname == cname && c.shuffle == sh)
+            {
                 assert!(
                     covered.get(&key).copied().unwrap_or(0) > 0,
                     "no compressed vector passed for {cname}/{sh}"
@@ -120,8 +128,14 @@ fn covers_multi_block_and_split_layouts() {
         .iter()
         .filter(|c| !c.memcpyed && c.typesize > 1 && c.nelem >= 128)
         .count();
-    assert!(multi >= 50, "vector set lost multi-block coverage ({multi})");
-    assert!(split >= 20, "vector set lost split-block coverage ({split})");
+    assert!(
+        multi >= 50,
+        "vector set lost multi-block coverage ({multi})"
+    );
+    assert!(
+        split >= 20,
+        "vector set lost split-block coverage ({split})"
+    );
 }
 
 /// End-to-end: `read_anndata` on a store written by anndata/zarr with default

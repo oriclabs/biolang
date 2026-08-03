@@ -89,10 +89,7 @@ fn log_factorial(n: usize) -> f64 {
 
 fn fisher_log_prob(a: usize, b: usize, c: usize, d: usize) -> f64 {
     let n = a + b + c + d;
-    log_factorial(a + b)
-        + log_factorial(c + d)
-        + log_factorial(a + c)
-        + log_factorial(b + d)
+    log_factorial(a + b) + log_factorial(c + d) + log_factorial(a + c) + log_factorial(b + d)
         - log_factorial(n)
         - log_factorial(a)
         - log_factorial(b)
@@ -228,15 +225,29 @@ fn builtin_isotope_correct(args: Vec<Value>) -> Result<Value> {
         corrected[i] = corrected[i].max(0.0);
     }
 
-    Ok(Value::List(corrected.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        corrected
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 // ── feature_group ─────────────────────────────────────────────────────
 
 fn builtin_feature_group(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "feature_group")?;
-    let mz_tol_ppm = if args.len() > 1 { to_f64(&args[1]) } else { 5.0 };
-    let rt_tol = if args.len() > 2 { to_f64(&args[2]) } else { 0.1 };
+    let mz_tol_ppm = if args.len() > 1 {
+        to_f64(&args[1])
+    } else {
+        5.0
+    };
+    let rt_tol = if args.len() > 2 {
+        to_f64(&args[2])
+    } else {
+        0.1
+    };
 
     let mz_col = col_index(table, "mz", "feature_group")?;
     let rt_col = col_index(table, "rt", "feature_group")?;
@@ -524,11 +535,7 @@ fn builtin_normalize_samples(args: Vec<Value>) -> Result<Value> {
             }
 
             let out_rows: Vec<Vec<Value>> = (0..n_rows)
-                .map(|r| {
-                    (0..n_cols)
-                        .map(|c| Value::Float(col_data[c][r]))
-                        .collect()
-                })
+                .map(|r| (0..n_cols).map(|c| Value::Float(col_data[c][r])).collect())
                 .collect();
 
             Ok(Value::Table(Table::new(table.columns, out_rows)))

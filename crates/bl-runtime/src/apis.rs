@@ -440,7 +440,9 @@ fn json_to_value(j: &serde_json::Value) -> Value {
             }
         }
         serde_json::Value::String(s) => Value::Str(s.clone()),
-        serde_json::Value::Array(arr) => Value::List(arr.iter().map(json_to_value).collect::<Vec<_>>().into()),
+        serde_json::Value::Array(arr) => {
+            Value::List(arr.iter().map(json_to_value).collect::<Vec<_>>().into())
+        }
         serde_json::Value::Object(obj) => {
             let mut map = HashMap::new();
             for (k, v) in obj {
@@ -481,7 +483,12 @@ fn builtin_ncbi_search(args: Vec<Value>) -> Result<Value> {
     // Return list of IDs directly for pipe-friendly usage:
     //   ncbi_search("gene", "BRCA1") |> first() |> ncbi_gene()
     Ok(Value::List(
-        result.ids.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+        result
+            .ids
+            .into_iter()
+            .map(Value::Str)
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -587,7 +594,12 @@ fn builtin_ncbi_gene(args: Vec<Value>) -> Result<Value> {
         }
     }
     Ok(Value::List(
-        result.ids.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+        result
+            .ids
+            .into_iter()
+            .map(Value::Str)
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -602,7 +614,12 @@ fn builtin_ncbi_pubmed(args: Vec<Value>) -> Result<Value> {
         NCBI.with(|c| c.search_pubmed(term, max))
     })?;
     Ok(Value::List(
-        result.ids.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+        result
+            .ids
+            .into_iter()
+            .map(Value::Str)
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -697,12 +714,21 @@ fn builtin_ensembl_vep(args: Vec<Value>) -> Result<Value> {
                     m.insert("impact".to_string(), Value::Str(tc.impact));
                     m.insert(
                         "consequences".to_string(),
-                        Value::List(tc.consequence_terms.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
+                        Value::List(
+                            tc.consequence_terms
+                                .into_iter()
+                                .map(Value::Str)
+                                .collect::<Vec<_>>()
+                                .into(),
+                        ),
                     );
                     Value::Record((m).into())
                 })
                 .collect();
-            map.insert("transcript_consequences".to_string(), Value::List((tcs).into()));
+            map.insert(
+                "transcript_consequences".to_string(),
+                Value::List((tcs).into()),
+            );
             Value::Record((map).into())
         })
         .collect();
@@ -746,7 +772,13 @@ fn protein_to_record(e: &bl_apis::uniprot::ProteinEntry) -> Value {
     );
     map.insert(
         "gene_names".to_string(),
-        Value::List(e.gene_names.iter().map(|s| Value::Str(s.clone())).collect::<Vec<_>>().into()),
+        Value::List(
+            e.gene_names
+                .iter()
+                .map(|s| Value::Str(s.clone()))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     map.insert("function".to_string(), Value::Str(e.function.clone()));
     Value::Record((map).into())
@@ -1007,7 +1039,9 @@ fn builtin_pdb_search(args: Vec<Value>) -> Result<Value> {
     let ids = api_call(&format!("pdb_search(\"{query}\")"), || {
         PDB.with(|c| c.search(query))
     })?;
-    Ok(Value::List(ids.into_iter().map(Value::Str).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        ids.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+    ))
 }
 
 fn builtin_pdb_entity(args: Vec<Value>) -> Result<Value> {
@@ -1330,7 +1364,13 @@ fn builtin_biocontainers_info(args: Vec<Value>) -> Result<Value> {
     rec.insert("organization".into(), Value::Str(tool.organization.clone()));
     rec.insert(
         "aliases".into(),
-        Value::List(tool.aliases.iter().map(|a| Value::Str(a.clone())).collect::<Vec<_>>().into()),
+        Value::List(
+            tool.aliases
+                .iter()
+                .map(|a| Value::Str(a.clone()))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     let versions: Vec<Value> = tool
         .versions
@@ -1394,7 +1434,13 @@ fn pipeline_summary_to_value(p: &bl_apis::nfcore::PipelineSummary) -> Value {
     rec.insert("stars".into(), Value::Int(p.stargazers_count as i64));
     rec.insert(
         "topics".into(),
-        Value::List(p.topics.iter().map(|t| Value::Str(t.clone())).collect::<Vec<_>>().into()),
+        Value::List(
+            p.topics
+                .iter()
+                .map(|t| Value::Str(t.clone()))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     let latest = p
         .releases
@@ -1489,7 +1535,14 @@ fn builtin_nfcore_info(args: Vec<Value>) -> Result<Value> {
     );
     map.insert(
         "topics".into(),
-        Value::List(detail.topics.into_iter().map(Value::Str).collect::<Vec<_>>().into()),
+        Value::List(
+            detail
+                .topics
+                .into_iter()
+                .map(Value::Str)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     map.insert(
         "open_issues".into(),
@@ -1834,7 +1887,8 @@ fn builtin_bio_icon(args: Vec<Value>) -> Result<Value> {
             categories
                 .into_iter()
                 .map(|c| Value::Str(c.into()))
-                .collect::<Vec<_>>().into(),
+                .collect::<Vec<_>>()
+                .into(),
         ),
     );
     map.insert(
@@ -1858,18 +1912,34 @@ fn geo_series_to_value(s: &bl_apis::geo::GeoSeries) -> Value {
     map.insert("platform".into(), Value::Str(s.platform.clone()));
     map.insert(
         "pubmed_ids".into(),
-        Value::List(s.pubmed_ids.iter().map(|id| Value::Str(id.clone())).collect::<Vec<_>>().into()),
+        Value::List(
+            s.pubmed_ids
+                .iter()
+                .map(|id| Value::Str(id.clone()))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     Value::Record((map).into())
 }
 
 fn builtin_geo_search(args: Vec<Value>) -> Result<Value> {
     let query = require_str(&args[0], "geo_search")?;
-    let max = if args.len() > 1 { require_int(&args[1], "geo_search")? as usize } else { 20 };
+    let max = if args.len() > 1 {
+        require_int(&args[1], "geo_search")? as usize
+    } else {
+        20
+    };
     let results = api_call(&format!("geo_search(\"{query}\")"), || {
         GEO.with(|c| c.search(query, max))
     })?;
-    Ok(Value::List(results.iter().map(geo_series_to_value).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        results
+            .iter()
+            .map(geo_series_to_value)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 fn builtin_geo_series(args: Vec<Value>) -> Result<Value> {
@@ -1882,37 +1952,60 @@ fn builtin_geo_series(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_geo_samples(args: Vec<Value>) -> Result<Value> {
     let acc = require_str(&args[0], "geo_samples")?;
-    let max = if args.len() > 1 { require_int(&args[1], "geo_samples")? as usize } else { 50 };
+    let max = if args.len() > 1 {
+        require_int(&args[1], "geo_samples")? as usize
+    } else {
+        50
+    };
     let samples = api_call(&format!("geo_samples(\"{acc}\")"), || {
         GEO.with(|c| c.samples(acc, max))
     })?;
-    let items: Vec<Value> = samples.into_iter().map(|s| {
-        let mut map = HashMap::new();
-        map.insert("accession".into(), Value::Str(s.accession));
-        map.insert("title".into(), Value::Str(s.title));
-        map.insert("source".into(), Value::Str(s.source));
-        map.insert("organism".into(), Value::Str(s.organism));
-        map.insert("characteristics".into(), Value::List(s.characteristics.into_iter().map(Value::Str).collect::<Vec<_>>().into()));
-        Value::Record((map).into())
-    }).collect();
+    let items: Vec<Value> = samples
+        .into_iter()
+        .map(|s| {
+            let mut map = HashMap::new();
+            map.insert("accession".into(), Value::Str(s.accession));
+            map.insert("title".into(), Value::Str(s.title));
+            map.insert("source".into(), Value::Str(s.source));
+            map.insert("organism".into(), Value::Str(s.organism));
+            map.insert(
+                "characteristics".into(),
+                Value::List(
+                    s.characteristics
+                        .into_iter()
+                        .map(Value::Str)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            );
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
 fn builtin_geo_platforms(args: Vec<Value>) -> Result<Value> {
     let organism = require_str(&args[0], "geo_platforms")?;
-    let max = if args.len() > 1 { require_int(&args[1], "geo_platforms")? as usize } else { 20 };
+    let max = if args.len() > 1 {
+        require_int(&args[1], "geo_platforms")? as usize
+    } else {
+        20
+    };
     let platforms = api_call(&format!("geo_platforms(\"{organism}\")"), || {
         GEO.with(|c| c.platforms(organism, max))
     })?;
-    let items: Vec<Value> = platforms.into_iter().map(|p| {
-        let mut map = HashMap::new();
-        map.insert("accession".into(), Value::Str(p.accession));
-        map.insert("title".into(), Value::Str(p.title));
-        map.insert("organism".into(), Value::Str(p.organism));
-        map.insert("technology".into(), Value::Str(p.technology));
-        map.insert("n_samples".into(), Value::Int(p.n_samples as i64));
-        Value::Record((map).into())
-    }).collect();
+    let items: Vec<Value> = platforms
+        .into_iter()
+        .map(|p| {
+            let mut map = HashMap::new();
+            map.insert("accession".into(), Value::Str(p.accession));
+            map.insert("title".into(), Value::Str(p.title));
+            map.insert("organism".into(), Value::Str(p.organism));
+            map.insert("technology".into(), Value::Str(p.technology));
+            map.insert("n_samples".into(), Value::Int(p.n_samples as i64));
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
@@ -1926,41 +2019,49 @@ fn builtin_cbio_studies(args: Vec<Value>) -> Result<Value> {
     } else {
         None
     };
-    let studies = api_call("cbio_studies()", || {
-        CBIOPORTAL.with(|c| c.studies(keyword))
-    })?;
-    let items: Vec<Value> = studies.into_iter().map(|s| {
-        let mut map = HashMap::new();
-        map.insert("study_id".into(), Value::Str(s.study_id));
-        map.insert("name".into(), Value::Str(s.name));
-        map.insert("description".into(), Value::Str(s.description));
-        map.insert("cancer_type".into(), Value::Str(s.cancer_type));
-        map.insert("reference_genome".into(), Value::Str(s.reference_genome));
-        map.insert("n_samples".into(), Value::Int(s.n_samples as i64));
-        Value::Record((map).into())
-    }).collect();
+    let studies = api_call("cbio_studies()", || CBIOPORTAL.with(|c| c.studies(keyword)))?;
+    let items: Vec<Value> = studies
+        .into_iter()
+        .map(|s| {
+            let mut map = HashMap::new();
+            map.insert("study_id".into(), Value::Str(s.study_id));
+            map.insert("name".into(), Value::Str(s.name));
+            map.insert("description".into(), Value::Str(s.description));
+            map.insert("cancer_type".into(), Value::Str(s.cancer_type));
+            map.insert("reference_genome".into(), Value::Str(s.reference_genome));
+            map.insert("n_samples".into(), Value::Int(s.n_samples as i64));
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
 fn builtin_cbio_mutations(args: Vec<Value>) -> Result<Value> {
     let study_id = require_str(&args[0], "cbio_mutations")?;
     let gene = require_str(&args[1], "cbio_mutations")?;
-    let muts = api_call(&format!("cbio_mutations(\"{study_id}\", \"{gene}\")"), || {
-        CBIOPORTAL.with(|c| c.mutations(study_id, gene))
-    })?;
-    let items: Vec<Value> = muts.into_iter().map(|m| {
-        let mut map = HashMap::new();
-        map.insert("sample_id".into(), Value::Str(m.sample_id));
-        map.insert("gene".into(), Value::Str(m.gene));
-        map.insert("protein_change".into(), Value::Str(m.protein_change));
-        map.insert("mutation_type".into(), Value::Str(m.mutation_type));
-        map.insert("chromosome".into(), Value::Str(m.chromosome));
-        map.insert("start_position".into(), Value::Int(m.start_position));
-        map.insert("ref_allele".into(), Value::Str(m.ref_allele));
-        map.insert("alt_allele".into(), Value::Str(m.alt_allele));
-        map.insert("variant_classification".into(), Value::Str(m.variant_classification));
-        Value::Record((map).into())
-    }).collect();
+    let muts = api_call(
+        &format!("cbio_mutations(\"{study_id}\", \"{gene}\")"),
+        || CBIOPORTAL.with(|c| c.mutations(study_id, gene)),
+    )?;
+    let items: Vec<Value> = muts
+        .into_iter()
+        .map(|m| {
+            let mut map = HashMap::new();
+            map.insert("sample_id".into(), Value::Str(m.sample_id));
+            map.insert("gene".into(), Value::Str(m.gene));
+            map.insert("protein_change".into(), Value::Str(m.protein_change));
+            map.insert("mutation_type".into(), Value::Str(m.mutation_type));
+            map.insert("chromosome".into(), Value::Str(m.chromosome));
+            map.insert("start_position".into(), Value::Int(m.start_position));
+            map.insert("ref_allele".into(), Value::Str(m.ref_allele));
+            map.insert("alt_allele".into(), Value::Str(m.alt_allele));
+            map.insert(
+                "variant_classification".into(),
+                Value::Str(m.variant_classification),
+            );
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
@@ -1969,31 +2070,42 @@ fn builtin_cbio_clinical(args: Vec<Value>) -> Result<Value> {
     let data = api_call(&format!("cbio_clinical(\"{study_id}\")"), || {
         CBIOPORTAL.with(|c| c.clinical_data(study_id))
     })?;
-    let items: Vec<Value> = data.into_iter().map(|d| {
-        let mut map = HashMap::new();
-        map.insert("sample_id".into(), Value::Str(d.sample_id));
-        map.insert("patient_id".into(), Value::Str(d.patient_id));
-        map.insert("attribute".into(), Value::Str(d.attribute));
-        map.insert("value".into(), Value::Str(d.value));
-        Value::Record((map).into())
-    }).collect();
+    let items: Vec<Value> = data
+        .into_iter()
+        .map(|d| {
+            let mut map = HashMap::new();
+            map.insert("sample_id".into(), Value::Str(d.sample_id));
+            map.insert("patient_id".into(), Value::Str(d.patient_id));
+            map.insert("attribute".into(), Value::Str(d.attribute));
+            map.insert("value".into(), Value::Str(d.value));
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
 fn builtin_cbio_expression(args: Vec<Value>) -> Result<Value> {
     let study_id = require_str(&args[0], "cbio_expression")?;
     let gene = require_str(&args[1], "cbio_expression")?;
-    let max = if args.len() > 2 { require_int(&args[2], "cbio_expression")? as usize } else { 500 };
-    let expr = api_call(&format!("cbio_expression(\"{study_id}\", \"{gene}\")"), || {
-        CBIOPORTAL.with(|c| c.gene_expression(study_id, gene, max))
-    })?;
-    let items: Vec<Value> = expr.into_iter().map(|e| {
-        let mut map = HashMap::new();
-        map.insert("sample_id".into(), Value::Str(e.sample_id));
-        map.insert("gene".into(), Value::Str(e.gene));
-        map.insert("value".into(), Value::Float(e.value));
-        Value::Record((map).into())
-    }).collect();
+    let max = if args.len() > 2 {
+        require_int(&args[2], "cbio_expression")? as usize
+    } else {
+        500
+    };
+    let expr = api_call(
+        &format!("cbio_expression(\"{study_id}\", \"{gene}\")"),
+        || CBIOPORTAL.with(|c| c.gene_expression(study_id, gene, max)),
+    )?;
+    let items: Vec<Value> = expr
+        .into_iter()
+        .map(|e| {
+            let mut map = HashMap::new();
+            map.insert("sample_id".into(), Value::Str(e.sample_id));
+            map.insert("gene".into(), Value::Str(e.gene));
+            map.insert("value".into(), Value::Float(e.value));
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
@@ -2021,7 +2133,11 @@ fn gnomad_variant_to_value(v: &bl_apis::gnomad::GnomadVariant) -> Value {
 
 fn builtin_gnomad_variant(args: Vec<Value>) -> Result<Value> {
     let variant_id = require_str(&args[0], "gnomad_variant")?;
-    let dataset = if args.len() > 1 { require_str(&args[1], "gnomad_variant")? } else { "gnomad_r4" };
+    let dataset = if args.len() > 1 {
+        require_str(&args[1], "gnomad_variant")?
+    } else {
+        "gnomad_r4"
+    };
     let v = api_call(&format!("gnomad_variant(\"{variant_id}\")"), || {
         GNOMAD.with(|c| c.variant(variant_id, dataset))
     })?;
@@ -2030,32 +2146,53 @@ fn builtin_gnomad_variant(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_gnomad_gene(args: Vec<Value>) -> Result<Value> {
     let gene = require_str(&args[0], "gnomad_gene")?;
-    let dataset = if args.len() > 1 { require_str(&args[1], "gnomad_gene")? } else { "gnomad_r4" };
+    let dataset = if args.len() > 1 {
+        require_str(&args[1], "gnomad_gene")?
+    } else {
+        "gnomad_r4"
+    };
     let result = api_call(&format!("gnomad_gene(\"{gene}\")"), || {
         GNOMAD.with(|c| c.gene_variants(gene, dataset))
     })?;
     let mut map = HashMap::new();
     map.insert("gene_id".into(), Value::Str(result.gene_id));
     map.insert("gene_name".into(), Value::Str(result.gene_name));
-    map.insert("variants".into(), Value::List(result.variants.iter().map(gnomad_variant_to_value).collect::<Vec<_>>().into()));
+    map.insert(
+        "variants".into(),
+        Value::List(
+            result
+                .variants
+                .iter()
+                .map(gnomad_variant_to_value)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
+    );
     Ok(Value::Record((map).into()))
 }
 
 fn builtin_gnomad_populations(args: Vec<Value>) -> Result<Value> {
     let variant_id = require_str(&args[0], "gnomad_populations")?;
-    let dataset = if args.len() > 1 { require_str(&args[1], "gnomad_populations")? } else { "gnomad_r4" };
+    let dataset = if args.len() > 1 {
+        require_str(&args[1], "gnomad_populations")?
+    } else {
+        "gnomad_r4"
+    };
     let pops = api_call(&format!("gnomad_populations(\"{variant_id}\")"), || {
         GNOMAD.with(|c| c.variant_populations(variant_id, dataset))
     })?;
-    let items: Vec<Value> = pops.into_iter().map(|p| {
-        let mut map = HashMap::new();
-        map.insert("population".into(), Value::Str(p.population));
-        map.insert("af".into(), Value::Float(p.af));
-        map.insert("ac".into(), Value::Int(p.ac as i64));
-        map.insert("an".into(), Value::Int(p.an as i64));
-        map.insert("n_homozygotes".into(), Value::Int(p.n_homozygotes as i64));
-        Value::Record((map).into())
-    }).collect();
+    let items: Vec<Value> = pops
+        .into_iter()
+        .map(|p| {
+            let mut map = HashMap::new();
+            map.insert("population".into(), Value::Str(p.population));
+            map.insert("af".into(), Value::Float(p.af));
+            map.insert("ac".into(), Value::Int(p.ac as i64));
+            map.insert("an".into(), Value::Int(p.an as i64));
+            map.insert("n_homozygotes".into(), Value::Int(p.n_homozygotes as i64));
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
@@ -2065,15 +2202,18 @@ fn builtin_gnomad_populations(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_gtex_tissues(_args: Vec<Value>) -> Result<Value> {
     let tissues = api_call("gtex_tissues()", || GTEX.with(|c| c.tissues()))?;
-    let items: Vec<Value> = tissues.into_iter().map(|t| {
-        let mut map = HashMap::new();
-        map.insert("tissue_id".into(), Value::Str(t.tissue_id));
-        map.insert("tissue_name".into(), Value::Str(t.tissue_name));
-        map.insert("tissue_site".into(), Value::Str(t.tissue_site));
-        map.insert("sample_count".into(), Value::Int(t.sample_count as i64));
-        map.insert("color_hex".into(), Value::Str(t.color_hex));
-        Value::Record((map).into())
-    }).collect();
+    let items: Vec<Value> = tissues
+        .into_iter()
+        .map(|t| {
+            let mut map = HashMap::new();
+            map.insert("tissue_id".into(), Value::Str(t.tissue_id));
+            map.insert("tissue_name".into(), Value::Str(t.tissue_name));
+            map.insert("tissue_site".into(), Value::Str(t.tissue_site));
+            map.insert("sample_count".into(), Value::Int(t.sample_count as i64));
+            map.insert("color_hex".into(), Value::Str(t.color_hex));
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
@@ -2093,16 +2233,30 @@ fn builtin_gtex_expression(args: Vec<Value>) -> Result<Value> {
     let expr = api_call(&format!("gtex_expression(\"{gene_id}\")"), || {
         GTEX.with(|c| c.expression(gene_id))
     })?;
-    Ok(Value::List(expr.iter().map(gtex_expr_to_value).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        expr.iter()
+            .map(gtex_expr_to_value)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 fn builtin_gtex_top_tissues(args: Vec<Value>) -> Result<Value> {
     let gene_id = require_str(&args[0], "gtex_top_tissues")?;
-    let top_n = if args.len() > 1 { require_int(&args[1], "gtex_top_tissues")? as usize } else { 10 };
+    let top_n = if args.len() > 1 {
+        require_int(&args[1], "gtex_top_tissues")? as usize
+    } else {
+        10
+    };
     let expr = api_call(&format!("gtex_top_tissues(\"{gene_id}\")"), || {
         GTEX.with(|c| c.top_expressed_tissues(gene_id, top_n))
     })?;
-    Ok(Value::List(expr.iter().map(gtex_expr_to_value).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        expr.iter()
+            .map(gtex_expr_to_value)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 fn builtin_gtex_eqtls(args: Vec<Value>) -> Result<Value> {
@@ -2111,20 +2265,23 @@ fn builtin_gtex_eqtls(args: Vec<Value>) -> Result<Value> {
     let eqtls = api_call(&format!("gtex_eqtls(\"{gene_id}\", \"{tissue}\")"), || {
         GTEX.with(|c| c.eqtls(gene_id, tissue))
     })?;
-    let items: Vec<Value> = eqtls.into_iter().map(|e| {
-        let mut map = HashMap::new();
-        map.insert("gencode_id".into(), Value::Str(e.gencode_id));
-        map.insert("gene_symbol".into(), Value::Str(e.gene_symbol));
-        map.insert("tissue_id".into(), Value::Str(e.tissue_id));
-        map.insert("variant_id".into(), Value::Str(e.variant_id));
-        map.insert("rs_id".into(), Value::Str(e.rs_id));
-        map.insert("chr".into(), Value::Str(e.chr));
-        map.insert("pos".into(), Value::Int(e.pos as i64));
-        map.insert("nes".into(), Value::Float(e.nes));
-        map.insert("p_value".into(), Value::Float(e.p_value));
-        map.insert("q_value".into(), Value::Float(e.q_value));
-        Value::Record((map).into())
-    }).collect();
+    let items: Vec<Value> = eqtls
+        .into_iter()
+        .map(|e| {
+            let mut map = HashMap::new();
+            map.insert("gencode_id".into(), Value::Str(e.gencode_id));
+            map.insert("gene_symbol".into(), Value::Str(e.gene_symbol));
+            map.insert("tissue_id".into(), Value::Str(e.tissue_id));
+            map.insert("variant_id".into(), Value::Str(e.variant_id));
+            map.insert("rs_id".into(), Value::Str(e.rs_id));
+            map.insert("chr".into(), Value::Str(e.chr));
+            map.insert("pos".into(), Value::Int(e.pos as i64));
+            map.insert("nes".into(), Value::Float(e.nes));
+            map.insert("p_value".into(), Value::Float(e.p_value));
+            map.insert("q_value".into(), Value::Float(e.q_value));
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
@@ -2149,18 +2306,25 @@ fn builtin_ot_target(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_ot_associations(args: Vec<Value>) -> Result<Value> {
     let gene_id = require_str(&args[0], "ot_associations")?;
-    let max = if args.len() > 1 { require_int(&args[1], "ot_associations")? as usize } else { 20 };
+    let max = if args.len() > 1 {
+        require_int(&args[1], "ot_associations")? as usize
+    } else {
+        20
+    };
     let assocs = api_call(&format!("ot_associations(\"{gene_id}\")"), || {
         OPENTARGETS.with(|c| c.disease_associations(gene_id, max))
     })?;
-    let items: Vec<Value> = assocs.into_iter().map(|a| {
-        let mut map = HashMap::new();
-        map.insert("disease_id".into(), Value::Str(a.disease_id));
-        map.insert("disease_name".into(), Value::Str(a.disease_name));
-        map.insert("score".into(), Value::Float(a.score));
-        map.insert("datatypes_score".into(), Value::Float(a.datatypes_score));
-        Value::Record((map).into())
-    }).collect();
+    let items: Vec<Value> = assocs
+        .into_iter()
+        .map(|a| {
+            let mut map = HashMap::new();
+            map.insert("disease_id".into(), Value::Str(a.disease_id));
+            map.insert("disease_name".into(), Value::Str(a.disease_name));
+            map.insert("score".into(), Value::Float(a.score));
+            map.insert("datatypes_score".into(), Value::Float(a.datatypes_score));
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
@@ -2169,15 +2333,21 @@ fn builtin_ot_drugs(args: Vec<Value>) -> Result<Value> {
     let drugs = api_call(&format!("ot_drugs(\"{gene_id}\")"), || {
         OPENTARGETS.with(|c| c.drugs(gene_id))
     })?;
-    let items: Vec<Value> = drugs.into_iter().map(|d| {
-        let mut map = HashMap::new();
-        map.insert("id".into(), Value::Str(d.id));
-        map.insert("name".into(), Value::Str(d.name));
-        map.insert("molecule_type".into(), Value::Str(d.molecule_type));
-        map.insert("max_phase".into(), Value::Int(d.max_clinical_trial_phase as i64));
-        map.insert("indication".into(), Value::Str(d.indication));
-        Value::Record((map).into())
-    }).collect();
+    let items: Vec<Value> = drugs
+        .into_iter()
+        .map(|d| {
+            let mut map = HashMap::new();
+            map.insert("id".into(), Value::Str(d.id));
+            map.insert("name".into(), Value::Str(d.name));
+            map.insert("molecule_type".into(), Value::Str(d.molecule_type));
+            map.insert(
+                "max_phase".into(),
+                Value::Int(d.max_clinical_trial_phase as i64),
+            );
+            map.insert("indication".into(), Value::Str(d.indication));
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
@@ -2186,13 +2356,34 @@ fn builtin_ot_safety(args: Vec<Value>) -> Result<Value> {
     let events = api_call(&format!("ot_safety(\"{gene_id}\")"), || {
         OPENTARGETS.with(|c| c.safety(gene_id))
     })?;
-    let items: Vec<Value> = events.into_iter().map(|e| {
-        let mut map = HashMap::new();
-        map.insert("event".into(), Value::Str(e.event));
-        map.insert("effects".into(), Value::List(e.effects.into_iter().map(Value::Str).collect::<Vec<_>>().into()));
-        map.insert("sources".into(), Value::List(e.sources.into_iter().map(Value::Str).collect::<Vec<_>>().into()));
-        Value::Record((map).into())
-    }).collect();
+    let items: Vec<Value> = events
+        .into_iter()
+        .map(|e| {
+            let mut map = HashMap::new();
+            map.insert("event".into(), Value::Str(e.event));
+            map.insert(
+                "effects".into(),
+                Value::List(
+                    e.effects
+                        .into_iter()
+                        .map(Value::Str)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            );
+            map.insert(
+                "sources".into(),
+                Value::List(
+                    e.sources
+                        .into_iter()
+                        .map(Value::Str)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            );
+            Value::Record((map).into())
+        })
+        .collect();
     Ok(Value::List((items).into()))
 }
 
@@ -2203,22 +2394,56 @@ fn builtin_ot_safety(args: Vec<Value>) -> Result<Value> {
 fn clinvar_variant_to_value(v: &bl_apis::clinvar::ClinVarVariant) -> Value {
     let mut map = HashMap::new();
     map.insert("uid".into(), Value::Str(v.uid.clone()));
-    map.insert("variation_name".into(), Value::Str(v.variation_name.clone()));
+    map.insert(
+        "variation_name".into(),
+        Value::Str(v.variation_name.clone()),
+    );
     map.insert("gene".into(), Value::Str(v.gene.clone()));
-    map.insert("clinical_significance".into(), Value::Str(v.clinical_significance.clone()));
+    map.insert(
+        "clinical_significance".into(),
+        Value::Str(v.clinical_significance.clone()),
+    );
     map.insert("review_status".into(), Value::Str(v.review_status.clone()));
-    map.insert("conditions".into(), Value::List(v.conditions.iter().map(|s| Value::Str(s.clone())).collect::<Vec<_>>().into()));
-    map.insert("accessions".into(), Value::List(v.accessions.iter().map(|s| Value::Str(s.clone())).collect::<Vec<_>>().into()));
+    map.insert(
+        "conditions".into(),
+        Value::List(
+            v.conditions
+                .iter()
+                .map(|s| Value::Str(s.clone()))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
+    );
+    map.insert(
+        "accessions".into(),
+        Value::List(
+            v.accessions
+                .iter()
+                .map(|s| Value::Str(s.clone()))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
+    );
     Value::Record((map).into())
 }
 
 fn builtin_clinvar_search(args: Vec<Value>) -> Result<Value> {
     let query = require_str(&args[0], "clinvar_search")?;
-    let max = if args.len() > 1 { require_int(&args[1], "clinvar_search")? as usize } else { 20 };
+    let max = if args.len() > 1 {
+        require_int(&args[1], "clinvar_search")? as usize
+    } else {
+        20
+    };
     let variants = api_call(&format!("clinvar_search(\"{query}\")"), || {
         CLINVAR.with(|c| c.search(query, max))
     })?;
-    Ok(Value::List(variants.iter().map(clinvar_variant_to_value).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        variants
+            .iter()
+            .map(clinvar_variant_to_value)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 fn builtin_clinvar_variant(args: Vec<Value>) -> Result<Value> {
@@ -2231,20 +2456,40 @@ fn builtin_clinvar_variant(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_clinvar_gene(args: Vec<Value>) -> Result<Value> {
     let gene = require_str(&args[0], "clinvar_gene")?;
-    let max = if args.len() > 1 { require_int(&args[1], "clinvar_gene")? as usize } else { 20 };
+    let max = if args.len() > 1 {
+        require_int(&args[1], "clinvar_gene")? as usize
+    } else {
+        20
+    };
     let variants = api_call(&format!("clinvar_gene(\"{gene}\")"), || {
         CLINVAR.with(|c| c.gene_variants(gene, max))
     })?;
-    Ok(Value::List(variants.iter().map(clinvar_variant_to_value).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        variants
+            .iter()
+            .map(clinvar_variant_to_value)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 fn builtin_clinvar_pathogenic(args: Vec<Value>) -> Result<Value> {
     let gene = require_str(&args[0], "clinvar_pathogenic")?;
-    let max = if args.len() > 1 { require_int(&args[1], "clinvar_pathogenic")? as usize } else { 20 };
+    let max = if args.len() > 1 {
+        require_int(&args[1], "clinvar_pathogenic")? as usize
+    } else {
+        20
+    };
     let variants = api_call(&format!("clinvar_pathogenic(\"{gene}\")"), || {
         CLINVAR.with(|c| c.pathogenic(gene, max))
     })?;
-    Ok(Value::List(variants.iter().map(clinvar_variant_to_value).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        variants
+            .iter()
+            .map(clinvar_variant_to_value)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 /// `paper_score(query, db?)` — Search PubMed and return study metadata with quality indicators.
@@ -2398,6 +2643,9 @@ fn builtin_paper_score(args: Vec<Value>) -> Result<Value> {
     map.insert("doi".into(), Value::Str(doi));
     map.insert("authors".into(), Value::List((authors).into()));
     map.insert("pub_types".into(), Value::List((pub_types).into()));
-    map.insert("quality_indicators".into(), Value::List((indicators).into()));
+    map.insert(
+        "quality_indicators".into(),
+        Value::List((indicators).into()),
+    );
     Ok(Value::Record((map).into()))
 }

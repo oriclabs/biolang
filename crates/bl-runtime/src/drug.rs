@@ -120,13 +120,17 @@ fn builtin_fit_ic50(args: Vec<Value>) -> Result<Value> {
     if concentrations.len() != viabilities.len() || concentrations.is_empty() {
         return Err(BioLangError::runtime(
             ErrorKind::TypeError,
-            "fit_ic50(): concentrations and viabilities must be non-empty and same length".to_string(),
+            "fit_ic50(): concentrations and viabilities must be non-empty and same length"
+                .to_string(),
             None,
         ));
     }
 
     let min_conc = concentrations.iter().cloned().fold(f64::INFINITY, f64::min);
-    let max_conc = concentrations.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let max_conc = concentrations
+        .iter()
+        .cloned()
+        .fold(f64::NEG_INFINITY, f64::max);
     let ic50_min = min_conc * 0.01;
     let ic50_max = max_conc * 100.0;
 
@@ -263,19 +267,23 @@ fn builtin_auc_response(args: Vec<Value>) -> Result<Value> {
         let lc0 = if pairs[i - 1].0 > 0.0 {
             pairs[i - 1].0.log10()
         } else {
-            continue
+            continue;
         };
         let lc1 = if pairs[i].0 > 0.0 {
             pairs[i].0.log10()
         } else {
-            continue
+            continue;
         };
         let dlc = lc1 - lc0;
         auc += (pairs[i - 1].1 + pairs[i].1) * 0.5 * dlc;
     }
 
     // Normalize by log range
-    let normalized = if log_range > 0.0 { auc / log_range } else { 0.0 };
+    let normalized = if log_range > 0.0 {
+        auc / log_range
+    } else {
+        0.0
+    };
     Ok(Value::Float(normalized))
 }
 

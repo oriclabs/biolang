@@ -133,7 +133,9 @@ fn json_to_value(j: &serde_json::Value) -> Value {
             }
         }
         serde_json::Value::String(s) => Value::Str(s.clone()),
-        serde_json::Value::Array(arr) => Value::List(arr.iter().map(json_to_value).collect::<Vec<_>>().into()),
+        serde_json::Value::Array(arr) => {
+            Value::List(arr.iter().map(json_to_value).collect::<Vec<_>>().into())
+        }
         serde_json::Value::Object(obj) => {
             let mut map = HashMap::new();
             for (k, v) in obj {
@@ -420,7 +422,9 @@ fn builtin_ncbi_gene(args: Vec<Value>) -> Result<Value> {
     }
 
     // Return list of IDs
-    Ok(Value::List(ids.into_iter().map(Value::Str).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        ids.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+    ))
 }
 
 /// `ncbi_sequence(accession)` — Fetch a FASTA sequence by accession.

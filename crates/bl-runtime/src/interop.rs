@@ -157,7 +157,10 @@ pub fn interpreter_for(language: &str) -> Option<String> {
 
 fn missing_interpreter(language: &str) -> BioLangError {
     let (what, hint) = if language == "py" {
-        ("Python", "install Python 3 and make sure `python3` or `python` is on PATH")
+        (
+            "Python",
+            "install Python 3 and make sure `python3` or `python` is on PATH",
+        )
     } else {
         ("R", "install R and make sure `Rscript` is on PATH")
     };
@@ -222,9 +225,17 @@ fn bindings_from(args: &[Value]) -> Result<HashMap<String, serde_json::Value>> {
     Ok(bindings)
 }
 
-fn run_driver(language: &str, code: &str, bindings: HashMap<String, serde_json::Value>) -> Result<Value> {
+fn run_driver(
+    language: &str,
+    code: &str,
+    bindings: HashMap<String, serde_json::Value>,
+) -> Result<Value> {
     let interpreter = interpreter_for(language).ok_or_else(|| missing_interpreter(language))?;
-    let driver = if language == "py" { PYTHON_DRIVER } else { R_DRIVER };
+    let driver = if language == "py" {
+        PYTHON_DRIVER
+    } else {
+        R_DRIVER
+    };
 
     // The driver goes to a temp file rather than through `-c`/`-e`: quoting a
     // multi-line program through a Windows command line mangles it. The name
@@ -413,17 +424,29 @@ mod tests {
     fn an_unconvertible_binding_names_itself_rather_than_stringifying() {
         // `value_to_json` would happily turn this into a display string, which
         // arrives in Python as meaningless text.
-        let matrix = Value::Matrix(bl_core::matrix::Matrix::new(vec![0.0], 1, 1).unwrap().into());
+        let matrix = Value::Matrix(
+            bl_core::matrix::Matrix::new(vec![0.0], 1, 1)
+                .unwrap()
+                .into(),
+        );
         let error = encode_binding("reads", &matrix).expect_err("should refuse");
         assert!(error.message.contains("reads"), "{}", error.message);
-        assert!(error.message.contains("does not convert"), "{}", error.message);
+        assert!(
+            error.message.contains("does not convert"),
+            "{}",
+            error.message
+        );
     }
 
     #[test]
     fn bindings_must_be_named() {
         let error = bindings_from(&[Value::Str("1+1".into()), Value::Int(3)])
             .expect_err("positional binding");
-        assert!(error.message.contains("record of bindings"), "{}", error.message);
+        assert!(
+            error.message.contains("record of bindings"),
+            "{}",
+            error.message
+        );
     }
 
     #[test]
@@ -461,11 +484,8 @@ mod tests {
             eprintln!("skipping: no Python on PATH");
             return;
         };
-        let result = call_interop_builtin(
-            "py",
-            vec![Value::Str("x = 6\nx * 7".into())],
-        )
-        .expect("evaluates");
+        let result =
+            call_interop_builtin("py", vec![Value::Str("x = 6\nx * 7".into())]).expect("evaluates");
         assert_eq!(result, Value::Int(42));
     }
 
@@ -527,7 +547,11 @@ mod tests {
         };
         let error = call_interop_builtin("py", vec![Value::Str("1 / 0".into())])
             .expect_err("division by zero");
-        assert!(error.message.contains("ZeroDivisionError"), "{}", error.message);
+        assert!(
+            error.message.contains("ZeroDivisionError"),
+            "{}",
+            error.message
+        );
     }
 
     #[test]

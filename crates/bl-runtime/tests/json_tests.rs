@@ -67,10 +67,13 @@ fn test_json_parse_nested_array() {
     let result = call_json_builtin("json_parse", vec![Value::Str(input.into())]).unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
-            Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+                Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -81,12 +84,15 @@ fn test_json_parse_mixed_nested() {
     if let Value::Record(map) = &result {
         assert_eq!(
             map.get("data"),
-            Some(&Value::List((vec![
-                Value::Int(1),
-                Value::Str("two".into()),
-                Value::Nil,
-                Value::Bool(true),
-            ]).into()))
+            Some(&Value::List(
+                (vec![
+                    Value::Int(1),
+                    Value::Str("two".into()),
+                    Value::Nil,
+                    Value::Bool(true),
+                ])
+                .into()
+            ))
         );
         if let Some(Value::Record(meta)) = map.get("meta") {
             assert_eq!(meta.get("count"), Some(&Value::Int(4)));
@@ -235,13 +241,16 @@ fn test_json_stringify_float() {
 
 #[test]
 fn test_json_stringify_list_mixed_types() {
-    let list = Value::List((vec![
-        Value::Int(1),
-        Value::Str("two".into()),
-        Value::Bool(false),
-        Value::Nil,
-        Value::Float(3.5),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Int(1),
+            Value::Str("two".into()),
+            Value::Bool(false),
+            Value::Nil,
+            Value::Float(3.5),
+        ])
+        .into(),
+    );
     let result = call_json_builtin("json_stringify", vec![list]).unwrap();
     if let Value::Str(s) = &result {
         // Parse it back to verify structure
@@ -290,7 +299,11 @@ fn test_json_stringify_empty_list() {
 
 #[test]
 fn test_json_stringify_empty_record() {
-    let result = call_json_builtin("json_stringify", vec![Value::Record((HashMap::new()).into())]).unwrap();
+    let result = call_json_builtin(
+        "json_stringify",
+        vec![Value::Record((HashMap::new()).into())],
+    )
+    .unwrap();
     if let Value::Str(s) = &result {
         assert_eq!(s.trim(), "{}");
     } else {
@@ -302,11 +315,8 @@ fn test_json_stringify_empty_record() {
 
 #[test]
 fn test_json_roundtrip_list() {
-    let original = Value::List((vec![
-        Value::Int(1),
-        Value::Str("two".into()),
-        Value::Bool(true),
-    ]).into());
+    let original =
+        Value::List((vec![Value::Int(1), Value::Str("two".into()), Value::Bool(true)]).into());
     let json_str = call_json_builtin("json_stringify", vec![original.clone()]).unwrap();
     let parsed = call_json_builtin("json_parse", vec![json_str]).unwrap();
     assert_eq!(original, parsed);
@@ -344,7 +354,8 @@ fn test_json_roundtrip_nested() {
     outer.insert("data".to_string(), Value::Record((inner).into()));
     outer.insert("count".to_string(), Value::Int(2));
 
-    let json_str = call_json_builtin("json_stringify", vec![Value::Record((outer).into())]).unwrap();
+    let json_str =
+        call_json_builtin("json_stringify", vec![Value::Record((outer).into())]).unwrap();
     let parsed = call_json_builtin("json_parse", vec![json_str]).unwrap();
     if let Value::Record(rec) = &parsed {
         assert_eq!(rec.get("count"), Some(&Value::Int(2)));
@@ -375,12 +386,15 @@ fn test_json_double_roundtrip() {
     if let Value::Record(rec) = &final_val {
         assert_eq!(
             rec.get("key"),
-            Some(&Value::List((vec![
-                Value::Int(1),
-                Value::Str("two".into()),
-                Value::Nil,
-                Value::Bool(true),
-            ]).into()))
+            Some(&Value::List(
+                (vec![
+                    Value::Int(1),
+                    Value::Str("two".into()),
+                    Value::Nil,
+                    Value::Bool(true),
+                ])
+                .into()
+            ))
         );
     } else {
         panic!("expected Record");

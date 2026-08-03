@@ -2,10 +2,20 @@ use bl_core::value::{Table, Value};
 use bl_runtime::stats::call_stats_builtin;
 
 fn int_list(vals: &[i64]) -> Value {
-    Value::List(vals.iter().map(|v| Value::Int(*v)).collect::<Vec<_>>().into())
+    Value::List(
+        vals.iter()
+            .map(|v| Value::Int(*v))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 fn float_list(vals: &[f64]) -> Value {
-    Value::List(vals.iter().map(|v| Value::Float(*v)).collect::<Vec<_>>().into())
+    Value::List(
+        vals.iter()
+            .map(|v| Value::Float(*v))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn get_record_float(val: &Value, key: &str) -> f64 {
@@ -123,12 +133,7 @@ fn test_cumsum() {
     let result = call_stats_builtin("cumsum", vec![int_list(&[1, 2, 3, 4])]).unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Int(1),
-            Value::Int(3),
-            Value::Int(6),
-            Value::Int(10)
-        ]).into())
+        Value::List((vec![Value::Int(1), Value::Int(3), Value::Int(6), Value::Int(10)]).into())
     );
 }
 
@@ -300,11 +305,14 @@ fn test_ttest_one_known() {
 
 #[test]
 fn test_anova_same_groups() {
-    let groups = Value::List((vec![
-        float_list(&[5.0, 5.1, 4.9]),
-        float_list(&[5.0, 5.1, 4.9]),
-        float_list(&[5.0, 5.1, 4.9]),
-    ]).into());
+    let groups = Value::List(
+        (vec![
+            float_list(&[5.0, 5.1, 4.9]),
+            float_list(&[5.0, 5.1, 4.9]),
+            float_list(&[5.0, 5.1, 4.9]),
+        ])
+        .into(),
+    );
     let result = call_stats_builtin("anova", vec![groups]).unwrap();
     let p = get_record_float(&result, "p_value");
     assert!(p > 0.5, "p={p} should be high for identical groups");
@@ -547,17 +555,9 @@ fn test_random_int() {
 fn test_set_seed_reproduces_random_sequence() {
     call_stats_builtin("set_seed", vec![Value::Int(42)]).unwrap();
     let first = call_stats_builtin("random", vec![]).unwrap();
-    let first_int =
-        call_stats_builtin("random_int", vec![Value::Int(10), Value::Int(20)]).unwrap();
-    let population = Value::List(
-        vec![
-            Value::Int(1),
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4),
-        ]
-        .into(),
-    );
+    let first_int = call_stats_builtin("random_int", vec![Value::Int(10), Value::Int(20)]).unwrap();
+    let population =
+        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)].into());
     let first_sample =
         call_stats_builtin("sample", vec![population.clone(), Value::Int(2)]).unwrap();
 
@@ -575,15 +575,8 @@ fn test_set_seed_reproduces_random_sequence() {
 
 #[test]
 fn test_hist_returns_rendered_text() {
-    let values = Value::List(
-        vec![
-            Value::Int(1),
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4),
-        ]
-        .into(),
-    );
+    let values =
+        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)].into());
     let result = call_stats_builtin("hist", vec![values, Value::Int(2)]).unwrap();
 
     if let Value::Str(output) = result {
@@ -1096,11 +1089,14 @@ fn test_ttest_paired_basic() {
 
 #[test]
 fn test_anova_different_groups() {
-    let groups = Value::List((vec![
-        float_list(&[1.0, 2.0, 3.0]),
-        float_list(&[10.0, 11.0, 12.0]),
-        float_list(&[20.0, 21.0, 22.0]),
-    ]).into());
+    let groups = Value::List(
+        (vec![
+            float_list(&[1.0, 2.0, 3.0]),
+            float_list(&[10.0, 11.0, 12.0]),
+            float_list(&[20.0, 21.0, 22.0]),
+        ])
+        .into(),
+    );
     let result = call_stats_builtin("anova", vec![groups]).unwrap();
     let p = get_record_float(&result, "p_value");
     assert!(p < 0.01, "p={p} should be very small for distinct groups");
@@ -1569,13 +1565,16 @@ fn test_kendall_perfect_concordance() {
 #[test]
 fn test_kaplan_meier_basic() {
     let times = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
-    let events = Value::List((vec![
-        Value::Bool(true),
-        Value::Bool(true),
-        Value::Bool(false),
-        Value::Bool(true),
-        Value::Bool(false),
-    ]).into());
+    let events = Value::List(
+        (vec![
+            Value::Bool(true),
+            Value::Bool(true),
+            Value::Bool(false),
+            Value::Bool(true),
+            Value::Bool(false),
+        ])
+        .into(),
+    );
     let result = call_stats_builtin("kaplan_meier", vec![times, events]).unwrap();
     if let Value::Record(map) = &result {
         assert!(map.contains_key("times"));
@@ -1599,26 +1598,32 @@ fn test_kaplan_meier_int_events() {
 #[test]
 fn test_cox_ph_basic() {
     let times = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
-    let events = Value::List((vec![
-        Value::Bool(true),
-        Value::Bool(true),
-        Value::Bool(false),
-        Value::Bool(true),
-        Value::Bool(true),
-        Value::Bool(false),
-        Value::Bool(true),
-        Value::Bool(true),
-    ]).into());
-    let covariates = Value::List((vec![
-        float_list(&[1.0]),
-        float_list(&[2.0]),
-        float_list(&[1.5]),
-        float_list(&[3.0]),
-        float_list(&[2.5]),
-        float_list(&[1.0]),
-        float_list(&[3.5]),
-        float_list(&[2.0]),
-    ]).into());
+    let events = Value::List(
+        (vec![
+            Value::Bool(true),
+            Value::Bool(true),
+            Value::Bool(false),
+            Value::Bool(true),
+            Value::Bool(true),
+            Value::Bool(false),
+            Value::Bool(true),
+            Value::Bool(true),
+        ])
+        .into(),
+    );
+    let covariates = Value::List(
+        (vec![
+            float_list(&[1.0]),
+            float_list(&[2.0]),
+            float_list(&[1.5]),
+            float_list(&[3.0]),
+            float_list(&[2.5]),
+            float_list(&[1.0]),
+            float_list(&[3.5]),
+            float_list(&[2.0]),
+        ])
+        .into(),
+    );
     let result = call_stats_builtin("cox_ph", vec![times, events, covariates]).unwrap();
     if let Value::Record(map) = &result {
         assert!(map.contains_key("coefficients"));
@@ -1690,16 +1695,19 @@ fn test_format_sequential_placeholders() {
 
 #[test]
 fn test_variance_mixed_types() {
-    let list = Value::List((vec![
-        Value::Int(2),
-        Value::Float(4.0),
-        Value::Int(4),
-        Value::Float(4.0),
-        Value::Int(5),
-        Value::Int(5),
-        Value::Int(7),
-        Value::Int(9),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Int(2),
+            Value::Float(4.0),
+            Value::Int(4),
+            Value::Float(4.0),
+            Value::Int(5),
+            Value::Int(5),
+            Value::Int(7),
+            Value::Int(9),
+        ])
+        .into(),
+    );
     let result = call_stats_builtin("variance", vec![list]).unwrap();
     if let Value::Float(v) = result {
         assert!((v - 4.571).abs() < 0.01, "variance={v}");

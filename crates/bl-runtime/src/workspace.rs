@@ -28,7 +28,11 @@ use serde_json::{json, Map as JMap, Value as J};
 const TAG: &str = "__t";
 
 fn err(msg: impl Into<String>) -> BioLangError {
-    BioLangError::runtime(ErrorKind::IOError, format!("workspace: {}", msg.into()), None)
+    BioLangError::runtime(
+        ErrorKind::IOError,
+        format!("workspace: {}", msg.into()),
+        None,
+    )
 }
 
 fn tagged(t: &str, pairs: Vec<(&str, J)>) -> J {
@@ -63,11 +67,17 @@ pub fn encode(v: &Value) -> Option<J> {
         Value::List(items) => J::Array(items.iter().map(encode).collect::<Option<Vec<_>>>()?),
         Value::Tuple(items) => tagged(
             "tuple",
-            vec![("v", J::Array(items.iter().map(encode).collect::<Option<Vec<_>>>()?))],
+            vec![(
+                "v",
+                J::Array(items.iter().map(encode).collect::<Option<Vec<_>>>()?),
+            )],
         ),
         Value::Set(items) => tagged(
             "set",
-            vec![("v", J::Array(items.iter().map(encode).collect::<Option<Vec<_>>>()?))],
+            vec![(
+                "v",
+                J::Array(items.iter().map(encode).collect::<Option<Vec<_>>>()?),
+            )],
         ),
         Value::Map(m) => tagged("map", vec![("v", encode_obj(m)?)]),
         Value::Record(m) => tagged("rec", vec![("v", encode_obj(m)?)]),
@@ -80,7 +90,12 @@ pub fn encode(v: &Value) -> Option<J> {
                     J::Array(
                         t.rows
                             .iter()
-                            .map(|r| r.iter().map(encode).collect::<Option<Vec<_>>>().map(J::Array))
+                            .map(|r| {
+                                r.iter()
+                                    .map(encode)
+                                    .collect::<Option<Vec<_>>>()
+                                    .map(J::Array)
+                            })
                             .collect::<Option<Vec<_>>>()?,
                     ),
                 ),
@@ -177,9 +192,15 @@ pub fn decode(j: &J) -> Result<Value> {
                     m.col_names = names_of(o.get("col_names"));
                     Value::Matrix(m)
                 }
-                "dna" => Value::DNA(BioSequence { data: str_of(o.get("v")) }),
-                "rna" => Value::RNA(BioSequence { data: str_of(o.get("v")) }),
-                "prot" => Value::Protein(BioSequence { data: str_of(o.get("v")) }),
+                "dna" => Value::DNA(BioSequence {
+                    data: str_of(o.get("v")),
+                }),
+                "rna" => Value::RNA(BioSequence {
+                    data: str_of(o.get("v")),
+                }),
+                "prot" => Value::Protein(BioSequence {
+                    data: str_of(o.get("v")),
+                }),
                 other => return Err(err(format!("unknown type tag '{other}'"))),
             }
         }
@@ -207,8 +228,11 @@ fn str_of(j: Option<&J>) -> String {
 }
 
 fn names_of(j: Option<&J>) -> Option<Vec<String>> {
-    j?.as_array()
-        .map(|a| a.iter().map(|x| x.as_str().unwrap_or("").to_string()).collect())
+    j?.as_array().map(|a| {
+        a.iter()
+            .map(|x| x.as_str().unwrap_or("").to_string())
+            .collect()
+    })
 }
 
 /// What a save call managed to record.
@@ -248,7 +272,8 @@ pub fn save<'a>(
 
     let bytes: Vec<u8> = if path.ends_with(".gz") {
         let mut enc = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
-        enc.write_all(&text).map_err(|e| err(format!("gzip: {e}")))?;
+        enc.write_all(&text)
+            .map_err(|e| err(format!("gzip: {e}")))?;
         enc.finish().map_err(|e| err(format!("gzip: {e}")))?
     } else {
         text
@@ -261,17 +286,21 @@ pub fn save<'a>(
     }
     std::fs::write(path, &bytes).map_err(|e| err(format!("cannot write '{path}': {e}")))?;
 
-    Ok(SaveReport { saved, skipped, bytes: bytes.len() as u64 })
+    Ok(SaveReport {
+        saved,
+        skipped,
+        bytes: bytes.len() as u64,
+    })
 }
 
 /// Read bindings back. Returns them sorted by name.
 pub fn load(path: &str) -> Result<Vec<(String, Value)>> {
-    let raw =
-        std::fs::read(path).map_err(|e| err(format!("cannot read '{path}': {e}")))?;
+    let raw = std::fs::read(path).map_err(|e| err(format!("cannot read '{path}': {e}")))?;
     let text = if path.ends_with(".gz") || raw.starts_with(&[0x1f, 0x8b]) {
         let mut d = flate2::read::GzDecoder::new(&raw[..]);
         let mut s = Vec::new();
-        d.read_to_end(&mut s).map_err(|e| err(format!("gunzip: {e}")))?;
+        d.read_to_end(&mut s)
+            .map_err(|e| err(format!("gunzip: {e}")))?;
         s
     } else {
         raw

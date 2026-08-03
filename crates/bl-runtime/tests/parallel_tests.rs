@@ -19,13 +19,16 @@ par_map(xs, |x| x * 2)
 "#;
     assert_eq!(
         eval(code),
-        Value::List((vec![
-            Value::Int(2),
-            Value::Int(4),
-            Value::Int(6),
-            Value::Int(8),
-            Value::Int(10),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Int(2),
+                Value::Int(4),
+                Value::Int(6),
+                Value::Int(8),
+                Value::Int(10),
+            ])
+            .into()
+        )
     );
 }
 
@@ -59,13 +62,16 @@ par_map(xs, |x| x)
 "#;
     assert_eq!(
         eval(code),
-        Value::List((vec![
-            Value::Int(5),
-            Value::Int(4),
-            Value::Int(3),
-            Value::Int(2),
-            Value::Int(1),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Int(5),
+                Value::Int(4),
+                Value::Int(3),
+                Value::Int(2),
+                Value::Int(1),
+            ])
+            .into()
+        )
     );
 }
 
@@ -198,12 +204,15 @@ result
 "#;
     assert_eq!(
         eval(code),
-        Value::List((vec![
-            Value::Str("HELLO".into()),
-            Value::Str("WORLD".into()),
-            Value::Str("FOO".into()),
-            Value::Str("BAR".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("HELLO".into()),
+                Value::Str("WORLD".into()),
+                Value::Str("FOO".into()),
+                Value::Str("BAR".into()),
+            ])
+            .into()
+        )
     );
 }
 

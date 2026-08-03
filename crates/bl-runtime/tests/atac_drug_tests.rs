@@ -6,11 +6,21 @@ mod drug;
 use bl_core::value::{Table, Value};
 
 fn make_list_int(vals: &[i64]) -> Value {
-    Value::List(vals.iter().map(|&n| Value::Int(n)).collect::<Vec<_>>().into())
+    Value::List(
+        vals.iter()
+            .map(|&n| Value::Int(n))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn make_list_float(vals: &[f64]) -> Value {
-    Value::List(vals.iter().map(|&f| Value::Float(f)).collect::<Vec<_>>().into())
+    Value::List(
+        vals.iter()
+            .map(|&f| Value::Float(f))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn get_float(v: &Value) -> f64 {
@@ -50,11 +60,8 @@ fn test_fragment_size_dist_bins() {
     // 5 fragments in [0,10), 3 in [150,160)
     let mut lengths = vec![5i64; 5];
     lengths.extend(vec![155i64; 3]);
-    let result = atac::call_atac_builtin(
-        "fragment_size_dist",
-        vec![make_list_int(&lengths)],
-    )
-    .unwrap();
+    let result =
+        atac::call_atac_builtin("fragment_size_dist", vec![make_list_int(&lengths)]).unwrap();
 
     let table = match result {
         Value::Table(t) => t,
@@ -101,12 +108,10 @@ fn test_nucleosome_fractions_sum_to_one() {
     let result =
         atac::call_atac_builtin("nucleosome_fractions", vec![make_list_int(&lengths)]).unwrap();
     let total = match &result {
-        Value::Record(m) => {
-            ["sub_nfr", "nfr", "mono", "di", "tri", "higher"]
-                .iter()
-                .map(|k| get_float(m.get(*k).unwrap()))
-                .sum::<f64>()
-        }
+        Value::Record(m) => ["sub_nfr", "nfr", "mono", "di", "tri", "higher"]
+            .iter()
+            .map(|k| get_float(m.get(*k).unwrap()))
+            .sum::<f64>(),
         _ => panic!("expected Record"),
     };
     assert!((total - 1.0).abs() < 1e-9);
@@ -125,8 +130,14 @@ fn test_atac_qc_metrics() {
     let large_frac = get_record_float(&result, "fraction_large");
     assert!((large_frac - 0.1).abs() < 1e-9);
     // all required keys present
-    let keys = ["n_fragments", "nfr_fraction", "mono_fraction", "nfr_enrichment",
-                 "median_fragment_size", "fraction_large"];
+    let keys = [
+        "n_fragments",
+        "nfr_fraction",
+        "mono_fraction",
+        "nfr_enrichment",
+        "median_fragment_size",
+        "fraction_large",
+    ];
     match &result {
         Value::Record(m) => {
             for k in &keys {
@@ -168,8 +179,8 @@ fn test_dose_response_curve_formula() {
         "dose_response_curve",
         vec![
             make_list_float(&concs),
-            Value::Float(1.0), // ic50
-            Value::Float(1.0), // slope
+            Value::Float(1.0),   // ic50
+            Value::Float(1.0),   // slope
             Value::Float(100.0), // top
             Value::Float(0.0),   // bottom
         ],
@@ -180,7 +191,10 @@ fn test_dose_response_curve_formula() {
         Value::List(vals) => {
             // At conc=1.0 (index 1), viability = 100/(1+1) = 50
             let mid = get_float(&vals[1]);
-            assert!((mid - 50.0).abs() < 1e-6, "at IC50 viability should be 50, got {mid}");
+            assert!(
+                (mid - 50.0).abs() < 1e-6,
+                "at IC50 viability should be 50, got {mid}"
+            );
             // At conc=0.5 < IC50, viability should be < 50
             assert!(get_float(&vals[0]) < 50.0);
             // At conc=2.0 > IC50, viability should be > 50
@@ -211,15 +225,14 @@ fn test_bliss_synergy_known() {
     // Observed combo: 30% → synergy = 30 - 40 = -10 (antagonism)
     let result = drug::call_drug_builtin(
         "bliss_synergy",
-        vec![
-            Value::Float(80.0),
-            Value::Float(50.0),
-            Value::Float(30.0),
-        ],
+        vec![Value::Float(80.0), Value::Float(50.0), Value::Float(30.0)],
     )
     .unwrap();
     let synergy = get_float(&result);
-    assert!((synergy - (-10.0)).abs() < 1e-6, "expected -10, got {synergy}");
+    assert!(
+        (synergy - (-10.0)).abs() < 1e-6,
+        "expected -10, got {synergy}"
+    );
 }
 
 #[test]
@@ -228,16 +241,19 @@ fn test_loewe_synergy_additivity() {
     let result = drug::call_drug_builtin(
         "loewe_synergy",
         vec![
-            Value::Float(2.0), // ic50_a
-            Value::Float(4.0), // ic50_b
-            Value::Float(1.0), // conc_a = 0.5 * ic50_a
-            Value::Float(2.0), // conc_b = 0.5 * ic50_b
+            Value::Float(2.0),  // ic50_a
+            Value::Float(4.0),  // ic50_b
+            Value::Float(1.0),  // conc_a = 0.5 * ic50_a
+            Value::Float(2.0),  // conc_b = 0.5 * ic50_b
             Value::Float(50.0), // observed (unused in formula)
         ],
     )
     .unwrap();
     let synergy = get_float(&result);
-    assert!((synergy - 0.0).abs() < 1e-9, "Loewe additive CI=1 → synergy=0, got {synergy}");
+    assert!(
+        (synergy - 0.0).abs() < 1e-9,
+        "Loewe additive CI=1 → synergy=0, got {synergy}"
+    );
 }
 
 #[test]

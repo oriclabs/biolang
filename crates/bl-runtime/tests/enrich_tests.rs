@@ -5,7 +5,13 @@ use std::collections::HashMap;
 // ── Helpers ──────────────────────────────────────────────────────
 
 fn gene_list(genes: &[&str]) -> Value {
-    Value::List(genes.iter().map(|g| Value::Str(g.to_string())).collect::<Vec<_>>().into())
+    Value::List(
+        genes
+            .iter()
+            .map(|g| Value::Str(g.to_string()))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn gene_sets(sets: Vec<(&str, Vec<&str>)>) -> Value {
@@ -13,7 +19,13 @@ fn gene_sets(sets: Vec<(&str, Vec<&str>)>) -> Value {
     for (name, genes) in sets {
         map.insert(
             name.to_string(),
-            Value::List(genes.iter().map(|g| Value::Str(g.to_string())).collect::<Vec<_>>().into()),
+            Value::List(
+                genes
+                    .iter()
+                    .map(|g| Value::Str(g.to_string()))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         );
     }
     Value::Map((map).into())
@@ -378,7 +390,11 @@ fn test_gsea_is_deterministic_without_a_seed() {
 
 #[test]
 fn test_gsea_seed_is_honored_and_changes_the_null() {
-    assert_eq!(gsea_run(Some(7)), gsea_run(Some(7)), "same seed must repeat");
+    assert_eq!(
+        gsea_run(Some(7)),
+        gsea_run(Some(7)),
+        "same seed must repeat"
+    );
     assert_ne!(
         gsea_run(Some(7)),
         gsea_run(Some(99)),

@@ -110,7 +110,13 @@ fn col_means(table: &Table, col_indices: &[usize]) -> Result<Vec<f64>> {
     for (row_idx, row) in table.rows.iter().enumerate() {
         let sum: f64 = col_indices
             .iter()
-            .map(|&ci| if ci < row.len() { to_f64(&row[ci]) } else { 0.0 })
+            .map(|&ci| {
+                if ci < row.len() {
+                    to_f64(&row[ci])
+                } else {
+                    0.0
+                }
+            })
             .sum();
         means[row_idx] = sum / n_sample_cols as f64;
     }
@@ -124,11 +130,22 @@ fn builtin_guide_counts(args: Vec<Value>) -> Result<Value> {
 
     let mut lines = text.lines().filter(|l| !l.starts_with('#'));
     let header_line = lines.next().ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::TypeError, "guide_counts(): empty input".to_string(), None)
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            "guide_counts(): empty input".to_string(),
+            None,
+        )
     })?;
 
-    let sep = if header_line.contains('\t') { '\t' } else { ',' };
-    let headers: Vec<String> = header_line.split(sep).map(|s| s.trim().to_string()).collect();
+    let sep = if header_line.contains('\t') {
+        '\t'
+    } else {
+        ','
+    };
+    let headers: Vec<String> = header_line
+        .split(sep)
+        .map(|s| s.trim().to_string())
+        .collect();
 
     if headers.len() < 2 {
         return Err(BioLangError::runtime(
@@ -229,7 +246,11 @@ fn builtin_mageck_score(args: Vec<Value>) -> Result<Value> {
 
     // Rank LFC ascending (index of sorted order)
     let mut order: Vec<usize> = (0..n).collect();
-    order.sort_by(|&a, &b| lfc_vec[a].partial_cmp(&lfc_vec[b]).unwrap_or(std::cmp::Ordering::Equal));
+    order.sort_by(|&a, &b| {
+        lfc_vec[a]
+            .partial_cmp(&lfc_vec[b])
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     let mut ranks = vec![0usize; n];
     for (rank, &idx) in order.iter().enumerate() {
         ranks[idx] = rank + 1; // 1-based
@@ -274,8 +295,14 @@ fn builtin_mageck_score(args: Vec<Value>) -> Result<Value> {
 
     // Sort by rra_score ascending
     gene_rows.sort_by(|a, b| {
-        let ra = match &a[2] { Value::Float(f) => *f, _ => f64::MAX };
-        let rb = match &b[2] { Value::Float(f) => *f, _ => f64::MAX };
+        let ra = match &a[2] {
+            Value::Float(f) => *f,
+            _ => f64::MAX,
+        };
+        let rb = match &b[2] {
+            Value::Float(f) => *f,
+            _ => f64::MAX,
+        };
         ra.partial_cmp(&rb).unwrap_or(std::cmp::Ordering::Equal)
     });
 
@@ -348,7 +375,13 @@ fn builtin_crispr_qc(args: Vec<Value>) -> Result<Value> {
         .map(|row| {
             sample_cols
                 .iter()
-                .map(|&ci| if ci < row.len() { to_f64(&row[ci]) } else { 0.0 })
+                .map(|&ci| {
+                    if ci < row.len() {
+                        to_f64(&row[ci])
+                    } else {
+                        0.0
+                    }
+                })
                 .sum()
         })
         .collect();
@@ -374,7 +407,10 @@ fn builtin_crispr_qc(args: Vec<Value>) -> Result<Value> {
     let mut rec = HashMap::new();
     rec.insert("n_guides".to_string(), Value::Int(n_guides));
     rec.insert("n_genes".to_string(), Value::Int(n_genes));
-    rec.insert("zero_count_guides".to_string(), Value::Int(zero_count_guides));
+    rec.insert(
+        "zero_count_guides".to_string(),
+        Value::Int(zero_count_guides),
+    );
     rec.insert("gini_coefficient".to_string(), Value::Float(gini));
 
     Ok(Value::Record((rec).into()))

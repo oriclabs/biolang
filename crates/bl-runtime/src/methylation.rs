@@ -162,7 +162,11 @@ fn welch_ttest(a: &[f64], b: &[f64]) -> (f64, f64) {
     if se == 0.0 {
         // No within-group variance — perfectly separated if means differ
         let diff = (vec_mean(a) - vec_mean(b)).abs();
-        return if diff > 0.0 { (f64::INFINITY, 0.0) } else { (0.0, 1.0) };
+        return if diff > 0.0 {
+            (f64::INFINITY, 0.0)
+        } else {
+            (0.0, 1.0)
+        };
     }
     let t = (vec_mean(a) - vec_mean(b)) / se;
     let s2a = va / na;

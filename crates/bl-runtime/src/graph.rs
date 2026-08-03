@@ -314,7 +314,9 @@ fn builtin_neighbors(args: Vec<Value>) -> Result<Value> {
     }
     nbrs.sort();
     nbrs.dedup();
-    Ok(Value::List(nbrs.into_iter().map(Value::Str).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        nbrs.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+    ))
 }
 
 /// degree(g, node_id) → Int
@@ -386,7 +388,9 @@ fn builtin_shortest_path(args: Vec<Value>) -> Result<Value> {
     while let Some(path) = queue.pop_front() {
         let current = path.last().unwrap();
         if *current == to {
-            return Ok(Value::List(path.into_iter().map(Value::Str).collect::<Vec<_>>().into()));
+            return Ok(Value::List(
+                path.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+            ));
         }
         if let Some(neighbors) = adj.get(current) {
             for nbr in neighbors {
@@ -454,7 +458,9 @@ fn builtin_nodes(args: Vec<Value>) -> Result<Value> {
     let nodes = get_nodes(g);
     let mut ids: Vec<String> = nodes.keys().cloned().collect();
     ids.sort();
-    Ok(Value::List(ids.into_iter().map(Value::Str).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        ids.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+    ))
 }
 
 /// edges(g) → Table{from, to, weight}

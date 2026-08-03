@@ -122,12 +122,7 @@ fn row_f64(row: &[Value], col: usize) -> f64 {
 fn builtin_pdb_parse(args: Vec<Value>) -> Result<Value> {
     let text = match &args[0] {
         Value::Str(s) => s.clone(),
-        _ => {
-            return Err(BioLangError::type_error(
-                "pdb_parse() requires Str",
-                None,
-            ))
-        }
+        _ => return Err(BioLangError::type_error("pdb_parse() requires Str", None)),
     };
     let mut rows: Vec<Vec<Value>> = Vec::new();
     for line in text.lines() {
@@ -140,10 +135,22 @@ fn builtin_pdb_parse(args: Vec<Value>) -> Result<Value> {
         let res_name = line.get(17..20).map(str::trim).unwrap_or("").to_string();
         let chain = line.get(21..22).map(str::trim).unwrap_or("").to_string();
         let resseq = line.get(22..26).map(str::trim).unwrap_or("").to_string();
-        let x: f64 = line.get(30..38).and_then(|s| s.trim().parse().ok()).unwrap_or(0.0);
-        let y: f64 = line.get(38..46).and_then(|s| s.trim().parse().ok()).unwrap_or(0.0);
-        let z: f64 = line.get(46..54).and_then(|s| s.trim().parse().ok()).unwrap_or(0.0);
-        let bfactor: f64 = line.get(60..66).and_then(|s| s.trim().parse().ok()).unwrap_or(0.0);
+        let x: f64 = line
+            .get(30..38)
+            .and_then(|s| s.trim().parse().ok())
+            .unwrap_or(0.0);
+        let y: f64 = line
+            .get(38..46)
+            .and_then(|s| s.trim().parse().ok())
+            .unwrap_or(0.0);
+        let z: f64 = line
+            .get(46..54)
+            .and_then(|s| s.trim().parse().ok())
+            .unwrap_or(0.0);
+        let bfactor: f64 = line
+            .get(60..66)
+            .and_then(|s| s.trim().parse().ok())
+            .unwrap_or(0.0);
         let element = line.get(76..78).map(str::trim).unwrap_or("").to_string();
         rows.push(vec![
             Value::Str(rec.to_string()),
@@ -290,7 +297,11 @@ fn svd3(a: [[f64; 3]; 3]) -> ([[f64; 3]; 3], [f64; 3], [[f64; 3]; 3]) {
     let (v, s_sq) = jacobi_eigen3(ata);
     // Sort descending by singular value for stability
     let mut order = [0usize, 1, 2];
-    order.sort_by(|&i, &j| s_sq[j].partial_cmp(&s_sq[i]).unwrap_or(std::cmp::Ordering::Equal));
+    order.sort_by(|&i, &j| {
+        s_sq[j]
+            .partial_cmp(&s_sq[i])
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     let s_sq_sorted = [s_sq[order[0]], s_sq[order[1]], s_sq[order[2]]];
     let v_sorted = [
         [v[0][order[0]], v[0][order[1]], v[0][order[2]]],
@@ -456,12 +467,7 @@ fn builtin_secondary_structure(args: Vec<Value>) -> Result<Value> {
         }
     }
     let rows: Vec<Vec<Value>> = (0..n)
-        .map(|i| {
-            vec![
-                Value::Int(i as i64),
-                Value::Str(assignments[i].to_string()),
-            ]
-        })
+        .map(|i| vec![Value::Int(i as i64), Value::Str(assignments[i].to_string())])
         .collect();
     Ok(Value::Table(Table::new(
         vec!["residue".to_string(), "ss".to_string()],

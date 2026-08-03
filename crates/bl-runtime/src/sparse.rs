@@ -279,7 +279,12 @@ fn builtin_sparse_row_sums(args: Vec<Value>) -> Result<Value> {
     match &args[0] {
         Value::SparseMatrix(sm) => {
             let sums = sm.row_sums();
-            Ok(Value::List(sums.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
+            Ok(Value::List(
+                sums.into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ))
         }
         other => Err(BioLangError::type_error(
             format!(
@@ -295,7 +300,12 @@ fn builtin_sparse_col_sums(args: Vec<Value>) -> Result<Value> {
     match &args[0] {
         Value::SparseMatrix(sm) => {
             let sums = sm.col_sums();
-            Ok(Value::List(sums.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
+            Ok(Value::List(
+                sums.into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ))
         }
         other => Err(BioLangError::type_error(
             format!(

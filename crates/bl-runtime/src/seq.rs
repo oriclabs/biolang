@@ -260,7 +260,8 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 positions
                     .into_iter()
                     .map(|p| Value::Int(p as i64))
-                    .collect::<Vec<_>>().into(),
+                    .collect::<Vec<_>>()
+                    .into(),
             ))
         }
         "kmers" => {
@@ -271,7 +272,8 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 result
                     .into_iter()
                     .map(|s| Value::Str(s.to_string()))
-                    .collect::<Vec<_>>().into(),
+                    .collect::<Vec<_>>()
+                    .into(),
             ))
         }
         "find_orfs" => {
@@ -472,7 +474,13 @@ pub fn call_seq_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     fields.insert("representative".to_string(), Value::Int(rep as i64));
                     fields.insert(
                         "members".to_string(),
-                        Value::List(members.iter().map(|&m| Value::Int(m as i64)).collect::<Vec<_>>().into()),
+                        Value::List(
+                            members
+                                .iter()
+                                .map(|&m| Value::Int(m as i64))
+                                .collect::<Vec<_>>()
+                                .into(),
+                        ),
                     );
                     fields.insert("size".to_string(), Value::Int(members.len() as i64));
                     Value::Record((fields).into())
@@ -879,7 +887,8 @@ fn resolve_ncbi(identifier: &str, id_type: &str) -> Result<Value> {
         Some(s) if !s.is_empty() => Value::List(
             s.split(',')
                 .map(|a| Value::Str(a.trim().to_string()))
-                .collect::<Vec<_>>().into(),
+                .collect::<Vec<_>>()
+                .into(),
         ),
         _ => Value::List((vec![]).into()),
     };
@@ -1957,7 +1966,13 @@ fn builtin_go_enrichment(args: &[Value]) -> Result<Value> {
         fields.insert("overlap".to_string(), Value::Str(format!("{}/{}", k, n)));
         fields.insert(
             "genes".to_string(),
-            Value::List(overlap.iter().map(|g| Value::Str(g.clone())).collect::<Vec<_>>().into()),
+            Value::List(
+                overlap
+                    .iter()
+                    .map(|g| Value::Str(g.clone()))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         );
 
         results.push((pvalue, Value::Record((fields).into())));
@@ -3628,7 +3643,13 @@ fn builtin_kmer_index(args: Vec<Value>) -> Result<Value> {
         .map(|(kmer, positions)| {
             (
                 kmer,
-                Value::List(positions.into_iter().map(Value::Int).collect::<Vec<_>>().into()),
+                Value::List(
+                    positions
+                        .into_iter()
+                        .map(Value::Int)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
             )
         })
         .collect();
@@ -4775,27 +4796,29 @@ fn extract_chrom_sizes(val: &Value, func: &str) -> Result<Vec<(String, usize)>> 
             for item in list.iter() {
                 match item {
                     Value::Record(fields) => {
-                        let chrom =
-                            match fields.get("chrom") {
-                                Some(Value::Str(s)) => s.clone(),
-                                _ => return Err(BioLangError::type_error(
+                        let chrom = match fields.get("chrom") {
+                            Some(Value::Str(s)) => s.clone(),
+                            _ => {
+                                return Err(BioLangError::type_error(
                                     format!(
                                         "{func}() chrom_sizes records must have 'chrom' Str field"
                                     ),
                                     None,
-                                )),
-                            };
-                        let sz =
-                            match fields.get("size") {
-                                Some(Value::Int(n)) => *n as usize,
-                                Some(Value::Float(f)) => *f as usize,
-                                _ => return Err(BioLangError::type_error(
+                                ))
+                            }
+                        };
+                        let sz = match fields.get("size") {
+                            Some(Value::Int(n)) => *n as usize,
+                            Some(Value::Float(f)) => *f as usize,
+                            _ => {
+                                return Err(BioLangError::type_error(
                                     format!(
                                         "{func}() chrom_sizes records must have 'size' Int field"
                                     ),
                                     None,
-                                )),
-                            };
+                                ))
+                            }
+                        };
                         out.push((chrom, sz));
                     }
                     _ => {
@@ -4852,12 +4875,16 @@ fn builtin_extend_interval(args: Vec<Value>) -> Result<Value> {
     }
 
     match &args[0] {
-        Value::Record(rec) => Ok(Value::Record((extend_one(rec, upstream, downstream)).into())),
+        Value::Record(rec) => Ok(Value::Record(
+            (extend_one(rec, upstream, downstream)).into(),
+        )),
         Value::List(list) => {
             let extended: Vec<Value> = list
                 .iter()
                 .map(|item| match item {
-                    Value::Record(rec) => Value::Record((extend_one(rec, upstream, downstream)).into()),
+                    Value::Record(rec) => {
+                        Value::Record((extend_one(rec, upstream, downstream)).into())
+                    }
                     other => other.clone(),
                 })
                 .collect();

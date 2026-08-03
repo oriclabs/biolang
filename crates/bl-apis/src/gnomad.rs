@@ -125,14 +125,21 @@ impl GnomadClient {
             });
         }
         let gene_id = gene["gene_id"].as_str().unwrap_or("").to_string();
-        let gene_name = gene["gene_name"].as_str().unwrap_or(gene_symbol).to_string();
+        let gene_name = gene["gene_name"]
+            .as_str()
+            .unwrap_or(gene_symbol)
+            .to_string();
         let variants = gene["variants"]
             .as_array()
             .unwrap_or(&vec![])
             .iter()
             .map(|v| parse_variant(v, &gene_name, dataset))
             .collect();
-        Ok(GnomadGeneResult { gene_id, gene_name, variants })
+        Ok(GnomadGeneResult {
+            gene_id,
+            gene_name,
+            variants,
+        })
     }
 
     /// Fetch population-level allele frequencies for a variant.

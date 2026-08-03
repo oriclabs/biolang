@@ -1,10 +1,10 @@
 mod events;
-mod testing;
 mod notebook;
+mod testing;
 mod update;
 
-use clap::{Parser, Subcommand};
 use bl_import as import;
+use clap::{Parser, Subcommand};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::time::Instant;
@@ -242,9 +242,14 @@ fn main() {
                     output,
                     validate,
                     json,
-                }) => {
-                    cmd_import(&file, from.as_deref(), name.as_deref(), output.as_deref(), validate, json)
-                }
+                }) => cmd_import(
+                    &file,
+                    from.as_deref(),
+                    name.as_deref(),
+                    output.as_deref(),
+                    validate,
+                    json,
+                ),
                 Some(Commands::Doctor) => print!("{}", bl_runtime::capabilities::doctor_report()),
                 Some(Commands::Version) => update::cmd_version(),
                 Some(Commands::Upgrade) => update::cmd_upgrade(),
@@ -909,9 +914,7 @@ fn cmd_examples(package: &str, copy: Option<&str>) {
         local
     } else {
         bl_runtime::package::resolve_package(package).unwrap_or_else(|| {
-            eprintln!(
-                "Package '{package}' is not installed. Install it first with `bl install`."
-            );
+            eprintln!("Package '{package}' is not installed. Install it first with `bl install`.");
             process::exit(1);
         })
     };
@@ -928,7 +931,11 @@ fn cmd_examples(package: &str, copy: Option<&str>) {
         let destination = PathBuf::from(destination);
         match bl_runtime::package::copy_examples(&package_dir, &destination) {
             Ok(path) => {
-                println!("Copied {} example file(s) to {}", examples.len(), path.display())
+                println!(
+                    "Copied {} example file(s) to {}",
+                    examples.len(),
+                    path.display()
+                )
             }
             Err(error) => {
                 eprintln!("Error: {error}");
@@ -1011,7 +1018,14 @@ fn cmd_import(
     let is_notebook = import::is_notebook_format(&lang);
 
     if !json {
-        eprintln!("Converting {filename} ({lang} → BioLang {})…", if is_notebook { ".bln notebook" } else { ".bl script" });
+        eprintln!(
+            "Converting {filename} ({lang} → BioLang {})…",
+            if is_notebook {
+                ".bln notebook"
+            } else {
+                ".bl script"
+            }
+        );
     }
 
     let imported = match import::import_source(&source, &lang, &filename) {
@@ -1041,7 +1055,10 @@ fn cmd_import(
 
     // Derive a default output path when --output is not given for notebooks
     let derived_output: Option<String> = if is_notebook && output.is_none() {
-        let stem = Path::new(&filename).file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| filename.clone());
+        let stem = Path::new(&filename)
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| filename.clone());
         Some(format!("{stem}.bln"))
     } else {
         None
@@ -1077,7 +1094,11 @@ fn cmd_import(
             eprintln!(
                 "Validation found {} diagnostic{}:",
                 imported.validation.diagnostics.len(),
-                if imported.validation.diagnostics.len() == 1 { "" } else { "s" }
+                if imported.validation.diagnostics.len() == 1 {
+                    ""
+                } else {
+                    "s"
+                }
             );
             for diagnostic in &imported.validation.diagnostics {
                 eprintln!(

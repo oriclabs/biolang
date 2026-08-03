@@ -24,7 +24,13 @@ fn genes_table(rows: Vec<(&str, &str, i64, i64, &str)>) -> Value {
     let rows = rows
         .into_iter()
         .map(|(name, chrom, start, end, strand)| {
-            vec![s(name), s(chrom), Value::Int(start), Value::Int(end), s(strand)]
+            vec![
+                s(name),
+                s(chrom),
+                Value::Int(start),
+                Value::Int(end),
+                s(strand),
+            ]
         })
         .collect();
     Value::Table(Table::new(cols, rows))
@@ -44,7 +50,13 @@ fn frags_table(rows: &[Frag]) -> Value {
     let rows = rows
         .iter()
         .map(|(c, st, en, bc, n)| {
-            vec![s(c), Value::Int(*st), Value::Int(*en), s(bc), Value::Int(*n)]
+            vec![
+                s(c),
+                Value::Int(*st),
+                Value::Int(*en),
+                s(bc),
+                Value::Int(*n),
+            ]
         })
         .collect();
     Value::Table(Table::new(cols, rows))
@@ -61,8 +73,7 @@ fn frags_file(rows: &[Frag], gz: bool) -> tempfile::TempPath {
         .tempfile()
         .expect("tempfile");
     if gz {
-        let mut enc =
-            flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        let mut enc = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
         enc.write_all(body.as_bytes()).unwrap();
         f.write_all(&enc.finish().unwrap()).unwrap();
     } else {
@@ -113,12 +124,22 @@ fn unpack(v: Value) -> Obj {
         other => panic!("matrix: {other:?}"),
     };
     let mut extra = HashMap::new();
-    for k in ["n_cells", "n_genes", "n_fragments", "n_fragments_in_features"] {
+    for k in [
+        "n_cells",
+        "n_genes",
+        "n_fragments",
+        "n_fragments_in_features",
+    ] {
         if let Some(Value::Int(i)) = rec.get(k) {
             extra.insert(k.to_string(), *i);
         }
     }
-    Obj { genes: list("genes"), barcodes: list("barcodes"), matrix, extra }
+    Obj {
+        genes: list("genes"),
+        barcodes: list("barcodes"),
+        matrix,
+        extra,
+    }
 }
 
 /// Genes chosen so the extension is strand-aware and one region clamps at 0.
@@ -146,7 +167,12 @@ fn demo_frags() -> Vec<Frag<'static>> {
 fn gene_activity_counts_match_hand_computation() {
     let out = call_atac_builtin(
         "gene_activity",
-        vec![frags_table(&demo_frags()), demo_genes(), Value::Int(500), Value::Int(0)],
+        vec![
+            frags_table(&demo_frags()),
+            demo_genes(),
+            Value::Int(500),
+            Value::Int(0),
+        ],
     )
     .expect("gene_activity");
     let o = unpack(out);
@@ -177,7 +203,11 @@ fn strand_direction_actually_matters() {
         )
         .unwrap(),
     );
-    assert_eq!(o.matrix, vec![vec![1.0]], "minus-strand extension went the wrong way");
+    assert_eq!(
+        o.matrix,
+        vec![vec![1.0]],
+        "minus-strand extension went the wrong way"
+    );
 }
 
 #[test]
@@ -264,7 +294,10 @@ fn reads_fragments_from_plain_and_gzipped_files() {
             .unwrap_or_else(|e| panic!("gz={gz}: {e}")),
         );
         assert_eq!(o.matrix, expect, "gz={gz}");
-        assert_eq!(o.extra["n_fragments"], 7, "gz={gz}: comment line miscounted");
+        assert_eq!(
+            o.extra["n_fragments"], 7,
+            "gz={gz}: comment line miscounted"
+        );
     }
 }
 
@@ -278,9 +311,8 @@ fn peak_matrix_names_and_counts_peaks() {
             vec![s("chr1"), Value::Int(6000), Value::Int(7000)],
         ],
     ));
-    let o = unpack(
-        call_atac_builtin("peak_matrix", vec![frags_table(&demo_frags()), peaks]).unwrap(),
-    );
+    let o =
+        unpack(call_atac_builtin("peak_matrix", vec![frags_table(&demo_frags()), peaks]).unwrap());
     assert_eq!(o.genes, vec!["chr1:500-1500", "chr1:6000-7000"]);
     assert_eq!(o.barcodes, vec!["AAA", "BBB"]);
     // AAA: 600-700 in peak 1. BBB: 6400-6600 in peak 2 (count 1).
@@ -293,11 +325,9 @@ fn rejects_bad_inputs() {
         vec!["chromosome".to_string()],
         vec![vec![s("chr1")]],
     ));
-    assert!(call_atac_builtin(
-        "gene_activity",
-        vec![frags_table(&demo_frags()), bad_cols]
-    )
-    .is_err());
+    assert!(
+        call_atac_builtin("gene_activity", vec![frags_table(&demo_frags()), bad_cols]).is_err()
+    );
 
     assert!(call_atac_builtin("gene_activity", vec![Value::Int(3), demo_genes()]).is_err());
 

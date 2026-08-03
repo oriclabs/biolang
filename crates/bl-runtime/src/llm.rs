@@ -496,7 +496,8 @@ mod tests {
 
     #[test]
     fn test_format_context_list() {
-        let list = Value::List((vec![Value::Str("line1".into()), Value::Str("line2".into())]).into());
+        let list =
+            Value::List((vec![Value::Str("line1".into()), Value::Str("line2".into())]).into());
         let ctx = format_context(&list);
         assert_eq!(ctx, "line1\nline2");
     }

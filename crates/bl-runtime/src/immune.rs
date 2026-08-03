@@ -108,7 +108,11 @@ fn builtin_parse_vdj(args: Vec<Value>) -> Result<Value> {
         }
     };
 
-    let sep = if header_line.contains('\t') { '\t' } else { ',' };
+    let sep = if header_line.contains('\t') {
+        '\t'
+    } else {
+        ','
+    };
     let raw_headers: Vec<String> = header_line
         .split(sep)
         .map(|s| s.trim().to_string())
@@ -289,8 +293,14 @@ fn builtin_clonal_expansion(args: Vec<Value>) -> Result<Value> {
     let mut rec = HashMap::new();
     rec.insert("n_expanded".to_string(), Value::Int(n_expanded));
     rec.insert("n_total_clones".to_string(), Value::Int(n_total_clones));
-    rec.insert("expanded_fraction".to_string(), Value::Float(expanded_fraction));
-    rec.insert("top_clone_fraction".to_string(), Value::Float(top_clone_fraction));
+    rec.insert(
+        "expanded_fraction".to_string(),
+        Value::Float(expanded_fraction),
+    );
+    rec.insert(
+        "top_clone_fraction".to_string(),
+        Value::Float(top_clone_fraction),
+    );
 
     Ok(Value::Record((rec).into()))
 }
@@ -344,8 +354,14 @@ fn builtin_vj_usage(args: Vec<Value>) -> Result<Value> {
         .collect();
 
     gene_rows.sort_by(|a, b| {
-        let ca = match &a[1] { Value::Int(n) => *n, _ => 0 };
-        let cb = match &b[1] { Value::Int(n) => *n, _ => 0 };
+        let ca = match &a[1] {
+            Value::Int(n) => *n,
+            _ => 0,
+        };
+        let cb = match &b[1] {
+            Value::Int(n) => *n,
+            _ => 0,
+        };
         cb.cmp(&ca)
     });
 
@@ -450,8 +466,14 @@ fn builtin_shared_clones(args: Vec<Value>) -> Result<Value> {
         .collect();
 
     rows.sort_by(|a, b| {
-        let na = match &a[1] { Value::Int(n) => *n, _ => 0 };
-        let nb = match &b[1] { Value::Int(n) => *n, _ => 0 };
+        let na = match &a[1] {
+            Value::Int(n) => *n,
+            _ => 0,
+        };
+        let nb = match &b[1] {
+            Value::Int(n) => *n,
+            _ => 0,
+        };
         nb.cmp(&na)
     });
 

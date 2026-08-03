@@ -308,19 +308,13 @@ fn builtin_atac_qc(args: Vec<Value>) -> Result<Value> {
 
     let mut rec = HashMap::new();
     rec.insert("n_fragments".to_string(), Value::Int(n as i64));
-    rec.insert(
-        "nfr_fraction".to_string(),
-        Value::Float(nfr_count / total),
-    );
+    rec.insert("nfr_fraction".to_string(), Value::Float(nfr_count / total));
     rec.insert(
         "mono_fraction".to_string(),
         Value::Float(mono_count / total),
     );
     rec.insert("nfr_enrichment".to_string(), Value::Float(nfr_enrichment));
-    rec.insert(
-        "median_fragment_size".to_string(),
-        Value::Float(median),
-    );
+    rec.insert("median_fragment_size".to_string(), Value::Float(median));
     rec.insert(
         "fraction_large".to_string(),
         Value::Float(large_count / total),
@@ -380,10 +374,7 @@ impl RegionIndex {
         }
         let idx = self.regions.len() as u32;
         self.regions.push(Region { start, end, col });
-        let (lo, hi) = (
-            start.div_euclid(BIN_SIZE),
-            (end - 1).div_euclid(BIN_SIZE),
-        );
+        let (lo, hi) = (start.div_euclid(BIN_SIZE), (end - 1).div_euclid(BIN_SIZE));
         let per_chrom = self.bins.entry(chrom.to_string()).or_default();
         for b in lo..=hi {
             per_chrom.entry(b).or_default().push(idx);
@@ -406,10 +397,7 @@ impl RegionIndex {
         };
         self.epoch += 1;
         let epoch = self.epoch;
-        let (lo, hi) = (
-            start.div_euclid(BIN_SIZE),
-            (end - 1).div_euclid(BIN_SIZE),
-        );
+        let (lo, hi) = (start.div_euclid(BIN_SIZE), (end - 1).div_euclid(BIN_SIZE));
         for b in lo..=hi {
             let Some(cands) = per_chrom.get(&b) else {
                 continue;
@@ -585,8 +573,9 @@ fn count_into_object(
     index.finish();
     let n_features = feature_names.len();
 
-    let allowed: Option<std::collections::HashSet<&str>> =
-        whitelist.as_ref().map(|w| w.iter().map(String::as_str).collect());
+    let allowed: Option<std::collections::HashSet<&str>> = whitelist
+        .as_ref()
+        .map(|w| w.iter().map(String::as_str).collect());
 
     let mut per_cell: HashMap<String, HashMap<u32, f64>> = HashMap::new();
     let mut cols_buf: Vec<u32> = Vec::new();
@@ -647,7 +636,13 @@ fn count_into_object(
                     dense[col as usize] += v;
                 }
             }
-            Value::List(dense.into_iter().map(Value::Float).collect::<Vec<_>>().into())
+            Value::List(
+                dense
+                    .into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            )
         })
         .collect();
 
@@ -740,7 +735,11 @@ fn builtin_gene_activity(args: Vec<Value>) -> Result<Value> {
     };
     // Signac's GeneActivity() defaults: 2 kb upstream of the TSS, nothing past
     // the 3' end.
-    let upstream = if args.len() > 2 { to_i64(&args[2]) } else { 2000 };
+    let upstream = if args.len() > 2 {
+        to_i64(&args[2])
+    } else {
+        2000
+    };
     let downstream = if args.len() > 3 { to_i64(&args[3]) } else { 0 };
     let whitelist = opt_barcode_list(args.get(4), func)?;
 

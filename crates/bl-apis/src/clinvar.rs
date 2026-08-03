@@ -119,9 +119,7 @@ impl ClinVarClient {
         let base = base_url();
         let ak = self.api_key_param();
         let id_str = ids.join(",");
-        let url = format!(
-            "{base}/esummary.fcgi?db=clinvar&id={id_str}&retmode=json{ak}"
-        );
+        let url = format!("{base}/esummary.fcgi?db=clinvar&id={id_str}&retmode=json{ak}");
 
         let json = self.base.get_json(&url)?;
         parse_summaries(&json, ids)
@@ -221,22 +219,28 @@ mod tests {
 
     #[test]
     fn test_extract_ids() {
-        let json: serde_json::Value = serde_json::from_str(r#"{
+        let json: serde_json::Value = serde_json::from_str(
+            r#"{
             "esearchresult": {
                 "count": "2",
                 "retmax": "2",
                 "idlist": ["12375", "18390"]
             }
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         let ids = extract_ids(&json).unwrap();
         assert_eq!(ids, vec!["12375", "18390"]);
     }
 
     #[test]
     fn test_extract_ids_empty() {
-        let json: serde_json::Value = serde_json::from_str(r#"{
+        let json: serde_json::Value = serde_json::from_str(
+            r#"{
             "esearchresult": { "count": "0", "idlist": [] }
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         let ids = extract_ids(&json).unwrap();
         assert!(ids.is_empty());
     }
@@ -244,7 +248,8 @@ mod tests {
     #[test]
     fn test_parse_summaries_basic() {
         let ids = vec!["12375".to_string()];
-        let json: serde_json::Value = serde_json::from_str(r#"{
+        let json: serde_json::Value = serde_json::from_str(
+            r#"{
             "result": {
                 "12375": {
                     "gene_sort": "BRCA1",
@@ -263,7 +268,9 @@ mod tests {
                     }
                 }
             }
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         let variants = parse_summaries(&json, &ids).unwrap();
         assert_eq!(variants.len(), 1);
@@ -280,9 +287,12 @@ mod tests {
     #[test]
     fn test_parse_summaries_missing_uid() {
         let ids = vec!["99999".to_string()];
-        let json: serde_json::Value = serde_json::from_str(r#"{
+        let json: serde_json::Value = serde_json::from_str(
+            r#"{
             "result": { "uids": [] }
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         let variants = parse_summaries(&json, &ids).unwrap();
         assert!(variants.is_empty());
     }

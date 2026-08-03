@@ -157,7 +157,14 @@ pub fn decompress(src: &[u8]) -> Result<Vec<u8>> {
         }
 
         block.clear();
-        decode_block(&src[start..end], codec, typesize, blocksize, bsize, &mut block)?;
+        decode_block(
+            &src[start..end],
+            codec,
+            typesize,
+            blocksize,
+            bsize,
+            &mut block,
+        )?;
         if block.len() != bsize {
             return Err(err(format!(
                 "block {i} decoded to {} bytes, expected {bsize}",
@@ -187,7 +194,11 @@ fn decode_block(
     bsize: usize,
     out: &mut Vec<u8>,
 ) -> Result<()> {
-    let predicted = if splits(codec, typesize, blocksize) { typesize } else { 1 };
+    let predicted = if splits(codec, typesize, blocksize) {
+        typesize
+    } else {
+        1
+    };
     let alternative = if predicted == 1 { typesize } else { 1 };
 
     for nstreams in [predicted, alternative] {
@@ -253,7 +264,9 @@ fn decode_codec(codec: u8, src: &[u8], expect: usize, out: &mut Vec<u8>) -> Resu
             let mut buf = vec![0u8; expect];
             let n = blosclz_decompress(src, &mut buf)?;
             if n != expect {
-                return Err(err(format!("blosclz produced {n} bytes, expected {expect}")));
+                return Err(err(format!(
+                    "blosclz produced {n} bytes, expected {expect}"
+                )));
             }
             out.extend_from_slice(&buf);
             Ok(())

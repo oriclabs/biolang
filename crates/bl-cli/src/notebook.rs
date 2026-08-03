@@ -558,11 +558,10 @@ fn split_front_matter(source: &str) -> (Option<FrontMatter>, String) {
             return (None, source.to_string()); // not metadata — leave for body parser
         };
         let key = key.trim();
-        let valid_key = key
-            .chars()
-            .next()
-            .is_some_and(|c| c.is_ascii_alphabetic())
-            && key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+        let valid_key = key.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
+            && key
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
         if !valid_key {
             return (None, source.to_string());
         }
@@ -594,7 +593,10 @@ fn front_matter_block(fm: &FrontMatter, fallback_title: &str) -> String {
     let title = fm.title.as_deref().unwrap_or(fallback_title);
     let mut s = String::new();
     s.push_str("#align(center)[\n");
-    s.push_str(&format!("  #text(17pt, weight: \"bold\")[{}]\n", typst_escape(title)));
+    s.push_str(&format!(
+        "  #text(17pt, weight: \"bold\")[{}]\n",
+        typst_escape(title)
+    ));
     if !fm.authors.is_empty() {
         let authors = fm
             .authors

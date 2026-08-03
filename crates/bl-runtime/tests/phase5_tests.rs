@@ -99,7 +99,10 @@ let b = Vec2 { x: 3, y: 4 }
 let c = a + b
 [c.x, c.y]
 "#;
-    assert_eq!(eval(code), Value::List((vec![Value::Int(4), Value::Int(6)]).into()));
+    assert_eq!(
+        eval(code),
+        Value::List((vec![Value::Int(4), Value::Int(6)]).into())
+    );
 }
 
 #[test]

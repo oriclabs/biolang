@@ -11,7 +11,12 @@ use bl_core::value::{Table, Value};
 // ── helpers ──────────────────────────────────────────────────────────
 
 fn float_list(vals: &[f64]) -> Value {
-    Value::List(vals.iter().map(|&f| Value::Float(f)).collect::<Vec<_>>().into())
+    Value::List(
+        vals.iter()
+            .map(|&f| Value::Float(f))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn make_table(cols: Vec<&str>, rows: Vec<Vec<Value>>) -> Value {
@@ -63,8 +68,16 @@ fn test_nnls_pure_component() {
     let fracs = get_list_floats(&result);
     assert_eq!(fracs.len(), 2);
     // typeA should dominate
-    assert!(fracs[0] > 0.8, "typeA fraction should be > 0.8, got {}", fracs[0]);
-    assert!(fracs[1] < 0.2, "typeB fraction should be < 0.2, got {}", fracs[1]);
+    assert!(
+        fracs[0] > 0.8,
+        "typeA fraction should be > 0.8, got {}",
+        fracs[0]
+    );
+    assert!(
+        fracs[1] < 0.2,
+        "typeB fraction should be < 0.2, got {}",
+        fracs[1]
+    );
 }
 
 #[test]
@@ -129,7 +142,7 @@ fn test_deconvolve_two_samples() {
         .expect("deconvolve");
     let tbl = get_table(result);
     assert_eq!(tbl.rows.len(), 2); // 2 cell types
-    // Row 0 = typeA fractions in [s0, s1]
+                                   // Row 0 = typeA fractions in [s0, s1]
     let a_in_s0 = get_float(&tbl.rows[0][0]);
     let b_in_s1 = get_float(&tbl.rows[1][1]);
     assert!(a_in_s0 > 0.8, "typeA in s0 = {a_in_s0}");
@@ -141,9 +154,7 @@ fn test_estimate_purity_column_lookup() {
     // fractions table with a column matching tumor_col
     let fracs = make_table(
         vec!["tumor", "immune"],
-        vec![
-            vec![Value::Float(0.7), Value::Float(0.3)],
-        ],
+        vec![vec![Value::Float(0.7), Value::Float(0.3)]],
     );
     // estimate_purity(fracs, "tumor") — "tumor" is a column name (sample in this framing)
     let result = deconvolution::call_deconvolution_builtin(
@@ -166,11 +177,8 @@ fn test_cell_type_correlation_diagonal() {
             vec![Value::Float(0.5), Value::Float(0.3), Value::Float(0.1)],
         ],
     );
-    let result = deconvolution::call_deconvolution_builtin(
-        "cell_type_correlation",
-        vec![fracs],
-    )
-    .expect("correlation");
+    let result = deconvolution::call_deconvolution_builtin("cell_type_correlation", vec![fracs])
+        .expect("correlation");
     let tbl = get_table(result);
     // 2×2 matrix; diagonals should be 1.0
     let r00 = get_float(&tbl.rows[0][0]);
@@ -258,7 +266,7 @@ fn test_feature_group_groups_close_features() {
         vec![
             vec![Value::Float(200.0), Value::Float(1.0)],
             vec![Value::Float(200.0005), Value::Float(1.0)], // ~2.5 ppm apart, same rt
-            vec![Value::Float(300.0), Value::Float(5.0)],   // far away
+            vec![Value::Float(300.0), Value::Float(5.0)],    // far away
         ],
     );
     let result = metabolomics::call_metabolomics_builtin(
@@ -294,8 +302,8 @@ fn test_log_transform() {
             vec![Value::Float(3.0), Value::Float(7.0)],
         ],
     );
-    let result = metabolomics::call_metabolomics_builtin("log_transform", vec![tbl])
-        .expect("log_transform");
+    let result =
+        metabolomics::call_metabolomics_builtin("log_transform", vec![tbl]).expect("log_transform");
     let out = get_table(result);
     // log2(0+1) = 0; log2(1+1) = 1; log2(3+1) = 2; log2(7+1) = 3
     assert_eq!(get_float(&out.rows[0][0]), 0.0);
@@ -311,11 +319,17 @@ fn test_pathway_enrichment_ordering() {
     // tca: 3 members, 0 hit
     // bg: glycolysis(4) + tca(3) + other(10) = 17 total
     let mut rows: Vec<Vec<Value>> = Vec::new();
-    for m in &["g1","g2","g3","g4"] {
-        rows.push(vec![Value::Str("glycolysis".to_string()), Value::Str(m.to_string())]);
+    for m in &["g1", "g2", "g3", "g4"] {
+        rows.push(vec![
+            Value::Str("glycolysis".to_string()),
+            Value::Str(m.to_string()),
+        ]);
     }
-    for m in &["t1","t2","t3"] {
-        rows.push(vec![Value::Str("tca".to_string()), Value::Str(m.to_string())]);
+    for m in &["t1", "t2", "t3"] {
+        rows.push(vec![
+            Value::Str("tca".to_string()),
+            Value::Str(m.to_string()),
+        ]);
     }
     for i in 0..10usize {
         rows.push(vec![
@@ -326,15 +340,17 @@ fn test_pathway_enrichment_ordering() {
     let db = make_table(vec!["pathway", "metabolite"], rows);
 
     // Hit all 4 glycolysis metabolites only
-    let hits = Value::List((vec![
-        Value::Str("g1".to_string()),
-        Value::Str("g2".to_string()),
-        Value::Str("g3".to_string()),
-        Value::Str("g4".to_string()),
-    ]).into());
-    let result =
-        metabolomics::call_metabolomics_builtin("pathway_enrichment", vec![hits, db])
-            .expect("pathway_enrichment");
+    let hits = Value::List(
+        (vec![
+            Value::Str("g1".to_string()),
+            Value::Str("g2".to_string()),
+            Value::Str("g3".to_string()),
+            Value::Str("g4".to_string()),
+        ])
+        .into(),
+    );
+    let result = metabolomics::call_metabolomics_builtin("pathway_enrichment", vec![hits, db])
+        .expect("pathway_enrichment");
     let out = get_table(result);
     assert_eq!(out.rows.len(), 3);
     // glycolysis should rank first (lowest p)
@@ -393,9 +409,14 @@ fn test_normalize_samples_quantile() {
     // After quantile normalization, all samples should have the same sorted distribution
     let s1: Vec<f64> = out.rows.iter().map(|r| get_float(&r[0])).collect();
     let s2: Vec<f64> = out.rows.iter().map(|r| get_float(&r[1])).collect();
-    let mut s1s = s1.clone(); s1s.sort_by(|a,b| a.partial_cmp(b).unwrap());
-    let mut s2s = s2.clone(); s2s.sort_by(|a,b| a.partial_cmp(b).unwrap());
+    let mut s1s = s1.clone();
+    s1s.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let mut s2s = s2.clone();
+    s2s.sort_by(|a, b| a.partial_cmp(b).unwrap());
     for (a, b) in s1s.iter().zip(s2s.iter()) {
-        assert!((a - b).abs() < 1e-9, "sorted distributions differ: {a} vs {b}");
+        assert!(
+            (a - b).abs() < 1e-9,
+            "sorted distributions differ: {a} vs {b}"
+        );
     }
 }

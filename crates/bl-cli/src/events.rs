@@ -229,7 +229,10 @@ fn value_to_json_with_result_directory(value: &Value, directory: Option<&Path>) 
     if let Some((data_ref, encoding)) = directory.and_then(|path| write_full_result(value, path)) {
         if let Some(object) = result.as_object_mut() {
             object.insert("dataRef".to_string(), JsonValue::String(data_ref));
-            object.insert("encoding".to_string(), JsonValue::String(encoding.to_string()));
+            object.insert(
+                "encoding".to_string(),
+                JsonValue::String(encoding.to_string()),
+            );
         }
     }
     result
@@ -321,7 +324,13 @@ mod tests {
         let json = value_to_json_with_result_directory(&table, Some(&root));
         assert_eq!(json["encoding"], "jsonl");
         assert!(json["dataRef"].as_str().unwrap().ends_with("table-1.jsonl"));
-        assert_eq!(std::fs::read_to_string(root.join("table-1.jsonl")).unwrap().lines().count(), 501);
+        assert_eq!(
+            std::fs::read_to_string(root.join("table-1.jsonl"))
+                .unwrap()
+                .lines()
+                .count(),
+            501
+        );
         let _ = std::fs::remove_dir_all(root);
     }
     #[test]
@@ -342,8 +351,14 @@ println(b)
         let long = Value::Str("x".repeat(200));
         let preview = value_preview(&long);
         assert!(preview.ends_with("..."));
-        assert_eq!(value_preview(&Value::Str("a
-b".into())), "a b");
+        assert_eq!(
+            value_preview(&Value::Str(
+                "a
+b"
+                .into()
+            )),
+            "a b"
+        );
     }
 
     #[test]

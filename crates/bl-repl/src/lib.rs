@@ -559,13 +559,27 @@ fn value_members(value: &Value) -> Vec<String> {
         Value::Record(fields) | Value::Map(fields) => fields.keys().cloned().collect(),
         Value::Table(table) => table.columns.clone(),
         Value::Gene { .. } => vec![
-            "symbol", "gene_id", "chrom", "start", "end", "strand", "biotype", "description",
+            "symbol",
+            "gene_id",
+            "chrom",
+            "start",
+            "end",
+            "strand",
+            "biotype",
+            "description",
         ]
         .into_iter()
         .map(str::to_string)
         .collect(),
         Value::Variant { .. } => vec![
-            "chrom", "pos", "id", "ref_allele", "alt_allele", "quality", "filter", "info",
+            "chrom",
+            "pos",
+            "id",
+            "ref_allele",
+            "alt_allele",
+            "quality",
+            "filter",
+            "info",
         ]
         .into_iter()
         .map(str::to_string)

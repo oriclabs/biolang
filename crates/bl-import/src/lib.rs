@@ -94,7 +94,11 @@ fn strip_file_header(s: &str) -> String {
         out_lines.pop();
     }
     // Drop trailing blank lines
-    while out_lines.last().map(|l| l.trim().is_empty()).unwrap_or(false) {
+    while out_lines
+        .last()
+        .map(|l| l.trim().is_empty())
+        .unwrap_or(false)
+    {
         out_lines.pop();
     }
 
@@ -119,13 +123,9 @@ pub fn is_notebook_format(lang: &str) -> bool {
 }
 
 /// Convert one supported source document and validate the generated BioLang syntax.
-pub fn import_source(
-    source: &str,
-    format: &str,
-    filename: &str,
-) -> Result<ImportResult, String> {
-    let format = normalize_format(format)
-        .ok_or_else(|| format!("Unsupported import format '{format}'"))?;
+pub fn import_source(source: &str, format: &str, filename: &str) -> Result<ImportResult, String> {
+    let format =
+        normalize_format(format).ok_or_else(|| format!("Unsupported import format '{format}'"))?;
     let notebook = is_notebook_format(format);
     let content = if notebook {
         convert_notebook(source, format, filename)
@@ -133,7 +133,11 @@ pub fn import_source(
         convert(source, format, filename)
     };
     if content.starts_with("# ERROR:") {
-        return Err(content.lines().next().unwrap_or("Notebook conversion failed").to_string());
+        return Err(content
+            .lines()
+            .next()
+            .unwrap_or("Notebook conversion failed")
+            .to_string());
     }
     let stem = Path::new(filename)
         .file_stem()
@@ -229,7 +233,9 @@ fn line_column(source: &str, offset: usize) -> (usize, usize) {
     let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
     let column = prefix
         .rsplit_once('\n')
-        .map_or(prefix.chars().count() + 1, |(_, tail)| tail.chars().count() + 1);
+        .map_or(prefix.chars().count() + 1, |(_, tail)| {
+            tail.chars().count() + 1
+        });
     (line, column)
 }
 
@@ -260,11 +266,7 @@ fn notebook_units(source: &str) -> Vec<(String, String, usize)> {
         }
     }
     if in_biolang {
-        units.push((
-            format!("cell {}", units.len() + 1),
-            code,
-            start_line,
-        ));
+        units.push((format!("cell {}", units.len() + 1), code, start_line));
     }
     units
 }
@@ -280,7 +282,11 @@ mod tests {
         assert_eq!(result.source_content, "x = 1\nprint(x)\n");
         assert!(!result.notebook);
         assert!(result.validation.units_checked > 0);
-        assert!(result.validation.valid, "{:?}", result.validation.diagnostics);
+        assert!(
+            result.validation.valid,
+            "{:?}",
+            result.validation.diagnostics
+        );
     }
 
     #[test]
@@ -289,7 +295,11 @@ mod tests {
         assert_eq!(result.suggested_name, "analysis.bl");
         assert!(!result.notebook);
         assert_eq!(result.validation.units_checked, 1);
-        assert!(result.validation.valid, "{:?}", result.validation.diagnostics);
+        assert!(
+            result.validation.valid,
+            "{:?}",
+            result.validation.diagnostics
+        );
     }
 
     #[test]
@@ -307,7 +317,11 @@ mod tests {
         assert_eq!(result.suggested_name, "analysis.bln");
         assert!(result.notebook);
         assert_eq!(result.validation.units_checked, 1);
-        assert!(result.validation.valid, "{:?}", result.validation.diagnostics);
+        assert!(
+            result.validation.valid,
+            "{:?}",
+            result.validation.diagnostics
+        );
     }
 
     #[test]
@@ -317,7 +331,11 @@ mod tests {
         assert_eq!(result.suggested_name, "analysis.bln");
         assert!(result.notebook);
         assert_eq!(result.validation.units_checked, 1);
-        assert!(result.validation.valid, "{:?}", result.validation.diagnostics);
+        assert!(
+            result.validation.valid,
+            "{:?}",
+            result.validation.diagnostics
+        );
     }
 
     #[test]

@@ -14,7 +14,12 @@ use bl_runtime::singlecell::call_singlecell_builtin;
 use bl_runtime::stats::call_stats_builtin;
 
 fn float_list(vals: &[f64]) -> Value {
-    Value::List(vals.iter().map(|v| Value::Float(*v)).collect::<Vec<_>>().into())
+    Value::List(
+        vals.iter()
+            .map(|v| Value::Float(*v))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn record_float(v: &Value, key: &str) -> f64 {
@@ -75,7 +80,8 @@ fn bh_matches_r_padjust_uniform() {
 #[test]
 fn bh_matches_r_padjust_ties() {
     let pvals = float_list(&[0.0209, 1.0, 0.0209]);
-    let adj = as_floats(&call_stats_builtin("p_adjust", vec![pvals, Value::Str("bh".into())]).unwrap());
+    let adj =
+        as_floats(&call_stats_builtin("p_adjust", vec![pvals, Value::Str("bh".into())]).unwrap());
     assert!((adj[0] - 0.03135).abs() < 1e-4, "adj[0]={}", adj[0]);
     assert!((adj[2] - 0.03135).abs() < 1e-4, "adj[2]={}", adj[2]);
     assert!((adj[0] - adj[2]).abs() < 1e-12, "tied p-values must match");
@@ -87,11 +93,10 @@ fn bh_matches_r_padjust_ties() {
 #[test]
 fn normalize_total_scales_each_cell_to_target() {
     // 2 cells x 3 genes.
-    let matrix = Value::List((vec![
-        float_list(&[1.0, 2.0, 3.0]),
-        float_list(&[4.0, 4.0, 2.0]),
-    ]).into());
-    let out = call_singlecell_builtin("normalize_total", vec![matrix, Value::Float(10_000.0)]).unwrap();
+    let matrix =
+        Value::List((vec![float_list(&[1.0, 2.0, 3.0]), float_list(&[4.0, 4.0, 2.0])]).into());
+    let out =
+        call_singlecell_builtin("normalize_total", vec![matrix, Value::Float(10_000.0)]).unwrap();
     let rows = match out {
         Value::List(r) => r,
         other => panic!("expected matrix, got {other:?}"),
@@ -117,7 +122,10 @@ fn ari_matches_sklearn_reference_values() {
     let x = ["0", "0", "1", "2"].map(String::from).to_vec();
     let y = ["0", "0", "1", "1"].map(String::from).to_vec();
     let ari = adjusted_rand_index(&x, &y);
-    assert!((ari - 0.5714285714).abs() < 1e-6, "ari={ari}, expected 0.5714");
+    assert!(
+        (ari - 0.5714285714).abs() < 1e-6,
+        "ari={ari}, expected 0.5714"
+    );
 
     // One cluster vs all singletons → 0.0
     let all = ["0", "0", "0", "0"].map(String::from).to_vec();

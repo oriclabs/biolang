@@ -21,11 +21,7 @@ pub fn chipseq_builtin_list() -> Vec<(&'static str, Arity)> {
 pub fn is_chipseq_builtin(name: &str) -> bool {
     matches!(
         name,
-        "merge_peaks"
-            | "consensus_peaks"
-            | "frip_score"
-            | "tss_enrichment"
-            | "peak_annotation"
+        "merge_peaks" | "consensus_peaks" | "frip_score" | "tss_enrichment" | "peak_annotation"
     )
 }
 
@@ -57,17 +53,13 @@ fn require_table<'a>(val: &'a Value, func: &str) -> Result<&'a Table> {
 }
 
 fn col_index(table: &Table, name: &str, func: &str) -> Result<usize> {
-    table
-        .columns
-        .iter()
-        .position(|c| c == name)
-        .ok_or_else(|| {
-            BioLangError::runtime(
-                ErrorKind::NameError,
-                format!("{func}(): column '{name}' not found"),
-                None,
-            )
-        })
+    table.columns.iter().position(|c| c == name).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("{func}(): column '{name}' not found"),
+            None,
+        )
+    })
 }
 
 fn to_i64(v: &Value) -> i64 {
@@ -132,14 +124,7 @@ fn merged_to_table(merged: Vec<(String, i64, i64, i64)>) -> Value {
         .collect::<Vec<_>>();
     let rows = merged
         .into_iter()
-        .map(|(c, s, e, n)| {
-            vec![
-                Value::Str(c),
-                Value::Int(s),
-                Value::Int(e),
-                Value::Int(n),
-            ]
-        })
+        .map(|(c, s, e, n)| vec![Value::Str(c), Value::Int(s), Value::Int(e), Value::Int(n)])
         .collect();
     Value::Table(Table::new(columns, rows))
 }
@@ -306,8 +291,7 @@ fn builtin_tss_enrichment(args: Vec<Value>) -> Result<Value> {
     let center_start = flank.saturating_sub(100);
     let center_end = (flank + 100).min(signal.len());
     let center_mean = if center_end > center_start {
-        signal[center_start..center_end].iter().sum::<f64>()
-            / (center_end - center_start) as f64
+        signal[center_start..center_end].iter().sum::<f64>() / (center_end - center_start) as f64
     } else {
         0.0
     };
@@ -355,7 +339,8 @@ fn builtin_peak_annotation(args: Vec<Value>) -> Result<Value> {
                 Value::Str(s) => s.clone(),
                 _ => String::new(),
             };
-            let peak_mid = (to_i64(&peak_row[peak_start_col]) + to_i64(&peak_row[peak_end_col])) / 2;
+            let peak_mid =
+                (to_i64(&peak_row[peak_start_col]) + to_i64(&peak_row[peak_end_col])) / 2;
 
             let mut nearest_gene = String::from(".");
             let mut min_dist = i64::MAX;

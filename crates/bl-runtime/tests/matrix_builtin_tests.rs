@@ -8,7 +8,8 @@ fn make_matrix_val(rows: Vec<Vec<f64>>) -> Value {
     Value::List(
         rows.into_iter()
             .map(|row| Value::List(row.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
-            .collect::<Vec<_>>().into(),
+            .collect::<Vec<_>>()
+            .into(),
     )
 }
 
@@ -20,10 +21,13 @@ fn mat(rows: Vec<Vec<f64>>) -> Value {
 
 #[test]
 fn test_matrix_construction() {
-    let list = Value::List((vec![
-        Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
-        Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+            Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
+        ])
+        .into(),
+    );
     let result = call_matrix_builtin("matrix", vec![list]).unwrap();
     if let Value::Matrix(m) = result {
         assert_eq!(m.nrow, 2);
@@ -52,10 +56,13 @@ fn test_matrix_construction_from_empty_list() {
 
 #[test]
 fn test_matrix_construction_ragged_rows() {
-    let list = Value::List((vec![
-        Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
-        Value::List((vec![Value::Int(3)]).into()),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+            Value::List((vec![Value::Int(3)]).into()),
+        ])
+        .into(),
+    );
     let result = call_matrix_builtin("matrix", vec![list]);
     assert!(result.is_err(), "ragged rows should produce an error");
 }
@@ -133,10 +140,13 @@ fn test_identity_matrix_properties() {
 
 #[test]
 fn test_transpose() {
-    let list = Value::List((vec![
-        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into()),
-        Value::List((vec![Value::Int(4), Value::Int(5), Value::Int(6)]).into()),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into()),
+            Value::List((vec![Value::Int(4), Value::Int(5), Value::Int(6)]).into()),
+        ])
+        .into(),
+    );
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result = call_matrix_builtin("transpose", vec![mat]).unwrap();
     if let Value::Matrix(m) = result {
@@ -147,13 +157,19 @@ fn test_transpose() {
 
 #[test]
 fn test_transpose_1xn_to_nx1() {
-    let list = Value::List((vec![Value::List((vec![
-        Value::Float(1.0),
-        Value::Float(2.0),
-        Value::Float(3.0),
-        Value::Float(4.0),
-        Value::Float(5.0),
-    ]).into())]).into());
+    let list = Value::List(
+        (vec![Value::List(
+            (vec![
+                Value::Float(1.0),
+                Value::Float(2.0),
+                Value::Float(3.0),
+                Value::Float(4.0),
+                Value::Float(5.0),
+            ])
+            .into(),
+        )])
+        .into(),
+    );
     let m = call_matrix_builtin("matrix", vec![list]).unwrap();
     // 1x5 matrix
     if let Value::Matrix(ref mat) = m {
@@ -175,14 +191,20 @@ fn test_transpose_1xn_to_nx1() {
 
 #[test]
 fn test_dot_product() {
-    let a = Value::List((vec![
-        Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
-        Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
-    ]).into());
-    let b = Value::List((vec![
-        Value::List((vec![Value::Int(5), Value::Int(6)]).into()),
-        Value::List((vec![Value::Int(7), Value::Int(8)]).into()),
-    ]).into());
+    let a = Value::List(
+        (vec![
+            Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+            Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
+        ])
+        .into(),
+    );
+    let b = Value::List(
+        (vec![
+            Value::List((vec![Value::Int(5), Value::Int(6)]).into()),
+            Value::List((vec![Value::Int(7), Value::Int(8)]).into()),
+        ])
+        .into(),
+    );
     let ma = call_matrix_builtin("matrix", vec![a]).unwrap();
     let mb = call_matrix_builtin("matrix", vec![b]).unwrap();
     let result = call_matrix_builtin("dot", vec![ma, mb]).unwrap();
@@ -224,28 +246,38 @@ fn test_dot_product_dimension_mismatch() {
 
 #[test]
 fn test_dim() {
-    let list = Value::List((vec![Value::List((vec![
-        Value::Int(1),
-        Value::Int(2),
-        Value::Int(3),
-    ]).into())]).into());
+    let list = Value::List(
+        (vec![Value::List(
+            (vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into(),
+        )])
+        .into(),
+    );
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result = call_matrix_builtin("dim", vec![mat]).unwrap();
-    assert_eq!(result, Value::List((vec![Value::Int(1), Value::Int(3)]).into()));
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(1), Value::Int(3)]).into())
+    );
 }
 
 // ── Arithmetic ──────────────────────────────────────────────────
 
 #[test]
 fn test_mat_arithmetic() {
-    let a = Value::List((vec![
-        Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
-        Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
-    ]).into());
-    let b = Value::List((vec![
-        Value::List((vec![Value::Float(5.0), Value::Float(6.0)]).into()),
-        Value::List((vec![Value::Float(7.0), Value::Float(8.0)]).into()),
-    ]).into());
+    let a = Value::List(
+        (vec![
+            Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
+            Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
+        ])
+        .into(),
+    );
+    let b = Value::List(
+        (vec![
+            Value::List((vec![Value::Float(5.0), Value::Float(6.0)]).into()),
+            Value::List((vec![Value::Float(7.0), Value::Float(8.0)]).into()),
+        ])
+        .into(),
+    );
     let ma = call_matrix_builtin("matrix", vec![a]).unwrap();
     let mb = call_matrix_builtin("matrix", vec![b]).unwrap();
 
@@ -265,45 +297,41 @@ fn test_mat_arithmetic() {
 
 #[test]
 fn test_row_col_aggregation() {
-    let list = Value::List((vec![
-        Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
-        Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
+            Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
+        ])
+        .into(),
+    );
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
 
     let rs = call_matrix_builtin("row_sums", vec![mat.clone()]).unwrap();
-    assert_eq!(rs, Value::List((vec![Value::Float(3.0), Value::Float(7.0)]).into()));
+    assert_eq!(
+        rs,
+        Value::List((vec![Value::Float(3.0), Value::Float(7.0)]).into())
+    );
 
     let cm = call_matrix_builtin("col_means", vec![mat]).unwrap();
-    assert_eq!(cm, Value::List((vec![Value::Float(2.0), Value::Float(3.0)]).into()));
+    assert_eq!(
+        cm,
+        Value::List((vec![Value::Float(2.0), Value::Float(3.0)]).into())
+    );
 }
 
 // ── PCA ─────────────────────────────────────────────────────────
 
 #[test]
 fn test_pca() {
-    let list = Value::List((vec![
-        Value::List((vec![
-            Value::Float(1.0),
-            Value::Float(2.0),
-            Value::Float(3.0),
-        ]).into()),
-        Value::List((vec![
-            Value::Float(4.0),
-            Value::Float(5.0),
-            Value::Float(6.0),
-        ]).into()),
-        Value::List((vec![
-            Value::Float(7.0),
-            Value::Float(8.0),
-            Value::Float(9.0),
-        ]).into()),
-        Value::List((vec![
-            Value::Float(10.0),
-            Value::Float(11.0),
-            Value::Float(12.0),
-        ]).into()),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::List((vec![Value::Float(1.0), Value::Float(2.0), Value::Float(3.0)]).into()),
+            Value::List((vec![Value::Float(4.0), Value::Float(5.0), Value::Float(6.0)]).into()),
+            Value::List((vec![Value::Float(7.0), Value::Float(8.0), Value::Float(9.0)]).into()),
+            Value::List((vec![Value::Float(10.0), Value::Float(11.0), Value::Float(12.0)]).into()),
+        ])
+        .into(),
+    );
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result = call_matrix_builtin("pca", vec![mat, Value::Int(2)]).unwrap();
     if let Value::Record(map) = result {
@@ -362,11 +390,14 @@ fn test_pca_more_variables_than_samples() {
 
 #[test]
 fn test_cor_matrix() {
-    let list = Value::List((vec![
-        Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
-        Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
-        Value::List((vec![Value::Float(5.0), Value::Float(6.0)]).into()),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
+            Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
+            Value::List((vec![Value::Float(5.0), Value::Float(6.0)]).into()),
+        ])
+        .into(),
+    );
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result = call_matrix_builtin("cor_matrix", vec![mat]).unwrap();
     if let Value::Matrix(m) = result {
@@ -400,10 +431,13 @@ fn test_cor_matrix_constant_column() {
 
 #[test]
 fn test_dist_matrix() {
-    let list = Value::List((vec![
-        Value::List((vec![Value::Float(0.0), Value::Float(0.0)]).into()),
-        Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::List((vec![Value::Float(0.0), Value::Float(0.0)]).into()),
+            Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
+        ])
+        .into(),
+    );
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result =
         call_matrix_builtin("dist_matrix", vec![mat, Value::Str("euclidean".into())]).unwrap();
@@ -448,10 +482,13 @@ fn test_dist_matrix_manhattan() {
 
 #[test]
 fn test_matrix_to_table() {
-    let list = Value::List((vec![
-        Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
-        Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::List((vec![Value::Float(1.0), Value::Float(2.0)]).into()),
+            Value::List((vec![Value::Float(3.0), Value::Float(4.0)]).into()),
+        ])
+        .into(),
+    );
     let mat = call_matrix_builtin("matrix", vec![list]).unwrap();
     let result = call_matrix_builtin("matrix_to_table", vec![mat]).unwrap();
     if let Value::Table(t) = result {

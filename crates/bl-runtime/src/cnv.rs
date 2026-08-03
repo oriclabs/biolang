@@ -109,8 +109,9 @@ fn erfc_approx(x: f64) -> f64 {
     }
     // Abramowitz & Stegun 7.1.26
     let t = 1.0 / (1.0 + 0.3275911 * x);
-    let poly = t * (0.254829592
-        + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+    let poly = t
+        * (0.254829592
+            + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
     poly * (-x * x).exp()
 }
 
@@ -181,9 +182,7 @@ fn lgamma(x: f64) -> f64 {
         res -= xx.ln();
         xx += 1.0;
     }
-    res += (2.0 * std::f64::consts::PI / xx).sqrt().ln()
-        + xx * (xx.ln() - 1.0)
-        + 1.0 / (12.0 * xx)
+    res += (2.0 * std::f64::consts::PI / xx).sqrt().ln() + xx * (xx.ln() - 1.0) + 1.0 / (12.0 * xx)
         - 1.0 / (360.0 * xx.powi(3));
     res
 }
@@ -422,7 +421,8 @@ fn builtin_allele_specific_cn(args: Vec<Value>) -> Result<Value> {
         .map(|(&b, &r)| {
             let total_cn = ((2.0 * 2f64.powf(r)).round() as i64).clamp(0, 8);
             let minor_allele_frac = b.min(1.0 - b);
-            let minor_cn = ((total_cn as f64 * minor_allele_frac).round() as i64).clamp(0, total_cn);
+            let minor_cn =
+                ((total_cn as f64 * minor_allele_frac).round() as i64).clamp(0, total_cn);
             let major_cn = total_cn - minor_cn;
             vec![
                 Value::Int(total_cn),
@@ -513,6 +513,9 @@ fn builtin_cnv_summary(args: Vec<Value>) -> Result<Value> {
     fields.insert("n_bins_amplified".to_string(), Value::Int(amplified));
     fields.insert("n_bins_deleted".to_string(), Value::Int(deleted));
     fields.insert("mean_ratio".to_string(), Value::Float(mean_ratio));
-    fields.insert("fraction_altered".to_string(), Value::Float(fraction_altered));
+    fields.insert(
+        "fraction_altered".to_string(),
+        Value::Float(fraction_altered),
+    );
     Ok(Value::Record((fields).into()))
 }

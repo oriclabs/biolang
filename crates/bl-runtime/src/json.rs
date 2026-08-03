@@ -17,7 +17,12 @@ pub fn json_to_value(j: serde_json::Value) -> Value {
             }
         }
         serde_json::Value::String(s) => Value::Str(s),
-        serde_json::Value::Array(arr) => Value::List(arr.into_iter().map(json_to_value).collect::<Vec<_>>().into()),
+        serde_json::Value::Array(arr) => Value::List(
+            arr.into_iter()
+                .map(json_to_value)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
         serde_json::Value::Object(map) => {
             let record: HashMap<String, Value> = map
                 .into_iter()

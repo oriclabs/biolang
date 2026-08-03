@@ -211,7 +211,8 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 positions
                     .into_iter()
                     .map(|p| Value::Int(p as i64))
-                    .collect::<Vec<_>>().into(),
+                    .collect::<Vec<_>>()
+                    .into(),
             ))
         }
         "kmers" => {
@@ -222,7 +223,8 @@ pub fn call_bio_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 result
                     .into_iter()
                     .map(|s| Value::Str(s.to_string()))
-                    .collect::<Vec<_>>().into(),
+                    .collect::<Vec<_>>()
+                    .into(),
             ))
         }
         "find_orfs" => {
@@ -1401,12 +1403,18 @@ fn builtin_read_stats(path: &str) -> Result<Value> {
     qual_dist.insert("mean".to_string(), Value::Float(mean_quality));
     qual_dist.insert("q20_pct".to_string(), Value::Float(q20_pct));
     qual_dist.insert("q30_pct".to_string(), Value::Float(q30_pct));
-    qual_dist.insert("per_position".to_string(), Value::List((per_pos_quality).into()));
+    qual_dist.insert(
+        "per_position".to_string(),
+        Value::List((per_pos_quality).into()),
+    );
     result.insert("quality".to_string(), Value::Record((qual_dist).into()));
 
     result.insert("gc_content".to_string(), Value::Float(gc_fraction));
     result.insert("n_content".to_string(), Value::List((per_pos_n).into()));
-    result.insert("adapters".to_string(), Value::List((adapter_results).into()));
+    result.insert(
+        "adapters".to_string(),
+        Value::List((adapter_results).into()),
+    );
     result.insert("duplication_rate".to_string(), Value::Float(dup_rate));
 
     Ok(Value::Record((result).into()))
@@ -2547,7 +2555,8 @@ fn builtin_restriction_sites(args: Vec<Value>) -> Result<Value> {
                     positions
                         .into_iter()
                         .map(|p| Value::Int(p as i64))
-                        .collect::<Vec<_>>().into(),
+                        .collect::<Vec<_>>()
+                        .into(),
                 ),
             );
             results.push(Value::Record((rec).into()));

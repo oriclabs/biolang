@@ -136,10 +136,13 @@ fn test_regex_find_multiple() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("chr1:100-200".into()),
-            Value::Str("chr2:300-400".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("chr1:100-200".into()),
+                Value::Str("chr2:300-400".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -166,10 +169,7 @@ fn test_regex_find_with_groups_returns_full_match() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("foo123".into()),
-            Value::Str("bar456".into()),
-        ]).into())
+        Value::List((vec![Value::Str("foo123".into()), Value::Str("bar456".into()),]).into())
     );
 }
 
@@ -212,11 +212,14 @@ fn test_regex_find_unicode_pattern() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("\u{03b1}".into()),
-            Value::Str("\u{03b2}".into()),
-            Value::Str("\u{03b3}".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("\u{03b1}".into()),
+                Value::Str("\u{03b2}".into()),
+                Value::Str("\u{03b3}".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -350,11 +353,14 @@ fn test_regex_split_basic() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("gene1".into()),
-            Value::Str("gene2".into()),
-            Value::Str("gene3".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("gene1".into()),
+                Value::Str("gene2".into()),
+                Value::Str("gene3".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -367,12 +373,15 @@ fn test_regex_split_pattern_at_start() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("".into()),
-            Value::Str("a".into()),
-            Value::Str("b".into()),
-            Value::Str("c".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("".into()),
+                Value::Str("a".into()),
+                Value::Str("b".into()),
+                Value::Str("c".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -385,12 +394,15 @@ fn test_regex_split_pattern_at_end() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("a".into()),
-            Value::Str("b".into()),
-            Value::Str("c".into()),
-            Value::Str("".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("a".into()),
+                Value::Str("b".into()),
+                Value::Str("c".into()),
+                Value::Str("".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -401,7 +413,10 @@ fn test_regex_split_no_match() {
         vec![Value::Str("hello world".into()), Value::Str(r"\d+".into())],
     )
     .unwrap();
-    assert_eq!(result, Value::List((vec![Value::Str("hello world".into())]).into()));
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Str("hello world".into())]).into())
+    );
 }
 
 #[test]
@@ -426,12 +441,15 @@ fn test_regex_split_whitespace_pattern() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("".into()),
-            Value::Str("hello".into()),
-            Value::Str("world".into()),
-            Value::Str("".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("".into()),
+                Value::Str("hello".into()),
+                Value::Str("world".into()),
+                Value::Str("".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -447,11 +465,14 @@ fn test_regex_split_unicode() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("alpha".into()),
-            Value::Str("beta".into()),
-            Value::Str("gamma".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("alpha".into()),
+                Value::Str("beta".into()),
+                Value::Str("gamma".into()),
+            ])
+            .into()
+        )
     );
 }
 

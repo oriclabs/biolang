@@ -188,11 +188,23 @@ fn extract_processes(content: &str) -> Vec<Value> {
             proc.insert("name".to_string(), Value::Str(name));
             proc.insert(
                 "inputs".to_string(),
-                Value::List(inputs.into_iter().map(|s| Value::Str(s)).collect::<Vec<_>>().into()),
+                Value::List(
+                    inputs
+                        .into_iter()
+                        .map(|s| Value::Str(s))
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
             );
             proc.insert(
                 "outputs".to_string(),
-                Value::List(outputs.into_iter().map(|s| Value::Str(s)).collect::<Vec<_>>().into()),
+                Value::List(
+                    outputs
+                        .into_iter()
+                        .map(|s| Value::Str(s))
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
             );
             proc.insert(
                 "script".to_string(),
@@ -1170,7 +1182,9 @@ workflow {
 
         wf.insert(
             "steps".to_string(),
-            Value::List((vec![Value::Record((step1).into()), Value::Record((step2).into())]).into()),
+            Value::List(
+                (vec![Value::Record((step1).into()), Value::Record((step2).into())]).into(),
+            ),
         );
 
         let bl = generate_bl_from_galaxy(&wf).unwrap();

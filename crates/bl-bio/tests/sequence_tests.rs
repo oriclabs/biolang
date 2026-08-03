@@ -123,11 +123,14 @@ fn test_kmers() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("AT".into()),
-            Value::Str("TC".into()),
-            Value::Str("CG".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("AT".into()),
+                Value::Str("TC".into()),
+                Value::Str("CG".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -215,20 +218,23 @@ fn test_to_interval_table() {
     let result = call_bio_builtin("to_interval", vec![Value::Table(t)]).unwrap();
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Interval(GenomicInterval {
-                chrom: "chr1".into(),
-                start: 100,
-                end: 200,
-                strand: Strand::Plus
-            }),
-            Value::Interval(GenomicInterval {
-                chrom: "chr2".into(),
-                start: 300,
-                end: 400,
-                strand: Strand::Minus
-            }),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Interval(GenomicInterval {
+                    chrom: "chr1".into(),
+                    start: 100,
+                    end: 200,
+                    strand: Strand::Plus
+                }),
+                Value::Interval(GenomicInterval {
+                    chrom: "chr2".into(),
+                    start: 300,
+                    end: 400,
+                    strand: Strand::Minus
+                }),
+            ])
+            .into()
+        )
     );
 }
 
@@ -299,10 +305,13 @@ fn test_parse_attr_gff3() {
         assert_eq!(fields["Name"], Value::Str("TP53".into()));
         assert_eq!(
             fields["Dbxref"],
-            Value::List((vec![
-                Value::Str("GeneID:1234".into()),
-                Value::Str("HGNC:5678".into())
-            ]).into())
+            Value::List(
+                (vec![
+                    Value::Str("GeneID:1234".into()),
+                    Value::Str("HGNC:5678".into())
+                ])
+                .into()
+            )
         );
     } else {
         panic!("expected Record");
@@ -345,7 +354,10 @@ fn test_parse_qual_from_record() {
     let mut fields = HashMap::new();
     fields.insert("quality".to_string(), Value::Str("II".into()));
     let result = call_bio_builtin("parse_qual", vec![Value::Record((fields).into())]).unwrap();
-    assert_eq!(result, Value::List((vec![Value::Int(40), Value::Int(40)]).into()));
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(40), Value::Int(40)]).into())
+    );
 }
 
 #[test]

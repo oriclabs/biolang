@@ -170,7 +170,11 @@ impl GtexClient {
         top_n: usize,
     ) -> Result<Vec<TissueExpression>> {
         let mut expr = self.expression(gene_id)?;
-        expr.sort_by(|a, b| b.median.partial_cmp(&a.median).unwrap_or(std::cmp::Ordering::Equal));
+        expr.sort_by(|a, b| {
+            b.median
+                .partial_cmp(&a.median)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         expr.truncate(top_n);
         Ok(expr)
     }
@@ -315,12 +319,32 @@ mod tests {
     #[test]
     fn test_top_expressed_tissues_sorts_correctly() {
         let mut records = vec![
-            TissueExpression { tissue_id: "Liver".into(), median: 5.0, ..Default::default() },
-            TissueExpression { tissue_id: "Brain_Cortex".into(), median: 22.1, ..Default::default() },
-            TissueExpression { tissue_id: "Whole_Blood".into(), median: 1.2, ..Default::default() },
-            TissueExpression { tissue_id: "Lung".into(), median: 14.8, ..Default::default() },
+            TissueExpression {
+                tissue_id: "Liver".into(),
+                median: 5.0,
+                ..Default::default()
+            },
+            TissueExpression {
+                tissue_id: "Brain_Cortex".into(),
+                median: 22.1,
+                ..Default::default()
+            },
+            TissueExpression {
+                tissue_id: "Whole_Blood".into(),
+                median: 1.2,
+                ..Default::default()
+            },
+            TissueExpression {
+                tissue_id: "Lung".into(),
+                median: 14.8,
+                ..Default::default()
+            },
         ];
-        records.sort_by(|a, b| b.median.partial_cmp(&a.median).unwrap_or(std::cmp::Ordering::Equal));
+        records.sort_by(|a, b| {
+            b.median
+                .partial_cmp(&a.median)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         records.truncate(2);
         assert_eq!(records[0].tissue_id, "Brain_Cortex");
         assert_eq!(records[1].tissue_id, "Lung");

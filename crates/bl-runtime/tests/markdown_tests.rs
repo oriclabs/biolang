@@ -95,11 +95,14 @@ fn to_markdown_empty_list() {
 
 #[test]
 fn to_markdown_simple_list() {
-    let list = Value::List((vec![
-        Value::Str("alpha".into()),
-        Value::Str("beta".into()),
-        Value::Str("gamma".into()),
-    ]).into());
+    let list = Value::List(
+        (vec![
+            Value::Str("alpha".into()),
+            Value::Str("beta".into()),
+            Value::Str("gamma".into()),
+        ])
+        .into(),
+    );
     let result = call_markdown_builtin("to_markdown", vec![list]).unwrap();
     if let Value::Str(s) = &result {
         assert!(s.contains("- alpha"));

@@ -144,16 +144,14 @@ fn test_map_filter() {
     let result = eval("map([1, 2, 3, 4], |x| x * 2)");
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Int(2),
-            Value::Int(4),
-            Value::Int(6),
-            Value::Int(8)
-        ]).into())
+        Value::List((vec![Value::Int(2), Value::Int(4), Value::Int(6), Value::Int(8)]).into())
     );
 
     let result = eval("filter([1, 2, 3, 4, 5], |x| x > 3)");
-    assert_eq!(result, Value::List((vec![Value::Int(4), Value::Int(5)]).into()));
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(4), Value::Int(5)]).into())
+    );
 }
 
 #[test]
@@ -167,13 +165,16 @@ fn test_sort() {
     let result = eval("sort([3, 1, 4, 1, 5])");
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Int(1),
-            Value::Int(1),
-            Value::Int(3),
-            Value::Int(4),
-            Value::Int(5)
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Int(1),
+                Value::Int(1),
+                Value::Int(3),
+                Value::Int(4),
+                Value::Int(5)
+            ])
+            .into()
+        )
     );
 }
 
@@ -700,7 +701,10 @@ let t2 = rename(t, "old_name", "new_name")
 colnames(t2)
 "#,
     );
-    assert_eq!(result, Value::List((vec![Value::Str("new_name".into())]).into()));
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Str("new_name".into())]).into())
+    );
 }
 
 #[test]
@@ -1949,11 +1953,14 @@ fn classify(x) {
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("negative".into()),
-            Value::Str("zero".into()),
-            Value::Str("positive".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("negative".into()),
+                Value::Str("zero".into()),
+                Value::Str("positive".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -2033,12 +2040,7 @@ fn test_list_concatenation() {
     let result = eval("[1, 2] + [3, 4]");
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Int(1),
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4)
-        ]).into())
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)]).into())
     );
 }
 
@@ -2280,11 +2282,14 @@ fn test_string_split() {
     let result = eval(r#"split("a,b,c", ",")"#);
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("a".into()),
-            Value::Str("b".into()),
-            Value::Str("c".into())
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("a".into()),
+                Value::Str("b".into()),
+                Value::Str("c".into())
+            ])
+            .into()
+        )
     );
 }
 
@@ -2363,13 +2368,16 @@ fn test_range_single_arg() {
     let result = eval("range(5)");
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Int(0),
-            Value::Int(1),
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4)
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Int(0),
+                Value::Int(1),
+                Value::Int(2),
+                Value::Int(3),
+                Value::Int(4)
+            ])
+            .into()
+        )
     );
 }
 
@@ -2378,12 +2386,7 @@ fn test_range_two_args() {
     let result = eval("range(2, 6)");
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4),
-            Value::Int(5)
-        ]).into())
+        Value::List((vec![Value::Int(2), Value::Int(3), Value::Int(4), Value::Int(5)]).into())
     );
 }
 
@@ -2737,11 +2740,14 @@ fn test_sort_strings() {
     let result = eval(r#"sort(["banana", "apple", "cherry"])"#);
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("apple".into()),
-            Value::Str("banana".into()),
-            Value::Str("cherry".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("apple".into()),
+                Value::Str("banana".into()),
+                Value::Str("cherry".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -3441,13 +3447,16 @@ result
 "#;
     assert_eq!(
         eval(code),
-        Value::List((vec![
-            Value::Int(10),
-            Value::Int(20),
-            Value::Int(30),
-            Value::Int(40),
-            Value::Int(50),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Int(10),
+                Value::Int(20),
+                Value::Int(30),
+                Value::Int(40),
+                Value::Int(50),
+            ])
+            .into()
+        )
     );
 }
 
@@ -3524,13 +3533,16 @@ collect(mapped)
 "#;
     assert_eq!(
         eval(code),
-        Value::List((vec![
-            Value::Int(10),
-            Value::Int(20),
-            Value::Int(30),
-            Value::Int(40),
-            Value::Int(50),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Int(10),
+                Value::Int(20),
+                Value::Int(30),
+                Value::Int(40),
+                Value::Int(50),
+            ])
+            .into()
+        )
     );
 }
 

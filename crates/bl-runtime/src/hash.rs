@@ -179,7 +179,11 @@ fn builtin_sketch(args: Vec<Value>) -> Result<Value> {
     hashes.truncate(n);
 
     Ok(Value::List(
-        hashes.into_iter().map(|h| Value::Int(h as i64)).collect::<Vec<_>>().into(),
+        hashes
+            .into_iter()
+            .map(|h| Value::Int(h as i64))
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 

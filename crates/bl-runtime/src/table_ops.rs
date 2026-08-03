@@ -2315,11 +2315,9 @@ fn extract_col_values(val: &Value, col: &str, func: &str) -> Result<Vec<Value>> 
 
 fn builtin_col_values(args: Vec<Value>) -> Result<Value> {
     let col = require_str(&args[1], "col_values")?;
-    Ok(Value::List((extract_col_values(
-        &args[0],
-        &col,
-        "col_values",
-    )?).into()))
+    Ok(Value::List(
+        (extract_col_values(&args[0], &col, "col_values")?).into(),
+    ))
 }
 
 fn builtin_col_mean(args: Vec<Value>) -> Result<Value> {

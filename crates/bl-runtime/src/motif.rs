@@ -145,9 +145,7 @@ fn fisher_two_sided(a: u64, b: u64, c: u64, d: u64) -> f64 {
     let max_a = r1.min(k);
     let p_sum: f64 = (0..=max_a)
         .map(|x| {
-            let lp = log_binom(r1, x)
-                + log_binom(r2, k.saturating_sub(x))
-                - log_binom(n, k);
+            let lp = log_binom(r1, x) + log_binom(r2, k.saturating_sub(x)) - log_binom(n, k);
             if lp.is_finite() && lp <= log_p_obs + 1e-10 {
                 lp.exp()
             } else {
@@ -164,7 +162,13 @@ fn builtin_iupac_scan(args: Vec<Value>) -> Result<Value> {
     let seq = require_str(&args[0], "iupac_scan")?;
     let pattern = require_str(&args[1], "iupac_scan")?;
     let positions = scan_iupac(seq, pattern);
-    Ok(Value::List(positions.into_iter().map(Value::Int).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        positions
+            .into_iter()
+            .map(Value::Int)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 // ── pwm_from_seqs ─────────────────────────────────────────────────────
@@ -191,7 +195,13 @@ fn builtin_pwm_from_seqs(args: Vec<Value>) -> Result<Value> {
 
     if seqs.is_empty() {
         return Ok(Value::Table(Table::new(
-            vec!["pos".to_string(), "A".to_string(), "C".to_string(), "G".to_string(), "T".to_string()],
+            vec![
+                "pos".to_string(),
+                "A".to_string(),
+                "C".to_string(),
+                "G".to_string(),
+                "T".to_string(),
+            ],
             vec![],
         )));
     }
@@ -239,7 +249,13 @@ fn builtin_pwm_from_seqs(args: Vec<Value>) -> Result<Value> {
         .collect();
 
     Ok(Value::Table(Table::new(
-        vec!["pos".to_string(), "A".to_string(), "C".to_string(), "G".to_string(), "T".to_string()],
+        vec![
+            "pos".to_string(),
+            "A".to_string(),
+            "C".to_string(),
+            "G".to_string(),
+            "T".to_string(),
+        ],
         rows,
     )))
 }
@@ -260,7 +276,13 @@ fn builtin_pwm_scan(args: Vec<Value>) -> Result<Value> {
 
     if motif_len == 0 || motif_len > seq_bytes.len() {
         return Ok(Value::Table(Table::new(
-            vec!["start".to_string(), "end".to_string(), "score".to_string(), "fraction".to_string(), "subseq".to_string()],
+            vec![
+                "start".to_string(),
+                "end".to_string(),
+                "score".to_string(),
+                "fraction".to_string(),
+                "subseq".to_string(),
+            ],
             vec![],
         )));
     }
@@ -282,31 +304,46 @@ fn builtin_pwm_scan(args: Vec<Value>) -> Result<Value> {
         })
         .collect();
 
-    let max_score: f64 = weights.iter().map(|w| w.iter().cloned().fold(f64::NEG_INFINITY, f64::max)).sum();
+    let max_score: f64 = weights
+        .iter()
+        .map(|w| w.iter().cloned().fold(f64::NEG_INFINITY, f64::max))
+        .sum();
     if max_score <= 0.0 {
         return Ok(Value::Table(Table::new(
-            vec!["start".to_string(), "end".to_string(), "score".to_string(), "fraction".to_string(), "subseq".to_string()],
+            vec![
+                "start".to_string(),
+                "end".to_string(),
+                "score".to_string(),
+                "fraction".to_string(),
+                "subseq".to_string(),
+            ],
             vec![],
         )));
     }
 
     let mut rows = Vec::new();
     for start in 0..=(seq_bytes.len() - motif_len) {
-        let score: f64 = weights.iter().enumerate().map(|(j, w)| {
-            let idx = match seq_bytes[start + j].to_ascii_uppercase() {
-                b'A' => 0,
-                b'C' => 1,
-                b'G' => 2,
-                b'T' => 3,
-                _ => return 0.0,
-            };
-            w[idx]
-        }).sum();
+        let score: f64 = weights
+            .iter()
+            .enumerate()
+            .map(|(j, w)| {
+                let idx = match seq_bytes[start + j].to_ascii_uppercase() {
+                    b'A' => 0,
+                    b'C' => 1,
+                    b'G' => 2,
+                    b'T' => 3,
+                    _ => return 0.0,
+                };
+                w[idx]
+            })
+            .sum();
 
         let fraction = score / max_score;
         if fraction >= threshold {
             let end = start + motif_len;
-            let subseq = std::str::from_utf8(&seq_bytes[start..end]).unwrap_or("").to_string();
+            let subseq = std::str::from_utf8(&seq_bytes[start..end])
+                .unwrap_or("")
+                .to_string();
             rows.push(vec![
                 Value::Int(start as i64),
                 Value::Int(end as i64),
@@ -318,7 +355,13 @@ fn builtin_pwm_scan(args: Vec<Value>) -> Result<Value> {
     }
 
     Ok(Value::Table(Table::new(
-        vec!["start".to_string(), "end".to_string(), "score".to_string(), "fraction".to_string(), "subseq".to_string()],
+        vec![
+            "start".to_string(),
+            "end".to_string(),
+            "score".to_string(),
+            "fraction".to_string(),
+            "subseq".to_string(),
+        ],
         rows,
     )))
 }
@@ -412,9 +455,15 @@ fn builtin_motif_enrichment(args: Vec<Value>) -> Result<Value> {
     };
     let pattern = require_str(&args[2], "motif_enrichment")?;
 
-    let fg_hits = fg_seqs.iter().filter(|s| !scan_iupac(s, pattern).is_empty()).count() as u64;
+    let fg_hits = fg_seqs
+        .iter()
+        .filter(|s| !scan_iupac(s, pattern).is_empty())
+        .count() as u64;
     let fg_total = fg_seqs.len() as u64;
-    let bg_hits = bg_seqs.iter().filter(|s| !scan_iupac(s, pattern).is_empty()).count() as u64;
+    let bg_hits = bg_seqs
+        .iter()
+        .filter(|s| !scan_iupac(s, pattern).is_empty())
+        .count() as u64;
     let bg_total = bg_seqs.len() as u64;
 
     let fg_no = fg_total - fg_hits;
@@ -463,7 +512,11 @@ fn builtin_gc_bias(args: Vec<Value>) -> Result<Value> {
             .iter()
             .filter(|&&b| matches!(b, b'G' | b'C' | b'g' | b'c'))
             .count();
-        let gc_frac = if slice.is_empty() { 0.0 } else { gc as f64 / slice.len() as f64 };
+        let gc_frac = if slice.is_empty() {
+            0.0
+        } else {
+            gc as f64 / slice.len() as f64
+        };
         rows.push(vec![
             Value::Int(start as i64),
             Value::Int(end as i64),
@@ -476,7 +529,11 @@ fn builtin_gc_bias(args: Vec<Value>) -> Result<Value> {
     }
 
     Ok(Value::Table(Table::new(
-        vec!["start".to_string(), "end".to_string(), "gc_fraction".to_string()],
+        vec![
+            "start".to_string(),
+            "end".to_string(),
+            "gc_fraction".to_string(),
+        ],
         rows,
     )))
 }

@@ -223,11 +223,23 @@ pub fn fasta_stats(path: &str) -> Result<Value> {
     map.insert("mean_gc".to_string(), Value::Float(mean_gc));
     map.insert(
         "lengths".to_string(),
-        Value::List(lengths.into_iter().map(Value::Int).collect::<Vec<_>>().into()),
+        Value::List(
+            lengths
+                .into_iter()
+                .map(Value::Int)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     map.insert(
         "gc_values".to_string(),
-        Value::List(gc_values.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
+        Value::List(
+            gc_values
+                .into_iter()
+                .map(Value::Float)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     Ok(Value::Record((map).into()))
 }

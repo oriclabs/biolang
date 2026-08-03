@@ -73,7 +73,10 @@ fn formatting_is_idempotent_across_the_repository() {
             unstable.push(path.display().to_string());
         }
     }
-    assert!(unstable.is_empty(), "formatting is not stable for: {unstable:#?}");
+    assert!(
+        unstable.is_empty(),
+        "formatting is not stable for: {unstable:#?}"
+    );
 }
 
 #[test]

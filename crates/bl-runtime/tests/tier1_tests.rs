@@ -1,16 +1,24 @@
-use bl_runtime::variants::call_variants_builtin;
-use bl_runtime::rnaseq::call_rnaseq_builtin;
-use bl_runtime::phylo::call_phylo_builtin;
+use bl_core::value::{Table, Value};
 use bl_runtime::chipseq::call_chipseq_builtin;
 use bl_runtime::microbiome::call_microbiome_builtin;
-use bl_core::value::{Table, Value};
+use bl_runtime::phylo::call_phylo_builtin;
+use bl_runtime::rnaseq::call_rnaseq_builtin;
+use bl_runtime::variants::call_variants_builtin;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-fn int(n: i64) -> Value { Value::Int(n) }
-fn float(f: f64) -> Value { Value::Float(f) }
-fn str_(s: &str) -> Value { Value::Str(s.to_string()) }
-fn list(v: Vec<Value>) -> Value { Value::List((v).into()) }
+fn int(n: i64) -> Value {
+    Value::Int(n)
+}
+fn float(f: f64) -> Value {
+    Value::Float(f)
+}
+fn str_(s: &str) -> Value {
+    Value::Str(s.to_string())
+}
+fn list(v: Vec<Value>) -> Value {
+    Value::List((v).into())
+}
 
 fn table(cols: &[&str], rows: Vec<Vec<Value>>) -> Value {
     Value::Table(Table::new(
@@ -21,12 +29,12 @@ fn table(cols: &[&str], rows: Vec<Vec<Value>>) -> Value {
 
 fn call_ok(module: &str, name: &str, args: Vec<Value>) -> Value {
     match module {
-        "variants"   => call_variants_builtin(name, args).expect(name),
-        "rnaseq"     => call_rnaseq_builtin(name, args).expect(name),
-        "phylo"      => call_phylo_builtin(name, args).expect(name),
-        "chipseq"    => call_chipseq_builtin(name, args).expect(name),
+        "variants" => call_variants_builtin(name, args).expect(name),
+        "rnaseq" => call_rnaseq_builtin(name, args).expect(name),
+        "phylo" => call_phylo_builtin(name, args).expect(name),
+        "chipseq" => call_chipseq_builtin(name, args).expect(name),
         "microbiome" => call_microbiome_builtin(name, args).expect(name),
-        _            => panic!("unknown module {module}"),
+        _ => panic!("unknown module {module}"),
     }
 }
 
@@ -50,11 +58,40 @@ fn test_vcf_parse_basic() {
 #[test]
 fn test_titv_ratio() {
     let t = table(
-        &["chrom", "pos", "id", "ref_", "alt", "qual", "filter", "info"],
+        &[
+            "chrom", "pos", "id", "ref_", "alt", "qual", "filter", "info",
+        ],
         vec![
-            vec![str_("chr1"), int(100), str_("."), str_("A"), str_("G"), float(50.0), str_("PASS"), str_(".")],
-            vec![str_("chr1"), int(200), str_("."), str_("A"), str_("C"), float(40.0), str_("PASS"), str_(".")],
-            vec![str_("chr1"), int(300), str_("."), str_("C"), str_("T"), float(45.0), str_("PASS"), str_(".")],
+            vec![
+                str_("chr1"),
+                int(100),
+                str_("."),
+                str_("A"),
+                str_("G"),
+                float(50.0),
+                str_("PASS"),
+                str_("."),
+            ],
+            vec![
+                str_("chr1"),
+                int(200),
+                str_("."),
+                str_("A"),
+                str_("C"),
+                float(40.0),
+                str_("PASS"),
+                str_("."),
+            ],
+            vec![
+                str_("chr1"),
+                int(300),
+                str_("."),
+                str_("C"),
+                str_("T"),
+                float(45.0),
+                str_("PASS"),
+                str_("."),
+            ],
         ],
     );
     let ratio = call_ok("variants", "titv_ratio", vec![t]);
@@ -67,10 +104,30 @@ fn test_titv_ratio() {
 #[test]
 fn test_variant_summary() {
     let t = table(
-        &["chrom", "pos", "id", "ref_", "alt", "qual", "filter", "info"],
+        &[
+            "chrom", "pos", "id", "ref_", "alt", "qual", "filter", "info",
+        ],
         vec![
-            vec![str_("chr1"), int(1), str_("."), str_("A"), str_("G"), float(50.0), str_("PASS"), str_(".")],
-            vec![str_("chr1"), int(2), str_("."), str_("A"), str_("AT"), float(50.0), str_("PASS"), str_(".")],
+            vec![
+                str_("chr1"),
+                int(1),
+                str_("."),
+                str_("A"),
+                str_("G"),
+                float(50.0),
+                str_("PASS"),
+                str_("."),
+            ],
+            vec![
+                str_("chr1"),
+                int(2),
+                str_("."),
+                str_("A"),
+                str_("AT"),
+                float(50.0),
+                str_("PASS"),
+                str_("."),
+            ],
         ],
     );
     let result = call_ok("variants", "variant_summary", vec![t]);
@@ -104,10 +161,7 @@ fn test_size_factors() {
     // 2 genes × 2 samples; each sample gets factor 1.0 with symmetric matrix
     let t = table(
         &["sample_a", "sample_b"],
-        vec![
-            vec![float(4.0), float(4.0)],
-            vec![float(16.0), float(16.0)],
-        ],
+        vec![vec![float(4.0), float(4.0)], vec![float(16.0), float(16.0)]],
     );
     let result = call_ok("rnaseq", "size_factors", vec![t]);
     match result {
@@ -163,10 +217,13 @@ fn test_tree_leaves() {
     match leaves {
         Value::List(l) => {
             assert_eq!(l.len(), 2);
-            let labels: Vec<&str> = l.iter().map(|v| match v {
-                Value::Str(s) => s.as_str(),
-                _ => "",
-            }).collect();
+            let labels: Vec<&str> = l
+                .iter()
+                .map(|v| match v {
+                    Value::Str(s) => s.as_str(),
+                    _ => "",
+                })
+                .collect();
             assert!(labels.contains(&"A") && labels.contains(&"B"));
         }
         _ => panic!("expected List"),
@@ -178,7 +235,11 @@ fn test_patristic_distance() {
     // Simple star: (A:1.0,B:2.0); — distance A→B = 1+2 = 3
     let nw = "(A:1.0,B:2.0);";
     let tree = call_ok("phylo", "nw_parse", vec![str_(nw)]);
-    let dist = call_ok("phylo", "patristic_distance", vec![tree, str_("A"), str_("B")]);
+    let dist = call_ok(
+        "phylo",
+        "patristic_distance",
+        vec![tree, str_("A"), str_("B")],
+    );
     match dist {
         Value::Float(f) => assert!((f - 3.0).abs() < 1e-9, "expected 3.0, got {f}"),
         _ => panic!("expected Float"),
@@ -233,7 +294,11 @@ fn test_tss_enrichment() {
 fn test_alpha_diversity_shannon() {
     // Equal counts → max Shannon diversity
     let counts = list(vec![int(10), int(10), int(10), int(10)]);
-    let result = call_ok("microbiome", "alpha_diversity", vec![counts, str_("shannon")]);
+    let result = call_ok(
+        "microbiome",
+        "alpha_diversity",
+        vec![counts, str_("shannon")],
+    );
     match result {
         Value::Float(f) => assert!(f > 1.3, "Shannon H > ln(4)≈1.386 for equal probs, got {f}"),
         _ => panic!("expected Float"),
@@ -265,7 +330,13 @@ fn test_rarefaction() {
     let result = call_ok("microbiome", "rarefaction", vec![counts, int(50)]);
     match result {
         Value::List(v) => {
-            let total: i64 = v.iter().map(|x| match x { Value::Int(n) => *n, _ => 0 }).sum();
+            let total: i64 = v
+                .iter()
+                .map(|x| match x {
+                    Value::Int(n) => *n,
+                    _ => 0,
+                })
+                .sum();
             assert_eq!(total, 50, "rarefied total should equal depth");
         }
         _ => panic!("expected List"),

@@ -1256,10 +1256,17 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         },
         "columns" => match &args[0] {
             Value::Table(t) => Ok(Value::List(
-                t.columns.iter().map(|c| Value::Str(c.clone())).collect::<Vec<_>>().into(),
+                t.columns
+                    .iter()
+                    .map(|c| Value::Str(c.clone()))
+                    .collect::<Vec<_>>()
+                    .into(),
             )),
             Value::Record(m) | Value::Map(m) => Ok(Value::List(
-                m.keys().map(|k| Value::Str(k.clone())).collect::<Vec<_>>().into(),
+                m.keys()
+                    .map(|k| Value::Str(k.clone()))
+                    .collect::<Vec<_>>()
+                    .into(),
             )),
             other => Err(BioLangError::type_error(
                 format!(
@@ -1455,7 +1462,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     Value::Set(items) => Ok(Value::List((items.clone()).into())),
                     Value::Tuple(items) => Ok(Value::List((items.clone()).into())),
                     Value::Range { start, end, .. } => Ok(Value::List(
-                        ((*start as i64)..(*end as i64)).map(Value::Int).collect::<Vec<_>>().into(),
+                        ((*start as i64)..(*end as i64))
+                            .map(Value::Int)
+                            .collect::<Vec<_>>()
+                            .into(),
                     )),
                     other => Ok(Value::List((vec![other.clone()]).into())),
                 },
@@ -1578,7 +1588,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         },
         "keys" => match &args[0] {
             Value::Map(m) | Value::Record(m) => Ok(Value::List(
-                m.keys().map(|k| Value::Str(k.clone())).collect::<Vec<_>>().into(),
+                m.keys()
+                    .map(|k| Value::Str(k.clone()))
+                    .collect::<Vec<_>>()
+                    .into(),
             )),
             other => Err(BioLangError::type_error(
                 format!("keys() requires Map or Record, got {}", other.type_of()),
@@ -1586,7 +1599,9 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             )),
         },
         "values" => match &args[0] {
-            Value::Map(m) | Value::Record(m) => Ok(Value::List(m.values().cloned().collect::<Vec<_>>().into())),
+            Value::Map(m) | Value::Record(m) => {
+                Ok(Value::List(m.values().cloned().collect::<Vec<_>>().into()))
+            }
             other => Err(BioLangError::type_error(
                 format!("values() requires Map or Record, got {}", other.type_of()),
                 None,
@@ -1643,7 +1658,8 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             (Value::Str(s), Value::Str(sep)) => Ok(Value::List(
                 s.split(sep.as_str())
                     .map(|p| Value::Str(p.to_string()))
-                    .collect::<Vec<_>>().into(),
+                    .collect::<Vec<_>>()
+                    .into(),
             )),
             _ => Err(BioLangError::type_error(
                 "split() requires (Str, Str)",
@@ -1732,7 +1748,9 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 5
             };
             match &args[0] {
-                Value::List(l) => Ok(Value::List(l.iter().take(n).cloned().collect::<Vec<_>>().into())),
+                Value::List(l) => Ok(Value::List(
+                    l.iter().take(n).cloned().collect::<Vec<_>>().into(),
+                )),
                 Value::Table(t) => {
                     let rows = t.rows.iter().take(n).cloned().collect();
                     Ok(Value::Table(Table::new(t.columns.clone(), rows)))
@@ -1765,7 +1783,9 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             match &args[0] {
                 Value::List(l) => {
                     let skip = l.len().saturating_sub(n);
-                    Ok(Value::List(l.iter().skip(skip).cloned().collect::<Vec<_>>().into()))
+                    Ok(Value::List(
+                        l.iter().skip(skip).cloned().collect::<Vec<_>>().into(),
+                    ))
                 }
                 Value::Table(t) => {
                     let skip = t.rows.len().saturating_sub(n);
@@ -1823,7 +1843,9 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                         None,
                     ));
                 }
-                Ok(Value::List((start..end_val).map(Value::Int).collect::<Vec<_>>().into()))
+                Ok(Value::List(
+                    (start..end_val).map(Value::Int).collect::<Vec<_>>().into(),
+                ))
             }
             other => Err(BioLangError::type_error(
                 format!(
@@ -1888,7 +1910,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             }
         }
         "to_stream" => match args.into_iter().next().unwrap() {
-            Value::List(l) => Ok(Value::Stream(StreamValue::from_list("list", (l).as_ref().clone()))),
+            Value::List(l) => Ok(Value::Stream(StreamValue::from_list(
+                "list",
+                (l).as_ref().clone(),
+            ))),
             Value::Table(t) => {
                 let records = table_to_records(&t);
                 Ok(Value::Stream(StreamValue::from_list("table", records)))
@@ -2671,9 +2696,11 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             (Value::RNA(a), Value::RNA(b)) => Ok(Value::RNA(bl_core::value::BioSequence {
                 data: format!("{}{}", a.data, b.data),
             })),
-            (Value::Protein(a), Value::Protein(b)) => Ok(Value::Protein(bl_core::value::BioSequence {
-                data: format!("{}{}", a.data, b.data),
-            })),
+            (Value::Protein(a), Value::Protein(b)) => {
+                Ok(Value::Protein(bl_core::value::BioSequence {
+                    data: format!("{}{}", a.data, b.data),
+                }))
+            }
             _ => Err(BioLangError::type_error(
                 "concat() requires two Lists, Strs, Tables, or two sequences of the same kind",
                 None,
@@ -2968,8 +2995,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             Ok(Value::Int(result))
         }
         "gen_float" => {
-            let val =
-                (crate::stats::xorshift_next_u64() >> 11) as f64 / (1u64 << 53) as f64;
+            let val = (crate::stats::xorshift_next_u64() >> 11) as f64 / (1u64 << 53) as f64;
             Ok(Value::Float(val))
         }
         "gen_str" => {
@@ -3162,9 +3188,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         _ if crate::rnaseq::is_rnaseq_builtin(name) => {
             crate::rnaseq::call_rnaseq_builtin(name, args)
         }
-        _ if crate::phylo::is_phylo_builtin(name) => {
-            crate::phylo::call_phylo_builtin(name, args)
-        }
+        _ if crate::phylo::is_phylo_builtin(name) => crate::phylo::call_phylo_builtin(name, args),
         _ if crate::chipseq::is_chipseq_builtin(name) => {
             crate::chipseq::call_chipseq_builtin(name, args)
         }
@@ -3175,9 +3199,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         _ if crate::statistics::is_statistics_builtin(name) => {
             crate::statistics::call_statistics_builtin(name, args)
         }
-        _ if crate::qpcr::is_qpcr_builtin(name) => {
-            crate::qpcr::call_qpcr_builtin(name, args)
-        }
+        _ if crate::qpcr::is_qpcr_builtin(name) => crate::qpcr::call_qpcr_builtin(name, args),
         _ if crate::proteomics::is_proteomics_builtin(name) => {
             crate::proteomics::call_proteomics_builtin(name, args)
         }
@@ -3209,25 +3231,13 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         _ if crate::longread::is_longread_builtin(name) => {
             crate::longread::call_longread_builtin(name, args)
         }
-        _ if crate::motif::is_motif_builtin(name) => {
-            crate::motif::call_motif_builtin(name, args)
-        }
+        _ if crate::motif::is_motif_builtin(name) => crate::motif::call_motif_builtin(name, args),
         // Tier-4 full-Rust builtins
-        _ if crate::cnv::is_cnv_builtin(name) => {
-            crate::cnv::call_cnv_builtin(name, args)
-        }
-        _ if crate::hic::is_hic_builtin(name) => {
-            crate::hic::call_hic_builtin(name, args)
-        }
-        _ if crate::atac::is_atac_builtin(name) => {
-            crate::atac::call_atac_builtin(name, args)
-        }
-        _ if crate::drug::is_drug_builtin(name) => {
-            crate::drug::call_drug_builtin(name, args)
-        }
-        _ if crate::gwas::is_gwas_builtin(name) => {
-            crate::gwas::call_gwas_builtin(name, args)
-        }
+        _ if crate::cnv::is_cnv_builtin(name) => crate::cnv::call_cnv_builtin(name, args),
+        _ if crate::hic::is_hic_builtin(name) => crate::hic::call_hic_builtin(name, args),
+        _ if crate::atac::is_atac_builtin(name) => crate::atac::call_atac_builtin(name, args),
+        _ if crate::drug::is_drug_builtin(name) => crate::drug::call_drug_builtin(name, args),
+        _ if crate::gwas::is_gwas_builtin(name) => crate::gwas::call_gwas_builtin(name, args),
         _ if crate::annotation::is_annotation_builtin(name) => {
             crate::annotation::call_annotation_builtin(name, args)
         }
@@ -3818,7 +3828,12 @@ fn json_to_value(json: serde_json::Value) -> Value {
             }
         }
         serde_json::Value::String(s) => Value::Str(s),
-        serde_json::Value::Array(arr) => Value::List(arr.into_iter().map(json_to_value).collect::<Vec<_>>().into()),
+        serde_json::Value::Array(arr) => Value::List(
+            arr.into_iter()
+                .map(json_to_value)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
         serde_json::Value::Object(map) => {
             let rec: std::collections::HashMap<String, Value> = map
                 .into_iter()
@@ -5664,7 +5679,13 @@ fn builtin_kmer_encode(args: Vec<Value>) -> Result<Value> {
     } else {
         // Extract all k-mers
         let kmers = Kmer::extract_all(&seq, k);
-        Ok(Value::List(kmers.into_iter().map(Value::Kmer).collect::<Vec<_>>().into()))
+        Ok(Value::List(
+            kmers
+                .into_iter()
+                .map(Value::Kmer)
+                .collect::<Vec<_>>()
+                .into(),
+        ))
     }
 }
 
@@ -5787,8 +5808,7 @@ fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
                         // the caller nothing. Name the real problem instead.
                         let detail = match item {
                             Value::Record(map) => {
-                                let mut keys: Vec<&str> =
-                                    map.keys().map(String::as_str).collect();
+                                let mut keys: Vec<&str> = map.keys().map(String::as_str).collect();
                                 keys.sort_unstable();
                                 format!(
                                     "record has no 'seq' field (found: {})",
@@ -6890,7 +6910,13 @@ fn builtin_table_schema(args: Vec<Value>) -> Result<Value> {
     let mut result = std::collections::HashMap::new();
     result.insert(
         "columns".to_string(),
-        Value::List(t.columns.iter().map(|c| Value::Str(c.clone())).collect::<Vec<_>>().into()),
+        Value::List(
+            t.columns
+                .iter()
+                .map(|c| Value::Str(c.clone()))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
     );
     // Infer types
     let mut types = Vec::new();

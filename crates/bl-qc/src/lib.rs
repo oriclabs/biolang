@@ -139,7 +139,10 @@ pub fn fastq_metrics(text: &str) -> Option<PreviewMetrics> {
         }
     }
 
-    let profiled = position_counts.iter().take_while(|count| **count > 0).count();
+    let profiled = position_counts
+        .iter()
+        .take_while(|count| **count > 0)
+        .count();
     let per_position: Vec<f64> = (0..profiled)
         .map(|index| position_totals[index] / position_counts[index] as f64)
         .collect();
@@ -162,9 +165,10 @@ pub fn fastq_metrics(text: &str) -> Option<PreviewMetrics> {
             format!("{shortest}-{longest} bp")
         },
     ));
-    metrics
-        .facts
-        .push(PreviewFact::new("Mean quality", format!("Q{overall_mean:.1}")));
+    metrics.facts.push(PreviewFact::new(
+        "Mean quality",
+        format!("Q{overall_mean:.1}"),
+    ));
     if total_bases > 0 {
         metrics.facts.push(PreviewFact::new(
             "GC content",
@@ -313,7 +317,9 @@ pub fn vcf_metrics(text: &str) -> Option<PreviewMetrics> {
             format!("{} ({})", samples.len(), samples.join(", "))
         },
     ));
-    metrics.facts.push(PreviewFact::new("SNVs", snv.to_string()));
+    metrics
+        .facts
+        .push(PreviewFact::new("SNVs", snv.to_string()));
     metrics.facts.push(PreviewFact::new(
         "Indels",
         format!(
@@ -330,7 +336,9 @@ pub fn vcf_metrics(text: &str) -> Option<PreviewMetrics> {
         ));
     }
     if other > 0 {
-        metrics.facts.push(PreviewFact::new("Other", other.to_string()));
+        metrics
+            .facts
+            .push(PreviewFact::new("Other", other.to_string()));
     }
 
     metrics.charts.push(PreviewChart {

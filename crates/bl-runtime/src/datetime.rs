@@ -110,13 +110,15 @@ pub fn call_datetime_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 "hours" => diff.num_hours(),
                 "minutes" => diff.num_minutes(),
                 "seconds" => diff.num_seconds(),
-                other => return Err(BioLangError::runtime(
-                    ErrorKind::TypeError,
-                    format!(
+                other => {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        format!(
                         "date_diff() unknown unit '{other}', expected days/hours/minutes/seconds"
                     ),
-                    None,
-                )),
+                        None,
+                    ))
+                }
             };
             Ok(Value::Int(result))
         }

@@ -172,7 +172,13 @@ fn builtin_nnls(args: Vec<Value>) -> Result<Value> {
     let reference = require_table(&args[1], "nnls")?;
 
     let fracs = nnls_solve(&mixture, reference);
-    Ok(Value::List(fracs.into_iter().map(Value::Float).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        fracs
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 // ── deconvolve ───────────────────────────────────────────────────────

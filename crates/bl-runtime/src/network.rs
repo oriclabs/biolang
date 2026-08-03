@@ -113,7 +113,9 @@ fn graph_from_value(val: &Value, func: &str) -> Result<Graph> {
                             ))
                         }
                     };
-                    g.entry(node.clone()).or_default().push((nb_str.clone(), 1.0));
+                    g.entry(node.clone())
+                        .or_default()
+                        .push((nb_str.clone(), 1.0));
                     g.entry(nb_str).or_default().push((node.clone(), 1.0));
                 }
             }
@@ -132,9 +134,7 @@ fn graph_from_value(val: &Value, func: &str) -> Result<Graph> {
 fn builtin_load_ppi(args: Vec<Value>) -> Result<Value> {
     let text = match &args[0] {
         Value::Str(s) => s.clone(),
-        _ => {
-            return Err(BioLangError::type_error("load_ppi() requires Str", None))
-        }
+        _ => return Err(BioLangError::type_error("load_ppi() requires Str", None)),
     };
     let min_score: f64 = if args.len() > 1 {
         match &args[1] {
@@ -160,14 +160,14 @@ fn builtin_load_ppi(args: Vec<Value>) -> Result<Value> {
         if score < min_score {
             continue;
         }
-        rows.push(vec![
-            Value::Str(p1),
-            Value::Str(p2),
-            Value::Float(score),
-        ]);
+        rows.push(vec![Value::Str(p1), Value::Str(p2), Value::Float(score)]);
     }
     Ok(Value::Table(Table::new(
-        vec!["protein1".to_string(), "protein2".to_string(), "score".to_string()],
+        vec![
+            "protein1".to_string(),
+            "protein2".to_string(),
+            "score".to_string(),
+        ],
         rows,
     )))
 }
@@ -190,12 +190,22 @@ fn builtin_degree_centrality(args: Vec<Value>) -> Result<Value> {
         })
         .collect();
     rows.sort_by(|a, b| {
-        let da = match &a[1] { Value::Int(n) => *n, _ => 0 };
-        let db = match &b[1] { Value::Int(n) => *n, _ => 0 };
+        let da = match &a[1] {
+            Value::Int(n) => *n,
+            _ => 0,
+        };
+        let db = match &b[1] {
+            Value::Int(n) => *n,
+            _ => 0,
+        };
         db.cmp(&da)
     });
     Ok(Value::Table(Table::new(
-        vec!["node".to_string(), "degree".to_string(), "centrality".to_string()],
+        vec![
+            "node".to_string(),
+            "degree".to_string(),
+            "centrality".to_string(),
+        ],
         rows,
     )))
 }
@@ -267,8 +277,14 @@ fn builtin_betweenness_centrality(args: Vec<Value>) -> Result<Value> {
         })
         .collect();
     rows.sort_by(|a, b| {
-        let fa = match &a[1] { Value::Float(f) => *f, _ => 0.0 };
-        let fb = match &b[1] { Value::Float(f) => *f, _ => 0.0 };
+        let fa = match &a[1] {
+            Value::Float(f) => *f,
+            _ => 0.0,
+        };
+        let fb = match &b[1] {
+            Value::Float(f) => *f,
+            _ => 0.0,
+        };
         fb.partial_cmp(&fa).unwrap_or(std::cmp::Ordering::Equal)
     });
     Ok(Value::Table(Table::new(
@@ -316,7 +332,11 @@ fn builtin_shortest_path(args: Vec<Value>) -> Result<Value> {
                     new_path.push(nb.clone());
                     if nb == &target {
                         return Ok(Value::List(
-                            new_path.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+                            new_path
+                                .into_iter()
+                                .map(Value::Str)
+                                .collect::<Vec<_>>()
+                                .into(),
                         ));
                     }
                     visited.insert(nb.clone());
@@ -432,15 +452,26 @@ fn builtin_network_enrichment(args: Vec<Value>) -> Result<Value> {
         }
     };
     let network_nodes: HashSet<&str> = g.keys().map(String::as_str).collect();
-    let k = gene_set.iter().filter(|g| network_nodes.contains(g.as_str())).count() as u64;
+    let k = gene_set
+        .iter()
+        .filter(|g| network_nodes.contains(g.as_str()))
+        .count() as u64;
     let m = gene_set.len() as u64; // gene set size
     let n_net = network_nodes.len() as u64; // network size
     let b = background.max(n_net); // background population
-    // p-value: hypergeometric P(X >= k) where we draw n_net from b, gene_set has m hits
+                                   // p-value: hypergeometric P(X >= k) where we draw n_net from b, gene_set has m hits
     let p = hypergeometric_sf(k, b, m, n_net);
     // Fold enrichment
-    let expected = if b > 0 { (m as f64) * (n_net as f64) / (b as f64) } else { 0.0 };
-    let fold = if expected > 0.0 { k as f64 / expected } else { 0.0 };
+    let expected = if b > 0 {
+        (m as f64) * (n_net as f64) / (b as f64)
+    } else {
+        0.0
+    };
+    let fold = if expected > 0.0 {
+        k as f64 / expected
+    } else {
+        0.0
+    };
     let rows = vec![vec![
         Value::Int(k as i64),
         Value::Int(m as i64),
@@ -473,8 +504,8 @@ fn hypergeometric_sf(k: u64, n: u64, m: u64, draws: u64) -> f64 {
     let mut p_ge_k = 0.0f64;
     let x_max = m.min(draws);
     for x in k..=x_max {
-        let log_p = log_binom(m, x) + log_binom(n.saturating_sub(m), draws.saturating_sub(x))
-            - log_denom;
+        let log_p =
+            log_binom(m, x) + log_binom(n.saturating_sub(m), draws.saturating_sub(x)) - log_denom;
         p_ge_k += log_p.exp();
     }
     p_ge_k.min(1.0)
@@ -485,5 +516,7 @@ fn log_binom(n: u64, k: u64) -> f64 {
         return f64::NEG_INFINITY;
     }
     let k = k.min(n - k);
-    (0..k).map(|i| ((n - i) as f64).ln() - ((i + 1) as f64).ln()).sum::<f64>()
+    (0..k)
+        .map(|i| ((n - i) as f64).ln() - ((i + 1) as f64).ln())
+        .sum::<f64>()
 }

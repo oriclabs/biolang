@@ -938,6 +938,9 @@ mod table_type_tests {
         // A clipped `<bool` would read as a rendering fault.
         assert!(rendered.contains("<bool>"), "{rendered}");
         let lines: Vec<&str> = rendered.lines().collect();
-        assert!(lines[2].contains("<bool>"), "type row misplaced:\n{rendered}");
+        assert!(
+            lines[2].contains("<bool>"),
+            "type row misplaced:\n{rendered}"
+        );
     }
 }

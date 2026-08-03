@@ -232,7 +232,9 @@ mod tests {
             "reverse_complement() expected 1 arguments, got 0",
         );
         assert!(
-            hints.iter().any(|hint| hint.contains("help reverse_complement")),
+            hints
+                .iter()
+                .any(|hint| hint.contains("help reverse_complement")),
             "{hints:?}"
         );
     }
@@ -271,12 +273,18 @@ mod tests {
     #[test]
     fn a_qualified_undefined_name_mentions_the_import() {
         let hints = texts(ErrorKind::NameError, "undefined variable 'sc.summary'");
-        assert!(hints.iter().any(|hint| hint.contains("import")), "{hints:?}");
+        assert!(
+            hints.iter().any(|hint| hint.contains("import")),
+            "{hints:?}"
+        );
     }
 
     #[test]
     fn hints_carry_a_help_topic_where_one_applies() {
-        let hints = suggest(&ErrorKind::IndexOutOfBounds, "index 9 out of bounds (len 3)");
+        let hints = suggest(
+            &ErrorKind::IndexOutOfBounds,
+            "index 9 out of bounds (len 3)",
+        );
         assert_eq!(hints[0].topic, Some("collections"));
     }
 

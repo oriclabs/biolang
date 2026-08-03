@@ -1124,10 +1124,8 @@ pub fn convert(source: &str, filename: &str) -> String {
         // ── Assignment: x <- expr  (always) or x = expr (top-level only) ──
         // Two separate patterns: <- is unambiguous; = is only assignment at
         // the top level (paren_depth == 0, already guaranteed above).
-        let arrow_assign_re =
-            Regex::new(r"^([a-zA-Z_][\w.$]*(?:\[.*?\])?)\s*<-\s*(.+)$").unwrap();
-        let eq_assign_re =
-            Regex::new(r"^([a-zA-Z_][\w.$]*(?:\[.*?\])?)\s*=\s*(.+)$").unwrap();
+        let arrow_assign_re = Regex::new(r"^([a-zA-Z_][\w.$]*(?:\[.*?\])?)\s*<-\s*(.+)$").unwrap();
+        let eq_assign_re = Regex::new(r"^([a-zA-Z_][\w.$]*(?:\[.*?\])?)\s*=\s*(.+)$").unwrap();
         let assign_re_match = arrow_assign_re
             .captures(trimmed)
             .or_else(|| eq_assign_re.captures(trimmed));

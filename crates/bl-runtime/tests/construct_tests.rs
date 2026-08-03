@@ -159,11 +159,14 @@ results
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("pos".into()),
-            Value::Str("neg".into()),
-            Value::Str("zero".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("pos".into()),
+                Value::Str("neg".into()),
+                Value::Str("zero".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -263,13 +266,16 @@ data
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Int(12),
-            Value::Int(14),
-            Value::Int(16),
-            Value::Int(18),
-            Value::Int(20),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Int(12),
+                Value::Int(14),
+                Value::Int(16),
+                Value::Int(18),
+                Value::Int(20),
+            ])
+            .into()
+        )
     );
 }
 
@@ -340,7 +346,10 @@ fn test_pipe_trailing_lambda_filter() {
 [1, 2, 3, 4, 5] |> filter |n| n > 3
 "#,
     );
-    assert_eq!(result, Value::List((vec![Value::Int(4), Value::Int(5),]).into()));
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(4), Value::Int(5),]).into())
+    );
 }
 
 #[test]
@@ -522,13 +531,16 @@ results
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("pos".into()),
-            Value::Str("neg".into()),
-            Value::Str("zero".into()),
-            Value::Str("pos".into()),
-            Value::Str("neg".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("pos".into()),
+                Value::Str("neg".into()),
+                Value::Str("zero".into()),
+                Value::Str("pos".into()),
+                Value::Str("neg".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -567,7 +579,10 @@ for group in [[1,2,3], [4,5,6]] {
 all
 "#,
     );
-    assert_eq!(result, Value::List((vec![Value::Int(60), Value::Int(150)]).into()));
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Int(60), Value::Int(150)]).into())
+    );
 }
 
 #[test]
@@ -583,13 +598,16 @@ evens
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Int(2),
-            Value::Int(4),
-            Value::Int(6),
-            Value::Int(8),
-            Value::Int(10),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Int(2),
+                Value::Int(4),
+                Value::Int(6),
+                Value::Int(8),
+                Value::Int(10),
+            ])
+            .into()
+        )
     );
 }
 
@@ -814,11 +832,14 @@ labels
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("transition".into()),
-            Value::Str("transversion".into()),
-            Value::Str("indel".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("transition".into()),
+                Value::Str("transversion".into()),
+                Value::Str("indel".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -1431,11 +1452,14 @@ sorted |> to_records |> map(|r| r.name)
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("charlie".into()),
-            Value::Str("alice".into()),
-            Value::Str("bob".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("charlie".into()),
+                Value::Str("alice".into()),
+                Value::Str("bob".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -1450,11 +1474,14 @@ sorted |> to_records |> map(|r| r.name)
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("x".into()),
-            Value::Str("z".into()),
-            Value::Str("y".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("x".into()),
+                Value::Str("z".into()),
+                Value::Str("y".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -1533,13 +1560,16 @@ sort_by(nums, |a, b| a - b)
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Int(1),
-            Value::Int(1),
-            Value::Int(3),
-            Value::Int(4),
-            Value::Int(5),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Int(1),
+                Value::Int(1),
+                Value::Int(3),
+                Value::Int(4),
+                Value::Int(5),
+            ])
+            .into()
+        )
     );
 }
 
@@ -1553,13 +1583,16 @@ sort_by(nums, |a, b| b - a)
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Int(5),
-            Value::Int(4),
-            Value::Int(3),
-            Value::Int(1),
-            Value::Int(1),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Int(5),
+                Value::Int(4),
+                Value::Int(3),
+                Value::Int(1),
+                Value::Int(1),
+            ])
+            .into()
+        )
     );
 }
 
@@ -1573,11 +1606,7 @@ sort_by(nums, |a, b| a - b)
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Float(1.0),
-            Value::Float(2.25),
-            Value::Float(3.5),
-        ]).into())
+        Value::List((vec![Value::Float(1.0), Value::Float(2.25), Value::Float(3.5),]).into())
     );
 }
 
@@ -1592,11 +1621,14 @@ sorted |> to_records |> map(|r| r.name)
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Str("a".into()),
-            Value::Str("c".into()),
-            Value::Str("b".into()),
-        ]).into())
+        Value::List(
+            (vec![
+                Value::Str("a".into()),
+                Value::Str("c".into()),
+                Value::Str("b".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -2718,12 +2750,7 @@ fn test_concat_lists() {
     );
     assert_eq!(
         result,
-        Value::List((vec![
-            Value::Int(1),
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4)
-        ]).into())
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)]).into())
     );
 }
 

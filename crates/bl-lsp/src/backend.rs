@@ -73,15 +73,14 @@ impl BioLangBackend {
         };
         let offset = position_offset(&source, position);
         let member_target = analysis::member_target(&source, offset);
-        let analysis_source = if member_target.is_some()
-            && source[..offset].trim_end().ends_with('.')
-        {
-            let mut parseable = source.clone();
-            parseable.insert_str(offset, "__completion");
-            parseable
-        } else {
-            source.clone()
-        };
+        let analysis_source =
+            if member_target.is_some() && source[..offset].trim_end().ends_with('.') {
+                let mut parseable = source.clone();
+                parseable.insert_str(offset, "__completion");
+                parseable
+            } else {
+                source.clone()
+            };
         let analysis = self.analyze(uri, &analysis_source);
 
         if let Some(target) = member_target {
@@ -139,11 +138,7 @@ impl BioLangBackend {
         Some((document, word, qualifier))
     }
 
-    fn function_at_call(
-        &self,
-        uri: &Url,
-        position: Position,
-    ) -> Option<(FunctionInfo, u32)> {
+    fn function_at_call(&self, uri: &Url, position: Position) -> Option<(FunctionInfo, u32)> {
         let source = self.source(uri)?;
         let offset = position_offset(&source, position);
         let (callee, active_parameter) = analysis::call_at(&source, offset)?;
@@ -287,10 +282,7 @@ impl LanguageServer for BioLangBackend {
         }))
     }
 
-    async fn signature_help(
-        &self,
-        params: SignatureHelpParams,
-    ) -> Result<Option<SignatureHelp>> {
+    async fn signature_help(&self, params: SignatureHelpParams) -> Result<Option<SignatureHelp>> {
         let position = params.text_document_position_params.position;
         let uri = params.text_document_position_params.text_document.uri;
         let Some((function, active_parameter)) = self.function_at_call(&uri, position) else {
@@ -304,7 +296,11 @@ impl LanguageServer for BioLangBackend {
                 documentation: Some(Documentation::String(format!(
                     "{}{}",
                     parameter.type_info.display(),
-                    if parameter.optional { " (optional)" } else { "" }
+                    if parameter.optional {
+                        " (optional)"
+                    } else {
+                        ""
+                    }
                 ))),
             })
             .collect::<Vec<_>>();
@@ -614,9 +610,7 @@ fn completion_kind(kind: &SymbolKind) -> CompletionItemKind {
 fn symbol_kind(kind: &SymbolKind) -> tower_lsp::lsp_types::SymbolKind {
     match kind {
         SymbolKind::Function => tower_lsp::lsp_types::SymbolKind::FUNCTION,
-        SymbolKind::Variable | SymbolKind::Parameter => {
-            tower_lsp::lsp_types::SymbolKind::VARIABLE
-        }
+        SymbolKind::Variable | SymbolKind::Parameter => tower_lsp::lsp_types::SymbolKind::VARIABLE,
         SymbolKind::Import => tower_lsp::lsp_types::SymbolKind::MODULE,
         SymbolKind::Enum => tower_lsp::lsp_types::SymbolKind::ENUM,
         SymbolKind::Struct => tower_lsp::lsp_types::SymbolKind::STRUCT,
@@ -660,7 +654,10 @@ fn offset_position(source: &str, offset: usize) -> Position {
     let offset = offset.min(source.len());
     let before = &source[..offset];
     let line = before.bytes().filter(|byte| *byte == b'\n').count() as u32;
-    let current = before.rsplit_once('\n').map(|(_, value)| value).unwrap_or(before);
+    let current = before
+        .rsplit_once('\n')
+        .map(|(_, value)| value)
+        .unwrap_or(before);
     Position {
         line,
         character: current.encode_utf16().count() as u32,

@@ -52,7 +52,10 @@ fn rmsd_identical_coords_is_zero() {
     let b = Value::List((coords).into());
     let result = structure::call_structure_builtin("rmsd", vec![a, b]).unwrap();
     match result {
-        Value::Float(v) => assert!(v.abs() < 1e-9, "RMSD of identical sets should be ~0, got {v}"),
+        Value::Float(v) => assert!(
+            v.abs() < 1e-9,
+            "RMSD of identical sets should be ~0, got {v}"
+        ),
         _ => panic!("expected Float"),
     }
 }
@@ -60,37 +63,46 @@ fn rmsd_identical_coords_is_zero() {
 #[test]
 fn rmsd_translated_sets() {
     // Two sets differing by a pure translation — RMSD should be 0 after alignment
-    let a = Value::List((vec![
-        Value::List((vec![Value::Float(0.0), Value::Float(0.0), Value::Float(0.0)]).into()),
-        Value::List((vec![Value::Float(1.0), Value::Float(0.0), Value::Float(0.0)]).into()),
-        Value::List((vec![Value::Float(0.0), Value::Float(1.0), Value::Float(0.0)]).into()),
-        Value::List((vec![Value::Float(0.0), Value::Float(0.0), Value::Float(1.0)]).into()),
-    ]).into());
-    let b = Value::List((vec![
-        Value::List((vec![Value::Float(5.0), Value::Float(5.0), Value::Float(5.0)]).into()),
-        Value::List((vec![Value::Float(6.0), Value::Float(5.0), Value::Float(5.0)]).into()),
-        Value::List((vec![Value::Float(5.0), Value::Float(6.0), Value::Float(5.0)]).into()),
-        Value::List((vec![Value::Float(5.0), Value::Float(5.0), Value::Float(6.0)]).into()),
-    ]).into());
+    let a = Value::List(
+        (vec![
+            Value::List((vec![Value::Float(0.0), Value::Float(0.0), Value::Float(0.0)]).into()),
+            Value::List((vec![Value::Float(1.0), Value::Float(0.0), Value::Float(0.0)]).into()),
+            Value::List((vec![Value::Float(0.0), Value::Float(1.0), Value::Float(0.0)]).into()),
+            Value::List((vec![Value::Float(0.0), Value::Float(0.0), Value::Float(1.0)]).into()),
+        ])
+        .into(),
+    );
+    let b = Value::List(
+        (vec![
+            Value::List((vec![Value::Float(5.0), Value::Float(5.0), Value::Float(5.0)]).into()),
+            Value::List((vec![Value::Float(6.0), Value::Float(5.0), Value::Float(5.0)]).into()),
+            Value::List((vec![Value::Float(5.0), Value::Float(6.0), Value::Float(5.0)]).into()),
+            Value::List((vec![Value::Float(5.0), Value::Float(5.0), Value::Float(6.0)]).into()),
+        ])
+        .into(),
+    );
     let result = structure::call_structure_builtin("rmsd", vec![a, b]).unwrap();
     match result {
-        Value::Float(v) => assert!(v < 1e-6, "RMSD after translation alignment should be ~0, got {v}"),
+        Value::Float(v) => assert!(
+            v < 1e-6,
+            "RMSD after translation alignment should be ~0, got {v}"
+        ),
         _ => panic!("expected Float"),
     }
 }
 
 #[test]
 fn contact_map_finds_nearby_atoms() {
-    let coords = Value::List((vec![
-        Value::List((vec![Value::Float(0.0), Value::Float(0.0), Value::Float(0.0)]).into()),
-        Value::List((vec![Value::Float(3.0), Value::Float(0.0), Value::Float(0.0)]).into()),
-        Value::List((vec![Value::Float(100.0), Value::Float(0.0), Value::Float(0.0)]).into()),
-    ]).into());
-    let result = structure::call_structure_builtin(
-        "contact_map",
-        vec![coords, Value::Float(8.0)],
-    )
-    .unwrap();
+    let coords = Value::List(
+        (vec![
+            Value::List((vec![Value::Float(0.0), Value::Float(0.0), Value::Float(0.0)]).into()),
+            Value::List((vec![Value::Float(3.0), Value::Float(0.0), Value::Float(0.0)]).into()),
+            Value::List((vec![Value::Float(100.0), Value::Float(0.0), Value::Float(0.0)]).into()),
+        ])
+        .into(),
+    );
+    let result =
+        structure::call_structure_builtin("contact_map", vec![coords, Value::Float(8.0)]).unwrap();
     match result {
         Value::Table(t) => {
             assert_eq!(t.rows.len(), 1, "only atoms 0-1 should be within 8Å");
@@ -114,11 +126,9 @@ fn secondary_structure_helix_detected() {
         let x = 2.3 * t.cos();
         let y = 2.3 * t.sin();
         let z = i as f64 * 1.5;
-        coords_list.push(Value::List((vec![
-            Value::Float(x),
-            Value::Float(y),
-            Value::Float(z),
-        ]).into()));
+        coords_list.push(Value::List(
+            (vec![Value::Float(x), Value::Float(y), Value::Float(z)]).into(),
+        ));
     }
     let result = structure::call_structure_builtin(
         "secondary_structure",
@@ -129,7 +139,10 @@ fn secondary_structure_helix_detected() {
         Value::Table(t) => {
             assert_eq!(t.rows.len(), 10);
             // At least some residues should be assigned H (helix)
-            let has_helix = t.rows.iter().any(|r| matches!(&r[1], Value::Str(s) if s == "H"));
+            let has_helix = t
+                .rows
+                .iter()
+                .any(|r| matches!(&r[1], Value::Str(s) if s == "H"));
             // Structure detection is heuristic; just check the function runs
             let _ = has_helix;
         }
@@ -148,11 +161,8 @@ fn backbone_angles_smoke_test() {
         "ATOM      5  CA  GLY A   2      28.308   2.548   6.671  1.00  0.00           C  \n",
         "ATOM      6  C   GLY A   2      29.770   2.612   7.061  1.00  0.00           C  \n",
     );
-    let t_val = structure::call_structure_builtin(
-        "pdb_parse",
-        vec![Value::Str(pdb.to_string())],
-    )
-    .unwrap();
+    let t_val =
+        structure::call_structure_builtin("pdb_parse", vec![Value::Str(pdb.to_string())]).unwrap();
     let result = structure::call_structure_builtin("backbone_angles", vec![t_val]).unwrap();
     match result {
         Value::Table(t) => {
@@ -179,7 +189,11 @@ fn make_edge_table(edges: &[(&str, &str, f64)]) -> Value {
         })
         .collect();
     Value::Table(Table::new(
-        vec!["protein1".to_string(), "protein2".to_string(), "score".to_string()],
+        vec![
+            "protein1".to_string(),
+            "protein2".to_string(),
+            "score".to_string(),
+        ],
         rows,
     ))
 }
@@ -194,7 +208,11 @@ fn load_ppi_filters_by_score() {
     .unwrap();
     match result {
         Value::Table(t) => {
-            assert_eq!(t.rows.len(), 2, "only rows with score >= 400 should be kept");
+            assert_eq!(
+                t.rows.len(),
+                2,
+                "only rows with score >= 400 should be kept"
+            );
         }
         _ => panic!("expected Table"),
     }
@@ -234,7 +252,10 @@ fn betweenness_centrality_path_graph() {
                 Value::Str(s) => s.clone(),
                 _ => panic!(),
             };
-            assert!(top == "B" || top == "C", "B or C should have highest betweenness");
+            assert!(
+                top == "B" || top == "C",
+                "B or C should have highest betweenness"
+            );
         }
         _ => panic!("expected Table"),
     }
@@ -282,11 +303,7 @@ fn shortest_path_same_node() {
 
 #[test]
 fn connected_components_two_clusters() {
-    let g = make_edge_table(&[
-        ("A", "B", 1.0),
-        ("B", "C", 1.0),
-        ("X", "Y", 1.0),
-    ]);
+    let g = make_edge_table(&[("A", "B", 1.0), ("B", "C", 1.0), ("X", "Y", 1.0)]);
     let result = network::call_network_builtin("connected_components", vec![g]).unwrap();
     match result {
         Value::Table(t) => {
@@ -299,15 +316,16 @@ fn connected_components_two_clusters() {
 #[test]
 fn network_enrichment_no_overlap() {
     let g = make_edge_table(&[("BRCA1", "TP53", 1.0), ("EGFR", "MYC", 1.0)]);
-    let gene_set = Value::List((vec![
-        Value::Str("GENE_X".to_string()),
-        Value::Str("GENE_Y".to_string()),
-    ]).into());
-    let result = network::call_network_builtin(
-        "network_enrichment",
-        vec![g, gene_set, Value::Int(20000)],
-    )
-    .unwrap();
+    let gene_set = Value::List(
+        (vec![
+            Value::Str("GENE_X".to_string()),
+            Value::Str("GENE_Y".to_string()),
+        ])
+        .into(),
+    );
+    let result =
+        network::call_network_builtin("network_enrichment", vec![g, gene_set, Value::Int(20000)])
+            .unwrap();
     match result {
         Value::Table(t) => {
             let overlap = match &t.rows[0][0] {
@@ -357,7 +375,10 @@ fn hwe_test_deviation() {
                 Value::Float(f) => *f,
                 _ => panic!(),
             };
-            assert!(pvalue < 0.05, "expected significant HWE deviation, got {pvalue}");
+            assert!(
+                pvalue < 0.05,
+                "expected significant HWE deviation, got {pvalue}"
+            );
         }
         _ => panic!("expected Table"),
     }
@@ -366,17 +387,26 @@ fn hwe_test_deviation() {
 #[test]
 fn fst_zero_for_same_frequencies() {
     // Two populations with identical allele frequencies → Fst ≈ 0
-    let pop1 = Value::List((vec![
-        Value::List((vec![Value::Int(10), Value::Int(20)]).into()),
-        Value::List((vec![Value::Int(5), Value::Int(20)]).into()),
-    ]).into());
-    let pop2 = Value::List((vec![
-        Value::List((vec![Value::Int(10), Value::Int(20)]).into()),
-        Value::List((vec![Value::Int(5), Value::Int(20)]).into()),
-    ]).into());
+    let pop1 = Value::List(
+        (vec![
+            Value::List((vec![Value::Int(10), Value::Int(20)]).into()),
+            Value::List((vec![Value::Int(5), Value::Int(20)]).into()),
+        ])
+        .into(),
+    );
+    let pop2 = Value::List(
+        (vec![
+            Value::List((vec![Value::Int(10), Value::Int(20)]).into()),
+            Value::List((vec![Value::Int(5), Value::Int(20)]).into()),
+        ])
+        .into(),
+    );
     let result = popgen::call_popgen_builtin("fst_weir_cockerham", vec![pop1, pop2]).unwrap();
     match result {
-        Value::Float(f) => assert!(f.abs() < 1e-6, "Fst for same populations should be ~0, got {f}"),
+        Value::Float(f) => assert!(
+            f.abs() < 1e-6,
+            "Fst for same populations should be ~0, got {f}"
+        ),
         _ => panic!("expected Float"),
     }
 }
@@ -384,15 +414,16 @@ fn fst_zero_for_same_frequencies() {
 #[test]
 fn fst_nonzero_for_different_pops() {
     // Pop1 has p=0.9, Pop2 has p=0.1 → high Fst
-    let pop1 = Value::List((vec![
-        Value::List((vec![Value::Int(18), Value::Int(20)]).into()),
-    ]).into());
-    let pop2 = Value::List((vec![
-        Value::List((vec![Value::Int(2), Value::Int(20)]).into()),
-    ]).into());
+    let pop1 =
+        Value::List((vec![Value::List((vec![Value::Int(18), Value::Int(20)]).into())]).into());
+    let pop2 =
+        Value::List((vec![Value::List((vec![Value::Int(2), Value::Int(20)]).into())]).into());
     let result = popgen::call_popgen_builtin("fst_weir_cockerham", vec![pop1, pop2]).unwrap();
     match result {
-        Value::Float(f) => assert!(f > 0.3, "Fst for divergent populations should be high, got {f}"),
+        Value::Float(f) => assert!(
+            f > 0.3,
+            "Fst for divergent populations should be high, got {f}"
+        ),
         _ => panic!("expected Float"),
     }
 }
@@ -400,16 +431,24 @@ fn fst_nonzero_for_different_pops() {
 #[test]
 fn tajima_d_uniform_low_freq() {
     // All variants at count=1 (rare) → negative D (excess rare variants)
-    let counts = Value::List((vec![
-        Value::Int(1), Value::Int(1), Value::Int(1), Value::Int(1),
-        Value::Int(1), Value::Int(1), Value::Int(1), Value::Int(1),
-        Value::Int(0), Value::Int(0), Value::Int(0), Value::Int(0),
-    ]).into());
-    let result = popgen::call_popgen_builtin(
-        "tajima_d",
-        vec![counts, Value::Int(10)],
-    )
-    .unwrap();
+    let counts = Value::List(
+        (vec![
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(0),
+            Value::Int(0),
+            Value::Int(0),
+            Value::Int(0),
+        ])
+        .into(),
+    );
+    let result = popgen::call_popgen_builtin("tajima_d", vec![counts, Value::Int(10)]).unwrap();
     match result {
         Value::Float(d) => {
             // Negative D expected under purifying selection / population expansion
@@ -422,15 +461,14 @@ fn tajima_d_uniform_low_freq() {
 #[test]
 fn ld_r2_perfect_correlation() {
     // Identical haplotypes → r² = 1
-    let a = Value::List((vec![
-        Value::Int(0), Value::Int(1), Value::Int(0), Value::Int(1),
-    ]).into());
-    let b = Value::List((vec![
-        Value::Int(0), Value::Int(1), Value::Int(0), Value::Int(1),
-    ]).into());
+    let a = Value::List((vec![Value::Int(0), Value::Int(1), Value::Int(0), Value::Int(1)]).into());
+    let b = Value::List((vec![Value::Int(0), Value::Int(1), Value::Int(0), Value::Int(1)]).into());
     let result = popgen::call_popgen_builtin("ld_r2", vec![a, b]).unwrap();
     match result {
-        Value::Float(r2) => assert!((r2 - 1.0).abs() < 1e-9, "r² of identical haplotypes should be 1, got {r2}"),
+        Value::Float(r2) => assert!(
+            (r2 - 1.0).abs() < 1e-9,
+            "r² of identical haplotypes should be 1, got {r2}"
+        ),
         _ => panic!("expected Float"),
     }
 }
@@ -438,32 +476,57 @@ fn ld_r2_perfect_correlation() {
 #[test]
 fn ld_r2_no_correlation() {
     // Alternating vs uniform → should be near 0
-    let a = Value::List((vec![
-        Value::Int(0), Value::Int(1), Value::Int(0), Value::Int(1),
-        Value::Int(0), Value::Int(1), Value::Int(0), Value::Int(1),
-    ]).into());
-    let b = Value::List((vec![
-        Value::Int(1), Value::Int(1), Value::Int(1), Value::Int(1),
-        Value::Int(1), Value::Int(1), Value::Int(1), Value::Int(1),
-    ]).into());
+    let a = Value::List(
+        (vec![
+            Value::Int(0),
+            Value::Int(1),
+            Value::Int(0),
+            Value::Int(1),
+            Value::Int(0),
+            Value::Int(1),
+            Value::Int(0),
+            Value::Int(1),
+        ])
+        .into(),
+    );
+    let b = Value::List(
+        (vec![
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+            Value::Int(1),
+        ])
+        .into(),
+    );
     let result = popgen::call_popgen_builtin("ld_r2", vec![a, b]).unwrap();
     match result {
-        Value::Float(r2) => assert!(r2.abs() < 1e-9, "r² with no variance at locus B should be 0, got {r2}"),
+        Value::Float(r2) => assert!(
+            r2.abs() < 1e-9,
+            "r² with no variance at locus B should be 0, got {r2}"
+        ),
         _ => panic!("expected Float"),
     }
 }
 
 #[test]
 fn allele_freq_spectrum_basic() {
-    let counts = Value::List((vec![
-        Value::Int(1), Value::Int(2), Value::Int(1),
-        Value::Int(5), Value::Int(0), Value::Int(3),
-    ]).into());
-    let result = popgen::call_popgen_builtin(
-        "allele_freq_spectrum",
-        vec![counts, Value::Int(10)],
-    )
-    .unwrap();
+    let counts = Value::List(
+        (vec![
+            Value::Int(1),
+            Value::Int(2),
+            Value::Int(1),
+            Value::Int(5),
+            Value::Int(0),
+            Value::Int(3),
+        ])
+        .into(),
+    );
+    let result =
+        popgen::call_popgen_builtin("allele_freq_spectrum", vec![counts, Value::Int(10)]).unwrap();
     match result {
         Value::Table(t) => {
             assert!(!t.rows.is_empty());
@@ -476,11 +539,14 @@ fn allele_freq_spectrum_basic() {
 
 #[test]
 fn nucleotide_diversity_zero_for_identical() {
-    let seqs = Value::List((vec![
-        Value::Str("ACGT".to_string()),
-        Value::Str("ACGT".to_string()),
-        Value::Str("ACGT".to_string()),
-    ]).into());
+    let seqs = Value::List(
+        (vec![
+            Value::Str("ACGT".to_string()),
+            Value::Str("ACGT".to_string()),
+            Value::Str("ACGT".to_string()),
+        ])
+        .into(),
+    );
     let result = popgen::call_popgen_builtin("nucleotide_diversity", vec![seqs]).unwrap();
     match result {
         Value::Float(pi) => assert!(pi.abs() < 1e-9, "π of identical seqs should be 0, got {pi}"),
@@ -490,11 +556,14 @@ fn nucleotide_diversity_zero_for_identical() {
 
 #[test]
 fn nucleotide_diversity_nonzero() {
-    let seqs = Value::List((vec![
-        Value::Str("ACGT".to_string()),
-        Value::Str("ACGA".to_string()), // 1 diff
-        Value::Str("ACTT".to_string()), // 1 diff from seq1, 2 from seq2
-    ]).into());
+    let seqs = Value::List(
+        (vec![
+            Value::Str("ACGT".to_string()),
+            Value::Str("ACGA".to_string()), // 1 diff
+            Value::Str("ACTT".to_string()), // 1 diff from seq1, 2 from seq2
+        ])
+        .into(),
+    );
     let result = popgen::call_popgen_builtin("nucleotide_diversity", vec![seqs]).unwrap();
     match result {
         Value::Float(pi) => assert!(pi > 0.0, "π should be > 0 for distinct seqs, got {pi}"),

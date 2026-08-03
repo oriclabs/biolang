@@ -91,7 +91,10 @@ fn counts_from_list(list: &[Value], func: &str) -> Result<Vec<f64>> {
 struct Lcg(u64);
 impl Lcg {
     fn next(&mut self) -> u64 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         self.0
     }
     fn next_usize(&mut self, n: usize) -> usize {
@@ -124,16 +127,14 @@ fn builtin_alpha_diversity(args: Vec<Value>) -> Result<Value> {
     }
 
     let result = match method.as_str() {
-        "shannon" => {
-            -counts
-                .iter()
-                .filter(|&&c| c > 0.0)
-                .map(|&c| {
-                    let p = c / total;
-                    p * p.ln()
-                })
-                .sum::<f64>()
-        }
+        "shannon" => -counts
+            .iter()
+            .filter(|&&c| c > 0.0)
+            .map(|&c| {
+                let p = c / total;
+                p * p.ln()
+            })
+            .sum::<f64>(),
         "simpson" => {
             1.0 - counts
                 .iter()
@@ -157,7 +158,9 @@ fn builtin_alpha_diversity(args: Vec<Value>) -> Result<Value> {
         other => {
             return Err(BioLangError::runtime(
                 ErrorKind::TypeError,
-                format!("alpha_diversity(): unknown method '{other}'; use shannon|simpson|chao1|observed"),
+                format!(
+                "alpha_diversity(): unknown method '{other}'; use shannon|simpson|chao1|observed"
+            ),
                 None,
             ))
         }
@@ -191,9 +194,21 @@ fn builtin_beta_diversity(args: Vec<Value>) -> Result<Value> {
         for j in 0..n_samples {
             let d = match method.as_str() {
                 "bray_curtis" => {
-                    let num: f64 = mat[i].iter().zip(mat[j].iter()).map(|(a, b)| (a - b).abs()).sum::<f64>();
-                    let denom: f64 = mat[i].iter().zip(mat[j].iter()).map(|(a, b)| a + b).sum::<f64>();
-                    if denom == 0.0 { 0.0 } else { num / denom }
+                    let num: f64 = mat[i]
+                        .iter()
+                        .zip(mat[j].iter())
+                        .map(|(a, b)| (a - b).abs())
+                        .sum::<f64>();
+                    let denom: f64 = mat[i]
+                        .iter()
+                        .zip(mat[j].iter())
+                        .map(|(a, b)| a + b)
+                        .sum::<f64>();
+                    if denom == 0.0 {
+                        0.0
+                    } else {
+                        num / denom
+                    }
                 }
                 "jaccard" => {
                     let n_otu = mat[i].len().min(mat[j].len());
@@ -202,15 +217,25 @@ fn builtin_beta_diversity(args: Vec<Value>) -> Result<Value> {
                     for k in 0..n_otu {
                         let a = mat[i][k] > 0.0;
                         let b = mat[j][k] > 0.0;
-                        if a && b { both += 1; }
-                        if a || b { either += 1; }
+                        if a && b {
+                            both += 1;
+                        }
+                        if a || b {
+                            either += 1;
+                        }
                     }
-                    if either == 0 { 0.0 } else { 1.0 - both as f64 / either as f64 }
+                    if either == 0 {
+                        0.0
+                    } else {
+                        1.0 - both as f64 / either as f64
+                    }
                 }
                 other => {
                     return Err(BioLangError::runtime(
                         ErrorKind::TypeError,
-                        format!("beta_diversity(): unknown method '{other}'; use bray_curtis|jaccard"),
+                        format!(
+                            "beta_diversity(): unknown method '{other}'; use bray_curtis|jaccard"
+                        ),
                         None,
                     ))
                 }
@@ -285,7 +310,13 @@ fn builtin_rarefaction(args: Vec<Value>) -> Result<Value> {
         rarefied[otu] += 1;
     }
 
-    Ok(Value::List(rarefied.into_iter().map(Value::Int).collect::<Vec<_>>().into()))
+    Ok(Value::List(
+        rarefied
+            .into_iter()
+            .map(Value::Int)
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 // ── relative_abundance ───────────────────────────────────────────────
@@ -381,7 +412,9 @@ fn builtin_taxonomic_collapse(args: Vec<Value>) -> Result<Value> {
             _ => "",
         };
         let taxon = extract_taxon(tax);
-        let entry = agg.entry(taxon).or_insert_with(|| vec![0.0; sample_cols.len()]);
+        let entry = agg
+            .entry(taxon)
+            .or_insert_with(|| vec![0.0; sample_cols.len()]);
         for (out_idx, (src_col, _)) in sample_cols.iter().enumerate() {
             entry[out_idx] += to_f64(&row[*src_col]);
         }
@@ -389,7 +422,11 @@ fn builtin_taxonomic_collapse(args: Vec<Value>) -> Result<Value> {
 
     // Build output table
     let mut out_columns = vec!["taxon".to_string()];
-    out_columns.extend(sample_cols.iter().map(|(_, name): &(usize, String)| name.clone()));
+    out_columns.extend(
+        sample_cols
+            .iter()
+            .map(|(_, name): &(usize, String)| name.clone()),
+    );
 
     let mut taxa: Vec<String> = agg.keys().cloned().collect();
     taxa.sort();

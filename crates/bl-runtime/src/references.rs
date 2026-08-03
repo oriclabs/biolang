@@ -11,10 +11,7 @@ use bl_core::value::{Arity, Value};
 use bl_refs::{build_names, load, registry_path};
 
 pub fn reference_builtin_list() -> Vec<(&'static str, Arity)> {
-    vec![
-        ("ref", Arity::Range(1, 2)),
-        ("ref_builds", Arity::Exact(0)),
-    ]
+    vec![("ref", Arity::Range(1, 2)), ("ref_builds", Arity::Exact(0))]
 }
 
 pub fn is_reference_builtin(name: &str) -> bool {
@@ -116,7 +113,8 @@ mod tests {
             .expect_err("unknown build");
         assert!(error.message.contains("NoSuchBuild"), "{}", error.message);
         assert!(
-            error.message.contains("references.toml") || error.message.contains("configured builds"),
+            error.message.contains("references.toml")
+                || error.message.contains("configured builds"),
             "{}",
             error.message
         );
@@ -125,6 +123,10 @@ mod tests {
     #[test]
     fn ref_rejects_a_non_string_build() {
         let error = call_reference_builtin("ref", vec![Value::Int(1)]).expect_err("type error");
-        assert!(error.message.contains("expects a string"), "{}", error.message);
+        assert!(
+            error.message.contains("expects a string"),
+            "{}",
+            error.message
+        );
     }
 }

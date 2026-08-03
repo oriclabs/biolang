@@ -115,7 +115,10 @@ fn builtin_ice_normalize(args: Vec<Value>) -> Result<Value> {
             if masked[j] {
                 continue;
             }
-            let col_sum: f64 = mat.iter().map(|r| if j < r.len() { r[j] } else { 0.0 }).sum();
+            let col_sum: f64 = mat
+                .iter()
+                .map(|r| if j < r.len() { r[j] } else { 0.0 })
+                .sum();
             if col_sum > 0.0 {
                 for i in 0..n {
                     if j < mat[i].len() {
