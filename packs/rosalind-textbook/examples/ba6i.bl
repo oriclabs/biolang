@@ -1,0 +1,82 @@
+# Rosalind: BA6I — Implement GraphToGenome
+# https://rosalind.info/problems/ba6i/
+#
+# Given: The coloured edges of a genome graph.
+# Return: The genome.
+
+let coloured = [
+    { a: 2, b: 4 }, { a: 3, b: 6 }, { a: 5, b: 1 },
+    { a: 7, b: 9 }, { a: 10, b: 12 }, { a: 11, b: 8 },
+]
+
+# The inverse of BA6H, and the step that makes 2-breaks usable: a 2-break is
+# easy to apply to a set of edges and meaningless as an operation on signed
+# integers, so genomes are converted to a graph, rearranged, and converted back.
+#
+# The edges form disjoint cycles; each cycle is one chromosome. Walking a cycle
+# means alternating between the coloured edges given here and the implicit
+# black edges inside each block, which is why the walk steps by one node between
+# coloured edges.
+let neighbours = {}
+for edge in coloured {
+    neighbours[str(edge.a)] = edge.b
+    neighbours[str(edge.b)] = edge.a
+}
+
+let visited = {}
+let chromosomes = []
+for edge in coloured {
+    if contains(keys(visited), str(edge.a)) == false {
+        # Walk the cycle this edge belongs to, collecting node pairs.
+        let cycle = []
+        let node = edge.a
+        let walking = true
+        while walking {
+            visited[str(node)] = true
+            let partner = neighbours[str(node)]
+            visited[str(partner)] = true
+            cycle = push(cycle, { head: node, tail: partner })
+            # The black edge: from `partner` to the other node of its block.
+            let next_node = if partner % 2 == 1 then partner + 1 else partner - 1
+            if contains(keys(visited), str(next_node)) { walking = false } else { node = next_node }
+        }
+
+        # Each collected pair (tail of one block, head of the next) becomes a
+        # block once shifted round by one.
+        let blocks = cycle |> map(|pair|
+            if pair.tail % 2 == 1 then (pair.tail + 1) / 2 else 0 - pair.tail / 2)
+
+        # A circular chromosome has no distinguished starting block, so the walk
+        # can begin anywhere and every rotation is the same chromosome. Rotated
+        # here to start at the lowest-numbered block, which is what makes the
+        # output comparable to the published one.
+        let lowest = blocks |> map(|b| abs(b)) |> min()
+        let at = (range(0, len(blocks)) |> filter(|i| abs(blocks[i]) == lowest))[0]
+        let rotated = range(0, len(blocks)) |> map(|i| blocks[(i + at) % len(blocks)])
+        chromosomes = push(chromosomes, rotated)
+    }
+}
+
+fn written(items) {
+    "(" + (items |> map(|v| if v > 0 then "+" + str(v) else str(v)) |> join(" ")) + ")"
+}
+
+let shown = chromosomes |> map(|c| written(c)) |> join("")
+
+println("Result:   " + shown)
+println("Expected: (+1 -2 -3)(-4 +5 -6)")
+
+fn test_ba6i_graph_to_genome() {
+    assert shown == "(+1 -2 -3)(-4 +5 -6)", "BA6I: got " + shown
+    assert len(chromosomes) == 2, "BA6I: the edges form two cycles, so two chromosomes"
+    # Rotation-invariance is a real property, not a formatting detail: the walk
+    # produced (-2 -3 +1) before rotating, which is the same circular chromosome.
+    let first_chromosome = chromosomes[0]
+    let rotated_once = range(0, len(first_chromosome))
+        |> map(|i| first_chromosome[(i + 1) % len(first_chromosome)])
+    assert rotated_once != first_chromosome, "BA6I: a rotation is a different listing"
+    assert sort(rotated_once) == sort(first_chromosome), "BA6I: but the same chromosome"
+    # Every block from 1 to 6 appears exactly once, either way up.
+    let magnitudes = sort(chromosomes |> flat_map(|c| c |> map(|b| abs(b))))
+    assert magnitudes == range(1, 7), "BA6I: every block must appear once"
+}

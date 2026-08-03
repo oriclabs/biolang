@@ -1,0 +1,49 @@
+# Rosalind: BA6E — Find All Shared k-mers of a Pair of Strings
+# https://rosalind.info/problems/ba6e/
+#
+# Given: An integer k and two strings.
+# Return: Every pair of positions (x, y) where the strings share a k-mer, taking
+# reverse complements into account.
+
+let k = 3
+let first_text = "AAACTCATC"
+let second_text = "TTTCAAATC"
+
+# The reverse complement counts because a synteny block conserved between two
+# genomes may sit on either strand — an inversion flips a segment, and the same
+# genes then read backwards. Ignoring that would make every inverted block look
+# like a deletion.
+#
+# Plotting these pairs gives the dot plot from which rearrangements are read off:
+# diagonal runs are conserved blocks, and anti-diagonal runs are inverted ones.
+let shared = range(0, len(first_text) - k + 1) |> flat_map(|x| {
+    let piece = substr(first_text, x, k)
+    let flipped = str(reverse_complement(dna(piece)))
+    range(0, len(second_text) - k + 1)
+        |> filter(|y| {
+            let other = substr(second_text, y, k)
+            other == piece or other == flipped
+        })
+        |> map(|y| { x: x, y: y })
+})
+
+println("Result:   " + (shared |> map(|p| "(" + str(p.x) + ", " + str(p.y) + ")") |> join(" ")))
+println("Expected: (0, 4) (0, 0) (4, 2) (6, 6)   (in any order)")
+
+fn test_ba6e_shared_kmers() {
+    let written = sort(shared |> map(|p| "(" + str(p.x) + ", " + str(p.y) + ")"))
+    assert written == sort(["(0, 4)", "(0, 0)", "(4, 2)", "(6, 6)"]),
+        "BA6E: got " + join(written, " ")
+    # Every pair really shares a k-mer, one way round or the other.
+    for pair in shared {
+        let piece = substr(first_text, pair.x, k)
+        let other = substr(second_text, pair.y, k)
+        assert other == piece or other == str(reverse_complement(dna(piece))),
+            "BA6E: " + piece + " and " + other + " are not a shared k-mer"
+    }
+    # (0, 4) is the reverse-complement match — AAA against TTT — which a
+    # same-strand search would miss entirely.
+    assert substr(first_text, 0, k) == "AAA" and substr(second_text, 4, k) == "AAA",
+        "BA6E: position 4 of the second string is a direct match"
+    assert substr(second_text, 0, k) == "TTT", "BA6E: and position 0 is its reverse complement"
+}

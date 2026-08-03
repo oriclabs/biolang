@@ -1000,3 +1000,113 @@ status = "solved"
 asserted = true
 note = "How BA9E's shared-substring question is answered on a generalised suffix tree: colour leaves by which string they came from, and an internal node goes purple exactly when its substring occurs in both."
 topics = ["strings", "suffix-structures", "graphs"]
+
+[[problem]]
+id = "BA6A"
+title = "Implement GreedySorting to Sort a Permutation by Reversals"
+file = "examples/ba6a.bl"
+url = "https://rosalind.info/problems/ba6a/"
+status = "solved"
+asserted = true
+note = "Signs matter because a reversed gene reads on the other strand. Greedy sorting fixes each position once and never revisits it: at most 2n reversals, which is not the minimum but does bound the true distance."
+topics = ["rearrangements"]
+
+[[problem]]
+id = "BA6B"
+title = "Compute the Number of Breakpoints in a Permutation"
+file = "examples/ba6b.bl"
+url = "https://rosalind.info/problems/ba6b/"
+status = "solved"
+asserted = true
+note = "One reversal removes at most two breakpoints, so half the count is a lower bound on reversal distance — BA6A gives the upper one. A fully reversed permutation is not the worst case: (-5 -4 -3 -2 -1) still steps by one, so it has only two breakpoints and one reversal sorts it."
+topics = ["rearrangements"]
+
+[[problem]]
+id = "BA6C"
+title = "Compute the 2-Break Distance Between a Pair of Genomes"
+file = "examples/ba6c.bl"
+url = "https://rosalind.info/problems/ba6c/"
+status = "solved"
+asserted = true
+note = "Blocks minus cycles — a closed form, which is unusual for a rearrangement distance and the reason 2-breaks are studied. A 2-break raises the cycle count by at most one, so the bound is both necessary and achievable."
+topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA6D"
+title = "Find a Shortest Transformation of One Genome into Another by 2-Breaks"
+file = "examples/ba6d.bl"
+url = "https://rosalind.info/problems/ba6d/"
+status = "solved"
+asserted = true
+note = "The constructive half of BA6C's argument: exhibits a path of exactly that length. Finds a different valid path from the published one, so it asserts the endpoints and the step count rather than the listing."
+topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA6E"
+title = "Find All Shared k-mers of a Pair of Strings"
+file = "examples/ba6e.bl"
+url = "https://rosalind.info/problems/ba6e/"
+status = "solved"
+asserted = true
+note = "Reverse complements count because an inversion puts a conserved block on the other strand; ignoring that would make every inverted block look like a deletion. Plotting the pairs gives the dot plot rearrangements are read off."
+topics = ["rearrangements", "kmers"]
+
+[[problem]]
+id = "BA6F"
+title = "Implement ChromosomeToCycle"
+file = "examples/ba6f.bl"
+url = "https://rosalind.info/problems/ba6f/"
+status = "solved"
+asserted = true
+note = "Every block becomes a head and a tail, so orientation stops being a sign and becomes a direction of travel — the representation 2-breaks are defined on."
+topics = ["rearrangements"]
+
+[[problem]]
+id = "BA6G"
+title = "Implement CycleToChromosome"
+file = "examples/ba6g.bl"
+url = "https://rosalind.info/problems/ba6g/"
+status = "solved"
+asserted = true
+note = "The inverse of BA6F, asserted by round-tripping rather than only by matching the sample. The sign is recovered from the order of each node pair rather than stored."
+topics = ["rearrangements"]
+
+[[problem]]
+id = "BA6H"
+title = "Implement ColoredEdges"
+file = "examples/ba6h.bl"
+url = "https://rosalind.info/problems/ba6h/"
+status = "solved"
+asserted = true
+note = "Only the edges between blocks are kept — the adjacencies a rearrangement can break. Every node carries exactly one, which is what makes the graph a set of disjoint cycles and BA6C computable."
+topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA6I"
+title = "Implement GraphToGenome"
+file = "examples/ba6i.bl"
+url = "https://rosalind.info/problems/ba6i/"
+status = "solved"
+asserted = true
+note = "A circular chromosome has no distinguished starting block, so the walk produced (-2 -3 +1) where the sample shows (+1 -2 -3) — the same chromosome. Rotated to the lowest-numbered block for a stable listing, with the rotation-invariance asserted rather than hidden."
+topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA6J"
+title = "Implement 2-BreakOnGenomeGraph"
+file = "examples/ba6j.bl"
+url = "https://rosalind.info/problems/ba6j/"
+status = "solved"
+asserted = true
+note = "The single operation every rearrangement reduces to: cut two adjacencies, rejoin the four ends the other way. Reversals, translocations, fusions and fissions are all this one move."
+topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA6K"
+title = "Implement 2-BreakOnGenome"
+file = "examples/ba6k.bl"
+url = "https://rosalind.info/problems/ba6k/"
+status = "solved"
+asserted = true
+note = "BA6H, BA6J and BA6I assembled. This particular break is a fission. The result reads each chromosome in the opposite direction from the published answer, so the assertion canonicalises over rotation and reflection — a circular chromosome read backwards flips every sign and is still the same chromosome."
+topics = ["rearrangements", "graphs"]

@@ -1,0 +1,30 @@
+# Rosalind: BA6F — Implement ChromosomeToCycle
+# https://rosalind.info/problems/ba6f/
+#
+# Given: A chromosome of n synteny blocks.
+# Return: The 2n node numbers ChromosomeToCycle produces.
+
+let chromosome = [1, -2, -3, 4]
+
+# Every block becomes two nodes, its head and its tail, so orientation stops
+# being a sign and becomes a direction of travel. That is the representation
+#2-breaks are defined on: a rearrangement cuts two edges and reconnects the four
+# loose ends, which is easy to say about nodes and awkward to say about signed
+# integers.
+let cycle_nodes = chromosome |> flat_map(|block|
+    if block > 0 then [2 * block - 1, 2 * block] else [0 - 2 * block, 0 - 2 * block - 1])
+
+println("Result:   (" + (cycle_nodes |> map(|n| str(n)) |> join(" ")) + ")")
+println("Expected: (1 2 4 3 6 5 7 8)")
+
+fn test_ba6f_chromosome_to_cycle() {
+    assert cycle_nodes == [1, 2, 4, 3, 6, 5, 7, 8], "BA6F: got " + str(cycle_nodes)
+    # Two nodes per block, and every number from 1 to 2n used exactly once.
+    assert len(cycle_nodes) == 2 * len(chromosome), "BA6F: two cycle_nodes per block"
+    assert sort(cycle_nodes) == range(1, 2 * len(chromosome) + 1),
+        "BA6F: the cycle_nodes must be 1..2n, each once"
+    # A positive block reads head-then-tail; a negative one reads the other way,
+    # which is the whole encoding.
+    assert cycle_nodes[0] < cycle_nodes[1], "BA6F: +1 runs forwards"
+    assert cycle_nodes[2] > cycle_nodes[3], "BA6F: -2 runs backwards"
+}

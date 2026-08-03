@@ -1,0 +1,47 @@
+# Rosalind: BA6J — Implement 2-BreakOnGenomeGraph
+# https://rosalind.info/problems/ba6j/
+#
+# Given: A genome graph and four nodes i, i', j, j'.
+# Return: The graph after removing edges (i, i') and (j, j') and adding (i, j)
+# and (i', j').
+
+let edge_set = [
+    { a: 2, b: 4 }, { a: 3, b: 8 }, { a: 7, b: 5 }, { a: 6, b: 1 },
+]
+let breakpoint = { i: 1, i_end: 6, j: 3, j_end: 8 }
+
+# A 2-break is the single operation every rearrangement reduces to: cut two
+# adjacencies and rejoin the four loose ends the other way. Reversals,
+# translocations, fusions and fissions are all this one move — which is exactly
+# why BA6C can put a closed form on the distance.
+fn same_edge(edge, x, y) {
+    (edge.a == x and edge.b == y) or (edge.a == y and edge.b == x)
+}
+
+let kept = edge_set |> filter(|edge|
+    same_edge(edge, breakpoint.i, breakpoint.i_end) == false and same_edge(edge, breakpoint.j, breakpoint.j_end) == false)
+
+let rejoined = kept + [{ a: breakpoint.j, b: breakpoint.i }, { a: breakpoint.i_end, b: breakpoint.j_end }]
+
+fn written(edges_list) {
+    edges_list |> map(|e| "(" + str(e.a) + ", " + str(e.b) + ")") |> join(", ")
+}
+
+println("Result:   " + written(rejoined))
+println("Expected: (2, 4), (3, 1), (7, 5), (6, 8)   (in any order)")
+
+fn test_ba6j_two_break_on_graph() {
+    # The two edges that were cut are gone, the two new ones are present, and
+    # everything else is untouched. Order is not meaningful in an edge set.
+    assert len(rejoined) == len(edge_set), "BA6J: a 2-break preserves the edge count"
+    assert (rejoined |> count_if(|e| same_edge(e, 1, 6))) == 0, "BA6J: (1, 6) should be gone"
+    assert (rejoined |> count_if(|e| same_edge(e, 3, 8))) == 0, "BA6J: (3, 8) should be gone"
+    assert (rejoined |> count_if(|e| same_edge(e, 3, 1))) == 1, "BA6J: (3, 1) should be present"
+    assert (rejoined |> count_if(|e| same_edge(e, 6, 8))) == 1, "BA6J: (6, 8) should be present"
+    assert (rejoined |> count_if(|e| same_edge(e, 2, 4))) == 1, "BA6J: (2, 4) is untouched"
+    assert (rejoined |> count_if(|e| same_edge(e, 7, 5))) == 1, "BA6J: (7, 5) is untouched"
+    # Every node still has exactly one coloured edge, which is what keeps the
+    # graph a set of disjoint cycles.
+    let touched = rejoined |> flat_map(|e| [e.a, e.b])
+    assert len(unique(touched)) == len(touched), "BA6J: a node cannot gain a second edge"
+}
