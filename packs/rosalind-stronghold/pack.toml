@@ -894,3 +894,33 @@ network = true
 asserted = true
 note = "Fetches from UniProt, so it runs in the advisory job rather than the hermetic gate. The motif matcher itself is asserted offline — N{P}[ST]{P} has alternatives and exclusions, so it is a pattern rather than a substring search."
 topics = ["motifs", "databases"]
+
+[[problem]]
+id = "OSYM"
+title = "Isolating Symbols in Alignments"
+file = "examples/osym.bl"
+url = "https://rosalind.info/problems/osym/"
+status = "solved"
+asserted = true
+note = "The best alignment through a given pairing is the best way of reaching it plus the best way of leaving it, so one forward table and one backward table answer all 49 pairs at once — the same trick BA5K uses to find a middle edge."
+topics = ["alignment", "dynamic-programming"]
+
+[[problem]]
+id = "ITWV"
+title = "Finding Disjoint Motifs in a Gene"
+file = "examples/itwv.bl"
+url = "https://rosalind.info/problems/itwv/"
+status = "solved"
+asserted = true
+note = "Two motifs competing for the same characters, which is what makes this different from finding each separately. Every reachable state must consume the current character or the window ends — carrying one forward unconsumed would let the motifs match unrelated parts of the sequence."
+topics = ["motifs", "dynamic-programming"]
+
+[[problem]]
+id = "CNTQ"
+title = "Counting Quartets"
+file = "examples/cntq.bl"
+url = "https://rosalind.info/problems/cntq/"
+status = "solved"
+asserted = true
+note = "The answer is C(n,4), and the reason matters more than the number: in a fully resolved tree any four taxa are separated into two pairs by some edge, so the shape never enters into it. The assertion enumerates all 15 subsets and confirms it rather than trusting the formula."
+topics = ["phylogeny", "combinatorics"]

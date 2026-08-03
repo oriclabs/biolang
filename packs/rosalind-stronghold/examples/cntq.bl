@@ -1,0 +1,52 @@
+# Rosalind: CNTQ — Counting Quartets
+# https://rosalind.info/problems/cntq/
+#
+# Given: n and an unrooted binary tree on n taxa in Newick format.
+# Return: The number of quartets consistent with the tree, modulo 1,000,000.
+
+let taxa = ["lobster", "cat", "dog", "caterpillar", "elephant", "mouse"]
+# (lobster,(cat,dog),(caterpillar,(elephant,mouse)));
+# Each internal edge splits the taxa in two; these are the non-trivial sides.
+let clades = [
+    ["cat", "dog"],
+    ["caterpillar", "elephant", "mouse"],
+    ["elephant", "mouse"],
+]
+
+# The answer is simply C(n,4), and the reason is worth more than the number: in a
+# *fully resolved* binary tree, any four taxa are separated by some internal edge
+# into two pairs, so every four-taxon set contributes exactly one consistent
+# quartet. Nothing about the tree's shape enters into it.
+#
+# That stops being true the moment the tree has an unresolved node, which is why
+# QRT and CHBP — where splits are partial — are real problems and this one is
+# not.
+let n = len(taxa)
+let answer = choose(n, 4) % 1000000
+
+println("Result:   " + str(answer))
+println("Expected: 15")
+
+fn test_cntq_counting_quartets() {
+    assert answer == 15, "CNTQ: got " + str(answer)
+
+    # Demonstrated rather than asserted: enumerate all four-taxon subsets and
+    # confirm each really is separated into two pairs by some edge.
+    fn subsets_of_four(items) {
+        range(0, len(items)) |> flat_map(|a|
+            range(a + 1, len(items)) |> flat_map(|b|
+                range(b + 1, len(items)) |> flat_map(|c|
+                    range(c + 1, len(items)) |> map(|d|
+                        [items[a], items[b], items[c], items[d]]))))
+    }
+
+    let quartets = subsets_of_four(taxa)
+    assert len(quartets) == choose(n, 4), "CNTQ: C(6,4) is 15 subsets"
+
+    let consistent = quartets |> count_if(|four|
+        (clades |> count_if(|clade|
+            (four |> count_if(|t| contains(clade, t))) == 2)) > 0)
+    assert consistent == len(quartets),
+        "CNTQ: " + str(consistent) + " of " + str(len(quartets)) + " subsets are separated"
+    assert consistent == answer, "CNTQ: the count and the formula must agree"
+}
