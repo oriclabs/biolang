@@ -353,17 +353,17 @@ fn test_ba9g_suffix_array() {
 
 let genome = &quot;CGGACTCGACAGATGTGAAGAAATGTGAAGACTGAGTGAAGAGAAGAGGAAACACGACACGACATTGCGACATAATGTACGAATGTAATGTGCCTATGGC&quot;
 let k = 5
-let window = 75
+let span = 75
 let times = 4
 
 # A k-mer forms a clump when some window of L characters contains it t times.
 # Slide the window and tally what is inside it; a k-mer only needs to qualify
 # once, so the answers are collected as a set.
 let found = []
-for start in range(0, len(genome) - window + 1) {
-    let region = substr(genome, start, window)
+for start in range(0, len(genome) - span + 1) {
+    let region = substr(genome, start, span)
     let counts = {}
-    for offset in range(0, window - k + 1) {
+    for offset in range(0, span - k + 1) {
         let mer = substr(region, offset, k)
         if contains(keys(counts), mer) {
             counts[mer] = counts[mer] + 1
@@ -406,15 +406,15 @@ fn test_ba1e_clumps() {
 # Given: A DNA string Genome.
 # Return: All integers i minimising Skew(Prefix_i(Genome)).
 
-let genome = &quot;CCTATCGGTGGATTAGCATGTCCCTGTACGTTTCGCCGCGAACTAGTTCACACGGCTTGATGGCAAATGGTTTTTCCGGCGACCGTAATCGTCCACCGAG&quot;
+let sequence = &quot;CCTATCGGTGGATTAGCATGTCCCTGTACGTTTCGCCGCGAACTAGTTCACACGGCTTGATGGCAAATGGTTTTTCCGGCGACCGTAATCGTCCACCGAG&quot;
 
 # Skew is running #G minus #C. It dips lowest near the replication origin, which
 # is what the problem is really about. Prefix 0 is the empty prefix, so the walk
 # has len(genome) + 1 positions.
 let skew = [0]
 let running = 0
-for i in range(0, len(genome)) {
-    let base = substr(genome, i, 1)
+for i in range(0, len(sequence)) {
+    let base = substr(sequence, i, 1)
     if base == &quot;G&quot; then running = running + 1
     if base == &quot;C&quot; then running = running - 1
     skew = push(skew, running)

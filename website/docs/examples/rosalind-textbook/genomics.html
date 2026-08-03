@@ -51,15 +51,15 @@
 # Given: A DNA string Genome.
 # Return: All integers i minimising Skew(Prefix_i(Genome)).
 
-let genome = &quot;CCTATCGGTGGATTAGCATGTCCCTGTACGTTTCGCCGCGAACTAGTTCACACGGCTTGATGGCAAATGGTTTTTCCGGCGACCGTAATCGTCCACCGAG&quot;
+let sequence = &quot;CCTATCGGTGGATTAGCATGTCCCTGTACGTTTCGCCGCGAACTAGTTCACACGGCTTGATGGCAAATGGTTTTTCCGGCGACCGTAATCGTCCACCGAG&quot;
 
 # Skew is running #G minus #C. It dips lowest near the replication origin, which
 # is what the problem is really about. Prefix 0 is the empty prefix, so the walk
 # has len(genome) + 1 positions.
 let skew = [0]
 let running = 0
-for i in range(0, len(genome)) {
-    let base = substr(genome, i, 1)
+for i in range(0, len(sequence)) {
+    let base = substr(sequence, i, 1)
     if base == &quot;G&quot; then running = running + 1
     if base == &quot;C&quot; then running = running - 1
     skew = push(skew, running)

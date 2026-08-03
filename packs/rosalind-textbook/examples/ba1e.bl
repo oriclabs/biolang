@@ -6,17 +6,17 @@
 
 let genome = "CGGACTCGACAGATGTGAAGAAATGTGAAGACTGAGTGAAGAGAAGAGGAAACACGACACGACATTGCGACATAATGTACGAATGTAATGTGCCTATGGC"
 let k = 5
-let window = 75
+let span = 75
 let times = 4
 
 # A k-mer forms a clump when some window of L characters contains it t times.
 # Slide the window and tally what is inside it; a k-mer only needs to qualify
 # once, so the answers are collected as a set.
 let found = []
-for start in range(0, len(genome) - window + 1) {
-    let region = substr(genome, start, window)
+for start in range(0, len(genome) - span + 1) {
+    let region = substr(genome, start, span)
     let counts = {}
-    for offset in range(0, window - k + 1) {
+    for offset in range(0, span - k + 1) {
         let mer = substr(region, offset, k)
         if contains(keys(counts), mer) {
             counts[mer] = counts[mer] + 1
