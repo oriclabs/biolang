@@ -22,6 +22,16 @@ reads
   |> write_fastq("filtered.fq.gz")
 ```
 
+## Workbench
+
+An editor, file tree, console and plots, running the same interpreter as the CLI compiled to
+WebAssembly.
+
+- **[In the browser](https://lang.bio/workbench/)** — nothing to install. Example packs install
+  into the workspace from a single link, along with the sample data the documentation reads.
+- **On the desktop** — the same workbench as a native app, with your own filesystem, the `bl`
+  CLI, remote execution over SSH, and the APIs a browser cannot reach for want of CORS headers.
+
 ## Verified against Rosalind
 
 [Rosalind](https://rosalind.info) is the bioinformatics problem set used in teaching
