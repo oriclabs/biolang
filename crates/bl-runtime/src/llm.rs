@@ -432,6 +432,20 @@ fn builtin_llm_models() -> Result<Value> {
 mod tests {
     use super::*;
 
+    /// The three tests that follow set and clear the same process-wide
+    /// environment variables. Cargo runs a crate's tests in parallel threads of
+    /// one process, so without serialising them one test clears a key while
+    /// another is midway through checking it, and the suite failed about one run
+    /// in three. Poisoning is stepped over deliberately: if one of them panics
+    /// the others should still report their own result rather than all fail.
+    static ENV_GUARD: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn lock_env() -> std::sync::MutexGuard<'static, ()> {
+        ENV_GUARD
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     #[test]
     fn test_llm_models_no_provider() {
         // In CI/test, typically no API keys are set
@@ -449,6 +463,7 @@ mod tests {
 
     #[test]
     fn test_chat_no_provider_gives_clear_error() {
+        let _env = lock_env();
         // Ensure no keys are set for this test
         let saved_anthropic = std::env::var("ANTHROPIC_API_KEY").ok();
         let saved_openai = std::env::var("OPENAI_API_KEY").ok();
@@ -523,6 +538,7 @@ mod tests {
 
     #[test]
     fn test_detect_provider_anthropic() {
+        let _env = lock_env();
         let saved = std::env::var("ANTHROPIC_API_KEY").ok();
         std::env::set_var("ANTHROPIC_API_KEY", "test-key-123");
 
@@ -603,6 +619,7 @@ mod tests {
     // Edge case: detect_provider with no env vars set returns Err
     #[test]
     fn test_detect_provider_no_env_vars() {
+        let _env = lock_env();
         // Save and clear all provider env vars
         let saved = [
             ("ANTHROPIC_API_KEY", std::env::var("ANTHROPIC_API_KEY").ok()),

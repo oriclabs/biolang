@@ -2,6 +2,7 @@
 /// Uses line-level pattern matching and indent-to-brace conversion.
 /// Complex cases are marked with `# TODO:` for manual review.
 use regex::{Captures, Regex};
+use std::sync::LazyLock;
 
 struct CallMap {
     pattern: Regex,
@@ -1055,8 +1056,9 @@ pub fn convert(source: &str, filename: &str) -> String {
 
         // ── with open(...) ────────────────────────────────────────
         if trimmed.starts_with("with open(") {
-            let re_with = Regex::new(r"with open\(([^,)]+)[^)]*\)\s*as\s+(\w+)").unwrap();
-            if let Some(caps) = re_with.captures(trimmed) {
+            static RE_WITH: LazyLock<Regex> =
+                LazyLock::new(|| Regex::new(r"with open\(([^,)]+)[^)]*\)\s*as\s+(\w+)").unwrap());
+            if let Some(caps) = RE_WITH.captures(trimmed) {
                 let fname = &caps[1];
                 let var = &caps[2];
                 state.push_line(
@@ -1142,9 +1144,10 @@ pub fn convert(source: &str, filename: &str) -> String {
         // ── List comprehension ────────────────────────────────────
         // [expr for x in iterable] or [expr for x in iterable if cond]
         {
-            let lc_re =
-                Regex::new(r"^\[(.+)\s+for\s+(\w+)\s+in\s+(.+?)(?:\s+if\s+(.+))?\]$").unwrap();
-            if let Some(caps) = lc_re.captures(trimmed) {
+            static LC_RE: LazyLock<Regex> = LazyLock::new(|| {
+                Regex::new(r"^\[(.+)\s+for\s+(\w+)\s+in\s+(.+?)(?:\s+if\s+(.+))?\]$").unwrap()
+            });
+            if let Some(caps) = LC_RE.captures(trimmed) {
                 let body_expr = transform_expr(caps.get(1).map_or("", |m| m.as_str()), &call_maps);
                 let var = caps.get(2).map_or("x", |m| m.as_str());
                 let iterable = transform_expr(caps.get(3).map_or("", |m| m.as_str()), &call_maps);
@@ -1165,10 +1168,12 @@ pub fn convert(source: &str, filename: &str) -> String {
 
         // ── Assignment: x = expr  (but not ==, +=, etc.) ─────────
         {
-            let aug_re = Regex::new(r"^\w[\w.]*\s*[+\-*/%&|^]=").unwrap();
-            let assign_re = Regex::new(r"^([a-zA-Z_]\w*(?:\[.*?\])?)\s*=\s*(.+)$").unwrap();
+            static AUG_RE: LazyLock<Regex> =
+                LazyLock::new(|| Regex::new(r"^\w[\w.]*\s*[+\-*/%&|^]=").unwrap());
+            static ASSIGN_RE: LazyLock<Regex> =
+                LazyLock::new(|| Regex::new(r"^([a-zA-Z_]\w*(?:\[.*?\])?)\s*=\s*(.+)$").unwrap());
 
-            if aug_re.is_match(trimmed) {
+            if AUG_RE.is_match(trimmed) {
                 // x += y → let x = x + y (simple augmented assignment)
                 let transformed = transform_augmented(trimmed, &call_maps);
                 state.push_line(curr_indent, &transformed);
@@ -1176,7 +1181,7 @@ pub fn convert(source: &str, filename: &str) -> String {
                 continue;
             }
 
-            if let Some(caps) = assign_re.captures(trimmed) {
+            if let Some(caps) = ASSIGN_RE.captures(trimmed) {
                 let varname = caps.get(1).map_or("", |m| m.as_str());
                 let expr = caps.get(2).map_or("", |m| m.as_str()).trim();
                 // Skip if it's a comparison (the original had ==, we'd have matched `x = `)

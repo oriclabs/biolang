@@ -2,6 +2,7 @@
 /// R already uses braces for blocks, so no indent-tracking needed.
 /// Main transformations: library() → imports, <- → let, syntax normalization.
 use regex::{Captures, Regex};
+use std::sync::LazyLock;
 
 struct CallMap {
     pattern: Regex,
@@ -1104,8 +1105,9 @@ pub fn convert(source: &str, filename: &str) -> String {
         }
 
         // ── library() / require() ─────────────────────────────────
-        let lib_re = Regex::new(r"(?:library|require)\(([^)]+?)\)").unwrap();
-        if let Some(caps) = lib_re.captures(trimmed) {
+        static LIB_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"(?:library|require)\(([^)]+?)\)").unwrap());
+        if let Some(caps) = LIB_RE.captures(trimmed) {
             let pkg = caps
                 .get(1)
                 .map_or("", |m| m.as_str())
@@ -1124,14 +1126,17 @@ pub fn convert(source: &str, filename: &str) -> String {
         // ── Assignment: x <- expr  (always) or x = expr (top-level only) ──
         // Two separate patterns: <- is unambiguous; = is only assignment at
         // the top level (paren_depth == 0, already guaranteed above).
-        let arrow_assign_re = Regex::new(r"^([a-zA-Z_][\w.$]*(?:\[.*?\])?)\s*<-\s*(.+)$").unwrap();
-        let eq_assign_re = Regex::new(r"^([a-zA-Z_][\w.$]*(?:\[.*?\])?)\s*=\s*(.+)$").unwrap();
-        let assign_re_match = arrow_assign_re
+        static ARROW_ASSIGN_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^([a-zA-Z_][\w.$]*(?:\[.*?\])?)\s*<-\s*(.+)$").unwrap());
+        static EQ_ASSIGN_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^([a-zA-Z_][\w.$]*(?:\[.*?\])?)\s*=\s*(.+)$").unwrap());
+        let assign_re_match = ARROW_ASSIGN_RE
             .captures(trimmed)
-            .or_else(|| eq_assign_re.captures(trimmed));
-        let rarrow_re = Regex::new(r"^(.+)\s*->\s*([a-zA-Z_]\w*)$").unwrap(); // expr -> var
+            .or_else(|| EQ_ASSIGN_RE.captures(trimmed));
+        static RARROW_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^(.+)\s*->\s*([a-zA-Z_]\w*)$").unwrap()); // expr -> var
 
-        if let Some(caps) = rarrow_re.captures(trimmed) {
+        if let Some(caps) = RARROW_RE.captures(trimmed) {
             // R rightward assignment: expr -> var
             let expr = transform_r_expr(caps.get(1).map_or("", |m| m.as_str()), &call_maps);
             let varname = caps.get(2).map_or("", |m| m.as_str());
@@ -1148,8 +1153,9 @@ pub fn convert(source: &str, filename: &str) -> String {
             let rhs = caps.get(2).map_or("", |m| m.as_str()).trim();
 
             // function() definition on RHS → fn
-            let func_re = Regex::new(r"^function\s*\(([^)]*)\)\s*\{?(.*)$").unwrap();
-            if let Some(fcaps) = func_re.captures(rhs) {
+            static FUNC_RE: LazyLock<Regex> =
+                LazyLock::new(|| Regex::new(r"^function\s*\(([^)]*)\)\s*\{?(.*)$").unwrap());
+            if let Some(fcaps) = FUNC_RE.captures(rhs) {
                 let args = fcaps.get(1).map_or("", |m| m.as_str());
                 let body_start = fcaps.get(2).map_or("", |m| m.as_str()).trim();
                 if body_start.is_empty() || body_start == "{" {
@@ -1187,8 +1193,9 @@ pub fn convert(source: &str, filename: &str) -> String {
         }
 
         // ── if ────────────────────────────────────────────────────
-        let if_re = Regex::new(r"^if\s*\((.+)\)\s*\{?$").unwrap();
-        if let Some(caps) = if_re.captures(trimmed) {
+        static IF_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^if\s*\((.+)\)\s*\{?$").unwrap());
+        if let Some(caps) = IF_RE.captures(trimmed) {
             let cond = transform_r_expr(caps.get(1).map_or("", |m| m.as_str()), &call_maps);
             output.push_str(&format!("{indent_str}if {cond} {{\n"));
             i += 1;
@@ -1196,8 +1203,9 @@ pub fn convert(source: &str, filename: &str) -> String {
         }
 
         // ── } else if ─────────────────────────────────────────────
-        let elif_re = Regex::new(r"^\}\s*else\s+if\s*\((.+)\)\s*\{?$").unwrap();
-        if let Some(caps) = elif_re.captures(trimmed) {
+        static ELIF_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^\}\s*else\s+if\s*\((.+)\)\s*\{?$").unwrap());
+        if let Some(caps) = ELIF_RE.captures(trimmed) {
             let cond = transform_r_expr(caps.get(1).map_or("", |m| m.as_str()), &call_maps);
             output.push_str(&format!("{indent_str}}} else if {cond} {{\n"));
             i += 1;
@@ -1217,8 +1225,9 @@ pub fn convert(source: &str, filename: &str) -> String {
         }
 
         // ── for ───────────────────────────────────────────────────
-        let for_re = Regex::new(r"^for\s*\((\w+)\s+in\s+(.+?)\)\s*\{?$").unwrap();
-        if let Some(caps) = for_re.captures(trimmed) {
+        static FOR_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^for\s*\((\w+)\s+in\s+(.+?)\)\s*\{?$").unwrap());
+        if let Some(caps) = FOR_RE.captures(trimmed) {
             let var = caps.get(1).map_or("", |m| m.as_str());
             let iter = transform_r_expr(caps.get(2).map_or("", |m| m.as_str()), &call_maps);
             output.push_str(&format!("{indent_str}for {var} in {iter} {{\n"));
@@ -1227,8 +1236,9 @@ pub fn convert(source: &str, filename: &str) -> String {
         }
 
         // ── while ─────────────────────────────────────────────────
-        let while_re = Regex::new(r"^while\s*\((.+?)\)\s*\{?$").unwrap();
-        if let Some(caps) = while_re.captures(trimmed) {
+        static WHILE_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^while\s*\((.+?)\)\s*\{?$").unwrap());
+        if let Some(caps) = WHILE_RE.captures(trimmed) {
             let cond = transform_r_expr(caps.get(1).map_or("", |m| m.as_str()), &call_maps);
             output.push_str(&format!("{indent_str}while {cond} {{\n"));
             i += 1;
@@ -1237,8 +1247,9 @@ pub fn convert(source: &str, filename: &str) -> String {
 
         // ── function definition ───────────────────────────────────
         // Standalone: function(args) { — already caught above in assignment
-        let fn_re = Regex::new(r"^function\s*\(([^)]*)\)\s*\{?$").unwrap();
-        if let Some(caps) = fn_re.captures(trimmed) {
+        static FN_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^function\s*\(([^)]*)\)\s*\{?$").unwrap());
+        if let Some(caps) = FN_RE.captures(trimmed) {
             let args = caps.get(1).map_or("", |m| m.as_str());
             output.push_str(&format!("{indent_str}fn({args}) {{\n"));
             i += 1;
@@ -1257,8 +1268,9 @@ pub fn convert(source: &str, filename: &str) -> String {
         }
 
         // ── return ────────────────────────────────────────────────
-        let ret_re = Regex::new(r"^return\((.+?)\)$").unwrap();
-        if let Some(caps) = ret_re.captures(trimmed) {
+        static RET_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^return\((.+?)\)$").unwrap());
+        if let Some(caps) = RET_RE.captures(trimmed) {
             let expr = transform_r_expr(caps.get(1).map_or("", |m| m.as_str()), &call_maps);
             output.push_str(&format!("{indent_str}{expr}\n"));
             i += 1;
