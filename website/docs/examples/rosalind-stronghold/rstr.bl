@@ -6,7 +6,7 @@
 # with GC content x matches s exactly.
 
 let n = 90
-let gc_content = 0.6
+let gc_fraction = 0.6
 let s = "ATAGCCGA"
 
 # At GC content x each of G and C appears with probability x/2, and each of A
@@ -14,7 +14,7 @@ let s = "ATAGCCGA"
 let single = range(0, len(s)) |> reduce(|acc, i| {
     let base = substr(s, i, 1)
     let is_gc = base == "G" or base == "C"
-    acc * (if is_gc then gc_content / 2.0 else (1.0 - gc_content) / 2.0)
+    acc * (if is_gc then gc_fraction / 2.0 else (1.0 - gc_fraction) / 2.0)
 }, 1.0)
 
 # The N strings are independent, so the complement is the clean way in: the

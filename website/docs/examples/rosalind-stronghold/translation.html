@@ -55,13 +55,13 @@
 let s = rna&quot;AUGGCCAUGGCGCCCAGAACUGAGAUCAAUAGUACCCGUAUUAACGGGUGA&quot;
 
 # translate() stops at the first stop codon, which is what the problem asks for.
-let protein = translate(s)
+let peptide = translate(s)
 
-println(&quot;Result:   &quot; ++ str(protein))
+println(&quot;Result:   &quot; ++ str(peptide))
 println(&quot;Expected: MAMAPRTEINSTRING&quot;)
 
 fn test_prot_translation() {
-    assert str(protein) == &quot;MAMAPRTEINSTRING&quot;, &quot;PROT: got &quot; ++ str(protein)
+    assert str(peptide) == &quot;MAMAPRTEINSTRING&quot;, &quot;PROT: got &quot; ++ str(peptide)
 }</code></pre>
         </section>
 
@@ -88,13 +88,13 @@ let introns = [
 
 # Remove each intron once, in the order given, then translate what is left.
 let coding = introns |&gt; reduce(|seq, intron| replace(seq, intron, &quot;&quot;), pre_mrna)
-let protein = translate(dna(coding))
+let peptide = translate(dna(coding))
 
-println(&quot;Result:   &quot; ++ str(protein))
+println(&quot;Result:   &quot; ++ str(peptide))
 println(&quot;Expected: MVYIADKQHVASREAYGHMFKVCA&quot;)
 
 fn test_splc_rna_splicing() {
-    assert str(protein) == &quot;MVYIADKQHVASREAYGHMFKVCA&quot;, &quot;SPLC: got &quot; ++ str(protein)
+    assert str(peptide) == &quot;MVYIADKQHVASREAYGHMFKVCA&quot;, &quot;SPLC: got &quot; ++ str(peptide)
 }</code></pre>
         </section>
       </article>

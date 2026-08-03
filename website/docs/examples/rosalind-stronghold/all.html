@@ -315,13 +315,13 @@ fn test_gc_highest_content() {
 let s = rna&quot;AUGGCCAUGGCGCCCAGAACUGAGAUCAAUAGUACCCGUAUUAACGGGUGA&quot;
 
 # translate() stops at the first stop codon, which is what the problem asks for.
-let protein = translate(s)
+let peptide = translate(s)
 
-println(&quot;Result:   &quot; ++ str(protein))
+println(&quot;Result:   &quot; ++ str(peptide))
 println(&quot;Expected: MAMAPRTEINSTRING&quot;)
 
 fn test_prot_translation() {
-    assert str(protein) == &quot;MAMAPRTEINSTRING&quot;, &quot;PROT: got &quot; ++ str(protein)
+    assert str(peptide) == &quot;MAMAPRTEINSTRING&quot;, &quot;PROT: got &quot; ++ str(peptide)
 }</code></pre>
         </section>
 
@@ -1137,11 +1137,11 @@ fn test_lia_independent_alleles() {
 # Return: For each frequency, the probability that a randomly selected female
 # is a carrier of the recessive allele.
 
-let frequencies = [0.1, 0.5, 0.8]
+let freqs = [0.1, 0.5, 0.8]
 
 # Males carry one X, so the recessive allele frequency is the given value. A
 # female is heterozygous with probability 2q(1-q).
-let results = frequencies |&gt; map(|q| 2.0 * q * (1.0 - q))
+let results = freqs |&gt; map(|q| 2.0 * q * (1.0 - q))
 let formatted = results |&gt; map(|r| str(round(r, 3))) |&gt; join(&quot; &quot;)
 
 println(&quot;Result:   &quot; + formatted)
@@ -1394,13 +1394,13 @@ let introns = [
 
 # Remove each intron once, in the order given, then translate what is left.
 let coding = introns |&gt; reduce(|seq, intron| replace(seq, intron, &quot;&quot;), pre_mrna)
-let protein = translate(dna(coding))
+let peptide = translate(dna(coding))
 
-println(&quot;Result:   &quot; ++ str(protein))
+println(&quot;Result:   &quot; ++ str(peptide))
 println(&quot;Expected: MVYIADKQHVASREAYGHMFKVCA&quot;)
 
 fn test_splc_rna_splicing() {
-    assert str(protein) == &quot;MVYIADKQHVASREAYGHMFKVCA&quot;, &quot;SPLC: got &quot; ++ str(protein)
+    assert str(peptide) == &quot;MVYIADKQHVASREAYGHMFKVCA&quot;, &quot;SPLC: got &quot; ++ str(peptide)
 }</code></pre>
         </section>
 
@@ -1482,21 +1482,21 @@ let records = [
 fn suffix_of(s, width) { substr(s, len(s) - width, width) }
 fn prefix_of(s, width) { substr(s, 0, width) }
 
-let edges = records |&gt; flat_map(|a| {
+let edge_list = records |&gt; flat_map(|a| {
     records
         |&gt; filter(|b| a.id != b.id and suffix_of(a.seq, k) == prefix_of(b.seq, k))
         |&gt; map(|b| a.id ++ &quot; &quot; ++ b.id)
 })
 
 println(&quot;Result:&quot;)
-edges |&gt; each(|e| println(&quot;  &quot; + e))
-println(&quot;Expected: 3 edges — 0498-&gt;2391, 0498-&gt;0442, 2391-&gt;2323&quot;)
+edge_list |&gt; each(|e| println(&quot;  &quot; + e))
+println(&quot;Expected: 3 edge_list — 0498-&gt;2391, 0498-&gt;0442, 2391-&gt;2323&quot;)
 
 fn test_grph_overlap_graph() {
-    assert len(edges) == 3, &quot;GRPH: got &quot; + str(len(edges)) + &quot; edges&quot;
-    assert edges |&gt; contains(&quot;Rosalind_0498 Rosalind_2391&quot;), &quot;GRPH: missing 0498-&gt;2391&quot;
-    assert edges |&gt; contains(&quot;Rosalind_0498 Rosalind_0442&quot;), &quot;GRPH: missing 0498-&gt;0442&quot;
-    assert edges |&gt; contains(&quot;Rosalind_2391 Rosalind_2323&quot;), &quot;GRPH: missing 2391-&gt;2323&quot;
+    assert len(edge_list) == 3, &quot;GRPH: got &quot; + str(len(edge_list)) + &quot; edge_list&quot;
+    assert edge_list |&gt; contains(&quot;Rosalind_0498 Rosalind_2391&quot;), &quot;GRPH: missing 0498-&gt;2391&quot;
+    assert edge_list |&gt; contains(&quot;Rosalind_0498 Rosalind_0442&quot;), &quot;GRPH: missing 0498-&gt;0442&quot;
+    assert edge_list |&gt; contains(&quot;Rosalind_2391 Rosalind_2323&quot;), &quot;GRPH: missing 2391-&gt;2323&quot;
 }</code></pre>
         </section>
 
@@ -1557,11 +1557,11 @@ fn test_revp_reverse_palindromes() {
 # Return: The minimum number of edges needed to produce a tree.
 
 let n = 10
-let edges = [[1,2],[2,8],[4,10],[5,9],[6,10],[7,9]]
+let edge_list = [[1,2],[2,8],[4,10],[5,9],[6,10],[7,9]]
 
 # A tree on n nodes has exactly n-1 edges, and a forest with e edges has
 # n-e components — so joining them needs (n-1)-e more.
-let result = (n - 1) - len(edges)
+let result = (n - 1) - len(edge_list)
 
 println(&quot;Result:   &quot; + str(result))
 println(&quot;Expected: 3&quot;)
@@ -1793,18 +1793,18 @@ fn p_distance(a, b) {
     float(differing) / float(len(a))
 }
 
-let matrix = strings |&gt; map(|a| strings |&gt; map(|b| p_distance(a, b)))
+let distance_grid = strings |&gt; map(|a| strings |&gt; map(|b| p_distance(a, b)))
 
 println(&quot;Result:&quot;)
-matrix |&gt; each(|row| println(&quot;  &quot; + (row |&gt; map(|d| str(round(d, 5))) |&gt; join(&quot; &quot;))))
+distance_grid |&gt; each(|row| println(&quot;  &quot; + (row |&gt; map(|d| str(round(d, 5))) |&gt; join(&quot; &quot;))))
 println(&quot;Expected first row: 0.00000 0.40000 0.10000 0.10000&quot;)
 
 fn test_pdst_distance_matrix() {
-    assert round(matrix[0][0], 5) == 0.0, &quot;PDST: diagonal not zero&quot;
-    assert round(matrix[0][1], 5) == 0.4, &quot;PDST: [0][1] was &quot; + str(matrix[0][1])
-    assert round(matrix[0][2], 5) == 0.1, &quot;PDST: [0][2] was &quot; + str(matrix[0][2])
-    assert round(matrix[0][3], 5) == 0.1, &quot;PDST: [0][3] was &quot; + str(matrix[0][3])
-    assert round(matrix[1][0], 5) == round(matrix[0][1], 5), &quot;PDST: not symmetric&quot;
+    assert round(distance_grid[0][0], 5) == 0.0, &quot;PDST: diagonal not zero&quot;
+    assert round(distance_grid[0][1], 5) == 0.4, &quot;PDST: [0][1] was &quot; + str(distance_grid[0][1])
+    assert round(distance_grid[0][2], 5) == 0.1, &quot;PDST: [0][2] was &quot; + str(distance_grid[0][2])
+    assert round(distance_grid[0][3], 5) == 0.1, &quot;PDST: [0][3] was &quot; + str(distance_grid[0][3])
+    assert round(distance_grid[1][0], 5) == round(distance_grid[0][1], 5), &quot;PDST: not symmetric&quot;
 }</code></pre>
         </section>
 
@@ -1847,14 +1847,14 @@ fn n_statistic(lengths, percent) {
 }
 
 let lengths = contigs |&gt; map(|c| len(c))
-let n50 = n_statistic(lengths, 50.0)
+let n50_value = n_statistic(lengths, 50.0)
 let n75 = n_statistic(lengths, 75.0)
 
-println(&quot;Result:   &quot; + str(n50) + &quot; &quot; + str(n75))
+println(&quot;Result:   &quot; + str(n50_value) + &quot; &quot; + str(n75))
 println(&quot;Expected: 7 6&quot;)
 
 fn test_asmq_n50_and_n75() {
-    assert n50 == 7, &quot;ASMQ: N50 was &quot; + str(n50)
+    assert n50_value == 7, &quot;ASMQ: N50 was &quot; + str(n50_value)
     assert n75 == 6, &quot;ASMQ: N75 was &quot; + str(n75)
 }</code></pre>
         </section>
@@ -1991,8 +1991,8 @@ fn union_of(x, y) { concat(x, y) |&gt; unique() |&gt; sort() }
 fn intersection_of(x, y) { x |&gt; filter(|e| y |&gt; contains(e)) |&gt; sort() }
 fn difference_of(x, y) { x |&gt; filter(|e| !(y |&gt; contains(e))) |&gt; sort() }
 
-let union = union_of(a, b)
-let intersection = intersection_of(a, b)
+let combined_items = union_of(a, b)
+let shared_items = intersection_of(a, b)
 let a_minus_b = difference_of(a, b)
 let b_minus_a = difference_of(b, a)
 let complement_a = difference_of(universe, a)
@@ -2001,8 +2001,8 @@ let complement_b = difference_of(universe, b)
 fn show(label, s) { println(&quot;  &quot; + label + &quot;: &quot; + (s |&gt; map(|e| str(e)) |&gt; join(&quot; &quot;))) }
 
 println(&quot;Result:&quot;)
-show(&quot;A union B     &quot;, union)
-show(&quot;A inter B     &quot;, intersection)
+show(&quot;A combined_items B     &quot;, combined_items)
+show(&quot;A inter B     &quot;, shared_items)
 show(&quot;A - B         &quot;, a_minus_b)
 show(&quot;B - A         &quot;, b_minus_a)
 show(&quot;complement A  &quot;, complement_a)
@@ -2011,8 +2011,8 @@ show(&quot;complement B  &quot;, complement_b)
 fn joined(s) { s |&gt; map(|e| str(e)) |&gt; join(&quot; &quot;) }
 
 fn test_seto_set_operations() {
-    assert joined(union) == &quot;1 2 3 4 5 8 10&quot;, &quot;SETO union: &quot; + joined(union)
-    assert joined(intersection) == &quot;2 5&quot;, &quot;SETO intersection: &quot; + joined(intersection)
+    assert joined(combined_items) == &quot;1 2 3 4 5 8 10&quot;, &quot;SETO combined_items: &quot; + joined(combined_items)
+    assert joined(shared_items) == &quot;2 5&quot;, &quot;SETO shared_items: &quot; + joined(shared_items)
     assert joined(a_minus_b) == &quot;1 3 4&quot;, &quot;SETO A-B: &quot; + joined(a_minus_b)
     assert joined(b_minus_a) == &quot;8 10&quot;, &quot;SETO B-A: &quot; + joined(b_minus_a)
     assert joined(complement_a) == &quot;6 7 8 9 10&quot;, &quot;SETO ~A: &quot; + joined(complement_a)
@@ -2170,20 +2170,20 @@ let reads = [&quot;TGAT&quot;, &quot;CATG&quot;, &quot;TCAT&quot;, &quot;ATGC&qu
 # as a set — the duplicate CATC and the shared CATG collapse.
 let with_reverse = reads |&gt; flat_map(|r| [r, str(reverse_complement(dna(r)))]) |&gt; unique()
 
-let edges = with_reverse
+let edge_list = with_reverse
     |&gt; map(|kmer| substr(kmer, 0, len(kmer) - 1) ++ &quot; -&gt; &quot; ++ substr(kmer, 1, len(kmer) - 1))
     |&gt; unique()
     |&gt; sort()
 
-println(&quot;Result:   &quot; + str(len(edges)) + &quot; edges&quot;)
-edges |&gt; each(|e| println(&quot;  (&quot; + replace(e, &quot; -&gt; &quot;, &quot;, &quot;) + &quot;)&quot;))
-println(&quot;Expected: 9 edges, starting (ATC, TCA) (ATG, TGA) (ATG, TGC)&quot;)
+println(&quot;Result:   &quot; + str(len(edge_list)) + &quot; edge_list&quot;)
+edge_list |&gt; each(|e| println(&quot;  (&quot; + replace(e, &quot; -&gt; &quot;, &quot;, &quot;) + &quot;)&quot;))
+println(&quot;Expected: 9 edge_list, starting (ATC, TCA) (ATG, TGA) (ATG, TGC)&quot;)
 
 fn test_dbru_de_bruijn_graph() {
-    assert len(edges) == 9, &quot;DBRU: got &quot; + str(len(edges))
-    assert edges[0] == &quot;ATC -&gt; TCA&quot;, &quot;DBRU: first edge &quot; + edges[0]
-    assert edges |&gt; contains(&quot;GCA -&gt; CAT&quot;), &quot;DBRU: missing GCA -&gt; CAT&quot;
-    assert edges |&gt; contains(&quot;TGA -&gt; GAT&quot;), &quot;DBRU: missing TGA -&gt; GAT&quot;
+    assert len(edge_list) == 9, &quot;DBRU: got &quot; + str(len(edge_list))
+    assert edge_list[0] == &quot;ATC -&gt; TCA&quot;, &quot;DBRU: first edge &quot; + edge_list[0]
+    assert edge_list |&gt; contains(&quot;GCA -&gt; CAT&quot;), &quot;DBRU: missing GCA -&gt; CAT&quot;
+    assert edge_list |&gt; contains(&quot;TGA -&gt; GAT&quot;), &quot;DBRU: missing TGA -&gt; GAT&quot;
 }</code></pre>
         </section>
 
@@ -2210,11 +2210,11 @@ let modulus = 1000000
 # even when n reaches 2000.
 fn binomials(width, md) {
     range(0, width) |&gt; reduce(
-        |row, _| {
-            let extended = concat([0], row)
-            range(0, len(row) + 1) |&gt; map(|i| {
+        |row_values, _| {
+            let extended = concat([0], row_values)
+            range(0, len(row_values) + 1) |&gt; map(|i| {
                 let left = extended[i]
-                let right = if i &lt; len(row) then row[i] else 0
+                let right = if i &lt; len(row_values) then row_values[i] else 0
                 (left + right) % md
             })
         },
@@ -2222,10 +2222,10 @@ fn binomials(width, md) {
     )
 }
 
-let row = binomials(n, modulus)
+let row_values = binomials(n, modulus)
 # Bound before the modulo: `|&gt; sum() % modulus` reads the modulo as another
 # argument to sum().
-let total = range(m, n + 1) |&gt; map(|k| row[k]) |&gt; sum()
+let total = range(m, n + 1) |&gt; map(|k| row_values[k]) |&gt; sum()
 let result = total % modulus
 
 println(&quot;Result:   &quot; + str(result))
@@ -2310,15 +2310,15 @@ fn test_corr_error_correction() {
 let s = &quot;ATCTGAT&quot;
 let t = &quot;TGCATA&quot;
 
-fn set_row(table, index, row) {
-    range(0, len(table)) |&gt; map(|i| if i == index then row else table[i])
+fn set_row(grid, index, row) {
+    range(0, len(grid)) |&gt; map(|i| if i == index then row else grid[i])
 }
 
 # The shortest common supersequence is built from the longest common
 # subsequence: walk both strings, emitting shared characters once and the rest
 # as they come.
 fn lcs_table(a, b) {
-    let table = range(0, len(a) + 1) |&gt; map(|_| range(0, len(b) + 1) |&gt; map(|_| 0))
+    let grid = range(0, len(a) + 1) |&gt; map(|_| range(0, len(b) + 1) |&gt; map(|_| 0))
     let i = 1
     while i &lt;= len(a) {
         let ai = substr(a, i - 1, 1)
@@ -2326,20 +2326,20 @@ fn lcs_table(a, b) {
         let j = 1
         while j &lt;= len(b) {
             let value = if ai == substr(b, j - 1, 1) {
-                table[i - 1][j - 1] + 1
+                grid[i - 1][j - 1] + 1
             } else {
-                max([table[i - 1][j], row[j - 1]])
+                max([grid[i - 1][j], row[j - 1]])
             }
             row = push(row, value)
             j = j + 1
         }
-        table = set_row(table, i, row)
+        grid = set_row(grid, i, row)
         i = i + 1
     }
-    table
+    grid
 }
 
-let table = lcs_table(s, t)
+let grid = lcs_table(s, t)
 
 let result = &quot;&quot;
 let x = len(s)
@@ -2350,7 +2350,7 @@ while x &gt; 0 and y &gt; 0 {
         x = x - 1
         y = y - 1
     } else {
-        if table[x - 1][y] &gt;= table[x][y - 1] {
+        if grid[x - 1][y] &gt;= grid[x][y - 1] {
             result = substr(s, x - 1, 1) ++ result
             x = x - 1
         } else {
@@ -2518,11 +2518,11 @@ let all_kmers = range(0, k) |&gt; reduce(
 )
 
 # Count the windows of s once, then look each k-mer up.
-let windows = range(0, len(s) - k + 1) |&gt; map(|i| substr(s, i, k))
-let counts = all_kmers |&gt; map(|kmer| windows |&gt; count_if(|w| w == kmer))
+let window_list = range(0, len(s) - k + 1) |&gt; map(|i| substr(s, i, k))
+let counts = all_kmers |&gt; map(|kmer| window_list |&gt; count_if(|w| w == kmer))
 
 println(&quot;Result:   &quot; + str(len(counts)) + &quot; counts, first 12: &quot; + (take(counts, 12) |&gt; map(|c| str(c)) |&gt; join(&quot; &quot;)))
-println(&quot;Total:    &quot; + str(sum(counts)) + &quot; windows (expected &quot; + str(len(s) - k + 1) + &quot;)&quot;)
+println(&quot;Total:    &quot; + str(sum(counts)) + &quot; window_list (expected &quot; + str(len(s) - k + 1) + &quot;)&quot;)
 
 fn test_kmer_composition() {
     assert len(counts) == 256, &quot;KMER: got &quot; + str(len(counts)) + &quot; entries&quot;
@@ -2532,7 +2532,7 @@ fn test_kmer_composition() {
     # of windows — the check that catches an ordering or lookup mistake.
     assert sum(counts) == len(s) - k + 1, &quot;KMER: counts total &quot; + str(sum(counts))
     # Cross-check one entry by counting it independently.
-    let aaaa = windows |&gt; count_if(|w| w == &quot;AAAA&quot;)
+    let aaaa = window_list |&gt; count_if(|w| w == &quot;AAAA&quot;)
     assert counts[0] == aaaa, &quot;KMER: AAAA count disagrees&quot;
 }</code></pre>
         </section>
@@ -2605,22 +2605,22 @@ fn residue_for(gap) {
     best.name
 }
 
-let protein = range(1, len(spectrum))
+let peptide = range(1, len(spectrum))
     |&gt; map(|i| residue_for(spectrum[i] - spectrum[i - 1]))
     |&gt; join(&quot;&quot;)
 
-println(&quot;Result:   &quot; + protein)
+println(&quot;Result:   &quot; + peptide)
 println(&quot;Gaps:     &quot; + (range(1, len(spectrum)) |&gt; map(|i| str(round(spectrum[i] - spectrum[i - 1], 4))) |&gt; join(&quot; &quot;)))
 println(&quot;Expected: WMQA — 186.0793 W, 131.0405 M, 128.0586 Q, 71.0371 A&quot;)
 
 fn test_spec_protein_from_spectrum() {
-    assert protein == &quot;WMQA&quot;, &quot;SPEC: got &quot; + protein
+    assert peptide == &quot;WMQA&quot;, &quot;SPEC: got &quot; + peptide
     # Every reported residue must actually reproduce its gap, which is the
     # property the answer rests on.
     let i = 1
     while i &lt; len(spectrum) {
         let gap = spectrum[i] - spectrum[i - 1]
-        let residue = substr(protein, i - 1, 1)
+        let residue = substr(peptide, i - 1, 1)
         assert abs(monoisotopic[residue] - gap) &lt; 0.001, &quot;SPEC: residue &quot; + residue + &quot; does not match its gap&quot;
         i = i + 1
     }
@@ -2820,10 +2820,10 @@ let patterns = [&quot;ATAGA&quot;, &quot;ATC&quot;, &quot;GAT&quot;]
 
 # Each node is a record of its number and its labelled children. Nodes are kept
 # in a flat list and referenced by index, since there is no mutable tree type.
-let nodes = [{ id: 1, edges: [] }]
+let node_list = [{ id: 1, edge_list: [] }]
 
 fn child_of(node, symbol) {
-    let hit = node.edges |&gt; filter(|e| e.symbol == symbol)
+    let hit = node.edge_list |&gt; filter(|e| e.symbol == symbol)
     if len(hit) == 0 then -1 else hit[0].target
 }
 
@@ -2831,23 +2831,23 @@ fn replace_node(all, index, node) {
     range(0, len(all)) |&gt; map(|i| if i == index then node else all[i])
 }
 
-let edges = []
+let edge_list = []
 
 for pattern in patterns {
     let at = 0
     let i = 0
     while i &lt; len(pattern) {
         let symbol = substr(pattern, i, 1)
-        let existing = child_of(nodes[at], symbol)
+        let existing = child_of(node_list[at], symbol)
         if existing &lt; 0 {
-            let created = len(nodes) + 1
-            nodes = push(nodes, { id: created, edges: [] })
-            let parent = nodes[at]
-            nodes = replace_node(nodes, at, {
+            let created = len(node_list) + 1
+            node_list = push(node_list, { id: created, edge_list: [] })
+            let parent = node_list[at]
+            node_list = replace_node(node_list, at, {
                 id: parent.id,
-                edges: push(parent.edges, { symbol: symbol, target: created })
+                edge_list: push(parent.edge_list, { symbol: symbol, target: created })
             })
-            edges = push(edges, str(parent.id) ++ &quot; &quot; ++ str(created) ++ &quot; &quot; ++ symbol)
+            edge_list = push(edge_list, str(parent.id) ++ &quot; &quot; ++ str(created) ++ &quot; &quot; ++ symbol)
             at = created - 1
         } else {
             at = existing - 1
@@ -2856,17 +2856,17 @@ for pattern in patterns {
     }
 }
 
-println(&quot;Result:   &quot; + str(len(edges)) + &quot; edges&quot;)
-edges |&gt; each(|e| println(&quot;  &quot; + e))
-println(&quot;Expected: 9 edges, 10 nodes, starting 1 2 A&quot;)
+println(&quot;Result:   &quot; + str(len(edge_list)) + &quot; edge_list&quot;)
+edge_list |&gt; each(|e| println(&quot;  &quot; + e))
+println(&quot;Expected: 9 edge_list, 10 node_list, starting 1 2 A&quot;)
 
 fn test_trie_pattern_matching() {
     # Every symbol of every pattern either follows an existing edge or creates
     # one, so the edge count is the number of distinct prefixes.
-    assert len(edges) == 9, &quot;TRIE: got &quot; + str(len(edges)) + &quot; edges&quot;
-    assert edges[0] == &quot;1 2 A&quot;, &quot;TRIE: first edge &quot; + edges[0]
-    assert edges |&gt; contains(&quot;1 8 G&quot;), &quot;TRIE: missing the GAT branch from the root&quot;
-    assert len(nodes) == 10, &quot;TRIE: got &quot; + str(len(nodes)) + &quot; nodes&quot;
+    assert len(edge_list) == 9, &quot;TRIE: got &quot; + str(len(edge_list)) + &quot; edge_list&quot;
+    assert edge_list[0] == &quot;1 2 A&quot;, &quot;TRIE: first edge &quot; + edge_list[0]
+    assert edge_list |&gt; contains(&quot;1 8 G&quot;), &quot;TRIE: missing the GAT branch from the root&quot;
+    assert len(node_list) == 10, &quot;TRIE: got &quot; + str(len(node_list)) + &quot; node_list&quot;
 }</code></pre>
         </section>
 
@@ -3563,9 +3563,9 @@ while i &lt; rows {
     current = swap
     i = i + 1
 }
-let last = previous
+let last_value = previous
 
-let result = max(last)
+let result = max(last_value)
 
 println(&quot;Result:   &quot; + str(result))
 println(&quot;Expected: the best fitting-alignment score of t within s&quot;)
@@ -3577,9 +3577,9 @@ fn test_sims_motif_with_modifications() {
     assert result &gt;= 0 - len(t), &quot;SIMS: score below the all-mismatch floor&quot;
     # A fitting alignment of t against the substring it selects must reproduce
     # the same score, so recompute it independently at the winning column.
-    let best_at = (range(0, len(last)) |&gt; filter(|c| last[c] == result))[0]
+    let best_at = (range(0, len(last_value)) |&gt; filter(|c| last_value[c] == result))[0]
     assert best_at &gt; 0, &quot;SIMS: best column is the empty prefix&quot;
-    assert last[best_at] == result, &quot;SIMS: winning cell disagrees&quot;
+    assert last_value[best_at] == result, &quot;SIMS: winning cell disagrees&quot;
 }</code></pre>
         </section>
 
@@ -3765,7 +3765,7 @@ fn test_ling_linguistic_complexity() {
 # with GC content x matches s exactly.
 
 let n = 90
-let gc_content = 0.6
+let gc_fraction = 0.6
 let s = &quot;ATAGCCGA&quot;
 
 # At GC content x each of G and C appears with probability x/2, and each of A
@@ -3773,7 +3773,7 @@ let s = &quot;ATAGCCGA&quot;
 let single = range(0, len(s)) |&gt; reduce(|acc, i| {
     let base = substr(s, i, 1)
     let is_gc = base == &quot;G&quot; or base == &quot;C&quot;
-    acc * (if is_gc then gc_content / 2.0 else (1.0 - gc_content) / 2.0)
+    acc * (if is_gc then gc_fraction / 2.0 else (1.0 - gc_fraction) / 2.0)
 }, 1.0)
 
 # The N strings are independent, so the complement is the clean way in: the
@@ -3813,14 +3813,14 @@ fn test_rstr_random_motif_match() {
 let s = &quot;PRETTY&quot;
 let t = &quot;PRTTEIN&quot;
 
-fn set_row(table, index, row) {
-    range(0, len(table)) |&gt; map(|i| if i == index then row else table[i])
+fn set_row(grid, index, row) {
+    range(0, len(grid)) |&gt; map(|i| if i == index then row else grid[i])
 }
 
 # Levenshtein table: substitution, deletion and insertion each cost one.
 let rows = len(s) + 1
 let cols = len(t) + 1
-let table = range(0, rows) |&gt; map(|i| range(0, cols) |&gt; map(|j| if i == 0 then j else i))
+let grid = range(0, rows) |&gt; map(|i| range(0, cols) |&gt; map(|j| if i == 0 then j else i))
 
 let i = 1
 while i &lt; rows {
@@ -3829,14 +3829,14 @@ while i &lt; rows {
     let j = 1
     while j &lt; cols {
         let cost = if si == substr(t, j - 1, 1) then 0 else 1
-        row = push(row, min([table[i - 1][j - 1] + cost, table[i - 1][j] + 1, row[j - 1] + 1]))
+        row = push(row, min([grid[i - 1][j - 1] + cost, grid[i - 1][j] + 1, row[j - 1] + 1]))
         j = j + 1
     }
-    table = set_row(table, i, row)
+    grid = set_row(grid, i, row)
     i = i + 1
 }
 
-let distance = table[rows - 1][cols - 1]
+let distance = grid[rows - 1][cols - 1]
 
 # Walk the table backwards to recover one alignment. Gaps are written as &quot;-&quot;.
 let top = &quot;&quot;
@@ -3847,13 +3847,13 @@ while x &gt; 0 or y &gt; 0 {
     let sx = if x &gt; 0 then substr(s, x - 1, 1) else &quot;&quot;
     let ty = if y &gt; 0 then substr(t, y - 1, 1) else &quot;&quot;
     let cost = if x &gt; 0 and y &gt; 0 and sx == ty then 0 else 1
-    if x &gt; 0 and y &gt; 0 and table[x][y] == table[x - 1][y - 1] + cost {
+    if x &gt; 0 and y &gt; 0 and grid[x][y] == grid[x - 1][y - 1] + cost {
         top = sx ++ top
         bottom = ty ++ bottom
         x = x - 1
         y = y - 1
     } else {
-        if x &gt; 0 and table[x][y] == table[x - 1][y] + 1 {
+        if x &gt; 0 and grid[x][y] == grid[x - 1][y] + 1 {
             top = sx ++ top
             bottom = &quot;-&quot; ++ bottom
             x = x - 1

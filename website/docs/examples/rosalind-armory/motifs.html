@@ -63,12 +63,12 @@ let seqs = [
 
 # Find shared substrings of length &gt;= 20 using a simple sliding window
 let min_motif = 20
-let first = seqs[0]
+let first_seq = seqs[0]
 let shared = []
 
 let i = 0
-while i &lt;= len(first) - min_motif {
-    let candidate = substr(first, i, min_motif)
+while i &lt;= len(first_seq) - min_motif {
+    let candidate = substr(first_seq, i, min_motif)
     let found_in_all = true
     for seq in seqs {
         if !(seq |&gt; contains(candidate)) then

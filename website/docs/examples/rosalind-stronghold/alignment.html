@@ -389,9 +389,9 @@ while i &lt; rows {
     current = swap
     i = i + 1
 }
-let last = previous
+let last_value = previous
 
-let result = max(last)
+let result = max(last_value)
 
 println(&quot;Result:   &quot; + str(result))
 println(&quot;Expected: the best fitting-alignment score of t within s&quot;)
@@ -403,9 +403,9 @@ fn test_sims_motif_with_modifications() {
     assert result &gt;= 0 - len(t), &quot;SIMS: score below the all-mismatch floor&quot;
     # A fitting alignment of t against the substring it selects must reproduce
     # the same score, so recompute it independently at the winning column.
-    let best_at = (range(0, len(last)) |&gt; filter(|c| last[c] == result))[0]
+    let best_at = (range(0, len(last_value)) |&gt; filter(|c| last_value[c] == result))[0]
     assert best_at &gt; 0, &quot;SIMS: best column is the empty prefix&quot;
-    assert last[best_at] == result, &quot;SIMS: winning cell disagrees&quot;
+    assert last_value[best_at] == result, &quot;SIMS: winning cell disagrees&quot;
 }</code></pre>
         </section>
 
@@ -427,14 +427,14 @@ fn test_sims_motif_with_modifications() {
 let s = &quot;PRETTY&quot;
 let t = &quot;PRTTEIN&quot;
 
-fn set_row(table, index, row) {
-    range(0, len(table)) |&gt; map(|i| if i == index then row else table[i])
+fn set_row(grid, index, row) {
+    range(0, len(grid)) |&gt; map(|i| if i == index then row else grid[i])
 }
 
 # Levenshtein table: substitution, deletion and insertion each cost one.
 let rows = len(s) + 1
 let cols = len(t) + 1
-let table = range(0, rows) |&gt; map(|i| range(0, cols) |&gt; map(|j| if i == 0 then j else i))
+let grid = range(0, rows) |&gt; map(|i| range(0, cols) |&gt; map(|j| if i == 0 then j else i))
 
 let i = 1
 while i &lt; rows {
@@ -443,14 +443,14 @@ while i &lt; rows {
     let j = 1
     while j &lt; cols {
         let cost = if si == substr(t, j - 1, 1) then 0 else 1
-        row = push(row, min([table[i - 1][j - 1] + cost, table[i - 1][j] + 1, row[j - 1] + 1]))
+        row = push(row, min([grid[i - 1][j - 1] + cost, grid[i - 1][j] + 1, row[j - 1] + 1]))
         j = j + 1
     }
-    table = set_row(table, i, row)
+    grid = set_row(grid, i, row)
     i = i + 1
 }
 
-let distance = table[rows - 1][cols - 1]
+let distance = grid[rows - 1][cols - 1]
 
 # Walk the table backwards to recover one alignment. Gaps are written as &quot;-&quot;.
 let top = &quot;&quot;
@@ -461,13 +461,13 @@ while x &gt; 0 or y &gt; 0 {
     let sx = if x &gt; 0 then substr(s, x - 1, 1) else &quot;&quot;
     let ty = if y &gt; 0 then substr(t, y - 1, 1) else &quot;&quot;
     let cost = if x &gt; 0 and y &gt; 0 and sx == ty then 0 else 1
-    if x &gt; 0 and y &gt; 0 and table[x][y] == table[x - 1][y - 1] + cost {
+    if x &gt; 0 and y &gt; 0 and grid[x][y] == grid[x - 1][y - 1] + cost {
         top = sx ++ top
         bottom = ty ++ bottom
         x = x - 1
         y = y - 1
     } else {
-        if x &gt; 0 and table[x][y] == table[x - 1][y] + 1 {
+        if x &gt; 0 and grid[x][y] == grid[x - 1][y] + 1 {
             top = sx ++ top
             bottom = &quot;-&quot; ++ bottom
             x = x - 1

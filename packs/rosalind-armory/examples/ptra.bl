@@ -17,11 +17,11 @@ println("Translated: " + str(result))
 println("Expected:   " + str(expected_protein))
 
 # Standard genetic code (table 1) should produce the expected protein
-let table = if result == expected_protein then 1 else 0
-println("Table:      " + str(table))
+let grid = if result == expected_protein then 1 else 0
+println("Table:      " + str(grid))
 println("Expected:   1")
-println("Match:      " + str(table == 1))
+println("Match:      " + str(grid == 1))
 
 fn test_ptra_standard_genetic_code() {
-    assert table == 1, "PTRA: standard code (table 1) should reproduce " + str(expected_protein)
+    assert grid == 1, "PTRA: standard code (grid 1) should reproduce " + str(expected_protein)
 }

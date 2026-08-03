@@ -7,7 +7,7 @@
 # where a vertex is unreachable.
 
 let n = 5
-let edges = [[2, 3, 4], [4, 3, -2], [1, 4, 1], [1, 5, -3], [2, 4, -2], [5, 4, 1]]
+let edge_list = [[2, 3, 4], [4, 3, -2], [1, 4, 1], [1, 5, -3], [2, 4, -2], [5, 4, 1]]
 
 # Weights can be negative, so Dijkstra is out; but the graph is acyclic, so
 # Bellman-Ford's n-1 rounds are unnecessary. Relaxing the edges once in
@@ -19,7 +19,7 @@ for _ in range(0, n) {
     adjacent = push(adjacent, [])
     indegree = push(indegree, 0)
 }
-for edge in edges {
+for edge in edge_list {
     adjacent[edge[0] - 1] = push(adjacent[edge[0] - 1], [edge[1] - 1, edge[2]])
     indegree[edge[1] - 1] = indegree[edge[1] - 1] + 1
 }
@@ -30,10 +30,10 @@ for v in range(0, n) {
         order = push(order, v)
     }
 }
-let head = 0
-while head < len(order) {
-    let current = order[head]
-    head = head + 1
+let queue_head = 0
+while queue_head < len(order) {
+    let current = order[queue_head]
+    queue_head = queue_head + 1
     for link in adjacent[current] {
         indegree[link[0]] = indegree[link[0]] - 1
         if indegree[link[0]] == 0 {

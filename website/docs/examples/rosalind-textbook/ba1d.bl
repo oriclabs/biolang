@@ -5,9 +5,9 @@
 # Return: Every starting position where Pattern appears, zero-based.
 
 let pattern = "ATAT"
-let genome = "GATATATGCATATACTT"
+let genome_text = "GATATATGCATATACTT"
 
-let positions = find_motif(genome, pattern)
+let positions = find_motif(genome_text, pattern)
 let result = positions |> map(|p| str(p)) |> join(" ")
 
 println("Result:   " + result)

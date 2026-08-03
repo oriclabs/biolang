@@ -5,11 +5,11 @@
 # Return: For each frequency, the probability that a randomly selected female
 # is a carrier of the recessive allele.
 
-let frequencies = [0.1, 0.5, 0.8]
+let freqs = [0.1, 0.5, 0.8]
 
 # Males carry one X, so the recessive allele frequency is the given value. A
 # female is heterozygous with probability 2q(1-q).
-let results = frequencies |> map(|q| 2.0 * q * (1.0 - q))
+let results = freqs |> map(|q| 2.0 * q * (1.0 - q))
 let formatted = results |> map(|r| str(round(r, 3))) |> join(" ")
 
 println("Result:   " + formatted)

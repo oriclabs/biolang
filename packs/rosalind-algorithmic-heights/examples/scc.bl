@@ -5,7 +5,7 @@
 # Return: The number of strongly connected components in the graph.
 
 let n = 6
-let edges = [[4, 1], [1, 2], [2, 4], [5, 6], [3, 2], [5, 3], [3, 5]]
+let edge_list = [[4, 1], [1, 2], [2, 4], [5, 6], [3, 2], [5, 3], [3, 5]]
 
 # Kosaraju's algorithm. Two passes: the first records the order in which
 # vertices finish, the second walks the reversed graph taking vertices in the
@@ -20,7 +20,7 @@ for _ in range(0, n) {
     adjacent = push(adjacent, [])
     reversed = push(reversed, [])
 }
-for edge in edges {
+for edge in edge_list {
     let u = edge[0] - 1
     let v = edge[1] - 1
     adjacent[u] = push(adjacent[u], v)

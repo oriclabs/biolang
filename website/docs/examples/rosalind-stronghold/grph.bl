@@ -17,19 +17,19 @@ let records = [
 fn suffix_of(s, width) { substr(s, len(s) - width, width) }
 fn prefix_of(s, width) { substr(s, 0, width) }
 
-let edges = records |> flat_map(|a| {
+let edge_list = records |> flat_map(|a| {
     records
         |> filter(|b| a.id != b.id and suffix_of(a.seq, k) == prefix_of(b.seq, k))
         |> map(|b| a.id ++ " " ++ b.id)
 })
 
 println("Result:")
-edges |> each(|e| println("  " + e))
-println("Expected: 3 edges — 0498->2391, 0498->0442, 2391->2323")
+edge_list |> each(|e| println("  " + e))
+println("Expected: 3 edge_list — 0498->2391, 0498->0442, 2391->2323")
 
 fn test_grph_overlap_graph() {
-    assert len(edges) == 3, "GRPH: got " + str(len(edges)) + " edges"
-    assert edges |> contains("Rosalind_0498 Rosalind_2391"), "GRPH: missing 0498->2391"
-    assert edges |> contains("Rosalind_0498 Rosalind_0442"), "GRPH: missing 0498->0442"
-    assert edges |> contains("Rosalind_2391 Rosalind_2323"), "GRPH: missing 2391->2323"
+    assert len(edge_list) == 3, "GRPH: got " + str(len(edge_list)) + " edge_list"
+    assert edge_list |> contains("Rosalind_0498 Rosalind_2391"), "GRPH: missing 0498->2391"
+    assert edge_list |> contains("Rosalind_0498 Rosalind_0442"), "GRPH: missing 0498->0442"
+    assert edge_list |> contains("Rosalind_2391 Rosalind_2323"), "GRPH: missing 2391->2323"
 }

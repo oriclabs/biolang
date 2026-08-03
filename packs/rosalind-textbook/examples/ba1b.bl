@@ -11,10 +11,10 @@ let k = 4
 # one with its reverse complement, which is what you want when the strand is
 # unknown. Here GCAT and ATGC would merge into a single count of 4, while this
 # problem asks for literal occurrences. kmers() gives the raw windows.
-let windows = kmers(dna(text), k) |> map(|km| str(km))
-let distinct = windows |> unique()
+let window_list = kmers(dna(text), k) |> map(|km| str(km))
+let distinct_count = window_list |> unique()
 
-let tallies = distinct |> map(|km| { kmer: km, count: windows |> count_if(|w| w == km) })
+let tallies = distinct_count |> map(|km| { kmer: km, count: window_list |> count_if(|w| w == km) })
 let best = tallies |> map(|e| e.count) |> max()
 let result = tallies |> filter(|e| e.count == best) |> map(|e| e.kmer) |> sort()
 

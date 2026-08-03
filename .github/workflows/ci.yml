@@ -94,6 +94,13 @@ jobs:
         # set, because `bl test packs` would also run the ones that fetch from NCBI.
         run: ./target/debug/bl test $(node scripts/verify-packs.mjs --hermetic-files)
 
+      # Every other check runs an example on its own. A workbench session or a
+      # REPL keeps state between runs, so a top-level `let` in one example
+      # outlives it — BINS bound `keys` and MAJ then failed on `keys(counts)`
+      # with "List is not callable". This runs each pack as one session.
+      - name: Run each pack as one shared session
+        run: node scripts/check-pack-session.mjs
+
       # Ratchet on examples/: no new breakage, and the known-broken list can
       # only shrink. See examples/known-broken.txt for why it is a ratchet
       # rather than a plain pass/fail gate.

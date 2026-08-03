@@ -22,8 +22,8 @@ fn has_negative_cycle(graph) {
         distance = push(distance, 0)
     }
 
-    let round = 0
-    while round < n - 1 {
+    let sweep = 0
+    while sweep < n - 1 {
         for edge in graph.edges {
             let u = edge[0] - 1
             let v = edge[1] - 1
@@ -31,7 +31,7 @@ fn has_negative_cycle(graph) {
                 distance[v] = distance[u] + edge[2]
             }
         }
-        round = round + 1
+        sweep = sweep + 1
     }
 
     let improved = false

@@ -5,22 +5,22 @@
 # Return: An array D[1..n] where D[i] is the degree of vertex i.
 
 let n = 6
-let edges = [[1, 2], [2, 3], [6, 3], [5, 6], [2, 5], [2, 4], [4, 1]]
+let edge_list = [[1, 2], [2, 3], [6, 3], [5, 6], [2, 5], [2, 4], [4, 1]]
 
 # Each edge contributes one to both of its endpoints, so a single pass over the
 # edge list is enough — the adjacency structure never has to be built.
-let degree = []
+let vertex_degree = []
 for _ in range(0, n) {
-    degree = push(degree, 0)
+    vertex_degree = push(vertex_degree, 0)
 }
-for edge in edges {
+for edge in edge_list {
     let u = edge[0] - 1
     let v = edge[1] - 1
-    degree[u] = degree[u] + 1
-    degree[v] = degree[v] + 1
+    vertex_degree[u] = vertex_degree[u] + 1
+    vertex_degree[v] = vertex_degree[v] + 1
 }
 
-let result = degree |> map(|d| str(d)) |> join(" ")
+let result = vertex_degree |> map(|d| str(d)) |> join(" ")
 
 println("Result:   " + result)
 println("Expected: 2 4 2 2 2 2")

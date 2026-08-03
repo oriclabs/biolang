@@ -63,11 +63,11 @@
 # Return: The minimum number of edges needed to produce a tree.
 
 let n = 10
-let edges = [[1,2],[2,8],[4,10],[5,9],[6,10],[7,9]]
+let edge_list = [[1,2],[2,8],[4,10],[5,9],[6,10],[7,9]]
 
 # A tree on n nodes has exactly n-1 edges, and a forest with e edges has
 # n-e components — so joining them needs (n-1)-e more.
-let result = (n - 1) - len(edges)
+let result = (n - 1) - len(edge_list)
 
 println(&quot;Result:   &quot; + str(result))
 println(&quot;Expected: 3&quot;)
@@ -134,18 +134,18 @@ fn p_distance(a, b) {
     float(differing) / float(len(a))
 }
 
-let matrix = strings |&gt; map(|a| strings |&gt; map(|b| p_distance(a, b)))
+let distance_grid = strings |&gt; map(|a| strings |&gt; map(|b| p_distance(a, b)))
 
 println(&quot;Result:&quot;)
-matrix |&gt; each(|row| println(&quot;  &quot; + (row |&gt; map(|d| str(round(d, 5))) |&gt; join(&quot; &quot;))))
+distance_grid |&gt; each(|row| println(&quot;  &quot; + (row |&gt; map(|d| str(round(d, 5))) |&gt; join(&quot; &quot;))))
 println(&quot;Expected first row: 0.00000 0.40000 0.10000 0.10000&quot;)
 
 fn test_pdst_distance_matrix() {
-    assert round(matrix[0][0], 5) == 0.0, &quot;PDST: diagonal not zero&quot;
-    assert round(matrix[0][1], 5) == 0.4, &quot;PDST: [0][1] was &quot; + str(matrix[0][1])
-    assert round(matrix[0][2], 5) == 0.1, &quot;PDST: [0][2] was &quot; + str(matrix[0][2])
-    assert round(matrix[0][3], 5) == 0.1, &quot;PDST: [0][3] was &quot; + str(matrix[0][3])
-    assert round(matrix[1][0], 5) == round(matrix[0][1], 5), &quot;PDST: not symmetric&quot;
+    assert round(distance_grid[0][0], 5) == 0.0, &quot;PDST: diagonal not zero&quot;
+    assert round(distance_grid[0][1], 5) == 0.4, &quot;PDST: [0][1] was &quot; + str(distance_grid[0][1])
+    assert round(distance_grid[0][2], 5) == 0.1, &quot;PDST: [0][2] was &quot; + str(distance_grid[0][2])
+    assert round(distance_grid[0][3], 5) == 0.1, &quot;PDST: [0][3] was &quot; + str(distance_grid[0][3])
+    assert round(distance_grid[1][0], 5) == round(distance_grid[0][1], 5), &quot;PDST: not symmetric&quot;
 }</code></pre>
         </section>
 

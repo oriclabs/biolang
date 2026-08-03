@@ -38,9 +38,9 @@ while i < rows {
     current = swap
     i = i + 1
 }
-let last = previous
+let last_value = previous
 
-let result = max(last)
+let result = max(last_value)
 
 println("Result:   " + str(result))
 println("Expected: the best fitting-alignment score of t within s")
@@ -52,7 +52,7 @@ fn test_sims_motif_with_modifications() {
     assert result >= 0 - len(t), "SIMS: score below the all-mismatch floor"
     # A fitting alignment of t against the substring it selects must reproduce
     # the same score, so recompute it independently at the winning column.
-    let best_at = (range(0, len(last)) |> filter(|c| last[c] == result))[0]
+    let best_at = (range(0, len(last_value)) |> filter(|c| last_value[c] == result))[0]
     assert best_at > 0, "SIMS: best column is the empty prefix"
-    assert last[best_at] == result, "SIMS: winning cell disagrees"
+    assert last_value[best_at] == result, "SIMS: winning cell disagrees"
 }

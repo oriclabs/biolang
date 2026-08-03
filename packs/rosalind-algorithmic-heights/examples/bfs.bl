@@ -6,14 +6,14 @@
 # vertex 1 to vertex i, and -1 where i is unreachable.
 
 let n = 6
-let edges = [[4, 6], [6, 5], [4, 3], [3, 5], [2, 1], [1, 4]]
+let edge_list = [[4, 6], [6, 5], [4, 3], [3, 5], [2, 1], [1, 4]]
 
 # Directed: each edge is added once, so 2 -> 1 does not make 2 reachable.
 let adjacent = []
 for _ in range(0, n) {
     adjacent = push(adjacent, [])
 }
-for edge in edges {
+for edge in edge_list {
     let u = edge[0] - 1
     adjacent[u] = push(adjacent[u], edge[1] - 1)
 }
@@ -28,10 +28,10 @@ distance[0] = 0
 # first arrival at a vertex the shortest one, so a vertex is only ever assigned
 # a distance once — the -1 test doubles as the visited check.
 let queue = [0]
-let head = 0
-while head < len(queue) {
-    let current = queue[head]
-    head = head + 1
+let queue_head = 0
+while queue_head < len(queue) {
+    let current = queue[queue_head]
+    queue_head = queue_head + 1
     for next in adjacent[current] {
         if distance[next] == -1 {
             distance[next] = distance[current] + 1

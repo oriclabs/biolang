@@ -100,10 +100,10 @@ let patterns = [&quot;ATAGA&quot;, &quot;ATC&quot;, &quot;GAT&quot;]
 
 # Each node is a record of its number and its labelled children. Nodes are kept
 # in a flat list and referenced by index, since there is no mutable tree type.
-let nodes = [{ id: 1, edges: [] }]
+let node_list = [{ id: 1, edge_list: [] }]
 
 fn child_of(node, symbol) {
-    let hit = node.edges |&gt; filter(|e| e.symbol == symbol)
+    let hit = node.edge_list |&gt; filter(|e| e.symbol == symbol)
     if len(hit) == 0 then -1 else hit[0].target
 }
 
@@ -111,23 +111,23 @@ fn replace_node(all, index, node) {
     range(0, len(all)) |&gt; map(|i| if i == index then node else all[i])
 }
 
-let edges = []
+let edge_list = []
 
 for pattern in patterns {
     let at = 0
     let i = 0
     while i &lt; len(pattern) {
         let symbol = substr(pattern, i, 1)
-        let existing = child_of(nodes[at], symbol)
+        let existing = child_of(node_list[at], symbol)
         if existing &lt; 0 {
-            let created = len(nodes) + 1
-            nodes = push(nodes, { id: created, edges: [] })
-            let parent = nodes[at]
-            nodes = replace_node(nodes, at, {
+            let created = len(node_list) + 1
+            node_list = push(node_list, { id: created, edge_list: [] })
+            let parent = node_list[at]
+            node_list = replace_node(node_list, at, {
                 id: parent.id,
-                edges: push(parent.edges, { symbol: symbol, target: created })
+                edge_list: push(parent.edge_list, { symbol: symbol, target: created })
             })
-            edges = push(edges, str(parent.id) ++ &quot; &quot; ++ str(created) ++ &quot; &quot; ++ symbol)
+            edge_list = push(edge_list, str(parent.id) ++ &quot; &quot; ++ str(created) ++ &quot; &quot; ++ symbol)
             at = created - 1
         } else {
             at = existing - 1
@@ -136,17 +136,17 @@ for pattern in patterns {
     }
 }
 
-println(&quot;Result:   &quot; + str(len(edges)) + &quot; edges&quot;)
-edges |&gt; each(|e| println(&quot;  &quot; + e))
-println(&quot;Expected: 9 edges, 10 nodes, starting 1 2 A&quot;)
+println(&quot;Result:   &quot; + str(len(edge_list)) + &quot; edge_list&quot;)
+edge_list |&gt; each(|e| println(&quot;  &quot; + e))
+println(&quot;Expected: 9 edge_list, 10 node_list, starting 1 2 A&quot;)
 
 fn test_trie_pattern_matching() {
     # Every symbol of every pattern either follows an existing edge or creates
     # one, so the edge count is the number of distinct prefixes.
-    assert len(edges) == 9, &quot;TRIE: got &quot; + str(len(edges)) + &quot; edges&quot;
-    assert edges[0] == &quot;1 2 A&quot;, &quot;TRIE: first edge &quot; + edges[0]
-    assert edges |&gt; contains(&quot;1 8 G&quot;), &quot;TRIE: missing the GAT branch from the root&quot;
-    assert len(nodes) == 10, &quot;TRIE: got &quot; + str(len(nodes)) + &quot; nodes&quot;
+    assert len(edge_list) == 9, &quot;TRIE: got &quot; + str(len(edge_list)) + &quot; edge_list&quot;
+    assert edge_list[0] == &quot;1 2 A&quot;, &quot;TRIE: first edge &quot; + edge_list[0]
+    assert edge_list |&gt; contains(&quot;1 8 G&quot;), &quot;TRIE: missing the GAT branch from the root&quot;
+    assert len(node_list) == 10, &quot;TRIE: got &quot; + str(len(node_list)) + &quot; node_list&quot;
 }</code></pre>
         </section>
 

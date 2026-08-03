@@ -5,7 +5,7 @@
 # Return: For each key, an index j with A[j] = key, or -1 if there is none.
 
 let a = [10, 20, 30, 40, 50]
-let keys = [40, 10, 35, 15, 40, 20]
+let queries = [40, 10, 35, 15, 40, 20]
 
 # Halve the live window until it is empty. Rosalind indexes from 1, so the
 # answer is the zero-based position plus one.
@@ -25,7 +25,7 @@ fn binary_search(sorted, key) {
     found
 }
 
-let result = keys |> map(|k| str(binary_search(a, k))) |> join(" ")
+let result = queries |> map(|k| str(binary_search(a, k))) |> join(" ")
 
 println("Result:   " + result)
 println("Expected: 4 1 -1 -1 4 2")

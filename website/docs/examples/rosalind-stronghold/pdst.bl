@@ -17,16 +17,16 @@ fn p_distance(a, b) {
     float(differing) / float(len(a))
 }
 
-let matrix = strings |> map(|a| strings |> map(|b| p_distance(a, b)))
+let distance_grid = strings |> map(|a| strings |> map(|b| p_distance(a, b)))
 
 println("Result:")
-matrix |> each(|row| println("  " + (row |> map(|d| str(round(d, 5))) |> join(" "))))
+distance_grid |> each(|row| println("  " + (row |> map(|d| str(round(d, 5))) |> join(" "))))
 println("Expected first row: 0.00000 0.40000 0.10000 0.10000")
 
 fn test_pdst_distance_matrix() {
-    assert round(matrix[0][0], 5) == 0.0, "PDST: diagonal not zero"
-    assert round(matrix[0][1], 5) == 0.4, "PDST: [0][1] was " + str(matrix[0][1])
-    assert round(matrix[0][2], 5) == 0.1, "PDST: [0][2] was " + str(matrix[0][2])
-    assert round(matrix[0][3], 5) == 0.1, "PDST: [0][3] was " + str(matrix[0][3])
-    assert round(matrix[1][0], 5) == round(matrix[0][1], 5), "PDST: not symmetric"
+    assert round(distance_grid[0][0], 5) == 0.0, "PDST: diagonal not zero"
+    assert round(distance_grid[0][1], 5) == 0.4, "PDST: [0][1] was " + str(distance_grid[0][1])
+    assert round(distance_grid[0][2], 5) == 0.1, "PDST: [0][2] was " + str(distance_grid[0][2])
+    assert round(distance_grid[0][3], 5) == 0.1, "PDST: [0][3] was " + str(distance_grid[0][3])
+    assert round(distance_grid[1][0], 5) == round(distance_grid[0][1], 5), "PDST: not symmetric"
 }

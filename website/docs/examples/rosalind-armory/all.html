@@ -185,12 +185,12 @@ let seqs = [
 
 # Find shared substrings of length &gt;= 20 using a simple sliding window
 let min_motif = 20
-let first = seqs[0]
+let first_seq = seqs[0]
 let shared = []
 
 let i = 0
-while i &lt;= len(first) - min_motif {
-    let candidate = substr(first, i, min_motif)
+while i &lt;= len(first_seq) - min_motif {
+    let candidate = substr(first_seq, i, min_motif)
     let found_in_all = true
     for seq in seqs {
         if !(seq |&gt; contains(candidate)) then
@@ -289,16 +289,16 @@ let fastq_id = &quot;SEQ_ID&quot;
 let fastq_seq = &quot;GATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT&quot;
 
 # Convert to FASTA format
-let fasta = &quot;&gt;&quot; + fastq_id + &quot;\n&quot; + fastq_seq
+let fasta_text = &quot;&gt;&quot; + fastq_id + &quot;\n&quot; + fastq_seq
 
 println(&quot;Result:&quot;)
-println(fasta)
+println(fasta_text)
 println(&quot;&quot;)
 println(&quot;Expected:&quot;)
 println(&quot;&gt;SEQ_ID&quot;)
 println(&quot;GATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT&quot;)
 
-let ok = fasta == &quot;&gt;SEQ_ID\nGATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT&quot;
+let ok = fasta_text == &quot;&gt;SEQ_ID\nGATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT&quot;
 println(&quot;\nMatch: &quot; + str(ok))
 
 fn test_tfsq_fastq_to_fasta() {
@@ -377,13 +377,13 @@ println(&quot;Translated: &quot; + str(result))
 println(&quot;Expected:   &quot; + str(expected_protein))
 
 # Standard genetic code (table 1) should produce the expected protein
-let table = if result == expected_protein then 1 else 0
-println(&quot;Table:      &quot; + str(table))
+let grid = if result == expected_protein then 1 else 0
+println(&quot;Table:      &quot; + str(grid))
 println(&quot;Expected:   1&quot;)
-println(&quot;Match:      &quot; + str(table == 1))
+println(&quot;Match:      &quot; + str(grid == 1))
 
 fn test_ptra_standard_genetic_code() {
-    assert table == 1, &quot;PTRA: standard code (table 1) should reproduce &quot; + str(expected_protein)
+    assert grid == 1, &quot;PTRA: standard code (grid 1) should reproduce &quot; + str(expected_protein)
 }</code></pre>
         </section>
 
@@ -655,15 +655,15 @@ let max_avg_dist = 0
 
 for i_seq in sequences {
     let total_dist = 0
-    let count = 0
+    let pair_count = 0
     for j_seq in sequences {
         if i_seq.id != j_seq.id then {
             let dist = edit_distance(str(i_seq.seq), str(j_seq.seq))
             total_dist = total_dist + dist
-            count = count + 1
+            pair_count = pair_count + 1
         }
     }
-    let avg_dist = total_dist / count
+    let avg_dist = total_dist / pair_count
     if avg_dist &gt; max_avg_dist then {
         max_avg_dist = avg_dist
         most_different_id = i_seq.id

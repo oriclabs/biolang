@@ -5,7 +5,7 @@
 # Return: A topological sorting of the graph.
 
 let n = 4
-let edges = [[1, 2], [3, 1], [3, 2], [4, 3], [4, 2]]
+let edge_list = [[1, 2], [3, 1], [3, 2], [4, 3], [4, 2]]
 
 # Kahn's algorithm, the same sweep DAG uses to test for cycles — here the order
 # in which vertices come off the queue is the answer rather than a by-product.
@@ -15,7 +15,7 @@ for _ in range(0, n) {
     adjacent = push(adjacent, [])
     indegree = push(indegree, 0)
 }
-for edge in edges {
+for edge in edge_list {
     let u = edge[0] - 1
     let v = edge[1] - 1
     adjacent[u] = push(adjacent[u], v)
@@ -28,10 +28,10 @@ for v in range(0, n) {
         order = push(order, v)
     }
 }
-let head = 0
-while head < len(order) {
-    let current = order[head]
-    head = head + 1
+let queue_head = 0
+while queue_head < len(order) {
+    let current = order[queue_head]
+    queue_head = queue_head + 1
     for next in adjacent[current] {
         indegree[next] = indegree[next] - 1
         if indegree[next] == 0 {
@@ -51,7 +51,7 @@ for _ in range(0, n) {
 for i in range(0, len(order)) {
     position[order[i]] = i
 }
-let backwards = edges |> filter(|e| position[e[0] - 1] >= position[e[1] - 1])
+let backwards = edge_list |> filter(|e| position[e[0] - 1] >= position[e[1] - 1])
 
 println("Result:   " + result)
 println("Expected: 4 3 1 2  (any valid order is accepted)")

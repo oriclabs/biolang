@@ -5,7 +5,7 @@
 # Return: The number of connected components in the graph.
 
 let n = 12
-let edges = [
+let edge_list = [
     [1, 2], [1, 5], [5, 9], [5, 10], [9, 10],
     [3, 4], [3, 7], [3, 8], [4, 8], [7, 11],
     [8, 11], [11, 12], [8, 12],
@@ -18,7 +18,7 @@ let adjacent = []
 for _ in range(0, n) {
     adjacent = push(adjacent, [])
 }
-for edge in edges {
+for edge in edge_list {
     let u = edge[0] - 1
     let v = edge[1] - 1
     adjacent[u] = push(adjacent[u], v)

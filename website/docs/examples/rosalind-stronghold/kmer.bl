@@ -18,11 +18,11 @@ let all_kmers = range(0, k) |> reduce(
 )
 
 # Count the windows of s once, then look each k-mer up.
-let windows = range(0, len(s) - k + 1) |> map(|i| substr(s, i, k))
-let counts = all_kmers |> map(|kmer| windows |> count_if(|w| w == kmer))
+let window_list = range(0, len(s) - k + 1) |> map(|i| substr(s, i, k))
+let counts = all_kmers |> map(|kmer| window_list |> count_if(|w| w == kmer))
 
 println("Result:   " + str(len(counts)) + " counts, first 12: " + (take(counts, 12) |> map(|c| str(c)) |> join(" ")))
-println("Total:    " + str(sum(counts)) + " windows (expected " + str(len(s) - k + 1) + ")")
+println("Total:    " + str(sum(counts)) + " window_list (expected " + str(len(s) - k + 1) + ")")
 
 fn test_kmer_composition() {
     assert len(counts) == 256, "KMER: got " + str(len(counts)) + " entries"
@@ -32,6 +32,6 @@ fn test_kmer_composition() {
     # of windows — the check that catches an ordering or lookup mistake.
     assert sum(counts) == len(s) - k + 1, "KMER: counts total " + str(sum(counts))
     # Cross-check one entry by counting it independently.
-    let aaaa = windows |> count_if(|w| w == "AAAA")
+    let aaaa = window_list |> count_if(|w| w == "AAAA")
     assert counts[0] == aaaa, "KMER: AAAA count disagrees"
 }

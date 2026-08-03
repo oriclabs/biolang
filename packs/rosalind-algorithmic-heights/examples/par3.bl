@@ -15,23 +15,23 @@ let a = [4, 5, 6, 4, 1, 2, 5, 7, 4]
 let xs = a
 let pivot = xs[0]
 let low = 0
-let scan = 0
+let cursor = 0
 let high = len(xs) - 1
-while scan <= high {
-    if xs[scan] < pivot {
+while cursor <= high {
+    if xs[cursor] < pivot {
         let held = xs[low]
-        xs[low] = xs[scan]
-        xs[scan] = held
+        xs[low] = xs[cursor]
+        xs[cursor] = held
         low = low + 1
-        scan = scan + 1
+        cursor = cursor + 1
     } else {
-        if xs[scan] > pivot {
+        if xs[cursor] > pivot {
             let held = xs[high]
-            xs[high] = xs[scan]
-            xs[scan] = held
+            xs[high] = xs[cursor]
+            xs[cursor] = held
             high = high - 1
         } else {
-            scan = scan + 1
+            cursor = cursor + 1
         }
     }
 }

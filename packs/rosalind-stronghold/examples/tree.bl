@@ -6,11 +6,11 @@
 # Return: The minimum number of edges needed to produce a tree.
 
 let n = 10
-let edges = [[1,2],[2,8],[4,10],[5,9],[6,10],[7,9]]
+let edge_list = [[1,2],[2,8],[4,10],[5,9],[6,10],[7,9]]
 
 # A tree on n nodes has exactly n-1 edges, and a forest with e edges has
 # n-e components — so joining them needs (n-1)-e more.
-let result = (n - 1) - len(edges)
+let result = (n - 1) - len(edge_list)
 
 println("Result:   " + str(result))
 println("Expected: 3")

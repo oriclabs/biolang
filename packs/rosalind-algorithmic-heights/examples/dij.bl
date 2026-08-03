@@ -7,7 +7,7 @@
 # a vertex is unreachable.
 
 let n = 6
-let edges = [
+let edge_list = [
     [3, 4, 4], [1, 2, 4], [1, 3, 2], [2, 3, 3], [6, 3, 2],
     [3, 5, 5], [5, 4, 1], [3, 2, 1], [2, 4, 2], [2, 5, 3],
 ]
@@ -16,7 +16,7 @@ let adjacent = []
 for _ in range(0, n) {
     adjacent = push(adjacent, [])
 }
-for edge in edges {
+for edge in edge_list {
     let u = edge[0] - 1
     adjacent[u] = push(adjacent[u], [edge[1] - 1, edge[2]])
 }

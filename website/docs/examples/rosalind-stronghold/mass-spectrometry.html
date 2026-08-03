@@ -72,22 +72,22 @@ fn residue_for(gap) {
     best.name
 }
 
-let protein = range(1, len(spectrum))
+let peptide = range(1, len(spectrum))
     |&gt; map(|i| residue_for(spectrum[i] - spectrum[i - 1]))
     |&gt; join(&quot;&quot;)
 
-println(&quot;Result:   &quot; + protein)
+println(&quot;Result:   &quot; + peptide)
 println(&quot;Gaps:     &quot; + (range(1, len(spectrum)) |&gt; map(|i| str(round(spectrum[i] - spectrum[i - 1], 4))) |&gt; join(&quot; &quot;)))
 println(&quot;Expected: WMQA — 186.0793 W, 131.0405 M, 128.0586 Q, 71.0371 A&quot;)
 
 fn test_spec_protein_from_spectrum() {
-    assert protein == &quot;WMQA&quot;, &quot;SPEC: got &quot; + protein
+    assert peptide == &quot;WMQA&quot;, &quot;SPEC: got &quot; + peptide
     # Every reported residue must actually reproduce its gap, which is the
     # property the answer rests on.
     let i = 1
     while i &lt; len(spectrum) {
         let gap = spectrum[i] - spectrum[i - 1]
-        let residue = substr(protein, i - 1, 1)
+        let residue = substr(peptide, i - 1, 1)
         assert abs(monoisotopic[residue] - gap) &lt; 0.001, &quot;SPEC: residue &quot; + residue + &quot; does not match its gap&quot;
         i = i + 1
     }

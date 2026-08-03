@@ -12,11 +12,11 @@ let introns = [
 
 # Remove each intron once, in the order given, then translate what is left.
 let coding = introns |> reduce(|seq, intron| replace(seq, intron, ""), pre_mrna)
-let protein = translate(dna(coding))
+let peptide = translate(dna(coding))
 
-println("Result:   " ++ str(protein))
+println("Result:   " ++ str(peptide))
 println("Expected: MVYIADKQHVASREAYGHMFKVCA")
 
 fn test_splc_rna_splicing() {
-    assert str(protein) == "MVYIADKQHVASREAYGHMFKVCA", "SPLC: got " ++ str(protein)
+    assert str(peptide) == "MVYIADKQHVASREAYGHMFKVCA", "SPLC: got " ++ str(peptide)
 }

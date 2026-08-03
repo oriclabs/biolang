@@ -9,16 +9,16 @@ let fastq_id = "SEQ_ID"
 let fastq_seq = "GATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT"
 
 # Convert to FASTA format
-let fasta = ">" + fastq_id + "\n" + fastq_seq
+let fasta_text = ">" + fastq_id + "\n" + fastq_seq
 
 println("Result:")
-println(fasta)
+println(fasta_text)
 println("")
 println("Expected:")
 println(">SEQ_ID")
 println("GATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT")
 
-let ok = fasta == ">SEQ_ID\nGATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT"
+let ok = fasta_text == ">SEQ_ID\nGATTTGGGGTTCAAAGCAGTATCGATCAAATAGTAAATCCATTTGTTCAACTCACAGTTT"
 println("\nMatch: " + str(ok))
 
 fn test_tfsq_fastq_to_fasta() {

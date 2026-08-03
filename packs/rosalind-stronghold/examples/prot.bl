@@ -7,11 +7,11 @@
 let s = rna"AUGGCCAUGGCGCCCAGAACUGAGAUCAAUAGUACCCGUAUUAACGGGUGA"
 
 # translate() stops at the first stop codon, which is what the problem asks for.
-let protein = translate(s)
+let peptide = translate(s)
 
-println("Result:   " ++ str(protein))
+println("Result:   " ++ str(peptide))
 println("Expected: MAMAPRTEINSTRING")
 
 fn test_prot_translation() {
-    assert str(protein) == "MAMAPRTEINSTRING", "PROT: got " ++ str(protein)
+    assert str(peptide) == "MAMAPRTEINSTRING", "PROT: got " ++ str(peptide)
 }

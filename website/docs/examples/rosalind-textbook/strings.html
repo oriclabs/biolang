@@ -90,10 +90,10 @@ let k = 4
 # one with its reverse complement, which is what you want when the strand is
 # unknown. Here GCAT and ATGC would merge into a single count of 4, while this
 # problem asks for literal occurrences. kmers() gives the raw windows.
-let windows = kmers(dna(text), k) |&gt; map(|km| str(km))
-let distinct = windows |&gt; unique()
+let window_list = kmers(dna(text), k) |&gt; map(|km| str(km))
+let distinct_count = window_list |&gt; unique()
 
-let tallies = distinct |&gt; map(|km| { kmer: km, count: windows |&gt; count_if(|w| w == km) })
+let tallies = distinct_count |&gt; map(|km| { kmer: km, count: window_list |&gt; count_if(|w| w == km) })
 let best = tallies |&gt; map(|e| e.count) |&gt; max()
 let result = tallies |&gt; filter(|e| e.count == best) |&gt; map(|e| e.kmer) |&gt; sort()
 
@@ -127,9 +127,9 @@ fn test_ba1b_most_frequent_words() {
 # Return: Every starting position where Pattern appears, zero-based.
 
 let pattern = &quot;ATAT&quot;
-let genome = &quot;GATATATGCATATACTT&quot;
+let genome_text = &quot;GATATATGCATATACTT&quot;
 
-let positions = find_motif(genome, pattern)
+let positions = find_motif(genome_text, pattern)
 let result = positions |&gt; map(|p| str(p)) |&gt; join(&quot; &quot;)
 
 println(&quot;Result:   &quot; + result)

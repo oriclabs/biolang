@@ -65,21 +65,21 @@ let records = [
 fn suffix_of(s, width) { substr(s, len(s) - width, width) }
 fn prefix_of(s, width) { substr(s, 0, width) }
 
-let edges = records |&gt; flat_map(|a| {
+let edge_list = records |&gt; flat_map(|a| {
     records
         |&gt; filter(|b| a.id != b.id and suffix_of(a.seq, k) == prefix_of(b.seq, k))
         |&gt; map(|b| a.id ++ &quot; &quot; ++ b.id)
 })
 
 println(&quot;Result:&quot;)
-edges |&gt; each(|e| println(&quot;  &quot; + e))
-println(&quot;Expected: 3 edges — 0498-&gt;2391, 0498-&gt;0442, 2391-&gt;2323&quot;)
+edge_list |&gt; each(|e| println(&quot;  &quot; + e))
+println(&quot;Expected: 3 edge_list — 0498-&gt;2391, 0498-&gt;0442, 2391-&gt;2323&quot;)
 
 fn test_grph_overlap_graph() {
-    assert len(edges) == 3, &quot;GRPH: got &quot; + str(len(edges)) + &quot; edges&quot;
-    assert edges |&gt; contains(&quot;Rosalind_0498 Rosalind_2391&quot;), &quot;GRPH: missing 0498-&gt;2391&quot;
-    assert edges |&gt; contains(&quot;Rosalind_0498 Rosalind_0442&quot;), &quot;GRPH: missing 0498-&gt;0442&quot;
-    assert edges |&gt; contains(&quot;Rosalind_2391 Rosalind_2323&quot;), &quot;GRPH: missing 2391-&gt;2323&quot;
+    assert len(edge_list) == 3, &quot;GRPH: got &quot; + str(len(edge_list)) + &quot; edge_list&quot;
+    assert edge_list |&gt; contains(&quot;Rosalind_0498 Rosalind_2391&quot;), &quot;GRPH: missing 0498-&gt;2391&quot;
+    assert edge_list |&gt; contains(&quot;Rosalind_0498 Rosalind_0442&quot;), &quot;GRPH: missing 0498-&gt;0442&quot;
+    assert edge_list |&gt; contains(&quot;Rosalind_2391 Rosalind_2323&quot;), &quot;GRPH: missing 2391-&gt;2323&quot;
 }</code></pre>
         </section>
 
@@ -105,20 +105,20 @@ let reads = [&quot;TGAT&quot;, &quot;CATG&quot;, &quot;TCAT&quot;, &quot;ATGC&qu
 # as a set — the duplicate CATC and the shared CATG collapse.
 let with_reverse = reads |&gt; flat_map(|r| [r, str(reverse_complement(dna(r)))]) |&gt; unique()
 
-let edges = with_reverse
+let edge_list = with_reverse
     |&gt; map(|kmer| substr(kmer, 0, len(kmer) - 1) ++ &quot; -&gt; &quot; ++ substr(kmer, 1, len(kmer) - 1))
     |&gt; unique()
     |&gt; sort()
 
-println(&quot;Result:   &quot; + str(len(edges)) + &quot; edges&quot;)
-edges |&gt; each(|e| println(&quot;  (&quot; + replace(e, &quot; -&gt; &quot;, &quot;, &quot;) + &quot;)&quot;))
-println(&quot;Expected: 9 edges, starting (ATC, TCA) (ATG, TGA) (ATG, TGC)&quot;)
+println(&quot;Result:   &quot; + str(len(edge_list)) + &quot; edge_list&quot;)
+edge_list |&gt; each(|e| println(&quot;  (&quot; + replace(e, &quot; -&gt; &quot;, &quot;, &quot;) + &quot;)&quot;))
+println(&quot;Expected: 9 edge_list, starting (ATC, TCA) (ATG, TGA) (ATG, TGC)&quot;)
 
 fn test_dbru_de_bruijn_graph() {
-    assert len(edges) == 9, &quot;DBRU: got &quot; + str(len(edges))
-    assert edges[0] == &quot;ATC -&gt; TCA&quot;, &quot;DBRU: first edge &quot; + edges[0]
-    assert edges |&gt; contains(&quot;GCA -&gt; CAT&quot;), &quot;DBRU: missing GCA -&gt; CAT&quot;
-    assert edges |&gt; contains(&quot;TGA -&gt; GAT&quot;), &quot;DBRU: missing TGA -&gt; GAT&quot;
+    assert len(edge_list) == 9, &quot;DBRU: got &quot; + str(len(edge_list))
+    assert edge_list[0] == &quot;ATC -&gt; TCA&quot;, &quot;DBRU: first edge &quot; + edge_list[0]
+    assert edge_list |&gt; contains(&quot;GCA -&gt; CAT&quot;), &quot;DBRU: missing GCA -&gt; CAT&quot;
+    assert edge_list |&gt; contains(&quot;TGA -&gt; GAT&quot;), &quot;DBRU: missing TGA -&gt; GAT&quot;
 }</code></pre>
         </section>
       </article>

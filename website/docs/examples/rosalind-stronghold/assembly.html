@@ -77,14 +77,14 @@ fn n_statistic(lengths, percent) {
 }
 
 let lengths = contigs |&gt; map(|c| len(c))
-let n50 = n_statistic(lengths, 50.0)
+let n50_value = n_statistic(lengths, 50.0)
 let n75 = n_statistic(lengths, 75.0)
 
-println(&quot;Result:   &quot; + str(n50) + &quot; &quot; + str(n75))
+println(&quot;Result:   &quot; + str(n50_value) + &quot; &quot; + str(n75))
 println(&quot;Expected: 7 6&quot;)
 
 fn test_asmq_n50_and_n75() {
-    assert n50 == 7, &quot;ASMQ: N50 was &quot; + str(n50)
+    assert n50_value == 7, &quot;ASMQ: N50 was &quot; + str(n50_value)
     assert n75 == 6, &quot;ASMQ: N75 was &quot; + str(n75)
 }</code></pre>
         </section>

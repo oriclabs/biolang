@@ -574,11 +574,11 @@ let modulus = 1000000
 # even when n reaches 2000.
 fn binomials(width, md) {
     range(0, width) |&gt; reduce(
-        |row, _| {
-            let extended = concat([0], row)
-            range(0, len(row) + 1) |&gt; map(|i| {
+        |row_values, _| {
+            let extended = concat([0], row_values)
+            range(0, len(row_values) + 1) |&gt; map(|i| {
                 let left = extended[i]
-                let right = if i &lt; len(row) then row[i] else 0
+                let right = if i &lt; len(row_values) then row_values[i] else 0
                 (left + right) % md
             })
         },
@@ -586,10 +586,10 @@ fn binomials(width, md) {
     )
 }
 
-let row = binomials(n, modulus)
+let row_values = binomials(n, modulus)
 # Bound before the modulo: `|&gt; sum() % modulus` reads the modulo as another
 # argument to sum().
-let total = range(m, n + 1) |&gt; map(|k| row[k]) |&gt; sum()
+let total = range(m, n + 1) |&gt; map(|k| row_values[k]) |&gt; sum()
 let result = total % modulus
 
 println(&quot;Result:   &quot; + str(result))

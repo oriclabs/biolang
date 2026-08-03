@@ -21,19 +21,19 @@ fn reachable_from(adjacent, start, n) {
     }
     seen[start] = true
     let stack = [start]
-    let count = 1
+    let reached = 1
     while len(stack) > 0 {
         let current = stack[len(stack) - 1]
         stack = slice(stack, 0, len(stack) - 1)
         for next in adjacent[current] {
             if seen[next] == false {
                 seen[next] = true
-                count = count + 1
+                reached = reached + 1
                 stack = push(stack, next)
             }
         }
     }
-    count
+    reached
 }
 
 fn general_sink(graph) {

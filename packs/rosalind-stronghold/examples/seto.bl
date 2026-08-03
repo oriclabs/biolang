@@ -14,8 +14,8 @@ fn union_of(x, y) { concat(x, y) |> unique() |> sort() }
 fn intersection_of(x, y) { x |> filter(|e| y |> contains(e)) |> sort() }
 fn difference_of(x, y) { x |> filter(|e| !(y |> contains(e))) |> sort() }
 
-let union = union_of(a, b)
-let intersection = intersection_of(a, b)
+let combined_items = union_of(a, b)
+let shared_items = intersection_of(a, b)
 let a_minus_b = difference_of(a, b)
 let b_minus_a = difference_of(b, a)
 let complement_a = difference_of(universe, a)
@@ -24,8 +24,8 @@ let complement_b = difference_of(universe, b)
 fn show(label, s) { println("  " + label + ": " + (s |> map(|e| str(e)) |> join(" "))) }
 
 println("Result:")
-show("A union B     ", union)
-show("A inter B     ", intersection)
+show("A combined_items B     ", combined_items)
+show("A inter B     ", shared_items)
 show("A - B         ", a_minus_b)
 show("B - A         ", b_minus_a)
 show("complement A  ", complement_a)
@@ -34,8 +34,8 @@ show("complement B  ", complement_b)
 fn joined(s) { s |> map(|e| str(e)) |> join(" ") }
 
 fn test_seto_set_operations() {
-    assert joined(union) == "1 2 3 4 5 8 10", "SETO union: " + joined(union)
-    assert joined(intersection) == "2 5", "SETO intersection: " + joined(intersection)
+    assert joined(combined_items) == "1 2 3 4 5 8 10", "SETO combined_items: " + joined(combined_items)
+    assert joined(shared_items) == "2 5", "SETO shared_items: " + joined(shared_items)
     assert joined(a_minus_b) == "1 3 4", "SETO A-B: " + joined(a_minus_b)
     assert joined(b_minus_a) == "8 10", "SETO B-A: " + joined(b_minus_a)
     assert joined(complement_a) == "6 7 8 9 10", "SETO ~A: " + joined(complement_a)

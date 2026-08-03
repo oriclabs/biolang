@@ -182,11 +182,11 @@ fn test_lia_independent_alleles() {
 # Return: For each frequency, the probability that a randomly selected female
 # is a carrier of the recessive allele.
 
-let frequencies = [0.1, 0.5, 0.8]
+let freqs = [0.1, 0.5, 0.8]
 
 # Males carry one X, so the recessive allele frequency is the given value. A
 # female is heterozygous with probability 2q(1-q).
-let results = frequencies |&gt; map(|q| 2.0 * q * (1.0 - q))
+let results = freqs |&gt; map(|q| 2.0 * q * (1.0 - q))
 let formatted = results |&gt; map(|r| str(round(r, 3))) |&gt; join(&quot; &quot;)
 
 println(&quot;Result:   &quot; + formatted)
@@ -492,7 +492,7 @@ fn test_wfmd_genetic_drift() {
 # with GC content x matches s exactly.
 
 let n = 90
-let gc_content = 0.6
+let gc_fraction = 0.6
 let s = &quot;ATAGCCGA&quot;
 
 # At GC content x each of G and C appears with probability x/2, and each of A
@@ -500,7 +500,7 @@ let s = &quot;ATAGCCGA&quot;
 let single = range(0, len(s)) |&gt; reduce(|acc, i| {
     let base = substr(s, i, 1)
     let is_gc = base == &quot;G&quot; or base == &quot;C&quot;
-    acc * (if is_gc then gc_content / 2.0 else (1.0 - gc_content) / 2.0)
+    acc * (if is_gc then gc_fraction / 2.0 else (1.0 - gc_fraction) / 2.0)
 }, 1.0)
 
 # The N strings are independent, so the complement is the clean way in: the
