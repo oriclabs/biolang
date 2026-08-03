@@ -520,3 +520,43 @@ status = "solved"
 asserted = true
 note = "Viterbi cannot do this: deletion states are silent, so nine states emit seven symbols. The silent states have to be settled in layer order at each position before the emitting ones look back at them."
 topics = ["hmm", "profile-hmm", "alignment"]
+
+[[problem]]
+id = "BA2D"
+title = "Implement GreedyMotifSearch"
+file = "examples/ba2d.bl"
+url = "https://rosalind.info/problems/ba2d/"
+status = "solved"
+asserted = true
+note = "Greedy in the strict sense: each string picks what the current profile likes best and nothing is reconsidered. Fast, and wrong often enough that BA2E exists."
+topics = ["motifs", "greedy"]
+
+[[problem]]
+id = "BA2E"
+title = "Implement GreedyMotifSearch with Pseudocounts"
+file = "examples/ba2e.bl"
+url = "https://rosalind.info/problems/ba2e/"
+status = "solved"
+asserted = true
+note = "One number different from BA2D. Without a pseudocount a base absent from a column makes every k-mer containing it impossible rather than unlikely. On this five-string sample the two versions actually tie at a score of 2 — the assertion says so rather than claiming an improvement the data does not show."
+topics = ["motifs", "greedy"]
+
+[[problem]]
+id = "BA2F"
+title = "Implement RandomizedMotifSearch"
+file = "examples/ba2f.bl"
+url = "https://rosalind.info/problems/ba2f/"
+status = "solved"
+asserted = true
+note = "Seeded so the example is reproducible. Graded on the score reached rather than on one particular set, because several distinct sets tie at the optimum of 9 — asserting on the published one would be asserting on the seed."
+topics = ["motifs", "randomized"]
+
+[[problem]]
+id = "BA2G"
+title = "Implement GibbsSampler"
+file = "examples/ba2g.bl"
+url = "https://rosalind.info/problems/ba2g/"
+status = "solved"
+asserted = true
+note = "Replaces one motif at a time rather than all of them, and draws in proportion to probability instead of taking the best — which is what lets it leave a local optimum. Rosalind's suggested 20 starts settles at 10 here; 200 reaches the optimal 9."
+topics = ["motifs", "randomized"]

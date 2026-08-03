@@ -17,6 +17,10 @@ pub fn motif_builtin_list() -> Vec<(&'static str, Arity)> {
         ("motif_consensus", Arity::Exact(1)),
         ("motif_enrichment", Arity::Exact(3)),
         ("gc_bias", Arity::Range(1, 2)),
+        ("motif_profile", Arity::Range(1, 2)),
+        ("motif_score", Arity::Exact(1)),
+        ("profile_probability", Arity::Exact(2)),
+        ("profile_most_probable", Arity::Exact(3)),
     ]
 }
 
@@ -29,6 +33,10 @@ pub fn is_motif_builtin(name: &str) -> bool {
             | "motif_consensus"
             | "motif_enrichment"
             | "gc_bias"
+            | "motif_profile"
+            | "motif_score"
+            | "profile_probability"
+            | "profile_most_probable"
     )
 }
 
@@ -40,6 +48,10 @@ pub fn call_motif_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "motif_consensus" => builtin_motif_consensus(args),
         "motif_enrichment" => builtin_motif_enrichment(args),
         "gc_bias" => builtin_gc_bias(args),
+        "motif_profile" => builtin_motif_profile(args),
+        "motif_score" => builtin_motif_score(args),
+        "profile_probability" => builtin_profile_probability(args),
+        "profile_most_probable" => builtin_profile_most_probable(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
             format!("unknown motif builtin '{name}'"),
@@ -536,4 +548,332 @@ fn builtin_gc_bias(args: Vec<Value>) -> Result<Value> {
         ],
         rows,
     )))
+}
+
+// ── Motif profiles ───────────────────────────────────────────────────
+//
+// The pieces every motif-finding algorithm is assembled from: turn a set of
+// equal-length motifs into a position profile, score a candidate against it, and
+// score the set itself. `pwm_from_seqs` above returns a Table for reporting;
+// these return plain records because they sit inside loops that run thousands of
+// times, and because a pseudocount is not optional in practice — without one, a
+// base missing from a column makes every k-mer containing it impossible rather
+// than merely unlikely.
+
+/// The four bases, in the order every profile record uses.
+const BASES: [char; 4] = ['A', 'C', 'G', 'T'];
+
+fn motif_strings(value: &Value, func: &str) -> Result<Vec<String>> {
+    let items = match value {
+        Value::List(items) => items,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "{func}() requires a list of strings, got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+    };
+    let motifs: Vec<String> = items
+        .iter()
+        .map(|item| match item {
+            Value::Str(s) => Ok(s.to_ascii_uppercase()),
+            Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) => {
+                Ok(seq.data.to_ascii_uppercase())
+            }
+            other => Err(BioLangError::type_error(
+                format!("{func}() motifs must be strings, got {}", other.type_of()),
+                None,
+            )),
+        })
+        .collect::<Result<_>>()?;
+    if motifs.is_empty() {
+        return Err(BioLangError::type_error(
+            format!("{func}() needs at least one motif"),
+            None,
+        ));
+    }
+    let width = motifs[0].chars().count();
+    if motifs.iter().any(|m| m.chars().count() != width) {
+        return Err(BioLangError::type_error(
+            format!("{func}() needs every motif to be the same length"),
+            None,
+        ));
+    }
+    Ok(motifs)
+}
+
+/// Count each base at each position.
+fn base_counts(motifs: &[String]) -> Vec<[f64; 4]> {
+    let width = motifs[0].chars().count();
+    let mut counts = vec![[0.0f64; 4]; width];
+    for motif in motifs {
+        for (position, base) in motif.chars().enumerate() {
+            if let Some(index) = BASES.iter().position(|&b| b == base) {
+                counts[position][index] += 1.0;
+            }
+        }
+    }
+    counts
+}
+
+/// `motif_profile(motifs)` or `motif_profile(motifs, pseudocount)` — the
+/// position profile of a set of equal-length motifs.
+///
+/// Returns one record per position, keyed by base. The pseudocount defaults to
+/// zero, which is the textbook's first version of the algorithm; passing 1 gives
+/// Laplace's rule of succession, which is the version that actually works.
+fn builtin_motif_profile(args: Vec<Value>) -> Result<Value> {
+    let motifs = motif_strings(&args[0], "motif_profile")?;
+    let pseudocount = match args.get(1) {
+        Some(Value::Float(f)) => *f,
+        Some(Value::Int(i)) => *i as f64,
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "motif_profile() pseudocount must be a number, got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+        None => 0.0,
+    };
+
+    let rows = base_counts(&motifs)
+        .into_iter()
+        .map(|mut column| {
+            for value in &mut column {
+                *value += pseudocount;
+            }
+            let total: f64 = column.iter().sum();
+            let fields: HashMap<String, Value> = BASES
+                .iter()
+                .zip(column)
+                .map(|(base, count)| {
+                    let share = if total > 0.0 { count / total } else { 0.0 };
+                    (base.to_string(), Value::Float(share))
+                })
+                .collect();
+            Value::Record(std::sync::Arc::new(fields))
+        })
+        .collect::<Vec<_>>();
+    Ok(Value::List(rows.into()))
+}
+
+/// `motif_score(motifs)` — how far the motifs are from agreeing.
+///
+/// The number of entries differing from their column's most common base, summed
+/// over every column. Zero means the motifs are identical, and lower is what
+/// every motif search is trying to reach.
+fn builtin_motif_score(args: Vec<Value>) -> Result<Value> {
+    let motifs = motif_strings(&args[0], "motif_score")?;
+    let depth = motifs.len() as f64;
+    let score: f64 = base_counts(&motifs)
+        .into_iter()
+        .map(|column| depth - column.iter().copied().fold(0.0, f64::max))
+        .sum();
+    Ok(Value::Int(score as i64))
+}
+
+fn read_profile(value: &Value, func: &str) -> Result<Vec<HashMap<String, f64>>> {
+    let positions = match value {
+        Value::List(items) => items,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "{func}() requires a profile — a list of records, one per position, got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+    };
+    positions
+        .iter()
+        .map(|position| match position {
+            Value::Map(fields) | Value::Record(fields) => Ok(fields
+                .iter()
+                .filter_map(|(base, value)| match value {
+                    Value::Float(f) => Some((base.clone(), *f)),
+                    Value::Int(i) => Some((base.clone(), *i as f64)),
+                    _ => None,
+                })
+                .collect()),
+            other => Err(BioLangError::type_error(
+                format!(
+                    "{func}() profile positions must be records, got {}",
+                    other.type_of()
+                ),
+                None,
+            )),
+        })
+        .collect()
+}
+
+fn probability_of(kmer: &str, profile: &[HashMap<String, f64>]) -> f64 {
+    kmer.chars()
+        .enumerate()
+        .map(|(position, base)| {
+            profile
+                .get(position)
+                .and_then(|column| column.get(&base.to_string()))
+                .copied()
+                .unwrap_or(0.0)
+        })
+        .product()
+}
+
+/// `profile_probability(kmer, profile)` — the chance the profile generates
+/// `kmer`, which is one multiplication per position.
+fn builtin_profile_probability(args: Vec<Value>) -> Result<Value> {
+    let kmer = match &args[0] {
+        Value::Str(s) => s.to_ascii_uppercase(),
+        Value::DNA(seq) | Value::RNA(seq) => seq.data.to_ascii_uppercase(),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "profile_probability() requires a string, got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+    };
+    let profile = read_profile(&args[1], "profile_probability")?;
+    Ok(Value::Float(probability_of(&kmer, &profile)))
+}
+
+/// `profile_most_probable(text, k, profile)` — the k-mer of `text` the profile
+/// is most likely to have produced.
+///
+/// Ties go to the leftmost, which is not a detail worth glossing: the textbook's
+/// answers depend on it, and with a zero pseudocount most k-mers tie at zero.
+fn builtin_profile_most_probable(args: Vec<Value>) -> Result<Value> {
+    let text = match &args[0] {
+        Value::Str(s) => s.to_ascii_uppercase(),
+        Value::DNA(seq) | Value::RNA(seq) => seq.data.to_ascii_uppercase(),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "profile_most_probable() requires a string, got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+    };
+    let k = match &args[1] {
+        Value::Int(n) if *n > 0 => *n as usize,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "profile_most_probable() k must be a positive integer, got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+    };
+    let profile = read_profile(&args[2], "profile_most_probable")?;
+
+    let characters: Vec<char> = text.chars().collect();
+    if characters.len() < k {
+        return Ok(Value::Str(String::new()));
+    }
+    let mut best = String::from_iter(&characters[0..k]);
+    let mut best_probability = probability_of(&best, &profile);
+    for start in 1..=characters.len() - k {
+        let candidate = String::from_iter(&characters[start..start + k]);
+        let probability = probability_of(&candidate, &profile);
+        // Strictly greater, so the leftmost wins a tie.
+        if probability > best_probability {
+            best_probability = probability;
+            best = candidate;
+        }
+    }
+    Ok(Value::Str(best))
+}
+
+#[cfg(test)]
+mod motif_profile_tests {
+    use super::*;
+
+    fn strings(items: &[&str]) -> Value {
+        Value::List(
+            items
+                .iter()
+                .map(|s| Value::Str((*s).to_string()))
+                .collect::<Vec<_>>()
+                .into(),
+        )
+    }
+
+    #[test]
+    fn score_counts_disagreement() {
+        assert_eq!(
+            builtin_motif_score(vec![strings(&["ACG", "ACG"])]).unwrap(),
+            Value::Int(0),
+            "identical motifs agree everywhere"
+        );
+        assert_eq!(
+            builtin_motif_score(vec![strings(&["ACG", "ACT"])]).unwrap(),
+            Value::Int(1),
+            "one column differs in one of two rows"
+        );
+    }
+
+    #[test]
+    fn a_pseudocount_makes_an_unseen_base_possible() {
+        let motifs = strings(&["AAA", "AAA"]);
+        let plain = builtin_motif_profile(vec![motifs.clone()]).unwrap();
+        let smoothed = builtin_motif_profile(vec![motifs, Value::Int(1)]).unwrap();
+
+        let column_of = |profile: &Value, base: &str| -> f64 {
+            match profile {
+                Value::List(items) => match &items[0] {
+                    Value::Record(fields) => match fields.get(base) {
+                        Some(Value::Float(f)) => *f,
+                        other => panic!("expected a float, got {other:?}"),
+                    },
+                    other => panic!("expected a record, got {other:?}"),
+                },
+                other => panic!("expected a list, got {other:?}"),
+            }
+        };
+        assert_eq!(column_of(&plain, "C"), 0.0, "unseen without a pseudocount");
+        assert!(column_of(&smoothed, "C") > 0.0, "possible with one");
+        assert_eq!(column_of(&smoothed, "A"), 3.0 / 6.0);
+    }
+
+    #[test]
+    fn most_probable_breaks_ties_leftwards() {
+        // A flat profile makes every k-mer equally likely, so the answer is
+        // whichever comes first — which the textbook's answers depend on.
+        let flat = builtin_motif_profile(vec![strings(&["AC", "GT"]), Value::Int(1)]).unwrap();
+        let got =
+            builtin_profile_most_probable(vec![Value::Str("ACGTAC".into()), Value::Int(2), flat])
+                .unwrap();
+        assert_eq!(got, Value::Str("AC".into()));
+    }
+
+    #[test]
+    fn most_probable_finds_the_planted_kmer() {
+        let profile = builtin_motif_profile(vec![strings(&["TTT", "TTT"]), Value::Int(1)]).unwrap();
+        let got = builtin_profile_most_probable(vec![
+            Value::Str("AAAGGGTTTCCC".into()),
+            Value::Int(3),
+            profile,
+        ])
+        .unwrap();
+        assert_eq!(got, Value::Str("TTT".into()));
+    }
+
+    #[test]
+    fn motifs_of_different_lengths_are_rejected() {
+        let error = builtin_motif_score(vec![strings(&["AC", "ACG"])]).expect_err("ragged");
+        assert!(error.to_string().contains("same length"), "{error}");
+    }
 }
