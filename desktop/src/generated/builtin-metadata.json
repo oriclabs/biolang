@@ -6673,8 +6673,46 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "hmm_baum_welch",
+      "signature": "hmm_baum_welch(arg1, arg2, arg3)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "hmm_emission_probability",
       "signature": "hmm_emission_probability(arg1, arg2, arg3)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_estimate",
+      "signature": "hmm_estimate(arg1, arg2, arg3)",
       "category": "runtime",
       "summary": "Registered BioLang builtin accepting 3 argument(s).",
       "parameters": [
@@ -6742,6 +6780,63 @@
         "kind": "exact",
         "minimum": 2,
         "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_profile",
+      "signature": "hmm_profile(arg1, arg2, arg3, arg4?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3",
+        "arg4?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 3,
+        "maximum": 4
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_profile_align",
+      "signature": "hmm_profile_align(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_viterbi_learning",
+      "signature": "hmm_viterbi_learning(arg1, arg2, arg3)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
       },
       "metadataQuality": "runtime"
     },

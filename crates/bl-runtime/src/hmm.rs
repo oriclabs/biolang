@@ -1,7 +1,8 @@
 //! Hidden Markov model builtins.
 //!
 //! Functions: viterbi, hmm_likelihood, hmm_posterior, hmm_path_probability,
-//!            hmm_emission_probability.
+//!            hmm_emission_probability, hmm_estimate, hmm_viterbi_learning,
+//!            hmm_baum_welch, hmm_profile, hmm_profile_align.
 //!
 //! A model is an ordinary record, so it can be written as a literal, read from
 //! JSON, or built up in a loop without any special syntax:
@@ -39,6 +40,11 @@ pub fn hmm_builtin_list() -> Vec<(&'static str, Arity)> {
         ("hmm_posterior", Arity::Exact(2)),
         ("hmm_path_probability", Arity::Exact(2)),
         ("hmm_emission_probability", Arity::Exact(3)),
+        ("hmm_estimate", Arity::Exact(3)),
+        ("hmm_viterbi_learning", Arity::Exact(3)),
+        ("hmm_baum_welch", Arity::Exact(3)),
+        ("hmm_profile", Arity::Range(3, 4)),
+        ("hmm_profile_align", Arity::Exact(2)),
     ]
 }
 
@@ -50,6 +56,11 @@ pub fn is_hmm_builtin(name: &str) -> bool {
             | "hmm_posterior"
             | "hmm_path_probability"
             | "hmm_emission_probability"
+            | "hmm_estimate"
+            | "hmm_viterbi_learning"
+            | "hmm_baum_welch"
+            | "hmm_profile"
+            | "hmm_profile_align"
     )
 }
 
@@ -60,6 +71,11 @@ pub fn call_hmm_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "hmm_posterior" => builtin_hmm_posterior(args),
         "hmm_path_probability" => builtin_hmm_path_probability(args),
         "hmm_emission_probability" => builtin_hmm_emission_probability(args),
+        "hmm_estimate" => builtin_hmm_estimate(args),
+        "hmm_viterbi_learning" => builtin_hmm_viterbi_learning(args),
+        "hmm_baum_welch" => builtin_hmm_baum_welch(args),
+        "hmm_profile" => builtin_hmm_profile(args),
+        "hmm_profile_align" => builtin_hmm_profile_align(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
             format!("unknown HMM builtin '{name}'"),
@@ -266,6 +282,78 @@ fn to_state_list(path: &[usize], states: &[String]) -> Value {
     ))
 }
 
+/// A `rows × columns` matrix back as nested records keyed by name.
+fn matrix_to_record(rows: &[Vec<f64>], row_names: &[String], column_names: &[String]) -> Value {
+    let fields: HashMap<String, Value> = row_names
+        .iter()
+        .zip(rows)
+        .map(|(name, row)| {
+            let inner: HashMap<String, Value> = column_names
+                .iter()
+                .cloned()
+                .zip(row.iter().map(|&v| Value::Float(v)))
+                .collect();
+            (name.clone(), Value::Record(Arc::new(inner)))
+        })
+        .collect();
+    Value::Record(Arc::new(fields))
+}
+
+/// A learned model, in the same shape the builtins accept — so the result of
+/// learning can be fed straight back into `viterbi` or another round.
+fn model_to_record(model: &Hmm) -> Value {
+    let states = Value::List(Arc::new(
+        model
+            .states
+            .iter()
+            .cloned()
+            .map(Value::Str)
+            .collect::<Vec<_>>(),
+    ));
+    let symbols = Value::List(Arc::new(
+        model
+            .symbols
+            .iter()
+            .cloned()
+            .map(Value::Str)
+            .collect::<Vec<_>>(),
+    ));
+    let initial: HashMap<String, Value> = model
+        .states
+        .iter()
+        .cloned()
+        .zip(model.initial.iter().map(|&v| Value::Float(v)))
+        .collect();
+
+    let fields: HashMap<String, Value> = [
+        ("states".to_string(), states),
+        ("symbols".to_string(), symbols),
+        ("initial".to_string(), Value::Record(Arc::new(initial))),
+        (
+            "transition".to_string(),
+            matrix_to_record(&model.transition, &model.states, &model.states),
+        ),
+        (
+            "emission".to_string(),
+            matrix_to_record(&model.emission, &model.states, &model.symbols),
+        ),
+    ]
+    .into_iter()
+    .collect();
+    Value::Record(Arc::new(fields))
+}
+
+fn require_count(value: &Value, what: &str) -> Result<usize> {
+    match value {
+        Value::Int(n) if *n >= 0 => Ok(*n as usize),
+        Value::Int(n) => Err(value_error(format!("{what} cannot be negative, got {n}"))),
+        other => Err(type_error(format!(
+            "{what} must be an integer, got {}",
+            other.type_of()
+        ))),
+    }
+}
+
 // ── Builtins ──────────────────────────────────────────────────────────
 
 /// `viterbi(observations, model)` — the most likely hidden path, as a list of
@@ -327,6 +415,113 @@ fn builtin_hmm_emission_probability(args: Vec<Value>) -> Result<Value> {
                 path.len()
             ))
         })
+}
+
+/// `hmm_estimate(observations, path, model)` — the model that best explains an
+/// observation together with the path that produced it.
+///
+/// `model` supplies only `states` and `symbols`; the matrices are what comes
+/// back, so a skeleton is enough to ask with.
+fn builtin_hmm_estimate(args: Vec<Value>) -> Result<Value> {
+    let skeleton = read_model(&args[2], false, false)?;
+    let observations = encode(&args[0], &skeleton.symbols, "the observations")?;
+    let path = encode(&args[1], &skeleton.states, "the path")?;
+    if observations.len() != path.len() {
+        return Err(value_error(format!(
+            "the observations are {} long but the path is {} — they have to match",
+            observations.len(),
+            path.len()
+        )));
+    }
+    let learned = Hmm::estimate(skeleton.states, skeleton.symbols, &observations, &path);
+    Ok(model_to_record(&learned))
+}
+
+/// `hmm_viterbi_learning(observations, model, iterations)` — decode, re-estimate,
+/// repeat.
+fn builtin_hmm_viterbi_learning(args: Vec<Value>) -> Result<Value> {
+    let model = read_model(&args[1], true, true)?;
+    let observations = encode(&args[0], &model.symbols, "the observations")?;
+    let iterations = require_count(&args[2], "the iteration count")?;
+    Ok(model_to_record(
+        &model.viterbi_learning(&observations, iterations),
+    ))
+}
+
+/// `hmm_baum_welch(observations, model, iterations)` — expectation-maximisation,
+/// weighting every path rather than committing to one.
+fn builtin_hmm_baum_welch(args: Vec<Value>) -> Result<Value> {
+    let model = read_model(&args[1], true, true)?;
+    let observations = encode(&args[0], &model.symbols, "the observations")?;
+    let iterations = require_count(&args[2], "the iteration count")?;
+    Ok(model_to_record(
+        &model.baum_welch(&observations, iterations),
+    ))
+}
+
+/// `hmm_profile(alignment, alphabet, threshold)` or
+/// `hmm_profile(alignment, alphabet, threshold, pseudocount)` — a profile HMM
+/// built from a multiple alignment.
+///
+/// The pseudocount is optional because leaving it out is a different published
+/// answer, not merely a different default: without it, states the alignment
+/// never reaches keep empty rows.
+fn builtin_hmm_profile(args: Vec<Value>) -> Result<Value> {
+    let alignment = match &args[0] {
+        Value::List(rows) => rows
+            .iter()
+            .map(|row| match row {
+                Value::Str(s) => Ok(s.clone()),
+                Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) => Ok(seq.data.clone()),
+                other => Err(type_error(format!(
+                    "the alignment must contain strings, got {}",
+                    other.type_of()
+                ))),
+            })
+            .collect::<Result<Vec<String>>>()?,
+        other => {
+            return Err(type_error(format!(
+                "the alignment must be a list of strings, got {}",
+                other.type_of()
+            )));
+        }
+    };
+    if alignment.is_empty() {
+        return Err(value_error("the alignment has no sequences"));
+    }
+    let widths: Vec<usize> = alignment.iter().map(|row| row.chars().count()).collect();
+    if widths.iter().any(|w| *w != widths[0]) {
+        return Err(value_error(
+            "every row of an alignment must be the same length — pad the short ones with '-'",
+        ));
+    }
+
+    let symbols = as_labels(&args[1], "the alphabet")?;
+    let threshold = as_number(&args[2], "the threshold")?;
+    let pseudocount = match args.get(3) {
+        Some(value) => as_number(value, "the pseudocount")?,
+        None => 0.0,
+    };
+
+    let model = Hmm::profile(&alignment, symbols, threshold, pseudocount);
+    Ok(model_to_record(&model))
+}
+
+/// `hmm_profile_align(observations, profile)` — the most likely path through a
+/// profile HMM that emits `observations`.
+///
+/// Separate from `viterbi` because it has to be: a profile's deletion states are
+/// silent, so the path is longer than the string and the ordinary recurrence
+/// does not apply.
+fn builtin_hmm_profile_align(args: Vec<Value>) -> Result<Value> {
+    let model = read_model(&args[1], true, true)?;
+    let observations = encode(&args[0], &model.symbols, "the observations")?;
+    match model.align_to_profile(&observations) {
+        Some(path) => Ok(to_state_list(&path, &model.states)),
+        None => Err(value_error(
+            "hmm_profile_align() needs a model built by hmm_profile(), with states              S, I0, M1, D1, I1, ... and E — and one that can emit the observations at all",
+        )),
+    }
 }
 
 #[cfg(test)]

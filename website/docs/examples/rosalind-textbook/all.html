@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Every problem</h1>
-        <p class="text-lg text-slate-400 mb-6">All 45 problems from
+        <p class="text-lg text-slate-400 mb-6">All 51 problems from
         <a href="../rosalind-textbook.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Textbook Track</a>.
         Press <strong>Run</strong> on any block to execute it in your browser. Every problem is on this page, so it is large and takes a moment to settle — the sections are lighter.</p>
 
@@ -78,6 +78,12 @@
           <a href="#ba10c" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement the Viterbi Algorithm">BA10C</a>
           <a href="#ba10d" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Compute the Probability of a String Emitted by an HMM">BA10D</a>
           <a href="#ba10j" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Solve the Soft Decoding Problem">BA10J</a>
+          <a href="#ba10h" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Estimate the Parameters of an HMM">BA10H</a>
+          <a href="#ba10i" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement Viterbi Learning">BA10I</a>
+          <a href="#ba10k" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement Baum-Welch Learning">BA10K</a>
+          <a href="#ba10e" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Construct a Profile HMM">BA10E</a>
+          <a href="#ba10f" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Construct a Profile HMM with Pseudocounts">BA10F</a>
+          <a href="#ba10g" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Perform a Multiple Sequence Alignment with a Profile HMM">BA10G</a>
         </nav>
 
         <section id="ba1a" class="mt-12">
@@ -2166,6 +2172,415 @@ fn test_ba10j_soft_decoding() {
         assert abs(posterior[i].A + posterior[i].B - 1.0) &lt; 1e-12,
             &quot;BA10J: row &quot; + str(i) + &quot; does not sum to one&quot;
     }
+}</code></pre>
+        </section>
+
+        <section id="ba10h" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA10H &mdash; Estimate the Parameters of an HMM</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba10h/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA10H" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba10h.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">With the path given there is nothing to infer — the best estimate is the fraction of the time each move was made. A state the path never visits keeps a uniform row, which is the only choice that leaves it a distribution.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA10H — Estimate the Parameters of an HMM
+# https://rosalind.info/problems/ba10h/
+#
+# Given: A string x, its alphabet, a path pi, and the states of an HMM whose
+# transition and emission probabilities are unknown.
+# Return: The matrices that maximise Pr(x, pi).
+
+let observed = &quot;yzzzyxzxxx&quot;
+let hidden_path = &quot;BBABABABAB&quot;
+
+# Only the shape of the model is known, so that is all the skeleton carries. The
+# matrices are what comes back.
+let skeleton = {
+    states: [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;],
+    symbols: [&quot;x&quot;, &quot;y&quot;, &quot;z&quot;],
+}
+
+# With the path given there is nothing to infer: the estimate that maximises
+# Pr(x, pi) is just the fraction of the time each transition was taken and each
+# symbol emitted. C never appears in the path, so its rows have nothing to count
+# and come back uniform — the only choice that leaves them a distribution.
+let learned = hmm_estimate(observed, hidden_path, skeleton)
+
+fn show(matrix, rows, columns) {
+    println(&quot;      &quot; + join(columns, &quot;       &quot;))
+    for name in rows {
+        println(&quot;  &quot; + name + &quot;   &quot; + (columns |&gt; map(|c| str(round(matrix[name][c], 3))) |&gt; join(&quot;   &quot;)))
+    }
+}
+
+println(&quot;Transition:&quot;)
+show(learned.transition, learned.states, learned.states)
+println(&quot;Emission:&quot;)
+show(learned.emission, learned.states, learned.symbols)
+println(&quot;Expected transition row B: 0.8 0.2 0.0&quot;)
+println(&quot;Expected emission row A:   0.25 0.25 0.5&quot;)
+
+fn test_ba10h_parameter_estimation() {
+    # B is followed by A four times out of five.
+    assert abs(learned.transition.B.A - 0.8) &lt; 5e-4, &quot;BA10H: B-&gt;A is &quot; + str(learned.transition.B.A)
+    assert abs(learned.transition.B.B - 0.2) &lt; 5e-4, &quot;BA10H: B-&gt;B is &quot; + str(learned.transition.B.B)
+    assert abs(learned.transition.A.B - 1.0) &lt; 5e-4, &quot;BA10H: A-&gt;B is &quot; + str(learned.transition.A.B)
+    assert abs(learned.emission.A.z - 0.5) &lt; 5e-4, &quot;BA10H: A emits z at &quot; + str(learned.emission.A.z)
+    assert abs(learned.emission.B.y - 0.167) &lt; 5e-4, &quot;BA10H: B emits y at &quot; + str(learned.emission.B.y)
+    # An unvisited state keeps a usable row rather than a row of NaNs.
+    assert abs(learned.transition.C.A - 0.333) &lt; 5e-4, &quot;BA10H: C's row should be uniform&quot;
+    # Every row is still a distribution.
+    for name in learned.states {
+        let total = learned.states |&gt; map(|to| learned.transition[name][to]) |&gt; sum()
+        assert abs(total - 1.0) &lt; 1e-9, &quot;BA10H: transition row &quot; + name + &quot; sums to &quot; + str(total)
+    }
+}</code></pre>
+        </section>
+
+        <section id="ba10i" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA10I &mdash; Implement Viterbi Learning</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba10i/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA10I" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba10i.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Decode, re-estimate as if that path were the truth, repeat. Climbs to a local optimum, so where it starts is part of the problem rather than an implementation detail.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA10I — Implement Viterbi Learning
+# https://rosalind.info/problems/ba10i/
+#
+# Given: A number of iterations i, a string x, its alphabet, the states of an
+# HMM, and initial transition and emission matrices.
+# Return: Matrices that maximise Pr(x, pi) over all matrices and all paths pi.
+
+let iterations = 100
+let observed = &quot;xxxzyzzxxzxyzxzxyxxzyzyzyyyyzzxxxzzxzyzzzxyxzzzxyzzxxxxzzzxyyxzzzzzyzzzxxzzxxxyxyzzyxzxxxyxzyxxyzyxz&quot;
+
+# Where this starts is part of the problem, not an implementation detail: the
+# procedure climbs to a local optimum, and a different starting point reaches a
+# different one.
+let start = {
+    states: [&quot;A&quot;, &quot;B&quot;],
+    symbols: [&quot;x&quot;, &quot;y&quot;, &quot;z&quot;],
+    transition: {
+        A: { A: 0.582, B: 0.418 },
+        B: { A: 0.272, B: 0.728 },
+    },
+    emission: {
+        A: { x: 0.129, y: 0.35,  z: 0.52  },
+        B: { x: 0.422, y: 0.151, z: 0.426 },
+    },
+}
+
+# Decode the most likely path under the current model, then re-estimate the model
+# as if that path were the truth — which is BA10H — and repeat. Each round can
+# only raise Pr(x, pi), so it settles.
+let learned = hmm_viterbi_learning(observed, start, iterations)
+
+println(&quot;Transition:&quot;)
+println(&quot;      A       B&quot;)
+for name in learned.states {
+    println(&quot;  &quot; + name + &quot;   &quot; + str(round(learned.transition[name].A, 3))
+                     + &quot;   &quot; + str(round(learned.transition[name].B, 3)))
+}
+println(&quot;Emission:&quot;)
+println(&quot;      x       y       z&quot;)
+for name in learned.states {
+    println(&quot;  &quot; + name + &quot;   &quot; + (learned.symbols |&gt; map(|s| str(round(learned.emission[name][s], 3))) |&gt; join(&quot;   &quot;)))
+}
+println(&quot;Expected transition: 0.875 0.125 / 0.011 0.989&quot;)
+println(&quot;Expected emission:   0.0 0.75 0.25 / 0.402 0.174 0.424&quot;)
+
+fn test_ba10i_viterbi_learning() {
+    assert abs(learned.transition.A.A - 0.875) &lt; 5e-4, &quot;BA10I: A-&gt;A is &quot; + str(learned.transition.A.A)
+    assert abs(learned.transition.B.B - 0.989) &lt; 5e-4, &quot;BA10I: B-&gt;B is &quot; + str(learned.transition.B.B)
+    assert abs(learned.emission.A.x - 0.0)   &lt; 5e-4, &quot;BA10I: A emits x at &quot; + str(learned.emission.A.x)
+    assert abs(learned.emission.A.y - 0.75)  &lt; 5e-4, &quot;BA10I: A emits y at &quot; + str(learned.emission.A.y)
+    assert abs(learned.emission.B.z - 0.424) &lt; 5e-4, &quot;BA10I: B emits z at &quot; + str(learned.emission.B.z)
+    # Learning has to explain the data at least as well as the model it started
+    # from — that is the property the whole procedure rests on.
+    assert hmm_likelihood(observed, learned) &gt;= hmm_likelihood(observed, start),
+        &quot;BA10I: learning made the observation less likely&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba10k" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA10K &mdash; Implement Baum-Welch Learning</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba10k/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA10K" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba10k.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Expectation-maximisation: counts the expected number of times each transition was taken over every path at once, instead of committing to the best one. Its assertion checks the likelihood rises round by round, not only end to end.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA10K — Implement Baum-Welch Learning
+# https://rosalind.info/problems/ba10k/
+#
+# Given: A number of iterations i, a string x, its alphabet, the states of an
+# HMM, and initial transition and emission matrices.
+# Return: Matrices estimated after i rounds of Baum-Welch learning.
+
+let iterations = 10
+let observed = &quot;xzyyzyzyxy&quot;
+
+let start = {
+    states: [&quot;A&quot;, &quot;B&quot;],
+    symbols: [&quot;x&quot;, &quot;y&quot;, &quot;z&quot;],
+    transition: {
+        A: { A: 0.019, B: 0.981 },
+        B: { A: 0.668, B: 0.332 },
+    },
+    emission: {
+        A: { x: 0.175, y: 0.003, z: 0.821 },
+        B: { x: 0.196, y: 0.512, z: 0.293 },
+    },
+}
+
+# Baum-Welch is expectation-maximisation for an HMM. Where BA10I commits to the
+# single best path and counts along it, this counts the *expected* number of
+# times each transition was taken across every path at once — which
+# forward-backward supplies without enumerating any of them. Keeping the paths it
+# would otherwise discard is what makes it the better estimator.
+let learned = hmm_baum_welch(observed, start, iterations)
+
+println(&quot;Transition:&quot;)
+println(&quot;      A       B&quot;)
+for name in learned.states {
+    println(&quot;  &quot; + name + &quot;   &quot; + str(round(learned.transition[name].A, 3))
+                     + &quot;   &quot; + str(round(learned.transition[name].B, 3)))
+}
+println(&quot;Emission:&quot;)
+println(&quot;      x       y       z&quot;)
+for name in learned.states {
+    println(&quot;  &quot; + name + &quot;   &quot; + (learned.symbols |&gt; map(|s| str(round(learned.emission[name][s], 3))) |&gt; join(&quot;   &quot;)))
+}
+println(&quot;Expected transition: 0.0 1.0 / 0.786 0.214&quot;)
+println(&quot;Expected emission:   0.242 0.0 0.758 / 0.172 0.828 0.0&quot;)
+
+fn test_ba10k_baum_welch() {
+    assert abs(learned.transition.A.B - 1.0)   &lt; 5e-4, &quot;BA10K: A-&gt;B is &quot; + str(learned.transition.A.B)
+    assert abs(learned.transition.B.A - 0.786) &lt; 5e-4, &quot;BA10K: B-&gt;A is &quot; + str(learned.transition.B.A)
+    assert abs(learned.emission.A.x - 0.242) &lt; 5e-4, &quot;BA10K: A emits x at &quot; + str(learned.emission.A.x)
+    assert abs(learned.emission.A.z - 0.758) &lt; 5e-4, &quot;BA10K: A emits z at &quot; + str(learned.emission.A.z)
+    assert abs(learned.emission.B.y - 0.828) &lt; 5e-4, &quot;BA10K: B emits y at &quot; + str(learned.emission.B.y)
+    # Each round can only raise Pr(x). Checked round by round rather than only
+    # end to end, because a single bad update can be hidden by later good ones.
+    let running = range(1, 6) |&gt; map(|n| hmm_likelihood(observed, hmm_baum_welch(observed, start, n)))
+    for i in range(1, len(running)) {
+        assert running[i] &gt;= running[i - 1] - 1e-12,
+            &quot;BA10K: round &quot; + str(i + 1) + &quot; lowered the likelihood&quot;
+    }
+    assert hmm_likelihood(observed, learned) &gt; hmm_likelihood(observed, start),
+        &quot;BA10K: learning should explain the observation better than the start did&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba10e" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA10E &mdash; Construct a Profile HMM</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba10e/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA10E" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba10e.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A family of sequences becomes something a new sequence can be scored against — what Pfam and HMMER search with. Conserved columns become match states; gappy ones become insertions, which keeps the model's length at the family's length rather than the alignment's.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA10E — Construct a Profile HMM
+# https://rosalind.info/problems/ba10e/
+#
+# Given: A threshold theta, an alphabet, and a multiple alignment.
+# Return: The transition and emission probabilities of HMM(Alignment, theta).
+
+let threshold = 0.289
+let alphabet = [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;, &quot;E&quot;]
+let alignment = [
+    &quot;EBA&quot;,
+    &quot;EBD&quot;,
+    &quot;EB-&quot;,
+    &quot;EED&quot;,
+    &quot;EBD&quot;,
+    &quot;EBE&quot;,
+    &quot;E-D&quot;,
+    &quot;EBD&quot;,
+]
+
+# A profile HMM turns a family of related sequences into something a new sequence
+# can be scored against — it is what Pfam and HMMER search with. Each conserved
+# column becomes a match state; the gappy ones become insertions, which is what
+# keeps the model's length at the family's length rather than the alignment's.
+#
+# Here no column is gappy enough to cross the threshold, so all three are match
+# columns and the model is three layers long.
+let profile = hmm_profile(alignment, alphabet, threshold)
+
+println(&quot;States: &quot; + join(profile.states, &quot; &quot;))
+println(&quot;&quot;)
+println(&quot;Transitions that carry any probability:&quot;)
+for source in profile.states {
+    for target in profile.states {
+        if profile.transition[source][target] &gt; 0 {
+            println(&quot;  &quot; + source + &quot; -&gt; &quot; + target + &quot;   &quot;
+                    + str(round(profile.transition[source][target], 3)))
+        }
+    }
+}
+println(&quot;Expected: S-&gt;M1 1.0, M1-&gt;M2 0.875, M1-&gt;D2 0.125, M2-&gt;M3 0.857, M2-&gt;D3 0.143&quot;)
+
+fn test_ba10e_profile_hmm() {
+    assert len(profile.states) == 12, &quot;BA10E: expected 12 states, got &quot; + str(len(profile.states))
+    assert profile.states[0] == &quot;S&quot; and profile.states[11] == &quot;E&quot;, &quot;BA10E: S and E bracket the model&quot;
+
+    assert abs(profile.transition.S.M1 - 1.0) &lt; 5e-4, &quot;BA10E: S-&gt;M1&quot;
+    assert abs(profile.transition.M1.M2 - 0.875) &lt; 5e-4, &quot;BA10E: M1-&gt;M2&quot;
+    assert abs(profile.transition.M1.D2 - 0.125) &lt; 5e-4, &quot;BA10E: M1-&gt;D2&quot;
+    assert abs(profile.transition.M2.M3 - 0.857) &lt; 5e-4, &quot;BA10E: M2-&gt;M3&quot;
+    assert abs(profile.transition.M2.D3 - 0.143) &lt; 5e-4, &quot;BA10E: M2-&gt;D3&quot;
+    assert abs(profile.transition.D2.M3 - 1.0) &lt; 5e-4, &quot;BA10E: D2-&gt;M3&quot;
+    assert abs(profile.transition.M3.E - 1.0) &lt; 5e-4, &quot;BA10E: M3-&gt;E&quot;
+    assert abs(profile.transition.D3.E - 1.0) &lt; 5e-4, &quot;BA10E: D3-&gt;E&quot;
+
+    assert abs(profile.emission.M1.E - 1.0) &lt; 5e-4, &quot;BA10E: M1 emits E&quot;
+    assert abs(profile.emission.M2.B - 0.857) &lt; 5e-4, &quot;BA10E: M2 emits B&quot;
+    assert abs(profile.emission.M3.D - 0.714) &lt; 5e-4, &quot;BA10E: M3 emits D&quot;
+
+    # Without pseudocounts, a state the alignment never reaches keeps an empty
+    # row instead of a uniform one.
+    let out_of_i0 = profile.states |&gt; map(|to| profile.transition.I0[to]) |&gt; sum()
+    assert out_of_i0 == 0, &quot;BA10E: I0 is never used, so it should have no transitions&quot;
+    # Deletion states are silent.
+    let emitted_by_d1 = alphabet |&gt; map(|s| profile.emission.D1[s]) |&gt; sum()
+    assert emitted_by_d1 == 0, &quot;BA10E: D1 is a deletion state and cannot emit&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba10f" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA10F &mdash; Construct a Profile HMM with Pseudocounts</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba10f/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA10F" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba10f.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Without a pseudocount, anything six sequences never happened to do is scored as impossible. It is added after the counts become probabilities, not before — added to raw counts its influence would depend on how many sequences the alignment contains.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA10F — Construct a Profile HMM with Pseudocounts
+# https://rosalind.info/problems/ba10f/
+#
+# Given: A threshold theta, a pseudocount sigma, an alphabet, and a multiple
+# alignment.
+# Return: The transition and emission probabilities of HMM(Alignment, theta, sigma).
+
+let threshold = 0.358
+let pseudocount = 0.01
+let alphabet = [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;, &quot;E&quot;]
+let alignment = [
+    &quot;ADA&quot;,
+    &quot;ADA&quot;,
+    &quot;AAA&quot;,
+    &quot;ADC&quot;,
+    &quot;-DA&quot;,
+    &quot;D-A&quot;,
+]
+
+# Without a pseudocount, anything the alignment never happened to do is scored as
+# impossible — so a new sequence differing in one position gets probability zero
+# rather than a low score. Six sequences cannot rule out the rest of the family,
+# and that is what the pseudocount corrects.
+#
+# It is added after the counts are turned into probabilities, not before: added
+# to raw counts its influence would depend on how many sequences the alignment
+# happens to contain, which is not something anyone means to tune.
+let profile = hmm_profile(alignment, alphabet, threshold, pseudocount)
+
+println(&quot;Transitions out of S, I0, M1, D1:&quot;)
+for source in [&quot;S&quot;, &quot;I0&quot;, &quot;M1&quot;, &quot;D1&quot;] {
+    let row = [&quot;I0&quot;, &quot;M1&quot;, &quot;D1&quot;, &quot;I1&quot;, &quot;M2&quot;, &quot;D2&quot;]
+        |&gt; map(|target| target + &quot;=&quot; + str(round(profile.transition[source][target], 3)))
+        |&gt; join(&quot;  &quot;)
+    println(&quot;  &quot; + source + &quot;:  &quot; + row)
+}
+println(&quot;Expected S:   I0=0.01  M1=0.819  D1=0.172&quot;)
+println(&quot;Expected I0:  I0=0.333  M1=0.333  D1=0.333&quot;)
+println(&quot;Expected M1:  I1=0.01  M2=0.786&quot;)
+println(&quot;Expected D1:  I1=0.01  M2=0.981&quot;)
+
+fn test_ba10f_profile_hmm_with_pseudocounts() {
+    assert abs(profile.transition.S.I0 - 0.01)  &lt; 5e-4, &quot;BA10F: S-&gt;I0&quot;
+    assert abs(profile.transition.S.M1 - 0.819) &lt; 5e-4, &quot;BA10F: S-&gt;M1&quot;
+    assert abs(profile.transition.S.D1 - 0.172) &lt; 5e-4, &quot;BA10F: S-&gt;D1&quot;
+    # A row with no counts smooths to uniform over what the topology allows —
+    # three states, not all twelve.
+    assert abs(profile.transition.I0.I0 - 0.333) &lt; 5e-4, &quot;BA10F: I0-&gt;I0&quot;
+    assert abs(profile.transition.I0.M1 - 0.333) &lt; 5e-4, &quot;BA10F: I0-&gt;M1&quot;
+    assert abs(profile.transition.I0.D1 - 0.333) &lt; 5e-4, &quot;BA10F: I0-&gt;D1&quot;
+    assert abs(profile.transition.M1.I1 - 0.01)  &lt; 5e-4, &quot;BA10F: M1-&gt;I1&quot;
+    assert abs(profile.transition.M1.M2 - 0.786) &lt; 5e-4, &quot;BA10F: M1-&gt;M2&quot;
+    assert abs(profile.transition.D1.M2 - 0.981) &lt; 5e-4, &quot;BA10F: D1-&gt;M2&quot;
+
+    assert abs(profile.emission.I0.A - 0.2)   &lt; 5e-4, &quot;BA10F: I0 emits A&quot;
+    assert abs(profile.emission.M1.A - 0.771) &lt; 5e-4, &quot;BA10F: M1 emits A&quot;
+    assert abs(profile.emission.M1.B - 0.01)  &lt; 5e-4, &quot;BA10F: M1 emits B&quot;
+    assert abs(profile.emission.M2.D - 0.771) &lt; 5e-4, &quot;BA10F: M2 emits D&quot;
+
+    # A pseudocount does not make a silent state emit, and does not open
+    # transitions the topology forbids — smoothing those would invent paths the
+    # model does not have.
+    let emitted_by_d1 = alphabet |&gt; map(|s| profile.emission.D1[s]) |&gt; sum()
+    assert emitted_by_d1 == 0, &quot;BA10F: D1 is a deletion state and cannot emit&quot;
+    assert profile.transition.S.M2 == 0, &quot;BA10F: S cannot skip a layer to M2&quot;
+    assert profile.transition.M2.M1 == 0, &quot;BA10F: a profile HMM cannot go backwards&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba10g" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA10G &mdash; Perform a Multiple Sequence Alignment with a Profile HMM</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba10g/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA10G" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba10g.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Viterbi cannot do this: deletion states are silent, so nine states emit seven symbols. The silent states have to be settled in layer order at each position before the emitting ones look back at them.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA10G — Perform a Multiple Sequence Alignment with a Profile HMM
+# https://rosalind.info/problems/ba10g/
+#
+# Given: A string Text, a multiple alignment, a threshold theta, and a
+# pseudocount sigma.
+# Return: An optimal hidden path emitting Text in HMM(Alignment, theta, sigma).
+
+let text = &quot;AEFDFDC&quot;
+let threshold = 0.4
+let pseudocount = 0.01
+let alphabet = [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;, &quot;E&quot;, &quot;F&quot;]
+let alignment = [
+    &quot;ACDEFACADF&quot;,
+    &quot;AFDA---CCF&quot;,
+    &quot;A--EFD-FDC&quot;,
+    &quot;ACAEF--A-C&quot;,
+    &quot;ADDEFAAADF&quot;,
+]
+
+# This is what a profile HMM is for: having learned a family from an alignment,
+# align a new sequence to the family rather than to any one of its members.
+let profile = hmm_profile(alignment, alphabet, threshold, pseudocount)
+
+# Not `viterbi`, and not because of a naming preference. Deletion states emit
+# nothing, so the path is longer than the string it explains — nine states here
+# for seven symbols. Ordinary Viterbi advances one state per symbol and cannot
+# express that, so the silent states have to be settled in layer order at each
+# position before the emitting ones look back at them.
+let path = hmm_profile_align(text, profile)
+
+println(&quot;Result:   &quot; + join(path, &quot; &quot;))
+println(&quot;Expected: M1 D2 D3 M4 M5 I5 M6 M7 M8&quot;)
+
+fn test_ba10g_align_to_profile() {
+    assert join(path, &quot; &quot;) == &quot;M1 D2 D3 M4 M5 I5 M6 M7 M8&quot;, &quot;BA10G: got &quot; + join(path, &quot; &quot;)
+    # Exactly the emitting states account for the string; the two deletions are
+    # the difference between the path's length and the text's.
+    let emitting = path |&gt; filter(|state| starts_with(state, &quot;M&quot;) or starts_with(state, &quot;I&quot;))
+    assert len(emitting) == len(text),
+        &quot;BA10G: &quot; + str(len(emitting)) + &quot; emitting states for &quot; + str(len(text)) + &quot; symbols&quot;
+    assert len(path) &gt; len(text), &quot;BA10G: the silent states should make the path longer&quot;
 }</code></pre>
         </section>
       </article>

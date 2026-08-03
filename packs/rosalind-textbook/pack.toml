@@ -460,3 +460,63 @@ status = "solved"
 asserted = true
 note = "Forward-backward, which answers a different question from Viterbi: the most likely state at each position need not lie on any single path the model can produce."
 topics = ["hmm", "dynamic-programming"]
+
+[[problem]]
+id = "BA10H"
+title = "Estimate the Parameters of an HMM"
+file = "examples/ba10h.bl"
+url = "https://rosalind.info/problems/ba10h/"
+status = "solved"
+asserted = true
+note = "With the path given there is nothing to infer — the best estimate is the fraction of the time each move was made. A state the path never visits keeps a uniform row, which is the only choice that leaves it a distribution."
+topics = ["hmm", "parameter-estimation"]
+
+[[problem]]
+id = "BA10I"
+title = "Implement Viterbi Learning"
+file = "examples/ba10i.bl"
+url = "https://rosalind.info/problems/ba10i/"
+status = "solved"
+asserted = true
+note = "Decode, re-estimate as if that path were the truth, repeat. Climbs to a local optimum, so where it starts is part of the problem rather than an implementation detail."
+topics = ["hmm", "parameter-estimation"]
+
+[[problem]]
+id = "BA10K"
+title = "Implement Baum-Welch Learning"
+file = "examples/ba10k.bl"
+url = "https://rosalind.info/problems/ba10k/"
+status = "solved"
+asserted = true
+note = "Expectation-maximisation: counts the expected number of times each transition was taken over every path at once, instead of committing to the best one. Its assertion checks the likelihood rises round by round, not only end to end."
+topics = ["hmm", "parameter-estimation"]
+
+[[problem]]
+id = "BA10E"
+title = "Construct a Profile HMM"
+file = "examples/ba10e.bl"
+url = "https://rosalind.info/problems/ba10e/"
+status = "solved"
+asserted = true
+note = "A family of sequences becomes something a new sequence can be scored against — what Pfam and HMMER search with. Conserved columns become match states; gappy ones become insertions, which keeps the model's length at the family's length rather than the alignment's."
+topics = ["hmm", "profile-hmm", "alignment"]
+
+[[problem]]
+id = "BA10F"
+title = "Construct a Profile HMM with Pseudocounts"
+file = "examples/ba10f.bl"
+url = "https://rosalind.info/problems/ba10f/"
+status = "solved"
+asserted = true
+note = "Without a pseudocount, anything six sequences never happened to do is scored as impossible. It is added after the counts become probabilities, not before — added to raw counts its influence would depend on how many sequences the alignment contains."
+topics = ["hmm", "profile-hmm"]
+
+[[problem]]
+id = "BA10G"
+title = "Perform a Multiple Sequence Alignment with a Profile HMM"
+file = "examples/ba10g.bl"
+url = "https://rosalind.info/problems/ba10g/"
+status = "solved"
+asserted = true
+note = "Viterbi cannot do this: deletion states are silent, so nine states emit seven symbols. The silent states have to be settled in layer order at each position before the emitting ones look back at them."
+topics = ["hmm", "profile-hmm", "alignment"]
