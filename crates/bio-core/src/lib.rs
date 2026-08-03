@@ -15,6 +15,7 @@ pub mod phylo_ops;
 pub mod seq_ops;
 pub mod sequence;
 pub mod stats_ops;
+pub mod suffix;
 pub mod vcf_ops;
 
 pub use aligned_read::AlignedRead;

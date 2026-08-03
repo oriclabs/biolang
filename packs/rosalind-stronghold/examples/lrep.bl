@@ -1,0 +1,99 @@
+# Rosalind: LREP — Finding the Longest Multiple Repeat
+# https://rosalind.info/problems/lrep/
+#
+# Given: A DNA string s with $ appended, a positive integer k, and the edges of
+# the suffix tree of s.
+# Return: The longest substring of s occurring at least k times.
+
+let s = "CATACATAC$"
+let k = 2
+
+# The suffix tree comes with the problem, so nothing has to build one. Each edge
+# gives its parent, its child, where the label starts in s (1-based) and how long
+# it is.
+let edges = [
+    { parent: "node1", child: "node2",  start: 1,  length: 1 },
+    { parent: "node1", child: "node7",  start: 2,  length: 1 },
+    { parent: "node1", child: "node14", start: 3,  length: 3 },
+    { parent: "node1", child: "node17", start: 10, length: 1 },
+    { parent: "node2", child: "node3",  start: 2,  length: 4 },
+    { parent: "node2", child: "node6",  start: 10, length: 1 },
+    { parent: "node3", child: "node4",  start: 6,  length: 5 },
+    { parent: "node3", child: "node5",  start: 10, length: 1 },
+    { parent: "node7", child: "node8",  start: 3,  length: 3 },
+    { parent: "node7", child: "node11", start: 5,  length: 1 },
+    { parent: "node8", child: "node9",  start: 6,  length: 5 },
+    { parent: "node8", child: "node10", start: 10, length: 1 },
+    { parent: "node11", child: "node12", start: 6, length: 5 },
+    { parent: "node11", child: "node13", start: 10, length: 1 },
+    { parent: "node14", child: "node15", start: 6, length: 5 },
+    { parent: "node14", child: "node16", start: 10, length: 1 },
+]
+
+# A substring's number of occurrences is the number of leaves below the node it
+# ends at, because every leaf is one suffix that starts with it. So the answer is
+# the deepest node with at least k leaves under it, and the string is the path
+# from the root spelled out along the way.
+let children = {}
+let has_children = {}
+for edge in edges {
+    if contains(keys(children), edge.parent) {
+        children[edge.parent] = push(children[edge.parent], edge)
+    } else {
+        children[edge.parent] = [edge]
+    }
+    has_children[edge.child] = true
+}
+
+# Walk down from the root, carrying the label spelled so far. A node with no
+# children is a leaf and counts as one occurrence; anything else is the sum of
+# its children. Written as an explicit stack because the recursion would have to
+# return two things at once.
+let best = ""
+let stack = [{ node: "node1", label: "" }]
+let leaves = {}
+
+# First pass: how many leaves hang below each node, deepest first.
+let order = []
+while len(stack) > 0 {
+    let top = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    order = push(order, top)
+    if contains(keys(children), top.node) {
+        for edge in children[top.node] {
+            let label = top.label + substr(s, edge.start - 1, edge.length)
+            stack = push(stack, { node: edge.child, label: label })
+        }
+    }
+}
+
+# `order` holds parents before children, so counting it backwards means every
+# child is already counted when its parent is reached.
+let i = len(order) - 1
+while i >= 0 {
+    let entry = order[i]
+    if contains(keys(children), entry.node) {
+        let total = 0
+        for edge in children[entry.node] {
+            total = total + leaves[edge.child]
+        }
+        leaves[entry.node] = total
+        # The root spells nothing, and a repeat has to be a real substring.
+        if total >= k and len(entry.label) > len(best) {
+            best = entry.label
+        }
+    } else {
+        leaves[entry.node] = 1
+    }
+    i = i - 1
+}
+
+println("Result:   " + best)
+println("Expected: CATAC")
+
+fn test_lrep_longest_multiple_repeat() {
+    assert best == "CATAC", "LREP: got " + best
+    # It has to occur at least k times, and be a substring of s.
+    assert len(find_motif(dna(substr(s, 0, len(s) - 1)), dna(best))) >= k,
+        "LREP: " + best + " does not occur " + str(k) + " times"
+}

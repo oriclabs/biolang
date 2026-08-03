@@ -753,3 +753,63 @@ status = "solved"
 asserted = true
 note = "Any character whose removal restores consistency is a valid answer, so the assertion checks the four-gamete condition on the result and that the input really was inconsistent, rather than naming one row."
 topics = ["phylogeny", "character-tables"]
+
+[[problem]]
+id = "LREP"
+title = "Finding the Longest Multiple Repeat"
+file = "examples/lrep.bl"
+url = "https://rosalind.info/problems/lrep/"
+status = "solved"
+asserted = true
+note = "Rosalind supplies the suffix tree as an edge list, so nothing has to build one — the work is counting leaves below each node, which is how often the path to it occurs."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "MREP"
+title = "Identifying Maximal Repeats"
+file = "examples/mrep.bl"
+url = "https://rosalind.info/problems/mrep/"
+status = "solved"
+asserted = true
+note = "Read off the LCP array: a value of at least 20 is a candidate repeat, kept when its occurrences do not all share the character before them."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "LAFF"
+title = "Local Alignment with Affine Gap Penalty"
+file = "examples/laff.bl"
+url = "https://rosalind.info/problems/laff/"
+status = "solved"
+asserted = true
+note = "One call. Local mode and affine gaps were both already in align(); what was missing until recently was any way to reach a substitution matrix from it."
+topics = ["alignment"]
+
+[[problem]]
+id = "SMGB"
+title = "Semiglobal Alignment"
+file = "examples/smgb.bl"
+url = "https://rosalind.info/problems/smgb/"
+status = "solved"
+asserted = true
+note = "Semiglobal is one of the two alignment modes added for this pack; before that the problem could not be expressed at all."
+topics = ["alignment"]
+
+[[problem]]
+id = "MGAP"
+title = "Maximizing the Gap Symbols of an Optimal Alignment"
+file = "examples/mgap.bl"
+url = "https://rosalind.info/problems/mgap/"
+status = "solved"
+asserted = true
+note = "The scoring is deliberately unspecified, which is the hint: a maximum-score alignment matches as much as it can, so the answer falls out of the longest common subsequence."
+topics = ["alignment", "dynamic-programming"]
+
+[[problem]]
+id = "CSTR"
+title = "Creating a Character Table from Genetic Strings"
+file = "examples/cstr.bl"
+url = "https://rosalind.info/problems/cstr/"
+status = "solved"
+asserted = true
+note = "A split is nontrivial only when both sides hold at least two strings; a position where one string differs from all the others separates nothing. Which state is written as 1 is arbitrary, so the assertion accepts a row or its complement."
+topics = ["phylogeny", "character-tables"]

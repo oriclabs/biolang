@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Phylogeny</h1>
-        <p class="text-lg text-slate-400 mb-6">11 problems from
+        <p class="text-lg text-slate-400 mb-6">12 problems from
         <a href="../rosalind-stronghold.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Stronghold</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -44,6 +44,7 @@
           <a href="#sptd" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Phylogeny Comparison with Split Distance">SPTD</a>
           <a href="#mend" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Inferring Genotype from a Pedigree">MEND</a>
           <a href="#cset" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Fixing an Inconsistent Character Set">CSET</a>
+          <a href="#cstr" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Creating a Character Table from Genetic Strings">CSTR</a>
         </nav>
 
         <section id="tree" class="mt-12">
@@ -860,6 +861,70 @@ fn test_cset_consistent_character_set() {
     assert all_compatible(kept), &quot;CSET: the kept set is still inconsistent&quot;
     # The original set really was inconsistent, otherwise the problem is empty.
     assert !all_compatible(characters), &quot;CSET: the input was already consistent&quot;
+}</code></pre>
+        </section>
+
+        <section id="cstr" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">CSTR &mdash; Creating a Character Table from Genetic Strings</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/cstr/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CSTR" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="cstr.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A split is nontrivial only when both sides hold at least two strings; a position where one string differs from all the others separates nothing. Which state is written as 1 is arbitrary, so the assertion accepts a row or its complement.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: CSTR — Creating a Character Table from Genetic Strings
+# https://rosalind.info/problems/cstr/
+#
+# Given: A collection of characterizable DNA strings of equal length.
+# Return: A character table whose rows are the nontrivial characters, one per
+# position where the strings disagree.
+
+let strings = [
+    &quot;ATGCTACC&quot;,
+    &quot;CGTTTACC&quot;,
+    &quot;ATTCGACC&quot;,
+    &quot;AGTCTCCC&quot;,
+    &quot;CGTCTATC&quot;,
+]
+
+let width = len(strings[0])
+
+# A position splits the collection into two groups. The split is nontrivial only
+# when both groups have at least two members: a position where one string
+# differs from all the others separates nothing, and neither does a position
+# where every string agrees.
+let table = []
+for column in range(0, width) {
+    let symbols = strings |&gt; map(|s| substr(s, column, 1))
+    let distinct = unique(symbols)
+    if len(distinct) == 2 {
+        let first_count = symbols |&gt; filter(|c| c == distinct[0]) |&gt; len()
+        let second_count = len(symbols) - first_count
+        if first_count &gt;= 2 and second_count &gt;= 2 {
+            # Which state gets 1 is arbitrary, so take the first symbol seen.
+            table = push(table, symbols |&gt; map(|c| if c == distinct[0] then &quot;1&quot; else &quot;0&quot;) |&gt; join(&quot;&quot;))
+        }
+    }
+}
+
+println(&quot;Result:&quot;)
+for character in table {
+    println(&quot;  &quot; + character)
+}
+println(&quot;Expected:&quot;)
+println(&quot;  10110&quot;)
+println(&quot;  10100&quot;)
+
+fn test_cstr_character_table() {
+    assert len(table) == 2, &quot;CSTR: expected 2 nontrivial characters, got &quot; + str(len(table))
+    # The 0/1 assignment is arbitrary, so a row and its complement are the same
+    # character. Compare each row against the expected one either way round.
+    fn flipped(row) {
+        range(0, len(row)) |&gt; map(|i| if substr(row, i, 1) == &quot;1&quot; then &quot;0&quot; else &quot;1&quot;) |&gt; join(&quot;&quot;)
+    }
+    assert table[0] == &quot;10110&quot; or flipped(table[0]) == &quot;10110&quot;, &quot;CSTR: first row &quot; + table[0]
+    assert table[1] == &quot;10100&quot; or flipped(table[1]) == &quot;10100&quot;, &quot;CSTR: second row &quot; + table[1]
 }</code></pre>
         </section>
       </article>

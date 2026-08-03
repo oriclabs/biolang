@@ -39,6 +39,9 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("argmax", Arity::Exact(1)),
         ("swap", Arity::Exact(3)),
         ("substitution_score", Arity::Exact(3)),
+        // Suffix structures
+        ("suffix_array", Arity::Exact(1)),
+        ("lcp_array", Arity::Exact(1)),
         // String
         ("upper", Arity::Exact(1)),
         ("lower", Arity::Exact(1)),
@@ -175,6 +178,8 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "argmax"
             | "swap"
             | "substitution_score"
+            | "suffix_array"
+            | "lcp_array"
             | "upper"
             | "lower"
             | "trim"
@@ -297,6 +302,8 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "argmax" => builtin_argmax(args),
         "swap" => builtin_swap(args),
         "substitution_score" => builtin_substitution_score(args),
+        "suffix_array" => builtin_suffix_array(args),
+        "lcp_array" => builtin_lcp_array(args),
         "round" => builtin_round(args),
         "upper" => builtin_upper(args),
         "lower" => builtin_lower(args),
@@ -4573,4 +4580,45 @@ fn builtin_substitution_score(args: Vec<Value>) -> Result<Value> {
     let (row, col) = (find(a)?, find(b)?);
 
     Ok(Value::Float(matrix.data[row * matrix.ncol + col]))
+}
+
+// ── Suffix structures ────────────────────────────────────────────
+//
+// The Textbook Track named suffix structures as one of three things BioLang
+// could not do, and four Stronghold problems wait on the same gap. Positions
+// are 0-based and no sentinel is added: Rosalind's inputs carry their own `$`,
+// and inventing one here would shift every answer by one.
+
+fn require_text(value: &Value, func: &str) -> Result<String> {
+    match value {
+        Value::Str(s) => Ok(s.clone()),
+        Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) => Ok(seq.data.clone()),
+        other => Err(BioLangError::type_error(
+            format!(
+                "{func}() requires Str or a sequence, got {}",
+                other.type_of()
+            ),
+            None,
+        )),
+    }
+}
+
+fn builtin_suffix_array(args: Vec<Value>) -> Result<Value> {
+    let text = require_text(&args[0], "suffix_array")?;
+    let sa = bl_core::bio_core::suffix::suffix_array(&text);
+    Ok(Value::List(std::sync::Arc::new(
+        sa.into_iter().map(|i| Value::Int(i as i64)).collect(),
+    )))
+}
+
+fn builtin_lcp_array(args: Vec<Value>) -> Result<Value> {
+    let text = require_text(&args[0], "lcp_array")?;
+    // The suffix array is computed here rather than taken as an argument, so a
+    // caller cannot pass one belonging to a different string and get an answer
+    // that looks reasonable and is nonsense.
+    let sa = bl_core::bio_core::suffix::suffix_array(&text);
+    let lcp = bl_core::bio_core::suffix::lcp_array(&text, &sa);
+    Ok(Value::List(std::sync::Arc::new(
+        lcp.into_iter().map(|n| Value::Int(n as i64)).collect(),
+    )))
 }

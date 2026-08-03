@@ -1,0 +1,37 @@
+# Rosalind: LAFF — Local Alignment with Affine Gap Penalty
+# https://rosalind.info/problems/laff/
+#
+# Given: Two protein strings s and t.
+# Return: The maximum local alignment score, and the substrings of s and t that
+# achieve it. BLOSUM62, gap opening 11, gap extension 1.
+
+let s = "PLEASANTLY"
+let t = "MEANLY"
+
+# Local mode forgives both ends and lets the alignment stop early; the affine
+# gap is the gap_open/gap_extend pair. A gap of length L costs 11 + (L-1), so
+# opening is -10 on top of the -1 every symbol pays.
+let result = align(s, t, "local", 0, 0, -1, -10, "blosum62")
+
+# Local alignment reports the aligned substrings; strip the gaps to recover the
+# pieces of s and t themselves.
+fn without_gaps(aligned) {
+    range(0, len(aligned))
+      |> map(|i| substr(aligned, i, 1))
+      |> filter(|c| c != "-")
+      |> join("")
+}
+
+let r = without_gaps(result.aligned_a)
+let u = without_gaps(result.aligned_b)
+
+println("Result:   " + str(result.score))
+println("          " + r)
+println("          " + u)
+println("Expected: 12 / LEAS / MEAN")
+
+fn test_laff_local_affine_alignment() {
+    assert result.score == 12, "LAFF: got " + str(result.score)
+    assert contains(s, r), "LAFF: " + r + " is not a substring of s"
+    assert contains(t, u), "LAFF: " + u + " is not a substring of t"
+}

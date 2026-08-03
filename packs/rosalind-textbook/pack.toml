@@ -90,3 +90,13 @@ url = "https://rosalind.info/problems/ba5g/"
 status = "solved"
 asserted = true
 topics = ["alignment", "edit-distance"]
+
+[[problem]]
+id = "BA9G"
+title = "Construct the Suffix Array of a String"
+file = "examples/ba9g.bl"
+url = "https://rosalind.info/problems/ba9g/"
+status = "solved"
+asserted = true
+note = "Suffix arrays were one of three gaps this pack was built to measure. They are a builtin now, which is what LREP and MREP in the Stronghold pack stand on."
+topics = ["strings", "suffix-structures"]
