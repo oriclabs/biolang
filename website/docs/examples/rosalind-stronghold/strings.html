@@ -224,7 +224,7 @@ let k = 2
 # The suffix tree comes with the problem, so nothing has to build one. Each edge
 # gives its parent, its child, where the label starts in s (1-based) and how long
 # it is.
-let edges = [
+let tree_edges = [
     { parent: &quot;node1&quot;, child: &quot;node2&quot;,  start: 1,  length: 1 },
     { parent: &quot;node1&quot;, child: &quot;node7&quot;,  start: 2,  length: 1 },
     { parent: &quot;node1&quot;, child: &quot;node14&quot;, start: 3,  length: 3 },
@@ -249,7 +249,7 @@ let edges = [
 # from the root spelled out along the way.
 let children = {}
 let has_children = {}
-for edge in edges {
+for edge in tree_edges {
     if contains(keys(children), edge.parent) {
         children[edge.parent] = push(children[edge.parent], edge)
     } else {

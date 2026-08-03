@@ -3919,7 +3919,7 @@ let k = 2
 # The suffix tree comes with the problem, so nothing has to build one. Each edge
 # gives its parent, its child, where the label starts in s (1-based) and how long
 # it is.
-let edges = [
+let tree_edges = [
     { parent: "node1", child: "node2",  start: 1,  length: 1 },
     { parent: "node1", child: "node7",  start: 2,  length: 1 },
     { parent: "node1", child: "node14", start: 3,  length: 3 },
@@ -3944,7 +3944,7 @@ let edges = [
 # from the root spelled out along the way.
 let children = {}
 let has_children = {}
-for edge in edges {
+for edge in tree_edges {
     if contains(keys(children), edge.parent) {
         children[edge.parent] = push(children[edge.parent], edge)
     } else {
@@ -4113,17 +4113,17 @@ fn without_gaps(aligned) {
       |> join("")
 }
 
-let r = without_gaps(result.aligned_a)
+let sub_s = without_gaps(result.aligned_a)
 let u = without_gaps(result.aligned_b)
 
 println("Result:   " + str(result.score))
-println("          " + r)
+println("          " + sub_s)
 println("          " + u)
 println("Expected: 12 / LEAS / MEAN")
 
 fn test_laff_local_affine_alignment() {
     assert result.score == 12, "LAFF: got " + str(result.score)
-    assert contains(s, r), "LAFF: " + r + " is not a substring of s"
+    assert contains(s, sub_s), "LAFF: " + sub_s + " is not a substring of s"
     assert contains(t, u), "LAFF: " + u + " is not a substring of t"
 }
 ```
@@ -4224,7 +4224,7 @@ let width = len(strings[0])
 # when both groups have at least two members: a position where one string
 # differs from all the others separates nothing, and neither does a position
 # where every string agrees.
-let table = []
+let characters = []
 for column in range(0, width) {
     let symbols = strings |> map(|s| substr(s, column, 1))
     let distinct = unique(symbols)
@@ -4233,13 +4233,13 @@ for column in range(0, width) {
         let second_count = len(symbols) - first_count
         if first_count >= 2 and second_count >= 2 {
             # Which state gets 1 is arbitrary, so take the first symbol seen.
-            table = push(table, symbols |> map(|c| if c == distinct[0] then "1" else "0") |> join(""))
+            characters = push(characters, symbols |> map(|c| if c == distinct[0] then "1" else "0") |> join(""))
         }
     }
 }
 
 println("Result:")
-for character in table {
+for character in characters {
     println("  " + character)
 }
 println("Expected:")
@@ -4247,14 +4247,14 @@ println("  10110")
 println("  10100")
 
 fn test_cstr_character_table() {
-    assert len(table) == 2, "CSTR: expected 2 nontrivial characters, got " + str(len(table))
+    assert len(characters) == 2, "CSTR: expected 2 nontrivial characters, got " + str(len(characters))
     # The 0/1 assignment is arbitrary, so a row and its complement are the same
     # character. Compare each row against the expected one either way round.
     fn flipped(row) {
         range(0, len(row)) |> map(|i| if substr(row, i, 1) == "1" then "0" else "1") |> join("")
     }
-    assert table[0] == "10110" or flipped(table[0]) == "10110", "CSTR: first row " + table[0]
-    assert table[1] == "10100" or flipped(table[1]) == "10100", "CSTR: second row " + table[1]
+    assert characters[0] == "10110" or flipped(characters[0]) == "10110", "CSTR: first row " + characters[0]
+    assert characters[1] == "10100" or flipped(characters[1]) == "10100", "CSTR: second row " + characters[1]
 }
 ```
 

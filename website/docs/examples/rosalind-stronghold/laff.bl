@@ -22,16 +22,16 @@ fn without_gaps(aligned) {
       |> join("")
 }
 
-let r = without_gaps(result.aligned_a)
+let sub_s = without_gaps(result.aligned_a)
 let u = without_gaps(result.aligned_b)
 
 println("Result:   " + str(result.score))
-println("          " + r)
+println("          " + sub_s)
 println("          " + u)
 println("Expected: 12 / LEAS / MEAN")
 
 fn test_laff_local_affine_alignment() {
     assert result.score == 12, "LAFF: got " + str(result.score)
-    assert contains(s, r), "LAFF: " + r + " is not a substring of s"
+    assert contains(s, sub_s), "LAFF: " + sub_s + " is not a substring of s"
     assert contains(t, u), "LAFF: " + u + " is not a substring of t"
 }

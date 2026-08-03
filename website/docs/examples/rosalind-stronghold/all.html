@@ -4349,7 +4349,7 @@ let k = 2
 # The suffix tree comes with the problem, so nothing has to build one. Each edge
 # gives its parent, its child, where the label starts in s (1-based) and how long
 # it is.
-let edges = [
+let tree_edges = [
     { parent: &quot;node1&quot;, child: &quot;node2&quot;,  start: 1,  length: 1 },
     { parent: &quot;node1&quot;, child: &quot;node7&quot;,  start: 2,  length: 1 },
     { parent: &quot;node1&quot;, child: &quot;node14&quot;, start: 3,  length: 3 },
@@ -4374,7 +4374,7 @@ let edges = [
 # from the root spelled out along the way.
 let children = {}
 let has_children = {}
-for edge in edges {
+for edge in tree_edges {
     if contains(keys(children), edge.parent) {
         children[edge.parent] = push(children[edge.parent], edge)
     } else {
@@ -4551,17 +4551,17 @@ fn without_gaps(aligned) {
       |&gt; join(&quot;&quot;)
 }
 
-let r = without_gaps(result.aligned_a)
+let sub_s = without_gaps(result.aligned_a)
 let u = without_gaps(result.aligned_b)
 
 println(&quot;Result:   &quot; + str(result.score))
-println(&quot;          &quot; + r)
+println(&quot;          &quot; + sub_s)
 println(&quot;          &quot; + u)
 println(&quot;Expected: 12 / LEAS / MEAN&quot;)
 
 fn test_laff_local_affine_alignment() {
     assert result.score == 12, &quot;LAFF: got &quot; + str(result.score)
-    assert contains(s, r), &quot;LAFF: &quot; + r + &quot; is not a substring of s&quot;
+    assert contains(s, sub_s), &quot;LAFF: &quot; + sub_s + &quot; is not a substring of s&quot;
     assert contains(t, u), &quot;LAFF: &quot; + u + &quot; is not a substring of t&quot;
 }</code></pre>
         </section>
@@ -4674,7 +4674,7 @@ let width = len(strings[0])
 # when both groups have at least two members: a position where one string
 # differs from all the others separates nothing, and neither does a position
 # where every string agrees.
-let table = []
+let characters = []
 for column in range(0, width) {
     let symbols = strings |&gt; map(|s| substr(s, column, 1))
     let distinct = unique(symbols)
@@ -4683,13 +4683,13 @@ for column in range(0, width) {
         let second_count = len(symbols) - first_count
         if first_count &gt;= 2 and second_count &gt;= 2 {
             # Which state gets 1 is arbitrary, so take the first symbol seen.
-            table = push(table, symbols |&gt; map(|c| if c == distinct[0] then &quot;1&quot; else &quot;0&quot;) |&gt; join(&quot;&quot;))
+            characters = push(characters, symbols |&gt; map(|c| if c == distinct[0] then &quot;1&quot; else &quot;0&quot;) |&gt; join(&quot;&quot;))
         }
     }
 }
 
 println(&quot;Result:&quot;)
-for character in table {
+for character in characters {
     println(&quot;  &quot; + character)
 }
 println(&quot;Expected:&quot;)
@@ -4697,14 +4697,14 @@ println(&quot;  10110&quot;)
 println(&quot;  10100&quot;)
 
 fn test_cstr_character_table() {
-    assert len(table) == 2, &quot;CSTR: expected 2 nontrivial characters, got &quot; + str(len(table))
+    assert len(characters) == 2, &quot;CSTR: expected 2 nontrivial characters, got &quot; + str(len(characters))
     # The 0/1 assignment is arbitrary, so a row and its complement are the same
     # character. Compare each row against the expected one either way round.
     fn flipped(row) {
         range(0, len(row)) |&gt; map(|i| if substr(row, i, 1) == &quot;1&quot; then &quot;0&quot; else &quot;1&quot;) |&gt; join(&quot;&quot;)
     }
-    assert table[0] == &quot;10110&quot; or flipped(table[0]) == &quot;10110&quot;, &quot;CSTR: first row &quot; + table[0]
-    assert table[1] == &quot;10100&quot; or flipped(table[1]) == &quot;10100&quot;, &quot;CSTR: second row &quot; + table[1]
+    assert characters[0] == &quot;10110&quot; or flipped(characters[0]) == &quot;10110&quot;, &quot;CSTR: first row &quot; + characters[0]
+    assert characters[1] == &quot;10100&quot; or flipped(characters[1]) == &quot;10100&quot;, &quot;CSTR: second row &quot; + characters[1]
 }</code></pre>
         </section>
       </article>

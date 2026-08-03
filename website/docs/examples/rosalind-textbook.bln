@@ -268,7 +268,7 @@ fn test_ba9g_suffix_array() {
 # Given: A string Genome, and integers k, L and t.
 # Return: All distinct k-mers forming (L, t)-clumps in Genome.
 
-let genome = "CGGACTCGACAGATGTGAAGAAATGTGAAGACTGAGTGAAGAGAAGAGGAAACACGACACGACATTGCGACATAATGTACGAATGTAATGTGCCTATGGC"
+let sequence = "CGGACTCGACAGATGTGAAGAAATGTGAAGACTGAGTGAAGAGAAGAGGAAACACGACACGACATTGCGACATAATGTACGAATGTAATGTGCCTATGGC"
 let k = 5
 let span = 75
 let times = 4
@@ -277,8 +277,8 @@ let times = 4
 # Slide the window and tally what is inside it; a k-mer only needs to qualify
 # once, so the answers are collected as a set.
 let found = []
-for start in range(0, len(genome) - span + 1) {
-    let region = substr(genome, start, span)
+for start in range(0, len(sequence) - span + 1) {
+    let region = substr(sequence, start, span)
     let counts = {}
     for offset in range(0, span - k + 1) {
         let mer = substr(region, offset, k)
