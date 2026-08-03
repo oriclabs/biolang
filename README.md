@@ -35,7 +35,7 @@ WebAssembly.
 ## Verified against Rosalind
 
 [Rosalind](https://rosalind.info) is the bioinformatics problem set used in teaching
-worldwide. We did not choose these problems, and we do not mark our own homework: every
+worldwide. These problems are not mine to choose, and the answers are not mine to mark: every
 solution is asserted against the official answer and re-run on each commit — natively, and
 again through the same WebAssembly build the website serves.
 
