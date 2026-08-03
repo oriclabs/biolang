@@ -1,0 +1,56 @@
+# Rosalind: BA3I — Find a k-Universal Circular String
+# https://rosalind.info/problems/ba3i/
+#
+# Given: An integer k.
+# Return: A k-universal circular binary string — one containing every binary
+# k-mer exactly once when read around the circle.
+
+let k = 4
+
+# Every binary k-mer, in order: 0000, 0001, ... 1111.
+fn binary_kmers(width) {
+    let patterns = [""]
+    for _ in range(0, width) {
+        patterns = patterns |> flat_map(|prefix| [prefix + "0", prefix + "1"])
+    }
+    patterns
+}
+
+let patterns = binary_kmers(k)
+
+# The same de Bruijn construction as BA3H, but here every (k-1)-mer has exactly
+# two edges in and two out, so the graph is balanced and the walk closes into a
+# cycle. A circular string of length 2^k containing all 2^k k-mers is only
+# possible because each one overlaps the next by k-1 — the cycle is what makes
+# that packing exist at all.
+let de_bruijn = {}
+for pattern in patterns {
+    let prefix = substr(pattern, 0, k - 1)
+    let suffix = substr(pattern, 1, k - 1)
+    if contains(keys(de_bruijn), prefix) {
+        de_bruijn[prefix] = push(de_bruijn[prefix], suffix)
+    } else {
+        de_bruijn[prefix] = [suffix]
+    }
+}
+
+let cycle = eulerian_cycle(de_bruijn, patterns[0] |> substr(0, k - 1))
+
+# Spelling a *circular* string drops the last k-1 characters, because they are
+# the first k-1 come round again.
+let spelled = cycle[0] + (range(1, len(cycle))
+    |> map(|i| substr(cycle[i], k - 2, 1))
+    |> join(""))
+let text = substr(spelled, 0, len(spelled) - (k - 1))
+
+println("Result:   " + text)
+println("Expected: 0000110010111101  (any k-universal string is accepted)")
+
+fn test_ba3i_k_universal_circular_string() {
+    assert len(text) == pow(2, k), "BA3I: a k-universal binary string has length 2^k"
+    # Read around the circle: every binary k-mer exactly once.
+    let wrapped = text + substr(text, 0, k - 1)
+    let found = range(0, len(text)) |> map(|i| substr(wrapped, i, k))
+    assert len(unique(found)) == pow(2, k), "BA3I: a k-mer appears twice"
+    assert sort(found) == sort(patterns), "BA3I: not every k-mer appears"
+}

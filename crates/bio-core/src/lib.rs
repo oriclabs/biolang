@@ -4,6 +4,7 @@ pub mod cluster_ops;
 pub mod coord;
 pub mod diffexpr_ops;
 pub mod dimreduce_ops;
+pub mod euler;
 pub mod fastq_ops;
 pub mod gene;
 pub mod gff_ops;

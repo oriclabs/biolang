@@ -560,3 +560,53 @@ status = "solved"
 asserted = true
 note = "Replaces one motif at a time rather than all of them, and draws in proportion to probability instead of taking the best — which is what lets it leave a local optimum. Rosalind's suggested 20 starts settles at 10 here; 200 reaches the optimal 9."
 topics = ["motifs", "randomized"]
+
+[[problem]]
+id = "BA3F"
+title = "Find an Eulerian Cycle in a Graph"
+file = "examples/ba3f.bl"
+url = "https://rosalind.info/problems/ba3f/"
+status = "solved"
+asserted = true
+note = "Hierholzer's algorithm, linear in the edges. Asserted on the property — every edge used exactly once, every step a real edge — rather than on the published string, which is one rotation among many."
+topics = ["graphs", "assembly"]
+
+[[problem]]
+id = "BA3G"
+title = "Find an Eulerian Path in a Graph"
+file = "examples/ba3g.bl"
+url = "https://rosalind.info/problems/ba3g/"
+status = "solved"
+asserted = true
+note = "Add the edge between the two unbalanced nodes, find a cycle, then cut the added edge out again. Which node the walk starts and ends at is forced by the degrees, so those are asserted exactly."
+topics = ["graphs", "assembly"]
+
+[[problem]]
+id = "BA3H"
+title = "Reconstruct a String from its k-mer Composition"
+file = "examples/ba3h.bl"
+url = "https://rosalind.info/problems/ba3h/"
+status = "solved"
+asserted = true
+note = "Reads become edges, not nodes — which makes assembly an Eulerian path, solvable in linear time. Reads as nodes would give a Hamiltonian path instead: the same data, a different graph, and the difference between tractable and NP-hard."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA3I"
+title = "Find a k-Universal Circular String"
+file = "examples/ba3i.bl"
+url = "https://rosalind.info/problems/ba3i/"
+status = "solved"
+asserted = true
+note = "Every (k-1)-mer has two edges in and two out, so the graph is balanced and the walk closes. Returns a different valid string from the published one; the assertion reads around the circle and checks all 2^k k-mers appear exactly once."
+topics = ["assembly", "graphs", "combinatorics"]
+
+[[problem]]
+id = "BA3J"
+title = "Reconstruct a String from its Paired Composition"
+file = "examples/ba3j.bl"
+url = "https://rosalind.info/problems/ba3j/"
+status = "solved"
+asserted = true
+note = "Paired reads pin down a repeat that either read alone would be ambiguous inside. The two halves must agree wherever they overlap, and checking that agreement is what makes a wrong assembly detectable."
+topics = ["assembly", "graphs"]

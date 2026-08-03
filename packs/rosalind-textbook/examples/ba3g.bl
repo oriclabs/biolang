@@ -1,0 +1,46 @@
+# Rosalind: BA3G — Find an Eulerian Path in a Graph
+# https://rosalind.info/problems/ba3g/
+#
+# Given: A directed graph containing an Eulerian path, as an adjacency list.
+# Return: An Eulerian path in the graph.
+
+let adjacency = {
+    "0": ["2"],
+    "1": ["3"],
+    "2": ["1"],
+    "3": ["0", "4"],
+    "6": ["3", "7"],
+    "7": ["8"],
+    "8": ["9"],
+    "9": ["6"],
+}
+
+# A path rather than a cycle, so the walk need not come back. At most one node
+# may have an extra edge out — that is where it has to start — and at most one an
+# extra edge in, where it has to end. Adding the edge between them makes the
+# graph balanced, which turns this into BA3F; the added edge is then cut out
+# again, and the walk begins on the far side of the cut.
+let path = eulerian_path(adjacency)
+
+println("Result:   " + join(path, "->"))
+println("Expected: 6->7->8->9->6->3->0->2->1->3->4")
+
+fn test_ba3g_eulerian_path() {
+    # 6 has one more edge out than in, and 4 one more in than out, so the walk is
+    # forced to start and end there — that part is not a matter of taste.
+    assert path[0] == "6", "BA3G: must start at 6, got " + path[0]
+    assert path[len(path) - 1] == "4", "BA3G: must end at 4, got " + path[len(path) - 1]
+
+    let edge_count = keys(adjacency) |> map(|node| len(adjacency[node])) |> sum()
+    assert len(path) == edge_count + 1,
+        "BA3G: " + str(len(path) - 1) + " steps for " + str(edge_count) + " edges"
+
+    let seen = {}
+    for i in range(0, len(path) - 1) {
+        let step = path[i] + "->" + path[i + 1]
+        assert contains(adjacency[path[i]], path[i + 1]), "BA3G: " + step + " is not an edge"
+        assert contains(keys(seen), step) == false, "BA3G: " + step + " is used twice"
+        seen[step] = true
+    }
+    assert len(keys(seen)) == edge_count, "BA3G: not every edge was used"
+}
