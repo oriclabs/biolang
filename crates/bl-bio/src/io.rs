@@ -114,7 +114,10 @@ pub fn read_fasta(path: &str) -> Result<Value> {
             Box::new(FastaIter::new(reader)),
         )))
     } else {
-        let buf = BufReader::new(file);
+        // A default BufReader holds 8 KiB, so a chromosome is fetched in a
+        // hundred-odd round trips. Sequence files are large by nature; a bigger
+        // window costs a quarter megabyte and saves most of those.
+        let buf = BufReader::with_capacity(256 * 1024, file);
         let reader = noodles_fasta::io::Reader::new(buf);
         Ok(Value::Stream(StreamValue::new(
             label,
@@ -530,7 +533,18 @@ impl<R: std::io::BufRead + Send> Iterator for FastaIter<R> {
         let mut seq_buf = Vec::new();
         match self.reader.read_sequence(&mut seq_buf) {
             Ok(_) => {
-                let seq_str = String::from_utf8_lossy(&seq_buf).to_uppercase();
+                // Uppercased in place, over bytes. `to_uppercase` applies the
+                // full Unicode case rules and allocates a second string to do
+                // it; sequence data is ASCII, where the rule is one bit. On a
+                // megabase record that difference is most of the parse.
+                let mut seq_buf = seq_buf;
+                seq_buf.make_ascii_uppercase();
+                let seq_str = match String::from_utf8(seq_buf) {
+                    Ok(text) => text,
+                    // Not UTF-8, so fall back to the lossy path. Non-ASCII
+                    // bytes are left as they are rather than case-folded.
+                    Err(error) => String::from_utf8_lossy(error.as_bytes()).into_owned(),
+                };
                 let seq_len = seq_str.len() as i64;
                 let gc = bio_core::seq_ops::gc_content(&seq_str);
 
