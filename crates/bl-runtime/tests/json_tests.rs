@@ -128,8 +128,8 @@ fn test_json_parse_integer() {
 
 #[test]
 fn test_json_parse_float() {
-    let result = call_json_builtin("json_parse", vec![Value::Str("3.14".into())]).unwrap();
-    assert_eq!(result, Value::Float(3.14));
+    let result = call_json_builtin("json_parse", vec![Value::Str("2.75".into())]).unwrap();
+    assert_eq!(result, Value::Float(2.75));
 }
 
 #[test]
@@ -423,7 +423,7 @@ fn test_json_to_value_number_int() {
 
 #[test]
 fn test_json_to_value_number_float() {
-    assert_eq!(json_to_value(serde_json::json!(3.14)), Value::Float(3.14));
+    assert_eq!(json_to_value(serde_json::json!(2.75)), Value::Float(2.75));
 }
 
 #[test]

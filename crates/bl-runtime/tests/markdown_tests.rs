@@ -27,9 +27,9 @@ fn to_markdown_int() {
 
 #[test]
 fn to_markdown_float() {
-    let result = call_markdown_builtin("to_markdown", vec![Value::Float(3.14)]).unwrap();
+    let result = call_markdown_builtin("to_markdown", vec![Value::Float(2.75)]).unwrap();
     if let Value::Str(s) = &result {
-        assert!(s.contains("3.14"));
+        assert!(s.contains("2.75"));
     } else {
         panic!("expected Str");
     }

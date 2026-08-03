@@ -1368,10 +1368,10 @@ fn test_nil_literal() {
 
 #[test]
 fn test_float_literal() {
-    let prog = parse("3.14");
+    let prog = parse("2.75");
     match &prog.stmts[0].node {
         Stmt::Expr(expr) => match &expr.node {
-            Expr::Float(f) => assert!((*f - 3.14).abs() < f64::EPSILON),
+            Expr::Float(f) => assert!((*f - 2.75).abs() < f64::EPSILON),
             other => panic!("expected Float, got {other:?}"),
         },
         other => panic!("expected Expr, got {other:?}"),

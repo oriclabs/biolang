@@ -179,8 +179,8 @@ fn test_ceil_floor_round() {
         Value::Int(4)
     );
     assert_eq!(
-        call_stats_builtin("round", vec![Value::Float(3.14159), Value::Int(2)]).unwrap(),
-        Value::Float(3.14)
+        call_stats_builtin("round", vec![Value::Float(2.75159), Value::Int(2)]).unwrap(),
+        Value::Float(2.75)
     );
 }
 
@@ -475,7 +475,7 @@ fn test_sign() {
         Value::Int(0)
     );
     assert_eq!(
-        call_stats_builtin("sign", vec![Value::Float(3.14)]).unwrap(),
+        call_stats_builtin("sign", vec![Value::Float(2.75)]).unwrap(),
         Value::Float(1.0)
     );
 }
@@ -1242,7 +1242,7 @@ fn test_lm_no_correlation() {
 #[test]
 fn test_sign_negative_float() {
     assert_eq!(
-        call_stats_builtin("sign", vec![Value::Float(-3.14)]).unwrap(),
+        call_stats_builtin("sign", vec![Value::Float(-2.75)]).unwrap(),
         Value::Float(-1.0)
     );
 }
@@ -1297,7 +1297,7 @@ fn test_clamp_int_args() {
 #[test]
 fn test_is_nan_regular_number_false() {
     assert_eq!(
-        call_stats_builtin("is_nan", vec![Value::Float(3.14)]).unwrap(),
+        call_stats_builtin("is_nan", vec![Value::Float(2.75)]).unwrap(),
         Value::Bool(false)
     );
 }
@@ -1329,7 +1329,7 @@ fn test_is_finite_nan_false() {
 #[test]
 fn test_is_finite_regular_float_true() {
     assert_eq!(
-        call_stats_builtin("is_finite", vec![Value::Float(3.14)]).unwrap(),
+        call_stats_builtin("is_finite", vec![Value::Float(2.75)]).unwrap(),
         Value::Bool(true)
     );
 }

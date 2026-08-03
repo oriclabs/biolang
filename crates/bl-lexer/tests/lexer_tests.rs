@@ -76,8 +76,8 @@ fn test_string() {
 
 #[test]
 fn test_float() {
-    let tokens = lex("3.14");
-    assert_eq!(tokens, vec![TokenKind::Float(3.14)]);
+    let tokens = lex("2.75");
+    assert_eq!(tokens, vec![TokenKind::Float(2.75)]);
 }
 
 #[test]
@@ -214,8 +214,8 @@ fn test_negative_number_is_minus_then_int() {
 
 #[test]
 fn test_negative_float_is_minus_then_float() {
-    let tokens = lex("-3.14");
-    assert_eq!(tokens, vec![TokenKind::Minus, TokenKind::Float(3.14)]);
+    let tokens = lex("-2.75");
+    assert_eq!(tokens, vec![TokenKind::Minus, TokenKind::Float(2.75)]);
 }
 
 #[test]

@@ -244,7 +244,7 @@ fn test_assert_fail() {
 #[test]
 fn test_type_builtin() {
     assert_eq!(eval("type(42)"), Value::Str("Int".into()));
-    assert_eq!(eval("type(3.14)"), Value::Str("Float".into()));
+    assert_eq!(eval("type(2.75)"), Value::Str("Float".into()));
     assert_eq!(eval(r#"type("hello")"#), Value::Str("Str".into()));
     assert_eq!(eval("type(true)"), Value::Str("Bool".into()));
     assert_eq!(eval("type(nil)"), Value::Str("Nil".into()));
@@ -1724,7 +1724,7 @@ fn test_string_multiply_repeat() {
 #[test]
 fn test_unary_negation() {
     assert_eq!(eval("-5"), Value::Int(-5));
-    assert_eq!(eval("-3.14"), Value::Float(-3.14));
+    assert_eq!(eval("-2.75"), Value::Float(-2.75));
     assert_eq!(eval("-(2 + 3)"), Value::Int(-5));
 }
 
@@ -2572,9 +2572,9 @@ fn test_int_to_str() {
 
 #[test]
 fn test_float_to_str() {
-    let result = eval("str(3.14)");
+    let result = eval("str(2.75)");
     match result {
-        Value::Str(s) => assert!(s.starts_with("3.14")),
+        Value::Str(s) => assert!(s.starts_with("2.75")),
         other => panic!("expected Str, got {other:?}"),
     }
 }
@@ -2586,7 +2586,7 @@ fn test_str_to_int() {
 
 #[test]
 fn test_str_to_float() {
-    assert_eq!(eval(r#"float("3.14")"#), Value::Float(3.14));
+    assert_eq!(eval(r#"float("2.75")"#), Value::Float(2.75));
 }
 
 // ── Misc builtins ──────────────────────────────────────────────────────
@@ -2595,7 +2595,7 @@ fn test_str_to_float() {
 fn test_abs_builtin() {
     assert_eq!(eval("abs(-5)"), Value::Int(5));
     assert_eq!(eval("abs(5)"), Value::Int(5));
-    assert_eq!(eval("abs(-3.14)"), Value::Float(3.14));
+    assert_eq!(eval("abs(-2.75)"), Value::Float(2.75));
 }
 
 #[test]
