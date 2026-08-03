@@ -109,6 +109,80 @@ export async function installPackIntoWorkspace(bundle: PackBundle): Promise<void
 
 let packInstalls: Promise<void> = Promise.resolve();
 
+/**
+ * The version of a pack already sitting in the workspace, if any.
+ *
+ * Following a deep link used to download the whole pack every time, so opening
+ * a second problem from the same pack fetched all thirty-four again and
+ * reinstalled them. Each link now opens its own tab, so an in-memory cache
+ * would never be hit; the workspace is the only thing that persists, so that is
+ * what gets asked.
+ */
+export async function installedPackVersion(packId: string): Promise<string | undefined> {
+  if (isDesktop) return undefined;
+  await restoreBrowserWorkspace();
+  const manifest = demoFiles[`${packId}/pack.toml`];
+  return manifest?.match(/^\s*version\s*=\s*"([^"]+)"/m)?.[1];
+}
+
+/** Read an installed pack's manifest, for resolving a problem without the bundle. */
+export async function installedPackManifest(packId: string): Promise<string | undefined> {
+  if (isDesktop) return undefined;
+  await restoreBrowserWorkspace();
+  return demoFiles[`${packId}/pack.toml`];
+}
+
+/**
+ * Put the shared sample data into the workspace.
+ *
+ * Documentation examples read `data/counts.csv` and three dozen siblings. A
+ * pack example never needed them — that is why packs were the only thing with a
+ * workbench link — but a tutorial opened here failed on the first read. The
+ * whole set is 61 KiB, so it is installed once and left in place.
+ *
+ * Quiet on failure: sample data missing is a reason for one example not to run,
+ * not a reason to abandon opening the file.
+ */
+export async function installDataFilesIntoWorkspace(base = ""): Promise<number> {
+  if (isDesktop) return 0;
+  try {
+    const response = await fetch(`${base}/packs/data-bundle.json`);
+    if (!response.ok) return 0;
+    const bundle = (await response.json()) as { files?: Record<string, string> };
+    const files = bundle.files ?? {};
+    if (Object.keys(files).length === 0) return 0;
+
+    await restoreBrowserWorkspace();
+    Object.assign(demoFiles, files);
+
+    const entries = Object.keys(files)
+      .sort()
+      .map((path) => ({
+        path,
+        name: path.slice("data/".length),
+        kind: "file" as const,
+        size: files[path].length,
+        children: [],
+      }));
+    const tree = {
+      path: "data",
+      name: "data",
+      kind: "directory" as const,
+      size: 0,
+      children: entries,
+    };
+    const existing = demoWorkspace.entries.findIndex((entry) => entry.path === "data");
+    if (existing >= 0) demoWorkspace.entries[existing] = tree;
+    else demoWorkspace.entries.push(tree);
+
+    demoSelected = true;
+    await persistBrowserWorkspace();
+    return entries.length;
+  } catch {
+    return 0;
+  }
+}
+
 async function installPackNow(bundle: PackBundle): Promise<void> {
   await restoreBrowserWorkspace();
 

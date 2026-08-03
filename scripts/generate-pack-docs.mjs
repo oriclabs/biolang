@@ -226,6 +226,9 @@ async function renderNotebook(pack, sources) {
 async function problemSection(pack, problem, available) {
   const source = await readFile(path.join(pack.directory, problem.file), "utf8");
   const anchor = problem.id.toLowerCase();
+  // Opened in a new tab: following it in place throws away the page the reader
+  // was studying, and the workbench is a place to try the code rather than a
+  // destination to navigate to.
   const workbench = `/workbench/?pack=${encodeURIComponent(pack.packId)}&problem=${encodeURIComponent(problem.id)}`;
   // Per-problem download, offered only because each Rosalind problem is a whole
   // program. Blocks on the cumulative tutorial pages depend on the blocks above
@@ -257,7 +260,7 @@ async function problemSection(pack, problem, available) {
           <p class="mb-3 flex items-center gap-3 text-sm">
             ${badge(problem.status)}${runsBadge(problem, source, available)}
             <a href="${escape(problem.url)}" class="text-violet-400 hover:text-violet-300">Problem statement</a>
-            <a href="${escape(workbench)}" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="${escape(workbench)}" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="${escape(download)}" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
 ${notes.join("\n")}
@@ -427,7 +430,7 @@ async function renderPack(packId, available) {
         ${counts.asserted} carry assertions that run on every commit;
         ${counts.network} need a network connection and are checked separately.
         Press <strong>Run</strong> on any block to execute it in your browser, or
-        <a href="/workbench/?pack=${escape(packId)}" class="text-violet-400 hover:text-violet-300">open the whole pack in the workbench</a>.</p>
+        <a href="/workbench/?pack=${escape(packId)}" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">open the whole pack in the workbench</a>.</p>
 
         <p class="text-sm text-slate-500 mb-8">Take it with you:
         <a href="${escape(packId)}.bln" download class="text-violet-400 hover:text-violet-300">download this page as a notebook</a>

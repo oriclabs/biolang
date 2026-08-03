@@ -60,13 +60,21 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { bridge, installPackIntoWorkspace, isDesktop } from "./bridge";
+import {
+  bridge,
+  installDataFilesIntoWorkspace,
+  installedPackManifest,
+  installedPackVersion,
+  installPackIntoWorkspace,
+  isDesktop,
+} from "./bridge";
 import {
   fetchPackBundle,
   fetchPackIndex,
   packSummary,
   parsePackLink,
   problemPath,
+  problemPathFromManifest,
 } from "./packs";
 import { EditorSurface } from "./components/EditorSurface";
 import { FileTree, fileIcon } from "./components/FileTree";
@@ -1569,14 +1577,34 @@ export function App() {
         return;
       }
 
-      showNotice(`Downloading ${entry.name}…`);
-      const { bundle, verified } = await fetchPackBundle(entry);
-      await installPackIntoWorkspace(bundle);
+      // The shared sample data goes in whatever the link was for, so an
+      // example that reads data/counts.csv works here the same as it does in
+      // the playground. 61 KiB, installed once.
+      await installDataFilesIntoWorkspace();
 
-      const next = await chooseWorkspace();
-      if (next) await activateWorkspace(next);
+      // Already here at this version: open it rather than fetching the whole
+      // pack again. Every one of these links opens its own tab, so without this
+      // reading a second problem re-downloads all of them.
+      let verified = true;
+      let target: string | undefined;
+      if ((await installedPackVersion(packId)) === entry.version) {
+        const manifest = await installedPackManifest(packId);
+        target = manifest && problemId
+          ? problemPathFromManifest(packId, manifest, problemId)
+          : undefined;
+        const next = await chooseWorkspace();
+        if (next) await activateWorkspace(next);
+      } else {
+        showNotice(`Downloading ${entry.name}…`);
+        const fetched = await fetchPackBundle(entry);
+        verified = fetched.verified;
+        await installPackIntoWorkspace(fetched.bundle);
 
-      const target = problemId ? problemPath(bundle, problemId) : undefined;
+        const next = await chooseWorkspace();
+        if (next) await activateWorkspace(next);
+
+        target = problemId ? problemPath(fetched.bundle, problemId) : undefined;
+      }
       if (problemId && !target) {
         // The pack is installed either way, but stop here: showing the summary
         // afterwards would replace this toast and hide the broken link.

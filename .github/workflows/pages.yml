@@ -57,6 +57,9 @@ jobs:
       - name: Build example packs
         run: |
           node scripts/build-packs.mjs --out website/packs
+          # Sample data the documentation examples read, so a workbench
+          # workspace has data/counts.csv and its siblings.
+          node scripts/build-data-bundle.mjs --out website/packs
           node scripts/generate-pack-docs.mjs
 
       # The workbench already runs without Tauri (see desktop/src/browserRuntime.ts)

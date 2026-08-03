@@ -124,6 +124,26 @@ export async function fetchPackBundle(
 }
 
 /** Workspace path for a file inside a pack, namespaced by the pack id. */
+/**
+ * Find a problem's file in an installed pack's manifest.
+ *
+ * The bundle is the usual source of this, but a pack already in the workspace
+ * should not be downloaded again just to learn where one of its files sits.
+ */
+export function problemPathFromManifest(
+  packId: string,
+  manifest: string,
+  problemId: string,
+): string | undefined {
+  const wanted = problemId.toUpperCase();
+  for (const block of manifest.split(/^\[\[problem\]\]$/m).slice(1)) {
+    const id = block.match(/^\s*id\s*=\s*"([^"]+)"/m)?.[1];
+    const file = block.match(/^\s*file\s*=\s*"([^"]+)"/m)?.[1];
+    if (id && file && id.toUpperCase() === wanted) return packFilePath(packId, file);
+  }
+  return undefined;
+}
+
 export function packFilePath(packId: string, relative: string) {
   return `${packId}/${relative}`;
 }
