@@ -1,7 +1,13 @@
 use bl_core::error::{BioLangError, Result};
 use bl_core::span::Span;
 use bl_core::value::Value;
-use std::collections::HashMap;
+// Variable lookup is the interpreter's hottest path — every read and every
+// write of a name hashes it. The standard hasher is SipHash, which is built to
+// resist collision attacks on untrusted keys; these keys are identifiers out of
+// the program's own source, so that protection buys nothing and the extra work
+// is paid on every access. FxHash is the one rustc itself uses for exactly this
+// reason.
+use rustc_hash::FxHashMap as HashMap;
 
 /// A scope in the environment chain.
 #[derive(Debug, Clone)]
@@ -28,7 +34,7 @@ pub struct Environment {
 impl Environment {
     pub fn new() -> Self {
         let global = Scope {
-            vars: HashMap::new(),
+            vars: HashMap::default(),
             parent: None,
             handed_out_at_birth: 0,
         };
@@ -54,7 +60,7 @@ impl Environment {
     pub fn push_scope(&mut self) -> usize {
         let prev = self.current;
         let new_scope = Scope {
-            vars: HashMap::new(),
+            vars: HashMap::default(),
             parent: Some(self.current),
             handed_out_at_birth: self.handed_out,
         };
@@ -67,7 +73,7 @@ impl Environment {
     pub fn push_scope_under(&mut self, parent: usize) -> usize {
         let prev = self.current;
         let new_scope = Scope {
-            vars: HashMap::new(),
+            vars: HashMap::default(),
             parent: Some(parent),
             handed_out_at_birth: self.handed_out,
         };
