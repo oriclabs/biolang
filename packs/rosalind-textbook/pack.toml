@@ -270,3 +270,73 @@ status = "solved"
 asserted = true
 note = "The same construction from a bag of reads rather than a string. A duplicate k-mer stays duplicated: it is evidence of a repeat, not noise."
 topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA5A"
+title = "Find the Minimum Number of Coins Needed to Make Change"
+file = "examples/ba5a.bl"
+url = "https://rosalind.info/problems/ba5a/"
+status = "solved"
+asserted = true
+note = "The greedy answer is wrong here and that is the point: taking 25 first needs three coins where 20+20 needs two."
+topics = ["dynamic-programming"]
+
+[[problem]]
+id = "BA5C"
+title = "Find a Longest Common Subsequence of Two Strings"
+file = "examples/ba5c.bl"
+url = "https://rosalind.info/problems/ba5c/"
+status = "solved"
+asserted = true
+note = "lcs is a builtin. More than one subsequence is longest, so the assertion checks the length and that it really is a subsequence of both."
+topics = ["dynamic-programming", "strings"]
+
+[[problem]]
+id = "BA5E"
+title = "Find a Highest-Scoring Alignment of Two Strings"
+file = "examples/ba5e.bl"
+url = "https://rosalind.info/problems/ba5e/"
+status = "solved"
+asserted = true
+note = "One call: global, BLOSUM62, linear gap of 5."
+topics = ["alignment"]
+
+[[problem]]
+id = "BA5F"
+title = "Find a Highest-Scoring Local Alignment of Two Strings"
+file = "examples/ba5f.bl"
+url = "https://rosalind.info/problems/ba5f/"
+status = "solved"
+asserted = true
+note = "PAM250, not BLOSUM62 — the two disagree enough to change the answer, and the problem says which it wants."
+topics = ["alignment"]
+
+[[problem]]
+id = "BA5H"
+title = "Find a Highest-Scoring Fitting Alignment of Two Strings"
+file = "examples/ba5h.bl"
+url = "https://rosalind.info/problems/ba5h/"
+status = "solved"
+asserted = true
+note = "All of w against any window of v. Semiglobal returns the same number on this input for a different reason — it would clip w's ends too — so a fitting mode was added rather than asserting the coincidence."
+topics = ["alignment"]
+
+[[problem]]
+id = "BA5I"
+title = "Find a Highest-Scoring Overlap Alignment of Two Strings"
+file = "examples/ba5i.bl"
+url = "https://rosalind.info/problems/ba5i/"
+status = "solved"
+asserted = true
+note = "The shape read assembly asks for: where the end of one read agrees with the start of the next."
+topics = ["alignment", "assembly"]
+
+[[problem]]
+id = "BA5J"
+title = "Align Two Strings Using Affine Gap Penalties"
+file = "examples/ba5j.bl"
+url = "https://rosalind.info/problems/ba5j/"
+status = "solved"
+asserted = true
+note = "Charging for opening a gap and less per symbol after is what stops one long insertion being priced as a run of unrelated ones."
+topics = ["alignment"]

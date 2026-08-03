@@ -1084,3 +1084,257 @@ fn test_ba3e_de_bruijn_of_a_collection() {
 }
 ```
 
+## BA5A — Find the Minimum Number of Coins Needed to Make Change
+
+[Problem statement](https://rosalind.info/problems/ba5a/)
+
+```biolang
+# Rosalind: BA5A — Find the Minimum Number of Coins Needed to Make Change
+# https://rosalind.info/problems/ba5a/
+#
+# Given: An integer money and an array Coins.
+# Return: The minimum number of coins making that amount.
+
+let money = 40
+let coins = [1, 5, 10, 20, 25, 50]
+
+# The greedy answer is wrong here and that is the point of the problem: greedily
+# taking 25 leaves 15, needing 25+10+5 = three coins, where 20+20 is two. So
+# every amount up to the target is solved from the smaller amounts below it.
+let fewest = repeat([0], money + 1)
+for amount in range(1, money + 1) {
+    let best = money + 1
+    for coin in coins {
+        if coin <= amount and fewest[amount - coin] + 1 < best {
+            best = fewest[amount - coin] + 1
+        }
+    }
+    fewest[amount] = best
+}
+
+println("Result:   " + str(fewest[money]))
+println("Expected: 2   (20 + 20; greedily taking 25 first would need three)")
+
+fn test_ba5a_minimum_coins() {
+    assert fewest[money] == 2, "BA5A: got " + str(fewest[money])
+    assert fewest[0] == 0, "BA5A: no coins are needed for nothing"
+}
+```
+
+## BA5C — Find a Longest Common Subsequence of Two Strings
+
+[Problem statement](https://rosalind.info/problems/ba5c/)
+
+```biolang
+# Rosalind: BA5C — Find a Longest Common Subsequence of Two Strings
+# https://rosalind.info/problems/ba5c/
+#
+# Given: Two strings.
+# Return: A longest common subsequence.
+
+let s = "AACCTTGG"
+let t = "ACACTGTGA"
+
+# lcs is a builtin. There is generally more than one longest common
+# subsequence — the sample shows AACTGG, this returns another of the same
+# length — so the assertion checks the length and that it really is a
+# subsequence of both, which is what the problem asks for.
+let common = lcs(s, t)
+
+println("Result:   " + common + "  (length " + str(len(common)) + ")")
+println("Expected: AACTGG, or any other subsequence of length 6")
+
+fn test_ba5c_longest_common_subsequence() {
+    assert len(common) == 6, "BA5C: expected length 6, got " + str(len(common))
+    assert is_subsequence(common, s), "BA5C: not a subsequence of s"
+    assert is_subsequence(common, t), "BA5C: not a subsequence of t"
+    assert len(lcs("AACTGG", t)) == 6, "BA5C: the sample answer should also be length 6"
+}
+```
+
+## BA5E — Find a Highest-Scoring Alignment of Two Strings
+
+[Problem statement](https://rosalind.info/problems/ba5e/)
+
+```biolang
+# Rosalind: BA5E — Find a Highest-Scoring Alignment of Two Strings
+# https://rosalind.info/problems/ba5e/
+#
+# Given: Two amino acid strings.
+# Return: The maximum global alignment score, and an alignment achieving it.
+# BLOSUM62 with indel penalty 5.
+
+let s = "PLEASANTLY"
+let t = "MEANLY"
+
+# One call: global mode, a linear gap of 5, scored from BLOSUM62. The match and
+# mismatch arguments are ignored for residues the matrix carries, which is all
+# of them here.
+let result = align(s, t, "global", 0, 0, -5, 0, "blosum62")
+
+println("Result:   " + str(result.score))
+println("Expected: 8")
+println("Alignment:")
+println("  " + result.aligned_a)
+println("  " + result.aligned_b)
+
+fn test_ba5e_global_alignment() {
+    assert result.score == 8, "BA5E: got " + str(result.score)
+    # Both rows of a global alignment cover their whole string.
+    assert len(result.aligned_a) == len(result.aligned_b), "BA5E: rows differ in length"
+}
+```
+
+## BA5F — Find a Highest-Scoring Local Alignment of Two Strings
+
+[Problem statement](https://rosalind.info/problems/ba5f/)
+
+```biolang
+# Rosalind: BA5F — Find a Highest-Scoring Local Alignment of Two Strings
+# https://rosalind.info/problems/ba5f/
+#
+# Given: Two amino acid strings.
+# Return: The maximum local alignment score, and an alignment achieving it.
+# PAM250 with indel penalty 5.
+
+let s = "MEANLY"
+let t = "PENALTY"
+
+# PAM250, not BLOSUM62 — the two matrices disagree enough to change the answer,
+# and the problem says which one it wants.
+let result = align(s, t, "local", 0, 0, -5, 0, "pam250")
+
+println("Result:   " + str(result.score))
+println("Expected: 15")
+println("Alignment:")
+println("  " + result.aligned_a)
+println("  " + result.aligned_b)
+
+fn test_ba5f_local_alignment() {
+    assert result.score == 15, "BA5F: got " + str(result.score)
+    # A local alignment can only do at least as well as the same pair scored
+    # globally, since it may discard the ends.
+    assert result.score >= align(s, t, "global", 0, 0, -5, 0, "pam250").score,
+        "BA5F: local scored below global"
+}
+```
+
+## BA5H — Find a Highest-Scoring Fitting Alignment of Two Strings
+
+[Problem statement](https://rosalind.info/problems/ba5h/)
+
+```biolang
+# Rosalind: BA5H — Find a Highest-Scoring Fitting Alignment of Two Strings
+# https://rosalind.info/problems/ba5h/
+#
+# Given: Two DNA strings v and w, v much the longer.
+# Return: The maximum fitting alignment score, and an alignment achieving it.
+# Match +1, mismatch and indel both -1.
+
+let v = dna"GTAGGCTTAAGGTTA"
+let w = dna"TAGATA"
+
+# Fitting: all of w, any window of v. That is not the same as semiglobal, which
+# forgives the end gaps of both sequences and so would let w be clipped too. On
+# this input the two happen to agree, which is exactly why the distinction is
+# worth making rather than reaching for whichever mode returns the right number.
+let result = align(v, w, "fitting", 1, -1, -1, 0)
+
+# w must appear in full: its row of the alignment, gaps removed, is all of w.
+fn without_gaps(row) {
+    range(0, len(row)) |> map(|i| substr(row, i, 1)) |> filter(|c| c != "-") |> join("")
+}
+
+println("Result:   " + str(result.score))
+println("Expected: 2")
+println("Alignment:")
+println("  " + result.aligned_a)
+println("  " + result.aligned_b)
+
+fn test_ba5h_fitting_alignment() {
+    assert result.score == 2, "BA5H: got " + str(result.score)
+    assert without_gaps(result.aligned_b) == str(w),
+        "BA5H: w is not fully aligned — that is what makes this fitting rather than local"
+    assert contains(str(v), without_gaps(result.aligned_a)),
+        "BA5H: the aligned part of v is not a window of v"
+}
+```
+
+## BA5I — Find a Highest-Scoring Overlap Alignment of Two Strings
+
+[Problem statement](https://rosalind.info/problems/ba5i/)
+
+```biolang
+# Rosalind: BA5I — Find a Highest-Scoring Overlap Alignment of Two Strings
+# https://rosalind.info/problems/ba5i/
+#
+# Given: Two protein strings v and w.
+# Return: The maximum overlap alignment score, and an alignment of a suffix of v
+# with a prefix of w. Match +1, mismatch and indel both -2.
+
+let v = "PAWHEAE"
+let w = "HEAGAWGHEE"
+
+# Overlap alignment is the shape read assembly asks for: where does the end of
+# one read agree with the start of the next. A prefix of v and a suffix of w are
+# both free.
+let result = align(v, w, "overlap", 1, -2, -2, 0)
+
+fn without_gaps(row) {
+    range(0, len(row)) |> map(|i| substr(row, i, 1)) |> filter(|c| c != "-") |> join("")
+}
+
+println("Result:   " + str(result.score))
+println("Expected: 1")
+println("Alignment:")
+println("  " + result.aligned_a)
+println("  " + result.aligned_b)
+
+fn test_ba5i_overlap_alignment() {
+    assert result.score == 1, "BA5I: got " + str(result.score)
+    # The aligned pieces are a suffix of v and a prefix of w.
+    let piece_v = without_gaps(result.aligned_a)
+    let piece_w = without_gaps(result.aligned_b)
+    assert substr(v, len(v) - len(piece_v), len(piece_v)) == piece_v,
+        "BA5I: " + piece_v + " is not a suffix of v"
+    assert substr(w, 0, len(piece_w)) == piece_w, "BA5I: " + piece_w + " is not a prefix of w"
+}
+```
+
+## BA5J — Align Two Strings Using Affine Gap Penalties
+
+[Problem statement](https://rosalind.info/problems/ba5j/)
+
+```biolang
+# Rosalind: BA5J — Align Two Strings Using Affine Gap Penalties
+# https://rosalind.info/problems/ba5j/
+#
+# Given: Two amino acid strings v and w.
+# Return: The maximum alignment score, and an alignment achieving it.
+# BLOSUM62, gap opening 11, gap extension 1.
+
+let v = "PRTEINS"
+let w = "PRTWPSEIN"
+
+# Affine gaps charge for opening a gap and then less per symbol after, which is
+# what stops a long insertion being priced as a run of unrelated ones. A gap of
+# length L costs 11 + (L-1), so opening is -10 on top of the -1 each symbol pays.
+let result = align(v, w, "global", 0, 0, -1, -10, "blosum62")
+
+# The same pair under a linear gap of 11 per symbol, for contrast.
+let linear = align(v, w, "global", 0, 0, -11, 0, "blosum62")
+
+println("Result:   " + str(result.score))
+println("Expected: 8")
+println("Alignment:")
+println("  " + result.aligned_a)
+println("  " + result.aligned_b)
+println("(the same pair with a flat gap of 11 scores " + str(linear.score) + ")")
+
+fn test_ba5j_affine_gap_alignment() {
+    assert result.score == 8, "BA5J: got " + str(result.score)
+    # Charging less for continuing a gap can only help.
+    assert result.score >= linear.score, "BA5J: affine scored below a flat gap"
+}
+```
+

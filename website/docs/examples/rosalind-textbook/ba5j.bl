@@ -1,0 +1,30 @@
+# Rosalind: BA5J — Align Two Strings Using Affine Gap Penalties
+# https://rosalind.info/problems/ba5j/
+#
+# Given: Two amino acid strings v and w.
+# Return: The maximum alignment score, and an alignment achieving it.
+# BLOSUM62, gap opening 11, gap extension 1.
+
+let v = "PRTEINS"
+let w = "PRTWPSEIN"
+
+# Affine gaps charge for opening a gap and then less per symbol after, which is
+# what stops a long insertion being priced as a run of unrelated ones. A gap of
+# length L costs 11 + (L-1), so opening is -10 on top of the -1 each symbol pays.
+let result = align(v, w, "global", 0, 0, -1, -10, "blosum62")
+
+# The same pair under a linear gap of 11 per symbol, for contrast.
+let linear = align(v, w, "global", 0, 0, -11, 0, "blosum62")
+
+println("Result:   " + str(result.score))
+println("Expected: 8")
+println("Alignment:")
+println("  " + result.aligned_a)
+println("  " + result.aligned_b)
+println("(the same pair with a flat gap of 11 scores " + str(linear.score) + ")")
+
+fn test_ba5j_affine_gap_alignment() {
+    assert result.score == 8, "BA5J: got " + str(result.score)
+    # Charging less for continuing a gap can only help.
+    assert result.score >= linear.score, "BA5J: affine scored below a flat gap"
+}

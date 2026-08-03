@@ -4068,6 +4068,7 @@ fn builtin_align(args: Vec<Value>) -> Result<Value> {
             "local" | "sw" => AlignMode::Local,
             "semiglobal" | "sg" | "smgb" => AlignMode::Semiglobal,
             "overlap" | "oap" => AlignMode::Overlap,
+            "fitting" | "fit" => AlignMode::Fitting,
             _ => AlignMode::Global,
         },
         matrix,
