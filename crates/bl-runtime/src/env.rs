@@ -214,8 +214,11 @@ impl Environment {
     pub fn set(&mut self, name: &str, value: Value, span: Option<Span>) -> Result<()> {
         let mut scope_id = self.current;
         loop {
-            if self.scopes[scope_id].vars.contains_key(name) {
-                self.scopes[scope_id].vars.insert(name.to_string(), value);
+            // One lookup, and no new key. This used to test with contains_key
+            // and then insert, which hashed the name twice and allocated a fresh
+            // String for a key already sitting in the map.
+            if let Some(slot) = self.scopes[scope_id].vars.get_mut(name) {
+                *slot = value;
                 return Ok(());
             }
             match self.scopes[scope_id].parent {

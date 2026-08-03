@@ -27,6 +27,11 @@ unsafe impl Send for GeneratorIterator {}
 
 pub struct Interpreter {
     env: Environment,
+    /// Whether the program has declared a `const`. Assignment has to refuse to
+    /// overwrite one, and the marker it looks for costs a String and a walk to
+    /// the global scope; skipping that when there is nothing to find takes the
+    /// cost out of every assignment in every loop.
+    declared_const: bool,
     /// Cache of loaded modules: canonical path → exported (name, value) pairs
     loaded_modules: HashMap<PathBuf, HashMap<String, Value>>,
     /// Set of modules currently being loaded (for circular import detection)
@@ -55,6 +60,7 @@ impl Interpreter {
         register_builtins(&mut env);
         Self {
             env,
+            declared_const: false,
             loaded_modules: HashMap::new(),
             loading_modules: HashSet::new(),
             current_file: None,
@@ -71,6 +77,7 @@ impl Interpreter {
     pub fn with_env(env: Environment) -> Self {
         Self {
             env,
+            declared_const: false,
             loaded_modules: HashMap::new(),
             loading_modules: HashSet::new(),
             current_file: None,
@@ -96,6 +103,8 @@ impl Interpreter {
     pub fn reset(&mut self) {
         self.env = Environment::new();
         register_builtins(&mut self.env);
+        // The const markers went with the environment.
+        self.declared_const = false;
         self.loaded_modules.clear();
         self.loading_modules.clear();
         self.current_file = None;
@@ -212,6 +221,7 @@ impl Interpreter {
                 self.env.define(name.clone(), val);
                 self.env
                     .define(format!("__const_{name}"), Value::Bool(true));
+                self.declared_const = true;
                 Ok(Value::Nil)
             }
             Stmt::Fn {
@@ -334,7 +344,12 @@ impl Interpreter {
                 Ok(Value::Nil)
             }
             Stmt::Assign { name, value } => {
-                if self.env.has(&format!("__const_{name}")) {
+                // Only look for a const marker if the program declared one.
+                // The probe allocates a String and then walks every scope to
+                // the global one to find nothing, on every assignment in every
+                // loop — and the overwhelming majority of programs declare no
+                // consts at all.
+                if self.declared_const && self.env.has(&format!("__const_{name}")) {
                     return Err(BioLangError::runtime(
                         ErrorKind::TypeError,
                         format!("cannot reassign const binding '{name}'"),

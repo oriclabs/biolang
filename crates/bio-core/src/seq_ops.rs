@@ -270,8 +270,20 @@ pub fn find_motif(seq: &str, motif: &str) -> Vec<usize> {
         if needle.is_empty() || needle.len() > haystack.len() {
             return Vec::new();
         }
-        return (0..=haystack.len() - needle.len())
-            .filter(|&i| haystack[i..i + needle.len()].eq_ignore_ascii_case(needle))
+        // Test the first base before anything else. Three quarters of positions
+        // in DNA fail on it, and rejecting those with one byte comparison is
+        // much cheaper than forming a subslice and calling into a case-folding
+        // comparison for every one of them.
+        let first_upper = needle[0].to_ascii_uppercase();
+        let first_lower = needle[0].to_ascii_lowercase();
+        let rest = &needle[1..];
+        let span = needle.len();
+        return (0..=haystack.len() - span)
+            .filter(|&i| {
+                let b = haystack[i];
+                (b == first_upper || b == first_lower)
+                    && haystack[i + 1..i + span].eq_ignore_ascii_case(rest)
+            })
             .collect();
     }
 
