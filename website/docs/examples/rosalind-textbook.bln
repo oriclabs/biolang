@@ -920,3 +920,167 @@ fn test_ba2h_distance_between_pattern_and_strings() {
 }
 ```
 
+## BA3B — Reconstruct a String from its Genome Path
+
+[Problem statement](https://rosalind.info/problems/ba3b/)
+
+```biolang
+# Rosalind: BA3B — Reconstruct a String from its Genome Path
+# https://rosalind.info/problems/ba3b/
+#
+# Given: A sequence of k-mers where each overlaps the next by k-1 symbols.
+# Return: The string they spell.
+
+let path = ["ACCGA", "CCGAA", "CGAAG", "GAAGC", "AAGCT"]
+
+# The path is already in order, so the string is the first k-mer plus the last
+# symbol of each one after it. No overlap has to be searched for — that is what
+# BA3C and BA3H are for.
+let text = range(1, len(path))
+  |> reduce(|acc, i| acc + substr(path[i], len(path[i]) - 1, 1), path[0])
+
+println("Result:   " + text)
+println("Expected: ACCGAAGCT")
+
+fn test_ba3b_genome_path() {
+    assert text == "ACCGAAGCT", "BA3B: got " + text
+    assert len(text) == len(path[0]) + len(path) - 1, "BA3B: length should be k + n - 1"
+}
+```
+
+## BA3C — Construct the Overlap Graph of a Collection of k-mers
+
+[Problem statement](https://rosalind.info/problems/ba3c/)
+
+```biolang
+# Rosalind: BA3C — Construct the Overlap Graph of a Collection of k-mers
+# https://rosalind.info/problems/ba3c/
+#
+# Given: A collection of k-mers.
+# Return: The overlap graph as an adjacency list.
+
+let patterns = ["ATGCG", "GCATG", "CATGC", "AGGCA", "GGCAT"]
+
+# An edge runs from one k-mer to another when the suffix of the first is the
+# prefix of the second — the relation assembly walks. A k-mer is not joined to
+# itself unless it genuinely overlaps itself.
+fn suffix_of(pattern) { substr(pattern, 1, len(pattern) - 1) }
+fn prefix_of(pattern) { substr(pattern, 0, len(pattern) - 1) }
+
+let overlaps = []
+for source in patterns {
+    for target in patterns {
+        if source != target and suffix_of(source) == prefix_of(target) {
+            overlaps = push(overlaps, source + " -> " + target)
+        }
+    }
+}
+
+let result = sort(overlaps)
+
+println("Result:")
+for edge in result {
+    println("  " + edge)
+}
+println("Expected: AGGCA -> GGCAT / CATGC -> ATGCG / GCATG -> CATGC / GGCAT -> GCATG")
+
+fn test_ba3c_overlap_graph() {
+    assert len(result) == 4, "BA3C: expected 4 overlaps, got " + str(len(result))
+    for expected in ["AGGCA -> GGCAT", "CATGC -> ATGCG", "GCATG -> CATGC", "GGCAT -> GCATG"] {
+        assert contains(result, expected), "BA3C: missing " + expected
+    }
+}
+```
+
+## BA3D — Construct the De Bruijn Graph of a String
+
+[Problem statement](https://rosalind.info/problems/ba3d/)
+
+```biolang
+# Rosalind: BA3D — Construct the De Bruijn Graph of a String
+# https://rosalind.info/problems/ba3d/
+#
+# Given: An integer k and a string Text.
+# Return: DeBruijn_k(Text) as an adjacency list.
+
+let k = 4
+let text = "AAGATTCTCTAC"
+
+# Nodes are (k-1)-mers and edges are the k-mers: each k-mer joins its own prefix
+# to its own suffix. That is the inversion that makes assembly an Eulerian path
+# problem rather than a Hamiltonian one — edges are what must be used, not nodes.
+let adjacency = {}
+for i in range(0, len(text) - k + 1) {
+    let mer = substr(text, i, k)
+    let source = substr(mer, 0, k - 1)
+    let target = substr(mer, 1, k - 1)
+    if contains(keys(adjacency), source) {
+        adjacency[source] = push(adjacency[source], target)
+    } else {
+        adjacency[source] = [target]
+    }
+}
+
+# Repeated edges are kept — a k-mer occurring twice is two edges, which is what
+# lets the assembly traverse a repeat the right number of times.
+let result = sort(keys(adjacency)) |> map(|node| node + " -> " + (sort(adjacency[node]) |> join(",")))
+
+println("Result:")
+for line in result {
+    println("  " + line)
+}
+println("Expected: AAG -> AGA / TCT -> CTA,CTC / ... (8 lines)")
+
+fn test_ba3d_de_bruijn_of_a_string() {
+    assert len(result) == 8, "BA3D: expected 8 nodes, got " + str(len(result))
+    assert contains(result, "TCT -> CTA,CTC"), "BA3D: TCT should branch to both"
+    assert contains(result, "AAG -> AGA"), "BA3D: missing AAG -> AGA"
+    # Every k-mer of the text is one edge.
+    let edge_count = result |> map(|l| len(split(substr(l, index_of(l, "-> ") + 3, len(l)), ","))) |> sum()
+    assert edge_count == len(text) - k + 1, "BA3D: edges should equal the number of k-mers"
+}
+```
+
+## BA3E — Construct the De Bruijn Graph of a Collection of k-mers
+
+[Problem statement](https://rosalind.info/problems/ba3e/)
+
+```biolang
+# Rosalind: BA3E — Construct the De Bruijn Graph of a Collection of k-mers
+# https://rosalind.info/problems/ba3e/
+#
+# Given: A collection of k-mers.
+# Return: The de Bruijn graph as an adjacency list.
+
+let patterns = ["GAGG", "CAGG", "GGGG", "GGGA", "CAGG", "AGGG", "GGAG"]
+
+# Same construction as BA3D, but the k-mers arrive as a bag rather than being
+# read out of a string — which is the realistic case, since reads are what a
+# sequencer produces. CAGG appears twice in the input and must appear twice in
+# the graph: duplicate reads are evidence of a repeat, not noise to discard.
+let adjacency = {}
+for mer in patterns {
+    let source = substr(mer, 0, len(mer) - 1)
+    let target = substr(mer, 1, len(mer) - 1)
+    if contains(keys(adjacency), source) {
+        adjacency[source] = push(adjacency[source], target)
+    } else {
+        adjacency[source] = [target]
+    }
+}
+
+let result = sort(keys(adjacency)) |> map(|node| node + " -> " + (sort(adjacency[node]) |> join(",")))
+
+println("Result:")
+for line in result {
+    println("  " + line)
+}
+println("Expected: AGG -> GGG / CAG -> AGG,AGG / GAG -> AGG / GGA -> GAG / GGG -> GGA,GGG")
+
+fn test_ba3e_de_bruijn_of_a_collection() {
+    assert len(result) == 5, "BA3E: expected 5 nodes, got " + str(len(result))
+    assert contains(result, "CAG -> AGG,AGG"), "BA3E: the repeated k-mer must stay repeated"
+    assert contains(result, "GGG -> GGA,GGG"), "BA3E: missing GGG's two edges"
+}
+```
+

@@ -230,3 +230,43 @@ status = "solved"
 asserted = true
 note = "Best per string, summed across them: a motif only has to occur once in each."
 topics = ["strings", "motifs"]
+
+[[problem]]
+id = "BA3B"
+title = "Reconstruct a String from its Genome Path"
+file = "examples/ba3b.bl"
+url = "https://rosalind.info/problems/ba3b/"
+status = "solved"
+asserted = true
+note = "The path is already ordered, so the string is the first k-mer plus one symbol from each after it. Finding the order is what BA3C and BA3H are for."
+topics = ["assembly"]
+
+[[problem]]
+id = "BA3C"
+title = "Construct the Overlap Graph of a Collection of k-mers"
+file = "examples/ba3c.bl"
+url = "https://rosalind.info/problems/ba3c/"
+status = "solved"
+asserted = true
+note = "An edge where one k-mer's suffix is another's prefix. Written with `source` and `target` because `from` and `to` are reserved words."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA3D"
+title = "Construct the De Bruijn Graph of a String"
+file = "examples/ba3d.bl"
+url = "https://rosalind.info/problems/ba3d/"
+status = "solved"
+asserted = true
+note = "Nodes are (k-1)-mers and edges are the k-mers, which is the inversion that turns assembly into an Eulerian path problem rather than a Hamiltonian one."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA3E"
+title = "Construct the De Bruijn Graph of a Collection of k-mers"
+file = "examples/ba3e.bl"
+url = "https://rosalind.info/problems/ba3e/"
+status = "solved"
+asserted = true
+note = "The same construction from a bag of reads rather than a string. A duplicate k-mer stays duplicated: it is evidence of a repeat, not noise."
+topics = ["assembly", "graphs"]

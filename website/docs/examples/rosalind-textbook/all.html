@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Every problem</h1>
-        <p class="text-lg text-slate-400 mb-6">All 22 problems from
+        <p class="text-lg text-slate-400 mb-6">All 26 problems from
         <a href="../rosalind-textbook.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Textbook Track</a>.
         Press <strong>Run</strong> on any block to execute it in your browser. Every problem is on this page, so it is large and takes a moment to settle — the sections are lighter.</p>
 
@@ -55,6 +55,10 @@
           <a href="#ba2b" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find a Median String">BA2B</a>
           <a href="#ba2c" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find a Profile-most Probable k-mer">BA2C</a>
           <a href="#ba2h" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement DistanceBetweenPatternAndStrings">BA2H</a>
+          <a href="#ba3b" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Reconstruct a String from its Genome Path">BA3B</a>
+          <a href="#ba3c" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Construct the Overlap Graph of a Collection of k-mers">BA3C</a>
+          <a href="#ba3d" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Construct the De Bruijn Graph of a String">BA3D</a>
+          <a href="#ba3e" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Construct the De Bruijn Graph of a Collection of k-mers">BA3E</a>
         </nav>
 
         <section id="ba1a" class="mt-12">
@@ -1052,6 +1056,186 @@ fn test_ba2h_distance_between_pattern_and_strings() {
     assert total == 5, &quot;BA2H: got &quot; + str(total)
     # A pattern present exactly in every string would score zero.
     assert distance_to(&quot;AAACCC&quot;, &quot;AAA&quot;) == 0, &quot;BA2H: an exact occurrence should cost nothing&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba3b" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA3B &mdash; Reconstruct a String from its Genome Path</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba3b/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA3B" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba3b.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The path is already ordered, so the string is the first k-mer plus one symbol from each after it. Finding the order is what BA3C and BA3H are for.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA3B — Reconstruct a String from its Genome Path
+# https://rosalind.info/problems/ba3b/
+#
+# Given: A sequence of k-mers where each overlaps the next by k-1 symbols.
+# Return: The string they spell.
+
+let path = [&quot;ACCGA&quot;, &quot;CCGAA&quot;, &quot;CGAAG&quot;, &quot;GAAGC&quot;, &quot;AAGCT&quot;]
+
+# The path is already in order, so the string is the first k-mer plus the last
+# symbol of each one after it. No overlap has to be searched for — that is what
+# BA3C and BA3H are for.
+let text = range(1, len(path))
+  |&gt; reduce(|acc, i| acc + substr(path[i], len(path[i]) - 1, 1), path[0])
+
+println(&quot;Result:   &quot; + text)
+println(&quot;Expected: ACCGAAGCT&quot;)
+
+fn test_ba3b_genome_path() {
+    assert text == &quot;ACCGAAGCT&quot;, &quot;BA3B: got &quot; + text
+    assert len(text) == len(path[0]) + len(path) - 1, &quot;BA3B: length should be k + n - 1&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba3c" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA3C &mdash; Construct the Overlap Graph of a Collection of k-mers</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba3c/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA3C" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba3c.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">An edge where one k-mer's suffix is another's prefix. Written with `source` and `target` because `from` and `to` are reserved words.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA3C — Construct the Overlap Graph of a Collection of k-mers
+# https://rosalind.info/problems/ba3c/
+#
+# Given: A collection of k-mers.
+# Return: The overlap graph as an adjacency list.
+
+let patterns = [&quot;ATGCG&quot;, &quot;GCATG&quot;, &quot;CATGC&quot;, &quot;AGGCA&quot;, &quot;GGCAT&quot;]
+
+# An edge runs from one k-mer to another when the suffix of the first is the
+# prefix of the second — the relation assembly walks. A k-mer is not joined to
+# itself unless it genuinely overlaps itself.
+fn suffix_of(pattern) { substr(pattern, 1, len(pattern) - 1) }
+fn prefix_of(pattern) { substr(pattern, 0, len(pattern) - 1) }
+
+let overlaps = []
+for source in patterns {
+    for target in patterns {
+        if source != target and suffix_of(source) == prefix_of(target) {
+            overlaps = push(overlaps, source + &quot; -&gt; &quot; + target)
+        }
+    }
+}
+
+let result = sort(overlaps)
+
+println(&quot;Result:&quot;)
+for edge in result {
+    println(&quot;  &quot; + edge)
+}
+println(&quot;Expected: AGGCA -&gt; GGCAT / CATGC -&gt; ATGCG / GCATG -&gt; CATGC / GGCAT -&gt; GCATG&quot;)
+
+fn test_ba3c_overlap_graph() {
+    assert len(result) == 4, &quot;BA3C: expected 4 overlaps, got &quot; + str(len(result))
+    for expected in [&quot;AGGCA -&gt; GGCAT&quot;, &quot;CATGC -&gt; ATGCG&quot;, &quot;GCATG -&gt; CATGC&quot;, &quot;GGCAT -&gt; GCATG&quot;] {
+        assert contains(result, expected), &quot;BA3C: missing &quot; + expected
+    }
+}</code></pre>
+        </section>
+
+        <section id="ba3d" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA3D &mdash; Construct the De Bruijn Graph of a String</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba3d/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA3D" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba3d.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Nodes are (k-1)-mers and edges are the k-mers, which is the inversion that turns assembly into an Eulerian path problem rather than a Hamiltonian one.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA3D — Construct the De Bruijn Graph of a String
+# https://rosalind.info/problems/ba3d/
+#
+# Given: An integer k and a string Text.
+# Return: DeBruijn_k(Text) as an adjacency list.
+
+let k = 4
+let text = &quot;AAGATTCTCTAC&quot;
+
+# Nodes are (k-1)-mers and edges are the k-mers: each k-mer joins its own prefix
+# to its own suffix. That is the inversion that makes assembly an Eulerian path
+# problem rather than a Hamiltonian one — edges are what must be used, not nodes.
+let adjacency = {}
+for i in range(0, len(text) - k + 1) {
+    let mer = substr(text, i, k)
+    let source = substr(mer, 0, k - 1)
+    let target = substr(mer, 1, k - 1)
+    if contains(keys(adjacency), source) {
+        adjacency[source] = push(adjacency[source], target)
+    } else {
+        adjacency[source] = [target]
+    }
+}
+
+# Repeated edges are kept — a k-mer occurring twice is two edges, which is what
+# lets the assembly traverse a repeat the right number of times.
+let result = sort(keys(adjacency)) |&gt; map(|node| node + &quot; -&gt; &quot; + (sort(adjacency[node]) |&gt; join(&quot;,&quot;)))
+
+println(&quot;Result:&quot;)
+for line in result {
+    println(&quot;  &quot; + line)
+}
+println(&quot;Expected: AAG -&gt; AGA / TCT -&gt; CTA,CTC / ... (8 lines)&quot;)
+
+fn test_ba3d_de_bruijn_of_a_string() {
+    assert len(result) == 8, &quot;BA3D: expected 8 nodes, got &quot; + str(len(result))
+    assert contains(result, &quot;TCT -&gt; CTA,CTC&quot;), &quot;BA3D: TCT should branch to both&quot;
+    assert contains(result, &quot;AAG -&gt; AGA&quot;), &quot;BA3D: missing AAG -&gt; AGA&quot;
+    # Every k-mer of the text is one edge.
+    let edge_count = result |&gt; map(|l| len(split(substr(l, index_of(l, &quot;-&gt; &quot;) + 3, len(l)), &quot;,&quot;))) |&gt; sum()
+    assert edge_count == len(text) - k + 1, &quot;BA3D: edges should equal the number of k-mers&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba3e" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA3E &mdash; Construct the De Bruijn Graph of a Collection of k-mers</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba3e/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA3E" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba3e.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The same construction from a bag of reads rather than a string. A duplicate k-mer stays duplicated: it is evidence of a repeat, not noise.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA3E — Construct the De Bruijn Graph of a Collection of k-mers
+# https://rosalind.info/problems/ba3e/
+#
+# Given: A collection of k-mers.
+# Return: The de Bruijn graph as an adjacency list.
+
+let patterns = [&quot;GAGG&quot;, &quot;CAGG&quot;, &quot;GGGG&quot;, &quot;GGGA&quot;, &quot;CAGG&quot;, &quot;AGGG&quot;, &quot;GGAG&quot;]
+
+# Same construction as BA3D, but the k-mers arrive as a bag rather than being
+# read out of a string — which is the realistic case, since reads are what a
+# sequencer produces. CAGG appears twice in the input and must appear twice in
+# the graph: duplicate reads are evidence of a repeat, not noise to discard.
+let adjacency = {}
+for mer in patterns {
+    let source = substr(mer, 0, len(mer) - 1)
+    let target = substr(mer, 1, len(mer) - 1)
+    if contains(keys(adjacency), source) {
+        adjacency[source] = push(adjacency[source], target)
+    } else {
+        adjacency[source] = [target]
+    }
+}
+
+let result = sort(keys(adjacency)) |&gt; map(|node| node + &quot; -&gt; &quot; + (sort(adjacency[node]) |&gt; join(&quot;,&quot;)))
+
+println(&quot;Result:&quot;)
+for line in result {
+    println(&quot;  &quot; + line)
+}
+println(&quot;Expected: AGG -&gt; GGG / CAG -&gt; AGG,AGG / GAG -&gt; AGG / GGA -&gt; GAG / GGG -&gt; GGA,GGG&quot;)
+
+fn test_ba3e_de_bruijn_of_a_collection() {
+    assert len(result) == 5, &quot;BA3E: expected 5 nodes, got &quot; + str(len(result))
+    assert contains(result, &quot;CAG -&gt; AGG,AGG&quot;), &quot;BA3E: the repeated k-mer must stay repeated&quot;
+    assert contains(result, &quot;GGG -&gt; GGA,GGG&quot;), &quot;BA3E: missing GGG's two edges&quot;
 }</code></pre>
         </section>
       </article>

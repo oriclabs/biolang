@@ -1,0 +1,21 @@
+# Rosalind: BA3B — Reconstruct a String from its Genome Path
+# https://rosalind.info/problems/ba3b/
+#
+# Given: A sequence of k-mers where each overlaps the next by k-1 symbols.
+# Return: The string they spell.
+
+let path = ["ACCGA", "CCGAA", "CGAAG", "GAAGC", "AAGCT"]
+
+# The path is already in order, so the string is the first k-mer plus the last
+# symbol of each one after it. No overlap has to be searched for — that is what
+# BA3C and BA3H are for.
+let text = range(1, len(path))
+  |> reduce(|acc, i| acc + substr(path[i], len(path[i]) - 1, 1), path[0])
+
+println("Result:   " + text)
+println("Expected: ACCGAAGCT")
+
+fn test_ba3b_genome_path() {
+    assert text == "ACCGAAGCT", "BA3B: got " + text
+    assert len(text) == len(path[0]) + len(path) - 1, "BA3B: length should be k + n - 1"
+}
