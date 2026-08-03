@@ -944,3 +944,23 @@ status = "solved"
 asserted = true
 note = "The inverse of CTBL. It works because a consistent table's splits are laminar — any two nested or disjoint, never crossing — and a laminar family is exactly a tree. Returns a differently-rooted Newick, so the assertion compares induced splits rather than a formatting choice."
 topics = ["phylogeny"]
+
+[[problem]]
+id = "EUBT"
+title = "Enumerating Unrooted Binary Trees"
+file = "examples/eubt.bl"
+url = "https://rosalind.info/problems/eubt/"
+status = "solved"
+asserted = true
+note = "Built by insertion: every unrooted binary tree arises exactly once by splitting an edge and hanging the next taxon off it, which is why the count is (2n-5)!! — fifteen trees at n=5, over two million at n=10. That growth is why nobody enumerates trees to find the best one."
+topics = ["phylogeny", "combinatorics"]
+
+[[problem]]
+id = "QRTD"
+title = "Quartet Distance"
+file = "examples/qrtd.bl"
+url = "https://rosalind.info/problems/qrtd/"
+status = "solved"
+asserted = true
+note = "Quartets degrade gracefully where splits do not: moving one taxon changes a handful of quartets but can destroy every split at once. Asserted to be zero between a tree and itself, which is the identity any distance must satisfy."
+topics = ["phylogeny"]
