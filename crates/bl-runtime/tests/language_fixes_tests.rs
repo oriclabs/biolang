@@ -164,7 +164,8 @@ fn empty_braces_are_an_empty_map() {
 
 #[test]
 fn an_empty_map_can_be_filled_in() {
-    let code = "let counts = {}\ncounts[\"a\"] = 1\ncounts[\"b\"] = counts[\"a\"] + 1\ncounts[\"b\"]";
+    let code =
+        "let counts = {}\ncounts[\"a\"] = 1\ncounts[\"b\"] = counts[\"a\"] + 1\ncounts[\"b\"]";
     assert_eq!(eval_int(code), 2);
 }
 
@@ -230,7 +231,11 @@ fn assigning_into_an_unbound_name_still_reports_it() {
 fn run_and_count_scopes(code: &str) -> usize {
     let tokens = Lexer::new(code).tokenize().unwrap();
     let parsed = Parser::new(tokens).parse().unwrap();
-    assert!(!parsed.has_errors(), "unexpected parse errors: {:?}", parsed.errors);
+    assert!(
+        !parsed.has_errors(),
+        "unexpected parse errors: {:?}",
+        parsed.errors
+    );
     let mut interp = Interpreter::new();
     interp.run(&parsed.program).unwrap();
     interp.env().scope_count()
@@ -238,8 +243,12 @@ fn run_and_count_scopes(code: &str) -> usize {
 
 #[test]
 fn a_loop_that_captures_nothing_reclaims_its_scopes() {
-    let few = run_and_count_scopes("let t = 0\nlet i = 0\nwhile i < 50 {\n let x = i\n t = t + x\n i = i + 1\n}");
-    let many = run_and_count_scopes("let t = 0\nlet i = 0\nwhile i < 5000 {\n let x = i\n t = t + x\n i = i + 1\n}");
+    let few = run_and_count_scopes(
+        "let t = 0\nlet i = 0\nwhile i < 50 {\n let x = i\n t = t + x\n i = i + 1\n}",
+    );
+    let many = run_and_count_scopes(
+        "let t = 0\nlet i = 0\nwhile i < 5000 {\n let x = i\n t = t + x\n i = i + 1\n}",
+    );
     // A hundredfold more iterations must not mean more scopes retained.
     assert_eq!(
         few, many,
@@ -280,4 +289,28 @@ fn nested_recursion_still_resolves_each_frame() {
         })
         .expect("spawn a worker with a larger stack");
     assert_eq!(worker.join().expect("the worker panicked"), 50);
+}
+
+// `||` is lexed as one Or token, so a lambda taking no arguments was a parse
+// error and had to be written `|_| expr` with an argument nobody wanted. Meeting
+// Or where an expression must begin can only be an empty parameter list, since
+// Or is binary and cannot start one.
+
+#[test]
+fn a_lambda_can_take_no_arguments() {
+    let code = "let counter = 7\nlet read = || counter\nread()";
+    assert_eq!(eval_int(code), 7);
+}
+
+#[test]
+fn a_zero_argument_lambda_can_have_a_block_body() {
+    let code = "let make = || {\n let inner = 5\n inner * 2\n}\nmake()";
+    assert_eq!(eval_int(code), 10);
+}
+
+#[test]
+fn logical_or_still_works_everywhere_else() {
+    assert_eq!(eval("false || true"), Value::Bool(true));
+    assert_eq!(eval("false || false"), Value::Bool(false));
+    assert_eq!(eval_int("if false || true then 1 else 0"), 1);
 }

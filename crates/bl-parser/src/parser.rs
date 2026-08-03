@@ -251,10 +251,7 @@ impl Parser {
         self.expect(TokenKind::Eq)?;
         let value = self.parse_expr()?;
         let span = start.merge(value.span);
-        Ok(Spanned::new(
-            Stmt::IndexAssign { name, index, value },
-            span,
-        ))
+        Ok(Spanned::new(Stmt::IndexAssign { name, index, value }, span))
     }
 
     fn parse_assign(&mut self) -> Result<Spanned<Stmt>> {
@@ -1410,6 +1407,10 @@ impl Parser {
             TokenKind::LBracket => self.parse_list(),
             TokenKind::LBrace => self.parse_block_or_record(),
             TokenKind::Bar => self.parse_lambda(),
+            // `||` — a lambda taking no arguments. See parse_lambda: Or is a
+            // binary operator, so meeting one where an expression must start
+            // can only be an empty parameter list.
+            TokenKind::Or => self.parse_lambda(),
             TokenKind::Tilde => self.parse_formula(),
             TokenKind::If => self.parse_if_expr(),
             TokenKind::Match => self.parse_match_expr(),
@@ -1735,6 +1736,17 @@ impl Parser {
 
     fn parse_lambda(&mut self) -> Result<Spanned<Expr>> {
         let start = self.current_span();
+
+        // `||` is lexed as a single Or, so a lambda taking no arguments arrives
+        // as the operator rather than as an empty pair of bars. Reading it as an
+        // empty parameter list is unambiguous: Or is binary and cannot begin an
+        // expression, so it can only be this. Without it `|| expr` was a parse
+        // error and a lambda with nothing to take had to be written `|_| expr`.
+        if self.check(&TokenKind::Or) {
+            self.advance();
+            return self.finish_lambda(start, Vec::new());
+        }
+
         self.expect(TokenKind::Bar)?;
 
         let mut params = Vec::new();
@@ -1768,6 +1780,12 @@ impl Parser {
 
         self.expect(TokenKind::Bar)?;
 
+        self.finish_lambda(start, params)
+    }
+
+    /// Parse a lambda body once its parameter list has been consumed, shared by
+    /// the `|a, b|` and `||` forms.
+    fn finish_lambda(&mut self, start: Span, params: Vec<Param>) -> Result<Spanned<Expr>> {
         let body = if self.check(&TokenKind::FatArrow) {
             // `|x| => { ... }` — multi-line lambda with fat arrow
             self.advance(); // consume =>

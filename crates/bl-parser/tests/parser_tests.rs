@@ -1174,11 +1174,38 @@ fn test_lambda_multiple_params() {
     }
 }
 
-/// `||` is lexed as `TokenKind::Or`, so zero-param lambdas are not supported.
-/// This test verifies the parser rejects `|| 42`.
+/// `||` is lexed as a single `TokenKind::Or`, which is why zero-parameter
+/// lambdas were once rejected. They are accepted now: `Or` is a binary operator
+/// and cannot begin an expression, so meeting one where an expression must start
+/// can only be an empty parameter list. This test replaces one that asserted the
+/// old rejection, whose stated reason was the lexing rather than any intent.
 #[test]
-fn test_lambda_no_params_unsupported() {
-    assert!(parse_has_errors("|| 42"));
+fn test_lambda_no_params() {
+    let prog = parse("|| 42");
+    match &prog.stmts[0].node {
+        Stmt::Expr(expr) => match &expr.node {
+            Expr::Lambda { params, body } => {
+                assert!(params.is_empty(), "expected no parameters, got {params:?}");
+                assert!(matches!(body.node, Expr::Int(42)));
+            }
+            other => panic!("expected Lambda, got {other:?}"),
+        },
+        other => panic!("expected Expr, got {other:?}"),
+    }
+}
+
+/// A binary `or` between two operands is unaffected by the above.
+#[test]
+fn test_logical_or_is_still_binary() {
+    let prog = parse("false || true");
+    match &prog.stmts[0].node {
+        Stmt::Expr(expr) => assert!(
+            matches!(expr.node, Expr::Binary { .. }),
+            "expected a binary expression, got {:?}",
+            expr.node
+        ),
+        other => panic!("expected Expr, got {other:?}"),
+    }
 }
 
 // ── default parameter values ──────────────────────────────────
