@@ -1,0 +1,73 @@
+# Rosalind: BA11E — Sequence a Peptide
+# https://rosalind.info/problems/ba11e/
+#
+# Given: A spectral vector S.
+# Return: A peptide whose peptide vector scores highest against S.
+
+let spectral = [0, 0, 0, 4, -2, -3, -1, -7, 6, 5, 3, 2, 1, 9, 3, -8, 0, 3, 1, 2, 1, 0]
+let toy_masses = { "X": 4, "Z": 5 }
+
+# BA11C made peptides and spectra the same shape so they could be compared by a
+# dot product. This is why: a peptide's score is the sum of the spectral entries
+# at its prefix masses, so the best peptide is the heaviest path through a graph
+# whose nodes are positions and whose edges are residues.
+#
+# Negative entries matter — a spectral vector is real measurement, not a count,
+# so a path is penalised for claiming a prefix the data argues against. That is
+# what stops the answer being simply the longest path.
+let masses = [0] + spectral
+let sink = len(spectral)
+
+let best = range(0, sink + 1) |> map(|i| if i == 0 then 0 else 0 - 1000000)
+let came_from = {}
+
+for position in range(1, sink + 1) {
+    for letter in keys(toy_masses) {
+        let previous = position - toy_masses[letter]
+        if previous >= 0 and best[previous] > 0 - 1000000 {
+            let candidate = best[previous] + spectral[position - 1]
+            if candidate > best[position] {
+                best[position] = candidate
+                came_from[str(position)] = { at: previous, letter: letter }
+            }
+        }
+    }
+}
+
+let peptide = ""
+let at = sink
+while at > 0 {
+    let step = came_from[str(at)]
+    peptide = step.letter + peptide
+    at = step.at
+}
+
+println("Result:   " + peptide + "   score " + str(best[sink]))
+println("Expected: XZZXX")
+
+fn test_ba11e_peptide_sequencing() {
+    assert peptide == "XZZXX", "BA11E: got " + peptide
+    # The reported score must be what the peptide actually scores against S.
+    let running = 0
+    let prefixes = []
+    for residue in chars(peptide) {
+        running = running + toy_masses[residue]
+        prefixes = push(prefixes, running)
+    }
+    let scored = prefixes |> map(|m| spectral[m - 1]) |> sum()
+    assert scored == best[sink],
+        "BA11E: the path claims " + str(best[sink]) + " but the peptide scores " + str(scored)
+    # The peptide's mass has to be the vector's length — a shorter one is not a
+    # candidate at all, however well it scores.
+    assert running == len(spectral), "BA11E: the peptide must weigh the whole vector"
+    # And it beats an alternative of the same mass.
+    let rival = "ZXXZX"
+    let rival_running = 0
+    let rival_prefixes = []
+    for residue in chars(rival) {
+        rival_running = rival_running + toy_masses[residue]
+        rival_prefixes = push(rival_prefixes, rival_running)
+    }
+    assert (rival_prefixes |> map(|m| spectral[m - 1]) |> sum()) < scored,
+        "BA11E: " + rival + " should score lower"
+}

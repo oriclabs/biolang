@@ -1,0 +1,51 @@
+# Rosalind: BA7B — Compute Limb Length
+# https://rosalind.info/problems/ba7b/
+#
+# Given: An integer n, a leaf j, and an additive n x n distance matrix.
+# Return: The length of the limb connecting leaf j to the rest of the tree.
+
+let leaf_count = 4
+let target = 1
+let distances = [
+    [0, 13, 21, 22],
+    [13, 0, 12, 13],
+    [21, 12, 0, 13],
+    [22, 13, 13, 0],
+]
+
+# For any two other leaves i and k, the paths from j to each of them share the
+# limb and then diverge, so (D[i][j] + D[j][k] - D[i][k]) / 2 is the limb plus
+# however much further the two paths run together. Taking the minimum over all
+# pairs picks the pair that diverges immediately, leaving the limb alone.
+#
+# This is what makes BA7C possible: knowing the limb length, it can be subtracted
+# off and the leaf removed, shrinking the problem by one.
+let candidates = range(0, leaf_count)
+    |> filter(|i| i != target)
+    |> flat_map(|i| range(0, leaf_count)
+        |> filter(|k| k != target and k != i)
+        |> map(|k| (distances[i][target] + distances[target][k] - distances[i][k]) / 2))
+
+let limb = min(candidates)
+
+println("Result:   " + str(limb))
+println("Expected: 2")
+
+fn test_ba7b_limb_length() {
+    assert limb == 2, "BA7B: got " + str(limb)
+    # The limb can never be longer than half of any distance from j, and never
+    # negative in an additive matrix.
+    assert limb >= 0, "BA7B: a limb cannot have negative length"
+    for i in range(0, leaf_count) {
+        if i != target {
+            assert limb <= distances[target][i],
+                "BA7B: the limb cannot exceed the distance to leaf " + str(i)
+        }
+    }
+    # Leaf 0's limb in the same tree is 11, which BA7A's tree confirms.
+    let for_leaf_zero = range(1, leaf_count)
+        |> flat_map(|i| range(1, leaf_count)
+            |> filter(|k| k != i)
+            |> map(|k| (distances[i][0] + distances[0][k] - distances[i][k]) / 2))
+    assert min(for_leaf_zero) == 11, "BA7B: leaf 0 hangs off an 11-long limb"
+}

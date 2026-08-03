@@ -1,0 +1,79 @@
+# Rosalind: BA8E — Implement Hierarchical Clustering
+# https://rosalind.info/problems/ba8e/
+#
+# Given: An integer n and an n x n distance matrix.
+# Return: The clusters formed, in the order they are merged.
+
+let n = 7
+let distances = [
+    [0.00, 0.74, 0.85, 0.54, 0.83, 0.92, 0.89],
+    [0.74, 0.00, 1.59, 1.35, 1.20, 1.48, 1.55],
+    [0.85, 1.59, 0.00, 0.63, 1.13, 0.69, 0.73],
+    [0.54, 1.35, 0.63, 0.00, 0.66, 0.43, 0.88],
+    [0.83, 1.20, 1.13, 0.66, 0.00, 0.72, 0.55],
+    [0.92, 1.48, 0.69, 0.43, 0.72, 0.00, 0.80],
+    [0.89, 1.55, 0.73, 0.88, 0.55, 0.80, 0.00],
+]
+
+# Unlike k-means, nothing has to be told how many clusters there are. Every point
+# starts alone, the two closest merge, and the process is repeated — producing not
+# one partition but a whole nested family of them, which is what a phylogenetic
+# tree is.
+#
+# "Closest" here is average linkage: the mean distance between all pairs across
+# the two clusters. That choice matters — single linkage would chain elongated
+# clusters together, complete linkage would insist on compactness — and it is the
+# one this problem specifies.
+let clusters = range(0, n) |> map(|i| [i])
+let merged_order = []
+
+fn average_distance(left, right, matrix) {
+    let total = left |> flat_map(|a| right |> map(|b| matrix[a][b])) |> sum()
+    total / (len(left) * len(right))
+}
+
+while len(clusters) > 1 {
+    let best_i = 0
+    let best_j = 1
+    let best = average_distance(clusters[0], clusters[1], distances)
+    for i in range(0, len(clusters)) {
+        for j in range(i + 1, len(clusters)) {
+            let candidate = average_distance(clusters[i], clusters[j], distances)
+            if candidate < best {
+                best = candidate
+                best_i = i
+                best_j = j
+            }
+        }
+    }
+
+    let joined = clusters[best_i] + clusters[best_j]
+    merged_order = push(merged_order, joined)
+    clusters = range(0, len(clusters))
+        |> filter(|i| i != best_i and i != best_j)
+        |> map(|i| clusters[i])
+    clusters = push(clusters, joined)
+}
+
+# Reported one-based, which is how the sample is written.
+let reported = merged_order |> map(|cluster| cluster |> map(|i| str(i + 1)) |> join(" "))
+
+println("Result:")
+for line in reported { println("  " + line) }
+println("Expected:")
+println("  4 6 / 5 7 / 3 4 6 / 1 2 / 5 7 3 4 6 / 1 2 5 7 3 4 6")
+
+fn test_ba8e_hierarchical_clustering() {
+    assert len(merged_order) == n - 1, "BA8E: n points take n-1 merges"
+    # The first merge must be the closest pair in the matrix, which is 4 and 6 at
+    # 0.43 — checked against the matrix rather than against the expected output.
+    assert reported[0] == "4 6", "BA8E: first merge was " + reported[0]
+    assert distances[3][5] == 0.43, "BA8E: 4 and 6 are 0.43 apart"
+    let closest = range(0, n) |> flat_map(|i| range(i + 1, n) |> map(|j| distances[i][j])) |> min()
+    assert closest == 0.43, "BA8E: and nothing is closer"
+    # The last merge gathers everything.
+    assert len(merged_order[n - 2]) == n, "BA8E: the final cluster holds every point"
+    assert sort(merged_order[n - 2]) == range(0, n), "BA8E: and holds each point once"
+    assert join(reported, " / ") == "4 6 / 5 7 / 3 4 6 / 1 2 / 5 7 3 4 6 / 1 2 5 7 3 4 6",
+        "BA8E: got " + join(reported, " / ")
+}

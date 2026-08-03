@@ -1,0 +1,65 @@
+# Rosalind: BA7A — Compute Distances Between Leaves
+# https://rosalind.info/problems/ba7a/
+#
+# Given: An integer n and the adjacency list of a weighted tree with n leaves.
+# Return: The n x n matrix of path lengths between leaves.
+
+let leaf_count = 4
+let tree = {
+    "0": [{ to_node: "4", weight: 11 }],
+    "1": [{ to_node: "4", weight: 2 }],
+    "2": [{ to_node: "5", weight: 6 }],
+    "3": [{ to_node: "5", weight: 7 }],
+    "4": [{ to_node: "0", weight: 11 }, { to_node: "1", weight: 2 }, { to_node: "5", weight: 4 }],
+    "5": [{ to_node: "4", weight: 4 }, { to_node: "3", weight: 7 }, { to_node: "2", weight: 6 }],
+}
+
+# In a tree there is exactly one path between any two nodes, so there is nothing
+# to optimise — no Dijkstra, no relaxation. Walking outwards from each leaf and
+# recording what it costs to arrive is enough, and each node is reached once.
+# That uniqueness is what a tree buys, and it is also why these distances can be
+# inverted to recover the tree in BA7C.
+fn distances_from(start, graph) {
+    let seen = { }
+    seen[start] = 0
+    let frontier = [start]
+    while len(frontier) > 0 {
+        let node = frontier[0]
+        frontier = slice(frontier, 1, len(frontier))
+        for edge in graph[node] {
+            if contains(keys(seen), edge.to_node) == false {
+                seen[edge.to_node] = seen[node] + edge.weight
+                frontier = push(frontier, edge.to_node)
+            }
+        }
+    }
+    seen
+}
+
+let leaf_distances = range(0, leaf_count) |> map(|i| {
+    let reach = distances_from(str(i), tree)
+    range(0, leaf_count) |> map(|j| reach[str(j)])
+})
+
+println("Result:")
+for line in leaf_distances { println("  " + (line |> map(|d| str(d)) |> join("\t"))) }
+println("Expected:")
+println("  0 13 21 22 / 13 0 12 13 / 21 12 0 13 / 22 13 13 0")
+
+fn test_ba7a_distances_between_leaves() {
+    let expected = [[0, 13, 21, 22], [13, 0, 12, 13], [21, 12, 0, 13], [22, 13, 13, 0]]
+    assert leaf_distances == expected, "BA7A: got " + str(leaf_distances)
+    # A distance matrix from a tree is symmetric, zero on the diagonal, and obeys
+    # the triangle inequality — properties BA7C relies on to rebuild the tree.
+    for i in range(0, leaf_count) {
+        assert leaf_distances[i][i] == 0, "BA7A: a leaf is no distance from itself"
+        for j in range(0, leaf_count) {
+            assert leaf_distances[i][j] == leaf_distances[j][i], "BA7A: the leaf_distances must be symmetric"
+            for k in range(0, leaf_count) {
+                assert leaf_distances[i][j] <= leaf_distances[i][k] + leaf_distances[k][j],
+                    "BA7A: the triangle inequality fails at "
+                        + str(i) + "," + str(j) + "," + str(k)
+            }
+        }
+    }
+}

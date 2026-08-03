@@ -1,0 +1,80 @@
+# Rosalind: BA3K — Generate Contigs from a Collection of Reads
+# https://rosalind.info/problems/ba3k/
+#
+# Given: A collection of k-mers Patterns.
+# Return: The contigs from the de Bruijn graph of Patterns.
+
+let patterns = ["ATG", "ATG", "TGT", "TGG", "CAT", "GGA", "GAT", "AGA"]
+let k = 3
+
+# What assembly actually produces. BA3H asked for *the* genome, which needs an
+# Eulerian path to exist and be unique — real data gives neither. Wherever the
+# graph branches, the reads genuinely do not say which way the genome went, so
+# the honest output is the unambiguous stretches and no more. Those are the
+# contigs, and their lengths are the standard measure of how good an assembly is.
+let de_bruijn = {}
+for pattern in patterns {
+    let prefix = substr(pattern, 0, k - 1)
+    let suffix = substr(pattern, 1, k - 1)
+    if contains(keys(de_bruijn), prefix) {
+        de_bruijn[prefix] = push(de_bruijn[prefix], suffix)
+    } else {
+        de_bruijn[prefix] = [suffix]
+    }
+}
+
+let vertices = sort(unique(keys(de_bruijn) + (keys(de_bruijn) |> flat_map(|n| de_bruijn[n]))))
+fn out_edges(node, graph) { if contains(keys(graph), node) then graph[node] else [] }
+
+let in_degree = {}
+for node in vertices { in_degree[node] = 0 }
+for node in keys(de_bruijn) {
+    for target in de_bruijn[node] { in_degree[target] = in_degree[target] + 1 }
+}
+
+fn is_one_in_one_out(node, graph, degrees) {
+    degrees[node] == 1 and len(out_edges(node, graph)) == 1
+}
+
+# Maximal non-branching paths, exactly as in BA3M.
+let paths = []
+for node in vertices {
+    if is_one_in_one_out(node, de_bruijn, in_degree) == false {
+        for target in out_edges(node, de_bruijn) {
+            let walk = [node, target]
+            let at = target
+            while is_one_in_one_out(at, de_bruijn, in_degree) {
+                let onward = out_edges(at, de_bruijn)[0]
+                walk = push(walk, onward)
+                at = onward
+            }
+            paths = push(paths, walk)
+        }
+    }
+}
+
+# Spell each path, as in BA3H.
+let contigs = sort(paths |> map(|walk|
+    walk[0] + (range(1, len(walk)) |> map(|i| substr(walk[i], k - 2, 1)) |> join(""))))
+
+println("Result:   " + join(contigs, " "))
+println("Expected: AGA ATG ATG CAT GAT TGGA TGT")
+
+fn test_ba3k_contig_generation() {
+    assert join(contigs, " ") == "AGA ATG ATG CAT GAT TGGA TGT",
+        "BA3K: got " + join(contigs, " ")
+    # ATG appears twice, because two separate branches spell it — contigs are
+    # listed per path, not deduplicated.
+    assert (contigs |> count_if(|c| c == "ATG")) == 2, "BA3K: ATG is spelled by two paths"
+    # TGGA is the only contig longer than k, which is exactly where the graph did
+    # not branch. Everything else stops immediately.
+    assert (contigs |> count_if(|c| len(c) > k)) == 1, "BA3K: only one contig extends past k"
+    assert contains(contigs, "TGGA"), "BA3K: TGGA is the unambiguous stretch"
+    # Every contig is spellable from the reads it came from.
+    for contig in contigs {
+        let pieces = range(0, len(contig) - k + 1) |> map(|i| substr(contig, i, k))
+        for piece in pieces {
+            assert contains(patterns, piece), "BA3K: " + contig + " uses a read that is not there"
+        }
+    }
+}

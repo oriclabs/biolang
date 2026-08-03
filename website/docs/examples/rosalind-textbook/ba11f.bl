@@ -1,0 +1,56 @@
+# Rosalind: BA11F — Find a Highest-Scoring Peptide in a Proteome against a Spectrum
+# https://rosalind.info/problems/ba11f/
+#
+# Given: A spectral vector S and a proteome.
+# Return: The substring of the proteome scoring highest against S.
+
+let spectral = [0, 0, 0, 4, -2, -3, -1, -7, 6, 5, 3, 2, 1, 9, 3, -8, 0, 3, 1, 2, 1, 8]
+let proteome = "XZZXZXXXZXZZXZXXZ"
+let toy_masses = { "X": 4, "Z": 5 }
+
+# The realistic version of BA11E. There, any peptide the masses allowed was a
+# candidate; here only substrings of a known proteome are, which is how
+# proteomics actually works — the genome is sequenced first, and the spectrum is
+# matched against what it could produce. Constraining the search that way is also
+# what makes it tractable.
+let total = len(spectral)
+
+fn mass_of(piece, letters) { chars(piece) |> map(|c| letters[c]) |> sum() }
+
+fn score_of(piece, letters, vector) {
+    let running = 0
+    let prefixes = []
+    for residue in chars(piece) {
+        running = running + letters[residue]
+        prefixes = push(prefixes, running)
+    }
+    prefixes |> map(|m| vector[m - 1]) |> sum()
+}
+
+# Only substrings weighing exactly the vector's length can be compared at all.
+let candidates = range(0, len(proteome)) |> flat_map(|start|
+    range(start + 1, len(proteome) + 1)
+        |> map(|stop| substr(proteome, start, stop - start))
+        |> filter(|piece| mass_of(piece, toy_masses) == total))
+
+let ranked = candidates
+    |> map(|piece| { piece: piece, score: score_of(piece, toy_masses, spectral) })
+    |> sort_by(|entry| 0 - entry.score)
+
+println("Candidates of the right mass: " + join(candidates, " "))
+println("Result:   " + ranked[0].piece + "   score " + str(ranked[0].score))
+println("Expected: ZXZXX")
+
+fn test_ba11f_peptide_identification() {
+    assert ranked[0].piece == "ZXZXX", "BA11F: got " + ranked[0].piece
+    # It really is a substring of the proteome, and weighs the whole vector.
+    assert contains(proteome, ranked[0].piece), "BA11F: the answer must occur in the proteome"
+    assert mass_of(ranked[0].piece, toy_masses) == total,
+        "BA11F: the peptide must weigh the vector's length"
+    # Nothing else scores higher, and there was more than one candidate — so the
+    # mass filter alone did not decide it.
+    for entry in ranked {
+        assert entry.score <= ranked[0].score, "BA11F: something outscores the answer"
+    }
+    assert len(candidates) > 1, "BA11F: several substrings have the right mass"
+}

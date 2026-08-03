@@ -1,0 +1,96 @@
+# Rosalind: BA3M — Generate All Maximal Non-Branching Paths in a Graph
+# https://rosalind.info/problems/ba3m/
+#
+# Given: The adjacency list of a directed graph.
+# Return: Every maximal non-branching path.
+
+let adjacency = {
+    "1": ["2"], "2": ["3"], "3": ["4", "5"], "6": ["7"], "7": ["6"],
+}
+
+# A run of nodes with one edge in and one out carries no choice — nothing about
+# the graph is lost by collapsing it to a single path. Everywhere else there is a
+# genuine branch, and that is where an assembly has to stop and admit it does not
+# know which way the genome went. This is the operation that turns a de Bruijn
+# graph into contigs.
+let vertices = sort(unique(keys(adjacency) + (keys(adjacency) |> flat_map(|k| adjacency[k]))))
+
+fn out_edges(node, graph) { if contains(keys(graph), node) then graph[node] else [] }
+
+let in_degree = {}
+for node in vertices { in_degree[node] = 0 }
+for node in keys(adjacency) {
+    for target in adjacency[node] { in_degree[target] = in_degree[target] + 1 }
+}
+
+fn is_one_in_one_out(node, graph, degrees) {
+    degrees[node] == 1 and len(out_edges(node, graph)) == 1
+}
+
+let paths = []
+let used = {}
+for node in vertices {
+    if is_one_in_one_out(node, adjacency, in_degree) == false {
+        for target in out_edges(node, adjacency) {
+            let walk = [node, target]
+            used[node + "->" + target] = true
+            let at = target
+            while is_one_in_one_out(at, adjacency, in_degree) {
+                let onward = out_edges(at, adjacency)[0]
+                used[at + "->" + onward] = true
+                walk = push(walk, onward)
+                at = onward
+            }
+            paths = push(paths, walk)
+        }
+    }
+}
+
+# Isolated cycles: every node 1-in-1-out, so no starting point was ever found.
+for node in vertices {
+    if is_one_in_one_out(node, adjacency, in_degree) {
+        let first_edge = node + "->" + out_edges(node, adjacency)[0]
+        if contains(keys(used), first_edge) == false {
+            let walk = [node]
+            let at = node
+            let going = true
+            while going {
+                let onward = out_edges(at, adjacency)[0]
+                used[at + "->" + onward] = true
+                walk = push(walk, onward)
+                at = onward
+                if at == node { going = false }
+            }
+            paths = push(paths, walk)
+        }
+    }
+}
+
+let listed = sort(paths |> map(|p| join(p, " -> ")))
+
+println("Result:")
+for line in listed { println("  " + line) }
+println("Expected: 1 -> 2 -> 3 / 3 -> 4 / 3 -> 5 / 7 -> 6 -> 7")
+println("(the cycle is printed from 6 rather than 7 — a cycle has no first node)")
+
+fn test_ba3m_maximal_non_branching_paths() {
+    # The three linear paths are pinned down exactly; the cycle is only pinned
+    # up to where it starts, because 6 -> 7 -> 6 and 7 -> 6 -> 7 are the same
+    # cycle traversed from different nodes.
+    for wanted in ["1 -> 2 -> 3", "3 -> 4", "3 -> 5"] {
+        assert contains(listed, wanted), "BA3M: missing " + wanted
+    }
+    assert len(listed) == 4, "BA3M: expected 4 paths, got " + str(len(listed))
+    let cycles = paths |> filter(|p| p[0] == p[len(p) - 1])
+    assert len(cycles) == 1, "BA3M: exactly one isolated cycle"
+    assert sort(unique(cycles[0])) == ["6", "7"], "BA3M: the cycle runs through 6 and 7"
+    # Every edge belongs to exactly one path — the paths partition the graph,
+    # which is what makes them a lossless summary of it.
+    let edge_count = keys(adjacency) |> map(|node| len(adjacency[node])) |> sum()
+    let covered = paths |> map(|p| len(p) - 1) |> sum()
+    assert covered == edge_count,
+        "BA3M: paths cover " + str(covered) + " edges of " + str(edge_count)
+    # The 6-7 cycle has no non-branching start, so it is only found by the second
+    # pass — without which it would be silently dropped.
+    assert len(cycles) == 1, "BA3M: the isolated cycle must be reported"
+}

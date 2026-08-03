@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Strings</h1>
-        <p class="text-lg text-slate-400 mb-6">16 problems from
+        <p class="text-lg text-slate-400 mb-6">29 problems from
         <a href="../rosalind-textbook.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Textbook Track</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -49,6 +49,19 @@
           <a href="#ba9e" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find the Longest Substring Shared by Two Strings">BA9E</a>
           <a href="#ba9i" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Construct the Burrows-Wheeler Transform of a String">BA9I</a>
           <a href="#ba9j" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Reconstruct a String from its Burrows-Wheeler Transform">BA9J</a>
+          <a href="#ba9a" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Construct a Trie from a Collection of Patterns">BA9A</a>
+          <a href="#ba9b" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement TrieMatching">BA9B</a>
+          <a href="#ba9h" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Pattern Matching with the Suffix Array">BA9H</a>
+          <a href="#ba9k" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Generate the Last-to-First Mapping of a String">BA9K</a>
+          <a href="#ba9l" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement BWMatching">BA9L</a>
+          <a href="#ba9m" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement BetterBWMatching">BA9M</a>
+          <a href="#ba9q" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Construct the Partial Suffix Array of a String">BA9Q</a>
+          <a href="#ba9c" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Construct the Suffix Tree of a String">BA9C</a>
+          <a href="#ba9f" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find the Shortest Non-Shared Substring of Two Strings">BA9F</a>
+          <a href="#ba9n" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find All Occurrences of a Collection of Patterns in a String">BA9N</a>
+          <a href="#ba9o" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find All Approximate Occurrences of a Collection of Patterns in a String">BA9O</a>
+          <a href="#ba9p" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement TreeColoring">BA9P</a>
+          <a href="#ba9r" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Construct a Suffix Tree from a Suffix Array">BA9R</a>
         </nav>
 
         <section id="ba1a" class="mt-12">
@@ -862,6 +875,983 @@ fn test_ba9j_inverse_burrows_wheeler() {
     let sa = suffix_array(text)
     let back = sa |&gt; map(|i| substr(text, (i + n - 1) % n, 1)) |&gt; join(&quot;&quot;)
     assert back == transform, &quot;BA9J: the round trip does not return the transform&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9a" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9A &mdash; Construct a Trie from a Collection of Patterns</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9a/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9A" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9a.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Patterns sharing a prefix share a path, so the trie is walked once per text position no matter how many patterns there are. Node numbering is explicitly free, so the assertions are structural: every pattern spellable, no node with two edges on one symbol.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9A — Construct a Trie from a Collection of Patterns
+# https://rosalind.info/problems/ba9a/
+#
+# Given: A collection of strings Patterns.
+# Return: The adjacency list of Trie(Patterns), each edge labelled by its symbol.
+
+let patterns = [&quot;ATAGA&quot;, &quot;ATC&quot;, &quot;GAT&quot;]
+
+# Patterns sharing a prefix share a path, so the trie is walked once per position
+# of the text no matter how many patterns there are — which is what makes
+# matching a thousand patterns cost the same as matching one. Searching each
+# pattern separately would cost the text length times the pattern count.
+let trie = {}
+let next_id = 1
+
+for pattern in patterns {
+    let node = 0
+    for symbol in chars(pattern) {
+        let existing = if contains(keys(trie), str(node)) then
+            trie[str(node)] |&gt; filter(|e| e.symbol == symbol) else []
+        if len(existing) &gt; 0 {
+            node = existing[0].to_node
+        } else {
+            let entry = { to_node: next_id, symbol: symbol }
+            if contains(keys(trie), str(node)) {
+                trie[str(node)] = push(trie[str(node)], entry)
+            } else {
+                trie[str(node)] = [entry]
+            }
+            node = next_id
+            next_id = next_id + 1
+        }
+    }
+}
+
+let listed = sort(keys(trie) |&gt; map(|k| int(k))) |&gt; flat_map(|node|
+    trie[str(node)] |&gt; map(|e| str(node) + &quot;-&gt;&quot; + str(e.to_node) + &quot;:&quot; + e.symbol))
+
+println(&quot;Result:&quot;)
+for line in listed { println(&quot;  &quot; + line) }
+println(&quot;Expected: 0-&gt;1:A 1-&gt;2:T 2-&gt;3:A 3-&gt;4:G 4-&gt;5:A 2-&gt;6:C 0-&gt;7:G 7-&gt;8:A 8-&gt;9:T&quot;)
+
+fn test_ba9a_trie_construction() {
+    # Node numbering is explicitly free, so the checks are structural. ATAGA and
+    # ATC share the prefix AT, so the trie has fewer edges than the patterns have
+    # characters — that saving is the whole point of a trie.
+    let total_characters = patterns |&gt; map(|p| len(p)) |&gt; sum()
+    assert len(listed) == 9, &quot;BA9A: expected 9 trie, got &quot; + str(len(listed))
+    assert len(listed) &lt; total_characters,
+        &quot;BA9A: a shared prefix should save trie (&quot; + str(total_characters) + &quot; characters)&quot;
+    # Every pattern is spellable from the root, and no node has two edges on the
+    # same symbol.
+    for pattern in patterns {
+        let node = 0
+        for symbol in chars(pattern) {
+            let onward = trie[str(node)] |&gt; filter(|e| e.symbol == symbol)
+            assert len(onward) == 1,
+                &quot;BA9A: &quot; + pattern + &quot; has no unique path at '&quot; + symbol + &quot;'&quot;
+            node = onward[0].to_node
+        }
+    }
+    for node in keys(trie) {
+        let symbols = trie[node] |&gt; map(|e| e.symbol)
+        assert len(unique(symbols)) == len(symbols),
+            &quot;BA9A: node &quot; + node + &quot; has two trie on one symbol&quot;
+    }
+}</code></pre>
+        </section>
+
+        <section id="ba9b" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9B &mdash; Implement TrieMatching</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9b/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9B" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9b.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Every pattern is tested at once by a single walk, so the cost is the text length times the longest pattern rather than times the pattern count. Cross-checked against a plain scan.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9B — Implement TrieMatching
+# https://rosalind.info/problems/ba9b/
+#
+# Given: A string Text and a collection of strings Patterns.
+# Return: Every starting position in Text where some pattern occurs.
+
+let text = &quot;AATCGGGTTCAATCGGGGT&quot;
+let patterns = [&quot;ATCG&quot;, &quot;GGGT&quot;]
+
+# The trie from BA9A, now used for what it is for. Starting at each position of
+# the text, walk down the trie as far as the text allows; reaching a node that
+# ends a pattern is a match. Every pattern is tested at once by that single walk,
+# so the cost is the text length times the longest pattern, not times the number
+# of patterns.
+let trie = {}
+let terminal = {}
+let next_id = 1
+
+for pattern in patterns {
+    let node = 0
+    for symbol in chars(pattern) {
+        let existing = if contains(keys(trie), str(node)) then
+            trie[str(node)] |&gt; filter(|e| e.symbol == symbol) else []
+        if len(existing) &gt; 0 {
+            node = existing[0].to_node
+        } else {
+            let entry = { to_node: next_id, symbol: symbol }
+            if contains(keys(trie), str(node)) {
+                trie[str(node)] = push(trie[str(node)], entry)
+            } else {
+                trie[str(node)] = [entry]
+            }
+            node = next_id
+            next_id = next_id + 1
+        }
+    }
+    terminal[str(node)] = true
+}
+
+let found = range(0, len(text)) |&gt; filter(|start| {
+    let node = 0
+    let at = start
+    let matched = false
+    let walking = true
+    while walking {
+        if contains(keys(terminal), str(node)) {
+            matched = true
+            walking = false
+        } else {
+            if at &gt;= len(text) or contains(keys(trie), str(node)) == false {
+                walking = false
+            } else {
+                let onward = trie[str(node)] |&gt; filter(|e| e.symbol == substr(text, at, 1))
+                if len(onward) == 0 {
+                    walking = false
+                } else {
+                    node = onward[0].to_node
+                    at = at + 1
+                }
+            }
+        }
+    }
+    matched
+})
+
+println(&quot;Result:   &quot; + (found |&gt; map(|p| str(p)) |&gt; join(&quot; &quot;)))
+println(&quot;Expected: 1 4 11 15&quot;)
+
+fn test_ba9b_trie_matching() {
+    assert (found |&gt; map(|p| str(p)) |&gt; join(&quot; &quot;)) == &quot;1 4 11 15&quot;,
+        &quot;BA9B: got &quot; + str(found)
+    # Every reported position really starts one of the patterns...
+    for position in found {
+        let here = patterns |&gt; filter(|p| substr(text, position, len(p)) == p)
+        assert len(here) &gt; 0, &quot;BA9B: nothing matches at &quot; + str(position)
+    }
+    # ...and nothing was missed, checked the slow way against the trie's answer.
+    let by_brute_force = range(0, len(text))
+        |&gt; filter(|start| (patterns |&gt; count_if(|p| substr(text, start, len(p)) == p)) &gt; 0)
+    assert found == by_brute_force,
+        &quot;BA9B: the trie found &quot; + str(found) + &quot; but scanning finds &quot; + str(by_brute_force)
+}</code></pre>
+        </section>
+
+        <section id="ba9h" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9H &mdash; Pattern Matching with the Suffix Array</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9h/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9H" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9h.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The same answer as BA9B reached the other way, and the example says which to reach for: a trie is built from the patterns and suits many patterns against one text; a suffix array is built from the text and suits one text queried repeatedly.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9H — Pattern Matching with the Suffix Array
+# https://rosalind.info/problems/ba9h/
+#
+# Given: A string Text and a collection of strings Patterns.
+# Return: Every starting position in Text where some pattern occurs.
+
+let text = &quot;AATCGGGTTCAATCGGGGT&quot;
+let patterns = [&quot;ATCG&quot;, &quot;GGGT&quot;]
+
+# The same answer as BA9B, reached the other way. Every occurrence of a pattern
+# is the start of a suffix beginning with it, and the suffix array holds the
+# suffixes in sorted order — so those suffixes form one contiguous band, findable
+# by binary search.
+#
+# The trade against the trie: the trie is built from the patterns and scans the
+# text once, so it suits many patterns against one text. The suffix array is
+# built from the text and searched per pattern, so it suits one text queried
+# repeatedly — a reference genome, indexed once.
+let sa = suffix_array(text)
+
+fn suffix_at(source, start) { substr(source, start, len(source) - start) }
+
+fn starts_with(haystack, needle) {
+    len(haystack) &gt;= len(needle) and substr(haystack, 0, len(needle)) == needle
+}
+
+fn band_for(pattern, order, source) {
+    # Lower edge: the first suffix not less than the pattern.
+    let low = 0
+    let high = len(order)
+    while low &lt; high {
+        let middle = floor((low + high) / 2)
+        if suffix_at(source, order[middle]) &lt; pattern { low = middle + 1 } else { high = middle }
+    }
+    let start = low
+    # Upper edge: the first suffix that no longer begins with it.
+    high = len(order)
+    while low &lt; high {
+        let middle = floor((low + high) / 2)
+        if starts_with(suffix_at(source, order[middle]), pattern) {
+            low = middle + 1
+        } else {
+            high = middle
+        }
+    }
+    { start: start, stop: low }
+}
+
+let found = sort(patterns |&gt; flat_map(|pattern| {
+    let band = band_for(pattern, sa, text)
+    range(band.start, band.stop) |&gt; map(|i| sa[i])
+}))
+
+println(&quot;Result:   &quot; + (found |&gt; map(|p| str(p)) |&gt; join(&quot; &quot;)))
+println(&quot;Expected: 1 4 11 15&quot;)
+
+fn test_ba9h_suffix_array_matching() {
+    assert (found |&gt; map(|p| str(p)) |&gt; join(&quot; &quot;)) == &quot;1 4 11 15&quot;, &quot;BA9H: got &quot; + str(found)
+    # Same answer as scanning, which is the only thing that matters.
+    let by_brute_force = sort(patterns |&gt; flat_map(|p|
+        range(0, len(text) - len(p) + 1) |&gt; filter(|s| substr(text, s, len(p)) == p)))
+    assert found == by_brute_force,
+        &quot;BA9H: the suffix array found &quot; + str(found) + &quot; but scanning finds &quot; + str(by_brute_force)
+    # A pattern that is not there returns an empty band rather than a wrong one.
+    let missing = band_for(&quot;TTTT&quot;, sa, text)
+    assert missing.stop == missing.start, &quot;BA9H: TTTT should match nothing&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9k" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9K &mdash; Generate the Last-to-First Mapping of a String</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9k/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9K" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9k.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The kth occurrence of a symbol in one column is the kth in the other, so a row is found by counting rather than searching. Asserted to be a bijection over every row, which is what makes the walk in BA9J terminate.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9K — Generate the Last-to-First Mapping of a String
+# https://rosalind.info/problems/ba9k/
+#
+# Given: A string Transform and an integer i.
+# Return: LastToFirst(i) — where the symbol at position i of the last column sits
+# in the first column.
+
+let transform = &quot;T$GACCA&quot;
+let position = 3
+
+# The first column is the last column sorted, and — this is the property
+# everything else rests on — the kth occurrence of a symbol in one column is the
+# kth occurrence in the other. So a symbol's row in the first column is found by
+# counting how many of its own kind precede it in the last, not by searching.
+#
+# BA9J used this to undo the transform; BA9L uses it to search without ever
+# rebuilding the text.
+let last_column = chars(transform)
+let first_column = sort(last_column)
+
+fn occurrence_rank(column, at) {
+    range(0, at) |&gt; count_if(|i| column[i] == column[at])
+}
+
+let symbol = last_column[position]
+let which_occurrence = occurrence_rank(last_column, position)
+
+# That same occurrence of the symbol, located in the first column.
+let matching = range(0, len(first_column)) |&gt; filter(|i| first_column[i] == symbol)
+let answer = matching[which_occurrence]
+
+println(&quot;Result:   &quot; + str(answer))
+println(&quot;Expected: 1&quot;)
+
+fn test_ba9k_last_to_first() {
+    assert answer == 1, &quot;BA9K: got &quot; + str(answer)
+    assert first_column[answer] == symbol, &quot;BA9K: the two columns must agree on the symbol&quot;
+    # The mapping is a bijection: every row of the last column lands on a
+    # different row of the first. That is what makes the walk in BA9J terminate.
+    let images = range(0, len(last_column)) |&gt; map(|i| {
+        let s = last_column[i]
+        let r = occurrence_rank(last_column, i)
+        (range(0, len(first_column)) |&gt; filter(|j| first_column[j] == s))[r]
+    })
+    assert len(unique(images)) == len(last_column), &quot;BA9K: last-to-first must be a bijection&quot;
+    assert sort(images) == range(0, len(last_column)), &quot;BA9K: and must cover every row&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9l" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9L &mdash; Implement BWMatching</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9l/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9L" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9l.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Searching the transform without ever rebuilding the text: sorted rows mean every match forms one contiguous band, narrowed one symbol at a time. Cross-checked by inverting the transform — the point being that the search never needed to.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9L — Implement BWMatching
+# https://rosalind.info/problems/ba9l/
+#
+# Given: A string BWT(Text) and a collection of Patterns.
+# Return: How many times each pattern occurs in Text.
+
+let transform = &quot;TCCTCTATGAGATCCTATTCTATGAAACCTTCA$GACCAAAATTCTCCGGC&quot;
+let patterns = [&quot;CCT&quot;, &quot;CAC&quot;, &quot;GAG&quot;, &quot;CAG&quot;, &quot;ATC&quot;]
+
+# Searching the transform directly, without ever rebuilding the text. Rows of the
+# Burrows-Wheeler matrix are sorted, so every row beginning with a given suffix
+# forms one contiguous band. Reading the pattern backwards, each new symbol
+# narrows the band by one last-to-first step, and the band's width at the end is
+# the number of occurrences.
+#
+# This is why a read aligner can index a genome once and answer queries against
+# the index alone: the cost depends on the pattern, not on the genome.
+let last_column = chars(transform)
+let first_column = sort(last_column)
+
+fn occurrence_rank(column, at) {
+    range(0, at) |&gt; count_if(|i| column[i] == column[at])
+}
+
+let last_to_first = range(0, len(last_column)) |&gt; map(|i| {
+    let symbol = last_column[i]
+    let rank = occurrence_rank(last_column, i)
+    (range(0, len(first_column)) |&gt; filter(|j| first_column[j] == symbol))[rank]
+})
+
+fn count_matches(pattern, last, mapping) {
+    let top = 0
+    let bottom = len(last) - 1
+    let remaining = reverse(pattern)
+    let searching = true
+    for symbol in chars(remaining) {
+        if searching {
+            let rows = range(top, bottom + 1) |&gt; filter(|i| last[i] == symbol)
+            if len(rows) == 0 {
+                top = 1
+                bottom = 0
+                searching = false
+            } else {
+                top = mapping[rows[0]]
+                bottom = mapping[rows[len(rows) - 1]]
+            }
+        }
+    }
+    if bottom &gt;= top then bottom - top + 1 else 0
+}
+
+let counts = patterns |&gt; map(|p| count_matches(p, last_column, last_to_first))
+
+println(&quot;Result:   &quot; + (counts |&gt; map(|c| str(c)) |&gt; join(&quot; &quot;)))
+println(&quot;Expected: 2 1 1 0 1&quot;)
+
+fn test_ba9l_bw_matching() {
+    assert (counts |&gt; map(|c| str(c)) |&gt; join(&quot; &quot;)) == &quot;2 1 1 0 1&quot;,
+        &quot;BA9L: got &quot; + str(counts)
+    # Checked against the text itself, recovered by inverting the transform as in
+    # BA9J — the point being that BWMatching never needed it.
+    let n = len(last_column)
+    let out = &quot;&quot;
+    let walk_row = 0
+    for _ in range(0, n) {
+        out = last_column[walk_row] + out
+        walk_row = last_to_first[walk_row]
+    }
+    let text = substr(out, 1, n - 1) + substr(out, 0, 1)
+    for i in range(0, len(patterns)) {
+        let by_scanning = range(0, len(text) - len(patterns[i]) + 1)
+            |&gt; count_if(|s| substr(text, s, len(patterns[i])) == patterns[i])
+        assert counts[i] == by_scanning,
+            &quot;BA9L: &quot; + patterns[i] + &quot; counted &quot; + str(counts[i])
+                + &quot; but occurs &quot; + str(by_scanning) + &quot; times&quot;
+    }
+    assert counts[3] == 0, &quot;BA9L: CAG does not occur&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9m" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9M &mdash; Implement BetterBWMatching</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9m/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9M" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9m.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Two precomputed tables remove BWMatching's scan, so a query costs time proportional to the pattern rather than to the text. That difference is what makes indexing a genome once and querying it billions of times practical.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9M — Implement BetterBWMatching
+# https://rosalind.info/problems/ba9m/
+#
+# Given: A string BWT(Text) and a collection of Patterns.
+# Return: How many times each pattern occurs in Text.
+
+let transform = &quot;GGCGCCGC$TAGTCACACACGCCGTA&quot;
+let patterns = [&quot;ACC&quot;, &quot;CCG&quot;, &quot;CAG&quot;]
+
+# The same search as BA9L, made fast. BWMatching scans the band on every step to
+# find the rows carrying the next symbol, so a query costs time proportional to
+# the text. Precomputing two small tables removes that scan entirely:
+#
+#   first_occurrence  where each symbol's block begins in the first column
+#   occurrences_before  how many of each symbol appear in the last column before
+#                     each row
+#
+# With those, narrowing the band is two lookups and an addition, so a query costs
+# time proportional to the *pattern*. That difference is what makes indexing a
+# genome once and querying it billions of times practical.
+let last_column = chars(transform)
+let first_column = sort(last_column)
+let alphabet = sort(unique(last_column))
+
+let first_occurrence = {}
+for symbol in alphabet {
+    first_occurrence[symbol] = (range(0, len(first_column))
+        |&gt; filter(|i| first_column[i] == symbol))[0]
+}
+
+# count[symbol][i] = occurrences of symbol in the first i entries of the last
+# column.
+let occurrences_before = {}
+for symbol in alphabet {
+    let running = [0]
+    for i in range(0, len(last_column)) {
+        running = push(running, running[i] + (if last_column[i] == symbol then 1 else 0))
+    }
+    occurrences_before[symbol] = running
+}
+
+fn count_matches(pattern, alpha, firsts, counts, length) {
+    let top = 0
+    let bottom = length - 1
+    let searching = true
+    for symbol in chars(reverse(pattern)) {
+        if searching {
+            if contains(alpha, symbol) == false {
+                searching = false
+                top = 1
+                bottom = 0
+            } else {
+                let before = counts[symbol][top]
+                let within = counts[symbol][bottom + 1]
+                if within - before == 0 {
+                    searching = false
+                    top = 1
+                    bottom = 0
+                } else {
+                    top = firsts[symbol] + before
+                    bottom = firsts[symbol] + within - 1
+                }
+            }
+        }
+    }
+    if bottom &gt;= top then bottom - top + 1 else 0
+}
+
+let counts = patterns |&gt; map(|p|
+    count_matches(p, alphabet, first_occurrence, occurrences_before, len(last_column)))
+
+println(&quot;Result:   &quot; + (counts |&gt; map(|c| str(c)) |&gt; join(&quot; &quot;)))
+println(&quot;Expected: 1 2 1&quot;)
+
+fn test_ba9m_better_bw_matching() {
+    assert (counts |&gt; map(|c| str(c)) |&gt; join(&quot; &quot;)) == &quot;1 2 1&quot;, &quot;BA9M: got &quot; + str(counts)
+    # Checked against the text, recovered by inverting the transform.
+    let n = len(last_column)
+    let mapping = range(0, n) |&gt; map(|i| {
+        let symbol = last_column[i]
+        let rank = range(0, i) |&gt; count_if(|j| last_column[j] == symbol)
+        first_occurrence[symbol] + rank
+    })
+    let out = &quot;&quot;
+    let walk_row = 0
+    for _ in range(0, n) {
+        out = last_column[walk_row] + out
+        walk_row = mapping[walk_row]
+    }
+    let text = substr(out, 1, n - 1) + substr(out, 0, 1)
+    for i in range(0, len(patterns)) {
+        let by_scanning = range(0, len(text) - len(patterns[i]) + 1)
+            |&gt; count_if(|s| substr(text, s, len(patterns[i])) == patterns[i])
+        assert counts[i] == by_scanning,
+            &quot;BA9M: &quot; + patterns[i] + &quot; counted &quot; + str(counts[i])
+                + &quot; but occurs &quot; + str(by_scanning) + &quot; times&quot;
+    }
+}</code></pre>
+        </section>
+
+        <section id="ba9q" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9Q &mdash; Construct the Partial Suffix Array of a String</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9q/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9Q" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9q.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A full suffix array of a human genome is 12 GB before the sequence itself. Keeping every Kth value cuts that by a factor of K, with the rest recoverable by walking the BWT — the compromise real read aligners ship with.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9Q — Construct the Partial Suffix Array of a String
+# https://rosalind.info/problems/ba9q/
+#
+# Given: A string Text and a positive integer K.
+# Return: The partial suffix array — the pairs (i, SuffixArray(i)) whose value is
+# a multiple of K.
+
+let text = &quot;PANAMABANANAS$&quot;
+let step = 5
+
+# A full suffix array stores one integer per position, which for a human genome
+# is 12 GB before the sequence itself. Keeping only every Kth *value* cuts that by
+# a factor of K, and the discarded entries are recoverable by walking backwards
+# through the BWT until a kept one is reached — trading a little time per query
+# for memory that would otherwise not fit. This is the compromise real
+# read aligners like Bowtie ship with.
+let full = suffix_array(text)
+
+let partial = range(0, len(full))
+    |&gt; filter(|i| full[i] % step == 0)
+    |&gt; map(|i| { row: i, value: full[i] })
+
+println(&quot;Result:&quot;)
+for entry in partial { println(&quot;  &quot; + str(entry.row) + &quot;,&quot; + str(entry.value)) }
+println(&quot;Expected: 1,5 / 11,10 / 12,0&quot;)
+
+fn test_ba9q_partial_suffix_array() {
+    let written = partial |&gt; map(|e| str(e.row) + &quot;,&quot; + str(e.value))
+    assert join(written, &quot; / &quot;) == &quot;1,5 / 11,10 / 12,0&quot;, &quot;BA9Q: got &quot; + join(written, &quot; / &quot;)
+    # Every kept value is a multiple of K, and every multiple present in the full
+    # array is kept — nothing is dropped that should not be.
+    for entry in partial {
+        assert entry.value % step == 0, &quot;BA9Q: &quot; + str(entry.value) + &quot; is not a multiple of 5&quot;
+        assert full[entry.row] == entry.value, &quot;BA9Q: row &quot; + str(entry.row) + &quot; disagrees&quot;
+    }
+    let expected_count = full |&gt; count_if(|v| v % step == 0)
+    assert len(partial) == expected_count, &quot;BA9Q: some multiples were dropped&quot;
+    # The saving: three entries kept out of fourteen.
+    assert len(partial) &lt; len(full), &quot;BA9Q: a partial array must be smaller&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9c" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9C &mdash; Construct the Suffix Tree of a String</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9c/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9C" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9c.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A trie of every suffix with non-branching chains collapsed. That collapse is what makes it linear rather than quadratic — a trie of all suffixes has O(n^2) nodes and almost all have one child. Built directly here; Ukkonen's algorithm is linear but obscures the structure at this size.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9C — Construct the Suffix Tree of a String
+# https://rosalind.info/problems/ba9c/
+#
+# Given: A string Text.
+# Return: The strings labelling the edges of SuffixTree(Text), in any order.
+
+let text = &quot;ATAAATG$&quot;
+
+# A suffix tree is a trie of every suffix with each non-branching chain collapsed
+# into a single edge. That collapse is what makes it linear in the text rather
+# than quadratic: a trie of all suffixes has O(n^2) nodes, and almost all of them
+# have exactly one child.
+#
+# Built here the direct way, by inserting suffixes into a trie and then merging
+# chains. Ukkonen's algorithm builds it in linear time without the intermediate,
+# which matters at genome scale and obscures the structure at this one.
+let node_children = { &quot;0&quot;: [] }
+let next_id = 1
+
+for start in range(0, len(text)) {
+    let node = &quot;0&quot;
+    for symbol in chars(substr(text, start, len(text) - start)) {
+        let onward = node_children[node] |&gt; filter(|e| e.symbol == symbol)
+        if len(onward) &gt; 0 {
+            node = onward[0].child
+        } else {
+            let child = str(next_id)
+            next_id = next_id + 1
+            node_children[node] = push(node_children[node], { symbol: symbol, child: child })
+            node_children[child] = []
+            node = child
+        }
+    }
+}
+
+# Walk down from each child of a branching node, absorbing single-child nodes
+# into the edge label until a branch or a leaf is reached.
+let labels = []
+let frontier = [&quot;0&quot;]
+while len(frontier) &gt; 0 {
+    let node = frontier[0]
+    frontier = slice(frontier, 1, len(frontier))
+    for edge in node_children[node] {
+        let label = edge.symbol
+        let at = edge.child
+        while len(node_children[at]) == 1 {
+            label = label + node_children[at][0].symbol
+            at = node_children[at][0].child
+        }
+        labels = push(labels, label)
+        if len(node_children[at]) &gt; 1 { frontier = push(frontier, at) }
+    }
+}
+
+println(&quot;Result:   &quot; + join(sort(labels), &quot; &quot;))
+println(&quot;Expected (in any order): AAATG$ G$ T ATG$ TG$ A A AAATG$ G$ T G$ $&quot;)
+
+fn test_ba9c_suffix_tree() {
+    let expected = [&quot;AAATG$&quot;, &quot;G$&quot;, &quot;T&quot;, &quot;ATG$&quot;, &quot;TG$&quot;, &quot;A&quot;, &quot;A&quot;, &quot;AAATG$&quot;, &quot;G$&quot;, &quot;T&quot;, &quot;G$&quot;, &quot;$&quot;]
+    assert sort(labels) == sort(expected), &quot;BA9C: got &quot; + str(sort(labels))
+    # Every leaf-to-root path spells a suffix, so concatenating the labels along
+    # each root-to-leaf path must give back exactly the suffixes.
+    assert len(labels) == 12, &quot;BA9C: expected 12 edges, got &quot; + str(len(labels))
+    # Collapsing chains is the whole point: a trie of all suffixes has many more
+    # nodes than the tree has edges.
+    assert next_id - 1 &gt; len(labels),
+        &quot;BA9C: the uncollapsed trie should have more nodes than the tree has edges&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9f" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9F &mdash; Find the Shortest Non-Shared Substring of Two Strings</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9f/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9F" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9f.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Shortest first, which makes the answer minimal by construction: if a substring of length k is absent, everything containing it is absent too. Returns CC where the sample shows AA; the assertion proves no one-character answer exists.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9F — Find the Shortest Non-Shared Substring of Two Strings
+# https://rosalind.info/problems/ba9f/
+#
+# Given: Two strings.
+# Return: The shortest substring of the first that does not occur in the second.
+
+let first_text = &quot;CCAAGCTGCTAGAGG&quot;
+let second_text = &quot;CATGCTGGGCTGGCT&quot;
+
+# Shortest first, so the answer is found before anything longer is examined. That
+# ordering also makes the answer minimal by construction: if a substring of
+# length k is absent, every substring containing it is absent too, so nothing
+# shorter can have been missed.
+#
+# The textbook does this on a suffix tree of both strings at once; at this size
+# the direct search is clearer and gives the same answer.
+let answer = &quot;&quot;
+let width = 1
+while answer == &quot;&quot; and width &lt;= len(first_text) {
+    let candidates = range(0, len(first_text) - width + 1)
+        |&gt; map(|i| substr(first_text, i, width))
+        |&gt; unique()
+        |&gt; filter(|piece| contains(second_text, piece) == false)
+    if len(candidates) &gt; 0 { answer = candidates[0] }
+    width = width + 1
+}
+
+println(&quot;Result:   &quot; + answer)
+println(&quot;Expected: AA  (any shortest non-shared substring is accepted)&quot;)
+
+fn test_ba9f_shortest_non_shared_substring() {
+    assert len(answer) == 2, &quot;BA9F: expected length 2, got &quot; + str(len(answer))
+    assert contains(first_text, answer), &quot;BA9F: &quot; + answer + &quot; is not in the first string&quot;
+    assert contains(second_text, answer) == false, &quot;BA9F: &quot; + answer + &quot; is in the second string&quot;
+    # Minimal: every single character of the first string also occurs in the
+    # second, so no one-character answer exists.
+    let singles = chars(first_text) |&gt; unique() |&gt; filter(|c| contains(second_text, c) == false)
+    assert len(singles) == 0, &quot;BA9F: a single character would have been shorter&quot;
+    # The published answer is one of several valid ones, and scores the same.
+    assert contains(second_text, &quot;AA&quot;) == false, &quot;BA9F: AA is absent from the second string too&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9n" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9N &mdash; Find All Occurrences of a Collection of Patterns in a String</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9n/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9N" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9n.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">BA9L and BA9M count occurrences without locating them, because a BWT band gives rows of the sorted matrix rather than text positions. Turning a row back into a position is what the suffix array supplies — the partial one of BA9Q in a real aligner, since the full one would undo the memory saving.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9N — Find All Occurrences of a Collection of Patterns in a String
+# https://rosalind.info/problems/ba9n/
+#
+# Given: A string Text and a collection of strings Patterns.
+# Return: Every position in Text where some pattern occurs.
+
+let text = &quot;AATCGGGTTCAATCGGGGT&quot;
+let patterns = [&quot;ATCG&quot;, &quot;GGGT&quot;]
+
+# BA9L and BA9M count occurrences without recovering where they are, because the
+# Burrows-Wheeler band gives rows of the sorted matrix rather than positions in
+# the text. Turning a row back into a position is what the suffix array supplies,
+# and in a real aligner it is the *partial* array of BA9Q that does it — the full
+# one would undo the memory saving the whole index exists for.
+let sa = suffix_array(text)
+
+fn suffix_at(source, start) { substr(source, start, len(source) - start) }
+
+fn starts_with(haystack, needle) {
+    len(haystack) &gt;= len(needle) and substr(haystack, 0, len(needle)) == needle
+}
+
+fn occurrences_of(pattern, order, source) {
+    let low = 0
+    let high = len(order)
+    while low &lt; high {
+        let middle = floor((low + high) / 2)
+        if suffix_at(source, order[middle]) &lt; pattern { low = middle + 1 } else { high = middle }
+    }
+    let start = low
+    high = len(order)
+    while low &lt; high {
+        let middle = floor((low + high) / 2)
+        if starts_with(suffix_at(source, order[middle]), pattern) {
+            low = middle + 1
+        } else {
+            high = middle
+        }
+    }
+    range(start, low) |&gt; map(|i| order[i])
+}
+
+let found = sort(patterns |&gt; flat_map(|p| occurrences_of(p, sa, text)))
+
+println(&quot;Result:   &quot; + (found |&gt; map(|p| str(p)) |&gt; join(&quot; &quot;)))
+println(&quot;Expected: 1 4 11 15&quot;)
+
+fn test_ba9n_multiple_pattern_matching() {
+    assert (found |&gt; map(|p| str(p)) |&gt; join(&quot; &quot;)) == &quot;1 4 11 15&quot;, &quot;BA9N: got &quot; + str(found)
+    for position in found {
+        let here = patterns |&gt; filter(|p| substr(text, position, len(p)) == p)
+        assert len(here) &gt; 0, &quot;BA9N: nothing matches at &quot; + str(position)
+    }
+    let by_scanning = sort(patterns |&gt; flat_map(|p|
+        range(0, len(text) - len(p) + 1) |&gt; filter(|s| substr(text, s, len(p)) == p)))
+    assert found == by_scanning, &quot;BA9N: disagrees with a plain scan&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9o" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9O &mdash; Find All Approximate Occurrences of a Collection of Patterns in a String</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9o/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9O" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9o.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Reads carry errors and genomes carry variants, so exact matching finds nothing useful and every aligner is an approximate matcher. Position 4 appears twice because two patterns match there — the answer lists occurrences, not distinct positions.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9O — Find All Approximate Occurrences of a Collection of Patterns
+# https://rosalind.info/problems/ba9o/
+#
+# Given: A string Text, a collection of Patterns, and an integer d.
+# Return: Every position where some pattern occurs with at most d mismatches.
+
+let text = &quot;ACATGCTACTTT&quot;
+let patterns = [&quot;ATT&quot;, &quot;GCC&quot;, &quot;GCTA&quot;, &quot;TATT&quot;]
+let allowed = 1
+
+# Real reads carry sequencing errors and real genomes carry variants, so exact
+# matching finds nothing useful — which is why every aligner is an approximate
+# matcher. The standard trick is seed-and-extend: split the pattern into d+1
+# pieces, and since d mismatches cannot spoil all of them, at least one piece
+# must match exactly. Those exact matches are found by the index, and only their
+# neighbourhoods are checked in full.
+#
+# Written out directly here, because the point is the answer rather than the
+# index; the pieces are checked against every position instead.
+fn mismatches(a, b) { range(0, len(a)) |&gt; count_if(|i| substr(a, i, 1) != substr(b, i, 1)) }
+
+let found = sort(patterns |&gt; flat_map(|pattern|
+    range(0, len(text) - len(pattern) + 1)
+        |&gt; filter(|start| mismatches(substr(text, start, len(pattern)), pattern) &lt;= allowed)))
+
+println(&quot;Result:   &quot; + (found |&gt; map(|p| str(p)) |&gt; join(&quot; &quot;)))
+println(&quot;Expected: 2 4 4 6 7 8 9&quot;)
+
+fn test_ba9o_approximate_matching() {
+    assert (found |&gt; map(|p| str(p)) |&gt; join(&quot; &quot;)) == &quot;2 4 4 6 7 8 9&quot;, &quot;BA9O: got &quot; + str(found)
+    # 4 appears twice because two different patterns match there — the answer
+    # lists occurrences, not distinct positions.
+    assert (found |&gt; count_if(|p| p == 4)) == 2, &quot;BA9O: two patterns match at position 4&quot;
+    # Every reported position really is within d.
+    for position in found {
+        let close = patterns |&gt; filter(|p|
+            position + len(p) &lt;= len(text)
+            and mismatches(substr(text, position, len(p)), p) &lt;= allowed)
+        assert len(close) &gt; 0, &quot;BA9O: nothing is within &quot; + str(allowed) + &quot; at &quot; + str(position)
+    }
+    # And exact matching alone would find fewer, which is why d matters.
+    let exact = patterns |&gt; flat_map(|p|
+        range(0, len(text) - len(p) + 1) |&gt; filter(|s| substr(text, s, len(p)) == p))
+    assert len(exact) &lt; len(found), &quot;BA9O: allowing a mismatch should find more&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9p" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9P &mdash; Implement TreeColoring</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9p/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9P" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9p.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">How BA9E's shared-substring question is answered on a generalised suffix tree: colour leaves by which string they came from, and an internal node goes purple exactly when its substring occurs in both.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9P — Implement TreeColoring
+# https://rosalind.info/problems/ba9p/
+#
+# Given: The adjacency list of a suffix tree and the colours of its leaves.
+# Return: The colour of every node.
+
+let children = {
+    &quot;0&quot;: [], &quot;1&quot;: [], &quot;2&quot;: [&quot;0&quot;, &quot;1&quot;], &quot;3&quot;: [], &quot;4&quot;: [],
+    &quot;5&quot;: [&quot;3&quot;, &quot;2&quot;], &quot;6&quot;: [], &quot;7&quot;: [&quot;4&quot;, &quot;5&quot;, &quot;6&quot;],
+}
+let leaf_colours = { &quot;0&quot;: &quot;red&quot;, &quot;1&quot;: &quot;red&quot;, &quot;3&quot;: &quot;blue&quot;, &quot;4&quot;: &quot;blue&quot;, &quot;6&quot;: &quot;red&quot; }
+
+# This is how BA9E's shared-substring question is answered on a generalised
+# suffix tree: leaves are coloured by which string they came from, and an
+# internal node ends up purple exactly when the substring it spells occurs in
+# both. So a colouring pass turns &quot;which substrings are shared&quot; into a property
+# readable off the tree.
+#
+# A node is ripe when every child is already coloured. Working outwards from the
+# leaves means each node is decided once, and a node with children of differing
+# colours becomes purple regardless of which colours they were.
+let colours = {}
+for node in keys(leaf_colours) { colours[node] = leaf_colours[node] }
+
+let uncoloured = keys(children) |&gt; filter(|node| contains(keys(colours), node) == false)
+while len(uncoloured) &gt; 0 {
+    let ripe = uncoloured |&gt; filter(|node|
+        (children[node] |&gt; count_if(|kid| contains(keys(colours), kid) == false)) == 0)
+    for node in ripe {
+        let kid_colours = children[node] |&gt; map(|kid| colours[kid]) |&gt; unique()
+        colours[node] = if len(kid_colours) == 1 then kid_colours[0] else &quot;purple&quot;
+    }
+    uncoloured = uncoloured |&gt; filter(|node| contains(keys(colours), node) == false)
+}
+
+let listed = sort(keys(colours) |&gt; map(|k| int(k))) |&gt; map(|node|
+    str(node) + &quot;: &quot; + colours[str(node)])
+
+println(&quot;Result:&quot;)
+for line in listed { println(&quot;  &quot; + line) }
+println(&quot;Expected: 0 red, 1 red, 2 red, 3 blue, 4 blue, 5 purple, 6 red, 7 purple&quot;)
+
+fn test_ba9p_tree_colouring() {
+    assert join(listed, &quot;, &quot;)
+        == &quot;0: red, 1: red, 2: red, 3: blue, 4: blue, 5: purple, 6: red, 7: purple&quot;,
+        &quot;BA9P: got &quot; + join(listed, &quot;, &quot;)
+    # Node 2's children are both red, so it inherits; node 5 has a red child and
+    # a blue one, so it cannot and becomes purple. That distinction is the whole
+    # algorithm.
+    assert colours[&quot;2&quot;] == &quot;red&quot;, &quot;BA9P: 2 inherits from two red children&quot;
+    assert colours[&quot;5&quot;] == &quot;purple&quot;, &quot;BA9P: 5 has children of different colours&quot;
+    # Every node is coloured, and purple appears only where children disagree.
+    assert len(keys(colours)) == len(keys(children)), &quot;BA9P: every node needs a colour&quot;
+    for node in keys(children) {
+        if len(children[node]) &gt; 0 {
+            let kid_colours = children[node] |&gt; map(|kid| colours[kid]) |&gt; unique()
+            let should_be_purple = len(kid_colours) &gt; 1
+            assert (colours[node] == &quot;purple&quot;) == should_be_purple,
+                &quot;BA9P: node &quot; + node + &quot; is wrongly coloured &quot; + colours[node]
+        }
+    }
+}</code></pre>
+        </section>
+
+        <section id="ba9r" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9R &mdash; Construct a Suffix Tree from a Suffix Array</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9r/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9R" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9r.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">BA9C built the tree by collapsing a suffix trie, which is quadratic before the collapse. The suffix and LCP arrays carry the same information in two flat integer arrays and rebuild the tree in one pass — which is why real tools store the arrays and never materialise the tree.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9R — Construct a Suffix Tree from a Suffix Array
+# https://rosalind.info/problems/ba9r/
+#
+# Given: A string, its suffix array and its LCP array.
+# Return: The edge labels of the suffix tree, in any order.
+
+let text = &quot;GTAGT$&quot;
+
+# BA9C built the tree by inserting every suffix into a trie and collapsing it,
+# which costs O(n^2) time and memory before the collapse. The suffix array and
+# LCP array carry the same information in two flat integer arrays, and the tree
+# can be rebuilt from them in one left-to-right pass — so a structure that was
+# quadratic to build becomes linear given arrays that are themselves linear.
+#
+# That is why real tools store the arrays and never materialise the tree.
+let sa = suffix_array(text)
+let lcp = lcp_array(text)
+
+println(&quot;Suffix array: &quot; + (sa |&gt; map(|v| str(v)) |&gt; join(&quot;, &quot;)))
+println(&quot;LCP array:    &quot; + (lcp |&gt; map(|v| str(v)) |&gt; join(&quot;, &quot;)))
+
+# Two passes, because a leaf's edge depends on what comes *after* it as well as
+# before. The node a leaf hangs from sits at depth max(lcp[i], lcp[i+1]) — the
+# deeper of what it shares with either neighbour — so the leaf edge is whatever
+# is left of the suffix below that depth.
+let leaf_labels = range(0, len(sa)) |&gt; map(|i| {
+    let before = if i == 0 then 0 else lcp[i]
+    let after = if i + 1 &lt; len(sa) then lcp[i + 1] else 0
+    let depth = max([before, after])
+    substr(text, sa[i] + depth, len(text) - sa[i] - depth)
+})
+
+# The internal nodes come from the LCP array alone: a run of suffixes sharing a
+# prefix of length L hangs off one node at depth L, and a stack tracks which are
+# still open as the array is scanned.
+let internal_labels = []
+let stack = [{ depth: 0, start: 0 }]
+for i in range(1, len(sa)) {
+    let shared = lcp[i]
+    let last_start = sa[i]
+    while stack[len(stack) - 1].depth &gt; shared {
+        let closing = stack[len(stack) - 1]
+        stack = slice(stack, 0, len(stack) - 1)
+        let parent_depth = max([stack[len(stack) - 1].depth, shared])
+        internal_labels = push(internal_labels,
+            substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+        last_start = closing.start
+    }
+    if stack[len(stack) - 1].depth &lt; shared {
+        stack = push(stack, { depth: shared, start: last_start })
+    }
+}
+while len(stack) &gt; 1 {
+    let closing = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    let parent_depth = stack[len(stack) - 1].depth
+    internal_labels = push(internal_labels,
+        substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+}
+
+let labels = leaf_labels + internal_labels
+
+println(&quot;Result:   &quot; + join(sort(labels), &quot; &quot;))
+println(&quot;Expected (any order): $ T AGT$ $ AGT$ GT $ AGT$&quot;)
+
+fn test_ba9r_suffix_tree_from_arrays() {
+    let expected = [&quot;$&quot;, &quot;T&quot;, &quot;AGT$&quot;, &quot;$&quot;, &quot;AGT$&quot;, &quot;GT&quot;, &quot;$&quot;, &quot;AGT$&quot;]
+    assert sort(labels) == sort(expected), &quot;BA9R: got &quot; + join(sort(labels), &quot; &quot;)
+    assert len(labels) == 8, &quot;BA9R: expected 8 edges, got &quot; + str(len(labels))
+    # One leaf per suffix, and every leaf edge ends at the sentinel.
+    assert len(leaf_labels) == len(text), &quot;BA9R: one leaf per suffix&quot;
+    for label in leaf_labels {
+        assert substr(label, len(label) - 1, 1) == &quot;$&quot;, &quot;BA9R: a leaf edge must reach the end&quot;
+    }
+    # The internal edges are the shared prefixes: GT and T, each shared by two
+    # suffixes.
+    assert sort(internal_labels) == [&quot;GT&quot;, &quot;T&quot;], &quot;BA9R: got internals &quot; + str(internal_labels)
+    # Every label is a real substring of the text.
+    for label in labels {
+        assert contains(text, label), &quot;BA9R: &quot; + label + &quot; is not in the text&quot;
+    }
 }</code></pre>
         </section>
       </article>

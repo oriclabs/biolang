@@ -1,0 +1,32 @@
+# Rosalind: BA4F — Compute the Score of a Cyclic Peptide Against a Spectrum
+# https://rosalind.info/problems/ba4f/
+#
+# Given: An amino acid string Peptide and a collection of integers Spectrum.
+# Return: Score(Peptide, Spectrum).
+
+let peptide = "NQEL"
+let observed = [0, 99, 113, 114, 128, 227, 257, 299, 355, 356, 370, 371, 484]
+
+# Real spectra are missing masses the peptide should produce and contain masses
+# it should not — noise and incomplete fragmentation — so an exact match is not
+# available and the question becomes how many masses agree.
+#
+# Multiplicity counts. A mass appearing twice in both spectra scores two; treating
+# the spectra as sets would score a peptide that explains a repeated mass once as
+# generously as one that explains it fully.
+let score = spectrum_score(cyclic_spectrum(peptide), observed)
+
+println("Result:   " + str(score))
+println("Expected: 11")
+
+fn test_ba4f_cyclopeptide_scoring() {
+    assert score == 11, "BA4F: got " + str(score)
+    # 99 is in the observed spectrum but not in the peptide's — that is the noise
+    # the score has to tolerate.
+    assert contains(observed, 99), "BA4F: the sample contains a mass NQEL cannot make"
+    assert contains(cyclic_spectrum(peptide), 99) == false, "BA4F: NQEL makes no 99"
+    # A peptide always scores fully against its own spectrum.
+    let perfect = cyclic_spectrum(peptide)
+    assert spectrum_score(perfect, perfect) == len(perfect),
+        "BA4F: a spectrum should match itself completely"
+}

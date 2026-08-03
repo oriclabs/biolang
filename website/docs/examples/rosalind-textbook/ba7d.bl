@@ -1,0 +1,112 @@
+# Rosalind: BA7D — Implement UPGMA
+# https://rosalind.info/problems/ba7d/
+#
+# Given: An integer n and an n x n distance matrix.
+# Return: The adjacency list of the ultrametric tree UPGMA builds.
+
+let leaf_count = 4
+let distances = [
+    [0, 20, 17, 11],
+    [20, 0, 20, 13],
+    [17, 20, 0, 10],
+    [11, 13, 10, 0],
+]
+
+# Hierarchical clustering with heights attached. Each new node is placed at half
+# the distance between the two clusters it joins, so every leaf ends up the same
+# distance from the root — that is what "ultrametric" means, and it amounts to
+# assuming a molecular clock: every lineage evolving at the same rate.
+#
+# That assumption is often wrong, which is what BA7E's neighbour joining exists to
+# avoid. UPGMA is here to show what the simpler assumption costs.
+let clusters = range(0, leaf_count) |> map(|i| [i])
+let sizes = range(0, leaf_count) |> map(|_| 1)
+let ages = range(0, leaf_count) |> map(|_| 0.0)
+let live = range(0, leaf_count)
+let separation = distances |> map(|line| line |> map(|d| d * 1.0))
+let next_id = leaf_count
+let adjacency = {}
+
+fn connect(graph, a, b, weight) {
+    let entry = { to_node: str(b), weight: round(weight, 3) }
+    if contains(keys(graph), str(a)) {
+        graph[str(a)] = push(graph[str(a)], entry)
+    } else {
+        graph[str(a)] = [entry]
+    }
+    graph
+}
+
+while len(live) > 1 {
+    # The closest pair of clusters, by average distance.
+    let best_a = live[0]
+    let best_b = live[1]
+    let best = separation[best_a][best_b]
+    for a in live {
+        for b in live {
+            if a < b and separation[a][b] < best {
+                best = separation[a][b]
+                best_a = a
+                best_b = b
+            }
+        }
+    }
+
+    # The new node sits half the distance up, and each child's limb is whatever
+    # is left after its own age.
+    let age = best / 2
+    adjacency = connect(adjacency, next_id, best_a, age - ages[best_a])
+    adjacency = connect(adjacency, best_a, next_id, age - ages[best_a])
+    adjacency = connect(adjacency, next_id, best_b, age - ages[best_b])
+    adjacency = connect(adjacency, best_b, next_id, age - ages[best_b])
+
+    # Average distance from the merged cluster to everything else, weighted by
+    # how many leaves each side holds.
+    let merged_size = sizes[best_a] + sizes[best_b]
+    let row = range(0, next_id + 1) |> map(|_| 0.0)
+    for other in live {
+        if other != best_a and other != best_b {
+            row[other] = (separation[best_a][other] * sizes[best_a]
+                        + separation[best_b][other] * sizes[best_b]) / merged_size
+        }
+    }
+    separation = push(separation, row)
+    for other in live {
+        if other != best_a and other != best_b {
+            separation[other] = push(separation[other], row[other])
+        }
+    }
+
+    sizes = push(sizes, merged_size)
+    ages = push(ages, age)
+    live = (live |> filter(|node| node != best_a and node != best_b)) + [next_id]
+    next_id = next_id + 1
+}
+
+let listed = sort(keys(adjacency)) |> flat_map(|node|
+    adjacency[node] |> map(|edge| node + "->" + edge.to_node + ":" + str(round(edge.weight, 3))))
+
+println("Result:")
+for line in listed { println("  " + line) }
+println("Expected: 0->5:7.000, 1->6:8.833, 2->4:5.000, 3->4:5.000, 4->5:2.000, 5->6:1.833")
+
+fn test_ba7d_upgma() {
+    # Every edge, checked by name so ordering does not matter.
+    # Rosalind prints these to three decimals; BioLang prints the shortest exact
+    # form, so 7.000 shows as 7.0. The values are the same.
+    let want = ["0->5:7.0", "5->0:7.0", "1->6:8.833", "6->1:8.833", "2->4:5.0", "4->2:5.0",
+                "3->4:5.0", "4->3:5.0", "4->5:2.0", "5->4:2.0", "5->6:1.833", "6->5:1.833"]
+    assert len(listed) == len(want),
+        "BA7D: expected " + str(len(want)) + " edges, got " + str(len(listed))
+    for edge in want {
+        assert contains(listed, edge), "BA7D: missing edge " + edge
+    }
+    # Ultrametric is the claim worth checking: every leaf sits the same distance
+    # from the root. That is the molecular-clock assumption made concrete, and
+    # what BA7E drops.
+    let root_age = ages[len(ages) - 1]
+    assert abs(root_age - 8.833) < 5e-4, "BA7D: the root sits at " + str(round(root_age, 3))
+    assert abs((7.0 + 1.833) - root_age) < 5e-3, "BA7D: leaf 0 reaches it via node 5"
+    assert abs((5.0 + 2.0 + 1.833) - root_age) < 5e-3, "BA7D: leaf 2 via nodes 4 and 5"
+    assert abs(8.833 - root_age) < 5e-4, "BA7D: leaf 1 reaches it directly"
+}

@@ -1110,3 +1110,143 @@ status = "solved"
 asserted = true
 note = "BA6H, BA6J and BA6I assembled. This particular break is a fission. The result reads each chromosome in the opposite direction from the published answer, so the assertion canonicalises over rotation and reflection — a circular chromosome read backwards flips every sign and is still the same chromosome."
 topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA11A"
+title = "Construct the Graph of a Spectrum"
+file = "examples/ba11a.bl"
+url = "https://rosalind.info/problems/ba11a/"
+status = "solved"
+asserted = true
+note = "Reading a peptide off a spectrum rather than guessing peptides and scoring them as BA4 did. Every path from 0 to the heaviest mass spells a candidate, so sequencing becomes a path problem instead of a search over 20^n peptides."
+topics = ["mass-spectrometry", "graphs"]
+
+[[problem]]
+id = "BA11B"
+title = "Implement DecodingIdealSpectrum"
+file = "examples/ba11b.bl"
+url = "https://rosalind.info/problems/ba11b/"
+status = "solved"
+asserted = true
+note = "A spectrum holds prefix and suffix masses mixed together, so not every path is an answer — each candidate is rebuilt and checked. GPFNA and its reverse ANFPG both survive, because reversing a peptide only swaps which masses are prefixes."
+topics = ["mass-spectrometry", "graphs"]
+
+[[problem]]
+id = "BA11C"
+title = "Convert a Peptide into a Peptide Vector"
+file = "examples/ba11c.bl"
+url = "https://rosalind.info/problems/ba11c/"
+status = "solved"
+asserted = true
+note = "Puts a peptide in the same shape as a spectrum so the two can be compared by a dot product — which is what makes scoring one multiplication per position and finding the best peptide a path problem."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA11D"
+title = "Convert a Peptide Vector into a Peptide"
+file = "examples/ba11d.bl"
+url = "https://rosalind.info/problems/ba11d/"
+status = "solved"
+asserted = true
+note = "The inverse of BA11C: gaps between consecutive 1s are the residue masses, so nothing has to be searched for. Asserted by round-tripping."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA11E"
+title = "Sequence a Peptide"
+file = "examples/ba11e.bl"
+url = "https://rosalind.info/problems/ba11e/"
+status = "solved"
+asserted = true
+note = "The heaviest path through a graph of prefix positions. Negative entries matter — a spectral vector is measurement, not a count, so a path is penalised for claiming a prefix the data argues against, which is what stops the answer being simply the longest path."
+topics = ["mass-spectrometry", "dynamic-programming"]
+
+[[problem]]
+id = "BA11F"
+title = "Find a Highest-Scoring Peptide in a Proteome against a Spectrum"
+file = "examples/ba11f.bl"
+url = "https://rosalind.info/problems/ba11f/"
+status = "solved"
+asserted = true
+note = "The realistic version of BA11E: only substrings of a known proteome are candidates, which is how proteomics actually works and what makes the search tractable."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA11G"
+title = "Implement PSMSearch"
+file = "examples/ba11g.bl"
+url = "https://rosalind.info/problems/ba11g/"
+status = "solved"
+asserted = true
+note = "A real experiment produces thousands of spectra, most matching nothing. The threshold is what separates them — without it every spectrum gets a peptide and most assignments are wrong. One of the two sample spectra is correctly left unassigned."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA11H"
+title = "Compute the Size of a Spectral Dictionary"
+file = "examples/ba11h.bl"
+url = "https://rosalind.info/problems/ba11h/"
+status = "solved"
+asserted = true
+note = "If thousands of peptides would score as well, a high score means nothing. Counted rather than enumerated, for the same reason as BA4D — and cross-checked here against brute-force enumeration, which is only possible because this vector is tiny."
+topics = ["mass-spectrometry", "dynamic-programming"]
+
+[[problem]]
+id = "BA11I"
+title = "Compute the Probability of a Spectral Dictionary"
+file = "examples/ba11i.bl"
+url = "https://rosalind.info/problems/ba11i/"
+status = "solved"
+asserted = true
+note = "What turns a match into evidence: a score of 8 means nothing alone, a score only 0.375 of random peptides reach means something. Asserted to agree with BA11H — three length-3 peptides at (1/2)^3 each."
+topics = ["mass-spectrometry", "dynamic-programming"]
+
+[[problem]]
+id = "BA11J"
+title = "Find a Highest-Scoring Modified Peptide against a Spectrum"
+file = "examples/ba11j.bl"
+url = "https://rosalind.info/problems/ba11j/"
+status = "solved"
+asserted = true
+note = "Proteins are modified after they are made, so a modified peptide's spectrum matches nothing under exact search. XXZ weighs 13 against a vector of length 14, so at least one modification is forced — which the assertion checks rather than taking on trust."
+topics = ["mass-spectrometry", "dynamic-programming"]
+
+[[problem]]
+id = "BA3K"
+title = "Generate Contigs from a Collection of Reads"
+file = "examples/ba3k.bl"
+url = "https://rosalind.info/problems/ba3k/"
+status = "solved"
+asserted = true
+note = "What assembly actually produces. BA3H asked for the genome, which needs an Eulerian path to exist and be unique — real data gives neither. Where the graph branches the reads genuinely do not say which way the genome went, so the honest output is the unambiguous stretches and no more."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA3L"
+title = "Construct a String Spelled by a Gapped Genome Path"
+file = "examples/ba3l.bl"
+url = "https://rosalind.info/problems/ba3l/"
+status = "solved"
+asserted = true
+note = "BA3J had to find the path; here it is given, so what remains is the overlap check — a path whose two halves disagree spells nothing at all, however valid it looked in the graph."
+topics = ["assembly"]
+
+[[problem]]
+id = "BA3M"
+title = "Generate All Maximal Non-Branching Paths in a Graph"
+file = "examples/ba3m.bl"
+url = "https://rosalind.info/problems/ba3m/"
+status = "solved"
+asserted = true
+note = "A run of 1-in-1-out nodes carries no choice, so collapsing it loses nothing; everywhere else is a real branch. The isolated cycle has no non-branching start and is only found by a second pass — without it, it would be silently dropped. Reported from 6 rather than 7, since a cycle has no first node."
+topics = ["graphs", "assembly"]
+
+[[problem]]
+id = "BA9R"
+title = "Construct a Suffix Tree from a Suffix Array"
+file = "examples/ba9r.bl"
+url = "https://rosalind.info/problems/ba9r/"
+status = "solved"
+asserted = true
+note = "BA9C built the tree by collapsing a suffix trie, which is quadratic before the collapse. The suffix and LCP arrays carry the same information in two flat integer arrays and rebuild the tree in one pass — which is why real tools store the arrays and never materialise the tree."
+topics = ["strings", "suffix-structures"]

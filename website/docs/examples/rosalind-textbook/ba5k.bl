@@ -1,0 +1,94 @@
+# Rosalind: BA5K — Find a Middle Edge in an Alignment Graph in Linear Space
+# https://rosalind.info/problems/ba5k/
+#
+# Given: Two amino acid strings.
+# Return: A middle edge of their alignment graph, scored with BLOSUM62 and a
+# linear indel penalty of 5.
+
+let first_string = "PLEASANTLY"
+let second_string = "MEASNLY"
+let blosum = score_matrix("BLOSUM62")
+let gap = 5
+
+# The idea behind Hirschberg's algorithm. A full alignment table costs O(nm)
+# memory, which for two chromosomes is not available. But one *column* of it
+# costs O(n), and that is enough to find where the best alignment crosses the
+# middle column — from which the problem splits in two and recurses.
+#
+# The score of the best path through a node is the best path into it plus the
+# best path out of it, so two linear-space sweeps meeting in the middle locate
+# the crossing without ever holding the table.
+let middle = floor(len(second_string) / 2)
+
+# One forward column: best score from (0,0) to each row of column `upto`.
+fn forward_column(rows, columns, upto, matrix, indel) {
+    let column = range(0, len(rows) + 1) |> map(|i| 0 - i * indel)
+    for j in range(1, upto + 1) {
+        let next = [0 - j * indel]
+        for i in range(1, len(rows) + 1) {
+            let diagonal = column[i - 1]
+                + substitution_score(matrix, substr(rows, i - 1, 1), substr(columns, j - 1, 1))
+            let down = next[i - 1] - indel
+            let across = column[i] - indel
+            next = push(next, max([diagonal, down, across]))
+        }
+        column = next
+    }
+    column
+}
+
+# The backward sweep is the forward one on both strings reversed, which is why
+# only one direction has to be written.
+let from_source = forward_column(first_string, second_string, middle, blosum, gap)
+let to_sink_reversed = forward_column(reverse(first_string), reverse(second_string),
+                                      len(second_string) - middle, blosum, gap)
+let to_sink = reverse(to_sink_reversed)
+
+let totals = range(0, len(first_string) + 1) |> map(|i| from_source[i] + to_sink[i])
+let middle_row = argmax(totals)
+
+# Which way the best path leaves the middle node. Three continuations are
+# possible; the middle edge is whichever is best, and for this pair it is the
+# diagonal one.
+let beyond = forward_column(reverse(first_string), reverse(second_string),
+                            len(second_string) - middle - 1, blosum, gap) |> reverse()
+
+let at_bottom = middle_row == len(first_string)
+
+let across = { row: middle_row, column: middle + 1, score: beyond[middle_row] - gap }
+let down = {
+    row: middle_row + 1,
+    column: middle,
+    score: if at_bottom then 0 - 1000000 else to_sink[middle_row + 1] - gap,
+}
+let diagonal = {
+    row: middle_row + 1,
+    column: middle + 1,
+    score: if at_bottom then 0 - 1000000 else beyond[middle_row + 1]
+        + substitution_score(blosum, substr(first_string, middle_row, 1), substr(second_string, middle, 1)),
+}
+
+let ranked = [diagonal, across, down] |> sort_by(|option| 0 - option.score)
+let best_edge = ranked[0]
+
+println("Result:   (" + str(middle_row) + ", " + str(middle) + ") ("
+        + str(best_edge.row) + ", " + str(best_edge.column) + ")")
+println("Expected: (4, 3) (5, 4)")
+
+fn test_ba5k_middle_edge() {
+    assert middle == 3, "BA5K: the middle column of a 7-long string is 3"
+    assert middle_row == 4, "BA5K: got middle row " + str(middle_row)
+    assert best_edge.row == 5 and best_edge.column == 4,
+        "BA5K: got end (" + str(best_edge.row) + ", " + str(best_edge.column) + ")"
+    # The middle node must lie on a best alignment, so the best path through it
+    # scores exactly what the full alignment scores. That is the property the
+    # whole linear-space method depends on.
+    let full = align(protein(first_string), protein(second_string), "global", 0, 0, 0 - gap, 0, "blosum62")
+    assert totals[middle_row] == full.score,
+        "BA5K: the middle node scores " + str(totals[middle_row])
+            + " but the alignment scores " + str(full.score)
+    # And no row beats it.
+    for i in range(0, len(totals)) {
+        assert totals[i] <= totals[middle_row], "BA5K: row " + str(i) + " scores higher"
+    }
+}
