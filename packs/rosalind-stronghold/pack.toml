@@ -924,3 +924,13 @@ status = "solved"
 asserted = true
 note = "The answer is C(n,4), and the reason matters more than the number: in a fully resolved tree any four taxa are separated into two pairs by some edge, so the shape never enters into it. The assertion enumerates all 15 subsets and confirms it rather than trusting the formula."
 topics = ["phylogeny", "combinatorics"]
+
+[[problem]]
+id = "QRT"
+title = "Quartets"
+file = "examples/qrt.bl"
+url = "https://rosalind.info/problems/qrt/"
+status = "solved"
+asserted = true
+note = "An 'x' means not scored, not a third state — so a partial character still separates the taxa it did see, and missing data does not make it useless. Quartets are recorded canonically because neither side nor the order within a side carries meaning, and two characters often support the same one."
+topics = ["phylogeny"]
