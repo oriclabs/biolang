@@ -950,3 +950,53 @@ status = "solved"
 asserted = true
 note = "A full suffix array of a human genome is 12 GB before the sequence itself. Keeping every Kth value cuts that by a factor of K, with the rest recoverable by walking the BWT — the compromise real read aligners ship with."
 topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9C"
+title = "Construct the Suffix Tree of a String"
+file = "examples/ba9c.bl"
+url = "https://rosalind.info/problems/ba9c/"
+status = "solved"
+asserted = true
+note = "A trie of every suffix with non-branching chains collapsed. That collapse is what makes it linear rather than quadratic — a trie of all suffixes has O(n^2) nodes and almost all have one child. Built directly here; Ukkonen's algorithm is linear but obscures the structure at this size."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9F"
+title = "Find the Shortest Non-Shared Substring of Two Strings"
+file = "examples/ba9f.bl"
+url = "https://rosalind.info/problems/ba9f/"
+status = "solved"
+asserted = true
+note = "Shortest first, which makes the answer minimal by construction: if a substring of length k is absent, everything containing it is absent too. Returns CC where the sample shows AA; the assertion proves no one-character answer exists."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9N"
+title = "Find All Occurrences of a Collection of Patterns in a String"
+file = "examples/ba9n.bl"
+url = "https://rosalind.info/problems/ba9n/"
+status = "solved"
+asserted = true
+note = "BA9L and BA9M count occurrences without locating them, because a BWT band gives rows of the sorted matrix rather than text positions. Turning a row back into a position is what the suffix array supplies — the partial one of BA9Q in a real aligner, since the full one would undo the memory saving."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9O"
+title = "Find All Approximate Occurrences of a Collection of Patterns in a String"
+file = "examples/ba9o.bl"
+url = "https://rosalind.info/problems/ba9o/"
+status = "solved"
+asserted = true
+note = "Reads carry errors and genomes carry variants, so exact matching finds nothing useful and every aligner is an approximate matcher. Position 4 appears twice because two patterns match there — the answer lists occurrences, not distinct positions."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9P"
+title = "Implement TreeColoring"
+file = "examples/ba9p.bl"
+url = "https://rosalind.info/problems/ba9p/"
+status = "solved"
+asserted = true
+note = "How BA9E's shared-substring question is answered on a generalised suffix tree: colour leaves by which string they came from, and an internal node goes purple exactly when its substring occurs in both."
+topics = ["strings", "suffix-structures", "graphs"]
