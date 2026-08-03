@@ -1,0 +1,33 @@
+# Rosalind: BA4C — Generate the Theoretical Spectrum of a Cyclic Peptide
+# https://rosalind.info/problems/ba4c/
+#
+# Given: An amino acid string Peptide.
+# Return: Cyclospectrum(Peptide).
+
+let peptide = "LEQN"
+
+# A mass spectrometer breaks many copies of a peptide at every position and
+# weighs the pieces. For a cyclic peptide the pieces include those that wrap past
+# the end, so LEQN contributes QNL and NLE as well as the obvious subpeptides —
+# and each wrapping piece is exactly the complement of a non-wrapping one.
+let spectrum = cyclic_spectrum(peptide)
+
+println("Result:   " + (spectrum |> map(|m| str(m)) |> join(" ")))
+println("Expected: 0 113 114 128 129 227 242 242 257 355 356 370 371 484")
+
+fn test_ba4c_cyclic_spectrum() {
+    assert (spectrum |> map(|m| str(m)) |> join(" "))
+        == "0 113 114 128 129 227 242 242 257 355 356 370 371 484",
+        "BA4C: got " + str(spectrum)
+    # A cyclic peptide of length n has n(n-1) proper subpeptides, plus 0 and the
+    # whole peptide.
+    let n = len(peptide)
+    assert len(spectrum) == n * (n - 1) + 2,
+        "BA4C: expected " + str(n * (n - 1) + 2) + " masses, got " + str(len(spectrum))
+    assert spectrum[0] == 0, "BA4C: the empty piece weighs nothing"
+    assert spectrum[len(spectrum) - 1] == peptide_mass(peptide),
+        "BA4C: the heaviest piece is the whole peptide"
+    # 242 twice is not a mistake: LE and QN both weigh 242, and a spectrum
+    # records both.
+    assert (spectrum |> count_if(|m| m == 242)) == 2, "BA4C: LE and QN both weigh 242"
+}

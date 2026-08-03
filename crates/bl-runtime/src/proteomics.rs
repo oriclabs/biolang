@@ -13,6 +13,12 @@ pub fn proteomics_builtin_list() -> Vec<(&'static str, Arity)> {
         ("quantile_normalize", Arity::Exact(1)),
         ("impute_minvalue", Arity::Range(1, 2)),
         ("protein_ttest", Arity::Exact(3)),
+        ("linear_spectrum", Arity::Exact(1)),
+        ("cyclic_spectrum", Arity::Exact(1)),
+        ("spectrum_score", Arity::Exact(2)),
+        ("spectrum_convolution", Arity::Exact(1)),
+        ("amino_acid_masses", Arity::Exact(0)),
+        ("peptide_mass", Arity::Exact(1)),
         ("volcano_data", Arity::Range(1, 3)),
     ]
 }
@@ -21,6 +27,12 @@ pub fn is_proteomics_builtin(name: &str) -> bool {
     matches!(
         name,
         "load_maxquant"
+            | "linear_spectrum"
+            | "cyclic_spectrum"
+            | "spectrum_score"
+            | "spectrum_convolution"
+            | "amino_acid_masses"
+            | "peptide_mass"
             | "log2_transform"
             | "quantile_normalize"
             | "impute_minvalue"
@@ -36,6 +48,12 @@ pub fn call_proteomics_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "quantile_normalize" => builtin_quantile_normalize(args),
         "impute_minvalue" => builtin_impute_minvalue(args),
         "protein_ttest" => builtin_protein_ttest(args),
+        "linear_spectrum" => builtin_linear_spectrum(args),
+        "cyclic_spectrum" => builtin_cyclic_spectrum(args),
+        "spectrum_score" => builtin_spectrum_score(args),
+        "spectrum_convolution" => builtin_spectrum_convolution(args),
+        "amino_acid_masses" => builtin_amino_acid_masses(args),
+        "peptide_mass" => builtin_peptide_mass(args),
         "volcano_data" => builtin_volcano_data(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
@@ -524,4 +542,200 @@ fn builtin_volcano_data(args: Vec<Value>) -> Result<Value> {
         .collect();
 
     Ok(Value::Table(Table::new(new_cols, new_rows)))
+}
+
+// ── Theoretical spectra ──────────────────────────────────────────────
+//
+// A mass spectrometer breaks copies of a peptide at every position and weighs
+// the pieces; sequencing runs that backwards. Peptides are lists of integer
+// masses rather than letters, because leucine and isoleucine both weigh 113 and
+// glutamine and lysine both weigh 128 — carrying letters would promise a
+// resolution the data does not have.
+
+use bl_core::bio_core::spectrum as core_spectrum;
+
+fn read_masses(value: &Value, func: &str) -> Result<Vec<u32>> {
+    match value {
+        // A peptide written as letters is a convenience; the masses are what
+        // the algorithms use.
+        Value::Str(text) => core_spectrum::masses_of(text).ok_or_else(|| {
+            BioLangError::type_error(
+                format!("{func}(): '{text}' contains a residue with no known mass"),
+                None,
+            )
+        }),
+        Value::Protein(seq) => core_spectrum::masses_of(&seq.data).ok_or_else(|| {
+            BioLangError::type_error(
+                format!("{func}(): the peptide contains a residue with no known mass"),
+                None,
+            )
+        }),
+        Value::List(items) => items
+            .iter()
+            .map(|item| match item {
+                Value::Int(n) if *n >= 0 => Ok(*n as u32),
+                Value::Int(n) => Err(BioLangError::type_error(
+                    format!("{func}(): a mass cannot be negative, got {n}"),
+                    None,
+                )),
+                Value::Float(f) if *f >= 0.0 && f.fract() == 0.0 => Ok(*f as u32),
+                Value::Float(f) => Err(BioLangError::type_error(
+                    format!("{func}(): masses are integer daltons here, got {f} — round it first"),
+                    None,
+                )),
+                other => Err(BioLangError::type_error(
+                    format!("{func}(): masses must be numbers, got {}", other.type_of()),
+                    None,
+                )),
+            })
+            .collect(),
+        other => Err(BioLangError::type_error(
+            format!(
+                "{func}() requires a peptide string or a list of masses, got {}",
+                other.type_of()
+            ),
+            None,
+        )),
+    }
+}
+
+fn to_int_list(values: Vec<u32>) -> Value {
+    Value::List(
+        values
+            .into_iter()
+            .map(|v| Value::Int(i64::from(v)))
+            .collect::<Vec<_>>()
+            .into(),
+    )
+}
+
+/// `linear_spectrum(peptide)` — every contiguous subpeptide's mass, sorted.
+fn builtin_linear_spectrum(args: Vec<Value>) -> Result<Value> {
+    let peptide = read_masses(&args[0], "linear_spectrum")?;
+    Ok(to_int_list(core_spectrum::linear_spectrum(&peptide)))
+}
+
+/// `cyclic_spectrum(peptide)` — the same for a peptide joined end to end, which
+/// additionally contains every piece that wraps past the end.
+fn builtin_cyclic_spectrum(args: Vec<Value>) -> Result<Value> {
+    let peptide = read_masses(&args[0], "cyclic_spectrum")?;
+    Ok(to_int_list(core_spectrum::cyclic_spectrum(&peptide)))
+}
+
+/// `spectrum_score(theoretical, observed)` — how many masses the two share,
+/// counting multiplicity.
+///
+/// A mass appearing twice in both counts twice. Set intersection would score a
+/// peptide explaining a repeated mass once as well as one explaining it fully.
+fn builtin_spectrum_score(args: Vec<Value>) -> Result<Value> {
+    let theoretical = read_masses(&args[0], "spectrum_score")?;
+    let observed = read_masses(&args[1], "spectrum_score")?;
+    Ok(Value::Int(
+        core_spectrum::score(&theoretical, &observed) as i64
+    ))
+}
+
+/// `spectrum_convolution(spectrum)` — every positive pairwise difference,
+/// sorted.
+///
+/// Differences between fragment masses are themselves residue masses, so the
+/// commonest ones are what the peptide is most likely built from — which is how
+/// an unknown peptide is sequenced without assuming the standard twenty.
+fn builtin_spectrum_convolution(args: Vec<Value>) -> Result<Value> {
+    let spectrum = read_masses(&args[0], "spectrum_convolution")?;
+    Ok(to_int_list(core_spectrum::convolution(&spectrum)))
+}
+
+/// `amino_acid_masses()` — the 18 distinct integer residue masses.
+fn builtin_amino_acid_masses(_args: Vec<Value>) -> Result<Value> {
+    Ok(to_int_list(core_spectrum::distinct_masses()))
+}
+
+/// `peptide_mass(peptide)` — the total mass of a peptide.
+fn builtin_peptide_mass(args: Vec<Value>) -> Result<Value> {
+    let peptide = read_masses(&args[0], "peptide_mass")?;
+    Ok(Value::Int(peptide.iter().map(|&m| i64::from(m)).sum()))
+}
+
+#[cfg(test)]
+mod spectrum_tests {
+    use super::*;
+
+    fn ints(value: &Value) -> Vec<i64> {
+        match value {
+            Value::List(items) => items
+                .iter()
+                .map(|v| match v {
+                    Value::Int(n) => *n,
+                    other => panic!("expected an int, got {other:?}"),
+                })
+                .collect(),
+            other => panic!("expected a list, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_peptide_may_be_written_as_letters_or_masses() {
+        let from_letters =
+            builtin_cyclic_spectrum(vec![Value::Str("LEQN".into())]).expect("letters");
+        let from_masses = builtin_cyclic_spectrum(vec![Value::List(
+            vec![
+                Value::Int(113),
+                Value::Int(129),
+                Value::Int(128),
+                Value::Int(114),
+            ]
+            .into(),
+        )])
+        .expect("masses");
+        assert_eq!(from_letters, from_masses);
+        assert_eq!(
+            ints(&from_letters),
+            vec![0, 113, 114, 128, 129, 227, 242, 242, 257, 355, 356, 370, 371, 484]
+        );
+    }
+
+    #[test]
+    fn an_unknown_residue_is_reported() {
+        let error =
+            builtin_cyclic_spectrum(vec![Value::Str("LEQZ".into())]).expect_err("Z has no mass");
+        assert!(error.to_string().contains("no known mass"), "{error}");
+    }
+
+    #[test]
+    fn a_fractional_mass_says_to_round_it() {
+        // Instrument readings carry decimals; the search here is over integers,
+        // and silently truncating would shift every subsequent total.
+        let error = builtin_linear_spectrum(vec![Value::List(vec![Value::Float(113.5)].into())])
+            .expect_err("not an integer");
+        assert!(error.to_string().contains("round it first"), "{error}");
+    }
+
+    #[test]
+    fn scoring_counts_multiplicity() {
+        let peptide = Value::Str("LEQN".into());
+        let theoretical = builtin_cyclic_spectrum(vec![peptide]).unwrap();
+        let once = builtin_spectrum_score(vec![
+            theoretical.clone(),
+            Value::List(vec![Value::Int(242)].into()),
+        ])
+        .unwrap();
+        let twice = builtin_spectrum_score(vec![
+            theoretical,
+            Value::List(vec![Value::Int(242), Value::Int(242)].into()),
+        ])
+        .unwrap();
+        assert_eq!(once, Value::Int(1));
+        assert_eq!(twice, Value::Int(2));
+    }
+
+    #[test]
+    fn there_are_eighteen_masses_not_twenty() {
+        let masses = ints(&builtin_amino_acid_masses(vec![]).unwrap());
+        assert_eq!(masses.len(), 18, "I/L and K/Q collide");
+        assert_eq!(
+            builtin_peptide_mass(vec![Value::Str("LEQN".into())]).unwrap(),
+            Value::Int(484)
+        );
+    }
 }

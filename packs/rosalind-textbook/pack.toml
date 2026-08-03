@@ -610,3 +610,123 @@ status = "solved"
 asserted = true
 note = "Paired reads pin down a repeat that either read alone would be ambiguous inside. The two halves must agree wherever they overlap, and checking that agreement is what makes a wrong assembly detectable."
 topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA4B"
+title = "Find Substrings of a Genome Encoding a Given Amino Acid String"
+file = "examples/ba4b.bl"
+url = "https://rosalind.info/problems/ba4b/"
+status = "solved"
+asserted = true
+note = "A peptide can be encoded on either strand, so both are searched. ATGGCC appears twice and both occurrences count — the answer is substrings by position, not a set of distinct strings."
+topics = ["translation", "genomics"]
+
+[[problem]]
+id = "BA4C"
+title = "Generate the Theoretical Spectrum of a Cyclic Peptide"
+file = "examples/ba4c.bl"
+url = "https://rosalind.info/problems/ba4c/"
+status = "solved"
+asserted = true
+note = "A cyclic peptide's fragments include those wrapping past the end, and each wrapping piece is the complement of a non-wrapping one. 242 appears twice because LE and QN both weigh it."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4D"
+title = "Compute the Number of Peptides of Given Total Mass"
+file = "examples/ba4d.bl"
+url = "https://rosalind.info/problems/ba4d/"
+status = "solved"
+asserted = true
+note = "Counted by building up from below rather than enumerated — listing 14.7 billion peptides to count them is not an option. Eighteen residue masses, not twenty, since I/L and K/Q collide."
+topics = ["mass-spectrometry", "dynamic-programming"]
+
+[[problem]]
+id = "BA4E"
+title = "Find a Cyclic Peptide with Theoretical Spectrum Matching an Ideal Spectrum"
+file = "examples/ba4e.bl"
+url = "https://rosalind.info/problems/ba4e/"
+status = "solved"
+asserted = true
+note = "Branch and bound: a candidate whose linear spectrum contains a mass the target lacks can never recover, since growing it only adds masses. That pruning is the whole algorithm — without it the search is 18^n."
+topics = ["mass-spectrometry", "search"]
+
+[[problem]]
+id = "BA4F"
+title = "Compute the Score of a Cyclic Peptide Against a Spectrum"
+file = "examples/ba4f.bl"
+url = "https://rosalind.info/problems/ba4f/"
+status = "solved"
+asserted = true
+note = "Real spectra are missing masses and contain spurious ones, so exact matching is unavailable. Multiplicity counts: set intersection would score a peptide explaining a repeated mass once as well as one explaining it fully."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4G"
+title = "Implement LeaderboardCyclopeptideSequencing"
+file = "examples/ba4g.bl"
+url = "https://rosalind.info/problems/ba4g/"
+status = "solved"
+asserted = true
+note = "With a noisy spectrum nothing can be pruned for inconsistency — the right peptide will contain masses the spectrum lacks. Candidates survive on rank instead. Returns a reflection of the published answer; the assertion compares cyclic spectra, since a cycle has no distinguished start."
+topics = ["mass-spectrometry", "search"]
+
+[[problem]]
+id = "BA4H"
+title = "Generate the Convolution of a Spectrum"
+file = "examples/ba4h.bl"
+url = "https://rosalind.info/problems/ba4h/"
+status = "solved"
+asserted = true
+note = "Differences between fragment masses are themselves residue masses, so the commonest ones are what the peptide is built from — recoverable without assuming the standard twenty."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4I"
+title = "Implement ConvolutionCyclopeptideSequencing"
+file = "examples/ba4i.bl"
+url = "https://rosalind.info/problems/ba4i/"
+status = "solved"
+asserted = true
+note = "The published answer contains a residue of mass 72, which is not an amino acid. That is the point: the alphabet is read off the data rather than assumed, so modified residues are findable. Returns a different peptide of equal score, which is all a noisy spectrum can distinguish."
+topics = ["mass-spectrometry", "search"]
+
+[[problem]]
+id = "BA4J"
+title = "Generate the Theoretical Spectrum of a Linear Peptide"
+file = "examples/ba4j.bl"
+url = "https://rosalind.info/problems/ba4j/"
+status = "solved"
+asserted = true
+note = "A strict subset of the cyclic spectrum. Both are needed because sequencing grows a peptide one residue at a time, and scoring a partial peptide cyclically would credit it with wrap-around fragments it does not have."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4K"
+title = "Compute the Score of a Linear Peptide Against a Spectrum"
+file = "examples/ba4k.bl"
+url = "https://rosalind.info/problems/ba4k/"
+status = "solved"
+asserted = true
+note = "8 against BA4F's 11 on identical input, because the linear spectrum has fewer masses to agree with."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4L"
+title = "Trim a Peptide Leaderboard"
+file = "examples/ba4l.bl"
+url = "https://rosalind.info/problems/ba4l/"
+status = "solved"
+asserted = true
+note = "Ties at the cutoff are kept, since cutting one arbitrarily can discard the right answer while keeping an equal rival. LAST and ALST are anagrams and still score differently — linear fragments are contiguous, so order matters."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4M"
+title = "Solve the Turnpike Problem"
+file = "examples/ba4m.bl"
+url = "https://rosalind.info/problems/ba4m/"
+status = "solved"
+asserted = true
+note = "Reading positions from pairwise distances, the same shape of problem as reading a peptide from fragment masses. Backtracking on the largest unplaced distance, which must reach one of the two ends — so each step has two choices rather than a search over all subsets."
+topics = ["mass-spectrometry", "search"]
