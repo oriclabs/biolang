@@ -790,3 +790,93 @@ status = "solved"
 asserted = true
 note = "Kahn's algorithm with a FIFO queue. This is what BA5B and BA5D stand on: a longest path can be found in one sweep only if each node is reached after everything leading into it. Several orderings are valid, so the assertion checks every edge points forwards."
 topics = ["graphs"]
+
+[[problem]]
+id = "BA8D"
+title = "Implement the Soft k-Means Clustering Algorithm"
+file = "examples/ba8d.bl"
+url = "https://rosalind.info/problems/ba8d/"
+status = "solved"
+asserted = true
+note = "Where BA8C forces every point to pick one cluster, here a point midway between two centers pulls on both. Beta sets how decisive that sharing is: large beta reproduces Lloyd, small beta drags every center towards the overall mean."
+topics = ["clustering"]
+
+[[problem]]
+id = "BA8E"
+title = "Implement Hierarchical Clustering"
+file = "examples/ba8e.bl"
+url = "https://rosalind.info/problems/ba8e/"
+status = "solved"
+asserted = true
+note = "Needs no k. Produces a nested family of partitions rather than one — which is what a phylogenetic tree is. Average linkage is specified and it matters: single linkage chains elongated clusters, complete linkage insists on compactness."
+topics = ["clustering", "phylogeny"]
+
+[[problem]]
+id = "BA7A"
+title = "Compute Distances Between Leaves"
+file = "examples/ba7a.bl"
+url = "https://rosalind.info/problems/ba7a/"
+status = "solved"
+asserted = true
+note = "In a tree there is exactly one path between any two nodes, so there is nothing to optimise — no Dijkstra, no relaxation. That uniqueness is also what lets BA7C invert the distances to recover the tree."
+topics = ["phylogeny", "graphs"]
+
+[[problem]]
+id = "BA7B"
+title = "Compute Limb Length"
+file = "examples/ba7b.bl"
+url = "https://rosalind.info/problems/ba7b/"
+status = "solved"
+asserted = true
+note = "The minimum over pairs picks the two leaves whose paths diverge immediately, leaving the limb alone. This is what makes BA7C possible: knowing the limb, it can be subtracted off and the leaf removed."
+topics = ["phylogeny"]
+
+[[problem]]
+id = "BA7C"
+title = "Implement AdditivePhylogeny"
+file = "examples/ba7c.bl"
+url = "https://rosalind.info/problems/ba7c/"
+status = "solved"
+asserted = true
+note = "The exact inverse of BA7A. Exact only because the matrix is additive. Asserted by rebuilding every pairwise distance from the tree rather than by matching one printed layout, since internal node numbering is not unique."
+topics = ["phylogeny"]
+
+[[problem]]
+id = "BA7D"
+title = "Implement UPGMA"
+file = "examples/ba7d.bl"
+url = "https://rosalind.info/problems/ba7d/"
+status = "solved"
+asserted = true
+note = "Hierarchical clustering with heights, so every leaf ends the same distance from the root — a molecular clock made concrete. The assertion checks that ultrametric property directly. Often wrong in practice, which is what BA7E exists to avoid."
+topics = ["phylogeny", "clustering"]
+
+[[problem]]
+id = "BA7E"
+title = "Implement the Neighbor Joining Algorithm"
+file = "examples/ba7e.bl"
+url = "https://rosalind.info/problems/ba7e/"
+status = "solved"
+asserted = true
+note = "Corrects each distance by how far each leaf sits from everything else, so a fast-evolving lineage is no longer mistaken for a distant one. This sample matrix is not additive — its three four-point pairings are 53, 55 and 50 — so no tree fits it exactly and the assertion checks that rather than expecting the distances back unchanged."
+topics = ["phylogeny"]
+
+[[problem]]
+id = "BA7F"
+title = "Implement SmallParsimony"
+file = "examples/ba7f.bl"
+url = "https://rosalind.info/problems/ba7f/"
+status = "solved"
+asserted = true
+note = "Sankoff's algorithm. Every column is independent, so each is solved separately and the scores added. Greedy choice from the leaves fails: a locally cheap base can force two changes higher up. Returns a different labelling of equal score, and the assertion recounts the changes it actually shows."
+topics = ["phylogeny", "dynamic-programming"]
+
+[[problem]]
+id = "BA7G"
+title = "Adapt SmallParsimony to Unrooted Trees"
+file = "examples/ba7g.bl"
+url = "https://rosalind.info/problems/ba7g/"
+status = "solved"
+asserted = true
+note = "An edge costs the same read in either direction, so the score does not depend on where a root is placed — hang one in the middle of any edge, run BA7F unchanged, then remove it. The labelling can differ; the score cannot, which the assertion checks by comparing the rooted and unrooted totals."
+topics = ["phylogeny", "dynamic-programming"]
