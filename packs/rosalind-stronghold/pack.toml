@@ -813,3 +813,53 @@ status = "solved"
 asserted = true
 note = "A split is nontrivial only when both sides hold at least two strings; a position where one string differs from all the others separates nothing. Which state is written as 1 is arbitrary, so the assertion accepts a row or its complement."
 topics = ["phylogeny", "character-tables"]
+
+[[problem]]
+id = "SUFF"
+title = "Encoding Suffix Trees"
+file = "examples/suff.bl"
+url = "https://rosalind.info/problems/suff/"
+status = "solved"
+asserted = true
+note = "Built from the suffix array and LCP array rather than by collapsing a trie. Both give the same tree; a trie of all suffixes has O(n^2) nodes first, whereas the arrays are linear — which is why aligners store the arrays and never materialise the tree."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "SGRA"
+title = "Using the Spectrum Graph to Infer Peptides"
+file = "examples/sgra.bl"
+url = "https://rosalind.info/problems/sgra/"
+status = "solved"
+asserted = true
+note = "Monoisotopic masses, so differences are matched within a tolerance rather than exactly. The graph is a DAG since masses only increase, so the longest path is one scan in sorted order instead of an exponential search."
+topics = ["mass-spectrometry", "graphs"]
+
+[[problem]]
+id = "FULL"
+title = "Inferring Peptide from Full Spectrum"
+file = "examples/full.bl"
+url = "https://rosalind.info/problems/full/"
+status = "solved"
+asserted = true
+note = "A peptide fragments from both ends at once, so a b-ion and its y-ion sum to the parent mass and the list mixes them unlabelled. It does not matter which is which — taking an ion spends its complement, since a prefix and its suffix are one event and cannot both extend the chain."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "ALPH"
+title = "Alignment-Based Phylogeny"
+file = "examples/alph.bl"
+url = "https://rosalind.info/problems/alph/"
+status = "solved"
+asserted = true
+note = "Small parsimony with the gap as a fifth symbol rather than a missing value — in an alignment a gap is evidence that an indel happened, and treating it as unknown would make every column containing one free. Finds a different labelling of equal score, so the assertion recounts the changes."
+topics = ["phylogeny", "alignment"]
+
+[[problem]]
+id = "GASM"
+title = "Genome Assembly Using Reads"
+file = "examples/gasm.bl"
+url = "https://rosalind.info/problems/gasm/"
+status = "solved"
+asserted = true
+note = "A read gives no clue which strand it came from, so the graph holds every read and its reverse complement and falls into two mirror cycles. Returns AATCTGT — a rotation of the reverse complement of GATTACA, which the assertion checks up to both rotation and strand."
+topics = ["assembly", "graphs"]
