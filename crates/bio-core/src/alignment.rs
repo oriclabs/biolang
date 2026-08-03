@@ -1,10 +1,51 @@
 //! Pairwise sequence alignment algorithms: Needleman-Wunsch (global) and Smith-Waterman (local).
 
 /// Alignment mode.
+///
+/// The two ends of an alignment can each be charged for or forgiven, and the
+/// four combinations are the four modes. Global charges both, local forgives
+/// both and also lets the alignment stop early, semiglobal forgives gaps at the
+/// ends of either sequence, and overlap forgives a prefix of the first and a
+/// suffix of the second — which is the shape read assembly cares about.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AlignMode {
     Global,
     Local,
+    Semiglobal,
+    Overlap,
+}
+
+/// A residue-pair scoring table, as BLOSUM and PAM are.
+#[derive(Debug, Clone)]
+pub struct SubstitutionMatrix {
+    /// Residue letters, uppercase, in the row and column order of `scores`.
+    pub residues: Vec<u8>,
+    /// Row-major, `residues.len()` wide.
+    pub scores: Vec<i32>,
+}
+
+impl SubstitutionMatrix {
+    /// Build from one of the named tables — "blosum62", "pam250", "blosum45".
+    pub fn named(name: &str) -> Option<Self> {
+        let table = scoring_matrix(name)?;
+        let mut scores = Vec::with_capacity(20 * 20);
+        for row in table.iter() {
+            scores.extend_from_slice(row);
+        }
+        Some(Self {
+            residues: AA_ORDER.to_vec(),
+            scores,
+        })
+    }
+
+    /// Score one pair, or None if either residue is not in the table.
+    pub fn score(&self, a: u8, b: u8) -> Option<i32> {
+        let a = a.to_ascii_uppercase();
+        let b = b.to_ascii_uppercase();
+        let row = self.residues.iter().position(|&r| r == a)?;
+        let col = self.residues.iter().position(|&r| r == b)?;
+        self.scores.get(row * self.residues.len() + col).copied()
+    }
 }
 
 /// Parameters for pairwise alignment.
@@ -15,6 +56,9 @@ pub struct AlignParams {
     pub gap_open: i32,
     pub gap_extend: i32,
     pub mode: AlignMode,
+    /// When set, residue pairs are scored from this table and `match_score` and
+    /// `mismatch_score` are only used for residues the table does not carry.
+    pub matrix: Option<SubstitutionMatrix>,
 }
 
 impl Default for AlignParams {
@@ -25,6 +69,7 @@ impl Default for AlignParams {
             gap_open: -5,
             gap_extend: -1,
             mode: AlignMode::Global,
+            matrix: None,
         }
     }
 }
@@ -60,23 +105,47 @@ pub fn align(seq1: &str, seq2: &str, params: &AlignParams) -> AlignResult {
     let mut mat_y = vec![vec![neg_inf; m + 1]; n + 1];
 
     let is_local = params.mode == AlignMode::Local;
+    // Which end gaps are free. A free leading gap in a sequence means its first
+    // row or column starts at zero instead of accumulating a penalty; a free
+    // trailing gap means the answer is the best cell along the last row or
+    // column rather than the corner.
+    let (free_lead_1, free_lead_2) = match params.mode {
+        AlignMode::Global => (false, false),
+        AlignMode::Local => (true, true),
+        AlignMode::Semiglobal => (true, true),
+        // A suffix of seq1 against a prefix of seq2: skipping into seq1 is free.
+        AlignMode::Overlap => (true, false),
+    };
+
+    let score_pair = |a: u8, b: u8| -> i32 {
+        if let Some(matrix) = &params.matrix {
+            if let Some(found) = matrix.score(a, b) {
+                return found;
+            }
+        }
+        if a.eq_ignore_ascii_case(&b) {
+            params.match_score
+        } else {
+            params.mismatch_score
+        }
+    };
 
     // Initialization
     mat_m[0][0] = 0;
     for i in 1..=n {
-        if !is_local {
+        if free_lead_1 {
+            mat_m[i][0] = 0;
+        } else {
             mat_x[i][0] = params.gap_open + params.gap_extend * i as i32;
             mat_m[i][0] = mat_x[i][0];
-        } else {
-            mat_m[i][0] = 0;
         }
     }
     for j in 1..=m {
-        if !is_local {
+        if free_lead_2 {
+            mat_m[0][j] = 0;
+        } else {
             mat_y[0][j] = params.gap_open + params.gap_extend * j as i32;
             mat_m[0][j] = mat_y[0][j];
-        } else {
-            mat_m[0][j] = 0;
         }
     }
 
@@ -87,11 +156,7 @@ pub fn align(seq1: &str, seq2: &str, params: &AlignParams) -> AlignResult {
     // Fill
     for i in 1..=n {
         for j in 1..=m {
-            let s = if s1[i - 1].eq_ignore_ascii_case(&s2[j - 1]) {
-                params.match_score
-            } else {
-                params.mismatch_score
-            };
+            let s = score_pair(s1[i - 1], s2[j - 1]);
 
             mat_x[i][j] = (mat_m[i - 1][j] + params.gap_open + params.gap_extend)
                 .max(mat_x[i - 1][j] + params.gap_extend);
@@ -101,9 +166,13 @@ pub fn align(seq1: &str, seq2: &str, params: &AlignParams) -> AlignResult {
             mat_m[i][j] = (mat_m[i - 1][j - 1] + s).max(mat_x[i][j]).max(mat_y[i][j]);
 
             if is_local {
+                // Only the match matrix is floored at zero, which is what
+                // Smith-Waterman asks for. The two gap matrices used to be
+                // floored as well; that is not in Gotoh's formulation, and since
+                // M is floored anyway it made no difference to any score I could
+                // construct — including a case built to expose free gaps. Left
+                // out as redundant rather than removed as a bug.
                 mat_m[i][j] = mat_m[i][j].max(0);
-                mat_x[i][j] = mat_x[i][j].max(0);
-                mat_y[i][j] = mat_y[i][j].max(0);
                 if mat_m[i][j] > max_score {
                     max_score = mat_m[i][j];
                     max_i = i;
@@ -113,11 +182,37 @@ pub fn align(seq1: &str, seq2: &str, params: &AlignParams) -> AlignResult {
         }
     }
 
-    // Traceback
-    let (mut i, mut j, score) = if is_local {
-        (max_i, max_j, max_score)
-    } else {
-        (n, m, mat_m[n][m])
+    // Traceback. Where it starts is the other half of what distinguishes the
+    // modes: the corner when both trailing ends are charged, the best cell
+    // anywhere for local, and the best cell along a free edge otherwise.
+    let (mut i, mut j, score) = match params.mode {
+        AlignMode::Local => (max_i, max_j, max_score),
+        AlignMode::Global => (n, m, mat_m[n][m]),
+        // Trailing gaps free in seq2: end anywhere along seq1's last row.
+        AlignMode::Overlap => {
+            let mut best = (n, 0usize, mat_m[n][0]);
+            for j in 1..=m {
+                if mat_m[n][j] > best.2 {
+                    best = (n, j, mat_m[n][j]);
+                }
+            }
+            best
+        }
+        // Trailing gaps free in both: end anywhere along the last row or column.
+        AlignMode::Semiglobal => {
+            let mut best = (n, m, mat_m[n][m]);
+            for j in 0..=m {
+                if mat_m[n][j] > best.2 {
+                    best = (n, j, mat_m[n][j]);
+                }
+            }
+            for i in 0..=n {
+                if mat_m[i][m] > best.2 {
+                    best = (i, m, mat_m[i][m]);
+                }
+            }
+            best
+        }
     };
 
     let mut aln1 = Vec::new();
@@ -128,12 +223,16 @@ pub fn align(seq1: &str, seq2: &str, params: &AlignParams) -> AlignResult {
             break;
         }
 
+        // A free leading gap means the alignment may simply start here.
+        if free_lead_1 && j == 0 {
+            break;
+        }
+        if free_lead_2 && i == 0 {
+            break;
+        }
+
         if i > 0 && j > 0 {
-            let s = if s1[i - 1].eq_ignore_ascii_case(&s2[j - 1]) {
-                params.match_score
-            } else {
-                params.mismatch_score
-            };
+            let s = score_pair(s1[i - 1], s2[j - 1]);
             if mat_m[i][j] == mat_m[i - 1][j - 1] + s {
                 aln1.push(s1[i - 1]);
                 aln2.push(s2[j - 1]);

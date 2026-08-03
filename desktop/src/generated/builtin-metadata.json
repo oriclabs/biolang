@@ -128,7 +128,7 @@
       "arity": {
         "kind": "range",
         "minimum": 2,
-        "maximum": 7
+        "maximum": 8
       },
       "metadataQuality": "curated"
     },

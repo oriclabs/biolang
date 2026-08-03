@@ -58,7 +58,7 @@ pub fn seq_builtin_list() -> Vec<(&'static str, Arity)> {
         ("windows", Arity::Range(2, 3)),
         ("gc_skew", Arity::Range(1, 2)),
         ("restriction_sites", Arity::Exact(2)),
-        ("align", Arity::Range(2, 7)),
+        ("align", Arity::Range(2, 8)),
         // Pure string distances. They also exist in bl-bio's compatibility
         // layer, but that crate is native-only, which left the browser build
         // without two primitives that need nothing native.
@@ -4007,7 +4007,9 @@ fn builtin_score_matrix(args: Vec<Value>) -> Result<Value> {
 /// length L cost `L * gap` exactly as the previous linear scoring did, so
 /// existing callers are unaffected.
 fn builtin_align(args: Vec<Value>) -> Result<Value> {
-    use bl_core::bio_core::alignment::{align as core_align, AlignMode, AlignParams};
+    use bl_core::bio_core::alignment::{
+        align as core_align, AlignMode, AlignParams, SubstitutionMatrix,
+    };
 
     let seq_a = get_seq_data_or_str(&args[0], "align")?;
     let seq_b = get_seq_data_or_str(&args[1], "align")?;
@@ -4029,6 +4031,34 @@ fn builtin_align(args: Vec<Value>) -> Result<Value> {
         }
     };
 
+    // An eighth argument names a substitution matrix. Without it the alignment
+    // scores on match/mismatch, which is what every caller so far has done; with
+    // it the protein alignments stop needing a hand-written Needleman-Wunsch
+    // just to reach BLOSUM62.
+    let matrix = if args.len() > 7 {
+        match &args[7] {
+            Value::Nil => None,
+            Value::Str(name) => Some(SubstitutionMatrix::named(name).ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("align(): unknown scoring matrix '{name}'"),
+                    None,
+                )
+            })?),
+            other => {
+                return Err(BioLangError::type_error(
+                    format!(
+                        "align() matrix must be a name like \"blosum62\", got {}",
+                        other.type_of()
+                    ),
+                    None,
+                ))
+            }
+        }
+    } else {
+        None
+    };
+
     let params = AlignParams {
         match_score: arg_int(3, 2)? as i32,
         mismatch_score: arg_int(4, -1)? as i32,
@@ -4036,8 +4066,11 @@ fn builtin_align(args: Vec<Value>) -> Result<Value> {
         gap_open: arg_int(6, 0)? as i32,
         mode: match mode.as_str() {
             "local" | "sw" => AlignMode::Local,
+            "semiglobal" | "sg" | "smgb" => AlignMode::Semiglobal,
+            "overlap" | "oap" => AlignMode::Overlap,
             _ => AlignMode::Global,
         },
+        matrix,
     };
 
     let result = core_align(&seq_a, &seq_b, &params);

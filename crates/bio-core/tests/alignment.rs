@@ -17,6 +17,7 @@ fn test_global_with_gap() {
         gap_open: -5,
         gap_extend: -1,
         mode: AlignMode::Global,
+        matrix: None,
     };
     let result = align("ACGT", "AGT", &params);
     assert!(result.aligned1.contains('-') || result.aligned2.contains('-'));
@@ -30,6 +31,7 @@ fn test_local_alignment() {
         gap_open: -5,
         gap_extend: -1,
         mode: AlignMode::Local,
+        matrix: None,
     };
     let result = align("XXXACGTXXX", "ACGT", &params);
     assert!(result.score > 0);

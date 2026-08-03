@@ -417,7 +417,7 @@
       "category": "bio",
       "collection": "Runtime builtins",
       "summary": "BioLang bio builtin.",
-      "body": "# align\n\nBioLang bio builtin.\n\n## Signature\n\n```biolang\nalign(seq1, seq2, mode?, match?, mismatch?, gap?) → Record\n```\n\n## Example\n\n```biolang\nalign(dna\"ATCG\", dna\"ATGG\")  # → alignment record\n```\n\n**Returns:** `Record`\n\n**Arity:** range, minimum 2, maximum 7",
+      "body": "# align\n\nBioLang bio builtin.\n\n## Signature\n\n```biolang\nalign(seq1, seq2, mode?, match?, mismatch?, gap?) → Record\n```\n\n## Example\n\n```biolang\nalign(dna\"ATCG\", dna\"ATGG\")  # → alignment record\n```\n\n**Returns:** `Record`\n\n**Arity:** range, minimum 2, maximum 8",
       "signature": "align(seq1, seq2, mode?, match?, mismatch?, gap?) → Record",
       "example": "align(dna\"ATCG\", dna\"ATGG\")  # → alignment record",
       "returnType": "Record",
