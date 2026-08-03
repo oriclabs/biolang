@@ -340,3 +340,73 @@ status = "solved"
 asserted = true
 note = "Charging for opening a gap and less per symbol after is what stops one long insertion being priced as a run of unrelated ones."
 topics = ["alignment"]
+
+[[problem]]
+id = "BA8A"
+title = "Implement FarthestFirstTraversal"
+file = "examples/ba8a.bl"
+url = "https://rosalind.info/problems/ba8a/"
+status = "solved"
+asserted = true
+note = "Each new center is the point furthest from all chosen so far. Deterministic, unlike k-means, which is why it is used to seed clustering rather than to do it."
+topics = ["clustering"]
+
+[[problem]]
+id = "BA8B"
+title = "Compute the Squared Error Distortion"
+file = "examples/ba8b.bl"
+url = "https://rosalind.info/problems/ba8b/"
+status = "solved"
+asserted = true
+note = "Squared, so one badly placed point counts for far more than several slightly-off ones. This is the quantity k-means minimises."
+topics = ["clustering"]
+
+[[problem]]
+id = "BA8C"
+title = "Implement the Lloyd Algorithm for k-Means Clustering"
+file = "examples/ba8c.bl"
+url = "https://rosalind.info/problems/ba8c/"
+status = "solved"
+asserted = true
+note = "Assign, then move each center to the mean of what it was assigned, until nothing moves. Seeded with the first k points because Lloyd's converges differently from different seeds — which is what BA8A exists to address."
+topics = ["clustering"]
+
+[[problem]]
+id = "BA9D"
+title = "Find the Longest Repeat in a String"
+file = "examples/ba9d.bl"
+url = "https://rosalind.info/problems/ba9d/"
+status = "solved"
+asserted = true
+note = "The largest entry in the LCP array, and nothing else. Two suffixes sharing a long prefix is what a repeat is, so the array has already found every one of them before the problem is read."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9E"
+title = "Find the Longest Substring Shared by Two Strings"
+file = "examples/ba9e.bl"
+url = "https://rosalind.info/problems/ba9e/"
+status = "solved"
+asserted = true
+note = "Concatenate with a separator, then take the largest LCP between neighbouring suffixes that came from different sides. The separator is load-bearing: without it a match can run across the join and name a substring neither string contains."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9I"
+title = "Construct the Burrows-Wheeler Transform of a String"
+file = "examples/ba9i.bl"
+url = "https://rosalind.info/problems/ba9i/"
+status = "solved"
+asserted = true
+note = "Sorting rotations and sorting suffixes agree once the string ends in a sentinel, so the suffix array gives the transform directly — the character before each sorted suffix."
+topics = ["strings", "suffix-structures", "compression"]
+
+[[problem]]
+id = "BA9J"
+title = "Reconstruct a String from its Burrows-Wheeler Transform"
+file = "examples/ba9j.bl"
+url = "https://rosalind.info/problems/ba9j/"
+status = "solved"
+asserted = true
+note = "The k-th occurrence of a symbol in the first column is the k-th in the last. That correspondence alone rebuilds the text, which is why the transform can be stored without anything beside it."
+topics = ["strings", "suffix-structures", "compression"]
