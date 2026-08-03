@@ -1,0 +1,48 @@
+# Rosalind: BA1N — Generate the d-Neighborhood of a String
+# https://rosalind.info/problems/ba1n/
+#
+# Given: A DNA string Pattern and an integer d.
+# Return: The collection Neighbors(Pattern, d) — every k-mer within d
+# substitutions of Pattern.
+
+let pattern = "ACG"
+let d = 1
+
+# Built by walking the pattern and, at each position, either keeping the base or
+# spending one of the d substitutions on each of the other three. Written
+# iteratively: grow the set of prefixes one position at a time, dropping any that
+# have already overspent.
+fn neighbourhood(text, allowed) {
+    let bases = ["A", "C", "G", "T"]
+    let partial = [{ prefix: "", used: 0 }]
+    for i in range(0, len(text)) {
+        let here = substr(text, i, 1)
+        let next = []
+        for candidate in partial {
+            for base in bases {
+                let cost = if base == here then 0 else 1
+                if candidate.used + cost <= allowed {
+                    next = push(next, { prefix: candidate.prefix + base, used: candidate.used + cost })
+                }
+            }
+        }
+        partial = next
+    }
+    partial |> map(|c| c.prefix)
+}
+
+let result = neighbourhood(pattern, d)
+
+println("Result:   " + str(len(result)) + " neighbours")
+println("Expected: 10")
+println("  " + (sort(result) |> join(" ")))
+
+fn test_ba1n_neighbourhood() {
+    assert len(result) == 10, "BA1N: expected 10 neighbours, got " + str(len(result))
+    # Every neighbour is within d, the pattern is its own neighbour, and there
+    # are no duplicates.
+    assert len(unique(result)) == len(result), "BA1N: duplicates in the neighbourhood"
+    assert contains(result, pattern), "BA1N: the pattern is missing from its own neighbourhood"
+    let too_far = result |> filter(|n| hamming_distance(n, pattern) > d)
+    assert len(too_far) == 0, "BA1N: these exceed d — " + str(too_far)
+}

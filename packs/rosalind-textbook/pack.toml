@@ -100,3 +100,93 @@ status = "solved"
 asserted = true
 note = "Suffix arrays were one of three gaps this pack was built to measure. They are a builtin now, which is what LREP and MREP in the Stronghold pack stand on."
 topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA1E"
+title = "Find Patterns Forming Clumps in a String"
+file = "examples/ba1e.bl"
+url = "https://rosalind.info/problems/ba1e/"
+status = "solved"
+asserted = true
+note = "A sliding window with a tally inside it. A k-mer qualifies once, so the answers are a set."
+topics = ["strings", "motifs"]
+
+[[problem]]
+id = "BA1F"
+title = "Find a Position in a Genome Minimizing the Skew"
+file = "examples/ba1f.bl"
+url = "https://rosalind.info/problems/ba1f/"
+status = "solved"
+asserted = true
+note = "A running count of G minus C. The dip marks the replication origin, which is what the problem is about."
+topics = ["genomics"]
+
+[[problem]]
+id = "BA1H"
+title = "Find All Approximate Occurrences of a Pattern"
+file = "examples/ba1h.bl"
+url = "https://rosalind.info/problems/ba1h/"
+status = "solved"
+asserted = true
+note = "hamming_distance is a builtin, so this is a windowed scan and nothing more."
+topics = ["strings", "mutations"]
+
+[[problem]]
+id = "BA1I"
+title = "Most Frequent Words with Mismatches"
+file = "examples/ba1i.bl"
+url = "https://rosalind.info/problems/ba1i/"
+status = "solved"
+asserted = true
+note = "The answer need not occur in the text at all. Tallying each window's neighbourhood is the same arithmetic over far fewer strings than testing all 4^k candidates."
+topics = ["strings", "kmers"]
+
+[[problem]]
+id = "BA1J"
+title = "Frequent Words with Mismatches and Reverse Complements"
+file = "examples/ba1j.bl"
+url = "https://rosalind.info/problems/ba1j/"
+status = "solved"
+asserted = true
+note = "A site can sit on either strand, so a k-mer is credited for its reverse complement too — which is why the winners differ from BA1I on the same input."
+topics = ["strings", "kmers"]
+
+[[problem]]
+id = "BA1K"
+title = "Generate the Frequency Array of a String"
+file = "examples/ba1k.bl"
+url = "https://rosalind.info/problems/ba1k/"
+status = "solved"
+asserted = true
+note = "Indexed by PatternToNumber, so it lists every possible k-mer including those that never occur. That is what separates it from a tally."
+topics = ["kmers"]
+
+[[problem]]
+id = "BA1L"
+title = "Implement PatternToNumber"
+file = "examples/ba1l.bl"
+url = "https://rosalind.info/problems/ba1l/"
+status = "solved"
+asserted = true
+note = "k-mers in lexicographic order are the base-4 numbers with A=0, C=1, G=2, T=3."
+topics = ["kmers", "encoding"]
+
+[[problem]]
+id = "BA1M"
+title = "Implement NumberToPattern"
+file = "examples/ba1m.bl"
+url = "https://rosalind.info/problems/ba1m/"
+status = "solved"
+asserted = true
+note = "The inverse of BA1L."
+topics = ["kmers", "encoding"]
+
+[[problem]]
+id = "BA1N"
+title = "Generate the d-Neighborhood of a String"
+file = "examples/ba1n.bl"
+url = "https://rosalind.info/problems/ba1n/"
+status = "solved"
+asserted = true
+note = "Grown one position at a time, dropping any prefix that has already spent more than d substitutions."
+topics = ["strings", "mutations"]

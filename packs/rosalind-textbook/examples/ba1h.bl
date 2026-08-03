@@ -1,0 +1,24 @@
+# Rosalind: BA1H — Find All Approximate Occurrences of a Pattern in a String
+# https://rosalind.info/problems/ba1h/
+#
+# Given: Strings Pattern and Text, and an integer d.
+# Return: All starting positions where Pattern occurs in Text with at most d
+# mismatches.
+
+let pattern = "ATTCTGGA"
+let text = "CGCCCGAATCCAGAACGCATTCCCATATTTCGGGACCACTGGCCTCCACGGTACGGACGTCAATCAAATGCCTAGCGGCTTGTGGTTTCTCCTACGCTCC"
+let allowed = 3
+
+# hamming_distance is a builtin, so the whole problem is a windowed scan: every
+# position whose window is within d substitutions of the pattern.
+let positions = range(0, len(text) - len(pattern) + 1)
+  |> filter(|i| hamming_distance(substr(text, i, len(pattern)), pattern) <= allowed)
+
+let result = positions |> map(|i| str(i)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 6 7 26 27 78")
+
+fn test_ba1h_approximate_matches() {
+    assert result == "6 7 26 27 78", "BA1H: got " + result
+}

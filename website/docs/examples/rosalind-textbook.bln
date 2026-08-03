@@ -257,3 +257,446 @@ fn test_ba9g_suffix_array() {
 }
 ```
 
+## BA1E — Find Patterns Forming Clumps in a String
+
+[Problem statement](https://rosalind.info/problems/ba1e/)
+
+```biolang
+# Rosalind: BA1E — Find Patterns Forming Clumps in a String
+# https://rosalind.info/problems/ba1e/
+#
+# Given: A string Genome, and integers k, L and t.
+# Return: All distinct k-mers forming (L, t)-clumps in Genome.
+
+let genome = "CGGACTCGACAGATGTGAAGAAATGTGAAGACTGAGTGAAGAGAAGAGGAAACACGACACGACATTGCGACATAATGTACGAATGTAATGTGCCTATGGC"
+let k = 5
+let window = 75
+let times = 4
+
+# A k-mer forms a clump when some window of L characters contains it t times.
+# Slide the window and tally what is inside it; a k-mer only needs to qualify
+# once, so the answers are collected as a set.
+let found = []
+for start in range(0, len(genome) - window + 1) {
+    let region = substr(genome, start, window)
+    let counts = {}
+    for offset in range(0, window - k + 1) {
+        let mer = substr(region, offset, k)
+        if contains(keys(counts), mer) {
+            counts[mer] = counts[mer] + 1
+        } else {
+            counts[mer] = 1
+        }
+    }
+    for mer in keys(counts) {
+        if counts[mer] >= times and contains(found, mer) == false {
+            found = push(found, mer)
+        }
+    }
+}
+
+let result = sort(found) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: AATGT CGACA GAAGA  (in any order)")
+
+fn test_ba1e_clumps() {
+    assert len(found) == 3, "BA1E: expected 3 clumps, got " + str(len(found))
+    for expected in ["CGACA", "GAAGA", "AATGT"] {
+        assert contains(found, expected), "BA1E: missing " + expected
+    }
+}
+```
+
+## BA1F — Find a Position in a Genome Minimizing the Skew
+
+[Problem statement](https://rosalind.info/problems/ba1f/)
+
+```biolang
+# Rosalind: BA1F — Find a Position in a Genome Minimizing the Skew
+# https://rosalind.info/problems/ba1f/
+#
+# Given: A DNA string Genome.
+# Return: All integers i minimising Skew(Prefix_i(Genome)).
+
+let genome = "CCTATCGGTGGATTAGCATGTCCCTGTACGTTTCGCCGCGAACTAGTTCACACGGCTTGATGGCAAATGGTTTTTCCGGCGACCGTAATCGTCCACCGAG"
+
+# Skew is running #G minus #C. It dips lowest near the replication origin, which
+# is what the problem is really about. Prefix 0 is the empty prefix, so the walk
+# has len(genome) + 1 positions.
+let skew = [0]
+let running = 0
+for i in range(0, len(genome)) {
+    let base = substr(genome, i, 1)
+    if base == "G" then running = running + 1
+    if base == "C" then running = running - 1
+    skew = push(skew, running)
+}
+
+let lowest = min(skew)
+let positions = range(0, len(skew)) |> filter(|i| skew[i] == lowest)
+let result = positions |> map(|i| str(i)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 53 97")
+
+fn test_ba1f_minimum_skew() {
+    assert result == "53 97", "BA1F: got " + result
+}
+```
+
+## BA1H — Find All Approximate Occurrences of a Pattern
+
+[Problem statement](https://rosalind.info/problems/ba1h/)
+
+```biolang
+# Rosalind: BA1H — Find All Approximate Occurrences of a Pattern in a String
+# https://rosalind.info/problems/ba1h/
+#
+# Given: Strings Pattern and Text, and an integer d.
+# Return: All starting positions where Pattern occurs in Text with at most d
+# mismatches.
+
+let pattern = "ATTCTGGA"
+let text = "CGCCCGAATCCAGAACGCATTCCCATATTTCGGGACCACTGGCCTCCACGGTACGGACGTCAATCAAATGCCTAGCGGCTTGTGGTTTCTCCTACGCTCC"
+let allowed = 3
+
+# hamming_distance is a builtin, so the whole problem is a windowed scan: every
+# position whose window is within d substitutions of the pattern.
+let positions = range(0, len(text) - len(pattern) + 1)
+  |> filter(|i| hamming_distance(substr(text, i, len(pattern)), pattern) <= allowed)
+
+let result = positions |> map(|i| str(i)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 6 7 26 27 78")
+
+fn test_ba1h_approximate_matches() {
+    assert result == "6 7 26 27 78", "BA1H: got " + result
+}
+```
+
+## BA1I — Most Frequent Words with Mismatches
+
+[Problem statement](https://rosalind.info/problems/ba1i/)
+
+```biolang
+# Rosalind: BA1I — Find the Most Frequent Words with Mismatches in a String
+# https://rosalind.info/problems/ba1i/
+#
+# Given: A string Text and integers k and d.
+# Return: All most frequent k-mers with up to d mismatches in Text.
+
+let text = "ACGTTGCATGTCGCATGATGCATGAGAGCT"
+let k = 4
+let d = 1
+
+# A k-mer's count here includes every window within d substitutions of it, so
+# the answer need not appear in Text at all. Rather than test every one of the
+# 4^k candidates, tally the neighbourhood of each window: the same arithmetic,
+# over far fewer strings.
+fn neighbourhood(pattern, allowed) {
+    let bases = ["A", "C", "G", "T"]
+    let partial = [{ prefix: "", used: 0 }]
+    for i in range(0, len(pattern)) {
+        let here = substr(pattern, i, 1)
+        let next = []
+        for candidate in partial {
+            for base in bases {
+                let cost = if base == here then 0 else 1
+                if candidate.used + cost <= allowed {
+                    next = push(next, { prefix: candidate.prefix + base, used: candidate.used + cost })
+                }
+            }
+        }
+        partial = next
+    }
+    partial |> map(|c| c.prefix)
+}
+
+let counts = {}
+for i in range(0, len(text) - k + 1) {
+    for neighbour in neighbourhood(substr(text, i, k), d) {
+        if contains(keys(counts), neighbour) {
+            counts[neighbour] = counts[neighbour] + 1
+        } else {
+            counts[neighbour] = 1
+        }
+    }
+}
+
+let best = keys(counts) |> map(|mer| counts[mer]) |> max()
+let winners = keys(counts) |> filter(|mer| counts[mer] == best) |> sort()
+
+println("Result:   " + (winners |> join(" ")) + "   (each seen " + str(best) + " times)")
+println("Expected: ATGC ATGT GATG  (in any order)")
+
+fn test_ba1i_frequent_words_with_mismatches() {
+    assert len(winners) == 3, "BA1I: expected 3 winners, got " + str(len(winners))
+    for expected in ["GATG", "ATGC", "ATGT"] {
+        assert contains(winners, expected), "BA1I: missing " + expected
+    }
+}
+```
+
+## BA1J — Frequent Words with Mismatches and Reverse Complements
+
+[Problem statement](https://rosalind.info/problems/ba1j/)
+
+```biolang
+# Rosalind: BA1J — Find Frequent Words with Mismatches and Reverse Complements
+# https://rosalind.info/problems/ba1j/
+#
+# Given: A DNA string Text and integers k and d.
+# Return: All k-mers maximising Count_d(Text, Pattern) + Count_d(Text, revc(Pattern)).
+
+let text = "ACGTTGCATGTCGCATGATGCATGAGAGCT"
+let k = 4
+let d = 1
+
+# Same tally as BA1I, but a k-mer is credited for its reverse complement too:
+# a binding site can sit on either strand, and the counts belong together. That
+# is why the winners here differ from BA1I's on the same input.
+fn neighbourhood(pattern, allowed) {
+    let bases = ["A", "C", "G", "T"]
+    let partial = [{ prefix: "", used: 0 }]
+    for i in range(0, len(pattern)) {
+        let here = substr(pattern, i, 1)
+        let next = []
+        for candidate in partial {
+            for base in bases {
+                let cost = if base == here then 0 else 1
+                if candidate.used + cost <= allowed {
+                    next = push(next, { prefix: candidate.prefix + base, used: candidate.used + cost })
+                }
+            }
+        }
+        partial = next
+    }
+    partial |> map(|c| c.prefix)
+}
+
+let counts = {}
+for i in range(0, len(text) - k + 1) {
+    for neighbour in neighbourhood(substr(text, i, k), d) {
+        if contains(keys(counts), neighbour) {
+            counts[neighbour] = counts[neighbour] + 1
+        } else {
+            counts[neighbour] = 1
+        }
+    }
+}
+
+# Score each candidate together with its reverse complement.
+fn tally(mer) {
+    if contains(keys(counts), mer) then counts[mer] else 0
+}
+
+let candidates = keys(counts)
+let scores = candidates |> map(|mer| tally(mer) + tally(str(reverse_complement(dna(mer)))))
+let best = max(scores)
+let winners = range(0, len(candidates))
+  |> filter(|i| scores[i] == best)
+  |> map(|i| candidates[i])
+  |> sort()
+
+println("Result:   " + (winners |> join(" ")) + "   (scoring " + str(best) + ")")
+println("Expected: ACAT ATGT  (in any order)")
+
+fn test_ba1j_with_reverse_complements() {
+    assert len(winners) == 2, "BA1J: expected 2 winners, got " + str(len(winners))
+    for expected in ["ATGT", "ACAT"] {
+        assert contains(winners, expected), "BA1J: missing " + expected
+    }
+    # The two answers are each other's reverse complement, which is the point.
+    assert str(reverse_complement(dna(winners[0]))) == winners[1],
+        "BA1J: the winners should be a reverse-complement pair"
+}
+```
+
+## BA1K — Generate the Frequency Array of a String
+
+[Problem statement](https://rosalind.info/problems/ba1k/)
+
+```biolang
+# Rosalind: BA1K — Generate the Frequency Array of a String
+# https://rosalind.info/problems/ba1k/
+#
+# Given: A DNA string Text and an integer k.
+# Return: The frequency array of k-mers in Text.
+
+let text = "ACGCGGCTCTGAAA"
+let k = 2
+
+# The frequency array is indexed by PatternToNumber, so it has 4^k entries and
+# lists every possible k-mer in lexicographic order — including the ones that
+# never occur, which is what distinguishes it from a tally.
+fn base_of(symbol) {
+    if symbol == "A" then 0
+    else if symbol == "C" then 1
+    else if symbol == "G" then 2
+    else 3
+}
+
+fn pattern_to_number(pattern) {
+    range(0, len(pattern)) |> reduce(|acc, i| acc * 4 + base_of(substr(pattern, i, 1)), 0)
+}
+
+let size = 1
+let e = 0
+while e < k {
+    size = size * 4
+    e = e + 1
+}
+
+let freq_array = repeat([0], size)
+for i in range(0, len(text) - k + 1) {
+    let index = pattern_to_number(substr(text, i, k))
+    freq_array[index] = freq_array[index] + 1
+}
+
+let result = freq_array |> map(|n| str(n)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 2 1 0 0 0 0 2 2 1 2 1 0 0 1 1 0")
+
+fn test_ba1k_frequency_array() {
+    assert result == "2 1 0 0 0 0 2 2 1 2 1 0 0 1 1 0", "BA1K: got " + result
+    assert len(freq_array) == 16, "BA1K: an array of 4^k entries is expected"
+    assert sum(freq_array) == len(text) - k + 1, "BA1K: counts do not add up to the windows"
+}
+```
+
+## BA1L — Implement PatternToNumber
+
+[Problem statement](https://rosalind.info/problems/ba1l/)
+
+```biolang
+# Rosalind: BA1L — Implement PatternToNumber
+# https://rosalind.info/problems/ba1l/
+#
+# Given: A DNA string Pattern.
+# Return: PatternToNumber(Pattern).
+
+let pattern = "AGT"
+
+# The k-mers in lexicographic order are the base-4 numbers, with A=0, C=1, G=2,
+# T=3. So the index is just the pattern read as a number in that base.
+fn base_of(symbol) {
+    if symbol == "A" then 0
+    else if symbol == "C" then 1
+    else if symbol == "G" then 2
+    else 3
+}
+
+let number = range(0, len(pattern))
+  |> reduce(|acc, i| acc * 4 + base_of(substr(pattern, i, 1)), 0)
+
+println("Result:   " + str(number))
+println("Expected: 11")
+
+fn test_ba1l_pattern_to_number() {
+    assert number == 11, "BA1L: got " + str(number)
+    # The first and last k-mers of length 3 anchor the range.
+    assert range(0, 3) |> reduce(|a, i| a * 4 + base_of("A"), 0) == 0, "BA1L: AAA should be 0"
+}
+```
+
+## BA1M — Implement NumberToPattern
+
+[Problem statement](https://rosalind.info/problems/ba1m/)
+
+```biolang
+# Rosalind: BA1M — Implement NumberToPattern
+# https://rosalind.info/problems/ba1m/
+#
+# Given: Integers index and k.
+# Return: NumberToPattern(index, k).
+
+let index = 45
+let k = 4
+
+# The inverse of BA1L: read the index as a base-4 number, most significant digit
+# first, with A=0, C=1, G=2, T=3.
+let symbols = ["A", "C", "G", "T"]
+
+let pattern = ""
+let remaining = index
+let position = 0
+while position < k {
+    let power = 1
+    let e = 0
+    while e < k - position - 1 {
+        power = power * 4
+        e = e + 1
+    }
+    let digit = int(remaining / power)
+    pattern = pattern + symbols[digit]
+    remaining = remaining - digit * power
+    position = position + 1
+}
+
+println("Result:   " + pattern)
+println("Expected: AGTC")
+
+fn test_ba1m_number_to_pattern() {
+    assert pattern == "AGTC", "BA1M: got " + pattern
+    assert len(pattern) == k, "BA1M: wrong length"
+}
+```
+
+## BA1N — Generate the d-Neighborhood of a String
+
+[Problem statement](https://rosalind.info/problems/ba1n/)
+
+```biolang
+# Rosalind: BA1N — Generate the d-Neighborhood of a String
+# https://rosalind.info/problems/ba1n/
+#
+# Given: A DNA string Pattern and an integer d.
+# Return: The collection Neighbors(Pattern, d) — every k-mer within d
+# substitutions of Pattern.
+
+let pattern = "ACG"
+let d = 1
+
+# Built by walking the pattern and, at each position, either keeping the base or
+# spending one of the d substitutions on each of the other three. Written
+# iteratively: grow the set of prefixes one position at a time, dropping any that
+# have already overspent.
+fn neighbourhood(text, allowed) {
+    let bases = ["A", "C", "G", "T"]
+    let partial = [{ prefix: "", used: 0 }]
+    for i in range(0, len(text)) {
+        let here = substr(text, i, 1)
+        let next = []
+        for candidate in partial {
+            for base in bases {
+                let cost = if base == here then 0 else 1
+                if candidate.used + cost <= allowed {
+                    next = push(next, { prefix: candidate.prefix + base, used: candidate.used + cost })
+                }
+            }
+        }
+        partial = next
+    }
+    partial |> map(|c| c.prefix)
+}
+
+let result = neighbourhood(pattern, d)
+
+println("Result:   " + str(len(result)) + " neighbours")
+println("Expected: 10")
+println("  " + (sort(result) |> join(" ")))
+
+fn test_ba1n_neighbourhood() {
+    assert len(result) == 10, "BA1N: expected 10 neighbours, got " + str(len(result))
+    # Every neighbour is within d, the pattern is its own neighbour, and there
+    # are no duplicates.
+    assert len(unique(result)) == len(result), "BA1N: duplicates in the neighbourhood"
+    assert contains(result, pattern), "BA1N: the pattern is missing from its own neighbourhood"
+    let too_far = result |> filter(|n| hamming_distance(n, pattern) > d)
+    assert len(too_far) == 0, "BA1N: these exceed d — " + str(too_far)
+}
+```
+

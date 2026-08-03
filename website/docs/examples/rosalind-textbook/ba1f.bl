@@ -1,0 +1,30 @@
+# Rosalind: BA1F — Find a Position in a Genome Minimizing the Skew
+# https://rosalind.info/problems/ba1f/
+#
+# Given: A DNA string Genome.
+# Return: All integers i minimising Skew(Prefix_i(Genome)).
+
+let genome = "CCTATCGGTGGATTAGCATGTCCCTGTACGTTTCGCCGCGAACTAGTTCACACGGCTTGATGGCAAATGGTTTTTCCGGCGACCGTAATCGTCCACCGAG"
+
+# Skew is running #G minus #C. It dips lowest near the replication origin, which
+# is what the problem is really about. Prefix 0 is the empty prefix, so the walk
+# has len(genome) + 1 positions.
+let skew = [0]
+let running = 0
+for i in range(0, len(genome)) {
+    let base = substr(genome, i, 1)
+    if base == "G" then running = running + 1
+    if base == "C" then running = running - 1
+    skew = push(skew, running)
+}
+
+let lowest = min(skew)
+let positions = range(0, len(skew)) |> filter(|i| skew[i] == lowest)
+let result = positions |> map(|i| str(i)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 53 97")
+
+fn test_ba1f_minimum_skew() {
+    assert result == "53 97", "BA1F: got " + result
+}

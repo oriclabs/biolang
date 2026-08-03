@@ -1,0 +1,46 @@
+# Rosalind: BA1K — Generate the Frequency Array of a String
+# https://rosalind.info/problems/ba1k/
+#
+# Given: A DNA string Text and an integer k.
+# Return: The frequency array of k-mers in Text.
+
+let text = "ACGCGGCTCTGAAA"
+let k = 2
+
+# The frequency array is indexed by PatternToNumber, so it has 4^k entries and
+# lists every possible k-mer in lexicographic order — including the ones that
+# never occur, which is what distinguishes it from a tally.
+fn base_of(symbol) {
+    if symbol == "A" then 0
+    else if symbol == "C" then 1
+    else if symbol == "G" then 2
+    else 3
+}
+
+fn pattern_to_number(pattern) {
+    range(0, len(pattern)) |> reduce(|acc, i| acc * 4 + base_of(substr(pattern, i, 1)), 0)
+}
+
+let size = 1
+let e = 0
+while e < k {
+    size = size * 4
+    e = e + 1
+}
+
+let freq_array = repeat([0], size)
+for i in range(0, len(text) - k + 1) {
+    let index = pattern_to_number(substr(text, i, k))
+    freq_array[index] = freq_array[index] + 1
+}
+
+let result = freq_array |> map(|n| str(n)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 2 1 0 0 0 0 2 2 1 2 1 0 0 1 1 0")
+
+fn test_ba1k_frequency_array() {
+    assert result == "2 1 0 0 0 0 2 2 1 2 1 0 0 1 1 0", "BA1K: got " + result
+    assert len(freq_array) == 16, "BA1K: an array of 4^k entries is expected"
+    assert sum(freq_array) == len(text) - k + 1, "BA1K: counts do not add up to the windows"
+}

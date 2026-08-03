@@ -1,0 +1,44 @@
+# Rosalind: BA1E — Find Patterns Forming Clumps in a String
+# https://rosalind.info/problems/ba1e/
+#
+# Given: A string Genome, and integers k, L and t.
+# Return: All distinct k-mers forming (L, t)-clumps in Genome.
+
+let genome = "CGGACTCGACAGATGTGAAGAAATGTGAAGACTGAGTGAAGAGAAGAGGAAACACGACACGACATTGCGACATAATGTACGAATGTAATGTGCCTATGGC"
+let k = 5
+let window = 75
+let times = 4
+
+# A k-mer forms a clump when some window of L characters contains it t times.
+# Slide the window and tally what is inside it; a k-mer only needs to qualify
+# once, so the answers are collected as a set.
+let found = []
+for start in range(0, len(genome) - window + 1) {
+    let region = substr(genome, start, window)
+    let counts = {}
+    for offset in range(0, window - k + 1) {
+        let mer = substr(region, offset, k)
+        if contains(keys(counts), mer) {
+            counts[mer] = counts[mer] + 1
+        } else {
+            counts[mer] = 1
+        }
+    }
+    for mer in keys(counts) {
+        if counts[mer] >= times and contains(found, mer) == false {
+            found = push(found, mer)
+        }
+    }
+}
+
+let result = sort(found) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: AATGT CGACA GAAGA  (in any order)")
+
+fn test_ba1e_clumps() {
+    assert len(found) == 3, "BA1E: expected 3 clumps, got " + str(len(found))
+    for expected in ["CGACA", "GAAGA", "AATGT"] {
+        assert contains(found, expected), "BA1E: missing " + expected
+    }
+}
