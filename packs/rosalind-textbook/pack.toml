@@ -1,6 +1,6 @@
 # BioLang example pack: Rosalind — Bioinformatics Textbook Track
 #
-# A showcase, not a course companion. See README.md: the point is to show which
+# Not a course companion. See README.md: the point is to show which
 # canonical algorithms BioLang already carries as builtins, and where it does
 # not. Anyone actually taking the course should implement these themselves.
 #
@@ -11,7 +11,7 @@ id = "rosalind-textbook"
 name = "Rosalind — Bioinformatics Textbook Track"
 version = "0.1.0"
 track = "bioinformatics-textbook-track"
-description = "A showcase of the Bioinformatics Textbook Track: canonical algorithms answered with BioLang builtins, 8 of 154 problems."
+description = "The Bioinformatics Textbook Track: 33 of 124 problems, from pattern finding through assembly graphs to alignment."
 list_url = "https://rosalind.info/problems/list-view/?location=bioinformatics-textbook-track"
 requires = ">=0.4"
 
