@@ -1338,3 +1338,584 @@ fn test_ba5j_affine_gap_alignment() {
 }
 ```
 
+## BA8A — Implement FarthestFirstTraversal
+
+[Problem statement](https://rosalind.info/problems/ba8a/)
+
+```biolang
+# Rosalind: BA8A — Implement FarthestFirstTraversal
+# https://rosalind.info/problems/ba8a/
+#
+# Given: Integers k and m, then a set of points in m-dimensional space.
+# Return: The k centers FarthestFirstTraversal chooses, starting from the first
+# point of the data.
+
+let k = 3
+let points = [
+    [0.0, 0.0], [5.0, 5.0], [0.0, 5.0], [1.0, 1.0],
+    [2.0, 2.0], [3.0, 3.0], [1.0, 2.0],
+]
+
+fn distance(a, b) {
+    sqrt(range(0, len(a)) |> map(|i| (a[i] - b[i]) * (a[i] - b[i])) |> sum())
+}
+
+# Each new center is the point furthest from every center chosen so far. That
+# makes it deterministic — unlike k-means, which depends on where it starts —
+# and it is why this is used to seed clustering rather than to do it: the points
+# it picks are the extremes, not the middles.
+let centers = [points[0]]
+while len(centers) < k {
+    let spreads = points |> map(|p| centers |> map(|c| distance(p, c)) |> min())
+    centers = push(centers, points[argmax(spreads)])
+}
+
+let result = centers |> map(|c| c |> map(|v| str(v)) |> join(" ")) |> join(" / ")
+
+println("Result:   " + result)
+println("Expected: 0 0 / 5 5 / 0 5")
+
+fn test_ba8a_farthest_first_traversal() {
+    assert len(centers) == k, "BA8A: expected k centers"
+    assert centers[0] == points[0], "BA8A: the first point seeds the traversal"
+    assert contains(centers, [5.0, 5.0]), "BA8A: 5.0 5.0 should be chosen"
+    assert contains(centers, [0.0, 5.0]), "BA8A: 0.0 5.0 should be chosen"
+}
+```
+
+## BA8B — Compute the Squared Error Distortion
+
+[Problem statement](https://rosalind.info/problems/ba8b/)
+
+```biolang
+# Rosalind: BA8B — Compute the Squared Error Distortion
+# https://rosalind.info/problems/ba8b/
+#
+# Given: Integers k and m, a set of centers, and a set of points.
+# Return: The squared error distortion.
+
+let centers = [[2.31, 4.55], [5.96, 9.08]]
+let points = [
+    [3.42, 6.03], [6.23, 8.25], [4.76, 1.64], [4.47, 4.33], [3.95, 7.61],
+    [8.93, 2.97], [9.74, 4.03], [1.73, 1.28], [9.72, 5.01], [7.27, 3.77],
+]
+
+fn distance(a, b) {
+    sqrt(range(0, len(a)) |> map(|i| (a[i] - b[i]) * (a[i] - b[i])) |> sum())
+}
+
+# Distortion is the mean squared distance from each point to its nearest center
+# — squared, so a single badly-placed point counts for much more than several
+# slightly-off ones. That is what k-means is minimising.
+let distortion = (points
+  |> map(|p| { let d = centers |> map(|c| distance(p, c)) |> min()
+               d * d })
+  |> sum()) / float(len(points))
+
+println("Result:   " + str(round(distortion, 3)))
+println("Expected: 18.246")
+
+fn test_ba8b_squared_error_distortion() {
+    assert round(distortion, 3) == 18.246, "BA8B: got " + str(round(distortion, 3))
+    # A point sitting on a center contributes nothing.
+    assert distance([1.0, 1.0], [1.0, 1.0]) == 0.0, "BA8B: distance to itself should be zero"
+}
+```
+
+## BA8C — Implement the Lloyd Algorithm for k-Means Clustering
+
+[Problem statement](https://rosalind.info/problems/ba8c/)
+
+```biolang
+# Rosalind: BA8C — Implement the Lloyd Algorithm for k-Means Clustering
+# https://rosalind.info/problems/ba8c/
+#
+# Given: Integers k and m, then a set of points.
+# Return: The centers Lloyd's algorithm converges to, seeded with the first k
+# points of the data.
+
+let k = 2
+let points = [
+    [1.3, 1.1], [1.3, 0.2], [0.6, 2.8], [3.0, 3.2], [1.2, 0.7], [1.4, 1.6],
+    [1.2, 1.0], [1.2, 1.1], [0.6, 1.5], [1.8, 2.6], [1.2, 1.3], [1.2, 1.0],
+    [0.0, 1.9],
+]
+
+fn distance(a, b) {
+    sqrt(range(0, len(a)) |> map(|i| (a[i] - b[i]) * (a[i] - b[i])) |> sum())
+}
+
+# Two steps, alternating until nothing moves: assign every point to its nearest
+# center, then move each center to the mean of what it was assigned. Seeded with
+# the first k points, because the problem says so — Lloyd's converges to
+# different answers from different seeds, which is why BA8A exists.
+let centers = slice(points, 0, k)
+let settled = false
+let rounds = 0
+while settled == false and rounds < 100 {
+    let assignment = points |> map(|p| argmin(centers |> map(|c| distance(p, c))))
+    let moved = []
+    for index in range(0, k) {
+        let members = range(0, len(points)) |> filter(|i| assignment[i] == index) |> map(|i| points[i])
+        if len(members) == 0 {
+            moved = push(moved, centers[index])
+        } else {
+            moved = push(moved, range(0, len(members[0]))
+              |> map(|d| (members |> map(|p| p[d]) |> sum()) / float(len(members))))
+        }
+    }
+    if moved == centers then settled = true
+    centers = moved
+    rounds = rounds + 1
+}
+
+let result = centers |> map(|c| c |> map(|v| str(round(v, 3))) |> join(" ")) |> join(" / ")
+
+println("Result:   " + result)
+println("Expected: 1.8 2.867 / 1.06 1.14   (converged in " + str(rounds) + " rounds)")
+
+fn test_ba8c_lloyd_k_means() {
+    assert settled, "BA8C: Lloyd's did not converge"
+    let flat = centers |> map(|c| c |> map(|v| round(v, 3)))
+    assert contains(flat, [1.8, 2.867]), "BA8C: missing the upper center, got " + str(flat)
+    assert contains(flat, [1.06, 1.14]), "BA8C: missing the lower center, got " + str(flat)
+}
+```
+
+## BA9D — Find the Longest Repeat in a String
+
+[Problem statement](https://rosalind.info/problems/ba9d/)
+
+```biolang
+# Rosalind: BA9D — Find the Longest Repeat in a String
+# https://rosalind.info/problems/ba9d/
+#
+# Given: A string Text.
+# Return: A longest substring occurring more than once.
+
+let text = "ATATCGTTTTATCGTT"
+
+# Two suffixes sharing a long prefix is exactly a repeat, and the LCP array
+# lists every such sharing between neighbours in sorted order. The longest
+# repeat is the largest value in it — no search needed, only a maximum.
+let padded = text + "$"
+let sa = suffix_array(padded)
+let lcp = lcp_array(padded)
+
+let best = max(lcp)
+let deepest = argmax(lcp)
+let repeat_seq = substr(padded, sa[deepest], best)
+
+println("Result:   " + repeat_seq + "  (length " + str(best) + ")")
+println("Expected: TATCGTT   (any longest repeat is accepted)")
+
+fn test_ba9d_longest_repeat() {
+    assert len(repeat_seq) == 7, "BA9D: expected length 7, got " + str(len(repeat_seq))
+    # It must genuinely occur more than once.
+    assert len(find_motif(dna(text), dna(repeat_seq))) >= 2,
+        "BA9D: " + repeat_seq + " does not repeat"
+    assert len(find_motif(dna(text), dna("TATCGTT"))) >= 2, "BA9D: the sample answer should repeat too"
+}
+```
+
+## BA9E — Find the Longest Substring Shared by Two Strings
+
+[Problem statement](https://rosalind.info/problems/ba9e/)
+
+```biolang
+# Rosalind: BA9E — Find the Longest Substring Shared by Two Strings
+# https://rosalind.info/problems/ba9e/
+#
+# Given: Two strings.
+# Return: The longest substring occurring in both.
+
+let first_text = "TCGGTAGATTGCGCCCACTC"
+let second_text = "AGGGGCTCGCAGTGTAAGAA"
+
+# Join the two with a separator that appears in neither, then take the suffix
+# array of the pair. Neighbouring suffixes that come from *different* sides and
+# share a long prefix are a shared substring — the separator is what stops a
+# match running across the join and claiming something neither string contains.
+let joined = first_text + "#" + second_text + "$"
+let split_at = len(first_text)
+let sa = suffix_array(joined)
+let lcp = lcp_array(joined)
+
+fn side_of(position) { if position < split_at then 0 else 1 }
+
+let best = 0
+let best_start = 0
+for i in range(1, len(sa)) {
+    if side_of(sa[i]) != side_of(sa[i - 1]) and lcp[i] > best {
+        best = lcp[i]
+        best_start = sa[i]
+    }
+}
+
+let shared = substr(joined, best_start, best)
+
+println("Result:   " + shared + "  (length " + str(best) + ")")
+println("Expected: AGA   (any longest shared substring is accepted)")
+
+fn test_ba9e_longest_shared_substring() {
+    assert len(shared) == 3, "BA9E: expected length 3, got " + str(len(shared))
+    assert contains(first_text, shared), "BA9E: " + shared + " is not in the first string"
+    assert contains(second_text, shared), "BA9E: " + shared + " is not in the second string"
+}
+```
+
+## BA9I — Construct the Burrows-Wheeler Transform of a String
+
+[Problem statement](https://rosalind.info/problems/ba9i/)
+
+```biolang
+# Rosalind: BA9I — Construct the Burrows-Wheeler Transform of a String
+# https://rosalind.info/problems/ba9i/
+#
+# Given: A string Text.
+# Return: BWT(Text).
+
+let text = "GCGTGCCTGGTCA$"
+
+# The BWT is the last column of the sorted rotations — but sorting rotations is
+# the same as sorting suffixes when the string ends in a sentinel, so the suffix
+# array gives it directly: the character just before each sorted suffix.
+let n = len(text)
+let sa = suffix_array(text)
+let bwt = sa |> map(|i| substr(text, (i + n - 1) % n, 1)) |> join("")
+
+println("Result:   " + bwt)
+println("Expected: ACTGGCT$TGCGGC")
+
+fn test_ba9i_burrows_wheeler_transform() {
+    assert bwt == "ACTGGCT$TGCGGC", "BA9I: got " + bwt
+    # A permutation of the input, which is what makes it invertible.
+    assert len(bwt) == n, "BA9I: wrong length"
+    assert sort(chars(bwt)) == sort(chars(text)), "BA9I: not a permutation of the input"
+}
+```
+
+## BA9J — Reconstruct a String from its Burrows-Wheeler Transform
+
+[Problem statement](https://rosalind.info/problems/ba9j/)
+
+```biolang
+# Rosalind: BA9J — Reconstruct a String from its Burrows-Wheeler Transform
+# https://rosalind.info/problems/ba9j/
+#
+# Given: A string Transform.
+# Return: The Text whose BWT is Transform.
+
+let transform = "TTCCTAACG$A"
+
+# The first column is the last column sorted, and the k-th occurrence of a
+# character in one column is the k-th occurrence in the other — that
+# correspondence is the whole trick, and it is why the transform is reversible
+# without storing anything alongside it.
+let n = len(transform)
+let last_column = range(0, n) |> map(|i| substr(transform, i, 1))
+let first_column = sort(last_column)
+
+# Rank each position among its own character's occurrences.
+fn ranks_of(column) {
+    let seen = {}
+    let out = []
+    for symbol in column {
+        let count = if contains(keys(seen), symbol) then seen[symbol] else 0
+        out = push(out, count)
+        seen[symbol] = count + 1
+    }
+    out
+}
+
+let last_rank = ranks_of(last_column)
+let first_rank = ranks_of(first_column)
+
+# Where does row i of the last column appear in the first?
+let lf = range(0, n) |> map(|i| {
+    let want = last_column[i]
+    let want_rank = last_rank[i]
+    (range(0, n) |> filter(|j| first_column[j] == want and first_rank[j] == want_rank))[0]
+})
+
+# Walk backwards from the row starting with the sentinel.
+let walk_row = 0
+let out = ""
+for _ in range(0, n) {
+    out = last_column[walk_row] + out
+    walk_row = lf[walk_row]
+}
+
+# The walk produces the text rotated so the sentinel leads; move it to the end.
+let text = substr(out, 1, n - 1) + substr(out, 0, 1)
+
+println("Result:   " + text)
+println("Expected: TACATCACGT$")
+
+fn test_ba9j_inverse_burrows_wheeler() {
+    assert text == "TACATCACGT$", "BA9J: got " + text
+    # Round trip: transforming the answer returns the input.
+    let sa = suffix_array(text)
+    let back = sa |> map(|i| substr(text, (i + n - 1) % n, 1)) |> join("")
+    assert back == transform, "BA9J: the round trip does not return the transform"
+}
+```
+
+## BA10A — Compute the Probability of a Hidden Path
+
+[Problem statement](https://rosalind.info/problems/ba10a/)
+
+```biolang
+# Rosalind: BA10A — Compute the Probability of a Hidden Path
+# https://rosalind.info/problems/ba10a/
+#
+# Given: A hidden path pi, the states of an HMM, and its transition matrix.
+# Return: Pr(pi).
+
+let hidden_path = "AABBBAABABAAAABBBBAABBABABBBAABBAAAABABAABBABABBAB"
+
+# No emissions are involved, so the model needs only its states and how they
+# follow one another.
+let model = {
+    states: ["A", "B"],
+    transition: {
+        A: { A: 0.194, B: 0.806 },
+        B: { A: 0.273, B: 0.727 },
+    },
+}
+
+# Every state is equally likely to start, then each step multiplies in one
+# transition. Fifty of them take the answer down to 1e-19, which is what makes
+# the log-space treatment in BA10C and BA10D necessary rather than fussy.
+let probability = hmm_path_probability(hidden_path, model)
+
+# Printed as a mantissa and an exponent; the plain decimal expansion of 1e-19
+# is unreadable next to the published answer.
+println("Result:   " + str(round(probability * 1e19, 6)) + "e-19")
+println("Expected: 5.017329e-19")
+
+fn test_ba10a_hidden_path_probability() {
+    assert abs(probability - 5.01732865318e-19) < 1e-30,
+        "BA10A: got " + str(probability)
+    # The same thing computed by hand, to check the builtin agrees with the
+    # definition rather than only with itself.
+    let steps = chars(hidden_path)
+    let by_hand = range(1, len(steps))
+        |> reduce(|running, i| running * model.transition[steps[i - 1]][steps[i]], 0.5)
+    assert abs(probability - by_hand) < 1e-30, "BA10A: builtin and hand computation disagree"
+}
+```
+
+## BA10B — Compute the Probability of an Outcome Given a Hidden Path
+
+[Problem statement](https://rosalind.info/problems/ba10b/)
+
+```biolang
+# Rosalind: BA10B — Compute the Probability of an Outcome Given a Hidden Path
+# https://rosalind.info/problems/ba10b/
+#
+# Given: A string x, its alphabet, a hidden path pi, the states, and the
+# emission matrix.
+# Return: Pr(x | pi).
+
+let observed = "xxyzyxzzxzxyxyyzxxzzxxyyxxyxyzzxxyzyzxzxxyxyyzxxzx"
+let hidden_path = "BBBAAABABABBBBBBAAAAAABAAAABABABBBBBABAABABABABBBB"
+
+# The path is given, so transitions never come into it — only what each state
+# emitted.
+let model = {
+    states: ["A", "B"],
+    symbols: ["x", "y", "z"],
+    emission: {
+        A: { x: 0.612, y: 0.314, z: 0.074 },
+        B: { x: 0.346, y: 0.317, z: 0.336 },
+    },
+}
+
+# Conditioning on the path makes the positions independent, so this is one
+# product of fifty emissions and nothing more.
+let probability = hmm_emission_probability(observed, hidden_path, model)
+
+println("Result:   " + str(round(probability * 1e28, 6)) + "e-28")
+println("Expected: 1.931571e-28")
+
+fn test_ba10b_outcome_given_path() {
+    assert abs(probability - 1.93157070893e-28) < 1e-38,
+        "BA10B: got " + str(probability)
+    assert len(observed) == len(hidden_path), "BA10B: the sample's string and path are both 50"
+    # The same product taken by hand.
+    let symbols = chars(observed)
+    let states = chars(hidden_path)
+    let by_hand = range(0, len(symbols))
+        |> reduce(|running, i| running * model.emission[states[i]][symbols[i]], 1.0)
+    assert abs(probability - by_hand) < 1e-38, "BA10B: builtin and hand computation disagree"
+}
+```
+
+## BA10C — Implement the Viterbi Algorithm
+
+[Problem statement](https://rosalind.info/problems/ba10c/)
+
+```biolang
+# Rosalind: BA10C — Implement the Viterbi Algorithm
+# https://rosalind.info/problems/ba10c/
+#
+# Given: A string x, the alphabet it was emitted from, the states of an HMM, and
+# its transition and emission matrices.
+# Return: A path that maximises the probability of x over all hidden paths.
+
+let observed = "xyxzzxyxyy"
+
+# A model is a plain record, so it reads the way the problem states it. The
+# matrices are keyed by name in both directions — a transposed transition matrix
+# is otherwise a wrong answer rather than an error, and it is the mistake
+# everyone makes first.
+let model = {
+    states: ["A", "B"],
+    symbols: ["x", "y", "z"],
+    transition: {
+        A: { A: 0.641, B: 0.359 },
+        B: { A: 0.729, B: 0.271 },
+    },
+    emission: {
+        A: { x: 0.117, y: 0.691, z: 0.192 },
+        B: { x: 0.097, y: 0.42,  z: 0.483 },
+    },
+}
+
+# Viterbi keeps, for each state at each position, the best path reaching it —
+# and every path that is not best is dropped immediately. That is what makes it
+# linear in the string instead of exponential in it.
+let path = viterbi(observed, model) |> join("")
+
+println("Result:   " + path)
+println("Expected: AAABBAAAAA")
+
+fn test_ba10c_viterbi() {
+    assert path == "AAABBAAAAA", "BA10C: got " + path
+    assert len(path) == len(observed), "BA10C: the path must be as long as the string"
+    # No other path can score higher — check against the joint probability of the
+    # path itself, which is what Viterbi claims to maximise.
+    let best = hmm_path_probability(path, model)
+             * hmm_emission_probability(observed, path, model)
+    let rival = "BBBBBBBBBB"
+    let worse = hmm_path_probability(rival, model)
+              * hmm_emission_probability(observed, rival, model)
+    assert best > worse, "BA10C: an all-B path scores at least as well"
+}
+```
+
+## BA10D — Compute the Probability of a String Emitted by an HMM
+
+[Problem statement](https://rosalind.info/problems/ba10d/)
+
+```biolang
+# Rosalind: BA10D — Compute the Probability of a String Emitted by an HMM
+# https://rosalind.info/problems/ba10d/
+#
+# Given: A string x, its alphabet, the states of an HMM, and its transition and
+# emission matrices.
+# Return: Pr(x), summed over every hidden path.
+
+let observed = "xzyyzzyzyy"
+
+let model = {
+    states: ["A", "B"],
+    symbols: ["x", "y", "z"],
+    transition: {
+        A: { A: 0.303, B: 0.697 },
+        B: { A: 0.831, B: 0.169 },
+    },
+    emission: {
+        A: { x: 0.533, y: 0.065, z: 0.402 },
+        B: { x: 0.342, y: 0.334, z: 0.324 },
+    },
+}
+
+# There are 2^10 paths here and 2^n in general, so summing them one at a time is
+# not an option for a real string. The forward algorithm collapses them: once two
+# paths reach the same state at the same position, nothing that follows can tell
+# them apart, so they can be added together and carried as one number.
+let probability = hmm_likelihood(observed, model)
+
+println("Result:   " + str(round(probability * 1e6, 6)) + "e-06")
+println("Expected: 1.100551e-06")
+
+fn test_ba10d_string_probability() {
+    assert abs(probability - 1.1005510319694847e-06) < 1e-16,
+        "BA10D: got " + str(probability)
+    # Small enough to enumerate, so check the sum really is over all 1024 paths.
+    let states = model.states
+    let total = range(0, 1024) |> reduce(|running, mask| {
+        let path = range(0, len(observed))
+            |> map(|i| states[(mask / pow(2, i)) % 2 |> floor()])
+            |> join("")
+        running + hmm_path_probability(path, model)
+                * hmm_emission_probability(observed, path, model)
+    }, 0.0)
+    assert abs(probability - total) < 1e-15,
+        "BA10D: forward gives " + str(probability) + " but enumeration gives " + str(total)
+    # And it must be at least as large as the single best path.
+    let best = viterbi(observed, model) |> join("")
+    let best_probability = hmm_path_probability(best, model)
+                         * hmm_emission_probability(observed, best, model)
+    assert probability > best_probability, "BA10D: the sum must exceed its largest term"
+}
+```
+
+## BA10J — Solve the Soft Decoding Problem
+
+[Problem statement](https://rosalind.info/problems/ba10j/)
+
+```biolang
+# Rosalind: BA10J — Solve the Soft Decoding Problem
+# https://rosalind.info/problems/ba10j/
+#
+# Given: A string x, its alphabet, the states of an HMM, and its transition and
+# emission matrices.
+# Return: For each position, the probability of each state given all of x.
+
+let observed = "zyxxxxyxzz"
+
+let model = {
+    states: ["A", "B"],
+    symbols: ["x", "y", "z"],
+    transition: {
+        A: { A: 0.911, B: 0.089 },
+        B: { A: 0.228, B: 0.772 },
+    },
+    emission: {
+        A: { x: 0.356, y: 0.191, z: 0.453 },
+        B: { x: 0.04,  y: 0.467, z: 0.493 },
+    },
+}
+
+# Forward-backward, not Viterbi. Viterbi answers "which single path", this
+# answers "which state here" — conditioned on the whole string, so a symbol near
+# the end can revise a call made near the start. The two disagree in general, and
+# the position-wise winners need not even form a path the model can produce.
+let posterior = hmm_posterior(observed, model)
+
+println("Result:")
+println("  A       B")
+for distribution in posterior {
+    println("  " + str(round(distribution.A, 4)) + "  " + str(round(distribution.B, 4)))
+}
+println("Expected first row: 0.5438  0.4562")
+println("Expected last row:  0.8167  0.1833")
+
+fn test_ba10j_soft_decoding() {
+    let expected_a = [0.5438, 0.6492, 0.9647, 0.9936, 0.9957,
+                      0.9891, 0.9154, 0.964,  0.8737, 0.8167]
+    assert len(posterior) == len(observed), "BA10J: one row per position"
+    for i in range(0, len(expected_a)) {
+        assert abs(posterior[i].A - expected_a[i]) < 5e-5,
+            "BA10J: position " + str(i) + " gives " + str(posterior[i].A)
+                + ", expected " + str(expected_a[i])
+        # Each position is a distribution over the states.
+        assert abs(posterior[i].A + posterior[i].B - 1.0) < 1e-12,
+            "BA10J: row " + str(i) + " does not sum to one"
+    }
+}
+```
+

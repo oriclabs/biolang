@@ -9,6 +9,7 @@ pub fn text_builtin_list() -> Vec<(&'static str, Arity)> {
         ("grep", Arity::Range(2, 3)),
         ("grep_count", Arity::Exact(2)),
         ("lines", Arity::Exact(1)),
+        ("chars", Arity::Exact(1)),
         ("cut", Arity::Exact(3)),
         ("paste", Arity::Range(2, 3)),
         ("uniq_count", Arity::Exact(1)),
@@ -30,7 +31,15 @@ pub fn text_builtin_list() -> Vec<(&'static str, Arity)> {
 pub fn is_text_builtin(name: &str) -> bool {
     matches!(
         name,
-        "grep" | "grep_count" | "lines" | "cut" | "paste" | "uniq_count" | "wc" | "stream_concat"
+        "grep"
+            | "grep_count"
+            | "lines"
+            | "chars"
+            | "cut"
+            | "paste"
+            | "uniq_count"
+            | "wc"
+            | "stream_concat"
     ) || is_native_text_builtin(name)
 }
 
@@ -50,6 +59,7 @@ pub fn call_text_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "grep" => builtin_grep(args),
         "grep_count" => builtin_grep_count(args),
         "lines" => builtin_lines(args),
+        "chars" => builtin_chars(args),
         "cut" => builtin_cut(args),
         "paste" => builtin_paste(args),
         "uniq_count" => builtin_uniq_count(args),
@@ -224,6 +234,35 @@ fn builtin_lines(args: Vec<Value>) -> Result<Value> {
     let text = require_str(&args[0], "lines")?;
     let result: Vec<Value> = split_lines(text).into_iter().map(Value::Str).collect();
     Ok(Value::List((result).into()))
+}
+
+// ── chars ────────────────────────────────────────────────────────
+
+/// `chars(text)` — the characters of `text`, one string each.
+///
+/// `split(text, "")` looks like it does this and does not: it yields an empty
+/// string at each end, so `split("AB", "")` has four elements and indexing it
+/// against the original positions is off by one. That has caught real code, so
+/// the operation gets a name of its own rather than a comment warning about it.
+///
+/// Characters, not bytes, so a sequence with a non-ASCII annotation in it does
+/// not come back cut in half.
+fn builtin_chars(args: Vec<Value>) -> Result<Value> {
+    let text = match &args[0] {
+        Value::Str(s) => s.as_str(),
+        Value::DNA(seq) | Value::RNA(seq) | Value::Protein(seq) => seq.data.as_str(),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "chars() requires Str/DNA/RNA/Protein, got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+    };
+    let result: Vec<Value> = text.chars().map(|c| Value::Str(c.to_string())).collect();
+    Ok(Value::List(result.into()))
 }
 
 // ── cut ──────────────────────────────────────────────────────────
@@ -578,4 +617,59 @@ fn builtin_stream_concat(args: Vec<Value>) -> Result<Value> {
         "concat",
         Box::new(combined),
     )))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn chars_of(text: &str) -> Vec<String> {
+        match builtin_chars(vec![Value::Str(text.into())]).expect("chars") {
+            Value::List(items) => items
+                .iter()
+                .map(|v| match v {
+                    Value::Str(s) => s.clone(),
+                    other => panic!("expected a string, got {other:?}"),
+                })
+                .collect(),
+            other => panic!("expected a list, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn chars_has_one_entry_per_character() {
+        assert_eq!(chars_of("ABBA"), ["A", "B", "B", "A"]);
+        assert!(chars_of("").is_empty());
+        assert_eq!(chars_of("x"), ["x"]);
+    }
+
+    #[test]
+    fn chars_does_not_pad_the_ends_the_way_split_does() {
+        // The whole reason this builtin exists: split() on an empty separator
+        // returns a leading and a trailing empty string, so its indices do not
+        // line up with the text's.
+        assert_eq!("ABBA".split("").count(), 6);
+        assert_eq!(chars_of("ABBA").len(), 4);
+        assert!(chars_of("ABBA").iter().all(|c| !c.is_empty()));
+    }
+
+    #[test]
+    fn chars_accepts_a_sequence() {
+        let dna = builtin_chars(vec![Value::Str("ACGT".into())]).expect("chars");
+        match dna {
+            Value::List(items) => assert_eq!(items.len(), 4),
+            other => panic!("expected a list, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn chars_counts_characters_not_bytes() {
+        assert_eq!(chars_of("aµb").len(), 3);
+    }
+
+    #[test]
+    fn chars_rejects_a_number() {
+        let error = builtin_chars(vec![Value::Int(5)]).expect_err("not text");
+        assert!(error.to_string().contains("chars()"), "{error}");
+    }
 }

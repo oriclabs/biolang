@@ -410,3 +410,53 @@ status = "solved"
 asserted = true
 note = "The k-th occurrence of a symbol in the first column is the k-th in the last. That correspondence alone rebuilds the text, which is why the transform can be stored without anything beside it."
 topics = ["strings", "suffix-structures", "compression"]
+
+[[problem]]
+id = "BA10A"
+title = "Compute the Probability of a Hidden Path"
+file = "examples/ba10a.bl"
+url = "https://rosalind.info/problems/ba10a/"
+status = "solved"
+asserted = true
+note = "One product of fifty transitions, which lands at 1e-19 — the concrete reason the decoding problems that follow are done in log space rather than directly."
+topics = ["hmm", "probability"]
+
+[[problem]]
+id = "BA10B"
+title = "Compute the Probability of an Outcome Given a Hidden Path"
+file = "examples/ba10b.bl"
+url = "https://rosalind.info/problems/ba10b/"
+status = "solved"
+asserted = true
+note = "Conditioning on the path makes the positions independent, so the transitions never enter into it. Checked against the same product taken by hand."
+topics = ["hmm", "probability"]
+
+[[problem]]
+id = "BA10C"
+title = "Implement the Viterbi Algorithm"
+file = "examples/ba10c.bl"
+url = "https://rosalind.info/problems/ba10c/"
+status = "solved"
+asserted = true
+note = "The problem this pack was built to reach: HMM decoding is what gene finders, profile search and segmentation all run on, and nothing in the tree could do it before."
+topics = ["hmm", "dynamic-programming"]
+
+[[problem]]
+id = "BA10D"
+title = "Compute the Probability of a String Emitted by an HMM"
+file = "examples/ba10d.bl"
+url = "https://rosalind.info/problems/ba10d/"
+status = "solved"
+asserted = true
+note = "The forward algorithm. Its assertion enumerates all 1024 paths of the sample and sums them, so the collapse is checked against the thing it replaces rather than only against a published number."
+topics = ["hmm", "dynamic-programming"]
+
+[[problem]]
+id = "BA10J"
+title = "Solve the Soft Decoding Problem"
+file = "examples/ba10j.bl"
+url = "https://rosalind.info/problems/ba10j/"
+status = "solved"
+asserted = true
+note = "Forward-backward, which answers a different question from Viterbi: the most likely state at each position need not lie on any single path the model can produce."
+topics = ["hmm", "dynamic-programming"]

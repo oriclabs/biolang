@@ -8,6 +8,7 @@ pub mod fastq_ops;
 pub mod gene;
 pub mod gff_ops;
 pub mod graph_ops;
+pub mod hmm;
 pub mod interval;
 pub mod interval_ops;
 pub mod kmer;

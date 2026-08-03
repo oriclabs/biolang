@@ -538,6 +538,9 @@ pub fn register_builtins(env: &mut Environment) {
     for (name, arity) in crate::motif::motif_builtin_list() {
         builtins.push((name, arity));
     }
+    for (name, arity) in crate::hmm::hmm_builtin_list() {
+        builtins.push((name, arity));
+    }
     // Tier-4 full-Rust builtins: cnv, hic, atac, drug, gwas, annotation
     for (name, arity) in crate::cnv::cnv_builtin_list() {
         builtins.push((name, arity));
@@ -1015,6 +1018,9 @@ pub fn all_builtin_names() -> Vec<&'static str> {
         names.push(n);
     }
     for (n, _) in crate::motif::motif_builtin_list() {
+        names.push(n);
+    }
+    for (n, _) in crate::hmm::hmm_builtin_list() {
         names.push(n);
     }
     for (n, _) in crate::cnv::cnv_builtin_list() {
@@ -3050,6 +3056,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         _ if crate::table_ops::is_table_builtin(name) => {
             crate::table_ops::call_table_builtin(name, args)
         }
+        _ if crate::hmm::is_hmm_builtin(name) => crate::hmm::call_hmm_builtin(name, args),
         _ if crate::stats::is_stats_builtin(name) => crate::stats::call_stats_builtin(name, args),
         _ if crate::plot::is_plot_builtin(name) => crate::plot::call_plot_builtin(name, args),
         _ if crate::matrix::is_matrix_builtin(name) => {

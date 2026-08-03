@@ -1,0 +1,49 @@
+# Rosalind: BA10J — Solve the Soft Decoding Problem
+# https://rosalind.info/problems/ba10j/
+#
+# Given: A string x, its alphabet, the states of an HMM, and its transition and
+# emission matrices.
+# Return: For each position, the probability of each state given all of x.
+
+let observed = "zyxxxxyxzz"
+
+let model = {
+    states: ["A", "B"],
+    symbols: ["x", "y", "z"],
+    transition: {
+        A: { A: 0.911, B: 0.089 },
+        B: { A: 0.228, B: 0.772 },
+    },
+    emission: {
+        A: { x: 0.356, y: 0.191, z: 0.453 },
+        B: { x: 0.04,  y: 0.467, z: 0.493 },
+    },
+}
+
+# Forward-backward, not Viterbi. Viterbi answers "which single path", this
+# answers "which state here" — conditioned on the whole string, so a symbol near
+# the end can revise a call made near the start. The two disagree in general, and
+# the position-wise winners need not even form a path the model can produce.
+let posterior = hmm_posterior(observed, model)
+
+println("Result:")
+println("  A       B")
+for distribution in posterior {
+    println("  " + str(round(distribution.A, 4)) + "  " + str(round(distribution.B, 4)))
+}
+println("Expected first row: 0.5438  0.4562")
+println("Expected last row:  0.8167  0.1833")
+
+fn test_ba10j_soft_decoding() {
+    let expected_a = [0.5438, 0.6492, 0.9647, 0.9936, 0.9957,
+                      0.9891, 0.9154, 0.964,  0.8737, 0.8167]
+    assert len(posterior) == len(observed), "BA10J: one row per position"
+    for i in range(0, len(expected_a)) {
+        assert abs(posterior[i].A - expected_a[i]) < 5e-5,
+            "BA10J: position " + str(i) + " gives " + str(posterior[i].A)
+                + ", expected " + str(expected_a[i])
+        # Each position is a distribution over the states.
+        assert abs(posterior[i].A + posterior[i].B - 1.0) < 1e-12,
+            "BA10J: row " + str(i) + " does not sum to one"
+    }
+}

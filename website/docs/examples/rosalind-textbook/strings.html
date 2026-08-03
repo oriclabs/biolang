@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Strings</h1>
-        <p class="text-lg text-slate-400 mb-6">12 problems from
+        <p class="text-lg text-slate-400 mb-6">16 problems from
         <a href="../rosalind-textbook.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Textbook Track</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -45,6 +45,10 @@
           <a href="#ba2a" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement MotifEnumeration">BA2A</a>
           <a href="#ba2b" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find a Median String">BA2B</a>
           <a href="#ba2h" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Implement DistanceBetweenPatternAndStrings">BA2H</a>
+          <a href="#ba9d" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find the Longest Repeat in a String">BA9D</a>
+          <a href="#ba9e" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find the Longest Substring Shared by Two Strings">BA9E</a>
+          <a href="#ba9i" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Construct the Burrows-Wheeler Transform of a String">BA9I</a>
+          <a href="#ba9j" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Reconstruct a String from its Burrows-Wheeler Transform">BA9J</a>
         </nav>
 
         <section id="ba1a" class="mt-12">
@@ -663,6 +667,201 @@ fn test_ba2h_distance_between_pattern_and_strings() {
     assert total == 5, &quot;BA2H: got &quot; + str(total)
     # A pattern present exactly in every string would score zero.
     assert distance_to(&quot;AAACCC&quot;, &quot;AAA&quot;) == 0, &quot;BA2H: an exact occurrence should cost nothing&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9d" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9D &mdash; Find the Longest Repeat in a String</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9d/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9D" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9d.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The largest entry in the LCP array, and nothing else. Two suffixes sharing a long prefix is what a repeat is, so the array has already found every one of them before the problem is read.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9D — Find the Longest Repeat in a String
+# https://rosalind.info/problems/ba9d/
+#
+# Given: A string Text.
+# Return: A longest substring occurring more than once.
+
+let text = &quot;ATATCGTTTTATCGTT&quot;
+
+# Two suffixes sharing a long prefix is exactly a repeat, and the LCP array
+# lists every such sharing between neighbours in sorted order. The longest
+# repeat is the largest value in it — no search needed, only a maximum.
+let padded = text + &quot;$&quot;
+let sa = suffix_array(padded)
+let lcp = lcp_array(padded)
+
+let best = max(lcp)
+let deepest = argmax(lcp)
+let repeat_seq = substr(padded, sa[deepest], best)
+
+println(&quot;Result:   &quot; + repeat_seq + &quot;  (length &quot; + str(best) + &quot;)&quot;)
+println(&quot;Expected: TATCGTT   (any longest repeat is accepted)&quot;)
+
+fn test_ba9d_longest_repeat() {
+    assert len(repeat_seq) == 7, &quot;BA9D: expected length 7, got &quot; + str(len(repeat_seq))
+    # It must genuinely occur more than once.
+    assert len(find_motif(dna(text), dna(repeat_seq))) &gt;= 2,
+        &quot;BA9D: &quot; + repeat_seq + &quot; does not repeat&quot;
+    assert len(find_motif(dna(text), dna(&quot;TATCGTT&quot;))) &gt;= 2, &quot;BA9D: the sample answer should repeat too&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9e" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9E &mdash; Find the Longest Substring Shared by Two Strings</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9e/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9E" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9e.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Concatenate with a separator, then take the largest LCP between neighbouring suffixes that came from different sides. The separator is load-bearing: without it a match can run across the join and name a substring neither string contains.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9E — Find the Longest Substring Shared by Two Strings
+# https://rosalind.info/problems/ba9e/
+#
+# Given: Two strings.
+# Return: The longest substring occurring in both.
+
+let first_text = &quot;TCGGTAGATTGCGCCCACTC&quot;
+let second_text = &quot;AGGGGCTCGCAGTGTAAGAA&quot;
+
+# Join the two with a separator that appears in neither, then take the suffix
+# array of the pair. Neighbouring suffixes that come from *different* sides and
+# share a long prefix are a shared substring — the separator is what stops a
+# match running across the join and claiming something neither string contains.
+let joined = first_text + &quot;#&quot; + second_text + &quot;$&quot;
+let split_at = len(first_text)
+let sa = suffix_array(joined)
+let lcp = lcp_array(joined)
+
+fn side_of(position) { if position &lt; split_at then 0 else 1 }
+
+let best = 0
+let best_start = 0
+for i in range(1, len(sa)) {
+    if side_of(sa[i]) != side_of(sa[i - 1]) and lcp[i] &gt; best {
+        best = lcp[i]
+        best_start = sa[i]
+    }
+}
+
+let shared = substr(joined, best_start, best)
+
+println(&quot;Result:   &quot; + shared + &quot;  (length &quot; + str(best) + &quot;)&quot;)
+println(&quot;Expected: AGA   (any longest shared substring is accepted)&quot;)
+
+fn test_ba9e_longest_shared_substring() {
+    assert len(shared) == 3, &quot;BA9E: expected length 3, got &quot; + str(len(shared))
+    assert contains(first_text, shared), &quot;BA9E: &quot; + shared + &quot; is not in the first string&quot;
+    assert contains(second_text, shared), &quot;BA9E: &quot; + shared + &quot; is not in the second string&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9i" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9I &mdash; Construct the Burrows-Wheeler Transform of a String</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9i/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9I" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9i.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Sorting rotations and sorting suffixes agree once the string ends in a sentinel, so the suffix array gives the transform directly — the character before each sorted suffix.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9I — Construct the Burrows-Wheeler Transform of a String
+# https://rosalind.info/problems/ba9i/
+#
+# Given: A string Text.
+# Return: BWT(Text).
+
+let text = &quot;GCGTGCCTGGTCA$&quot;
+
+# The BWT is the last column of the sorted rotations — but sorting rotations is
+# the same as sorting suffixes when the string ends in a sentinel, so the suffix
+# array gives it directly: the character just before each sorted suffix.
+let n = len(text)
+let sa = suffix_array(text)
+let bwt = sa |&gt; map(|i| substr(text, (i + n - 1) % n, 1)) |&gt; join(&quot;&quot;)
+
+println(&quot;Result:   &quot; + bwt)
+println(&quot;Expected: ACTGGCT$TGCGGC&quot;)
+
+fn test_ba9i_burrows_wheeler_transform() {
+    assert bwt == &quot;ACTGGCT$TGCGGC&quot;, &quot;BA9I: got &quot; + bwt
+    # A permutation of the input, which is what makes it invertible.
+    assert len(bwt) == n, &quot;BA9I: wrong length&quot;
+    assert sort(chars(bwt)) == sort(chars(text)), &quot;BA9I: not a permutation of the input&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba9j" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA9J &mdash; Reconstruct a String from its Burrows-Wheeler Transform</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba9j/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA9J" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba9j.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The k-th occurrence of a symbol in the first column is the k-th in the last. That correspondence alone rebuilds the text, which is why the transform can be stored without anything beside it.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA9J — Reconstruct a String from its Burrows-Wheeler Transform
+# https://rosalind.info/problems/ba9j/
+#
+# Given: A string Transform.
+# Return: The Text whose BWT is Transform.
+
+let transform = &quot;TTCCTAACG$A&quot;
+
+# The first column is the last column sorted, and the k-th occurrence of a
+# character in one column is the k-th occurrence in the other — that
+# correspondence is the whole trick, and it is why the transform is reversible
+# without storing anything alongside it.
+let n = len(transform)
+let last_column = range(0, n) |&gt; map(|i| substr(transform, i, 1))
+let first_column = sort(last_column)
+
+# Rank each position among its own character's occurrences.
+fn ranks_of(column) {
+    let seen = {}
+    let out = []
+    for symbol in column {
+        let count = if contains(keys(seen), symbol) then seen[symbol] else 0
+        out = push(out, count)
+        seen[symbol] = count + 1
+    }
+    out
+}
+
+let last_rank = ranks_of(last_column)
+let first_rank = ranks_of(first_column)
+
+# Where does row i of the last column appear in the first?
+let lf = range(0, n) |&gt; map(|i| {
+    let want = last_column[i]
+    let want_rank = last_rank[i]
+    (range(0, n) |&gt; filter(|j| first_column[j] == want and first_rank[j] == want_rank))[0]
+})
+
+# Walk backwards from the row starting with the sentinel.
+let walk_row = 0
+let out = &quot;&quot;
+for _ in range(0, n) {
+    out = last_column[walk_row] + out
+    walk_row = lf[walk_row]
+}
+
+# The walk produces the text rotated so the sentinel leads; move it to the end.
+let text = substr(out, 1, n - 1) + substr(out, 0, 1)
+
+println(&quot;Result:   &quot; + text)
+println(&quot;Expected: TACATCACGT$&quot;)
+
+fn test_ba9j_inverse_burrows_wheeler() {
+    assert text == &quot;TACATCACGT$&quot;, &quot;BA9J: got &quot; + text
+    # Round trip: transforming the answer returns the input.
+    let sa = suffix_array(text)
+    let back = sa |&gt; map(|i| substr(text, (i + n - 1) % n, 1)) |&gt; join(&quot;&quot;)
+    assert back == transform, &quot;BA9J: the round trip does not return the transform&quot;
 }</code></pre>
         </section>
       </article>

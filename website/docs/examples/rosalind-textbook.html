@@ -28,9 +28,9 @@
         <p class="text-lg text-slate-400 mb-4">The Bioinformatics Textbook Track: 33 of 124 problems, from pattern finding through assembly graphs to alignment.
         <a href="https://rosalind.info/problems/list-view/?location=bioinformatics-textbook-track" class="text-violet-400 hover:text-violet-300">See the problem list</a>.</p>
 
-        <p class="text-sm text-slate-500 mb-8">33 problems &mdash;
-        33 solved, 0 partial.
-        33 carry assertions that run on every commit;
+        <p class="text-sm text-slate-500 mb-8">45 problems &mdash;
+        45 solved, 0 partial.
+        45 carry assertions that run on every commit;
         0 need a network connection and are checked separately.
         Press <strong>Run</strong> on any block to execute it in your browser, or
         <a href="/workbench/?pack=rosalind-textbook" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">open the whole pack in the workbench</a>.</p>
@@ -48,8 +48,8 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 not-prose">
           <a href="rosalind-textbook/strings.html" class="block p-4 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
             <h3 class="text-lg font-semibold text-slate-100 mb-1">Strings</h3>
-            <p class="text-sm text-slate-400">12 problems &mdash; 12 solved</p>
-            <p class="text-xs text-slate-500 mt-2">BA1A, BA1B, BA1D, BA9G, BA1E, BA1H, BA1I, BA1J, BA1N, BA2A, BA2B, BA2H</p>
+            <p class="text-sm text-slate-400">16 problems &mdash; 16 solved</p>
+            <p class="text-xs text-slate-500 mt-2">BA1A, BA1B, BA1D, BA9G, BA1E, BA1H, BA1I, BA1J, BA1N, BA2A, BA2B, BA2H, BA9D, BA9E, BA9I, BA9J</p>
           </a>
           <a href="rosalind-textbook/sequence.html" class="block p-4 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
             <h3 class="text-lg font-semibold text-slate-100 mb-1">Sequence</h3>
@@ -90,6 +90,16 @@
             <h3 class="text-lg font-semibold text-slate-100 mb-1">Dynamic programming</h3>
             <p class="text-sm text-slate-400">2 problems &mdash; 2 solved</p>
             <p class="text-xs text-slate-500 mt-2">BA5A, BA5C</p>
+          </a>
+          <a href="rosalind-textbook/clustering.html" class="block p-4 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <h3 class="text-lg font-semibold text-slate-100 mb-1">Clustering</h3>
+            <p class="text-sm text-slate-400">3 problems &mdash; 3 solved</p>
+            <p class="text-xs text-slate-500 mt-2">BA8A, BA8B, BA8C</p>
+          </a>
+          <a href="rosalind-textbook/hmm.html" class="block p-4 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-violet-500/50 transition-colors">
+            <h3 class="text-lg font-semibold text-slate-100 mb-1">Hmm</h3>
+            <p class="text-sm text-slate-400">5 problems &mdash; 5 solved</p>
+            <p class="text-xs text-slate-500 mt-2">BA10A, BA10B, BA10C, BA10D, BA10J</p>
           </a>
         </div>
 
@@ -365,6 +375,102 @@
             <td class="py-2 pr-4 text-slate-400">Align Two Strings Using Affine Gap Penalties</td>
             <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
             <td class="py-2 pr-4 text-slate-500">Alignment</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/clustering.html#ba8a" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/clustering.html#ba8a" class="text-violet-400 group-hover:text-violet-300">BA8A</a></td>
+            <td class="py-2 pr-4 text-slate-400">Implement FarthestFirstTraversal</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Clustering</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/clustering.html#ba8b" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/clustering.html#ba8b" class="text-violet-400 group-hover:text-violet-300">BA8B</a></td>
+            <td class="py-2 pr-4 text-slate-400">Compute the Squared Error Distortion</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Clustering</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/clustering.html#ba8c" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/clustering.html#ba8c" class="text-violet-400 group-hover:text-violet-300">BA8C</a></td>
+            <td class="py-2 pr-4 text-slate-400">Implement the Lloyd Algorithm for k-Means Clustering</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Clustering</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/strings.html#ba9d" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/strings.html#ba9d" class="text-violet-400 group-hover:text-violet-300">BA9D</a></td>
+            <td class="py-2 pr-4 text-slate-400">Find the Longest Repeat in a String</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Strings</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/strings.html#ba9e" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/strings.html#ba9e" class="text-violet-400 group-hover:text-violet-300">BA9E</a></td>
+            <td class="py-2 pr-4 text-slate-400">Find the Longest Substring Shared by Two Strings</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Strings</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/strings.html#ba9i" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/strings.html#ba9i" class="text-violet-400 group-hover:text-violet-300">BA9I</a></td>
+            <td class="py-2 pr-4 text-slate-400">Construct the Burrows-Wheeler Transform of a String</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Strings</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/strings.html#ba9j" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/strings.html#ba9j" class="text-violet-400 group-hover:text-violet-300">BA9J</a></td>
+            <td class="py-2 pr-4 text-slate-400">Reconstruct a String from its Burrows-Wheeler Transform</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Strings</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/hmm.html#ba10a" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/hmm.html#ba10a" class="text-violet-400 group-hover:text-violet-300">BA10A</a></td>
+            <td class="py-2 pr-4 text-slate-400">Compute the Probability of a Hidden Path</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Hmm</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/hmm.html#ba10b" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/hmm.html#ba10b" class="text-violet-400 group-hover:text-violet-300">BA10B</a></td>
+            <td class="py-2 pr-4 text-slate-400">Compute the Probability of an Outcome Given a Hidden Path</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Hmm</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/hmm.html#ba10c" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/hmm.html#ba10c" class="text-violet-400 group-hover:text-violet-300">BA10C</a></td>
+            <td class="py-2 pr-4 text-slate-400">Implement the Viterbi Algorithm</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Hmm</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/hmm.html#ba10d" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/hmm.html#ba10d" class="text-violet-400 group-hover:text-violet-300">BA10D</a></td>
+            <td class="py-2 pr-4 text-slate-400">Compute the Probability of a String Emitted by an HMM</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Hmm</td>
+            <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
+            <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
+          </tr>
+          <tr data-row-href="rosalind-textbook/hmm.html#ba10j" class="group border-t border-slate-800 cursor-pointer hover:bg-slate-900/60 transition-colors">
+            <td class="py-2 pr-4"><a href="rosalind-textbook/hmm.html#ba10j" class="text-violet-400 group-hover:text-violet-300">BA10J</a></td>
+            <td class="py-2 pr-4 text-slate-400">Solve the Soft Decoding Problem</td>
+            <td class="py-2 pr-4"><span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span></td>
+            <td class="py-2 pr-4 text-slate-500">Hmm</td>
             <td class="py-2 pr-4 text-slate-500">browser + CLI</td>
             <td class="py-2 text-slate-500">verified by <code>bl test</code></td>
           </tr>
