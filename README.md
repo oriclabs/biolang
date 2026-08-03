@@ -22,6 +22,42 @@ reads
   |> write_fastq("filtered.fq.gz")
 ```
 
+## Workbench
+
+An editor, file tree, console and plots, running the same interpreter as the CLI compiled to
+WebAssembly.
+
+- **[In the browser](https://lang.bio/workbench/)** — nothing to install. Example packs install
+  into the workspace from a single link, along with the sample data the documentation reads.
+- **On the desktop** — the same workbench as a native app, with your own filesystem, the `bl`
+  CLI, remote execution over SSH, and the APIs a browser cannot reach for want of CORS headers.
+
+## Verified against Rosalind
+
+[Rosalind](https://rosalind.info) is the bioinformatics problem set used in teaching
+worldwide. These problems are not mine to choose, and the answers are not mine to mark: every
+solution is asserted against the official answer and re-run on each commit — natively, and
+again through the same WebAssembly build the website serves.
+
+| Track | Covered | |
+|---|---|---|
+| [Armory](https://lang.bio/docs/examples/rosalind-armory.html) | **15 / 15** | complete |
+| [Algorithmic Heights](https://lang.bio/docs/examples/rosalind-algorithmic-heights.html) | **34 / 34** | complete |
+| [Stronghold](https://lang.bio/docs/examples/rosalind-stronghold.html) | 85 / 105 | in progress |
+| [Textbook Track](https://lang.bio/docs/examples/rosalind-textbook.html) | **124 / 124** | complete |
+
+**258 problems; 255 are checked on every commit.** The other three reach out to NCBI, so
+they run in a separate advisory job rather than gating the build on a remote service being
+up. Three of the four tracks are complete; the
+Stronghold is not, and the numbers say so.
+
+Writing them is also what surfaced most of the language fixes in recent releases: `{}`
+parsing as a block rather than an empty map, quadratic `push` and `unique`, and an
+alignment builtin that could not reach a substitution matrix.
+
+Solutions are MIT. Problem statements belong to rosalind.info — each example paraphrases
+Given/Return in a line or two and links to the original rather than reproducing it.
+
 ## Features
 
 - **Bio-native types** -- DNA, RNA, Protein, Interval, Variant, Gene, AlignedRead, Quality

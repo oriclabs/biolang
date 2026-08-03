@@ -1,0 +1,74 @@
+# Rosalind: BA4E — Find a Cyclic Peptide with Theoretical Spectrum Matching an
+# Ideal Spectrum
+# https://rosalind.info/problems/ba4e/
+#
+# Given: An ideal experimental spectrum.
+# Return: Every peptide whose cyclospectrum equals it, written as masses.
+
+let spectrum = [0, 113, 128, 186, 241, 299, 314, 427]
+
+# Branch and bound. Grow every candidate by one residue at a time, and throw away
+# immediately any whose linear spectrum contains a mass the target does not —
+# because adding residues can only add masses, so such a candidate can never
+# recover. That pruning is the whole algorithm: without it this is 18^n.
+let parent_mass = max(spectrum)
+let residues = amino_acid_masses()
+
+fn is_consistent(peptide, target) {
+    let pieces = linear_spectrum(peptide)
+    let remaining = target
+    let ok = true
+    for piece in pieces {
+        if contains(remaining, piece) {
+            remaining = remove_first(remaining, piece)
+        } else {
+            ok = false
+        }
+    }
+    ok
+}
+
+# Drop one copy, not every copy: the spectrum is a multiset, and a candidate
+# explaining a repeated mass once must not be credited with explaining it twice.
+fn remove_first(items, wanted) {
+    let index = (range(0, len(items)) |> filter(|i| items[i] == wanted))[0]
+    range(0, len(items)) |> filter(|i| i != index) |> map(|i| items[i])
+}
+
+let candidates = [[]]
+let matches = []
+while len(candidates) > 0 {
+    let grown = candidates |> flat_map(|peptide| residues |> map(|r| push(peptide, r)))
+    candidates = []
+    for peptide in grown {
+        if sum(peptide) == parent_mass {
+            if cyclic_spectrum(peptide) == sort(spectrum) {
+                matches = push(matches, peptide)
+            }
+        } else {
+            if is_consistent(peptide, spectrum) {
+                candidates = push(candidates, peptide)
+            }
+        }
+    }
+}
+
+let written = matches |> map(|p| p |> map(|m| str(m)) |> join("-")) |> sort()
+
+println("Result:   " + join(written, " "))
+println("Expected: 113-128-186 113-186-128 128-113-186 128-186-113 186-113-128 186-128-113")
+println("(the same cycle written from each starting point and in both directions)")
+
+fn test_ba4e_cyclopeptide_sequencing() {
+    assert len(matches) == 6,
+        "BA4E: expected 6 rotations and reflections, got " + str(len(matches))
+    assert join(written, " ")
+        == "113-128-186 113-186-128 128-113-186 128-186-113 186-113-128 186-128-113",
+        "BA4E: got " + join(written, " ")
+    # Every answer must reproduce the spectrum exactly, and weigh what it should.
+    for peptide in matches {
+        assert cyclic_spectrum(peptide) == sort(spectrum),
+            "BA4E: " + str(peptide) + " does not reproduce the spectrum"
+        assert sum(peptide) == parent_mass, "BA4E: wrong total mass"
+    }
+}

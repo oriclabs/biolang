@@ -18,6 +18,7 @@ pub mod graph;
 pub mod gwas;
 pub mod hash;
 pub mod hic;
+pub mod hmm;
 pub mod immune;
 pub mod interpreter;
 pub mod json;

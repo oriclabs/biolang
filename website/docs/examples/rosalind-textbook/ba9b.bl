@@ -1,0 +1,82 @@
+# Rosalind: BA9B — Implement TrieMatching
+# https://rosalind.info/problems/ba9b/
+#
+# Given: A string Text and a collection of strings Patterns.
+# Return: Every starting position in Text where some pattern occurs.
+
+let text = "AATCGGGTTCAATCGGGGT"
+let patterns = ["ATCG", "GGGT"]
+
+# The trie from BA9A, now used for what it is for. Starting at each position of
+# the text, walk down the trie as far as the text allows; reaching a node that
+# ends a pattern is a match. Every pattern is tested at once by that single walk,
+# so the cost is the text length times the longest pattern, not times the number
+# of patterns.
+let trie = {}
+let terminal = {}
+let next_id = 1
+
+for pattern in patterns {
+    let node = 0
+    for symbol in chars(pattern) {
+        let existing = if contains(keys(trie), str(node)) then
+            trie[str(node)] |> filter(|e| e.symbol == symbol) else []
+        if len(existing) > 0 {
+            node = existing[0].to_node
+        } else {
+            let entry = { to_node: next_id, symbol: symbol }
+            if contains(keys(trie), str(node)) {
+                trie[str(node)] = push(trie[str(node)], entry)
+            } else {
+                trie[str(node)] = [entry]
+            }
+            node = next_id
+            next_id = next_id + 1
+        }
+    }
+    terminal[str(node)] = true
+}
+
+let found = range(0, len(text)) |> filter(|start| {
+    let node = 0
+    let at = start
+    let matched = false
+    let walking = true
+    while walking {
+        if contains(keys(terminal), str(node)) {
+            matched = true
+            walking = false
+        } else {
+            if at >= len(text) or contains(keys(trie), str(node)) == false {
+                walking = false
+            } else {
+                let onward = trie[str(node)] |> filter(|e| e.symbol == substr(text, at, 1))
+                if len(onward) == 0 {
+                    walking = false
+                } else {
+                    node = onward[0].to_node
+                    at = at + 1
+                }
+            }
+        }
+    }
+    matched
+})
+
+println("Result:   " + (found |> map(|p| str(p)) |> join(" ")))
+println("Expected: 1 4 11 15")
+
+fn test_ba9b_trie_matching() {
+    assert (found |> map(|p| str(p)) |> join(" ")) == "1 4 11 15",
+        "BA9B: got " + str(found)
+    # Every reported position really starts one of the patterns...
+    for position in found {
+        let here = patterns |> filter(|p| substr(text, position, len(p)) == p)
+        assert len(here) > 0, "BA9B: nothing matches at " + str(position)
+    }
+    # ...and nothing was missed, checked the slow way against the trie's answer.
+    let by_brute_force = range(0, len(text))
+        |> filter(|start| (patterns |> count_if(|p| substr(text, start, len(p)) == p)) > 0)
+    assert found == by_brute_force,
+        "BA9B: the trie found " + str(found) + " but scanning finds " + str(by_brute_force)
+}

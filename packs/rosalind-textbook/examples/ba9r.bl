@@ -1,0 +1,82 @@
+# Rosalind: BA9R — Construct a Suffix Tree from a Suffix Array
+# https://rosalind.info/problems/ba9r/
+#
+# Given: A string, its suffix array and its LCP array.
+# Return: The edge labels of the suffix tree, in any order.
+
+let text = "GTAGT$"
+
+# BA9C built the tree by inserting every suffix into a trie and collapsing it,
+# which costs O(n^2) time and memory before the collapse. The suffix array and
+# LCP array carry the same information in two flat integer arrays, and the tree
+# can be rebuilt from them in one left-to-right pass — so a structure that was
+# quadratic to build becomes linear given arrays that are themselves linear.
+#
+# That is why real tools store the arrays and never materialise the tree.
+let sa = suffix_array(text)
+let lcp = lcp_array(text)
+
+println("Suffix array: " + (sa |> map(|v| str(v)) |> join(", ")))
+println("LCP array:    " + (lcp |> map(|v| str(v)) |> join(", ")))
+
+# Two passes, because a leaf's edge depends on what comes *after* it as well as
+# before. The node a leaf hangs from sits at depth max(lcp[i], lcp[i+1]) — the
+# deeper of what it shares with either neighbour — so the leaf edge is whatever
+# is left of the suffix below that depth.
+let leaf_labels = range(0, len(sa)) |> map(|i| {
+    let before = if i == 0 then 0 else lcp[i]
+    let after = if i + 1 < len(sa) then lcp[i + 1] else 0
+    let depth = max([before, after])
+    substr(text, sa[i] + depth, len(text) - sa[i] - depth)
+})
+
+# The internal nodes come from the LCP array alone: a run of suffixes sharing a
+# prefix of length L hangs off one node at depth L, and a stack tracks which are
+# still open as the array is scanned.
+let internal_labels = []
+let stack = [{ depth: 0, start: 0 }]
+for i in range(1, len(sa)) {
+    let shared = lcp[i]
+    let last_start = sa[i]
+    while stack[len(stack) - 1].depth > shared {
+        let closing = stack[len(stack) - 1]
+        stack = slice(stack, 0, len(stack) - 1)
+        let parent_depth = max([stack[len(stack) - 1].depth, shared])
+        internal_labels = push(internal_labels,
+            substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+        last_start = closing.start
+    }
+    if stack[len(stack) - 1].depth < shared {
+        stack = push(stack, { depth: shared, start: last_start })
+    }
+}
+while len(stack) > 1 {
+    let closing = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    let parent_depth = stack[len(stack) - 1].depth
+    internal_labels = push(internal_labels,
+        substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+}
+
+let labels = leaf_labels + internal_labels
+
+println("Result:   " + join(sort(labels), " "))
+println("Expected (any order): $ T AGT$ $ AGT$ GT $ AGT$")
+
+fn test_ba9r_suffix_tree_from_arrays() {
+    let expected = ["$", "T", "AGT$", "$", "AGT$", "GT", "$", "AGT$"]
+    assert sort(labels) == sort(expected), "BA9R: got " + join(sort(labels), " ")
+    assert len(labels) == 8, "BA9R: expected 8 edges, got " + str(len(labels))
+    # One leaf per suffix, and every leaf edge ends at the sentinel.
+    assert len(leaf_labels) == len(text), "BA9R: one leaf per suffix"
+    for label in leaf_labels {
+        assert substr(label, len(label) - 1, 1) == "$", "BA9R: a leaf edge must reach the end"
+    }
+    # The internal edges are the shared prefixes: GT and T, each shared by two
+    # suffixes.
+    assert sort(internal_labels) == ["GT", "T"], "BA9R: got internals " + str(internal_labels)
+    # Every label is a real substring of the text.
+    for label in labels {
+        assert contains(text, label), "BA9R: " + label + " is not in the text"
+    }
+}

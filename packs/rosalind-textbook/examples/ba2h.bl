@@ -1,0 +1,28 @@
+# Rosalind: BA2H — Implement DistanceBetweenPatternAndStrings
+# https://rosalind.info/problems/ba2h/
+#
+# Given: A DNA string Pattern and a collection of DNA strings Dna.
+# Return: DistanceBetweenPatternAndStrings(Pattern, Dna).
+
+let pattern = "AAA"
+let strings = ["TTACCTTAAC", "GATATCTGTC", "ACGGCGTTCG", "CCCTAAAGAG", "CGTCAGAGGT"]
+
+# The distance to one string is the best any window of it can do; the distance
+# to the collection is the sum over strings. Best, not total, because a motif
+# only has to occur once per string.
+fn distance_to(text, motif) {
+    range(0, len(text) - len(motif) + 1)
+      |> map(|i| hamming_distance(substr(text, i, len(motif)), motif))
+      |> min()
+}
+
+let total = strings |> map(|s| distance_to(s, pattern)) |> sum()
+
+println("Result:   " + str(total))
+println("Expected: 5")
+
+fn test_ba2h_distance_between_pattern_and_strings() {
+    assert total == 5, "BA2H: got " + str(total)
+    # A pattern present exactly in every string would score zero.
+    assert distance_to("AAACCC", "AAA") == 0, "BA2H: an exact occurrence should cost nothing"
+}

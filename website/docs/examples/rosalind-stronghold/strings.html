@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Strings</h1>
-        <p class="text-lg text-slate-400 mb-6">3 problems from
+        <p class="text-lg text-slate-400 mb-6">5 problems from
         <a href="../rosalind-stronghold.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Stronghold</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -36,6 +36,8 @@
           <a href="#kmp" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Speeding Up Motif Finding">KMP</a>
           <a href="#trie" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Introduction to Pattern Matching">TRIE</a>
           <a href="#ling" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Linguistic Complexity of a Genome">LING</a>
+          <a href="#lrep" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Finding the Longest Multiple Repeat">LREP</a>
+          <a href="#mrep" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Identifying Maximal Repeats">MREP</a>
         </nav>
 
         <section id="kmp" class="mt-12">
@@ -197,6 +199,197 @@ fn test_ling_linguistic_complexity() {
     assert result == 0.875, &quot;LING: got &quot; + str(result)
     # Complexity is a ratio of counts, so it cannot exceed one.
     assert result &lt;= 1.0, &quot;LING: complexity above 1&quot;
+}</code></pre>
+        </section>
+
+        <section id="lrep" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">LREP &mdash; Finding the Longest Multiple Repeat</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/lrep/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LREP" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="lrep.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Rosalind supplies the suffix tree as an edge list, so nothing has to build one — the work is counting leaves below each node, which is how often the path to it occurs.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: LREP — Finding the Longest Multiple Repeat
+# https://rosalind.info/problems/lrep/
+#
+# Given: A DNA string s with $ appended, a positive integer k, and the edges of
+# the suffix tree of s.
+# Return: The longest substring of s occurring at least k times.
+
+let s = &quot;CATACATAC$&quot;
+let k = 2
+
+# The suffix tree comes with the problem, so nothing has to build one. Each edge
+# gives its parent, its child, where the label starts in s (1-based) and how long
+# it is.
+let tree_edges = [
+    { parent: &quot;node1&quot;, child: &quot;node2&quot;,  start: 1,  length: 1 },
+    { parent: &quot;node1&quot;, child: &quot;node7&quot;,  start: 2,  length: 1 },
+    { parent: &quot;node1&quot;, child: &quot;node14&quot;, start: 3,  length: 3 },
+    { parent: &quot;node1&quot;, child: &quot;node17&quot;, start: 10, length: 1 },
+    { parent: &quot;node2&quot;, child: &quot;node3&quot;,  start: 2,  length: 4 },
+    { parent: &quot;node2&quot;, child: &quot;node6&quot;,  start: 10, length: 1 },
+    { parent: &quot;node3&quot;, child: &quot;node4&quot;,  start: 6,  length: 5 },
+    { parent: &quot;node3&quot;, child: &quot;node5&quot;,  start: 10, length: 1 },
+    { parent: &quot;node7&quot;, child: &quot;node8&quot;,  start: 3,  length: 3 },
+    { parent: &quot;node7&quot;, child: &quot;node11&quot;, start: 5,  length: 1 },
+    { parent: &quot;node8&quot;, child: &quot;node9&quot;,  start: 6,  length: 5 },
+    { parent: &quot;node8&quot;, child: &quot;node10&quot;, start: 10, length: 1 },
+    { parent: &quot;node11&quot;, child: &quot;node12&quot;, start: 6, length: 5 },
+    { parent: &quot;node11&quot;, child: &quot;node13&quot;, start: 10, length: 1 },
+    { parent: &quot;node14&quot;, child: &quot;node15&quot;, start: 6, length: 5 },
+    { parent: &quot;node14&quot;, child: &quot;node16&quot;, start: 10, length: 1 },
+]
+
+# A substring's number of occurrences is the number of leaves below the node it
+# ends at, because every leaf is one suffix that starts with it. So the answer is
+# the deepest node with at least k leaves under it, and the string is the path
+# from the root spelled out along the way.
+let children = {}
+let has_children = {}
+for edge in tree_edges {
+    if contains(keys(children), edge.parent) {
+        children[edge.parent] = push(children[edge.parent], edge)
+    } else {
+        children[edge.parent] = [edge]
+    }
+    has_children[edge.child] = true
+}
+
+# Walk down from the root, carrying the label spelled so far. A node with no
+# children is a leaf and counts as one occurrence; anything else is the sum of
+# its children. Written as an explicit stack because the recursion would have to
+# return two things at once.
+let best = &quot;&quot;
+let stack = [{ node: &quot;node1&quot;, label: &quot;&quot; }]
+let leaves = {}
+
+# First pass: how many leaves hang below each node, deepest first.
+let order = []
+while len(stack) &gt; 0 {
+    let top = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    order = push(order, top)
+    if contains(keys(children), top.node) {
+        for edge in children[top.node] {
+            let label = top.label + substr(s, edge.start - 1, edge.length)
+            stack = push(stack, { node: edge.child, label: label })
+        }
+    }
+}
+
+# `order` holds parents before children, so counting it backwards means every
+# child is already counted when its parent is reached.
+let i = len(order) - 1
+while i &gt;= 0 {
+    let entry = order[i]
+    if contains(keys(children), entry.node) {
+        let total = 0
+        for edge in children[entry.node] {
+            total = total + leaves[edge.child]
+        }
+        leaves[entry.node] = total
+        # The root spells nothing, and a repeat has to be a real substring.
+        if total &gt;= k and len(entry.label) &gt; len(best) {
+            best = entry.label
+        }
+    } else {
+        leaves[entry.node] = 1
+    }
+    i = i - 1
+}
+
+println(&quot;Result:   &quot; + best)
+println(&quot;Expected: CATAC&quot;)
+
+fn test_lrep_longest_multiple_repeat() {
+    assert best == &quot;CATAC&quot;, &quot;LREP: got &quot; + best
+    # It has to occur at least k times, and be a substring of s.
+    assert len(find_motif(dna(substr(s, 0, len(s) - 1)), dna(best))) &gt;= k,
+        &quot;LREP: &quot; + best + &quot; does not occur &quot; + str(k) + &quot; times&quot;
+}</code></pre>
+        </section>
+
+        <section id="mrep" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">MREP &mdash; Identifying Maximal Repeats</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/mrep/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=MREP" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="mrep.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Read off the LCP array: a value of at least 20 is a candidate repeat, kept when its occurrences do not all share the character before them.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: MREP — Identifying Maximal Repeats
+# https://rosalind.info/problems/mrep/
+#
+# Given: A DNA string s of length at most 1 kbp.
+# Return: Every maximal repeat of s of length at least 20.
+#
+# A repeat is maximal when it occurs at least twice and no pair of its
+# occurrences can be extended by one symbol in either direction and still agree.
+
+let s = &quot;TAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTATTATATAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTAT&quot;
+let minimum = 20
+
+# Sort the suffixes, then read the repeats off the LCP array: lcp[i] is how much
+# suffix i shares with the one before it, so any value &gt;= 20 is a candidate
+# repeat, and the two suffixes it relates are two of its occurrences.
+#
+# The sentinel keeps a suffix that is a prefix of another from being extended
+# past the end of the string.
+let text = s + &quot;$&quot;
+let sa = suffix_array(text)
+let lcp = lcp_array(text)
+
+# Right-maximal: a candidate is right-maximal when it is not simply the start of
+# a longer shared prefix, which the LCP array says directly — take each candidate
+# at its own length rather than a prefix of it.
+#
+# Left-maximal: the characters immediately before the two occurrences must
+# differ. If every occurrence is preceded by the same symbol, the repeat extends
+# leftwards and is not maximal.
+fn left_character(position) {
+    if position == 0 then &quot;^&quot; else substr(text, position - 1, 1)
+}
+
+let found = []
+for i in range(1, len(sa)) {
+    let length = lcp[i]
+    if length &gt;= minimum {
+        let candidate = substr(text, sa[i], length)
+        # Already recorded from an earlier pair.
+        if contains(found, candidate) == false {
+            # Collect every occurrence, then ask whether they all share a left
+            # neighbour. Positions come from the original string, not the
+            # sentinel-terminated one.
+            let occurrences = find_motif(dna(s), dna(candidate))
+            let lefts = occurrences |&gt; map(|p| left_character(p)) |&gt; unique()
+            if len(occurrences) &gt;= 2 and len(lefts) &gt; 1 {
+                found = push(found, candidate)
+            }
+        }
+    }
+}
+
+# The longest first, which is how Rosalind's sample reads.
+let result = found |&gt; sort_by(|a, b| len(b) - len(a))
+
+println(&quot;Result:&quot;)
+for repeat_seq in result {
+    println(&quot;  &quot; + repeat_seq)
+}
+println(&quot;Expected:&quot;)
+println(&quot;  TAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTAT&quot;)
+println(&quot;  ATGGGTCCAGAGTTTTGTAATTT&quot;)
+
+fn test_mrep_maximal_repeats() {
+    assert len(result) == 2, &quot;MREP: expected 2 maximal repeats, got &quot; + str(len(result))
+    assert contains(result, &quot;TAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTAT&quot;),
+        &quot;MREP: the longer repeat is missing from &quot; + str(result)
+    assert contains(result, &quot;ATGGGTCCAGAGTTTTGTAATTT&quot;),
+        &quot;MREP: the shorter repeat is missing from &quot; + str(result)
 }</code></pre>
         </section>
       </article>

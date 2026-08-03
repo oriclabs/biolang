@@ -1,0 +1,68 @@
+# Rosalind: BA9C — Construct the Suffix Tree of a String
+# https://rosalind.info/problems/ba9c/
+#
+# Given: A string Text.
+# Return: The strings labelling the edges of SuffixTree(Text), in any order.
+
+let text = "ATAAATG$"
+
+# A suffix tree is a trie of every suffix with each non-branching chain collapsed
+# into a single edge. That collapse is what makes it linear in the text rather
+# than quadratic: a trie of all suffixes has O(n^2) nodes, and almost all of them
+# have exactly one child.
+#
+# Built here the direct way, by inserting suffixes into a trie and then merging
+# chains. Ukkonen's algorithm builds it in linear time without the intermediate,
+# which matters at genome scale and obscures the structure at this one.
+let node_children = { "0": [] }
+let next_id = 1
+
+for start in range(0, len(text)) {
+    let node = "0"
+    for symbol in chars(substr(text, start, len(text) - start)) {
+        let onward = node_children[node] |> filter(|e| e.symbol == symbol)
+        if len(onward) > 0 {
+            node = onward[0].child
+        } else {
+            let child = str(next_id)
+            next_id = next_id + 1
+            node_children[node] = push(node_children[node], { symbol: symbol, child: child })
+            node_children[child] = []
+            node = child
+        }
+    }
+}
+
+# Walk down from each child of a branching node, absorbing single-child nodes
+# into the edge label until a branch or a leaf is reached.
+let labels = []
+let frontier = ["0"]
+while len(frontier) > 0 {
+    let node = frontier[0]
+    frontier = slice(frontier, 1, len(frontier))
+    for edge in node_children[node] {
+        let label = edge.symbol
+        let at = edge.child
+        while len(node_children[at]) == 1 {
+            label = label + node_children[at][0].symbol
+            at = node_children[at][0].child
+        }
+        labels = push(labels, label)
+        if len(node_children[at]) > 1 { frontier = push(frontier, at) }
+    }
+}
+
+println("Result:   " + join(sort(labels), " "))
+println("Expected (in any order): AAATG$ G$ T ATG$ TG$ A A AAATG$ G$ T G$ $")
+
+fn test_ba9c_suffix_tree() {
+    let expected = ["AAATG$", "G$", "T", "ATG$", "TG$", "A", "A", "AAATG$", "G$", "T", "G$", "$"]
+    assert sort(labels) == sort(expected), "BA9C: got " + str(sort(labels))
+    # Every leaf-to-root path spells a suffix, so concatenating the labels along
+    # each root-to-leaf path must give back exactly the suffixes.
+    assert len(labels) == 12, "BA9C: expected 12 edges, got " + str(len(labels))
+    # Collapsing chains is the whole point: a trie of all suffixes has many more
+    # nodes than the tree has edges.
+    assert next_id - 1 > len(labels),
+        "BA9C: the uncollapsed trie should have more nodes than the tree has edges"
+}

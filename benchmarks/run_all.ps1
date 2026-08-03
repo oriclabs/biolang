@@ -42,7 +42,12 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
 if (-not (Get-Command Rscript -ErrorAction SilentlyContinue)) {
     Write-Host "  [INFO] Rscript not found — R benchmarks will be skipped" -ForegroundColor DarkGray
 } else {
-    $rCheck = & Rscript -e "library(Biostrings)" 2>&1
+    # Biostrings announces "Loading required package: BiocGenerics" on stderr.
+    # With $ErrorActionPreference = "Stop", redirecting a native command's stderr
+    # turns that ordinary message into a terminating NativeCommandError and the
+    # whole suite stops before running anything. Suppress the banner at the
+    # source and let the exit code answer the question.
+    $rCheck = & Rscript -e "suppressPackageStartupMessages(library(Biostrings))"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  [WARN] R Bioconductor packages missing — R benchmarks will fail" -ForegroundColor Yellow
         Write-Host "         Fix: .\setup_r.ps1"

@@ -1,0 +1,28 @@
+# Rosalind: MGAP — Maximizing the Gap Symbols of an Optimal Alignment
+# https://rosalind.info/problems/mgap/
+#
+# Given: Two DNA strings s and t.
+# Return: The largest number of gap symbols that can appear in any maximum-score
+# alignment of s and t, for any scoring with match > 0 and both penalties < 0.
+
+let s = dna"AACGTA"
+let t = dna"ACACCTA"
+
+# The scoring is left open on purpose, and that is the whole problem: since a
+# match is worth something and everything else costs, a maximum-score alignment
+# must match as many symbols as it possibly can. That is the longest common
+# subsequence. Every symbol outside it is opposite a gap — len(s) - lcs of them
+# in one row and len(t) - lcs in the other.
+let common = lcs(str(s), str(t))
+let gaps = len(str(s)) + len(str(t)) - 2 * len(common)
+
+println("LCS:      " + common)
+println("Result:   " + str(gaps))
+println("Expected: 3")
+
+fn test_mgap_maximum_gap_symbols() {
+    assert gaps == 3, "MGAP: got " + str(gaps)
+    # The subsequence has to be a real one of both strings.
+    assert is_subsequence(common, str(s)), "MGAP: LCS is not a subsequence of s"
+    assert is_subsequence(common, str(t)), "MGAP: LCS is not a subsequence of t"
+}

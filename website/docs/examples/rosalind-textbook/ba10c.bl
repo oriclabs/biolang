@@ -1,0 +1,46 @@
+# Rosalind: BA10C — Implement the Viterbi Algorithm
+# https://rosalind.info/problems/ba10c/
+#
+# Given: A string x, the alphabet it was emitted from, the states of an HMM, and
+# its transition and emission matrices.
+# Return: A path that maximises the probability of x over all hidden paths.
+
+let observed = "xyxzzxyxyy"
+
+# A model is a plain record, so it reads the way the problem states it. The
+# matrices are keyed by name in both directions — a transposed transition matrix
+# is otherwise a wrong answer rather than an error, and it is the mistake
+# everyone makes first.
+let model = {
+    states: ["A", "B"],
+    symbols: ["x", "y", "z"],
+    transition: {
+        A: { A: 0.641, B: 0.359 },
+        B: { A: 0.729, B: 0.271 },
+    },
+    emission: {
+        A: { x: 0.117, y: 0.691, z: 0.192 },
+        B: { x: 0.097, y: 0.42,  z: 0.483 },
+    },
+}
+
+# Viterbi keeps, for each state at each position, the best path reaching it —
+# and every path that is not best is dropped immediately. That is what makes it
+# linear in the string instead of exponential in it.
+let path = viterbi(observed, model) |> join("")
+
+println("Result:   " + path)
+println("Expected: AAABBAAAAA")
+
+fn test_ba10c_viterbi() {
+    assert path == "AAABBAAAAA", "BA10C: got " + path
+    assert len(path) == len(observed), "BA10C: the path must be as long as the string"
+    # No other path can score higher — check against the joint probability of the
+    # path itself, which is what Viterbi claims to maximise.
+    let best = hmm_path_probability(path, model)
+             * hmm_emission_probability(observed, path, model)
+    let rival = "BBBBBBBBBB"
+    let worse = hmm_path_probability(rival, model)
+              * hmm_emission_probability(observed, rival, model)
+    assert best > worse, "BA10C: an all-B path scores at least as well"
+}

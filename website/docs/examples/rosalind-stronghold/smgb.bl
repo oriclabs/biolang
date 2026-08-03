@@ -1,0 +1,28 @@
+# Rosalind: SMGB — Semiglobal Alignment
+# https://rosalind.info/problems/smgb/
+#
+# Given: Two DNA strings s and t.
+# Return: The maximum semiglobal alignment score, and an alignment achieving it.
+# Match +1, substitution -1, linear gap -1.
+
+let s = dna"CAGCACTTGGATTCTCGG"
+let t = dna"CAGCGTGG"
+
+# Semiglobal forgives gaps at both ends of both sequences, so neither overhang
+# is charged for — which is what lets a short sequence sit inside a long one
+# without paying for the flanks. Global alignment of these two scores far worse.
+let result = align(s, t, "semiglobal", 1, -1, -1, 0)
+let global_score = align(s, t, "global", 1, -1, -1, 0).score
+
+println("Result:   " + str(result.score))
+println("Expected: 4")
+println("Alignment:")
+println("  " + result.aligned_a)
+println("  " + result.aligned_b)
+println("(global alignment of the same pair scores " + str(global_score) + ")")
+
+fn test_smgb_semiglobal_alignment() {
+    assert result.score == 4, "SMGB: got " + str(result.score)
+    # Forgiving the end gaps can only help, never hurt.
+    assert result.score >= global_score, "SMGB: semiglobal scored below global"
+}

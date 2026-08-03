@@ -1,0 +1,109 @@
+# Rosalind: BA6C — Compute the 2-Break Distance Between a Pair of Genomes
+# https://rosalind.info/problems/ba6c/
+#
+# Given: Two genomes with circular chromosomes on the same synteny blocks.
+# Return: The 2-break distance between them.
+
+let genome_p = [[1, 2, 3, 4, 5, 6]]
+let genome_q = [[1, -3, -6, -5], [2, -4]]
+
+# There is a closed form, which is unusual for a rearrangement distance and is
+# the reason 2-breaks are studied at all: the distance is the number of synteny
+# blocks minus the number of cycles in the two genomes' graphs superimposed.
+#
+# Superimposing them, every node has one edge from each genome, so the graph
+# splits into alternating cycles. A 2-break can increase the cycle count by at
+# most one, and the genomes are identical exactly when every cycle is trivial —
+# so blocks minus cycles is both a lower bound and achievable.
+fn coloured_edges(genome) {
+    genome |> flat_map(|chromosome| {
+        let nodes = chromosome |> flat_map(|block|
+            if block > 0 then [2 * block - 1, 2 * block] else [0 - 2 * block, 0 - 2 * block - 1])
+        range(1, len(chromosome) + 1) |> map(|j| {
+            let to_index = if 2 * j == len(nodes) then 0 else 2 * j
+            { a: nodes[2 * j - 1], b: nodes[to_index] }
+        })
+    })
+}
+
+let edges_p = coloured_edges(genome_p)
+let edges_q = coloured_edges(genome_q)
+let blocks = genome_p |> map(|c| len(c)) |> sum()
+
+# Adjacency over both edge sets at once.
+let links = {}
+for edge in edges_p + edges_q {
+    for pair in [{ x: edge.a, y: edge.b }, { x: edge.b, y: edge.a }] {
+        if contains(keys(links), str(pair.x)) {
+            links[str(pair.x)] = push(links[str(pair.x)], pair.y)
+        } else {
+            links[str(pair.x)] = [pair.y]
+        }
+    }
+}
+
+let seen = {}
+let cycles = 0
+for node in keys(links) {
+    if contains(keys(seen), node) == false {
+        cycles = cycles + 1
+        let frontier = [node]
+        while len(frontier) > 0 {
+            let at = frontier[0]
+            frontier = slice(frontier, 1, len(frontier))
+            if contains(keys(seen), at) == false {
+                seen[at] = true
+                for neighbour in links[at] {
+                    if contains(keys(seen), str(neighbour)) == false {
+                        frontier = push(frontier, str(neighbour))
+                    }
+                }
+            }
+        }
+    }
+}
+
+let distance = blocks - cycles
+
+println("Result:   " + str(distance))
+println("Expected: 3")
+println("(" + str(blocks) + " blocks minus " + str(cycles) + " cycles)")
+
+fn test_ba6c_two_break_distance() {
+    assert distance == 3, "BA6C: got " + str(distance)
+    assert blocks == 6, "BA6C: six synteny blocks"
+    assert cycles == 3, "BA6C: the superimposed graph has three cycles"
+    # A genome against itself is distance zero, which is the identity the formula
+    # has to satisfy: every cycle is trivial, so cycles equal blocks.
+    let self_links = {}
+    for edge in edges_p + edges_p {
+        for pair in [{ x: edge.a, y: edge.b }, { x: edge.b, y: edge.a }] {
+            if contains(keys(self_links), str(pair.x)) {
+                self_links[str(pair.x)] = push(self_links[str(pair.x)], pair.y)
+            } else {
+                self_links[str(pair.x)] = [pair.y]
+            }
+        }
+    }
+    let self_seen = {}
+    let self_cycles = 0
+    for node in keys(self_links) {
+        if contains(keys(self_seen), node) == false {
+            self_cycles = self_cycles + 1
+            let frontier = [node]
+            while len(frontier) > 0 {
+                let at = frontier[0]
+                frontier = slice(frontier, 1, len(frontier))
+                if contains(keys(self_seen), at) == false {
+                    self_seen[at] = true
+                    for neighbour in self_links[at] {
+                        if contains(keys(self_seen), str(neighbour)) == false {
+                            frontier = push(frontier, str(neighbour))
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert blocks - self_cycles == 0, "BA6C: a genome is distance 0 from itself"
+}

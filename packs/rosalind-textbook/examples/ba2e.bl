@@ -1,0 +1,61 @@
+# Rosalind: BA2E — Implement GreedyMotifSearch with Pseudocounts
+# https://rosalind.info/problems/ba2e/
+#
+# Given: Integers k and t, followed by a collection of strings Dna.
+# Return: BestMotifs from GreedyMotifSearch(Dna, k, t) with pseudocounts.
+
+let k = 3
+let t = 5
+let sequences = [
+    "GGCGTTCAGGCA",
+    "AAGAATCAGTCA",
+    "CAAGGAGTTCGC",
+    "CACGTCAATCAC",
+    "CAATAATATTCG",
+]
+
+# The same greedy loop as BA2D, changing one number. Without a pseudocount a base
+# absent from a column has probability zero, so any k-mer containing it is
+# impossible rather than merely unlikely — one unlucky column silently discards
+# every candidate, and the search follows whichever k-mer happened to come first.
+# Laplace's rule of succession fixes it by adding one to every count.
+fn greedy_motifs_smoothed(strings, width, pseudocount) {
+    let best = strings |> map(|s| substr(s, 0, width))
+    let first = strings[0]
+    for start in range(0, len(first) - width + 1) {
+        let motifs = [substr(first, start, width)]
+        for i in range(1, len(strings)) {
+            let profile = motif_profile(motifs, pseudocount)
+            motifs = push(motifs, profile_most_probable(strings[i], width, profile))
+        }
+        if motif_score(motifs) < motif_score(best) {
+            best = motifs
+        }
+    }
+    best
+}
+
+let best_motifs = greedy_motifs_smoothed(sequences, k, 1)
+
+println("Result:")
+for motif in best_motifs { println("  " + motif) }
+println("Expected: TTC ATC TTC ATC TTC")
+
+fn test_ba2e_greedy_motif_search_with_pseudocounts() {
+    assert join(best_motifs, " ") == "TTC ATC TTC ATC TTC",
+        "BA2E: got " + join(best_motifs, " ")
+    for i in range(0, len(sequences)) {
+        assert contains(sequences[i], best_motifs[i]),
+            "BA2E: " + best_motifs[i] + " is not in " + sequences[i]
+    }
+    # Worth being exact about: on this five-string sample the smoothed answer
+    # does *not* beat BA2D's, it ties with it — both disagree in two places. The
+    # pseudocount changes which motifs are found, and pays off on inputs large
+    # enough for a zero to wipe out a good candidate; a toy sample does not show
+    # that, and claiming otherwise here would be checking a wish.
+    let without_pseudocounts = ["CAG", "CAG", "CAA", "CAA", "CAA"]
+    assert motif_score(best_motifs) == 2, "BA2E: expected a score of 2"
+    assert motif_score(without_pseudocounts) == 2, "BA2D's answer also scores 2"
+    assert join(best_motifs, " ") != join(without_pseudocounts, " "),
+        "BA2E: the pseudocount should at least change which motifs are chosen"
+}

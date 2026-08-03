@@ -1,0 +1,36 @@
+# Rosalind: BA1M — Implement NumberToPattern
+# https://rosalind.info/problems/ba1m/
+#
+# Given: Integers index and k.
+# Return: NumberToPattern(index, k).
+
+let index = 45
+let k = 4
+
+# The inverse of BA1L: read the index as a base-4 number, most significant digit
+# first, with A=0, C=1, G=2, T=3.
+let symbols = ["A", "C", "G", "T"]
+
+let pattern = ""
+let remaining = index
+let position = 0
+while position < k {
+    let power = 1
+    let e = 0
+    while e < k - position - 1 {
+        power = power * 4
+        e = e + 1
+    }
+    let digit = int(remaining / power)
+    pattern = pattern + symbols[digit]
+    remaining = remaining - digit * power
+    position = position + 1
+}
+
+println("Result:   " + pattern)
+println("Expected: AGTC")
+
+fn test_ba1m_number_to_pattern() {
+    assert pattern == "AGTC", "BA1M: got " + pattern
+    assert len(pattern) == k, "BA1M: wrong length"
+}

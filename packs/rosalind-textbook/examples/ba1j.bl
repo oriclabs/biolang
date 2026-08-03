@@ -1,0 +1,68 @@
+# Rosalind: BA1J — Find Frequent Words with Mismatches and Reverse Complements
+# https://rosalind.info/problems/ba1j/
+#
+# Given: A DNA string Text and integers k and d.
+# Return: All k-mers maximising Count_d(Text, Pattern) + Count_d(Text, revc(Pattern)).
+
+let text = "ACGTTGCATGTCGCATGATGCATGAGAGCT"
+let k = 4
+let d = 1
+
+# Same tally as BA1I, but a k-mer is credited for its reverse complement too:
+# a binding site can sit on either strand, and the counts belong together. That
+# is why the winners here differ from BA1I's on the same input.
+fn neighbourhood(pattern, allowed) {
+    let bases = ["A", "C", "G", "T"]
+    let partial = [{ prefix: "", used: 0 }]
+    for i in range(0, len(pattern)) {
+        let here = substr(pattern, i, 1)
+        let next = []
+        for candidate in partial {
+            for base in bases {
+                let cost = if base == here then 0 else 1
+                if candidate.used + cost <= allowed {
+                    next = push(next, { prefix: candidate.prefix + base, used: candidate.used + cost })
+                }
+            }
+        }
+        partial = next
+    }
+    partial |> map(|c| c.prefix)
+}
+
+let counts = {}
+for i in range(0, len(text) - k + 1) {
+    for neighbour in neighbourhood(substr(text, i, k), d) {
+        if contains(keys(counts), neighbour) {
+            counts[neighbour] = counts[neighbour] + 1
+        } else {
+            counts[neighbour] = 1
+        }
+    }
+}
+
+# Score each candidate together with its reverse complement.
+fn tally(mer) {
+    if contains(keys(counts), mer) then counts[mer] else 0
+}
+
+let candidates = keys(counts)
+let scores = candidates |> map(|mer| tally(mer) + tally(str(reverse_complement(dna(mer)))))
+let best = max(scores)
+let winners = range(0, len(candidates))
+  |> filter(|i| scores[i] == best)
+  |> map(|i| candidates[i])
+  |> sort()
+
+println("Result:   " + (winners |> join(" ")) + "   (scoring " + str(best) + ")")
+println("Expected: ACAT ATGT  (in any order)")
+
+fn test_ba1j_with_reverse_complements() {
+    assert len(winners) == 2, "BA1J: expected 2 winners, got " + str(len(winners))
+    for expected in ["ATGT", "ACAT"] {
+        assert contains(winners, expected), "BA1J: missing " + expected
+    }
+    # The two answers are each other's reverse complement, which is the point.
+    assert str(reverse_complement(dna(winners[0]))) == winners[1],
+        "BA1J: the winners should be a reverse-complement pair"
+}

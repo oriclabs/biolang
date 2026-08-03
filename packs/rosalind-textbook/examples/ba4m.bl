@@ -1,0 +1,76 @@
+# Rosalind: BA4M — Solve the Turnpike Problem
+# https://rosalind.info/problems/ba4m/
+#
+# Given: All pairwise differences between points on a line.
+# Return: A set of points A with those differences.
+
+let differences = [-10, -8, -7, -6, -5, -4, -3, -3, -2, -2, 0, 0, 0, 0, 0,
+                   2, 2, 3, 3, 4, 5, 6, 7, 8, 10]
+
+# The same shape of problem as reading a peptide from its fragment masses, with
+# positions on a line instead of residues — which is why it sits in this chapter.
+#
+# Backtracking on the largest unplaced distance. That distance must be between
+# some point and one of the two ends, so there are only two choices at each step,
+# and each is checked immediately against the remaining multiset. Placing points
+# in arbitrary order instead would be a search over all subsets.
+let positive = differences |> filter(|d| d > 0) |> sort()
+let width = max(differences)
+
+fn remove_all(pool, wanted) {
+    let remaining = pool
+    let ok = true
+    for value in wanted {
+        let found = range(0, len(remaining)) |> filter(|i| remaining[i] == value)
+        if len(found) == 0 {
+            ok = false
+        } else {
+            let at = found[0]
+            remaining = range(0, len(remaining)) |> filter(|i| i != at) |> map(|i| remaining[i])
+        }
+    }
+    { ok: ok, rest: remaining }
+}
+
+# Distances from a candidate point to everything already placed.
+fn spans(point, placed) { placed |> map(|p| abs(point - p)) }
+
+let solution = []
+let stack = [{ placed: [0, width], pool: (remove_all(positive, [width])).rest }]
+while len(stack) > 0 and len(solution) == 0 {
+    let state = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+
+    if len(state.pool) == 0 {
+        solution = sort(state.placed)
+    } else {
+        let largest = max(state.pool)
+        # The largest remaining distance reaches either from the left end or to
+        # the right end; nothing else could produce it.
+        for candidate in [largest, width - largest] {
+            if contains(state.placed, candidate) == false {
+                let attempt = remove_all(state.pool, spans(candidate, state.placed))
+                if attempt.ok {
+                    stack = push(stack, {
+                        placed: push(state.placed, candidate),
+                        pool: attempt.rest,
+                    })
+                }
+            }
+        }
+    }
+}
+
+println("Result:   " + (solution |> map(|p| str(p)) |> join(" ")))
+println("Expected: 0 2 4 7 10")
+
+fn test_ba4m_turnpike() {
+    assert (solution |> map(|p| str(p)) |> join(" ")) == "0 2 4 7 10",
+        "BA4M: got " + str(solution)
+    # The real requirement: the answer's own pairwise differences are the input.
+    let rebuilt = solution |> flat_map(|a| solution |> map(|b| a - b)) |> sort()
+    assert rebuilt == sort(differences),
+        "BA4M: the reconstructed differences do not match the input"
+    assert len(rebuilt) == len(solution) * len(solution),
+        "BA4M: n points give n^2 differences, including the n zeros"
+}

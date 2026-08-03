@@ -1,0 +1,38 @@
+# Rosalind: BA4B — Find Substrings of a Genome Encoding a Given Amino Acid String
+# https://rosalind.info/problems/ba4b/
+#
+# Given: A DNA string Text and an amino acid string Peptide.
+# Return: All substrings of Text encoding Peptide.
+
+let text = "ATGGCCATGGCCCCCAGAACTGAGATCAATAGTACCCGTATTAACGGGTGA"
+let peptide = "MA"
+
+# A peptide can be encoded on either strand, so both have to be searched. The
+# reverse strand is read in the opposite direction, which is why the reverse
+# complement is translated rather than the original read backwards.
+let width = len(peptide) * 3
+
+fn encodes(candidate, wanted) {
+    let forward = str(translate(dna(candidate)))
+    let backward = str(translate(reverse_complement(dna(candidate))))
+    forward == wanted or backward == wanted
+}
+
+let found = range(0, len(text) - width + 1)
+    |> map(|i| substr(text, i, width))
+    |> filter(|candidate| encodes(candidate, peptide))
+
+println("Result:")
+for candidate in found { println("  " + candidate) }
+println("Expected: ATGGCC GGCCAT ATGGCC")
+
+fn test_ba4b_peptide_encoding() {
+    assert join(found, " ") == "ATGGCC GGCCAT ATGGCC", "BA4B: got " + join(found, " ")
+    # ATGGCC appears twice, and both occurrences count — the answer is a list of
+    # substrings by position, not a set of distinct strings.
+    assert len(found) == 3, "BA4B: expected 3 substrings"
+    assert len(unique(found)) == 2, "BA4B: two of them are the same string"
+    # GGCCAT is the one found on the reverse strand.
+    assert str(translate(reverse_complement(dna("GGCCAT")))) == peptide,
+        "BA4B: GGCCAT should encode MA on the reverse strand"
+}

@@ -1,0 +1,60 @@
+# Rosalind: BA2A — Implement MotifEnumeration
+# https://rosalind.info/problems/ba2a/
+#
+# Given: Integers k and d, followed by a collection of strings Dna.
+# Return: All (k, d)-motifs in Dna.
+
+let k = 3
+let d = 1
+let strings = ["ATTTGGC", "TGCCTTA", "CGGTATC", "GAAAATT"]
+
+# A (k, d)-motif appears in every string with at most d mismatches. It need not
+# appear exactly anywhere, so the candidates are the neighbourhoods of the
+# windows of the first string — anything qualifying must be within d of one of
+# them.
+fn neighbourhood(pattern, allowed) {
+    let bases = ["A", "C", "G", "T"]
+    let partial = [{ prefix: "", used: 0 }]
+    for i in range(0, len(pattern)) {
+        let here = substr(pattern, i, 1)
+        let next = []
+        for candidate in partial {
+            for base in bases {
+                let cost = if base == here then 0 else 1
+                if candidate.used + cost <= allowed {
+                    next = push(next, { prefix: candidate.prefix + base, used: candidate.used + cost })
+                }
+            }
+        }
+        partial = next
+    }
+    partial |> map(|c| c.prefix)
+}
+
+fn appears_in(text, motif, allowed) {
+    let hits = range(0, len(text) - len(motif) + 1)
+      |> filter(|i| hamming_distance(substr(text, i, len(motif)), motif) <= allowed)
+    len(hits) > 0
+}
+
+let leader = strings[0]
+let seen = []
+for i in range(0, len(leader) - k + 1) {
+    for candidate in neighbourhood(substr(leader, i, k), d) {
+        if contains(seen, candidate) == false {
+            let missing = strings |> filter(|s| appears_in(s, candidate, d) == false)
+            if len(missing) == 0 {
+                seen = push(seen, candidate)
+            }
+        }
+    }
+}
+
+let result = sort(seen) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: ATA ATT GTT TTT")
+
+fn test_ba2a_motif_enumeration() {
+    assert result == "ATA ATT GTT TTT", "BA2A: got " + result
+}

@@ -1,0 +1,72 @@
+# Rosalind: BA8D — Implement the Soft k-Means Clustering Algorithm
+# https://rosalind.info/problems/ba8d/
+#
+# Given: Integers k and m, a stiffness parameter beta, and n points in m
+# dimensions.
+# Return: The k centers after 100 rounds of soft k-means.
+
+let k = 2
+let beta = 2.7
+let steps = 100
+let points = [
+    [1.3, 1.1], [1.3, 0.2], [0.6, 2.8], [3.0, 3.2], [1.2, 0.7],
+    [1.4, 1.6], [1.2, 1.0], [1.2, 1.1], [0.6, 1.5], [1.8, 2.6],
+    [1.2, 1.3], [1.2, 1.0], [0.0, 1.9],
+]
+
+# BA8C's Lloyd algorithm makes every point choose one cluster. Here each point is
+# shared out among all of them, weighted by e^(-beta * distance) — so a point
+# midway between two centers pulls on both instead of being forced to pick, and a
+# center is the weighted mean of everything rather than of its own members.
+#
+# beta is how decisive that sharing is. Large beta approaches hard assignment and
+# reproduces Lloyd; small beta pulls every center towards the overall mean.
+fn distance(a, b) {
+    sqrt(range(0, len(a)) |> map(|i| (a[i] - b[i]) * (a[i] - b[i])) |> sum())
+}
+
+let centers = range(0, k) |> map(|i| points[i])
+
+for _ in range(0, steps) {
+    # E-step: how much each center is responsible for each point.
+    let responsibility = centers |> map(|center|
+        points |> map(|point| exp(0 - beta * distance(point, center))))
+
+    let totals = range(0, len(points))
+        |> map(|j| range(0, k) |> map(|i| responsibility[i][j]) |> sum())
+
+    # M-step: each center becomes the weighted mean of every point.
+    centers = range(0, k) |> map(|i| {
+        let weights = range(0, len(points)) |> map(|j| responsibility[i][j] / totals[j])
+        let weight_sum = sum(weights)
+        range(0, len(points[0])) |> map(|d|
+            (range(0, len(points)) |> map(|j| weights[j] * points[j][d]) |> sum()) / weight_sum)
+    })
+}
+
+println("Result:")
+for center in centers { println("  " + (center |> map(|c| str(round(c, 3))) |> join(" "))) }
+println("Expected:")
+println("  1.662 2.623")
+println("  1.075 1.148")
+
+fn test_ba8d_soft_k_means() {
+    let expected = [[1.662, 2.623], [1.075, 1.148]]
+    for i in range(0, k) {
+        for d in range(0, 2) {
+            assert abs(centers[i][d] - expected[i][d]) < 5e-4,
+                "BA8D: center " + str(i) + " coordinate " + str(d)
+                    + " is " + str(round(centers[i][d], 3))
+                    + ", expected " + str(expected[i][d])
+        }
+    }
+    # Soft assignment means every point contributes to every center, so no center
+    # can sit outside the bounding box of the data.
+    for center in centers {
+        for d in range(0, 2) {
+            let column = points |> map(|p| p[d])
+            assert center[d] >= min(column) and center[d] <= max(column),
+                "BA8D: a weighted mean cannot fall outside the data"
+        }
+    }
+}

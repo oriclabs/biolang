@@ -1,0 +1,61 @@
+# Rosalind: BA2B — Find a Median String
+# https://rosalind.info/problems/ba2b/
+#
+# Given: An integer k and a collection of strings Dna.
+# Return: A k-mer minimising d(Pattern, Dna) over all k-mers.
+
+let k = 3
+let strings = ["AAATTGACGCAT", "GACGACCACGTT", "CGTCAGCGCCTG", "GCTGAGCACCGG", "AGTACGGGACAG"]
+
+fn distance_to(text, motif) {
+    range(0, len(text) - len(motif) + 1)
+      |> map(|i| hamming_distance(substr(text, i, len(motif)), motif))
+      |> min()
+}
+
+fn total_distance(motif) {
+    strings |> map(|s| distance_to(s, motif)) |> sum()
+}
+
+# Every k-mer is a candidate, not only those occurring in the strings — the
+# median may appear in none of them. 4^k of them, enumerated as base-4 numbers.
+let symbols = ["A", "C", "G", "T"]
+fn number_to_pattern(index, width) {
+    let out = ""
+    let remaining = index
+    let position = 0
+    while position < width {
+        let power = 1
+        let e = 0
+        while e < width - position - 1 {
+            power = power * 4
+            e = e + 1
+        }
+        let digit = int(remaining / power)
+        out = out + symbols[digit]
+        remaining = remaining - digit * power
+        position = position + 1
+    }
+    out
+}
+
+let total_kmers = 1
+let e = 0
+while e < k {
+    total_kmers = total_kmers * 4
+    e = e + 1
+}
+
+let candidates = range(0, total_kmers) |> map(|i| number_to_pattern(i, k))
+let scores = candidates |> map(|c| total_distance(c))
+let best = min(scores)
+let best_kmer = candidates[argmin(scores)]
+
+println("Result:   " + best_kmer + "  (distance " + str(best) + ")")
+println("Expected: GAC   (any k-mer achieving the minimum is accepted)")
+
+fn test_ba2b_median_string() {
+    assert total_distance(best_kmer) == best, "BA2B: the reported best_kmer is not minimal"
+    assert total_distance("GAC") == best, "BA2B: GAC should achieve the same minimum"
+    assert len(best_kmer) == k, "BA2B: wrong length"
+}

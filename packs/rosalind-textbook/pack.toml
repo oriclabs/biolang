@@ -1,6 +1,6 @@
 # BioLang example pack: Rosalind — Bioinformatics Textbook Track
 #
-# A showcase, not a course companion. See README.md: the point is to show which
+# Not a course companion. See README.md: the point is to show which
 # canonical algorithms BioLang already carries as builtins, and where it does
 # not. Anyone actually taking the course should implement these themselves.
 #
@@ -11,7 +11,7 @@ id = "rosalind-textbook"
 name = "Rosalind — Bioinformatics Textbook Track"
 version = "0.1.0"
 track = "bioinformatics-textbook-track"
-description = "A showcase of the Bioinformatics Textbook Track: canonical algorithms answered with BioLang builtins, 8 of 154 problems."
+description = "The Bioinformatics Textbook Track: 33 of 124 problems, from pattern finding through assembly graphs to alignment."
 list_url = "https://rosalind.info/problems/list-view/?location=bioinformatics-textbook-track"
 requires = ">=0.4"
 
@@ -90,3 +90,1163 @@ url = "https://rosalind.info/problems/ba5g/"
 status = "solved"
 asserted = true
 topics = ["alignment", "edit-distance"]
+
+[[problem]]
+id = "BA9G"
+title = "Construct the Suffix Array of a String"
+file = "examples/ba9g.bl"
+url = "https://rosalind.info/problems/ba9g/"
+status = "solved"
+asserted = true
+note = "Suffix arrays were one of three gaps this pack was built to measure. They are a builtin now, which is what LREP and MREP in the Stronghold pack stand on."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA1E"
+title = "Find Patterns Forming Clumps in a String"
+file = "examples/ba1e.bl"
+url = "https://rosalind.info/problems/ba1e/"
+status = "solved"
+asserted = true
+note = "A sliding window with a tally inside it. A k-mer qualifies once, so the answers are a set."
+topics = ["strings", "motifs"]
+
+[[problem]]
+id = "BA1F"
+title = "Find a Position in a Genome Minimizing the Skew"
+file = "examples/ba1f.bl"
+url = "https://rosalind.info/problems/ba1f/"
+status = "solved"
+asserted = true
+note = "A running count of G minus C. The dip marks the replication origin, which is what the problem is about."
+topics = ["genomics"]
+
+[[problem]]
+id = "BA1H"
+title = "Find All Approximate Occurrences of a Pattern"
+file = "examples/ba1h.bl"
+url = "https://rosalind.info/problems/ba1h/"
+status = "solved"
+asserted = true
+note = "hamming_distance is a builtin, so this is a windowed scan and nothing more."
+topics = ["strings", "mutations"]
+
+[[problem]]
+id = "BA1I"
+title = "Most Frequent Words with Mismatches"
+file = "examples/ba1i.bl"
+url = "https://rosalind.info/problems/ba1i/"
+status = "solved"
+asserted = true
+note = "The answer need not occur in the text at all. Tallying each window's neighbourhood is the same arithmetic over far fewer strings than testing all 4^k candidates."
+topics = ["strings", "kmers"]
+
+[[problem]]
+id = "BA1J"
+title = "Frequent Words with Mismatches and Reverse Complements"
+file = "examples/ba1j.bl"
+url = "https://rosalind.info/problems/ba1j/"
+status = "solved"
+asserted = true
+note = "A site can sit on either strand, so a k-mer is credited for its reverse complement too — which is why the winners differ from BA1I on the same input."
+topics = ["strings", "kmers"]
+
+[[problem]]
+id = "BA1K"
+title = "Generate the Frequency Array of a String"
+file = "examples/ba1k.bl"
+url = "https://rosalind.info/problems/ba1k/"
+status = "solved"
+asserted = true
+note = "Indexed by PatternToNumber, so it lists every possible k-mer including those that never occur. That is what separates it from a tally."
+topics = ["kmers"]
+
+[[problem]]
+id = "BA1L"
+title = "Implement PatternToNumber"
+file = "examples/ba1l.bl"
+url = "https://rosalind.info/problems/ba1l/"
+status = "solved"
+asserted = true
+note = "k-mers in lexicographic order are the base-4 numbers with A=0, C=1, G=2, T=3."
+topics = ["kmers", "encoding"]
+
+[[problem]]
+id = "BA1M"
+title = "Implement NumberToPattern"
+file = "examples/ba1m.bl"
+url = "https://rosalind.info/problems/ba1m/"
+status = "solved"
+asserted = true
+note = "The inverse of BA1L."
+topics = ["kmers", "encoding"]
+
+[[problem]]
+id = "BA1N"
+title = "Generate the d-Neighborhood of a String"
+file = "examples/ba1n.bl"
+url = "https://rosalind.info/problems/ba1n/"
+status = "solved"
+asserted = true
+note = "Grown one position at a time, dropping any prefix that has already spent more than d substitutions."
+topics = ["strings", "mutations"]
+
+[[problem]]
+id = "BA2A"
+title = "Implement MotifEnumeration"
+file = "examples/ba2a.bl"
+url = "https://rosalind.info/problems/ba2a/"
+status = "solved"
+asserted = true
+note = "A motif need not occur exactly anywhere, so the candidates are the neighbourhoods of the first string's windows: anything qualifying must be within d of one of them."
+topics = ["strings", "motifs"]
+
+[[problem]]
+id = "BA2B"
+title = "Find a Median String"
+file = "examples/ba2b.bl"
+url = "https://rosalind.info/problems/ba2b/"
+status = "solved"
+asserted = true
+note = "Every k-mer is a candidate, not only those occurring in the strings. Any minimiser is accepted, so the assertion checks the distance rather than the string: this finds ACG where the sample shows GAC, and both score 2."
+topics = ["strings", "motifs"]
+
+[[problem]]
+id = "BA2C"
+title = "Find a Profile-most Probable k-mer"
+file = "examples/ba2c.bl"
+url = "https://rosalind.info/problems/ba2c/"
+status = "solved"
+asserted = true
+note = "The product down the profile's columns. Every entry here is non-zero so no window is ruled out, which is the situation pseudocounts exist to fix in the problems that follow."
+topics = ["motifs", "probability"]
+
+[[problem]]
+id = "BA2H"
+title = "Implement DistanceBetweenPatternAndStrings"
+file = "examples/ba2h.bl"
+url = "https://rosalind.info/problems/ba2h/"
+status = "solved"
+asserted = true
+note = "Best per string, summed across them: a motif only has to occur once in each."
+topics = ["strings", "motifs"]
+
+[[problem]]
+id = "BA3B"
+title = "Reconstruct a String from its Genome Path"
+file = "examples/ba3b.bl"
+url = "https://rosalind.info/problems/ba3b/"
+status = "solved"
+asserted = true
+note = "The path is already ordered, so the string is the first k-mer plus one symbol from each after it. Finding the order is what BA3C and BA3H are for."
+topics = ["assembly"]
+
+[[problem]]
+id = "BA3C"
+title = "Construct the Overlap Graph of a Collection of k-mers"
+file = "examples/ba3c.bl"
+url = "https://rosalind.info/problems/ba3c/"
+status = "solved"
+asserted = true
+note = "An edge where one k-mer's suffix is another's prefix. Written with `source` and `target` because `from` and `to` are reserved words."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA3D"
+title = "Construct the De Bruijn Graph of a String"
+file = "examples/ba3d.bl"
+url = "https://rosalind.info/problems/ba3d/"
+status = "solved"
+asserted = true
+note = "Nodes are (k-1)-mers and edges are the k-mers, which is the inversion that turns assembly into an Eulerian path problem rather than a Hamiltonian one."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA3E"
+title = "Construct the De Bruijn Graph of a Collection of k-mers"
+file = "examples/ba3e.bl"
+url = "https://rosalind.info/problems/ba3e/"
+status = "solved"
+asserted = true
+note = "The same construction from a bag of reads rather than a string. A duplicate k-mer stays duplicated: it is evidence of a repeat, not noise."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA5A"
+title = "Find the Minimum Number of Coins Needed to Make Change"
+file = "examples/ba5a.bl"
+url = "https://rosalind.info/problems/ba5a/"
+status = "solved"
+asserted = true
+note = "The greedy answer is wrong here and that is the point: taking 25 first needs three coins where 20+20 needs two."
+topics = ["dynamic-programming"]
+
+[[problem]]
+id = "BA5C"
+title = "Find a Longest Common Subsequence of Two Strings"
+file = "examples/ba5c.bl"
+url = "https://rosalind.info/problems/ba5c/"
+status = "solved"
+asserted = true
+note = "lcs is a builtin. More than one subsequence is longest, so the assertion checks the length and that it really is a subsequence of both."
+topics = ["dynamic-programming", "strings"]
+
+[[problem]]
+id = "BA5E"
+title = "Find a Highest-Scoring Alignment of Two Strings"
+file = "examples/ba5e.bl"
+url = "https://rosalind.info/problems/ba5e/"
+status = "solved"
+asserted = true
+note = "One call: global, BLOSUM62, linear gap of 5."
+topics = ["alignment"]
+
+[[problem]]
+id = "BA5F"
+title = "Find a Highest-Scoring Local Alignment of Two Strings"
+file = "examples/ba5f.bl"
+url = "https://rosalind.info/problems/ba5f/"
+status = "solved"
+asserted = true
+note = "PAM250, not BLOSUM62 — the two disagree enough to change the answer, and the problem says which it wants."
+topics = ["alignment"]
+
+[[problem]]
+id = "BA5H"
+title = "Find a Highest-Scoring Fitting Alignment of Two Strings"
+file = "examples/ba5h.bl"
+url = "https://rosalind.info/problems/ba5h/"
+status = "solved"
+asserted = true
+note = "All of w against any window of v. Semiglobal returns the same number on this input for a different reason — it would clip w's ends too — so a fitting mode was added rather than asserting the coincidence."
+topics = ["alignment"]
+
+[[problem]]
+id = "BA5I"
+title = "Find a Highest-Scoring Overlap Alignment of Two Strings"
+file = "examples/ba5i.bl"
+url = "https://rosalind.info/problems/ba5i/"
+status = "solved"
+asserted = true
+note = "The shape read assembly asks for: where the end of one read agrees with the start of the next."
+topics = ["alignment", "assembly"]
+
+[[problem]]
+id = "BA5J"
+title = "Align Two Strings Using Affine Gap Penalties"
+file = "examples/ba5j.bl"
+url = "https://rosalind.info/problems/ba5j/"
+status = "solved"
+asserted = true
+note = "Charging for opening a gap and less per symbol after is what stops one long insertion being priced as a run of unrelated ones."
+topics = ["alignment"]
+
+[[problem]]
+id = "BA8A"
+title = "Implement FarthestFirstTraversal"
+file = "examples/ba8a.bl"
+url = "https://rosalind.info/problems/ba8a/"
+status = "solved"
+asserted = true
+note = "Each new center is the point furthest from all chosen so far. Deterministic, unlike k-means, which is why it is used to seed clustering rather than to do it."
+topics = ["clustering"]
+
+[[problem]]
+id = "BA8B"
+title = "Compute the Squared Error Distortion"
+file = "examples/ba8b.bl"
+url = "https://rosalind.info/problems/ba8b/"
+status = "solved"
+asserted = true
+note = "Squared, so one badly placed point counts for far more than several slightly-off ones. This is the quantity k-means minimises."
+topics = ["clustering"]
+
+[[problem]]
+id = "BA8C"
+title = "Implement the Lloyd Algorithm for k-Means Clustering"
+file = "examples/ba8c.bl"
+url = "https://rosalind.info/problems/ba8c/"
+status = "solved"
+asserted = true
+note = "Assign, then move each center to the mean of what it was assigned, until nothing moves. Seeded with the first k points because Lloyd's converges differently from different seeds — which is what BA8A exists to address."
+topics = ["clustering"]
+
+[[problem]]
+id = "BA9D"
+title = "Find the Longest Repeat in a String"
+file = "examples/ba9d.bl"
+url = "https://rosalind.info/problems/ba9d/"
+status = "solved"
+asserted = true
+note = "The largest entry in the LCP array, and nothing else. Two suffixes sharing a long prefix is what a repeat is, so the array has already found every one of them before the problem is read."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9E"
+title = "Find the Longest Substring Shared by Two Strings"
+file = "examples/ba9e.bl"
+url = "https://rosalind.info/problems/ba9e/"
+status = "solved"
+asserted = true
+note = "Concatenate with a separator, then take the largest LCP between neighbouring suffixes that came from different sides. The separator is load-bearing: without it a match can run across the join and name a substring neither string contains."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9I"
+title = "Construct the Burrows-Wheeler Transform of a String"
+file = "examples/ba9i.bl"
+url = "https://rosalind.info/problems/ba9i/"
+status = "solved"
+asserted = true
+note = "Sorting rotations and sorting suffixes agree once the string ends in a sentinel, so the suffix array gives the transform directly — the character before each sorted suffix."
+topics = ["strings", "suffix-structures", "compression"]
+
+[[problem]]
+id = "BA9J"
+title = "Reconstruct a String from its Burrows-Wheeler Transform"
+file = "examples/ba9j.bl"
+url = "https://rosalind.info/problems/ba9j/"
+status = "solved"
+asserted = true
+note = "The k-th occurrence of a symbol in the first column is the k-th in the last. That correspondence alone rebuilds the text, which is why the transform can be stored without anything beside it."
+topics = ["strings", "suffix-structures", "compression"]
+
+[[problem]]
+id = "BA10A"
+title = "Compute the Probability of a Hidden Path"
+file = "examples/ba10a.bl"
+url = "https://rosalind.info/problems/ba10a/"
+status = "solved"
+asserted = true
+note = "One product of fifty transitions, which lands at 1e-19 — the concrete reason the decoding problems that follow are done in log space rather than directly."
+topics = ["hmm", "probability"]
+
+[[problem]]
+id = "BA10B"
+title = "Compute the Probability of an Outcome Given a Hidden Path"
+file = "examples/ba10b.bl"
+url = "https://rosalind.info/problems/ba10b/"
+status = "solved"
+asserted = true
+note = "Conditioning on the path makes the positions independent, so the transitions never enter into it. Checked against the same product taken by hand."
+topics = ["hmm", "probability"]
+
+[[problem]]
+id = "BA10C"
+title = "Implement the Viterbi Algorithm"
+file = "examples/ba10c.bl"
+url = "https://rosalind.info/problems/ba10c/"
+status = "solved"
+asserted = true
+note = "The problem this pack was built to reach: HMM decoding is what gene finders, profile search and segmentation all run on, and nothing in the tree could do it before."
+topics = ["hmm", "dynamic-programming"]
+
+[[problem]]
+id = "BA10D"
+title = "Compute the Probability of a String Emitted by an HMM"
+file = "examples/ba10d.bl"
+url = "https://rosalind.info/problems/ba10d/"
+status = "solved"
+asserted = true
+note = "The forward algorithm. Its assertion enumerates all 1024 paths of the sample and sums them, so the collapse is checked against the thing it replaces rather than only against a published number."
+topics = ["hmm", "dynamic-programming"]
+
+[[problem]]
+id = "BA10J"
+title = "Solve the Soft Decoding Problem"
+file = "examples/ba10j.bl"
+url = "https://rosalind.info/problems/ba10j/"
+status = "solved"
+asserted = true
+note = "Forward-backward, which answers a different question from Viterbi: the most likely state at each position need not lie on any single path the model can produce."
+topics = ["hmm", "dynamic-programming"]
+
+[[problem]]
+id = "BA10H"
+title = "Estimate the Parameters of an HMM"
+file = "examples/ba10h.bl"
+url = "https://rosalind.info/problems/ba10h/"
+status = "solved"
+asserted = true
+note = "With the path given there is nothing to infer — the best estimate is the fraction of the time each move was made. A state the path never visits keeps a uniform row, which is the only choice that leaves it a distribution."
+topics = ["hmm", "parameter-estimation"]
+
+[[problem]]
+id = "BA10I"
+title = "Implement Viterbi Learning"
+file = "examples/ba10i.bl"
+url = "https://rosalind.info/problems/ba10i/"
+status = "solved"
+asserted = true
+note = "Decode, re-estimate as if that path were the truth, repeat. Climbs to a local optimum, so where it starts is part of the problem rather than an implementation detail."
+topics = ["hmm", "parameter-estimation"]
+
+[[problem]]
+id = "BA10K"
+title = "Implement Baum-Welch Learning"
+file = "examples/ba10k.bl"
+url = "https://rosalind.info/problems/ba10k/"
+status = "solved"
+asserted = true
+note = "Expectation-maximisation: counts the expected number of times each transition was taken over every path at once, instead of committing to the best one. Its assertion checks the likelihood rises round by round, not only end to end."
+topics = ["hmm", "parameter-estimation"]
+
+[[problem]]
+id = "BA10E"
+title = "Construct a Profile HMM"
+file = "examples/ba10e.bl"
+url = "https://rosalind.info/problems/ba10e/"
+status = "solved"
+asserted = true
+note = "A family of sequences becomes something a new sequence can be scored against — what Pfam and HMMER search with. Conserved columns become match states; gappy ones become insertions, which keeps the model's length at the family's length rather than the alignment's."
+topics = ["hmm", "profile-hmm", "alignment"]
+
+[[problem]]
+id = "BA10F"
+title = "Construct a Profile HMM with Pseudocounts"
+file = "examples/ba10f.bl"
+url = "https://rosalind.info/problems/ba10f/"
+status = "solved"
+asserted = true
+note = "Without a pseudocount, anything six sequences never happened to do is scored as impossible. It is added after the counts become probabilities, not before — added to raw counts its influence would depend on how many sequences the alignment contains."
+topics = ["hmm", "profile-hmm"]
+
+[[problem]]
+id = "BA10G"
+title = "Perform a Multiple Sequence Alignment with a Profile HMM"
+file = "examples/ba10g.bl"
+url = "https://rosalind.info/problems/ba10g/"
+status = "solved"
+asserted = true
+note = "Viterbi cannot do this: deletion states are silent, so nine states emit seven symbols. The silent states have to be settled in layer order at each position before the emitting ones look back at them."
+topics = ["hmm", "profile-hmm", "alignment"]
+
+[[problem]]
+id = "BA2D"
+title = "Implement GreedyMotifSearch"
+file = "examples/ba2d.bl"
+url = "https://rosalind.info/problems/ba2d/"
+status = "solved"
+asserted = true
+note = "Greedy in the strict sense: each string picks what the current profile likes best and nothing is reconsidered. Fast, and wrong often enough that BA2E exists."
+topics = ["motifs", "greedy"]
+
+[[problem]]
+id = "BA2E"
+title = "Implement GreedyMotifSearch with Pseudocounts"
+file = "examples/ba2e.bl"
+url = "https://rosalind.info/problems/ba2e/"
+status = "solved"
+asserted = true
+note = "One number different from BA2D. Without a pseudocount a base absent from a column makes every k-mer containing it impossible rather than unlikely. On this five-string sample the two versions actually tie at a score of 2 — the assertion says so rather than claiming an improvement the data does not show."
+topics = ["motifs", "greedy"]
+
+[[problem]]
+id = "BA2F"
+title = "Implement RandomizedMotifSearch"
+file = "examples/ba2f.bl"
+url = "https://rosalind.info/problems/ba2f/"
+status = "solved"
+asserted = true
+note = "Seeded so the example is reproducible. Graded on the score reached rather than on one particular set, because several distinct sets tie at the optimum of 9 — asserting on the published one would be asserting on the seed."
+topics = ["motifs", "randomized"]
+
+[[problem]]
+id = "BA2G"
+title = "Implement GibbsSampler"
+file = "examples/ba2g.bl"
+url = "https://rosalind.info/problems/ba2g/"
+status = "solved"
+asserted = true
+note = "Replaces one motif at a time rather than all of them, and draws in proportion to probability instead of taking the best — which is what lets it leave a local optimum. Rosalind's suggested 20 starts settles at 10 here; 200 reaches the optimal 9."
+topics = ["motifs", "randomized"]
+
+[[problem]]
+id = "BA3F"
+title = "Find an Eulerian Cycle in a Graph"
+file = "examples/ba3f.bl"
+url = "https://rosalind.info/problems/ba3f/"
+status = "solved"
+asserted = true
+note = "Hierholzer's algorithm, linear in the edges. Asserted on the property — every edge used exactly once, every step a real edge — rather than on the published string, which is one rotation among many."
+topics = ["graphs", "assembly"]
+
+[[problem]]
+id = "BA3G"
+title = "Find an Eulerian Path in a Graph"
+file = "examples/ba3g.bl"
+url = "https://rosalind.info/problems/ba3g/"
+status = "solved"
+asserted = true
+note = "Add the edge between the two unbalanced nodes, find a cycle, then cut the added edge out again. Which node the walk starts and ends at is forced by the degrees, so those are asserted exactly."
+topics = ["graphs", "assembly"]
+
+[[problem]]
+id = "BA3H"
+title = "Reconstruct a String from its k-mer Composition"
+file = "examples/ba3h.bl"
+url = "https://rosalind.info/problems/ba3h/"
+status = "solved"
+asserted = true
+note = "Reads become edges, not nodes — which makes assembly an Eulerian path, solvable in linear time. Reads as nodes would give a Hamiltonian path instead: the same data, a different graph, and the difference between tractable and NP-hard."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA3I"
+title = "Find a k-Universal Circular String"
+file = "examples/ba3i.bl"
+url = "https://rosalind.info/problems/ba3i/"
+status = "solved"
+asserted = true
+note = "Every (k-1)-mer has two edges in and two out, so the graph is balanced and the walk closes. Returns a different valid string from the published one; the assertion reads around the circle and checks all 2^k k-mers appear exactly once."
+topics = ["assembly", "graphs", "combinatorics"]
+
+[[problem]]
+id = "BA3J"
+title = "Reconstruct a String from its Paired Composition"
+file = "examples/ba3j.bl"
+url = "https://rosalind.info/problems/ba3j/"
+status = "solved"
+asserted = true
+note = "Paired reads pin down a repeat that either read alone would be ambiguous inside. The two halves must agree wherever they overlap, and checking that agreement is what makes a wrong assembly detectable."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA4B"
+title = "Find Substrings of a Genome Encoding a Given Amino Acid String"
+file = "examples/ba4b.bl"
+url = "https://rosalind.info/problems/ba4b/"
+status = "solved"
+asserted = true
+note = "A peptide can be encoded on either strand, so both are searched. ATGGCC appears twice and both occurrences count — the answer is substrings by position, not a set of distinct strings."
+topics = ["translation", "genomics"]
+
+[[problem]]
+id = "BA4C"
+title = "Generate the Theoretical Spectrum of a Cyclic Peptide"
+file = "examples/ba4c.bl"
+url = "https://rosalind.info/problems/ba4c/"
+status = "solved"
+asserted = true
+note = "A cyclic peptide's fragments include those wrapping past the end, and each wrapping piece is the complement of a non-wrapping one. 242 appears twice because LE and QN both weigh it."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4D"
+title = "Compute the Number of Peptides of Given Total Mass"
+file = "examples/ba4d.bl"
+url = "https://rosalind.info/problems/ba4d/"
+status = "solved"
+asserted = true
+note = "Counted by building up from below rather than enumerated — listing 14.7 billion peptides to count them is not an option. Eighteen residue masses, not twenty, since I/L and K/Q collide."
+topics = ["mass-spectrometry", "dynamic-programming"]
+
+[[problem]]
+id = "BA4E"
+title = "Find a Cyclic Peptide with Theoretical Spectrum Matching an Ideal Spectrum"
+file = "examples/ba4e.bl"
+url = "https://rosalind.info/problems/ba4e/"
+status = "solved"
+asserted = true
+note = "Branch and bound: a candidate whose linear spectrum contains a mass the target lacks can never recover, since growing it only adds masses. That pruning is the whole algorithm — without it the search is 18^n."
+topics = ["mass-spectrometry", "search"]
+
+[[problem]]
+id = "BA4F"
+title = "Compute the Score of a Cyclic Peptide Against a Spectrum"
+file = "examples/ba4f.bl"
+url = "https://rosalind.info/problems/ba4f/"
+status = "solved"
+asserted = true
+note = "Real spectra are missing masses and contain spurious ones, so exact matching is unavailable. Multiplicity counts: set intersection would score a peptide explaining a repeated mass once as well as one explaining it fully."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4G"
+title = "Implement LeaderboardCyclopeptideSequencing"
+file = "examples/ba4g.bl"
+url = "https://rosalind.info/problems/ba4g/"
+status = "solved"
+asserted = true
+note = "With a noisy spectrum nothing can be pruned for inconsistency — the right peptide will contain masses the spectrum lacks. Candidates survive on rank instead. Returns a reflection of the published answer; the assertion compares cyclic spectra, since a cycle has no distinguished start."
+topics = ["mass-spectrometry", "search"]
+
+[[problem]]
+id = "BA4H"
+title = "Generate the Convolution of a Spectrum"
+file = "examples/ba4h.bl"
+url = "https://rosalind.info/problems/ba4h/"
+status = "solved"
+asserted = true
+note = "Differences between fragment masses are themselves residue masses, so the commonest ones are what the peptide is built from — recoverable without assuming the standard twenty."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4I"
+title = "Implement ConvolutionCyclopeptideSequencing"
+file = "examples/ba4i.bl"
+url = "https://rosalind.info/problems/ba4i/"
+status = "solved"
+asserted = true
+note = "The published answer contains a residue of mass 72, which is not an amino acid. That is the point: the alphabet is read off the data rather than assumed, so modified residues are findable. Returns a different peptide of equal score, which is all a noisy spectrum can distinguish."
+topics = ["mass-spectrometry", "search"]
+
+[[problem]]
+id = "BA4J"
+title = "Generate the Theoretical Spectrum of a Linear Peptide"
+file = "examples/ba4j.bl"
+url = "https://rosalind.info/problems/ba4j/"
+status = "solved"
+asserted = true
+note = "A strict subset of the cyclic spectrum. Both are needed because sequencing grows a peptide one residue at a time, and scoring a partial peptide cyclically would credit it with wrap-around fragments it does not have."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4K"
+title = "Compute the Score of a Linear Peptide Against a Spectrum"
+file = "examples/ba4k.bl"
+url = "https://rosalind.info/problems/ba4k/"
+status = "solved"
+asserted = true
+note = "8 against BA4F's 11 on identical input, because the linear spectrum has fewer masses to agree with."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4L"
+title = "Trim a Peptide Leaderboard"
+file = "examples/ba4l.bl"
+url = "https://rosalind.info/problems/ba4l/"
+status = "solved"
+asserted = true
+note = "Ties at the cutoff are kept, since cutting one arbitrarily can discard the right answer while keeping an equal rival. LAST and ALST are anagrams and still score differently — linear fragments are contiguous, so order matters."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA4M"
+title = "Solve the Turnpike Problem"
+file = "examples/ba4m.bl"
+url = "https://rosalind.info/problems/ba4m/"
+status = "solved"
+asserted = true
+note = "Reading positions from pairwise distances, the same shape of problem as reading a peptide from fragment masses. Backtracking on the largest unplaced distance, which must reach one of the two ends — so each step has two choices rather than a search over all subsets."
+topics = ["mass-spectrometry", "search"]
+
+[[problem]]
+id = "BA5B"
+title = "Find the Length of a Longest Path in a Manhattan-like Grid"
+file = "examples/ba5b.bl"
+url = "https://rosalind.info/problems/ba5b/"
+status = "solved"
+asserted = true
+note = "The grid is filled once in order and never revisited. Enumerating the paths would mean C(n+m, n) of them — 70 here, exponential in general. Longest path is NP-hard in general graphs; it is easy here only because the grid is acyclic."
+topics = ["dynamic-programming", "graphs"]
+
+[[problem]]
+id = "BA5D"
+title = "Find the Longest Path in a DAG"
+file = "examples/ba5d.bl"
+url = "https://rosalind.info/problems/ba5d/"
+status = "solved"
+asserted = true
+note = "Easy for one reason: the graph is acyclic, so its nodes can be ordered with every edge pointing forwards and each score is final when read. Unreachable nodes stay at negative infinity rather than 0, or a detour through one could outscore a real path."
+topics = ["dynamic-programming", "graphs"]
+
+[[problem]]
+id = "BA5K"
+title = "Find a Middle Edge in an Alignment Graph in Linear Space"
+file = "examples/ba5k.bl"
+url = "https://rosalind.info/problems/ba5k/"
+status = "solved"
+asserted = true
+note = "A full alignment table costs O(nm) memory; one column costs O(n). Two linear-space sweeps meeting in the middle locate where the best alignment crosses it. Asserted against the full aligner: the middle node's total equals the alignment's own score."
+topics = ["alignment", "dynamic-programming"]
+
+[[problem]]
+id = "BA5L"
+title = "Align Two Strings Using Linear Space"
+file = "examples/ba5l.bl"
+url = "https://rosalind.info/problems/ba5l/"
+status = "solved"
+asserted = true
+note = "Hirschberg's algorithm on BA5K's middle edge. Each half is re-swept, but the halves shrink geometrically so the total stays O(nm) while memory drops from a table to a column — the trade that makes whole-genome alignment possible. Reproduces the published alignment exactly."
+topics = ["alignment", "dynamic-programming"]
+
+[[problem]]
+id = "BA5M"
+title = "Find a Highest-Scoring Multiple Sequence Alignment"
+file = "examples/ba5m.bl"
+url = "https://rosalind.info/problems/ba5m/"
+status = "solved"
+asserted = true
+note = "Three sequences need a cube, and each cell has seven predecessors rather than three. The cost is O(n^k), which is why exact multiple alignment stops being possible at a handful of sequences and real tools use heuristics. Returns a different optimal alignment from the published one; the assertion recounts the agreeing columns."
+topics = ["alignment", "dynamic-programming"]
+
+[[problem]]
+id = "BA5N"
+title = "Find a Topological Ordering of a DAG"
+file = "examples/ba5n.bl"
+url = "https://rosalind.info/problems/ba5n/"
+status = "solved"
+asserted = true
+note = "Kahn's algorithm with a FIFO queue. This is what BA5B and BA5D stand on: a longest path can be found in one sweep only if each node is reached after everything leading into it. Several orderings are valid, so the assertion checks every edge points forwards."
+topics = ["graphs"]
+
+[[problem]]
+id = "BA8D"
+title = "Implement the Soft k-Means Clustering Algorithm"
+file = "examples/ba8d.bl"
+url = "https://rosalind.info/problems/ba8d/"
+status = "solved"
+asserted = true
+note = "Where BA8C forces every point to pick one cluster, here a point midway between two centers pulls on both. Beta sets how decisive that sharing is: large beta reproduces Lloyd, small beta drags every center towards the overall mean."
+topics = ["clustering"]
+
+[[problem]]
+id = "BA8E"
+title = "Implement Hierarchical Clustering"
+file = "examples/ba8e.bl"
+url = "https://rosalind.info/problems/ba8e/"
+status = "solved"
+asserted = true
+note = "Needs no k. Produces a nested family of partitions rather than one — which is what a phylogenetic tree is. Average linkage is specified and it matters: single linkage chains elongated clusters, complete linkage insists on compactness."
+topics = ["clustering", "phylogeny"]
+
+[[problem]]
+id = "BA7A"
+title = "Compute Distances Between Leaves"
+file = "examples/ba7a.bl"
+url = "https://rosalind.info/problems/ba7a/"
+status = "solved"
+asserted = true
+note = "In a tree there is exactly one path between any two nodes, so there is nothing to optimise — no Dijkstra, no relaxation. That uniqueness is also what lets BA7C invert the distances to recover the tree."
+topics = ["phylogeny", "graphs"]
+
+[[problem]]
+id = "BA7B"
+title = "Compute Limb Length"
+file = "examples/ba7b.bl"
+url = "https://rosalind.info/problems/ba7b/"
+status = "solved"
+asserted = true
+note = "The minimum over pairs picks the two leaves whose paths diverge immediately, leaving the limb alone. This is what makes BA7C possible: knowing the limb, it can be subtracted off and the leaf removed."
+topics = ["phylogeny"]
+
+[[problem]]
+id = "BA7C"
+title = "Implement AdditivePhylogeny"
+file = "examples/ba7c.bl"
+url = "https://rosalind.info/problems/ba7c/"
+status = "solved"
+asserted = true
+note = "The exact inverse of BA7A. Exact only because the matrix is additive. Asserted by rebuilding every pairwise distance from the tree rather than by matching one printed layout, since internal node numbering is not unique."
+topics = ["phylogeny"]
+
+[[problem]]
+id = "BA7D"
+title = "Implement UPGMA"
+file = "examples/ba7d.bl"
+url = "https://rosalind.info/problems/ba7d/"
+status = "solved"
+asserted = true
+note = "Hierarchical clustering with heights, so every leaf ends the same distance from the root — a molecular clock made concrete. The assertion checks that ultrametric property directly. Often wrong in practice, which is what BA7E exists to avoid."
+topics = ["phylogeny", "clustering"]
+
+[[problem]]
+id = "BA7E"
+title = "Implement the Neighbor Joining Algorithm"
+file = "examples/ba7e.bl"
+url = "https://rosalind.info/problems/ba7e/"
+status = "solved"
+asserted = true
+note = "Corrects each distance by how far each leaf sits from everything else, so a fast-evolving lineage is no longer mistaken for a distant one. This sample matrix is not additive — its three four-point pairings are 53, 55 and 50 — so no tree fits it exactly and the assertion checks that rather than expecting the distances back unchanged."
+topics = ["phylogeny"]
+
+[[problem]]
+id = "BA7F"
+title = "Implement SmallParsimony"
+file = "examples/ba7f.bl"
+url = "https://rosalind.info/problems/ba7f/"
+status = "solved"
+asserted = true
+note = "Sankoff's algorithm. Every column is independent, so each is solved separately and the scores added. Greedy choice from the leaves fails: a locally cheap base can force two changes higher up. Returns a different labelling of equal score, and the assertion recounts the changes it actually shows."
+topics = ["phylogeny", "dynamic-programming"]
+
+[[problem]]
+id = "BA7G"
+title = "Adapt SmallParsimony to Unrooted Trees"
+file = "examples/ba7g.bl"
+url = "https://rosalind.info/problems/ba7g/"
+status = "solved"
+asserted = true
+note = "An edge costs the same read in either direction, so the score does not depend on where a root is placed — hang one in the middle of any edge, run BA7F unchanged, then remove it. The labelling can differ; the score cannot, which the assertion checks by comparing the rooted and unrooted totals."
+topics = ["phylogeny", "dynamic-programming"]
+
+[[problem]]
+id = "BA9A"
+title = "Construct a Trie from a Collection of Patterns"
+file = "examples/ba9a.bl"
+url = "https://rosalind.info/problems/ba9a/"
+status = "solved"
+asserted = true
+note = "Patterns sharing a prefix share a path, so the trie is walked once per text position no matter how many patterns there are. Node numbering is explicitly free, so the assertions are structural: every pattern spellable, no node with two edges on one symbol."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9B"
+title = "Implement TrieMatching"
+file = "examples/ba9b.bl"
+url = "https://rosalind.info/problems/ba9b/"
+status = "solved"
+asserted = true
+note = "Every pattern is tested at once by a single walk, so the cost is the text length times the longest pattern rather than times the pattern count. Cross-checked against a plain scan."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9H"
+title = "Pattern Matching with the Suffix Array"
+file = "examples/ba9h.bl"
+url = "https://rosalind.info/problems/ba9h/"
+status = "solved"
+asserted = true
+note = "The same answer as BA9B reached the other way, and the example says which to reach for: a trie is built from the patterns and suits many patterns against one text; a suffix array is built from the text and suits one text queried repeatedly."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9K"
+title = "Generate the Last-to-First Mapping of a String"
+file = "examples/ba9k.bl"
+url = "https://rosalind.info/problems/ba9k/"
+status = "solved"
+asserted = true
+note = "The kth occurrence of a symbol in one column is the kth in the other, so a row is found by counting rather than searching. Asserted to be a bijection over every row, which is what makes the walk in BA9J terminate."
+topics = ["strings", "suffix-structures", "compression"]
+
+[[problem]]
+id = "BA9L"
+title = "Implement BWMatching"
+file = "examples/ba9l.bl"
+url = "https://rosalind.info/problems/ba9l/"
+status = "solved"
+asserted = true
+note = "Searching the transform without ever rebuilding the text: sorted rows mean every match forms one contiguous band, narrowed one symbol at a time. Cross-checked by inverting the transform — the point being that the search never needed to."
+topics = ["strings", "suffix-structures", "compression"]
+
+[[problem]]
+id = "BA9M"
+title = "Implement BetterBWMatching"
+file = "examples/ba9m.bl"
+url = "https://rosalind.info/problems/ba9m/"
+status = "solved"
+asserted = true
+note = "Two precomputed tables remove BWMatching's scan, so a query costs time proportional to the pattern rather than to the text. That difference is what makes indexing a genome once and querying it billions of times practical."
+topics = ["strings", "suffix-structures", "compression"]
+
+[[problem]]
+id = "BA9Q"
+title = "Construct the Partial Suffix Array of a String"
+file = "examples/ba9q.bl"
+url = "https://rosalind.info/problems/ba9q/"
+status = "solved"
+asserted = true
+note = "A full suffix array of a human genome is 12 GB before the sequence itself. Keeping every Kth value cuts that by a factor of K, with the rest recoverable by walking the BWT — the compromise real read aligners ship with."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9C"
+title = "Construct the Suffix Tree of a String"
+file = "examples/ba9c.bl"
+url = "https://rosalind.info/problems/ba9c/"
+status = "solved"
+asserted = true
+note = "A trie of every suffix with non-branching chains collapsed. That collapse is what makes it linear rather than quadratic — a trie of all suffixes has O(n^2) nodes and almost all have one child. Built directly here; Ukkonen's algorithm is linear but obscures the structure at this size."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9F"
+title = "Find the Shortest Non-Shared Substring of Two Strings"
+file = "examples/ba9f.bl"
+url = "https://rosalind.info/problems/ba9f/"
+status = "solved"
+asserted = true
+note = "Shortest first, which makes the answer minimal by construction: if a substring of length k is absent, everything containing it is absent too. Returns CC where the sample shows AA; the assertion proves no one-character answer exists."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9N"
+title = "Find All Occurrences of a Collection of Patterns in a String"
+file = "examples/ba9n.bl"
+url = "https://rosalind.info/problems/ba9n/"
+status = "solved"
+asserted = true
+note = "BA9L and BA9M count occurrences without locating them, because a BWT band gives rows of the sorted matrix rather than text positions. Turning a row back into a position is what the suffix array supplies — the partial one of BA9Q in a real aligner, since the full one would undo the memory saving."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9O"
+title = "Find All Approximate Occurrences of a Collection of Patterns in a String"
+file = "examples/ba9o.bl"
+url = "https://rosalind.info/problems/ba9o/"
+status = "solved"
+asserted = true
+note = "Reads carry errors and genomes carry variants, so exact matching finds nothing useful and every aligner is an approximate matcher. Position 4 appears twice because two patterns match there — the answer lists occurrences, not distinct positions."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9P"
+title = "Implement TreeColoring"
+file = "examples/ba9p.bl"
+url = "https://rosalind.info/problems/ba9p/"
+status = "solved"
+asserted = true
+note = "How BA9E's shared-substring question is answered on a generalised suffix tree: colour leaves by which string they came from, and an internal node goes purple exactly when its substring occurs in both."
+topics = ["strings", "suffix-structures", "graphs"]
+
+[[problem]]
+id = "BA6A"
+title = "Implement GreedySorting to Sort a Permutation by Reversals"
+file = "examples/ba6a.bl"
+url = "https://rosalind.info/problems/ba6a/"
+status = "solved"
+asserted = true
+note = "Signs matter because a reversed gene reads on the other strand. Greedy sorting fixes each position once and never revisits it: at most 2n reversals, which is not the minimum but does bound the true distance."
+topics = ["rearrangements"]
+
+[[problem]]
+id = "BA6B"
+title = "Compute the Number of Breakpoints in a Permutation"
+file = "examples/ba6b.bl"
+url = "https://rosalind.info/problems/ba6b/"
+status = "solved"
+asserted = true
+note = "One reversal removes at most two breakpoints, so half the count is a lower bound on reversal distance — BA6A gives the upper one. A fully reversed permutation is not the worst case: (-5 -4 -3 -2 -1) still steps by one, so it has only two breakpoints and one reversal sorts it."
+topics = ["rearrangements"]
+
+[[problem]]
+id = "BA6C"
+title = "Compute the 2-Break Distance Between a Pair of Genomes"
+file = "examples/ba6c.bl"
+url = "https://rosalind.info/problems/ba6c/"
+status = "solved"
+asserted = true
+note = "Blocks minus cycles — a closed form, which is unusual for a rearrangement distance and the reason 2-breaks are studied. A 2-break raises the cycle count by at most one, so the bound is both necessary and achievable."
+topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA6D"
+title = "Find a Shortest Transformation of One Genome into Another by 2-Breaks"
+file = "examples/ba6d.bl"
+url = "https://rosalind.info/problems/ba6d/"
+status = "solved"
+asserted = true
+note = "The constructive half of BA6C's argument: exhibits a path of exactly that length. Finds a different valid path from the published one, so it asserts the endpoints and the step count rather than the listing."
+topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA6E"
+title = "Find All Shared k-mers of a Pair of Strings"
+file = "examples/ba6e.bl"
+url = "https://rosalind.info/problems/ba6e/"
+status = "solved"
+asserted = true
+note = "Reverse complements count because an inversion puts a conserved block on the other strand; ignoring that would make every inverted block look like a deletion. Plotting the pairs gives the dot plot rearrangements are read off."
+topics = ["rearrangements", "kmers"]
+
+[[problem]]
+id = "BA6F"
+title = "Implement ChromosomeToCycle"
+file = "examples/ba6f.bl"
+url = "https://rosalind.info/problems/ba6f/"
+status = "solved"
+asserted = true
+note = "Every block becomes a head and a tail, so orientation stops being a sign and becomes a direction of travel — the representation 2-breaks are defined on."
+topics = ["rearrangements"]
+
+[[problem]]
+id = "BA6G"
+title = "Implement CycleToChromosome"
+file = "examples/ba6g.bl"
+url = "https://rosalind.info/problems/ba6g/"
+status = "solved"
+asserted = true
+note = "The inverse of BA6F, asserted by round-tripping rather than only by matching the sample. The sign is recovered from the order of each node pair rather than stored."
+topics = ["rearrangements"]
+
+[[problem]]
+id = "BA6H"
+title = "Implement ColoredEdges"
+file = "examples/ba6h.bl"
+url = "https://rosalind.info/problems/ba6h/"
+status = "solved"
+asserted = true
+note = "Only the edges between blocks are kept — the adjacencies a rearrangement can break. Every node carries exactly one, which is what makes the graph a set of disjoint cycles and BA6C computable."
+topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA6I"
+title = "Implement GraphToGenome"
+file = "examples/ba6i.bl"
+url = "https://rosalind.info/problems/ba6i/"
+status = "solved"
+asserted = true
+note = "A circular chromosome has no distinguished starting block, so the walk produced (-2 -3 +1) where the sample shows (+1 -2 -3) — the same chromosome. Rotated to the lowest-numbered block for a stable listing, with the rotation-invariance asserted rather than hidden."
+topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA6J"
+title = "Implement 2-BreakOnGenomeGraph"
+file = "examples/ba6j.bl"
+url = "https://rosalind.info/problems/ba6j/"
+status = "solved"
+asserted = true
+note = "The single operation every rearrangement reduces to: cut two adjacencies, rejoin the four ends the other way. Reversals, translocations, fusions and fissions are all this one move."
+topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA6K"
+title = "Implement 2-BreakOnGenome"
+file = "examples/ba6k.bl"
+url = "https://rosalind.info/problems/ba6k/"
+status = "solved"
+asserted = true
+note = "BA6H, BA6J and BA6I assembled. This particular break is a fission. The result reads each chromosome in the opposite direction from the published answer, so the assertion canonicalises over rotation and reflection — a circular chromosome read backwards flips every sign and is still the same chromosome."
+topics = ["rearrangements", "graphs"]
+
+[[problem]]
+id = "BA11A"
+title = "Construct the Graph of a Spectrum"
+file = "examples/ba11a.bl"
+url = "https://rosalind.info/problems/ba11a/"
+status = "solved"
+asserted = true
+note = "Reading a peptide off a spectrum rather than guessing peptides and scoring them as BA4 did. Every path from 0 to the heaviest mass spells a candidate, so sequencing becomes a path problem instead of a search over 20^n peptides."
+topics = ["mass-spectrometry", "graphs"]
+
+[[problem]]
+id = "BA11B"
+title = "Implement DecodingIdealSpectrum"
+file = "examples/ba11b.bl"
+url = "https://rosalind.info/problems/ba11b/"
+status = "solved"
+asserted = true
+note = "A spectrum holds prefix and suffix masses mixed together, so not every path is an answer — each candidate is rebuilt and checked. GPFNA and its reverse ANFPG both survive, because reversing a peptide only swaps which masses are prefixes."
+topics = ["mass-spectrometry", "graphs"]
+
+[[problem]]
+id = "BA11C"
+title = "Convert a Peptide into a Peptide Vector"
+file = "examples/ba11c.bl"
+url = "https://rosalind.info/problems/ba11c/"
+status = "solved"
+asserted = true
+note = "Puts a peptide in the same shape as a spectrum so the two can be compared by a dot product — which is what makes scoring one multiplication per position and finding the best peptide a path problem."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA11D"
+title = "Convert a Peptide Vector into a Peptide"
+file = "examples/ba11d.bl"
+url = "https://rosalind.info/problems/ba11d/"
+status = "solved"
+asserted = true
+note = "The inverse of BA11C: gaps between consecutive 1s are the residue masses, so nothing has to be searched for. Asserted by round-tripping."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA11E"
+title = "Sequence a Peptide"
+file = "examples/ba11e.bl"
+url = "https://rosalind.info/problems/ba11e/"
+status = "solved"
+asserted = true
+note = "The heaviest path through a graph of prefix positions. Negative entries matter — a spectral vector is measurement, not a count, so a path is penalised for claiming a prefix the data argues against, which is what stops the answer being simply the longest path."
+topics = ["mass-spectrometry", "dynamic-programming"]
+
+[[problem]]
+id = "BA11F"
+title = "Find a Highest-Scoring Peptide in a Proteome against a Spectrum"
+file = "examples/ba11f.bl"
+url = "https://rosalind.info/problems/ba11f/"
+status = "solved"
+asserted = true
+note = "The realistic version of BA11E: only substrings of a known proteome are candidates, which is how proteomics actually works and what makes the search tractable."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA11G"
+title = "Implement PSMSearch"
+file = "examples/ba11g.bl"
+url = "https://rosalind.info/problems/ba11g/"
+status = "solved"
+asserted = true
+note = "A real experiment produces thousands of spectra, most matching nothing. The threshold is what separates them — without it every spectrum gets a peptide and most assignments are wrong. One of the two sample spectra is correctly left unassigned."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "BA11H"
+title = "Compute the Size of a Spectral Dictionary"
+file = "examples/ba11h.bl"
+url = "https://rosalind.info/problems/ba11h/"
+status = "solved"
+asserted = true
+note = "If thousands of peptides would score as well, a high score means nothing. Counted rather than enumerated, for the same reason as BA4D — and cross-checked here against brute-force enumeration, which is only possible because this vector is tiny."
+topics = ["mass-spectrometry", "dynamic-programming"]
+
+[[problem]]
+id = "BA11I"
+title = "Compute the Probability of a Spectral Dictionary"
+file = "examples/ba11i.bl"
+url = "https://rosalind.info/problems/ba11i/"
+status = "solved"
+asserted = true
+note = "What turns a match into evidence: a score of 8 means nothing alone, a score only 0.375 of random peptides reach means something. Asserted to agree with BA11H — three length-3 peptides at (1/2)^3 each."
+topics = ["mass-spectrometry", "dynamic-programming"]
+
+[[problem]]
+id = "BA11J"
+title = "Find a Highest-Scoring Modified Peptide against a Spectrum"
+file = "examples/ba11j.bl"
+url = "https://rosalind.info/problems/ba11j/"
+status = "solved"
+asserted = true
+note = "Proteins are modified after they are made, so a modified peptide's spectrum matches nothing under exact search. XXZ weighs 13 against a vector of length 14, so at least one modification is forced — which the assertion checks rather than taking on trust."
+topics = ["mass-spectrometry", "dynamic-programming"]
+
+[[problem]]
+id = "BA3K"
+title = "Generate Contigs from a Collection of Reads"
+file = "examples/ba3k.bl"
+url = "https://rosalind.info/problems/ba3k/"
+status = "solved"
+asserted = true
+note = "What assembly actually produces. BA3H asked for the genome, which needs an Eulerian path to exist and be unique — real data gives neither. Where the graph branches the reads genuinely do not say which way the genome went, so the honest output is the unambiguous stretches and no more."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "BA3L"
+title = "Construct a String Spelled by a Gapped Genome Path"
+file = "examples/ba3l.bl"
+url = "https://rosalind.info/problems/ba3l/"
+status = "solved"
+asserted = true
+note = "BA3J had to find the path; here it is given, so what remains is the overlap check — a path whose two halves disagree spells nothing at all, however valid it looked in the graph."
+topics = ["assembly"]
+
+[[problem]]
+id = "BA3M"
+title = "Generate All Maximal Non-Branching Paths in a Graph"
+file = "examples/ba3m.bl"
+url = "https://rosalind.info/problems/ba3m/"
+status = "solved"
+asserted = true
+note = "A run of 1-in-1-out nodes carries no choice, so collapsing it loses nothing; everywhere else is a real branch. The isolated cycle has no non-branching start and is only found by a second pass — without it, it would be silently dropped. Reported from 6 rather than 7, since a cycle has no first node."
+topics = ["graphs", "assembly"]
+
+[[problem]]
+id = "BA9R"
+title = "Construct a Suffix Tree from a Suffix Array"
+file = "examples/ba9r.bl"
+url = "https://rosalind.info/problems/ba9r/"
+status = "solved"
+asserted = true
+note = "BA9C built the tree by collapsing a suffix trie, which is quadratic before the collapse. The suffix and LCP arrays carry the same information in two flat integer arrays and rebuild the tree in one pass — which is why real tools store the arrays and never materialise the tree."
+topics = ["strings", "suffix-structures"]

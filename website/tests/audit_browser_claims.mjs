@@ -33,7 +33,13 @@ function missingInBrowser(source) {
     .map((line) => line.replace(/#.*$/, ""))
     .join("\n")
     .replace(/"([^"\\]|\\.)*"/g, '""');
-  const declared = new Set([...stripped.matchAll(/\bfn\s+([A-Za-z_]\w*)/g)].map((m) => m[1]));
+  // `fn name(...)` and `let name = |...|` both name a function. This must match
+  // scripts/generate-pack-docs.mjs exactly — the two disagreeing is precisely
+  // what this audit exists to catch, so a fix to one belongs in both.
+  const declared = new Set([
+    ...[...stripped.matchAll(/\bfn\s+([A-Za-z_]\w*)/g)].map((m) => m[1]),
+    ...[...stripped.matchAll(/\blet\s+([A-Za-z_]\w*)\s*=\s*\|/g)].map((m) => m[1]),
+  ]);
   const called = new Set([...stripped.matchAll(/\b([a-z_][a-z0-9_]*)\s*\(/g)].map((m) => m[1]));
   return [...called].filter(
     (n) => !KEYWORDS.has(n) && !declared.has(n) && !available.has(n),

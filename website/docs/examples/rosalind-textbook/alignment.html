@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Alignment</h1>
-        <p class="text-lg text-slate-400 mb-6">1 problem from
+        <p class="text-lg text-slate-400 mb-6">9 problems from
         <a href="../rosalind-textbook.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Textbook Track</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -34,6 +34,14 @@
              section can hold fifteen of them, so it needs its own navigation. -->
         <nav aria-label="Problems on this page" class="flex flex-wrap gap-2 mb-10 not-prose">
           <a href="#ba5g" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Compute the Edit Distance Between Two Strings">BA5G</a>
+          <a href="#ba5e" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find a Highest-Scoring Alignment of Two Strings">BA5E</a>
+          <a href="#ba5f" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find a Highest-Scoring Local Alignment of Two Strings">BA5F</a>
+          <a href="#ba5h" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find a Highest-Scoring Fitting Alignment of Two Strings">BA5H</a>
+          <a href="#ba5i" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find a Highest-Scoring Overlap Alignment of Two Strings">BA5I</a>
+          <a href="#ba5j" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Align Two Strings Using Affine Gap Penalties">BA5J</a>
+          <a href="#ba5k" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find a Middle Edge in an Alignment Graph in Linear Space">BA5K</a>
+          <a href="#ba5l" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Align Two Strings Using Linear Space">BA5L</a>
+          <a href="#ba5m" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Find a Highest-Scoring Multiple Sequence Alignment">BA5M</a>
         </nav>
 
         <section id="ba5g" class="mt-12">
@@ -61,6 +69,532 @@ println(&quot;Expected: 5&quot;)
 
 fn test_ba5g_edit_distance() {
     assert result == 5, &quot;BA5G: got &quot; + str(result)
+}</code></pre>
+        </section>
+
+        <section id="ba5e" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA5E &mdash; Find a Highest-Scoring Alignment of Two Strings</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba5e/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA5E" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba5e.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">One call: global, BLOSUM62, linear gap of 5.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA5E — Find a Highest-Scoring Alignment of Two Strings
+# https://rosalind.info/problems/ba5e/
+#
+# Given: Two amino acid strings.
+# Return: The maximum global alignment score, and an alignment achieving it.
+# BLOSUM62 with indel penalty 5.
+
+let s = &quot;PLEASANTLY&quot;
+let t = &quot;MEANLY&quot;
+
+# One call: global mode, a linear gap of 5, scored from BLOSUM62. The match and
+# mismatch arguments are ignored for residues the matrix carries, which is all
+# of them here.
+let result = align(s, t, &quot;global&quot;, 0, 0, -5, 0, &quot;blosum62&quot;)
+
+println(&quot;Result:   &quot; + str(result.score))
+println(&quot;Expected: 8&quot;)
+println(&quot;Alignment:&quot;)
+println(&quot;  &quot; + result.aligned_a)
+println(&quot;  &quot; + result.aligned_b)
+
+fn test_ba5e_global_alignment() {
+    assert result.score == 8, &quot;BA5E: got &quot; + str(result.score)
+    # Both rows of a global alignment cover their whole string.
+    assert len(result.aligned_a) == len(result.aligned_b), &quot;BA5E: rows differ in length&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba5f" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA5F &mdash; Find a Highest-Scoring Local Alignment of Two Strings</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba5f/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA5F" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba5f.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">PAM250, not BLOSUM62 — the two disagree enough to change the answer, and the problem says which it wants.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA5F — Find a Highest-Scoring Local Alignment of Two Strings
+# https://rosalind.info/problems/ba5f/
+#
+# Given: Two amino acid strings.
+# Return: The maximum local alignment score, and an alignment achieving it.
+# PAM250 with indel penalty 5.
+
+let s = &quot;MEANLY&quot;
+let t = &quot;PENALTY&quot;
+
+# PAM250, not BLOSUM62 — the two matrices disagree enough to change the answer,
+# and the problem says which one it wants.
+let result = align(s, t, &quot;local&quot;, 0, 0, -5, 0, &quot;pam250&quot;)
+
+println(&quot;Result:   &quot; + str(result.score))
+println(&quot;Expected: 15&quot;)
+println(&quot;Alignment:&quot;)
+println(&quot;  &quot; + result.aligned_a)
+println(&quot;  &quot; + result.aligned_b)
+
+fn test_ba5f_local_alignment() {
+    assert result.score == 15, &quot;BA5F: got &quot; + str(result.score)
+    # A local alignment can only do at least as well as the same pair scored
+    # globally, since it may discard the ends.
+    assert result.score &gt;= align(s, t, &quot;global&quot;, 0, 0, -5, 0, &quot;pam250&quot;).score,
+        &quot;BA5F: local scored below global&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba5h" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA5H &mdash; Find a Highest-Scoring Fitting Alignment of Two Strings</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba5h/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA5H" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba5h.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">All of w against any window of v. Semiglobal returns the same number on this input for a different reason — it would clip w's ends too — so a fitting mode was added rather than asserting the coincidence.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA5H — Find a Highest-Scoring Fitting Alignment of Two Strings
+# https://rosalind.info/problems/ba5h/
+#
+# Given: Two DNA strings v and w, v much the longer.
+# Return: The maximum fitting alignment score, and an alignment achieving it.
+# Match +1, mismatch and indel both -1.
+
+let v = dna&quot;GTAGGCTTAAGGTTA&quot;
+let w = dna&quot;TAGATA&quot;
+
+# Fitting: all of w, any window of v. That is not the same as semiglobal, which
+# forgives the end gaps of both sequences and so would let w be clipped too. On
+# this input the two happen to agree, which is exactly why the distinction is
+# worth making rather than reaching for whichever mode returns the right number.
+let result = align(v, w, &quot;fitting&quot;, 1, -1, -1, 0)
+
+# w must appear in full: its row of the alignment, gaps removed, is all of w.
+fn without_gaps(row) {
+    range(0, len(row)) |&gt; map(|i| substr(row, i, 1)) |&gt; filter(|c| c != &quot;-&quot;) |&gt; join(&quot;&quot;)
+}
+
+println(&quot;Result:   &quot; + str(result.score))
+println(&quot;Expected: 2&quot;)
+println(&quot;Alignment:&quot;)
+println(&quot;  &quot; + result.aligned_a)
+println(&quot;  &quot; + result.aligned_b)
+
+fn test_ba5h_fitting_alignment() {
+    assert result.score == 2, &quot;BA5H: got &quot; + str(result.score)
+    assert without_gaps(result.aligned_b) == str(w),
+        &quot;BA5H: w is not fully aligned — that is what makes this fitting rather than local&quot;
+    assert contains(str(v), without_gaps(result.aligned_a)),
+        &quot;BA5H: the aligned part of v is not a window of v&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba5i" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA5I &mdash; Find a Highest-Scoring Overlap Alignment of Two Strings</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba5i/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA5I" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba5i.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The shape read assembly asks for: where the end of one read agrees with the start of the next.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA5I — Find a Highest-Scoring Overlap Alignment of Two Strings
+# https://rosalind.info/problems/ba5i/
+#
+# Given: Two protein strings v and w.
+# Return: The maximum overlap alignment score, and an alignment of a suffix of v
+# with a prefix of w. Match +1, mismatch and indel both -2.
+
+let v = &quot;PAWHEAE&quot;
+let w = &quot;HEAGAWGHEE&quot;
+
+# Overlap alignment is the shape read assembly asks for: where does the end of
+# one read agree with the start of the next. A prefix of v and a suffix of w are
+# both free.
+let result = align(v, w, &quot;overlap&quot;, 1, -2, -2, 0)
+
+fn without_gaps(row) {
+    range(0, len(row)) |&gt; map(|i| substr(row, i, 1)) |&gt; filter(|c| c != &quot;-&quot;) |&gt; join(&quot;&quot;)
+}
+
+println(&quot;Result:   &quot; + str(result.score))
+println(&quot;Expected: 1&quot;)
+println(&quot;Alignment:&quot;)
+println(&quot;  &quot; + result.aligned_a)
+println(&quot;  &quot; + result.aligned_b)
+
+fn test_ba5i_overlap_alignment() {
+    assert result.score == 1, &quot;BA5I: got &quot; + str(result.score)
+    # The aligned pieces are a suffix of v and a prefix of w.
+    let piece_v = without_gaps(result.aligned_a)
+    let piece_w = without_gaps(result.aligned_b)
+    assert substr(v, len(v) - len(piece_v), len(piece_v)) == piece_v,
+        &quot;BA5I: &quot; + piece_v + &quot; is not a suffix of v&quot;
+    assert substr(w, 0, len(piece_w)) == piece_w, &quot;BA5I: &quot; + piece_w + &quot; is not a prefix of w&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba5j" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA5J &mdash; Align Two Strings Using Affine Gap Penalties</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba5j/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA5J" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba5j.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Charging for opening a gap and less per symbol after is what stops one long insertion being priced as a run of unrelated ones.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA5J — Align Two Strings Using Affine Gap Penalties
+# https://rosalind.info/problems/ba5j/
+#
+# Given: Two amino acid strings v and w.
+# Return: The maximum alignment score, and an alignment achieving it.
+# BLOSUM62, gap opening 11, gap extension 1.
+
+let v = &quot;PRTEINS&quot;
+let w = &quot;PRTWPSEIN&quot;
+
+# Affine gaps charge for opening a gap and then less per symbol after, which is
+# what stops a long insertion being priced as a run of unrelated ones. A gap of
+# length L costs 11 + (L-1), so opening is -10 on top of the -1 each symbol pays.
+let result = align(v, w, &quot;global&quot;, 0, 0, -1, -10, &quot;blosum62&quot;)
+
+# The same pair under a linear gap of 11 per symbol, for contrast.
+let linear = align(v, w, &quot;global&quot;, 0, 0, -11, 0, &quot;blosum62&quot;)
+
+println(&quot;Result:   &quot; + str(result.score))
+println(&quot;Expected: 8&quot;)
+println(&quot;Alignment:&quot;)
+println(&quot;  &quot; + result.aligned_a)
+println(&quot;  &quot; + result.aligned_b)
+println(&quot;(the same pair with a flat gap of 11 scores &quot; + str(linear.score) + &quot;)&quot;)
+
+fn test_ba5j_affine_gap_alignment() {
+    assert result.score == 8, &quot;BA5J: got &quot; + str(result.score)
+    # Charging less for continuing a gap can only help.
+    assert result.score &gt;= linear.score, &quot;BA5J: affine scored below a flat gap&quot;
+}</code></pre>
+        </section>
+
+        <section id="ba5k" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA5K &mdash; Find a Middle Edge in an Alignment Graph in Linear Space</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba5k/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA5K" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba5k.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A full alignment table costs O(nm) memory; one column costs O(n). Two linear-space sweeps meeting in the middle locate where the best alignment crosses it. Asserted against the full aligner: the middle node's total equals the alignment's own score.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA5K — Find a Middle Edge in an Alignment Graph in Linear Space
+# https://rosalind.info/problems/ba5k/
+#
+# Given: Two amino acid strings.
+# Return: A middle edge of their alignment graph, scored with BLOSUM62 and a
+# linear indel penalty of 5.
+
+let first_string = &quot;PLEASANTLY&quot;
+let second_string = &quot;MEASNLY&quot;
+let blosum = score_matrix(&quot;BLOSUM62&quot;)
+let gap = 5
+
+# The idea behind Hirschberg's algorithm. A full alignment table costs O(nm)
+# memory, which for two chromosomes is not available. But one *column* of it
+# costs O(n), and that is enough to find where the best alignment crosses the
+# middle column — from which the problem splits in two and recurses.
+#
+# The score of the best path through a node is the best path into it plus the
+# best path out of it, so two linear-space sweeps meeting in the middle locate
+# the crossing without ever holding the table.
+let middle = floor(len(second_string) / 2)
+
+# One forward column: best score from (0,0) to each row of column `upto`.
+fn forward_column(rows, columns, upto, matrix, indel) {
+    let column = range(0, len(rows) + 1) |&gt; map(|i| 0 - i * indel)
+    for j in range(1, upto + 1) {
+        let next = [0 - j * indel]
+        for i in range(1, len(rows) + 1) {
+            let diagonal = column[i - 1]
+                + substitution_score(matrix, substr(rows, i - 1, 1), substr(columns, j - 1, 1))
+            let down = next[i - 1] - indel
+            let across = column[i] - indel
+            next = push(next, max([diagonal, down, across]))
+        }
+        column = next
+    }
+    column
+}
+
+# The backward sweep is the forward one on both strings reversed, which is why
+# only one direction has to be written.
+let from_source = forward_column(first_string, second_string, middle, blosum, gap)
+let to_sink_reversed = forward_column(reverse(first_string), reverse(second_string),
+                                      len(second_string) - middle, blosum, gap)
+let to_sink = reverse(to_sink_reversed)
+
+let totals = range(0, len(first_string) + 1) |&gt; map(|i| from_source[i] + to_sink[i])
+let middle_row = argmax(totals)
+
+# Which way the best path leaves the middle node. Three continuations are
+# possible; the middle edge is whichever is best, and for this pair it is the
+# diagonal one.
+let beyond = forward_column(reverse(first_string), reverse(second_string),
+                            len(second_string) - middle - 1, blosum, gap) |&gt; reverse()
+
+let at_bottom = middle_row == len(first_string)
+
+let across = { row: middle_row, column: middle + 1, score: beyond[middle_row] - gap }
+let down = {
+    row: middle_row + 1,
+    column: middle,
+    score: if at_bottom then 0 - 1000000 else to_sink[middle_row + 1] - gap,
+}
+let diagonal = {
+    row: middle_row + 1,
+    column: middle + 1,
+    score: if at_bottom then 0 - 1000000 else beyond[middle_row + 1]
+        + substitution_score(blosum, substr(first_string, middle_row, 1), substr(second_string, middle, 1)),
+}
+
+let ranked = [diagonal, across, down] |&gt; sort_by(|option| 0 - option.score)
+let best_edge = ranked[0]
+
+println(&quot;Result:   (&quot; + str(middle_row) + &quot;, &quot; + str(middle) + &quot;) (&quot;
+        + str(best_edge.row) + &quot;, &quot; + str(best_edge.column) + &quot;)&quot;)
+println(&quot;Expected: (4, 3) (5, 4)&quot;)
+
+fn test_ba5k_middle_edge() {
+    assert middle == 3, &quot;BA5K: the middle column of a 7-long string is 3&quot;
+    assert middle_row == 4, &quot;BA5K: got middle row &quot; + str(middle_row)
+    assert best_edge.row == 5 and best_edge.column == 4,
+        &quot;BA5K: got end (&quot; + str(best_edge.row) + &quot;, &quot; + str(best_edge.column) + &quot;)&quot;
+    # The middle node must lie on a best alignment, so the best path through it
+    # scores exactly what the full alignment scores. That is the property the
+    # whole linear-space method depends on.
+    let full = align(protein(first_string), protein(second_string), &quot;global&quot;, 0, 0, 0 - gap, 0, &quot;blosum62&quot;)
+    assert totals[middle_row] == full.score,
+        &quot;BA5K: the middle node scores &quot; + str(totals[middle_row])
+            + &quot; but the alignment scores &quot; + str(full.score)
+    # And no row beats it.
+    for i in range(0, len(totals)) {
+        assert totals[i] &lt;= totals[middle_row], &quot;BA5K: row &quot; + str(i) + &quot; scores higher&quot;
+    }
+}</code></pre>
+        </section>
+
+        <section id="ba5l" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA5L &mdash; Align Two Strings Using Linear Space</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba5l/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA5L" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba5l.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Hirschberg's algorithm on BA5K's middle edge. Each half is re-swept, but the halves shrink geometrically so the total stays O(nm) while memory drops from a table to a column — the trade that makes whole-genome alignment possible. Reproduces the published alignment exactly.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA5L — Align Two Strings Using Linear Space
+# https://rosalind.info/problems/ba5l/
+#
+# Given: Two amino acid strings.
+# Return: Their maximum global alignment score, and an alignment achieving it,
+# using BLOSUM62 and a linear indel penalty of 5.
+
+let first_string = &quot;PLEASANTLY&quot;
+let second_string = &quot;MEANLY&quot;
+let blosum = score_matrix(&quot;BLOSUM62&quot;)
+let gap = 5
+
+# Hirschberg's algorithm, built on BA5K's middle edge. The full alignment table
+# needs O(nm) memory — for two chromosomes that is terabytes — but a single
+# column needs only O(n). Finding where the best alignment crosses the middle
+# column costs two linear-space sweeps, and then the problem splits into two
+# halves that are solved the same way.
+#
+# The work roughly doubles (each half is re-swept) but the total stays O(nm),
+# because the halves shrink geometrically: nm/2 + nm/4 + ... &lt; nm. Memory drops
+# from a table to a column, which is the trade that makes whole-genome alignment
+# possible at all.
+fn column_scores(rows, columns, matrix, indel) {
+    let column = range(0, len(rows) + 1) |&gt; map(|i| 0 - i * indel)
+    for j in range(1, len(columns) + 1) {
+        let next = [0 - j * indel]
+        for i in range(1, len(rows) + 1) {
+            let diagonal = column[i - 1]
+                + substitution_score(matrix, substr(rows, i - 1, 1), substr(columns, j - 1, 1))
+            let down = next[i - 1] - indel
+            let across = column[i] - indel
+            next = push(next, max([diagonal, down, across]))
+        }
+        column = next
+    }
+    column
+}
+
+# Returns the two aligned strings for the given pair.
+fn hirschberg(rows, columns, matrix, indel) {
+    if len(columns) == 0 {
+        return [rows, range(0, len(rows)) |&gt; map(|_| &quot;-&quot;) |&gt; join(&quot;&quot;)]
+    }
+    if len(rows) == 0 {
+        return [range(0, len(columns)) |&gt; map(|_| &quot;-&quot;) |&gt; join(&quot;&quot;), columns]
+    }
+    if len(rows) == 1 or len(columns) == 1 {
+        # Small enough that a full table is a column; fall back to the ordinary
+        # alignment rather than recursing further.
+        let small = align(protein(rows), protein(columns), &quot;global&quot;, 0, 0, 0 - indel, 0, &quot;blosum62&quot;)
+        return [str(small.aligned_a), str(small.aligned_b)]
+    }
+
+    let middle = floor(len(columns) / 2)
+    let left = column_scores(rows, substr(columns, 0, middle), matrix, indel)
+    let right = column_scores(reverse(rows), reverse(substr(columns, middle, len(columns) - middle)),
+                              matrix, indel) |&gt; reverse()
+    let split_at = argmax(range(0, len(rows) + 1) |&gt; map(|i| left[i] + right[i]))
+
+    let top = hirschberg(substr(rows, 0, split_at), substr(columns, 0, middle), matrix, indel)
+    let bottom = hirschberg(substr(rows, split_at, len(rows) - split_at),
+                            substr(columns, middle, len(columns) - middle), matrix, indel)
+    [top[0] + bottom[0], top[1] + bottom[1]]
+}
+
+let aligned = hirschberg(first_string, second_string, blosum, gap)
+
+fn alignment_score(a, b, matrix, indel) {
+    range(0, len(a)) |&gt; map(|i| {
+        let x = substr(a, i, 1)
+        let y = substr(b, i, 1)
+        if x == &quot;-&quot; or y == &quot;-&quot; then 0 - indel else substitution_score(matrix, x, y)
+    }) |&gt; sum()
+}
+
+let score = alignment_score(aligned[0], aligned[1], blosum, gap)
+
+println(&quot;Result:   &quot; + str(int(score)))
+println(&quot;          &quot; + aligned[0])
+println(&quot;          &quot; + aligned[1])
+println(&quot;Expected: 8&quot;)
+println(&quot;          PLEASANTLY&quot;)
+println(&quot;          -MEA--N-LY&quot;)
+
+fn test_ba5l_linear_space_alignment() {
+    assert score == 8, &quot;BA5L: scored &quot; + str(score)
+    # Any alignment achieving the optimum is accepted, so the checks are
+    # structural: both rows the same length, gaps never opposite gaps, and each
+    # row reduces to its original string.
+    assert len(aligned[0]) == len(aligned[1]), &quot;BA5L: the rows must line up&quot;
+    let both_gaps = range(0, len(aligned[0]))
+        |&gt; count_if(|i| substr(aligned[0], i, 1) == &quot;-&quot; and substr(aligned[1], i, 1) == &quot;-&quot;)
+    assert both_gaps == 0, &quot;BA5L: a column of two gaps is not an alignment&quot;
+    assert replace(aligned[0], &quot;-&quot;, &quot;&quot;) == first_string, &quot;BA5L: row one is not the first string&quot;
+    assert replace(aligned[1], &quot;-&quot;, &quot;&quot;) == second_string, &quot;BA5L: row two is not the second string&quot;
+    # And it matches what the quadratic-space aligner computes.
+    let reference = align(protein(first_string), protein(second_string),
+                          &quot;global&quot;, 0, 0, 0 - gap, 0, &quot;blosum62&quot;)
+    assert score == reference.score,
+        &quot;BA5L: linear space scored &quot; + str(score) + &quot; but the table scored &quot; + str(reference.score)
+}</code></pre>
+        </section>
+
+        <section id="ba5m" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">BA5M &mdash; Find a Highest-Scoring Multiple Sequence Alignment</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/ba5m/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-textbook&amp;problem=BA5M" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="ba5m.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Three sequences need a cube, and each cell has seven predecessors rather than three. The cost is O(n^k), which is why exact multiple alignment stops being possible at a handful of sequences and real tools use heuristics. Returns a different optimal alignment from the published one; the assertion recounts the agreeing columns.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: BA5M — Find a Highest-Scoring Multiple Sequence Alignment
+# https://rosalind.info/problems/ba5m/
+#
+# Given: Three DNA strings.
+# Return: The maximum score of a three-way alignment — one point per column where
+# all three symbols agree — and an alignment achieving it.
+
+let one = &quot;ATATCCG&quot;
+let two = &quot;TCCGA&quot;
+let three = &quot;ATGTACTG&quot;
+
+# Two strings need a table; three need a cube, and each cell has seven
+# predecessors rather than three — every non-empty choice of which sequences
+# advance. That is the point this problem makes: the cost is O(n^k) in the number
+# of sequences, so aligning ten sequences exactly is out of reach and real
+# multiple alignment is done by heuristics instead.
+let moves = [
+    [1, 1, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1],
+]
+
+let best = {}
+let came_from = {}
+fn key(i, j, k) { str(i) + &quot;,&quot; + str(j) + &quot;,&quot; + str(k) }
+
+best[key(0, 0, 0)] = 0
+for i in range(0, len(one) + 1) {
+    for j in range(0, len(two) + 1) {
+        for k in range(0, len(three) + 1) {
+            if i + j + k &gt; 0 {
+                let here = key(i, j, k)
+                best[here] = 0 - 1000000
+                for move in moves {
+                    let pi = i - move[0]
+                    let pj = j - move[1]
+                    let pk = k - move[2]
+                    if pi &gt;= 0 and pj &gt;= 0 and pk &gt;= 0 {
+                        # A column scores only when all three advance onto the
+                        # same symbol; every other move scores nothing.
+                        let matched = move[0] == 1 and move[1] == 1 and move[2] == 1
+                            and substr(one, pi, 1) == substr(two, pj, 1)
+                            and substr(two, pj, 1) == substr(three, pk, 1)
+                        let candidate = best[key(pi, pj, pk)] + (if matched then 1 else 0)
+                        if candidate &gt; best[here] {
+                            best[here] = candidate
+                            came_from[here] = move
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let score = best[key(len(one), len(two), len(three))]
+
+let rows = [&quot;&quot;, &quot;&quot;, &quot;&quot;]
+let at = [len(one), len(two), len(three)]
+while at[0] + at[1] + at[2] &gt; 0 {
+    let move = came_from[key(at[0], at[1], at[2])]
+    let sources = [one, two, three]
+    for s in range(0, 3) {
+        if move[s] == 1 {
+            rows[s] = substr(sources[s], at[s] - 1, 1) + rows[s]
+            at[s] = at[s] - 1
+        } else {
+            rows[s] = &quot;-&quot; + rows[s]
+        }
+    }
+}
+
+println(&quot;Result:   &quot; + str(score))
+for line in rows { println(&quot;          &quot; + line) }
+println(&quot;Expected: 3&quot;)
+println(&quot;          ATATCC-G-&quot;)
+println(&quot;          ---TCC-GA&quot;)
+println(&quot;          ATGTACTG-&quot;)
+
+fn test_ba5m_multiple_alignment() {
+    assert score == 3, &quot;BA5M: scored &quot; + str(score)
+    # Any alignment reaching 3 is accepted, so the checks are structural.
+    assert len(rows[0]) == len(rows[1]) and len(rows[1]) == len(rows[2]),
+        &quot;BA5M: all three rows must be the same length&quot;
+    assert replace(rows[0], &quot;-&quot;, &quot;&quot;) == one, &quot;BA5M: line 1 is not the first string&quot;
+    assert replace(rows[1], &quot;-&quot;, &quot;&quot;) == two, &quot;BA5M: line 2 is not the second string&quot;
+    assert replace(rows[2], &quot;-&quot;, &quot;&quot;) == three, &quot;BA5M: line 3 is not the third string&quot;
+    # And the alignment shown really scores what was claimed.
+    let agreeing = range(0, len(rows[0])) |&gt; count_if(|i| {
+        let a = substr(rows[0], i, 1)
+        a != &quot;-&quot; and a == substr(rows[1], i, 1) and a == substr(rows[2], i, 1)
+    })
+    assert agreeing == score, &quot;BA5M: &quot; + str(agreeing) + &quot; columns agree, not &quot; + str(score)
 }</code></pre>
         </section>
       </article>

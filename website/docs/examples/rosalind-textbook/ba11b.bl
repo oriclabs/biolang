@@ -1,0 +1,96 @@
+# Rosalind: BA11B — Implement DecodingIdealSpectrum
+# https://rosalind.info/problems/ba11b/
+#
+# Given: An ideal spectrum.
+# Return: A peptide whose ideal spectrum it is.
+
+let spectrum = [57, 71, 154, 185, 301, 332, 415, 429, 486]
+
+let mass_table = [
+    { letter: "G", mass: 57 },  { letter: "A", mass: 71 },  { letter: "S", mass: 87 },
+    { letter: "P", mass: 97 },  { letter: "V", mass: 99 },  { letter: "T", mass: 101 },
+    { letter: "C", mass: 103 }, { letter: "I", mass: 113 }, { letter: "L", mass: 113 },
+    { letter: "N", mass: 114 }, { letter: "D", mass: 115 }, { letter: "K", mass: 128 },
+    { letter: "Q", mass: 128 }, { letter: "E", mass: 129 }, { letter: "M", mass: 131 },
+    { letter: "H", mass: 137 }, { letter: "F", mass: 147 }, { letter: "R", mass: 156 },
+    { letter: "Y", mass: 163 }, { letter: "W", mass: 186 },
+]
+let canonical = {}
+for entry in mass_table {
+    if contains(keys(canonical), str(entry.mass)) == false {
+        canonical[str(entry.mass)] = entry.letter
+    }
+}
+
+# Every path through BA11A's graph from 0 to the heaviest mass spells a
+# candidate, but not every candidate is right: the spectrum holds prefix *and*
+# suffix masses mixed together, and a path only accounts for the prefixes. So
+# each candidate is generated and then checked by rebuilding its full ideal
+# spectrum — generate-and-test, but over a handful of paths rather than 20^n
+# peptides.
+let masses = [0] + spectrum
+let heaviest = max(spectrum)
+
+fn ideal_spectrum_of(peptide, letters) {
+    let running = 0
+    let prefixes = []
+    for residue in chars(peptide) {
+        running = running + letters[residue]
+        prefixes = push(prefixes, running)
+    }
+    let total = running
+    # Prefixes and suffixes together. The empty piece is dropped, and the whole
+    # peptide appears once rather than twice — it is both the last prefix and the
+    # last suffix, and the spectrum lists it a single time.
+    let proper_prefixes = prefixes |> filter(|m| m != total)
+    let proper_suffixes = prefixes |> map(|m| total - m) |> filter(|m| m != 0)
+    sort(proper_prefixes + proper_suffixes + [total])
+}
+
+let letter_mass = {}
+for entry in mass_table { letter_mass[entry.letter] = entry.mass }
+
+# Depth-first over the graph, collecting complete paths.
+let candidates = []
+let stack = [{ at: 0, spelled: "" }]
+while len(stack) > 0 {
+    let state = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    if state.at == heaviest {
+        candidates = push(candidates, state.spelled)
+    } else {
+        for onward in masses {
+            if onward > state.at and contains(keys(canonical), str(onward - state.at)) {
+                stack = push(stack, {
+                    at: onward,
+                    spelled: state.spelled + canonical[str(onward - state.at)],
+                })
+            }
+        }
+    }
+}
+
+let answers = candidates |> filter(|p| ideal_spectrum_of(p, letter_mass) == sort(spectrum))
+
+println("Candidates from the graph: " + join(candidates, " "))
+println("Consistent with the spectrum: " + join(answers, " "))
+println("Result:   " + answers[0])
+println("Expected: GPFNA — and ANFPG is equally correct, being its reverse:")
+println("          an ideal spectrum holds prefixes and suffixes together, and")
+println("          reversing a peptide simply swaps which is which.")
+
+fn test_ba11b_decoding_ideal_spectrum() {
+    assert contains(answers, "GPFNA"), "BA11B: GPFNA should be among " + join(answers, " ")
+    assert ideal_spectrum_of("GPFNA", letter_mass) == sort(spectrum),
+        "BA11B: GPFNA's ideal spectrum must be the input"
+    # The filtering step is doing real work — the graph offers paths that are not
+    # answers, which is why generate-and-test is needed rather than any path.
+    assert len(candidates) > len(answers),
+        "BA11B: some graph paths should fail the spectrum check"
+    # A peptide and its reverse have the same ideal spectrum, so both survive —
+    # this is a real ambiguity in the data, not a bug in the search.
+    assert contains(answers, "ANFPG"), "BA11B: the reverse should also be consistent"
+    assert reverse("GPFNA") == "ANFPG", "BA11B: and it is the reverse"
+    assert ideal_spectrum_of("ANFPG", letter_mass) == ideal_spectrum_of("GPFNA", letter_mass),
+        "BA11B: a peptide and its reverse share an ideal spectrum"
+}

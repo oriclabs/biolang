@@ -1,0 +1,57 @@
+# Rosalind: BA9N — Find All Occurrences of a Collection of Patterns in a String
+# https://rosalind.info/problems/ba9n/
+#
+# Given: A string Text and a collection of strings Patterns.
+# Return: Every position in Text where some pattern occurs.
+
+let text = "AATCGGGTTCAATCGGGGT"
+let patterns = ["ATCG", "GGGT"]
+
+# BA9L and BA9M count occurrences without recovering where they are, because the
+# Burrows-Wheeler band gives rows of the sorted matrix rather than positions in
+# the text. Turning a row back into a position is what the suffix array supplies,
+# and in a real aligner it is the *partial* array of BA9Q that does it — the full
+# one would undo the memory saving the whole index exists for.
+let sa = suffix_array(text)
+
+fn suffix_at(source, start) { substr(source, start, len(source) - start) }
+
+fn starts_with(haystack, needle) {
+    len(haystack) >= len(needle) and substr(haystack, 0, len(needle)) == needle
+}
+
+fn occurrences_of(pattern, order, source) {
+    let low = 0
+    let high = len(order)
+    while low < high {
+        let middle = floor((low + high) / 2)
+        if suffix_at(source, order[middle]) < pattern { low = middle + 1 } else { high = middle }
+    }
+    let start = low
+    high = len(order)
+    while low < high {
+        let middle = floor((low + high) / 2)
+        if starts_with(suffix_at(source, order[middle]), pattern) {
+            low = middle + 1
+        } else {
+            high = middle
+        }
+    }
+    range(start, low) |> map(|i| order[i])
+}
+
+let found = sort(patterns |> flat_map(|p| occurrences_of(p, sa, text)))
+
+println("Result:   " + (found |> map(|p| str(p)) |> join(" ")))
+println("Expected: 1 4 11 15")
+
+fn test_ba9n_multiple_pattern_matching() {
+    assert (found |> map(|p| str(p)) |> join(" ")) == "1 4 11 15", "BA9N: got " + str(found)
+    for position in found {
+        let here = patterns |> filter(|p| substr(text, position, len(p)) == p)
+        assert len(here) > 0, "BA9N: nothing matches at " + str(position)
+    }
+    let by_scanning = sort(patterns |> flat_map(|p|
+        range(0, len(text) - len(p) + 1) |> filter(|s| substr(text, s, len(p)) == p)))
+    assert found == by_scanning, "BA9N: disagrees with a plain scan"
+}

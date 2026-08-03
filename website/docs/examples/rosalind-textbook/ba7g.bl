@@ -1,0 +1,120 @@
+# Rosalind: BA7G — Adapt SmallParsimony to Unrooted Trees
+# https://rosalind.info/problems/ba7g/
+#
+# Given: An unrooted binary tree whose leaves are labelled by DNA strings.
+# Return: The minimum parsimony score and a labelling achieving it.
+
+let leaves = {
+    "0": "TCGGCCAA",
+    "1": "CCTGGCTG",
+    "2": "CACAGGAT",
+    "3": "TGAGTACC",
+}
+# The unrooted tree: 0 and 1 hang off node 4, 2 and 3 off node 5, and 4-5 join
+# the two halves.
+let unrooted_edge = ["4", "5"]
+
+# Parsimony counts changes along edges, and an edge's cost does not depend on
+# which direction it is read — so the score of an unrooted tree is the same
+# whichever edge a root is placed on. That is the whole adaptation: hang a
+# temporary root in the middle of any edge, run BA7F unchanged, then delete the
+# root and reconnect the two nodes it separated.
+#
+# The labelling can differ depending on where the root goes; the score cannot.
+let children = {
+    "4": ["0", "1"],
+    "5": ["2", "3"],
+    "6": ["4", "5"],
+}
+let root = "6"
+let bases = ["A", "C", "G", "T"]
+let width = len(leaves["0"])
+
+fn is_leaf(node, leaf_map) { contains(keys(leaf_map), node) }
+
+fn score_column(node, position, leaf_map, child_map, alphabet) {
+    if is_leaf(node, leaf_map) {
+        let here = substr(leaf_map[node], position, 1)
+        return {
+            costs: alphabet |> map(|b| if b == here then 0 else 1000000),
+            picks: {}, solved: [], kids: [],
+        }
+    }
+    let kids = child_map[node]
+    let solved = kids |> map(|kid| score_column(kid, position, leaf_map, child_map, alphabet))
+    let picks = {}
+    let costs = range(0, len(alphabet)) |> map(|mine| {
+        range(0, len(kids)) |> map(|k| {
+            let options = range(0, len(alphabet))
+                |> map(|theirs| solved[k].costs[theirs] + (if theirs == mine then 0 else 1))
+            let chosen = argmin(options)
+            picks[str(mine) + "," + str(k)] = chosen
+            options[chosen]
+        }) |> sum()
+    })
+    { costs: costs, picks: picks, solved: solved, kids: kids }
+}
+
+fn assign(node, tree, chosen_index, labels, alphabet) {
+    labels[node] = labels[node] + alphabet[chosen_index]
+    for k in range(0, len(tree.kids)) {
+        if len(tree.solved[k].kids) > 0 {
+            labels = assign(tree.kids[k], tree.solved[k],
+                            tree.picks[str(chosen_index) + "," + str(k)], labels, alphabet)
+        }
+    }
+    labels
+}
+
+let labels = {}
+for node in keys(children) { labels[node] = "" }
+let rooted_total = 0
+for position in range(0, width) {
+    let solved = score_column(root, position, leaves, children, bases)
+    let best = argmin(solved.costs)
+    rooted_total = rooted_total + solved.costs[best]
+    labels = assign(root, solved, best, labels, bases)
+}
+
+let named = {}
+for node in keys(leaves) { named[node] = leaves[node] }
+for node in keys(children) { named[node] = labels[node] }
+
+fn hamming(a, b) { range(0, len(a)) |> count_if(|i| substr(a, i, 1) != substr(b, i, 1)) }
+
+# Remove the temporary root: its two children are joined directly, and the two
+# edges to the root become one.
+let final_edges = [
+    { a: "0", b: "4" }, { a: "1", b: "4" },
+    { a: "2", b: "5" }, { a: "3", b: "5" },
+    { a: unrooted_edge[0], b: unrooted_edge[1] },
+]
+
+let total = final_edges |> map(|e| hamming(named[e.a], named[e.b])) |> sum()
+
+let listed = final_edges |> flat_map(|e| [
+    named[e.a] + "->" + named[e.b] + ":" + str(hamming(named[e.a], named[e.b])),
+    named[e.b] + "->" + named[e.a] + ":" + str(hamming(named[e.a], named[e.b])),
+])
+
+println("Result:   " + str(total))
+for line in listed { println("  " + line) }
+println("Expected: 17")
+
+fn test_ba7g_unrooted_small_parsimony() {
+    assert total == 17, "BA7G: scored " + str(total)
+    # The score shown on the edges must be the score reported.
+    let shown = final_edges |> map(|e| hamming(named[e.a], named[e.b])) |> sum()
+    assert shown == total, "BA7G: the labelling shows " + str(shown) + " changes"
+    # Rooting adds no cost of its own: the rooted run scores the same as the
+    # unrooted tree it stands for. That equality is the whole justification for
+    # solving the problem this way.
+    assert rooted_total == total,
+        "BA7G: rooted scored " + str(rooted_total) + " but unrooted scored " + str(total)
+    # Four leaves in an unrooted binary tree means two internal nodes and five
+    # edges.
+    assert len(final_edges) == 5, "BA7G: an unrooted tree with 4 leaves has 5 edges"
+    for node in ["4", "5"] {
+        assert len(named[node]) == width, "BA7G: " + node + " has the wrong length"
+    }
+}

@@ -1,0 +1,119 @@
+# Rosalind: BA6D — Find a Shortest Transformation of One Genome into Another by 2-Breaks
+# https://rosalind.info/problems/ba6d/
+#
+# Given: Two genomes with circular chromosomes on the same synteny blocks.
+# Return: The sequence of genomes along a shortest 2-break transformation.
+
+let genome_p = [[1, -2, -3, 4]]
+let genome_q = [[1, 2, -4, -3]]
+
+# BA6C says the distance is blocks minus cycles. This exhibits a path of that
+# length, which is the constructive half of the same argument: pick any cycle of
+# the combined graph that is not already trivial, and there is always a 2-break
+# on P's edges that merges P one step closer to Q while raising the cycle count
+# by one. Repeating that reaches Q in exactly blocks-minus-cycles moves.
+fn coloured_edges(g) {
+    g |> flat_map(|chromosome| {
+        let nodes = chromosome |> flat_map(|block|
+            if block > 0 then [2 * block - 1, 2 * block] else [0 - 2 * block, 0 - 2 * block - 1])
+        range(1, len(chromosome) + 1) |> map(|j| {
+            let to_index = if 2 * j == len(nodes) then 0 else 2 * j
+            { a: nodes[2 * j - 1], b: nodes[to_index] }
+        })
+    })
+}
+
+fn same_edge(edge, x, y) {
+    (edge.a == x and edge.b == y) or (edge.a == y and edge.b == x)
+}
+
+fn graph_to_genome(edge_list) {
+    let links = {}
+    for edge in edge_list {
+        links[str(edge.a)] = edge.b
+        links[str(edge.b)] = edge.a
+    }
+    let visited = {}
+    let genome = []
+    for edge in edge_list {
+        if contains(keys(visited), str(edge.a)) == false {
+            let cycle = []
+            let node = edge.a
+            let walking = true
+            while walking {
+                visited[str(node)] = true
+                let partner = links[str(node)]
+                visited[str(partner)] = true
+                cycle = push(cycle, partner)
+                let next_node = if partner % 2 == 1 then partner + 1 else partner - 1
+                if contains(keys(visited), str(next_node)) {
+                    walking = false
+                } else {
+                    node = next_node
+                }
+            }
+            let blocks = cycle |> map(|tail|
+                if tail % 2 == 1 then (tail + 1) / 2 else 0 - tail / 2)
+            let lowest = blocks |> map(|b| abs(b)) |> min()
+            let at = (range(0, len(blocks)) |> filter(|i| abs(blocks[i]) == lowest))[0]
+            genome = push(genome, range(0, len(blocks)) |> map(|i| blocks[(i + at) % len(blocks)]))
+        }
+    }
+    genome
+}
+
+fn written(g) {
+    g |> map(|c| "(" + (c |> map(|v| if v > 0 then "+" + str(v) else str(v)) |> join(" ")) + ")")
+      |> join("")
+}
+
+let red = coloured_edges(genome_p)
+let blue = coloured_edges(genome_q)
+let steps = [written(graph_to_genome(red))]
+
+# Each round: find a blue edge whose endpoints are joined differently in red, and
+# rewire red to match it.
+let working = red
+let rounds = 0
+while rounds < 20 {
+    rounds = rounds + 1
+    let wrong = blue |> filter(|b| (working |> count_if(|r| same_edge(r, b.a, b.b))) == 0)
+    if len(wrong) == 0 { rounds = 100 }
+    if rounds < 100 {
+        let target = wrong[0]
+        # The two red edges currently holding target's endpoints.
+        let holding_a = (working |> filter(|r| r.a == target.a or r.b == target.a))[0]
+        let holding_b = (working |> filter(|r| r.a == target.b or r.b == target.b))[0]
+        let other_a = if holding_a.a == target.a then holding_a.b else holding_a.a
+        let other_b = if holding_b.a == target.b then holding_b.b else holding_b.a
+
+        working = (working |> filter(|r|
+            same_edge(r, holding_a.a, holding_a.b) == false
+            and same_edge(r, holding_b.a, holding_b.b) == false))
+            + [{ a: target.a, b: target.b }, { a: other_a, b: other_b }]
+        steps = push(steps, written(graph_to_genome(working)))
+    }
+}
+
+println("Result:")
+for step in steps { println("  " + step) }
+println("Expected: (+1 -2 -3 +4) / (+1 -2 -3)(+4) / (+1 -2 -4 -3) / (+1 +2 -4 -3)")
+
+fn test_ba6d_two_break_sorting() {
+    # The path has to start at P, end at Q, and take exactly the 2-break distance
+    # in steps — which is the whole claim being demonstrated.
+    assert steps[0] == written(genome_p), "BA6D: must start at P, got " + steps[0]
+    let arrived = graph_to_genome(working)
+    let magnitudes = sort(arrived |> flat_map(|c| c |> map(|b| abs(b))))
+    assert magnitudes == [1, 2, 3, 4], "BA6D: every block must survive"
+    # Q reached, compared up to rotation and direction as in BA6K.
+    let rotations = |chromosome| range(0, len(chromosome))
+        |> map(|shift| join(range(0, len(chromosome))
+            |> map(|i| str(chromosome[(i + shift) % len(chromosome)])), " "))
+    let flip = |chromosome| reverse(chromosome) |> map(|b| 0 - b)
+    let canonical = |chromosome| min(rotations(chromosome) + rotations(flip(chromosome)))
+    assert sort(arrived |> map(|c| canonical(c))) == sort(genome_q |> map(|c| canonical(c))),
+        "BA6D: the path ends at " + written(arrived) + ", not at Q"
+    # Three 2-breaks, so four genomes listed — matching BA6C's formula.
+    assert len(steps) == 4, "BA6D: expected 4 genomes, got " + str(len(steps))
+}

@@ -1,0 +1,41 @@
+# Rosalind: BA6H — Implement ColoredEdges
+# https://rosalind.info/problems/ba6h/
+#
+# Given: A genome P.
+# Return: The coloured edges of its genome graph.
+
+let chromosomes = [[1, -2, -3], [4, 5, -6]]
+
+# Coloured edges are the ones joining *different* blocks — the adjacencies a
+# rearrangement can break. The edges inside a block are fixed, so they carry no
+# information and are left out; what remains is exactly the structure two genomes
+# can be compared on.
+fn chromosome_to_cycle(chromosome) {
+    chromosome |> flat_map(|block|
+        if block > 0 then [2 * block - 1, 2 * block] else [0 - 2 * block, 0 - 2 * block - 1])
+}
+
+let edges_list = chromosomes |> flat_map(|chromosome| {
+    let nodes = chromosome_to_cycle(chromosome)
+    # The last edge wraps round, because a chromosome here is circular.
+    range(1, len(chromosome) + 1) |> map(|j| {
+        let to_index = if 2 * j == len(nodes) then 0 else 2 * j
+        { a: nodes[2 * j - 1], b: nodes[to_index] }
+    })
+})
+
+println("Result:   " + (edges_list |> map(|e| "(" + str(e.a) + ", " + str(e.b) + ")") |> join(", ")))
+println("Expected: (2, 4), (3, 6), (5, 1), (8, 9), (10, 12), (11, 7)")
+
+fn test_ba6h_coloured_edges() {
+    let written = edges_list |> map(|e| "(" + str(e.a) + ", " + str(e.b) + ")") |> join(", ")
+    assert written == "(2, 4), (3, 6), (5, 1), (8, 9), (10, 12), (11, 7)",
+        "BA6H: got " + written
+    # One coloured edge per block, since each block has one outgoing adjacency.
+    let block_count = chromosomes |> map(|c| len(c)) |> sum()
+    assert len(edges_list) == block_count, "BA6H: one coloured edge per block"
+    # Every node appears in at most one coloured edge on each side — the graph is
+    # a set of disjoint cycles, which is what makes 2-break distance computable.
+    let touched = edges_list |> flat_map(|e| [e.a, e.b])
+    assert len(unique(touched)) == len(touched), "BA6H: a node cannot have two coloured edges"
+}

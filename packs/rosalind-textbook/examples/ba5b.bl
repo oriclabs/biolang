@@ -1,0 +1,60 @@
+# Rosalind: BA5B — Find the Length of a Longest Path in a Manhattan-like Grid
+# https://rosalind.info/problems/ba5b/
+#
+# Given: Integers n and m, an n x (m+1) matrix Down, and an (n+1) x m matrix Right.
+# Return: The length of a longest path from (0,0) to (n,m).
+
+let n = 4
+let m = 4
+let down = [
+    [1, 0, 2, 4, 3],
+    [4, 6, 5, 2, 1],
+    [4, 4, 5, 2, 1],
+    [5, 6, 8, 5, 3],
+]
+let right = [
+    [3, 2, 4, 0],
+    [3, 2, 4, 2],
+    [0, 7, 3, 3],
+    [3, 3, 0, 2],
+    [1, 3, 2, 2],
+]
+
+# The longest path to any corner is the better of arriving from above or from the
+# left, and both were already computed — so the whole grid is filled once, in
+# order, and never revisited. Searching the paths themselves would mean
+# enumerating C(n+m, n) of them; here that is 70, but it grows exponentially.
+#
+# Longest path is NP-hard in general graphs. It is easy here only because the
+# grid is acyclic and already comes in an order that respects its edges.
+# The top row has no "above", so it fills from the left alone.
+let top = [0]
+for j in range(1, m + 1) { top = push(top, top[j - 1] + right[0][j - 1]) }
+
+let best = [top]
+for i in range(1, n + 1) {
+    # Likewise the left column has only the edge above it.
+    let row = [best[i - 1][0] + down[i - 1][0]]
+    for j in range(1, m + 1) {
+        let from_above = best[i - 1][j] + down[i - 1][j]
+        let from_left = row[j - 1] + right[i][j - 1]
+        row = push(row, max([from_above, from_left]))
+    }
+    best = push(best, row)
+}
+
+let answer = best[n][m]
+
+println("Result:   " + str(answer))
+println("Expected: 34")
+
+fn test_ba5b_manhattan_tourist() {
+    assert answer == 34, "BA5B: got " + str(answer)
+    # The edges of the grid have only one way in, so those entries are plain
+    # running totals — a useful check that the recurrence is indexed correctly.
+    assert best[0][m] == sum(right[0]), "BA5B: the top row is the sum of its right edges"
+    let left_column = range(0, n) |> map(|i| down[i][0]) |> sum()
+    assert best[n][0] == left_column, "BA5B: the left column is the sum of its down edges"
+    assert answer >= best[0][m] and answer >= best[n][0],
+        "BA5B: the best path is at least as good as going round the edge"
+}

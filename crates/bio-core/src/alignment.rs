@@ -13,6 +13,14 @@ pub enum AlignMode {
     Local,
     Semiglobal,
     Overlap,
+    /// A window of the first sequence against all of the second: the second is
+    /// consumed entirely, the first may be entered and left anywhere. The shape
+    /// for placing a short read inside a long reference.
+    ///
+    /// Semiglobal is not a substitute. It forgives the end gaps of both
+    /// sequences, so it would let the second be clipped as well — a different
+    /// question that happens to give the same answer on some inputs.
+    Fitting,
 }
 
 /// A residue-pair scoring table, as BLOSUM and PAM are.
@@ -115,6 +123,9 @@ pub fn align(seq1: &str, seq2: &str, params: &AlignParams) -> AlignResult {
         AlignMode::Semiglobal => (true, true),
         // A suffix of seq1 against a prefix of seq2: skipping into seq1 is free.
         AlignMode::Overlap => (true, false),
+        // Anywhere in seq1, all of seq2: entering seq1 late is free, and leaving
+        // it early is free too — see where the traceback starts, below.
+        AlignMode::Fitting => (true, false),
     };
 
     let score_pair = |a: u8, b: u8| -> i32 {
@@ -194,6 +205,18 @@ pub fn align(seq1: &str, seq2: &str, params: &AlignParams) -> AlignResult {
             for j in 1..=m {
                 if mat_m[n][j] > best.2 {
                     best = (n, j, mat_m[n][j]);
+                }
+            }
+            best
+        }
+        // All of seq2 consumed, ending anywhere in seq1: the best cell down the
+        // last column. Overlap ends along the last row, which is the same idea
+        // with the sequences the other way round.
+        AlignMode::Fitting => {
+            let mut best = (0usize, m, mat_m[0][m]);
+            for i in 1..=n {
+                if mat_m[i][m] > best.2 {
+                    best = (i, m, mat_m[i][m]);
                 }
             }
             best

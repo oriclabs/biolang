@@ -1,0 +1,119 @@
+# Rosalind: BA7F — Implement SmallParsimony
+# https://rosalind.info/problems/ba7f/
+#
+# Given: An integer n and a rooted binary tree with n leaves labelled by DNA
+# strings.
+# Return: The minimum parsimony score, and a labelling of the internal nodes
+# achieving it.
+
+let leaf_count = 4
+let leaves = {
+    "0": "CAAATCCC",
+    "1": "ATTGCGAC",
+    "2": "CTGCGCTG",
+    "3": "ATGGACGA",
+}
+let children = {
+    "4": ["0", "1"],
+    "5": ["2", "3"],
+    "6": ["4", "5"],
+}
+let root = "6"
+
+# Sankoff's algorithm. Every column of the alignment is independent — a mutation
+# at one site says nothing about another — so each is solved separately and the
+# scores added. Within a column, the cheapest cost of a subtree given its root's
+# base is the sum over children of (their cheapest cost, plus one if the base has
+# to change). Working leaves-upwards means each child is already solved.
+#
+# Choosing greedily from the leaves would not work: a base that looks locally
+# cheap at one node can force two changes higher up.
+let bases = ["A", "C", "G", "T"]
+let width = len(leaves["0"])
+
+fn is_leaf(node, leaf_map) { contains(keys(leaf_map), node) }
+
+# Cheapest cost of the subtree at `node` for each possible base at `node`.
+fn score_column(node, position, leaf_map, child_map, alphabet) {
+    if is_leaf(node, leaf_map) {
+        let here = substr(leaf_map[node], position, 1)
+        # Same record shape as an internal node, with nothing below it.
+        return {
+            costs: alphabet |> map(|b| if b == here then 0 else 1000000),
+            picks: {}, solved: [], kids: [],
+        }
+    }
+    let kids = child_map[node]
+    let solved = kids |> map(|kid| score_column(kid, position, leaf_map, child_map, alphabet))
+    let picks = {}
+    let costs = range(0, len(alphabet)) |> map(|mine| {
+        range(0, len(kids)) |> map(|k| {
+            # The child's own cost plus one if its best base differs from mine.
+            let options = range(0, len(alphabet))
+                |> map(|theirs| solved[k].costs[theirs] + (if theirs == mine then 0 else 1))
+            let chosen = argmin(options)
+            picks[str(mine) + "," + str(k)] = chosen
+            options[chosen]
+        }) |> sum()
+    })
+    { costs: costs, picks: picks, solved: solved, kids: kids }
+}
+
+# Walk back down, fixing each node's base from its parent's choice. Leaves are
+# already labelled by the problem, so only internal nodes are written.
+fn assign(node, tree, chosen_index, labels, alphabet) {
+    labels[node] = labels[node] + alphabet[chosen_index]
+    for k in range(0, len(tree.kids)) {
+        if len(tree.solved[k].kids) > 0 {
+            labels = assign(tree.kids[k], tree.solved[k],
+                            tree.picks[str(chosen_index) + "," + str(k)], labels, alphabet)
+        }
+    }
+    labels
+}
+
+let labels = {}
+for node in keys(children) { labels[node] = "" }
+let total = 0
+
+for position in range(0, width) {
+    let solved = score_column(root, position, leaves, children, bases)
+    let best = argmin(solved.costs)
+    total = total + solved.costs[best]
+    labels = assign(root, solved, best, labels, bases)
+}
+
+# Every node's string: leaves as given, internals as just computed.
+let named = {}
+for node in keys(leaves) { named[node] = leaves[node] }
+for node in keys(children) { named[node] = labels[node] }
+
+fn hamming(a, b) { range(0, len(a)) |> count_if(|i| substr(a, i, 1) != substr(b, i, 1)) }
+
+let listed_edges = sort(keys(children)) |> flat_map(|parent|
+    children[parent] |> flat_map(|kid| [
+        named[parent] + "->" + named[kid] + ":" + str(hamming(named[parent], named[kid])),
+        named[kid] + "->" + named[parent] + ":" + str(hamming(named[parent], named[kid])),
+    ]))
+
+println("Result:   " + str(total))
+for line in listed_edges { println("  " + line) }
+println("Expected: 16")
+
+fn test_ba7f_small_parsimony() {
+    assert total == 16, "BA7F: scored " + str(total)
+    # The score has to equal the changes actually shown on the tree — a score
+    # without a matching labelling is the usual bug here.
+    let shown = sort(keys(children)) |> flat_map(|parent|
+        children[parent] |> map(|kid| hamming(named[parent], named[kid]))) |> sum()
+    assert shown == total,
+        "BA7F: the labelling shows " + str(shown) + " changes but the score is " + str(total)
+    # Every internal label is a real DNA string of the right length.
+    for node in keys(children) {
+        assert len(named[node]) == width, "BA7F: " + node + " has the wrong length"
+        assert (chars(named[node]) |> count_if(|b| contains(bases, b) == false)) == 0,
+            "BA7F: " + named[node] + " contains a non-base"
+    }
+    # And no labelling can do better, which the published answer confirms.
+    assert total <= 16, "BA7F: 16 is the published minimum"
+}

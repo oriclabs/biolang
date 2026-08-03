@@ -13,6 +13,8 @@ pub fn graph_builtin_list() -> Vec<(&'static str, Arity)> {
         ("degree", Arity::Exact(2)),
         ("shortest_path", Arity::Exact(3)),
         ("connected_components", Arity::Exact(1)),
+        ("eulerian_cycle", Arity::Range(1, 2)),
+        ("eulerian_path", Arity::Exact(1)),
         ("nodes", Arity::Exact(1)),
         ("edges", Arity::Exact(1)),
         ("has_node", Arity::Exact(2)),
@@ -37,6 +39,8 @@ pub fn is_graph_builtin(name: &str) -> bool {
             | "degree"
             | "shortest_path"
             | "connected_components"
+            | "eulerian_cycle"
+            | "eulerian_path"
             | "topological_sort"
             | "nodes"
             | "edges"
@@ -60,6 +64,8 @@ pub fn call_graph_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "degree" => builtin_degree(args),
         "shortest_path" => builtin_shortest_path(args),
         "connected_components" => builtin_connected_components(args),
+        "eulerian_cycle" => builtin_eulerian_cycle(args),
+        "eulerian_path" => builtin_eulerian_path(args),
         "topological_sort" => builtin_topological_sort(args),
         "nodes" => builtin_nodes(args),
         "edges" => builtin_edges(args),
@@ -652,4 +658,200 @@ fn builtin_topological_sort(args: Vec<Value>) -> Result<Value> {
         return Ok(Value::List(std::sync::Arc::new(Vec::new())));
     }
     Ok(Value::List(std::sync::Arc::new(out)))
+}
+
+// ── Eulerian walks ───────────────────────────────────────────────────
+//
+// Genome assembly is this problem wearing a costume: reads are edges of a de
+// Bruijn graph, and a walk using every edge exactly once spells a sequence
+// containing every read. Taken as a record mapping each node to its list of
+// targets, which is the shape Rosalind's adjacency lists already have and which
+// keeps parallel edges — two reads spanning one junction are two edges, and
+// collapsing them drops coverage.
+
+fn read_adjacency(value: &Value, func: &str) -> Result<bl_core::bio_core::euler::Adjacency> {
+    let fields = match value {
+        Value::Map(fields) | Value::Record(fields) => fields,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "{func}() requires a graph as a record of node -> targets, got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+    };
+
+    let as_node = |value: &Value| -> Result<String> {
+        match value {
+            Value::Str(s) => Ok(s.clone()),
+            Value::Int(i) => Ok(i.to_string()),
+            other => Err(BioLangError::type_error(
+                format!(
+                    "{func}() node names must be strings or integers, got {}",
+                    other.type_of()
+                ),
+                None,
+            )),
+        }
+    };
+
+    fields
+        .iter()
+        .map(|(node, targets)| {
+            let listed = match targets {
+                Value::List(items) => items.iter().map(as_node).collect::<Result<Vec<_>>>()?,
+                // A single target need not be written as a one-element list.
+                single => vec![as_node(single)?],
+            };
+            Ok((node.clone(), listed))
+        })
+        .collect()
+}
+
+fn to_walk(walk: Vec<String>) -> Value {
+    Value::List(walk.into_iter().map(Value::Str).collect::<Vec<_>>().into())
+}
+
+/// `eulerian_cycle(graph)` or `eulerian_cycle(graph, start)` — a walk using
+/// every edge exactly once and returning to where it began.
+fn builtin_eulerian_cycle(args: Vec<Value>) -> Result<Value> {
+    let graph = read_adjacency(&args[0], "eulerian_cycle")?;
+    let start = match args.get(1) {
+        Some(Value::Str(s)) => Some(s.clone()),
+        Some(Value::Int(i)) => Some(i.to_string()),
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "eulerian_cycle() start must be a node name, got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+        None => None,
+    };
+    bl_core::bio_core::euler::eulerian_cycle(&graph, start.as_deref())
+        .map(to_walk)
+        .ok_or_else(|| {
+            BioLangError::type_error(
+                "eulerian_cycle() found no cycle — the graph must be connected and every \
+                 node must have as many edges in as out",
+                None,
+            )
+        })
+}
+
+/// `eulerian_path(graph)` — a walk using every edge exactly once, not
+/// necessarily returning to its start.
+fn builtin_eulerian_path(args: Vec<Value>) -> Result<Value> {
+    let graph = read_adjacency(&args[0], "eulerian_path")?;
+    bl_core::bio_core::euler::eulerian_path(&graph)
+        .map(to_walk)
+        .ok_or_else(|| {
+            BioLangError::type_error(
+                "eulerian_path() found no path — at most one node may have an extra edge \
+                 out, at most one an extra edge in, and the edges must be connected",
+                None,
+            )
+        })
+}
+
+#[cfg(test)]
+mod euler_tests {
+    use super::*;
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    fn graph(pairs: &[(&str, &[&str])]) -> Value {
+        let fields: HashMap<String, Value> = pairs
+            .iter()
+            .map(|(node, targets)| {
+                (
+                    (*node).to_string(),
+                    Value::List(
+                        targets
+                            .iter()
+                            .map(|t| Value::Str((*t).to_string()))
+                            .collect::<Vec<_>>()
+                            .into(),
+                    ),
+                )
+            })
+            .collect();
+        Value::Record(Arc::new(fields))
+    }
+
+    fn names(value: &Value) -> Vec<String> {
+        match value {
+            Value::List(items) => items
+                .iter()
+                .map(|v| match v {
+                    Value::Str(s) => s.clone(),
+                    other => panic!("expected a name, got {other:?}"),
+                })
+                .collect(),
+            other => panic!("expected a list, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_cycle_returns_to_its_start() {
+        let walk = builtin_eulerian_cycle(vec![
+            graph(&[("a", &["b"]), ("b", &["c"]), ("c", &["a"])]),
+            Value::Str("a".into()),
+        ])
+        .expect("a cycle");
+        let walk = names(&walk);
+        assert_eq!(walk, ["a", "b", "c", "a"]);
+    }
+
+    #[test]
+    fn a_path_need_not() {
+        let walk =
+            builtin_eulerian_path(vec![graph(&[("a", &["b"]), ("b", &["c"])])]).expect("a path");
+        assert_eq!(names(&walk), ["a", "b", "c"]);
+    }
+
+    #[test]
+    fn a_single_target_need_not_be_a_list() {
+        let fields: HashMap<String, Value> = [
+            ("a".to_string(), Value::Str("b".into())),
+            ("b".to_string(), Value::Str("a".into())),
+        ]
+        .into_iter()
+        .collect();
+        let walk = builtin_eulerian_cycle(vec![
+            Value::Record(Arc::new(fields)),
+            Value::Str("a".into()),
+        ])
+        .expect("a cycle");
+        assert_eq!(names(&walk), ["a", "b", "a"]);
+    }
+
+    #[test]
+    fn an_impossible_graph_says_why() {
+        let error = builtin_eulerian_cycle(vec![graph(&[("a", &["b"])])])
+            .expect_err("a lone edge is not a cycle");
+        assert!(
+            error.to_string().contains("as many edges in as out"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn integer_node_names_are_accepted() {
+        // Rosalind's adjacency lists are numbered, and quoting every node would
+        // be noise in the examples.
+        let fields: HashMap<String, Value> = [
+            ("0".to_string(), Value::Int(1)),
+            ("1".to_string(), Value::Int(0)),
+        ]
+        .into_iter()
+        .collect();
+        let walk =
+            builtin_eulerian_cycle(vec![Value::Record(Arc::new(fields)), Value::Int(0)]).unwrap();
+        assert_eq!(names(&walk), ["0", "1", "0"]);
+    }
 }

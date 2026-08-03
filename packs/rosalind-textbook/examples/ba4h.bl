@@ -1,0 +1,42 @@
+# Rosalind: BA4H — Generate the Convolution of a Spectrum
+# https://rosalind.info/problems/ba4h/
+#
+# Given: A collection of integers Spectrum.
+# Return: The convolution, in decreasing order of multiplicity, each element
+# repeated as many times as it occurs.
+
+let spectrum = [0, 137, 186, 323]
+
+# The difference between two fragment masses is the mass of whatever lies between
+# them — which for fragments differing by one residue is that residue's mass. So
+# the commonest differences are the peptide's own residues, recoverable without
+# assuming the standard twenty. That is what makes BA4I able to sequence peptides
+# containing modified residues.
+let differences = spectrum_convolution(spectrum)
+
+let by_multiplicity = differences
+    |> unique()
+    |> map(|value| { value: value, count: differences |> count_if(|d| d == value) })
+    |> sort_by(|entry| 0 - entry.count)
+
+let listed = by_multiplicity |> flat_map(|entry| range(0, entry.count) |> map(|_| str(entry.value)))
+
+println("Result:   " + join(listed, " "))
+println("Expected: 137 137 186 186 323 49")
+
+fn test_ba4h_spectral_convolution() {
+    # Any order among equal multiplicities is accepted, so the check is the
+    # multiset and the ordering by count, not the exact string.
+    assert sort(listed) == sort(["137", "137", "186", "186", "323", "49"]),
+        "BA4H: got " + join(listed, " ")
+    # 0 differences are excluded, and every element is positive.
+    assert (differences |> count_if(|d| d <= 0)) == 0, "BA4H: differences must be positive"
+    # 137 and 186 each arise twice: 137-0 and 323-186, 186-0 and 323-137.
+    assert (differences |> count_if(|d| d == 137)) == 2, "BA4H: 137 occurs twice"
+    assert (differences |> count_if(|d| d == 49)) == 1, "BA4H: 186 - 137 = 49, once"
+    # Ordered by multiplicity, so nothing rarer precedes something commoner.
+    for i in range(1, len(by_multiplicity)) {
+        assert by_multiplicity[i].count <= by_multiplicity[i - 1].count,
+            "BA4H: multiplicities must not increase"
+    }
+}

@@ -32,6 +32,22 @@
         30 bioinformatics tasks benchmarked against Python (BioPython) and R (Bioconductor) on synthetic and real-world data from NCBI, UniProt, ClinVar, ENCODE, and Ensembl.
       </p>
       <p class="text-sm text-slate-500">Best of 3 runs &middot; Wall-clock time &middot; v0.3.0</p>
+
+<div class="max-w-2xl mx-auto mt-6 p-4 rounded-lg border border-amber-500/30 bg-amber-500/5 text-left">
+  <p class="text-sm text-amber-300 font-semibold mb-1">These figures are from v0.3.0 and are out of date.</p>
+  <p class="text-sm text-slate-400">
+    They are wall-clock times for a whole script, so they include interpreter startup and
+    library imports &mdash; <code class="text-violet-300">import Bio</code> alone costs
+    400&nbsp;ms or more, which is most of the gap on the smaller tasks. They are not
+    per-operation measurements, and the runtime has changed a great deal since: among other
+    things <code class="text-violet-300">unique()</code> and <code class="text-violet-300">push()</code>
+    were quadratic and are not any more.
+    For current per-operation numbers against BioPython and edlib, including the tasks where
+    BioLang loses, see
+    <a href="https://github.com/oriclabs/biolang/blob/main/bench/harness.py" class="text-violet-400 hover:text-violet-300">bench/harness.py</a>,
+    which is reproducible from a seed.
+  </p>
+</div>
     </div>
   </section>
 

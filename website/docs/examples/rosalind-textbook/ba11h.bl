@@ -1,0 +1,91 @@
+# Rosalind: BA11H — Compute the Size of a Spectral Dictionary
+# https://rosalind.info/problems/ba11h/
+#
+# Given: A spectral vector, a threshold, and a maximum score.
+# Return: How many peptides score within [threshold, max_score].
+
+let spectral = [4, -3, -2, 3, 3, -4, 5, -3, -1, -1, 3, 4, 1, 3]
+let threshold = 1
+let max_score = 8
+let toy_masses = { "X": 4, "Z": 5 }
+
+# BA11G assigns a peptide to a spectrum, but how confident should anyone be? If
+# thousands of peptides would have scored just as well, a high score means
+# nothing. The spectral dictionary is that count — the number of peptides
+# reaching a given score — and it is what turns a score into a statistical
+# statement rather than a number.
+#
+# Counted rather than enumerated, for the same reason as BA4D: the dictionary can
+# be astronomically large even when the count is quick to compute.
+let residues = keys(toy_masses) |> map(|letter| toy_masses[letter])
+
+# ways[mass][score] = how many peptides of that mass reach exactly that score.
+# Scores can go negative, so they are shifted to keep indices non-negative.
+let shift = 1000
+# Built as a fresh record per mass, since nested index assignment is not
+# available — only `ways[i] = record`.
+let start_row = {}
+start_row[str(shift)] = 1
+let ways = [start_row]
+for _ in range(1, len(spectral) + 1) { ways = push(ways, {}) }
+
+for mass in range(1, len(spectral) + 1) {
+    let here = {}
+    for residue in residues {
+        let previous = mass - residue
+        if previous >= 0 {
+            for key in keys(ways[previous]) {
+                let new_score = int(key) + spectral[mass - 1]
+                let existing = if contains(keys(here), str(new_score)) then here[str(new_score)] else 0
+                here[str(new_score)] = existing + ways[previous][key]
+            }
+        }
+    }
+    ways[mass] = here
+}
+
+let final_scores = ways[len(spectral)]
+let size = keys(final_scores)
+    |> filter(|key| int(key) - shift >= threshold and int(key) - shift <= max_score)
+    |> map(|key| final_scores[key])
+    |> sum()
+
+println("Result:   " + str(size))
+println("Expected: 3")
+
+fn test_ba11h_spectral_dictionary_size() {
+    assert size == 3, "BA11H: got " + str(size)
+    # Checked by enumeration, which is possible only because this vector is tiny
+    # — the point of the counting version is that it stays possible when the
+    # dictionary does not fit in memory.
+    fn peptides_of_mass(target, letters) {
+        let growing = [""]
+        let complete = []
+        for _ in range(0, target) {
+            let extended = growing
+                |> flat_map(|p| keys(letters) |> map(|c| p + c))
+                |> filter(|p| (chars(p) |> map(|c| letters[c]) |> sum()) <= target)
+            # Finished peptides are set aside rather than extended further —
+            # carrying them on would push every one past the target and leave
+            # nothing behind.
+            complete = complete + (extended
+                |> filter(|p| (chars(p) |> map(|c| letters[c]) |> sum()) == target))
+            growing = extended
+                |> filter(|p| (chars(p) |> map(|c| letters[c]) |> sum()) < target)
+        }
+        unique(complete)
+    }
+    let all_peptides = peptides_of_mass(len(spectral), toy_masses)
+    let scored = all_peptides |> map(|p| {
+        let running = 0
+        let prefixes = []
+        for residue in chars(p) {
+            running = running + toy_masses[residue]
+            prefixes = push(prefixes, running)
+        }
+        prefixes |> map(|m| spectral[m - 1]) |> sum()
+    })
+    let within = scored |> count_if(|s| s >= threshold and s <= max_score)
+    assert within == size,
+        "BA11H: counting says " + str(size) + " but enumeration finds " + str(within)
+}

@@ -1,0 +1,56 @@
+# Rosalind: BA10I — Implement Viterbi Learning
+# https://rosalind.info/problems/ba10i/
+#
+# Given: A number of iterations i, a string x, its alphabet, the states of an
+# HMM, and initial transition and emission matrices.
+# Return: Matrices that maximise Pr(x, pi) over all matrices and all paths pi.
+
+let iterations = 100
+let observed = "xxxzyzzxxzxyzxzxyxxzyzyzyyyyzzxxxzzxzyzzzxyxzzzxyzzxxxxzzzxyyxzzzzzyzzzxxzzxxxyxyzzyxzxxxyxzyxxyzyxz"
+
+# Where this starts is part of the problem, not an implementation detail: the
+# procedure climbs to a local optimum, and a different starting point reaches a
+# different one.
+let start = {
+    states: ["A", "B"],
+    symbols: ["x", "y", "z"],
+    transition: {
+        A: { A: 0.582, B: 0.418 },
+        B: { A: 0.272, B: 0.728 },
+    },
+    emission: {
+        A: { x: 0.129, y: 0.35,  z: 0.52  },
+        B: { x: 0.422, y: 0.151, z: 0.426 },
+    },
+}
+
+# Decode the most likely path under the current model, then re-estimate the model
+# as if that path were the truth — which is BA10H — and repeat. Each round can
+# only raise Pr(x, pi), so it settles.
+let learned = hmm_viterbi_learning(observed, start, iterations)
+
+println("Transition:")
+println("      A       B")
+for name in learned.states {
+    println("  " + name + "   " + str(round(learned.transition[name].A, 3))
+                     + "   " + str(round(learned.transition[name].B, 3)))
+}
+println("Emission:")
+println("      x       y       z")
+for name in learned.states {
+    println("  " + name + "   " + (learned.symbols |> map(|s| str(round(learned.emission[name][s], 3))) |> join("   ")))
+}
+println("Expected transition: 0.875 0.125 / 0.011 0.989")
+println("Expected emission:   0.0 0.75 0.25 / 0.402 0.174 0.424")
+
+fn test_ba10i_viterbi_learning() {
+    assert abs(learned.transition.A.A - 0.875) < 5e-4, "BA10I: A->A is " + str(learned.transition.A.A)
+    assert abs(learned.transition.B.B - 0.989) < 5e-4, "BA10I: B->B is " + str(learned.transition.B.B)
+    assert abs(learned.emission.A.x - 0.0)   < 5e-4, "BA10I: A emits x at " + str(learned.emission.A.x)
+    assert abs(learned.emission.A.y - 0.75)  < 5e-4, "BA10I: A emits y at " + str(learned.emission.A.y)
+    assert abs(learned.emission.B.z - 0.424) < 5e-4, "BA10I: B emits z at " + str(learned.emission.B.z)
+    # Learning has to explain the data at least as well as the model it started
+    # from — that is the property the whole procedure rests on.
+    assert hmm_likelihood(observed, learned) >= hmm_likelihood(observed, start),
+        "BA10I: learning made the observation less likely"
+}

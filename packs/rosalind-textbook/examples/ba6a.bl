@@ -1,0 +1,66 @@
+# Rosalind: BA6A — Implement GreedySorting to Sort a Permutation by Reversals
+# https://rosalind.info/problems/ba6a/
+#
+# Given: A signed permutation P.
+# Return: Every permutation produced by GreedySorting, ending at the identity.
+
+let start = [-3, 4, 1, 5, -2]
+
+# Chromosomes rearrange by reversal — a segment is cut out, flipped and put back,
+# which is why the signs matter: a reversed gene reads on the other strand. The
+# number of reversals separating two genomes is a measure of how long ago they
+# diverged.
+#
+# Greedy sorting fixes position 1 first, then 2, and never revisits either. It
+# takes at most 2n reversals, which is not the minimum — finding that is much
+# harder — but it terminates and it bounds the true distance.
+fn reverse_segment(items, from_index, to_index) {
+    let head = range(0, from_index) |> map(|i| items[i])
+    let middle = range(from_index, to_index + 1) |> map(|i| 0 - items[to_index - (i - from_index)])
+    let tail = range(to_index + 1, len(items)) |> map(|i| items[i])
+    head + middle + tail
+}
+
+let permutation = start
+let steps = []
+for k in range(0, len(start)) {
+    if permutation[k] != k + 1 {
+        # Where the value that belongs here currently sits, either sign.
+        let at = (range(k, len(permutation)) |> filter(|i| abs(permutation[i]) == k + 1))[0]
+        permutation = reverse_segment(permutation, k, at)
+        steps = push(steps, permutation)
+        # The reversal may have left it negative, which costs one more flip.
+        if permutation[k] == 0 - (k + 1) {
+            permutation = reverse_segment(permutation, k, k)
+            steps = push(steps, permutation)
+        }
+    }
+}
+
+fn written(items) {
+    "(" + (items |> map(|v| if v > 0 then "+" + str(v) else str(v)) |> join(" ")) + ")"
+}
+
+println("Result:")
+for step in steps { println("  " + written(step)) }
+println("Expected: (-1 -4 +3 +5 -2) (+1 -4 +3 +5 -2) (+1 +2 -5 -3 +4)")
+println("          (+1 +2 +3 +5 +4) (+1 +2 +3 -4 -5) (+1 +2 +3 +4 -5) (+1 +2 +3 +4 +5)")
+
+fn test_ba6a_greedy_sorting() {
+    let expected = ["(-1 -4 +3 +5 -2)", "(+1 -4 +3 +5 -2)", "(+1 +2 -5 -3 +4)",
+                    "(+1 +2 +3 +5 +4)", "(+1 +2 +3 -4 -5)", "(+1 +2 +3 +4 -5)",
+                    "(+1 +2 +3 +4 +5)"]
+    assert (steps |> map(|s| written(s))) == expected,
+        "BA6A: got " + join(steps |> map(|s| written(s)), " ")
+    # It really ends at the identity, and takes at most 2n reversals.
+    assert steps[len(steps) - 1] == range(1, len(start) + 1), "BA6A: must end sorted"
+    assert len(steps) <= 2 * len(start), "BA6A: greedy sorting is bounded by 2n reversals"
+    # Every step is a genuine reversal of the one before: same values, ignoring
+    # sign and order.
+    let running = start
+    for step in steps {
+        assert sort(step |> map(|v| abs(v))) == sort(running |> map(|v| abs(v))),
+            "BA6A: a reversal cannot change which values are present"
+        running = step
+    }
+}

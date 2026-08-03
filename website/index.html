@@ -30,7 +30,7 @@
         <div>
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm mb-6">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            v0.3.0 — Now Available
+            v1.0.0 — Now Available
           </div>
           <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight tracking-tight mb-6">
             A domain-specific<br>
@@ -280,6 +280,51 @@ ncbi_gene("BRCA1") |> println()</code></pre>
   </section>
 
   <!-- Try it live — interactive WASM examples -->
+  <!-- Rosalind coverage: the one claim on this page a stranger can check -->
+  <section class="py-20 border-b border-slate-800/50">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-3xl font-bold text-white text-center mb-4">258 Rosalind problems, every answer checked</h2>
+      <p class="text-slate-400 text-center mb-2 max-w-3xl mx-auto">
+        <a href="https://rosalind.info" class="text-violet-400 hover:text-violet-300">Rosalind</a> is the bioinformatics
+        problem set used in teaching worldwide. These problems are not mine to choose, and the answers are not mine to mark: each
+        solution is asserted against the official answer, and every one is re-run on each commit &mdash; natively, and
+        again through the same WebAssembly build this site serves.
+      </p>
+      <p class="text-slate-500 text-center mb-8 text-sm">Three of the four tracks are complete. The Stronghold is not, and the numbers below say so.</p>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <a href="/docs/examples/rosalind-armory.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
+          <div class="text-2xl font-bold text-green-400">15 / 15</div>
+          <div class="text-sm text-slate-300 mt-1">Armory</div>
+          <div class="text-xs text-slate-500">complete</div>
+        </a>
+        <a href="/docs/examples/rosalind-algorithmic-heights.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
+          <div class="text-2xl font-bold text-green-400">34 / 34</div>
+          <div class="text-sm text-slate-300 mt-1">Algorithmic Heights</div>
+          <div class="text-xs text-slate-500">complete</div>
+        </a>
+        <a href="/docs/examples/rosalind-stronghold.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
+          <div class="text-2xl font-bold text-violet-400">85 / 105</div>
+          <div class="text-sm text-slate-300 mt-1">Stronghold</div>
+          <div class="text-xs text-slate-500">in progress</div>
+        </a>
+        <a href="/docs/examples/rosalind-textbook.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
+          <div class="text-2xl font-bold text-green-400">124 / 124</div>
+          <div class="text-sm text-slate-300 mt-1">Textbook Track</div>
+          <div class="text-xs text-slate-500">complete</div>
+        </a>
+      </div>
+
+      <p class="text-center">
+        <a href="/docs/examples/rosalind-stronghold/sequence.html" class="inline-block px-6 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors">Open one and press Run</a>
+      </p>
+      <p class="text-slate-500 text-xs text-center mt-6">
+        Solutions are MIT. Problem statements belong to <a href="https://rosalind.info" class="text-violet-400 hover:text-violet-300">rosalind.info</a> &mdash;
+        each example paraphrases Given/Return in a line or two and links to the original rather than reproducing it.
+      </p>
+    </div>
+  </section>
+
   <section class="py-20 bg-slate-900/30 border-b border-slate-800/50">
     <div class="max-w-4xl mx-auto px-6">
       <h2 class="text-3xl font-bold text-white text-center mb-4">Try it in your browser</h2>
@@ -377,7 +422,8 @@ print(df.describe())</code></pre>
   <section class="py-20 bg-slate-900/30">
     <div class="max-w-5xl mx-auto px-6">
       <h2 class="text-3xl font-bold text-white text-center mb-4">Benchmarked against BioPython &amp; Bioconductor</h2>
-      <p class="text-slate-400 text-center mb-8">30 bioinformatics tasks on real-world data (NCBI, UniProt, ClinVar, ENCODE). Correctness validated on both synthetic and real biological data (E. coli, yeast, ClinVar) against BioPython and Bioconductor.</p>
+      <p class="text-slate-400 text-center mb-2">30 bioinformatics tasks on real-world data (NCBI, UniProt, ClinVar, ENCODE). Correctness validated on both synthetic and real biological data (E.&nbsp;coli, yeast, ClinVar) against BioPython and Bioconductor.</p>
+      <p class="text-slate-400 text-center mb-8 text-sm">These are <strong class="text-slate-300">whole-script times</strong>, measured the way you would run the script: interpreter startup and library imports included. That is what a one-off analysis actually costs &mdash; <code class="text-violet-300">bl</code> starts in 33&nbsp;ms, while <code class="text-violet-300">import Bio</code> alone takes 400&nbsp;ms or more. It is <em>not</em> a per-operation measurement, and the two tell different stories.</p>
 
       <!-- Top wins highlight cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -423,6 +469,8 @@ print(df.describe())</code></pre>
       </div>
 
       <p class="text-slate-500 text-xs mb-6">Linux (WSL2) &mdash; Intel i9-12900K, 16 GB RAM. Python wins on VCF/CSV text parsing where C extensions dominate. K-mer counting uses canonical (strand-agnostic) 21-mers &mdash; BioLang does strictly more work.</p>
+
+      <p class="text-slate-500 text-xs mb-6">Take the startup out and the picture changes, so here it is too. Timed per operation on a 1&nbsp;Mb genome, median of seven runs, every implementation checked to return the same answer: translation <strong class="text-slate-400">13.9&times; faster</strong> than BioPython and GC content <strong class="text-slate-400">1.9&times; faster</strong> than the Python standard library, but reverse complement 1.4&times; <em>slower</em>, FASTA parsing 1.7&times; slower, and edit distance 3.9&times; slower than <a href="https://github.com/Martinsos/edlib" class="text-violet-400 hover:text-violet-300">edlib</a>, which is SIMD C. The harness that produces all of it is <a href="https://github.com/oriclabs/biolang/blob/main/bench/harness.py" class="text-violet-400 hover:text-violet-300">bench/harness.py</a> &mdash; seeded inputs, recorded versions, run it yourself.</p>
 
       <div class="text-center">
         <a href="benchmarks.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition-colors border border-slate-700">
@@ -548,20 +596,52 @@ print(df.describe())</code></pre>
     <div class="max-w-5xl mx-auto px-6">
       <div class="text-center mb-10">
         <h2 class="text-3xl font-bold text-white mb-3">Free BioLang books</h2>
-        <p class="text-slate-400">Learn the language, then use it for a careful single-cell RNA-seq analysis.</p>
+        <p class="text-slate-400">A complete reference for the language, free to read online.</p>
       </div>
-      <div class="grid md:grid-cols-2 max-w-5xl mx-auto gap-5">
+      <div class="grid max-w-2xl mx-auto gap-5">
         <a href="books/language/html/index.html" class="group bg-slate-800/30 border border-violet-500/20 hover:border-violet-400/40 rounded-xl p-6 transition-all">
           <div class="text-xs font-semibold text-violet-400 uppercase tracking-wider mb-2">Reference</div>
           <h3 class="text-lg font-bold text-white group-hover:text-violet-300 transition-colors mb-2">The BioLang Language</h3>
           <p class="text-sm text-slate-400">Comprehensive reference for every language feature: syntax, types, pipes, tables, streams, file I/O, bio APIs, statistics, and visualization.</p>
         </a>
-        <a href="books/single-cell-rna-seq/html/index.html" class="group bg-slate-800/30 border border-cyan-500/20 hover:border-cyan-400/40 rounded-xl p-6 transition-all">
-          <div class="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-2">Applied analysis</div>
-          <h3 class="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors mb-2">Single-Cell RNA-seq with BioLang</h3>
-          <p class="text-sm text-slate-400">A plain-language path through study design, QC, clustering, annotation, every plot, replicate-aware inference, and cross-library validation.</p>
-        </a>
+        </div>
+    </div>
+  </section>
+
+  <!-- Workbench -->
+  <section class="py-20 border-b border-slate-800/50">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-3xl font-bold text-white text-center mb-4">A workbench, not just a playground</h2>
+      <p class="text-slate-400 text-center mb-10 max-w-3xl mx-auto">
+        Editor, file tree, console, and plots &mdash; the same interpreter as the CLI, compiled to
+        WebAssembly. Open it in a browser with nothing installed, or run the desktop build when you
+        need the things a browser cannot do.
+      </p>
+
+      <div class="grid md:grid-cols-2 gap-5 mb-8">
+        <div class="bg-slate-800/30 border border-violet-500/20 rounded-xl p-6">
+          <div class="text-xs font-semibold text-violet-400 uppercase tracking-wider mb-2">In the browser</div>
+          <h3 class="text-lg font-bold text-white mb-2">Nothing to install</h3>
+          <p class="text-sm text-slate-400">
+            Write and run BioLang in a tab. Every example pack installs into the workspace on a
+            single link, with the sample data the documentation reads. Work is kept locally between
+            visits.
+          </p>
+        </div>
+        <div class="bg-slate-800/30 border border-cyan-500/20 rounded-xl p-6">
+          <div class="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-2">On the desktop</div>
+          <h3 class="text-lg font-bold text-white mb-2">Real files, real tools</h3>
+          <p class="text-sm text-slate-400">
+            The same workbench as a native app: your own filesystem, the <code class="text-violet-300">bl</code>
+            CLI, remote execution over SSH, and the APIs a browser cannot reach because they send no
+            CORS headers.
+          </p>
+        </div>
       </div>
+
+      <p class="text-center">
+        <a href="/workbench/" class="inline-block px-6 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors">Open the workbench</a>
+      </p>
     </div>
   </section>
 
@@ -580,7 +660,7 @@ print(df.describe())</code></pre>
           <span class="text-slate-200">bl repl</span>
         </div>
         <div class="text-cyan-400 text-sm mt-2">
-          BioLang v0.3.0 REPL — type :help for commands<br>
+          BioLang v1.0.0 REPL — type :help for commands<br>
           <span class="text-violet-400">bl&gt;</span> <span class="text-slate-200">dna"ATCG" |> gc_content()</span><br>
           <span class="text-green-400">0.5</span>
         </div>

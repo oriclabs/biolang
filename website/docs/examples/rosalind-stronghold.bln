@@ -3901,3 +3901,360 @@ fn test_cset_consistent_character_set() {
 }
 ```
 
+## LREP — Finding the Longest Multiple Repeat
+
+[Problem statement](https://rosalind.info/problems/lrep/)
+
+```biolang
+# Rosalind: LREP — Finding the Longest Multiple Repeat
+# https://rosalind.info/problems/lrep/
+#
+# Given: A DNA string s with $ appended, a positive integer k, and the edges of
+# the suffix tree of s.
+# Return: The longest substring of s occurring at least k times.
+
+let s = "CATACATAC$"
+let k = 2
+
+# The suffix tree comes with the problem, so nothing has to build one. Each edge
+# gives its parent, its child, where the label starts in s (1-based) and how long
+# it is.
+let tree_edges = [
+    { parent: "node1", child: "node2",  start: 1,  length: 1 },
+    { parent: "node1", child: "node7",  start: 2,  length: 1 },
+    { parent: "node1", child: "node14", start: 3,  length: 3 },
+    { parent: "node1", child: "node17", start: 10, length: 1 },
+    { parent: "node2", child: "node3",  start: 2,  length: 4 },
+    { parent: "node2", child: "node6",  start: 10, length: 1 },
+    { parent: "node3", child: "node4",  start: 6,  length: 5 },
+    { parent: "node3", child: "node5",  start: 10, length: 1 },
+    { parent: "node7", child: "node8",  start: 3,  length: 3 },
+    { parent: "node7", child: "node11", start: 5,  length: 1 },
+    { parent: "node8", child: "node9",  start: 6,  length: 5 },
+    { parent: "node8", child: "node10", start: 10, length: 1 },
+    { parent: "node11", child: "node12", start: 6, length: 5 },
+    { parent: "node11", child: "node13", start: 10, length: 1 },
+    { parent: "node14", child: "node15", start: 6, length: 5 },
+    { parent: "node14", child: "node16", start: 10, length: 1 },
+]
+
+# A substring's number of occurrences is the number of leaves below the node it
+# ends at, because every leaf is one suffix that starts with it. So the answer is
+# the deepest node with at least k leaves under it, and the string is the path
+# from the root spelled out along the way.
+let children = {}
+let has_children = {}
+for edge in tree_edges {
+    if contains(keys(children), edge.parent) {
+        children[edge.parent] = push(children[edge.parent], edge)
+    } else {
+        children[edge.parent] = [edge]
+    }
+    has_children[edge.child] = true
+}
+
+# Walk down from the root, carrying the label spelled so far. A node with no
+# children is a leaf and counts as one occurrence; anything else is the sum of
+# its children. Written as an explicit stack because the recursion would have to
+# return two things at once.
+let best = ""
+let stack = [{ node: "node1", label: "" }]
+let leaves = {}
+
+# First pass: how many leaves hang below each node, deepest first.
+let order = []
+while len(stack) > 0 {
+    let top = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    order = push(order, top)
+    if contains(keys(children), top.node) {
+        for edge in children[top.node] {
+            let label = top.label + substr(s, edge.start - 1, edge.length)
+            stack = push(stack, { node: edge.child, label: label })
+        }
+    }
+}
+
+# `order` holds parents before children, so counting it backwards means every
+# child is already counted when its parent is reached.
+let i = len(order) - 1
+while i >= 0 {
+    let entry = order[i]
+    if contains(keys(children), entry.node) {
+        let total = 0
+        for edge in children[entry.node] {
+            total = total + leaves[edge.child]
+        }
+        leaves[entry.node] = total
+        # The root spells nothing, and a repeat has to be a real substring.
+        if total >= k and len(entry.label) > len(best) {
+            best = entry.label
+        }
+    } else {
+        leaves[entry.node] = 1
+    }
+    i = i - 1
+}
+
+println("Result:   " + best)
+println("Expected: CATAC")
+
+fn test_lrep_longest_multiple_repeat() {
+    assert best == "CATAC", "LREP: got " + best
+    # It has to occur at least k times, and be a substring of s.
+    assert len(find_motif(dna(substr(s, 0, len(s) - 1)), dna(best))) >= k,
+        "LREP: " + best + " does not occur " + str(k) + " times"
+}
+```
+
+## MREP — Identifying Maximal Repeats
+
+[Problem statement](https://rosalind.info/problems/mrep/)
+
+```biolang
+# Rosalind: MREP — Identifying Maximal Repeats
+# https://rosalind.info/problems/mrep/
+#
+# Given: A DNA string s of length at most 1 kbp.
+# Return: Every maximal repeat of s of length at least 20.
+#
+# A repeat is maximal when it occurs at least twice and no pair of its
+# occurrences can be extended by one symbol in either direction and still agree.
+
+let s = "TAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTATTATATAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTAT"
+let minimum = 20
+
+# Sort the suffixes, then read the repeats off the LCP array: lcp[i] is how much
+# suffix i shares with the one before it, so any value >= 20 is a candidate
+# repeat, and the two suffixes it relates are two of its occurrences.
+#
+# The sentinel keeps a suffix that is a prefix of another from being extended
+# past the end of the string.
+let text = s + "$"
+let sa = suffix_array(text)
+let lcp = lcp_array(text)
+
+# Right-maximal: a candidate is right-maximal when it is not simply the start of
+# a longer shared prefix, which the LCP array says directly — take each candidate
+# at its own length rather than a prefix of it.
+#
+# Left-maximal: the characters immediately before the two occurrences must
+# differ. If every occurrence is preceded by the same symbol, the repeat extends
+# leftwards and is not maximal.
+fn left_character(position) {
+    if position == 0 then "^" else substr(text, position - 1, 1)
+}
+
+let found = []
+for i in range(1, len(sa)) {
+    let length = lcp[i]
+    if length >= minimum {
+        let candidate = substr(text, sa[i], length)
+        # Already recorded from an earlier pair.
+        if contains(found, candidate) == false {
+            # Collect every occurrence, then ask whether they all share a left
+            # neighbour. Positions come from the original string, not the
+            # sentinel-terminated one.
+            let occurrences = find_motif(dna(s), dna(candidate))
+            let lefts = occurrences |> map(|p| left_character(p)) |> unique()
+            if len(occurrences) >= 2 and len(lefts) > 1 {
+                found = push(found, candidate)
+            }
+        }
+    }
+}
+
+# The longest first, which is how Rosalind's sample reads.
+let result = found |> sort_by(|a, b| len(b) - len(a))
+
+println("Result:")
+for repeat_seq in result {
+    println("  " + repeat_seq)
+}
+println("Expected:")
+println("  TAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTAT")
+println("  ATGGGTCCAGAGTTTTGTAATTT")
+
+fn test_mrep_maximal_repeats() {
+    assert len(result) == 2, "MREP: expected 2 maximal repeats, got " + str(len(result))
+    assert contains(result, "TAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTAT"),
+        "MREP: the longer repeat is missing from " + str(result)
+    assert contains(result, "ATGGGTCCAGAGTTTTGTAATTT"),
+        "MREP: the shorter repeat is missing from " + str(result)
+}
+```
+
+## LAFF — Local Alignment with Affine Gap Penalty
+
+[Problem statement](https://rosalind.info/problems/laff/)
+
+```biolang
+# Rosalind: LAFF — Local Alignment with Affine Gap Penalty
+# https://rosalind.info/problems/laff/
+#
+# Given: Two protein strings s and t.
+# Return: The maximum local alignment score, and the substrings of s and t that
+# achieve it. BLOSUM62, gap opening 11, gap extension 1.
+
+let s = "PLEASANTLY"
+let t = "MEANLY"
+
+# Local mode forgives both ends and lets the alignment stop early; the affine
+# gap is the gap_open/gap_extend pair. A gap of length L costs 11 + (L-1), so
+# opening is -10 on top of the -1 every symbol pays.
+let result = align(s, t, "local", 0, 0, -1, -10, "blosum62")
+
+# Local alignment reports the aligned substrings; strip the gaps to recover the
+# pieces of s and t themselves.
+fn without_gaps(aligned) {
+    range(0, len(aligned))
+      |> map(|i| substr(aligned, i, 1))
+      |> filter(|c| c != "-")
+      |> join("")
+}
+
+let sub_s = without_gaps(result.aligned_a)
+let u = without_gaps(result.aligned_b)
+
+println("Result:   " + str(result.score))
+println("          " + sub_s)
+println("          " + u)
+println("Expected: 12 / LEAS / MEAN")
+
+fn test_laff_local_affine_alignment() {
+    assert result.score == 12, "LAFF: got " + str(result.score)
+    assert contains(s, sub_s), "LAFF: " + sub_s + " is not a substring of s"
+    assert contains(t, u), "LAFF: " + u + " is not a substring of t"
+}
+```
+
+## SMGB — Semiglobal Alignment
+
+[Problem statement](https://rosalind.info/problems/smgb/)
+
+```biolang
+# Rosalind: SMGB — Semiglobal Alignment
+# https://rosalind.info/problems/smgb/
+#
+# Given: Two DNA strings s and t.
+# Return: The maximum semiglobal alignment score, and an alignment achieving it.
+# Match +1, substitution -1, linear gap -1.
+
+let s = dna"CAGCACTTGGATTCTCGG"
+let t = dna"CAGCGTGG"
+
+# Semiglobal forgives gaps at both ends of both sequences, so neither overhang
+# is charged for — which is what lets a short sequence sit inside a long one
+# without paying for the flanks. Global alignment of these two scores far worse.
+let result = align(s, t, "semiglobal", 1, -1, -1, 0)
+let global_score = align(s, t, "global", 1, -1, -1, 0).score
+
+println("Result:   " + str(result.score))
+println("Expected: 4")
+println("Alignment:")
+println("  " + result.aligned_a)
+println("  " + result.aligned_b)
+println("(global alignment of the same pair scores " + str(global_score) + ")")
+
+fn test_smgb_semiglobal_alignment() {
+    assert result.score == 4, "SMGB: got " + str(result.score)
+    # Forgiving the end gaps can only help, never hurt.
+    assert result.score >= global_score, "SMGB: semiglobal scored below global"
+}
+```
+
+## MGAP — Maximizing the Gap Symbols of an Optimal Alignment
+
+[Problem statement](https://rosalind.info/problems/mgap/)
+
+```biolang
+# Rosalind: MGAP — Maximizing the Gap Symbols of an Optimal Alignment
+# https://rosalind.info/problems/mgap/
+#
+# Given: Two DNA strings s and t.
+# Return: The largest number of gap symbols that can appear in any maximum-score
+# alignment of s and t, for any scoring with match > 0 and both penalties < 0.
+
+let s = dna"AACGTA"
+let t = dna"ACACCTA"
+
+# The scoring is left open on purpose, and that is the whole problem: since a
+# match is worth something and everything else costs, a maximum-score alignment
+# must match as many symbols as it possibly can. That is the longest common
+# subsequence. Every symbol outside it is opposite a gap — len(s) - lcs of them
+# in one row and len(t) - lcs in the other.
+let common = lcs(str(s), str(t))
+let gaps = len(str(s)) + len(str(t)) - 2 * len(common)
+
+println("LCS:      " + common)
+println("Result:   " + str(gaps))
+println("Expected: 3")
+
+fn test_mgap_maximum_gap_symbols() {
+    assert gaps == 3, "MGAP: got " + str(gaps)
+    # The subsequence has to be a real one of both strings.
+    assert is_subsequence(common, str(s)), "MGAP: LCS is not a subsequence of s"
+    assert is_subsequence(common, str(t)), "MGAP: LCS is not a subsequence of t"
+}
+```
+
+## CSTR — Creating a Character Table from Genetic Strings
+
+[Problem statement](https://rosalind.info/problems/cstr/)
+
+```biolang
+# Rosalind: CSTR — Creating a Character Table from Genetic Strings
+# https://rosalind.info/problems/cstr/
+#
+# Given: A collection of characterizable DNA strings of equal length.
+# Return: A character table whose rows are the nontrivial characters, one per
+# position where the strings disagree.
+
+let strings = [
+    "ATGCTACC",
+    "CGTTTACC",
+    "ATTCGACC",
+    "AGTCTCCC",
+    "CGTCTATC",
+]
+
+let width = len(strings[0])
+
+# A position splits the collection into two groups. The split is nontrivial only
+# when both groups have at least two members: a position where one string
+# differs from all the others separates nothing, and neither does a position
+# where every string agrees.
+let characters = []
+for column in range(0, width) {
+    let symbols = strings |> map(|s| substr(s, column, 1))
+    let distinct = unique(symbols)
+    if len(distinct) == 2 {
+        let first_count = symbols |> filter(|c| c == distinct[0]) |> len()
+        let second_count = len(symbols) - first_count
+        if first_count >= 2 and second_count >= 2 {
+            # Which state gets 1 is arbitrary, so take the first symbol seen.
+            characters = push(characters, symbols |> map(|c| if c == distinct[0] then "1" else "0") |> join(""))
+        }
+    }
+}
+
+println("Result:")
+for character in characters {
+    println("  " + character)
+}
+println("Expected:")
+println("  10110")
+println("  10100")
+
+fn test_cstr_character_table() {
+    assert len(characters) == 2, "CSTR: expected 2 nontrivial characters, got " + str(len(characters))
+    # The 0/1 assignment is arbitrary, so a row and its complement are the same
+    # character. Compare each row against the expected one either way round.
+    fn flipped(row) {
+        range(0, len(row)) |> map(|i| if substr(row, i, 1) == "1" then "0" else "1") |> join("")
+    }
+    assert characters[0] == "10110" or flipped(characters[0]) == "10110", "CSTR: first row " + characters[0]
+    assert characters[1] == "10100" or flipped(characters[1]) == "10100", "CSTR: second row " + characters[1]
+}
+```
+

@@ -258,6 +258,21 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "amino_acid_masses",
+      "signature": "amino_acid_masses()",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 0 argument(s).",
+      "parameters": [],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 0,
+        "maximum": 0
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "ani",
       "signature": "ani(arg1, arg2)",
       "category": "runtime",
@@ -1564,6 +1579,23 @@
         "maximum": 2
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "chars",
+      "signature": "chars(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "chat",
@@ -3175,6 +3207,23 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "cyclic_spectrum",
+      "signature": "cyclic_spectrum(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "datasets_gene",
       "signature": "datasets_gene(arg1, arg2?)",
       "category": "runtime",
@@ -4459,6 +4508,41 @@
         "maximum": 0
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "eulerian_cycle",
+      "signature": "eulerian_cycle(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "eulerian_path",
+      "signature": "eulerian_path(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "exit",
@@ -6656,6 +6740,174 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "hmm_baum_welch",
+      "signature": "hmm_baum_welch(arg1, arg2, arg3)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_emission_probability",
+      "signature": "hmm_emission_probability(arg1, arg2, arg3)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_estimate",
+      "signature": "hmm_estimate(arg1, arg2, arg3)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_likelihood",
+      "signature": "hmm_likelihood(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_path_probability",
+      "signature": "hmm_path_probability(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_posterior",
+      "signature": "hmm_posterior(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_profile",
+      "signature": "hmm_profile(arg1, arg2, arg3, arg4?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3",
+        "arg4?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 3,
+        "maximum": 4
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_profile_align",
+      "signature": "hmm_profile_align(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "hmm_viterbi_learning",
+      "signature": "hmm_viterbi_learning(arg1, arg2, arg3)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "http_get",
       "signature": "http_get(url, headers?) → {status, body, headers}",
       "category": "fs",
@@ -8329,6 +8581,23 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "lcp_array",
+      "signature": "lcp_array(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "lcs",
       "signature": "lcs(arg1, arg2)",
       "category": "runtime",
@@ -8530,6 +8799,23 @@
         "kind": "range",
         "minimum": 3,
         "maximum": 5
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "linear_spectrum",
+      "signature": "linear_spectrum(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
       },
       "metadataQuality": "runtime"
     },
@@ -9606,6 +9892,41 @@
         "maximum": 2
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "motif_profile",
+      "signature": "motif_profile(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "motif_score",
+      "signature": "motif_score(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "msa",
@@ -11272,6 +11593,23 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "peptide_mass",
+      "signature": "peptide_mass(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "permutation_test",
       "signature": "permutation_test(arg1, arg2, arg3)",
       "category": "runtime",
@@ -11632,6 +11970,43 @@
         "maximum": null
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "profile_most_probable",
+      "signature": "profile_most_probable(arg1, arg2, arg3)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "profile_probability",
+      "signature": "profile_probability(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "promoters",
@@ -14539,6 +14914,41 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "spectrum_convolution",
+      "signature": "spectrum_convolution(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "spectrum_score",
+      "signature": "spectrum_score(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "splice_sites",
       "signature": "splice_sites(arg1)",
       "category": "runtime",
@@ -15090,6 +15500,23 @@
         "kind": "exact",
         "minimum": 2,
         "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "suffix_array",
+      "signature": "suffix_array(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
       },
       "metadataQuality": "runtime"
     },
@@ -17017,6 +17444,24 @@
         "maximum": 2
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "viterbi",
+      "signature": "viterbi(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "vj_usage",

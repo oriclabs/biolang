@@ -1,0 +1,37 @@
+# Rosalind: BA3C — Construct the Overlap Graph of a Collection of k-mers
+# https://rosalind.info/problems/ba3c/
+#
+# Given: A collection of k-mers.
+# Return: The overlap graph as an adjacency list.
+
+let patterns = ["ATGCG", "GCATG", "CATGC", "AGGCA", "GGCAT"]
+
+# An edge runs from one k-mer to another when the suffix of the first is the
+# prefix of the second — the relation assembly walks. A k-mer is not joined to
+# itself unless it genuinely overlaps itself.
+fn suffix_of(pattern) { substr(pattern, 1, len(pattern) - 1) }
+fn prefix_of(pattern) { substr(pattern, 0, len(pattern) - 1) }
+
+let overlaps = []
+for source in patterns {
+    for target in patterns {
+        if source != target and suffix_of(source) == prefix_of(target) {
+            overlaps = push(overlaps, source + " -> " + target)
+        }
+    }
+}
+
+let result = sort(overlaps)
+
+println("Result:")
+for edge in result {
+    println("  " + edge)
+}
+println("Expected: AGGCA -> GGCAT / CATGC -> ATGCG / GCATG -> CATGC / GGCAT -> GCATG")
+
+fn test_ba3c_overlap_graph() {
+    assert len(result) == 4, "BA3C: expected 4 overlaps, got " + str(len(result))
+    for expected in ["AGGCA -> GGCAT", "CATGC -> ATGCG", "GCATG -> CATGC", "GGCAT -> GCATG"] {
+        assert contains(result, expected), "BA3C: missing " + expected
+    }
+}

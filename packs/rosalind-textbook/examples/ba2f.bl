@@ -1,0 +1,72 @@
+# Rosalind: BA2F — Implement RandomizedMotifSearch
+# https://rosalind.info/problems/ba2f/
+#
+# Given: Integers k and t, followed by a collection of strings Dna.
+# Return: The best motifs found over 1000 runs of RandomizedMotifSearch.
+
+let k = 8
+let t = 5
+let sequences = [
+    "CGCCCCTCTCGGGGGTGTTCAGTAAACGGCCA",
+    "GGGCGAGGTATGTGTAAGTGCCAAGGTGCCAG",
+    "TAGTACCGAGACCGAAAGAAGTATACAGGCGT",
+    "TAGATCAAGTTTCAGGTGCACGTCGGTGAACC",
+    "AATCCACCAGCTCCACGTGCAATGTTGGCCTA",
+]
+
+# Seeded, so this example gives the same answer every time it is run. The
+# algorithm is genuinely random; only the reporting is pinned.
+set_seed(20260803)
+
+# Start from k-mers chosen at random, then repeatedly rebuild the profile and let
+# every string re-pick against it. Each round can only lower the score, so it
+# stops as soon as one does not — a local optimum, and usually a poor one, which
+# is why the whole thing is thrown away and restarted a thousand times.
+fn one_random_run(strings, width) {
+    let motifs = strings |> map(|s| {
+        let start = random_int(0, len(s) - width + 1)
+        substr(s, start, width)
+    })
+    let best = motifs
+    let improving = true
+    while improving {
+        let profile = motif_profile(motifs, 1)
+        motifs = strings |> map(|s| profile_most_probable(s, width, profile))
+        if motif_score(motifs) < motif_score(best) {
+            best = motifs
+        } else {
+            improving = false
+        }
+    }
+    best
+}
+
+let best_motifs = one_random_run(sequences, k)
+for _ in range(1, 1000) {
+    let attempt = one_random_run(sequences, k)
+    if motif_score(attempt) < motif_score(best_motifs) {
+        best_motifs = attempt
+    }
+}
+
+println("Result:")
+for motif in best_motifs { println("  " + motif) }
+println("Score: " + str(motif_score(best_motifs)))
+println("Expected (one optimal answer): TCTCGGGG CCAAGGTG TACAGGCG TTCAGGTG TCCACGTG")
+println("which also scores 9 — several distinct motif sets tie at the optimum here")
+
+fn test_ba2f_randomized_motif_search() {
+    # A randomized search is graded on the score it reaches, not on returning one
+    # particular set — several sets tie at the optimum, and asserting on the
+    # published one would be asserting on this seed.
+    let published = ["TCTCGGGG", "CCAAGGTG", "TACAGGCG", "TTCAGGTG", "TCCACGTG"]
+    assert motif_score(best_motifs) <= motif_score(published),
+        "BA2F: scored " + str(motif_score(best_motifs))
+            + " against the published " + str(motif_score(published))
+    assert len(best_motifs) == t, "BA2F: one motif per string"
+    for i in range(0, len(sequences)) {
+        assert contains(sequences[i], best_motifs[i]),
+            "BA2F: " + best_motifs[i] + " is not in string " + str(i)
+        assert len(best_motifs[i]) == k, "BA2F: every motif is k long"
+    }
+}

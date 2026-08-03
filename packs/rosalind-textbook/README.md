@@ -1,15 +1,15 @@
 # Rosalind — Bioinformatics Textbook Track
 
-A **showcase**, not a course companion.
+Not a course companion.
 
 The [Textbook Track](https://rosalind.info/problems/list-view/?location=bioinformatics-textbook-track)
-follows Compeau and Pevzner's *Bioinformatics Algorithms*. Its 154 problems
+follows Compeau and Pevzner's *Bioinformatics Algorithms*. Its 124 problems
 exist so that students implement the algorithms themselves — Viterbi, the Gibbs
 sampler, Burrows-Wheeler, cyclopeptide sequencing. Handing in
 `de_bruijn_graph(reads)` would answer the question and teach nothing.
 
-**If you are taking that course, write these yourself.** This pack is here for a
-different reason.
+**If you are taking that course, write these yourself.** The answers are here
+because the track is a good external test of the language, not to be handed in.
 
 ## What it shows
 
@@ -38,11 +38,17 @@ Burrows-Wheeler, and hidden Markov models.
 
 ## Coverage
 
-Eight problems, one per technique, each asserted against the official answer.
-The pack is deliberately small — its job is to demonstrate the mapping above,
-and a ninth pattern-counting problem would add nothing. The
-[Stronghold pack](../rosalind-stronghold/README.md) is the one to read for
-breadth.
+33 of 124, each asserted against the official answer.
+
+The BA1, BA2, BA3 and BA5 series are complete or nearly so — pattern finding,
+motif finding, assembly graphs, and the alignment problems. BA9 has begun with
+the suffix array, which was one of the three gaps this pack was written to
+measure and is a builtin now.
+
+What remains is honest about itself: BA10 and BA11 are hidden Markov models, and
+without Viterbi in the language they cannot be written here at all. BA6 is
+genome rearrangement and BA7 phylogeny, both of which need real work rather than
+a builtin call.
 
 ## One finding worth keeping
 

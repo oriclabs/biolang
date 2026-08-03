@@ -97,9 +97,13 @@ function missingInBrowser(source, available) {
     .map((line) => line.replace(/#.*$/, ""))
     .join("\n")
     .replace(/"([^"\\]|\\.)*"/g, '""');
-  const declared = new Set(
-    [...stripped.matchAll(/\bfn\s+([A-Za-z_]\w*)/g)].map((m) => m[1]),
-  );
+  // Both ways of naming a function: `fn name(...)` and a lambda bound with
+  // `let name = |...|`. Missing the second form reported every such helper as a
+  // builtin the browser lacks, which marked working examples "CLI only".
+  const declared = new Set([
+    ...[...stripped.matchAll(/\bfn\s+([A-Za-z_]\w*)/g)].map((m) => m[1]),
+    ...[...stripped.matchAll(/\blet\s+([A-Za-z_]\w*)\s*=\s*\|/g)].map((m) => m[1]),
+  ]);
   const called = new Set(
     [...stripped.matchAll(/\b([a-z_][a-z0-9_]*)\s*\(/g)].map((m) => m[1]),
   );

@@ -1,0 +1,70 @@
+# Rosalind: MREP — Identifying Maximal Repeats
+# https://rosalind.info/problems/mrep/
+#
+# Given: A DNA string s of length at most 1 kbp.
+# Return: Every maximal repeat of s of length at least 20.
+#
+# A repeat is maximal when it occurs at least twice and no pair of its
+# occurrences can be extended by one symbol in either direction and still agree.
+
+let s = "TAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTATTATATAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTAT"
+let minimum = 20
+
+# Sort the suffixes, then read the repeats off the LCP array: lcp[i] is how much
+# suffix i shares with the one before it, so any value >= 20 is a candidate
+# repeat, and the two suffixes it relates are two of its occurrences.
+#
+# The sentinel keeps a suffix that is a prefix of another from being extended
+# past the end of the string.
+let text = s + "$"
+let sa = suffix_array(text)
+let lcp = lcp_array(text)
+
+# Right-maximal: a candidate is right-maximal when it is not simply the start of
+# a longer shared prefix, which the LCP array says directly — take each candidate
+# at its own length rather than a prefix of it.
+#
+# Left-maximal: the characters immediately before the two occurrences must
+# differ. If every occurrence is preceded by the same symbol, the repeat extends
+# leftwards and is not maximal.
+fn left_character(position) {
+    if position == 0 then "^" else substr(text, position - 1, 1)
+}
+
+let found = []
+for i in range(1, len(sa)) {
+    let length = lcp[i]
+    if length >= minimum {
+        let candidate = substr(text, sa[i], length)
+        # Already recorded from an earlier pair.
+        if contains(found, candidate) == false {
+            # Collect every occurrence, then ask whether they all share a left
+            # neighbour. Positions come from the original string, not the
+            # sentinel-terminated one.
+            let occurrences = find_motif(dna(s), dna(candidate))
+            let lefts = occurrences |> map(|p| left_character(p)) |> unique()
+            if len(occurrences) >= 2 and len(lefts) > 1 {
+                found = push(found, candidate)
+            }
+        }
+    }
+}
+
+# The longest first, which is how Rosalind's sample reads.
+let result = found |> sort_by(|a, b| len(b) - len(a))
+
+println("Result:")
+for repeat_seq in result {
+    println("  " + repeat_seq)
+}
+println("Expected:")
+println("  TAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTAT")
+println("  ATGGGTCCAGAGTTTTGTAATTT")
+
+fn test_mrep_maximal_repeats() {
+    assert len(result) == 2, "MREP: expected 2 maximal repeats, got " + str(len(result))
+    assert contains(result, "TAGAGATAGAATGGGTCCAGAGTTTTGTAATTTCCATGGGTCCAGAGTTTTGTAATTTAT"),
+        "MREP: the longer repeat is missing from " + str(result)
+    assert contains(result, "ATGGGTCCAGAGTTTTGTAATTT"),
+        "MREP: the shorter repeat is missing from " + str(result)
+}
