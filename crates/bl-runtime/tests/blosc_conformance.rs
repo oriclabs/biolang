@@ -158,7 +158,7 @@ fn reads_a_default_compressed_anndata_store() {
 
     let out = bl_runtime::anndata_zarr::call_anndata_builtin(
         "read_anndata",
-        vec![Value::Str(store.to_string_lossy().into_owned().into())],
+        vec![Value::Str(store.to_string_lossy().into_owned())],
     )
     .expect("read_anndata failed on a blosc-compressed store");
 

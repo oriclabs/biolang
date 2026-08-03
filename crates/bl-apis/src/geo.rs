@@ -121,7 +121,7 @@ impl GeoClient {
     pub fn series(&self, accession: &str) -> Result<GeoSeries> {
         let term = format!("{accession}[Accession]");
         let ids = self.esearch_ids("gds", &term, 1)?;
-        let mut results = self.esummary_gds(&ids)?;
+        let results = self.esummary_gds(&ids)?;
         results.into_iter().next().ok_or_else(|| ApiError::Parse {
             context: "GEO series".into(),
             source: format!("no series found for {accession}"),

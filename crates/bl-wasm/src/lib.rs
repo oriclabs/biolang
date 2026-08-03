@@ -68,7 +68,7 @@ pub fn init() {
 fn take_interpreter() -> Interpreter {
     INTERPRETER
         .with(|c| c.borrow_mut().take())
-        .unwrap_or_else(Interpreter::new)
+        .unwrap_or_default()
 }
 
 fn put_interpreter(interp: Interpreter) {

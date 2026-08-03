@@ -313,7 +313,7 @@ impl Interpreter {
                         S::Assert {
                             condition: where_expr.clone(),
                             message: Some(Spanned::new(
-                                Expr::Str(format!("where clause failed: precondition not met")),
+                                Expr::Str("where clause failed: precondition not met".to_string()),
                                 where_expr.span,
                             )),
                         },
@@ -3331,10 +3331,8 @@ impl Interpreter {
                             while let Some(item) = source.next() {
                                 match interp.call_value(&func, vec![item.clone()], span) {
                                     Ok(keep) => {
-                                        if keep.is_truthy() {
-                                            if tx.send(item).is_err() {
-                                                break;
-                                            }
+                                        if keep.is_truthy() && tx.send(item).is_err() {
+                                            break;
                                         }
                                     }
                                     Err(_) => break,
@@ -3557,12 +3555,11 @@ impl Interpreter {
                             ));
                         }
                         let mut acc = if args.len() == 3 {
-                            let initial = if args[1].is_callable() {
+                            if args[1].is_callable() {
                                 args[2].clone()
                             } else {
                                 args[1].clone()
-                            };
-                            initial
+                            }
                         } else {
                             match s.next() {
                                 Some(v) => v,
@@ -3580,12 +3577,10 @@ impl Interpreter {
                         }
                         Ok(acc)
                     }
-                    other => {
-                        return Err(BioLangError::type_error(
-                            format!("reduce() requires List or Stream, got {}", other.type_of()),
-                            Some(span),
-                        ))
-                    }
+                    other => Err(BioLangError::type_error(
+                        format!("reduce() requires List or Stream, got {}", other.type_of()),
+                        Some(span),
+                    )),
                 }
             }
             "sort" => {
@@ -4483,7 +4478,7 @@ impl Interpreter {
                 let value = args[0].clone();
                 let func = args[1].clone();
                 self.call_value(&func, vec![value.clone()], span)?;
-                return Ok(value);
+                Ok(value)
             }
             "group_apply" => {
                 if args.len() != 3 {
@@ -4575,7 +4570,7 @@ impl Interpreter {
                     )?;
                     results.push(result);
                 }
-                return Ok(Value::List((results).into()));
+                Ok(Value::List((results).into()))
             }
             "prop_test" => {
                 if args.len() != 3 {
@@ -4665,7 +4660,7 @@ impl Interpreter {
                     loop {
                         match stream.next() {
                             Some(v) => {
-                                if items.len() % 100_000 == 0 && items.len() > 0 {
+                                if items.len() % 100_000 == 0 && !items.is_empty() {
                                     eprint!("\r\x1b[2K  Collected {} items...", items.len());
                                 }
                                 items.push(v);

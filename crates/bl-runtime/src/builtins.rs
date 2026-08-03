@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 
 thread_local! {
     static OUTPUT_BUFFER: std::cell::RefCell<Option<Arc<Mutex<String>>>> =
-        std::cell::RefCell::new(None);
+        const { std::cell::RefCell::new(None) };
     static OUTPUT_SINK: std::cell::RefCell<Option<Arc<dyn Fn(&str) + Send + Sync>>> =
         std::cell::RefCell::new(None);
     static DISPLAY_SINK: std::cell::RefCell<Option<Arc<dyn Fn(&Value, Option<usize>) + Send + Sync>>> =
@@ -1140,10 +1140,8 @@ pub fn suggest_builtin(name: &str) -> Option<String> {
     let mut best: Option<(String, usize)> = None;
     for builtin_name in all_builtin_names() {
         let dist = levenshtein(name, builtin_name);
-        if dist > 0 && dist <= max_dist {
-            if best.as_ref().map_or(true, |(_, d)| dist < *d) {
-                best = Some((builtin_name.to_string(), dist));
-            }
+        if dist > 0 && dist <= max_dist && best.as_ref().is_none_or(|(_, d)| dist < *d) {
+            best = Some((builtin_name.to_string(), dist));
         }
     }
     best.map(|(s, _)| s)
@@ -1204,13 +1202,13 @@ fn format_for_print(val: &Value) -> String {
 pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
     match name {
         "print" => {
-            let parts: Vec<String> = args.iter().map(|a| format_for_print(a)).collect();
+            let parts: Vec<String> = args.iter().map(format_for_print).collect();
             write_output(&parts.join(" "));
             observe_display(&args);
             Ok(Value::Nil)
         }
         "println" => {
-            let parts: Vec<String> = args.iter().map(|a| format_for_print(a)).collect();
+            let parts: Vec<String> = args.iter().map(format_for_print).collect();
             write_output(&format!("{}\n", parts.join(" ")));
             observe_display(&args);
             Ok(Value::Nil)
@@ -1300,9 +1298,9 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 ));
             }
             let count = if step > 0 {
-                ((end - start).max(0) as u64 + step as u64 - 1) / step as u64
+                ((end - start).max(0) as u64).div_ceil(step as u64)
             } else {
-                ((start - end).max(0) as u64 + (-step) as u64 - 1) / (-step) as u64
+                ((start - end).max(0) as u64).div_ceil((-step) as u64)
             };
             if count > 10_000_000 {
                 return Err(BioLangError::runtime(
@@ -1399,7 +1397,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     ))
                 }
             };
-            match serde_json::from_str::<serde_json::Value>(&s) {
+            match serde_json::from_str::<serde_json::Value>(s) {
                 Ok(json_val) => Ok(json_to_value(json_val)),
                 Err(e) => Err(BioLangError::runtime(
                     ErrorKind::TypeError,
@@ -1462,10 +1460,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     Value::Set(items) => Ok(Value::List((items.clone()).into())),
                     Value::Tuple(items) => Ok(Value::List((items.clone()).into())),
                     Value::Range { start, end, .. } => Ok(Value::List(
-                        ((*start as i64)..(*end as i64))
-                            .map(Value::Int)
-                            .collect::<Vec<_>>()
-                            .into(),
+                        (*start..*end).map(Value::Int).collect::<Vec<_>>().into(),
                     )),
                     other => Ok(Value::List((vec![other.clone()]).into())),
                 },
@@ -2202,7 +2197,8 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             if data.len() as u64 > MAX_DECOMPRESS {
                 return Err(BioLangError::runtime(
                     ErrorKind::IOError,
-                    format!("gunzip() decompressed data exceeds 2 GB limit — possible decompression bomb"),
+                    "gunzip() decompressed data exceeds 2 GB limit — possible decompression bomb"
+                        .to_string(),
                     None,
                 ));
             }
@@ -2541,7 +2537,7 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             let col_idx = table
                 .columns
                 .iter()
-                .position(|c| c == &col_name)
+                .position(|c| c == col_name)
                 .ok_or_else(|| {
                     BioLangError::runtime(
                         ErrorKind::NameError,
@@ -4086,7 +4082,7 @@ fn builtin_interval_tree(args: &[Value]) -> Result<Value> {
 }
 
 /// Extract parallel arrays (starts, ends, indices) from a chromosome record in the interval tree.
-fn extract_chr_arrays<'a>(chr_rec: &'a Value) -> Option<(&'a [Value], &'a [Value], &'a [Value])> {
+fn extract_chr_arrays(chr_rec: &Value) -> Option<(&[Value], &[Value], &[Value])> {
     if let Value::Record(m) = chr_rec {
         let starts = match m.get("starts") {
             Some(Value::List(l)) => l.as_slice(),
@@ -4130,7 +4126,7 @@ fn extract_tree_parts(
             ))
         }
     };
-    Ok((&table, chrom_data))
+    Ok((table, chrom_data))
 }
 
 /// Query overlapping intervals from an interval tree.
@@ -4598,7 +4594,7 @@ fn builtin_aligned_read(args: Vec<Value>) -> Result<Value> {
                 m.get(k).and_then(|v| v.as_int()).unwrap_or(0)
             };
             let flag = get_int(map, "flag");
-            if flag < 0 || flag > 4095 {
+            if !(0..=4095).contains(&flag) {
                 return Err(BioLangError::runtime(
                     ErrorKind::TypeError,
                     format!("aligned_read() flag must be 0-4095, got {flag}"),
@@ -5672,7 +5668,7 @@ fn builtin_kmer_encode(args: Vec<Value>) -> Result<Value> {
             Some(km) => Ok(Value::Kmer(km)),
             None => Err(BioLangError::runtime(
                 ErrorKind::TypeError,
-                &format!("kmer_encode(): invalid sequence for k={k}"),
+                format!("kmer_encode(): invalid sequence for k={k}"),
                 None,
             )),
         }
@@ -5725,7 +5721,7 @@ fn extract_seq_str(val: &Value) -> Option<String> {
         Value::Str(s) => Some(s.clone()),
         Value::Record(map) => {
             // Extract "seq" field from record (FASTQ stream records)
-            map.get("seq").and_then(|v| extract_seq_str(v))
+            map.get("seq").and_then(extract_seq_str)
         }
         _ => None,
     }
@@ -5779,7 +5775,7 @@ fn builtin_kmer_count(args: Vec<Value>) -> Result<Value> {
                 Kmer::count_into(&seq, k, &mut fast_counts);
             }
             seq_count += 1;
-            if seq_count >= 1000 && seq_count % 10000 == 0 {
+            if seq_count >= 1000 && seq_count.is_multiple_of(10000) {
                 eprint!(
                     "\r\x1b[2Kkmer_count: {} sequences, {} unique k-mers...",
                     seq_count,
@@ -5911,7 +5907,7 @@ fn builtin_kmer_distinct(args: Vec<Value>) -> Result<Value> {
                 Kmer::count_into(&seq, k, &mut fast_counts);
             }
             seq_count += 1;
-            if seq_count >= 1000 && seq_count % 10000 == 0 {
+            if seq_count >= 1000 && seq_count.is_multiple_of(10000) {
                 eprint!(
                     "\r\x1b[2Kkmer_distinct: {} sequences, {} unique k-mers...",
                     seq_count,
@@ -6970,7 +6966,7 @@ fn builtin_table_cast(args: Vec<Value>) -> Result<Value> {
     let ci = t.col_index(&col).ok_or_else(|| {
         BioLangError::runtime(
             ErrorKind::TypeError,
-            &format!("column '{col}' not found"),
+            format!("column '{col}' not found"),
             None,
         )
     })?;

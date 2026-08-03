@@ -782,7 +782,7 @@ impl ConvertState {
     }
 
     fn close_blocks_down_to(&mut self, indent: usize) {
-        while self.block_stack.last().map_or(false, |&b| indent <= b) {
+        while self.block_stack.last().is_some_and(|&b| indent <= b) {
             let b = self.block_stack.pop().unwrap();
             self.output.push_str(&" ".repeat(b));
             self.output.push_str("}\n");
@@ -887,11 +887,7 @@ pub fn convert(source: &str, filename: &str) -> String {
         if trimmed.starts_with("elif ") {
             // Close the if/elif body (its indent was curr_indent), but keep the block open
             // We pop the current block and replace with a `} else if {`
-            if state
-                .block_stack
-                .last()
-                .map_or(false, |&b| b == curr_indent)
-            {
+            if state.block_stack.last().is_some_and(|&b| b == curr_indent) {
                 state.block_stack.pop();
                 state.output.push_str(&" ".repeat(curr_indent));
                 state.output.push_str("} ");
@@ -908,11 +904,7 @@ pub fn convert(source: &str, filename: &str) -> String {
         }
 
         if trimmed == "else:" {
-            if state
-                .block_stack
-                .last()
-                .map_or(false, |&b| b == curr_indent)
-            {
+            if state.block_stack.last().is_some_and(|&b| b == curr_indent) {
                 state.block_stack.pop();
                 state.output.push_str(&" ".repeat(curr_indent));
                 state.output.push_str("} ");
@@ -924,11 +916,7 @@ pub fn convert(source: &str, filename: &str) -> String {
         }
 
         if trimmed.starts_with("except") {
-            if state
-                .block_stack
-                .last()
-                .map_or(false, |&b| b == curr_indent)
-            {
+            if state.block_stack.last().is_some_and(|&b| b == curr_indent) {
                 state.block_stack.pop();
                 state.output.push_str(&" ".repeat(curr_indent));
                 state.output.push_str("} ");
@@ -943,11 +931,7 @@ pub fn convert(source: &str, filename: &str) -> String {
         }
 
         if trimmed == "finally:" {
-            if state
-                .block_stack
-                .last()
-                .map_or(false, |&b| b == curr_indent)
-            {
+            if state.block_stack.last().is_some_and(|&b| b == curr_indent) {
                 state.block_stack.pop();
                 state.output.push_str(&" ".repeat(curr_indent));
                 state.output.push_str("} ");
@@ -1118,7 +1102,9 @@ pub fn convert(source: &str, filename: &str) -> String {
             continue;
         }
         if trimmed == "return" {
-            state.push_line(curr_indent, "null");
+            // `nil`, not `null` — BioLang has no `null`, so emitting it produced
+            // a program that failed on an undefined variable at the first use.
+            state.push_line(curr_indent, "nil");
             i += 1;
             continue;
         }
@@ -1260,13 +1246,19 @@ fn leading_spaces(line: &str) -> usize {
 
 /// Apply all call-map regex substitutions to an expression string.
 fn transform_expr(expr: &str, maps: &[CallMap]) -> String {
+    // Python's `and`, `or` and `not` are spelled the same way in BioLang, so
+    // they need no substitution — there were three here that replaced each with
+    // itself, which said the opposite of what they did.
     let mut result = expr
-        .replace("None", "null")
+        .replace("None", "nil") // BioLang has no `null`
         .replace("True", "true")
         .replace("False", "false")
-        .replace(" and ", " and ")
-        .replace(" or ", " or ")
-        .replace(" not ", " not ")
+        // BioLang has no `is`, so `x is None` came out as a parse error while the
+        // converter reported nothing to review. Identity and equality part ways
+        // in Python for objects, but `is` is overwhelmingly written against None,
+        // where the two agree. Longest form first, or `is not` loses its `not`.
+        .replace(" is not ", " != ")
+        .replace(" is ", " == ")
         .replace("**", "^") // Python power → BioLang
         .replace("//", "/") // integer div → regular div (approximate)
         .replace("f\"", "\"") // strip f-string prefix (content stays, {} stay)

@@ -531,7 +531,7 @@ fn builtin_group_by(args: Vec<Value>) -> Result<Value> {
                         ref alt_allele,
                         quality,
                         ref filter,
-                        ref info,
+                        info: _,
                     } => match col_name.as_str() {
                         "chrom" => chrom.clone(),
                         "pos" => pos.to_string(),
@@ -825,7 +825,7 @@ fn builtin_filter_by(args: Vec<Value>) -> Result<Value> {
 /// multi_filter_by(collection, field1, op1, val1, field2, op2, val2, ...)
 /// Applies all filter conditions in a single pass — avoids cloning intermediate results.
 fn builtin_multi_filter_by(args: Vec<Value>) -> Result<Value> {
-    if args.len() < 4 || (args.len() - 1) % 3 != 0 {
+    if args.len() < 4 || !(args.len() - 1).is_multiple_of(3) {
         return Err(BioLangError::runtime(
             ErrorKind::ArityError,
             "multi_filter_by() takes (collection, field, op, val, ...) in groups of 3",

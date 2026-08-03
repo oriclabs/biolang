@@ -127,7 +127,7 @@ impl Compiler {
 
         // Pop locals in this scope, emitting CloseUpvalue for captured ones.
         while let Some(local) = self.ctx().locals.last() {
-            if local.depth <= depth - 1 {
+            if local.depth < depth {
                 break;
             }
             if local.is_captured {

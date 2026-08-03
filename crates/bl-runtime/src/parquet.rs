@@ -69,7 +69,7 @@ fn builtin_read_parquet(args: Vec<Value>) -> Result<Value> {
 
     // Read all row groups
     let mut rows: Vec<Vec<Value>> = Vec::new();
-    let mut row_iter = reader.get_row_iter(None).map_err(|e| {
+    let row_iter = reader.get_row_iter(None).map_err(|e| {
         BioLangError::runtime(
             ErrorKind::IOError,
             format!("read_parquet: cannot iterate rows in '{path}': {e}"),
@@ -77,7 +77,7 @@ fn builtin_read_parquet(args: Vec<Value>) -> Result<Value> {
         )
     })?;
 
-    while let Some(row_result) = row_iter.next() {
+    for row_result in row_iter {
         let row = row_result.map_err(|e| {
             BioLangError::runtime(
                 ErrorKind::IOError,
@@ -126,8 +126,8 @@ fn field_to_value(field: &parquet::record::Field) -> Value {
             // Days since Unix epoch
             Value::Int(*d as i64)
         }
-        Field::TimestampMillis(ts) => Value::Int(*ts as i64),
-        Field::TimestampMicros(ts) => Value::Int(*ts as i64),
+        Field::TimestampMillis(ts) => Value::Int(*ts),
+        Field::TimestampMicros(ts) => Value::Int(*ts),
         Field::Decimal(d) => Value::Str(format!("{d:?}")),
         Field::Float16(f) => Value::Float(f64::from(f32::from(*f))),
         // Nested types: flatten to string representation

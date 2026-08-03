@@ -256,7 +256,7 @@ fn parse_allele_counts(val: &Value, func: &str) -> Result<Vec<(i64, i64)>> {
             t.rows
                 .iter()
                 .map(|row| {
-                    let n_ref = val_to_i64(row.get(0).unwrap_or(&Value::Int(0))).unwrap_or(0);
+                    let n_ref = val_to_i64(row.first().unwrap_or(&Value::Int(0))).unwrap_or(0);
                     let n_tot = val_to_i64(row.get(1).unwrap_or(&Value::Int(0))).unwrap_or(0);
                     Ok((n_ref, n_tot))
                 })

@@ -934,7 +934,7 @@ mod table_type_tests {
     #[test]
     fn printing_puts_the_type_row_under_the_header_without_clipping_it() {
         let t = table(&["a"], vec![vec![Value::Bool(true)]]);
-        let rendered = format!("{}", Value::Table(t.into()));
+        let rendered = format!("{}", Value::Table(t));
         // A clipped `<bool` would read as a rendering fault.
         assert!(rendered.contains("<bool>"), "{rendered}");
         let lines: Vec<&str> = rendered.lines().collect();

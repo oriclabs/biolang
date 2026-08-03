@@ -14,6 +14,12 @@ pub struct Checker {
     warnings: Vec<TypeWarning>,
 }
 
+impl Default for Checker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Checker {
     pub fn new() -> Self {
         Self {

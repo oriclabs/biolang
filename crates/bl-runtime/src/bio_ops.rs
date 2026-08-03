@@ -34,7 +34,7 @@ pub fn call_bio_ops_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "diff_expr" => builtin_diff_expr(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
-            &format!("unknown bio_ops builtin: {name}"),
+            format!("unknown bio_ops builtin: {name}"),
             None,
         )),
     }

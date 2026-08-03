@@ -424,11 +424,7 @@ mod tests {
     fn an_unconvertible_binding_names_itself_rather_than_stringifying() {
         // `value_to_json` would happily turn this into a display string, which
         // arrives in Python as meaningless text.
-        let matrix = Value::Matrix(
-            bl_core::matrix::Matrix::new(vec![0.0], 1, 1)
-                .unwrap()
-                .into(),
-        );
+        let matrix = Value::Matrix(bl_core::matrix::Matrix::new(vec![0.0], 1, 1).unwrap());
         let error = encode_binding("reads", &matrix).expect_err("should refuse");
         assert!(error.message.contains("reads"), "{}", error.message);
         assert!(
@@ -515,16 +511,13 @@ mod tests {
             eprintln!("skipping: no Python on PATH");
             return;
         };
-        let table = Value::Table(
-            bl_core::value::Table::new(
-                vec!["gene".into(), "n".into()],
-                vec![
-                    vec![Value::Str("TP53".into()), Value::Int(3)],
-                    vec![Value::Str("BRCA1".into()), Value::Int(7)],
-                ],
-            )
-            .into(),
-        );
+        let table = Value::Table(bl_core::value::Table::new(
+            vec!["gene".into(), "n".into()],
+            vec![
+                vec![Value::Str("TP53".into()), Value::Int(3)],
+                vec![Value::Str("BRCA1".into()), Value::Int(7)],
+            ],
+        ));
         let result = call_interop_builtin(
             "py",
             vec![

@@ -104,7 +104,7 @@ fn median(vals: &mut Vec<f64>) -> f64 {
     }
     vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let n = vals.len();
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         (vals[n / 2 - 1] + vals[n / 2]) / 2.0
     } else {
         vals[n / 2]
@@ -198,7 +198,7 @@ fn builtin_size_factors(args: Vec<Value>) -> Result<Value> {
     let mat: Vec<Vec<f64>> = table
         .rows
         .iter()
-        .map(|row| row.iter().map(|v| to_f64(v)).collect())
+        .map(|row| row.iter().map(to_f64).collect())
         .collect();
 
     // For each gene, compute geometric mean across samples (skip if any zero)

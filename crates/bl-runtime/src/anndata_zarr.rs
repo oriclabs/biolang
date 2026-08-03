@@ -185,7 +185,7 @@ impl ZArray {
             return Ok(out);
         }
         let nchunks: Vec<usize> = (0..ndim)
-            .map(|d| (self.shape[d] + self.chunks[d] - 1) / self.chunks[d])
+            .map(|d| self.shape[d].div_ceil(self.chunks[d]))
             .collect();
         let total_chunks: usize = nchunks.iter().product::<usize>().max(1);
 
@@ -228,7 +228,7 @@ impl ZArray {
                 self.dir.display()
             )));
         }
-        self.assemble(String::new(), |bytes| decode_vlen_utf8(bytes))
+        self.assemble(String::new(), decode_vlen_utf8)
     }
 }
 

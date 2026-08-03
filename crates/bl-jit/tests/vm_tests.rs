@@ -111,7 +111,7 @@ fn test_vm_arithmetic() {
                 right: Box::new(s(Expr::Int(right))),
             })))],
         };
-        run_program(&program).expect(&format!("failed for op {:?}", op));
+        run_program(&program).unwrap_or_else(|_| panic!("failed for op {:?}", op));
     }
 }
 
@@ -132,7 +132,7 @@ fn test_vm_comparison() {
                 right: Box::new(s(Expr::Int(right))),
             })))],
         };
-        run_program(&program).expect(&format!("failed for op {:?}", op));
+        run_program(&program).unwrap_or_else(|_| panic!("failed for op {:?}", op));
     }
 }
 

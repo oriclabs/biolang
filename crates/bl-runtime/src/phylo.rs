@@ -420,7 +420,7 @@ fn builtin_upgma(args: Vec<Value>) -> Result<Value> {
     let mut dist: Vec<Vec<f64>> = dist_table
         .rows
         .iter()
-        .map(|row| row.iter().map(|v| to_f64(v)).collect::<Vec<f64>>())
+        .map(|row| row.iter().map(to_f64).collect::<Vec<f64>>())
         .collect::<Vec<Vec<f64>>>();
 
     // Pad or trim to n×n
@@ -430,7 +430,7 @@ fn builtin_upgma(args: Vec<Value>) -> Result<Value> {
     }
 
     // UPGMA: each cluster is represented by a Newick string and a size
-    let mut clusters: Vec<String> = labels.iter().map(|l| l.clone()).collect();
+    let mut clusters: Vec<String> = labels.to_vec();
     let mut sizes: Vec<usize> = vec![1; n];
     let mut active: Vec<usize> = (0..n).collect();
 

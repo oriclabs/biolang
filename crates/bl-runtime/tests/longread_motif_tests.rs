@@ -7,7 +7,7 @@ mod longread;
 #[path = "../src/motif.rs"]
 mod motif;
 
-use bl_core::value::{Table, Value};
+use bl_core::value::Value;
 
 fn str_val(s: &str) -> Value {
     Value::Str(s.to_string())

@@ -161,7 +161,7 @@ fn builtin_nfr_enrichment(args: Vec<Value>) -> Result<Value> {
     }
 
     let nfr_count = lengths.iter().filter(|&&l| l < 150).count() as f64;
-    let mono_count = lengths.iter().filter(|&&l| l >= 150 && l < 300).count() as f64;
+    let mono_count = lengths.iter().filter(|&&l| (150..300).contains(&l)).count() as f64;
 
     if mono_count == 0.0 {
         return Ok(Value::Float(0.0));
@@ -289,7 +289,7 @@ fn builtin_atac_qc(args: Vec<Value>) -> Result<Value> {
 
     let total = n as f64;
     let nfr_count = lengths.iter().filter(|&&l| l < 150).count() as f64;
-    let mono_count = lengths.iter().filter(|&&l| l >= 150 && l < 300).count() as f64;
+    let mono_count = lengths.iter().filter(|&&l| (150..300).contains(&l)).count() as f64;
     let large_count = lengths.iter().filter(|&&l| l >= 500).count() as f64;
 
     let nfr_enrichment = if mono_count == 0.0 {

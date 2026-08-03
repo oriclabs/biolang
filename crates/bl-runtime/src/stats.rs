@@ -721,7 +721,7 @@ fn builtin_cumsum(args: Vec<Value>) -> Result<Value> {
 fn builtin_summary(args: Vec<Value>) -> Result<Value> {
     // Handle List input: return a record with basic numeric stats
     if let Value::List(items) = &args[0] {
-        let nums: Vec<f64> = items.iter().filter_map(|v| to_f64(v)).collect();
+        let nums: Vec<f64> = items.iter().filter_map(to_f64).collect();
         if nums.is_empty() {
             let mut m = std::collections::HashMap::new();
             m.insert("count".to_string(), Value::Int(items.len() as i64));
@@ -733,7 +733,7 @@ fn builtin_summary(args: Vec<Value>) -> Result<Value> {
         let mean_val = sum / count as f64;
         let mut sorted = nums.clone();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-        let median_val = if count % 2 == 0 {
+        let median_val = if count.is_multiple_of(2) {
             (sorted[count / 2 - 1] + sorted[count / 2]) / 2.0
         } else {
             sorted[count / 2]
@@ -3684,7 +3684,7 @@ fn builtin_bootstrap(args: Vec<Value>) -> Result<Value> {
                 let mut v = vals.to_vec();
                 v.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                 let mid = v.len() / 2;
-                Ok(if v.len() % 2 == 0 { (v[mid - 1] + v[mid]) / 2.0 } else { v[mid] })
+                Ok(if v.len().is_multiple_of(2) { (v[mid - 1] + v[mid]) / 2.0 } else { v[mid] })
             }
             "sd" => {
                 if vals.len() < 2 { return Ok(0.0); }
@@ -3791,7 +3791,7 @@ fn builtin_permutation_test(args: Vec<Value>) -> Result<Value> {
                 sb.sort_by(|x, y| x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal));
                 let med = |v: &[f64]| -> f64 {
                     let m = v.len() / 2;
-                    if v.len() % 2 == 0 { (v[m-1] + v[m]) / 2.0 } else { v[m] }
+                    if v.len().is_multiple_of(2) { (v[m-1] + v[m]) / 2.0 } else { v[m] }
                 };
                 Ok(med(&sa) - med(&sb))
             }
@@ -4071,13 +4071,13 @@ fn builtin_ld_decay(args: Vec<Value>) -> Result<Value> {
     for (i, item) in items.iter().enumerate() {
         match item {
             Value::Record(map) => {
-                let pos = map.get("pos").and_then(|v| to_f64(v)).ok_or_else(|| {
+                let pos = map.get("pos").and_then(to_f64).ok_or_else(|| {
                     BioLangError::type_error(
                         format!("ld_decay() variant[{i}] missing numeric 'pos' field"),
                         None,
                     )
                 })?;
-                let freq = map.get("freq").and_then(|v| to_f64(v)).ok_or_else(|| {
+                let freq = map.get("freq").and_then(to_f64).ok_or_else(|| {
                     BioLangError::type_error(
                         format!("ld_decay() variant[{i}] missing numeric 'freq' field"),
                         None,

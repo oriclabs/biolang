@@ -2505,7 +2505,7 @@ result.iterations"#;
     let val = eval(code);
     if let Value::Int(n) = val {
         assert!(
-            n >= 1 && n <= 10,
+            (1..=10).contains(&n),
             "should converge quickly, got {n} iterations"
         );
     } else {

@@ -202,7 +202,7 @@ fn decode_block(
     let alternative = if predicted == 1 { typesize } else { 1 };
 
     for nstreams in [predicted, alternative] {
-        if nstreams == 0 || bsize % nstreams != 0 {
+        if nstreams == 0 || !bsize.is_multiple_of(nstreams) {
             continue;
         }
         out.clear();
@@ -343,7 +343,7 @@ fn unshuffle_bytes_into(typesize: usize, src: &[u8], dst: &mut [u8]) {
 fn unbitshuffle_into(typesize: usize, src: &[u8], dst: &mut [u8]) {
     let bsize = src.len();
     let nelem = bsize / typesize;
-    if nelem == 0 || nelem % 8 != 0 || nelem * typesize != bsize {
+    if nelem == 0 || !nelem.is_multiple_of(8) || nelem * typesize != bsize {
         dst.copy_from_slice(src);
         return;
     }

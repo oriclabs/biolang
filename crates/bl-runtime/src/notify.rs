@@ -65,7 +65,7 @@ fn post_json(url: &str, body: &str) -> Result<String> {
         })?;
     let status = resp.status();
     let text = resp.into_string().unwrap_or_default();
-    if status >= 200 && status < 300 {
+    if (200..300).contains(&status) {
         Ok(text)
     } else {
         // Single retry
@@ -81,7 +81,7 @@ fn post_json(url: &str, body: &str) -> Result<String> {
                 )
             })?;
         let status2 = resp2.status();
-        if status2 >= 200 && status2 < 300 {
+        if (200..300).contains(&status2) {
             Ok(resp2.into_string().unwrap_or_default())
         } else {
             Err(BioLangError::runtime(

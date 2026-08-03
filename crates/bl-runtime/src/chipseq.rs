@@ -256,7 +256,7 @@ fn builtin_frip_score(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_tss_enrichment(args: Vec<Value>) -> Result<Value> {
     let signal = match &args[0] {
-        Value::List(l) => l.iter().map(|v| to_f64(v)).collect::<Vec<_>>(),
+        Value::List(l) => l.iter().map(to_f64).collect::<Vec<_>>(),
         _ => {
             return Err(BioLangError::type_error(
                 "tss_enrichment() signal_values must be List",

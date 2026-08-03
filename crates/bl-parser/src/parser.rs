@@ -127,14 +127,14 @@ impl Parser {
             TokenKind::With => self.parse_with(),
             TokenKind::DocComment(_) => {
                 // Collect doc comments, then expect fn
-                return self.parse_doc_fn();
+                self.parse_doc_fn()
             }
-            TokenKind::At => return self.parse_decorated_fn(),
-            TokenKind::Async => return self.parse_async_fn(),
+            TokenKind::At => self.parse_decorated_fn(),
+            TokenKind::Async => self.parse_async_fn(),
             TokenKind::Fn => self.parse_fn_with_doc(None, Vec::new(), false),
-            TokenKind::Struct => return self.parse_struct(),
-            TokenKind::Trait => return self.parse_trait(),
-            TokenKind::Impl => return self.parse_impl(),
+            TokenKind::Struct => self.parse_struct(),
+            TokenKind::Trait => self.parse_trait(),
+            TokenKind::Impl => self.parse_impl(),
             TokenKind::Yield => self.parse_yield(),
             TokenKind::Enum => self.parse_enum(),
             TokenKind::Return => self.parse_return(),
@@ -1576,10 +1576,10 @@ impl Parser {
             }
         }
         // {...expr} is a record spread
-        if self.pos + 1 < self.tokens.len() {
-            if matches!(&self.tokens[self.pos + 1].kind, TokenKind::DotDotDot) {
-                return true;
-            }
+        if self.pos + 1 < self.tokens.len()
+            && matches!(&self.tokens[self.pos + 1].kind, TokenKind::DotDotDot)
+        {
+            return true;
         }
         // `{}` is an empty map. A block with no statements has no use in
         // expression position, while opening an empty map and filling it in is
@@ -2407,14 +2407,14 @@ impl Parser {
                 self.expect(TokenKind::In)?;
                 let right = self.parse_precedence(prec)?;
                 let span = left.span.merge(right.span);
-                return Ok(Spanned::new(
+                Ok(Spanned::new(
                     Expr::In {
                         left: Box::new(left),
                         right: Box::new(right),
                         negated: true,
                     },
                     span,
-                ));
+                ))
             }
             TokenKind::StarStar => {
                 // Right-associative exponentiation
@@ -2422,14 +2422,14 @@ impl Parser {
                 // Use one level lower for right-associativity
                 let right = self.parse_precedence(Precedence::Multiply)?;
                 let span = left.span.merge(right.span);
-                return Ok(Spanned::new(
+                Ok(Spanned::new(
                     Expr::Binary {
                         op: BinaryOp::Pow,
                         left: Box::new(left),
                         right: Box::new(right),
                     },
                     span,
-                ));
+                ))
             }
             TokenKind::LParen => self.parse_call(left),
             TokenKind::Dot => self.parse_field_access(left),

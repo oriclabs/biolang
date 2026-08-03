@@ -191,7 +191,7 @@ pub fn fasta_stats(path: &str) -> Result<Value> {
     let mut sorted = lengths.clone();
     sorted.sort_unstable();
 
-    let median_length = if count % 2 == 0 {
+    let median_length = if count.is_multiple_of(2) {
         (sorted[count / 2 - 1] + sorted[count / 2]) as f64 / 2.0
     } else {
         sorted[count / 2] as f64
@@ -1022,7 +1022,7 @@ fn parse_vcf_info_field(s: &str) -> Value {
         if let Some((key, val)) = part.split_once('=') {
             if val.contains(',') {
                 // Multi-value field → parse each element, return as List
-                let items: Vec<Value> = val.split(',').map(|v| parse_numeric_field(v)).collect();
+                let items: Vec<Value> = val.split(',').map(parse_numeric_field).collect();
                 map.insert(key.to_string(), Value::List((items).into()));
             } else {
                 map.insert(key.to_string(), parse_numeric_field(val));
@@ -2345,7 +2345,7 @@ impl Iterator for BamReadIter {
                     .alignment_start()
                     .map(|p| usize::from(p) as i64)
                     .unwrap_or(0);
-                let mapq = rec.mapping_quality().map(|q| u8::from(q)).unwrap_or(255);
+                let mapq = rec.mapping_quality().map(u8::from).unwrap_or(255);
                 let cigar = {
                     let ops = rec.cigar();
                     if ops.is_empty() {

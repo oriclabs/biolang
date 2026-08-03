@@ -183,7 +183,7 @@ fn builtin_beta_diversity(args: Vec<Value>) -> Result<Value> {
     let mat: Vec<Vec<f64>> = table
         .rows
         .iter()
-        .map(|row| row.iter().map(|v| to_f64(v)).collect::<Vec<f64>>())
+        .map(|row| row.iter().map(to_f64).collect::<Vec<f64>>())
         .collect();
 
     let col_names: Vec<String> = (0..n_samples).map(|i| format!("sample_{i}")).collect();
@@ -294,7 +294,7 @@ fn builtin_rarefaction(args: Vec<Value>) -> Result<Value> {
     let mut pool: Vec<usize> = counts
         .iter()
         .enumerate()
-        .flat_map(|(otu, &cnt)| std::iter::repeat(otu).take(cnt.max(0) as usize))
+        .flat_map(|(otu, &cnt)| std::iter::repeat_n(otu, cnt.max(0) as usize))
         .collect();
 
     // Fisher-Yates shuffle (deterministic, seed=42) then take first `depth`
@@ -323,7 +323,7 @@ fn builtin_rarefaction(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_relative_abundance(args: Vec<Value>) -> Result<Value> {
     let counts = match &args[0] {
-        Value::List(l) => l.iter().map(|v| to_f64(v)).collect::<Vec<_>>(),
+        Value::List(l) => l.iter().map(to_f64).collect::<Vec<_>>(),
         _ => {
             return Err(BioLangError::type_error(
                 "relative_abundance() counts must be List",
@@ -393,8 +393,7 @@ fn builtin_taxonomic_collapse(args: Vec<Value>) -> Result<Value> {
     let extract_taxon = |tax: &str| -> String {
         for part in tax.split(';') {
             let part = part.trim();
-            if part.starts_with(rank_prefix) {
-                let name = &part[rank_prefix.len()..];
+            if let Some(name) = part.strip_prefix(rank_prefix) {
                 if !name.is_empty() {
                     return name.to_string();
                 }

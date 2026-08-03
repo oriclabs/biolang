@@ -30,9 +30,8 @@ struct UpdateCache {
 }
 
 fn config_dir() -> Option<PathBuf> {
-    dirs_path().map(|d| {
-        let _ = fs::create_dir_all(&d);
-        d
+    dirs_path().inspect(|d| {
+        let _ = fs::create_dir_all(d);
     })
 }
 

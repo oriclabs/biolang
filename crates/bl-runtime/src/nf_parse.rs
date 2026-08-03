@@ -191,7 +191,7 @@ fn extract_processes(content: &str) -> Vec<Value> {
                 Value::List(
                     inputs
                         .into_iter()
-                        .map(|s| Value::Str(s))
+                        .map(Value::Str)
                         .collect::<Vec<_>>()
                         .into(),
                 ),
@@ -201,7 +201,7 @@ fn extract_processes(content: &str) -> Vec<Value> {
                 Value::List(
                     outputs
                         .into_iter()
-                        .map(|s| Value::Str(s))
+                        .map(Value::Str)
                         .collect::<Vec<_>>()
                         .into(),
                 ),
@@ -716,7 +716,7 @@ fn to_snake_case(s: &str) -> String {
             // - next char is lowercase (handles "FastQC" -> "fast_qc")
             if i > 0 && !result.ends_with('_') {
                 let prev_lower = chars[i - 1].is_lowercase();
-                let next_lower = chars.get(i + 1).map_or(false, |c| c.is_lowercase());
+                let next_lower = chars.get(i + 1).is_some_and(|c| c.is_lowercase());
                 if prev_lower || next_lower {
                     result.push('_');
                 }

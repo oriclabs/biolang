@@ -447,7 +447,7 @@ fn builtin_heatmap_ascii(args: Vec<Value>) -> Result<Value> {
                     }
                     _ => {
                         return Err(BioLangError::type_error(
-                            &format!("heatmap_ascii() row {i} is not a list"),
+                            format!("heatmap_ascii() row {i} is not a list"),
                             None,
                         ))
                     }

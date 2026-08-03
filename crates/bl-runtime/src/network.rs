@@ -64,7 +64,7 @@ fn graph_from_table(t: &bl_core::value::Table, func: &str) -> Result<Graph> {
     let weight_col = t.columns.get(2);
     let mut g: Graph = HashMap::new();
     for row in &t.rows {
-        let n1 = match row.get(0) {
+        let n1 = match row.first() {
             Some(Value::Str(s)) => s.clone(),
             _ => continue,
         };

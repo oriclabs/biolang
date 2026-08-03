@@ -108,10 +108,7 @@ fn qq_data_length_and_order() {
     assert!(t.columns.contains(&"expected".to_string()));
     assert!(t.columns.contains(&"observed".to_string()));
     // Expected values should be in increasing order (sorted by p ascending)
-    let obs: Vec<f64> = get_col(&t, "observed")
-        .iter()
-        .map(|v| as_float(v))
-        .collect();
+    let obs: Vec<f64> = get_col(&t, "observed").iter().map(as_float).collect();
     // observed -log10p: smallest p has largest observed
     assert!(obs[0] > obs[obs.len() - 1]);
 }
@@ -212,7 +209,7 @@ fn gene_bodies_collapses_transcripts() {
         ],
     ];
     let gtf = Value::Table(Table::new(
-        vec![
+        [
             "gene_id",
             "transcript_id",
             "chrom",
@@ -306,7 +303,7 @@ fn gene_id_map_deduplicates() {
         ],
     ];
     let gtf = Value::Table(Table::new(
-        vec![
+        [
             "gene_id",
             "transcript_id",
             "chrom",

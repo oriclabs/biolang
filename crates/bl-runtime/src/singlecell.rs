@@ -1626,7 +1626,7 @@ fn read_lines_from_path(path: &std::path::Path) -> Result<Vec<String>> {
             None,
         )
     })?;
-    let is_gz = path.extension().map_or(false, |e| e == "gz");
+    let is_gz = path.extension().is_some_and(|e| e == "gz");
     if is_gz {
         #[cfg(feature = "native")]
         {
@@ -3082,10 +3082,8 @@ fn builtin_cnv_segment(args: Vec<Value>) -> Result<Value> {
             let t = (mean_r - mean_l).abs() / pooled_se;
 
             // t ≈ 2.0 ~ p < 0.05 for moderate degrees of freedom
-            if t > 2.0 {
-                if i - *change_points.last().unwrap() >= min_segment {
-                    change_points.push(i);
-                }
+            if t > 2.0 && i - *change_points.last().unwrap() >= min_segment {
+                change_points.push(i);
             }
         }
     }
@@ -3197,7 +3195,7 @@ fn builtin_loh_detect(args: Vec<Value>) -> Result<Value> {
 
     let mut deviations: Vec<f64> = vafs.iter().map(|&v| (v - 0.5).abs()).collect();
     deviations.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-    let median_deviation = if n_snps % 2 == 0 {
+    let median_deviation = if n_snps.is_multiple_of(2) {
         (deviations[n_snps / 2 - 1] + deviations[n_snps / 2]) / 2.0
     } else {
         deviations[n_snps / 2]
@@ -3667,7 +3665,7 @@ fn builtin_mutational_signature(args: Vec<Value>) -> Result<Value> {
         }
 
         // gradient_j = 2 * sum_i (fitted_i - obs_i) * COSMIC_SIGS[i][j]
-        let mut grad = vec![0.0f64; N_SIGS];
+        let mut grad = [0.0f64; N_SIGS];
         for i in 0..96 {
             let residual = fitted[i] - obs[i];
             for j in 0..N_SIGS {

@@ -1323,7 +1323,7 @@ fn test_wnn_graph_basic() {
         other => panic!("{other:?}"),
     };
     // 3 cells × up to 2 neighbors = up to 6 edges
-    assert!(t.rows.len() > 0, "expected edges in WNN graph");
+    assert!(!t.rows.is_empty(), "expected edges in WNN graph");
     // All weights should be in (0, 1]
     for row in &t.rows {
         let w = match &row[2] {

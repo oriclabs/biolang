@@ -534,7 +534,7 @@ fn test_is_nan_is_finite() {
 #[test]
 fn test_random() {
     if let Value::Float(r) = call_stats_builtin("random", vec![]).unwrap() {
-        assert!(r >= 0.0 && r <= 1.0, "random() out of range: {r}");
+        assert!((0.0..=1.0).contains(&r), "random() out of range: {r}");
     } else {
         panic!("expected Float");
     }
@@ -545,7 +545,7 @@ fn test_random_int() {
     if let Value::Int(r) =
         call_stats_builtin("random_int", vec![Value::Int(1), Value::Int(10)]).unwrap()
     {
-        assert!(r >= 1 && r < 10, "random_int() out of range: {r}");
+        assert!((1..10).contains(&r), "random_int() out of range: {r}");
     } else {
         panic!("expected Int");
     }
@@ -1775,7 +1775,7 @@ fn test_unique_large_list() {
 fn test_random_range_multiple_calls() {
     for _ in 0..10 {
         if let Value::Float(r) = call_stats_builtin("random", vec![]).unwrap() {
-            assert!(r >= 0.0 && r <= 1.0, "random() = {r} out of [0,1]");
+            assert!((0.0..=1.0).contains(&r), "random() = {r} out of [0,1]");
         }
     }
 }

@@ -391,7 +391,7 @@ fn read_csv_from_url(url: &str, sep: &str, has_header: bool) -> Result<Value> {
                 None,
             )
         })?;
-        return parse_csv_text(&text, sep, has_header);
+        parse_csv_text(&text, sep, has_header)
     }
 
     #[cfg(not(feature = "native"))]

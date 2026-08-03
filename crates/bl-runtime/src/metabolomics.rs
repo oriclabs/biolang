@@ -102,7 +102,7 @@ fn fisher_exact_pvalue(a: usize, b: usize, c: usize, d: usize) -> f64 {
     let n1 = a + b;
     let n2 = c + d;
     let k = a + c;
-    let n = a + b + c + d;
+    let _n = a + b + c + d;
     let lo = k.saturating_sub(n2);
     let hi = k.min(n1);
     let mut p = 0.0f64;
@@ -161,7 +161,7 @@ fn builtin_mz_match(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_isotope_correct(args: Vec<Value>) -> Result<Value> {
     let intensities: Vec<f64> = match &args[0] {
-        Value::List(l) => l.iter().map(|v| to_f64(v)).collect(),
+        Value::List(l) => l.iter().map(to_f64).collect(),
         _ => {
             return Err(BioLangError::type_error(
                 "isotope_correct() intensities must be List",
@@ -459,7 +459,7 @@ fn builtin_normalize_samples(args: Vec<Value>) -> Result<Value> {
                     let mut sorted = vals.clone();
                     sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
                     let mid = sorted.len() / 2;
-                    factors[col] = if sorted.len() % 2 == 0 {
+                    factors[col] = if sorted.len().is_multiple_of(2) {
                         (sorted[mid - 1] + sorted[mid]) / 2.0
                     } else {
                         sorted[mid]

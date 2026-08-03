@@ -104,7 +104,7 @@ fn builtin_plan_backend(args: Vec<Value>) -> Result<Value> {
     }
 
     append_ledger(
-        &cap.name,
+        cap.name,
         &backend_label,
         &decision.reason,
         &decision.warnings,

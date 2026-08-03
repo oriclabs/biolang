@@ -780,7 +780,7 @@ fn is_uniprot_accession(id: &str) -> bool {
             | b'X'
             | b'Y'
             | b'Z'
-    ) && bytes.get(1).map_or(false, |b| b.is_ascii_digit())
+    ) && bytes.get(1).is_some_and(|b| b.is_ascii_digit())
         && bytes[2..].iter().all(|b| b.is_ascii_alphanumeric())
 }
 
@@ -1305,7 +1305,7 @@ fn builtin_qc_report(args: &[Value]) -> Result<Value> {
         // N count
         n_count += seq_str
             .chars()
-            .filter(|c| c.to_ascii_uppercase() == 'N')
+            .filter(|c| c.eq_ignore_ascii_case(&'N'))
             .count() as i64;
 
         // Quality scores (Phred+33)
@@ -1340,7 +1340,7 @@ fn builtin_qc_report(args: &[Value]) -> Result<Value> {
         0.0
     } else {
         let mid = qual_sums.len() / 2;
-        if qual_sums.len() % 2 == 0 {
+        if qual_sums.len().is_multiple_of(2) {
             (qual_sums[mid - 1] + qual_sums[mid]) / 2.0
         } else {
             qual_sums[mid]
@@ -3161,9 +3161,7 @@ fn builtin_scan_bio(args: &[Value]) -> Result<Value> {
     // --- DOI detection ---
     let doi_re = regex::Regex::new(r"\b(10\.\d{4,9}/[^\s]{5,50})\b").unwrap();
     for cap in doi_re.captures_iter(&text) {
-        let id = cap[1]
-            .trim_end_matches(|c: char| c == '.' || c == ',' || c == ')' || c == ';')
-            .to_string();
+        let id = cap[1].trim_end_matches(['.', ',', ')', ';']).to_string();
         if seen.insert(format!("a:doi:{id}")) {
             accessions.push(Value::Str(id));
         }
@@ -3408,7 +3406,7 @@ fn builtin_cite(args: &[Value]) -> Result<Value> {
 
     let bibtex = format!(
         "@article{{{doi_key},\n  author = {{{full_authors}}},\n  title = {{{{{title}}}}},\n  journal = {{{journal}}},\n  year = {{{year}}},\n  volume = {{{volume}}},\n  pages = {{{pages}}},\n  doi = {{{doi_str}}}\n}}",
-        doi_key = doi_str.replace('/', "_").replace('.', "_"),
+        doi_key = doi_str.replace(['/', '.'], "_"),
     );
 
     let ris = format!(
@@ -3725,11 +3723,11 @@ fn builtin_gc_skew(args: Vec<Value>) -> Result<Value> {
 
         let g = window
             .chars()
-            .filter(|c| c.to_ascii_uppercase() == 'G')
+            .filter(|c| c.eq_ignore_ascii_case(&'G'))
             .count() as i64;
         let c = window
             .chars()
-            .filter(|c| c.to_ascii_uppercase() == 'C')
+            .filter(|c| c.eq_ignore_ascii_case(&'C'))
             .count() as i64;
 
         let gc_sum = g + c;
@@ -3842,17 +3840,15 @@ fn find_restriction_enzyme(seq: &str, enzyme_name: &str, pattern: &str) -> Vec<V
         }
 
         // Reverse complement (skip if palindrome)
-        if pat_rc_str != pattern {
-            if iupac_mismatches(&pat_rc_chars, slice) == 0 {
-                let site: String = slice.iter().collect();
-                let mut fields = HashMap::new();
-                fields.insert("pos".to_string(), Value::Int(i as i64));
-                fields.insert("end".to_string(), Value::Int((i + plen) as i64));
-                fields.insert("strand".to_string(), Value::Str("-".to_string()));
-                fields.insert("enzyme".to_string(), Value::Str(enzyme_name.to_string()));
-                fields.insert("site".to_string(), Value::Str(site));
-                hits.push(Value::Record((fields).into()));
-            }
+        if pat_rc_str != pattern && iupac_mismatches(&pat_rc_chars, slice) == 0 {
+            let site: String = slice.iter().collect();
+            let mut fields = HashMap::new();
+            fields.insert("pos".to_string(), Value::Int(i as i64));
+            fields.insert("end".to_string(), Value::Int((i + plen) as i64));
+            fields.insert("strand".to_string(), Value::Str("-".to_string()));
+            fields.insert("enzyme".to_string(), Value::Str(enzyme_name.to_string()));
+            fields.insert("site".to_string(), Value::Str(site));
+            hits.push(Value::Record((fields).into()));
         }
     }
     hits
@@ -4057,7 +4053,7 @@ fn builtin_align(args: Vec<Value>) -> Result<Value> {
     fields.insert("aligned_b".to_string(), Value::Str(result.aligned2.clone()));
     fields.insert("aligned1".to_string(), Value::Str(result.aligned1));
     fields.insert("aligned2".to_string(), Value::Str(result.aligned2));
-    return Ok(Value::Record((fields).into()));
+    Ok(Value::Record((fields).into()))
 }
 
 #[allow(dead_code)]

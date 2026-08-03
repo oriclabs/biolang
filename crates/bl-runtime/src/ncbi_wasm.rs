@@ -105,9 +105,9 @@ fn fetch_url(url: &str) -> Result<String> {
         let resp = ureq::get(url).call().map_err(|e| {
             BioLangError::runtime(ErrorKind::IOError, format!("NCBI HTTP error: {e}"), None)
         })?;
-        return resp.into_string().map_err(|e| {
+        resp.into_string().map_err(|e| {
             BioLangError::runtime(ErrorKind::IOError, format!("NCBI read error: {e}"), None)
-        });
+        })
     }
 
     #[cfg(not(feature = "native"))]

@@ -68,7 +68,7 @@ fn table_to_matrix(table: &Table) -> Vec<Vec<f64>> {
     table
         .rows
         .iter()
-        .map(|row| row.iter().map(|v| to_f64(v)).collect())
+        .map(|row| row.iter().map(to_f64).collect())
         .collect()
 }
 
@@ -157,7 +157,7 @@ fn builtin_insulation_score(args: Vec<Value>) -> Result<Value> {
 
     for i in 0..n {
         // Diamond region: rows [i-w..i], cols [i..i+w]
-        let row_start = if i >= window { i - window } else { 0 };
+        let row_start = i.saturating_sub(window);
         let col_end = (i + window).min(n);
         // Only compute for bins with a full diamond
         if i < window || i + window >= n {
@@ -203,7 +203,7 @@ fn builtin_insulation_score(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_tad_boundaries(args: Vec<Value>) -> Result<Value> {
     let scores: Vec<f64> = match &args[0] {
-        Value::List(l) => l.iter().map(|v| to_f64(v)).collect(),
+        Value::List(l) => l.iter().map(to_f64).collect(),
         _ => {
             return Err(BioLangError::type_error(
                 "tad_boundaries() scores must be List",
@@ -286,7 +286,7 @@ fn builtin_expected_contacts(args: Vec<Value>) -> Result<Value> {
         .map(|i| {
             (0..n)
                 .map(|j| {
-                    let d = if i <= j { j - i } else { i - j };
+                    let d = j.abs_diff(i);
                     decay[d]
                 })
                 .collect()

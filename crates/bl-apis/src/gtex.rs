@@ -22,6 +22,7 @@ pub struct GtexClient {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct GtexTissue {
     #[serde(rename = "tissueSiteDetailId")]
     pub tissue_id: String,
@@ -33,18 +34,6 @@ pub struct GtexTissue {
     pub sample_count: u64,
     #[serde(rename = "colorHex")]
     pub color_hex: String,
-}
-
-impl Default for GtexTissue {
-    fn default() -> Self {
-        GtexTissue {
-            tissue_id: String::new(),
-            tissue_name: String::new(),
-            tissue_site: String::new(),
-            sample_count: 0,
-            color_hex: String::new(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

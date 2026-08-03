@@ -537,10 +537,8 @@ fn suggest_bio_builtin(name: &str) -> Option<String> {
     let mut best: Option<(String, usize)> = None;
     for (builtin_name, _) in bio_builtin_list() {
         let dist = levenshtein(name, builtin_name);
-        if dist > 0 && dist <= max_dist {
-            if best.as_ref().map_or(true, |(_, d)| dist < *d) {
-                best = Some((builtin_name.to_string(), dist));
-            }
+        if dist > 0 && dist <= max_dist && best.as_ref().is_none_or(|(_, d)| dist < *d) {
+            best = Some((builtin_name.to_string(), dist));
         }
     }
     best.map(|(s, _)| s)

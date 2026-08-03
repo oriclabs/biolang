@@ -295,10 +295,8 @@ fn genome_x_layout(chroms: &[String], positions: &[f64]) -> (Vec<f64>, Vec<(Stri
                 }
             })
             .or_insert(positions[i]);
-        if !chrom_max.contains_key(c) || !chrom_order.contains(c) {
-            if !chrom_order.contains(c) {
-                chrom_order.push(c.clone());
-            }
+        if (!chrom_max.contains_key(c) || !chrom_order.contains(c)) && !chrom_order.contains(c) {
+            chrom_order.push(c.clone());
         }
     }
     let mut offsets: HashMap<String, f64> = HashMap::new();
@@ -468,7 +466,7 @@ fn builtin_qq_plot(args: Vec<Value>) -> Result<Value> {
         }
         let d = Scale {
             domain: range,
-            range: range,
+            range,
         };
         c.draw_x_axis(&d, "Expected -log10(p)");
         c.draw_y_axis(&d, "Observed -log10(p)");
@@ -968,7 +966,7 @@ fn builtin_density(args: Vec<Value>) -> Result<Value> {
     let width = get_opt_usize(&opts, "width", 60);
     let _height = get_opt_usize(&opts, "height", 16);
     let mut out = String::from("  Density\n");
-    for (_gi, (name, vals)) in groups.iter().enumerate() {
+    for (name, vals) in groups.iter() {
         let bw = bw_opt.unwrap_or_else(|| silverman_bw(vals));
         let (_kx, ky) = kde(vals, bw, width);
         let max_y = ky.iter().cloned().fold(0.0f64, f64::max);
@@ -1661,13 +1659,13 @@ fn builtin_pca_plot(args: Vec<Value>) -> Result<Value> {
         for j in 0..pc1.len() {
             let ci = labels
                 .as_ref()
-                .and_then(|l| {
+                .map(|l| {
                     let e = cm.entry(l[j].clone()).or_insert_with(|| {
                         let v = next_ci;
                         next_ci += 1;
                         v
                     });
-                    Some(*e)
+                    *e
                 })
                 .unwrap_or(0);
             c.add_circle(
@@ -2140,7 +2138,7 @@ fn builtin_sequence_logo(args: Vec<Value>) -> Result<Value> {
 
     // ASCII logo: show top char per position with height indicator
     let mut out = String::from("  Sequence Logo\n  ");
-    for (_pos, chars) in positions.iter().enumerate() {
+    for chars in positions.iter() {
         if let Some(&(ch, _)) = chars.last() {
             out.push(ch);
         } else {
@@ -2874,8 +2872,10 @@ fn builtin_volcano_plot(args: Vec<Value>) -> Result<Value> {
             };
             let fcs = extract_table_col(table, fc_col)?;
             let pvals = extract_table_col(table, p_col)?;
-            let names = if let Some(idx) = table.col_index("gene").or(table.col_index("name")) {
-                Some(
+            let names = table
+                .col_index("gene")
+                .or(table.col_index("name"))
+                .map(|idx| {
                     table
                         .rows
                         .iter()
@@ -2883,11 +2883,8 @@ fn builtin_volcano_plot(args: Vec<Value>) -> Result<Value> {
                             Value::Str(s) => s.clone(),
                             other => format!("{other}"),
                         })
-                        .collect::<Vec<_>>(),
-                )
-            } else {
-                None
-            };
+                        .collect::<Vec<_>>()
+                });
             (fcs, pvals, names)
         }
         Value::List(items) => {
@@ -3597,11 +3594,7 @@ fn builtin_circos_plot(args: Vec<Value>) -> Result<Value> {
                 .unwrap_or_else(|_| vec![1.0; chroms.len()]);
             chroms
                 .into_iter()
-                .zip(
-                    starts
-                        .into_iter()
-                        .zip(ends.into_iter().zip(values.into_iter())),
-                )
+                .zip(starts.into_iter().zip(ends.into_iter().zip(values)))
                 .map(|(c, (s, (e, v)))| (c, s, e, v))
                 .collect()
         }
@@ -4177,7 +4170,7 @@ fn builtin_coverage_track(args: Vec<Value>) -> Result<Value> {
         let fill_color = if color.starts_with('#') && color.len() == 7 {
             format!("{}88", &color)
         } else {
-            format!("{color}")
+            color.to_string()
         };
         c.elements.push(format!(
             r##"<polygon points="{}" fill="{}" stroke="none" />"##,

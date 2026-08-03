@@ -645,7 +645,7 @@ fn heatmap_text_color(t: f64, scheme: &str) -> &'static str {
     match scheme {
         "rdbu" => {
             // mid-range is white/light, extremes are dark
-            if t < 0.25 || t > 0.75 {
+            if !(0.25..=0.75).contains(&t) {
                 "white"
             } else {
                 "#333"

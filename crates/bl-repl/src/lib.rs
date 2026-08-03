@@ -270,7 +270,7 @@ impl Hinter for BioHelper {
         let full = format!("{word}{completion}");
         *self.hint_desc.borrow_mut() = if n > 1 {
             format!("  ({n} matches — Tab to list)")
-        } else if self.user_vars.iter().any(|v| *v == full) {
+        } else if self.user_vars.contains(&full) {
             "  (your variable)".to_string()
         } else {
             String::new()
@@ -2112,7 +2112,7 @@ fn looks_like_uniprot_id(s: &str) -> bool {
 fn looks_like_pdb_id(s: &str) -> bool {
     // PDB ID: 4 characters, first is digit, rest alphanumeric
     s.len() == 4
-        && s.as_bytes().first().map_or(false, |c| c.is_ascii_digit())
+        && s.as_bytes().first().is_some_and(|c| c.is_ascii_digit())
         && s.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
@@ -2457,7 +2457,7 @@ fn value_preview(val: &Value) -> String {
         Value::Kmer(km) => format!("Kmer({})", km.decode()),
         Value::SparseMatrix(sm) => format!("Sparse({}x{}, {} nnz)", sm.nrow, sm.ncol, sm.nnz()),
         Value::Tuple(items) => {
-            let parts: Vec<String> = items.iter().map(|v| value_preview(v)).collect();
+            let parts: Vec<String> = items.iter().map(value_preview).collect();
             format!(
                 "({}{})",
                 parts.join(", "),
@@ -3870,10 +3870,10 @@ fn colorize_value(value: &Value) -> String {
                 return format!("{DIM}[]{RESET}");
             }
             if items.len() <= 10 {
-                let parts: Vec<String> = items.iter().map(|v| colorize_value(v)).collect();
+                let parts: Vec<String> = items.iter().map(colorize_value).collect();
                 format!("[{}]", parts.join(", "))
             } else {
-                let parts: Vec<String> = items[..10].iter().map(|v| colorize_value(v)).collect();
+                let parts: Vec<String> = items[..10].iter().map(colorize_value).collect();
                 format!(
                     "[{}, {DIM}... {} more{RESET}]",
                     parts.join(", "),
@@ -3941,7 +3941,7 @@ fn colorize_value(value: &Value) -> String {
             if fields.is_empty() {
                 format!("{MAGENTA}{enum_name}::{variant}{RESET}")
             } else {
-                let args: Vec<String> = fields.iter().map(|v| colorize_value(v)).collect();
+                let args: Vec<String> = fields.iter().map(colorize_value).collect();
                 format!(
                     "{MAGENTA}{enum_name}::{variant}{RESET}({})",
                     args.join(", ")
@@ -3949,7 +3949,7 @@ fn colorize_value(value: &Value) -> String {
             }
         }
         Value::Set(items) => {
-            let parts: Vec<String> = items.iter().take(10).map(|v| colorize_value(v)).collect();
+            let parts: Vec<String> = items.iter().take(10).map(colorize_value).collect();
             if items.len() > 10 {
                 format!(
                     "#{{{}, {DIM}... {} more{RESET}}}",
@@ -3965,7 +3965,7 @@ fn colorize_value(value: &Value) -> String {
         Value::Kmer(km) => format!("{MAGENTA}Kmer({}{RESET}{MAGENTA}){RESET}", km.decode()),
         Value::SparseMatrix(sm) => format!("{CYAN}{sm}{RESET}"),
         Value::Tuple(items) => {
-            let parts: Vec<String> = items.iter().map(|v| colorize_value(v)).collect();
+            let parts: Vec<String> = items.iter().map(colorize_value).collect();
             format!(
                 "({}{})",
                 parts.join(", "),

@@ -1,6 +1,5 @@
 use bl_bio::io::*;
-use bl_core::value::{BioSequence, Table, Value};
-use std::collections::HashMap;
+use bl_core::value::{BioSequence, Value};
 
 fn test_data_dir() -> std::path::PathBuf {
     let mut dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -1441,7 +1440,7 @@ fn test_read_bed_bufread_bed3() {
     let result = read_bed(path.to_str().unwrap()).unwrap();
     if let Value::Table(t) = &result {
         assert_eq!(t.columns.len(), 3); // BED3 only has chrom, start, end
-        assert!(t.rows.len() >= 1);
+        assert!(!t.rows.is_empty());
     } else {
         panic!("read_bed should return Table");
     }

@@ -45,7 +45,7 @@ pub fn call_sparse_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "normalize_sparse" => builtin_normalize_sparse(args),
         _ => Err(BioLangError::runtime(
             bl_core::error::ErrorKind::NameError,
-            &format!("unknown sparse builtin: {name}"),
+            format!("unknown sparse builtin: {name}"),
             None,
         )),
     }
@@ -348,7 +348,7 @@ fn builtin_normalize_sparse(args: Vec<Value>) -> Result<Value> {
         _ => {
             return Err(BioLangError::runtime(
                 bl_core::error::ErrorKind::TypeError,
-                &format!("normalize_sparse() unknown method: {method}. Use 'log1p_cpm' or 'scale'"),
+                format!("normalize_sparse() unknown method: {method}. Use 'log1p_cpm' or 'scale'"),
                 None,
             ))
         }

@@ -108,7 +108,7 @@ fn median_f64(mut v: Vec<f64>) -> f64 {
     if n == 0 {
         return 0.0;
     }
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         (v[n / 2 - 1] + v[n / 2]) / 2.0
     } else {
         v[n / 2]

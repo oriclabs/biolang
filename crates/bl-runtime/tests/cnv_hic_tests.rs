@@ -68,7 +68,7 @@ fn test_cbs_segment_flat() {
     let result = cnv::call_cnv_builtin("cbs_segment", vec![ratios]).unwrap();
     if let Value::Table(t) = result {
         // With flat signal, merging should collapse to 1 segment
-        assert!(t.rows.len() >= 1);
+        assert!(!t.rows.is_empty());
         // start of first segment should be 0
         assert_eq!(t.rows[0][0], Value::Int(0));
     } else {
@@ -84,7 +84,7 @@ fn test_cbs_segment_step() {
     let ratios = float_list(&vals);
     let result = cnv::call_cnv_builtin("cbs_segment", vec![ratios]).unwrap();
     if let Value::Table(t) = result {
-        assert!(t.rows.len() >= 1);
+        assert!(!t.rows.is_empty());
     } else {
         panic!("expected Table");
     }

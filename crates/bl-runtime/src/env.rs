@@ -192,10 +192,8 @@ impl Environment {
         loop {
             for key in self.scopes[scope_id].vars.keys() {
                 let dist = levenshtein(name, key);
-                if dist > 0 && dist <= max_dist {
-                    if best.as_ref().map_or(true, |(_, d)| dist < *d) {
-                        best = Some((key.clone(), dist));
-                    }
+                if dist > 0 && dist <= max_dist && best.as_ref().is_none_or(|(_, d)| dist < *d) {
+                    best = Some((key.clone(), dist));
                 }
             }
             match self.scopes[scope_id].parent {

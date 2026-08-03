@@ -828,7 +828,7 @@ mod tests {
 
     #[test]
     fn test_parse_ftp_url_anonymous() {
-        let (host, port, path, user, pass) =
+        let (host, port, path, user, _pass) =
             parse_ftp_url("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq").unwrap();
         assert_eq!(host, "ftp.ncbi.nlm.nih.gov");
         assert_eq!(port, 21);

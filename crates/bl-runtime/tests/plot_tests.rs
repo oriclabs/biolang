@@ -578,7 +578,7 @@ fn test_histogram_custom_bins() {
         // With 5 bins, should have 5 rects
         let rect_count = s.matches("<rect").count();
         assert!(
-            rect_count >= 5 && rect_count <= 6,
+            (5..=6).contains(&rect_count),
             "expected ~5 rects for 5 bins, got {rect_count}"
         );
     } else {
@@ -794,7 +794,7 @@ fn test_heatmap_large_matrix() {
         }
         rows.push(row);
     }
-    let cols: Vec<&str> = (0..10).map(|_| "c").collect();
+    let _cols: Vec<&str> = (0..10).map(|_| "c").collect();
     let col_names: Vec<&str> = vec!["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9"];
     let table = make_table(col_names, rows);
     let result = call_plot_builtin("heatmap", vec![table]).unwrap();

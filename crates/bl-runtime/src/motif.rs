@@ -73,21 +73,21 @@ fn require_table<'a>(val: &'a Value, func: &str) -> Result<&'a Table> {
 /// IUPAC base → set of matching nucleotides (uppercase).
 fn iupac_matches(ch: u8) -> &'static [u8] {
     match ch.to_ascii_uppercase() {
-        b'A' => &[b'A'],
-        b'C' => &[b'C'],
-        b'G' => &[b'G'],
-        b'T' => &[b'T'],
-        b'R' => &[b'A', b'G'],
-        b'Y' => &[b'C', b'T'],
-        b'S' => &[b'G', b'C'],
-        b'W' => &[b'A', b'T'],
-        b'K' => &[b'G', b'T'],
-        b'M' => &[b'A', b'C'],
-        b'B' => &[b'C', b'G', b'T'],
-        b'D' => &[b'A', b'G', b'T'],
-        b'H' => &[b'A', b'C', b'T'],
-        b'V' => &[b'A', b'C', b'G'],
-        b'N' => &[b'A', b'C', b'G', b'T'],
+        b'A' => b"A",
+        b'C' => b"C",
+        b'G' => b"G",
+        b'T' => b"T",
+        b'R' => b"AG",
+        b'Y' => b"CT",
+        b'S' => b"GC",
+        b'W' => b"AT",
+        b'K' => b"GT",
+        b'M' => b"AC",
+        b'B' => b"CGT",
+        b'D' => b"AGT",
+        b'H' => b"ACT",
+        b'V' => b"ACG",
+        b'N' => b"ACGT",
         _ => &[],
     }
 }
@@ -299,7 +299,7 @@ fn builtin_pwm_scan(args: Vec<Value>) -> Result<Value> {
         .rows
         .iter()
         .map(|row| {
-            let get = |i: usize| row.get(i).and_then(|v| to_f64(v)).unwrap_or(0.0);
+            let get = |i: usize| row.get(i).and_then(to_f64).unwrap_or(0.0);
             [get(ai), get(ci), get(gi), get(ti)]
         })
         .collect();
@@ -379,7 +379,7 @@ fn builtin_motif_consensus(args: Vec<Value>) -> Result<Value> {
 
     let mut consensus = String::new();
     for row in &pwm.rows {
-        let get = |i: usize| row.get(i).and_then(|v| to_f64(v)).unwrap_or(0.0);
+        let get = |i: usize| row.get(i).and_then(to_f64).unwrap_or(0.0);
         let wa = get(ai);
         let wc = get(ci);
         let wg = get(gi);

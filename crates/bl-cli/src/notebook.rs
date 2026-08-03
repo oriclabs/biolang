@@ -442,21 +442,11 @@ fn render_inline_ansi(text: &str) -> String {
 }
 
 fn find_char(chars: &[char], target: char, from: usize) -> Option<usize> {
-    for i in from..chars.len() {
-        if chars[i] == target {
-            return Some(i);
-        }
-    }
-    None
+    (from..chars.len()).find(|&i| chars[i] == target)
 }
 
 fn find_double_char(chars: &[char], target: char, from: usize) -> Option<usize> {
-    for i in from..chars.len().saturating_sub(1) {
-        if chars[i] == target && chars[i + 1] == target {
-            return Some(i);
-        }
-    }
-    None
+    (from..chars.len().saturating_sub(1)).find(|&i| chars[i] == target && chars[i + 1] == target)
 }
 
 // ── HTML export ──────────────────────────────────────────────────────────────
