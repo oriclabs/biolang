@@ -6,7 +6,7 @@
 # ── DNA Literals ──────────────────────────────────────────────
 let my_gene = dna"ATGGCGTACCTGAAATTTCCCGGG"
 println("Gene:    ", my_gene)
-println("Length:  ", my_gene.length)
+println("Length:  ", len(my_gene))
 
 # Build a sequence from a string variable
 let raw = "TTAGCCAATGCTTGA"

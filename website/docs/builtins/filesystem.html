@@ -27,7 +27,7 @@
 
         <section class="mb-12" id="read">
           <h2 class="text-2xl font-bold text-white">Reading Files</h2>
-          <pre><code class="language-biolang">read_text(path) -> string            # entire file as string
+          <pre><code class="language-text">read_text(path) -> string            # entire file as string
 read_lines(path) -> list&lt;string&gt;     # list of lines (no trailing \n)</code></pre>
           <pre><code class="language-biolang">let content = read_text("sample.fasta")
 let lines = read_lines("gene_list.txt")
@@ -43,7 +43,7 @@ println("Total bases:", len(sequences))</code></pre>
 
         <section class="mb-12" id="write">
           <h2 class="text-2xl font-bold text-white">Writing Files</h2>
-          <pre><code class="language-biolang">write_text(path, content) -> string      # returns path
+          <pre><code class="language-text">write_text(path, content) -> string      # returns path
 write_lines(path, lines) -> string       # joins with \n</code></pre>
           <pre><code class="language-biolang">write_text("output.txt", "Analysis complete\n")
 
@@ -61,7 +61,7 @@ write_lines("regions.bed", regions)</code></pre>
         <section class="mb-12" id="glob">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">glob</span></h2>
           <p class="text-slate-400 mt-2">Find files matching a glob pattern. Returns a list of matching paths.</p>
-          <pre><code class="language-biolang">glob(pattern) -> list&lt;string&gt;</code></pre>
+          <pre><code class="language-text">glob(pattern) -> list&lt;string&gt;</code></pre>
           <pre><code class="language-biolang">glob("*.fastq.gz")                    # ["S1_R1.fastq.gz", "S1_R2.fastq.gz"]
 glob("data/**/*.bam")                  # recursive search
 glob("samples/*/aligned/*.bam")        # wildcard directories
@@ -76,7 +76,7 @@ for f in fastqs {
 
         <section class="mb-12" id="directory">
           <h2 class="text-2xl font-bold text-white">Directory Operations</h2>
-          <pre><code class="language-biolang">mkdir(path) -> string          # create directory (recursive), returns path
+          <pre><code class="language-text">mkdir(path) -> string          # create directory (recursive), returns path
 remove_dir(path, force?) -> nil  # remove directory (force=true for non-empty)
 file_exists(path) -> bool      # check if path exists
 is_file(path) -> bool          # true if regular file
@@ -87,17 +87,17 @@ if not file_exists("output") {
   mkdir("output")
 }
 
-assert(is_file("sample.bam"), "BAM file missing")
-assert(is_dir("reference/"), "Reference directory missing")</code></pre>
+assert is_file("sample.bam"), "BAM file missing"
+assert is_dir("reference/"), "Reference directory missing"</code></pre>
         </section>
 
         <section class="mb-12" id="file-ops">
           <h2 class="text-2xl font-bold text-white">File Operations</h2>
-          <pre><code class="language-biolang">file_size(path) -> int            # bytes
+          <pre><code class="language-text">file_size(path) -> int            # bytes
 copy_file(src, dst) -> string     # returns dst path
 rename_file(src, dst) -> string   # returns dst path
 remove(path) -> nil               # delete a file
-temp_file(suffix?) -> string      # create temp file, return path
+temp_file() -> string             # create temp file, return path
 temp_dir() -> string              # create temp directory, return path</code></pre>
           <pre><code class="language-biolang">let size = file_size("genome.fa.gz")
 println("Reference size:", round(float(size) / 1e9, 2), "GB")
@@ -106,7 +106,7 @@ println("Reference size:", round(float(size) / 1e9, 2), "GB")
 copy_file("results.csv", "archive/results_20260305.csv")
 
 # Use temp files for intermediate processing
-let tmp = temp_file(".bam")
+let tmp = temp_file()
 # ... write intermediate BAM to tmp ...
 rename_file(tmp, "final_output.bam")
 

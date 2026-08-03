@@ -1,0 +1,40 @@
+# atac — ATAC-seq quality control and quantification for BioLang
+#
+# Quick start — QC:
+#   import "atac" as atac
+#
+#   let frag_sizes = read_csv("fragments.tsv") |> col("length")
+#   atac.qc(frag_sizes)
+#   atac.nfr(frag_sizes)
+#   atac.sizes(frag_sizes)
+#
+# Quick start — gene activity, then the standard single-cell workflow:
+#   import "atac" as atac
+#   import "singlecell" as sc
+#
+#   let genes = atac.from_gtf(read_file("genes.gtf"))
+#   let obj   = atac.activity("fragments.tsv.gz", genes)
+#   let res   = obj |> sc.normalize() |> sc.variable_genes(2000)
+#                   |> sc.neighbors(15) |> sc.cluster_leiden(15, 1.0)
+#
+# activity() returns the same object shape as read_10x(), so every singlecell
+# function works on it unchanged.
+
+import "atac/src/qc"     as qc
+import "atac/src/counts" as counts
+
+fn sizes(lengths)                       { qc.sizes(lengths) }
+fn nfr(lengths)                         { qc.nfr(lengths) }
+fn nucleosomes(lengths)                 { qc.nucl(lengths) }
+fn tss(lengths, dists, flank=2000)      { qc.tss(lengths, dists, flank) }
+fn qc(lengths)                          { atac_qc(lengths) }
+
+# ─── Quantification ───────────────────────────────────────────────────────────
+
+fn activity(fragments, genes, upstream = 2000, downstream = 0, barcodes = nil) {
+    counts.activity(fragments, genes, upstream, downstream, barcodes)
+}
+fn peaks(fragments, peak_table, barcodes = nil) {
+    counts.peaks(fragments, peak_table, barcodes)
+}
+fn from_gtf(gtf_text)                   { counts.from_gtf(gtf_text) }

@@ -5,7 +5,13 @@ use std::collections::HashMap;
 // ── Helpers ──────────────────────────────────────────────────────
 
 fn gene_list(genes: &[&str]) -> Value {
-    Value::List(genes.iter().map(|g| Value::Str(g.to_string())).collect())
+    Value::List(
+        genes
+            .iter()
+            .map(|g| Value::Str(g.to_string()))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn gene_sets(sets: Vec<(&str, Vec<&str>)>) -> Value {
@@ -13,10 +19,16 @@ fn gene_sets(sets: Vec<(&str, Vec<&str>)>) -> Value {
     for (name, genes) in sets {
         map.insert(
             name.to_string(),
-            Value::List(genes.iter().map(|g| Value::Str(g.to_string())).collect()),
+            Value::List(
+                genes
+                    .iter()
+                    .map(|g| Value::Str(g.to_string()))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
         );
     }
-    Value::Map(map)
+    Value::Map((map).into())
 }
 
 fn ranked_table(genes_scores: Vec<(&str, f64)>) -> Value {
@@ -100,7 +112,10 @@ fn test_enrich_all_genes_matching() {
         let p_idx = t.col_index("p_value").unwrap();
         let overlap_idx = t.col_index("overlap").unwrap();
         if let Value::Float(p) = &t.rows[0][p_idx] {
-            assert!(*p < 0.01, "perfect overlap should have very small p-value, got {p}");
+            assert!(
+                *p < 0.01,
+                "perfect overlap should have very small p-value, got {p}"
+            );
         }
         if let Value::Int(o) = &t.rows[0][overlap_idx] {
             assert_eq!(*o, 5, "all 5 genes should overlap");
@@ -114,10 +129,7 @@ fn test_enrich_all_genes_matching() {
 fn test_enrich_gene_sets_no_overlap() {
     // Query genes exist but none match any gene set
     let genes = gene_list(&["X", "Y", "Z"]);
-    let sets = gene_sets(vec![
-        ("s1", vec!["A", "B"]),
-        ("s2", vec!["C", "D"]),
-    ]);
+    let sets = gene_sets(vec![("s1", vec!["A", "B"]), ("s2", vec!["C", "D"])]);
     let result = call_enrich_builtin("enrich", vec![genes, sets, Value::Int(1000)]).unwrap();
     if let Value::Table(t) = result {
         let p_idx = t.col_index("p_value").unwrap();
@@ -222,7 +234,7 @@ fn test_ora_wrong_bg_size_type() {
 
 #[test]
 fn test_ora_genes_with_non_string_elements() {
-    let genes = Value::List(vec![Value::Int(1), Value::Int(2)]);
+    let genes = Value::List((vec![Value::Int(1), Value::Int(2)]).into());
     let sets = gene_sets(vec![("s1", vec!["A"])]);
     let result = call_enrich_builtin("ora", vec![genes, sets, Value::Int(100)]);
     assert!(result.is_err(), "non-Str gene names should error");
@@ -237,15 +249,15 @@ fn test_gsea_enriched_set() {
     for i in 0..100 {
         genes_scores.push((format!("G{i}"), 100.0 - i as f64));
     }
-    let table = ranked_table(
-        genes_scores
-            .iter()
-            .map(|(g, s)| (g.as_str(), *s))
-            .collect(),
-    );
+    let table = ranked_table(genes_scores.iter().map(|(g, s)| (g.as_str(), *s)).collect());
     let sets = gene_sets(vec![(
         "top_set",
-        (0..10).map(|i| format!("G{i}")).collect::<Vec<_>>().iter().map(|s| s.as_str()).collect(),
+        (0..10)
+            .map(|i| format!("G{i}"))
+            .collect::<Vec<_>>()
+            .iter()
+            .map(|s| s.as_str())
+            .collect(),
     )]);
     let result = call_enrich_builtin("gsea", vec![table, sets]).unwrap();
     if let Value::Table(t) = result {
@@ -266,12 +278,7 @@ fn test_gsea_reversed_ranking() {
     for i in 0..100 {
         genes_scores.push((format!("G{i}"), 100.0 - i as f64));
     }
-    let table = ranked_table(
-        genes_scores
-            .iter()
-            .map(|(g, s)| (g.as_str(), *s))
-            .collect(),
-    );
+    let table = ranked_table(genes_scores.iter().map(|(g, s)| (g.as_str(), *s)).collect());
     // Set contains genes at the BOTTOM of the ranking
     let bottom_genes: Vec<String> = (90..100).map(|i| format!("G{i}")).collect();
     let sets = gene_sets(vec![(
@@ -342,6 +349,71 @@ fn test_gsea_wrong_gene_sets_type() {
     let table = ranked_table(vec![("A", 1.0)]);
     let result = call_enrich_builtin("gsea", vec![table, Value::Int(42)]);
     assert!(result.is_err());
+}
+
+// ── Reproducibility ─────────────────────────────────────────────
+
+fn gsea_run(seed: Option<i64>) -> Value {
+    let table = ranked_table(vec![
+        ("A", 3.0),
+        ("B", 2.0),
+        ("C", 1.0),
+        ("D", -1.0),
+        ("E", -2.0),
+        ("F", -3.0),
+    ]);
+    // Several sets, so a HashMap-ordered loop would advance the shared RNG in
+    // a different order from run to run.
+    let sets = gene_sets(vec![
+        ("up", vec!["A", "B"]),
+        ("zz", vec!["E", "F"]),
+        ("down", vec!["D", "E"]),
+        ("mid", vec!["B", "C", "D"]),
+    ]);
+    let mut args = vec![table, sets];
+    if let Some(s) = seed {
+        args.push(Value::Int(s));
+    }
+    call_enrich_builtin("gsea", args).unwrap()
+}
+
+#[test]
+fn test_gsea_is_deterministic_without_a_seed() {
+    // p-values come from a permutation test; seeding from the clock would make
+    // two runs on identical input disagree, which no reproducible analysis can
+    // accept. Repeated so a HashMap ordering flip has a chance to show up.
+    let first = gsea_run(None);
+    for _ in 0..5 {
+        assert_eq!(first, gsea_run(None), "gsea() must repeat exactly");
+    }
+}
+
+#[test]
+fn test_gsea_seed_is_honored_and_changes_the_null() {
+    assert_eq!(
+        gsea_run(Some(7)),
+        gsea_run(Some(7)),
+        "same seed must repeat"
+    );
+    assert_ne!(
+        gsea_run(Some(7)),
+        gsea_run(Some(99)),
+        "a different seed should draw a different permutation null"
+    );
+}
+
+#[test]
+fn test_gsea_rejects_a_non_integer_seed() {
+    let table = ranked_table(vec![("A", 1.0)]);
+    let result = call_enrich_builtin(
+        "gsea",
+        vec![
+            table,
+            gene_sets(vec![("s1", vec!["A"])]),
+            Value::Str("abc".to_string()),
+        ],
+    );
+    assert!(result.is_err(), "seed must be an Int");
 }
 
 // ── Unknown builtin ─────────────────────────────────────────────

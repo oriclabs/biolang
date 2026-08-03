@@ -29,12 +29,12 @@ for i in range(0, n) {
     let sex = if seed2 % 100 < 60 { "F" } else { "M" }
     let ecog_r = seed3 % 100
     let ecog = if ecog_r < 40 { 0 } else if ecog_r < 80 { 1 } else { 2 }
-    let stage = if seed4 % 100 < 35 { "IIIB" } else { "IV" }
+    let tumor_stage = if seed4 % 100 < 35 { "IIIB" } else { "IV" }
     let prior = seed1 % 3
 
-    demo_lines = append(demo_lines, f"PT_{i + 1},{arm},{age},{sex},{ecog},{stage},{prior}")
+    demo_lines = push(demo_lines, f"PT_{i + 1},{arm},{age},{sex},{ecog},{tumor_stage},{prior}")
 }
-write_lines(demo_lines, "data/demographics.csv")
+write_lines("data/demographics.csv", demo_lines)
 
 # ── File 2: RECIST Response ──
 # Drug X: 8% CR, 32% PR, 35% SD, 25% PD  (ORR 40%)
@@ -52,9 +52,9 @@ for i in range(0, n) {
         # Chemo arm
         response = if r < 3 { "CR" } else if r < 25 { "PR" } else if r < 63 { "SD" } else { "PD" }
     }
-    resp_lines = append(resp_lines, f"PT_{i + 1},{response}")
+    resp_lines = push(resp_lines, f"PT_{i + 1},{response}")
 }
-write_lines(resp_lines, "data/response.csv")
+write_lines("data/response.csv", resp_lines)
 
 # ── File 3: Survival Data (PFS and OS) ──
 # Drug X: median PFS ~8.5 months, median OS ~22 months
@@ -90,9 +90,9 @@ for i in range(0, n) {
     let os_cens = if seed_cens2 % 100 < 35 { 0 } else { 1 }
     let os_obs = if os_cens == 0 { round(os * (0.4 + (seed_cens2 % 60) / 100.0), 1) } else { os }
 
-    surv_lines = append(surv_lines, f"PT_{i + 1},{pfs_obs},{pfs_cens},{os_obs},{os_cens}")
+    surv_lines = push(surv_lines, f"PT_{i + 1},{pfs_obs},{pfs_cens},{os_obs},{os_cens}")
 }
-write_lines(surv_lines, "data/survival.csv")
+write_lines("data/survival.csv", surv_lines)
 
 # ── File 4: Adverse Events ──
 # 10 common AEs per arm with realistic grade distributions
@@ -119,11 +119,11 @@ for i in range(0, n) {
             # Assign grade (1-4): mostly 1-2, some grade 3-4
             let g_seed = ((i * 10 + a) * 1664525 + 5555) % 100
             let grade = if g_seed < 40 { 1 } else if g_seed < 75 { 2 } else if g_seed < 92 { 3 } else { 4 }
-            ae_lines = append(ae_lines, f"PT_{i + 1},{ae_terms[a]},{grade}")
+            ae_lines = push(ae_lines, f"PT_{i + 1},{ae_terms[a]},{grade}")
         }
     }
 }
-write_lines(ae_lines, "data/adverse_events.csv")
+write_lines("data/adverse_events.csv", ae_lines)
 
 println("Created 4 clinical trial datasets:")
 println("  data/demographics.csv  — 300 patients, age/sex/ECOG/stage/prior lines")

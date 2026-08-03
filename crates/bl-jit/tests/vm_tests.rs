@@ -25,7 +25,7 @@ impl BuiltinCallback for TestCallback {
             "print" => Ok(Value::Nil),
             "push" => {
                 if let (Value::List(mut l), val) = (args[0].clone(), args[1].clone()) {
-                    l.push(val);
+                    std::sync::Arc::make_mut(&mut l).push(val);
                     Ok(Value::List(l))
                 } else {
                     Ok(Value::Nil)
@@ -111,7 +111,7 @@ fn test_vm_arithmetic() {
                 right: Box::new(s(Expr::Int(right))),
             })))],
         };
-        run_program(&program).expect(&format!("failed for op {:?}", op));
+        run_program(&program).unwrap_or_else(|_| panic!("failed for op {:?}", op));
     }
 }
 
@@ -132,7 +132,7 @@ fn test_vm_comparison() {
                 right: Box::new(s(Expr::Int(right))),
             })))],
         };
-        run_program(&program).expect(&format!("failed for op {:?}", op));
+        run_program(&program).unwrap_or_else(|_| panic!("failed for op {:?}", op));
     }
 }
 
@@ -211,7 +211,11 @@ fn test_vm_for_loop() {
     let program = Program {
         stmts: vec![s(Stmt::For {
             pattern: bl_core::ast::ForPattern::Single("i".to_string()),
-            iter: s(Expr::List(vec![s(Expr::Int(1)), s(Expr::Int(2)), s(Expr::Int(3))])),
+            iter: s(Expr::List(vec![
+                s(Expr::Int(1)),
+                s(Expr::Int(2)),
+                s(Expr::Int(3)),
+            ])),
             body: vec![s(Stmt::Expr(s(Expr::Ident("i".to_string()))))],
             when_guard: None,
             else_body: None,
@@ -463,7 +467,10 @@ fn test_vm_protein_literal() {
 fn test_vm_field_access() {
     let program = Program {
         stmts: vec![s(Stmt::Expr(s(Expr::Field {
-            object: Box::new(s(Expr::Record(vec![RecordEntry::Field("x".to_string(), s(Expr::Int(42)))]))),
+            object: Box::new(s(Expr::Record(vec![RecordEntry::Field(
+                "x".to_string(),
+                s(Expr::Int(42)),
+            )]))),
             field: "x".to_string(),
             optional: false,
         })))],
@@ -758,8 +765,18 @@ fn test_vm_multiple_functions() {
             s(Stmt::Fn {
                 name: "add".to_string(),
                 params: vec![
-                    Param { name: "a".to_string(), type_ann: None, default: None, rest: false },
-                    Param { name: "b".to_string(), type_ann: None, default: None, rest: false },
+                    Param {
+                        name: "a".to_string(),
+                        type_ann: None,
+                        default: None,
+                        rest: false,
+                    },
+                    Param {
+                        name: "b".to_string(),
+                        type_ann: None,
+                        default: None,
+                        rest: false,
+                    },
                 ],
                 return_type: None,
                 body: vec![s(Stmt::Return(Some(s(Expr::Binary {
@@ -777,8 +794,18 @@ fn test_vm_multiple_functions() {
             s(Stmt::Fn {
                 name: "mul".to_string(),
                 params: vec![
-                    Param { name: "a".to_string(), type_ann: None, default: None, rest: false },
-                    Param { name: "b".to_string(), type_ann: None, default: None, rest: false },
+                    Param {
+                        name: "a".to_string(),
+                        type_ann: None,
+                        default: None,
+                        rest: false,
+                    },
+                    Param {
+                        name: "b".to_string(),
+                        type_ann: None,
+                        default: None,
+                        rest: false,
+                    },
                 ],
                 return_type: None,
                 body: vec![s(Stmt::Return(Some(s(Expr::Binary {
@@ -802,13 +829,25 @@ fn test_vm_multiple_functions() {
                         value: s(Expr::Call {
                             callee: Box::new(s(Expr::Ident("mul".to_string()))),
                             args: vec![
-                                Arg { name: None, value: s(Expr::Int(3)), spread: false },
-                                Arg { name: None, value: s(Expr::Int(4)), spread: false },
+                                Arg {
+                                    name: None,
+                                    value: s(Expr::Int(3)),
+                                    spread: false,
+                                },
+                                Arg {
+                                    name: None,
+                                    value: s(Expr::Int(4)),
+                                    spread: false,
+                                },
                             ],
                         }),
                         spread: false,
                     },
-                    Arg { name: None, value: s(Expr::Int(5)), spread: false },
+                    Arg {
+                        name: None,
+                        value: s(Expr::Int(5)),
+                        spread: false,
+                    },
                 ],
             }))),
         ],

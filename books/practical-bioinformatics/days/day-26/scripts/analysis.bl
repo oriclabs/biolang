@@ -149,4 +149,4 @@ report_lines = report_lines + [
     "Do not use for clinical decision-making without expert review."
 ]
 
-write_lines(report_lines, "data/output/ai_report.txt")
+write_lines("data/output/ai_report.txt", report_lines)

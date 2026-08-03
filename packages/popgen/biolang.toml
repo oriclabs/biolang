@@ -1,0 +1,12 @@
+[package]
+name = "popgen"
+version = "0.1.0"
+description = "Population genetics: HWE test, Fst, Tajima's D, LD (r²), allele frequency spectrum, nucleotide diversity"
+authors = ["BioLang"]
+
+[dependencies]
+statistics = { path = "../statistics" }
+variants   = { path = "../variants" }
+
+[lib]
+entry = "src/mod.bl"

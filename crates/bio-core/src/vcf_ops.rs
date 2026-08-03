@@ -49,13 +49,7 @@ pub fn parse_gt(format: &str, genotype: &str) -> Option<Vec<Option<u8>>> {
     let sep = if gt.contains('|') { '|' } else { '/' };
     let alleles: Vec<Option<u8>> = gt
         .split(sep)
-        .map(|a| {
-            if a == "." {
-                None
-            } else {
-                a.parse::<u8>().ok()
-            }
-        })
+        .map(|a| if a == "." { None } else { a.parse::<u8>().ok() })
         .collect();
     Some(alleles)
 }

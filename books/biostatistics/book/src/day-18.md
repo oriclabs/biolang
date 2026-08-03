@@ -329,7 +329,8 @@ for n in sample_sizes {
 
 ### Power Curves for Different Effect Sizes
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # Visualize power as a function of sample size
 let sample_sizes = [5, 10, 15, 20, 25, 30, 40, 50, 75, 100]

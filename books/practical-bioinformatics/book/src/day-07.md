@@ -427,7 +427,7 @@ The FLAG field is a bitwise integer. Common values:
 > **Requires CLI:** This example uses file I/O not available in the browser. Run with `bl run`.
 
 ```bio
-let alignments = read_bam("data/alignments.bam")
+let alignments = read_sam("data/alignments.sam")
 println(f"Total alignments: {len(alignments)}")
 
 # Basic alignment statistics
@@ -457,7 +457,7 @@ BAM files from a whole-genome sequencing run can be 50-100 GB. Always stream:
 > **Requires CLI:** This example uses file I/O not available in the browser. Run with `bl run`.
 
 ```bio
-let mapped_count = bam("data/alignments.bam")
+let mapped_count = sam("data/alignments.sam")
     |> filter(|r| r.is_mapped)
     |> count()
 println(f"Mapped reads (streaming): {mapped_count}")
@@ -636,7 +636,8 @@ Here is a realistic mini-pipeline that reads multiple formats and produces a sum
 
 > **Requires CLI:** This example uses file I/O not available in the browser. Run with `bl run`.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Multi-format analysis pipeline
 println("=== Multi-Format Analysis ===")
 
@@ -728,7 +729,7 @@ When to use eager vs stream:
 ```bio
 let seqs = read_fasta("data/sequences.fasta")
 let best = seqs
-    |> sort(|a, b| gc_content(b.seq) - gc_content(a.seq))
+    |> sort_by(|s| -gc_content(s.seq))
     |> first()
 println(f"Highest GC: {best.id} at {round(gc_content(best.seq) * 100, 1)}%")
 ```
@@ -792,7 +793,6 @@ for b in bed_regions {
 ```bio
 let features = read_gff("data/annotations.gff")
 let type_counts = features
-    |> to_table()
     |> group_by("type")
     |> summarize(|feat_type, rows| {type: feat_type, count: len(rows)})
 println(type_counts)

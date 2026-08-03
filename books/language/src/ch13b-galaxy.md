@@ -147,7 +147,8 @@ print("Galaxy tools: " + str(len(gx_results)))
 This pattern scales to any tool or keyword. Here is a more thorough version
 that prints details from each registry side by side.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Compare tool availability across registries
 let tools = ["samtools", "bcftools", "hisat2", "salmon"]
 

@@ -1,4 +1,5 @@
 # multispecies.bl — Multi-Species Comparative Genomics
+# requires: network
 # Tutorial: https://lang.bio/docs/tutorials/multispecies.html
 #
 # Run with: bl run examples/tutorials/multispecies.bl
@@ -24,15 +25,18 @@ for orth in orthologs {
   print(f"{orth.species}  {orth.gene_id}  {orth.symbol}")
 }
 
-# ── 2. Fetch Protein Sequences ───────────────────────────────
+# ── 2. Fetch Gene Sequences ──────────────────────────────────
 
+# Ensembl rejects a non-genomic type for a *gene* id, because a gene has many
+# transcripts and so many proteins: "37 sequences detected". Genomic sequence is
+# the unambiguous answer for a gene id; ask a transcript id for a protein.
 let sequences = orthologs |> map(|o| {
-  let seq = ensembl_sequence(o.gene_id, "protein")
+  let seq = ensembl_sequence(o.gene_id, "genomic")
   { name: o.species, gene: o.symbol, sequence: seq.seq }
 })
 
 for s in sequences {
-  print(f"{s.name}: {len(s.sequence)} aa")
+  print(f"{s.name}: {len(s.sequence)} bp")
 }
 
 # ── 3. Locus Comparison ──────────────────────────────────────

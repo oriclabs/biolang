@@ -1,0 +1,11 @@
+[package]
+name = "bl-qc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Sequencing quality metrics for BioLang file previews"
+
+[dependencies]
+serde = { workspace = true }

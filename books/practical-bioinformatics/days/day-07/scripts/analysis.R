@@ -161,7 +161,7 @@ cat(sprintf("Exons (streaming): %d\n", nrow(exons)))
 # ============================================================
 cat("\n--- 5. BAM: Alignments ---\n")
 
-sam_lines <- readLines("data/alignments.bam")
+sam_lines <- readLines("data/alignments.sam")
 sam_lines <- sam_lines[!grepl("^@", sam_lines)]
 
 alignments <- do.call(rbind, lapply(sam_lines, function(line) {

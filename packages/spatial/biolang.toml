@@ -1,0 +1,12 @@
+[package]
+name = "spatial"
+version = "0.1.0"
+description = "Spatial transcriptomics analysis: spatially variable genes, neighborhood enrichment, ligand-receptor overlay"
+authors = ["BioLang"]
+
+[dependencies]
+singlecell = { path = "../singlecell" }
+cellchat   = { path = "../cellchat" }
+
+[lib]
+entry = "src/mod.bl"

@@ -1,4 +1,4 @@
-//! BioLang notebook (.bln) literate format.
+//! BioLang notebook (.bln and .bl.md) literate format.
 //!
 //! A `.bln` file interleaves Markdown prose with BioLang code blocks.
 //!
@@ -12,8 +12,17 @@
 //! - `# @echo` -- print code before executing
 //! - `# @hide-output` -- execute but suppress printed output
 //! - `# @chat` -- send cell content to LLM via chat() builtin instead of executing
+//!
+//! Optional front matter (for `--export typst`/`pdf` research papers): a leading
+//! `---` fenced block of `key: value` lines at the very top of the file. Keys:
+//! `title`, `authors` (comma-separated), `date`, `abstract`, `bibliography`.
+//! Prose may cite with `@key` (rendered as a Typst citation).
+//!
+//! Export formats: `--export html`, `--export typst` (`.typ` + SVG figures),
+//! `--export pdf` (compiles the Typst via the `typst` binary / `TYPST_BIN`).
 
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -120,7 +129,9 @@ fn parse_notebook(source: &str) -> Vec<Block> {
             if is_fence_close(line) {
                 in_other_fence = false;
             }
-            if !current.is_empty() { current.push('\n'); }
+            if !current.is_empty() {
+                current.push('\n');
+            }
             current.push_str(line);
             continue;
         }
@@ -131,7 +142,9 @@ fn parse_notebook(source: &str) -> Vec<Block> {
                 flush_block(&mut blocks, &std::mem::take(&mut current), true);
                 in_fenced_code = false;
             } else {
-                if !current.is_empty() { current.push('\n'); }
+                if !current.is_empty() {
+                    current.push('\n');
+                }
                 current.push_str(line);
             }
             continue;
@@ -147,7 +160,9 @@ fn parse_notebook(source: &str) -> Vec<Block> {
         // Opening a non-BioLang fence?
         if !in_dash_code && is_other_fence_open(line) {
             in_other_fence = true;
-            if !current.is_empty() { current.push('\n'); }
+            if !current.is_empty() {
+                current.push('\n');
+            }
             current.push_str(line);
             continue;
         }
@@ -159,7 +174,9 @@ fn parse_notebook(source: &str) -> Vec<Block> {
             continue;
         }
 
-        if !current.is_empty() { current.push('\n'); }
+        if !current.is_empty() {
+            current.push('\n');
+        }
         current.push_str(line);
     }
 
@@ -172,7 +189,9 @@ fn parse_notebook(source: &str) -> Vec<Block> {
 
 fn execute_notebook(path: &str) -> Vec<ExecutedBlock> {
     let source = read_file(path);
-    let blocks = parse_notebook(&source);
+    // Strip YAML-style front matter so it is never executed or rendered as prose.
+    let (_front, body) = split_front_matter(&source);
+    let blocks = parse_notebook(&body);
     let mut interpreter = bl_runtime::Interpreter::new();
 
     if let Ok(canonical) = std::fs::canonicalize(path) {
@@ -186,11 +205,17 @@ fn execute_notebook(path: &str) -> Vec<ExecutedBlock> {
     for block in blocks {
         match block {
             Block::Prose(text) => {
-                results.push(ExecutedBlock { block: Block::Prose(text), output: None });
+                results.push(ExecutedBlock {
+                    block: Block::Prose(text),
+                    output: None,
+                });
             }
             Block::Code(ref cb) => {
                 if cb.directives.contains(&CellDirective::Skip) {
-                    results.push(ExecutedBlock { block, output: None });
+                    results.push(ExecutedBlock {
+                        block,
+                        output: None,
+                    });
                     continue;
                 }
 
@@ -243,13 +268,16 @@ fn run_code(code: &str, interpreter: &mut bl_runtime::Interpreter) -> Result<(),
         .map_err(|e| e.format_with_source(code))?;
 
     if parse_result.has_errors() {
-        let msgs: Vec<String> = parse_result.errors.iter()
+        let msgs: Vec<String> = parse_result
+            .errors
+            .iter()
             .map(|e| e.format_with_source(code))
             .collect();
         return Err(msgs.join("\n"));
     }
 
-    interpreter.run(&parse_result.program)
+    interpreter
+        .run(&parse_result.program)
         .map(|_| ())
         .map_err(|e| e.format_with_source(code))
 }
@@ -305,17 +333,35 @@ fn render_prose_ansi(text: &str) -> String {
 
         // Headings
         if trimmed.starts_with("######") {
-            out.push_str(&format!("\x1b[1m{}\x1b[0m\n", trimmed.trim_start_matches('#').trim()));
+            out.push_str(&format!(
+                "\x1b[1m{}\x1b[0m\n",
+                trimmed.trim_start_matches('#').trim()
+            ));
         } else if trimmed.starts_with("#####") {
-            out.push_str(&format!("\x1b[1m{}\x1b[0m\n", trimmed.trim_start_matches('#').trim()));
+            out.push_str(&format!(
+                "\x1b[1m{}\x1b[0m\n",
+                trimmed.trim_start_matches('#').trim()
+            ));
         } else if trimmed.starts_with("####") {
-            out.push_str(&format!("\x1b[1m{}\x1b[0m\n", trimmed.trim_start_matches('#').trim()));
+            out.push_str(&format!(
+                "\x1b[1m{}\x1b[0m\n",
+                trimmed.trim_start_matches('#').trim()
+            ));
         } else if trimmed.starts_with("###") {
-            out.push_str(&format!("\x1b[1m{}\x1b[0m\n", trimmed.trim_start_matches('#').trim()));
+            out.push_str(&format!(
+                "\x1b[1m{}\x1b[0m\n",
+                trimmed.trim_start_matches('#').trim()
+            ));
         } else if trimmed.starts_with("##") {
-            out.push_str(&format!("\x1b[1;4m{}\x1b[0m\n", trimmed.trim_start_matches('#').trim()));
+            out.push_str(&format!(
+                "\x1b[1;4m{}\x1b[0m\n",
+                trimmed.trim_start_matches('#').trim()
+            ));
         } else if trimmed.starts_with('#') && trimmed.chars().nth(1) == Some(' ') {
-            out.push_str(&format!("\x1b[1;4m{}\x1b[0m\n", trimmed.trim_start_matches('#').trim()));
+            out.push_str(&format!(
+                "\x1b[1;4m{}\x1b[0m\n",
+                trimmed.trim_start_matches('#').trim()
+            ));
         }
         // Horizontal rule
         else if trimmed == "---" || trimmed == "***" || trimmed == "___" {
@@ -329,7 +375,7 @@ fn render_prose_ansi(text: &str) -> String {
         // Unordered list
         else if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
             let content = render_inline_ansi(&trimmed[2..]);
-            out.push_str(&format!("  {content}\n", ));
+            out.push_str(&format!("  {content}\n",));
         }
         // Blank line
         else if trimmed.is_empty() {
@@ -396,21 +442,11 @@ fn render_inline_ansi(text: &str) -> String {
 }
 
 fn find_char(chars: &[char], target: char, from: usize) -> Option<usize> {
-    for i in from..chars.len() {
-        if chars[i] == target {
-            return Some(i);
-        }
-    }
-    None
+    (from..chars.len()).find(|&i| chars[i] == target)
 }
 
 fn find_double_char(chars: &[char], target: char, from: usize) -> Option<usize> {
-    for i in from..chars.len().saturating_sub(1) {
-        if chars[i] == target && chars[i + 1] == target {
-            return Some(i);
-        }
-    }
-    None
+    (from..chars.len().saturating_sub(1)).find(|&i| chars[i] == target && chars[i + 1] == target)
 }
 
 // ── HTML export ──────────────────────────────────────────────────────────────
@@ -449,9 +485,12 @@ pub fn export_html(path: &str) {
         }
     }
 
-    println!("{}", HTML_TEMPLATE
-        .replace("{title}", &html_escape(&filename))
-        .replace("{body}", &body));
+    println!(
+        "{}",
+        HTML_TEMPLATE
+            .replace("{title}", &html_escape(&filename))
+            .replace("{body}", &body)
+    );
 }
 
 fn html_escape(s: &str) -> String {
@@ -459,6 +498,402 @@ fn html_escape(s: &str) -> String {
         .replace('<', "&lt;")
         .replace('>', "&gt;")
         .replace('"', "&quot;")
+}
+
+// ── Typst export (research papers / PDF) ─────────────────────────────────────
+//
+// Walks the same executed blocks as `export_html`, emitting a Typst document
+// (`<stem>.typ`) plus any SVG figures as sidecar files (`<stem>-fig-N.svg`)
+// next to the notebook. Compile to PDF with `typst compile <stem>.typ`.
+
+const TYPST_PREAMBLE: &str = "\
+#set page(margin: 2.5cm, numbering: \"1\")
+#set par(justify: true)
+#set heading(numbering: \"1.1\")
+#show raw.where(block: true): set text(size: 9pt)
+";
+
+/// Front matter for research-paper output (title block, abstract, bibliography).
+#[derive(Default)]
+struct FrontMatter {
+    title: Option<String>,
+    authors: Vec<String>,
+    date: Option<String>,
+    abstract_text: Option<String>,
+    bibliography: Option<String>,
+}
+
+/// Split leading `key: value` front matter (delimited by `---` lines) from the
+/// notebook body. Only recognized when the *first* line is `---` and every line
+/// up to the closing `---` is a `key: value` pair — otherwise the leading `---`
+/// is left intact for the body parser (it doubles as a dash code delimiter).
+fn split_front_matter(source: &str) -> (Option<FrontMatter>, String) {
+    let src = source.strip_prefix('\u{feff}').unwrap_or(source);
+    let lines: Vec<&str> = src.lines().collect();
+    if lines.first().map(|l| l.trim()) != Some("---") {
+        return (None, source.to_string());
+    }
+    let Some(close) = (1..lines.len()).find(|&i| lines[i].trim() == "---") else {
+        return (None, source.to_string());
+    };
+
+    let mut fm = FrontMatter::default();
+    let mut found_field = false;
+    for line in &lines[1..close] {
+        let t = line.trim();
+        if t.is_empty() {
+            continue;
+        }
+        let Some((key, value)) = t.split_once(':') else {
+            return (None, source.to_string()); // not metadata — leave for body parser
+        };
+        let key = key.trim();
+        let valid_key = key.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
+            && key
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+        if !valid_key {
+            return (None, source.to_string());
+        }
+        let value = value.trim().to_string();
+        match key.to_ascii_lowercase().as_str() {
+            "title" => fm.title = Some(value),
+            "author" | "authors" => {
+                fm.authors = value
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+            }
+            "date" => fm.date = Some(value),
+            "abstract" => fm.abstract_text = Some(value),
+            "bibliography" | "bib" => fm.bibliography = Some(value),
+            _ => {} // unknown keys are ignored but still count as metadata
+        }
+        found_field = true;
+    }
+    if !found_field {
+        return (None, source.to_string());
+    }
+    (Some(fm), lines[close + 1..].join("\n"))
+}
+
+/// Render the front-matter title block (title, authors, date, abstract).
+fn front_matter_block(fm: &FrontMatter, fallback_title: &str) -> String {
+    let title = fm.title.as_deref().unwrap_or(fallback_title);
+    let mut s = String::new();
+    s.push_str("#align(center)[\n");
+    s.push_str(&format!(
+        "  #text(17pt, weight: \"bold\")[{}]\n",
+        typst_escape(title)
+    ));
+    if !fm.authors.is_empty() {
+        let authors = fm
+            .authors
+            .iter()
+            .map(|a| typst_escape(a))
+            .collect::<Vec<_>>()
+            .join(", ");
+        s.push_str(&format!("  #v(0.7em)\n  #text(11pt)[{authors}]\n"));
+    }
+    if let Some(date) = &fm.date {
+        s.push_str(&format!(
+            "  #v(0.3em)\n  #text(10pt, style: \"italic\")[{}]\n",
+            typst_escape(date)
+        ));
+    }
+    s.push_str("]\n#v(1em)\n\n");
+    if let Some(abs) = &fm.abstract_text {
+        s.push_str(&format!(
+            "#block(inset: (x: 1.5em), below: 1.2em)[\n  #text(weight: \"bold\")[Abstract.] {}\n]\n\n",
+            inline_to_typst(abs)
+        ));
+    }
+    s
+}
+
+/// Build the `.typ` document (plus SVG sidecars) from a notebook.
+/// Returns the written `.typ` path and the figure file names.
+fn build_typst_document(path: &str) -> (PathBuf, Vec<String>) {
+    let source = read_file(path);
+    let (front, _body) = split_front_matter(&source);
+    let executed = execute_notebook(path);
+
+    let nb_path = PathBuf::from(path);
+    let stem = nb_path
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "notebook".into());
+    let out_dir = nb_path
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| PathBuf::from("."));
+
+    let mut body = String::new();
+    let mut fig_count = 0usize;
+    let mut written_figs: Vec<String> = Vec::new();
+
+    for eb in &executed {
+        match &eb.block {
+            Block::Prose(text) => {
+                body.push_str(&markdown_to_typst(text));
+            }
+            Block::Code(cb) => {
+                if cb.directives.contains(&CellDirective::Skip) {
+                    continue;
+                }
+                if !cb.directives.contains(&CellDirective::Hide) {
+                    body.push_str(&typst_code_block(&cb.code));
+                }
+                if let Some(output) = &eb.output {
+                    if !cb.directives.contains(&CellDirective::HideOutput)
+                        && !output.trim().is_empty()
+                    {
+                        // A cell that prints an SVG plot becomes a figure; anything
+                        // else renders as a verbatim output block.
+                        if let Some(svg) = extract_svg(output) {
+                            fig_count += 1;
+                            let fig_name = format!("{stem}-fig-{fig_count}.svg");
+                            let fig_path = out_dir.join(&fig_name);
+                            match std::fs::write(&fig_path, svg) {
+                                Ok(()) => {
+                                    written_figs.push(fig_name.clone());
+                                    body.push_str(&format!(
+                                        "#figure(\n  image(\"{fig_name}\", width: 90%),\n  caption: [Figure {fig_count}.],\n)\n\n"
+                                    ));
+                                }
+                                Err(e) => {
+                                    eprintln!(
+                                        "Warning: cannot write figure {}: {e}",
+                                        fig_path.display()
+                                    );
+                                }
+                            }
+                        } else {
+                            body.push_str(&typst_output_block(output));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let front = front.unwrap_or_default();
+    if let Some(bib) = &front.bibliography {
+        body.push_str(&format!("\n#bibliography(\"{}\")\n", bib));
+    }
+
+    let doc = format!(
+        "{TYPST_PREAMBLE}\n{}{body}",
+        front_matter_block(&front, &stem)
+    );
+
+    let typ_path = out_dir.join(format!("{stem}.typ"));
+    if let Err(e) = std::fs::write(&typ_path, doc) {
+        eprintln!("Error writing '{}': {e}", typ_path.display());
+        std::process::exit(1);
+    }
+    (typ_path, written_figs)
+}
+
+pub fn export_typst(path: &str) {
+    let (typ_path, figs) = build_typst_document(path);
+    eprintln!("Wrote {}", typ_path.display());
+    for fig in &figs {
+        eprintln!("  + {fig}");
+    }
+    eprintln!("Compile: typst compile {}", typ_path.display());
+}
+
+/// Resolve the `typst` binary via `TYPST_BIN`, then PATH.
+fn find_typst() -> Option<String> {
+    if let Some(value) = std::env::var_os("TYPST_BIN") {
+        let path = PathBuf::from(&value);
+        if path.is_file() {
+            return Some(path.to_string_lossy().into_owned());
+        }
+    }
+    let on_path = Command::new("typst")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    on_path.then(|| "typst".to_string())
+}
+
+pub fn export_pdf(path: &str) {
+    let (typ_path, _figs) = build_typst_document(path);
+    let pdf_path = typ_path.with_extension("pdf");
+
+    let Some(typst) = find_typst() else {
+        eprintln!("Wrote {}", typ_path.display());
+        eprintln!(
+            "Typst is not installed, so the PDF was not produced.\n\
+             Install it (e.g. `winget install Typst.Typst` or `cargo install typst-cli`)\n\
+             or set TYPST_BIN, then run: typst compile {}",
+            typ_path.display()
+        );
+        std::process::exit(1);
+    };
+
+    let status = Command::new(&typst)
+        .arg("compile")
+        .arg(&typ_path)
+        .arg(&pdf_path)
+        .status();
+
+    match status {
+        Ok(s) if s.success() => {
+            eprintln!("Wrote {}", pdf_path.display());
+        }
+        Ok(s) => {
+            eprintln!("typst compile failed (exit {})", s.code().unwrap_or(-1));
+            std::process::exit(1);
+        }
+        Err(e) => {
+            eprintln!("Cannot run typst: {e}");
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Pull the first `<svg>…</svg>` block out of captured cell output, if present.
+fn extract_svg(output: &str) -> Option<String> {
+    let start = output.find("<svg")?;
+    let end = output.rfind("</svg>")? + "</svg>".len();
+    (end > start).then(|| output[start..end].to_string())
+}
+
+/// A biolang code cell as a Typst raw block.
+fn typst_code_block(code: &str) -> String {
+    format!("```biolang\n{}\n```\n\n", code.trim_end())
+}
+
+/// Verbatim cell output inside a shaded box.
+fn typst_output_block(output: &str) -> String {
+    format!(
+        "#block(fill: luma(245), inset: 8pt, radius: 3pt, width: 100%, stroke: 0.5pt + luma(210))[\n```\n{}\n```\n]\n\n",
+        output.trim_end()
+    )
+}
+
+/// Escape Typst markup-significant characters in literal text.
+fn typst_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        typst_escape_char(&mut out, c);
+    }
+    out
+}
+
+fn typst_escape_char(out: &mut String, c: char) {
+    if matches!(c, '\\' | '#' | '$' | '*' | '_' | '`' | '@' | '[' | ']') {
+        out.push('\\');
+    }
+    out.push(c);
+}
+
+/// Convert Markdown prose to Typst markup. Typst is markdown-adjacent, so this
+/// is line-oriented and lighter than `markdown_to_html`.
+fn markdown_to_typst(text: &str) -> String {
+    let mut out = String::new();
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') {
+            let level = trimmed.chars().take_while(|c| *c == '#').count().min(6);
+            let content = trimmed[level..].trim();
+            out.push_str(&"=".repeat(level));
+            out.push(' ');
+            out.push_str(&inline_to_typst(content));
+            out.push_str("\n\n");
+        } else if trimmed == "---" || trimmed == "***" || trimmed == "___" {
+            out.push_str("#line(length: 100%)\n\n");
+        } else if let Some(rest) = trimmed.strip_prefix("> ") {
+            out.push_str("#quote(block: true)[");
+            out.push_str(&inline_to_typst(rest));
+            out.push_str("]\n\n");
+        } else if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
+            out.push_str("- ");
+            out.push_str(&inline_to_typst(&trimmed[2..]));
+            out.push('\n');
+        } else if trimmed.is_empty() {
+            out.push('\n');
+        } else {
+            out.push_str(&inline_to_typst(trimmed));
+            out.push('\n');
+        }
+    }
+    out.push('\n');
+    out
+}
+
+/// Inline Markdown → Typst: `` `code` ``, `**bold**` → `*bold*`, `*italic*` → `_italic_`.
+fn inline_to_typst(text: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let len = chars.len();
+    let mut out = String::new();
+    let mut i = 0;
+
+    while i < len {
+        // Inline code — raw, kept literal.
+        if chars[i] == '`' {
+            if let Some(end) = find_char(&chars, '`', i + 1) {
+                out.push('`');
+                for c in &chars[i + 1..end] {
+                    out.push(*c);
+                }
+                out.push('`');
+                i = end + 1;
+                continue;
+            }
+        }
+        // Bold **x** → *x*
+        if i + 1 < len && chars[i] == '*' && chars[i + 1] == '*' {
+            if let Some(end) = find_double_char(&chars, '*', i + 2) {
+                out.push('*');
+                out.push_str(&typst_escape(&chars[i + 2..end].iter().collect::<String>()));
+                out.push('*');
+                i = end + 2;
+                continue;
+            }
+        }
+        // Italic *x* → _x_
+        if chars[i] == '*' {
+            if let Some(end) = find_char(&chars, '*', i + 1) {
+                out.push('_');
+                out.push_str(&typst_escape(&chars[i + 1..end].iter().collect::<String>()));
+                out.push('_');
+                i = end + 1;
+                continue;
+            }
+        }
+        // Citation @key → Typst reference. Only at a word boundary (Pandoc rule),
+        // so emails like `a@b` are left alone. A bare @ is escaped by the fallthrough.
+        let at_word_boundary = i == 0 || !chars[i - 1].is_ascii_alphanumeric();
+        if chars[i] == '@'
+            && at_word_boundary
+            && chars.get(i + 1).is_some_and(|c| c.is_ascii_alphabetic())
+        {
+            let mut j = i + 1;
+            while j < len
+                && (chars[j].is_ascii_alphanumeric() || matches!(chars[j], '_' | '-' | ':' | '.'))
+            {
+                j += 1;
+            }
+            out.push('@');
+            for c in &chars[i + 1..j] {
+                out.push(*c);
+            }
+            i = j;
+            continue;
+        }
+        typst_escape_char(&mut out, chars[i]);
+        i += 1;
+    }
+
+    out
 }
 
 fn markdown_to_html(text: &str) -> String {
@@ -497,7 +932,10 @@ fn markdown_to_html(text: &str) -> String {
             flush_paragraph(&mut paragraph, &mut html);
             let level = trimmed.chars().take_while(|c| *c == '#').count().min(6);
             let content = trimmed[level..].trim();
-            html.push_str(&format!("<h{level}>{}</h{level}>\n", inline_to_html(content)));
+            html.push_str(&format!(
+                "<h{level}>{}</h{level}>\n",
+                inline_to_html(content)
+            ));
         }
         // Horizontal rule
         else if trimmed == "---" || trimmed == "***" || trimmed == "___" {
@@ -528,7 +966,9 @@ fn markdown_to_html(text: &str) -> String {
         }
         // Regular text
         else {
-            if !paragraph.is_empty() { paragraph.push(' '); }
+            if !paragraph.is_empty() {
+                paragraph.push(' ');
+            }
             paragraph.push_str(trimmed);
         }
     }
@@ -542,8 +982,12 @@ fn markdown_to_html(text: &str) -> String {
             html.push_str("</p>\n");
         }
     }
-    if in_list { html.push_str("</ul>\n"); }
-    if in_blockquote { html.push_str("</blockquote>\n"); }
+    if in_list {
+        html.push_str("</ul>\n");
+    }
+    if in_blockquote {
+        html.push_str("</blockquote>\n");
+    }
 
     html
 }
@@ -560,7 +1004,9 @@ fn inline_to_html(text: &str) -> String {
         if chars[i] == '`' {
             if let Some(end) = find_char(&chars, '`', i + 1) {
                 out.push_str("<code>");
-                for c in &chars[i + 1..end] { out.push(*c); }
+                for c in &chars[i + 1..end] {
+                    out.push(*c);
+                }
                 out.push_str("</code>");
                 i = end + 1;
                 continue;
@@ -570,7 +1016,9 @@ fn inline_to_html(text: &str) -> String {
         if i + 1 < len && chars[i] == '*' && chars[i + 1] == '*' {
             if let Some(end) = find_double_char(&chars, '*', i + 2) {
                 out.push_str("<strong>");
-                for c in &chars[i + 2..end] { out.push(*c); }
+                for c in &chars[i + 2..end] {
+                    out.push(*c);
+                }
                 out.push_str("</strong>");
                 i = end + 2;
                 continue;
@@ -580,7 +1028,9 @@ fn inline_to_html(text: &str) -> String {
         if chars[i] == '*' {
             if let Some(end) = find_char(&chars, '*', i + 1) {
                 out.push_str("<em>");
-                for c in &chars[i + 1..end] { out.push(*c); }
+                for c in &chars[i + 1..end] {
+                    out.push(*c);
+                }
                 out.push_str("</em>");
                 i = end + 1;
                 continue;
@@ -597,10 +1047,9 @@ fn inline_to_html(text: &str) -> String {
 
 fn highlight_biolang(code: &str) -> String {
     let keywords = [
-        "let", "fn", "if", "else", "then", "for", "in", "while", "return",
-        "match", "import", "true", "false", "nil", "and", "or", "not",
-        "pipeline", "stage", "parallel", "defer", "break", "continue",
-        "try", "catch", "given", "unless", "struct", "enum", "trait", "impl",
+        "let", "fn", "if", "else", "then", "for", "in", "while", "return", "match", "import",
+        "true", "false", "nil", "and", "or", "not", "pipeline", "stage", "parallel", "defer",
+        "break", "continue", "try", "catch", "given", "unless", "struct", "enum", "trait", "impl",
     ];
     let mut out = String::new();
 
@@ -608,7 +1057,10 @@ fn highlight_biolang(code: &str) -> String {
         let trimmed = line.trim_start();
         // Comment line
         if trimmed.starts_with('#') {
-            out.push_str(&format!("<span class=\"cmt\">{}</span>\n", html_escape(line)));
+            out.push_str(&format!(
+                "<span class=\"cmt\">{}</span>\n",
+                html_escape(line)
+            ));
             continue;
         }
 
@@ -620,17 +1072,24 @@ fn highlight_biolang(code: &str) -> String {
             // Inline comment
             if chars[i] == '#' {
                 let rest: String = chars[i..].iter().collect();
-                out.push_str(&format!("<span class=\"cmt\">{}</span>", html_escape(&rest)));
+                out.push_str(&format!(
+                    "<span class=\"cmt\">{}</span>",
+                    html_escape(&rest)
+                ));
                 break;
             }
             // String
             if chars[i] == '"' {
                 let mut j = i + 1;
                 while j < len && chars[j] != '"' {
-                    if chars[j] == '\\' { j += 1; }
+                    if chars[j] == '\\' {
+                        j += 1;
+                    }
                     j += 1;
                 }
-                if j < len { j += 1; }
+                if j < len {
+                    j += 1;
+                }
                 let s: String = chars[i..j].iter().collect();
                 out.push_str(&format!("<span class=\"str\">{}</span>", html_escape(&s)));
                 i = j;
@@ -643,10 +1102,16 @@ fn highlight_biolang(code: &str) -> String {
                 continue;
             }
             // Number
-            if chars[i].is_ascii_digit() || (chars[i] == '-' && i + 1 < len && chars[i + 1].is_ascii_digit()) {
+            if chars[i].is_ascii_digit()
+                || (chars[i] == '-' && i + 1 < len && chars[i + 1].is_ascii_digit())
+            {
                 let start = i;
-                if chars[i] == '-' { i += 1; }
-                while i < len && (chars[i].is_ascii_digit() || chars[i] == '.') { i += 1; }
+                if chars[i] == '-' {
+                    i += 1;
+                }
+                while i < len && (chars[i].is_ascii_digit() || chars[i] == '.') {
+                    i += 1;
+                }
                 let s: String = chars[start..i].iter().collect();
                 out.push_str(&format!("<span class=\"num\">{}</span>", html_escape(&s)));
                 continue;
@@ -654,7 +1119,9 @@ fn highlight_biolang(code: &str) -> String {
             // Identifier / keyword
             if chars[i].is_ascii_alphabetic() || chars[i] == '_' {
                 let start = i;
-                while i < len && (chars[i].is_ascii_alphanumeric() || chars[i] == '_') { i += 1; }
+                while i < len && (chars[i].is_ascii_alphanumeric() || chars[i] == '_') {
+                    i += 1;
+                }
                 let word: String = chars[start..i].iter().collect();
                 if keywords.contains(&word.as_str()) {
                     out.push_str(&format!("<span class=\"kw\">{word}</span>"));
@@ -673,7 +1140,9 @@ fn highlight_biolang(code: &str) -> String {
     }
 
     // Remove trailing newline
-    if out.ends_with('\n') { out.pop(); }
+    if out.ends_with('\n') {
+        out.pop();
+    }
     out
 }
 
@@ -739,13 +1208,14 @@ pub fn ipynb_to_bln(path: &str) {
 
     let mut first = true;
     for cell in cells {
-        let cell_type = cell.get("cell_type").and_then(|t| t.as_str()).unwrap_or("raw");
+        let cell_type = cell
+            .get("cell_type")
+            .and_then(|t| t.as_str())
+            .unwrap_or("raw");
         let source_lines = cell.get("source").and_then(|s| s.as_array());
 
         let text = match source_lines {
-            Some(lines) => lines.iter()
-                .filter_map(|l| l.as_str())
-                .collect::<String>(),
+            Some(lines) => lines.iter().filter_map(|l| l.as_str()).collect::<String>(),
             None => continue,
         };
 
@@ -753,23 +1223,31 @@ pub fn ipynb_to_bln(path: &str) {
             continue;
         }
 
-        if !first { println!(); }
+        if !first {
+            println!();
+        }
         first = false;
 
         match cell_type {
             "markdown" | "raw" => {
                 print!("{text}");
-                if !text.ends_with('\n') { println!(); }
+                if !text.ends_with('\n') {
+                    println!();
+                }
             }
             "code" => {
                 println!("```biolang");
                 print!("{text}");
-                if !text.ends_with('\n') { println!(); }
+                if !text.ends_with('\n') {
+                    println!();
+                }
                 println!("```");
             }
             _ => {
                 print!("{text}");
-                if !text.ends_with('\n') { println!(); }
+                if !text.ends_with('\n') {
+                    println!();
+                }
             }
         }
     }
@@ -779,8 +1257,9 @@ pub fn bln_to_ipynb(path: &str) {
     let source = read_file(path);
     let blocks = parse_notebook(&source);
 
-    let cells: Vec<serde_json::Value> = blocks.iter().map(|block| {
-        match block {
+    let cells: Vec<serde_json::Value> = blocks
+        .iter()
+        .map(|block| match block {
             Block::Prose(text) => {
                 serde_json::json!({
                     "cell_type": "markdown",
@@ -797,8 +1276,8 @@ pub fn bln_to_ipynb(path: &str) {
                     "outputs": []
                 })
             }
-        }
-    }).collect();
+        })
+        .collect();
 
     let notebook = serde_json::json!({
         "nbformat": 4,
@@ -848,6 +1327,38 @@ mod tests {
     fn test_parse_empty() {
         let blocks = parse_notebook("");
         assert!(blocks.is_empty());
+    }
+
+    #[test]
+    fn test_front_matter_parsed() {
+        let src = "---\ntitle: My Paper\nauthors: Ada, Alan\nbibliography: refs.bib\n---\n# Body\n";
+        let (fm, body) = split_front_matter(src);
+        let fm = fm.expect("front matter should parse");
+        assert_eq!(fm.title.as_deref(), Some("My Paper"));
+        assert_eq!(fm.authors, vec!["Ada".to_string(), "Alan".to_string()]);
+        assert_eq!(fm.bibliography.as_deref(), Some("refs.bib"));
+        assert!(body.trim_start().starts_with("# Body"));
+    }
+
+    #[test]
+    fn test_front_matter_not_confused_with_dash_code() {
+        // A leading `---` dash code block is not metadata: leave it for the parser.
+        let src = "---\nlet x = 1\nprintln(x)\n---\n";
+        let (fm, body) = split_front_matter(src);
+        assert!(fm.is_none());
+        assert_eq!(body, src);
+    }
+
+    #[test]
+    fn test_inline_typst_emphasis() {
+        assert_eq!(inline_to_typst("**bold** and *em*"), "*bold* and _em_");
+    }
+
+    #[test]
+    fn test_inline_typst_citation_vs_email() {
+        // @key at a word boundary is a citation; an email's @ is escaped.
+        assert_eq!(inline_to_typst("see @smith2020"), "see @smith2020");
+        assert_eq!(inline_to_typst("mail a@b now"), "mail a\\@b now");
     }
 
     #[test]
@@ -910,7 +1421,9 @@ mod tests {
         let src = "Text\n```python\nprint('hi')\n```\nMore text";
         let blocks = parse_notebook(src);
         assert_eq!(blocks.len(), 1);
-        assert!(matches!(&blocks[0], Block::Prose(t) if t.contains("python") && t.contains("More text")));
+        assert!(
+            matches!(&blocks[0], Block::Prose(t) if t.contains("python") && t.contains("More text"))
+        );
     }
 
     #[test]

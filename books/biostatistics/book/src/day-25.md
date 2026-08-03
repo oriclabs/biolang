@@ -227,8 +227,11 @@ boxplot(bp_table, {title: "Tumor Response by Treatment Arm"})
 **How to read**: The width of the "violin" at any value shows the density of observations there. A violin with two bulges indicates a bimodal distribution.
 
 ```bio
-violin([control, low_dose, high_dose],
-  {labels: ["Control", "Low Dose", "High Dose"],
+let violin_data = table({
+  "Control": control, "Low Dose": low_dose, "High Dose": high_dose
+})
+violin(violin_data,
+  {
   title: "Response Distribution — Full Shape",
   ylabel: "Response Score"})
 ```
@@ -246,10 +249,7 @@ set_seed(42)
 let gene_expr = rnorm(100, 50, 15)
 let drug_response = gene_expr |> map(|x| -0.8 * x + 90 + rnorm(1, 0, 8)[0])
 
-scatter(gene_expr, drug_response,
-  {xlabel: "Gene Expression (TPM)",
-  ylabel: "Drug Response (%)",
-  title: "Gene Expression vs Drug Response"})
+scatter(gene_expr, drug_response)
 ```
 
 **Publication tip**: Add a trend line with confidence band for linear relationships. Use transparency (alpha) when points overlap. Report the correlation coefficient and p-value in the figure legend or panel.
@@ -290,9 +290,13 @@ plot(tbl, {type: "line", x: "day", y: "volume", color: "group",
 let categories = ["Complete Response", "Partial Response", "Stable Disease", "Progressive"]
 let counts = [18, 35, 28, 19]
 
-bar_chart(categories, counts,
-  {title: "RECIST Response Categories",
-  ylabel: "Number of Patients"})
+let response_counts = {
+  Complete_Response: 18,
+  Partial_Response: 35,
+  Stable_Disease: 28,
+  Progressive: 19
+}
+bar_chart(response_counts, {title: "RECIST Response Categories"})
 ```
 
 > **Common pitfall:** Bar charts with error bars (dynamite plots) are the most criticized visualization in biostatistics. They show only the mean and one measure of spread, hiding the actual data distribution. A sample with a bimodal distribution and a sample with a normal distribution can produce identical bar charts. Always prefer box plots, violin plots, or strip charts for continuous data.
@@ -305,6 +309,12 @@ bar_chart(categories, counts,
 
 ```bio
 # Expression heatmap of top 50 DE genes
+let top_50_expression = matrix([
+  [2.1, 2.4, 8.2, 8.5],
+  [7.8, 8.1, 3.0, 2.7],
+  [4.2, 4.0, 6.5, 6.8],
+  [9.0, 8.7, 2.2, 2.5]
+])
 heatmap(top_50_expression,
   {cluster_rows: true,
   cluster_cols: true,
@@ -321,6 +331,11 @@ heatmap(top_50_expression,
 **How to read**: x-axis is log2 fold change, y-axis is -log10(p-value). Points in the upper corners are genes with large, significant changes. Upper-left: significantly downregulated. Upper-right: significantly upregulated. Bottom center: not significant.
 
 ```bio
+let de_results = table([
+  {gene: "TP53", log2fc: 2.3, pvalue: 0.0001},
+  {gene: "BRCA1", log2fc: -1.7, pvalue: 0.002},
+  {gene: "GAPDH", log2fc: 0.1, pvalue: 0.72}
+])
 volcano(de_results,
   {fc_threshold: 1.0,       # log2 FC cutoff
   p_threshold: 0.05,        # adjusted p-value cutoff
@@ -338,9 +353,14 @@ volcano(de_results,
 **How to read**: x-axis is genomic position (chromosomes colored alternately), y-axis is -log10(p-value). Peaks above the genome-wide significance line (p < 5 x 10^-8) are associated loci.
 
 ```bio
+let gwas_results = table([
+  {chrom: "1", pos: 11856378, pvalue: 2e-9},
+  {chrom: "7", pos: 55259515, pvalue: 4e-6},
+  {chrom: "12", pos: 25245350, pvalue: 0.03},
+  {chrom: "17", pos: 43093449, pvalue: 8e-10}
+])
 manhattan(gwas_results,
-  {significance_line: 5e-8,
-  suggestive_line: 1e-5,
+  {threshold: 5e-8,
   title: "GWAS — Type 2 Diabetes"})
 ```
 
@@ -353,6 +373,7 @@ manhattan(gwas_results,
 **How to read**: Points should follow the diagonal if there is no systematic inflation. Deviation at the upper end indicates true signal. Deviation along the entire line indicates systematic inflation (population structure, technical artifacts).
 
 ```bio
+let p_values = [0.000001, 0.0002, 0.003, 0.02, 0.08, 0.15, 0.31, 0.54, 0.77, 0.93]
 qq_plot(p_values,
   {title: "Q-Q Plot — Observed vs Expected p-values",
   ci: true})
@@ -395,12 +416,9 @@ let method_b = [5.0, 6.3, 4.5, 7.0, 5.8, 6.5, 4.4, 5.7, 7.4, 6.1]
 let means = zip(method_a, method_b) |> map(|p| (p[0] + p[1]) / 2)
 let diffs = zip(method_a, method_b) |> map(|p| p[0] - p[1])
 let mean_diff = mean(diffs)
-let sd_diff = sd(diffs)
+let sd_diff = stdev(diffs)
 
-scatter(means, diffs,
-  {title: "Bland-Altman — qPCR vs RNA-seq Expression",
-  xlabel: "Mean of Two Methods",
-  ylabel: "Difference (qPCR - RNA-seq)"})
+scatter(means, diffs)
 print("Mean difference: " + str(round(mean_diff, 3)))
 print("Limits of agreement: [" +
   str(round(mean_diff - 1.96 * sd_diff, 3)) + ", " +
@@ -415,10 +433,9 @@ print("Limits of agreement: [" +
 
 ```bio
 # Funnel plot: scatter of effect size vs precision
-scatter(effect_sizes, standard_errors,
-  {title: "Funnel Plot — Publication Bias Assessment",
-  xlabel: "Effect Size (log OR)",
-  ylabel: "Standard Error"})
+let effect_sizes = [0.22, 0.35, 0.18, 0.41, 0.29]
+let standard_errors = [0.08, 0.12, 0.06, 0.15, 0.09]
+scatter(effect_sizes, standard_errors)
 ```
 
 ## Kaplan-Meier Plot
@@ -429,15 +446,15 @@ scatter(effect_sizes, standard_errors,
 
 ```bio
 # Build a Kaplan-Meier survival table and plot
-let km_tbl = zip(time, event, group) |> map(|r| {
-  time: r[0], event: r[1], group: r[2]
+let time = [6, 8, 12, 15, 20, 24, 30, 36, 42, 48]
+let event = [1, 1, 1, 1, 1, 1, 0, 0, 0, 0]
+let group = ["Drug", "Control", "Drug", "Control", "Drug",
+             "Control", "Drug", "Control", "Drug", "Control"]
+let km_tbl = range(0, len(time)) |> map(|i| {
+  time: time[i], event: event[i], group: group[i]
 }) |> to_table()
 
-plot(km_tbl, {type: "line", x: "time", y: "survival",
-  color: "group",
-  title: "Overall Survival — Drug X vs Standard of Care",
-  xlabel: "Months",
-  ylabel: "Survival Probability"})
+kaplan_meier(km_tbl, {title: "Overall Survival - Drug X vs Standard of Care"})
 ```
 
 **Publication tip**: Include a risk table below the plot showing the number at risk at regular intervals. Report the log-rank p-value and hazard ratio with CI.
@@ -449,6 +466,11 @@ plot(km_tbl, {type: "line", x: "time", y: "survival",
 **How to read**: The curve bows toward the upper-left corner for good classifiers. The AUC (area under the curve) summarizes performance: 0.5 = random guessing, 1.0 = perfect classification. AUC > 0.8 is generally considered good.
 
 ```bio
+let roc_tbl = table([
+  {score: 0.95, label: 1}, {score: 0.82, label: 1},
+  {score: 0.71, label: 0}, {score: 0.60, label: 1},
+  {score: 0.42, label: 0}, {score: 0.18, label: 0}
+])
 roc_curve(roc_tbl,
   {title: "ROC — Gene Expression Classifier for Response",
   auc_label: true})

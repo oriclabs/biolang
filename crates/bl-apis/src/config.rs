@@ -128,7 +128,10 @@ biocontainers: https://my-proxy.example.com/trs/v2
     #[test]
     fn test_resolve_url_default() {
         // With no env var or config, should return default
-        let url = resolve_url("test_nonexistent_service_xyz", "https://default.example.com");
+        let url = resolve_url(
+            "test_nonexistent_service_xyz",
+            "https://default.example.com",
+        );
         assert_eq!(url, "https://default.example.com");
     }
 }

@@ -1,4 +1,4 @@
-use bio_core::aligned_read::{parse_cigar_ref_len, parse_cigar_query_len};
+use bio_core::aligned_read::{parse_cigar_query_len, parse_cigar_ref_len};
 use bio_core::AlignedRead;
 
 fn test_read() -> AlignedRead {

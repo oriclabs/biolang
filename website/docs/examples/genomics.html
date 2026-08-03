@@ -69,16 +69,16 @@ let bam = read_bam("aligned.bam")
 let window_size = 10000
 let coverage = range(0, 249250621, window_size)
   |> map(|start| {
-    let end = start + window_size
+    let stop = start + window_size
     let depths = bam
-      |> filter(|r| { r.is_mapped && r.chrom == "chr1" && r.pos >= start && r.pos < end })
+      |> filter(|r| { r.is_mapped && r.chrom == "chr1" && r.pos >= start && r.pos &lt; stop })
       |> map(|r| r.mapq)
       |> collect
     let n = depths |> len
     {
       chrom: "chr1",
       start: start,
-      end: end,
+      stop: stop,
       mean_depth: if n > 0 { depths |> mean } else { 0.0 },
       breadth: n |> float / window_size |> float
     }
@@ -97,7 +97,7 @@ let targets = read_bed("capture_targets.bed")
 let region_cov = targets
   |> map(|t| {
     let depths = bam
-      |> filter(|r| { r.is_mapped && r.chrom == t.chrom && r.pos >= t.start && r.pos < t.end })
+      |> filter(|r| { r.is_mapped && r.chrom == t.chrom && r.pos >= t.start && r.pos &lt; t.end })
       |> map(|r| r.mapq)
       |> collect
     let total = depths |> len
@@ -113,7 +113,7 @@ let region_cov = targets
   })
 
 # Find under-covered regions
-let low_cov = region_cov |> filter(|r| { r.pct_20x < 0.90 })
+let low_cov = region_cov |> filter(|r| { r.pct_20x &lt; 0.90 })
 print(f"Regions below 90% at 20x: {low_cov |> len}")
 low_cov |> write_tsv("low_coverage_regions.tsv")</code></pre>
 
@@ -141,18 +141,22 @@ density |> write_tsv("variant_density.tsv")</code></pre>
 let summary = vcf
   |> filter(|v| { v.filter == "PASS" })
   |> map(|v| {
-    match {
-      is_snp(v) => "SNP",
-      is_indel(v) && len(v.alt) > len(v.ref) => "INS",
-      is_indel(v) && len(v.alt) < len(v.ref) => "DEL",
-      len(v.ref) > 1 && len(v.alt) == len(v.ref) => "MNP",
-      _ => "OTHER"
+    if is_snp(v) {
+      "SNP"
+    } else if is_indel(v) && len(v.alt) > len(v.ref) {
+      "INS"
+    } else if is_indel(v) && len(v.alt) &lt; len(v.ref) {
+      "DEL"
+    } else if len(v.ref) > 1 && len(v.alt) == len(v.ref) {
+      "MNP"
+    } else {
+      "OTHER"
     }
   })
   |> frequencies
 
-for type, count in summary {
-  print(f"{type}: {count}")
+for item in summary {
+  print(f"{item.key}: {item.value}")
 }</code></pre>
 
         <h3>Heterozygosity rate</h3>

@@ -1,0 +1,15 @@
+# Reference gene normalization and geNorm stability scoring.
+
+fn normalize(ct_table, ref_indices) {
+  reference_normalize(ct_table, ref_indices)
+}
+
+fn stability(ct_table, ref_indices) {
+  genorm_stability(ct_table, ref_indices)
+}
+
+fn best_reference(ct_table, ref_indices) {
+  stability(ct_table, ref_indices)
+    |> sort_by(fn(r) -> r.stability)
+    |> first
+}

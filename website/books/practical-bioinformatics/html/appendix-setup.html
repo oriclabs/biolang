@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-02d32199.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -250,14 +250,15 @@ cargo build --release
 <pre><code class="language-bash">bl run analysis.bl input.fastq output.csv
 </code></pre>
 <h3 id="bl-init--create-a-new-project"><a class="header" href="#bl-init--create-a-new-project"><code>bl init</code> — Create a New Project</a></h3>
-<p>Scaffolds a new BioLang project directory:</p>
-<pre><code class="language-bash">bl init my-project
+<p>Initializes the current directory as a BioLang package:</p>
+<pre><code class="language-bash">mkdir my-project
+cd my-project
+bl init --name my-project
 </code></pre>
 <p>This creates:</p>
 <pre><code>my-project/
+  biolang.toml   # Package metadata and dependencies
   main.bl        # Entry point
-  data/          # Data directory
-  results/       # Output directory
 </code></pre>
 <h3 id="bl-lsp--language-server"><a class="header" href="#bl-lsp--language-server"><code>bl lsp</code> — Language Server</a></h3>
 <p>Starts the Language Server Protocol server for editor integration:</p>
@@ -265,10 +266,34 @@ cargo build --release
 </code></pre>
 <p>You typically do not run this directly — your editor starts it automatically.</p>
 <h3 id="bl-plugins--plugin-management"><a class="header" href="#bl-plugins--plugin-management"><code>bl plugins</code> — Plugin Management</a></h3>
-<p>Lists or manages BioLang plugins:</p>
-<pre><code class="language-bash">bl plugins          # List installed plugins
-bl plugins install  # Install a plugin
+<p>Lists installed BioLang plugins. Use <code>bl add</code> and <code>bl remove</code> to change them:</p>
+<pre><code class="language-bash">bl add kmer-tools --path ./kmer-tools
+bl plugins
+bl remove kmer-tools
 </code></pre>
+<h3 id="validation-packages-and-migration"><a class="header" href="#validation-packages-and-migration">Validation, Packages, and Migration</a></h3>
+<p>Check scripts without executing them:</p>
+<pre><code class="language-bash">bl check main.bl src/qc.bl
+bl doctor
+</code></pre>
+<p>Initialize the current directory as a package and install its dependencies:</p>
+<pre><code class="language-bash">bl init --name my-analysis
+bl install
+</code></pre>
+<p>Convert an existing Python, R, Jupyter, or R Markdown analysis and validate the
+generated BioLang before reviewing it:</p>
+<pre><code class="language-bash">bl import analysis.py --validate -o analysis.bl
+bl import analysis.R --validate -o analysis.bl
+bl import report.ipynb --validate -o report.bl
+bl import report.Rmd --validate -o report.bl
+</code></pre>
+<p>Run a BioLang notebook or export it as HTML:</p>
+<pre><code class="language-bash">bl notebook report.bln
+bl notebook report.bln --export html &gt; report.html
+</code></pre>
+<p>Conversion is a migration aid, not a scientific equivalence guarantee. Compare
+key results with the original script, especially defaults for missing values,
+statistical tests, factor handling, and multiple-testing correction.</p>
 <h2 id="setting-up-python-optional"><a class="header" href="#setting-up-python-optional">Setting Up Python (Optional)</a></h2>
 <p>Python comparison scripts require Python 3.8 or later. Most exercises use BioPython.</p>
 <h3 id="check-your-python-installation"><a class="header" href="#check-your-python-installation">Check Your Python Installation</a></h3>
@@ -522,9 +547,9 @@ export HTTPS_PROXY="http://proxy.example.com:8080"
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

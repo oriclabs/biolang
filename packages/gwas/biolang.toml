@@ -1,0 +1,11 @@
+[package]
+name = "gwas"
+version = "0.1.0"
+description = "GWAS analysis: summary stat loading, Manhattan/QQ plot data, LD clumping, genome-wide significant loci"
+authors = ["BioLang"]
+
+[dependencies]
+statistics = { path = "../statistics" }
+
+[lib]
+entry = "src/mod.bl"

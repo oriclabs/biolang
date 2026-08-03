@@ -1,0 +1,22 @@
+# popgen — Population genetics for BioLang
+#
+# Quick start:
+#   import "popgen" as pg
+#
+#   pg.hwe(n_AA=50, n_Aa=40, n_aa=10)
+#   pg.fst(ac1, ac2, n1=100, n2=120)
+#   pg.tajima(n_seg=15, n_seq=20, len=1000)
+#   pg.ld(geno_a, geno_b)
+#   pg.pi(geno_matrix)
+
+import "popgen/src/diversity" as div
+import "popgen/src/selection" as sel
+
+fn pi(geno_matrix)               { div.pi(geno_matrix) }
+fn tajima(n_seg, n_seq, len)     { div.tajima(n_seg, n_seq, len) }
+fn afs(geno_matrix)              { div.afs(geno_matrix) }
+fn watterson_theta(n_seg, n_seq) { div.watterson_theta(n_seg, n_seq) }
+fn fst(ac1, ac2, n1, n2)         { sel.fst(ac1, ac2, n1, n2) }
+fn ld(geno_a, geno_b)            { sel.ld(geno_a, geno_b) }
+fn ld_matrix(geno_matrix)        { sel.ld_matrix(geno_matrix) }
+fn hwe(n_aa, n_ab, n_bb)         { sel.hwe(n_aa, n_ab, n_bb) }

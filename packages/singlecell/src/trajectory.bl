@@ -1,0 +1,77 @@
+# singlecell/src/trajectory.bl — Pseudotime and trajectory analysis
+#
+# Wraps diffusion_pseudotime (Dijkstra shortest path on KNN graph).
+# Call after sc.neighbors() so that obj.knn is available.
+
+## pseudotime(obj, start_cell) → Record
+##
+## Compute diffusion pseudotime from start_cell through the KNN graph.
+## Cells unreachable from start_cell receive pseudotime = -1.0.
+##
+## start_cell — Int index of the root cell (e.g. a known progenitor).
+##
+## Adds obj.pseudotime (List<Float>).
+fn pseudotime(obj, start_cell) {
+    let embed = obj.pca_scores
+    let knn   = obj.knn
+    let pt    = diffusion_pseudotime(embed, knn, start_cell)
+    {... obj, pseudotime: pt}
+}
+
+## order_by_pseudotime(obj) → Record
+##
+## Return a new object where cells are reordered by ascending pseudotime.
+## Cells with pseudotime = -1 (unreachable) are placed at the end.
+fn order_by_pseudotime(obj) {
+    let pt  = obj.pseudotime
+    let n   = obj.n_cells
+
+    # Sort cell indices by pseudotime; unreachable cells last
+    let order = range(0, n) |> sort_by(|i| if pt[i] < 0.0 then 1e18 else pt[i])
+
+    sc_subset_cells(obj, order)
+}
+
+## pseudotime_bins(pt, n_bins) → List<Int>
+##
+## Assign each cell to a pseudotime bin (0-indexed). Cells with pt = -1 → -1.
+##
+## pt     — List<Float> pseudotime values from pseudotime()
+## n_bins — number of bins (default 10)
+fn pseudotime_bins(pt, n_bins = 10) {
+    let valid = pt |> filter(|v| v >= 0.0)
+    if len(valid) == 0 {
+        return pt |> map(|_| -1)
+    }
+    let pt_min = min(valid)
+    let pt_max = max(valid)
+    let span   = pt_max - pt_min + 1e-10
+    pt |> map(|v| {
+        if v < 0.0 {
+            -1
+        } else {
+            let b = round((v - pt_min) / span * n_bins)
+            if b >= n_bins then n_bins - 1 else b
+        }
+    })
+}
+
+## smooth_along_pseudotime(obj, gene_idx, n_bins) → List<Float>
+##
+## Return the mean expression of gene_idx across n_bins pseudotime windows.
+## Useful for plotting gene dynamics along a trajectory.
+fn smooth_along_pseudotime(obj, gene_idx, n_bins = 20) {
+    let pt   = obj.pseudotime
+    let mat  = obj.norm_matrix
+    let bins = pseudotime_bins(pt, n_bins)
+
+    range(0, n_bins) |> map(|b| {
+        let cell_idx = range(0, obj.n_cells) |> filter(|i| bins[i] == b)
+        if len(cell_idx) == 0 {
+            0.0
+        } else {
+            let vals = cell_idx |> map(|i| matrix_at(mat, i, gene_idx))
+            mean(vals)
+        }
+    })
+}

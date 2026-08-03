@@ -1,0 +1,21 @@
+# clustering — Cell and sample clustering algorithms
+#
+# Re-exports the public API from src/algorithms.bl
+#
+# Example:
+#   import "clustering" as cl
+#   let result = cl.kmeans(pca_scores, k=10)
+#   println(f"Inertia: {result.inertia}, iterations: {result.iterations}")
+#   let sil = cl.silhouette(pca_scores, result.labels)
+#   println(f"Mean silhouette score: {sil.mean_score}")
+
+import "clustering/src/algorithms" as _alg
+
+fn kmeans(data, k, max_iter = 300, seed = 42)           { _alg.kmeans(data, k, max_iter, seed) }
+fn kmeans_elbow(data, k_range, max_iter = 100)          { _alg.kmeans_elbow(data, k_range, max_iter) }
+fn hierarchical(data, linkage = "ward", metric = "euclidean") {
+    _alg.hierarchical(data, linkage, metric)
+}
+fn cut_tree(dendrogram, k)                               { _alg.cut_tree(dendrogram, k) }
+fn silhouette(data, labels)                              { _alg.silhouette(data, labels) }
+fn leiden(adjacency, resolution = 1.0, seed = 42)       { _alg.leiden(adjacency, resolution, seed) }

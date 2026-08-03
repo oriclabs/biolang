@@ -147,7 +147,8 @@ A pipeline can accept parameters, turning it into a reusable template. When you
 declare `pipeline name(params) { ... }`, BioLang defines a callable function
 instead of executing immediately.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Define a reusable alignment template
 pipeline align_sample(sample_id, r1, r2, reference) {
   stage sorted -> shell("bwa-mem2 mem -t 16 " + reference + " " + r1 + " " + r2
@@ -189,10 +190,11 @@ work across available cores.
 
 ```biolang
 let sequences = read_fasta("data/sequences.fasta")
+  |> to_records()
 
 # Compute GC content in parallel
 let gc_values = sequences
-  |> par_map(|seq| {name: seq.name, gc: gc_content(seq.sequence)})
+  |> par_map(|seq| {name: seq.id, gc: gc_content(seq.seq)})
 
 # Filter in parallel
 let high_gc = gc_values
@@ -207,7 +209,8 @@ For workflows that need to run a block of statements per item, `parallel for`
 fans out iterations. In the current tree-walking interpreter these run
 sequentially; a future bytecode backend will parallelize them.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let samples = [
   {id: "tumor_01", r1: "t01_R1.fq.gz", r2: "t01_R2.fq.gz"},
   {id: "tumor_02", r1: "t02_R1.fq.gz", r2: "t02_R2.fq.gz"},
@@ -332,7 +335,8 @@ notify("FASTQ QC complete: " + str(qc.total_reads) + " reads, Q30=" + str(qc.q30
 
 Germline variant calling from FASTQ to filtered VCF using pipeline blocks.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 pipeline germline_variants {
   stage aligned -> shell(
     "bwa-mem2 mem -t 16 -R '@RG\\tID:S1\\tSM:sample' GRCh38.fa "
@@ -372,7 +376,8 @@ println(germline_variants)
 
 Processing a cohort with parameterized pipelines and aggregation.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Reusable per-sample pipeline
 pipeline process_sample(sample_id, r1, r2) {
   stage bam -> shell(
@@ -430,7 +435,8 @@ slack("Cohort processing complete: " + str(len(passed)) + "/" + str(len(results)
 Pipelines are values. Parameterized pipelines are functions. You can call one
 from another to build layered workflows.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 pipeline align_one(sample) {
   stage sorted -> shell(
     "bwa-mem2 mem -t 8 GRCh38.fa " + sample.r1 + " " + sample.r2

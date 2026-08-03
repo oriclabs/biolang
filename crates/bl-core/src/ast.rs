@@ -32,8 +32,15 @@ pub enum Stmt {
         where_clause: Option<Spanned<Expr>>,
     },
     /// `name = expr` (reassignment)
-    Assign {
+    Assign { name: String, value: Spanned<Expr> },
+    /// `name[index] = expr` — update one element in place.
+    ///
+    /// Without this, building a table meant rebuilding whole rows, which turns
+    /// an O(n*m) dynamic programme into something far worse and puts search
+    /// over large state spaces out of reach entirely.
+    IndexAssign {
         name: String,
+        index: Spanned<Expr>,
         value: Spanned<Expr>,
     },
     /// Expression used as a statement
@@ -74,10 +81,7 @@ pub enum Stmt {
         body: Vec<Spanned<Stmt>>,
     },
     /// `import "path"` or `import "path" as alias`
-    Import {
-        path: String,
-        alias: Option<String>,
-    },
+    Import { path: String, alias: Option<String> },
     /// `yield expr` (inside generator functions)
     Yield(Spanned<Expr>),
     /// `enum Name { A, B(x), C(x, y) }`
@@ -131,20 +135,11 @@ pub enum Stmt {
         body: Vec<Spanned<Stmt>>,
     },
     /// `stage "name" -> expr` inside a pipeline block
-    Stage {
-        name: String,
-        expr: Spanned<Expr>,
-    },
+    Stage { name: String, expr: Spanned<Expr> },
     /// `from "module" import name1, name2`
-    FromImport {
-        path: String,
-        names: Vec<String>,
-    },
+    FromImport { path: String, names: Vec<String> },
     /// `name ?= expr` — assign only if name is nil
-    NilAssign {
-        name: String,
-        value: Spanned<Expr>,
-    },
+    NilAssign { name: String, value: Spanned<Expr> },
     /// `type Name = TypeExpr` — type alias
     TypeAlias {
         name: String,
@@ -373,7 +368,6 @@ pub enum Expr {
         delay: Option<Box<Spanned<Expr>>>,
         body: Vec<Spanned<Stmt>>,
     },
-
 }
 
 /// An entry in a record literal — either a named field or a spread.

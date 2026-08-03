@@ -71,7 +71,7 @@ impl VmIterator {
                     rec.insert("key".to_string(), Value::Str(k.clone()));
                     rec.insert("value".to_string(), v.clone());
                     *index += 1;
-                    Some(Value::Record(rec))
+                    Some(Value::Record(rec.into()))
                 } else {
                     None
                 }
@@ -182,11 +182,7 @@ impl Vm {
         }
     }
 
-    fn execute_op(
-        &mut self,
-        op: OpCode,
-        frame_idx: usize,
-    ) -> Result<Option<Value>> {
+    fn execute_op(&mut self, op: OpCode, frame_idx: usize) -> Result<Option<Value>> {
         let span = self.current_span(frame_idx);
 
         match op {
@@ -321,8 +317,7 @@ impl Vm {
             OpCode::LessEqual => {
                 let b = self.stack.pop().unwrap_or(Value::Nil);
                 let a = self.stack.pop().unwrap_or(Value::Nil);
-                self.stack
-                    .push(Value::Bool(value_ops::less_equal(&a, &b)?));
+                self.stack.push(Value::Bool(value_ops::less_equal(&a, &b)?));
             }
             OpCode::GreaterEqual => {
                 let b = self.stack.pop().unwrap_or(Value::Nil);
@@ -347,8 +342,7 @@ impl Vm {
                 // Does NOT pop — for short-circuit `||`
                 if let Some(val) = self.stack.last() {
                     if val.is_truthy() {
-                        let new_ip =
-                            (self.frames[frame_idx].ip as i32 + offset as i32) as usize;
+                        let new_ip = (self.frames[frame_idx].ip as i32 + offset as i32) as usize;
                         self.frames[frame_idx].ip = new_ip;
                     }
                 }
@@ -364,10 +358,7 @@ impl Vm {
 
                 match callee {
                     Value::NativeFunction { ref name, .. } => {
-                        let args: Vec<Value> = self
-                            .stack
-                            .drain(callee_idx + 1..)
-                            .collect();
+                        let args: Vec<Value> = self.stack.drain(callee_idx + 1..).collect();
                         self.stack.pop(); // pop callee
                         let result = self.builtins.call_by_name(name, args)?;
                         self.stack.push(result);
@@ -375,22 +366,15 @@ impl Vm {
                     Value::CompiledClosure(ref any_closure) => {
                         if let Some(closure) = any_closure.downcast_ref::<ObjClosure>() {
                             let closure = closure.clone();
-                            let args: Vec<Value> = self
-                                .stack
-                                .drain(callee_idx + 1..)
-                                .collect();
+                            let args: Vec<Value> = self.stack.drain(callee_idx + 1..).collect();
                             self.stack.pop(); // pop callee
                             let base = self.stack.len();
                             for arg in args {
                                 self.stack.push(arg);
                             }
-                            self.frames
-                                .push(CallFrame::new(closure, base));
+                            self.frames.push(CallFrame::new(closure, base));
                         } else {
-                            return Err(BioLangError::type_error(
-                                "invalid compiled closure",
-                                span,
-                            ));
+                            return Err(BioLangError::type_error("invalid compiled closure", span));
                         }
                     }
                     Value::Function { .. } => {
@@ -476,7 +460,7 @@ impl Vm {
             OpCode::MakeList(count) => {
                 let start = self.stack.len() - count as usize;
                 let items: Vec<Value> = self.stack.drain(start..).collect();
-                self.stack.push(Value::List(items));
+                self.stack.push(Value::List(items.into()));
             }
             OpCode::MakeRecord(count) => {
                 // Stack has alternating name_constant_value, actual_value pairs
@@ -489,7 +473,7 @@ impl Vm {
                         map.insert(key.clone(), value.clone());
                     }
                 }
-                self.stack.push(Value::Record(map));
+                self.stack.push(Value::Record(map.into()));
             }
             OpCode::MakeSet(count) => {
                 let start = self.stack.len() - count as usize;
@@ -556,7 +540,7 @@ impl Vm {
                 match (object, &index) {
                     (Value::Record(mut map), Value::Str(key))
                     | (Value::Map(mut map), Value::Str(key)) => {
-                        map.insert(key.clone(), value);
+                        std::sync::Arc::make_mut(&mut map).insert(key.clone(), value);
                         self.stack.push(Value::Record(map));
                     }
                     (Value::List(mut list), Value::Int(i)) => {
@@ -566,7 +550,7 @@ impl Vm {
                             *i as usize
                         };
                         if idx < list.len() {
-                            list[idx] = value;
+                            std::sync::Arc::make_mut(&mut list)[idx] = value;
                         }
                         self.stack.push(Value::List(list));
                     }
@@ -583,7 +567,10 @@ impl Vm {
             OpCode::PushIter => {
                 let val = self.stack.pop().unwrap_or(Value::Nil);
                 let iter = match val {
-                    Value::List(items) => VmIterator::List { items, index: 0 },
+                    Value::List(items) => VmIterator::List {
+                        items: items.as_ref().clone(),
+                        index: 0,
+                    },
                     Value::Range {
                         start,
                         end,
@@ -594,7 +581,8 @@ impl Vm {
                         inclusive,
                     },
                     Value::Map(map) | Value::Record(map) => {
-                        let pairs: Vec<(String, Value)> = map.into_iter().collect();
+                        let pairs: Vec<(String, Value)> =
+                            map.as_ref().clone().into_iter().collect();
                         VmIterator::Map { pairs, index: 0 }
                     }
                     Value::Set(items) => VmIterator::Set { items, index: 0 },
@@ -625,8 +613,8 @@ impl Vm {
                         }
                         None => {
                             // Jump to exit
-                            let new_ip = (self.frames[frame_idx].ip as i32
-                                + offset as i32) as usize;
+                            let new_ip =
+                                (self.frames[frame_idx].ip as i32 + offset as i32) as usize;
                             self.frames[frame_idx].ip = new_ip;
                         }
                     }
@@ -647,20 +635,19 @@ impl Vm {
             // ── Bio literals ──
             OpCode::MakeDna(idx) => {
                 let seq_str = self.read_name(frame_idx, idx);
-                self.stack.push(Value::DNA(bl_core::value::BioSequence {
-                    data: seq_str,
-                }));
+                self.stack
+                    .push(Value::DNA(bl_core::value::BioSequence { data: seq_str }));
             }
             OpCode::MakeRna(idx) => {
                 let seq_str = self.read_name(frame_idx, idx);
-                self.stack.push(Value::RNA(bl_core::value::BioSequence {
-                    data: seq_str,
-                }));
+                self.stack
+                    .push(Value::RNA(bl_core::value::BioSequence { data: seq_str }));
             }
             OpCode::MakeProtein(idx) => {
                 let seq_str = self.read_name(frame_idx, idx);
-                self.stack
-                    .push(Value::Protein(bl_core::value::BioSequence { data: seq_str }));
+                self.stack.push(Value::Protein(bl_core::value::BioSequence {
+                    data: seq_str,
+                }));
             }
 
             // ── Exception handling ──
@@ -686,8 +673,7 @@ impl Vm {
                 if let Some(val) = self.stack.last() {
                     if !matches!(val, Value::Nil) {
                         // Non-nil: skip right side
-                        let new_ip =
-                            (self.frames[frame_idx].ip as i32 + offset as i32) as usize;
+                        let new_ip = (self.frames[frame_idx].ip as i32 + offset as i32) as usize;
                         self.frames[frame_idx].ip = new_ip;
                     }
                 }
@@ -697,7 +683,8 @@ impl Vm {
             OpCode::MakeFormula(idx) => {
                 match &self.frames[frame_idx].closure.function.chunk.constants[idx as usize] {
                     Constant::AstFragment(ast) => {
-                        self.stack.push(Value::Formula(Box::new(ast.as_ref().clone())));
+                        self.stack
+                            .push(Value::Formula(Box::new(ast.as_ref().clone())));
                     }
                     _ => self.stack.push(Value::Nil),
                 }
@@ -726,6 +713,31 @@ impl Vm {
             OpCode::DebugSpan(_, _) => {
                 // No-op: span info is for debugging tools
             }
+
+            OpCode::Yield => {
+                // Yield suspends the generator and returns the TOS value to the caller.
+                // Full coroutine support is handled at the interpreter level; the JIT
+                // treats yield as a return for now.
+                let result = self.stack.pop().unwrap_or(Value::Nil);
+                let frame = self.frames.pop().unwrap();
+                self.stack.truncate(frame.base);
+                if self.frames.is_empty() {
+                    return Ok(Some(result));
+                }
+                self.stack.push(result);
+            }
+
+            OpCode::MakeRegex => {
+                let flags = match self.stack.pop().unwrap_or(Value::Nil) {
+                    Value::Str(s) => s,
+                    _ => String::new(),
+                };
+                let pattern = match self.stack.pop().unwrap_or(Value::Nil) {
+                    Value::Str(s) => s,
+                    _ => String::new(),
+                };
+                self.stack.push(Value::Regex { pattern, flags });
+            }
         }
 
         Ok(None)
@@ -735,11 +747,7 @@ impl Vm {
 
     fn current_span(&self, frame_idx: usize) -> Option<Span> {
         let ip = self.frames[frame_idx].ip.saturating_sub(1);
-        self.frames[frame_idx]
-            .closure
-            .function
-            .chunk
-            .span_at(ip)
+        self.frames[frame_idx].closure.function.chunk.span_at(ip)
     }
 
     fn read_constant(&self, frame_idx: usize, idx: u16) -> Value {

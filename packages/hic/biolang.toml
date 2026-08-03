@@ -1,0 +1,8 @@
+[package]
+name = "hic"
+version = "0.1.0"
+description = "Hi-C chromatin conformation: ICE normalization, insulation score, TAD boundary calling, distance decay"
+authors = ["BioLang"]
+
+[lib]
+entry = "src/mod.bl"

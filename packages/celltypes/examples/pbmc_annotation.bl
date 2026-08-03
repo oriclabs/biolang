@@ -1,0 +1,23 @@
+import "singlecell" as sc
+import "celltypes"  as ct
+
+let obj = sc.load("data/pbmc3k/") |> sc.normalize |> sc.cluster
+
+# ── Reference-based annotation ────────────────────────────────────────────────
+let ref_obj    = sc.load("data/pbmc_reference/") |> sc.normalize
+let ref_matrix = ref_obj.norm_matrix
+let ref_labels = ref_obj.obs.cell_type
+
+let obj = ct.from_reference(obj, ref_matrix, ref_labels)
+ct.type_counts(obj)
+ct.low_confidence(obj, 0.7)
+
+# ── Marker-based scoring ──────────────────────────────────────────────────────
+# Gene indices for canonical PBMC markers (look up in obj.genes)
+let t_cell_markers = {name: "T cell",   genes: [42, 156, 312]}
+let b_cell_markers = {name: "B cell",   genes: [88, 201, 445]}
+let mono_markers   = {name: "Monocyte", genes: [15,  67, 203]}
+let nk_markers     = {name: "NK cell",  genes: [91, 178, 356]}
+
+let obj = ct.score_markers(obj, [t_cell_markers, b_cell_markers, mono_markers, nk_markers])
+ct.top_type_per_cell(obj)

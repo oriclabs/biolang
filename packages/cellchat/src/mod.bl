@@ -1,0 +1,63 @@
+# cellchat — Cell-cell communication analysis for BioLang
+#
+# Scores pairwise ligand-receptor interactions between cell clusters using mean
+# expression products (CellChat-style law-of-mass-action approximation).
+# Requires a clustered singlecell object with fields: matrix, genes, clusters.
+#
+# Quick start:
+#   import "cellchat" as cc
+#   import "singlecell" as sc
+#
+#   let obj = sc.load("data/10x/")
+#     |> sc.filter_cells
+#     |> sc.normalize
+#     |> sc.variable_genes(2000)
+#     |> sc.neighbors(15)
+#     |> sc.cluster
+#
+#   let scores = cc.score(obj)          # score all default LR pairs
+#   cc.top(scores, 20)                  # top 20 interactions (all cluster pairs)
+#   cc.senders(scores)                  # clusters ranked by outgoing signal
+#   cc.receivers(scores)                # clusters ranked by incoming signal
+#   cc.between(scores, "0", "1")        # cluster 0 → cluster 1 specifically
+#   cc.pathways(scores)                 # aggregate to pathway level
+
+import "cellchat/src/database" as database
+import "cellchat/src/scoring"  as scoring
+import "cellchat/src/network"  as network
+
+# ─── Main scoring entry points ────────────────────────────────────────────────
+
+# Score using the built-in curated LR database
+fn score(obj)                        { scoring.compute_from_database(obj) }
+
+# Score using a custom LR pair list (format: [[ligand_name, receptor_name, pathway], ...])
+fn score_pairs(obj, lr_pairs)        { scoring.compute_scores(obj, lr_pairs) }
+
+# Top N interactions sorted by score
+fn top(scores, n = 20)               { scoring.top_interactions(scores, n) }
+
+# Interactions between a specific sender and receiver cluster
+fn between(scores, sender, receiver) { scoring.filter_by_cluster(scores, sender, receiver) }
+
+# ─── Network summaries ────────────────────────────────────────────────────────
+
+# Clusters ranked by total outgoing signal strength
+fn senders(scores)   { network.sender_strength(scores) }
+
+# Clusters ranked by total incoming signal strength
+fn receivers(scores) { network.receiver_strength(scores) }
+
+# Both sender and receiver strengths as a record
+fn summary(scores)   { network.interaction_summary(scores) }
+
+# Aggregate raw LR scores to pathway-level totals
+fn pathways(scores)  { network.aggregate_pathways(scores, database.default_lr_database()) }
+
+# ─── Database helpers ─────────────────────────────────────────────────────────
+
+# Return the curated LR database as a list of [ligand, receptor, pathway] triples
+fn lr_database()                     { database.default_lr_database() }
+
+# Resolve gene names in an LR database to row indices in a gene list
+fn resolve(lr_db, genes)             { database.resolve_lr_pairs(lr_db, genes) }

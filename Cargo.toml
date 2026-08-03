@@ -12,16 +12,23 @@ members = [
     "crates/bl-jit",
     "crates/bl-repl",
     "crates/bl-lsp",
+    "crates/bl-import",
     "crates/bl-cli",
+    "crates/bl-fmt",
+    "crates/bl-qc",
+    "crates/bl-refs",
     "crates/bl-wasm",
 ]
 
 [workspace.package]
-version = "0.3.0"
+version = "1.0.0"
 edition = "2021"
 license = "MIT"
+authors = ["Raj Bandi <raj@oriclabs.com>"]
+rust-version = "1.75"
 repository = "https://github.com/oriclabs/biolang"
 homepage = "https://lang.bio"
+documentation = "https://lang.bio/docs"
 description = "A pipe-first bioinformatics language with native DNA types and 750+ builtins"
 keywords = ["bioinformatics", "genomics", "dna", "pipe", "dsl"]
 categories = ["science", "command-line-utilities"]
@@ -38,4 +45,9 @@ bl-compiler = { path = "crates/bl-compiler" }
 bl-jit = { path = "crates/bl-jit" }
 bl-repl = { path = "crates/bl-repl" }
 bl-lsp = { path = "crates/bl-lsp" }
+bl-import = { path = "crates/bl-import" }
 bl-cli = { path = "crates/bl-cli" }
+bl-fmt = { path = "crates/bl-fmt" }
+bl-qc = { path = "crates/bl-qc" }
+bl-refs = { path = "crates/bl-refs" }
+serde = { version = "1", features = ["derive"] }

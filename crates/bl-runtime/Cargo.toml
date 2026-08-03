@@ -9,7 +9,7 @@ description = "Tree-walking interpreter with 750+ builtins for BioLang"
 
 [features]
 default = ["native"]
-native = ["dep:flate2", "dep:glob", "dep:ureq", "dep:bl-bio", "dep:bl-apis", "dep:suppaftp", "dep:toml", "dep:dirs", "dep:rusqlite", "dep:parquet", "dep:pdf-extract"]
+native = ["dep:bl-refs", "dep:flate2", "dep:glob", "dep:ureq", "dep:bl-bio", "dep:bl-apis", "dep:suppaftp", "dep:toml", "dep:dirs", "dep:rusqlite", "dep:parquet", "dep:pdf-extract", "dep:lz4_flex", "dep:ruzstd"]
 bytecode = ["dep:bl-compiler", "dep:bl-jit"]
 jit = ["bytecode", "bl-jit/jit"]
 
@@ -26,6 +26,10 @@ serde_json = "1"
 regex = "1"
 ureq = { version = "2", optional = true }
 flate2 = { version = "1", optional = true }
+# Blosc inner codecs (zarr chunks). Both are pure Rust, so the AnnData reader
+# keeps its no-C-dependency guarantee.
+lz4_flex = { version = "0.11", optional = true, default-features = false, features = ["std"] }
+ruzstd = { version = "0.7", optional = true }
 chrono = "0.4"
 glob = { version = "0.3", optional = true }
 suppaftp = { version = "6", optional = true, features = ["native-tls"] }
@@ -37,6 +41,7 @@ hmac = "0.12"
 hex = "0.4"
 base64 = "0.22"
 rustc-hash = "2"
+bl-refs = { workspace = true, optional = true }
 toml = { version = "0.8", optional = true }
 dirs = { version = "5", optional = true }
 rusqlite = { version = "0.31", features = ["bundled"], optional = true }

@@ -78,7 +78,7 @@ set_seed(42)
 # ============================================
 # Genome-Wide Association Study
 # Type 2 Diabetes: 5,000 Cases + 5,000 Controls
-# 500,000 SNPs across 22 autosomes
+# 50,000-SNP local teaching subset across 22 autosomes
 # ============================================
 
 
@@ -87,7 +87,7 @@ let CONFIG = {
   n_cases: 5000,
   n_controls: 5000,
   n_total: 10000,
-  n_snps: 500000,
+  n_snps: 50000,           # use 500000 for a production-scale simulation
   genome_wide_p: 5e-8,      # genome-wide significance
   suggestive_p: 1e-5,       # suggestive significance
   hwe_threshold: 1e-6,      # HWE filter in controls
@@ -201,14 +201,14 @@ for i in 0..len(snp_names) {
 
 # Apply HWE filter (in controls only)
 let pass_hwe = hwe_pvalues |> map(|p| p >= CONFIG.hwe_threshold)
-let fail_hwe = count(pass_hwe, |x| !x)
+let fail_hwe = count_if(pass_hwe, |x| !x)
 
 print("HWE filter (p < " + str(CONFIG.hwe_threshold) + " in controls):")
 print("  Failed: " + str(fail_hwe) + " SNPs removed")
 
 # MAF filter
 let pass_maf = mafs |> map(|m| m >= CONFIG.maf_threshold)
-let fail_maf = count(pass_maf, |x| !x)
+let fail_maf = count_if(pass_maf, |x| !x)
 print("MAF filter (< " + str(CONFIG.maf_threshold) + "):")
 print("  Failed: " + str(fail_maf) + " SNPs removed")
 
@@ -272,16 +272,10 @@ for i in 0..CONFIG.n_total {
 }
 
 # PCA plot colored by ancestry
-scatter(pc1, pc2,
-  {xlabel: "PC1",
-  ylabel: "PC2",
-  title: "Population Structure — Genotype PCA"})
+scatter(pc1, pc2)
 
 # PCA plot colored by case/control
-scatter(pc1, pc2,
-  {xlabel: "PC1",
-  ylabel: "PC2",
-  title: "PCA — Case/Control Overlay"})
+scatter(pc1, pc2)
 
 # Check: are cases and controls balanced across ancestry?
 print("\nAncestry distribution:")
@@ -340,7 +334,8 @@ print("Model: disease ~ SNP + PC1 + PC2 + PC3 + PC4")
 
 With 500,000 tests, even a tiny false positive rate generates thousands of false hits. The genome-wide significance threshold of p < 5 x 10^-8 is the standard Bonferroni correction for approximately 1 million independent tests (accounting for linkage disequilibrium).
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # --- Multiple Testing ---
 print("\n=== Multiple Testing Correction ===")
 
@@ -638,7 +633,8 @@ if lambda < 1.05 {
 
 ## Section 8: Effect Sizes — Odds Ratios
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # --- Effect Size Analysis ---
 print("\n=== Effect Sizes for Top Hits ===")
 
@@ -724,7 +720,8 @@ print("- Larger sample sizes or meta-analysis would recover more hits")
 
 ## Section 10: Locus Summary and Reporting
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # --- Locus-Level Summary ---
 print("\n=== Locus Summary ===")
 
@@ -796,9 +793,9 @@ print("QC pass rate: " + str(round(n_pass / CONFIG.n_snps * 100, 1)) + "%")
 
 print("\n--- Population Structure ---")
 print("Ancestry groups: European (" +
-  str(count(ancestry, |a| a == "European")) + "), East Asian (" +
-  str(count(ancestry, |a| a == "East Asian")) + "), African (" +
-  str(count(ancestry, |a| a == "African")) + ")")
+  str(count_if(ancestry, |a| a == "European")) + "), East Asian (" +
+  str(count_if(ancestry, |a| a == "East Asian")) + "), African (" +
+  str(count_if(ancestry, |a| a == "African")) + ")")
 print("PCA: PC1-PC2 separate ancestry clusters clearly")
 print("Top 4 PCs included as covariates")
 

@@ -47,6 +47,127 @@
 
   // ── WASM module state ──
   var wasm = null;
+
+  // ── Native-only call detection ──
+  //
+  // The WASM build ships a subset of the CLI's builtins. Rather than maintain a
+  // regex allowlist (which drifted, leaving Run buttons on blocks that could
+  // never work), ask the module what it actually has and name the missing
+  // function in the message.
+  var __blKnown = null;
+  var __blDataFiles = {};
+  var __blAvailablePageLocals = {};
+  var __blUnavailablePageLocals = {};
+  function __blKnownBuiltins() {
+    if (__blKnown) return __blKnown;
+    if (!wasm || !wasm.list_builtins) return null;
+    try {
+      var arr = JSON.parse(wasm.list_builtins());
+      __blKnown = {};
+      (arr || []).forEach(function (b) {
+        if (b && b.name) __blKnown[b.name] = true;
+      });
+      return __blKnown;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  var __BL_KEYWORDS = {
+    "if": 1, "for": 1, "while": 1, "fn": 1, "let": 1, "match": 1, "return": 1,
+    "and": 1, "or": 1, "not": 1, "in": 1, "else": 1, "import": 1, "yield": 1,
+    "enum": 1, "into": 1, "true": 1, "false": 1, "nil": 1
+  };
+
+  // Names the snippet binds itself: let/fn, fn params, for vars, lambda params.
+  function __blLocalNames(code) {
+    var local = {}, m, re;
+    re = /\b(?:let|fn)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+    while ((m = re.exec(code))) local[m[1]] = true;
+    re = /\bfn\s+[A-Za-z_][A-Za-z0-9_]*\s*\(([^)]*)\)/g;
+    while ((m = re.exec(code))) {
+      m[1].split(",").forEach(function (p) {
+        var n = p.split("=")[0].trim();
+        if (n) local[n] = true;
+      });
+    }
+    re = /\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b/g;
+    while ((m = re.exec(code))) local[m[1]] = true;
+    re = /\|([^|\n]*)\|/g;
+    while ((m = re.exec(code))) {
+      m[1].split(",").forEach(function (p) {
+        var n = p.trim();
+        if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(n)) local[n] = true;
+      });
+    }
+    return local;
+  }
+
+  function __blTopLevelNames(code) {
+    var names = {}, m;
+    var re = /(?:^|\n)\s*(?:let|fn)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+    while ((m = re.exec(code))) names[m[1]] = true;
+    return names;
+  }
+
+  function blUsesUnavailablePageLocal(code) {
+    var locals = __blLocalNames(code);
+    return Object.keys(__blUnavailablePageLocals).some(function(name) {
+      return !locals[name] && new RegExp("\\b" + name + "\\b").test(code);
+    });
+  }
+
+  function blHasUnavailableDataFile(code) {
+    var re = /\b(?:read_csv|csv|tsv|read_fasta|fasta|read_fastq|fastq|read_vcf|vcf|read_bed|bed|read_gff|gff)\s*\(\s*/g;
+    var match;
+    while ((match = re.exec(code))) {
+      var rest = code.slice(re.lastIndex);
+      var literal = rest.match(/^"([^"]+)"/);
+      if (!literal) return true;
+      var normalized = literal[1].replace(/\\/g, "/").replace(/^data\//, "");
+      if (!__blDataFiles[normalized]) return true;
+    }
+    return false;
+  }
+
+  // Distinct called names this build cannot provide. Empty when the builtin
+  // list is unavailable, so an unknown state never blocks a run.
+  // Comments and string literals are prose, not code. Scanning them for calls
+  // reads any "word (" as a missing builtin — "renders as DNA(ACGT)" or
+  // "appears at least twice (counting ...)" both did — and wrongly disables the
+  // block as requiring file I/O or the network.
+  function blStripNonCode(code) {
+    return String(code)
+      .split("\n")
+      .map(function (line) { return line.replace(/#.*$/, ""); })
+      .join("\n")
+      .replace(/"(?:[^"\\]|\\.)*"/g, '""');
+  }
+
+  function blUnsupportedCalls(code) {
+    var known = __blKnownBuiltins();
+    if (!known) return [];
+    code = blStripNonCode(code);
+    var local = __blLocalNames(code), bad = [], m;
+    var re = /([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
+    while ((m = re.exec(code))) {
+      var n = m[1];
+      if (local[n] || __blAvailablePageLocals[n] || known[n] || __BL_KEYWORDS[n]) continue;
+      if (bad.indexOf(n) === -1) bad.push(n);
+    }
+    return bad;
+  }
+
+  function blShowNativeOnly(outputEl, names) {
+    var list = names.join(", ");
+    var el = outputEl.querySelector(".bl-result") || outputEl;
+    outputEl.style.display = "block";
+    el.textContent =
+      "Not available in the browser: " + list + "\n\n" +
+      "This example uses functions that only exist in the CLI build " +
+      "(file system, shell, or network APIs). Run it locally with:\n\n    bl run example.bl";
+    el.style.color = "#fbbf24";
+  }
   var wasmLoading = false;
   var wasmQueue = [];
 
@@ -69,7 +190,7 @@
       '  var mod = await import("' + basePath + '/bl_wasm.js");',
       '  await mod.default();',
       '  mod.init();',
-      '  window.__blWasm = { evaluate: mod.evaluate, reset: mod.reset };',
+      '  window.__blWasm = { evaluate: mod.evaluate, reset: mod.reset, list_builtins: mod.list_builtins };',
       '  window.dispatchEvent(new Event("bl-wasm-ready"));',
       '} catch(e) {',
       '  window.__blWasmError = e;',
@@ -101,6 +222,48 @@
     return d.innerHTML;
   }
 
+  function unquoteStringValue(value, type) {
+    if (type !== 'Str' || typeof value !== 'string') return value;
+    if (value.length >= 2 && value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') {
+      return value.slice(1, -1);
+    }
+    return value;
+  }
+
+  function sanitizeSvgMarkup(markup) {
+    if (typeof markup !== 'string' || markup.trimStart().indexOf('<svg') !== 0) return null;
+
+    var parsed = new DOMParser().parseFromString(markup, 'image/svg+xml');
+    var root = parsed.documentElement;
+    if (!root || root.localName !== 'svg' || parsed.querySelector('parsererror')) return null;
+
+    root.querySelectorAll('script, foreignObject, iframe, object, embed, link, style').forEach(function(el) {
+      el.remove();
+    });
+    [root].concat(Array.prototype.slice.call(root.querySelectorAll('*'))).forEach(function(el) {
+      Array.prototype.slice.call(el.attributes || []).forEach(function(attr) {
+        var name = attr.name.toLowerCase();
+        var value = attr.value.trim().toLowerCase();
+        if (
+          name.indexOf('on') === 0 ||
+          ((name === 'href' || name === 'xlink:href') &&
+            /^(?:javascript:|data:|https?:|\/\/)/.test(value)) ||
+          (name === 'style' && /(?:javascript:|expression\s*\(|url\s*\()/i.test(value))
+        ) {
+          el.removeAttribute(attr.name);
+        }
+      });
+    });
+
+    return new XMLSerializer().serializeToString(root);
+  }
+
+  function svgOutputHtml(markup) {
+    var safe = sanitizeSvgMarkup(markup);
+    if (!safe) return null;
+    return '<div class="bl-svg-output" style="background:#fff;border-radius:4px;padding:8px;margin:4px 0;overflow-x:auto;max-width:100%">' + safe + '</div>';
+  }
+
   // ── CLI detection ──
 
   function isCLIRequired(pre) {
@@ -110,8 +273,11 @@
     // Check code content for CLI-only patterns
     var code = pre.querySelector('code');
     var text = code ? code.textContent : '';
+    if (blUnsupportedCalls(text).length) return true;
+    if (blUsesUnavailablePageLocal(text) || blHasUnavailableDataFile(text)) return true;
     // Write operations are always CLI-only
-    if (/\b(write_csv|write_fasta|write_fastq|write_vcf|write_bed)\b/.test(text)) return true;
+    if (/\b(write_csv|write_tsv|write_json|write_text|write_lines|write_fasta|write_fastq|write_vcf|write_bed)\b/.test(text)) return true;
+    if (/\btrim_quality\s*\(\s*["']/.test(text)) return true;
     if (/\b(open|save|write_file|write_lines|mkdir)\s*\(/.test(text)) return true;
     if (/\b(save_plot|save_svg|save_png)\s*\(/.test(text)) return true;
     // Read operations are allowed — fetch bridge loads data from server
@@ -158,7 +324,14 @@
 
   // ── UI: Add Run buttons ──
 
+  // Ordered list of runnable blocks on the page. Examples in docs pages build
+  // on each other the same way they do in the books, so running block N must
+  // replay blocks 0..N-1 first rather than starting from a blank interpreter.
+  var allBlocks = [];
+
   function addPlaygroundButtons() {
+    __blAvailablePageLocals = {};
+    __blUnavailablePageLocals = {};
     document.querySelectorAll('pre[data-runnable]').forEach(function (pre) {
       if (pre.querySelector('.bl-run-btn')) return;
 
@@ -173,6 +346,15 @@
       }
 
       var cliRequired = isCLIRequired(pre);
+      var blockCode = pre.querySelector('code');
+      var source = blockCode ? blockCode.textContent : pre.textContent;
+      var topLevel = __blTopLevelNames(source);
+      Object.keys(topLevel).forEach(function(name) {
+        if (cliRequired) __blUnavailablePageLocals[name] = true;
+        else __blAvailablePageLocals[name] = true;
+      });
+      var blockIndex = allBlocks.length;
+      allBlocks.push({ pre: pre, cliRequired: cliRequired });
 
       // Run button — positioned over the code block
       var btn = document.createElement('button');
@@ -210,7 +392,7 @@
         btn.addEventListener('click', function () {
           var code = pre.querySelector('code');
           var src = code ? code.textContent : pre.textContent;
-          runCode(src, btn, outputEl);
+          runCode(src, btn, outputEl, blockIndex);
         });
       }
 
@@ -223,7 +405,7 @@
 
   // ── Execute code via WASM ──
 
-  function runCode(code, btn, outputEl) {
+  function runCode(code, btn, outputEl, blockIndex) {
     btn.disabled = true;
     btn.style.opacity = '1';
     btn.innerHTML = '&#9203; Loading...';
@@ -236,7 +418,7 @@
     outputEl.style.display = 'none';
 
     if (wasm) {
-      executeCode(code, btn, timingEl, resultEl, outputEl);
+      executeCode(code, btn, timingEl, resultEl, outputEl, blockIndex);
       return;
     }
 
@@ -253,11 +435,11 @@
         resetButton(btn);
         return;
       }
-      executeCode(code, btn, timingEl, resultEl, outputEl);
+      executeCode(code, btn, timingEl, resultEl, outputEl, blockIndex);
     });
   }
 
-  function executeCode(code, btn, timingEl, resultEl, outputEl) {
+  function executeCode(code, btn, timingEl, resultEl, outputEl, blockIndex) {
     var hasFileOps = /\bread_(csv|fasta|fastq|vcf|bed|gff|parquet)\s*\(/.test(code);
     btn.innerHTML = hasFileOps ? '&#9654; Loading data...' : '&#9654; Running...';
     outputEl.style.display = 'block';
@@ -267,9 +449,35 @@
 
     // Use setTimeout to let the UI update before blocking on sync XHR
     setTimeout(function() {
+    var __missing = blUnsupportedCalls(code);
+    if (__missing.length) {
+      blShowNativeOnly(outputEl, __missing);
+      if (btn) { btn.disabled = false; btn.innerHTML = '&#9654; Run'; }
+      return;
+    }
     var t0 = performance.now();
-    // Reset interpreter state so variables from previous runs don't shadow builtins
+    // Reset, then replay every earlier runnable block so this one sees the
+    // variables and functions the page defined before it. Resetting first keeps
+    // re-runs idempotent — without it, running the same block twice would
+    // accumulate state.
     if (wasm.reset) { try { wasm.reset(); } catch(_) {} }
+    // Generated pack pages mark their blocks standalone: Rosalind problems are
+    // independent, so replaying the fourteen before this one would only burn a
+    // second or two reproducing state nothing here reads.
+    var standalone = pre && pre.hasAttribute('data-standalone');
+    if (typeof blockIndex === 'number' && !standalone) {
+      for (var bi = 0; bi < blockIndex; bi++) {
+        var prev = allBlocks[bi];
+        if (!prev || prev.cliRequired) continue;
+        var prevCode = prev.pre.querySelector('code');
+        try {
+          wasm.evaluate(prevCode ? prevCode.textContent : prev.pre.textContent);
+        } catch (_) {
+          // An earlier block failing must not stop this one from running; its
+          // own error is reported when the reader runs it directly.
+        }
+      }
+    }
     var resultJson;
     try {
       resultJson = wasm.evaluate(code);
@@ -299,7 +507,8 @@
         var parts = stdoutText.split(/(<svg[\s\S]*?<\/svg>)/);
         for (var pi = 0; pi < parts.length; pi++) {
           if (parts[pi].trimStart().indexOf('<svg') === 0) {
-            lines.push('<div class="bl-svg-output" style="background:#fff;border-radius:4px;padding:8px;margin:4px 0;overflow-x:auto;max-width:100%">' + parts[pi] + '</div>');
+            var stdoutSvg = svgOutputHtml(parts[pi].trim());
+            lines.push(stdoutSvg || '<span style="color:#e2e8f0">' + escapeHtml(parts[pi]) + '</span>');
           } else if (parts[pi].trim()) {
             lines.push('<span style="color:#e2e8f0">' + escapeHtml(parts[pi]) + '</span>');
           }
@@ -313,8 +522,10 @@
       // Show return value (skip nil/null/empty)
       if (result.value && result.value !== 'null' && result.value !== 'nil' && result.value !== 'Nil' && result.value !== '()' && result.value !== 'None') {
         // Detect SVG output — render inline instead of escaping
-        if (result.value.trimStart().indexOf('<svg') === 0) {
-          lines.push('<div class="bl-svg-output" style="background:#fff;border-radius:4px;padding:8px;margin:4px 0;overflow-x:auto;max-width:100%">' + result.value + '</div>');
+        var rawValue = unquoteStringValue(result.value, result.type);
+        var valueSvg = svgOutputHtml(rawValue);
+        if (valueSvg) {
+          lines.push(valueSvg);
         } else {
           var typeLabel = result.type ? '<span style="color:#94a3b8;font-size:11px"> : ' + escapeHtml(result.type) + '</span>' : '';
           lines.push('<span style="color:#4ade80">\u2192 ' + escapeHtml(result.value) + typeLabel + '</span>');
@@ -363,9 +574,24 @@
 
   // ── Init ──
 
-  function initPlayground() {
+  function startPlayground() {
     autoMarkRunnable();
     addPlaygroundButtons();
+  }
+
+  function initPlayground() {
+    fetch(getWasmBasePath() + '/builtins.json')
+      .then(function(response) { return response.ok ? response.json() : Promise.reject(); })
+      .then(function(catalog) {
+        __blKnown = {};
+        (catalog.builtins || []).forEach(function(name) { __blKnown[name] = true; });
+        __blDataFiles = {};
+        (catalog.dataFiles || []).forEach(function(name) { __blDataFiles[name] = true; });
+      })
+      .catch(function() {
+        // Keep the existing regex checks when the generated catalog is absent.
+      })
+      .then(startPlayground);
   }
 
   // Wait for components to load (main.js sets components-loaded)

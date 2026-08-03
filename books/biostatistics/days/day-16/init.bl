@@ -43,10 +43,10 @@ for i in range(0, 150) {
     let noise = ((i * 214013 + 13) % 1000) / 1000.0 - 0.5
     let response = if logit + noise * 1.5 > 0.0 { 1 } else { 0 }
 
-    lines = append(lines, f"MEL_{i + 1:04},{tmb},{pdl1},{msi},{response}")
+    lines = push(lines, f"MEL_{i + 1:04},{tmb},{pdl1},{msi},{response}")
 }
 
-write_lines(lines, "data/immunotherapy_response.csv")
+write_lines("data/immunotherapy_response.csv", lines)
 println("Wrote data/immunotherapy_response.csv: 150 melanoma patients")
 println("  Predictors: TMB (mut/Mb), PDL1 (%), MSI status")
 println("  Expected ORR ~40% (KEYNOTE-006/CheckMate-067)")

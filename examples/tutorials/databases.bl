@@ -1,4 +1,5 @@
 # databases.bl — Querying Biological Databases
+# requires: network
 # Tutorial: https://lang.bio/docs/tutorials/databases.html
 #
 # Run with: bl run examples/tutorials/databases.bl
@@ -9,7 +10,9 @@
 
 # ── 1. NCBI Gene Search ─────────────────────────────────────
 
-let gene = ncbi_gene("TP53")
+# ncbi_gene returns a summary record when the query matches exactly one gene,
+# and a list of ids otherwise — so narrow the query rather than taking pot luck.
+let gene = ncbi_gene("TP53[sym] AND human[orgn]", 1)
 print(f"Gene ID:     {gene.id}")
 print(f"Symbol:      {gene.symbol}")
 print(f"Name:        {gene.name}")
@@ -77,11 +80,12 @@ print(f"Method: {entry.method}, Resolution: {entry.resolution}")
 # ── 7. Multi-Database Gene Report ────────────────────────────
 
 fn gene_report(symbol) {
-  print(f"\n{'=' * 50}")
+  let divider = str_repeat("=", 50)
+  print(f"\n{divider}")
   print(f"Report for {symbol}")
-  print(f"{'=' * 50}")
+  print(divider)
 
-  let ncbi = ncbi_gene(symbol)
+  let ncbi = ncbi_gene(symbol ++ "[sym] AND human[orgn]", 1)
   print(f"NCBI Gene ID: {ncbi.id}")
   print(f"Name:         {ncbi.name}")
 

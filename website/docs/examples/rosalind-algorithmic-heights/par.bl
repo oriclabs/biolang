@@ -1,0 +1,48 @@
+# Rosalind: PAR — 2-Way Partition
+# https://rosalind.info/problems/par/
+#
+# Given: A positive integer n and an array A[1..n] of integers.
+# Return: A permutation B of A with an index q such that everything before q is
+# <= A[1], B[q] = A[1], and everything after q is > A[1].
+
+let a = [7, 2, 5, 6, 1, 3, 9, 4, 8]
+
+# Lomuto's scheme: one pass, with a boundary that marks where the "not greater
+# than the pivot" run ends. The pivot is parked at the front during the sweep
+# and swapped into the boundary at the end, which is what puts it at q.
+let xs = a
+let pivot = xs[0]
+let boundary = 1
+let j = 1
+while j < len(xs) {
+    if xs[j] <= pivot {
+        let held = xs[boundary]
+        xs[boundary] = xs[j]
+        xs[j] = held
+        boundary = boundary + 1
+    }
+    j = j + 1
+}
+let held = xs[0]
+xs[0] = xs[boundary - 1]
+xs[boundary - 1] = held
+let q = boundary - 1
+
+let result = xs |> map(|v| str(v)) |> join(" ")
+
+# Every partition around this pivot is accepted, so the three conditions are
+# checked rather than one particular arrangement. The sample output is
+# 5 6 3 4 1 2 7 9 8; this sweep produces a different valid one.
+let before_ok = range(0, q) |> filter(|i| xs[i] > pivot)
+let after_ok = range(q + 1, len(xs)) |> filter(|i| xs[i] <= pivot)
+
+println("Result:   " + result)
+println("Sample:   5 6 3 4 1 2 7 9 8")
+println("Pivot " + str(pivot) + " sits at 1-based index " + str(q + 1))
+
+fn test_par_partitions_around_the_pivot() {
+    assert xs[q] == pivot, "PAR: the pivot is not at q, got " + str(xs[q])
+    assert len(before_ok) == 0, "PAR: values greater than the pivot before q at " + str(before_ok)
+    assert len(after_ok) == 0, "PAR: values not greater than the pivot after q at " + str(after_ok)
+    assert sort(xs) == sort(a), "PAR: the result is not a permutation of the input: " + result
+}

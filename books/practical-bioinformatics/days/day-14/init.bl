@@ -77,7 +77,7 @@ let rows = [
 ]
 
 let lines = [header] + rows
-write_lines(lines, "data/experiment.csv")
+write_lines("data/experiment.csv", lines)
 print(f"  Created data/experiment.csv ({len(rows)} genes x 6 samples)")
 
 print("")

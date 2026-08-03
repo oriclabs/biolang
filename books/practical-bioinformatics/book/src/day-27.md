@@ -15,7 +15,7 @@
 - How to use `import` and `import ... as` to organize code across files
 - How to build a sequence utilities library with validation and error handling
 - How to build a QC module for quality control workflows
-- How to test your modules with `assert()`
+- How to test your modules with the `assert` statement
 - How the BioLang plugin system works (subprocess JSON protocol)
 - How to build a Python plugin that extends BioLang
 - How to package and share your tools
@@ -265,37 +265,38 @@ fn format_qc_report(summary) {
 
 ## Section 4: Testing Your Modules
 
-Testing is what separates a personal script from a reliable tool. BioLang's `assert()` function is your primary testing mechanism.
+Testing is what separates a personal script from a reliable tool. BioLang's `assert` statement is your primary testing mechanism.
 
 ### Writing Tests
 
 Create `tests/test_seq.bl`:
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 import "lib/seq_utils.bl" as seq
 
 # --- validate_dna ---
 let valid = seq.validate_dna("atcg")
-assert(valid == "ATCG", "validate_dna should uppercase")
+assert valid == "ATCG", "validate_dna should uppercase"
 
 let caught = try { seq.validate_dna("ATXCG") } catch err { str(err) }
-assert(contains(caught, "Invalid"), "validate_dna should reject X")
+assert contains(caught, "Invalid"), "validate_dna should reject X"
 
 # --- classify_gc ---
 let high = seq.classify_gc("GCGCGCGCGC")
-assert(high.class == "high", "pure GC should be high")
-assert(high.gc == 1.0, "pure GC should have gc=1.0")
+assert high.class == "high", "pure GC should be high"
+assert high.gc == 1.0, "pure GC should have gc=1.0"
 
 let low = seq.classify_gc("AAAAAATTTT")
-assert(low.class == "low", "pure AT should be low")
+assert low.class == "low", "pure AT should be low"
 
 let balanced = seq.classify_gc("ATCGATCGAT")
-assert(balanced.class == "moderate", "ATCGATCGAT should be moderate")
+assert balanced.class == "moderate", "ATCGATCGAT should be moderate"
 
 # --- find_all_motifs ---
 let hits = seq.find_all_motifs("ATCGATCGATCG", "ATCG")
-assert(hits.count > 0, "should find ATCG motif")
-assert(hits.motif == "ATCG", "motif should be uppercased")
+assert hits.count > 0, "should find ATCG motif"
+assert hits.motif == "ATCG", "motif should be uppercased"
 
 # --- batch_gc ---
 let test_seqs = [
@@ -303,14 +304,15 @@ let test_seqs = [
     { id: "low", sequence: "AAAAAATTTT" }
 ]
 let results = seq.batch_gc(test_seqs)
-assert(len(results) == 2, "batch_gc should return 2 results")
-assert(results |> filter(|r| r.class == "high") |> len() == 1, "one high GC")
-assert(results |> filter(|r| r.class == "low") |> len() == 1, "one low GC")
+assert len(results) == 2, "batch_gc should return 2 results"
+assert results |> filter(|r| r.class == "high") |> len() == 1, "one high GC"
+assert results |> filter(|r| r.class == "low") |> len() == 1, "one low GC"
 ```
 
 Create `tests/test_qc.bl`:
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 import "lib/qc.bl" as qc
 
 let test_seqs = [
@@ -321,30 +323,30 @@ let test_seqs = [
 
 # --- length_stats ---
 let lstats = qc.length_stats(test_seqs)
-assert(lstats.count == 3, "should count 3 sequences")
-assert(lstats.min_len == 4, "min length should be 4")
+assert lstats.count == 3, "should count 3 sequences"
+assert lstats.min_len == 4, "min length should be 4"
 
 # --- gc_distribution ---
 let gc_dist = qc.gc_distribution(test_seqs)
-assert(gc_dist.mean_gc > 0.0, "mean GC should be positive")
-assert(gc_dist.stdev_gc > 0.0, "GC stdev should be positive")
+assert gc_dist.mean_gc > 0.0, "mean GC should be positive"
+assert gc_dist.stdev_gc > 0.0, "GC stdev should be positive"
 
 # --- flag_outliers ---
 let flagged = qc.flag_outliers(test_seqs, 10, 100, 0.3, 0.7)
 let short_flags = flagged |> filter(|f| f.id == "short")
-assert(len(short_flags) == 1, "should find short sequence")
-assert(contains(str(short_flags), "too_short"), "short seq should be flagged")
+assert len(short_flags) == 1, "should find short sequence"
+assert contains(str(short_flags), "too_short"), "short seq should be flagged"
 
 # --- qc_summary ---
 let summary = qc.qc_summary(test_seqs)
-assert(summary.total == 3, "total should be 3")
-assert(summary.pass_rate >= 0.0, "pass rate should be non-negative")
-assert(summary.pass_rate <= 1.0, "pass rate should be at most 1.0")
+assert summary.total == 3, "total should be 3"
+assert summary.pass_rate >= 0.0, "pass rate should be non-negative"
+assert summary.pass_rate <= 1.0, "pass rate should be at most 1.0"
 
 # --- format_qc_report ---
 let report = qc.format_qc_report(summary)
-assert(len(report) > 0, "report should have lines")
-assert(contains(report |> join("\n"), "Sequences:"), "report should show count")
+assert len(report) > 0, "report should have lines"
+assert contains(report |> join("\n"), "Sequences:"), "report should show count"
 ```
 
 ### Running Tests
@@ -842,7 +844,7 @@ Write a BioLang script that tests a plugin by:
 
 5. **The `plugin.json` manifest is the contract.** It declares the plugin's name, version, runtime, entrypoint, and operations. BioLang uses it to discover and invoke the plugin.
 
-6. **Test your modules with `assert()`.** One test file per module, covering normal inputs, edge cases, and error conditions.
+6. **Test your modules with `assert`.** One test file per module, covering normal inputs, edge cases, and error conditions.
 
 7. **Return structured data from functions.** Records are composable; formatted strings are not. Let the caller decide presentation.
 

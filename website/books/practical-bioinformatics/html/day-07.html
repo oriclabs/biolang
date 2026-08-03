@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-02d32199.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -522,7 +522,7 @@ read_003  4    *      0     0    *           *  0  0  ATCG...  IIII...  &lt;- Un
 <blockquote>
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
-<pre><code class="language-bio">let alignments = read_bam("data/alignments.bam")
+<pre><code class="language-bio">let alignments = read_sam("data/alignments.sam")
 println(f"Total alignments: {len(alignments)}")
 
 # Basic alignment statistics
@@ -547,7 +547,7 @@ High quality (MAPQ &gt;= 30): 14
 <blockquote>
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
-<pre><code class="language-bio">let mapped_count = bam("data/alignments.bam")
+<pre><code class="language-bio">let mapped_count = sam("data/alignments.sam")
     |&gt; filter(|r| r.is_mapped)
     |&gt; count()
 println(f"Mapped reads (streaming): {mapped_count}")
@@ -697,7 +697,8 @@ Columns: [gene, pval, chrom]
 <blockquote>
 <p><strong>Requires CLI:</strong> This example uses file I/O not available in the browser. Run with <code>bl run</code>.</p>
 </blockquote>
-<pre><code class="language-bio"># Multi-format analysis pipeline
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Multi-format analysis pipeline
 println("=== Multi-Format Analysis ===")
 
 # 1. Read reference sequences
@@ -788,7 +789,7 @@ Annotations: 15 features, 3 genes
 <summary>Solution</summary>
 <pre><code class="language-bio">let seqs = read_fasta("data/sequences.fasta")
 let best = seqs
-    |&gt; sort(|a, b| gc_content(b.seq) - gc_content(a.seq))
+    |&gt; sort_by(|s| -gc_content(s.seq))
     |&gt; first()
 println(f"Highest GC: {best.id} at {round(gc_content(best.seq) * 100, 1)}%")
 </code></pre>
@@ -832,7 +833,6 @@ for b in bed_regions {
 <summary>Solution</summary>
 <pre><code class="language-bio">let features = read_gff("data/annotations.gff")
 let type_counts = features
-    |&gt; to_table()
     |&gt; group_by("type")
     |&gt; summarize(|feat_type, rows| {type: feat_type, count: len(rows)})
 println(type_counts)
@@ -903,9 +903,9 @@ println(type_counts)
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

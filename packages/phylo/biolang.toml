@@ -1,0 +1,8 @@
+[package]
+name = "phylo"
+version = "0.1.0"
+description = "Phylogenetics: Newick tree parsing, pairwise distances, UPGMA tree building"
+authors = ["BioLang"]
+
+[lib]
+entry = "src/mod.bl"

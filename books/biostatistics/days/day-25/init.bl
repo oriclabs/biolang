@@ -26,7 +26,7 @@ let readme_lines = [
     "The plot_demo.csv file below provides a compact all-purpose dataset",
     "suitable for demonstrating all basic plot types in a single exercise."
 ]
-write_lines(readme_lines, "data/README.txt")
+write_lines("data/README.txt", readme_lines)
 
 # ── File 2: All-purpose plot demo dataset ──
 # 30 genes with expression data for 2 groups (tumor vs normal)
@@ -74,14 +74,14 @@ for i in range(0, 30) {
     let sig = if pvals[i] < 0.05 { "yes" } else { "no" }
     # Tumor group expression (base 8 + fold change)
     let expr_t = round(8.0 + fold_changes[i], 2)
-    demo_lines = append(demo_lines, f"{gene_names[i]},tumor,{expr_t},{fold_changes[i]},{pvals[i]},{sig},{categories[i]}")
+    demo_lines = push(demo_lines, f"{gene_names[i]},tumor,{expr_t},{fold_changes[i]},{pvals[i]},{sig},{categories[i]}")
     # Normal group expression (base 8)
     let noise_val = ((i * 2654435761) % 1000) / 1000.0 - 0.5
     let expr_n = round(8.0 + noise_val * 0.3, 2)
-    demo_lines = append(demo_lines, f"{gene_names[i]},normal,{expr_n},0.0,1.0,no,{categories[i]}")
+    demo_lines = push(demo_lines, f"{gene_names[i]},normal,{expr_n},0.0,1.0,no,{categories[i]}")
 }
 
-write_lines(demo_lines, "data/plot_demo.csv")
+write_lines("data/plot_demo.csv", demo_lines)
 
 println("Created data/README.txt")
 println("  Index of datasets from previous days for each visualization type")

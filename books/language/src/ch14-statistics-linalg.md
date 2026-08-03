@@ -65,7 +65,7 @@ Test whether observed genotype frequencies match Hardy-Weinberg expectations.
 ```biolang
 let observed = [210, 480, 310]  # AA, Aa, aa genotypes
 let n = sum(observed)
-let p = (2 * observed[0] + observed[1]) / (2 * n)
+let p = (2.0 * observed[0] + observed[1]) / (2.0 * n)
 let q = 1.0 - p
 let expected = [p * p * n, 2 * p * q * n, q * q * n]
 
@@ -151,19 +151,15 @@ Fit a linear model to predict expression from covariates.
 
 ```biolang
 let data = tsv("sample_metadata.tsv")
-let expression = data |> col("gene_expr")
-let age = data |> col("age")
-let batch = data |> col("batch_id")
-
-let model = lm(expression, [age, batch])
+let model = lm(~gene_expr ~ age + batch_id, data)
 # model => {
-#   coefficients: [{name: "intercept", estimate: 5.2, se: 0.8, p: 0.001},
-#                  {name: "x1", estimate: 0.03, se: 0.01, p: 0.02},
-#                  {name: "x2", estimate: -1.1, se: 0.4, p: 0.008}],
+#   coefficients: [5.2, 0.03, -1.1],
+#   std_errors: [0.8, 0.01, 0.4],
+#   p_values: [0.001, 0.02, 0.008],
 #   r_squared: 0.45,
 #   adj_r_squared: 0.42,
 #   f_statistic: 12.3,
-#   pvalue: 0.00002
+#   f_p_value: 0.00002
 # }
 ```
 
@@ -376,7 +372,8 @@ print("AUC(0-24h): " + str(auc) + " mg*hr")
 
 Simulate genotype frequencies and test for equilibrium across loci.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Observed genotype counts at 50 SNP loci
 let loci = tsv("genotype_counts.tsv")
 # columns: locus, AA, Aa, aa

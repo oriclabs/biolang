@@ -209,7 +209,7 @@ range(0, 100) |> each(|i| {
     count_lines = count_lines + [f"{gene}\t{c1}\t{c2}\t{c3}\t{t1}\t{t2}\t{t3}"]
 })
 
-write_lines(count_lines, "data/counts.tsv")
+write_lines("data/counts.tsv", count_lines)
 
 let sample_lines = [
     "sample_id\tcondition\treplicate\tcell_line\ttreatment\tduration",
@@ -220,12 +220,12 @@ let sample_lines = [
     "treat_2\ttreated\t2\tMCF-7\tDoxorubicin 1uM\t24h",
     "treat_3\ttreated\t3\tMCF-7\tDoxorubicin 1uM\t24h"
 ]
-write_lines(sample_lines, "data/samples.tsv")
+write_lines("data/samples.tsv", sample_lines)
 
 let gene_info_lines = ["gene\tlength\tgo_terms"]
 range(0, 100) |> each(|i| {
     gene_info_lines = gene_info_lines + [f"{gene_names[i]}\t{gene_lengths[i]}\t{go_assignments[i]}"]
 })
-write_lines(gene_info_lines, "data/gene_info.tsv")
+write_lines("data/gene_info.tsv", gene_info_lines)
 
 print("Day 29 data initialized: MCF-7 doxorubicin RNA-seq counts (100 genes, 6 samples)")

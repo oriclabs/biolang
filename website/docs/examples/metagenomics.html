@@ -64,23 +64,25 @@ let abundance = samples |> map(|path| {
   { sample: sample_name, genera: report }
 })
 
-# Pivot into a genus x sample matrix
+# Build a tidy genus-by-sample abundance table
 let all_genera = abundance
   |> flat_map(|s| { s.genera |> map(|x| x.genus) })
   |> unique
   |> sort
 
-let matrix = all_genera |> map(|genus| {
-  let row = { genus: genus }
-  for s in abundance {
-    let count = s.genera |> find(|g| { g.genus == genus })?.count ?? 0
-    row[s.sample] = count
-  }
-  row
+let matrix = all_genera |> flat_map(|genus| {
+  abundance |> map(|sample_data| {
+    let hit = sample_data.genera |> find(|g| { g.genus == genus })
+    {
+      genus: genus,
+      sample: sample_data.sample,
+      count: hit?.count ?? 0
+    }
+  })
 })
 
 matrix |> write_tsv("genus_abundance_table.tsv")
-print(f"Abundance table: {all_genera |> len} genera x {samples |> len} samples")</code></pre>
+print(f"Abundance table: {all_genera |> len} genera across {samples |> len} samples")</code></pre>
 
         <h2>Diversity Analysis</h2>
 
@@ -124,7 +126,12 @@ let alpha = sample_names |> map(|sample| {
 })
 
 print("Alpha Diversity:")
-print("{'Sample':-20} {'Richness':>10} {'Shannon':>10} {'Simpson':>10} {'Chao1':>10}")
+let sample_header = "Sample"
+let richness_header = "Richness"
+let shannon_header = "Shannon"
+let simpson_header = "Simpson"
+let chao1_header = "Chao1"
+print(f"{sample_header:-20} {richness_header:>10} {shannon_header:>10} {simpson_header:>10} {chao1_header:>10}")
 for a in alpha {
   print(f"{a.sample:-20} {a.richness:>10} {a.shannon |> round(3):>10} {a.simpson |> round(3):>10} {a.chao1 |> round(1):>10}")
 }
@@ -158,7 +165,7 @@ let bc_matrix = range(0, n) |> map(|i| {
 let pca_result = matrix(bc_matrix) |> pca(3)
 
 print("PCA on Bray-Curtis (variance explained):")
-for i, var in pca_result.variance_ratio |> enumerate |> take(3) {
+for [i, var] in pca_result.variance_ratio |> enumerate |> take(3) {
   print(f"  Axis {i + 1}: {(var * 100.0) |> round(1)}%")
 }
 
@@ -203,8 +210,8 @@ let pvals = diff_results |> map(|r| r.p_value)
 let qvals = p_adjust(pvals, "bh")
 let corrected = diff_results |> map(|r, i| { genus: r.genus, mean_healthy: r.mean_healthy, mean_disease: r.mean_disease, log2fc: r.log2fc, p_value: r.p_value, q_value: qvals[i] })
 
-let sig = corrected |> filter(|r| { r.q_value < 0.05 }) |> sort_by(|a, b| a.q_value - b.q_value)
-print(f"Differentially abundant genera (FDR < 0.05): {sig |> len}")
+let sig = corrected |> filter(|r| { r.q_value &lt; 0.05 }) |> sort_by(|a, b| a.q_value - b.q_value)
+print(f"Differentially abundant genera (FDR &lt; 0.05): {sig |> len}")
 sig |> each(|r| {
   let direction = if r.log2fc > 0 { "enriched in disease" } else { "enriched in healthy" }
   print(f"  {r.genus}: log2FC={r.log2fc |> round(2)}, q={r.q_value |> round(4)} ({direction})")
@@ -224,12 +231,16 @@ let total = sample_cols |> map(|col| {
   pathways |> map(|row| { row[col] |> float }) |> sum
 })
 
-let normalized = pathways |> map(|row| {
-  let new_row = { pathway: row["pathway"] }
-  for i, col in sample_cols |> enumerate {
-    new_row[col] = row[col] |> float / total[i] * 1e6
-  }
-  new_row
+let normalized = pathways |> flat_map(|row| {
+  sample_cols |> enumerate |> map(|pair| {
+    let i = pair[0]
+    let sample = pair[1]
+    {
+      pathway: row["pathway"],
+      sample: sample,
+      cpm: row[sample] |> float / total[i] * 1e6
+    }
+  })
 })
 
 normalized |> write_tsv("pathway_abundance_cpm.tsv")

@@ -1,0 +1,27 @@
+# Rosalind: MRNA — Inferring mRNA from Protein
+# https://rosalind.info/problems/mrna/
+#
+# Given: A protein string of length at most 1000 aa.
+# Return: The number of RNA strings that could have produced it, modulo
+# 1,000,000 — remembering the stop codon.
+
+let protein_string = "MA"
+
+# Codons per amino acid in the standard genetic code.
+let codon_counts = {
+    A: 4, C: 2, D: 2, E: 2, F: 2, G: 4, H: 2, I: 3, K: 2, L: 6,
+    M: 1, N: 2, P: 4, Q: 2, R: 6, S: 6, T: 4, V: 4, W: 1, Y: 2
+}
+let stop_codons = 3
+let modulus = 1000000
+
+let result = range(0, len(protein_string))
+    |> map(|i| codon_counts[substr(protein_string, i, 1)])
+    |> reduce(|acc, n| (acc * n) % modulus, stop_codons)
+
+println("Result:   " + str(result))
+println("Expected: 12")
+
+fn test_mrna_possible_rna_strings() {
+    assert result == 12, "MRNA: got " + str(result)
+}

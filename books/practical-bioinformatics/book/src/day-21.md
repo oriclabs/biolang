@@ -472,7 +472,8 @@ let high_gc = table |> filter(|row| row.gc > 0.5)
 
 Instead of processing one item at a time, batch items together to reduce function-call overhead:
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn analyze_batch(batch) {
     let gc_values = batch |> par_map(|s| gc_content(s.seq))
     let lengths = batch |> map(|s| len(s.seq))

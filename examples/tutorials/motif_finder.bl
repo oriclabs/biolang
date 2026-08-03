@@ -1,0 +1,59 @@
+# motif_finder.bl — motif discovery helpers used by plugins.bl
+#
+# A real BioLang plugin is a separate installable artifact (`bl add <name>`).
+# This module provides the same interface in plain BioLang so the tutorial runs
+# in a fresh checkout without installing anything.
+
+# Every k-mer of a sequence, as plain strings.
+fn windows_of(seq, k) {
+    let s = str(seq)
+    if len(s) < k {
+        []
+    } else {
+        range(0, len(s) - k + 1) |> map(|i| substr(s, i, k))
+    }
+}
+
+# Enumerate k-mers seen in at least `min_fraction` of the sequences,
+# most frequent first.
+fn find_motifs(seqs, k, max_results, min_fraction, method) {
+    let words = seqs |> flat_map(|s| windows_of(s, k))
+    let needed = max([1, int(float(len(seqs)) * min_fraction)])
+    words
+        |> unique()
+        |> map(|w| { motif: w, count: words |> count_if(|x| x == w) })
+        |> filter(|m| m.count >= needed)
+        |> sort_by(|m| m.count)
+        |> reverse()
+        |> take(max_results)
+}
+
+# Per-position consensus across an alignment, rendered as text.
+fn motif_logo(alignment, output_path, format) {
+    let width = len(str(alignment[0]))
+    range(0, width)
+        |> map(|i| {
+            let column = alignment |> map(|s| substr(str(s), i, 1))
+            let best = ["A", "C", "G", "T"]
+                |> map(|b| { base: b, n: column |> count_if(|c| c == b) })
+                |> sort_by(|e| e.n)
+                |> reverse()
+            "  " ++ str(i + 1) ++ ": " ++ best[0].base ++ " " ++ repeat("#", best[0].n)
+        })
+        |> join("\n")
+}
+
+# Score every window of each sequence against a consensus motif and keep the
+# windows matching at least `threshold` of their positions.
+fn scan_motif(seqs, consensus, threshold) {
+    let width = len(str(consensus))
+    seqs |> flat_map(|s| {
+        windows_of(s, width)
+            |> map(|w| {
+                let matches = range(0, width)
+                    |> count_if(|p| substr(w, p, 1) == substr(str(consensus), p, 1))
+                { window: w, score: float(matches) / float(width) }
+            })
+            |> filter(|hit| hit.score >= threshold)
+    })
+}

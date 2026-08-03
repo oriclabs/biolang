@@ -580,7 +580,8 @@ The real power of programmatic database access is **cross-referencing**. A singl
 
 > **Requires CLI:** This example uses network APIs not available in the browser. Run with `bl run`.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # requires: internet connection
 # optional: NCBI_API_KEY for higher rate limits
 

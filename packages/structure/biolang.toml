@@ -1,0 +1,8 @@
+[package]
+name = "structure"
+version = "0.1.0"
+description = "Protein structure analysis: PDB parsing, RMSD, contact maps, secondary structure, Ramachandran angles"
+authors = ["BioLang"]
+
+[lib]
+entry = "src/mod.bl"

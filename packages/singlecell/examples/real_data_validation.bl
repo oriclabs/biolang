@@ -1,0 +1,143 @@
+# Real-data validation: GSM5226574 (COVID-19 lung atlas control sample C51ctr)
+#
+# 500 real cells x 1200 HVGs, the SAME cells scanpy saw. Two questions:
+#   1. Decision-level agreement — run both clusterings through the SAME
+#      marker-panel annotation rule; do we call the same cell type per cell?
+#   2. Marker-gene agreement — do our Wilcoxon markers per cluster recover the
+#      genes scanpy's rank_genes_groups found?
+#
+# Inputs are produced by real_data_prep.py, which runs inside a scanpy
+# container and writes _real_matrix.tsv, _real_genes.txt, _real_barcodes.txt,
+# _ref_labels.csv and _ref_markers.csv into the working directory:
+#
+#   docker run --rm -v "$PWD":/data -w /data \
+#     quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0 \
+#     python /data/real_data_prep.py
+#
+# Then run this script from that same directory.
+import "singlecell" as sc
+
+let genes    = read_lines("_real_genes.txt")    |> filter(|s| len(s) > 0)
+let barcodes = read_lines("_real_barcodes.txt") |> filter(|s| len(s) > 0)
+let matrix   = read_lines("_real_matrix.tsv") |> filter(|s| len(s) > 0)
+               |> map(|line| split(line, "\t") |> map(|x| float(x)))
+let reflab   = read_lines("_ref_labels.csv") |> filter(|s| len(s) > 0) |> map(|s| int(s))
+
+let n = len(matrix)
+let obj = {matrix: matrix, genes: genes, barcodes: barcodes,
+           n_cells: n, n_genes: len(genes)}
+
+let base      = obj |> sc.normalize(10000.0) |> sc.variable_genes(len(genes))
+let clustered = sc.neighbors(base, 15) |> sc.cluster_leiden(15, 1.0)
+let nat       = clustered.clusters
+let norm      = clustered.norm_matrix
+
+println("cells: " + str(n) + " x " + str(len(genes)) + " HVG")
+println("clusters: native=" + str(nat |> unique |> len) +
+        "  reference=" + str(reflab |> unique |> len))
+println("CLUSTER-level ARI = " + str(round(ari(nat, reflab), 4)))
+println("")
+
+# ── canonical lung marker panels ─────────────────────────────────────────────
+let panel_names = ["T_cell", "NK", "Macrophage", "Endothelial",
+                   "Epithelial", "Ciliated", "Fibroblast", "Mast"]
+let panel_genes = [
+    ["CD247", "THEMIS", "BCL11B", "INPP4B", "CARD11"],
+    ["GNLY", "KLRD1", "MYBL1", "SYTL3"],
+    ["MS4A6A", "MRC1", "MARCO", "PPARG", "TBXAS1", "SLC11A1"],
+    ["EPAS1", "LDB2", "VWF", "CLDN5", "SLCO2A1"],
+    ["SFTPC", "EMP2", "NCKAP5", "ROR1", "RTKN2"],
+    ["DNAH12", "CDHR3", "PACRG", "SPAG17", "CHST9"],
+    ["LAMA2", "SLIT2", "ROBO2", "PRKG1", "CACNA1C", "COL6A3", "ELN"],
+    ["KIT", "CPA3", "MS4A2", "IL18R1", "SLC24A3"],
+]
+
+# Resolve each panel to the column indices of its markers present in the data.
+let panel_cols = panel_genes |> map(|gs|
+    gs |> map(|g| find_index(genes, |x| x == g)) |> filter(|i| i >= 0)
+)
+
+# Mean expression of a panel across a set of cells.
+fn panel_score(norm, cells, cols) {
+    if len(cols) == 0 { return 0.0 }
+    mean(cells |> map(|i| mean(cols |> map(|j| norm[i][j]))))
+}
+
+# For each cluster id (in sorted order), pick the best-scoring panel name.
+fn call_types(norm, labels, ids, panel_names, panel_cols, n) {
+    ids |> map(|c| {
+        let cells = range(0, n) |> filter(|i| labels[i] == c)
+        let scores = panel_cols |> map(|cols| panel_score(norm, cells, cols))
+        let best = 0
+        for k in range(1, len(scores)) {
+            if scores[k] > scores[best] { best = k }
+        }
+        panel_names[best]
+    })
+}
+
+# Expand per-cluster calls to a per-cell cell-type label.
+fn per_cell(labels, ids, calls) {
+    labels |> map(|l| calls[find_index(ids, |c| c == l)])
+}
+
+let nat_ids  = nat    |> unique |> sort
+let ref_ids  = reflab |> unique |> sort
+let nat_call = call_types(norm, nat,    nat_ids, panel_names, panel_cols, n)
+let ref_call = call_types(norm, reflab, ref_ids, panel_names, panel_cols, n)
+
+let nat_types = per_cell(nat,    nat_ids, nat_call)
+let ref_types = per_cell(reflab, ref_ids, ref_call)
+
+println("native cluster -> cell type:")
+for k in range(0, len(nat_ids)) {
+    let c = nat_ids[k]
+    let sz = range(0, n) |> filter(|i| nat[i] == c) |> len
+    println("  cluster " + str(c) + " (n=" + str(sz) + ") -> " + nat_call[k])
+}
+println("")
+println("reference cluster -> cell type:")
+for k in range(0, len(ref_ids)) {
+    let c = ref_ids[k]
+    let sz = range(0, n) |> filter(|i| reflab[i] == c) |> len
+    println("  cluster " + str(c) + " (n=" + str(sz) + ") -> " + ref_call[k])
+}
+println("")
+
+let agree = range(0, n) |> filter(|i| nat_types[i] == ref_types[i]) |> len
+println("DECISION-level ARI (cell-type labels) = " + str(round(ari(nat_types, ref_types), 4)))
+println("per-cell cell-type agreement = " + str(agree) + "/" + str(n) +
+        "  (" + str(round(100.0 * float(agree) / float(n), 1)) + "%)")
+println("")
+
+# ── marker-gene agreement ────────────────────────────────────────────────────
+# For each reference cluster, run our own one-vs-rest Wilcoxon DE on the
+# REFERENCE clustering, and check whether scanpy's top-5 appear in our top-50.
+let ref_marks = read_lines("_ref_markers.csv") |> filter(|s| len(s) > 0)
+                |> map(|line| split(line, ","))
+
+println("marker recovery — native one-vs-rest Wilcoxon on the reference clustering,")
+println("vs scanpy rank_genes_groups top-5 (recovered within our top-50 by log2FC):")
+let hits_total = 0
+let poss_total = 0
+for row in ref_marks {
+    let c = int(row[0])
+    let want = range(1, len(row)) |> map(|i| row[i]) |> filter(|g| len(g) > 0)
+    let bin = reflab |> map(|l| if l == c { 1 } else { 0 })
+    let tmp = {... clustered, clusters: bin}
+    # (1, 0) = this reference cluster vs the rest. log2fc is positive for the
+    # FIRST argument, so the target group has to come first.
+    let got = sc.marker_table(tmp, 1, 0)
+              |> filter(|m| m.padj < 0.05 and m.log2fc >= 1.0)
+              |> sort(|a, b| if a.log2fc > b.log2fc { -1 } else { 1 })
+              |> take(50)
+              |> map(|m| m.gene)
+    let hit = want |> filter(|g| contains(got, g))
+    hits_total = hits_total + len(hit)
+    poss_total = poss_total + len(want)
+    println("  ref cluster " + str(c) + ": " + str(len(hit)) + "/" + str(len(want)) +
+            "   " + join(hit, ", "))
+}
+println("")
+println("TOTAL marker recovery = " + str(hits_total) + "/" + str(poss_total) +
+        "  (" + str(round(100.0 * float(hits_total) / float(poss_total), 1)) + "%)")

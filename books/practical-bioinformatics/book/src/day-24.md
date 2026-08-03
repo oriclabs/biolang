@@ -83,10 +83,11 @@ The first argument is the database name (gene, nuccore, protein, pubmed, etc.), 
 Once you have an accession or ID, you can fetch the actual sequence:
 
 ```bio
-let seq = ncbi_sequence("nuccore", "NM_007294.4")
+let seq = ncbi_sequence("NM_007294.4")
 ```
 
-This retrieves the nucleotide sequence for the BRCA1 mRNA transcript. The `ncbi_sequence()` function takes a database name and an accession number.
+This retrieves the nucleotide sequence for the BRCA1 mRNA transcript.
+`ncbi_sequence()` takes one nucleotide accession and returns the sequence.
 
 ### NCBI Datasets
 
@@ -229,7 +230,7 @@ The `go_term()` function retrieves details about a specific GO term. The `go_ann
 STRING (Search Tool for the Retrieval of Interacting Genes/Proteins) maps known and predicted protein-protein interactions:
 
 ```bio
-let network = string_network(["TP53", "MDM2", "CDKN1A", "BAX", "BCL2"])
+let network = string_network(["TP53", "MDM2", "CDKN1A", "BAX", "BCL2"], 9606)
 ```
 
 Note that `string_network()` takes a **list** of identifiers, not a single string. This is because protein interactions are inherently about relationships between multiple proteins. The result includes interaction scores (from 0 to 1) based on experimental evidence, text mining, co-expression, and genomic context.
@@ -358,7 +359,8 @@ Network requests fail. Servers go down. Genes have different names in different 
 
 Some failures are transient --- a server timeout, a momentary network glitch. For these, retrying often works:
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let retry = |f, max_attempts| {
     let attempt = 1
     let result = nil
@@ -387,7 +389,8 @@ This function takes a zero-argument closure and retries it up to `max_attempts` 
 
 Use it in your annotation pipeline:
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let safe_ncbi = |symbol| retry(|| ncbi_gene(symbol), 3)
 ```
 
@@ -462,7 +465,8 @@ let cached_query = |name, query_fn| {
 
 Use it to wrap any API call:
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let tp53_ncbi = cached_query("tp53_ncbi", || ncbi_gene("TP53"))
 ```
 
@@ -585,7 +589,7 @@ Given your differentially expressed genes, find which ones interact:
 ```bio
 let de_genes = ["TP53", "MDM2", "CDKN1A", "BRCA1", "EGFR"]
 let network = try {
-    string_network(de_genes)
+string_network(de_genes, 9606)
 } catch err {
     nil
 }

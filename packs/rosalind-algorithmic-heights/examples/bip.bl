@@ -1,0 +1,66 @@
+# Rosalind: BIP — Testing Bipartiteness
+# https://rosalind.info/problems/bip/
+#
+# Given: A positive integer k and k simple graphs in the edge list format.
+# Return: For each graph, 1 if it is bipartite and -1 otherwise.
+
+let graphs = [
+    { vertices: 3, edges: [[1, 2], [3, 2], [3, 1]] },
+    { vertices: 4, edges: [[1, 4], [3, 1], [1, 2]] },
+]
+
+# Two-colour by breadth-first search. A graph is bipartite exactly when this
+# never has to give a vertex the colour its neighbour already has, so the odd
+# cycle in the first graph — the triangle — is what forces the -1.
+fn is_bipartite(graph) {
+    let n = graph.vertices
+    let adjacent = []
+    for _ in range(0, n) {
+        adjacent = push(adjacent, [])
+    }
+    for edge in graph.edges {
+        let u = edge[0] - 1
+        let v = edge[1] - 1
+        adjacent[u] = push(adjacent[u], v)
+        adjacent[v] = push(adjacent[v], u)
+    }
+
+    let colour = []
+    for _ in range(0, n) {
+        colour = push(colour, -1)
+    }
+
+    let consistent = true
+    # The graph need not be connected, so every uncoloured vertex starts a sweep.
+    for start in range(0, n) {
+        if colour[start] == -1 {
+            colour[start] = 0
+            let queue = [start]
+            let head = 0
+            while head < len(queue) {
+                let current = queue[head]
+                head = head + 1
+                for next in adjacent[current] {
+                    if colour[next] == -1 {
+                        colour[next] = 1 - colour[current]
+                        queue = push(queue, next)
+                    } else {
+                        if colour[next] == colour[current] {
+                            consistent = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if consistent then 1 else -1
+}
+
+let result = graphs |> map(|g| str(is_bipartite(g))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: -1 1")
+
+fn test_bip_detects_odd_cycles() {
+    assert result == "-1 1", "BIP: got " + result
+}

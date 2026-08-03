@@ -1,0 +1,17 @@
+# Weighted Nearest Neighbor integration of two modality embeddings.
+# Calls the wnn_graph builtin: cells × dims_a and cells × dims_b embeddings.
+# Returns obj with .wnn_adj field: table (cell, neighbor, weight).
+fn integrate(obj, modality_a_key, modality_b_key, k = 20) {
+  let emb_a = obj[modality_a_key]
+  let emb_b = obj[modality_b_key]
+  let wnn   = wnn_graph(emb_a, emb_b, k)
+  obj |> set_field("wnn_adj", wnn)
+}
+
+# Cluster on the WNN graph adjacency
+fn cluster_wnn(obj, resolution = 0.5) {
+  # TODO: pass wnn_adj as a custom graph to leiden once supported
+  obj |> set_field("wnn_clusters", leiden(obj, resolution = resolution))
+}
+
+fn get_wnn(obj) { obj.wnn_adj }

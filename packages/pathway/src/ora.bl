@@ -1,0 +1,193 @@
+# pathway/src/ora.bl — Over-representation analysis (ORA) via Fisher's exact test
+#
+# Tests whether a user-supplied gene list is significantly enriched for
+# members of curated gene sets (GO, KEGG, Reactome, MSigDB Hallmarks).
+# Uses the hypergeometric distribution approximated by Fisher's exact test.
+#
+# Core builtins used: fisher_exact, p_adjust, round, abs, log2, len
+
+## ora(gene_list, gene_sets, universe_size?) → List<Record>
+##
+## Over-representation analysis for each gene set in gene_sets.
+## For each gene set, tests whether the overlap with gene_list is
+## greater than expected by chance using Fisher's exact test.
+##
+## gene_list    — List<String> query gene identifiers (e.g. significantly DE genes)
+## gene_sets    — List<Record{name, genes}> collection of gene sets to test
+##                (genes is a List<String>)
+## universe_size — total number of genes assayed (default = 20,000)
+##
+## Returns: List<Record{pathway, pvalue, padj, odds_ratio, n_query, n_pathway,
+##                      n_overlap, universe_size, overlap_genes}>
+##          sorted by pvalue
+fn ora(gene_list, gene_sets, universe_size = 20000) {
+    if len(gene_list) == 0 or len(gene_sets) == 0 {
+        return []
+    }
+
+    let k = len(gene_list)  # query list size
+
+    let raw_results = gene_sets |> map(|gs| {
+        let gs_genes   = gs.genes
+        let m          = len(gs_genes)     # gene set size
+
+        # Overlap: query ∩ gene_set
+        let overlap_genes = gene_list |> filter(|g| g |> in_list(gs_genes))
+        let x = len(overlap_genes)          # observed overlap
+
+        # Skip trivially small gene sets
+        if m < 5 or x == 0 {
+            return {
+                pathway:      gs.name,
+                pvalue:       1.0,
+                odds_ratio:   1.0,
+                n_query:      k,
+                n_pathway:    m,
+                n_overlap:    x,
+                overlap_genes: overlap_genes,
+                skipped:      true
+            }
+        }
+
+        # Fisher's exact test
+        # 2×2 contingency table:
+        #   [x,           k - x        ]   (in query)
+        #   [m - x,  universe_size - m - k + x ]   (not in query)
+        let a = x
+        let b = k - x
+        let c = m - x
+        let d = universe_size - m - k + x
+        if d < 0 then d = 0
+
+        let fe = fisher_exact(a, b, c, d)
+        let pval = fe.p_value
+        let or_val = fe.odds_ratio
+
+        {
+            pathway:       gs.name,
+            pvalue:        pval,
+            odds_ratio:    round(or_val, 4),
+            n_query:       k,
+            n_pathway:     m,
+            n_overlap:     x,
+            overlap_genes: overlap_genes,
+            skipped:       false
+        }
+    })
+
+    # Adjust p-values (BH) over tested gene sets only
+    let tested  = raw_results |> filter(|r| not r.skipped)
+    let skipped = raw_results |> filter(|r| r.skipped)
+
+    let pvalues   = tested |> map(|r| r.pvalue)
+    let padj_vals = p_adjust(pvalues, method = "BH")
+
+    let n = len(tested)
+    let results = []
+    for i in range(0, n) {
+        let r = tested[i]
+        results = append(results, {
+            pathway:        r.pathway,
+            pvalue:         r.pvalue,
+            padj:           round(padj_vals[i], 6),
+            odds_ratio:     r.odds_ratio,
+            n_query:        r.n_query,
+            n_pathway:      r.n_pathway,
+            n_overlap:      r.n_overlap,
+            overlap_genes:  r.overlap_genes,
+            universe_size:  universe_size,
+            significant:    padj_vals[i] < 0.05
+        })
+    }
+
+    # Append skipped with padj = 1
+    for r in skipped {
+        results = append(results, {
+            pathway:        r.pathway,
+            pvalue:         1.0,
+            padj:           1.0,
+            odds_ratio:     1.0,
+            n_query:        r.n_query,
+            n_pathway:      r.n_pathway,
+            n_overlap:      r.n_overlap,
+            overlap_genes:  r.overlap_genes,
+            universe_size:  universe_size,
+            significant:    false
+        })
+    }
+
+    # Sort by pvalue ascending
+    results |> sort_by(|r| r.pvalue)
+}
+
+## fdr_filter(ora_result, threshold?) → List<Record>
+##
+## Filter ORA results to pathways passing the FDR threshold.
+##
+## ora_result — results list from ora()
+## threshold  — FDR cutoff (default 0.05)
+fn fdr_filter(ora_result, threshold = 0.05) {
+    ora_result |> filter(|r| r.padj < threshold)
+}
+
+## top_pathways(result, n?) → List<Record>
+##
+## Return the top n most significant pathways from ORA or GSEA results.
+## Input must already have a "pvalue" field (compatible with both ora() and
+## gsea_preranked() output).
+##
+## result — ORA or GSEA result list
+## n      — number of pathways to return (default 20)
+fn top_pathways(result, n = 20) {
+    result
+        |> sort_by(|r| r.pvalue)
+        |> take(n)
+}
+
+## bubble_plot(result, n?) — Print ASCII bubble chart of pathway enrichment
+##
+## Visualizes ORA results as a text-mode bubble chart:
+##   x-axis: -log10(FDR)
+##   y-axis: pathway name
+##   "bubble size": overlap count shown numerically
+##
+## result — output from ora() or fdr_filter()
+## n      — number of pathways to display (default 15)
+fn bubble_plot(result, n = 15) {
+    let top = result
+        |> filter(|r| r.padj < 0.05)
+        |> sort_by(|r| r.pvalue)
+        |> take(n)
+
+    if len(top) == 0 {
+        println("No significant pathways to display (FDR < 0.05).")
+        return nil
+    }
+
+    # Compute -log10(FDR) for each pathway and find max for scaling
+    let log_padjs = top |> map(|r| -(log2(r.padj + 0.000000001) / log2(10)))
+    let max_log   = log_padjs |> max()
+    let bar_width = 40
+
+    println("Pathway Enrichment Bubble Plot  [x = -log10(FDR)]")
+    println(f"{'─' * 75}")
+    println(f"  {'Pathway':<35}  {'─log10(FDR)':>12}  Overlap  OR")
+    println(f"  {'─' * 70}")
+
+    let i = 0
+    for r in top {
+        let neg_log_p = log_padjs[i]
+        let bar_len   = int(neg_log_p / max_log * bar_width)
+        let bar       = str("█") * bar_len + str("░") * (bar_width - bar_len)
+        let pct_line  = f"{round(neg_log_p, 2):>6}"
+
+        # Truncate long pathway names
+        let name = if len(r.pathway) > 33 then r.pathway[0..33] + "…" else r.pathway
+
+        println(f"  {name:<35}  {bar}  {pct_line}  n={r.n_overlap}  OR={r.odds_ratio}")
+        i = i + 1
+    }
+
+    println(f"{'─' * 75}")
+    println(f"  Showing top {len(top)} significant pathways (FDR < 0.05)")
+}

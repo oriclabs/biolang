@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-02d32199.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -338,10 +338,10 @@ bl repl
 <pre><code class="language-bio">let reads = read_fastq("data/reads.fastq")
 
 reads
-  |&gt; filter(|r| r.quality &gt;= 30)
-  |&gt; map(|r| gc_content(r.sequence))
+  |&gt; filter(|r| mean_phred(r.quality) &gt;= 30)
+  |&gt; map(|r| gc_content(r.seq))
   |&gt; mean()
-  |&gt; println("Mean GC content of high-quality reads: {}")
+  |&gt; tap(|gc| println(f"Mean GC content of high-quality reads: {gc}"))
 </code></pre>
 <p>Five lines. No imports. No boilerplate. The pipe operator makes it clear what happens at each step: read the file, filter by quality, extract GC content, compute the mean, print the result.</p>
 <p>Here is another example — searching NCBI for a gene and analyzing its sequence:</p>
@@ -480,9 +480,9 @@ seqs[width(seqs) &gt; 1000]
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

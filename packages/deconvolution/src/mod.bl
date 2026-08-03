@@ -1,0 +1,17 @@
+# deconvolution — Cell type deconvolution for BioLang
+#
+# Quick start:
+#   import "deconvolution" as deconv
+#
+#   # NNLS-based (requires reference matrix)
+#   let fractions = deconv.run(bulk_matrix, reference_matrix)
+#   deconv.purity(fractions, tumor_col="Tumor")
+#
+#   # Marker-based (no reference required)
+#   deconv.markers(bulk_matrix, immune_markers)
+
+fn run(bulk, reference)                  { deconvolve(bulk, reference) }
+fn nnls(mixture, reference)              { nnls(mixture, reference) }
+fn markers(bulk, marker_map)             { marker_score(bulk, marker_map) }
+fn purity(fractions, tumor_col)          { estimate_purity(fractions, tumor_col) }
+fn correlation(fractions)                { cell_type_correlation(fractions) }

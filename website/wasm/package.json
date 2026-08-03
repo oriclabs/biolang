@@ -1,14 +1,12 @@
 {
   "name": "bl-wasm",
   "type": "module",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "files": [
     "bl_wasm_bg.wasm",
-    "bl_wasm.js",
-    "bl_wasm.d.ts"
+    "bl_wasm.js"
   ],
   "main": "bl_wasm.js",
-  "types": "bl_wasm.d.ts",
   "sideEffects": [
     "./snippets/*"
   ]

@@ -1,0 +1,24 @@
+# proteomics — Mass spectrometry proteomics for BioLang
+#
+# MaxQuant output → normalization → differential abundance → volcano plot
+#
+# Quick start:
+#   import "proteomics" as prot
+#
+#   let mat  = prot.load("proteinGroups.txt") |> prot.preprocess |> prot.impute
+#   let de   = prot.ttest(mat, group_a=[0,1,2], group_b=[3,4,5])
+#   prot.significant(de, fc=1.0, padj=0.05)
+#   prot.volcano(de)
+
+import "proteomics/src/preprocess" as pre
+import "proteomics/src/de"         as de
+
+fn load(path)                              { pre.load(path) }
+fn log2_transform(matrix)                 { log2_transform(matrix) }
+fn quantile_normalize(matrix)             { quantile_normalize(matrix) }
+fn impute(matrix, pct=0.01)               { pre.impute(matrix, pct) }
+fn preprocess(matrix)                     { pre.preprocess(matrix) }
+fn full_pipeline(path)                    { pre.full_pipeline(path) }
+fn ttest(matrix, group_a, group_b)        { de.ttest(matrix, group_a, group_b) }
+fn volcano(result, fc=1.0, p=0.05)        { de.volcano(result, fc, p) }
+fn significant(result, fc=1.0, padj=0.05) { de.significant(result, fc, padj) }

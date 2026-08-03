@@ -1,0 +1,18 @@
+[package]
+name = "pathway"
+version = "0.1.0"
+description = "Gene set enrichment analysis and over-representation using GO, KEGG, and Reactome"
+authors = ["BioLang Contributors"]
+license = "MIT"
+keywords = ["gsea", "ora", "pathway", "enrichment", "go", "kegg"]
+categories = ["bioinformatics", "genomics", "statistics"]
+homepage = "https://biolang.dev/docs/bio/pathway"
+repository = "https://github.com/biolang/packages/pathway"
+readme = "README.md"
+
+[dependencies]
+# No external dependencies — uses BioLang core builtins only:
+#   fisher_exact, p_adjust, gsea_score, enrichment_score, mean, log2, round, abs
+
+[lib]
+entry = "src/mod.bl"

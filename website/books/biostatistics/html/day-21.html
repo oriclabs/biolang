@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
@@ -464,7 +464,14 @@ plot(eigenvalues, {type: "line", x: "pc", y: "variance",
 </ol>
 <p>In genomics, the scores are your cells (or samples) and the loadings are your genes. Genes with long arrows pointing toward a cluster of cells are the genes that define that cluster’s identity.</p>
 <pre><code class="language-bio"># PCA biplot with top gene loadings
-let result = pca(expression_matrix)
+let expression_matrix = matrix([
+    [8.2, 7.9, 3.1, 2.8],
+    [8.6, 8.1, 3.4, 3.0],
+    [3.0, 3.3, 8.4, 8.0],
+    [2.7, 3.0, 8.8, 8.2]
+])
+let pca_result = pca(expression_matrix)
+let result = expression_matrix
 pca_plot(result, {title: "PCA Biplot — Top 10 Gene Loadings"})
 </code></pre>
 <h3 id="interpreting-loadings"><a class="header" href="#interpreting-loadings">Interpreting Loadings</a></h3>
@@ -486,7 +493,8 @@ pca_plot(result, {title: "PCA Biplot — Top 10 Gene Loadings"})
 </blockquote>
 <h2 id="which-genes-drive-pc1"><a class="header" href="#which-genes-drive-pc1">Which Genes Drive PC1?</a></h2>
 <p>After running PCA, a common next step is to extract the genes with the largest (absolute) loadings on PC1 and PC2. These are the genes responsible for the dominant patterns of variation.</p>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Run PCA on 500-gene by 2000-cell expression matrix
 let col_names = seq(1, 500) |&gt; map(|i| "Gene_" + str(i))
 let expr = table(2000, col_names, "rnorm")
@@ -522,7 +530,8 @@ print(pc1_loadings)
 <p><strong>Clinical relevance:</strong> In clinical genomics, PCA on genotype data reveals population structure. The first two PCs of human genetic variation separate continental ancestry groups. Failing to account for this in a GWAS leads to spurious associations — a gene might appear associated with disease simply because both the gene variant and the disease are more common in one ancestry group.</p>
 </blockquote>
 <h2 id="pca-in-biolang"><a class="header" href="#pca-in-biolang">PCA in BioLang</a></h2>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Complete PCA analysis pipeline
 
 # 1. Load expression matrix (500 genes x 2000 cells)
@@ -724,7 +733,7 @@ sort(abs(pca_result$rotation[,1]), decreasing = TRUE)[1:10]
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

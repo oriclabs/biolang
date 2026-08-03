@@ -1,0 +1,5 @@
+fn load(pdb_path)          { read_text(pdb_path) |> pdb_parse }
+fn ca_atoms(pdb_table)     { pdb_table |> filter(fn(r) -> r.atom_name == "CA") }
+fn backbone(pdb_table)     { pdb_table |> filter(fn(r) -> r.atom_name == "N" | r.atom_name == "CA" | r.atom_name == "C") }
+fn chain(pdb_table, id)    { pdb_table |> filter(fn(r) -> r.chain == id) }
+fn residues(pdb_table)     { pdb_table |> group_by(fn(r) -> r.res_seq) |> map(fn(seq, rows) -> rows[0]) }

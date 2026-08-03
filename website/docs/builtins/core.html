@@ -34,7 +34,7 @@
             <span class="text-violet-400 font-mono">print</span>
           </h2>
           <p class="text-slate-400 mt-2">Write values to standard output without a trailing newline. Multiple arguments are separated by a single space.</p>
-          <pre><code class="language-biolang">print(values...) -> nil</code></pre>
+          <pre><code class="language-text">print(values...) -> nil</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -52,7 +52,7 @@ print("chr", 1)                # chr1</code></pre>
             <span class="text-violet-400 font-mono">println</span>
           </h2>
           <p class="text-slate-400 mt-2">Write values to standard output followed by a newline. The primary output function in BioLang.</p>
-          <pre><code class="language-biolang">println(values...) -> nil</code></pre>
+          <pre><code class="language-text">println(values...) -> nil</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -71,7 +71,7 @@ println([1, 2, 3])                    # [1, 2, 3]\n</code></pre>
             <span class="text-violet-400 font-mono">len</span>
           </h2>
           <p class="text-slate-400 mt-2">Return the length of a string (bytes), list (elements), or map (keys). Raises an error on types without a meaningful length.</p>
-          <pre><code class="language-biolang">len(value) -> int</code></pre>
+          <pre><code class="language-text">len(value) -> int</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -93,20 +93,20 @@ len({"a": 1, "b": 2})   # 2</code></pre>
             <span class="text-violet-400 font-mono">type</span>
           </h2>
           <p class="text-slate-400 mt-2">Return the type name of a value as a string. Useful for runtime type checks and debugging.</p>
-          <pre><code class="language-biolang">type(value) -> string</code></pre>
+          <pre><code class="language-text">type(value) -> string</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
               <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">value</td><td class="py-2 px-3">any</td><td class="py-2 px-3">Any value</td></tr>
             </tbody>
           </table>
-          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">string</code> &mdash; one of: <code>"int"</code>, <code>"float"</code>, <code>"string"</code>, <code>"bool"</code>, <code>"list"</code>, <code>"map"</code>, <code>"nil"</code>, <code>"function"</code>, <code>"table"</code>, <code>"matrix"</code>, <code>"sparse"</code>, <code>"datetime"</code>, <code>"svg"</code></p>
-          <pre><code class="language-biolang">type(42)         # "int"
-type(3.14)       # "float"
-type("ACGT")     # "string"
-type([1, 2])     # "list"
-type(nil)        # "nil"
-type(len)        # "function"</code></pre>
+          <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">Str</code> &mdash; the runtime type name, such as <code>"Int"</code>, <code>"Float"</code>, <code>"Str"</code>, <code>"Bool"</code>, <code>"List"</code>, <code>"Record"</code>, <code>"Nil"</code>, <code>"Function"</code>, <code>"Table"</code>, <code>"Matrix"</code>, or <code>"SparseMatrix"</code>.</p>
+          <pre><code class="language-biolang">type(42)         # "Int"
+type(3.14)       # "Float"
+type("ACGT")     # "Str"
+type([1, 2])     # "List"
+type(nil)        # "Nil"
+type(len)        # "Function"</code></pre>
         </section>
 
         <!-- range -->
@@ -114,13 +114,13 @@ type(len)        # "function"</code></pre>
           <h2 class="text-2xl font-bold text-white flex items-center gap-2">
             <span class="text-violet-400 font-mono">range</span>
           </h2>
-          <p class="text-slate-400 mt-2">Generate a list of integers from <code>start</code> (inclusive) to <code>end</code> (exclusive) with an optional step.</p>
-          <pre><code class="language-biolang">range(start, end, step?) -> list</code></pre>
+          <p class="text-slate-400 mt-2">Generate a list of integers from <code>start</code> (inclusive) to <code>stop</code> (exclusive) with an optional step.</p>
+          <pre><code class="language-text">range(start, stop, step?) -> list</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
               <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">start</td><td class="py-2 px-3">int</td><td class="py-2 px-3">Start value (inclusive)</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">end</td><td class="py-2 px-3">int</td><td class="py-2 px-3">End value (exclusive)</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">stop</td><td class="py-2 px-3">int</td><td class="py-2 px-3">End value (exclusive)</td></tr>
               <tr class="border-b border-slate-800/50"><td class="py-2 px-3 font-mono text-cyan-400">step</td><td class="py-2 px-3">int (optional)</td><td class="py-2 px-3">Step increment (default: 1)</td></tr>
             </tbody>
           </table>
@@ -140,7 +140,7 @@ range(0, 0)        # []</code></pre>
             <span class="text-violet-400 font-mono">abs</span>
           </h2>
           <p class="text-slate-400 mt-2">Return the absolute value of a number.</p>
-          <pre><code class="language-biolang">abs(n) -> number</code></pre>
+          <pre><code class="language-text">abs(n) -> number</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -163,7 +163,7 @@ println("Magnitude:", abs(fc))   # Magnitude: 3.2</code></pre>
             <span class="text-violet-400 font-mono">min</span>
           </h2>
           <p class="text-slate-400 mt-2">Return the smaller of two values. Also accepts a list to find the minimum element.</p>
-          <pre><code class="language-biolang">min(a, b) -> number
+          <pre><code class="language-text">min(a, b) -> number
 min(list) -> number</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
@@ -186,7 +186,7 @@ println("Min Q:", min(quality_scores))   # Min Q: 22</code></pre>
             <span class="text-violet-400 font-mono">max</span>
           </h2>
           <p class="text-slate-400 mt-2">Return the larger of two values. Also accepts a list to find the maximum element.</p>
-          <pre><code class="language-biolang">max(a, b) -> number
+          <pre><code class="language-text">max(a, b) -> number
 max(list) -> number</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
@@ -209,7 +209,7 @@ println("Peak coverage:", max(coverage))   # Peak coverage: 102</code></pre>
             <span class="text-violet-400 font-mono">int</span>
           </h2>
           <p class="text-slate-400 mt-2">Cast a value to integer. Floats are truncated. Strings are parsed. Booleans become 0/1.</p>
-          <pre><code class="language-biolang">int(value) -> int</code></pre>
+          <pre><code class="language-text">int(value) -> int</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -233,7 +233,7 @@ int("0xFF")    # 255 (hex literals supported)</code></pre>
             <span class="text-violet-400 font-mono">float</span>
           </h2>
           <p class="text-slate-400 mt-2">Cast a value to a 64-bit floating point number.</p>
-          <pre><code class="language-biolang">float(value) -> float</code></pre>
+          <pre><code class="language-text">float(value) -> float</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -253,7 +253,7 @@ float(true)      # 1.0</code></pre>
             <span class="text-violet-400 font-mono">str</span>
           </h2>
           <p class="text-slate-400 mt-2">Convert any value to its string representation.</p>
-          <pre><code class="language-biolang">str(value) -> string</code></pre>
+          <pre><code class="language-text">str(value) -> string</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -274,7 +274,7 @@ str(nil)           # "nil"</code></pre>
             <span class="text-violet-400 font-mono">bool</span>
           </h2>
           <p class="text-slate-400 mt-2">Cast a value to boolean. Falsy values: <code>nil</code>, <code>false</code>, <code>0</code>, <code>0.0</code>, <code>""</code>, <code>[]</code>. Everything else is truthy.</p>
-          <pre><code class="language-biolang">bool(value) -> bool</code></pre>
+          <pre><code class="language-text">bool(value) -> bool</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -297,7 +297,7 @@ bool(nil)      # false</code></pre>
             <span class="text-violet-400 font-mono">assert</span>
           </h2>
           <p class="text-slate-400 mt-2">Assert that a condition is truthy. If the condition is falsy, execution halts with an error message.</p>
-          <pre><code class="language-biolang">assert(condition, message?) -> nil</code></pre>
+          <pre><code class="language-text">assert condition, message?</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -307,11 +307,11 @@ bool(nil)      # false</code></pre>
           </table>
           <p class="text-sm text-slate-500 mt-2"><strong>Returns:</strong> <code class="text-cyan-400">nil</code> (or halts on failure)</p>
           <pre><code class="language-biolang">let reads = 1_000_000
-assert(reads > 0, "Expected positive read count")
+assert reads > 0, "Expected positive read count"
 
-let seq = "ATCGATCG"
-assert(len(seq) % 3 == 0, "Sequence length not divisible by 3")
-# Error: Assertion failed: Sequence length not divisible by 3</code></pre>
+let seq = "ATCGATCGA"
+assert len(seq) % 3 == 0, "Sequence length not divisible by 3"
+# The assertion passes because the sequence length is divisible by 3.</code></pre>
         </section>
 
         <!-- debug -->
@@ -320,7 +320,7 @@ assert(len(seq) % 3 == 0, "Sequence length not divisible by 3")
             <span class="text-violet-400 font-mono">debug</span>
           </h2>
           <p class="text-slate-400 mt-2">Print the debug representation of a value to stderr and return the value unchanged. Useful for inspecting intermediate values in pipelines.</p>
-          <pre><code class="language-biolang">debug(value) -> value</code></pre>
+          <pre><code class="language-text">debug(value) -> value</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -342,7 +342,7 @@ let result = [1, 2, 3]
             <span class="text-violet-400 font-mono">typeof</span>
           </h2>
           <p class="text-slate-400 mt-2">Alias for <code>type()</code>. Returns the type name of a value as a string.</p>
-          <pre><code class="language-biolang">typeof(value) -> string</code></pre>
+          <pre><code class="language-text">typeof(value) -> string</code></pre>
           <pre><code class="language-biolang">typeof(42)       # "int"
 typeof("ACGT")   # "string"</code></pre>
         </section>
@@ -353,7 +353,7 @@ typeof("ACGT")   # "string"</code></pre>
             <span class="text-violet-400 font-mono">is_nil</span>
           </h2>
           <p class="text-slate-400 mt-2">Check if a value is <code>nil</code>. More explicit than <code>value == nil</code>.</p>
-          <pre><code class="language-biolang">is_nil(value) -> bool</code></pre>
+          <pre><code class="language-text">is_nil(value) -> bool</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -378,7 +378,7 @@ if is_nil(result) {
             <span class="text-violet-400 font-mono">to_string</span>
           </h2>
           <p class="text-slate-400 mt-2">Alias for <code>str()</code>. Convert any value to its string representation.</p>
-          <pre><code class="language-biolang">to_string(value) -> string</code></pre>
+          <pre><code class="language-text">to_string(value) -> string</code></pre>
           <pre><code class="language-biolang">to_string(42)          # "42"
 to_string([1, 2, 3])   # "[1, 2, 3]"</code></pre>
         </section>
@@ -387,13 +387,18 @@ to_string([1, 2, 3])   # "[1, 2, 3]"</code></pre>
           <h2 class="text-2xl font-bold text-white mb-4">tap</h2>
           <p class="text-slate-400 mb-4">Passes a value through a callback as a side effect, then returns the original value unchanged. Useful for logging or debugging inside pipelines.</p>
           <pre><code class="language-biolang"># Debug a pipeline without breaking the chain
+let reads = [
+  {seq: dna"ATCG", quality: "IIII"},
+  {seq: dna"GGCC", quality: "!!!!"}
+]
 reads
-  |> filter(|r| r.quality > 20)
+  |> filter(|r| mean_phred(r.quality) > 20)
   |> tap(|x| println("After filter:", len(x), "reads"))
-  |> map(|r| r.sequence)
+  |> map(|r| r.seq)
   |> tap(|x| println("Sequences:", len(x)))
 
 # Inspect intermediate value
+let data = table({val: [1, 2, 3]})
 let result = data
   |> tap(|d| println("Input rows:", nrow(d)))
   |> mutate("score", |r| r.val * 2)</code></pre>
@@ -424,7 +429,7 @@ let genome_size = gb(3.1)        # 3100000000
 # Use in interval operations
 let region_size = mb(1)
 let start = kb(100)
-let end = start + region_size    # 1100000</code></pre>
+let stop = start + region_size    # 1100000</code></pre>
         </section>
 
       </article>

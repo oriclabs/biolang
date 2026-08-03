@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -187,11 +187,12 @@ computation and invoke it wherever it is needed.</p>
 <p>A function is introduced with the <code>fn</code> keyword, followed by a name, a
 parameter list, and a body enclosed in braces.</p>
 <pre><code class="language-biolang">fn gc_content(seq) {
-    let gc = seq |&gt; filter(|b| b == "G" || b == "C") |&gt; len()
+    let bases = range(0, seq_len(seq)) |&gt; map(|i| char_at(str(seq), i))
+    let gc = bases |&gt; filter(|b| b == "G" || b == "C") |&gt; len()
     gc / seq_len(seq)
 }
 
-let ratio = gc_content("ATGCGCTA")
+let ratio = gc_content(dna"ATGCGCTA")
 # ratio =&gt; 0.5
 </code></pre>
 <p>The last expression in the body is the implicit return value. There is no need
@@ -214,7 +215,8 @@ use <code>return</code>.</p>
 </code></pre>
 <h2 id="default-parameters"><a class="header" href="#default-parameters">Default Parameters</a></h2>
 <p>Parameters can carry default values. Callers may omit them.</p>
-<pre><code class="language-biolang">fn trim_reads(records, min_qual: 20, min_len: 36) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn trim_reads(records, min_qual: 20, min_len: 36) {
     records
         |&gt; filter(|r| mean(r.quality) &gt;= min_qual)
         |&gt; filter(|r| seq_len(r.seq) &gt;= min_len)
@@ -261,6 +263,10 @@ for building specialised predicates on the fly.</p>
 }
 
 let deep_enough = make_depth_filter(30)
+let variants = [
+    {info: {DP: 12}},
+    {info: {DP: 48}}
+]
 let filtered = variants |&gt; filter(deep_enough)
 </code></pre>
 <h2 id="higher-order-functions"><a class="header" href="#higher-order-functions">Higher-Order Functions</a></h2>
@@ -271,16 +277,22 @@ returns one, or both.</p>
 }
 
 let filters = [
-    |r| mean(r.quality) &gt;= 20,
+    |r| mean_phred(r.quality) &gt;= 20,
     |r| seq_len(r.seq) &gt;= 50,
     |r| gc_content(r.seq) &lt; 0.8
 ]
 
+let raw_reads = read_fastq("data/reads.fastq")
 let passing = apply_qc_chain(raw_reads, filters)
 </code></pre>
 <p>Because pipe inserts as the first argument, you can chain higher-order
 functions fluently:</p>
-<pre><code class="language-biolang">let top_genes = counts
+<pre><code class="language-biolang">let counts = [
+    {gene_name: "TP53", biotype: "protein_coding", tpm: 72.4},
+    {gene_name: "MALAT1", biotype: "lncRNA", tpm: 530.0},
+    {gene_name: "BRCA1", biotype: "protein_coding", tpm: 18.7}
+]
+let top_genes = counts
     |&gt; filter(|g| g.biotype == "protein_coding")
     |&gt; sort_by(|g| -g.tpm)
     |&gt; take(100)
@@ -329,9 +341,9 @@ concerns like timing or input validation, use wrapper functions or <code>where</
 clauses.</p>
 <pre><code class="language-biolang"># Use a wrapper function for timing
 fn timed_align(fastq, ref_genome) {
-    let t0 = now()
+    let t0 = timestamp()
     let result = align_reads(fastq, ref_genome)
-    print("Alignment took " + str(now() - t0) + "s")
+    print("Alignment took " + str(timestamp() - t0) + "s")
     result
 }
 
@@ -352,7 +364,8 @@ ontology DAGs.</p>
 }
 </code></pre>
 <p>Combine <code>@memoize</code> with recursion for dynamic-programming-style algorithms:</p>
-<pre><code class="language-biolang">@memoize
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+@memoize
 fn needleman_wunsch_score(seq1, seq2, i, j, gap_penalty: -2) {
     if i == 0 then { return j * gap_penalty }
     if j == 0 then { return i * gap_penalty }
@@ -371,7 +384,8 @@ let score = needleman_wunsch_score("AGTACG", "ACATAG", 6, 6)
 <h2 id="example-memoized-k-mer-scoring-function"><a class="header" href="#example-memoized-k-mer-scoring-function">Example: Memoized K-mer Scoring Function</a></h2>
 <p>Counting k-mer matches across many sequences calls the same function millions
 of times. Caching the GC computation removes redundant work.</p>
-<pre><code class="language-biolang">@memoize
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+@memoize
 fn kmer_gc(kmer_str) {
     gc_content(dna(kmer_str))
 }
@@ -392,7 +406,8 @@ print(f"K-mers: {result.n_kmers}, Mean GC: {result.mean_gc:.3f}")
 <h2 id="example-reusable-qc-filter-factory"><a class="header" href="#example-reusable-qc-filter-factory">Example: Reusable QC Filter Factory</a></h2>
 <p>A factory function returns a closure configured with experiment-specific
 thresholds. Different sequencing protocols produce different acceptable ranges.</p>
-<pre><code class="language-biolang">fn make_qc_filter(min_qual: 20, min_len: 50, max_n_frac: 0.05) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn make_qc_filter(min_qual: 20, min_len: 50, max_n_frac: 0.05) {
     |read| {
         let avg_q = mean(read.quality)
         let n_frac = (read.seq |&gt; filter(|b| b == "N") |&gt; len()) / seq_len(read.seq)
@@ -527,8 +542,8 @@ them and every subsequent chapter becomes easier.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

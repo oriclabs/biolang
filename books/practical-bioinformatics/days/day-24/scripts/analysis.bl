@@ -58,7 +58,7 @@ let interaction_genes = symbols |> filter(|s| {
 let top5 = interaction_genes |> sort(|a, b| a < b) |> map(|s| s)
 let top5_slice = [top5(0), top5(1), top5(2), top5(3), top5(4)]
 
-let network = try { string_network(top5_slice) } catch err { nil }
+let network = try { string_network(top5_slice, 9606) } catch err { nil }
 
 let summary = {
     total_genes: len(symbols),
@@ -70,4 +70,4 @@ let summary = {
     network_found: network != nil
 }
 
-write("data/summary.json", json_encode(summary))
+write_text("data/summary.json", json_encode(summary))

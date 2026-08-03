@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -246,7 +246,8 @@ print("Total bases: " + str(total_bases))
 <p>When you need batch operations on a stream, <code>chunk</code> groups elements into
 fixed-size lists. This is useful for writing output in blocks or batching API
 calls.</p>
-<pre><code class="language-biolang"># Process a FASTQ in chunks of 10,000 reads
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Process a FASTQ in chunks of 10,000 reads
 read_fastq("data/reads.fastq")
   |&gt; chunk(10000)
   |&gt; each(|batch| {
@@ -318,7 +319,8 @@ per_chrom_stats |&gt; sort_by(|s| s.chrom) |&gt; write_tsv("chrom_stats.tsv")
 </code></pre>
 <h3 id="par_filter"><a class="header" href="#par_filter">par_filter</a></h3>
 <p>Filter elements in parallel. Useful when the predicate itself is expensive.</p>
-<pre><code class="language-biolang"># requires: internet connection
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# requires: internet connection
 let variants = tsv("all_variants.tsv")
 
 let pathogenic = par_filter(variants, |v| {
@@ -352,7 +354,8 @@ that plague genomics scripts.</p>
 <h2 id="example-process-a-100gb-fastq"><a class="header" href="#example-process-a-100gb-fastq">Example: Process a 100GB FASTQ</a></h2>
 <p>Stream 4 billion reads, filter by quality, and compute statistics without
 loading the file into memory.</p>
-<pre><code class="language-biolang">let input = "novaseq_R1.fastq.gz"  # 100 GB compressed
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let input = "novaseq_R1.fastq.gz"  # 100 GB compressed
 
 let stats = {
   total: 0,
@@ -388,7 +391,8 @@ print("GC content:   " + str(gc) + "%")
 constant regardless of file size.</p>
 <h2 id="example-parallel-variant-annotation-across-chromosomes"><a class="header" href="#example-parallel-variant-annotation-across-chromosomes">Example: Parallel Variant Annotation Across Chromosomes</a></h2>
 <p>Split variant annotation work by chromosome to use all cores.</p>
-<pre><code class="language-biolang"># requires: internet connection
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# requires: internet connection
 let vcf_path = "cohort.vcf.gz"
 let chromosomes = range(1, 23) |&gt; map(|n| "chr" + str(n))
 let chromosomes = concat(chromosomes, ["chrX", "chrY"])
@@ -450,7 +454,8 @@ gc_profile |&gt; write_tsv("chr22_gc_profile.tsv")
 <h2 id="example-batch-processing-thousands-of-samples"><a class="header" href="#example-batch-processing-thousands-of-samples">Example: Batch Processing Thousands of Samples</a></h2>
 <p>Process a large sample cohort using chunked parallelism to avoid overwhelming
 system resources.</p>
-<pre><code class="language-biolang">let manifest = tsv("sample_manifest.tsv")  # 2,000 samples
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let manifest = tsv("sample_manifest.tsv")  # 2,000 samples
 print("Processing " + str(len(manifest)) + " samples")
 
 let batch_size = 16  # process 16 samples at a time
@@ -577,8 +582,8 @@ population-scale dataset without changing the code.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

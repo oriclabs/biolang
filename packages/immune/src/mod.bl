@@ -1,0 +1,19 @@
+# immune — Immune repertoire analysis for BioLang
+#
+# Quick start:
+#   import "immune" as imm
+#
+#   let vdj = imm.load("filtered_contig_annotations.csv")
+#   imm.diversity(vdj)
+#   imm.expansion(vdj, threshold=0.005)
+#   imm.vj_usage(vdj)
+
+import "immune/src/repertoire" as rep
+
+fn load(path)                        { read_text(path) |> parse_vdj }
+fn diversity(vdj)                    { rep.diversity(vdj) }
+fn expansion(vdj, threshold=0.01)    { rep.expansion(vdj, threshold) }
+fn top_clones(vdj, n=10)             { rep.top_clones(vdj, n) }
+fn vj_usage(vdj)                     { vj_usage(vdj) }
+fn cdr3_lengths(vdj)                 { cdr3_length_dist(vdj) }
+fn shared(tables)                    { shared_clones(tables) }

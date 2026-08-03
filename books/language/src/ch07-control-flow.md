@@ -11,6 +11,7 @@ found and not-found cases gracefully.
 embed conditional logic directly in assignments and pipes.
 
 ```biolang
+let seq = dna"ATGCGCATGC"
 let label = if gc_content(seq) > 0.6 {
     "GC-rich"
 } else if gc_content(seq) < 0.4 {
@@ -23,6 +24,8 @@ let label = if gc_content(seq) > 0.6 {
 Because it is an expression, you can use it inline:
 
 ```biolang
+let total_depth = 80
+let alt_count = 24
 let allele_freq = if total_depth > 0 { alt_count / total_depth } else { 0.0 }
 ```
 
@@ -44,7 +47,8 @@ let amino_acid = match codon {
 
 Patterns can destructure records:
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn describe_alignment(aln) {
     match aln {
         {mapped: true, mapq: q} if q >= 30 => "high-confidence"
@@ -191,6 +195,8 @@ fn classify_read_pair(r1_len, r2_len, insert_size) {
 `given` is an expression, so you can assign its result:
 
 ```biolang
+let allele_freq = 0.32
+let coverage = 45
 let risk = given {
     allele_freq >= 0.5 && coverage >= 30 => "high_confidence_somatic"
     allele_freq >= 0.2                   => "moderate_evidence"
@@ -258,7 +264,8 @@ fn process_bam(path) {
 
 Read a VCF and produce a summary table of variant types using `match`.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let variants = read_vcf("data/variants.vcf")
 
 let classified = variants |> map(|v| {
@@ -360,7 +367,8 @@ for sample in samples {
 A variant-calling wrapper that validates every precondition before running
 the expensive computation.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn call_variants(bam_path, ref_path, bed_path, min_depth: 10) {
     guard file_exists(bam_path) else {
         return {error: "BAM file not found: " + bam_path}

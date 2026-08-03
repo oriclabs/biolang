@@ -23,9 +23,9 @@ let ic50_lines = ic50_header
 let ic50_values = [245.3, 278.1, 252.8, 290.5, 238.7, 265.2, 272.4, 255.0]
 
 for i in range(0, 8) {
-    ic50_lines = append(ic50_lines, f"{i + 1},{ic50_values[i]}")
+    ic50_lines = push(ic50_lines, f"{i + 1},{ic50_values[i]}")
 }
-write_lines(ic50_lines, "data/drug_ic50.csv")
+write_lines("data/drug_ic50.csv", ic50_lines)
 
 # --- File 2: vaccine_trial.csv ---
 # Based on Polack et al. 2020 NEJM 383:2603-2615
@@ -43,7 +43,7 @@ let vax_lines = vax_header
 for i in range(0, 200) {
     let pid = i + 1
     let infected = if pid == 42 { 1 } else { 0 }
-    vax_lines = append(vax_lines, f"vaccine,V{pid:03},{infected}")
+    vax_lines = push(vax_lines, f"vaccine,V{pid:03},{infected}")
 }
 
 # Placebo group: 200 participants, 19 infected
@@ -60,9 +60,9 @@ for i in range(0, 200) {
             infected = 1
         }
     }
-    vax_lines = append(vax_lines, f"placebo,P{pid:03},{infected}")
+    vax_lines = push(vax_lines, f"placebo,P{pid:03},{infected}")
 }
-write_lines(vax_lines, "data/vaccine_trial.csv")
+write_lines("data/vaccine_trial.csv", vax_lines)
 
 println("Generated 2 files in data/")
 println("  data/drug_ic50.csv     — 8 imatinib IC50 replicates (Druker 2006)")

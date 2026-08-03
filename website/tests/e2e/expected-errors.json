@@ -1,0 +1,34 @@
+{
+  "$comment": [
+    "Curated list of inline examples that are SUPPOSED to fail, so the",
+    "run-button suite does not report them. Anything not listed here that",
+    "produces an error is treated as a real failure.",
+    "",
+    "alwaysAllowed: regexes matched against the rendered output. Use only for",
+    "outcomes that are correct by design everywhere — not to paper over bugs.",
+    "",
+    "pages: page path -> { \"<1-based Run button index>\": \"why it errors\" }.",
+    "The index counts only buttons that are enabled (CLI-only buttons are",
+    "disabled and never clicked), matching what the suite reports on failure.",
+    "",
+    "codeMarkers: if a block's own source contains one of these, its error is",
+    "treated as intentional. Prefer this — it keeps the reason next to the",
+    "example instead of in a separate file that drifts."
+  ],
+  "alwaysAllowed": [
+    "^Not available in the browser:",
+    "requires the CLI"
+  ],
+  "codeMarkers": [
+    "# expect: error",
+    "# expect error",
+    "# expects error",
+    "# this fails",
+    "# fails:",
+    "# raises",
+    "# error:",
+    "# intentionally fails",
+    "# deliberately fails"
+  ],
+  "pages": {}
+}

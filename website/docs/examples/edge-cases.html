@@ -34,56 +34,47 @@
 let records = read_fasta("data/sequences.fasta")
 
 # This will NOT crash, but may give unexpected results
-let lengths = records |> map(|r| { r.seq |> len })
+let lengths = records |> map(|r| len(r.seq))
 print(f"Min length: {lengths |> min}")  # Could be 0
 
 # Always filter empty sequences before analysis
-let valid = records |> filter(|r| { r.seq |> len > 0 })
+let valid = records |> filter(|r| len(r.seq) > 0)
 print(f"Sequences with data: {valid |> len}")
 
-# GC content of an empty sequence returns nil, not 0
+# GC content of an empty sequence is defined as 0.0
 let empty = dna""
-print(empty |> gc_content)  # nil
-print(empty |> gc_content ?? 0.0)  # 0.0 (with default)</code></pre>
+print(empty |> gc_content)  # 0.0</code></pre>
 
         <h3>Empty FASTQ records</h3>
         <pre><code class="language-biolang"># FASTQ files with zero-length reads (can happen after trimming)
 let reads = read_fastq("data/reads.fastq")
 
-# mean_qual on an empty quality string returns nil
-let safe_reads = reads |> filter(|r| { r.seq |> len > 0 })
+# mean_phred on an empty quality value returns 0.0
+print(mean_phred(qual""))  # 0.0
 
-# Wrong: will crash on empty reads
-# reads |> map(|r| { mean_phred(r.quality) }) |> mean
-
-# Right: filter first or use nil-safe access
-let avg_qual = reads
-  |> map(|r| { mean_phred(r.quality) })
-  |> filter(|q| { q != nil })
+# Filter empty reads when they should not contribute to the analysis
+let safe_reads = reads |> filter(|r| len(r.seq) > 0)
+let avg_qual = safe_reads
+  |> map(|r| mean_phred(r.quality))
   |> mean
 print(f"Average quality: {avg_qual |> round(1)}")</code></pre>
 
         <h2>Nil Handling</h2>
 
-        <h3>The nil propagation trap</h3>
-        <pre><code class="language-biolang"># nil propagates through pipes silently
-let x = nil
-let result = x |> to_string |> len  # result is nil, not an error
+        <h3>Nil must be handled explicitly</h3>
+        <pre><code class="language-biolang"># nil is a value; functions do not silently propagate it
+print(to_string(nil))       # "nil"
+print(len(to_string(nil)))  # 3
 
-# This means bugs can hide in long pipe chains
-let data = read_csv("data/expression.csv")
-let values = data |> map(|row| {
-  # If "score" column is missing or empty, float returns nil
-  row["score"] |> float
-})
+# Numeric aggregations reject nil values, so filter them first
+let values = [1.5, nil, 2.5]
+let present = values |> filter(|x| x != nil)
+print(present |> sum)   # 4.0
+print(present |> mean)  # 2.0
 
-# sum/mean skip nil values by default
-print(values |> sum)    # Skips nils
-print(values |> mean)   # Skips nils
-print(values |> len)    # Counts ALL entries including nil
-
-# Count non-nil entries
-print(values |> filter(|x| x != nil) |> len)  # Only non-nil entries</code></pre>
+# Invalid conversions and missing record keys raise errors
+# float("")              # TypeError
+# {score: 1.0}["pvalue"] # KeyError</code></pre>
 
         <h3>Nil in conditionals</h3>
         <pre><code class="language-biolang"># nil is falsy, but not the same as false
@@ -100,29 +91,30 @@ print(f"Hello, {name ?? "unknown"}")  # "Hello, unknown"
 # Use ?. (nil-safe access) for chained lookups
 let record = { info: nil }
 print(record.info?.gene)  # nil, no crash
-print(record.info.gene)   # ERROR: cannot access property on nil</code></pre>
+# record.info.gene        # ERROR: cannot access field on nil</code></pre>
 
         <h2>Large Files</h2>
 
         <h3>Streaming vs collecting</h3>
-        <pre><code class="language-biolang"># WRONG: loads entire file into memory
-let all_reads = read_fastq("data/reads.fastq") |> collect
+        <pre><code class="language-biolang"># Eager: read_fastq returns a reusable in-memory Table
+let all_reads = read_fastq("data/reads.fastq")
 # This can exhaust memory for large files!
 
-# RIGHT: stream and process without collecting
-read_fastq("data/reads.fastq")
-  |> filter(|r| { mean_phred(r.quality) >= 30.0 })
-  |> write_fastq("filtered.fq.gz")
-# Constant memory usage regardless of file size
+# Lazy: fastq returns a one-pass Stream
+let passing_count = fastq("data/reads.fastq")
+  |> filter(|r| mean_phred(r.quality) >= 30.0)
+  |> count()
+print(f"Passing reads: {passing_count}")
 
 # If you need to collect, sample first
-let sample = read_fastq("data/reads.fastq") |> take(10000) |> collect
-let avg_len = sample |> map(|r| { r.seq |> len }) |> mean
+let sample = fastq("data/reads.fastq") |> take(10000) |> collect
+let avg_len = sample |> map(|r| len(r.seq)) |> mean
 print(f"Estimated average read length: {avg_len}")</code></pre>
 
         <h3>Memory-safe aggregation</h3>
-        <pre><code class="language-biolang"># For large files, use read_stats for streaming aggregations
-let stats = read_stats(read_fastq("data/reads.fastq"))
+        <p><strong>Requires CLI:</strong> this operation reads directly from the local filesystem.</p>
+        <pre><code class="language-biolang"># read_stats scans the path without building an in-memory read table
+let stats = read_stats("data/reads.fastq")
 
 # read_stats computes quality and length metrics in constant memory
 print(f"Total reads: {stats.total_reads}")
@@ -132,21 +124,13 @@ print(f"Mean quality: {stats.mean_quality |> round(1)}")</code></pre>
         <h2>Encoding Issues</h2>
 
         <h3>Quality score encoding</h3>
-        <pre><code class="language-biolang"># FASTQ files use two quality encodings:
-# Phred+33 (Sanger/Illumina 1.8+): ASCII 33-126
-# Phred+64 (Illumina 1.3-1.7):    ASCII 64-126
-
-# BioLang auto-detects encoding from quality score ranges
-let reads_33 = read_fastq("data/reads.fastq")       # Phred+33 auto-detected
-let reads_64 = read_fastq("data/reads.fastq") # Phred+64 auto-detected
-
-# Check what encoding was detected
+        <pre><code class="language-biolang"># BioLang reads modern Sanger/Illumina 1.8+ FASTQ as Phred+33
 let reads = read_fastq("data/reads.fastq")
-print("Checking first read quality range for encoding detection")
+let first_read = reads |> first
+print(f"Mean Phred: {mean_phred(first_read.quality) |> round(1)}")
 
-# Common gotcha: mixing encodings in merged files
-# BioLang will warn if quality values seem inconsistent
-let mixed = read_fastq("data/reads.fastq")  # Warning: inconsistent quality encoding detected</code></pre>
+# Legacy Illumina 1.3-1.7 files may use Phred+64. Convert those files to
+# Phred+33 before reading them; the reader does not auto-detect +64.</code></pre>
 
         <h3>Sequence characters</h3>
         <pre><code class="language-biolang"># DNA sequences may contain ambiguity codes (IUPAC)
@@ -158,15 +142,15 @@ print(seq |> gc_content)       # Counts only definite G/C bases
 print(contains(to_string(seq), "N"))    # true
 
 # Reverse complement preserves ambiguity codes
-print(seq |> reverse_complement)  # MKWSRYNNNCGAT
+print(seq |> reverse_complement)  # MKWSYRNNCGAT
 
 # But k-mer counting may give unexpected results
-let kmers = seq |> kmers(3) |> frequencies
+let kmer_counts = seq |> kmers(3) |> frequencies
 # K-mers containing N are valid k-mers in BioLang
-print(kmers)  # includes "ATC", "TCG", "CGN", "GNN", etc.
+print(kmer_counts)  # includes "ATC", "TCG", "CGN", "GNN", etc.
 
 # Filter out ambiguous k-mers if needed
-let clean_kmers = seq |> kmers(3) |> filter(|k| { !(k |> contains("N")) })</code></pre>
+let clean_kmers = seq |> kmers(3) |> filter(|k| !contains(str(k), "N"))</code></pre>
 
         <h2>Numeric Precision</h2>
 
@@ -177,13 +161,13 @@ print(a == 0.3)          # false!
 print(a)                 # 0.30000000000000004
 
 # Use abs() for floating point comparison
-print(abs(a - 0.3) < 1e-10)  # true
+print(abs(a - 0.3) &lt; 1e-10)  # true
 
 # This matters for p-value filtering
 let pval = 0.05
 let computed = 0.01 + 0.04
 # WRONG: filter(|v| { v.pval == 0.05 })
-# RIGHT: filter(|v| { v.pval <= 0.05 })</code></pre>
+# RIGHT: filter(|v| { v.pval &lt;= 0.05 })</code></pre>
 
         <h3>Integer overflow</h3>
         <pre><code class="language-biolang"># Genome coordinates can be large
@@ -232,19 +216,18 @@ let bed_length = bed_end - bed_start  # 100 bases
 let one_based_start = bed_start + 1  # 101
 let one_based_end = bed_end          # 200
 
-# BioLang's interval functions are coordinate-system aware
-let bed_region = interval("chr1", 100, 200)    # 0-based
-let vcf_region = interval("chr1", 101, 200)    # 1-based
+# interval() stores numeric half-open coordinates; convert before constructing it
+let bed_region = interval("chr1", 100, 200)
+let vcf_as_bed = interval("chr1", 100, 200)  # VCF position 101 converted to BED
 let tree = interval_tree([bed_region])
-print(query_overlaps(tree, "chr1", 101, 200) |> len > 0)  # true</code></pre>
+print(len(query_overlaps(tree, "chr1", 100, 200)) > 0)  # true</code></pre>
 
         <h3>Windows line endings</h3>
         <pre><code class="language-biolang"># Files from Windows have \r\n line endings
 # BioLang handles this automatically for standard formats (FASTQ, VCF, etc.)
 
 # But for plain text, trailing \r can cause problems
-let lines = read_text("windows_file.txt") |> split("
-")
+let lines = read_lines("windows_file.txt")
 let first = lines |> first
 print(first |> ends_with("gene"))      # might be false!
 print(first |> trim |> ends_with("gene"))  # true

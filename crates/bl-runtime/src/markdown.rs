@@ -63,10 +63,20 @@ pub fn value_to_markdown(v: &Value) -> String {
         Value::Interval(iv) => {
             format!("`{}:{}-{}`", iv.chrom, iv.start, iv.end)
         }
-        Value::Variant { chrom, pos, ref_allele, alt_allele, .. } => {
+        Value::Variant {
+            chrom,
+            pos,
+            ref_allele,
+            alt_allele,
+            ..
+        } => {
             format!("`{chrom}:{pos} {ref_allele}/{alt_allele}`")
         }
-        Value::Gene { symbol, description, .. } => {
+        Value::Gene {
+            symbol,
+            description,
+            ..
+        } => {
             let mut s = format!("**{symbol}**");
             if !description.is_empty() {
                 s.push_str(&format!(" — {description}"));
@@ -316,7 +326,13 @@ fn value_to_html_body(v: &Value) -> String {
         Value::Interval(iv) => {
             format!("<p><code>{}:{}-{}</code></p>", iv.chrom, iv.start, iv.end)
         }
-        Value::Variant { chrom, pos, ref_allele, alt_allele, .. } => {
+        Value::Variant {
+            chrom,
+            pos,
+            ref_allele,
+            alt_allele,
+            ..
+        } => {
             format!(
                 "<p><code>{}:{} {}/{}</code></p>",
                 html_escape(chrom),
@@ -325,7 +341,11 @@ fn value_to_html_body(v: &Value) -> String {
                 html_escape(alt_allele)
             )
         }
-        Value::Gene { symbol, description, .. } => {
+        Value::Gene {
+            symbol,
+            description,
+            ..
+        } => {
             let mut html = format!("<p><strong>{}</strong>", html_escape(symbol));
             if !description.is_empty() {
                 html.push_str(&format!(" &mdash; {}", html_escape(description)));
@@ -422,7 +442,9 @@ fn html_cell(v: &Value) -> String {
 fn record_to_html(map: &std::collections::HashMap<String, Value>) -> String {
     let mut keys: Vec<&String> = map.keys().collect();
     keys.sort();
-    let mut html = String::from("<table class=\"kv-table\">\n<thead><tr><th>Key</th><th>Value</th></tr></thead>\n<tbody>\n");
+    let mut html = String::from(
+        "<table class=\"kv-table\">\n<thead><tr><th>Key</th><th>Value</th></tr></thead>\n<tbody>\n",
+    );
     for key in keys {
         let val = &map[key];
         html.push_str(&format!(
@@ -504,7 +526,10 @@ fn builtin_write_markdown(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => s.as_str(),
         other => {
             return Err(BioLangError::type_error(
-                format!("write_markdown() path requires Str, got {}", other.type_of()),
+                format!(
+                    "write_markdown() path requires Str, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -540,4 +565,3 @@ fn builtin_write_html(args: Vec<Value>) -> Result<Value> {
     })?;
     Ok(Value::Str(path.to_string()))
 }
-

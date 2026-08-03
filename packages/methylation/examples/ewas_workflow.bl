@@ -1,0 +1,19 @@
+import "methylation" as meth
+
+# beta_matrix: CpGs × samples (from Bismark or EPIC array)
+# Convert to M-values for statistical testing
+# let m_matrix = beta_matrix |> rows |> map(fn(r) -> meth.to_mvalue(r))
+
+# Find DMRs between cases (cols 0-4) and controls (cols 5-9)
+# let dmrs = meth.find_dmrs(beta_matrix, group_a=[0,1,2,3,4], group_b=[5,6,7,8,9])
+
+# Site-level differential methylation
+# let diff = meth.diff_cpgs(beta_matrix, [0,1,2], [3,4,5])
+# meth.significant_cpgs(diff, min_delta=0.15, padj=0.05)
+
+# Epigenetic age prediction (Horvath clock: 353 CpGs)
+# meth.clock_age(beta_vec_353cpgs, horvath_coefs)
+
+# CpG density
+let positions = [100, 120, 145, 300, 320, 340, 360]
+meth.density(positions, window=200)

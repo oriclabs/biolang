@@ -27,7 +27,8 @@ print(lower)   # => dna"ATCGATCG"
 
 Invalid bases cause a compile-time error:
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # This is a compile error -- U is not a DNA base
 let bad = dna"AUCG"
 # Error: invalid DNA base 'U' at position 1
@@ -68,13 +69,13 @@ Each character maps to a Phred quality score. You can work with them numerically
 
 ```biolang
 let q = qual"IIIIIHHHGG"
-print(mean(q))       # => 37.2
-print(min(q))        # => 38  (G = 38)
-print(max(q))        # => 40  (I = 40)
+print(mean_phred(q)) # => 39.2
+print(min_phred(q))  # => 38  (G = 38)
+print(max_phred(q))  # => 40  (I = 40)
 
 # Filter reads by mean quality
 let reads = read_fastq("data/reads.fastq")
-let hq_reads = reads |> filter(|r| mean(r.quality) >= 30)
+let hq_reads = reads |> filter(|r| mean_phred(r.quality) >= 30)
 ```
 
 ## Sequence Operations

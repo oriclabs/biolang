@@ -1,0 +1,20 @@
+import "motif" as motif
+
+# Scan a promoter for AP-1 (IUPAC: TGASTCA where S=G or C)
+let promoter = "ATCGATCGTGACTCAGCGATCG"
+motif.iupac(promoter, "TGASTCA")
+
+# Build a PWM from ChIP-seq peak summits (aligned, same-length sequences)
+# let summit_seqs = ["ATCGATCG", "ATCGTTCG", "GTCGATCG"]
+# let pwm = motif.pwm(summit_seqs)
+# motif.consensus(pwm)
+
+# Scan a sequence with the PWM
+# motif.scan(sequence, pwm, t=0.85)
+
+# GC content in sliding windows (detect CpG islands)
+let chr1_region = "ATCGATCGATCGGCGCGCGATCGATCG"
+motif.gc(chr1_region, window=10)
+
+# Motif enrichment: is "CACGTG" (E-box) enriched in peaks vs background?
+# motif.enrich(peak_sequences, background_sequences, "CACGTG")

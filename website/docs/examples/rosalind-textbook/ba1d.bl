@@ -1,0 +1,18 @@
+# Rosalind: BA1D — Find All Occurrences of a Pattern in a String
+# https://rosalind.info/problems/ba1d/
+#
+# Given: Strings Pattern and Genome.
+# Return: Every starting position where Pattern appears, zero-based.
+
+let pattern = "ATAT"
+let genome_text = "GATATATGCATATACTT"
+
+let positions = find_motif(genome_text, pattern)
+let result = positions |> map(|p| str(p)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 1 3 9")
+
+fn test_ba1d_pattern_positions() {
+    assert result == "1 3 9", "BA1D: got '" + result + "'"
+}

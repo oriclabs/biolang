@@ -1,0 +1,13 @@
+import "proteomics" as prot
+
+# Load and preprocess MaxQuant output
+let mat = prot.full_pipeline("data/proteinGroups.txt")
+
+# Differential abundance: samples 0-2 vs 3-5
+let de = prot.ttest(mat, group_a=[0, 1, 2], group_b=[3, 4, 5])
+
+# Significant hits (FC >= 2, FDR <= 5%)
+let hits = prot.significant(de, fc=1.0, padj=0.05)
+
+# Volcano plot data
+prot.volcano(de, fc=1.0, p=0.05)

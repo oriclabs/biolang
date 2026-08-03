@@ -1,0 +1,22 @@
+# RNA-seq sample QC: library sizes, correlation, normalization.
+
+fn library_sizes(matrix) {
+  matrix |> columns |> map(fn(col) -> col |> sum)
+}
+
+fn correlation(matrix) {
+  sample_correlation(matrix)
+}
+
+fn filter_genes(matrix, min_count=10, min_samples=2) {
+  filter_low_counts(matrix, min_count, min_samples)
+}
+
+fn normalize_tpm(matrix, gene_lengths) {
+  tpm_matrix(matrix, gene_lengths)
+}
+
+fn normalize_sf(matrix) {
+  let sf = size_factors(matrix)
+  matrix |> zip_columns(sf) |> map_columns(fn(col, s) -> col |> map(fn(x) -> x / s))
+}

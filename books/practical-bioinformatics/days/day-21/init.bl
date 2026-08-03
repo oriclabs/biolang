@@ -71,57 +71,27 @@ let num_templates = len(templates)
 let qual_high = "IIIIIIIIIIIIIIHHHHHHHHHHGGGGGGGGGFFFFFFFEEEEEEDDDDDCCCCCBBBBBAAAAAA99999888887777766666555554444433333222221111100000////....----,,,,++++****))))(((("
 let qual_med  = "HHHHHHHHGGGGGGGFFFFFFEEEEEEDDDDDCCCCCBBBBBAAAAAAA999998888877777666665555544444333332222211111000000//////.....-----,,,,,+++++*****)))))(((((''''&&&&"
 
-# ── Generate 100K-read FASTQ ──
-print("Generating benchmark FASTQ (100,000 reads from real E. coli templates)...")
-
-let lines_100k = []
-for i in range(0, 100000) {
+# Generate a quick local sample and a larger benchmark.
+print("Generating local FASTQ sample (5,000 reads)...")
+let sample_records = range(0, 5000) |> map(|i| {
     let tmpl_idx = i % num_templates
-    let tmpl = templates[tmpl_idx]
-    let offset = (i * 3) % 10
-    let read_len = 150
-    # Extract a 150bp read from template (cycling with offset)
-    let seq = ""
-    for j in range(0, read_len) {
-        let pos = (offset + j) % len(tmpl)
-        let seq = seq + substr(tmpl, pos, 1)
-    }
-    # Alternate quality profiles
-    let qual = if i % 3 == 0 then substr(qual_high, 0, read_len)
-               else substr(qual_med, 0, read_len)
-    let lines_100k = push(lines_100k, f"@ECOLI_K12_{gene_names[tmpl_idx]}_{str(i)} length=150")
-    let lines_100k = push(lines_100k, seq)
-    let lines_100k = push(lines_100k, "+")
-    let lines_100k = push(lines_100k, qual)
-}
-write_lines("data/benchmark_100k.fastq", lines_100k)
-print("  Created data/benchmark_100k.fastq (100,000 reads)")
+    let seq = substr(templates[tmpl_idx], 0, 150)
+    let qual = if i % 3 == 0 then substr(qual_high, 0, 150) else substr(qual_med, 0, 150)
+    f"@ECOLI_K12_{gene_names[tmpl_idx]}_{str(i)} length=150\n{seq}\n+\n{qual}"
+})
+write_lines("data/sample.fastq", sample_records)
+print("  Created data/sample.fastq (5,000 reads)")
 
-# ── Generate 1M-read FASTQ ──
-print("Generating benchmark FASTQ (1,000,000 reads from real E. coli templates)...")
-
-let lines_1m = []
-for i in range(0, 1000000) {
+print("Generating benchmark FASTQ (100,000 reads)...")
+let large_records = range(0, 100000) |> map(|i| {
     let tmpl_idx = i % num_templates
-    let tmpl = templates[tmpl_idx]
-    let offset = (i * 7) % 10
-    let read_len = 150
-    let seq = ""
-    for j in range(0, read_len) {
-        let pos = (offset + j) % len(tmpl)
-        let seq = seq + substr(tmpl, pos, 1)
-    }
-    let qual = if i % 3 == 0 then substr(qual_high, 0, read_len)
-               else substr(qual_med, 0, read_len)
-    let lines_1m = push(lines_1m, f"@ECOLI_K12_{gene_names[tmpl_idx]}_{str(i)} length=150")
-    let lines_1m = push(lines_1m, seq)
-    let lines_1m = push(lines_1m, "+")
-    let lines_1m = push(lines_1m, qual)
-}
-write_lines("data/benchmark_1m.fastq", lines_1m)
-print("  Created data/benchmark_1m.fastq (1,000,000 reads)")
+    let seq = substr(templates[tmpl_idx], 0, 150)
+    let qual = if i % 3 == 0 then substr(qual_high, 0, 150) else substr(qual_med, 0, 150)
+    f"@ECOLI_K12_{gene_names[tmpl_idx]}_{str(i)} length=150\n{seq}\n+\n{qual}"
+})
+write_lines("data/large_sample.fastq", large_records)
+print("  Created data/large_sample.fastq (100,000 reads)")
 
-# ── Generate FASTA with 50 real E. coli protein-coding gene sequences ──
 # Using the 20 templates above plus 30 additional subsequence variants
 print("Generating FASTA (50 gene sequences for GC/kmer analysis)...")
 

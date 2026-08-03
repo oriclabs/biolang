@@ -95,169 +95,89 @@ let seqs_chrX   = [cyc1_01, cyc1_02]
 # Build quality assignment arrays — q_poor every 5th, q_medium every 3rd, else alternating high/good
 let quals = [q_high, q_good, q_medium, q_poor]
 
-let fastq_lines = []
-
 # Generate 500 reads across yeast chromosomes
 # Distribution: chrII(100), chrXV(100), chrIV(60), chrV(60), chrIII(80), chrVI(40), chrXVI(30), chrX(30)
-
-let i = 0
-
-# 100 reads from chrII (GAL4 region)
-while i < 100 {
-    let seq_idx = i % 5
+let fastq_records = range(0, 500) |> map(|i| {
+    let start = if i < 100 { 0 } else if i < 200 { 100 } else if i < 260 { 200 }
+        else if i < 320 { 260 } else if i < 400 { 320 } else if i < 440 { 400 }
+        else if i < 470 { 440 } else { 470 }
+    let group = if i < 100 { seqs_chrII } else if i < 200 { seqs_chrXV }
+        else if i < 260 { seqs_chrIV } else if i < 320 { seqs_chrV }
+        else if i < 400 { seqs_chrIII } else if i < 440 { seqs_chrVI }
+        else if i < 470 { seqs_chrXVI } else { seqs_chrX }
+    let gene = if i < 100 { "GAL4" } else if i < 200 { "HIS3_ADH1" }
+        else if i < 260 { "TRP1" } else if i < 320 { "URA3" }
+        else if i < 400 { "LEU2_PGK1" } else if i < 440 { "ACT1" }
+        else if i < 470 { "TEF1" } else { "CYC1" }
+    let chrom = if i < 100 { "II" } else if i < 200 { "XV" }
+        else if i < 260 { "IV" } else if i < 320 { "V" }
+        else if i < 400 { "III" } else if i < 440 { "VI" }
+        else if i < 470 { "XVI" } else { "X" }
+    let seq_idx = (i - start) % len(group)
     let q_idx = if i % 5 == 0 { 3 } else if i % 3 == 0 { 2 } else if i % 2 == 0 { 1 } else { 0 }
-    let name = f"@yeast_chrII_gal4_{i + 1:04} length=150 gene=GAL4 chr=II"
-    fastq_lines = append(fastq_lines, name)
-    fastq_lines = append(fastq_lines, seqs_chrII[seq_idx])
-    fastq_lines = append(fastq_lines, "+")
-    fastq_lines = append(fastq_lines, quals[q_idx])
-    i = i + 1
-}
+    f"@yeast_{i + 1:04} length=150 gene={gene} chr={chrom}\n{group[seq_idx]}\n+\n{quals[q_idx]}"
+})
 
-# 100 reads from chrXV (HIS3 + ADH1 region)
-while i < 200 {
-    let seq_idx = (i - 100) % 6
-    let q_idx = if i % 5 == 0 { 3 } else if i % 3 == 0 { 2 } else if i % 2 == 0 { 1 } else { 0 }
-    let name = f"@yeast_chrXV_{i + 1:04} length=150 gene=HIS3_ADH1 chr=XV"
-    fastq_lines = append(fastq_lines, name)
-    fastq_lines = append(fastq_lines, seqs_chrXV[seq_idx])
-    fastq_lines = append(fastq_lines, "+")
-    fastq_lines = append(fastq_lines, quals[q_idx])
-    i = i + 1
-}
-
-# 60 reads from chrIV (TRP1 region)
-while i < 260 {
-    let seq_idx = (i - 200) % 3
-    let q_idx = if i % 5 == 0 { 3 } else if i % 3 == 0 { 2 } else if i % 2 == 0 { 1 } else { 0 }
-    let name = f"@yeast_chrIV_trp1_{i + 1:04} length=150 gene=TRP1 chr=IV"
-    fastq_lines = append(fastq_lines, name)
-    fastq_lines = append(fastq_lines, seqs_chrIV[seq_idx])
-    fastq_lines = append(fastq_lines, "+")
-    fastq_lines = append(fastq_lines, quals[q_idx])
-    i = i + 1
-}
-
-# 60 reads from chrV (URA3 region)
-while i < 320 {
-    let seq_idx = (i - 260) % 3
-    let q_idx = if i % 5 == 0 { 3 } else if i % 3 == 0 { 2 } else if i % 2 == 0 { 1 } else { 0 }
-    let name = f"@yeast_chrV_ura3_{i + 1:04} length=150 gene=URA3 chr=V"
-    fastq_lines = append(fastq_lines, name)
-    fastq_lines = append(fastq_lines, seqs_chrV[seq_idx])
-    fastq_lines = append(fastq_lines, "+")
-    fastq_lines = append(fastq_lines, quals[q_idx])
-    i = i + 1
-}
-
-# 80 reads from chrIII (LEU2 + PGK1 region)
-while i < 400 {
-    let seq_idx = (i - 320) % 5
-    let q_idx = if i % 5 == 0 { 3 } else if i % 3 == 0 { 2 } else if i % 2 == 0 { 1 } else { 0 }
-    let name = f"@yeast_chrIII_{i + 1:04} length=150 gene=LEU2_PGK1 chr=III"
-    fastq_lines = append(fastq_lines, name)
-    fastq_lines = append(fastq_lines, seqs_chrIII[seq_idx])
-    fastq_lines = append(fastq_lines, "+")
-    fastq_lines = append(fastq_lines, quals[q_idx])
-    i = i + 1
-}
-
-# 40 reads from chrVI (ACT1 region)
-while i < 440 {
-    let seq_idx = (i - 400) % 2
-    let q_idx = if i % 5 == 0 { 3 } else if i % 3 == 0 { 2 } else if i % 2 == 0 { 1 } else { 0 }
-    let name = f"@yeast_chrVI_act1_{i + 1:04} length=150 gene=ACT1 chr=VI"
-    fastq_lines = append(fastq_lines, name)
-    fastq_lines = append(fastq_lines, seqs_chrVI[seq_idx])
-    fastq_lines = append(fastq_lines, "+")
-    fastq_lines = append(fastq_lines, quals[q_idx])
-    i = i + 1
-}
-
-# 30 reads from chrXVI (TEF1 region)
-while i < 470 {
-    let seq_idx = (i - 440) % 2
-    let q_idx = if i % 5 == 0 { 3 } else if i % 3 == 0 { 2 } else if i % 2 == 0 { 1 } else { 0 }
-    let name = f"@yeast_chrXVI_tef1_{i + 1:04} length=150 gene=TEF1 chr=XVI"
-    fastq_lines = append(fastq_lines, name)
-    fastq_lines = append(fastq_lines, seqs_chrXVI[seq_idx])
-    fastq_lines = append(fastq_lines, "+")
-    fastq_lines = append(fastq_lines, quals[q_idx])
-    i = i + 1
-}
-
-# 30 reads from chrX (CYC1 region)
-while i < 500 {
-    let seq_idx = (i - 470) % 2
-    let q_idx = if i % 5 == 0 { 3 } else if i % 3 == 0 { 2 } else if i % 2 == 0 { 1 } else { 0 }
-    let name = f"@yeast_chrX_cyc1_{i + 1:04} length=150 gene=CYC1 chr=X"
-    fastq_lines = append(fastq_lines, name)
-    fastq_lines = append(fastq_lines, seqs_chrX[seq_idx])
-    fastq_lines = append(fastq_lines, "+")
-    fastq_lines = append(fastq_lines, quals[q_idx])
-    i = i + 1
-}
-
-let fastq_content = join(fastq_lines, "\n") + "\n"
-write("data/reads.fastq", fastq_content)
+let fastq_content = join(fastq_records, "\n") + "\n"
+write_text("data/reads.fastq", fastq_content)
 print(f"  Created data/reads.fastq (500 reads from 8 yeast chromosomes)")
 
 # ============================================================
 # 2. FASTA — Yeast reference sequences (same genes)
 # ============================================================
 
-let fasta_content = ">GAL4_YPL248C S. cerevisiae GAL4 transcription factor (chrII)\n"
-    + gal4_01 + "\n" + gal4_02 + "\n" + gal4_03 + "\n"
-    + ">HIS3_YOR202W S. cerevisiae HIS3 imidazoleglycerol-phosphate dehydratase (chrXV)\n"
-    + his3_01 + "\n" + his3_02 + "\n" + his3_03 + "\n"
-    + ">TRP1_YDR007W S. cerevisiae TRP1 phosphoribosylanthranilate isomerase (chrIV)\n"
-    + trp1_01 + "\n" + trp1_02 + "\n"
-    + ">URA3_YEL021W S. cerevisiae URA3 orotidine-5-phosphate decarboxylase (chrV)\n"
-    + ura3_01 + "\n" + ura3_02 + "\n"
-    + ">LEU2_YCL018W S. cerevisiae LEU2 beta-isopropylmalate dehydrogenase (chrIII)\n"
-    + leu2_01 + "\n" + leu2_02 + "\n"
+let fasta_content = ">GAL4_YPL248C S. cerevisiae GAL4 transcription factor (chrII)\n" +
+gal4_01 + "\n" + gal4_02 + "\n" + gal4_03 + "\n" +
+">HIS3_YOR202W S. cerevisiae HIS3 imidazoleglycerol-phosphate dehydratase (chrXV)\n" +
+his3_01 + "\n" + his3_02 + "\n" + his3_03 + "\n" +
+">TRP1_YDR007W S. cerevisiae TRP1 phosphoribosylanthranilate isomerase (chrIV)\n" +
+trp1_01 + "\n" + trp1_02 + "\n" +
+">URA3_YEL021W S. cerevisiae URA3 orotidine-5-phosphate decarboxylase (chrV)\n" +
+ura3_01 + "\n" + ura3_02 + "\n" +
+">LEU2_YCL018W S. cerevisiae LEU2 beta-isopropylmalate dehydrogenase (chrIII)\n" +
+leu2_01 + "\n" + leu2_02 + "\n"
 
-write("data/sequences.fasta", fasta_content)
+write_text("data/sequences.fasta", fasta_content)
 print("  Created data/sequences.fasta (5 yeast gene sequences)")
 
 # ============================================================
 # 3. VCF — Yeast variants from SGD (common lab strain polymorphisms)
 # ============================================================
 
-let vcf_content = "##fileformat=VCFv4.3\n"
-    + "##source=SGD_S288C\n"
-    + "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n"
-    + "##FILTER=<ID=PASS,Description=\"All filters passed\">\n"
-    + "##FILTER=<ID=LowQual,Description=\"Low quality\">\n"
-    + "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
-    + "chrII\t280500\t.\tA\tG\t50\tPASS\tDP=30\n"
-    + "chrII\t281200\t.\tC\tT\t45\tPASS\tDP=25\n"
-    + "chrIII\t92500\t.\tG\tA\t55\tPASS\tDP=35\n"
-    + "chrIV\t463600\t.\tT\tC\t60\tPASS\tDP=40\n"
-    + "chrV\t116300\t.\tGAT\tG\t40\tPASS\tDP=20\n"
-    + "chrV\t116500\t.\tC\tG\t35\tLowQual\tDP=10\n"
-    + "chrVI\t54800\t.\tA\tT\t50\tPASS\tDP=28\n"
-    + "chrX\t384700\t.\tG\tA\t48\tPASS\tDP=32\n"
-    + "chrXV\t722100\t.\tC\tT\t30\tPASS\tDP=15\n"
-    + "chrXVI\t700800\t.\tTCGA\tT\t25\tLowQual\tDP=8\n"
+let vcf_content = "##fileformat=VCFv4.3\n" +
+"##source=SGD_S288C\n" +
+"##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n" +
+"##FILTER=<ID=PASS,Description=\"All filters passed\">\n" +
+"##FILTER=<ID=LowQual,Description=\"Low quality\">\n" +
+"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n" +
+"chrII\t280500\t.\tA\tG\t50\tPASS\tDP=30\n" +
+"chrII\t281200\t.\tC\tT\t45\tPASS\tDP=25\n" +
+"chrIII\t92500\t.\tG\tA\t55\tPASS\tDP=35\n" +
+"chrIV\t463600\t.\tT\tC\t60\tPASS\tDP=40\n" +
+"chrV\t116300\t.\tGAT\tG\t40\tPASS\tDP=20\n" +
+"chrV\t116500\t.\tC\tG\t35\tLowQual\tDP=10\n" +
+"chrVI\t54800\t.\tA\tT\t50\tPASS\tDP=28\n" +
+"chrX\t384700\t.\tG\tA\t48\tPASS\tDP=32\n" +
+"chrXV\t722100\t.\tC\tT\t30\tPASS\tDP=15\n" +
+"chrXVI\t700800\t.\tTCGA\tT\t25\tLowQual\tDP=8\n"
 
-write("data/variants.vcf", vcf_content)
+write_text("data/variants.vcf", vcf_content)
 print("  Created data/variants.vcf (10 yeast variants)")
 
 # ============================================================
 # 4. BED — Yeast gene coordinates (S288C)
 # ============================================================
 
-let bed_content = "chrII\t280419\t283065\tGAL4\t0\t-\n"
-    + "chrXV\t721988\t722629\tHIS3\t0\t+\n"
-    + "chrIV\t463532\t464195\tTRP1\t0\t+\n"
-    + "chrV\t116168\t116970\tURA3\t0\t+\n"
-    + "chrIII\t92418\t93497\tLEU2\t0\t-\n"
-    + "chrVI\t54696\t55833\tACT1\t0\t-\n"
-    + "chrIII\t137601\t138839\tPGK1\t0\t+\n"
-    + "chrXVI\t700594\t701960\tTEF1\t0\t+\n"
+let bed_content = "chrII\t280419\t283065\tGAL4\t0\t-\n" +
+"chrXV\t721988\t722629\tHIS3\t0\t+\n" +
+"chrIV\t463532\t464195\tTRP1\t0\t+\n" +
+"chrV\t116168\t116970\tURA3\t0\t+\n" +
+"chrIII\t92418\t93497\tLEU2\t0\t-\n" +
+"chrVI\t54696\t55833\tACT1\t0\t-\n" +
+"chrIII\t137601\t138839\tPGK1\t0\t+\n" +
+"chrXVI\t700594\t701960\tTEF1\t0\t+\n"
 
-write("data/regions.bed", bed_content)
+write_text("data/regions.bed", bed_content)
 print("  Created data/regions.bed (8 yeast gene regions)")
 
 print("")

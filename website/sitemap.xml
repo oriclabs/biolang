@@ -135,44 +135,6 @@
   <url><loc>https://lang.bio/docs/tools/studio-help.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://lang.bio/docs/tools/tui-help.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <!-- Books -->
-  <url><loc>https://lang.bio/books/biostatistics/html/index.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/introduction.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/toc.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-01.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-02.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-03.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-04.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-05.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-06.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-07.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-08.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-09.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-10.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-11.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-12.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-13.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-14.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-15.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-16.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-17.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-18.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-19.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-20.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-21.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-22.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-23.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-24.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-25.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-26.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-27.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-28.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-29.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/day-30.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/appendix-distributions.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/appendix-flowchart.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/appendix-glossary.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/appendix-reference.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://lang.bio/books/biostatistics/html/appendix-setup.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>https://lang.bio/books/language/html/index.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://lang.bio/books/language/html/introduction.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://lang.bio/books/language/html/toc.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
@@ -201,41 +163,4 @@
   <url><loc>https://lang.bio/books/language/html/ch19-benchmarks.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://lang.bio/books/language/html/appendix-builtins.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>https://lang.bio/books/language/html/appendix-operators.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/index.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/introduction.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/toc.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-01.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-02.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-03.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-04.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-05.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-06.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-07.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-08.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-09.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-10.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-11.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-12.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-13.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-14.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-15.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-16.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-17.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-18.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-19.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-20.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-21.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-22.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-23.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-24.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-25.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-26.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-27.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-28.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-29.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/day-30.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/appendix-careers.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/appendix-glossary.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/appendix-reference.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://lang.bio/books/practical-bioinformatics/html/appendix-setup.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
 </urlset>

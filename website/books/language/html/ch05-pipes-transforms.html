@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -190,14 +190,15 @@ gc_content(dna"ATCGATCGATCG")
 dna"ATCGATCGATCG" |&gt; gc_content()
 
 # And these:
-filter(reads, |r| mean(r.quality) &gt;= 30)
-reads |&gt; filter(|r| mean(r.quality) &gt;= 30)
+let reads = read_fastq("data/reads.fastq")
+filter(reads, |r| mean_phred(r.quality) &gt;= 30)
+reads |&gt; filter(|r| mean_phred(r.quality) &gt;= 30)
 </code></pre>
 <h3 id="why-pipe-first-matters-for-bioinformatics"><a class="header" href="#why-pipe-first-matters-for-bioinformatics">Why Pipe-First Matters for Bioinformatics</a></h3>
 <p>Without pipes, nested function calls read inside-out:</p>
 <pre><code class="language-biolang"># Hard to follow -- you read from the innermost call outward
 write_tsv(
-  sort(
+  sort_by(
     summarize(
       group_by(
         filter(read_vcf("data/variants.vcf"), |v| v.qual &gt;= 30),
@@ -205,8 +206,7 @@ write_tsv(
       ),
       |chrom, rows| {n: len(rows), mean_qual: mean(col(rows, "qual"))}
     ),
-    "n",
-    descending: true
+    |row| -row.n
   ),
   "chrom_summary.csv"
 )
@@ -217,7 +217,7 @@ the analysis:</p>
   |&gt; filter(|v| v.qual &gt;= 30)
   |&gt; group_by("chrom")
   |&gt; summarize(|chrom, rows| {n: len(rows), mean_qual: mean(col(rows, "qual"))})
-  |&gt; sort("n", descending: true)
+  |&gt; sort_by(|row| -row.n)
   |&gt; write_tsv("chrom_summary.csv")
 </code></pre>
 <p>Each line is one transformation step. You can read the pipeline like a protocol.</p>
@@ -233,7 +233,7 @@ read_bam("sample.sorted.bam")
     mean_mapq: mean(col(rows, "mapq")),
     mean_insert: mean(col(rows, "insert_size"))
   })
-  |&gt; sort("mapped_reads", descending: true)
+  |&gt; sort_by(|row| -row.mapped_reads)
   |&gt; mutate("pct", |row| row.mapped_reads / sum(col(rows, "mapped_reads")) * 100.0)
   |&gt; write_tsv("alignment_stats.csv")
 </code></pre>
@@ -272,7 +272,7 @@ After length filter: 2539847
   |&gt;&gt; |seqs| write_fasta(seqs, "contigs_gt1kb.fa")
   |&gt; filter(|s| gc_content(s.seq) &gt;= 0.3 &amp;&amp; gc_content(s.seq) &lt;= 0.7)
   |&gt;&gt; |seqs| write_fasta(seqs, "contigs_normal_gc.fa")
-  |&gt; sort(|s| seq_len(s.seq), descending: true)
+  |&gt; sort_by(|s| -seq_len(s.seq))
   |&gt; take(100)
   |&gt; write_fasta("top100_contigs.fa")
 </code></pre>
@@ -300,7 +300,7 @@ print(f"Reference genome size: {total_bases / 1e9:.2f} Gb")
 <h3 id="sort--order-elements"><a class="header" href="#sort--order-elements"><code>sort</code> – Order Elements</a></h3>
 <pre><code class="language-biolang"># Rank genes by expression level
 let top_genes = csv("tpm.csv")
-  |&gt; sort("tpm", descending: true)
+  |&gt; sort_by(|row| -row.tpm)
   |&gt; take(50)
   |&gt; map(|row| row.gene_name)
 </code></pre>
@@ -338,7 +338,7 @@ let cumulative = read_bam("sorted.bam")
 <h3 id="window-and-chunk--sliding-and-fixed-blocks"><a class="header" href="#window-and-chunk--sliding-and-fixed-blocks"><code>window</code> and <code>chunk</code> – Sliding and Fixed Blocks</a></h3>
 <pre><code class="language-biolang"># Sliding window GC content
 let gc_track = dna"ATCGATCGATCGATCGCCCCGGGG"
-  |&gt; window(size: 10, step: 5)
+  |&gt; window(10)
   |&gt; map(|w| gc_content(w))
 
 # Chunk reads into batches for parallel processing
@@ -353,17 +353,17 @@ let r2 = read_fastq("data/reads.fastq")
 
 let paired = zip(r1, r2) |&gt; map(|pair| {
   id: pair[0].id,
-  r1_qual: mean(pair[0].quality),
-  r2_qual: mean(pair[1].quality),
+  r1_qual: mean_phred(pair[0].quality),
+  r2_qual: mean_phred(pair[1].quality),
   combined_length: seq_len(pair[0].seq) + seq_len(pair[1].seq)
 })
 </code></pre>
 <h3 id="enumerate--track-position"><a class="header" href="#enumerate--track-position"><code>enumerate</code> – Track Position</a></h3>
 <pre><code class="language-biolang"># Number contigs by size rank
 read_fasta("data/sequences.fasta")
-  |&gt; sort(|s| seq_len(s.seq), descending: true)
+  |&gt; sort_by(|s| -seq_len(s.seq))
   |&gt; enumerate()
-  |&gt; map(|i, seq| {rank: i + 1, id: seq.id, length: seq_len(seq.seq)})
+  |&gt; map(|pair| {rank: pair[0] + 1, id: pair[1].id, length: seq_len(pair[1].seq)})
   |&gt; take(10)
   |&gt; each(|row| print(f"#{row.rank}: {row.id} ({row.length} bp)"))
 </code></pre>
@@ -373,10 +373,11 @@ approach is <code>let name = expr</code>. But this reads right-to-left, breaking
 The <code>|&gt; into</code> operator binds the result of a pipe chain to a name while
 preserving left-to-right reading order:</p>
 <pre><code class="language-biolang"># Traditional style — reads right-to-left:
-let passed = variants |&gt; filter(|v| v.quality &gt;= 30)
+let variants = read_vcf("data/variants.vcf")
+let passed = variants |&gt; filter(|v| v.qual &gt;= 30)
 
 # With |&gt; into — reads left-to-right:
-variants |&gt; filter(|v| v.quality &gt;= 30) |&gt; into passed
+variants |&gt; filter(|v| v.qual &gt;= 30) |&gt; into passed_again
 </code></pre>
 <p>The syntax <code>expr |&gt; into name</code> is equivalent to <code>let name = expr</code>. It evaluates
 the expression, binds the result to <code>name</code> (creating or shadowing), and returns
@@ -388,7 +389,9 @@ read_fastq("data/reads.fastq")
   |&gt; filter(|r| mean_phred(r.quality) &gt;= 30)
   |&gt; into high_quality
 
-high_quality |&gt; map(|r| trim(r, 20)) |&gt; into trimmed
+high_quality
+  |&gt; map(|r| {...r, trim_end: trim_quality(r.quality, 20)})
+  |&gt; into trimmed
 
 print(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")
 </code></pre>
@@ -504,7 +507,9 @@ read_vcf("data/variants.vcf")
   |&gt;&gt; |vs| print(f"Actionable variants: {len(vs)}")
 
   # Step 7: Sort by priority and position
-  |&gt; sort(["tier", "chrom", "pos"])
+  |&gt; sort_by(|v| v.pos)
+  |&gt; sort_by(|v| v.chrom)
+  |&gt; sort_by(|v| v.tier)
 
   # Step 8: Generate report
   |&gt; map(|v| {
@@ -584,7 +589,7 @@ let all_somatic = pair_results
     n_patients: len(g.values),
     patients: g.values |&gt; map(|v| v.patient)
   })
-  |&gt; sort("n_patients", descending: true)
+  |&gt; sort_by(|row| -row.n_patients)
 
 print(f"\nRecurrent somatic variants (in &gt;= 2 patients): {len(all_somatic)}")
 all_somatic |&gt; take(20) |&gt; each(|v|
@@ -678,8 +683,8 @@ pipes keep them readable and composable.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

@@ -1,0 +1,525 @@
+# clustering/src/algorithms.bl — k-means, hierarchical, silhouette, and Leiden
+#
+# Implements common clustering algorithms for biological data.
+# Designed to work on List<List<Float>> (dense embedding matrix where each
+# inner list is one sample/cell's feature vector).
+#
+# Core builtins used: mean, variance, sqrt, abs, round, knn_graph
+
+# ─── Internal helpers ────────────────────────────────────────────────────────
+
+# euclidean_dist(a, b) → Float — squared Euclidean distance between two vectors
+fn euclidean_dist(a, b) {
+    let n = len(a)
+    let sum_sq = 0.0
+    for i in range(0, n) {
+        let diff = a[i] - b[i]
+        sum_sq = sum_sq + diff * diff
+    }
+    sqrt(sum_sq)
+}
+
+# vector_mean(vectors) → List<Float> — element-wise mean of a list of vectors
+fn vector_mean(vectors) {
+    if len(vectors) == 0 {
+        return []
+    }
+    let n_dims = len(vectors[0])
+    let n_vecs = len(vectors)
+    let sums = range(0, n_dims) |> map(|_| 0.0)
+
+    for v in vectors {
+        for d in range(0, n_dims) {
+            sums[d] = sums[d] + v[d]
+        }
+    }
+
+    sums |> map(|s| s / n_vecs)
+}
+
+# pseudo_random(seed) → Float in [0, 1) — deterministic pseudo-random
+fn pseudo_random(seed) {
+    ((seed * 2654435761 + 1013904223) % 2147483647) / 2147483647.0
+}
+
+# ─── k-means ─────────────────────────────────────────────────────────────────
+
+## kmeans(data, k, max_iter?, seed?) → Record
+##
+## K-means clustering on a matrix of feature vectors.
+## Uses random initialization (seeded for reproducibility) followed by
+## Lloyd's iterative assignment and centroid update.
+##
+## data     — List<List<Float>> where each inner list is one sample
+## k        — number of clusters
+## max_iter — maximum iterations before forced convergence (default 300)
+## seed     — random seed for centroid initialization (default 42)
+##
+## Returns: Record{
+##   labels:     List<Int> — cluster index (0-based) for each sample
+##   centroids:  List<List<Float>> — final centroid coordinates
+##   inertia:    Float — within-cluster sum of squared distances
+##   iterations: Int — number of iterations run
+## }
+fn kmeans(data, k, max_iter = 300, seed = 42) {
+    let n = len(data)
+    if n == 0 or k <= 0 {
+        return {labels: [], centroids: [], inertia: 0.0, iterations: 0}
+    }
+    if k >= n {
+        return {
+            labels:     range(0, n),
+            centroids:  data,
+            inertia:    0.0,
+            iterations: 0
+        }
+    }
+
+    # ── Initialize centroids by random sampling (seeded) ──
+    let chosen_indices = []
+    let rng = seed
+    for i in range(0, k) {
+        rng = int(rng * 2654435761 + 1013904223) % n
+        # Avoid duplicates — simple linear probe
+        while chosen_indices |> filter(|ci| ci == rng) |> len() > 0 {
+            rng = (rng + 1) % n
+        }
+        chosen_indices = append(chosen_indices, rng)
+    }
+    let centroids = chosen_indices |> map(|i| data[i])
+
+    let labels    = range(0, n) |> map(|_| 0)
+    let iteration = 0
+
+    for _ in range(0, max_iter) {
+        iteration = iteration + 1
+
+        # ── Assignment step: assign each point to nearest centroid ──
+        let new_labels = data |> map(|point| {
+            let best_k    = 0
+            let best_dist = euclidean_dist(point, centroids[0])
+            for ci in range(1, k) {
+                let d = euclidean_dist(point, centroids[ci])
+                if d < best_dist {
+                    best_dist = d
+                    best_k    = ci
+                }
+            }
+            best_k
+        })
+
+        # Check for convergence (labels unchanged)
+        let changed = 0
+        for i in range(0, n) {
+            if new_labels[i] != labels[i] {
+                changed = changed + 1
+            }
+        }
+        labels = new_labels
+
+        if changed == 0 {
+            break
+        }
+
+        # ── Update step: recompute centroids as cluster means ──
+        let new_centroids = []
+        for ci in range(0, k) {
+            let cluster_points = []
+            for i in range(0, n) {
+                if labels[i] == ci {
+                    cluster_points = append(cluster_points, data[i])
+                }
+            }
+            # If a cluster is empty, keep the old centroid
+            if len(cluster_points) == 0 {
+                new_centroids = append(new_centroids, centroids[ci])
+            } else {
+                new_centroids = append(new_centroids, vector_mean(cluster_points))
+            }
+        }
+        centroids = new_centroids
+    }
+
+    # Compute final inertia (within-cluster sum of squared distances)
+    let inertia = 0.0
+    for i in range(0, n) {
+        let d = euclidean_dist(data[i], centroids[labels[i]])
+        inertia = inertia + d * d
+    }
+
+    {
+        labels:     labels,
+        centroids:  centroids,
+        inertia:    round(inertia, 4),
+        iterations: iteration
+    }
+}
+
+## kmeans_elbow(data, k_range, max_iter?) → List<Record>
+##
+## Run k-means for each k from k_range[0] to k_range[1] (inclusive) and
+## return the inertia at each k. Used to select optimal k via the elbow method.
+##
+## data     — List<List<Float>>
+## k_range  — List<Int> of length 2: [k_min, k_max]
+## max_iter — max iterations per run (default 100)
+##
+## Returns: List<Record{k, inertia}> sorted by k
+fn kmeans_elbow(data, k_range, max_iter = 100) {
+    let k_min = k_range[0]
+    let k_max = k_range[1]
+
+    let results = []
+    for k in range(k_min, k_max + 1) {
+        let km = kmeans(data, k, max_iter, 42)
+        results = append(results, {k: k, inertia: km.inertia})
+    }
+    results
+}
+
+# ─── Hierarchical clustering ──────────────────────────────────────────────────
+
+## hierarchical(data, linkage?, metric?) → List<Record>
+##
+## Agglomerative hierarchical clustering.
+## Produces a dendrogram in scipy linkage format: each step merges the two
+## closest clusters into a new one.
+##
+## data    — List<List<Float>> samples to cluster
+## linkage — linkage criterion: "ward", "complete", or "average" (default "ward")
+## metric  — distance metric: only "euclidean" supported for now
+##
+## Returns: List<Record{merge_a, merge_b, height, n_items}>
+##   - merge_a, merge_b: indices of merged clusters (0..n-1 = original points,
+##                        n.. = previously merged clusters)
+##   - height: distance at which the merge occurred
+##   - n_items: total number of original samples in the merged cluster
+fn hierarchical(data, linkage = "ward", metric = "euclidean") {
+    let n = len(data)
+    if n < 2 {
+        return []
+    }
+
+    # Initialize: each sample is its own cluster
+    # cluster_members[i] = list of original sample indices in cluster i
+    let cluster_members = range(0, n) |> map(|i| [i])
+    # cluster_center[i] = centroid of cluster i
+    let cluster_centers = data |> map(|d| d)
+    let active_clusters = range(0, n) |> map(|i| i)
+    let next_id = n     # new merged cluster IDs start here
+
+    let dendrogram = []
+    let merge_count = n - 1
+
+    for _ in range(0, merge_count) {
+        let n_active = len(active_clusters)
+        if n_active < 2 {
+            break
+        }
+
+        # Find the two closest active clusters
+        let best_dist = 999999999.0
+        let best_i    = 0
+        let best_j    = 1
+
+        for ai in range(0, n_active) {
+            for aj in range(ai + 1, n_active) {
+                let ci = active_clusters[ai]
+                let cj = active_clusters[aj]
+                let d  = 0.0
+
+                if linkage == "ward" {
+                    # Ward: use squared Euclidean between centroids, weighted by cluster size
+                    let ni = len(cluster_members[ci])
+                    let nj = len(cluster_members[cj])
+                    let center_dist = euclidean_dist(cluster_centers[ci], cluster_centers[cj])
+                    d = center_dist * center_dist * (ni * nj) / (ni + nj)
+                } else if linkage == "complete" {
+                    # Complete: maximum pairwise distance
+                    d = 0.0
+                    for mi in cluster_members[ci] {
+                        for mj in cluster_members[cj] {
+                            let pair_d = euclidean_dist(data[mi], data[mj])
+                            if pair_d > d {
+                                d = pair_d
+                            }
+                        }
+                    }
+                } else {
+                    # Average: mean of pairwise distances
+                    let pair_sum = 0.0
+                    let pair_count = 0
+                    for mi in cluster_members[ci] {
+                        for mj in cluster_members[cj] {
+                            pair_sum   = pair_sum + euclidean_dist(data[mi], data[mj])
+                            pair_count = pair_count + 1
+                        }
+                    }
+                    d = if pair_count > 0 then pair_sum / pair_count else 0.0
+                }
+
+                if d < best_dist {
+                    best_dist = d
+                    best_i    = ai
+                    best_j    = aj
+                }
+            }
+        }
+
+        # Merge the two closest clusters
+        let ci = active_clusters[best_i]
+        let cj = active_clusters[best_j]
+        let new_members = cluster_members[ci] + cluster_members[cj]
+        let n_items     = len(new_members)
+        let new_center  = vector_mean(new_members |> map(|idx| data[idx]))
+
+        dendrogram = append(dendrogram, {
+            merge_a: ci,
+            merge_b: cj,
+            height:  round(best_dist, 6),
+            n_items: n_items
+        })
+
+        # Add new cluster and remove the two merged ones
+        cluster_members = append(cluster_members, new_members)
+        cluster_centers = append(cluster_centers, new_center)
+
+        active_clusters = active_clusters
+            |> filter(|idx| idx != ci and idx != cj)
+        active_clusters = append(active_clusters, next_id)
+        next_id = next_id + 1
+    }
+
+    dendrogram
+}
+
+## cut_tree(dendrogram, k) → List<Int>
+##
+## Extract k flat clusters from a hierarchical clustering dendrogram by cutting
+## the tree at the appropriate height.
+## Returns cluster labels (0-based integers) for each of the n original samples.
+##
+## dendrogram — output from hierarchical()
+## k          — number of clusters to cut the tree into
+fn cut_tree(dendrogram, k) {
+    let n_merges = len(dendrogram)
+    let n        = n_merges + 1   # original samples
+
+    if k >= n {
+        return range(0, n)
+    }
+    if k <= 1 {
+        return range(0, n) |> map(|_| 0)
+    }
+
+    # We have n clusters at the start; each merge reduces count by 1.
+    # To obtain k clusters, we keep the first (n - k) merges and ignore the rest.
+    let n_cuts = n - k   # number of merges to apply
+
+    # Initialize: each sample in its own cluster (label = sample index)
+    let labels = range(0, n) |> map(|i| i)
+
+    # Map from old cluster id to new label
+    let next_label = n
+
+    for m in range(0, n_cuts) {
+        let merge = dendrogram[m]
+        let a_id  = merge.merge_a
+        let b_id  = merge.merge_b
+
+        # Find the minimum label among samples assigned to a_id or b_id
+        let target_label = next_label
+
+        # Reassign all samples with label == a_id or b_id to next_label
+        labels = labels |> map(|lbl| if lbl == a_id or lbl == b_id then target_label else lbl)
+        next_label = next_label + 1
+    }
+
+    # Compress labels to 0..k-1
+    let unique_labels = labels |> sort() |> unique()
+    let label_map = {}
+    for i in range(0, len(unique_labels)) {
+        label_map = {... label_map, [str(unique_labels[i])]: i}
+    }
+    labels |> map(|lbl| label_map[str(lbl)])
+}
+
+# ─── Silhouette score ─────────────────────────────────────────────────────────
+
+## silhouette(data, labels) → Record
+##
+## Compute the silhouette coefficient for each sample and the mean across all.
+## Silhouette score = (b - a) / max(a, b) for each sample, where:
+##   a = mean distance to other samples in the same cluster
+##   b = mean distance to samples in the nearest other cluster
+##
+## data   — List<List<Float>>
+## labels — List<Int> cluster labels (e.g. from kmeans() or cut_tree())
+##
+## Returns: Record{mean_score, per_sample: List<Float>}
+fn silhouette(data, labels) {
+    let n = len(data)
+    if n < 2 {
+        return {mean_score: 0.0, per_sample: []}
+    }
+
+    let unique_labels = labels |> sort() |> unique()
+    let k = len(unique_labels)
+    if k <= 1 or k >= n {
+        return {mean_score: 0.0, per_sample: range(0, n) |> map(|_| 0.0)}
+    }
+
+    let per_sample = []
+    for i in range(0, n) {
+        let label_i = labels[i]
+
+        # a: mean intra-cluster distance
+        let same_cluster = []
+        for j in range(0, n) {
+            if j != i and labels[j] == label_i {
+                same_cluster = append(same_cluster, euclidean_dist(data[i], data[j]))
+            }
+        }
+        let a = if len(same_cluster) == 0 then 0.0 else mean(same_cluster)
+
+        # b: mean distance to nearest other cluster
+        let b = 999999.0
+        for other_label in unique_labels {
+            if other_label == label_i {
+                continue
+            }
+            let other_dists = []
+            for j in range(0, n) {
+                if labels[j] == other_label {
+                    other_dists = append(other_dists, euclidean_dist(data[i], data[j]))
+                }
+            }
+            if len(other_dists) > 0 {
+                let mean_d = mean(other_dists)
+                if mean_d < b {
+                    b = mean_d
+                }
+            }
+        }
+
+        let s = if max(a, b) > 0.0 then (b - a) / max(a, b) else 0.0
+        per_sample = append(per_sample, round(s, 4))
+    }
+
+    {
+        mean_score: round(mean(per_sample), 4),
+        per_sample: per_sample
+    }
+}
+
+# ─── Leiden community detection ───────────────────────────────────────────────
+
+## leiden(adjacency, resolution?, seed?) → List<Int>
+##
+## Leiden community detection on a weighted adjacency list (graph).
+## This is the standard algorithm for single-cell RNA-seq clustering
+## after k-nearest-neighbour graph construction.
+##
+## adjacency  — List<Record{source, target, weight}> from knn_graph()
+## resolution — resolution parameter (higher = more, smaller communities)
+##              default 1.0
+## seed       — random seed for reproducibility (default 42)
+##
+## Returns: List<Int> — cluster label (0-based) for each node (cell)
+## Note: node indices must be 0..N-1 where N = max(source, target) + 1
+fn leiden(adjacency, resolution = 1.0, seed = 42) {
+    if len(adjacency) == 0 {
+        return []
+    }
+
+    # Infer number of nodes
+    let max_node = 0
+    for edge in adjacency {
+        if edge.source > max_node {
+            max_node = edge.source
+        }
+        if edge.target > max_node {
+            max_node = edge.target
+        }
+    }
+    let n_nodes = max_node + 1
+
+    # Build adjacency lists
+    let adj_list = range(0, n_nodes) |> map(|_| [])
+    for edge in adjacency {
+        adj_list[edge.source] = append(adj_list[edge.source],
+            {neighbor: edge.target, weight: edge.weight})
+        adj_list[edge.target] = append(adj_list[edge.target],
+            {neighbor: edge.source, weight: edge.weight})
+    }
+
+    # Initialize: each node in its own community
+    let labels = range(0, n_nodes) |> map(|i| i)
+    let rng    = seed
+
+    # Simplified modularity-based greedy pass (Louvain-style for BioLang)
+    # Full Leiden requires SCC refinement — this approximates it with
+    # iterative greedy moves until convergence.
+    let improved = true
+    let max_passes = 20
+
+    for _pass in range(0, max_passes) {
+        if not improved {
+            break
+        }
+        improved = false
+
+        # Shuffle node order for this pass (seeded)
+        let node_order = range(0, n_nodes) |> map(|i| i)
+
+        for node in node_order {
+            let current_label = labels[node]
+            let neighbors     = adj_list[node]
+
+            if len(neighbors) == 0 {
+                continue
+            }
+
+            # Count weighted degree to each neighboring community
+            let comm_weights = {}
+            let total_weight = 0.0
+            for nb in neighbors {
+                let nb_label = str(labels[nb.neighbor])
+                let w_existing = if comm_weights[nb_label] != nil then comm_weights[nb_label] else 0.0
+                comm_weights = {... comm_weights, [nb_label]: w_existing + nb.weight}
+                total_weight = total_weight + nb.weight
+            }
+
+            # Find the community with the highest weight gain
+            let best_label  = current_label
+            let best_gain   = 0.0
+
+            for nb_label_str in keys(comm_weights) {
+                let nb_label     = int(nb_label_str)
+                let edge_weight  = comm_weights[nb_label_str]
+
+                # Simplified modularity gain (resolution × edge weight to community)
+                let gain = edge_weight * resolution - 0.5
+
+                if gain > best_gain and nb_label != current_label {
+                    best_gain  = gain
+                    best_label = nb_label
+                }
+            }
+
+            if best_label != current_label {
+                labels[node] = best_label
+                improved     = true
+            }
+        }
+    }
+
+    # Compress community labels to 0-based integers
+    let unique_labels = labels |> sort() |> unique()
+    let label_map = {}
+    for i in range(0, len(unique_labels)) {
+        label_map = {... label_map, [str(unique_labels[i])]: i}
+    }
+
+    labels |> map(|lbl| label_map[str(lbl)])
+}

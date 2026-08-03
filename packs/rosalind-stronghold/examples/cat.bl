@@ -1,0 +1,39 @@
+# Rosalind: CAT — Catalan Numbers and RNA Secondary Structures
+# https://rosalind.info/problems/cat/
+#
+# Given: An RNA string s.
+# Return: The total number of noncrossing perfect matchings of basepair edges,
+# modulo 1,000,000.
+
+let s = "AUAU"
+let modulus = 1000000
+
+fn complements(a, b) {
+    (a == "A" and b == "U") or (a == "U" and b == "A") or (a == "G" and b == "C") or (a == "C" and b == "G")
+}
+
+# Noncrossing means the first base pairs with some k, splitting the rest into
+# an inside and an outside that cannot interleave — so the counts multiply.
+# Only even-length intervals can be matched at all.
+fn noncrossing(seq, lo, hi) {
+    let width = hi - lo
+    if width <= 0 {
+        1
+    } else {
+        let first = substr(seq, lo, 1)
+        let total = range(lo + 1, hi)
+            |> filter(|k| ((k - lo) % 2 == 1) and complements(first, substr(seq, k, 1)))
+            |> map(|k| (noncrossing(seq, lo + 1, k) * noncrossing(seq, k + 1, hi)) % modulus)
+            |> sum()
+        total % modulus
+    }
+}
+
+let result = noncrossing(s, 0, len(s))
+
+println("Result:   " + str(result))
+println("Expected: 2")
+
+fn test_cat_noncrossing_matchings() {
+    assert result == 2, "CAT: got " + str(result)
+}

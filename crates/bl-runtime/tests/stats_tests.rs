@@ -2,10 +2,20 @@ use bl_core::value::{Table, Value};
 use bl_runtime::stats::call_stats_builtin;
 
 fn int_list(vals: &[i64]) -> Value {
-    Value::List(vals.iter().map(|v| Value::Int(*v)).collect())
+    Value::List(
+        vals.iter()
+            .map(|v| Value::Int(*v))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 fn float_list(vals: &[f64]) -> Value {
-    Value::List(vals.iter().map(|v| Value::Float(*v)).collect())
+    Value::List(
+        vals.iter()
+            .map(|v| Value::Float(*v))
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn get_record_float(val: &Value, key: &str) -> f64 {
@@ -49,15 +59,14 @@ fn test_sum_int() {
 
 #[test]
 fn test_sum_float() {
-    let list = Value::List(vec![Value::Int(1), Value::Float(2.5), Value::Int(3)]);
+    let list = Value::List((vec![Value::Int(1), Value::Float(2.5), Value::Int(3)]).into());
     let result = call_stats_builtin("sum", vec![list]).unwrap();
     assert_eq!(result, Value::Float(6.5));
 }
 
 #[test]
 fn test_variance() {
-    let result =
-        call_stats_builtin("variance", vec![int_list(&[2, 4, 4, 4, 5, 5, 7, 9])]).unwrap();
+    let result = call_stats_builtin("variance", vec![int_list(&[2, 4, 4, 4, 5, 5, 7, 9])]).unwrap();
     if let Value::Float(v) = result {
         assert!((v - 4.571).abs() < 0.01);
     } else {
@@ -67,8 +76,7 @@ fn test_variance() {
 
 #[test]
 fn test_stdev() {
-    let result =
-        call_stats_builtin("stdev", vec![int_list(&[2, 4, 4, 4, 5, 5, 7, 9])]).unwrap();
+    let result = call_stats_builtin("stdev", vec![int_list(&[2, 4, 4, 4, 5, 5, 7, 9])]).unwrap();
     if let Value::Float(v) = result {
         assert!((v - 2.138).abs() < 0.01);
     } else {
@@ -102,19 +110,17 @@ fn test_cor_perfect() {
 
 #[test]
 fn test_unique() {
-    let result =
-        call_stats_builtin("unique", vec![int_list(&[1, 2, 2, 3, 1, 3])]).unwrap();
+    let result = call_stats_builtin("unique", vec![int_list(&[1, 2, 2, 3, 1, 3])]).unwrap();
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into())
     );
 }
 
 #[test]
 fn test_sample_count() {
     let result =
-        call_stats_builtin("sample", vec![int_list(&[1, 2, 3, 4, 5]), Value::Int(3)])
-            .unwrap();
+        call_stats_builtin("sample", vec![int_list(&[1, 2, 3, 4, 5]), Value::Int(3)]).unwrap();
     if let Value::List(items) = result {
         assert_eq!(items.len(), 3);
     } else {
@@ -127,12 +133,7 @@ fn test_cumsum() {
     let result = call_stats_builtin("cumsum", vec![int_list(&[1, 2, 3, 4])]).unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Int(1),
-            Value::Int(3),
-            Value::Int(6),
-            Value::Int(10)
-        ])
+        Value::List((vec![Value::Int(1), Value::Int(3), Value::Int(6), Value::Int(10)]).into())
     );
 }
 
@@ -178,8 +179,8 @@ fn test_ceil_floor_round() {
         Value::Int(4)
     );
     assert_eq!(
-        call_stats_builtin("round", vec![Value::Float(3.14159), Value::Int(2)]).unwrap(),
-        Value::Float(3.14)
+        call_stats_builtin("round", vec![Value::Float(2.75159), Value::Int(2)]).unwrap(),
+        Value::Float(2.75)
     );
 }
 
@@ -240,7 +241,11 @@ fn test_substr() {
     assert_eq!(
         call_stats_builtin(
             "substr",
-            vec![Value::Str("hello world".into()), Value::Int(6), Value::Int(5),]
+            vec![
+                Value::Str("hello world".into()),
+                Value::Int(6),
+                Value::Int(5),
+            ]
         )
         .unwrap(),
         Value::Str("world".into())
@@ -300,11 +305,14 @@ fn test_ttest_one_known() {
 
 #[test]
 fn test_anova_same_groups() {
-    let groups = Value::List(vec![
-        float_list(&[5.0, 5.1, 4.9]),
-        float_list(&[5.0, 5.1, 4.9]),
-        float_list(&[5.0, 5.1, 4.9]),
-    ]);
+    let groups = Value::List(
+        (vec![
+            float_list(&[5.0, 5.1, 4.9]),
+            float_list(&[5.0, 5.1, 4.9]),
+            float_list(&[5.0, 5.1, 4.9]),
+        ])
+        .into(),
+    );
     let result = call_stats_builtin("anova", vec![groups]).unwrap();
     let p = get_record_float(&result, "p_value");
     assert!(p > 0.5, "p={p} should be high for identical groups");
@@ -336,7 +344,7 @@ fn test_p_adjust_bh() {
     let result = call_stats_builtin("p_adjust", vec![pvals, Value::Str("bh".into())]).unwrap();
     if let Value::List(items) = result {
         assert_eq!(items.len(), 4);
-        for item in &items {
+        for item in items.iter() {
             if let Value::Float(p) = item {
                 assert!(*p >= 0.0 && *p <= 1.0);
             }
@@ -349,8 +357,7 @@ fn test_p_adjust_bh() {
 #[test]
 fn test_normalize_zscore() {
     let data = float_list(&[10.0, 20.0, 30.0, 40.0, 50.0]);
-    let result =
-        call_stats_builtin("normalize", vec![data, Value::Str("zscore".into())]).unwrap();
+    let result = call_stats_builtin("normalize", vec![data, Value::Str("zscore".into())]).unwrap();
     if let Value::List(items) = result {
         let vals: Vec<f64> = items
             .iter()
@@ -407,7 +414,11 @@ fn test_str_repeat() {
 fn test_pad_left() {
     let result = call_stats_builtin(
         "pad_left",
-        vec![Value::Str("42".into()), Value::Int(5), Value::Str("0".into())],
+        vec![
+            Value::Str("42".into()),
+            Value::Int(5),
+            Value::Str("0".into()),
+        ],
     )
     .unwrap();
     assert_eq!(result, Value::Str("00042".into()));
@@ -417,7 +428,11 @@ fn test_pad_left() {
 fn test_pad_right() {
     let result = call_stats_builtin(
         "pad_right",
-        vec![Value::Str("hi".into()), Value::Int(5), Value::Str(".".into())],
+        vec![
+            Value::Str("hi".into()),
+            Value::Int(5),
+            Value::Str(".".into()),
+        ],
     )
     .unwrap();
     assert_eq!(result, Value::Str("hi...".into()));
@@ -460,7 +475,7 @@ fn test_sign() {
         Value::Int(0)
     );
     assert_eq!(
-        call_stats_builtin("sign", vec![Value::Float(3.14)]).unwrap(),
+        call_stats_builtin("sign", vec![Value::Float(2.75)]).unwrap(),
         Value::Float(1.0)
     );
 }
@@ -519,7 +534,7 @@ fn test_is_nan_is_finite() {
 #[test]
 fn test_random() {
     if let Value::Float(r) = call_stats_builtin("random", vec![]).unwrap() {
-        assert!(r >= 0.0 && r <= 1.0, "random() out of range: {r}");
+        assert!((0.0..=1.0).contains(&r), "random() out of range: {r}");
     } else {
         panic!("expected Float");
     }
@@ -530,9 +545,46 @@ fn test_random_int() {
     if let Value::Int(r) =
         call_stats_builtin("random_int", vec![Value::Int(1), Value::Int(10)]).unwrap()
     {
-        assert!(r >= 1 && r < 10, "random_int() out of range: {r}");
+        assert!((1..10).contains(&r), "random_int() out of range: {r}");
     } else {
         panic!("expected Int");
+    }
+}
+
+#[test]
+fn test_set_seed_reproduces_random_sequence() {
+    call_stats_builtin("set_seed", vec![Value::Int(42)]).unwrap();
+    let first = call_stats_builtin("random", vec![]).unwrap();
+    let first_int = call_stats_builtin("random_int", vec![Value::Int(10), Value::Int(20)]).unwrap();
+    let population =
+        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)].into());
+    let first_sample =
+        call_stats_builtin("sample", vec![population.clone(), Value::Int(2)]).unwrap();
+
+    call_stats_builtin("set_seed", vec![Value::Int(42)]).unwrap();
+    assert_eq!(call_stats_builtin("random", vec![]).unwrap(), first);
+    assert_eq!(
+        call_stats_builtin("random_int", vec![Value::Int(10), Value::Int(20)]).unwrap(),
+        first_int
+    );
+    assert_eq!(
+        call_stats_builtin("sample", vec![population, Value::Int(2)]).unwrap(),
+        first_sample
+    );
+}
+
+#[test]
+fn test_hist_returns_rendered_text() {
+    let values =
+        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)].into());
+    let result = call_stats_builtin("hist", vec![values, Value::Int(2)]).unwrap();
+
+    if let Value::Str(output) = result {
+        assert!(output.contains("Histogram (n=4, bins=2):"));
+        assert!(output.contains("[     1.0,      2.5)"));
+        assert!(output.contains("[     2.5,      4.0]"));
+    } else {
+        panic!("expected histogram text");
     }
 }
 
@@ -544,7 +596,7 @@ fn test_random_int() {
 
 #[test]
 fn test_mean_empty_list_error() {
-    let result = call_stats_builtin("mean", vec![Value::List(vec![])]);
+    let result = call_stats_builtin("mean", vec![Value::List((vec![]).into())]);
     assert!(result.is_err(), "mean of empty list should error");
 }
 
@@ -556,7 +608,7 @@ fn test_mean_single_element() {
 
 #[test]
 fn test_mean_mixed_int_float() {
-    let list = Value::List(vec![Value::Int(1), Value::Float(2.0), Value::Int(3)]);
+    let list = Value::List((vec![Value::Int(1), Value::Float(2.0), Value::Int(3)]).into());
     let result = call_stats_builtin("mean", vec![list]).unwrap();
     assert_eq!(result, Value::Float(2.0));
 }
@@ -579,7 +631,7 @@ fn test_median_two_elements() {
 
 #[test]
 fn test_sum_empty_list() {
-    let result = call_stats_builtin("sum", vec![Value::List(vec![])]).unwrap();
+    let result = call_stats_builtin("sum", vec![Value::List((vec![]).into())]).unwrap();
     assert_eq!(result, Value::Int(0));
 }
 
@@ -594,7 +646,10 @@ fn test_sum_single_int() {
 #[test]
 fn test_variance_single_element_error() {
     let result = call_stats_builtin("variance", vec![int_list(&[5])]);
-    assert!(result.is_err(), "variance of single element should error (need >= 2)");
+    assert!(
+        result.is_err(),
+        "variance of single element should error (need >= 2)"
+    );
 }
 
 #[test]
@@ -641,19 +696,13 @@ fn test_quantile_at_half_equals_median() {
 
 #[test]
 fn test_quantile_invalid_too_high() {
-    let result = call_stats_builtin(
-        "quantile",
-        vec![int_list(&[1, 2, 3]), Value::Float(1.5)],
-    );
+    let result = call_stats_builtin("quantile", vec![int_list(&[1, 2, 3]), Value::Float(1.5)]);
     assert!(result.is_err(), "quantile > 1 should error");
 }
 
 #[test]
 fn test_quantile_invalid_negative() {
-    let result = call_stats_builtin(
-        "quantile",
-        vec![int_list(&[1, 2, 3]), Value::Float(-0.1)],
-    );
+    let result = call_stats_builtin("quantile", vec![int_list(&[1, 2, 3]), Value::Float(-0.1)]);
     assert!(result.is_err(), "quantile < 0 should error");
 }
 
@@ -661,10 +710,7 @@ fn test_quantile_invalid_negative() {
 
 #[test]
 fn test_cor_different_lengths_error() {
-    let result = call_stats_builtin(
-        "cor",
-        vec![int_list(&[1, 2, 3]), int_list(&[1, 2])],
-    );
+    let result = call_stats_builtin("cor", vec![int_list(&[1, 2, 3]), int_list(&[1, 2])]);
     assert!(result.is_err(), "cor of unequal length lists should error");
 }
 
@@ -690,7 +736,10 @@ fn test_cor_negative_perfect() {
     )
     .unwrap();
     if let Value::Float(r) = result {
-        assert!((r - (-1.0)).abs() < 1e-10, "perfect negative correlation expected, got {r}");
+        assert!(
+            (r - (-1.0)).abs() < 1e-10,
+            "perfect negative correlation expected, got {r}"
+        );
     } else {
         panic!("expected Float");
     }
@@ -700,8 +749,8 @@ fn test_cor_negative_perfect() {
 
 #[test]
 fn test_unique_empty_list() {
-    let result = call_stats_builtin("unique", vec![Value::List(vec![])]).unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    let result = call_stats_builtin("unique", vec![Value::List((vec![]).into())]).unwrap();
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 #[test]
@@ -709,39 +758,42 @@ fn test_unique_preserves_order() {
     let result = call_stats_builtin("unique", vec![int_list(&[3, 1, 2, 1, 3])]).unwrap();
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(3), Value::Int(1), Value::Int(2)])
+        Value::List((vec![Value::Int(3), Value::Int(1), Value::Int(2)]).into())
     );
 }
 
 #[test]
 fn test_unique_all_same() {
     let result = call_stats_builtin("unique", vec![int_list(&[7, 7, 7])]).unwrap();
-    assert_eq!(result, Value::List(vec![Value::Int(7)]));
+    assert_eq!(result, Value::List((vec![Value::Int(7)]).into()));
 }
 
 // ── cumsum edge cases ───────────────────────────────────────────
 
 #[test]
 fn test_cumsum_empty_list() {
-    let result = call_stats_builtin("cumsum", vec![Value::List(vec![])]).unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    let result = call_stats_builtin("cumsum", vec![Value::List((vec![]).into())]).unwrap();
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 #[test]
 fn test_cumsum_single_element() {
     let result = call_stats_builtin("cumsum", vec![int_list(&[42])]).unwrap();
-    assert_eq!(result, Value::List(vec![Value::Int(42)]));
+    assert_eq!(result, Value::List((vec![Value::Int(42)]).into()));
 }
 
 #[test]
 fn test_cumsum_mixed_int_float() {
-    let list = Value::List(vec![Value::Int(1), Value::Float(2.5), Value::Int(3)]);
+    let list = Value::List((vec![Value::Int(1), Value::Float(2.5), Value::Int(3)]).into());
     let result = call_stats_builtin("cumsum", vec![list]).unwrap();
     if let Value::List(items) = result {
         assert_eq!(items.len(), 3);
         // After encountering a float, all become floats
-        for item in &items {
-            assert!(matches!(item, Value::Float(_)), "expected all Float after mixed list");
+        for item in items.iter() {
+            assert!(
+                matches!(item, Value::Float(_)),
+                "expected all Float after mixed list"
+            );
         }
     } else {
         panic!("expected List");
@@ -779,8 +831,7 @@ fn test_pow_zero_exponent() {
 
 #[test]
 fn test_pow_negative_exponent() {
-    if let Value::Float(v) =
-        call_stats_builtin("pow", vec![Value::Int(2), Value::Int(-1)]).unwrap()
+    if let Value::Float(v) = call_stats_builtin("pow", vec![Value::Int(2), Value::Int(-1)]).unwrap()
     {
         assert!((v - 0.5).abs() < 1e-10, "2^-1 should be 0.5, got {v}");
     } else {
@@ -1038,11 +1089,14 @@ fn test_ttest_paired_basic() {
 
 #[test]
 fn test_anova_different_groups() {
-    let groups = Value::List(vec![
-        float_list(&[1.0, 2.0, 3.0]),
-        float_list(&[10.0, 11.0, 12.0]),
-        float_list(&[20.0, 21.0, 22.0]),
-    ]);
+    let groups = Value::List(
+        (vec![
+            float_list(&[1.0, 2.0, 3.0]),
+            float_list(&[10.0, 11.0, 12.0]),
+            float_list(&[20.0, 21.0, 22.0]),
+        ])
+        .into(),
+    );
     let result = call_stats_builtin("anova", vec![groups]).unwrap();
     let p = get_record_float(&result, "p_value");
     assert!(p < 0.01, "p={p} should be very small for distinct groups");
@@ -1055,7 +1109,10 @@ fn test_chi_square_different_lengths_error() {
     let obs = float_list(&[10.0, 20.0]);
     let exp = float_list(&[15.0]);
     let result = call_stats_builtin("chi_square", vec![obs, exp]);
-    assert!(result.is_err(), "chi_square with different lengths should error");
+    assert!(
+        result.is_err(),
+        "chi_square with different lengths should error"
+    );
 }
 
 // ── fisher_exact edge cases ─────────────────────────────────────
@@ -1065,7 +1122,12 @@ fn test_fisher_exact_non_significant() {
     // Balanced table
     let result = call_stats_builtin(
         "fisher_exact",
-        vec![Value::Int(10), Value::Int(10), Value::Int(10), Value::Int(10)],
+        vec![
+            Value::Int(10),
+            Value::Int(10),
+            Value::Int(10),
+            Value::Int(10),
+        ],
     )
     .unwrap();
     let p = get_record_float(&result, "p_value");
@@ -1089,8 +1151,7 @@ fn test_p_adjust_single_pvalue() {
 #[test]
 fn test_p_adjust_holm() {
     let pvals = float_list(&[0.01, 0.04, 0.03]);
-    let result =
-        call_stats_builtin("p_adjust", vec![pvals, Value::Str("holm".into())]).unwrap();
+    let result = call_stats_builtin("p_adjust", vec![pvals, Value::Str("holm".into())]).unwrap();
     if let Value::List(items) = result {
         assert_eq!(items.len(), 3);
     } else {
@@ -1110,10 +1171,9 @@ fn test_p_adjust_unknown_method_error() {
 #[test]
 fn test_normalize_constant_values() {
     let data = float_list(&[5.0, 5.0, 5.0, 5.0]);
-    let result =
-        call_stats_builtin("normalize", vec![data, Value::Str("zscore".into())]).unwrap();
+    let result = call_stats_builtin("normalize", vec![data, Value::Str("zscore".into())]).unwrap();
     if let Value::List(items) = result {
-        for item in &items {
+        for item in items.iter() {
             if let Value::Float(v) = item {
                 assert_eq!(*v, 0.0, "zscore of constant should be 0");
             }
@@ -1124,8 +1184,7 @@ fn test_normalize_constant_values() {
 #[test]
 fn test_normalize_minmax() {
     let data = float_list(&[10.0, 20.0, 30.0]);
-    let result =
-        call_stats_builtin("normalize", vec![data, Value::Str("minmax".into())]).unwrap();
+    let result = call_stats_builtin("normalize", vec![data, Value::Str("minmax".into())]).unwrap();
     if let Value::List(items) = result {
         assert_eq!(items.len(), 3);
         // min should map to 0, max to 1
@@ -1139,10 +1198,9 @@ fn test_normalize_minmax() {
 #[test]
 fn test_normalize_minmax_constant() {
     let data = float_list(&[5.0, 5.0, 5.0]);
-    let result =
-        call_stats_builtin("normalize", vec![data, Value::Str("minmax".into())]).unwrap();
+    let result = call_stats_builtin("normalize", vec![data, Value::Str("minmax".into())]).unwrap();
     if let Value::List(items) = result {
-        for item in &items {
+        for item in items.iter() {
             if let Value::Float(v) = item {
                 assert_eq!(*v, 0.0, "minmax of constant should be 0");
             }
@@ -1184,7 +1242,7 @@ fn test_lm_no_correlation() {
 #[test]
 fn test_sign_negative_float() {
     assert_eq!(
-        call_stats_builtin("sign", vec![Value::Float(-3.14)]).unwrap(),
+        call_stats_builtin("sign", vec![Value::Float(-2.75)]).unwrap(),
         Value::Float(-1.0)
     );
 }
@@ -1229,11 +1287,8 @@ fn test_clamp_value_below_min() {
 
 #[test]
 fn test_clamp_int_args() {
-    let result = call_stats_builtin(
-        "clamp",
-        vec![Value::Int(15), Value::Int(0), Value::Int(10)],
-    )
-    .unwrap();
+    let result =
+        call_stats_builtin("clamp", vec![Value::Int(15), Value::Int(0), Value::Int(10)]).unwrap();
     assert_eq!(result, Value::Float(10.0));
 }
 
@@ -1242,7 +1297,7 @@ fn test_clamp_int_args() {
 #[test]
 fn test_is_nan_regular_number_false() {
     assert_eq!(
-        call_stats_builtin("is_nan", vec![Value::Float(3.14)]).unwrap(),
+        call_stats_builtin("is_nan", vec![Value::Float(2.75)]).unwrap(),
         Value::Bool(false)
     );
 }
@@ -1274,7 +1329,7 @@ fn test_is_finite_nan_false() {
 #[test]
 fn test_is_finite_regular_float_true() {
     assert_eq!(
-        call_stats_builtin("is_finite", vec![Value::Float(3.14)]).unwrap(),
+        call_stats_builtin("is_finite", vec![Value::Float(2.75)]).unwrap(),
         Value::Bool(true)
     );
 }
@@ -1384,7 +1439,11 @@ fn test_str_len_empty() {
 fn test_pad_left_already_wide_enough() {
     let result = call_stats_builtin(
         "pad_left",
-        vec![Value::Str("hello".into()), Value::Int(3), Value::Str("0".into())],
+        vec![
+            Value::Str("hello".into()),
+            Value::Int(3),
+            Value::Str("0".into()),
+        ],
     )
     .unwrap();
     assert_eq!(result, Value::Str("hello".into()));
@@ -1394,7 +1453,11 @@ fn test_pad_left_already_wide_enough() {
 fn test_pad_right_already_wide_enough() {
     let result = call_stats_builtin(
         "pad_right",
-        vec![Value::Str("hello".into()), Value::Int(3), Value::Str("0".into())],
+        vec![
+            Value::Str("hello".into()),
+            Value::Int(3),
+            Value::Str("0".into()),
+        ],
     )
     .unwrap();
     assert_eq!(result, Value::Str("hello".into()));
@@ -1426,15 +1489,13 @@ fn test_sample_n_exceeds_length_error() {
 
 #[test]
 fn test_sample_zero() {
-    let result =
-        call_stats_builtin("sample", vec![int_list(&[1, 2, 3]), Value::Int(0)]).unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    let result = call_stats_builtin("sample", vec![int_list(&[1, 2, 3]), Value::Int(0)]).unwrap();
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 #[test]
 fn test_sample_all() {
-    let result =
-        call_stats_builtin("sample", vec![int_list(&[1, 2, 3]), Value::Int(3)]).unwrap();
+    let result = call_stats_builtin("sample", vec![int_list(&[1, 2, 3]), Value::Int(3)]).unwrap();
     if let Value::List(items) = result {
         assert_eq!(items.len(), 3);
     }
@@ -1468,7 +1529,10 @@ fn test_ks_test_different_distributions() {
     let b = float_list(&[10.0, 20.0, 30.0, 40.0, 50.0]);
     let result = call_stats_builtin("ks_test", vec![a, b]).unwrap();
     let stat = get_record_float(&result, "statistic");
-    assert!(stat > 0.5, "KS stat={stat} should be high for very different distributions");
+    assert!(
+        stat > 0.5,
+        "KS stat={stat} should be high for very different distributions"
+    );
 }
 
 // ── spearman ────────────────────────────────────────────────────
@@ -1479,7 +1543,10 @@ fn test_spearman_perfect_monotone() {
     let y = float_list(&[2.0, 4.0, 6.0, 8.0, 10.0]);
     let result = call_stats_builtin("spearman", vec![x, y]).unwrap();
     let rho = get_record_float(&result, "coefficient");
-    assert!((rho - 1.0).abs() < 1e-10, "spearman rho={rho} should be 1.0");
+    assert!(
+        (rho - 1.0).abs() < 1e-10,
+        "spearman rho={rho} should be 1.0"
+    );
 }
 
 // ── kendall ─────────────────────────────────────────────────────
@@ -1498,13 +1565,16 @@ fn test_kendall_perfect_concordance() {
 #[test]
 fn test_kaplan_meier_basic() {
     let times = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
-    let events = Value::List(vec![
-        Value::Bool(true),
-        Value::Bool(true),
-        Value::Bool(false),
-        Value::Bool(true),
-        Value::Bool(false),
-    ]);
+    let events = Value::List(
+        (vec![
+            Value::Bool(true),
+            Value::Bool(true),
+            Value::Bool(false),
+            Value::Bool(true),
+            Value::Bool(false),
+        ])
+        .into(),
+    );
     let result = call_stats_builtin("kaplan_meier", vec![times, events]).unwrap();
     if let Value::Record(map) = &result {
         assert!(map.contains_key("times"));
@@ -1518,7 +1588,7 @@ fn test_kaplan_meier_basic() {
 #[test]
 fn test_kaplan_meier_int_events() {
     let times = float_list(&[1.0, 2.0, 3.0]);
-    let events = Value::List(vec![Value::Int(1), Value::Int(0), Value::Int(1)]);
+    let events = Value::List((vec![Value::Int(1), Value::Int(0), Value::Int(1)]).into());
     let result = call_stats_builtin("kaplan_meier", vec![times, events]).unwrap();
     assert!(matches!(result, Value::Record(_)));
 }
@@ -1528,26 +1598,32 @@ fn test_kaplan_meier_int_events() {
 #[test]
 fn test_cox_ph_basic() {
     let times = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
-    let events = Value::List(vec![
-        Value::Bool(true),
-        Value::Bool(true),
-        Value::Bool(false),
-        Value::Bool(true),
-        Value::Bool(true),
-        Value::Bool(false),
-        Value::Bool(true),
-        Value::Bool(true),
-    ]);
-    let covariates = Value::List(vec![
-        float_list(&[1.0]),
-        float_list(&[2.0]),
-        float_list(&[1.5]),
-        float_list(&[3.0]),
-        float_list(&[2.5]),
-        float_list(&[1.0]),
-        float_list(&[3.5]),
-        float_list(&[2.0]),
-    ]);
+    let events = Value::List(
+        (vec![
+            Value::Bool(true),
+            Value::Bool(true),
+            Value::Bool(false),
+            Value::Bool(true),
+            Value::Bool(true),
+            Value::Bool(false),
+            Value::Bool(true),
+            Value::Bool(true),
+        ])
+        .into(),
+    );
+    let covariates = Value::List(
+        (vec![
+            float_list(&[1.0]),
+            float_list(&[2.0]),
+            float_list(&[1.5]),
+            float_list(&[3.0]),
+            float_list(&[2.5]),
+            float_list(&[1.0]),
+            float_list(&[3.5]),
+            float_list(&[2.0]),
+        ])
+        .into(),
+    );
     let result = call_stats_builtin("cox_ph", vec![times, events, covariates]).unwrap();
     if let Value::Record(map) = &result {
         assert!(map.contains_key("coefficients"));
@@ -1577,10 +1653,7 @@ fn test_hist_custom_bins() {
 
 #[test]
 fn test_hist_zero_bins_error() {
-    let result = call_stats_builtin(
-        "hist",
-        vec![float_list(&[1.0, 2.0, 3.0]), Value::Int(0)],
-    );
+    let result = call_stats_builtin("hist", vec![float_list(&[1.0, 2.0, 3.0]), Value::Int(0)]);
     assert!(result.is_err());
 }
 
@@ -1612,11 +1685,7 @@ fn test_format_no_placeholders() {
 fn test_format_sequential_placeholders() {
     let result = call_stats_builtin(
         "format",
-        vec![
-            Value::Str("{} and {}".into()),
-            Value::Int(1),
-            Value::Int(2),
-        ],
+        vec![Value::Str("{} and {}".into()), Value::Int(1), Value::Int(2)],
     )
     .unwrap();
     assert_eq!(result, Value::Str("1 and 2".into()));
@@ -1626,16 +1695,19 @@ fn test_format_sequential_placeholders() {
 
 #[test]
 fn test_variance_mixed_types() {
-    let list = Value::List(vec![
-        Value::Int(2),
-        Value::Float(4.0),
-        Value::Int(4),
-        Value::Float(4.0),
-        Value::Int(5),
-        Value::Int(5),
-        Value::Int(7),
-        Value::Int(9),
-    ]);
+    let list = Value::List(
+        (vec![
+            Value::Int(2),
+            Value::Float(4.0),
+            Value::Int(4),
+            Value::Float(4.0),
+            Value::Int(5),
+            Value::Int(5),
+            Value::Int(7),
+            Value::Int(9),
+        ])
+        .into(),
+    );
     let result = call_stats_builtin("variance", vec![list]).unwrap();
     if let Value::Float(v) = result {
         assert!((v - 4.571).abs() < 0.01, "variance={v}");
@@ -1644,11 +1716,14 @@ fn test_variance_mixed_types() {
 
 #[test]
 fn test_cor_mixed_int_float() {
-    let x = Value::List(vec![Value::Int(1), Value::Float(2.0), Value::Int(3)]);
-    let y = Value::List(vec![Value::Float(2.0), Value::Int(4), Value::Float(6.0)]);
+    let x = Value::List((vec![Value::Int(1), Value::Float(2.0), Value::Int(3)]).into());
+    let y = Value::List((vec![Value::Float(2.0), Value::Int(4), Value::Float(6.0)]).into());
     let result = call_stats_builtin("cor", vec![x, y]).unwrap();
     if let Value::Float(r) = result {
-        assert!((r - 1.0).abs() < 1e-10, "perfect correlation expected, got {r}");
+        assert!(
+            (r - 1.0).abs() < 1e-10,
+            "perfect correlation expected, got {r}"
+        );
     }
 }
 
@@ -1659,7 +1734,10 @@ fn test_mean_large_list() {
     let data: Vec<i64> = (1..=1000).collect();
     let result = call_stats_builtin("mean", vec![int_list(&data)]).unwrap();
     if let Value::Float(v) = result {
-        assert!((v - 500.5).abs() < 1e-10, "mean of 1..1000 should be 500.5, got {v}");
+        assert!(
+            (v - 500.5).abs() < 1e-10,
+            "mean of 1..1000 should be 500.5, got {v}"
+        );
     }
 }
 
@@ -1675,7 +1753,10 @@ fn test_median_large_list() {
     let data: Vec<i64> = (1..=1000).collect();
     let result = call_stats_builtin("median", vec![int_list(&data)]).unwrap();
     if let Value::Float(v) = result {
-        assert!((v - 500.5).abs() < 1e-10, "median of 1..1000 should be 500.5, got {v}");
+        assert!(
+            (v - 500.5).abs() < 1e-10,
+            "median of 1..1000 should be 500.5, got {v}"
+        );
     }
 }
 
@@ -1694,7 +1775,7 @@ fn test_unique_large_list() {
 fn test_random_range_multiple_calls() {
     for _ in 0..10 {
         if let Value::Float(r) = call_stats_builtin("random", vec![]).unwrap() {
-            assert!(r >= 0.0 && r <= 1.0, "random() = {r} out of [0,1]");
+            assert!((0.0..=1.0).contains(&r), "random() = {r} out of [0,1]");
         }
     }
 }
@@ -1717,7 +1798,7 @@ fn test_mean_not_list_error() {
 
 #[test]
 fn test_mean_non_numeric_list_error() {
-    let list = Value::List(vec![Value::Str("hello".into())]);
+    let list = Value::List((vec![Value::Str("hello".into())]).into());
     let result = call_stats_builtin("mean", vec![list]);
     assert!(result.is_err(), "mean of non-numeric list should error");
 }
@@ -1765,7 +1846,11 @@ fn test_is_stats_builtin_unknown() {
 fn test_stats_builtin_list_not_empty() {
     use bl_runtime::stats::stats_builtin_list;
     let list = stats_builtin_list();
-    assert!(list.len() >= 70, "should have 70+ builtins, got {}", list.len());
+    assert!(
+        list.len() >= 70,
+        "should have 70+ builtins, got {}",
+        list.len()
+    );
 }
 
 // ── round with decimal places ───────────────────────────────────
@@ -1781,7 +1866,6 @@ fn test_round_negative() {
 
 #[test]
 fn test_round_with_zero_places() {
-    let result =
-        call_stats_builtin("round", vec![Value::Float(3.7), Value::Int(0)]).unwrap();
+    let result = call_stats_builtin("round", vec![Value::Float(3.7), Value::Int(0)]).unwrap();
     assert_eq!(result, Value::Float(4.0));
 }

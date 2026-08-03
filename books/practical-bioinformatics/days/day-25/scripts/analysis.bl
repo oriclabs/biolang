@@ -7,7 +7,9 @@ let classify_error = |err_msg| {
     else { "unknown" }
 }
 
-let create_error_log = || { [] }
+fn create_error_log() {
+    []
+}
 
 let log_error = |log, timestamp, source, severity, message| {
     log + [{
@@ -37,7 +39,7 @@ let ensure_dir = |path| {
     }
 }
 
-let retry = |f, max_attempts| {
+let retry_operation = |f, max_attempts| {
     let last_error = ""
     let result = nil
     let succeeded = false
@@ -108,10 +110,10 @@ files |> each(|file| {
                 errors = log_error(errors, ts, file, "WARN", "No records found, skipping")
             } else {
                 let valid = records |> filter(|r| {
-                    try { len(r.sequence) == len(r.quality) } catch err { false }
+                    try { len(r.seq) == len(r.quality) } catch err { false }
                 })
 
-                let filtered = try { valid |> quality_filter(20) } catch err { valid }
+                let filtered = valid |> filter(|r| mean_phred(r.quality) >= 20)
 
                 let stats = {
                     file: file,
@@ -120,7 +122,7 @@ files |> each(|file| {
                     passed_qc: len(filtered),
                     pct_passed: if len(valid) > 0 { (len(filtered) * 100) / len(valid) } else { 0 },
                     mean_gc: if len(filtered) > 0 {
-                        filtered |> map(|r| gc_content(r.sequence)) |> mean()
+                        filtered |> map(|r| gc_content(r.seq)) |> mean()
                     } else { 0.0 }
                 }
 

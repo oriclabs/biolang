@@ -80,16 +80,12 @@ impl UniProtClient {
     /// Search UniProt entries.
     pub fn search(&self, query: &str, limit: usize) -> Result<Vec<ProteinEntry>> {
         let base = base_url();
-        let url = format!(
-            "{base}/uniprotkb/search?query={query}&format=json&size={limit}"
-        );
+        let url = format!("{base}/uniprotkb/search?query={query}&format=json&size={limit}");
         let json = self.base.get_json(&url)?;
-        let results = json["results"]
-            .as_array()
-            .ok_or_else(|| ApiError::Parse {
-                context: "UniProt search".into(),
-                source: "missing results array".into(),
-            })?;
+        let results = json["results"].as_array().ok_or_else(|| ApiError::Parse {
+            context: "UniProt search".into(),
+            source: "missing results array".into(),
+        })?;
 
         let mut entries = Vec::new();
         for r in results {
@@ -124,15 +120,9 @@ impl UniProtClient {
             .map(|arr| {
                 arr.iter()
                     .map(|f| Feature {
-                        type_: f["type"]
-                            .as_str()
-                            .unwrap_or_default()
-                            .to_string(),
+                        type_: f["type"].as_str().unwrap_or_default().to_string(),
                         location: format_location(f),
-                        description: f["description"]
-                            .as_str()
-                            .unwrap_or_default()
-                            .to_string(),
+                        description: f["description"].as_str().unwrap_or_default().to_string(),
                     })
                     .collect()
             })
@@ -175,12 +165,7 @@ impl UniProtClient {
     }
 
     /// Submit an ID mapping job. Returns a job ID.
-    pub fn id_mapping_submit(
-        &self,
-        from_db: &str,
-        to_db: &str,
-        ids: &[&str],
-    ) -> Result<String> {
+    pub fn id_mapping_submit(&self, from_db: &str, to_db: &str, ids: &[&str]) -> Result<String> {
         let ids_str = ids.join(",");
         let base = base_url();
         let url = format!("{base}/idmapping/run");
@@ -209,10 +194,7 @@ impl UniProtClient {
             .map(|arr| {
                 arr.iter()
                     .map(|r| IdMapping {
-                        from: r["from"]
-                            .as_str()
-                            .unwrap_or_default()
-                            .to_string(),
+                        from: r["from"].as_str().unwrap_or_default().to_string(),
                         to: r["to"]["primaryAccession"]
                             .as_str()
                             .or_else(|| r["to"].as_str())
@@ -367,10 +349,9 @@ mod tests {
 
     #[test]
     fn test_format_location() {
-        let json: serde_json::Value = serde_json::from_str(
-            r#"{"location": {"start": {"value": 10}, "end": {"value": 50}}}"#,
-        )
-        .unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(r#"{"location": {"start": {"value": 10}, "end": {"value": 50}}}"#)
+                .unwrap();
         assert_eq!(format_location(&json), "10..50");
     }
 
@@ -435,20 +416,16 @@ mod tests {
 
     #[test]
     fn test_format_location_missing_start() {
-        let json: serde_json::Value = serde_json::from_str(
-            r#"{"location": {"end": {"value": 50}}}"#,
-        )
-        .unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(r#"{"location": {"end": {"value": 50}}}"#).unwrap();
         // start defaults to 0, end is 50 => "0..50"
         assert_eq!(format_location(&json), "0..50");
     }
 
     #[test]
     fn test_format_location_missing_end() {
-        let json: serde_json::Value = serde_json::from_str(
-            r#"{"location": {"start": {"value": 10}}}"#,
-        )
-        .unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(r#"{"location": {"start": {"value": 10}}}"#).unwrap();
         // start is 10, end defaults to 0 => "10..0"
         assert_eq!(format_location(&json), "10..0");
     }

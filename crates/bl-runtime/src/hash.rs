@@ -68,8 +68,13 @@ pub fn call_hash_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "hmac_sha256" => {
             let data = require_str(&args[0], "hmac_sha256")?;
             let key = require_str(&args[1], "hmac_sha256")?;
-            let mut mac = HmacSha256::new_from_slice(key.as_bytes())
-                .map_err(|e| BioLangError::runtime(bl_core::error::ErrorKind::TypeError, format!("hmac_sha256() key error: {e}"), None))?;
+            let mut mac = HmacSha256::new_from_slice(key.as_bytes()).map_err(|e| {
+                BioLangError::runtime(
+                    bl_core::error::ErrorKind::TypeError,
+                    format!("hmac_sha256() key error: {e}"),
+                    None,
+                )
+            })?;
             mac.update(data.as_bytes());
             let result = mac.finalize();
             Ok(Value::Str(hex::encode(result.into_bytes())))
@@ -119,7 +124,10 @@ fn builtin_sketch(args: Vec<Value>) -> Result<Value> {
         Value::DNA(s) | Value::RNA(s) | Value::Protein(s) => s.data.as_str(),
         other => {
             return Err(BioLangError::type_error(
-                format!("sketch() requires Str/DNA/RNA/Protein, got {}", other.type_of()),
+                format!(
+                    "sketch() requires Str/DNA/RNA/Protein, got {}",
+                    other.type_of()
+                ),
                 None,
             ));
         }
@@ -144,7 +152,7 @@ fn builtin_sketch(args: Vec<Value>) -> Result<Value> {
     };
 
     if seq.len() < k {
-        return Ok(Value::List(vec![]));
+        return Ok(Value::List((vec![]).into()));
     }
 
     // Collect hashed k-mers
@@ -171,7 +179,11 @@ fn builtin_sketch(args: Vec<Value>) -> Result<Value> {
     hashes.truncate(n);
 
     Ok(Value::List(
-        hashes.into_iter().map(|h| Value::Int(h as i64)).collect(),
+        hashes
+            .into_iter()
+            .map(|h| Value::Int(h as i64))
+            .collect::<Vec<_>>()
+            .into(),
     ))
 }
 
@@ -184,7 +196,10 @@ fn builtin_sketch_dist(args: Vec<Value>) -> Result<Value> {
             .map(|v| match v {
                 Value::Int(n) => Ok(*n),
                 other => Err(BioLangError::type_error(
-                    format!("sketch_dist() requires List of Int, got {}", other.type_of()),
+                    format!(
+                        "sketch_dist() requires List of Int, got {}",
+                        other.type_of()
+                    ),
                     None,
                 )),
             })
@@ -202,7 +217,10 @@ fn builtin_sketch_dist(args: Vec<Value>) -> Result<Value> {
             .map(|v| match v {
                 Value::Int(n) => Ok(*n),
                 other => Err(BioLangError::type_error(
-                    format!("sketch_dist() requires List of Int, got {}", other.type_of()),
+                    format!(
+                        "sketch_dist() requires List of Int, got {}",
+                        other.type_of()
+                    ),
                     None,
                 )),
             })

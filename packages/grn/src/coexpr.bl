@@ -1,0 +1,27 @@
+# Compute a co-expression network between TF genes and all other genes.
+# tf_indices: list of row indices (into the gene matrix) of known transcription factors
+# Returns a table: tf_idx, target_idx, correlation
+fn coexpression_network(obj, tf_indices, min_corr = 0.3) {
+  let matrix  = obj.norm_matrix
+  let n       = n_genes(obj)
+  tf_indices
+    |> flat_map(fn(tf) ->
+        range(n)
+        |> filter(fn(g) -> g != tf)
+        |> map(fn(g) -> {
+            tf_idx:      tf,
+            target_idx:  g,
+            correlation: pearson_correlation(matrix |> row(tf), matrix |> row(g))
+          })
+        |> filter(fn(r) -> abs(r.correlation) >= min_corr)
+      )
+    |> sort_by(fn(r) -> abs(r.correlation), descending = true)
+}
+
+# Return the top-n target genes for a given TF index (by |correlation|)
+fn top_targets(network, tf_idx, n = 20) {
+  network
+    |> filter(fn(r) -> r.tf_idx == tf_idx)
+    |> sort_by(fn(r) -> abs(r.correlation), descending = true)
+    |> take(n)
+}

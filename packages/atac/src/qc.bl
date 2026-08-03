@@ -1,0 +1,4 @@
+fn sizes(lengths)                    { fragment_size_dist(lengths) }
+fn nfr(lengths)                      { nfr_enrichment(lengths) }
+fn nucl(lengths)                     { nucleosome_fractions(lengths) }
+fn tss(lengths, dists, flank=2000)   { tss_enrichment_score(lengths, dists, flank) }

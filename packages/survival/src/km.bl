@@ -1,0 +1,156 @@
+# survival/src/km.bl — Kaplan-Meier estimator and utilities
+#
+# Wraps the core kaplan_meier() and log_rank_test() builtins and adds
+# structured result formatting, stratified curves, median survival,
+# and restricted mean survival time (RMST).
+#
+# Core builtins used: kaplan_meier, log_rank_test, mean, sqrt, abs, round
+
+## km(times, events) → Record
+##
+## Estimate the Kaplan-Meier survival function for a single group.
+## Wraps the core kaplan_meier() builtin and returns a structured result.
+##
+## times  — List<Float> follow-up times (positive values)
+## events — List<Int>   event indicators (1 = event occurred, 0 = censored)
+##
+## Returns Record with fields:
+##   steps    — List<Record{time, n_risk, n_events, n_censored, survival, lower_ci, upper_ci}>
+##   n_total  — total number of subjects
+##   n_events — total number of events
+##   n_censored — total number of censored observations
+fn km(times, events) {
+    let raw = kaplan_meier(times, events)
+
+    let n_total    = len(times)
+    let n_events   = events |> filter(|e| e == 1) |> len()
+    let n_censored = n_total - n_events
+
+    {
+        steps:       raw.steps,
+        n_total:     n_total,
+        n_events:    n_events,
+        n_censored:  n_censored,
+        times:       times,
+        events:      events
+    }
+}
+
+## km_by_group(times, events, groups) → List<Record>
+##
+## Stratified KM curves: run km() separately for each unique group label.
+##
+## times  — List<Float>
+## events — List<Int>
+## groups — List<String> group label for each subject
+##
+## Returns: List<Record{group, km_result}> sorted by group label
+fn km_by_group(times, events, groups) {
+    let unique_groups = groups |> sort() |> unique()
+    let n = len(times)
+
+    unique_groups |> map(|grp| {
+        let grp_times  = []
+        let grp_events = []
+        for i in range(0, n) {
+            if groups[i] == grp {
+                grp_times  = append(grp_times,  times[i])
+                grp_events = append(grp_events, events[i])
+            }
+        }
+        {
+            group:     grp,
+            km_result: km(grp_times, grp_events)
+        }
+    })
+}
+
+## median_survival(km_result) → Record
+##
+## Extract the median survival time (the first time at which survival <= 0.5)
+## with a 95% confidence interval derived from the Greenwood CI bounds.
+##
+## km_result — result from km()
+##
+## Returns: Record{median, lower_ci, upper_ci}
+##   All fields are nil if the survival curve never reaches 0.5.
+fn median_survival(km_result) {
+    let steps = km_result.steps
+
+    # Walk steps to find first time survival drops to or below 0.5
+    let median_time = nil
+    let ci_lower    = nil
+    let ci_upper    = nil
+
+    for step in steps {
+        if step.survival <= 0.5 and median_time == nil {
+            median_time = step.time
+            ci_lower    = step.lower_ci
+            ci_upper    = step.upper_ci
+        }
+    }
+
+    {
+        median:   median_time,
+        lower_ci: ci_lower,
+        upper_ci: ci_upper
+    }
+}
+
+## restricted_mean(km_result, tau) → Float
+##
+## Restricted mean survival time (RMST) — the area under the KM curve from
+## time 0 to tau, calculated via the trapezoidal rule over the step function.
+## RMST is the expected survival time within [0, tau] and is a useful summary
+## when median survival is not estimable.
+##
+## km_result — result from km()
+## tau       — restriction time (must be within the observed follow-up range)
+##
+## Returns: Float (RMST in the same time units as the input)
+fn restricted_mean(km_result, tau) {
+    let steps = km_result.steps
+    if len(steps) == 0 {
+        return 0.0
+    }
+
+    # Integrate the step function S(t) from 0 to tau using rectangles
+    # S(t) is constant between event times (left-continuous convention)
+    let area = 0.0
+    let prev_time = 0.0
+    let prev_surv = 1.0
+
+    for step in steps {
+        let t = step.time
+        if t > tau {
+            # Last rectangle: from prev_time to tau
+            area = area + prev_surv * (tau - prev_time)
+            return round(area, 4)
+        }
+        area = area + prev_surv * (t - prev_time)
+        prev_time = t
+        prev_surv = step.survival
+    }
+
+    # If tau extends beyond last observed time, extend with last survival value
+    if prev_time < tau {
+        area = area + prev_surv * (tau - prev_time)
+    }
+
+    round(area, 4)
+}
+
+## km_compare(result_a, result_b) → Record
+##
+## Log-rank test comparing two KM curves.
+## Wraps the core log_rank_test() builtin.
+##
+## result_a, result_b — results from km()
+##
+## Returns: Record{p_value, chi_square, df}
+fn km_compare(result_a, result_b) {
+    log_rank_test(
+        result_a.times, result_a.events,
+        result_b.times, result_b.events
+    )
+}

@@ -335,13 +335,16 @@ To establish causation, you need:
 
 ```bio
 set_seed(42)
+fn add_scaled(signal, scale, noise) {
+    zip(signal, noise) |> map(|pair| pair[0] * scale + pair[1])
+}
 # Generate tumor expression data for 200 samples
 let n = 200
 
 # Simulate BRCA1 and BARD1 with true correlation + noise
 let proliferation = rnorm(n, 10, 3)
-let brca1 = proliferation * 0.8 + rnorm(n, 5, 2)
-let bard1 = proliferation * 0.7 + rnorm(n, 4, 2)
+let brca1 = add_scaled(proliferation, 0.8, rnorm(n, 5, 2))
+let bard1 = add_scaled(proliferation, 0.7, rnorm(n, 4, 2))
 
 # Pearson correlation — assumes linearity
 let r_pearson = cor(brca1, bard1)
@@ -375,7 +378,7 @@ print("Spearman ρ = {spearman_result}")
 ```bio
 set_seed(42)
 # BRCA1-BARD1 correlation controlling for proliferation (MKI67)
-let mki67 = proliferation + rnorm(n, 0, 1)
+let mki67 = add_scaled(proliferation, 1.0, rnorm(n, 0, 1))
 
 # Raw correlation
 let r_raw = cor(brca1, bard1)
@@ -401,13 +404,13 @@ set_seed(42)
 let base = rnorm(200, 0, 1)
 
 let genes = {
-    "BRCA1":  base * 0.8 + rnorm(200, 10, 2),
-    "BARD1":  base * 0.7 + rnorm(200, 8, 2),
-    "RAD51":  base * 0.6 + rnorm(200, 12, 3),
-    "PALB2":  base * 0.5 + rnorm(200, 9, 2),
+    "BRCA1":  add_scaled(base, 0.8, rnorm(200, 10, 2)),
+    "BARD1":  add_scaled(base, 0.7, rnorm(200, 8, 2)),
+    "RAD51":  add_scaled(base, 0.6, rnorm(200, 12, 3)),
+    "PALB2":  add_scaled(base, 0.5, rnorm(200, 9, 2)),
     "ATM":    rnorm(200, 11, 3),
-    "TP53":   base * -0.4 + rnorm(200, 15, 4),
-    "MDM2":   base * -0.3 + rnorm(200, 7, 2),
+    "TP53":   add_scaled(base, -0.4, rnorm(200, 15, 4)),
+    "MDM2":   add_scaled(base, -0.3, rnorm(200, 7, 2)),
     "GAPDH":  rnorm(200, 20, 1)
 }
 
@@ -421,7 +424,7 @@ for i in 0..8 {
 }
 
 # Visualize as heatmap — instantly reveals co-expression modules
-heatmap(genes, {title: "DNA Repair Gene Co-Expression", color_scale: "RdBu"})
+heatmap(table(genes), {title: "DNA Repair Gene Co-Expression", color_scale: "RdBu"})
 ```
 
 ### Visualizing with Scatter Plots
@@ -441,10 +444,11 @@ plot(scatter_data, {type: "scatter", x: "BRCA1", y: "BARD1",
 set_seed(42)
 # Two datasets with identical Pearson r but different patterns
 let x_linear = rnorm(100, 10, 3)
-let y_linear = x_linear * 0.5 + rnorm(100, 0, 2)
+let y_linear = add_scaled(x_linear, 0.5, rnorm(100, 0, 2))
 
 let x_curve = rnorm(100, 10, 5)
-let y_curve = (x_curve - 10) ** 2 / 10 + rnorm(100, 0, 1)
+let y_curve = zip(x_curve, rnorm(100, 0, 1))
+    |> map(|pair| (pair[0] - 10) ** 2 / 10 + pair[1])
 
 print("Linear: Pearson r = {cor(x_linear, y_linear)}")
 print("Curved: Pearson r = {cor(x_curve, y_curve)}")
@@ -515,7 +519,7 @@ let n = 150
 
 # Gene pair 1: linear relationship with outliers
 let gene_a = rnorm(n, 8, 2)
-let gene_b = gene_a * 0.6 + rnorm(n, 3, 1)
+let gene_b = add_scaled(gene_a, 0.6, rnorm(n, 3, 1))
 
 # Add 5 extreme outliers
 # (imagine contaminated samples)
@@ -533,8 +537,8 @@ set_seed(42)
 let n = 100
 let growth_rate = rnorm(n, 24, 6)
 
-let target_expr = growth_rate * 0.5 + rnorm(n, 10, 3)
-let ic50 = growth_rate * -0.3 + rnorm(n, 50, 10)
+let target_expr = add_scaled(growth_rate, 0.5, rnorm(n, 10, 3))
+let ic50 = add_scaled(growth_rate, -0.3, rnorm(n, 50, 10))
 
 # 1. Compute raw correlation between target_expr and ic50
 # 2. Compute partial correlation controlling for growth_rate
@@ -568,11 +572,11 @@ Generate datasets with n = 20 and n = 2000. Show that a weak correlation (r ≈ 
 set_seed(42)
 # Small sample: n = 20, weak correlation
 let x_small = rnorm(20, 0, 1)
-let y_small = x_small * 0.1 + rnorm(20, 0, 1)
+let y_small = add_scaled(x_small, 0.1, rnorm(20, 0, 1))
 
 # Large sample: n = 2000, same weak correlation
 let x_large = rnorm(2000, 0, 1)
-let y_large = x_large * 0.1 + rnorm(2000, 0, 1)
+let y_large = add_scaled(x_large, 0.1, rnorm(2000, 0, 1))
 
 # Compute cor() on both and test significance
 # Compare p-values and correlation magnitudes

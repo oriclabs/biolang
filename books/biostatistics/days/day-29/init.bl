@@ -13,12 +13,12 @@ mkdir("data")
 # ── File 1: Sample metadata (12 samples, 6 matched pairs) ──
 let meta_lines = ["sample_id,condition,patient_id"]
 for p in range(1, 7) {
-    meta_lines = append(meta_lines, f"normal_{p},normal,patient_{p}")
+    meta_lines = push(meta_lines, f"normal_{p},normal,patient_{p}")
 }
 for p in range(1, 7) {
-    meta_lines = append(meta_lines, f"tumor_{p},tumor,patient_{p}")
+    meta_lines = push(meta_lines, f"tumor_{p},tumor,patient_{p}")
 }
-write_lines(meta_lines, "data/sample_info.csv")
+write_lines("data/sample_info.csv", meta_lines)
 
 # ── 200 real gene names with specific expression patterns ──
 let named_genes = [
@@ -141,37 +141,32 @@ let header = "gene,normal_1,normal_2,normal_3,normal_4,normal_5,normal_6,tumor_1
 let lines = [header]
 
 # ── Write 200 named genes ──
-for g in range(0, 200) {
+let named_rows = range(0, 200) |> map(|g| {
     let base = named_base[g]
     let fc = named_fc[g]
-    let vals = []
-
-    # 6 normal replicates
-    for r in range(0, 6) {
+    let normal_vals = range(0, 6) |> map(|r| {
         let seed = g * 137 + r * 59
         let noise = ((seed * 2654435761) % 10000) / 10000.0 - 0.5
-        let count = round(base * (1.0 + noise * 0.25), 0)
-        if count < 0.0 then count = 0.0
-        vals = append(vals, f"{count}")
-    }
-    # 6 tumor replicates
-    for r in range(0, 6) {
+        let raw = round(base * (1.0 + noise * 0.25), 0)
+        str(if raw < 0.0 { 0.0 } else { raw })
+    })
+    let tumor_vals = range(0, 6) |> map(|r| {
         let seed = g * 211 + r * 73 + 5000
         let noise = ((seed * 2654435761) % 10000) / 10000.0 - 0.5
-        let count = round(base * fc * (1.0 + noise * 0.25), 0)
-        if count < 0.0 then count = 0.0
-        vals = append(vals, f"{count}")
-    }
+        let raw = round(base * fc * (1.0 + noise * 0.25), 0)
+        str(if raw < 0.0 { 0.0 } else { raw })
+    })
+    f"{named_genes[g]},{join(normal_vals + tumor_vals, \",\")}"
+})
 
-    lines = append(lines, f"{named_genes[g]},{join(vals, \",\")}")
-}
+lines = lines + named_rows
 
 # ── Generate 14,800 generic genes ──
 # 1800 of these are true DE (indices 200-1999 in final list)
 # Remaining 13,000 are null (no fold change)
 println("  Adding 14,800 programmatic genes (1,800 DE + 13,000 null)...")
 
-for g in range(0, 14800) {
+let generic_rows = range(0, 14800) |> map(|g| {
     let gene_id = f"GENE_{g + 1}"
 
     # Base expression: range 50-2000 (deterministic)
@@ -187,28 +182,24 @@ for g in range(0, 14800) {
         fc = if g % 2 == 0 { fc_mag } else { 1.0 / fc_mag }
     }
 
-    let vals = []
-    # 6 normal
-    for r in range(0, 6) {
+    let normal_vals = range(0, 6) |> map(|r| {
         let seed = (g + 200) * 137 + r * 59
         let noise = ((seed * 2654435761) % 10000) / 10000.0 - 0.5
-        let count = round(base * (1.0 + noise * 0.2), 0)
-        if count < 0.0 then count = 0.0
-        vals = append(vals, f"{count}")
-    }
-    # 6 tumor
-    for r in range(0, 6) {
+        let raw = round(base * (1.0 + noise * 0.2), 0)
+        str(if raw < 0.0 { 0.0 } else { raw })
+    })
+    let tumor_vals = range(0, 6) |> map(|r| {
         let seed = (g + 200) * 211 + r * 73 + 5000
         let noise = ((seed * 2654435761) % 10000) / 10000.0 - 0.5
-        let count = round(base * fc * (1.0 + noise * 0.2), 0)
-        if count < 0.0 then count = 0.0
-        vals = append(vals, f"{count}")
-    }
+        let raw = round(base * fc * (1.0 + noise * 0.2), 0)
+        str(if raw < 0.0 { 0.0 } else { raw })
+    })
+    f"{gene_id},{join(normal_vals + tumor_vals, \",\")}"
+})
 
-    lines = append(lines, f"{gene_id},{join(vals, \",\")}")
-}
+lines = lines + generic_rows
 
-write_lines(lines, "data/counts.csv")
+write_lines("data/counts.csv", lines)
 
 println("")
 println("Created data/sample_info.csv")

@@ -56,12 +56,12 @@ let tree = interval_tree(regions)
 
 # Query overlaps
 let query = interval("chr17", 43065000, 43085000)
-let hits = query_overlaps(tree, query)
+let hits = query_overlaps(tree, query.chrom, query.start, query.end)
 print(f"Query: {query}")
 print(f"Overlapping regions: {len(hits)}")
 
 # Count overlaps
-let n = count_overlaps(tree, query)
+let n = count_overlaps(tree, query.chrom, query.start, query.end)
 print(f"Number of overlaps: {n}")
 
 # Bulk overlaps
@@ -78,7 +78,7 @@ for i in range(0, len(queries)) {
 
 # Nearest query
 let lonely = interval("chr17", 43055000, 43056000)
-let nearest = query_nearest(tree, lonely)
+let nearest = query_nearest(tree, lonely.chrom, int((lonely.start + lonely.end) / 2))
 print(f"\nNearest to {lonely}: {nearest}")
 
 # ── 4. Variant-in-region filtering ────────────────────────────────────
@@ -92,7 +92,7 @@ let exon_tree = interval_tree(exon_intervals)
 # Check each variant
 let exonic_variants = variants |> filter(|v| {
     let v_interval = interval(v.chrom, v.pos - 1, v.pos)  # VCF 1-based -> 0-based
-    count_overlaps(exon_tree, v_interval) > 0
+    count_overlaps(exon_tree, v_interval.chrom, v_interval.start, v_interval.end) > 0
 })
 
 print(f"Total variants: {len(variants)}")
@@ -116,23 +116,23 @@ coverage(reads, "chr1")
 
 print("\n=== Coordinate Conversion ===\n")
 
-fn bed_to_vcf(chrom, start, end) {
+fn bed_to_vcf(chrom, start, end_pos) {
     {chrom: chrom, pos: start + 1}
 }
 
 fn vcf_to_bed(chrom, pos) {
-    {chrom: chrom, start: pos - 1, end: pos}
+    {chrom: chrom, start: pos - 1, end_pos: pos}
 }
 
-let bed_region = {chrom: "chr17", start: 43044294, end: 43044295}
-let vcf_pos = bed_to_vcf(bed_region.chrom, bed_region.start, bed_region.end)
-print(f"BED {bed_region.start}-{bed_region.end} -> VCF pos {vcf_pos.pos}")
+let bed_region = {chrom: "chr17", start: 43044294, end_pos: 43044295}
+let vcf_pos = bed_to_vcf(bed_region.chrom, bed_region.start, bed_region.end_pos)
+print(f"BED {bed_region.start}-{bed_region.end_pos} -> VCF pos {vcf_pos.pos}")
 
 let vcf_variant = {chrom: "chr17", pos: 43044295}
 let bed_coords = vcf_to_bed(vcf_variant.chrom, vcf_variant.pos)
-print(f"VCF pos {vcf_variant.pos} -> BED {bed_coords.start}-{bed_coords.end}")
+print(f"VCF pos {vcf_variant.pos} -> BED {bed_coords.start}-{bed_coords.end_pos}")
 
-let roundtrip = bed_to_vcf(bed_coords.chrom, bed_coords.start, bed_coords.end)
+let roundtrip = bed_to_vcf(bed_coords.chrom, bed_coords.start, bed_coords.end_pos)
 print(f"Round-trip VCF pos: {roundtrip.pos} (should be {vcf_variant.pos})")
 
 # ── 7. GFF annotations ────────────────────────────────────────────────
@@ -156,11 +156,11 @@ print(f"Interval tree built from {len(brca1_exons)} exons")
 
 print("\n=== Writing BED Files ===\n")
 
-let high_coverage = [
-    {chrom: "chr17", start: 43044295, end: 43050000},
-    {chrom: "chr17", start: 43100000, end: 43125483},
+let high_coverage_lines = [
+    "chr17\t43044295\t43050000",
+    "chr17\t43100000\t43125483"
 ]
-write_bed(high_coverage, "results/high_coverage.bed")
+write_lines("results/high_coverage.bed", high_coverage_lines)
 print("Wrote high-coverage regions to BED file")
 
 # ── 9. Complete exome report ──────────────────────────────────────────
@@ -176,7 +176,7 @@ let report_tree = interval_tree(targets |> map(|t| interval(t.chrom, t.start, t.
 
 let all_variants = read_vcf("data/variants.vcf")
 let on_target = all_variants |> filter(|v| {
-    count_overlaps(report_tree, interval(v.chrom, v.pos - 1, v.pos)) > 0
+    count_overlaps(report_tree, v.chrom, v.pos - 1, v.pos) > 0
 }) |> collect()
 
 let off_target = len(all_variants) - len(on_target)

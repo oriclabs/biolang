@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -298,7 +298,8 @@ reference directly.</p>
 <p>A pipeline can accept parameters, turning it into a reusable template. When you
 declare <code>pipeline name(params) { ... }</code>, BioLang defines a callable function
 instead of executing immediately.</p>
-<pre><code class="language-biolang"># Define a reusable alignment template
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Define a reusable alignment template
 pipeline align_sample(sample_id, r1, r2, reference) {
   stage sorted -&gt; shell("bwa-mem2 mem -t 16 " + reference + " " + r1 + " " + r2
         + " | samtools sort -@ 8 -o " + sample_id + ".sorted.bam")
@@ -331,10 +332,11 @@ println("Aligned " + str(len(bams)) + " samples")
 <p>For data-parallel operations on lists, <code>par_map</code> and <code>par_filter</code> distribute
 work across available cores.</p>
 <pre><code class="language-biolang">let sequences = read_fasta("data/sequences.fasta")
+  |&gt; to_records()
 
 # Compute GC content in parallel
 let gc_values = sequences
-  |&gt; par_map(|seq| {name: seq.name, gc: gc_content(seq.sequence)})
+  |&gt; par_map(|seq| {name: seq.id, gc: gc_content(seq.seq)})
 
 # Filter in parallel
 let high_gc = gc_values
@@ -346,7 +348,8 @@ println("High GC sequences: " + str(len(high_gc)))
 <p>For workflows that need to run a block of statements per item, <code>parallel for</code>
 fans out iterations. In the current tree-walking interpreter these run
 sequentially; a future bytecode backend will parallelize them.</p>
-<pre><code class="language-biolang">let samples = [
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let samples = [
   {id: "tumor_01", r1: "t01_R1.fq.gz", r2: "t01_R2.fq.gz"},
   {id: "tumor_02", r1: "t02_R1.fq.gz", r2: "t02_R2.fq.gz"},
   {id: "normal_01", r1: "n01_R1.fq.gz", r2: "n01_R2.fq.gz"},
@@ -449,7 +452,8 @@ notify("FASTQ QC complete: " + str(qc.total_reads) + " reads, Q30=" + str(qc.q30
 </code></pre>
 <h2 id="example-variant-calling-pipeline"><a class="header" href="#example-variant-calling-pipeline">Example: Variant Calling Pipeline</a></h2>
 <p>Germline variant calling from FASTQ to filtered VCF using pipeline blocks.</p>
-<pre><code class="language-biolang">pipeline germline_variants {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+pipeline germline_variants {
   stage aligned -&gt; shell(
     "bwa-mem2 mem -t 16 -R '@RG\\tID:S1\\tSM:sample' GRCh38.fa "
     + "sample_R1.fq.gz sample_R2.fq.gz "
@@ -485,7 +489,8 @@ println(germline_variants)
 </code></pre>
 <h2 id="example-multi-sample-analysis"><a class="header" href="#example-multi-sample-analysis">Example: Multi-Sample Analysis</a></h2>
 <p>Processing a cohort with parameterized pipelines and aggregation.</p>
-<pre><code class="language-biolang"># Reusable per-sample pipeline
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Reusable per-sample pipeline
 pipeline process_sample(sample_id, r1, r2) {
   stage bam -&gt; shell(
     "bwa-mem2 mem -t 8 -R '@RG\\tID:" + sample_id + "\\tSM:" + sample_id
@@ -539,7 +544,8 @@ slack("Cohort processing complete: " + str(len(passed)) + "/" + str(len(results)
 <h2 id="pipeline-composition"><a class="header" href="#pipeline-composition">Pipeline Composition</a></h2>
 <p>Pipelines are values. Parameterized pipelines are functions. You can call one
 from another to build layered workflows.</p>
-<pre><code class="language-biolang">pipeline align_one(sample) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+pipeline align_one(sample) {
   stage sorted -&gt; shell(
     "bwa-mem2 mem -t 8 GRCh38.fa " + sample.r1 + " " + sample.r2
     + " | samtools sort -@ 4 -o " + sample.id + ".sorted.bam"
@@ -643,8 +649,8 @@ code, with no framework overhead.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

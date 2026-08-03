@@ -21,6 +21,7 @@ pub fn graph_builtin_list() -> Vec<(&'static str, Arity)> {
         ("node_attr", Arity::Exact(2)),
         ("node_count", Arity::Exact(1)),
         ("edge_count", Arity::Exact(1)),
+        ("topological_sort", Arity::Exact(1)),
     ]
 }
 
@@ -36,6 +37,7 @@ pub fn is_graph_builtin(name: &str) -> bool {
             | "degree"
             | "shortest_path"
             | "connected_components"
+            | "topological_sort"
             | "nodes"
             | "edges"
             | "has_node"
@@ -58,6 +60,7 @@ pub fn call_graph_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "degree" => builtin_degree(args),
         "shortest_path" => builtin_shortest_path(args),
         "connected_components" => builtin_connected_components(args),
+        "topological_sort" => builtin_topological_sort(args),
         "nodes" => builtin_nodes(args),
         "edges" => builtin_edges(args),
         "has_node" => builtin_has_node(args),
@@ -97,14 +100,14 @@ fn extract_graph(val: &Value) -> Result<&HashMap<String, Value>> {
 
 fn get_nodes(g: &HashMap<String, Value>) -> HashMap<String, Value> {
     match g.get("nodes") {
-        Some(Value::Map(m) | Value::Record(m)) => m.clone(),
+        Some(Value::Map(m) | Value::Record(m)) => (m).as_ref().clone(),
         _ => HashMap::new(),
     }
 }
 
 fn get_edges(g: &HashMap<String, Value>) -> Vec<Value> {
     match g.get("edges") {
-        Some(Value::List(v)) => v.clone(),
+        Some(Value::List(v)) => (v).as_ref().clone(),
         _ => Vec::new(),
     }
 }
@@ -116,10 +119,10 @@ fn is_directed(g: &HashMap<String, Value>) -> bool {
 fn make_graph(nodes: HashMap<String, Value>, edges: Vec<Value>, directed: bool) -> Value {
     let mut map = HashMap::new();
     map.insert("_graph".into(), Value::Bool(true));
-    map.insert("nodes".into(), Value::Map(nodes));
-    map.insert("edges".into(), Value::List(edges));
+    map.insert("nodes".into(), Value::Map((nodes).into()));
+    map.insert("edges".into(), Value::List((edges).into()));
     map.insert("directed".into(), Value::Bool(directed));
-    Value::Record(map)
+    Value::Record((map).into())
 }
 
 fn edge_endpoints(e: &Value) -> Option<(String, String)> {
@@ -164,7 +167,7 @@ fn builtin_add_node(args: Vec<Value>) -> Result<Value> {
     let attrs = if args.len() > 2 {
         args[2].clone()
     } else {
-        Value::Record(HashMap::new())
+        Value::Record((HashMap::new()).into())
     };
     let mut nodes = get_nodes(g);
     let edges = get_edges(g);
@@ -198,19 +201,23 @@ fn builtin_add_edge(args: Vec<Value>) -> Result<Value> {
     let mut edges = get_edges(g);
     let directed = is_directed(g);
     // Auto-add nodes if missing
-    nodes.entry(from.clone()).or_insert(Value::Record(HashMap::new()));
-    nodes.entry(to.clone()).or_insert(Value::Record(HashMap::new()));
+    nodes
+        .entry(from.clone())
+        .or_insert(Value::Record((HashMap::new()).into()));
+    nodes
+        .entry(to.clone())
+        .or_insert(Value::Record((HashMap::new()).into()));
     let mut edge_map = HashMap::new();
     edge_map.insert("from".into(), Value::Str(from));
     edge_map.insert("to".into(), Value::Str(to));
     if args.len() > 3 {
         if let Value::Record(attrs) | Value::Map(attrs) = &args[3] {
-            for (k, v) in attrs {
+            for (k, v) in attrs.iter() {
                 edge_map.insert(k.clone(), v.clone());
             }
         }
     }
-    edges.push(Value::Record(edge_map));
+    edges.push(Value::Record(edge_map.into()));
     Ok(make_graph(nodes, edges, directed))
 }
 
@@ -310,7 +317,9 @@ fn builtin_neighbors(args: Vec<Value>) -> Result<Value> {
     }
     nbrs.sort();
     nbrs.dedup();
-    Ok(Value::List(nbrs.into_iter().map(Value::Str).collect()))
+    Ok(Value::List(
+        nbrs.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+    ))
 }
 
 /// degree(g, node_id) → Int
@@ -382,7 +391,9 @@ fn builtin_shortest_path(args: Vec<Value>) -> Result<Value> {
     while let Some(path) = queue.pop_front() {
         let current = path.last().unwrap();
         if *current == to {
-            return Ok(Value::List(path.into_iter().map(Value::Str).collect()));
+            return Ok(Value::List(
+                path.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+            ));
         }
         if let Some(neighbors) = adj.get(current) {
             for nbr in neighbors {
@@ -438,10 +449,10 @@ fn builtin_connected_components(args: Vec<Value>) -> Result<Value> {
                 }
             }
         }
-        components.push(Value::List(component));
+        components.push(Value::List((component).into()));
     }
 
-    Ok(Value::List(components))
+    Ok(Value::List((components).into()))
 }
 
 /// nodes(g) → List[Str]
@@ -450,7 +461,9 @@ fn builtin_nodes(args: Vec<Value>) -> Result<Value> {
     let nodes = get_nodes(g);
     let mut ids: Vec<String> = nodes.keys().cloned().collect();
     ids.sort();
-    Ok(Value::List(ids.into_iter().map(Value::Str).collect()))
+    Ok(Value::List(
+        ids.into_iter().map(Value::Str).collect::<Vec<_>>().into(),
+    ))
 }
 
 /// edges(g) → Table{from, to, weight}
@@ -583,10 +596,60 @@ fn builtin_node_attr(args: Vec<Value>) -> Result<Value> {
     let nodes = get_nodes(g);
     match nodes.get(id) {
         Some(v) => Ok(v.clone()),
-        None => Err(BioLangError::runtime(
-            ErrorKind::NameError,
-            format!("node_attr(): node '{id}' not found"),
-            None,
-        )),
+        None => Ok(Value::Nil),
     }
+}
+
+/// Order the nodes so every edge points forwards.
+///
+/// Returns an empty list when the graph has a cycle, so `len(result) ==
+/// node_count(g)` is also the acyclicity test — which is the question four of
+/// the Algorithmic Heights problems actually ask. Kahn's algorithm, taking the
+/// alphabetically first ready node each time so one graph gives one answer.
+fn builtin_topological_sort(args: Vec<Value>) -> Result<Value> {
+    let g = extract_graph(&args[0])?;
+    let nodes = get_nodes(g);
+    let edges = get_edges(g);
+
+    let mut adjacent: HashMap<String, Vec<String>> = HashMap::new();
+    let mut indegree: HashMap<String, usize> = HashMap::new();
+    for id in nodes.keys() {
+        adjacent.entry(id.clone()).or_default();
+        indegree.entry(id.clone()).or_insert(0);
+    }
+    for e in &edges {
+        if let Some((from, to)) = edge_endpoints(e) {
+            adjacent.entry(from).or_default().push(to.clone());
+            *indegree.entry(to).or_insert(0) += 1;
+        }
+    }
+
+    let mut ready: Vec<String> = indegree
+        .iter()
+        .filter(|(_, &d)| d == 0)
+        .map(|(id, _)| id.clone())
+        .collect();
+    ready.sort();
+
+    let mut out: Vec<Value> = Vec::with_capacity(nodes.len());
+    while let Some(current) = ready.first().cloned() {
+        ready.remove(0);
+        out.push(Value::Str(current.clone()));
+        if let Some(next_nodes) = adjacent.get(&current) {
+            for next in next_nodes.clone() {
+                if let Some(d) = indegree.get_mut(&next) {
+                    *d -= 1;
+                    if *d == 0 {
+                        ready.push(next);
+                        ready.sort();
+                    }
+                }
+            }
+        }
+    }
+
+    if out.len() != nodes.len() {
+        return Ok(Value::List(std::sync::Arc::new(Vec::new())));
+    }
+    Ok(Value::List(std::sync::Arc::new(out)))
 }

@@ -33,7 +33,7 @@ let sequences = [
     ">CDKN2A_CDS NM_000077.5 Homo sapiens CDKN2A, complete CDS",
     "ATGGAGCCTTCGGCTGACTGGCTGGCCACGGCCGCGGCCCGGGGTCGGGTAGAGGAGGTGCGGGCGCTGCTGGAGGCGGGGGCGCTGCCCAACGCACCGAATAGTTACGGTCGGAGGCCGATCCAGGTCATGATGATGGGCAGCGCCCGAGTGGCGGAGCTGCTGCTGCTCCACGGCGCGGAGCCCAACTGCGCCGACCCCGCCACTCTCACCCGACCCGTGCACGACGCTGCCCGGGAGGGCTTCCTGGACACGCTGGTGGTGCTGCACCGGGCCGCGGCGACCCCACACTACCGCCTGCGACCTCGAGCACAGGAAGCGGCCGCAGCGGCCGGCCATCGCGATGTCGCACGGTACCTGCGCGCGGCTGCGGGGGGCACCAGAGGCAGTAACCATGCCCGCATAGATGCCGCGGAAGGTCCCTCAGACATCCCCGATTGAAAGAACCAGAGAGGCTCTGAGAAACCTCGGGAAACTTAGATCATCAGTCACCGAAGGTCCTACAGGGCCACAACTGC"
 ]
-write_lines(sequences, "data/sequences.fasta")
+write_lines("data/sequences.fasta", sequences)
 
 # --- QC test reads derived from real gene fragments ---
 let qc_reads = [
@@ -50,7 +50,7 @@ let qc_reads = [
     ">read_VHL_fwd",
     "ATGCCCCGGAGGGCGGAGAACTGGGACGAGGCCGAGGTAGGCGCGGAGGAGGCAGGCGTCGAAGACTACGGAGGTCGACTCGGGAGCGCGCACGCAGCTCCG"
 ]
-write_lines(qc_reads, "data/qc_reads.fasta")
+write_lines("data/qc_reads.fasta", qc_reads)
 
 # --- Library modules (reusable functions, unchanged) ---
 let seq_utils = [
@@ -116,7 +116,7 @@ let seq_utils = [
     "    }",
     "}"
 ]
-write_lines(seq_utils, "lib/seq_utils.bl")
+write_lines("lib/seq_utils.bl", seq_utils)
 
 let qc_module = [
     "fn length_stats(sequences) {",
@@ -187,6 +187,6 @@ let qc_module = [
     "    ]",
     "}"
 ]
-write_lines(qc_module, "lib/qc.bl")
+write_lines("lib/qc.bl", qc_module)
 
 print("Day 27 data initialized: RefSeq CDS sequences for 10 cancer genes, lib modules")

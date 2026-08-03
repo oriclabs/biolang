@@ -1,0 +1,25 @@
+# pathway — Gene set enrichment analysis and over-representation
+#
+# Re-exports the public API from src/gsea.bl and src/ora.bl
+#
+# Example:
+#   import "pathway" as pw
+#   let gsea_res = pw.gsea_preranked(ranked_genes, hallmark_sets)
+#   let sig = gsea_res |> filter(|r| r.significant)
+#   pw.plot_enrichment(gsea_res, "HALLMARK_MYC_TARGETS_V1")
+
+import "pathway/src/gsea" as _gsea
+import "pathway/src/ora"  as _ora
+
+# --- From gsea.bl ---
+
+fn gsea_preranked(ranked_genes, gene_sets)              { _gsea.gsea_preranked(ranked_genes, gene_sets) }
+fn leading_edge(gsea_result, pathway_name)              { _gsea.leading_edge(gsea_result, pathway_name) }
+fn plot_enrichment(gsea_result, pathway_name)           { _gsea.plot_enrichment(gsea_result, pathway_name) }
+
+# --- From ora.bl ---
+
+fn ora(gene_list, gene_sets, universe_size = 20000)     { _ora.ora(gene_list, gene_sets, universe_size) }
+fn fdr_filter(ora_result, threshold = 0.05)             { _ora.fdr_filter(ora_result, threshold) }
+fn top_pathways(result, n = 20)                         { _ora.top_pathways(result, n) }
+fn bubble_plot(result, n = 15)                          { _ora.bubble_plot(result, n) }

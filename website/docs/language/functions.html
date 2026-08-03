@@ -142,14 +142,14 @@ println([1, 2, 3] |> map(triple))   # [3, 6, 9]</code></pre>
         </p>
         <pre><code class="language-biolang"># Factorial
 fn factorial(n) {
-  if n <= 1 then 1
+  if n &lt;= 1 then 1
   else n * factorial(n - 1)
 }
 println(factorial(10))   # 3628800
 
 # Fibonacci
 fn fib(n) {
-  if n <= 1 then n
+  if n &lt;= 1 then n
   else fib(n - 1) + fib(n - 2)
 }
 println(fib(10))   # 55

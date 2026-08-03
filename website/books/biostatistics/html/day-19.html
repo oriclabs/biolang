@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
@@ -624,7 +624,8 @@ print("Fisher's exact p-value: {fe.p_value |&gt; round(4)}")
 # Note: OR overstates the relative risk when the outcome is common
 </code></pre>
 <h3 id="cramérs-v-for-categorical-data"><a class="header" href="#cramérs-v-for-categorical-data">Cramér’s V for Categorical Data</a></h3>
-<pre><code class="language-bio"># Association between tumor subtype (4 types) and treatment response (3 levels)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Association between tumor subtype (4 types) and treatment response (3 levels)
 # observed counts in a 4x3 contingency table
 let observed = [
     [30, 15, 5],   # Luminal A
@@ -704,10 +705,14 @@ let forest_data = table({
     "ci_lower": ci_lowers,
     "ci_upper": ci_uppers
 })
-forest_plot(forest_data)
+        forest_plot(forest_data, {
+            label: "gene", estimate: "effect",
+            lower: "ci_lower", upper: "ci_upper"
+        })
 </code></pre>
 <h3 id="contrasting-significant-tiny-vs-non-significant-large"><a class="header" href="#contrasting-significant-tiny-vs-non-significant-large">Contrasting “Significant Tiny” vs. “Non-Significant Large”</a></h3>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # The key lesson: significance does not equal importance
 
 # Scenario 1: huge n, tiny effect
@@ -927,7 +932,7 @@ let study_sizes = [10, 15, 25, 40, 60, 100, 150, 200]
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

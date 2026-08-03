@@ -1,0 +1,59 @@
+# Curated ligand-receptor pair database for cell-cell communication analysis.
+# Each entry: [ligand_name, receptor_name, pathway]
+# Gene names follow HGNC symbols; indices are resolved at runtime via resolve_lr_pairs().
+
+fn default_lr_database() {
+  [
+    # Growth factors / RTK signalling
+    ["VEGFA",    "KDR",      "VEGF"],
+    ["VEGFA",    "FLT1",     "VEGF"],
+    ["EGF",      "EGFR",     "EGF"],
+    ["HGF",      "MET",      "HGF"],
+    ["IGF1",     "IGF1R",    "IGF"],
+    ["FGF2",     "FGFR1",    "FGF"],
+    ["PDGFA",    "PDGFRA",   "PDGF"],
+    # Cytokines / interleukins
+    ["IL6",      "IL6R",     "IL6"],
+    ["TNF",      "TNFRSF1A", "TNF"],
+    ["IFNG",     "IFNGR1",   "IFN"],
+    ["IL1B",     "IL1R1",    "IL1"],
+    ["IL10",     "IL10RA",   "IL10"],
+    ["CXCL12",   "CXCR4",    "CXCL12"],
+    ["CCL2",     "CCR2",     "CCL2"],
+    # Notch / Wnt developmental signalling
+    ["DLL1",     "NOTCH1",   "Notch"],
+    ["JAG1",     "NOTCH2",   "Notch"],
+    ["WNT5A",    "FZD1",     "WNT"],
+    ["WNT5A",    "FZD2",     "WNT"],
+    ["WNT3A",    "FZD5",     "WNT"],
+    # Immune checkpoint
+    ["CD274",    "PDCD1",    "PD-L1/PD-1"],
+    ["CD80",     "CTLA4",    "CD28"],
+    ["CD86",     "CTLA4",    "CD28"],
+    ["CD80",     "CD28",     "CD28"],
+    ["TNFSF13B", "TNFRSF13B","BAFF"],
+    # ECM / adhesion / remodelling
+    ["FN1",      "ITGA5",    "FN1"],
+    ["COL1A1",   "ITGB1",    "Collagen"],
+    ["COL4A1",   "ITGB1",    "Collagen"],
+    ["THBS1",    "CD36",     "THBS"],
+    ["POSTN",    "ITGAV",    "POSTN"],
+    ["TGFB1",    "TGFBR1",   "TGF-beta"],
+    # MHC / antigen presentation
+    ["HLA-A",    "CD8A",     "MHC-I"],
+    ["HLA-DRA",  "CD4",      "MHC-II"],
+    # Complement / innate
+    ["C3",       "C3AR1",    "Complement"],
+    ["C5",       "C5AR1",    "Complement"],
+  ]
+}
+
+# Map gene names to matrix row indices using the gene list from a singlecell object.
+# Silently drops pairs where either gene is absent from the list.
+# Returns: List<[ligand_idx, receptor_idx, pathway]>
+fn resolve_lr_pairs(lr_database, gene_list) {
+  let idx_map = gene_list |> enumerate |> map(fn(i, g) -> [g, i]) |> to_record
+  lr_database
+    |> filter(fn(pair) -> pair[0] in idx_map & pair[1] in idx_map)
+    |> map(fn(pair) -> [idx_map[pair[0]], idx_map[pair[1]], pair[2]])
+}

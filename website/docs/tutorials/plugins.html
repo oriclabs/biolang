@@ -163,7 +163,7 @@ def find_motifs(sequences, min_length=6, max_length=12, min_support=0.5, method=
     for k in range(min_length, max_length + 1):
         # Count k-mers across all sequences
         kmer_seqs = {}  # kmer -> set of sequence indices
-        for i, seq in enumerate(sequences):
+        for [i, seq] in enumerate(sequences):
             for j in range(len(seq) - k + 1):
                 kmer = seq[j:j+k]
                 if kmer not in kmer_seqs:
@@ -172,7 +172,7 @@ def find_motifs(sequences, min_length=6, max_length=12, min_support=0.5, method=
 
         # Filter by support
         n_seqs = len(sequences)
-        for kmer, seq_indices in kmer_seqs.items():
+        for [kmer, seq_indices] in kmer_seqs.items():
             support = len(seq_indices) / n_seqs
             if support >= min_support:
                 results.append({
@@ -209,7 +209,7 @@ def scan_motif(sequences, pwm, threshold=0.8):
     motif_len = len(pwm["rows"])
     base_map = {"A": 0, "T": 1, "G": 2, "C": 3}
 
-    for i, seq in enumerate(sequences):
+    for [i, seq] in enumerate(sequences):
         for j in range(len(seq) - motif_len + 1):
             score = sum(
                 pwm["rows"][k].get(seq[j+k], 0)
@@ -422,7 +422,7 @@ def find_motifs(sequences, min_length=6, max_length=12, min_support=0.5, method=
             f"Unknown method '{method}'. Must be one of: {valid_methods}"
         )
 
-    for i, seq in enumerate(sequences):
+    for [i, seq] in enumerate(sequences):
         if len(seq) < min_length:
             raise ValueError(
                 f"Sequence {i} is shorter ({len(seq)}) than min_length ({min_length})"

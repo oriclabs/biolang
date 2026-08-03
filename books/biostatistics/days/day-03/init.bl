@@ -39,11 +39,11 @@ let noise = [1.02, 0.98, 1.05, 0.95, 1.03, 0.97, 1.04, 0.96, 1.01, 0.99]
 
 for i in range(0, 10) {
     let g = high_genes[i]
-    expr_lines = append(expr_lines, f"{g[0]},{round(g[1] * noise[i], 1)}")
+    expr_lines = push(expr_lines, f"{g[0]},{round(g[1] * noise[i], 1)}")
 }
 for i in range(0, 30) {
     let g = med_genes[i]
-    expr_lines = append(expr_lines, f"{g[0]},{round(g[1] * noise[i % 10], 1)}")
+    expr_lines = push(expr_lines, f"{g[0]},{round(g[1] * noise[i % 10], 1)}")
 }
 # Low expressed (0-10 FPKM) — 160 genes, typical background expression
 let low_prefixes = ["ZNF", "OR", "LOC", "LINC", "FAM", "TMEM", "KIAA", "C1orf"]
@@ -51,9 +51,9 @@ for i in range(0, 160) {
     let prefix = low_prefixes[i % 8]
     let base = round(0.05 + (i % 40) * 0.25, 2)
     let n = noise[i % 10]
-    expr_lines = append(expr_lines, f"{prefix}{i + 100},{round(base * n, 2)}")
+    expr_lines = push(expr_lines, f"{prefix}{i + 100},{round(base * n, 2)}")
 }
-write_lines(expr_lines, "data/gene_expression.csv")
+write_lines("data/gene_expression.csv", expr_lines)
 
 # --- File 2: mutation_counts.csv ---
 # Tumor mutation burden per Mb for 100 samples
@@ -71,13 +71,13 @@ let tmb_crc = [3.5, 45.2, 2.8, 4.1, 52.8, 3.2, 2.5, 48.5, 3.8, 4.5, 2.1, 3.5, 55
 let tmb_pro = [0.8, 1.2, 0.5, 1.5, 0.9, 1.1, 0.6, 1.3, 0.7, 1.0, 0.4, 1.4, 0.8, 1.2, 0.5]
 let tmb_aml = [0.3, 0.5, 0.2, 0.8, 0.4, 0.6, 0.15, 0.5, 0.3, 0.7, 0.2, 0.45, 0.35, 0.6, 0.25, 0.55, 0.18, 0.42, 0.32, 0.65]
 
-for i in range(0, 15) { mut_lines = append(mut_lines, f"MEL_{i+1:03},melanoma,{tmb_mel[i]}") }
-for i in range(0, 15) { mut_lines = append(mut_lines, f"LUAD_{i+1:03},lung_adenocarcinoma,{tmb_lun[i]}") }
-for i in range(0, 20) { mut_lines = append(mut_lines, f"BRCA_{i+1:03},breast,{tmb_brc[i]}") }
-for i in range(0, 15) { mut_lines = append(mut_lines, f"CRC_{i+1:03},colorectal,{tmb_crc[i]}") }
-for i in range(0, 15) { mut_lines = append(mut_lines, f"PRAD_{i+1:03},prostate,{tmb_pro[i]}") }
-for i in range(0, 20) { mut_lines = append(mut_lines, f"AML_{i+1:03},aml,{tmb_aml[i]}") }
-write_lines(mut_lines, "data/mutation_counts.csv")
+for i in range(0, 15) { mut_lines = push(mut_lines, f"MEL_{i+1:03},melanoma,{tmb_mel[i]}") }
+for i in range(0, 15) { mut_lines = push(mut_lines, f"LUAD_{i+1:03},lung_adenocarcinoma,{tmb_lun[i]}") }
+for i in range(0, 20) { mut_lines = push(mut_lines, f"BRCA_{i+1:03},breast,{tmb_brc[i]}") }
+for i in range(0, 15) { mut_lines = push(mut_lines, f"CRC_{i+1:03},colorectal,{tmb_crc[i]}") }
+for i in range(0, 15) { mut_lines = push(mut_lines, f"PRAD_{i+1:03},prostate,{tmb_pro[i]}") }
+for i in range(0, 20) { mut_lines = push(mut_lines, f"AML_{i+1:03},aml,{tmb_aml[i]}") }
+write_lines("data/mutation_counts.csv", mut_lines)
 
 # --- File 3: genotype_counts.csv ---
 # Hardy-Weinberg genotype data for 10 SNPs from 1000 Genomes Phase 3 (EUR)
@@ -96,9 +96,9 @@ let snps = [
 
 for i in range(0, 10) {
     let s = snps[i]
-    geno_lines = append(geno_lines, f"{s[0]},{s[1]},{s[2]},{s[3]},{s[4]}")
+    geno_lines = push(geno_lines, f"{s[0]},{s[1]},{s[2]},{s[3]},{s[4]}")
 }
-write_lines(geno_lines, "data/genotype_counts.csv")
+write_lines("data/genotype_counts.csv", geno_lines)
 
 println("Generated 3 files in data/")
 println("  data/gene_expression.csv — 200 genes, TCGA BRCA FPKM distribution")

@@ -1,0 +1,42 @@
+# singlecell/src/integration.bl — Multi-sample batch correction
+#
+# Wraps sc_integrate for simplified batch correction (centering by batch).
+# For stronger integration, use the harmony or fastMNN approaches
+# (requires running sc_sctransform first, then sc_integrate).
+
+import "singlecell/src/preprocess" as _pre
+
+## integrate(obj, batch_ids) → Record
+##
+## Correct batch effects in PCA space by centering every batch on the
+## global component means. This is a deterministic baseline for exploratory
+## integration; use Harmony or fastMNN for complex batch structure.
+##
+## batch_ids — List<Int>, one batch label per cell (same length as n_cells).
+##
+## Adds obj.integrated_embedding (cells x components) and obj.batch_ids.
+fn integrate(obj, batch_ids) {
+    let prepared = if contains(keys(obj), "pca_scores") { obj } else { _pre.run_pca(obj) }
+    let corrected = sc_integrate(prepared.pca_scores, batch_ids)
+    {... prepared, integrated_embedding: corrected, batch_ids: batch_ids}
+}
+
+## integrate_from_column(obj, batch_col) → Record
+##
+## Convenience wrapper when batch metadata is stored as a list in the object.
+## batch_col — name of a top-level field on obj holding List<Int> batch labels,
+## e.g. obj.batch_ids after a merge. This is not an `obs` column; for those,
+## pass col(obj.obs, name) to integrate() directly.
+fn integrate_from_column(obj, batch_col) {
+    let batch_ids = obj[batch_col]
+    integrate(obj, batch_ids)
+}
+
+## merge(obj_a, obj_b, batch_a, batch_b) → Record
+##
+## Merge two single-cell objects and assign batch labels.
+## Both objects must have the same genes (same n_genes and same gene order).
+## Returns a new merged object with obj.batch_ids set.
+fn merge(obj_a, obj_b, batch_a = 0, batch_b = 1) {
+    sc_merge_objects(obj_a, obj_b, batch_a, batch_b)
+}

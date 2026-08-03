@@ -1,0 +1,119 @@
+# scref — reference single-cell methods in reproducible containers
+#
+# For steps that BioLang cannot faithfully reproduce natively (SOLO/scVI
+# doublets, the scVI latent, and leidenalg clustering), this package runs the
+# *canonical* tools inside a pinned container and reads the results back into
+# the BioLang single-cell object.
+#
+# Bridge: the object is written to `_scref_in.zarr` (native AnnData .zarr) in
+# the working directory, which `container_run` mounts at `/data`. A generated
+# Python script reads it, runs the reference tool, and writes `_scref_out.csv`,
+# which BioLang reads back.
+#
+# Requires a running container runtime (docker/podman/singularity) — check with
+# `bl doctor` or `scref.available()`. Pin images by digest for real
+# reproducibility. `zarr` and `leidenalg` are pip-installed at runtime if the
+# image lacks them (biocontainers often do); for speed/reproducibility use an
+# image that bakes them in. Verified end-to-end against
+# quay.io/biocontainers/scanpy:1.7.2--pyhdfd78af_0 (2026-07-25): native
+# write_anndata .zarr is read correctly by real anndata.
+
+# Default images (override per call; pin @sha256:... for reproducibility).
+let SCANPY_IMAGE = "quay.io/biocontainers/scanpy:1.10.4--pyhdfd78af_0"
+let SCVI_IMAGE   = "quay.io/biocontainers/scvi-tools:1.2.0--pyhdfd78af_0"
+
+## available() → Record{runtime, image_dir}
+## Report the detected container runtime (runtime is Nil if none).
+fn available() {
+    container_available()
+}
+
+# Write the object, the script, run the container, and fail loudly on error.
+# Returns the container result Record {stdout, stderr, code}.
+fn _run(obj, image, script) {
+    write_anndata("_scref_in.zarr", obj)
+    write_text("_scref_run.py", script)
+    # container_run mounts the current working directory at /data by default;
+    # we deliberately do NOT pass abs_path() — on Windows it yields a \\?\ path
+    # that Docker rejects.
+    # Ensure the zarr reader is present (biocontainers don't always bundle it).
+    let res = container_run(image, "pip install -q zarr leidenalg 2>/dev/null; python /data/_scref_run.py")
+    if res.exit_code != 0 {
+        error("scref: container step failed (exit " + str(res.exit_code) + "):\n" + res.stderr)
+    }
+    res
+}
+
+## leidenalg_cluster(obj, resolution, n_neighbors, image) → Record
+##
+## Reproduce Scanpy's `sc.tl.leiden` (leidenalg) exactly. Runs PCA → neighbors →
+## leiden in the container and returns obj with obj.clusters (List<Int>).
+fn leidenalg_cluster(obj, resolution = 1.0, n_neighbors = 15, image = SCANPY_IMAGE) {
+    let script = join([
+        "import scanpy as sc",
+        "import anndata",
+        "adata = anndata.read_zarr('/data/_scref_in.zarr')",
+        "sc.pp.pca(adata, n_comps=min(50, adata.n_obs-1, adata.n_vars-1))",
+        "sc.pp.neighbors(adata, n_neighbors=" + str(n_neighbors) + ")",
+        "sc.tl.leiden(adata, resolution=" + str(resolution) + ")",
+        "adata.obs['leiden'].to_csv('/data/_scref_out.csv', index=False, header=False)",
+        "print('scref: leiden ->', adata.obs['leiden'].nunique(), 'clusters')"
+    ], "\n")
+    let _ = _run(obj, image, script)
+    let labels = read_lines("_scref_out.csv") |> filter(|s| len(s) > 0) |> map(|s| int(s))
+    {... obj, clusters: labels}
+}
+
+## scvi_latent(obj, n_latent, image) → Record
+##
+## Train scVI in the container and return obj with obj.scvi_latent
+## (List<List<Float>>, cells × n_latent) — the integrated latent space the
+## tutorial builds neighbors/clustering on.
+fn scvi_latent(obj, n_latent = 10, image = SCVI_IMAGE) {
+    let script = join([
+        "import scanpy as sc, scvi, numpy as np",
+        "import anndata",
+        "adata = anndata.read_zarr('/data/_scref_in.zarr')",
+        "adata.layers['counts'] = adata.X.copy()",
+        "scvi.model.SCVI.setup_anndata(adata, layer='counts')",
+        "vae = scvi.model.SCVI(adata, n_latent=" + str(n_latent) + ")",
+        "vae.train()",
+        "np.savetxt('/data/_scref_out.csv', vae.get_latent_representation(), delimiter=',')",
+        "print('scref: scVI latent done')"
+    ], "\n")
+    let _ = _run(obj, image, script)
+    let latent = read_lines("_scref_out.csv")
+        |> filter(|s| len(s) > 0)
+        |> map(|s| split(s, ",") |> map(|x| float(x)))
+    {... obj, scvi_latent: latent}
+}
+
+## solo_doublets(obj, image) → Record
+##
+## Reproduce the tutorial's SOLO (scVI) doublet detection. Returns obj with
+## obj.is_doublet (List<Bool>).
+fn solo_doublets(obj, image = SCVI_IMAGE) {
+    let script = join([
+        "import scanpy as sc, scvi, numpy as np",
+        "import anndata",
+        "adata = anndata.read_zarr('/data/_scref_in.zarr')",
+        "scvi.model.SCVI.setup_anndata(adata)",
+        "vae = scvi.model.SCVI(adata)",
+        "vae.train()",
+        "solo = scvi.external.SOLO.from_scvi_model(vae)",
+        "solo.train()",
+        "pred = solo.predict()",
+        "flags = (pred['doublet'] > pred['singlet']).astype(int).values",
+        "np.savetxt('/data/_scref_out.csv', flags, fmt='%d')",
+        "print('scref: SOLO ->', int(flags.sum()), 'doublets')"
+    ], "\n")
+    let _ = _run(obj, image, script)
+    let flags = read_lines("_scref_out.csv") |> filter(|s| len(s) > 0) |> map(|s| int(s) == 1)
+    {... obj, is_doublet: flags}
+}
+
+## pull(image) → Record
+## Pre-pull an image so the first analysis call doesn't wait on a download.
+fn pull(image) {
+    container_pull(image)
+}

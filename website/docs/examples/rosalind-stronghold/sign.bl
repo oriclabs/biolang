@@ -1,0 +1,41 @@
+# Rosalind: SIGN — Enumerating Oriented Gene Orderings
+# https://rosalind.info/problems/sign/
+#
+# Given: A positive integer n <= 6.
+# Return: The total number of signed permutations of length n, followed by a
+# list of all such permutations.
+
+let n = 2
+
+fn permutations_of(items) {
+    if len(items) <= 1 {
+        [items]
+    } else {
+        range(0, len(items)) |> flat_map(|i| {
+            let rest = concat(take(items, i), drop(items, i + 1))
+            permutations_of(rest) |> map(|p| concat([items[i]], p))
+        })
+    }
+}
+
+# Every permutation admits 2^n sign assignments, applied independently.
+fn sign_patterns(width) {
+    range(0, width) |> reduce(
+        |acc, _| acc |> flat_map(|p| [concat(p, [1]), concat(p, [-1])]),
+        [[]]
+    )
+}
+
+let signed = permutations_of(range(1, n + 1)) |> flat_map(|p| {
+    sign_patterns(n) |> map(|signs| range(0, n) |> map(|i| p[i] * signs[i]))
+})
+
+println("Result:   " + str(len(signed)))
+println("Expected: 8")
+signed |> each(|p| println("  " + (p |> map(|x| str(x)) |> join(" "))))
+
+fn test_sign_signed_permutations() {
+    assert len(signed) == 8, "SIGN: got " + str(len(signed))
+    let distinct = signed |> map(|p| p |> map(|x| str(x)) |> join(" ")) |> unique()
+    assert len(distinct) == 8, "SIGN: duplicates present"
+}

@@ -36,6 +36,7 @@ pub fn table_builtin_list() -> Vec<(&'static str, Arity)> {
         ("classify_variants", Arity::Exact(1)),
         ("value_counts", Arity::Exact(2)),
         ("describe", Arity::Exact(1)),
+        ("glimpse", Arity::Exact(1)),
         // Combine
         ("bio_join", Arity::Range(2, 4)),
         ("concat", Arity::AtLeast(2)),
@@ -76,6 +77,16 @@ pub fn table_builtin_list() -> Vec<(&'static str, Arity)> {
         ("tsv", Arity::Exact(1)),
         ("write_csv", Arity::Exact(2)),
         ("write_tsv", Arity::Exact(2)),
+        // BED interval arithmetic
+        ("bed_intersect", Arity::Exact(2)),
+        ("bed_subtract", Arity::Exact(2)),
+        ("bed_merge", Arity::Range(1, 2)),
+        ("bed_closest", Arity::Exact(2)),
+        // Table statistics & reshaping
+        ("cross_tab", Arity::Exact(3)),
+        ("rank_col", Arity::Range(2, 3)),
+        ("cumsum_col", Arity::Exact(2)),
+        ("unnest", Arity::Exact(2)),
     ]
 }
 
@@ -110,6 +121,7 @@ pub fn is_table_builtin(name: &str) -> bool {
             | "classify_variants"
             | "value_counts"
             | "describe"
+            | "glimpse"
             | "bio_join"
             | "concat"
             | "bind_cols"
@@ -144,6 +156,14 @@ pub fn is_table_builtin(name: &str) -> bool {
             | "tsv"
             | "write_csv"
             | "write_tsv"
+            | "bed_intersect"
+            | "bed_subtract"
+            | "bed_merge"
+            | "bed_closest"
+            | "cross_tab"
+            | "rank_col"
+            | "cumsum_col"
+            | "unnest"
     )
 }
 
@@ -158,8 +178,8 @@ pub fn call_table_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "colnames" => builtin_colnames(args),
         "to_records" => builtin_to_records(args),
         "from_records" => builtin_from_records(args),
-        "to_table" => builtin_from_records(args),   // alias
-        "from_table" => builtin_to_records(args),   // alias
+        "to_table" => builtin_from_records(args), // alias
+        "from_table" => builtin_to_records(args), // alias
         "head" => builtin_head(args),
         "tail" => builtin_tail(args),
         "slice" => builtin_slice(args),
@@ -177,6 +197,7 @@ pub fn call_table_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "classify_variants" => builtin_classify_variants(args),
         "value_counts" => builtin_value_counts(args),
         "describe" => builtin_describe(args),
+        "glimpse" => builtin_glimpse(args),
         "bio_join" => builtin_bio_join(args),
         "concat" => builtin_concat(args),
         "bind_cols" => builtin_bind_cols(args),
@@ -211,6 +232,14 @@ pub fn call_table_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "tsv" => builtin_read_delimited(args, '\t'),
         "write_csv" => builtin_write_delimited(args, ','),
         "write_tsv" => builtin_write_delimited(args, '\t'),
+        "bed_intersect" => builtin_bed_intersect(args),
+        "bed_subtract" => builtin_bed_subtract(args),
+        "bed_merge" => builtin_bed_merge(args),
+        "bed_closest" => builtin_bed_closest(args),
+        "cross_tab" => builtin_cross_tab(args),
+        "rank_col" => builtin_rank_col(args),
+        "cumsum_col" => builtin_cumsum_col(args),
+        "unnest" => builtin_unnest(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
             format!("unknown table builtin '{name}'"),
@@ -344,12 +373,12 @@ fn val_cmp(a: &Value, b: &Value) -> std::cmp::Ordering {
     match (a, b) {
         (Value::Int(a), Value::Int(b)) => a.cmp(b),
         (Value::Float(a), Value::Float(b)) => a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal),
-        (Value::Int(a), Value::Float(b)) => {
-            (*a as f64).partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
-        }
-        (Value::Float(a), Value::Int(b)) => {
-            a.partial_cmp(&(*b as f64)).unwrap_or(std::cmp::Ordering::Equal)
-        }
+        (Value::Int(a), Value::Float(b)) => (*a as f64)
+            .partial_cmp(b)
+            .unwrap_or(std::cmp::Ordering::Equal),
+        (Value::Float(a), Value::Int(b)) => a
+            .partial_cmp(&(*b as f64))
+            .unwrap_or(std::cmp::Ordering::Equal),
         (Value::Str(a), Value::Str(b)) => a.cmp(b),
         (Value::Bool(a), Value::Bool(b)) => a.cmp(b),
         (Value::Nil, Value::Nil) => std::cmp::Ordering::Equal,
@@ -389,7 +418,11 @@ fn builtin_distinct(args: Vec<Value>) -> Result<Value> {
         let mut seen: Vec<String> = Vec::new();
         let mut rows: Vec<Vec<Value>> = Vec::new();
         for row in &table.rows {
-            let key: String = row.iter().map(|v| format!("{v}")).collect::<Vec<String>>().join("\t");
+            let key: String = row
+                .iter()
+                .map(|v| format!("{v}"))
+                .collect::<Vec<String>>()
+                .join("\t");
             if !seen.contains(&key) {
                 seen.push(key);
                 rows.push(row.clone());
@@ -437,8 +470,12 @@ fn builtin_nrow(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_colnames(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "colnames")?;
-    let names: Vec<Value> = table.columns.iter().map(|c| Value::Str(c.clone())).collect();
-    Ok(Value::List(names))
+    let names: Vec<Value> = table
+        .columns
+        .iter()
+        .map(|c| Value::Str(c.clone()))
+        .collect();
+    Ok(Value::List((names).into()))
 }
 
 // ── to_records(table) ───────────────────────────────────────────────
@@ -446,9 +483,9 @@ fn builtin_colnames(args: Vec<Value>) -> Result<Value> {
 fn builtin_to_records(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "to_records")?;
     let records: Vec<Value> = (0..table.num_rows())
-        .map(|i| Value::Record(table.row_to_record(i)))
+        .map(|i| Value::Record((table.row_to_record(i)).into()))
         .collect();
-    Ok(Value::List(records))
+    Ok(Value::List((records).into()))
 }
 
 // ── group_by(collection, col) → Map<String, Table|List> ─────────────
@@ -476,37 +513,44 @@ fn builtin_group_by(args: Vec<Value>) -> Result<Value> {
             for (key, rows) in groups {
                 map.insert(key, Value::Table(Table::new(table.columns.clone(), rows)));
             }
-            Ok(Value::Map(map))
+            Ok(Value::Map((map).into()))
         }
         Value::List(items) => {
             // Group a List of Records/Variants/Maps by field name
             let mut groups: HashMap<String, Vec<Value>> = HashMap::new();
-            for item in items {
+            for item in items.iter() {
                 let key = match item {
                     Value::Record(m) | Value::Map(m) => {
                         m.get(&col_name).map(|v| format!("{v}")).unwrap_or_default()
                     }
-                    Value::Variant { ref chrom, pos, ref id, ref ref_allele, ref alt_allele, quality, ref filter, ref info } => {
-                        match col_name.as_str() {
-                            "chrom" => chrom.clone(),
-                            "pos" => pos.to_string(),
-                            "id" => id.clone(),
-                            "ref_allele" | "ref" => ref_allele.clone(),
-                            "alt_allele" | "alt" => alt_allele.clone(),
-                            "quality" | "qual" => format!("{quality}"),
-                            "filter" => filter.clone(),
-                            _ => String::new(),
-                        }
-                    }
+                    Value::Variant {
+                        ref chrom,
+                        pos,
+                        ref id,
+                        ref ref_allele,
+                        ref alt_allele,
+                        quality,
+                        ref filter,
+                        info: _,
+                    } => match col_name.as_str() {
+                        "chrom" => chrom.clone(),
+                        "pos" => pos.to_string(),
+                        "id" => id.clone(),
+                        "ref_allele" | "ref" => ref_allele.clone(),
+                        "alt_allele" | "alt" => alt_allele.clone(),
+                        "quality" | "qual" => format!("{quality}"),
+                        "filter" => filter.clone(),
+                        _ => String::new(),
+                    },
                     _ => format!("{item}"),
                 };
                 groups.entry(key).or_default().push(item.clone());
             }
             let mut map = HashMap::new();
             for (key, vals) in groups {
-                map.insert(key, Value::List(vals));
+                map.insert(key, Value::List((vals).into()));
             }
-            Ok(Value::Map(map))
+            Ok(Value::Map((map).into()))
         }
         other => Err(BioLangError::type_error(
             format!("group_by() requires Table or List, got {}", other.type_of()),
@@ -537,41 +581,56 @@ fn builtin_count_by(args: Vec<Value>) -> Result<Value> {
             }
         }
         Value::List(items) => {
-            for item in items {
+            for item in items.iter() {
                 let key = match item {
                     Value::Record(m) | Value::Map(m) => {
                         m.get(&col_name).map(|v| format!("{v}")).unwrap_or_default()
                     }
-                    Value::Variant { ref chrom, ref filter, .. } => {
-                        match col_name.as_str() {
-                            "chrom" => chrom.clone(),
-                            "filter" => filter.clone(),
-                            _ => format!("{item}"),
-                        }
-                    }
+                    Value::Variant {
+                        ref chrom,
+                        ref filter,
+                        ..
+                    } => match col_name.as_str() {
+                        "chrom" => chrom.clone(),
+                        "filter" => filter.clone(),
+                        _ => format!("{item}"),
+                    },
                     _ => format!("{item}"),
                 };
                 *counts.entry(key).or_default() += 1;
             }
         }
-        other => return Err(BioLangError::type_error(
-            format!("count_by() requires Table or List, got {}", other.type_of()),
-            None,
-        )),
+        other => {
+            return Err(BioLangError::type_error(
+                format!("count_by() requires Table or List, got {}", other.type_of()),
+                None,
+            ))
+        }
     }
 
-    let mut result: Vec<Value> = counts.into_iter().map(|(key, count)| {
-        let mut rec = HashMap::new();
-        rec.insert("key".to_string(), Value::Str(key));
-        rec.insert("count".to_string(), Value::Int(count));
-        Value::Record(rec)
-    }).collect();
+    let mut result: Vec<Value> = counts
+        .into_iter()
+        .map(|(key, count)| {
+            let mut rec = HashMap::new();
+            rec.insert("key".to_string(), Value::Str(key));
+            rec.insert("count".to_string(), Value::Int(count));
+            Value::Record((rec).into())
+        })
+        .collect();
     result.sort_by(|a, b| {
-        let ca = if let Value::Record(m) = a { m.get("count").and_then(|v| v.as_int()).unwrap_or(0) } else { 0 };
-        let cb = if let Value::Record(m) = b { m.get("count").and_then(|v| v.as_int()).unwrap_or(0) } else { 0 };
+        let ca = if let Value::Record(m) = a {
+            m.get("count").and_then(|v| v.as_int()).unwrap_or(0)
+        } else {
+            0
+        };
+        let cb = if let Value::Record(m) = b {
+            m.get("count").and_then(|v| v.as_int()).unwrap_or(0)
+        } else {
+            0
+        };
         cb.cmp(&ca) // descending
     });
-    Ok(Value::List(result))
+    Ok(Value::List((result).into()))
 }
 
 // ── filter_by(collection, field, op, value) → filtered collection ────
@@ -585,7 +644,17 @@ fn builtin_filter_by(args: Vec<Value>) -> Result<Value> {
 
     // Extract field value from a Variant
     fn variant_field(v: &Value, field: &str) -> Option<Value> {
-        if let Value::Variant { ref chrom, pos, ref id, ref ref_allele, ref alt_allele, quality, ref filter, ref info } = v {
+        if let Value::Variant {
+            ref chrom,
+            pos,
+            ref id,
+            ref ref_allele,
+            ref alt_allele,
+            quality,
+            ref filter,
+            ref info,
+        } = v
+        {
             Some(match field {
                 "chrom" => Value::Str(chrom.clone()),
                 "pos" => Value::Int(*pos),
@@ -604,21 +673,29 @@ fn builtin_filter_by(args: Vec<Value>) -> Result<Value> {
                 }
                 "variant_type" => {
                     let first_alt = alt_allele.split(',').next().unwrap_or("");
-                    let t = if ref_allele.len() == 1 && first_alt.len() == 1 { "SNP" }
-                            else if ref_allele.len() != first_alt.len() { "INDEL" }
-                            else { "MNP" };
+                    let t = if ref_allele.len() == 1 && first_alt.len() == 1 {
+                        "SNP"
+                    } else if ref_allele.len() != first_alt.len() {
+                        "INDEL"
+                    } else {
+                        "MNP"
+                    };
                     Value::Str(t.to_string())
                 }
                 _ => {
                     // Check direct info keys first
                     if let Some(v) = info.get(field) {
-                        if field != "_raw" { return Some(v.clone()); }
+                        if field != "_raw" {
+                            return Some(v.clone());
+                        }
                     }
                     // Lazy INFO: parse _raw and look up field
                     if info.len() == 1 {
                         if let Some(Value::Str(raw)) = info.get("_raw") {
                             for part in raw.split(';') {
-                                if part.is_empty() { continue; }
+                                if part.is_empty() {
+                                    continue;
+                                }
                                 if let Some((key, val)) = part.split_once('=') {
                                     if key == field {
                                         if val == "." {
@@ -683,17 +760,23 @@ fn builtin_filter_by(args: Vec<Value>) -> Result<Value> {
             "contains" => {
                 if let (Value::Str(a), Value::Str(b)) = (field_val, cmp_val) {
                     a.contains(b.as_str())
-                } else { false }
+                } else {
+                    false
+                }
             }
             "starts_with" => {
                 if let (Value::Str(a), Value::Str(b)) = (field_val, cmp_val) {
                     a.starts_with(b.as_str())
-                } else { false }
+                } else {
+                    false
+                }
             }
             "ends_with" => {
                 if let (Value::Str(a), Value::Str(b)) = (field_val, cmp_val) {
                     a.ends_with(b.as_str())
-                } else { false }
+                } else {
+                    false
+                }
             }
             _ => false,
         }
@@ -709,14 +792,17 @@ fn builtin_filter_by(args: Vec<Value>) -> Result<Value> {
                 )
             })?;
             let columns = table.columns.clone();
-            let kept_rows: Vec<Vec<Value>> = table.rows.iter()
+            let kept_rows: Vec<Vec<Value>> = table
+                .rows
+                .iter()
                 .filter(|row| compare(&row[ci], &op, cmp_val))
                 .cloned()
                 .collect();
             Ok(Value::Table(bl_core::value::Table::new(columns, kept_rows)))
         }
         Value::List(items) => {
-            let result: Vec<Value> = items.iter()
+            let result: Vec<Value> = items
+                .iter()
                 .filter(|item| {
                     get_field(item, &field)
                         .map(|fv| compare(&fv, &op, cmp_val))
@@ -724,10 +810,13 @@ fn builtin_filter_by(args: Vec<Value>) -> Result<Value> {
                 })
                 .cloned()
                 .collect();
-            Ok(Value::List(result))
+            Ok(Value::List((result).into()))
         }
         other => Err(BioLangError::type_error(
-            format!("filter_by() requires Table or List, got {}", other.type_of()),
+            format!(
+                "filter_by() requires Table or List, got {}",
+                other.type_of()
+            ),
             None,
         )),
     }
@@ -736,7 +825,7 @@ fn builtin_filter_by(args: Vec<Value>) -> Result<Value> {
 /// multi_filter_by(collection, field1, op1, val1, field2, op2, val2, ...)
 /// Applies all filter conditions in a single pass — avoids cloning intermediate results.
 fn builtin_multi_filter_by(args: Vec<Value>) -> Result<Value> {
-    if args.len() < 4 || (args.len() - 1) % 3 != 0 {
+    if args.len() < 4 || !(args.len() - 1).is_multiple_of(3) {
         return Err(BioLangError::runtime(
             ErrorKind::ArityError,
             "multi_filter_by() takes (collection, field, op, val, ...) in groups of 3",
@@ -757,7 +846,17 @@ fn builtin_multi_filter_by(args: Vec<Value>) -> Result<Value> {
 
     // Reuse the same field/compare logic from filter_by
     fn variant_field(v: &Value, field: &str) -> Option<Value> {
-        if let Value::Variant { ref chrom, pos, ref id, ref ref_allele, ref alt_allele, quality, ref filter, ref info } = v {
+        if let Value::Variant {
+            ref chrom,
+            pos,
+            ref id,
+            ref ref_allele,
+            ref alt_allele,
+            quality,
+            ref filter,
+            ref info,
+        } = v
+        {
             Some(match field {
                 "chrom" => Value::Str(chrom.clone()),
                 "pos" => Value::Int(*pos),
@@ -776,25 +875,38 @@ fn builtin_multi_filter_by(args: Vec<Value>) -> Result<Value> {
                 }
                 "variant_type" => {
                     let first_alt = alt_allele.split(',').next().unwrap_or("");
-                    let t = if ref_allele.len() == 1 && first_alt.len() == 1 { "SNP" }
-                            else if ref_allele.len() != first_alt.len() { "INDEL" }
-                            else { "MNP" };
+                    let t = if ref_allele.len() == 1 && first_alt.len() == 1 {
+                        "SNP"
+                    } else if ref_allele.len() != first_alt.len() {
+                        "INDEL"
+                    } else {
+                        "MNP"
+                    };
                     Value::Str(t.to_string())
                 }
                 _ => {
                     if let Some(v) = info.get(field) {
-                        if field != "_raw" { return Some(v.clone()); }
+                        if field != "_raw" {
+                            return Some(v.clone());
+                        }
                     }
                     if info.len() == 1 {
                         if let Some(Value::Str(raw)) = info.get("_raw") {
                             for part in raw.split(';') {
-                                if part.is_empty() { continue; }
+                                if part.is_empty() {
+                                    continue;
+                                }
                                 if let Some((key, val)) = part.split_once('=') {
                                     if key == field {
-                                        if val == "." { return Some(Value::Nil); }
-                                        else if let Ok(n) = val.parse::<i64>() { return Some(Value::Int(n)); }
-                                        else if let Ok(f) = val.parse::<f64>() { return Some(Value::Float(f)); }
-                                        else { return Some(Value::Str(val.to_string())); }
+                                        if val == "." {
+                                            return Some(Value::Nil);
+                                        } else if let Ok(n) = val.parse::<i64>() {
+                                            return Some(Value::Int(n));
+                                        } else if let Ok(f) = val.parse::<f64>() {
+                                            return Some(Value::Float(f));
+                                        } else {
+                                            return Some(Value::Str(val.to_string()));
+                                        }
                                     }
                                 }
                             }
@@ -834,7 +946,13 @@ fn builtin_multi_filter_by(args: Vec<Value>) -> Result<Value> {
                     Value::Int(i) => *i as f64,
                     _ => return false,
                 };
-                match op { ">=" => a >= b, ">" => a > b, "<=" => a <= b, "<" => a < b, _ => false }
+                match op {
+                    ">=" => a >= b,
+                    ">" => a > b,
+                    "<=" => a <= b,
+                    "<" => a < b,
+                    _ => false,
+                }
             }
             _ => false,
         }
@@ -842,7 +960,8 @@ fn builtin_multi_filter_by(args: Vec<Value>) -> Result<Value> {
 
     match &args[0] {
         Value::List(items) => {
-            let result: Vec<Value> = items.iter()
+            let result: Vec<Value> = items
+                .iter()
                 .filter(|item| {
                     conditions.iter().all(|(field, op, cmp_val)| {
                         get_field(item, field)
@@ -852,27 +971,42 @@ fn builtin_multi_filter_by(args: Vec<Value>) -> Result<Value> {
                 })
                 .cloned()
                 .collect();
-            Ok(Value::List(result))
+            Ok(Value::List((result).into()))
         }
         Value::Table(table) => {
             // Resolve column indices upfront
-            let col_specs: Vec<(usize, String, Value)> = conditions.iter().map(|(field, op, cmp_val)| {
-                let ci = table.col_index(field).ok_or_else(|| {
-                    BioLangError::runtime(ErrorKind::NameError, format!("multi_filter_by(): column '{field}' not found"), None)
-                })?;
-                Ok((ci, op.clone(), cmp_val.clone()))
-            }).collect::<Result<Vec<_>>>()?;
+            let col_specs: Vec<(usize, String, Value)> = conditions
+                .iter()
+                .map(|(field, op, cmp_val)| {
+                    let ci = table.col_index(field).ok_or_else(|| {
+                        BioLangError::runtime(
+                            ErrorKind::NameError,
+                            format!("multi_filter_by(): column '{field}' not found"),
+                            None,
+                        )
+                    })?;
+                    Ok((ci, op.clone(), cmp_val.clone()))
+                })
+                .collect::<Result<Vec<_>>>()?;
 
-            let kept: Vec<Vec<Value>> = table.rows.iter()
+            let kept: Vec<Vec<Value>> = table
+                .rows
+                .iter()
                 .filter(|row| {
-                    col_specs.iter().all(|(ci, op, cmp_val)| compare(&row[*ci], op, cmp_val))
+                    col_specs
+                        .iter()
+                        .all(|(ci, op, cmp_val)| compare(&row[*ci], op, cmp_val))
                 })
                 .cloned()
                 .collect();
             Ok(Value::Table(Table::new(table.columns.clone(), kept)))
         }
         other => Err(BioLangError::type_error(
-            format!("multi_filter_by() requires Table or List, got {}", other.type_of()), None,
+            format!(
+                "multi_filter_by() requires Table or List, got {}",
+                other.type_of()
+            ),
+            None,
         )),
     }
 }
@@ -886,7 +1020,17 @@ fn builtin_count_where(args: Vec<Value>) -> Result<Value> {
 
     // Reuse field extraction and comparison from filter_by
     fn variant_field_fast(v: &Value, field: &str) -> Option<Value> {
-        if let Value::Variant { ref chrom, pos, ref ref_allele, ref alt_allele, quality, ref filter, ref info, .. } = v {
+        if let Value::Variant {
+            ref chrom,
+            pos,
+            ref ref_allele,
+            ref alt_allele,
+            quality,
+            ref filter,
+            ref info,
+            ..
+        } = v
+        {
             Some(match field {
                 "chrom" => Value::Str(chrom.clone()),
                 "pos" => Value::Int(*pos),
@@ -902,25 +1046,38 @@ fn builtin_count_where(args: Vec<Value>) -> Result<Value> {
                 }
                 "variant_type" => {
                     let first_alt = alt_allele.split(',').next().unwrap_or("");
-                    let t = if ref_allele.len() == 1 && first_alt.len() == 1 { "SNP" }
-                            else if ref_allele.len() != first_alt.len() { "INDEL" }
-                            else { "MNP" };
+                    let t = if ref_allele.len() == 1 && first_alt.len() == 1 {
+                        "SNP"
+                    } else if ref_allele.len() != first_alt.len() {
+                        "INDEL"
+                    } else {
+                        "MNP"
+                    };
                     Value::Str(t.to_string())
                 }
                 _ => {
                     if let Some(v) = info.get(field) {
-                        if field != "_raw" { return Some(v.clone()); }
+                        if field != "_raw" {
+                            return Some(v.clone());
+                        }
                     }
                     if info.len() == 1 {
                         if let Some(Value::Str(raw)) = info.get("_raw") {
                             for part in raw.split(';') {
-                                if part.is_empty() { continue; }
+                                if part.is_empty() {
+                                    continue;
+                                }
                                 if let Some((key, val)) = part.split_once('=') {
                                     if key == field {
-                                        if val == "." { return Some(Value::Nil); }
-                                        else if let Ok(n) = val.parse::<i64>() { return Some(Value::Int(n)); }
-                                        else if let Ok(f) = val.parse::<f64>() { return Some(Value::Float(f)); }
-                                        else { return Some(Value::Str(val.to_string())); }
+                                        if val == "." {
+                                            return Some(Value::Nil);
+                                        } else if let Ok(n) = val.parse::<i64>() {
+                                            return Some(Value::Int(n));
+                                        } else if let Ok(f) = val.parse::<f64>() {
+                                            return Some(Value::Float(f));
+                                        } else {
+                                            return Some(Value::Str(val.to_string()));
+                                        }
                                     }
                                 }
                             }
@@ -956,33 +1113,50 @@ fn builtin_count_where(args: Vec<Value>) -> Result<Value> {
                     Value::Int(i) => *i as f64,
                     _ => return false,
                 };
-                match op { ">=" => a >= b, ">" => a > b, "<=" => a <= b, "<" => a < b, _ => false }
+                match op {
+                    ">=" => a >= b,
+                    ">" => a > b,
+                    "<=" => a <= b,
+                    "<" => a < b,
+                    _ => false,
+                }
             }
             _ => false,
         }
     }
 
     let count = match &args[0] {
-        Value::List(items) => {
-            items.iter()
-                .filter(|item| {
-                    get_field(item, &field)
-                        .map(|fv| compare(&fv, &op, cmp_val))
-                        .unwrap_or(false)
-                })
-                .count()
-        }
+        Value::List(items) => items
+            .iter()
+            .filter(|item| {
+                get_field(item, &field)
+                    .map(|fv| compare(&fv, &op, cmp_val))
+                    .unwrap_or(false)
+            })
+            .count(),
         Value::Table(table) => {
             let ci = table.col_index(&field).ok_or_else(|| {
-                BioLangError::runtime(ErrorKind::NameError, format!("count_where(): column '{field}' not found"), None)
+                BioLangError::runtime(
+                    ErrorKind::NameError,
+                    format!("count_where(): column '{field}' not found"),
+                    None,
+                )
             })?;
-            table.rows.iter()
+            table
+                .rows
+                .iter()
                 .filter(|row| compare(&row[ci], &op, cmp_val))
                 .count()
         }
-        other => return Err(BioLangError::type_error(
-            format!("count_where() requires Table or List, got {}", other.type_of()), None,
-        )),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "count_where() requires Table or List, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
 
     Ok(Value::Int(count as i64))
@@ -995,9 +1169,15 @@ fn builtin_count_where(args: Vec<Value>) -> Result<Value> {
 fn builtin_variant_summary(args: Vec<Value>) -> Result<Value> {
     let items = match &args[0] {
         Value::List(items) => items,
-        other => return Err(BioLangError::type_error(
-            format!("variant_summary() requires List of Variants, got {}", other.type_of()), None,
-        )),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "variant_summary() requires List of Variants, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
 
     let group_field = if args.len() > 1 {
@@ -1015,14 +1195,24 @@ fn builtin_variant_summary(args: Vec<Value>) -> Result<Value> {
     }
     let mut groups: HashMap<String, GroupStats> = HashMap::new();
 
-    for item in items {
-        if let Value::Variant { ref chrom, ref ref_allele, ref alt_allele, quality, .. } = item {
+    for item in items.iter() {
+        if let Value::Variant {
+            ref chrom,
+            ref ref_allele,
+            ref alt_allele,
+            quality,
+            ..
+        } = item
+        {
             let key = match group_field.as_str() {
                 "chrom" => chrom.clone(),
                 _ => chrom.clone(), // Default to chrom for now
             };
             let stats = groups.entry(key).or_insert(GroupStats {
-                total: 0, snps: 0, indels: 0, qual_sum: 0.0,
+                total: 0,
+                snps: 0,
+                indels: 0,
+                qual_sum: 0.0,
             });
             stats.total += 1;
             stats.qual_sum += quality;
@@ -1037,18 +1227,28 @@ fn builtin_variant_summary(args: Vec<Value>) -> Result<Value> {
 
     // Build result Table sorted by total descending
     let columns = vec![
-        "group".to_string(), "total".to_string(), "snps".to_string(),
-        "indels".to_string(), "mean_qual".to_string(),
+        "group".to_string(),
+        "total".to_string(),
+        "snps".to_string(),
+        "indels".to_string(),
+        "mean_qual".to_string(),
     ];
-    let mut rows: Vec<Vec<Value>> = groups.into_iter().map(|(key, stats)| {
-        vec![
-            Value::Str(key),
-            Value::Int(stats.total),
-            Value::Int(stats.snps),
-            Value::Int(stats.indels),
-            Value::Float(if stats.total > 0 { stats.qual_sum / stats.total as f64 } else { 0.0 }),
-        ]
-    }).collect();
+    let mut rows: Vec<Vec<Value>> = groups
+        .into_iter()
+        .map(|(key, stats)| {
+            vec![
+                Value::Str(key),
+                Value::Int(stats.total),
+                Value::Int(stats.snps),
+                Value::Int(stats.indels),
+                Value::Float(if stats.total > 0 {
+                    stats.qual_sum / stats.total as f64
+                } else {
+                    0.0
+                }),
+            ]
+        })
+        .collect();
     rows.sort_by(|a, b| {
         let ta = if let Value::Int(n) = &a[1] { *n } else { 0 };
         let tb = if let Value::Int(n) = &b[1] { *n } else { 0 };
@@ -1064,15 +1264,26 @@ fn builtin_variant_summary(args: Vec<Value>) -> Result<Value> {
 fn builtin_classify_variants(args: Vec<Value>) -> Result<Value> {
     let items = match &args[0] {
         Value::List(items) => items,
-        other => return Err(BioLangError::type_error(
-            format!("classify_variants() requires List of Variants, got {}", other.type_of()),
-            None,
-        )),
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "classify_variants() requires List of Variants, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
     };
 
     let mut result = Vec::with_capacity(items.len());
-    for item in items {
-        if let Value::Variant { ref chrom, ref ref_allele, ref alt_allele, .. } = item {
+    for item in items.iter() {
+        if let Value::Variant {
+            ref chrom,
+            ref ref_allele,
+            ref alt_allele,
+            ..
+        } = item
+        {
             let first_alt = alt_allele.split(',').next().unwrap_or("");
             let vtype = if ref_allele.len() == 1 && first_alt.len() == 1 {
                 "SNP"
@@ -1082,10 +1293,10 @@ fn builtin_classify_variants(args: Vec<Value>) -> Result<Value> {
             let mut rec = HashMap::with_capacity(2);
             rec.insert("chrom".to_string(), Value::Str(chrom.clone()));
             rec.insert("variant_type".to_string(), Value::Str(vtype.to_string()));
-            result.push(Value::Record(rec));
+            result.push(Value::Record((rec).into()));
         }
     }
-    Ok(Value::List(result))
+    Ok(Value::List((result).into()))
 }
 
 // ── drop_cols(table, col1, col2, ...) ────────────────────────────────
@@ -1103,7 +1314,10 @@ fn builtin_drop_cols(args: Vec<Value>) -> Result<Value> {
         .filter(|(_, c)| !drop_names.contains(c))
         .map(|(i, _)| i)
         .collect();
-    let new_cols: Vec<String> = keep_indices.iter().map(|&i| table.columns[i].clone()).collect();
+    let new_cols: Vec<String> = keep_indices
+        .iter()
+        .map(|&i| table.columns[i].clone())
+        .collect();
     let new_rows: Vec<Vec<Value>> = table
         .rows
         .iter()
@@ -1132,19 +1346,25 @@ fn builtin_from_records(args: Vec<Value>) -> Result<Value> {
         Value::Record(m) | Value::Map(m) => m,
         other => {
             return Err(BioLangError::type_error(
-                format!("from_records() items must be Records, got {}", other.type_of()),
+                format!(
+                    "from_records() items must be Records, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
     };
     let columns: Vec<String> = first.keys().cloned().collect();
     let mut rows = Vec::new();
-    for item in list {
+    for item in list.iter() {
         let map = match item {
             Value::Record(m) | Value::Map(m) => m,
             _ => continue,
         };
-        let row: Vec<Value> = columns.iter().map(|c| map.get(c).cloned().unwrap_or(Value::Nil)).collect();
+        let row: Vec<Value> = columns
+            .iter()
+            .map(|c| map.get(c).cloned().unwrap_or(Value::Nil))
+            .collect();
         rows.push(row);
     }
     Ok(Value::Table(Table::new(columns, rows)))
@@ -1180,13 +1400,19 @@ fn builtin_table(args: Vec<Value>) -> Result<Value> {
     let col_data: Vec<&Vec<Value>> = columns
         .iter()
         .map(|c| match map.get(c).unwrap() {
-            Value::List(items) => Ok(items),
-            _ => Err(BioLangError::type_error("table() column values must be Lists", None)),
+            Value::List(items) => Ok(items.as_ref()),
+            _ => Err(BioLangError::type_error(
+                "table() column values must be Lists",
+                None,
+            )),
         })
         .collect::<Result<Vec<_>>>()?;
     let mut rows = Vec::with_capacity(n);
     for i in 0..n {
-        let row: Vec<Value> = col_data.iter().map(|col| col.get(i).cloned().unwrap_or(Value::Nil)).collect();
+        let row: Vec<Value> = col_data
+            .iter()
+            .map(|col| col.get(i).cloned().unwrap_or(Value::Nil))
+            .collect();
         rows.push(row);
     }
     Ok(Value::Table(Table::new(columns, rows)))
@@ -1227,14 +1453,17 @@ fn builtin_tail(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_slice(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "slice")?;
+    let nrows = table.num_rows();
     let start = match &args[1] {
-        Value::Int(n) => *n as usize,
+        Value::Int(n) => (*n as usize).min(nrows),
         _ => 0,
     };
     let end = match &args[2] {
-        Value::Int(n) => (*n as usize).min(table.num_rows()),
-        _ => table.num_rows(),
+        Value::Int(n) => (*n as usize).min(nrows),
+        _ => nrows,
     };
+    // Clamp so start never exceeds end (handles reversed or out-of-range arguments).
+    let end = end.max(start);
     let rows = table.rows[start..end].to_vec();
     Ok(Value::Table(Table::new(table.columns.clone(), rows)))
 }
@@ -1252,7 +1481,11 @@ fn builtin_sample(args: Vec<Value>) -> Result<Value> {
         5usize.min(table.num_rows())
     };
     // Simple deterministic sampling using stride
-    let step = if n == 0 { 1 } else { (table.num_rows() as f64 / n as f64).ceil() as usize };
+    let step = if n == 0 {
+        1
+    } else {
+        (table.num_rows() as f64 / n as f64).ceil() as usize
+    };
     let mut rows = Vec::new();
     let mut i = 0;
     while rows.len() < n && i < table.num_rows() {
@@ -1272,7 +1505,13 @@ fn builtin_fill_null(args: Vec<Value>) -> Result<Value> {
         .iter()
         .map(|row| {
             row.iter()
-                .map(|v| if matches!(v, Value::Nil) { fill.clone() } else { v.clone() })
+                .map(|v| {
+                    if matches!(v, Value::Nil) {
+                        fill.clone()
+                    } else {
+                        v.clone()
+                    }
+                })
                 .collect()
         })
         .collect();
@@ -1286,7 +1525,11 @@ fn builtin_drop_null(args: Vec<Value>) -> Result<Value> {
     let col_idx = if args.len() > 1 {
         let name = require_str(&args[1], "drop_null")?;
         Some(table.col_index(&name).ok_or_else(|| {
-            BioLangError::runtime(ErrorKind::NameError, format!("drop_null(): column '{name}' not found"), None)
+            BioLangError::runtime(
+                ErrorKind::NameError,
+                format!("drop_null(): column '{name}' not found"),
+                None,
+            )
         })?)
     } else {
         None
@@ -1312,7 +1555,11 @@ fn builtin_value_counts(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "value_counts")?;
     let col_name = require_str(&args[1], "value_counts")?;
     let ci = table.col_index(&col_name).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("value_counts(): column '{col_name}' not found"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("value_counts(): column '{col_name}' not found"),
+            None,
+        )
     })?;
     let mut keys: Vec<String> = Vec::new();
     let mut counts: Vec<i64> = Vec::new();
@@ -1382,7 +1629,10 @@ fn builtin_describe(args: Vec<Value>) -> Result<Value> {
             }
         } else if vals.iter().all(|v| matches!(v, Value::Str(_) | Value::Nil)) {
             "str"
-        } else if vals.iter().all(|v| matches!(v, Value::Bool(_) | Value::Nil)) {
+        } else if vals
+            .iter()
+            .all(|v| matches!(v, Value::Bool(_) | Value::Nil))
+        {
             "bool"
         } else {
             "mixed"
@@ -1442,7 +1692,11 @@ fn builtin_bind_cols(args: Vec<Value>) -> Result<Value> {
         let t = require_table(arg, "bind_cols")?;
         if t.num_rows() != n {
             return Err(BioLangError::type_error(
-                format!("bind_cols(): row count mismatch ({} vs {})", n, t.num_rows()),
+                format!(
+                    "bind_cols(): row count mismatch ({} vs {})",
+                    n,
+                    t.num_rows()
+                ),
                 None,
             ));
         }
@@ -1473,10 +1727,18 @@ fn builtin_outer_join(args: Vec<Value>) -> Result<Value> {
     let right = require_table(&args[1], "outer_join")?;
     let key_col = require_str(&args[2], "outer_join")?;
     let left_ki = left.col_index(&key_col).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("outer_join(): key '{key_col}' not in left"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("outer_join(): key '{key_col}' not in left"),
+            None,
+        )
     })?;
     let right_ki = right.col_index(&key_col).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("outer_join(): key '{key_col}' not in right"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("outer_join(): key '{key_col}' not in right"),
+            None,
+        )
     })?;
     let right_extra: Vec<usize> = (0..right.num_cols()).filter(|&i| i != right_ki).collect();
     let mut out_cols = left.columns.clone();
@@ -1515,9 +1777,18 @@ fn builtin_outer_join(args: Vec<Value>) -> Result<Value> {
     // Unmatched right rows
     for (ri, rrow) in right.rows.iter().enumerate() {
         if !right_matched[ri] {
-            let mut row: Vec<Value> = left.columns.iter().enumerate().map(|(i, _)| {
-                if i == left_ki { rrow[right_ki].clone() } else { Value::Nil }
-            }).collect();
+            let mut row: Vec<Value> = left
+                .columns
+                .iter()
+                .enumerate()
+                .map(|(i, _)| {
+                    if i == left_ki {
+                        rrow[right_ki].clone()
+                    } else {
+                        Value::Nil
+                    }
+                })
+                .collect();
             for &i in &right_extra {
                 row.push(rrow[i].clone());
             }
@@ -1537,7 +1808,9 @@ fn builtin_cross_join(args: Vec<Value>) -> Result<Value> {
             format!(
                 "cross_join() would produce {} rows ({} × {}). Limit: 10,000,000. \
                  Filter tables before joining.",
-                product, left.num_rows(), right.num_rows()
+                product,
+                left.num_rows(),
+                right.num_rows()
             ),
             None,
         ));
@@ -1560,12 +1833,24 @@ fn builtin_anti_join(args: Vec<Value>) -> Result<Value> {
     let right = require_table(&args[1], "anti_join")?;
     let key_col = require_str(&args[2], "anti_join")?;
     let left_ki = left.col_index(&key_col).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("anti_join(): key '{key_col}' not in left"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("anti_join(): key '{key_col}' not in left"),
+            None,
+        )
     })?;
     let right_ki = right.col_index(&key_col).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("anti_join(): key '{key_col}' not in right"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("anti_join(): key '{key_col}' not in right"),
+            None,
+        )
     })?;
-    let right_keys: std::collections::HashSet<String> = right.rows.iter().map(|r| format!("{}", r[right_ki])).collect();
+    let right_keys: std::collections::HashSet<String> = right
+        .rows
+        .iter()
+        .map(|r| format!("{}", r[right_ki]))
+        .collect();
     let rows: Vec<Vec<Value>> = left
         .rows
         .iter()
@@ -1580,12 +1865,24 @@ fn builtin_semi_join(args: Vec<Value>) -> Result<Value> {
     let right = require_table(&args[1], "semi_join")?;
     let key_col = require_str(&args[2], "semi_join")?;
     let left_ki = left.col_index(&key_col).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("semi_join(): key '{key_col}' not in left"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("semi_join(): key '{key_col}' not in left"),
+            None,
+        )
     })?;
     let right_ki = right.col_index(&key_col).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("semi_join(): key '{key_col}' not in right"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("semi_join(): key '{key_col}' not in right"),
+            None,
+        )
     })?;
-    let right_keys: std::collections::HashSet<String> = right.rows.iter().map(|r| format!("{}", r[right_ki])).collect();
+    let right_keys: std::collections::HashSet<String> = right
+        .rows
+        .iter()
+        .map(|r| format!("{}", r[right_ki]))
+        .collect();
     let rows: Vec<Vec<Value>> = left
         .rows
         .iter()
@@ -1601,13 +1898,17 @@ fn builtin_explode(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "explode")?;
     let col_name = require_str(&args[1], "explode")?;
     let ci = table.col_index(&col_name).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("explode(): column '{col_name}' not found"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("explode(): column '{col_name}' not found"),
+            None,
+        )
     })?;
     let mut out_rows = Vec::new();
     for row in &table.rows {
         match &row[ci] {
             Value::List(items) => {
-                for item in items {
+                for item in items.iter() {
                     let mut new_row = row.clone();
                     new_row[ci] = item.clone();
                     out_rows.push(new_row);
@@ -1637,7 +1938,11 @@ fn builtin_rank(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "rank")?;
     let col_name = require_str(&args[1], "rank")?;
     let ci = table.col_index(&col_name).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("rank(): column '{col_name}' not found"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("rank(): column '{col_name}' not found"),
+            None,
+        )
     })?;
     // Sort indices by column value
     let mut indices: Vec<usize> = (0..table.num_rows()).collect();
@@ -1645,7 +1950,10 @@ fn builtin_rank(args: Vec<Value>) -> Result<Value> {
     let mut ranks = vec![0i64; table.num_rows()];
     let mut current_rank = 1i64;
     for (pos, &idx) in indices.iter().enumerate() {
-        if pos > 0 && val_cmp(&table.rows[indices[pos - 1]][ci], &table.rows[idx][ci]) != std::cmp::Ordering::Equal {
+        if pos > 0
+            && val_cmp(&table.rows[indices[pos - 1]][ci], &table.rows[idx][ci])
+                != std::cmp::Ordering::Equal
+        {
             current_rank = pos as i64 + 1;
         }
         ranks[idx] = current_rank;
@@ -1675,16 +1983,29 @@ fn builtin_lag(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "lag")?;
     let col_name = require_str(&args[1], "lag")?;
     let offset = if args.len() > 2 {
-        match &args[2] { Value::Int(n) => *n as usize, _ => 1 }
-    } else { 1 };
+        match &args[2] {
+            Value::Int(n) => *n as usize,
+            _ => 1,
+        }
+    } else {
+        1
+    };
     let ci = table.col_index(&col_name).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("lag(): column '{col_name}' not found"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("lag(): column '{col_name}' not found"),
+            None,
+        )
     })?;
     let mut cols = table.columns.clone();
     cols.push(format!("{col_name}_lag{offset}"));
     let mut rows = table.rows.clone();
     for (i, row) in rows.iter_mut().enumerate() {
-        row.push(if i >= offset { table.rows[i - offset][ci].clone() } else { Value::Nil });
+        row.push(if i >= offset {
+            table.rows[i - offset][ci].clone()
+        } else {
+            Value::Nil
+        });
     }
     Ok(Value::Table(Table::new(cols, rows)))
 }
@@ -1693,17 +2014,30 @@ fn builtin_lead(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "lead")?;
     let col_name = require_str(&args[1], "lead")?;
     let offset = if args.len() > 2 {
-        match &args[2] { Value::Int(n) => *n as usize, _ => 1 }
-    } else { 1 };
+        match &args[2] {
+            Value::Int(n) => *n as usize,
+            _ => 1,
+        }
+    } else {
+        1
+    };
     let ci = table.col_index(&col_name).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("lead(): column '{col_name}' not found"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("lead(): column '{col_name}' not found"),
+            None,
+        )
     })?;
     let mut cols = table.columns.clone();
     cols.push(format!("{col_name}_lead{offset}"));
     let mut rows = table.rows.clone();
     let n = rows.len();
     for (i, row) in rows.iter_mut().enumerate() {
-        row.push(if i + offset < n { table.rows[i + offset][ci].clone() } else { Value::Nil });
+        row.push(if i + offset < n {
+            table.rows[i + offset][ci].clone()
+        } else {
+            Value::Nil
+        });
     }
     Ok(Value::Table(Table::new(cols, rows)))
 }
@@ -1712,14 +2046,21 @@ fn builtin_cumsum(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "cumsum")?;
     let col_name = require_str(&args[1], "cumsum")?;
     let ci = table.col_index(&col_name).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("cumsum(): column '{col_name}' not found"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("cumsum(): column '{col_name}' not found"),
+            None,
+        )
     })?;
     let vals = col_to_floats(table, ci);
     let mut cum = 0.0;
     let cum_vals: Vec<Value> = vals
         .iter()
         .map(|v| match v {
-            Some(f) => { cum += f; Value::Float(cum) }
+            Some(f) => {
+                cum += f;
+                Value::Float(cum)
+            }
             None => Value::Nil,
         })
         .collect();
@@ -1736,14 +2077,23 @@ fn builtin_cummax(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "cummax")?;
     let col_name = require_str(&args[1], "cummax")?;
     let ci = table.col_index(&col_name).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("cummax(): column '{col_name}' not found"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("cummax(): column '{col_name}' not found"),
+            None,
+        )
     })?;
     let vals = col_to_floats(table, ci);
     let mut max = f64::NEG_INFINITY;
     let cum_vals: Vec<Value> = vals
         .iter()
         .map(|v| match v {
-            Some(f) => { if *f > max { max = *f; } Value::Float(max) }
+            Some(f) => {
+                if *f > max {
+                    max = *f;
+                }
+                Value::Float(max)
+            }
             None => Value::Nil,
         })
         .collect();
@@ -1760,14 +2110,23 @@ fn builtin_cummin(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "cummin")?;
     let col_name = require_str(&args[1], "cummin")?;
     let ci = table.col_index(&col_name).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("cummin(): column '{col_name}' not found"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("cummin(): column '{col_name}' not found"),
+            None,
+        )
     })?;
     let vals = col_to_floats(table, ci);
     let mut min = f64::INFINITY;
     let cum_vals: Vec<Value> = vals
         .iter()
         .map(|v| match v {
-            Some(f) => { if *f < min { min = *f; } Value::Float(min) }
+            Some(f) => {
+                if *f < min {
+                    min = *f;
+                }
+                Value::Float(min)
+            }
             None => Value::Nil,
         })
         .collect();
@@ -1785,10 +2144,19 @@ fn builtin_rolling_mean(args: Vec<Value>) -> Result<Value> {
     let col_name = require_str(&args[1], "rolling_mean")?;
     let window = match &args[2] {
         Value::Int(n) => *n as usize,
-        _ => return Err(BioLangError::type_error("rolling_mean() window must be Int", None)),
+        _ => {
+            return Err(BioLangError::type_error(
+                "rolling_mean() window must be Int",
+                None,
+            ))
+        }
     };
     let ci = table.col_index(&col_name).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("rolling_mean(): column '{col_name}' not found"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("rolling_mean(): column '{col_name}' not found"),
+            None,
+        )
     })?;
     let vals = col_to_floats(table, ci);
     let mut result = Vec::with_capacity(vals.len());
@@ -1819,10 +2187,19 @@ fn builtin_rolling_sum(args: Vec<Value>) -> Result<Value> {
     let col_name = require_str(&args[1], "rolling_sum")?;
     let window = match &args[2] {
         Value::Int(n) => *n as usize,
-        _ => return Err(BioLangError::type_error("rolling_sum() window must be Int", None)),
+        _ => {
+            return Err(BioLangError::type_error(
+                "rolling_sum() window must be Int",
+                None,
+            ))
+        }
     };
     let ci = table.col_index(&col_name).ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::NameError, format!("rolling_sum(): column '{col_name}' not found"), None)
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("rolling_sum(): column '{col_name}' not found"),
+            None,
+        )
     })?;
     let vals = col_to_floats(table, ci);
     let mut result = Vec::with_capacity(vals.len());
@@ -1856,7 +2233,10 @@ fn builtin_col_width(args: Vec<Value>) -> Result<Value> {
         Value::Int(n) => *n as usize,
         other => {
             return Err(BioLangError::type_error(
-                format!("col_width() requires Int for width, got {}", other.type_of()),
+                format!(
+                    "col_width() requires Int for width, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -1873,30 +2253,35 @@ fn extract_col_floats(val: &Value, col: &str, func: &str) -> Result<Vec<f64>> {
     match val {
         Value::Table(t) => {
             let ci = t.col_index(col).ok_or_else(|| {
-                BioLangError::runtime(ErrorKind::NameError, format!("{func}(): column '{col}' not found"), None)
+                BioLangError::runtime(
+                    ErrorKind::NameError,
+                    format!("{func}(): column '{col}' not found"),
+                    None,
+                )
             })?;
-            Ok(t.rows.iter().filter_map(|row| {
-                match &row[ci] {
+            Ok(t.rows
+                .iter()
+                .filter_map(|row| match &row[ci] {
                     Value::Float(f) => Some(*f),
                     Value::Int(i) => Some(*i as f64),
                     _ => None,
-                }
-            }).collect())
+                })
+                .collect())
         }
-        Value::List(items) => {
-            Ok(items.iter().filter_map(|item| {
-                match item {
-                    Value::Record(m) | Value::Map(m) => m.get(col).and_then(|v| match v {
-                        Value::Float(f) => Some(*f),
-                        Value::Int(i) => Some(*i as f64),
-                        _ => None,
-                    }),
+        Value::List(items) => Ok(items
+            .iter()
+            .filter_map(|item| match item {
+                Value::Record(m) | Value::Map(m) => m.get(col).and_then(|v| match v {
+                    Value::Float(f) => Some(*f),
+                    Value::Int(i) => Some(*i as f64),
                     _ => None,
-                }
-            }).collect())
-        }
+                }),
+                _ => None,
+            })
+            .collect()),
         other => Err(BioLangError::type_error(
-            format!("{func}() requires Table or List, got {}", other.type_of()), None,
+            format!("{func}() requires Table or List, got {}", other.type_of()),
+            None,
         )),
     }
 }
@@ -1906,27 +2291,33 @@ fn extract_col_values(val: &Value, col: &str, func: &str) -> Result<Vec<Value>> 
     match val {
         Value::Table(t) => {
             let ci = t.col_index(col).ok_or_else(|| {
-                BioLangError::runtime(ErrorKind::NameError, format!("{func}(): column '{col}' not found"), None)
+                BioLangError::runtime(
+                    ErrorKind::NameError,
+                    format!("{func}(): column '{col}' not found"),
+                    None,
+                )
             })?;
             Ok(t.rows.iter().map(|row| row[ci].clone()).collect())
         }
-        Value::List(items) => {
-            Ok(items.iter().filter_map(|item| {
-                match item {
-                    Value::Record(m) | Value::Map(m) => m.get(col).cloned(),
-                    _ => None,
-                }
-            }).collect())
-        }
+        Value::List(items) => Ok(items
+            .iter()
+            .filter_map(|item| match item {
+                Value::Record(m) | Value::Map(m) => m.get(col).cloned(),
+                _ => None,
+            })
+            .collect()),
         other => Err(BioLangError::type_error(
-            format!("{func}() requires Table or List, got {}", other.type_of()), None,
+            format!("{func}() requires Table or List, got {}", other.type_of()),
+            None,
         )),
     }
 }
 
 fn builtin_col_values(args: Vec<Value>) -> Result<Value> {
     let col = require_str(&args[1], "col_values")?;
-    Ok(Value::List(extract_col_values(&args[0], &col, "col_values")?))
+    Ok(Value::List(
+        (extract_col_values(&args[0], &col, "col_values")?).into(),
+    ))
 }
 
 fn builtin_col_mean(args: Vec<Value>) -> Result<Value> {
@@ -1943,12 +2334,8 @@ fn builtin_col_sum(args: Vec<Value>) -> Result<Value> {
     let col = require_str(&args[1], "col_sum")?;
     let vals = extract_col_floats(&args[0], &col, "col_sum")?;
     let sum: f64 = vals.iter().sum();
-    // Return Int if all values were integers
-    if sum == sum.floor() && sum.abs() < i64::MAX as f64 {
-        Ok(Value::Int(sum as i64))
-    } else {
-        Ok(Value::Float(sum))
-    }
+    // Always return Float: promoting a float sum (e.g. 1.5+2.5=4.0) to Int loses type info.
+    Ok(Value::Float(sum))
 }
 
 fn builtin_col_stdev(args: Vec<Value>) -> Result<Value> {
@@ -1966,13 +2353,23 @@ fn builtin_col_stdev(args: Vec<Value>) -> Result<Value> {
 fn builtin_col_min(args: Vec<Value>) -> Result<Value> {
     let col = require_str(&args[1], "col_min")?;
     let vals = extract_col_floats(&args[0], &col, "col_min")?;
-    Ok(Value::Float(vals.iter().copied().fold(f64::INFINITY, f64::min)))
+    if vals.is_empty() {
+        return Ok(Value::Nil);
+    }
+    Ok(Value::Float(
+        vals.iter().copied().fold(f64::INFINITY, f64::min),
+    ))
 }
 
 fn builtin_col_max(args: Vec<Value>) -> Result<Value> {
     let col = require_str(&args[1], "col_max")?;
     let vals = extract_col_floats(&args[0], &col, "col_max")?;
-    Ok(Value::Float(vals.iter().copied().fold(f64::NEG_INFINITY, f64::max)))
+    if vals.is_empty() {
+        return Ok(Value::Nil);
+    }
+    Ok(Value::Float(
+        vals.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+    ))
 }
 
 /// group_stats(grouped_map, col, "mean"|"sum"|"count"|"stdev"|"min"|"max")
@@ -1985,30 +2382,43 @@ fn builtin_group_stats(args: Vec<Value>) -> Result<Value> {
         Value::Map(m) => m,
         other => {
             return Err(BioLangError::type_error(
-                format!("group_stats() requires Map (from group_by), got {}", other.type_of()), None,
+                format!(
+                    "group_stats() requires Map (from group_by), got {}",
+                    other.type_of()
+                ),
+                None,
             ));
         }
     };
 
     let mut results = Vec::with_capacity(groups.len());
-    for (key, subtable) in groups {
+    for (key, subtable) in groups.iter() {
         let vals = extract_col_floats(subtable, &col, "group_stats")?;
         let n = vals.len();
         let value = match agg.as_str() {
             "count" => Value::Int(n as i64),
             "sum" => {
                 let s: f64 = vals.iter().sum();
-                if s == s.floor() && s.abs() < i64::MAX as f64 { Value::Int(s as i64) } else { Value::Float(s) }
+                if s == s.floor() && s.abs() < i64::MAX as f64 {
+                    Value::Int(s as i64)
+                } else {
+                    Value::Float(s)
+                }
             }
             "mean" => {
-                if n == 0 { Value::Float(f64::NAN) }
-                else { Value::Float(vals.iter().sum::<f64>() / n as f64) }
+                if n == 0 {
+                    Value::Float(f64::NAN)
+                } else {
+                    Value::Float(vals.iter().sum::<f64>() / n as f64)
+                }
             }
             "stdev" => {
-                if n < 2 { Value::Float(f64::NAN) }
-                else {
+                if n < 2 {
+                    Value::Float(f64::NAN)
+                } else {
                     let mean = vals.iter().sum::<f64>() / n as f64;
-                    let var = vals.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (n as f64 - 1.0);
+                    let var =
+                        vals.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (n as f64 - 1.0);
                     Value::Float(var.sqrt())
                 }
             }
@@ -2025,9 +2435,9 @@ fn builtin_group_stats(args: Vec<Value>) -> Result<Value> {
         let mut rec = HashMap::new();
         rec.insert("key".to_string(), Value::Str(key.clone()));
         rec.insert("value".to_string(), value);
-        results.push(Value::Record(rec));
+        results.push(Value::Record((rec).into()));
     }
-    Ok(Value::List(results))
+    Ok(Value::List((results).into()))
 }
 
 // ── CSV/TSV I/O ─────────────────────────────────────────────────────
@@ -2045,9 +2455,9 @@ fn builtin_read_delimited(args: Vec<Value>, delim: char) -> Result<Value> {
     let mut lines = content.lines();
 
     // Parse header
-    let header_line = lines.next().ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::TypeError, "empty file", None)
-    })?;
+    let header_line = lines
+        .next()
+        .ok_or_else(|| BioLangError::runtime(ErrorKind::TypeError, "empty file", None))?;
     let columns: Vec<String> = parse_delimited_line(header_line, delim)
         .into_iter()
         .map(|s| s.to_string())
@@ -2060,10 +2470,7 @@ fn builtin_read_delimited(args: Vec<Value>, delim: char) -> Result<Value> {
             continue;
         }
         let fields = parse_delimited_line(line, delim);
-        let row: Vec<Value> = fields
-            .into_iter()
-            .map(infer_value)
-            .collect();
+        let row: Vec<Value> = fields.into_iter().map(infer_value).collect();
         rows.push(row);
     }
 
@@ -2122,8 +2529,22 @@ fn infer_value(s: String) -> Value {
 }
 
 fn builtin_write_delimited(args: Vec<Value>, delim: char) -> Result<Value> {
-    let table = require_table(&args[0], if delim == ',' { "write_csv" } else { "write_tsv" })?;
-    let path = require_str(&args[1], if delim == ',' { "write_csv" } else { "write_tsv" })?;
+    let table = require_table(
+        &args[0],
+        if delim == ',' {
+            "write_csv"
+        } else {
+            "write_tsv"
+        },
+    )?;
+    let path = require_str(
+        &args[1],
+        if delim == ',' {
+            "write_csv"
+        } else {
+            "write_tsv"
+        },
+    )?;
     let d = if delim == ',' { "," } else { "\t" };
 
     let mut output = String::new();
@@ -2186,9 +2607,7 @@ fn builtin_inner_join(args: Vec<Value>) -> Result<Value> {
 
     // Build output columns: left columns + right columns (excluding key)
     let mut out_cols = left.columns.clone();
-    let right_col_indices: Vec<usize> = (0..right.num_cols())
-        .filter(|&i| i != right_ki)
-        .collect();
+    let right_col_indices: Vec<usize> = (0..right.num_cols()).filter(|&i| i != right_ki).collect();
     for &i in &right_col_indices {
         out_cols.push(right.columns[i].clone());
     }
@@ -2240,9 +2659,7 @@ fn builtin_left_join(args: Vec<Value>) -> Result<Value> {
     })?;
 
     let mut out_cols = left.columns.clone();
-    let right_col_indices: Vec<usize> = (0..right.num_cols())
-        .filter(|&i| i != right_ki)
-        .collect();
+    let right_col_indices: Vec<usize> = (0..right.num_cols()).filter(|&i| i != right_ki).collect();
     for &i in &right_col_indices {
         out_cols.push(right.columns[i].clone());
     }
@@ -2286,7 +2703,7 @@ fn builtin_pivot_longer(args: Vec<Value>) -> Result<Value> {
     let cols_to_pivot = match &args[1] {
         Value::List(items) => {
             let mut names = Vec::new();
-            for item in items {
+            for item in items.iter() {
                 names.push(require_str(item, "pivot_longer")?);
             }
             names
@@ -2314,7 +2731,10 @@ fn builtin_pivot_longer(args: Vec<Value>) -> Result<Value> {
         .filter_map(|c| table.col_index(c).map(|i| (i, c.clone())))
         .collect();
 
-    let mut out_cols: Vec<String> = id_indices.iter().map(|&i| table.columns[i].clone()).collect();
+    let mut out_cols: Vec<String> = id_indices
+        .iter()
+        .map(|&i| table.columns[i].clone())
+        .collect();
     out_cols.push(name_col);
     out_cols.push(value_col);
 
@@ -2365,7 +2785,10 @@ fn builtin_pivot_wider(args: Vec<Value>) -> Result<Value> {
         }
     }
 
-    let mut out_cols: Vec<String> = id_indices.iter().map(|&i| table.columns[i].clone()).collect();
+    let mut out_cols: Vec<String> = id_indices
+        .iter()
+        .map(|&i| table.columns[i].clone())
+        .collect();
     out_cols.extend(new_col_names.clone());
 
     // Group rows by ID columns
@@ -2403,8 +2826,15 @@ fn builtin_pivot_wider(args: Vec<Value>) -> Result<Value> {
 
 /// Priority list of biologically significant column names for auto-detection.
 const BIO_JOIN_KEYS: &[&str] = &[
-    "gene", "gene_id", "gene_name", "symbol", "ensembl_id",
-    "uniprot_id", "accession", "id", "name",
+    "gene",
+    "gene_id",
+    "gene_name",
+    "symbol",
+    "ensembl_id",
+    "uniprot_id",
+    "accession",
+    "id",
+    "name",
 ];
 
 /// Normalize a biological identifier for matching:
@@ -2437,14 +2867,17 @@ fn coerce_to_table(val: &Value, func: &str) -> Result<Table> {
                 Value::Record(m) | Value::Map(m) => m,
                 other => {
                     return Err(BioLangError::type_error(
-                        format!("{func}() requires Table or List of Records, got List of {}", other.type_of()),
+                        format!(
+                            "{func}() requires Table or List of Records, got List of {}",
+                            other.type_of()
+                        ),
                         None,
                     ))
                 }
             };
             let columns: Vec<String> = first.keys().cloned().collect();
             let mut rows = Vec::new();
-            for item in items {
+            for item in items.iter() {
                 let map = match item {
                     Value::Record(m) | Value::Map(m) => m,
                     _ => continue,
@@ -2458,7 +2891,10 @@ fn coerce_to_table(val: &Value, func: &str) -> Result<Table> {
             Ok(Table::new(columns, rows))
         }
         other => Err(BioLangError::type_error(
-            format!("{func}() requires Table or List of Records, got {}", other.type_of()),
+            format!(
+                "{func}() requires Table or List of Records, got {}",
+                other.type_of()
+            ),
             None,
         )),
     }
@@ -2493,7 +2929,8 @@ fn builtin_bio_join(args: Vec<Value>) -> Result<Value> {
         detected.ok_or_else(|| {
             BioLangError::runtime(
                 ErrorKind::TypeError,
-                "bio_join(): no common biological key column found; specify one explicitly".to_string(),
+                "bio_join(): no common biological key column found; specify one explicitly"
+                    .to_string(),
                 None,
             )
         })?
@@ -2543,9 +2980,7 @@ fn builtin_bio_join(args: Vec<Value>) -> Result<Value> {
 
     // Build output columns: left columns + right columns (excluding key)
     let mut out_cols = left.columns.clone();
-    let right_col_indices: Vec<usize> = (0..right.num_cols())
-        .filter(|&i| i != right_ki)
-        .collect();
+    let right_col_indices: Vec<usize> = (0..right.num_cols()).filter(|&i| i != right_ki).collect();
     for &i in &right_col_indices {
         let col = &right.columns[i];
         // Avoid duplicate column names by suffixing with _right
@@ -2557,8 +2992,7 @@ fn builtin_bio_join(args: Vec<Value>) -> Result<Value> {
     }
 
     // Build hash index on right table using bio-normalized keys
-    let mut right_index: HashMap<String, Vec<usize>> =
-        HashMap::with_capacity(right.rows.len());
+    let mut right_index: HashMap<String, Vec<usize>> = HashMap::with_capacity(right.rows.len());
     for (i, rrow) in right.rows.iter().enumerate() {
         let rkey = bio_normalize_key(&rrow[right_ki]);
         right_index.entry(rkey).or_default().push(i);
@@ -2627,9 +3061,601 @@ fn builtin_bio_join(args: Vec<Value>) -> Result<Value> {
             for (i, col) in out_cols.iter().enumerate() {
                 map.insert(col.clone(), row.get(i).cloned().unwrap_or(Value::Nil));
             }
-            Value::Record(map)
+            Value::Record((map).into())
         })
         .collect();
 
-    Ok(Value::List(records))
+    Ok(Value::List((records).into()))
+}
+
+// ── BED interval arithmetic ──────────────────────────────────────────
+
+/// Extract BED intervals from a Table.
+/// Looks for a chromosome column named "chrom" or "chr",
+/// and "start" and "end" columns (must be Int-valued).
+/// Returns Vec of (chrom, start, end, row_index) or None if required columns are missing.
+fn extract_bed_intervals(table: &Table) -> Option<Vec<(String, i64, i64, usize)>> {
+    let chrom_ci = table
+        .col_index("chrom")
+        .or_else(|| table.col_index("chr"))?;
+    let start_ci = table.col_index("start")?;
+    let end_ci = table.col_index("end")?;
+
+    let intervals = table
+        .rows
+        .iter()
+        .enumerate()
+        .filter_map(|(ri, row)| {
+            let chrom = match &row[chrom_ci] {
+                Value::Str(s) => s.clone(),
+                other => format!("{other}"),
+            };
+            let start = match &row[start_ci] {
+                Value::Int(n) => *n,
+                Value::Float(f) => *f as i64,
+                _ => return None,
+            };
+            let end = match &row[end_ci] {
+                Value::Int(n) => *n,
+                Value::Float(f) => *f as i64,
+                _ => return None,
+            };
+            Some((chrom, start, end, ri))
+        })
+        .collect();
+
+    Some(intervals)
+}
+
+/// bed_intersect(a, b) → Table
+/// For each row in A, find all rows in B on the same chrom where intervals overlap
+/// (A.end > B.start AND B.end > A.start). Emits one row per overlap with all A columns
+/// plus "overlap_start", "overlap_end", "overlap_length".
+fn builtin_bed_intersect(args: Vec<Value>) -> Result<Value> {
+    let a = require_table(&args[0], "bed_intersect")?;
+    let b = require_table(&args[1], "bed_intersect")?;
+
+    let a_ivs = extract_bed_intervals(a).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            "bed_intersect(): table A must have chrom/chr, start, end columns",
+            None,
+        )
+    })?;
+    let b_ivs = extract_bed_intervals(b).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            "bed_intersect(): table B must have chrom/chr, start, end columns",
+            None,
+        )
+    })?;
+
+    // Group B intervals by chrom for O(n+m) chromosome filtering
+    let mut b_by_chrom: HashMap<String, Vec<(i64, i64, usize)>> = HashMap::new();
+    for (chrom, start, end, ri) in &b_ivs {
+        b_by_chrom
+            .entry(chrom.clone())
+            .or_default()
+            .push((*start, *end, *ri));
+    }
+
+    let mut out_cols = a.columns.clone();
+    out_cols.push("overlap_start".to_string());
+    out_cols.push("overlap_end".to_string());
+    out_cols.push("overlap_length".to_string());
+
+    let mut out_rows: Vec<Vec<Value>> = Vec::new();
+    for (a_chrom, a_start, a_end, a_ri) in &a_ivs {
+        if let Some(b_entries) = b_by_chrom.get(a_chrom) {
+            for &(b_start, b_end, _b_ri) in b_entries {
+                // Overlap condition: a_end > b_start AND b_end > a_start
+                if *a_end > b_start && b_end > *a_start {
+                    let ov_start = (*a_start).max(b_start);
+                    let ov_end = (*a_end).min(b_end);
+                    let ov_len = ov_end - ov_start;
+                    let mut row = a.rows[*a_ri].clone();
+                    row.push(Value::Int(ov_start));
+                    row.push(Value::Int(ov_end));
+                    row.push(Value::Int(ov_len));
+                    out_rows.push(row);
+                }
+            }
+        }
+    }
+
+    Ok(Value::Table(Table::new(out_cols, out_rows)))
+}
+
+/// bed_subtract(a, b) → Table
+/// For each row in A, remove sub-intervals covered by any B row on the same chrom.
+/// The remaining pieces (possibly split) are emitted with the same columns as A,
+/// but with start/end values reflecting the uncovered portions.
+fn builtin_bed_subtract(args: Vec<Value>) -> Result<Value> {
+    let a = require_table(&args[0], "bed_subtract")?;
+    let b = require_table(&args[1], "bed_subtract")?;
+
+    let a_ivs = extract_bed_intervals(a).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            "bed_subtract(): table A must have chrom/chr, start, end columns",
+            None,
+        )
+    })?;
+    let b_ivs = extract_bed_intervals(b).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            "bed_subtract(): table B must have chrom/chr, start, end columns",
+            None,
+        )
+    })?;
+
+    // Locate start/end column indices in A for writing modified values
+    let start_ci = a.col_index("start").unwrap(); // safe: extract_bed_intervals succeeded
+    let end_ci = a.col_index("end").unwrap();
+
+    // Group B intervals by chrom
+    let mut b_by_chrom: HashMap<String, Vec<(i64, i64)>> = HashMap::new();
+    for (chrom, start, end, _) in &b_ivs {
+        b_by_chrom
+            .entry(chrom.clone())
+            .or_default()
+            .push((*start, *end));
+    }
+
+    let out_cols = a.columns.clone();
+    let mut out_rows: Vec<Vec<Value>> = Vec::new();
+
+    for (a_chrom, a_start, a_end, a_ri) in &a_ivs {
+        let base_row = &a.rows[*a_ri];
+
+        // Collect all B intervals on this chrom that overlap A
+        let mut masks: Vec<(i64, i64)> = if let Some(entries) = b_by_chrom.get(a_chrom) {
+            entries
+                .iter()
+                .filter(|&&(bs, be)| be > *a_start && bs < *a_end)
+                .map(|&(bs, be)| (bs.max(*a_start), be.min(*a_end)))
+                .collect()
+        } else {
+            vec![]
+        };
+
+        if masks.is_empty() {
+            // Nothing to subtract — keep the row as-is
+            out_rows.push(base_row.clone());
+            continue;
+        }
+
+        // Sort masks and merge overlapping ones
+        masks.sort_by_key(|&(s, _)| s);
+        let mut merged_masks: Vec<(i64, i64)> = Vec::new();
+        for (ms, me) in masks {
+            if let Some(last) = merged_masks.last_mut() {
+                if ms <= last.1 {
+                    last.1 = last.1.max(me);
+                    continue;
+                }
+            }
+            merged_masks.push((ms, me));
+        }
+
+        // Walk the gaps between masks — each gap becomes an output row
+        let mut cursor = *a_start;
+        for (ms, me) in &merged_masks {
+            if cursor < *ms {
+                // There is a gap [cursor, ms) — emit it
+                let mut row = base_row.clone();
+                row[start_ci] = Value::Int(cursor);
+                row[end_ci] = Value::Int(*ms);
+                out_rows.push(row);
+            }
+            cursor = cursor.max(*me);
+        }
+        // Trailing piece after last mask
+        if cursor < *a_end {
+            let mut row = base_row.clone();
+            row[start_ci] = Value::Int(cursor);
+            row[end_ci] = Value::Int(*a_end);
+            out_rows.push(row);
+        }
+        // If cursor >= a_end the interval was fully covered — emit nothing
+    }
+
+    Ok(Value::Table(Table::new(out_cols, out_rows)))
+}
+
+/// bed_merge(a, gap?) → Table
+/// Sort by (chrom, start), then merge adjacent/overlapping intervals.
+/// Two intervals are merged when end(i) + gap >= start(i+1) on the same chrom.
+/// Returns the same columns as A; non-coordinate fields come from the first row of each group.
+fn builtin_bed_merge(args: Vec<Value>) -> Result<Value> {
+    let a = require_table(&args[0], "bed_merge")?;
+
+    let gap: i64 = if args.len() > 1 {
+        match &args[1] {
+            Value::Int(n) => *n,
+            Value::Float(f) => *f as i64,
+            other => {
+                return Err(BioLangError::type_error(
+                    format!("bed_merge() gap must be Int, got {}", other.type_of()),
+                    None,
+                ))
+            }
+        }
+    } else {
+        0
+    };
+
+    let a_ivs = extract_bed_intervals(a).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            "bed_merge(): table must have chrom/chr, start, end columns",
+            None,
+        )
+    })?;
+
+    let start_ci = a.col_index("start").unwrap();
+    let end_ci = a.col_index("end").unwrap();
+
+    // Sort intervals by (chrom, start)
+    let mut sorted = a_ivs;
+    sorted.sort_by(|x, y| x.0.cmp(&y.0).then(x.1.cmp(&y.1)));
+
+    let out_cols = a.columns.clone();
+    let mut out_rows: Vec<Vec<Value>> = Vec::new();
+
+    let mut i = 0;
+    while i < sorted.len() {
+        let (ref chrom, cur_start, mut cur_end, first_ri) = sorted[i].clone();
+        // Merge all subsequent intervals on the same chrom within gap
+        let mut j = i + 1;
+        while j < sorted.len() {
+            let (ref next_chrom, next_start, next_end, _) = sorted[j];
+            if next_chrom != chrom {
+                break;
+            }
+            if cur_end + gap >= next_start {
+                // Merge: extend current interval
+                cur_end = cur_end.max(next_end);
+                j += 1;
+            } else {
+                break;
+            }
+        }
+        // Emit one merged row (take non-coord fields from the first row in the group)
+        let mut row = a.rows[first_ri].clone();
+        row[start_ci] = Value::Int(cur_start);
+        row[end_ci] = Value::Int(cur_end);
+        out_rows.push(row);
+        i = j;
+    }
+
+    Ok(Value::Table(Table::new(out_cols, out_rows)))
+}
+
+// ── New table functions ────────────────────────────────────────────────────
+
+/// cross_tab(table, row_col, col_col) → Table (contingency table / cross-tabulation)
+fn builtin_cross_tab(args: Vec<Value>) -> Result<Value> {
+    let table = require_table(&args[0], "cross_tab")?;
+    let row_col = require_str(&args[1], "cross_tab")?;
+    let col_col = require_str(&args[2], "cross_tab")?;
+
+    let row_ci = table.col_index(&row_col).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("cross_tab(): column '{row_col}' not found"),
+            None,
+        )
+    })?;
+    let col_ci = table.col_index(&col_col).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("cross_tab(): column '{col_col}' not found"),
+            None,
+        )
+    })?;
+
+    // Collect unique row-category and col-category values (preserving first-seen order)
+    let mut row_cats: Vec<String> = Vec::new();
+    let mut col_cats: Vec<String> = Vec::new();
+    for row in &table.rows {
+        let rk = format!("{}", row[row_ci]);
+        let ck = format!("{}", row[col_ci]);
+        if !row_cats.contains(&rk) {
+            row_cats.push(rk);
+        }
+        if !col_cats.contains(&ck) {
+            col_cats.push(ck);
+        }
+    }
+
+    // Count occurrences
+    let mut counts: HashMap<(String, String), i64> = HashMap::new();
+    for row in &table.rows {
+        let rk = format!("{}", row[row_ci]);
+        let ck = format!("{}", row[col_ci]);
+        *counts.entry((rk, ck)).or_insert(0) += 1;
+    }
+
+    // Build output table: first column = row_col categories, remaining = col_col categories
+    let mut out_cols: Vec<String> = vec![row_col.clone()];
+    out_cols.extend(col_cats.iter().cloned());
+
+    let out_rows: Vec<Vec<Value>> = row_cats
+        .iter()
+        .map(|rk| {
+            let mut row_vals: Vec<Value> = vec![Value::Str(rk.clone())];
+            for ck in &col_cats {
+                let cnt = counts.get(&(rk.clone(), ck.clone())).copied().unwrap_or(0);
+                row_vals.push(Value::Int(cnt));
+            }
+            row_vals
+        })
+        .collect();
+
+    Ok(Value::Table(Table::new(out_cols, out_rows)))
+}
+
+/// rank_col(table, col, method?) → Table with "{col}_rank" appended
+fn builtin_rank_col(args: Vec<Value>) -> Result<Value> {
+    let table = require_table(&args[0], "rank_col")?;
+    let col_name = require_str(&args[1], "rank_col")?;
+    let method = if args.len() > 2 {
+        require_str(&args[2], "rank_col")?
+    } else {
+        "average".to_string()
+    };
+
+    let ci = table.col_index(&col_name).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("rank_col(): column '{col_name}' not found"),
+            None,
+        )
+    })?;
+
+    let n = table.num_rows();
+    // Build sorted index
+    let mut order: Vec<usize> = (0..n).collect();
+    order.sort_by(|&a, &b| val_cmp(&table.rows[a][ci], &table.rows[b][ci]));
+
+    let mut ranks = vec![0.0f64; n];
+    let mut i = 0;
+    while i < n {
+        // Find run of equal values
+        let mut j = i + 1;
+        while j < n
+            && val_cmp(&table.rows[order[i]][ci], &table.rows[order[j]][ci])
+                == std::cmp::Ordering::Equal
+        {
+            j += 1;
+        }
+        // Assign ranks based on method (1-based)
+        for k in i..j {
+            ranks[order[k]] = match method.as_str() {
+                "average" => (i + j) as f64 / 2.0 + 0.5, // average of 1-based positions i+1..j
+                "min" => (i + 1) as f64,
+                "max" => j as f64,
+                "first" => (i + 1 + (k - i)) as f64, // sequential assignment
+                _ => (i + j) as f64 / 2.0 + 0.5,
+            };
+        }
+        i = j;
+    }
+
+    let mut cols = table.columns.clone();
+    cols.push(format!("{col_name}_rank"));
+    let mut rows = table.rows.clone();
+    for (i, row) in rows.iter_mut().enumerate() {
+        row.push(Value::Float(ranks[i]));
+    }
+    Ok(Value::Table(Table::new(cols, rows)))
+}
+
+/// cumsum_col(table, col) → Table with "{col}_cumsum" appended
+fn builtin_cumsum_col(args: Vec<Value>) -> Result<Value> {
+    let table = require_table(&args[0], "cumsum_col")?;
+    let col_name = require_str(&args[1], "cumsum_col")?;
+
+    let ci = table.col_index(&col_name).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("cumsum_col(): column '{col_name}' not found"),
+            None,
+        )
+    })?;
+
+    let vals = col_to_floats(table, ci);
+    let mut cum = 0.0f64;
+    let cum_vals: Vec<Value> = vals
+        .iter()
+        .map(|v| match v {
+            Some(f) => {
+                cum += f;
+                Value::Float(cum)
+            }
+            None => Value::Nil,
+        })
+        .collect();
+
+    let mut cols = table.columns.clone();
+    cols.push(format!("{col_name}_cumsum"));
+    let mut rows = table.rows.clone();
+    for (i, row) in rows.iter_mut().enumerate() {
+        row.push(cum_vals[i].clone());
+    }
+    Ok(Value::Table(Table::new(cols, rows)))
+}
+
+/// unnest(table, list_col) → Table with list-valued column exploded to separate rows
+fn builtin_unnest(args: Vec<Value>) -> Result<Value> {
+    let table = require_table(&args[0], "unnest")?;
+    let col_name = require_str(&args[1], "unnest")?;
+
+    let ci = table.col_index(&col_name).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            format!("unnest(): column '{col_name}' not found"),
+            None,
+        )
+    })?;
+
+    let mut out_rows: Vec<Vec<Value>> = Vec::new();
+    for row in &table.rows {
+        match &row[ci] {
+            Value::List(items) => {
+                if items.is_empty() {
+                    // Keep row with Nil for the list column
+                    let mut new_row = row.clone();
+                    new_row[ci] = Value::Nil;
+                    out_rows.push(new_row);
+                } else {
+                    for item in items.iter() {
+                        let mut new_row = row.clone();
+                        new_row[ci] = item.clone();
+                        out_rows.push(new_row);
+                    }
+                }
+            }
+            // Non-list values: keep as-is (treat as single element)
+            _ => out_rows.push(row.clone()),
+        }
+    }
+
+    Ok(Value::Table(Table::new(table.columns.clone(), out_rows)))
+}
+
+/// bed_closest(a, b) → Table
+/// For each row in A, find the single nearest row in B on the same chrom.
+/// Nearest is measured by midpoint distance. If intervals overlap, distance = 0;
+/// otherwise distance = gap between them.
+/// Returns A columns + all B columns prefixed with "b_" + "distance".
+fn builtin_bed_closest(args: Vec<Value>) -> Result<Value> {
+    let a = require_table(&args[0], "bed_closest")?;
+    let b = require_table(&args[1], "bed_closest")?;
+
+    let a_ivs = extract_bed_intervals(a).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            "bed_closest(): table A must have chrom/chr, start, end columns",
+            None,
+        )
+    })?;
+    let b_ivs = extract_bed_intervals(b).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::NameError,
+            "bed_closest(): table B must have chrom/chr, start, end columns",
+            None,
+        )
+    })?;
+
+    // Build output columns: A columns + b_<col> for each B column + "distance"
+    let mut out_cols = a.columns.clone();
+    for bc in &b.columns {
+        out_cols.push(format!("b_{bc}"));
+    }
+    out_cols.push("distance".to_string());
+
+    // Group B intervals by chrom
+    let mut b_by_chrom: HashMap<String, Vec<(i64, i64, usize)>> = HashMap::new();
+    for (chrom, start, end, ri) in &b_ivs {
+        b_by_chrom
+            .entry(chrom.clone())
+            .or_default()
+            .push((*start, *end, *ri));
+    }
+
+    let mut out_rows: Vec<Vec<Value>> = Vec::new();
+    let b_col_count = b.columns.len();
+
+    for (a_chrom, a_start, a_end, a_ri) in &a_ivs {
+        let a_row = &a.rows[*a_ri];
+
+        let best = b_by_chrom.get(a_chrom).and_then(|entries| {
+            let a_mid = (*a_start + *a_end) as f64 / 2.0;
+            entries
+                .iter()
+                .map(|&(b_start, b_end, b_ri)| {
+                    // Distance: 0 if overlapping, else gap
+                    let dist = if *a_end > b_start && b_end > *a_start {
+                        0i64
+                    } else if *a_end <= b_start {
+                        b_start - *a_end
+                    } else {
+                        *a_start - b_end
+                    };
+                    // Use midpoint distance as tiebreaker
+                    let b_mid = (b_start + b_end) as f64 / 2.0;
+                    let mid_dist = (a_mid - b_mid).abs() as i64;
+                    (dist, mid_dist, b_ri)
+                })
+                .min_by_key(|&(dist, mid_dist, _)| (dist, mid_dist))
+        });
+
+        let mut row = a_row.clone();
+        if let Some((dist, _, b_ri)) = best {
+            for val in &b.rows[b_ri] {
+                row.push(val.clone());
+            }
+            row.push(Value::Int(dist));
+        } else {
+            // No B row on same chrom — fill with Nil
+            for _ in 0..b_col_count {
+                row.push(Value::Nil);
+            }
+            row.push(Value::Nil);
+        }
+        out_rows.push(row);
+    }
+
+    Ok(Value::Table(Table::new(out_cols, out_rows)))
+}
+
+/// `glimpse(table)` — one line per column with its type and leading values.
+///
+/// This is `dplyr::glimpse` and `DataFrame.info`, the first thing an R or
+/// Python user types when a table appears. BioLang's `str()` converts a value
+/// to a string and `describe()` gives statistics; neither answers "what is in
+/// this thing", which is what glimpse is for.
+fn builtin_glimpse(args: Vec<Value>) -> Result<Value> {
+    let table = require_table(&args[0], "glimpse")?;
+    let types = table.column_types();
+    let width = table
+        .columns
+        .iter()
+        .map(|name| name.chars().count())
+        .max()
+        .unwrap_or(0);
+    // dplyr aligns the values past the widest type label; ragged columns defeat
+    // the point of a one-line-per-column view.
+    let type_width = types
+        .iter()
+        .map(|name| name.chars().count() + 2)
+        .max()
+        .unwrap_or(0);
+
+    let mut lines = vec![
+        format!("Rows: {}", table.rows.len()),
+        format!("Columns: {}", table.columns.len()),
+    ];
+    for (index, name) in table.columns.iter().enumerate() {
+        // Enough values to recognise the column, not so many that the line wraps.
+        let preview: Vec<String> = table
+            .rows
+            .iter()
+            .take(8)
+            .map(|row| format!("{}", row[index]))
+            .collect();
+        let mut joined = preview.join(", ");
+        if table.rows.len() > preview.len() {
+            joined.push_str(", ...");
+        }
+        let label = format!("<{}>", types[index]);
+        lines.push(format!(
+            "$ {name:<width$} {label:<type_width$} {joined}",
+            width = width,
+            type_width = type_width
+        ));
+    }
+    Ok(Value::Str(lines.join("\n")))
 }

@@ -15,21 +15,23 @@ mkdir("data")
 mkdir("results")
 
 # VCF header
-let header = "##fileformat=VCFv4.2
-##reference=GRCh38
-##source=ClinVar
-##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total read depth\">
-##INFO=<ID=AF,Number=A,Type=Float,Description=\"Allele frequency\">
-##INFO=<ID=MQ,Number=1,Type=Float,Description=\"RMS mapping quality\">
-##INFO=<ID=CLNSIG,Number=.,Type=String,Description=\"Clinical significance\">
-##INFO=<ID=GENEINFO,Number=1,Type=String,Description=\"Gene symbol\">
-##FILTER=<ID=PASS,Description=\"All filters passed\">
-##FILTER=<ID=LowQual,Description=\"Low quality variant call\">
-##FILTER=<ID=LowDP,Description=\"Read depth below threshold\">
-##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">
-##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read depth\">
-##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">
-#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE1"
+let header = join([
+    "##fileformat=VCFv4.2",
+    "##reference=GRCh38",
+    "##source=ClinVar",
+    "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total read depth\">",
+    "##INFO=<ID=AF,Number=A,Type=Float,Description=\"Allele frequency\">",
+    "##INFO=<ID=MQ,Number=1,Type=Float,Description=\"RMS mapping quality\">",
+    "##INFO=<ID=CLNSIG,Number=.,Type=String,Description=\"Clinical significance\">",
+    "##INFO=<ID=GENEINFO,Number=1,Type=String,Description=\"Gene symbol\">",
+    "##FILTER=<ID=PASS,Description=\"All filters passed\">",
+    "##FILTER=<ID=LowQual,Description=\"Low quality variant call\">",
+    "##FILTER=<ID=LowDP,Description=\"Read depth below threshold\">",
+    "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
+    "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read depth\">",
+    "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">",
+    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE1"
+], "\n")
 
 # Real variants from ClinVar with actual GRCh38 coordinates
 let rows = [
@@ -107,7 +109,7 @@ while i < len(rows) {
 vcf_content = vcf_content + "\n"
 
 let vcf_lines = [vcf_content]
-write_lines(vcf_lines, "data/variants.vcf")
+write_lines("data/variants.vcf", vcf_lines)
 
 print(f"Generated data/variants.vcf with {len(rows)} variants")
 print("  Genes: TP53, BRCA1, BRCA2, KRAS, BRAF, EGFR, PIK3CA, IDH1, JAK2, PTEN, RB1, APC, VHL, HBB")

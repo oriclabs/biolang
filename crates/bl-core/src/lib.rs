@@ -1,8 +1,9 @@
 pub mod ast;
 pub mod error;
+pub mod hints;
 pub mod matrix;
-pub mod sparse_matrix;
 pub mod span;
+pub mod sparse_matrix;
 pub mod types;
 pub mod value;
 

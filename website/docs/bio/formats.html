@@ -25,9 +25,10 @@
         <h1>File Formats</h1>
         <p>
           BioLang provides built-in readers and writers for all major bioinformatics file formats.
-          Readers return lazy streams by default, enabling constant-memory processing of files
-          that are gigabytes or terabytes in size. Writers accept streams or collections and
-          handle buffering automatically.
+          The <code>read_*</code> readers load reusable tables or lists. Their short counterparts
+          (<code>fasta</code>, <code>fastq</code>, <code>bed</code>, <code>gff</code>,
+          <code>vcf</code>) return lazy streams for constant-memory processing. Writers accept
+          streams or collections and handle buffering automatically.
         </p>
 
         <h2>FASTA</h2>
@@ -41,7 +42,7 @@ records |> filter(|r| r.length > 100)    # works
 records |> map(|r| r.id)                 # still works — it's a Table
 
 # Stream mode (lazy, one-time) — best for large files
-records = read_fasta("data/sequences.fasta")
+records = fasta("data/sequences.fasta")
 records |> map(|r| r.id) |> collect()    # works
 
 # Each record has: id, description, seq, length
@@ -106,8 +107,9 @@ intervals |> write_bed("output.bed")</code></pre>
 
         <h2>GFF / GTF</h2>
         <p>
-          GFF3 and GTF are tab-delimited annotation formats. BioLang parses the attributes
-          column into a structured map:
+          GFF3 and GTF are tab-delimited annotation formats. The
+          <code>attributes</code> column remains a string; use <code>parse_attr()</code>
+          to parse all attributes or retrieve one key:
         </p>
         <pre><code class="language-biolang"># Read a GFF3 file
 let annotations = read_gff("data/annotations.gff")
@@ -116,8 +118,8 @@ let annotations = read_gff("data/annotations.gff")
 annotations
   |> filter(|r| r.type == "gene")
   |> map(|r| {
-    gene_id: r.attributes["ID"],
-    name: r.attributes["Name"],
+    gene_id: parse_attr(r.attributes, "ID"),
+    name: parse_attr(r.attributes, "Name"),
     chrom: r.seqid,
     start: r.start,
     end: r.end
@@ -128,15 +130,16 @@ annotations
 # Read GTF
 read_gff("data/annotations.gff")
   |> filter(|r| r.type == "exon")
-  |> map(|r| r.attributes["gene_name"])
+  |> map(|r| parse_attr(r.attributes, "gene_name"))
   |> unique()
   |> len()
   |> print()</code></pre>
 
         <h2>VCF</h2>
         <p>
-          VCF files contain variant calls. BioLang parses the INFO and FORMAT fields into
-          structured maps, and genotype data into per-sample accessors:
+          VCF files contain variant calls. <code>read_vcf()</code> returns a reusable list of
+          typed <code>Variant</code> values. INFO data is parsed lazily when
+          <code>v.info</code> is accessed:
         </p>
         <pre><code class="language-biolang"># Read a VCF file
 let variants = read_vcf("data/variants.vcf")
@@ -234,7 +237,7 @@ sam("aligned.bam")
             <code>read_fastq()</code> which return tables:
           </p>
           <pre class="!mt-2"><code class="language-biolang"># Stream — consumed once (good for large files)
-let records = read_fasta("data/sequences.fasta")
+let records = fasta("data/sequences.fasta")
 records |> map(|r| r.id) |> collect()   # ["seq1", "seq2"]
 
 # Table — reusable (good for small/medium files)
@@ -242,9 +245,10 @@ records = read_fasta("data/sequences.fasta")
 records |> map(|r| r.id)     # works
 records |> map(|r| r.seq)    # still works — it's a Table
 
-# Other formats (bed, vcf, gff, sam, bam) default to tables.
-# Use {stream: true} for lazy mode:
-read_vcf("data/variants.vcf")</code></pre>
+# Other short readers are also lazy:
+vcf("data/variants.vcf")
+bed("data/regions.bed")
+gff("data/annotations.gff")</code></pre>
         </div>
 
         <h2>Writing Files</h2>
@@ -272,7 +276,7 @@ let v = variant("chr17", 7674220, "G", "A")
 # Access variant fields
 println(v.chrom, ":", v.pos, v.ref, ">", v.alt)
 
-# VCF reader returns table rows (not Variant values)
+# VCF reader returns Variant values
 let variants = read_vcf("data/variants.vcf")
 for v in variants {
   if v.filter == "PASS" && v.qual > 30 {

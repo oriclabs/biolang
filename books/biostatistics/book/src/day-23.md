@@ -435,7 +435,7 @@ for f in 0..k {
       train_y = train_y + [y[i]]
     }
   }
-  let model = lm(train_y, train_x)
+  let model = lm(train_x, train_y)
   let preds = test_x |> map(|xi| model.intercept + model.slope * xi)
   let mse = mean(zip(preds, test_y) |> map(|p| (p[0] - p[1]) * (p[0] - p[1])))
   fold_errors = fold_errors + [mse]
@@ -505,7 +505,8 @@ Resampling methods are less appropriate when:
 
 ## Resampling in BioLang — Complete Pipeline
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # Mouse experiment: enzyme activity
 let treatment = [4.2, 5.1, 3.8, 6.3, 4.9, 5.5]
@@ -598,7 +599,7 @@ for f in 0..k {
       train_y = train_y + [drug_response[j]]
     }
   }
-  let model = lm(train_y, train_x)
+  let model = lm(train_x, train_y)
   let preds = test_x |> map(|xi| model.intercept + model.slope * xi)
   let mse = mean(zip(preds, test_y) |> map(|p| (p[0] - p[1]) * (p[0] - p[1])))
   fold_errors = fold_errors + [mse]

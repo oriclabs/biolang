@@ -1,5 +1,5 @@
-use bl_lexer::Lexer;
 use bl_lexer::token::TokenKind;
+use bl_lexer::Lexer;
 
 #[test]
 fn test_basic_escapes() {
@@ -12,7 +12,9 @@ fn test_basic_escapes() {
 
 #[test]
 fn test_unicode_escape() {
-    let tokens = Lexer::new(r#""\u{0041}\u{03B1}\u{1F600}""#).tokenize().unwrap();
+    let tokens = Lexer::new(r#""\u{0041}\u{03B1}\u{1F600}""#)
+        .tokenize()
+        .unwrap();
     match &tokens[0].kind {
         TokenKind::Str(s) => assert_eq!(s, "A\u{03B1}\u{1F600}"),
         other => panic!("expected Str, got {other:?}"),

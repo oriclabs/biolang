@@ -86,47 +86,47 @@ pub enum TokenKind {
     DocComment(String),
 
     // Operators
-    Plus,      // +
-    Minus,     // -
-    Star,      // *
-    StarStar,  // **
-    Slash,     // /
-    Percent,   // %
-    DotDot,    // ..
-    DotDotEq,  // ..=
-    DotDotDot, // ...
-    PlusPlus,  // ++
-    PlusEq,    // +=
-    MinusEq,   // -=
-    StarEq,    // *=
-    SlashEq,   // /=
+    Plus,             // +
+    Minus,            // -
+    Star,             // *
+    StarStar,         // **
+    Slash,            // /
+    Percent,          // %
+    DotDot,           // ..
+    DotDotEq,         // ..=
+    DotDotDot,        // ...
+    PlusPlus,         // ++
+    PlusEq,           // +=
+    MinusEq,          // -=
+    StarEq,           // *=
+    SlashEq,          // /=
     QuestionQuestion, // ??
     QuestionDot,      // ?.
     QuestionEq,       // ?=
     HashLBrace,       // #{
     At,               // @
-    EqEq,    // ==
-    Neq,      // !=
-    Lt,       // <
-    Gt,       // >
-    Le,       // <=
-    Ge,       // >=
-    Amp,      // & (bitwise AND)
-    And,      // &&
-    Or,       // ||
-    Bang,     // !
-    Caret,    // ^ (bitwise XOR)
-    Shl,      // <<
-    Shr,      // >>
-    Eq,       // =
-    PipeOp,    // |>
-    TapPipe,   // |>>
-    Tilde,    // ~
-    Dot,      // .
-    Colon,    // :
-    Comma,    // ,
-    Arrow,    // ->
-    FatArrow, // =>
+    EqEq,             // ==
+    Neq,              // !=
+    Lt,               // <
+    Gt,               // >
+    Le,               // <=
+    Ge,               // >=
+    Amp,              // & (bitwise AND)
+    And,              // &&
+    Or,               // ||
+    Bang,             // !
+    Caret,            // ^ (bitwise XOR)
+    Shl,              // <<
+    Shr,              // >>
+    Eq,               // =
+    PipeOp,           // |>
+    TapPipe,          // |>>
+    Tilde,            // ~
+    Dot,              // .
+    Colon,            // :
+    Comma,            // ,
+    Arrow,            // ->
+    FatArrow,         // =>
 
     // Delimiters
     LParen,   // (

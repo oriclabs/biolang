@@ -97,7 +97,8 @@ When you need batch operations on a stream, `chunk` groups elements into
 fixed-size lists. This is useful for writing output in blocks or batching API
 calls.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Process a FASTQ in chunks of 10,000 reads
 read_fastq("data/reads.fastq")
   |> chunk(10000)
@@ -188,7 +189,8 @@ per_chrom_stats |> sort_by(|s| s.chrom) |> write_tsv("chrom_stats.tsv")
 
 Filter elements in parallel. Useful when the predicate itself is expensive.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # requires: internet connection
 let variants = tsv("all_variants.tsv")
 
@@ -231,7 +233,8 @@ that plague genomics scripts.
 Stream 4 billion reads, filter by quality, and compute statistics without
 loading the file into memory.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let input = "novaseq_R1.fastq.gz"  # 100 GB compressed
 
 let stats = {
@@ -272,7 +275,8 @@ constant regardless of file size.
 
 Split variant annotation work by chromosome to use all cores.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # requires: internet connection
 let vcf_path = "cohort.vcf.gz"
 let chromosomes = range(1, 23) |> map(|n| "chr" + str(n))
@@ -342,7 +346,8 @@ gc_profile |> write_tsv("chr22_gc_profile.tsv")
 Process a large sample cohort using chunked parallelism to avoid overwhelming
 system resources.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let manifest = tsv("sample_manifest.tsv")  # 2,000 samples
 print("Processing " + str(len(manifest)) + " samples")
 

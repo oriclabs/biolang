@@ -1,0 +1,59 @@
+# Rosalind: TRIE — Introduction to Pattern Matching
+# https://rosalind.info/problems/trie/
+#
+# Given: A list of at most 100 DNA strings.
+# Return: The adjacency list of the trie built from them, with nodes numbered
+# from 1 in the order they are created.
+
+let patterns = ["ATAGA", "ATC", "GAT"]
+
+# Each node is a record of its number and its labelled children. Nodes are kept
+# in a flat list and referenced by index, since there is no mutable tree type.
+let node_list = [{ id: 1, edge_list: [] }]
+
+fn child_of(node, symbol) {
+    let hit = node.edge_list |> filter(|e| e.symbol == symbol)
+    if len(hit) == 0 then -1 else hit[0].target
+}
+
+fn replace_node(all, index, node) {
+    range(0, len(all)) |> map(|i| if i == index then node else all[i])
+}
+
+let edge_list = []
+
+for pattern in patterns {
+    let at = 0
+    let i = 0
+    while i < len(pattern) {
+        let symbol = substr(pattern, i, 1)
+        let existing = child_of(node_list[at], symbol)
+        if existing < 0 {
+            let created = len(node_list) + 1
+            node_list = push(node_list, { id: created, edge_list: [] })
+            let parent = node_list[at]
+            node_list = replace_node(node_list, at, {
+                id: parent.id,
+                edge_list: push(parent.edge_list, { symbol: symbol, target: created })
+            })
+            edge_list = push(edge_list, str(parent.id) ++ " " ++ str(created) ++ " " ++ symbol)
+            at = created - 1
+        } else {
+            at = existing - 1
+        }
+        i = i + 1
+    }
+}
+
+println("Result:   " + str(len(edge_list)) + " edge_list")
+edge_list |> each(|e| println("  " + e))
+println("Expected: 9 edge_list, 10 node_list, starting 1 2 A")
+
+fn test_trie_pattern_matching() {
+    # Every symbol of every pattern either follows an existing edge or creates
+    # one, so the edge count is the number of distinct prefixes.
+    assert len(edge_list) == 9, "TRIE: got " + str(len(edge_list)) + " edge_list"
+    assert edge_list[0] == "1 2 A", "TRIE: first edge " + edge_list[0]
+    assert edge_list |> contains("1 8 G"), "TRIE: missing the GAT branch from the root"
+    assert len(node_list) == 10, "TRIE: got " + str(len(node_list)) + " node_list"
+}

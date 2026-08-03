@@ -170,7 +170,7 @@ let gwas_content = gwas_header
 for i in range(0, len(gwas_rows)) {
     gwas_content = gwas_content + "\n" + gwas_rows[i]
 }
-write(gwas_content, "data/gwas.csv")
+write_text("data/gwas.csv", gwas_content)
 print("  Created data/gwas.csv (120 GWAS loci from NHGRI-EBI Catalog, 8 traits)")
 
 # ── Expression matrix: GTEx-based tissue profiles ────────────────────
@@ -235,7 +235,7 @@ let expr_content = expr_header
 for i in range(0, len(expr_rows)) {
     expr_content = expr_content + "\n" + expr_rows[i]
 }
-write(expr_content, "data/expression_matrix.csv")
+write_text("data/expression_matrix.csv", expr_content)
 print("  Created data/expression_matrix.csv (40 genes x 8 tissues, GTEx-based)")
 
 print("\nSetup complete. Run the Day 19 scripts with:")

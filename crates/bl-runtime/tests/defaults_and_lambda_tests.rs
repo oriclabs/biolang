@@ -6,7 +6,11 @@ use bl_runtime::Interpreter;
 fn eval(code: &str) -> Value {
     let tokens = Lexer::new(code).tokenize().unwrap();
     let result = Parser::new(tokens).parse().unwrap();
-    assert!(result.errors.is_empty(), "parse errors: {:?}", result.errors);
+    assert!(
+        result.errors.is_empty(),
+        "parse errors: {:?}",
+        result.errors
+    );
     let mut interp = Interpreter::new();
     interp.run(&result.program).unwrap()
 }
@@ -39,10 +43,7 @@ fn test_default_arg_override_named() {
 
 #[test]
 fn test_default_arg_mixed() {
-    assert_eq!(
-        eval("fn add(a, b = 10) { a + b }\nadd(5)"),
-        Value::Int(15)
-    );
+    assert_eq!(eval("fn add(a, b = 10) { a + b }\nadd(5)"), Value::Int(15));
 }
 
 #[test]
@@ -56,10 +57,7 @@ fn test_default_arg_mixed_both_provided() {
 #[test]
 fn test_default_arg_expression() {
     // Default expression can reference earlier params (bound sequentially)
-    assert_eq!(
-        eval("fn f(x, y = x * 2) { y }\nf(3)"),
-        Value::Int(6)
-    );
+    assert_eq!(eval("fn f(x, y = x * 2) { y }\nf(3)"), Value::Int(6));
 }
 
 #[test]
@@ -122,10 +120,7 @@ fn test_multiline_lambda_in_map() {
 
 #[test]
 fn test_single_expr_lambda() {
-    assert_eq!(
-        eval("let double = |x| x * 2\ndouble(7)"),
-        Value::Int(14)
-    );
+    assert_eq!(eval("let double = |x| x * 2\ndouble(7)"), Value::Int(14));
 }
 
 #[test]
@@ -162,5 +157,8 @@ fn test_lambda_no_defaults() {
     assert!(result.errors.is_empty());
     let mut interp = Interpreter::new();
     let err = interp.run(&result.program);
-    assert!(err.is_err(), "lambda should error on missing arg (no defaults)");
+    assert!(
+        err.is_err(),
+        "lambda should error on missing arg (no defaults)"
+    );
 }

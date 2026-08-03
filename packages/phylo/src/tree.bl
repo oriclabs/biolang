@@ -1,0 +1,15 @@
+# Newick tree parsing and traversal.
+
+fn load(nw_path) {
+  read_text(nw_path) |> nw_parse
+}
+
+fn from_string(nw_str) {
+  nw_parse(nw_str)
+}
+
+fn leaves(tree)               { tree_leaves(tree) }
+fn n_leaves(tree)             { tree_leaves(tree) |> len }
+fn distance(tree, a, b)       { patristic_distance(tree, a, b) }
+fn distance_matrix(tree)      { nw_to_distance_matrix(tree) }
+fn build_upgma(labels, dmat)  { upgma(labels, dmat) }

@@ -1,0 +1,19 @@
+# gwas — GWAS analysis for BioLang
+#
+# Quick start:
+#   import "gwas" as gwas
+#
+#   let ss   = gwas.load("my_gwas.txt")
+#   let hits = gwas.hits(ss)
+#   gwas.clump(ss)
+#   gwas.manhattan(ss)
+#   gwas.qq(ss.pval)
+
+import "gwas/src/loci" as loci
+
+fn load(path)                           { read_text(path) |> parse_sumstats }
+fn hits(sumstats, p=5e-8)               { loci.significant(sumstats, p) }
+fn clump(sumstats, p=5e-8, window=250)  { loci.clump(sumstats, p, window) }
+fn lambda(pvals)                        { loci.lambda(pvals) }
+fn manhattan(sumstats)                  { manhattan_data(sumstats) }
+fn qq(pvals)                            { qq_data(pvals) }

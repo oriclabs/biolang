@@ -1,0 +1,20 @@
+import "rnaseq"       as rna
+import "differential" as de
+
+# Load featureCounts output
+let counts = rna.from_featurecounts("results/counts.txt")
+
+# QC
+rna.library_sizes(counts)
+rna.correlation(counts)
+
+# Filter low-expressed genes
+let counts = rna.filter_genes(counts, min_count=10, min_samples=3)
+
+# Size-factor normalization
+let norm = rna.normalize_sf(counts)
+
+# Differential expression (treated vs control)
+let conditions = ["ctrl", "ctrl", "ctrl", "treated", "treated", "treated"]
+let results = de.deseq(counts, conditions)
+results |> de.significant(padj=0.05, lfc=1.0)

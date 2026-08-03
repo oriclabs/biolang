@@ -260,14 +260,8 @@ while (TRUE) {
 }</code></pre>
 
         <h2>Loading and Managing Plugins</h2>
-        <pre><code class="language-bash"># Install a plugin from the registry
-bl add my-stats
-
-# Install from a local directory
-bl add path:./my-plugin
-
-# Install from git
-bl add git:https://github.com/user/bl-stats-plugin.git
+        <pre><code class="language-bash"># Install a plugin from a local directory
+bl add my-stats --path ./my-plugin
 
 # List installed plugins
 bl plugins
@@ -275,14 +269,8 @@ bl plugins
 # my-stats         0.1.0    python  welch_ttest, mann_whitney
 # deseq2-wrapper   0.1.0    r       deseq2_de
 
-# Show plugin details
-bl plugins info my-stats
-
 # Remove a plugin
-bl remove my-stats
-
-# Update all plugins
-bl plugins update</code></pre>
+bl remove my-stats</code></pre>
 
         <h2>JSON Protocol</h2>
         <p>

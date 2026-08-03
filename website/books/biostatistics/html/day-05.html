@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
@@ -602,7 +602,8 @@ for n in sample_sizes {
 </ol>
 <p>Think of detecting a treatment effect as hearing a whisper in a crowd. The whisper is the signal (effect size). The crowd noise is variability. Adding more listeners (larger n) helps. Making the crowd quieter (reducing variability) helps. Demanding absolute certainty before you will believe you heard something (lower α) makes it harder.</p>
 <h3 id="simulating-power"><a class="header" href="#simulating-power">Simulating Power</a></h3>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Simulate a clinical trial to understand power
 
 # True effect: treatment mean = 125 (control = 130, lower is better)
@@ -796,7 +797,8 @@ let sample_sd = 120.0
 </ol>
 <h3 id="exercise-4-bootstrap-a-correlation"><a class="header" href="#exercise-4-bootstrap-a-correlation">Exercise 4: Bootstrap a Correlation</a></h3>
 <p>Estimate the uncertainty in a correlation coefficient using the bootstrap.</p>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Gene expression vs. protein abundance (moderate correlation)
 let n = 40
 let gene_expr = rnorm(n, 5.0, 2.0)
@@ -885,7 +887,7 @@ print("Observed correlation: {observed_r:.3}")
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

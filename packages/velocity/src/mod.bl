@@ -1,0 +1,21 @@
+# velocity — RNA velocity analysis for BioLang
+#
+# Infers transcriptional dynamics from spliced/unspliced count matrices.
+# Uses the deterministic (steady-state) model: v = β*u - s
+# where β_g = mean(spliced_g) / mean(unspliced_g) per gene.
+#
+# Typical workflow:
+#   import "velocity" as vel
+#   import "singlecell" as sc
+#
+#   # obj must have .spliced and .unspliced fields
+#   let obj = vel.estimate(obj)    # fit per-gene velocity
+#   let obj = vel.project(obj)     # project onto UMAP embedding
+#   vel.get_arrows(obj)            # table of (cell, dx, dy) for overlay plotting
+
+import "velocity/src/core" as core
+
+fn estimate(obj)        { core.estimate(obj) }
+fn project(obj, k = 10) { core.project(obj, k) }
+fn get_velocity(obj)    { core.get_velocity(obj) }
+fn get_arrows(obj)      { core.get_arrows(obj) }

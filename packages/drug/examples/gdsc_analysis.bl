@@ -1,0 +1,19 @@
+import "drug" as drug
+
+# Dose-response: 8-point dilution series, viability (% of control)
+let concentrations = [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+let viabilities    = [98.0, 95.0, 88.0, 70.0, 45.0, 20.0, 8.0, 3.0]
+
+# Fit 4-parameter logistic
+let params = drug.fit(concentrations, viabilities)
+
+# AUC (lower = more sensitive)
+drug.auc(concentrations, viabilities)
+
+# Predicted curve at finer resolution
+# let fine_concs = range(0, 40) |> map(fn(i) -> 0.001 * pow(10, i * 0.1))
+# drug.curve(fine_concs, params.ic50, params.slope, params.top, params.bottom)
+
+# Combination synergy
+drug.bliss(viab_a=75.0, viab_b=60.0, viab_combo=30.0)
+drug.loewe(ic50_a=1.0, ic50_b=2.0, conc_a=0.5, conc_b=1.0)

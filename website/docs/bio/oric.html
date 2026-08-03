@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Origin of Replication — BioLang</title>
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="bio/oric"></div>
+    <main class="flex-1 min-w-0 px-6 lg:px-10 py-10">
+      <nav class="mb-6 text-sm text-slate-500">
+        <a href="../../index.html" class="hover:text-violet-400">Home</a><span class="mx-2">/</span>
+        <a href="index.html" class="hover:text-violet-400">Bio Reference</a><span class="mx-2">/</span>
+        <span class="text-slate-300">Origin of Replication</span>
+      </nav>
+      <article class="prose prose-invert max-w-none">
+        <h1>Origin of Replication (<code>oric</code> package)</h1>
+        <p>
+          The <code>oric</code> package predicts candidate bacterial origins of replication (oriC)
+          by combining two complementary signals: the <strong>GC skew reversal</strong> — the
+          well-known asymmetry between leading and lagging strands that peaks near the origin — and
+          the density of <strong>DnaA boxes</strong>, the conserved 9-mer motifs to which the DnaA
+          initiator protein binds to unwind duplex DNA and nucleate replisome assembly.
+        </p>
+        <p>
+          Together these two signals produce a confidence score (0–5) for each candidate window.
+          The package is designed for circular bacterial chromosomes but also works on linear
+          replicons with reduced accuracy.
+        </p>
+
+        <h2>Installation</h2>
+        <pre><code class="language-biolang"># Listed in biolang.toml dependencies — no separate install step needed
+# biolang.toml:
+# [dependencies]
+# oric = "*"</code></pre>
+
+        <h2>Import</h2>
+        <pre><code class="language-biolang">import "oric" as oric</code></pre>
+
+        <h2>Function Reference</h2>
+
+        <h3>predict_oric</h3>
+        <p>
+          The top-level prediction function. Scans the genome with a sliding window and returns
+          a table of candidate oriC regions ranked by confidence score.
+        </p>
+        <p>
+          <strong>Signature:</strong>
+          <code>oric.predict_oric(seq, window_size?, step?) &rarr; Table</code>
+        </p>
+        <p>
+          The result table has columns: <code>start</code>, <code>end</code>,
+          <code>confidence</code>, <code>skew_peak</code>, <code>dnaa_count</code>,
+          <code>gc_skew_delta</code>. Default window size is <code>500</code> bp; default
+          step is <code>10</code> bp.
+        </p>
+
+        <h3>find_dnaa_boxes</h3>
+        <p>
+          Search a sequence for DnaA box occurrences using the consensus motif
+          <code>TTATCCACA</code> (or species-specific variant) with configurable mismatch
+          tolerance. Returns a list of <code>{ start, end, strand, mismatches, match }</code>
+          records.
+        </p>
+        <p>
+          <strong>Signature:</strong>
+          <code>oric.find_dnaa_boxes(seq, max_mismatches?) &rarr; List&lt;Record&gt;</code>
+        </p>
+
+        <h3>gc_skew_profile</h3>
+        <p>
+          Compute the cumulative GC skew <em>(G&nbsp;&minus;&nbsp;C)&nbsp;/&nbsp;(G&nbsp;+&nbsp;C)</em>
+          across the full sequence in non-overlapping windows. Returns a table with columns
+          <code>position</code> and <code>skew</code>.
+        </p>
+        <p>
+          <strong>Signature:</strong>
+          <code>oric.gc_skew_profile(seq, window_size?) &rarr; Table</code>
+        </p>
+
+        <h3>find_skew_maximum</h3>
+        <p>
+          Return the position of the global GC skew maximum, which corresponds to the
+          <strong>terminus of replication</strong> (terC) in circular chromosomes.
+        </p>
+        <p>
+          <strong>Signature:</strong>
+          <code>oric.find_skew_maximum(skew_table) &rarr; Int</code>
+        </p>
+
+        <h3>find_skew_minimum</h3>
+        <p>
+          Return the position of the global GC skew minimum, which corresponds to the
+          <strong>origin of replication</strong> (oriC) in circular chromosomes.
+        </p>
+        <p>
+          <strong>Signature:</strong>
+          <code>oric.find_skew_minimum(skew_table) &rarr; Int</code>
+        </p>
+
+        <h3>scan_oric_table</h3>
+        <p>
+          Lower-level function that returns the full sliding-window scan table without
+          filtering or ranking. Useful when you want to apply custom scoring criteria or
+          visualize the raw signal across the entire chromosome.
+        </p>
+        <p>
+          <strong>Signature:</strong>
+          <code>oric.scan_oric_table(seq, window_size?, step?) &rarr; Table</code>
+        </p>
+
+        <h3>plot_skew</h3>
+        <p>
+          Render a GC skew chart from the output of <code>gc_skew_profile</code>. Overlays
+          predicted oriC candidates as vertical bands. Returns a chart value that can be
+          saved or displayed inline.
+        </p>
+        <p>
+          <strong>Signature:</strong>
+          <code>oric.plot_skew(skew_table, candidates?) &rarr; Chart</code>
+        </p>
+
+        <h2>Example 1: Quick oriC Prediction</h2>
+        <p>
+          Load an <em>E. coli</em> K-12 chromosome from a FASTA file, run the prediction,
+          and print the top candidate:
+        </p>
+        <pre><code class="language-biolang">import "oric" as oric
+
+# Load the genome
+let genome_record = fasta("ecoli_k12.fa") |> first()
+let genome = genome_record.seq
+println("Genome length:", seq_len(genome))
+
+# Predict oriC — default 500 bp window, 10 bp step
+let candidates = oric.predict_oric(genome)
+
+# Top result
+let top = candidates |> head(1)
+println("Predicted oriC:")
+println("  Start:      ", top.start)
+println("  End:        ", top.end)
+println("  Confidence: ", top.confidence, "/ 5")
+println("  DnaA boxes: ", top.dnaa_count)
+println("  Skew delta: ", top.gc_skew_delta)</code></pre>
+
+        <h2>Example 2: Full E. coli K-12 Pipeline</h2>
+        <p>
+          A complete analysis pipeline that computes the GC skew profile, locates the skew
+          minimum as an independent oriC estimate, finds DnaA boxes genome-wide, cross-checks
+          the two signals, and plots the result:
+        </p>
+        <pre><code class="language-biolang">import "oric" as oric
+
+let genome_record = fasta("ecoli_k12.fa") |> first()
+let genome = genome_record.seq
+
+# Step 1 — GC skew profile in 1 kb windows
+let skew = oric.gc_skew_profile(genome, 1000)
+
+# Step 2 — locate oriC and terC from skew extrema
+let oric_pos = oric.find_skew_minimum(skew)
+let terc_pos = oric.find_skew_maximum(skew)
+println("Skew-based oriC estimate: position", oric_pos)
+println("Skew-based terC estimate: position", terc_pos)
+
+# Step 3 — DnaA box search in a 2 kb window around the skew minimum
+let window_start = oric_pos - 1000
+let window_end   = oric_pos + 1000
+let region = subseq(genome, window_start, window_end)
+let boxes  = oric.find_dnaa_boxes(region, 1)   # allow 1 mismatch
+println("DnaA boxes found:", len(boxes))
+for box in boxes {
+  println("  pos", window_start + box.start, box.strand, "mismatches:", box.mismatches, box.match)
+}
+
+# Step 4 — full sliding-window scan for confidence scores
+let candidates = oric.predict_oric(genome, 500, 10)
+  |> filter(|r| r.confidence >= 3)
+  |> sort_by(|candidate| -candidate.confidence)
+
+println("High-confidence candidates:")
+candidates |> print()
+
+# Step 5 — plot the skew with oriC bands
+oric.plot_skew(skew, candidates) |> save_svg("ecoli_skew.svg")</code></pre>
+
+        <h2>Example 3: Comparing Multiple Replicons</h2>
+        <p>
+          Screen every sequence in a multi-FASTA file (e.g., a plasmid collection) for
+          potential oriC signatures:
+        </p>
+        <pre><code class="language-biolang">import "oric" as oric
+
+# Stream all records from a multi-FASTA
+let results = fasta("plasmids.fa")
+  |> map(|rec| {
+      let candidates = oric.predict_oric(rec.seq, 300, 5)
+      let best = candidates |> head(1)
+      {
+        name:       rec.id,
+        length:     seq_len(rec.seq),
+        oric_start: best.start,
+        confidence: best.confidence,
+        dnaa_count: best.dnaa_count,
+      }
+    })
+  |> to_table()
+
+results |> print()
+
+# Flag plasmids with a high-confidence oriC
+results
+  |> filter(|r| r.confidence >= 4)
+  |> map(|r| println(r.name, "— strong oriC signal at", r.oric_start))</code></pre>
+
+        <h2>Confidence Score Interpretation</h2>
+        <p>
+          Each candidate window is assigned a confidence score from 0 to 5 based on how
+          strongly both the GC skew and DnaA box signals agree:
+        </p>
+        <table class="w-full text-sm mb-4 mt-4">
+          <thead class="border-b border-slate-800 text-left">
+            <tr>
+              <th class="py-2 px-3">Score</th>
+              <th class="py-2 px-3">Interpretation</th>
+              <th class="py-2 px-3">Typical use</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2 px-3 font-mono text-slate-400">5</td>
+              <td class="py-2 px-3">Strong skew minimum <em>and</em> &ge;3 DnaA boxes within the window</td>
+              <td class="py-2 px-3">High confidence; likely the true oriC</td>
+            </tr>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2 px-3 font-mono text-slate-400">4</td>
+              <td class="py-2 px-3">Clear skew minimum and 1&ndash;2 DnaA boxes, or strong DnaA cluster near skew minimum</td>
+              <td class="py-2 px-3">Good candidate for experimental follow-up</td>
+            </tr>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2 px-3 font-mono text-slate-400">3</td>
+              <td class="py-2 px-3">Moderate skew signal or DnaA boxes present but signals only partially overlap</td>
+              <td class="py-2 px-3">Worth investigating; validate with additional evidence</td>
+            </tr>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2 px-3 font-mono text-slate-400">2</td>
+              <td class="py-2 px-3">Weak skew or DnaA boxes at 1 mismatch only; signals disagree</td>
+              <td class="py-2 px-3">Low confidence; may be noise or secondary site</td>
+            </tr>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2 px-3 font-mono text-slate-400">1</td>
+              <td class="py-2 px-3">Minimal skew contribution, no exact DnaA boxes</td>
+              <td class="py-2 px-3">Very unlikely to be a functional oriC</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono text-slate-400">0</td>
+              <td class="py-2 px-3">No significant signal from either method</td>
+              <td class="py-2 px-3">Discard</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 my-6">
+          <h4 class="text-amber-400 font-semibold mb-2">DnaA Box Variants Across Species</h4>
+          <p class="text-slate-400 text-sm mb-3">
+            The canonical DnaA box consensus <code class="text-violet-400">TTATCCACA</code> was
+            defined in <em>E. coli</em>. Many other bacterial species use divergent consensus
+            sequences. Notable examples:
+          </p>
+          <table class="text-sm text-slate-400 w-full">
+            <tr class="border-b border-slate-800">
+              <td class="py-2 pr-4 font-semibold text-slate-300">Organism</td>
+              <td class="py-2 font-semibold text-slate-300">DnaA box consensus</td>
+            </tr>
+            <tr class="border-b border-slate-800">
+              <td class="py-2 pr-4"><em>E. coli</em> / Enterobacteriaceae</td>
+              <td class="py-2 font-mono text-violet-400">TTATCCACA</td>
+            </tr>
+            <tr class="border-b border-slate-800">
+              <td class="py-2 pr-4"><em>Bacillus subtilis</em></td>
+              <td class="py-2 font-mono text-violet-400">TTATCCACA</td>
+            </tr>
+            <tr class="border-b border-slate-800">
+              <td class="py-2 pr-4"><em>Caulobacter crescentus</em></td>
+              <td class="py-2 font-mono text-violet-400">TTAACCCGA</td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4"><em>Helicobacter pylori</em></td>
+              <td class="py-2 font-mono text-violet-400">TTTTCCACA</td>
+            </tr>
+          </table>
+          <p class="text-slate-500 text-xs mt-3">
+            Pass <code>max_mismatches: 1</code> or <code>max_mismatches: 2</code> to
+            <code>find_dnaa_boxes</code> when working with organisms whose consensus diverges
+            from the <em>E. coli</em> reference. For fully custom motifs, use the core
+            <code>find_pattern</code> builtin directly.
+          </p>
+        </div>
+
+        <h2>Relation to Core Builtins</h2>
+        <p>
+          The <code>oric</code> package is implemented entirely on top of BioLang core builtins;
+          no native extensions are required. The key primitives it uses are:
+        </p>
+        <table class="w-full text-sm mb-4 mt-4">
+          <thead class="border-b border-slate-800 text-left">
+            <tr>
+              <th class="py-2 px-3">Builtin</th>
+              <th class="py-2 px-3">Used for</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2 px-3"><code class="text-cyan-400">find_pattern(seq, motif, max_mm)</code></td>
+              <td class="py-2 px-3">Locating DnaA box occurrences with mismatch tolerance on both strands</td>
+            </tr>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2 px-3"><code class="text-cyan-400">gc_skew(seq, window)</code></td>
+              <td class="py-2 px-3">Per-window (G&minus;C)/(G+C) values used to build the cumulative skew profile</td>
+            </tr>
+            <tr class="border-b border-slate-800/50">
+              <td class="py-2 px-3"><code class="text-cyan-400">base_counts(seq)</code></td>
+              <td class="py-2 px-3">G and C counts for exact skew arithmetic within each candidate window</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3"><code class="text-cyan-400">subseq(seq, start, end)</code></td>
+              <td class="py-2 px-3">Extracting candidate windows for focused DnaA box search and subsequence scoring</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          You can call these builtins directly if you need finer control over any step of the
+          analysis. See <a href="advanced.html" class="text-violet-400 hover:text-violet-300">Advanced
+          Sequence Analysis</a> for full documentation of <code>find_pattern</code>,
+          <code>gc_skew</code>, and related functions.
+        </p>
+      </article>
+      <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
+        <a href="index.html" class="text-violet-400 hover:text-violet-300">&larr; Bio Reference</a>
+        <a href="advanced.html" class="text-violet-400 hover:text-violet-300">Advanced Sequence Analysis &rarr;</a>
+      </nav>
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>

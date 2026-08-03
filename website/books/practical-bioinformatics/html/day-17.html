@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-02d32199.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -525,12 +525,22 @@ for group in ["hydrophobic", "polar", "negative", "positive"] {
 <p>Just as DNA k-mers reveal motifs and repeat patterns (Day 5), protein k-mers can identify sequence motifs and conserved patterns. Dipeptide and tripeptide frequencies are used in machine learning models that predict protein localization, solubility, and function.</p>
 <pre><code class="language-bio"># Protein k-mers reveal motifs and domain signatures
 let seq = protein"MEEPQSDPSVEPPLSQETFSDLWKLL"
-let trimers = kmers(seq, 3)
+fn protein_kmers(seq, k) {
+    let text = str(seq)
+    range(0, len(text) - k + 1) |&gt; map(|i| slice(text, i, i + k))
+}
+let trimers = protein_kmers(seq, 3)
 println(f"Protein 3-mers: {len(trimers)}")
 println(f"First 5 trimers: {trimers |&gt; take(5)}")
 
 # Count dipeptide frequencies
-let dipeptides = kmer_count(seq, 2)
+let dipeptide_words = protein_kmers(seq, 2)
+let dipeptides = unique(dipeptide_words)
+    |&gt; map(|word| {
+        kmer: word,
+        count: dipeptide_words |&gt; filter(|item| item == word) |&gt; len()
+    })
+    |&gt; sort_by(|row| -row.count)
 println(f"\nDipeptide counts (top 10):")
 println(dipeptides |&gt; head(10))
 </code></pre>
@@ -648,7 +658,8 @@ Impact: MODERATE
 <hr>
 <h2 id="complete-protein-analysis-pipeline"><a class="header" href="#complete-protein-analysis-pipeline">Complete Protein Analysis Pipeline</a></h2>
 <p>This pipeline brings together everything from this chapter: UniProt lookup, feature extraction, GO annotation, and PDB structure search. It produces a comprehensive report for any protein given its UniProt accession.</p>
-<pre><code class="language-bio"># Complete Protein Analysis Report
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Complete Protein Analysis Report
 # requires: internet connection
 
 fn protein_report(accession) {
@@ -889,9 +900,9 @@ PDB structures: 620
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

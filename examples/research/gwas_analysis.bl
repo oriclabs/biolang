@@ -87,10 +87,9 @@ let clump_window = 500000  # 500 kb window
 
 # gw_significant is already arranged by pvalue; convert to record list for clumping
 let sorted_hits = gw_significant |> to_records()
-let lead_snps = reduce(sorted_hits, |leads, snp|
-     if all(leads, |l| l.chrom != snp.chrom || abs(l.pos - snp.pos) > clump_window)
-     then leads + [snp]
-     else leads, [])
+let lead_snps = reduce(sorted_hits, |leads, snp| {
+  if all(leads, |l| l.chrom != snp.chrom || abs(l.pos - snp.pos) > clump_window) then leads + [snp] else leads
+}, [])
 
 println("Independent lead SNPs after clumping: " + str(len(lead_snps)))
 
@@ -119,13 +118,13 @@ let annotated = lead_snps
        let hits = query_overlaps(gene_tree, snp.chrom, snp.pos, snp.pos + 1)
        let nearest_gene = if len(hits) > 0 then hits[0].name else "intergenic"
        {rsid: snp.rsid, chrom: snp.chrom, pos: snp.pos, pvalue: snp.pvalue,
-        or: snp.or, beta: snp.beta, se: snp.se, nearest_gene: nearest_gene}
+        odds_ratio: snp["or"], beta: snp.beta, se: snp.se, nearest_gene: nearest_gene}
      })
 
 println("\nLead SNPs with gene annotations:")
 annotated |> each(|snp|
-  println(snp.rsid + "\t" + snp.chrom + "\t" + str(snp.pos) + "\t" +
-          str(snp.pvalue) + "\t" + str(snp.or) + "\t" + snp.nearest_gene))
+  println(format("{}\t{}\t{}\t{}\t{}\t{}", snp.rsid, snp.chrom, snp.pos,
+                 snp.pvalue, snp.odds_ratio, snp.nearest_gene)))
 
 # ── 7. Known T2D Loci Lookup ──
 println("=== Known T2D Loci Lookup ===")
@@ -168,9 +167,9 @@ println("=== Forest Plot of Effect Sizes ===")
 # Build forest plot data as a table with required columns
 let forest_data = annotated
   |> map(|row| {
-       let ci_lower = exp(log(row.or) - 1.96 * row.se)
-       let ci_upper = exp(log(row.or) + 1.96 * row.se)
-       {label: row.nearest_gene, estimate: row.or, lower: ci_lower, upper: ci_upper}
+       let ci_lower = exp(log(row.odds_ratio) - 1.96 * row.se)
+       let ci_upper = exp(log(row.odds_ratio) + 1.96 * row.se)
+       {label: row.nearest_gene, estimate: row.odds_ratio, lower: ci_lower, upper: ci_upper}
      })
   |> table()
 
@@ -201,7 +200,7 @@ let summary_stats = {
   top_rsid: top_hit.rsid,
   top_gene: top_hit.nearest_gene,
   top_pvalue: top_hit.pvalue,
-  top_or: top_hit.or,
+  top_or: top_hit.odds_ratio,
   lambda_gc: round(lambda_gc, 3)
 }
 

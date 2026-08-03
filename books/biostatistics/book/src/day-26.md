@@ -261,8 +261,9 @@ let ci_lower = [-60.3, -59.1, -62.5, -57.4, -61.2, -55.8]
 let ci_upper = [-44.3, -38.3, -47.7, -43.0, -46.4, -49.2]
 let weights = [24, 14, 28, 18, 16, 100]
 
-let forest_tbl = zip(studies, effects, ci_lower, ci_upper, weights) |> map(|r| {
-  study: r[0], estimate: r[1], ci_lower: r[2], ci_upper: r[3], weight: r[4]
+let forest_tbl = range(0, len(studies)) |> map(|i| {
+  study: studies[i], estimate: effects[i], ci_lower: ci_lower[i],
+  ci_upper: ci_upper[i], weight: weights[i]
 }) |> to_table()
 
 forest_plot(forest_tbl,
@@ -363,10 +364,7 @@ let effect_sizes = [-52.3, -48.7, -55.1, -50.2, -53.8]
 let standard_errors = [4.1, 5.3, 3.8, 3.7, 3.9]
 
 # Funnel plot: scatter of effect size vs SE
-scatter(effect_sizes, standard_errors,
-  {title: "Funnel Plot — Publication Bias Assessment",
-  xlabel: "LDL Reduction (mg/dL)",
-  ylabel: "Standard Error"})
+scatter(effect_sizes, standard_errors)
 ```
 
 > **Clinical relevance:** Publication bias is a serious concern in pharmaceutical research. A meta-analysis of published antidepressant trials found a pooled effect size of 0.37 (moderate). When unpublished trials obtained through FDA records were included, the effect dropped to 0.15 (small). Publication bias had inflated the apparent efficacy by more than double.
@@ -466,10 +464,7 @@ forest_plot(forest_tbl,
 # 5. Funnel plot
 # ============================================
 # Funnel plot: scatter of effect vs SE
-scatter(effects, se,
-  {title: "Funnel Plot — Publication Bias",
-  xlabel: "LDL Reduction (mg/dL)",
-  ylabel: "Standard Error"})
+scatter(effects, se)
 
 # ============================================
 # 6. Study-level summary

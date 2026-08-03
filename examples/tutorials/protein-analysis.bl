@@ -1,4 +1,5 @@
 # protein-analysis.bl — Protein Analysis
+# requires: network
 # Tutorial: https://lang.bio/docs/tutorials/protein-analysis.html
 #
 # Run with: bl run examples/tutorials/protein-analysis.bl
@@ -83,10 +84,12 @@ print(f"\nFeature types: {feature_types}")
 let go_terms = uniprot_go("P04637")
 print(f"\nGO terms: {len(go_terms)}")
 
-let mol_func = go_terms |> filter(|t| t.category == "molecular_function")
+# GO records carry `aspect` as a single letter: F molecular function,
+# P biological process, C cellular component.
+let mol_func = go_terms |> filter(|t| t.aspect == "F")
 print(f"Molecular functions: {len(mol_func)}")
 for mf in mol_func |> take(5) {
-  print(f"  {mf.id}: {mf.name}")
+  print(f"  {mf.id}: {mf.term}")
 }
 
 # ── 6. PDB Structure ─────────────────────────────────────────

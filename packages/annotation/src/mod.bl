@@ -1,0 +1,19 @@
+# annotation — Genomic annotation for BioLang
+#
+# Quick start:
+#   import "annotation" as ann
+#
+#   let gtf   = ann.load("gencode.v45.gtf")
+#   let genes = ann.genes(gtf)
+#   let proms = ann.promoters(gtf, up=2000, down=200)
+#   ann.annotate(peaks, gtf)
+#   ann.overlap(chipseq_peaks, atac_peaks)
+
+import "annotation/src/gtf" as gtf_mod
+
+fn load(path)                          { gtf_mod.load(path) }
+fn genes(gtf)                          { gtf_mod.genes(gtf) }
+fn promoters(gtf, up=2000, down=200)   { gtf_mod.promoters(gtf, up, down) }
+fn id_map(gtf)                         { gtf_mod.id_map(gtf) }
+fn overlap(query, subject)             { interval_overlap(query, subject) }
+fn annotate(peaks, gtf)                { annotate_peaks(peaks, gtf) }

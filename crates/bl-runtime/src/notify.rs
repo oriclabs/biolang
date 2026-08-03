@@ -65,7 +65,7 @@ fn post_json(url: &str, body: &str) -> Result<String> {
         })?;
     let status = resp.status();
     let text = resp.into_string().unwrap_or_default();
-    if status >= 200 && status < 300 {
+    if (200..300).contains(&status) {
         Ok(text)
     } else {
         // Single retry
@@ -81,7 +81,7 @@ fn post_json(url: &str, body: &str) -> Result<String> {
                 )
             })?;
         let status2 = resp2.status();
-        if status2 >= 200 && status2 < 300 {
+        if (200..300).contains(&status2) {
             Ok(resp2.into_string().unwrap_or_default())
         } else {
             Err(BioLangError::runtime(
@@ -117,7 +117,7 @@ fn format_record_message(map: &HashMap<String, Value>) -> String {
     }
     // Append any "fields" record
     if let Some(Value::Record(fields)) = map.get("fields") {
-        for (k, v) in fields {
+        for (k, v) in fields.iter() {
             parts.push(format!("{k}: {v}"));
         }
     }
@@ -158,7 +158,7 @@ fn slack_payload(val: &Value, webhook: Option<&str>) -> Result<(String, String)>
                 fields_md.push(msg.clone());
             }
             if let Some(Value::Record(fields)) = map.get("fields") {
-                for (k, v) in fields {
+                for (k, v) in fields.iter() {
                     fields_md.push(format!("*{k}:* {v}"));
                 }
             }
@@ -216,15 +216,12 @@ fn teams_payload(val: &Value, webhook: Option<&str>) -> Result<(String, String)>
 
     let body = match val {
         Value::Record(map) => {
-            let title = map
-                .get("title")
-                .map(|v| format!("{v}"))
-                .unwrap_or_default();
+            let title = map.get("title").map(|v| format!("{v}")).unwrap_or_default();
             let text = extract_message(val);
 
             let mut facts = Vec::new();
             if let Some(Value::Record(fields)) = map.get("fields") {
-                for (k, v) in fields {
+                for (k, v) in fields.iter() {
                     facts.push(serde_json::json!({"name": k, "value": format!("{v}")}));
                 }
             }
@@ -341,9 +338,8 @@ fn builtin_telegram(args: Vec<Value>) -> Result<Value> {
 
     // Telegram supports Markdown formatting
     let parse_mode = "Markdown";
-    let body =
-        serde_json::json!({"chat_id": chat_id, "text": message, "parse_mode": parse_mode})
-            .to_string();
+    let body = serde_json::json!({"chat_id": chat_id, "text": message, "parse_mode": parse_mode})
+        .to_string();
 
     post_json(&url, &body)?;
     Ok(Value::Nil)
@@ -359,14 +355,11 @@ fn discord_payload(val: &Value, webhook: Option<&str>) -> Result<(String, String
 
     let body = match val {
         Value::Record(map) => {
-            let title = map
-                .get("title")
-                .map(|v| format!("{v}"))
-                .unwrap_or_default();
+            let title = map.get("title").map(|v| format!("{v}")).unwrap_or_default();
 
             let mut fields = Vec::new();
             if let Some(Value::Record(flds)) = map.get("fields") {
-                for (k, v) in flds {
+                for (k, v) in flds.iter() {
                     fields.push(serde_json::json!({
                         "name": k,
                         "value": format!("{v}"),
@@ -464,10 +457,16 @@ fn builtin_email(args: Vec<Value>) -> Result<Value> {
     use std::net::TcpStream;
 
     let tcp = TcpStream::connect(format!("{smtp_host}:{smtp_port}")).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("SMTP connection failed: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("SMTP connection failed: {e}"),
+            None,
+        )
     })?;
-    tcp.set_read_timeout(Some(std::time::Duration::from_secs(15))).ok();
-    tcp.set_write_timeout(Some(std::time::Duration::from_secs(15))).ok();
+    tcp.set_read_timeout(Some(std::time::Duration::from_secs(15)))
+        .ok();
+    tcp.set_write_timeout(Some(std::time::Duration::from_secs(15)))
+        .ok();
 
     let mut reader = BufReader::new(tcp.try_clone().unwrap());
     let mut writer = tcp;
@@ -485,11 +484,21 @@ fn builtin_email(args: Vec<Value>) -> Result<Value> {
     }
 
     smtp_send(&mut writer, &mut reader, "AUTH LOGIN")?;
-    smtp_send(&mut writer, &mut reader, &base64_encode(smtp_user.as_bytes()))?;
-    let auth_reply = smtp_send(&mut writer, &mut reader, &base64_encode(smtp_pass.as_bytes()))?;
+    smtp_send(
+        &mut writer,
+        &mut reader,
+        &base64_encode(smtp_user.as_bytes()),
+    )?;
+    let auth_reply = smtp_send(
+        &mut writer,
+        &mut reader,
+        &base64_encode(smtp_pass.as_bytes()),
+    )?;
     if !auth_reply.starts_with('2') {
         return Err(BioLangError::runtime(
-            ErrorKind::IOError, format!("SMTP auth failed: {auth_reply}"), None,
+            ErrorKind::IOError,
+            format!("SMTP auth failed: {auth_reply}"),
+            None,
         ));
     }
 
@@ -503,7 +512,9 @@ fn builtin_email(args: Vec<Value>) -> Result<Value> {
     let reply = smtp_send(&mut writer, &mut reader, &msg)?;
     if !reply.starts_with('2') {
         return Err(BioLangError::runtime(
-            ErrorKind::IOError, format!("SMTP send failed: {reply}"), None,
+            ErrorKind::IOError,
+            format!("SMTP send failed: {reply}"),
+            None,
         ));
     }
 

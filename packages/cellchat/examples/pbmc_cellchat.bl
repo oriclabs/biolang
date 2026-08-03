@@ -1,0 +1,42 @@
+# Cell-cell communication in PBMC3k
+# Shows the full pipeline from raw 10x data to ranked intercellular signals.
+
+import "singlecell" as sc
+import "cellchat"   as cc
+
+# ── Build a clustered singlecell object ───────────────────────────────────────
+let obj = sc.load("data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+  |> sc.filter_cells(min_genes = 200, max_pct_mito = 20.0)
+  |> sc.normalize
+  |> sc.variable_genes(2000)
+  |> sc.neighbors(15)
+  |> sc.cluster
+
+# ── Score all default ligand-receptor pairs ───────────────────────────────────
+let scores = cc.score(obj)
+
+# ── Top interactions across all cluster pairs ─────────────────────────────────
+cc.top(scores, 20)
+
+# ── Which clusters send the most signal? ─────────────────────────────────────
+cc.senders(scores)
+
+# ── Which clusters receive the most signal? ──────────────────────────────────
+cc.receivers(scores)
+
+# ── What is cluster "0" sending to cluster "1"? ──────────────────────────────
+cc.between(scores, "0", "1")
+
+# ── Aggregate to pathway level ────────────────────────────────────────────────
+let pathway_scores = cc.pathways(scores)
+pathway_scores |> take(10)
+
+# ── Custom: score only immune-checkpoint pairs ────────────────────────────────
+let checkpoint_pairs = [
+  ["CD274",  "PDCD1",  "PD-L1/PD-1"],
+  ["CD80",   "CTLA4",  "CD28"],
+  ["CD86",   "CTLA4",  "CD28"],
+  ["CD80",   "CD28",   "CD28"],
+]
+let checkpoint_scores = cc.score_pairs(obj, checkpoint_pairs)
+cc.top(checkpoint_scores)

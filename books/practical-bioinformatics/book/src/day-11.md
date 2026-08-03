@@ -173,7 +173,7 @@ dotplot(seq1, seq2)
 The `dotplot()` function generates an SVG visualization. You can customize it:
 
 ```bio
-dotplot(seq1, seq2, window: 3, title: "Pairwise comparison")
+dotplot(seq1, seq2, {window: 3, title: "Pairwise comparison"})
 ```
 
 The `window` parameter sets the match window size. A window of 1 shows every single-base match (noisy). A window of 3 or larger filters out random matches, leaving only meaningful stretches of similarity.
@@ -184,7 +184,7 @@ Comparing a sequence against itself is a powerful way to find internal repeats. 
 
 ```bio
 let repeat_seq = dna"ATCGATCGATCGATCG"
-dotplot(repeat_seq, repeat_seq, window: 3, title: "Self-comparison: internal repeats")
+dotplot(repeat_seq, repeat_seq, {window: 3, title: "Self-comparison: internal repeats"})
 ```
 
 The main diagonal (where the sequence matches itself perfectly) will always be present. Parallel lines above or below the diagonal indicate tandem repeats.

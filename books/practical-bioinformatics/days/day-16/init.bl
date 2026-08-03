@@ -44,7 +44,7 @@ for i in range(0, len(gmt_lines)) {
         gmt_content = gmt_content + "\n" + gmt_lines[i]
     }
 }
-write(gmt_content, "data/hallmark.gmt")
+write_text("data/hallmark.gmt", gmt_content)
 print("  Created data/hallmark.gmt (10 real MSigDB Hallmark gene sets)")
 
 # ── DE results: LPS-stimulated macrophages (4h) vs unstimulated ──────
@@ -114,7 +114,7 @@ let content = header
 for row in rows {
     content = content + "\n" + row
 }
-write(content, "data/de_results.csv")
+write_text("data/de_results.csv", content)
 print("  Created data/de_results.csv (50 genes, LPS-stimulated macrophages)")
 
 # ── Ranked genes: score = -log10(pvalue) * sign(log2FC) ──────────────
@@ -181,7 +181,7 @@ let ranked_content = ranked_header
 for row in ranked_rows {
     ranked_content = ranked_content + "\n" + row
 }
-write(ranked_content, "data/ranked_genes.csv")
+write_text("data/ranked_genes.csv", ranked_content)
 print("  Created data/ranked_genes.csv (50 genes, ranked by -log10(p)*sign(FC))")
 
 print("\nSetup complete. Run: bl scripts/enrichment.bl")

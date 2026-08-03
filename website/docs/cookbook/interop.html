@@ -32,8 +32,8 @@
         <h3>Running a Python script</h3>
         <pre><code class="language-biolang"># Run a Python script and capture output
 let result = shell("python3 analyze.py --input data.csv")
-print("Exit code: #{result.exit_code}")
-print("Output: #{result.stdout}")</code></pre>
+print(f"Exit code: {result.exit_code}")
+print(f"Output: {result.stdout}")</code></pre>
 
         <h3>Inline Python with data exchange</h3>
         <pre><code class="language-biolang"># Prepare data in BioLang, process in Python, read results back
@@ -45,36 +45,36 @@ write_tsv(metadata, "_temp_metadata.tsv")
 
 # Run DESeq2-like analysis via Python
 # Write Python script to a temp file and run it
-let py_script = "
-import pandas as pd
-from pydeseq2.dds import DeseqDataSet
-from pydeseq2.ds import DeseqStats
-
-counts = pd.read_csv('_temp_counts.tsv', sep='\\t', index_col=0)
-metadata = pd.read_csv('_temp_metadata.tsv', sep='\\t', index_col=0)
-
-dds = DeseqDataSet(counts=counts, metadata=metadata, design_factors='condition')
-dds.deseq2()
-
-stat_res = DeseqStats(dds, contrast=['condition', 'treated', 'control'])
-stat_res.summary()
-stat_res.results_df.to_csv('_temp_deseq_results.tsv', sep='\\t')
-"
-write_text(py_script, "_temp_deseq.py")
+let py_script = join([
+  "import pandas as pd",
+  "from pydeseq2.dds import DeseqDataSet",
+  "from pydeseq2.ds import DeseqStats",
+  "",
+  "counts = pd.read_csv('_temp_counts.tsv', sep='\\\\t', index_col=0)",
+  "metadata = pd.read_csv('_temp_metadata.tsv', sep='\\\\t', index_col=0)",
+  "",
+  "dds = DeseqDataSet(counts=counts, metadata=metadata, design_factors='condition')",
+  "dds.deseq2()",
+  "",
+  "stat_res = DeseqStats(dds, contrast=['condition', 'treated', 'control'])",
+  "stat_res.summary()",
+  "stat_res.results_df.to_csv('_temp_deseq_results.tsv', sep='\\\\t')"
+], "\n")
+write_text("_temp_deseq.py", py_script)
 let result = shell("python3 _temp_deseq.py")
 
 if result.exit_code != 0 {
-  print("Python error: #{result.stderr}")
+  print(f"Python error: {result.stderr}")
   exit(1)
 }
 
 # Read results back into BioLang
 let de_results = tsv("_temp_deseq_results.tsv")
 let significant = de_results
-  |> filter(|r| float(r["padj"]) < 0.05)
+  |> filter(|r| float(r["padj"]) &lt; 0.05)
   |> filter(|r| abs(float(r["log2FoldChange"])) > 1.0)
 
-print("Significant DE genes: #{len(significant)}")
+print(f"Significant DE genes: {len(significant)}")
 write_tsv(significant, "significant_genes.tsv")
 
 # Clean up temp files
@@ -97,9 +97,9 @@ let result = shell("python3 normalize.py --params _params.json")
 
 if result.exit_code == 0 {
   let output = read_json("_params_result.json")
-  print("Normalized #{output["n_genes"]} genes across #{output["n_samples"]} samples")
+  print(f"Normalized {output.n_genes} genes across {output.n_samples} samples")
 } else {
-  print("Normalization failed: #{result.stderr}")
+  print(f"Normalization failed: {result.stderr}")
 }</code></pre>
 
         <h2>Calling R</h2>
@@ -109,40 +109,40 @@ if result.exit_code == 0 {
 let result = shell("Rscript analysis.R input.csv output.csv")
 
 if result.exit_code != 0 {
-  print("R error: #{result.stderr}")
+  print(f"R error: {result.stderr}")
   exit(1)
 }
 
 let output = read_csv("output.csv")
-print("R analysis produced #{len(output)} results")</code></pre>
+print(f"R analysis produced {len(output)} results")</code></pre>
 
         <h3>Inline R for DESeq2</h3>
         <pre><code class="language-biolang"># Prepare count matrix and run DESeq2 in R
 let counts = read_csv("data/counts.csv")
 write_csv(counts, "_deseq_input.csv")
 
-let r_script = "
-library(DESeq2)
+let r_script = join([
+  "library(DESeq2)",
+  "",
+  "counts &lt;- read.csv('_deseq_input.csv', row.names=1)",
+  "coldata &lt;- data.frame(",
+  "  condition = factor(c(rep('control', 3), rep('treated', 3)))",
+  ")",
+  "",
+  "dds &lt;- DESeqDataSetFromMatrix(countData=counts, colData=coldata, design=~condition)",
+  "dds &lt;- DESeq(dds)",
+  "res &lt;- results(dds, contrast=c('condition', 'treated', 'control'))",
+  "",
+  "write.csv(as.data.frame(res), '_deseq_output.csv')"
+], "\n")
 
-counts <- read.csv('_deseq_input.csv', row.names=1)
-coldata <- data.frame(
-  condition = factor(c(rep('control', 3), rep('treated', 3)))
-)
-
-dds <- DESeqDataSetFromMatrix(countData=counts, colData=coldata, design=~condition)
-dds <- DESeq(dds)
-res <- results(dds, contrast=c('condition', 'treated', 'control'))
-
-write.csv(as.data.frame(res), '_deseq_output.csv')
-"
-
-write_text(r_script, "_deseq.R")
+write_text("_deseq.R", r_script)
 let result = shell("Rscript _deseq.R")
 
 if result.exit_code == 0 {
   let de = read_csv("_deseq_output.csv")
-  let sig = de |> filter(|r| float(r["padj"]) < 0.05)
-  print("DESeq2 found #{len(sig)} significant genes")
+  let sig = de |> filter(|r| float(r["padj"]) &lt; 0.05)
+  print(f"DESeq2 found {len(sig)} significant genes")
   write_csv(sig, "deseq2_significant.csv")
 }
 
@@ -155,21 +155,21 @@ remove("_deseq_output.csv")</code></pre>
 let data = tsv("pca_coordinates.tsv")
 write_tsv(data, "_plot_data.tsv")
 
-let r_plot = '
-library(ggplot2)
+let r_plot = join([
+  "library(ggplot2)",
+  "",
+  "data &lt;- read.delim(\"_plot_data.tsv\")",
+  "p &lt;- ggplot(data, aes(x=pc1, y=pc2, color=population)) +",
+  "  geom_point(size=2, alpha=0.7) +",
+  "  theme_minimal() +",
+  "  labs(x=\"PC1\", y=\"PC2\", title=\"Population Structure\") +",
+  "  scale_color_brewer(palette=\"Set2\")",
+  "",
+  "ggsave(\"pca_plot.png\", p, width=8, height=6, dpi=300)",
+  "cat(\"Plot saved\")"
+], "\n")
 
-data <- read.delim("_plot_data.tsv")
-p <- ggplot(data, aes(x=pc1, y=pc2, color=population)) +
-  geom_point(size=2, alpha=0.7) +
-  theme_minimal() +
-  labs(x="PC1", y="PC2", title="Population Structure") +
-  scale_color_brewer(palette="Set2")
-
-ggsave("pca_plot.png", p, width=8, height=6, dpi=300)
-cat("Plot saved")
-'
-
-write_text(r_plot, "_plot.R")
+write_text("_plot.R", r_plot)
 shell("Rscript _plot.R")
 print("PCA plot saved to pca_plot.png")
 remove("_plot.R")
@@ -206,7 +206,7 @@ let obs = read_csv("obs.csv")
 
 # Do something in BioLang
 let cluster_sizes = frequencies(map(obs, |row| row["leiden"]))
-print("Cluster sizes: #{to_string(cluster_sizes)}")
+print(f"Cluster sizes: {to_string(cluster_sizes)}")
 
 # Compute custom scores
 let scores = map(obs, |cell| {
@@ -227,7 +227,7 @@ write_tsv(data, "data.tsv")
 
 # Read TSV back
 let loaded = tsv("data.tsv")
-print("Loaded #{len(loaded)} rows from TSV")</code></pre>
+print(f"Loaded {len(loaded)} rows from TSV")</code></pre>
 
         <h2>Best Practices</h2>
 
@@ -237,16 +237,16 @@ let tmp = "_tmp_interop"
 mkdir(tmp)
 
 try {
-  let input_path = "#{tmp}/input.tsv"
-  let output_path = "#{tmp}/output.tsv"
+  let input_path = f"{tmp}/input.tsv"
+  let output_path = f"{tmp}/output.tsv"
 
   write_tsv(data, input_path)
-  shell("python3 process.py #{input_path} #{output_path}")
+  shell(f"python3 process.py {input_path} {output_path}")
 
   let result = tsv(output_path)
   write_tsv(result, "final_output.tsv")
 } catch e {
-  print("Error: #{to_string(e)}")
+  print(f"Error: {to_string(e)}")
 }
 
 # Clean up

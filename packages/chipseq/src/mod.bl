@@ -1,0 +1,31 @@
+# chipseq — ChIP-seq and ATAC-seq analysis for BioLang
+#
+# Peak set operations (merge, consensus, annotation), QC (FRiP, TSS enrichment),
+# and differential peak analysis.
+#
+# Quick start:
+#   import "chipseq" as cs
+#
+#   let peaks = cs.load_narrowpeak("results/peaks.narrowPeak")
+#   cs.qc_report(peaks, reads_in_peaks=45000, total_reads=20000000)
+#   let merged = cs.merge(peaks)
+#   let cons = cs.consensus([sample1_peaks, sample2_peaks, sample3_peaks], min_samples=2)
+#   cs.annotate(cons, genes_table)
+
+import "chipseq/src/peaks" as peaks
+import "chipseq/src/qc"    as qc
+
+fn load_bed(path)                                  { peaks.load_bed(path) }
+fn load_narrowpeak(path)                           { peaks.load_narrowpeak(path) }
+fn merge(table)                                    { peaks.merge(table) }
+fn consensus(peak_list, min_samples=2)             { peaks.consensus(peak_list, min_samples) }
+fn annotate(peaks_table, genes)                    { peaks.annotate(peaks_table, genes) }
+fn n_peaks(table)                                  { peaks.n_peaks(table) }
+fn filter_blacklist(peaks_table, bl)               { peaks.filter_blacklist(peaks_table, bl) }
+fn frip(reads_in_peaks, total_reads)               { qc.frip(reads_in_peaks, total_reads) }
+fn tss_score(signal, flank=1000)                   { qc.tss_score(signal, flank) }
+fn peak_sizes(table)                               { qc.peak_size_distribution(table) }
+fn mean_peak_size(table)                           { qc.mean_peak_size(table) }
+fn qc_report(peaks_table, reads_in_peaks, total_reads) {
+  qc.qc_report(peaks_table, reads_in_peaks, total_reads)
+}

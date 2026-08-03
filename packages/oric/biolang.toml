@@ -1,0 +1,18 @@
+[package]
+name = "oric"
+version = "0.1.0"
+description = "Origin of replication prediction for bacterial genomes"
+authors = ["BioLang Contributors"]
+license = "MIT"
+keywords = ["oric", "replication", "dnaa", "gc-skew", "microbiology"]
+categories = ["bioinformatics", "genomics"]
+homepage = "https://biolang.dev/docs/bio/oric"
+repository = "https://github.com/biolang/packages/oric"
+readme = "README.md"
+
+[dependencies]
+# No external dependencies — uses BioLang core builtins only:
+#   find_pattern, gc_skew, base_counts, subseq, seq_len
+
+[lib]
+entry = "src/mod.bl"

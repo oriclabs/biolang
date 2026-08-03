@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
@@ -192,7 +192,7 @@
 <tbody>
 <tr><td><code>mean(x)</code></td><td>Arithmetic mean</td><td><code>mean([2, 4, 6])</code> → <code>4.0</code></td></tr>
 <tr><td><code>median(x)</code></td><td>Middle value</td><td><code>median([1, 3, 7])</code> → <code>3.0</code></td></tr>
-<tr><td><code>sd(x)</code></td><td>Sample standard deviation</td><td><code>sd([2, 4, 6])</code> → <code>2.0</code></td></tr>
+<tr><td><code>stdev(x)</code></td><td>Sample standard deviation</td><td><code>stdev([2, 4, 6])</code> → <code>2.0</code></td></tr>
 <tr><td><code>var(x)</code></td><td>Sample variance</td><td><code>var([2, 4, 6])</code> → <code>4.0</code></td></tr>
 <tr><td><code>min(x)</code></td><td>Minimum value</td><td><code>min([3, 1, 4])</code> → <code>1</code></td></tr>
 <tr><td><code>max(x)</code></td><td>Maximum value</td><td><code>max([3, 1, 4])</code> → <code>4</code></td></tr>
@@ -318,16 +318,20 @@ rhyper(100, 200, 19800, 500)
 </div>
 <blockquote>
 <p><strong>Post-hoc comparisons:</strong> Follow a significant ANOVA with pairwise tests and p-value correction:</p>
-<pre><code class="language-bio"># Pairwise t-tests with Bonferroni correction
-let pvals = []
+<pre><code class="language-text"></code></pre>
+</blockquote>
+<h1 id="conceptual-or-diagnostic-example-not-directly-executable"><a class="header" href="#conceptual-or-diagnostic-example-not-directly-executable">Conceptual or diagnostic example; not directly executable.</a></h1>
+<blockquote>
+<h1 id="pairwise-t-tests-with-bonferroni-correction"><a class="header" href="#pairwise-t-tests-with-bonferroni-correction">Pairwise t-tests with Bonferroni correction</a></h1>
+<p>let pvals = []
 for i in 0..len(groups) {
-  for j in (i+1)..len(groups) {
-    let result = ttest(groups[i], groups[j])
-    pvals = pvals + [result.p_value]
-  }
+for j in (i+1)..len(groups) {
+let result = ttest(groups[i], groups[j])
+pvals = pvals + [result.p_value]
 }
-let adjusted = p_adjust(pvals, "bonferroni")
-</code></pre>
+}
+let adjusted = p_adjust(pvals, “bonferroni”)</p>
+<pre><code></code></pre>
 </blockquote>
 <h3 id="categorical-data"><a class="header" href="#categorical-data">Categorical Data</a></h3>
 <div class="table-wrapper">
@@ -343,12 +347,15 @@ let adjusted = p_adjust(pvals, "bonferroni")
 </div>
 <blockquote>
 <p><strong>Effect sizes for categorical data</strong> are computed inline:</p>
-<pre><code class="language-bio"># Odds ratio
-let or = (a * d) / (b * c)
-
-# Relative risk
-let rr = (a / (a + b)) / (c / (c + d))
-</code></pre>
+<pre><code class="language-text"></code></pre>
+</blockquote>
+<h1 id="conceptual-or-diagnostic-example-not-directly-executable-1"><a class="header" href="#conceptual-or-diagnostic-example-not-directly-executable-1">Conceptual or diagnostic example; not directly executable.</a></h1>
+<blockquote>
+<h1 id="odds-ratio"><a class="header" href="#odds-ratio">Odds ratio</a></h1>
+<p>let or = (a * d) / (b * c)</p>
+<h1 id="relative-risk"><a class="header" href="#relative-risk">Relative risk</a></h1>
+<p>let rr = (a / (a + b)) / (c / (c + d))</p>
+<pre><code></code></pre>
 </blockquote>
 <h2 id="correlation"><a class="header" href="#correlation">Correlation</a></h2>
 <div class="table-wrapper">
@@ -370,18 +377,21 @@ let rr = (a / (a + b)) / (c / (c + d))
 <tr><th>Function</th><th>Description</th><th>Example</th></tr>
 </thead>
 <tbody>
-<tr><td><code>lm(y, x)</code></td><td>Simple linear regression</td><td><code>lm(expression, age)</code></td></tr>
-<tr><td><code>lm(y, [x1, x2, ...])</code></td><td>Multiple linear regression</td><td><code>lm(expression, [age, sex, batch])</code></td></tr>
-<tr><td><code>glm(formula, table, family)</code></td><td>Generalized linear model</td><td><code>glm("y ~ x", data, "binomial")</code></td></tr>
+<tr><td><code>lm(x, y)</code></td><td>Simple linear regression</td><td><code>lm(age, expression)</code></td></tr>
+<tr><td><code>lm(formula, table)</code></td><td>Multiple linear regression</td><td><code>lm(~expression ~ age + sex + batch, data)</code></td></tr>
+<tr><td><code>glm(formula, table, family?)</code></td><td>Generalized linear model</td><td><code>glm(~outcome ~ age + marker, data, "binomial")</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>Supported GLM families: <code>"binomial"</code> (logistic), <code>"poisson"</code>, <code>"negbin"</code> (negative binomial).</p>
+<p>Supported GLM families: <code>"binomial"</code> (or <code>"logistic"</code>), <code>"gaussian"</code> (or <code>"linear"</code>), and <code>"poisson"</code>.</p>
 <p>Access model results:</p>
-<pre><code class="language-bio">let model = lm(expression, [age, sex, batch])
+<pre><code class="language-bio">let age = [34, 41, 52, 59, 63, 70]
+let expression = [8.1, 8.8, 9.4, 10.2, 10.6, 11.1]
+let model = lm(age, expression)
 print("R-squared: " + str(round(model.r_squared, 3)))
-let residuals = model.residuals
-qq_plot(residuals, {title: "Residual Normality Check"})
+let residuals = range(0, len(age))
+  |&gt; map(|i| expression[i] - (model.intercept + model.slope * age[i]))
+histogram(residuals, {title: "Residual Distribution"})
 </code></pre>
 <h2 id="multiple-testing-correction"><a class="header" href="#multiple-testing-correction">Multiple Testing Correction</a></h2>
 <div class="table-wrapper">
@@ -416,14 +426,17 @@ print("Significant genes (FDR &lt; 0.05): " + str(sig_count))
 </table>
 </div>
 <pre><code class="language-bio"># PCA then clustering
+let expr_matrix = [
+  [8.2, 7.9, 3.1, 2.8],
+  [8.6, 8.1, 3.4, 3.0],
+  [3.0, 3.3, 8.4, 8.0],
+  [2.7, 3.0, 8.8, 8.2]
+]
 let result = pca(expr_matrix)
-pca_plot(result, {title: "Sample PCA"})
+pca_plot(matrix(expr_matrix), {title: "Sample PCA"})
 
-# Estimate optimal k via silhouette
-let scores = range(2, 10) |&gt; map(|k| {
-  let km = kmeans(data, k)
-  km.silhouette
-})
+# Cluster the same samples into two groups
+let clusters = kmeans(expr_matrix, 2)
 </code></pre>
 <h2 id="statistical-visualization"><a class="header" href="#statistical-visualization">Statistical Visualization</a></h2>
 <h3 id="svg-plots-file-output"><a class="header" href="#svg-plots-file-output">SVG Plots (file output)</a></h3>
@@ -454,9 +467,9 @@ let scores = range(2, 10) |&gt; map(|k| {
 <tr><th>Function</th><th>Description</th><th>Example</th></tr>
 </thead>
 <tbody>
-<tr><td><code>scatter(x, y, options)</code></td><td>ASCII scatter plot</td><td><code>scatter(age, expr, {xlabel: "Age", ylabel: "Expr"})</code></td></tr>
+<tr><td><code>scatter(x, y)</code></td><td>ASCII scatter plot</td><td><code>scatter(age, expression)</code></td></tr>
 <tr><td><code>boxplot(data, options)</code></td><td>ASCII box plot</td><td><code>boxplot(table({"Ctrl": g1, "Treat": g2}), {title: "Comparison"})</code></td></tr>
-<tr><td><code>bar_chart(labels, values, options)</code></td><td>ASCII bar chart</td><td><code>bar_chart(names, counts, {title: "Counts"})</code></td></tr>
+<tr><td><code>bar_chart(data, options?)</code></td><td>ASCII bar chart from a record or table</td><td><code>bar_chart(count_table, {label: "group", value: "count"})</code></td></tr>
 <tr><td><code>sparkline(data)</code></td><td>Inline sparkline</td><td><code>sparkline(timeseries)</code></td></tr>
 <tr><td><code>hist(data, options)</code></td><td>ASCII histogram</td><td><code>hist(data, {bins: 20})</code></td></tr>
 </tbody>
@@ -546,14 +559,15 @@ print("95% CI: [" + str(round(ci_lo, 3)) + ", " + str(round(ci_hi, 3)) + "]")
 # Prior: N(mu0, sigma0^2); Data: n observations with mean x_bar and known sigma
 let prior_mu = 0.0
 let prior_prec = 1.0 / (10.0 ** 2)   # prior precision = 1/sigma0^2
-let data_prec = len(data) / (sd(data) ** 2)
+let data_prec = len(data) / (stdev(data) ** 2)
 let post_prec = prior_prec + data_prec
 let post_mu = (prior_prec * prior_mu + data_prec * mean(data)) / post_prec
 let post_sd = sqrt(1.0 / post_prec)
 </code></pre>
 <h2 id="survival-analysis"><a class="header" href="#survival-analysis">Survival Analysis</a></h2>
 <p>BioLang provides basic building blocks for survival analysis. For simple comparisons:</p>
-<pre><code class="language-bio"># Compare survival times between two groups
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Compare survival times between two groups
 let result = ttest(arm1_times, arm2_times)
 print("p-value: " + str(round(result.p_value, 4)))
 
@@ -566,7 +580,7 @@ print("Median survival — Arm A: " + str(med_a) + ", Arm B: " + str(med_b))
 let hr = med_b / med_a
 
 # Regression on survival times
-let model = lm(survival_time, [age, stage, treatment])
+let model = lm(~survival_time ~ age + stage + treatment, patient_data)
 </code></pre>
 
                     </main>
@@ -615,7 +629,7 @@ let model = lm(survival_time, [age, stage, treatment])
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

@@ -1,0 +1,18 @@
+# Load count data from common RNA-seq quantification tools.
+
+fn from_salmon(sf_path) {
+  read_text(sf_path) |> parse_salmon
+}
+
+fn from_salmon_dir(dir_path) {
+  # TODO: directory listing not yet in BioLang — load samples individually
+  read_text(dir_path + "/quant.sf") |> parse_salmon
+}
+
+fn from_featurecounts(counts_path) {
+  read_text(counts_path) |> parse_featurecounts
+}
+
+fn from_csv(csv_path) {
+  read_csv(csv_path)
+}

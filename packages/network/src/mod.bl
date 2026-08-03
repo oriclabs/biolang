@@ -1,0 +1,24 @@
+# network — Biological network analysis for BioLang
+#
+# Quick start:
+#   import "network" as net
+#
+#   let ppi = net.load_string("data/string_interactions.tsv") |> net.filter_score(0.7)
+#   net.hub_genes(ppi, 20)
+#   net.betweenness(ppi)
+#   net.path(ppi, "TP53", "BRCA1")
+
+import "network/src/ppi"      as ppi
+import "network/src/analysis" as ana
+
+fn load_string(path)                { ppi.load_string(path) }
+fn load_csv(path)                   { ppi.load_csv(path) }
+fn filter_score(net, min=0.4)       { ppi.filter_score(net, min) }
+fn subnetwork(net, genes)           { ppi.subnetwork(net, genes) }
+fn degree(edges)                    { ana.degree(edges) }
+fn betweenness(edges)               { ana.betweenness(edges) }
+fn path(edges, src, tgt)            { ana.path(edges, src, tgt) }
+fn components(edges)                { ana.components(edges) }
+fn hub_genes(edges, n=20)           { ana.hub_genes(edges, n) }
+fn largest_component(edges)         { ana.largest_component(edges) }
+fn enrichment(gene_list, edges, bg) { network_enrichment(gene_list, edges, bg) }

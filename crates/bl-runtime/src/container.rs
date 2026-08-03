@@ -126,7 +126,7 @@ fn run_output_to_record(output: std::process::Output) -> Value {
         "exit_code".to_string(),
         Value::Int(output.status.code().unwrap_or(-1) as i64),
     );
-    Value::Record(rec)
+    Value::Record((rec).into())
 }
 
 /// Parse optional opts Record for mount, workdir, env.
@@ -152,7 +152,7 @@ fn parse_opts(args: &[Value]) -> Result<(Option<String>, Option<String>, Vec<(St
             });
             let mut env_vars = vec![];
             if let Some(Value::Record(env_map)) | Some(Value::Map(env_map)) = m.get("env") {
-                for (k, v) in env_map {
+                for (k, v) in env_map.iter() {
                     env_vars.push((k.clone(), format!("{v}")));
                 }
             }
@@ -183,7 +183,7 @@ fn builtin_container_available() -> Result<Value> {
         Some(dir) => rec.insert("image_dir".to_string(), Value::Str(dir)),
         None => rec.insert("image_dir".to_string(), Value::Nil),
     };
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 // ── container_run ────────────────────────────────────────────────
@@ -308,7 +308,7 @@ fn builtin_container_pull(args: Vec<Value>) -> Result<Value> {
         "hint".to_string(),
         Value::Str("set BIOLANG_IMAGE_DIR to change image storage location".to_string()),
     );
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 // ── tool ─────────────────────────────────────────────────────────
@@ -343,9 +343,7 @@ fn resolve_biocontainers_image(name: &str) -> Result<String> {
                             if let Some(image_name) =
                                 img.get("image_name").and_then(serde_json::Value::as_str)
                             {
-                                if image_name.contains("quay.io")
-                                    || image_name.contains("docker")
-                                {
+                                if image_name.contains("quay.io") || image_name.contains("docker") {
                                     return Ok(image_name.to_string());
                                 }
                             }
@@ -450,7 +448,7 @@ fn tool_json_to_record(tool: &serde_json::Value) -> Value {
         .unwrap_or(0);
     rec.insert("versions".to_string(), Value::Int(versions_count as i64));
 
-    Value::Record(rec)
+    Value::Record((rec).into())
 }
 
 fn builtin_tool_search(args: Vec<Value>) -> Result<Value> {
@@ -491,7 +489,10 @@ fn builtin_tool_search(args: Vec<Value>) -> Result<Value> {
             }
             other => {
                 return Err(BioLangError::type_error(
-                    format!("tool_search() opts must be a Record, got {}", other.type_of()),
+                    format!(
+                        "tool_search() opts must be a Record, got {}",
+                        other.type_of()
+                    ),
                     None,
                 ))
             }
@@ -519,7 +520,7 @@ fn builtin_tool_search(args: Vec<Value>) -> Result<Value> {
 
     let tools = fetch_biocontainers_tools("tool_search", &url)?;
     let results: Vec<Value> = tools.iter().map(tool_json_to_record).collect();
-    Ok(Value::List(results))
+    Ok(Value::List((results).into()))
 }
 
 // ── tool_popular ─────────────────────────────────────────────────
@@ -545,7 +546,7 @@ fn builtin_tool_popular(args: Vec<Value>) -> Result<Value> {
 
     let tools = fetch_biocontainers_tools("tool_popular", &url)?;
     let results: Vec<Value> = tools.iter().map(tool_json_to_record).collect();
-    Ok(Value::List(results))
+    Ok(Value::List((results).into()))
 }
 
 // ── tool_info ────────────────────────────────────────────────────
@@ -632,9 +633,8 @@ fn builtin_tool_info(args: Vec<Value>) -> Result<Value> {
                                     {
                                         irec.insert("size".to_string(), Value::Int(size));
                                     }
-                                    if let Some(updated) = img
-                                        .get("updated")
-                                        .and_then(serde_json::Value::as_str)
+                                    if let Some(updated) =
+                                        img.get("updated").and_then(serde_json::Value::as_str)
                                     {
                                         irec.insert(
                                             "updated".to_string(),
@@ -644,7 +644,7 @@ fn builtin_tool_info(args: Vec<Value>) -> Result<Value> {
                                     if irec.is_empty() {
                                         None
                                     } else {
-                                        Some(Value::Record(irec))
+                                        Some(Value::Record((irec).into()))
                                     }
                                 })
                                 .collect()
@@ -653,16 +653,16 @@ fn builtin_tool_info(args: Vec<Value>) -> Result<Value> {
 
                     let mut vrec = HashMap::new();
                     vrec.insert("name".to_string(), Value::Str(ver_name.to_string()));
-                    vrec.insert("images".to_string(), Value::List(images));
-                    Some(Value::Record(vrec))
+                    vrec.insert("images".to_string(), Value::List((images).into()));
+                    Some(Value::Record((vrec).into()))
                 })
                 .collect()
         })
         .unwrap_or_default();
 
-    rec.insert("versions".to_string(), Value::List(versions));
+    rec.insert("versions".to_string(), Value::List((versions).into()));
 
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 // ── tool_pull ────────────────────────────────────────────────────
@@ -703,19 +703,15 @@ fn builtin_tool_list() -> Result<Value> {
         if let Some(dir) = resolve_image_dir() {
             return list_sif_files(&dir);
         }
-        return Ok(Value::List(vec![]));
+        return Ok(Value::List((vec![]).into()));
     };
 
     let output = output.map_err(|e| {
-        BioLangError::runtime(
-            ErrorKind::IOError,
-            format!("tool_list() failed: {e}"),
-            None,
-        )
+        BioLangError::runtime(ErrorKind::IOError, format!("tool_list() failed: {e}"), None)
     })?;
 
     if !output.status.success() {
-        return Ok(Value::List(vec![]));
+        return Ok(Value::List((vec![]).into()));
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -725,7 +721,7 @@ fn builtin_tool_list() -> Result<Value> {
         .map(|l| Value::Str(l.trim().to_string()))
         .collect();
 
-    Ok(Value::List(images))
+    Ok(Value::List((images).into()))
 }
 
 /// Resolve the image cache directory. Priority:
@@ -751,7 +747,7 @@ fn resolve_image_dir() -> Option<String> {
 fn list_sif_files(dir: &str) -> Result<Value> {
     let path = std::path::Path::new(dir);
     if !path.is_dir() {
-        return Ok(Value::List(vec![]));
+        return Ok(Value::List((vec![]).into()));
     }
     let mut images = vec![];
     if let Ok(entries) = std::fs::read_dir(path) {
@@ -764,7 +760,7 @@ fn list_sif_files(dir: &str) -> Result<Value> {
             }
         }
     }
-    Ok(Value::List(images))
+    Ok(Value::List((images).into()))
 }
 
 // ── Tests ────────────────────────────────────────────────────────
@@ -848,7 +844,7 @@ mod tests {
 
         let result = call_container_builtin(
             "tool_search",
-            vec![Value::Str("sam".into()), Value::Record(opts)],
+            vec![Value::Str("sam".into()), Value::Record((opts).into())],
         )
         .unwrap();
         if let Value::List(items) = &result {
@@ -861,8 +857,7 @@ mod tests {
     #[test]
     #[ignore] // requires network
     fn test_tool_popular() {
-        let result =
-            call_container_builtin("tool_popular", vec![Value::Int(3)]).unwrap();
+        let result = call_container_builtin("tool_popular", vec![Value::Int(3)]).unwrap();
         if let Value::List(items) = &result {
             assert_eq!(items.len(), 3);
             // First should have most pulls
@@ -957,8 +952,7 @@ mod tests {
     #[test]
     #[ignore] // requires network
     fn test_tool_search_empty_query() {
-        let result =
-            call_container_builtin("tool_search", vec![Value::Str("".into())]);
+        let result = call_container_builtin("tool_search", vec![Value::Str("".into())]);
         // Should either return an empty list or an error, but not panic
         match result {
             Ok(Value::List(_)) => {}
@@ -989,9 +983,7 @@ mod tests {
     // Edge case: run_output_to_record
     #[test]
     fn test_run_output_to_record_structure() {
-        let output = std::process::Command::new("echo")
-            .arg("test")
-            .output();
+        let output = std::process::Command::new("echo").arg("test").output();
         if let Ok(out) = output {
             let rec = run_output_to_record(out);
             if let Value::Record(map) = &rec {

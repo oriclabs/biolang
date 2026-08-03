@@ -1,0 +1,126 @@
+# seurat_workflow.bl — A complete single-cell RNA-seq workflow in BioLang
+#
+# Mirrors a typical Seurat analysis:
+#   1. Load 10x data
+#   2. QC and cell filtering
+#   3. Normalization
+#   4. Highly variable genes
+#   5. Clustering
+#   6. Marker genes
+#   7. Cell cycle scoring
+#   8. Integration (multi-sample)
+#   9. Pseudotime
+
+import "singlecell" as sc
+
+# ─── 1. Load data ─────────────────────────────────────────────────────────────
+# Equivalent to Seurat: Read10X() + CreateSeuratObject()
+
+let obj = sc.load("data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+
+println(f"Loaded {obj.n_cells} cells × {obj.n_genes} genes")
+
+# ─── 2. Quality control ───────────────────────────────────────────────────────
+# Seurat: PercentageFeatureSet(obj, pattern="^MT-") + VlnPlot + subset()
+
+let obj = sc.filter_cells(obj,
+    min_genes: 200,
+    max_genes: 2500,
+    max_pct_mito: 5.0)
+
+println(f"After QC: {obj.n_cells} cells retained")
+
+# Optionally remove low-expressed genes
+let obj = sc.filter_genes(obj, min_cells: 3)
+println(f"After gene filtering: {obj.n_genes} genes")
+
+# ─── 3. Normalisation ─────────────────────────────────────────────────────────
+# Seurat: NormalizeData() — library-size normalize then log1p
+
+let obj = sc.normalize(obj, target: 10000.0)
+
+# Alternative: SCTransform (regularised NB residuals)
+# let obj = sc.sctransform(obj)
+
+# ─── 4. Highly variable genes ─────────────────────────────────────────────────
+# Seurat: FindVariableFeatures(obj, nfeatures = 2000)
+
+let obj = sc.variable_genes(obj, 2000)
+println(f"Selected {len(obj.hvg)} HVGs")
+println(f"Top HVG: {obj.hvg_genes[0]}")
+
+# ─── 5. Embedding and clustering ──────────────────────────────────────────────
+# Seurat: ScaleData → RunPCA → FindNeighbors → FindClusters
+
+let obj = sc.run_pca(obj, 30)
+let obj = sc.neighbors(obj, k: 15)
+let obj = sc.cluster_leiden(obj, k: 15, resolution: 0.5)
+
+let n_clusters = obj.clusters |> sort() |> unique() |> len()
+println(f"Found {n_clusters} clusters")
+
+# ─── 6. Marker genes ──────────────────────────────────────────────────────────
+# Seurat: FindMarkers(obj, ident.1 = 0, ident.2 = 1)
+
+let markers_0_vs_1 = sc.marker_table(obj, 0, 1)
+let top_markers = markers_0_vs_1
+    |> filter(|r| r.significant)
+    |> sort_by(|r| -abs(r.log2fc))
+
+println(f"Top marker genes (cluster 0 vs 1):")
+for m in top_markers[0..5] {
+    println(f"  {m.gene}  log2fc={m.log2fc}  p={m.pvalue}")
+}
+
+# ─── 7. Cell cycle scoring ────────────────────────────────────────────────────
+# Seurat: CellCycleScoring(obj, s.features = s_genes, g2m.features = g2m_genes)
+# Gene indices below are illustrative — replace with actual gene indices.
+
+let s_gene_names   = ["MCM5", "PCNA", "TYMS", "FEN1", "MCM2"]
+let g2m_gene_names = ["HMGB2", "CDK1", "NUSAP1", "UBE2C", "BIRC5"]
+
+let s_idx   = range(0, obj.n_genes) |> filter(|j| obj.genes[j] in s_gene_names)
+let g2m_idx = range(0, obj.n_genes) |> filter(|j| obj.genes[j] in g2m_gene_names)
+
+let obj = sc.cell_cycle(obj, s_idx, g2m_idx)
+
+let phase_counts = obj.cell_cycle_info |> map(|c| c.phase)
+let n_s   = phase_counts |> filter(|p| p == "S")   |> len()
+let n_g2m = phase_counts |> filter(|p| p == "G2M") |> len()
+let n_g1  = phase_counts |> filter(|p| p == "G1")  |> len()
+println(f"Cell cycle: G1={n_g1}  S={n_s}  G2M={n_g2m}")
+
+# ─── 8. Doublet detection ─────────────────────────────────────────────────────
+# Seurat/DoubletFinder: doubletFinder_v3()
+
+let obj = sc.doublets(obj)
+let obj = sc.flag_doublets(obj, threshold: 0.5)
+let n_doublets = obj.is_doublet |> filter(|v| v) |> len()
+println(f"Putative doublets: {n_doublets}")
+
+# ─── 9. Pseudotime ────────────────────────────────────────────────────────────
+# Seurat/Monocle: RunDiffusion + DiffusionMap
+
+# Use cell 0 as the root (typically a known progenitor)
+let obj = sc.pseudotime(obj, start_cell: 0)
+
+let pt = obj.pseudotime
+let reachable = pt |> filter(|v| v >= 0.0)
+println(f"Reachable cells: {len(reachable)} / {obj.n_cells}")
+println(f"Pseudotime range: {min(reachable)} – {max(reachable)}")
+
+# ─── 10. Multi-sample integration example ─────────────────────────────────────
+# Seurat: IntegrateData() — merge two datasets and correct batch effects
+
+let obj_a = sc.load("data/sample_a/")
+let obj_b = sc.load("data/sample_b/")
+
+let merged = sc.merge(obj_a, obj_b, batch_a: 0, batch_b: 1)
+let merged = sc.normalize(merged)
+let merged = sc.variable_genes(merged)
+let merged = sc.integrate(merged, merged.batch_ids)
+let merged = sc.run_pca(merged, 30)
+let merged = sc.neighbors(merged, k: 15)
+let merged = sc.cluster_leiden(merged, k: 15, resolution: 0.5)
+
+println(f"Merged dataset: {merged.n_cells} cells, {n_clusters} clusters")

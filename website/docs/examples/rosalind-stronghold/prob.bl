@@ -1,0 +1,35 @@
+# Rosalind: PROB — Introduction to Random Strings
+# https://rosalind.info/problems/prob/
+#
+# Given: A DNA string s and an array A of GC contents.
+# Return: For each GC content, the common logarithm of the probability that a
+# random string with that GC content matches s exactly.
+
+let s = "ACGATACAA"
+let gc_contents = [0.129, 0.287, 0.423, 0.476, 0.641, 0.742, 0.783]
+
+# At GC content x, each of G and C appears with probability x/2 and each of
+# A and T with probability (1-x)/2. Sum the logs rather than multiplying the
+# probabilities, which would underflow on a long string.
+let results = gc_contents |> map(|x| {
+    let gc_probability = x / 2.0
+    let at_probability = (1.0 - x) / 2.0
+    range(0, len(s))
+        |> map(|i| {
+            let base = substr(s, i, 1)
+            let is_gc = base == "G" or base == "C"
+            log10(if is_gc then gc_probability else at_probability)
+        })
+        |> sum()
+})
+
+let formatted = results |> map(|r| str(round(r, 3))) |> join(" ")
+
+println("Result:   " + formatted)
+println("Expected: -5.737 -5.217 -5.263 -5.36 -5.958 -6.628 -7.009")
+
+fn test_prob_random_string_logs() {
+    assert round(results[0], 3) == -5.737, "PROB[0]: got " + str(results[0])
+    assert round(results[3], 3) == -5.36, "PROB[3]: got " + str(results[3])
+    assert round(results[6], 3) == -7.009, "PROB[6]: got " + str(results[6])
+}

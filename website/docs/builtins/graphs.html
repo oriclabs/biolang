@@ -82,9 +82,9 @@ let grn = graph(true)</code></pre>
               exist, it is automatically created with empty attributes. Returns the graph for chaining.
             </p>
             <pre><code class="language-biolang">let g = graph()
-  |> add_edge("TP53", "MDM2", {score: 0.99, source: "STRING"})
-  |> add_edge("TP53", "BRCA1", {score: 0.95, source: "STRING"})
-  |> add_edge("BRCA1", "BARD1", {score: 0.97, source: "STRING"})
+  |> add_edge("TP53", "MDM2", {weight: 0.99, source: "STRING"})
+  |> add_edge("TP53", "BRCA1", {weight: 0.95, source: "STRING"})
+  |> add_edge("BRCA1", "BARD1", {weight: 0.97, source: "STRING"})
 
 # Nodes TP53, MDM2, BRCA1, and BARD1 are created automatically</code></pre>
           </div>
@@ -114,11 +114,11 @@ let grn = graph(true)</code></pre>
           </div>
           <div class="p-4">
             <p class="text-sm text-slate-400 mb-3">
-              Returns a list of all edges as records with <code>from</code>, <code>to</code>, and any
-              attached attributes.
+              Returns a table with <code>from</code>, <code>to</code>, and <code>weight</code>
+              columns. The weight defaults to <code>1.0</code>.
             </p>
             <pre><code class="language-biolang">let all_edges = edges(g)
-all_edges |> each(|e| print(e.from + " -- " + e.to + " score=" + str(e.score)))</code></pre>
+all_edges |> each(|e| print(e.from + " -- " + e.to + " weight=" + str(e.weight)))</code></pre>
           </div>
         </section>
 
@@ -197,11 +197,11 @@ print(str(len(tp53_partners)) + " interaction partners for TP53")</code></pre>
             <pre><code class="language-biolang">let path = shortest_path(g, "MDM2", "BARD1")
 # ["MDM2", "TP53", "BRCA1", "BARD1"]
 
-if path != nil then
+if path != nil {
   print("Path length: " + str(len(path) - 1) + " edges")
-else
+} else {
   print("No path found")
-end</code></pre>
+}</code></pre>
           </div>
         </section>
 
@@ -260,7 +260,9 @@ print(str(len(edges(tp53_subnet))) + " edges in subgraph")</code></pre>
               Returns the attribute record attached to a node, or <code>nil</code> if the node does
               not exist.
             </p>
-            <pre><code class="language-biolang">let attrs = node_attr(g, "TP53")
+            <pre><code class="language-biolang">let attributed_graph = graph()
+  |> add_node("TP53", {type: "tumor_suppressor", chrom: "chr17"})
+let attrs = node_attr(attributed_graph, "TP53")
 # {type: "tumor_suppressor", chrom: "chr17"}
 
 print(attrs.type)   # "tumor_suppressor"</code></pre>
@@ -366,12 +368,12 @@ hub_genes |> each(|h| print("  " + h.gene + ": " + str(h.degree) + " interaction
 
 # Check connectivity between two genes
 let path = shortest_path(ppi, "MDM2", "BRCA1")
-if path != nil then
+if path != nil {
   print("Path from MDM2 to BRCA1: " + join(path, " -> "))
   print("Distance: " + str(len(path) - 1) + " edges")
-else
+} else {
   print("MDM2 and BRCA1 are not connected")
-end
+}
 
 # Identify network clusters
 let components = connected_components(ppi)
@@ -422,5 +424,8 @@ print(str(len(nodes(ts_subnet))) + " tumor suppressors, " + str(len(edges(ts_sub
   </div>
   <script src="../../js/components.js"></script>
   <script>hljs.highlightAll();</script>
-</body>
+    <script src="../../js/copy-code.js"></script>
+    <script src="../../js/main.js"></script>
+    <script src="../../js/playground.js"></script>
+  </body>
 </html>

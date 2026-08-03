@@ -1,0 +1,33 @@
+# Pathway-level aggregation and network-level summaries.
+
+fn aggregate_pathways(scores, lr_database) {
+  let pathway_map = lr_database
+    |> filter(fn(p) -> len(p) >= 3)
+    |> map(fn(p) -> {ligand_idx: p[0], receptor_idx: p[1], pathway: p[2]})
+    |> to_table
+  lr_aggregate(scores, pathway_map)
+}
+
+# Total outgoing signal per cluster (sum of scores as sender)
+fn sender_strength(scores) {
+  scores
+    |> group_by(fn(r) -> r.sender)
+    |> map(fn(cluster, rows) -> {cluster: cluster, strength: sum(rows.score)})
+    |> sort_by(fn(r) -> r.strength, descending = true)
+}
+
+# Total incoming signal per cluster (sum of scores as receiver)
+fn receiver_strength(scores) {
+  scores
+    |> group_by(fn(r) -> r.receiver)
+    |> map(fn(cluster, rows) -> {cluster: cluster, strength: sum(rows.score)})
+    |> sort_by(fn(r) -> r.strength, descending = true)
+}
+
+# Combined summary: both sender and receiver strengths
+fn interaction_summary(scores) {
+  {
+    senders:   sender_strength(scores),
+    receivers: receiver_strength(scores),
+  }
+}

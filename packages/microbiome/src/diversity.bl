@@ -1,0 +1,27 @@
+# Alpha and beta diversity analysis.
+
+fn alpha(counts, method="shannon") {
+  alpha_diversity(counts, method)
+}
+
+fn alpha_table(count_matrix, method="shannon") {
+  count_matrix
+    |> rows
+    |> enumerate
+    |> map(fn(i, row) -> {
+        sample:    "sample_" + str(i),
+        diversity: alpha_diversity(row, method)
+      })
+}
+
+fn beta(count_matrix, method="bray_curtis") {
+  beta_diversity(count_matrix, method)
+}
+
+fn rarefy(counts, depth) {
+  rarefaction(counts, depth)
+}
+
+fn rarefy_matrix(count_matrix, depth) {
+  count_matrix |> rows |> map(fn(row) -> rarefaction(row, depth))
+}

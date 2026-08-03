@@ -11,9 +11,9 @@ pub fn add(a: Value, b: Value, span: Option<Span>) -> Result<Value> {
         (Value::Float(x), Value::Int(y)) => Ok(Value::Float(x + *y as f64)),
         (Value::Str(x), Value::Str(y)) => Ok(Value::Str(format!("{x}{y}"))),
         (Value::List(x), Value::List(y)) => {
-            let mut result = x.clone();
-            result.extend(y.clone());
-            Ok(Value::List(result))
+            let mut result: Vec<Value> = x.as_ref().clone();
+            result.extend(y.iter().cloned());
+            Ok(Value::List(result.into()))
         }
         _ => Err(BioLangError::type_error(
             format!("cannot add {} and {}", a.type_of(), b.type_of()),
@@ -53,13 +53,9 @@ pub fn mul(a: Value, b: Value, span: Option<Span>) -> Result<Value> {
 
 pub fn div(a: Value, b: Value, span: Option<Span>) -> Result<Value> {
     match (&a, &b) {
-        (Value::Int(_), Value::Int(0)) | (Value::Float(_), Value::Int(0)) => {
-            Err(BioLangError::runtime(
-                ErrorKind::DivisionByZero,
-                "division by zero",
-                span,
-            ))
-        }
+        (Value::Int(_), Value::Int(0)) | (Value::Float(_), Value::Int(0)) => Err(
+            BioLangError::runtime(ErrorKind::DivisionByZero, "division by zero", span),
+        ),
         (Value::Int(x), Value::Int(y)) => Ok(Value::Int(x / y)),
         (Value::Float(x), Value::Float(y)) => {
             if *y == 0.0 {
@@ -150,21 +146,21 @@ pub fn greater_equal(a: &Value, b: &Value) -> Result<bool> {
 
 pub fn get_field(object: &Value, field: &str, span: Option<Span>) -> Result<Value> {
     match object {
-        Value::Record(map) | Value::Map(map) => {
-            map.get(field).cloned().ok_or_else(|| {
-                BioLangError::runtime(
-                    ErrorKind::NameError,
-                    format!("no field '{field}' on record"),
-                    span,
-                )
-            })
-        }
+        Value::Record(map) | Value::Map(map) => map.get(field).cloned().ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::NameError,
+                format!("no field '{field}' on record"),
+                span,
+            )
+        }),
         Value::Table(t) => {
             if let Some(col_idx) = t.col_index(field) {
-                let values: Vec<Value> = t.rows.iter().map(|r| {
-                    r.get(col_idx).cloned().unwrap_or(Value::Nil)
-                }).collect();
-                Ok(Value::List(values))
+                let values: Vec<Value> = t
+                    .rows
+                    .iter()
+                    .map(|r| r.get(col_idx).cloned().unwrap_or(Value::Nil))
+                    .collect();
+                Ok(Value::List(values.into()))
             } else {
                 Err(BioLangError::runtime(
                     ErrorKind::NameError,
@@ -182,9 +178,7 @@ pub fn get_field(object: &Value, field: &str, span: Option<Span>) -> Result<Valu
 
 pub fn get_field_opt(object: &Value, field: &str) -> Value {
     match object {
-        Value::Record(map) | Value::Map(map) => {
-            map.get(field).cloned().unwrap_or(Value::Nil)
-        }
+        Value::Record(map) | Value::Map(map) => map.get(field).cloned().unwrap_or(Value::Nil),
         Value::Nil => Value::Nil,
         _ => Value::Nil,
     }
@@ -227,11 +221,7 @@ pub fn get_index(object: &Value, index: &Value, span: Option<Span>) -> Result<Va
                 })
         }
         _ => Err(BioLangError::type_error(
-            format!(
-                "cannot index {} with {}",
-                object.type_of(),
-                index.type_of()
-            ),
+            format!("cannot index {} with {}", object.type_of(), index.type_of()),
             span,
         )),
     }
@@ -240,7 +230,7 @@ pub fn get_index(object: &Value, index: &Value, span: Option<Span>) -> Result<Va
 pub fn set_field(object: &mut Value, field: &str, value: Value, span: Option<Span>) -> Result<()> {
     match object {
         Value::Record(ref mut map) | Value::Map(ref mut map) => {
-            map.insert(field.to_string(), value);
+            std::sync::Arc::make_mut(map).insert(field.to_string(), value);
             Ok(())
         }
         _ => Err(BioLangError::type_error(
@@ -255,5 +245,5 @@ pub fn make_record(keys: Vec<String>, values: Vec<Value>) -> Value {
     for (k, v) in keys.into_iter().zip(values.into_iter()) {
         map.insert(k, v);
     }
-    Value::Record(map)
+    Value::Record(map.into())
 }

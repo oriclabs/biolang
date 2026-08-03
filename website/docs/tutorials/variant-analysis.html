@@ -112,10 +112,10 @@ print(f"After DP>=10: {len(depth_filtered)} variants")
 
 # Filter by allele frequency (for population data)
 depth_filtered |> filter(|v| v.info.AF >= 0.01) |> into common
-depth_filtered |> filter(|v| v.info.AF < 0.01) |> into rare
+depth_filtered |> filter(|v| v.info.AF &lt; 0.01) |> into rare
 
 print(f"Common variants (AF>=1%): {len(common)}")
-print(f"Rare variants (AF<1%):    {len(rare)}")</code></pre>
+print(f"Rare variants (AF&lt;1%):    {len(rare)}")</code></pre>
 
         <!-- Step 3 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Classifying Variant Types</h2>

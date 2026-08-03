@@ -28,7 +28,7 @@
         <section class="mb-12" id="container_run">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">container_run</span></h2>
           <p class="text-slate-400 mt-2">Run a command inside a container image. Auto-detects the available runtime (Docker > Podman > Singularity > bwrap).</p>
-          <pre><code class="language-biolang">container_run(image, command, opts?) -> map</code></pre>
+          <pre><code class="language-text">container_run(image, command, opts?) -> map</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Parameter</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -51,7 +51,7 @@ println("Read count:", trim(result.stdout))</code></pre>
         <section class="mb-12" id="container_pull">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">container_pull</span></h2>
           <p class="text-slate-400 mt-2">Pull a container image to local cache.</p>
-          <pre><code class="language-biolang">container_pull(image) -> string</code></pre>
+          <pre><code class="language-text">container_pull(image) -> string</code></pre>
           <pre><code class="language-biolang">container_pull("quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0")
 container_pull("quay.io/biocontainers/bwa-mem2:2.2.1--he513fc3_0")</code></pre>
         </section>
@@ -59,7 +59,7 @@ container_pull("quay.io/biocontainers/bwa-mem2:2.2.1--he513fc3_0")</code></pre>
         <section class="mb-12" id="tool_search">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">tool_search</span></h2>
           <p class="text-slate-400 mt-2">Search the BioContainers registry for tools by name or keyword.</p>
-          <pre><code class="language-biolang">tool_search(query, opts?) -> list</code></pre>
+          <pre><code class="language-text">tool_search(query, opts?) -> list</code></pre>
           <pre><code class="language-biolang">let results = tool_search("samtools")
 for tool in results {
   println(tool.name, "-", tool.description)
@@ -72,7 +72,7 @@ tool_search("variant caller", {limit: 5})</code></pre>
         <section class="mb-12" id="tool_pull">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">tool_pull</span></h2>
           <p class="text-slate-400 mt-2">Pull a BioContainers tool by name and optional version.</p>
-          <pre><code class="language-biolang">tool_pull(name, version?) -> string</code></pre>
+          <pre><code class="language-text">tool_pull(name, version?) -> string</code></pre>
           <pre><code class="language-biolang">tool_pull("samtools")                    # latest version
 tool_pull("samtools", "1.19")            # specific version
 tool_pull("bwa-mem2", "2.2.1")           # returns image path</code></pre>
@@ -81,7 +81,7 @@ tool_pull("bwa-mem2", "2.2.1")           # returns image path</code></pre>
         <section class="mb-12" id="tool_info">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">tool_info</span></h2>
           <p class="text-slate-400 mt-2">Get detailed information about a BioContainers tool, including available versions.</p>
-          <pre><code class="language-biolang">tool_info(name) -> map</code></pre>
+          <pre><code class="language-text">tool_info(name) -> map</code></pre>
           <pre><code class="language-biolang">let info = tool_info("gatk")
 println(info.name, "-", info.description)
 for v in info.versions {

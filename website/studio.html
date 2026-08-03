@@ -29,7 +29,7 @@
     }
     html,body{height:100%;font-family:var(--f);background:var(--bg);color:var(--tx);overflow:hidden;font-size:12px;line-height:1.5}
     ::selection{background:rgba(124,58,237,.3)}
-    input,textarea,button{font-family:var(--f);font-size:12px}
+    input,textarea,button,select{font-family:var(--f);font-size:12px}
 
     /* ── Chrome ── */
     .chrome{display:flex;flex-direction:column;height:100%}
@@ -133,6 +133,48 @@
     .editor-toolbar button.run{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600}
     .editor-toolbar .spacer{flex:1}
     .editor-toolbar .timing{font-size:10px;color:var(--mt)}
+    .runtime-select{height:25px;max-width:150px;padding:0 7px;border:1px solid var(--b);border-radius:4px;background:var(--p1);color:var(--tx);outline:none}
+    .runtime-select:focus{border-color:var(--bf)}
+
+    /* SOMER connection */
+    .runtime-dialog{width:min(470px,calc(100vw - 28px));padding:0;color:var(--tx);background:var(--p1);border:1px solid var(--b);border-radius:6px;box-shadow:0 18px 60px rgba(0,0,0,.5)}
+    .runtime-dialog::backdrop{background:rgba(3,6,12,.7)}
+    .runtime-dialog header{display:flex;height:39px;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid var(--b);font-weight:600}
+    .runtime-dialog header button{width:25px;height:25px;color:var(--dm);background:transparent;border:0;cursor:pointer}
+    .runtime-fields{display:grid;grid-template-columns:1fr 1fr;gap:11px;padding:14px}
+    .runtime-fields label{display:flex;min-width:0;gap:4px;color:var(--dm);flex-direction:column;font-size:10px}
+    .runtime-fields label.wide{grid-column:1/-1}
+    .runtime-fields input,.runtime-fields select{width:100%;height:30px;padding:0 8px;color:var(--tx);background:var(--bg);border:1px solid var(--b);border-radius:4px;outline:none}
+    .runtime-fields input:focus,.runtime-fields select:focus{border-color:var(--bf)}
+    .runtime-dialog footer{display:flex;min-height:46px;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;border-top:1px solid var(--b)}
+    .runtime-dialog footer span{overflow:hidden;color:var(--dm);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+    .runtime-dialog footer button{height:27px;padding:0 10px;color:var(--tx);background:var(--p2);border:1px solid var(--b);border-radius:4px;cursor:pointer}
+    .runtime-dialog footer button:hover{border-color:var(--acc)}
+
+    /* Code import */
+    .import-dialog{width:min(860px,calc(100vw - 28px));height:min(720px,calc(100vh - 28px));padding:0;color:var(--tx);background:var(--p1);border:1px solid var(--b);border-radius:6px;box-shadow:0 18px 60px rgba(0,0,0,.5)}
+    .import-dialog::backdrop{background:rgba(3,6,12,.76)}
+    .import-dialog header{display:flex;height:42px;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--b);font-weight:600}
+    .import-dialog header button{width:27px;height:27px;color:var(--dm);background:transparent;border:0;cursor:pointer}
+    .import-body{display:grid;height:calc(100% - 90px);grid-template-rows:auto auto minmax(0,1fr);gap:10px;padding:14px}
+    .import-summary{display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--p2);border:1px solid var(--b);border-radius:4px}
+    .import-summary strong{color:var(--tx)}
+    .import-summary span{color:var(--dm)}
+    .import-validation{margin-left:auto;padding:2px 7px;border:1px solid rgba(52,211,153,.35);border-radius:3px;color:var(--gn)}
+    .import-validation.invalid{border-color:rgba(248,113,113,.4);color:var(--rd)}
+    .import-diagnostics{max-height:112px;overflow:auto;color:var(--rd);font-size:11px}
+    .import-diagnostics:empty{display:none}
+    .import-diagnostic{padding:5px 8px;border-left:2px solid var(--rd);background:rgba(248,113,113,.06)}
+    .import-preview{display:flex;min-height:0;flex-direction:column;gap:5px}
+    .import-preview label{color:var(--dm);font-size:10px;text-transform:uppercase}
+    .import-preview textarea{width:100%;min-height:0;flex:1;resize:none;padding:10px;color:var(--tx);background:var(--bg);border:1px solid var(--b);border-radius:4px;outline:none;line-height:1.55}
+    .import-dialog footer{display:flex;height:48px;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--b)}
+    .import-dialog footer label{display:flex;align-items:center;gap:7px;color:var(--dm)}
+    .import-dialog footer input{width:min(270px,35vw);height:29px;padding:0 8px;color:var(--tx);background:var(--bg);border:1px solid var(--b);border-radius:4px;outline:none}
+    .import-dialog footer .spacer{flex:1}
+    .import-dialog footer button{height:29px;padding:0 11px;color:var(--tx);background:var(--p2);border:1px solid var(--b);border-radius:4px;cursor:pointer}
+    .import-dialog footer button.primary{color:#fff;background:var(--acc);border-color:var(--acc);font-weight:600}
+    .import-dialog footer button:hover{border-color:var(--acc)}
 
     /* REPL bar */
     .repl-bar{display:flex;align-items:center;gap:6px;padding:4px 10px;border-top:1px solid var(--b);background:var(--p1);flex-shrink:0}
@@ -247,9 +289,15 @@
     <div class="panel" id="panel-editor">
       <div class="editor-toolbar">
         <button class="run" id="editor-run">▶ Run (Ctrl+Enter)</button>
+        <button id="editor-import">Import Python, R, or Notebook</button>
         <button id="editor-clear">Clear Output</button>
         <button id="editor-reset">Reset</button>
         <div class="spacer"></div>
+        <select class="runtime-select" id="execution-target" aria-label="Execution target">
+          <option value="wasm">Local WASM</option>
+          <option value="somer">SOMER Remote</option>
+        </select>
+        <button id="runtime-settings">Connection</button>
         <span class="timing" id="editor-timing"></span>
       </div>
       <div class="editor-split">
@@ -279,6 +327,8 @@
     <span class="dot loading" id="wasm-dot"></span>
     <span id="wasm-status">Loading WASM...</span>
     <span class="sep"></span>
+    <span id="runtime-status">Local WASM</span>
+    <span class="sep"></span>
     <span id="file-status">0 files</span>
     <span class="sep"></span>
     <span id="key-hint">Tab: switch  /: search  j/k: navigate  Enter: select  e: send to editor</span>
@@ -288,9 +338,43 @@
   </div>
 </div>
 
-<input type="file" id="file-input" multiple accept=".fasta,.fa,.fna,.faa,.fastq,.fq,.vcf,.bed,.gff,.gff3,.gtf,.csv,.tsv,.sam,.txt,.bl" style="display:none">
+<input type="file" id="file-input" multiple accept=".fasta,.fa,.fna,.faa,.fastq,.fq,.vcf,.bed,.gff,.gff3,.gtf,.csv,.tsv,.sam,.txt,.bl,.bln,.py,.r,.R,.ipynb,.rmd,.Rmd,.RMD" style="display:none">
+<input type="file" id="code-import-input" accept=".py,.r,.R,.ipynb,.rmd,.Rmd,.RMD" style="display:none">
+
+<dialog class="runtime-dialog" id="runtime-dialog">
+  <header><span>SOMER Connection</span><button id="runtime-close" aria-label="Close">&times;</button></header>
+  <div class="runtime-fields">
+    <label class="wide">Service URL<input id="somer-url" type="url" value="http://127.0.0.1:8787" placeholder="https://somer.example.org"></label>
+    <label class="wide">Bearer token<input id="somer-token" type="password" placeholder="Session only" autocomplete="off"></label>
+    <label>Resources<select id="somer-resources"><option value="standard">Standard</option><option value="high-memory">High Memory</option><option value="gpu">GPU</option></select></label>
+  </div>
+  <footer><span id="runtime-connection-status">Not tested</span><button id="runtime-test">Test connection</button></footer>
+</dialog>
+
+<dialog class="import-dialog" id="import-dialog" aria-labelledby="import-title">
+  <header><span id="import-title">Import to BioLang</span><button id="import-close" aria-label="Close">&times;</button></header>
+  <div class="import-body">
+    <div class="import-summary">
+      <strong id="import-source-name"></strong>
+      <span id="import-format"></span>
+      <span class="import-validation" id="import-validation"></span>
+    </div>
+    <div class="import-diagnostics" id="import-diagnostics"></div>
+    <div class="import-preview">
+      <label for="import-content">Generated BioLang</label>
+      <textarea id="import-content" spellcheck="false"></textarea>
+    </div>
+  </div>
+  <footer>
+    <label for="import-output-name">Output<input id="import-output-name" autocomplete="off"></label>
+    <div class="spacer"></div>
+    <button id="import-cancel">Cancel</button>
+    <button class="primary" id="import-accept">Open in Editor</button>
+  </footer>
+</dialog>
 
 <script type="module">
+import { SomerClient } from "./js/somer-client.js";
 // ══════════════════════════════════════════════════════════════
 // BioLang Studio — Bioinformatics IDE
 // ══════════════════════════════════════════════════════════════
@@ -301,7 +385,13 @@ const wasmReady = (async () => {
   try {
     const mod = await import("./wasm/bl_wasm.js");
     await mod.default(); mod.init();
-    wasm = { evaluate: mod.evaluate, reset: mod.reset, listVars: mod.list_variables };
+    wasm = {
+      evaluate: mod.evaluate,
+      reset: mod.reset,
+      listVars: mod.list_variables,
+      importSource: mod.import_source,
+      validateImport: mod.validate_import,
+    };
     $("wasm-dot").className = "dot ok";
     $("wasm-status").textContent = "WASM ready";
   } catch (e) {
@@ -312,6 +402,7 @@ const wasmReady = (async () => {
 
 // ── Local file registry ──
 const localFiles = new Map();
+let editorNotebook = false;
 window.__blFetch = {
   sync(url) {
     const name = url.replace(/^.*[/\\]/, "");
@@ -331,6 +422,48 @@ window.__blFetch = {
 const $ = id => document.getElementById(id);
 function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 function fmtBytes(b) { return b < 1024 ? b + " B" : b < 1048576 ? (b/1024).toFixed(1) + " KB" : (b/1048576).toFixed(1) + " MB"; }
+function stripAnsi(s) { return s.replace(/\x1b\[[0-9;]*m/g, ""); }
+
+// ── Execution target ──
+const executionTarget = $("execution-target");
+const runtimeDialog = $("runtime-dialog");
+executionTarget.value = localStorage.getItem("biolang.studio.executionTarget") || "wasm";
+$("somer-url").value = localStorage.getItem("biolang.studio.somerUrl") || "http://127.0.0.1:8787";
+$("somer-resources").value = localStorage.getItem("biolang.studio.somerResources") || "standard";
+$("somer-token").value = sessionStorage.getItem("biolang.studio.somerToken") || "";
+
+function updateRuntimeStatus() {
+  $("runtime-status").textContent = executionTarget.value === "somer" ? "SOMER Remote" : "Local WASM";
+}
+
+function currentSomerClient() {
+  const baseUrl = $("somer-url").value.trim();
+  const token = $("somer-token").value.trim();
+  if (!baseUrl || !token) throw new Error("SOMER service URL and bearer token are required");
+  return new SomerClient({ baseUrl, token });
+}
+
+executionTarget.addEventListener("change", () => {
+  localStorage.setItem("biolang.studio.executionTarget", executionTarget.value);
+  updateRuntimeStatus();
+  if (executionTarget.value === "somer" && !$("somer-token").value) runtimeDialog.showModal();
+});
+$("runtime-settings").addEventListener("click", () => runtimeDialog.showModal());
+$("runtime-close").addEventListener("click", () => runtimeDialog.close());
+$("somer-url").addEventListener("change", () => localStorage.setItem("biolang.studio.somerUrl", $("somer-url").value.trim()));
+$("somer-resources").addEventListener("change", () => localStorage.setItem("biolang.studio.somerResources", $("somer-resources").value));
+$("somer-token").addEventListener("input", () => sessionStorage.setItem("biolang.studio.somerToken", $("somer-token").value));
+$("runtime-test").addEventListener("click", async () => {
+  $("runtime-connection-status").textContent = "Connecting...";
+  try {
+    const client = currentSomerClient();
+    const [service, user] = await Promise.all([client.serviceInfo(), client.me()]);
+    $("runtime-connection-status").textContent = `${service.name} ${service.version} as ${user.displayName}`;
+  } catch (error) {
+    $("runtime-connection-status").textContent = String(error);
+  }
+});
+updateRuntimeStatus();
 
 // ══════════════════════════════════════════════════════════════
 // TAB MANAGEMENT
@@ -654,9 +787,87 @@ $("pdb-q").addEventListener("keydown", e => { if (e.key === "Enter") pdbSearch($
 // FILES
 // ══════════════════════════════════════════════════════════════
 const fileInput = $("file-input");
+const codeImportInput = $("code-import-input");
+const importDialog = $("import-dialog");
+let pendingCodeImport = null;
+
+function importFormat(name) {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".py")) return "python";
+  if (lower.endsWith(".ipynb")) return "ipynb";
+  if (lower.endsWith(".rmd")) return "rmd";
+  if (lower.endsWith(".r")) return "r";
+  return null;
+}
+
+function showImportValidation(report) {
+  const badge = $("import-validation");
+  badge.classList.toggle("invalid", !report.valid);
+  badge.textContent = report.valid
+    ? report.unitsChecked + (report.unitsChecked === 1 ? " unit validated" : " units validated")
+    : report.diagnostics.length + (report.diagnostics.length === 1 ? " syntax issue" : " syntax issues");
+  $("import-accept").textContent = report.valid ? "Open in Editor" : "Open Draft";
+  $("import-diagnostics").innerHTML = report.diagnostics.map(diagnostic =>
+    '<div class="import-diagnostic"><strong>' + esc(diagnostic.unit) + ':' +
+    diagnostic.line + ':' + diagnostic.column + '</strong> ' + esc(diagnostic.message) + '</div>'
+  ).join("");
+}
+
+function validateImportPreview() {
+  if (!pendingCodeImport || !wasm?.validateImport) return;
+  try {
+    const report = JSON.parse(wasm.validateImport($("import-content").value, pendingCodeImport.notebook));
+    pendingCodeImport.validation = report;
+    showImportValidation(report);
+  } catch (error) {
+    showImportValidation({
+      valid: false,
+      unitsChecked: 0,
+      diagnostics: [{ unit: "import", line: 1, column: 1, message: String(error) }],
+    });
+  }
+}
+
+async function openCodeImport(file) {
+  const format = importFormat(file.name);
+  if (!format) {
+    appendEditorOutput("Unsupported import format: " + file.name, "error");
+    return;
+  }
+  if (file.size > 32 * 1024 * 1024) {
+    appendEditorOutput("Import source exceeds the 32 MB browser limit: " + file.name, "error");
+    return;
+  }
+  await wasmReady;
+  if (!wasm?.importSource) {
+    appendEditorOutput("The loaded BioLang WASM does not support code import", "error");
+    return;
+  }
+  try {
+    const response = JSON.parse(wasm.importSource(await file.text(), format, file.name));
+    if (!response.ok) throw new Error(response.error || "Import failed");
+    pendingCodeImport = response.result;
+    $("import-source-name").textContent = pendingCodeImport.sourceName;
+    $("import-format").textContent = pendingCodeImport.sourceFormat + (pendingCodeImport.notebook ? " notebook" : " script");
+    $("import-output-name").value = pendingCodeImport.suggestedName;
+    $("import-content").value = pendingCodeImport.content;
+    showImportValidation(pendingCodeImport.validation);
+    importDialog.showModal();
+  } catch (error) {
+    appendEditorOutput("Import failed: " + error, "error");
+  }
+}
 
 function openFiles(fileList) {
-  Array.from(fileList).forEach(file => {
+  const files = Array.from(fileList);
+  const codeFiles = files.filter(file => importFormat(file.name));
+  if (codeFiles.length) {
+    void openCodeImport(codeFiles[0]);
+    if (codeFiles.length > 1) {
+      appendEditorOutput("Import one source script or notebook at a time; opened " + codeFiles[0].name, "info");
+    }
+  }
+  files.filter(file => !importFormat(file.name)).forEach(file => {
     const reader = new FileReader();
     reader.onload = () => {
       localFiles.set(file.name, reader.result);
@@ -679,6 +890,13 @@ function renderFiles() {
     card.innerHTML = '<div class="name">' + esc(name) + '</div>' +
       '<div class="meta">' + fmtBytes(content.length) + ' · ' + lines.toLocaleString() + ' lines · .' + ext + '</div>';
     card.addEventListener("click", () => {
+      if (ext === "bl" || ext === "bln") {
+        editorCode.value = content;
+        editorNotebook = ext === "bln";
+        switchTab("editor");
+        editorCode.focus();
+        return;
+      }
       let fn = "read_csv";
       if (["fasta","fa","fna","faa"].includes(ext)) fn = "read_fasta";
       else if (["fastq","fq"].includes(ext)) fn = "read_fastq";
@@ -694,6 +912,38 @@ function renderFiles() {
 
 $("files-open").addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => { if (fileInput.files.length) openFiles(fileInput.files); fileInput.value = ""; });
+$("editor-import").addEventListener("click", () => codeImportInput.click());
+codeImportInput.addEventListener("change", () => {
+  if (codeImportInput.files.length) void openCodeImport(codeImportInput.files[0]);
+  codeImportInput.value = "";
+});
+$("import-close").addEventListener("click", () => importDialog.close());
+$("import-cancel").addEventListener("click", () => importDialog.close());
+$("import-content").addEventListener("input", validateImportPreview);
+$("import-accept").addEventListener("click", () => {
+  if (!pendingCodeImport) return;
+  validateImportPreview();
+  const fallback = pendingCodeImport.suggestedName;
+  const rawName = $("import-output-name").value.trim().replace(/^.*[/\\]/, "") || fallback;
+  const expectedExtension = pendingCodeImport.notebook ? ".bln" : ".bl";
+  const name = rawName.toLowerCase().endsWith(expectedExtension) ? rawName : rawName + expectedExtension;
+  const content = $("import-content").value;
+  localFiles.set(name, content);
+  renderFiles();
+  $("files-count").textContent = localFiles.size;
+  $("file-status").textContent = localFiles.size + " files";
+  editorCode.value = content;
+  editorNotebook = pendingCodeImport.notebook;
+  importDialog.close();
+  switchTab("editor");
+  editorCode.focus();
+  appendEditorOutput(
+    pendingCodeImport.validation.valid
+      ? "Imported and syntax-validated " + name
+      : "Opened " + name + " as a draft with " + pendingCodeImport.validation.diagnostics.length + " syntax issues",
+    pendingCodeImport.validation.valid ? "info" : "error"
+  );
+});
 
 const dropZone = $("file-drop-zone");
 dropZone.addEventListener("click", () => fileInput.click());
@@ -708,16 +958,74 @@ document.addEventListener("drop", e => { e.preventDefault(); if (e.dataTransfer.
 // ══════════════════════════════════════════════════════════════
 const editorCode = $("editor-code");
 const editorOutput = $("editor-output");
+let activeRemoteJob = null;
 
 function appendEditorCode(code) {
+  if (editorNotebook) {
+    if (editorCode.value && !editorCode.value.endsWith("\n")) editorCode.value += "\n";
+    editorCode.value += "\n```biolang\n" + code.trimEnd() + "\n```\n";
+    return;
+  }
   if (editorCode.value && !editorCode.value.endsWith("\n")) editorCode.value += "\n";
   editorCode.value += code;
 }
 
-function runEditorCode() {
-  const code = editorCode.value;
-  if (!code.trim()) return;
-  runCode(code);
+function executableEditorSource() {
+  if (!editorNotebook) return editorCode.value;
+  const cells = [];
+  const pattern = /```(?:biolang|bio)\s*\r?\n([\s\S]*?)```/gi;
+  let match;
+  while ((match = pattern.exec(editorCode.value)) !== null) cells.push(match[1]);
+  return cells.join("\n\n");
+}
+
+async function runEditorCode() {
+  const code = executableEditorSource();
+  if (!code.trim()) {
+    if (editorNotebook) appendEditorOutput("No BioLang code cells found in this notebook", "error");
+    return;
+  }
+  if (activeRemoteJob) {
+    await activeRemoteJob.client.cancelJob(activeRemoteJob.id);
+    appendEditorOutput("Cancellation requested for SOMER job " + activeRemoteJob.id, "info");
+    return;
+  }
+  if (executionTarget.value === "somer") await runRemoteCode(code);
+  else runCode(code);
+}
+
+async function runRemoteCode(code) {
+  const t0 = performance.now();
+  let stdoutLength = 0;
+  let stderrLength = 0;
+  try {
+    const client = currentSomerClient();
+    const submitted = await client.submitJob({
+      executor: "biolang",
+      name: "studio.bl",
+      entrypoint: "studio.bl",
+      source: code,
+      resources: { profile: $("somer-resources").value },
+    });
+    activeRemoteJob = { client, id: submitted.id };
+    $("editor-run").textContent = "■ Stop Remote";
+    appendEditorOutput("Submitted to SOMER: " + submitted.id, "info");
+    const finished = await client.waitForJob(submitted.id, job => {
+      const stdout = stripAnsi(job.stdout.slice(stdoutLength));
+      const stderr = stripAnsi(job.stderr.slice(stderrLength));
+      stdoutLength = job.stdout.length;
+      stderrLength = job.stderr.length;
+      if (stdout) appendEditorOutput(stdout.trimEnd(), "stdout");
+      if (stderr) appendEditorOutput(stderr.trimEnd(), "error");
+    });
+    appendEditorOutput("SOMER job " + finished.status + (finished.exitCode == null ? "" : " (exit " + finished.exitCode + ")"), finished.status === "succeeded" ? "value" : "error");
+  } catch (error) {
+    appendEditorOutput("SOMER: " + error, "error");
+  } finally {
+    activeRemoteJob = null;
+    $("editor-run").textContent = "▶ Run (Ctrl+Enter)";
+    $("editor-timing").textContent = ((performance.now() - t0) / 1000).toFixed(3) + "s remote";
+  }
 }
 
 function runCode(code) {

@@ -35,12 +35,12 @@
         <p>Launch the REPL from your terminal:</p>
         <pre><code class="language-bash">bl repl</code></pre>
         <p>You will see the BioLang prompt:</p>
-        <pre><code class="language-biolang">BioLang v0.1.0 — Type :help for commands, :quit to exit
+        <pre><code class="language-text">BioLang v0.1.0 — Type :help for commands, :quit to exit
 bl&gt;</code></pre>
         <p>
           Type any expression and press Enter to evaluate it. The result is automatically printed:
         </p>
-        <pre><code class="language-biolang">bl&gt; 2 + 2
+        <pre><code class="language-text">bl&gt; 2 + 2
 4
 
 bl&gt; "hello" |> upper()
@@ -116,7 +116,7 @@ bl&gt; dna"GATTACA" |> len()
           The <code>:type</code> command is invaluable for understanding what types flow through
           your pipe chains:
         </p>
-        <pre><code class="language-biolang">bl&gt; :type dna"ATCG"
+        <pre><code class="language-text">bl&gt; :type dna"ATCG"
 Dna
 
 bl&gt; :type [1, 2, 3] |> map(|x| x * 2.0)
@@ -132,7 +132,7 @@ Fn(Int) -> Int</code></pre>
         <p>
           Use <code>:time</code> to benchmark operations directly in the REPL:
         </p>
-        <pre><code class="language-biolang">bl&gt; :time range(1, 1_000_000) |> map(|x| x * x) |> sum()
+        <pre><code class="language-text">bl&gt; :time range(1, 1_000_000) |> map(|x| x * x) |> sum()
 333333833333500000
 Elapsed: 42ms
 
@@ -144,7 +144,7 @@ Elapsed: 0.3ms</code></pre>
         <p>
           Load external files to bring their functions and variables into the current session:
         </p>
-        <pre><code class="language-biolang">bl&gt; :load utils.bl
+        <pre><code class="language-text">bl&gt; :load utils.bl
 Loaded 3 functions, 2 variables from utils.bl
 
 bl&gt; my_custom_function("test")
@@ -158,7 +158,7 @@ bl&gt; :env
         <p>
           Save your current session to a file for later reuse:
         </p>
-        <pre><code class="language-biolang">bl&gt; let data = [10, 20, 30, 40, 50]
+        <pre><code class="language-text">bl&gt; let data = [10, 20, 30, 40, 50]
 bl&gt; let filtered = data |> filter(|x| x > 25)
 bl&gt; :save session.bl
 Saved 2 expressions to session.bl</code></pre>
@@ -173,7 +173,7 @@ Saved 2 expressions to session.bl</code></pre>
           <li><strong>Variable names</strong> &mdash; any variable defined in the current session</li>
           <li><strong>REPL commands</strong> &mdash; type <code>:</code> then <kbd>Tab</kbd></li>
         </ul>
-        <pre><code class="language-biolang">bl&gt; dna"ATCG" |> [Tab]
+        <pre><code class="language-text">bl&gt; dna"ATCG" |> [Tab]
 gc_content    reverse_complement    complement    transcribe    len
 translate     subseq                find_motif    kmers         kmer_count
 
@@ -186,7 +186,7 @@ mean    mean_phred    median</code></pre>
           or parenthesis without closing it, the prompt changes to <code>...</code> to indicate
           continuation:
         </p>
-        <pre><code class="language-biolang">bl&gt; let samples = [
+        <pre><code class="language-text">bl&gt; let samples = [
 ...   { "id": "S1", "reads": 1_000_000 },
 ...   { "id": "S2", "reads": 2_500_000 },
 ...   { "id": "S3", "reads": 800_000 }
@@ -201,7 +201,7 @@ bl&gt; greet("BioLang")
         <p>
           You can also force multi-line mode by ending a line with a backslash:
         </p>
-        <pre><code class="language-biolang">bl&gt; [1, 2, 3, 4, 5] \
+        <pre><code class="language-text">bl&gt; [1, 2, 3, 4, 5] \
 ...   |> map(|x| x * 10) \
 ...   |> filter(|x| x > 20) \
 ...   |> sum()
@@ -221,7 +221,7 @@ bl&gt; greet("BioLang")
           History search is prefix-aware. Type the beginning of a previous command and press
           <kbd>Up</kbd> to find matching entries:
         </p>
-        <pre><code class="language-biolang">bl&gt; dna[Up]
+        <pre><code class="language-text">bl&gt; dna[Up]
 # Cycles through previous commands starting with "dna"
 bl&gt; dna"GATTACA" |> reverse_complement()</code></pre>
 
@@ -229,7 +229,7 @@ bl&gt; dna"GATTACA" |> reverse_complement()</code></pre>
         <p>
           The REPL is especially useful for exploring genomic data interactively:
         </p>
-        <pre><code class="language-biolang">bl&gt; let reads = read_fastq("sample.fastq")
+        <pre><code class="language-text">bl&gt; let reads = read_fastq("sample.fastq")
 
 bl&gt; reads |> take(5) |> map(|r| r.id)
 ["read_001", "read_002", "read_003", "read_004", "read_005"]
@@ -254,7 +254,8 @@ bl&gt; kmers(reads[0].seq, 3) |> take(5)
 fn qc(path: String) {
   let reads = read_fastq(path)
   reads
-    |> map(|r| mean_phred(r.quality))
+    |> mutate("mean_quality", |r| mean_phred(r.quality))
+    |> select("mean_quality")
     |> describe()
 }
 

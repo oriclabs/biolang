@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-02d32199.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -409,10 +409,7 @@ TNF       55.0         120.0
 let counts = csv("data/counts.csv")
 
 # Run differential expression analysis
-let de_results = diff_expr(counts,
-    control: ["normal_1", "normal_2", "normal_3"],
-    treatment: ["tumor_1", "tumor_2", "tumor_3"]
-)
+let de_results = diff_expr(counts, [0, 0, 0, 1, 1, 1])
 println(f"DE results: {nrow(de_results)} genes")
 println(de_results |&gt; head(5))
 </code></pre>
@@ -531,16 +528,13 @@ PTEN    290.0        90.0        -1.69
 </blockquote>
 <pre><code class="language-bio"># requires: data/counts.csv in working directory
 let counts = csv("data/counts.csv")
-let de_results = diff_expr(counts,
-    control: ["normal_1", "normal_2", "normal_3"],
-    treatment: ["tumor_1", "tumor_2", "tumor_3"]
-)
+let de_results = diff_expr(counts, [0, 0, 0, 1, 1, 1])
 
 # Basic volcano plot
 volcano(de_results)
 
 # With thresholds highlighted
-volcano(de_results, fc_threshold: 1.0, p_threshold: 0.05, title: "Tumor vs Normal")
+volcano(de_results, {fc_threshold: 1.0, p_threshold: 0.05})
 </code></pre>
 <p>The plot marks genes as:</p>
 <ul>
@@ -613,10 +607,7 @@ let norm = tpm(counts, gene_lengths)
 println(f"3. TPM normalization complete")
 
 # Step 4: Differential expression
-let de = diff_expr(counts,
-    control: ["normal_1", "normal_2", "normal_3"],
-    treatment: ["tumor_1", "tumor_2", "tumor_3"]
-)
+let de = diff_expr(counts, [0, 0, 0, 1, 1, 1])
 
 # Step 5: Filter significant
 let sig = de
@@ -638,7 +629,7 @@ println(top_down)
 
 # Step 7: Visualize
 println("\n5. Generating volcano plot...")
-volcano(de, fc_threshold: 1.0, p_threshold: 0.05, title: "Tumor vs Normal DE")
+volcano(de, {fc_threshold: 1.0, p_threshold: 0.05})
 
 # Step 8: Export
 write_csv(sig, "results/significant_genes.csv")
@@ -729,9 +720,9 @@ println("\n=== Pipeline complete ===")
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

@@ -16,7 +16,7 @@ pub fn fs_builtin_list() -> Vec<(&'static str, Arity)> {
         ("basename", Arity::Exact(1)),
         ("dirname", Arity::Exact(1)),
         ("extension", Arity::Exact(1)),
-        ("path_join", Arity::Exact(2)),
+        ("path_join", Arity::AtLeast(2)),
         ("abs_path", Arity::Exact(1)),
         ("file_size", Arity::Exact(1)),
         ("is_dir", Arity::Exact(1)),
@@ -122,7 +122,11 @@ fn builtin_write_text(args: Vec<Value>) -> Result<Value> {
     let path = require_str(&args[0], "write_text")?;
     let content = require_str(&args[1], "write_text")?;
     std::fs::write(path, content).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("write_text() failed: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("write_text() failed: {e}"),
+            None,
+        )
     })?;
     Ok(Value::Nil)
 }
@@ -136,7 +140,11 @@ fn builtin_list_dir(args: Vec<Value>) -> Result<Value> {
     let mut result = Vec::new();
     for entry in entries {
         let entry = entry.map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("list_dir() entry error: {e}"), None)
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("list_dir() entry error: {e}"),
+                None,
+            )
         })?;
         let meta = entry.metadata().map_err(|e| {
             BioLangError::runtime(
@@ -152,9 +160,9 @@ fn builtin_list_dir(args: Vec<Value>) -> Result<Value> {
         );
         rec.insert("size".to_string(), Value::Int(meta.len() as i64));
         rec.insert("is_dir".to_string(), Value::Bool(meta.is_dir()));
-        result.push(Value::Record(rec));
+        result.push(Value::Record((rec).into()));
     }
-    Ok(Value::List(result))
+    Ok(Value::List((result).into()))
 }
 
 fn builtin_mkdir(args: Vec<Value>) -> Result<Value> {
@@ -186,10 +194,14 @@ fn builtin_dirname(args: Vec<Value>) -> Result<Value> {
 fn builtin_read_lines(args: Vec<Value>) -> Result<Value> {
     let path = require_str(&args[0], "read_lines")?;
     let content = std::fs::read_to_string(path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("read_lines() failed: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("read_lines() failed: {e}"),
+            None,
+        )
     })?;
     let lines: Vec<Value> = content.lines().map(|l| Value::Str(l.to_string())).collect();
-    Ok(Value::List(lines))
+    Ok(Value::List((lines).into()))
 }
 
 fn builtin_write_lines(args: Vec<Value>) -> Result<Value> {
@@ -205,7 +217,11 @@ fn builtin_write_lines(args: Vec<Value>) -> Result<Value> {
     };
     let content: Vec<String> = lines.iter().map(|v| format!("{v}")).collect();
     std::fs::write(path, content.join("\n")).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("write_lines() failed: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("write_lines() failed: {e}"),
+            None,
+        )
     })?;
     Ok(Value::Nil)
 }
@@ -244,10 +260,16 @@ fn builtin_extension(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Str(ext))
 }
 
+/// Join two or more path segments.
+///
+/// Variadic because `path_join(a, b, c)` is what every other language's path
+/// join accepts and what the examples were already written against; the
+/// two-argument form is unaffected.
 fn builtin_path_join(args: Vec<Value>) -> Result<Value> {
-    let base = require_str(&args[0], "path_join")?;
-    let child = require_str(&args[1], "path_join")?;
-    let joined = std::path::Path::new(base).join(child);
+    let mut joined = std::path::PathBuf::from(require_str(&args[0], "path_join")?);
+    for arg in &args[1..] {
+        joined.push(require_str(arg, "path_join")?);
+    }
     Ok(Value::Str(joined.to_string_lossy().to_string()))
 }
 
@@ -305,7 +327,11 @@ fn builtin_rename_file(args: Vec<Value>) -> Result<Value> {
     let src = require_str(&args[0], "rename_file")?;
     let dst = require_str(&args[1], "rename_file")?;
     std::fs::rename(src, dst).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("rename_file() failed: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("rename_file() failed: {e}"),
+            None,
+        )
     })?;
     Ok(Value::Str(dst.to_string()))
 }
@@ -357,7 +383,7 @@ fn builtin_glob(args: Vec<Value>) -> Result<Value> {
             }
         }
     }
-    Ok(Value::List(result))
+    Ok(Value::List((result).into()))
 }
 
 fn builtin_remove_dir(args: Vec<Value>) -> Result<Value> {
@@ -384,8 +410,11 @@ fn builtin_remove_dir(args: Vec<Value>) -> Result<Value> {
         std::fs::remove_dir(p)
     }
     .map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("remove_dir() failed: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("remove_dir() failed: {e}"),
+            None,
+        )
     })?;
     Ok(Value::Nil)
 }
-

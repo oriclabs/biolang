@@ -1,0 +1,21 @@
+# methylation — DNA methylation analysis for BioLang
+#
+# Quick start:
+#   import "methylation" as meth
+#
+#   let m    = meth.to_mvalue(beta_values)
+#   let dmrs = meth.find_dmrs(beta_matrix, group_a=[0,1,2], group_b=[3,4,5])
+#   meth.clock_age(beta_vec, horvath_coefs)
+
+import "methylation/src/values" as val
+import "methylation/src/dmr"    as dmr
+
+fn to_mvalue(beta_vec)                    { val.to_mvalue(beta_vec) }
+fn to_beta(m_vec)                         { val.to_beta(m_vec) }
+fn density(positions, window=500)         { val.density(positions, window) }
+fn clock_age(beta_vec, coefs)             { val.clock_age(beta_vec, coefs) }
+fn find_dmrs(beta_matrix, group_a, group_b, min_delta=0.2, min_cpgs=3) {
+  dmr.find(beta_matrix, group_a, group_b, min_delta, min_cpgs)
+}
+fn diff_cpgs(beta_matrix, group_a, group_b) { dmr.diff_cpgs(beta_matrix, group_a, group_b) }
+fn significant_cpgs(result, min_delta=0.2, padj=0.05) { dmr.significant_cpgs(result, min_delta, padj) }

@@ -1,0 +1,16 @@
+import "hic" as hic
+
+# contact_matrix: N×N Table from .hic or cooler file
+# (rows and columns = genomic bins, values = contact counts)
+
+# ICE normalization
+# let norm = hic.normalize(contact_matrix)
+
+# Insulation score (window = 10 bins)
+# let scores = hic.insulation(norm, window=10)
+
+# TAD boundaries
+# let tads = hic.boundaries(scores, delta=0.15)
+
+# Distance decay (contact frequency vs genomic distance)
+# hic.decay(norm)

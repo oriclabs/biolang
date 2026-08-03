@@ -1,0 +1,3 @@
+fn match_mz(mz, db, ppm=5.0)       { mz_match(mz, db, ppm) }
+fn group(mz_rt_table, mz_ppm=5.0, rt_tol=0.1) { feature_group(mz_rt_table, mz_ppm, rt_tol) }
+fn isotopes(intensities, n_carbons)  { isotope_correct(intensities, n_carbons) }

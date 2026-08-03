@@ -33,8 +33,12 @@ pub fn is_valid_rna(seq: &str) -> bool {
 
 /// Returns `true` if every character is a valid nucleotide (A, C, G, T, U, N, -), case-insensitive.
 pub fn is_valid_nucleotide(seq: &str) -> bool {
-    seq.bytes()
-        .all(|b| matches!(b.to_ascii_uppercase(), b'A' | b'C' | b'G' | b'T' | b'U' | b'N' | b'-'))
+    seq.bytes().all(|b| {
+        matches!(
+            b.to_ascii_uppercase(),
+            b'A' | b'C' | b'G' | b'T' | b'U' | b'N' | b'-'
+        )
+    })
 }
 
 /// Detect whether a sequence is DNA, RNA, or ambiguous.
@@ -77,21 +81,28 @@ pub fn back_transcribe(rna: &str) -> String {
 // ── Complement ───────────────────────────────────────────────────────
 
 /// DNA complement: A↔T, G↔C. Non-ATGC characters pass through unchanged.
+/// Complement one DNA base, leaving anything else alone.
+#[inline]
+fn complement_base_dna(b: u8) -> u8 {
+    match b {
+        b'A' => b'T',
+        b'T' => b'A',
+        b'G' => b'C',
+        b'C' => b'G',
+        b'a' => b't',
+        b't' => b'a',
+        b'g' => b'c',
+        b'c' => b'g',
+        _ => b,
+    }
+}
+
 pub fn complement_dna(dna: &str) -> String {
-    dna.bytes()
-        .map(|b| match b {
-            b'A' => b'T',
-            b'T' => b'A',
-            b'G' => b'C',
-            b'C' => b'G',
-            b'a' => b't',
-            b't' => b'a',
-            b'g' => b'c',
-            b'c' => b'g',
-            _ => b,
-        })
-        .map(|b| b as char)
-        .collect()
+    let mut out = Vec::with_capacity(dna.len());
+    out.extend(dna.bytes().map(complement_base_dna));
+    // Complementing never changes how many bytes a character occupies and never
+    // touches a byte outside the ASCII range, so this cannot fail.
+    String::from_utf8(out).expect("complementing preserves UTF-8")
 }
 
 /// RNA complement: A↔U, G↔C. Non-AUGC characters pass through unchanged.
@@ -122,6 +133,18 @@ pub fn complement(seq: &str) -> String {
 
 /// DNA reverse complement.
 pub fn reverse_complement_dna(dna: &str) -> String {
+    // Sequence data is ASCII, so walk the bytes backwards and complement as we
+    // go: one pass, one allocation. Going through `complement_dna(..).chars()
+    // .rev().collect()` built the string twice and decoded UTF-8 in both
+    // directions to do it.
+    if dna.is_ascii() {
+        let bytes = dna.as_bytes();
+        let mut out = Vec::with_capacity(bytes.len());
+        out.extend(bytes.iter().rev().map(|&b| complement_base_dna(b)));
+        return String::from_utf8(out).expect("ASCII in, ASCII out");
+    }
+    // Anything else is reversed by character, since reversing the bytes of a
+    // multi-byte character would corrupt it.
     complement_dna(dna).chars().rev().collect()
 }
 
@@ -237,6 +260,33 @@ pub fn translate_to_stop(seq: &str) -> String {
 
 /// Find all positions where `motif` occurs in `seq` (case-insensitive).
 pub fn find_motif(seq: &str, motif: &str) -> Vec<usize> {
+    // Sequence data is ASCII, and comparing case-insensitively in place avoids
+    // uppercasing a copy of the whole sequence first — which for a chromosome
+    // meant allocating it again and running Unicode case rules over every base
+    // before the search had started.
+    if seq.is_ascii() && motif.is_ascii() {
+        let haystack = seq.as_bytes();
+        let needle = motif.as_bytes();
+        if needle.is_empty() || needle.len() > haystack.len() {
+            return Vec::new();
+        }
+        // Test the first base before anything else. Three quarters of positions
+        // in DNA fail on it, and rejecting those with one byte comparison is
+        // much cheaper than forming a subslice and calling into a case-folding
+        // comparison for every one of them.
+        let first_upper = needle[0].to_ascii_uppercase();
+        let first_lower = needle[0].to_ascii_lowercase();
+        let rest = &needle[1..];
+        let span = needle.len();
+        return (0..=haystack.len() - span)
+            .filter(|&i| {
+                let b = haystack[i];
+                (b == first_upper || b == first_lower)
+                    && haystack[i + 1..i + span].eq_ignore_ascii_case(rest)
+            })
+            .collect();
+    }
+
     let seq_upper = seq.to_uppercase();
     let motif_upper = motif.to_uppercase();
     let motif_len = motif_upper.len();

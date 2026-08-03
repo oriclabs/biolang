@@ -8,7 +8,9 @@ fn s<T>(node: T) -> Spanned<T> {
 }
 
 fn compile(program: &Program) -> CompiledFunction {
-    Compiler::new().compile_program(program).expect("compile failed")
+    Compiler::new()
+        .compile_program(program)
+        .expect("compile failed")
 }
 
 #[test]
@@ -114,7 +116,11 @@ fn test_compile_unary_neg() {
         })))],
     };
     let func = compile(&program);
-    assert!(func.chunk.code.iter().any(|op| matches!(op, OpCode::Negate)));
+    assert!(func
+        .chunk
+        .code
+        .iter()
+        .any(|op| matches!(op, OpCode::Negate)));
 }
 
 #[test]
@@ -204,9 +210,21 @@ fn test_compile_for_loop() {
         })],
     };
     let func = compile(&program);
-    assert!(func.chunk.code.iter().any(|op| matches!(op, OpCode::PushIter)));
-    assert!(func.chunk.code.iter().any(|op| matches!(op, OpCode::IterNext(_))));
-    assert!(func.chunk.code.iter().any(|op| matches!(op, OpCode::PopIter)));
+    assert!(func
+        .chunk
+        .code
+        .iter()
+        .any(|op| matches!(op, OpCode::PushIter)));
+    assert!(func
+        .chunk
+        .code
+        .iter()
+        .any(|op| matches!(op, OpCode::IterNext(_))));
+    assert!(func
+        .chunk
+        .code
+        .iter()
+        .any(|op| matches!(op, OpCode::PopIter)));
 }
 
 #[test]
@@ -229,9 +247,10 @@ fn test_compile_list_literal() {
 #[test]
 fn test_compile_record_literal() {
     let program = Program {
-        stmts: vec![s(Stmt::Expr(s(Expr::Record(vec![
-            RecordEntry::Field("a".to_string(), s(Expr::Int(1))),
-        ]))))],
+        stmts: vec![s(Stmt::Expr(s(Expr::Record(vec![RecordEntry::Field(
+            "a".to_string(),
+            s(Expr::Int(1)),
+        )]))))],
     };
     let func = compile(&program);
     assert!(func
@@ -536,7 +555,11 @@ fn test_compile_break_continue() {
     };
     let func = compile(&program);
     // Break compiles to a Jump that gets patched
-    assert!(func.chunk.code.iter().any(|op| matches!(op, OpCode::Jump(_))));
+    assert!(func
+        .chunk
+        .code
+        .iter()
+        .any(|op| matches!(op, OpCode::Jump(_))));
 }
 
 #[test]
@@ -618,11 +641,7 @@ fn test_compile_destruct_let_list() {
         })],
     };
     let func = compile(&program);
-    assert!(func
-        .chunk
-        .code
-        .iter()
-        .any(|op| matches!(op, OpCode::Dup)));
+    assert!(func.chunk.code.iter().any(|op| matches!(op, OpCode::Dup)));
     assert!(func
         .chunk
         .code

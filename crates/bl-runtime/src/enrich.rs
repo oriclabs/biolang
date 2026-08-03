@@ -7,7 +7,7 @@ pub fn enrich_builtin_list() -> Vec<(&'static str, Arity)> {
         ("read_gmt", Arity::Exact(1)),
         ("enrich", Arity::Exact(3)),
         ("ora", Arity::Exact(3)),
-        ("gsea", Arity::Exact(2)),
+        ("gsea", Arity::Range(2, 3)),
     ]
 }
 
@@ -18,7 +18,8 @@ pub fn is_enrich_builtin(name: &str) -> bool {
 pub fn call_enrich_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
     match name {
         "read_gmt" => builtin_read_gmt(args),
-        "enrich" | "ora" => builtin_enrich(args),
+        "enrich" => builtin_enrich(args, "enrich"),
+        "ora" => builtin_enrich(args, "ora"),
         "gsea" => builtin_gsea(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
@@ -60,29 +61,84 @@ fn builtin_read_gmt(args: Vec<Value>) -> Result<Value> {
             .filter(|s| !s.is_empty())
             .map(|s| Value::Str(s.to_string()))
             .collect();
-        map.insert(name, Value::List(genes));
+        map.insert(name, Value::List((genes).into()));
     }
 
-    Ok(Value::Map(map))
+    Ok(Value::Map((map).into()))
+}
+
+/// Read gene sets written as a list of `{name, genes}` records.
+///
+/// That is how the tutorials and the enrichment examples all write them, and it
+/// keeps set order readable in source. Shared by `enrich`/`ora` and `gsea` so
+/// the two cannot drift into accepting different shapes.
+fn parse_gene_set_list(value: &Value, func: &str) -> Result<HashMap<String, Vec<String>>> {
+    let items = match value {
+        Value::List(items) => items,
+        _ => {
+            return Err(BioLangError::type_error(
+                format!("{func}() gene sets must be a List of {{name, genes}} records"),
+                None,
+            ))
+        }
+    };
+
+    let mut sets = HashMap::new();
+    for item in items.iter() {
+        let record = match item {
+            Value::Record(fields) | Value::Map(fields) => fields,
+            _ => {
+                return Err(BioLangError::type_error(
+                    format!("{func}() gene sets must be {{name, genes}} records"),
+                    None,
+                ))
+            }
+        };
+        let name = match record.get("name").and_then(|v| v.as_str()) {
+            Some(name) => name.to_string(),
+            None => {
+                return Err(BioLangError::type_error(
+                    format!("{func}() gene set needs a string 'name'"),
+                    None,
+                ))
+            }
+        };
+        let genes = match record.get("genes") {
+            Some(Value::List(items)) => items
+                .iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect(),
+            _ => {
+                return Err(BioLangError::type_error(
+                    format!("{func}() gene set '{name}' needs a 'genes' list"),
+                    None,
+                ))
+            }
+        };
+        sets.insert(name, genes);
+    }
+    Ok(sets)
 }
 
 /// Over-Representation Analysis using hypergeometric test.
 /// enrich(genes: List[Str], gene_sets: Map{name → List[Str]}, bg_size: Int) → Table
-fn builtin_enrich(args: Vec<Value>) -> Result<Value> {
+/// Shared by `enrich` and `ora`; `func` is the name the caller used, so an
+/// ora() mistake is not reported against enrich().
+fn builtin_enrich(args: Vec<Value>, func: &str) -> Result<Value> {
     let genes: Vec<String> = match &args[0] {
         Value::List(items) => items
             .iter()
             .map(|v| match v {
                 Value::Str(s) => Ok(s.clone()),
                 _ => Err(BioLangError::type_error(
-                    "enrich() genes must be List of Str",
+                    format!("{func}() genes must be List of Str"),
                     None,
                 )),
             })
             .collect::<Result<Vec<_>>>()?,
         _ => {
             return Err(BioLangError::type_error(
-                "enrich() first arg must be List of gene names",
+                format!("{func}() first arg must be List of gene names"),
                 None,
             ))
         }
@@ -91,7 +147,7 @@ fn builtin_enrich(args: Vec<Value>) -> Result<Value> {
     let gene_sets: HashMap<String, Vec<String>> = match &args[1] {
         Value::Map(m) => {
             let mut sets = HashMap::new();
-            for (name, val) in m {
+            for (name, val) in m.iter() {
                 match val {
                     Value::List(items) => {
                         let gs: Vec<String> = items
@@ -102,7 +158,7 @@ fn builtin_enrich(args: Vec<Value>) -> Result<Value> {
                     }
                     _ => {
                         return Err(BioLangError::type_error(
-                            "enrich() gene_sets values must be Lists",
+                            format!("{func}() gene_sets values must be Lists"),
                             None,
                         ))
                     }
@@ -110,9 +166,12 @@ fn builtin_enrich(args: Vec<Value>) -> Result<Value> {
             }
             sets
         }
+        Value::List(_) => parse_gene_set_list(&args[1], func)?,
         _ => {
             return Err(BioLangError::type_error(
-                "enrich() second arg must be Map of gene sets",
+                format!(
+                    "{func}() second arg must be a Map of gene sets, or a List of {{name, genes}}"
+                ),
                 None,
             ))
         }
@@ -122,14 +181,13 @@ fn builtin_enrich(args: Vec<Value>) -> Result<Value> {
         Value::Int(n) => *n as u64,
         _ => {
             return Err(BioLangError::type_error(
-                "enrich() third arg must be Int (background size)",
+                format!("{func}() third arg must be Int (background size)"),
                 None,
             ))
         }
     };
 
-    let gene_set_ref: std::collections::HashSet<&str> =
-        genes.iter().map(|s| s.as_str()).collect();
+    let gene_set_ref: std::collections::HashSet<&str> = genes.iter().map(|s| s.as_str()).collect();
     let n = genes.len() as u64; // number of drawn (query genes)
 
     let mut results: Vec<(String, usize, f64, Vec<String>)> = Vec::new();
@@ -154,8 +212,7 @@ fn builtin_enrich(args: Vec<Value>) -> Result<Value> {
         let upper = n.min(big_k);
         let mut p_value = 0.0;
         for x in k..=upper {
-            p_value +=
-                bl_core::bio_core::stats_ops::hypergeometric_prob(x, big_k, big_n2, n);
+            p_value += bl_core::bio_core::stats_ops::hypergeometric_prob(x, big_k, big_n2, n);
         }
         p_value = p_value.min(1.0);
 
@@ -167,8 +224,7 @@ fn builtin_enrich(args: Vec<Value>) -> Result<Value> {
 
     // BH correction
     let raw_p: Vec<f64> = results.iter().map(|r| r.2).collect();
-    let adjusted =
-        bl_core::bio_core::stats_ops::benjamini_hochberg_correction(&raw_p, 0.05);
+    let adjusted = bl_core::bio_core::stats_ops::benjamini_hochberg_correction(&raw_p, 0.05);
 
     // Build output table
     let columns = vec![
@@ -205,23 +261,37 @@ fn builtin_gsea(args: Vec<Value>) -> Result<Value> {
         }
     };
 
-    let gene_sets: HashMap<String, Vec<String>> = match &args[1] {
+    // Collected into a sorted Vec, not a HashMap: the permutation RNG advances
+    // as the loop below walks the sets, so HashMap iteration order would make
+    // each set's null distribution depend on where it happened to land in the
+    // hash table — a second, subtler source of run-to-run variation.
+    let gene_sets: Vec<(String, Vec<String>)> = match &args[1] {
         Value::Map(m) => {
-            let mut sets = HashMap::new();
-            for (name, val) in m {
+            let mut sets: Vec<(String, Vec<String>)> = Vec::new();
+            for (name, val) in m.iter() {
                 if let Value::List(items) = val {
                     let gs: Vec<String> = items
                         .iter()
                         .filter_map(|v| v.as_str().map(|s| s.to_string()))
                         .collect();
-                    sets.insert(name.clone(), gs);
+                    sets.push((name.clone(), gs));
                 }
             }
+            sets.sort_by(|a, b| a.0.cmp(&b.0));
+            sets
+        }
+        // Same `{name, genes}` list form that enrich() accepts. Sorted for the
+        // same reason as the map branch: the permutation RNG must not depend on
+        // the order sets happen to be written in.
+        Value::List(_) => {
+            let mut sets: Vec<(String, Vec<String>)> =
+                parse_gene_set_list(&args[1], "gsea")?.into_iter().collect();
+            sets.sort_by(|a, b| a.0.cmp(&b.0));
             sets
         }
         _ => {
             return Err(BioLangError::type_error(
-                "gsea() second arg must be Map of gene sets",
+                "gsea() second arg must be a Map of gene sets, or a List of {name, genes}",
                 None,
             ))
         }
@@ -229,7 +299,11 @@ fn builtin_gsea(args: Vec<Value>) -> Result<Value> {
 
     // Get gene and score columns
     let gene_idx = table.col_index("gene").ok_or_else(|| {
-        BioLangError::runtime(ErrorKind::TypeError, "gsea() table needs 'gene' column", None)
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            "gsea() table needs 'gene' column",
+            None,
+        )
     })?;
     let score_idx = table.col_index("score").ok_or_else(|| {
         BioLangError::runtime(
@@ -257,13 +331,24 @@ fn builtin_gsea(args: Vec<Value>) -> Result<Value> {
 
     let _n_genes = ranked.len();
 
-    // xorshift PRNG
-    let mut rng = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos() as u64;
+    // xorshift PRNG for the permutation null.
+    //
+    // The seed defaults to a fixed constant rather than the clock: GSEA
+    // p-values come from a permutation test, so a clock seed makes two runs on
+    // identical input disagree, which no reproducible analysis can accept.
+    // Pass an explicit seed to vary it deliberately, and record which one.
+    let mut rng = match args.get(2) {
+        None | Some(Value::Nil) => 0x9E37_79B9_7F4A_7C15,
+        Some(Value::Int(n)) => *n as u64,
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!("gsea() seed must be Int, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
     if rng == 0 {
-        rng = 42;
+        rng = 42; // xorshift is stuck at zero
     }
 
     let n_perms = 1000usize;
@@ -373,7 +458,10 @@ fn compute_es(ranked: &[(String, f64)], gene_set: &std::collections::HashSet<&st
         .filter(|(g, _)| gene_set.contains(g.as_str()))
         .map(|(_, s)| s.abs())
         .sum();
-    let n_miss = n - ranked.iter().filter(|(g, _)| gene_set.contains(g.as_str())).count() as f64;
+    let n_miss = n - ranked
+        .iter()
+        .filter(|(g, _)| gene_set.contains(g.as_str()))
+        .count() as f64;
 
     if n_hit == 0.0 || n_miss == 0.0 {
         return 0.0;
@@ -396,4 +484,3 @@ fn compute_es(ranked: &[(String, f64)], gene_set: &std::collections::HashSet<&st
 
     max_dev
 }
-

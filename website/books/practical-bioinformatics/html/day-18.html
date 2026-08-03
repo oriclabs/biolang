@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-02d32199.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -320,7 +320,7 @@ let tree = interval_tree(regions)
 
 # Query: what overlaps this region?
 let query = interval("chr17", 43065000, 43085000)
-let hits = query_overlaps(tree, query)
+let hits = query_overlaps(tree, query.chrom, query.start, query.end)
 println(f"Overlapping regions: {len(hits)}")
 </code></pre>
 <p>Expected output:</p>
@@ -340,7 +340,7 @@ let regions = [
 let tree = interval_tree(regions)
 
 let query = interval("chr17", 43065000, 43085000)
-let n = count_overlaps(tree, query)
+let n = count_overlaps(tree, query.chrom, query.start, query.end)
 println(f"Number of overlaps: {n}")
 </code></pre>
 <p>Expected output:</p>
@@ -367,7 +367,7 @@ Query 2: 0 overlaps
 <p>To find the closest region when there is no overlap:</p>
 <pre><code class="language-bio"># Find nearest non-overlapping interval
 let lonely = interval("chr17", 43055000, 43056000)
-let nearest = query_nearest(tree, lonely)
+let nearest = query_nearest(tree, lonely.chrom, int((lonely.start + lonely.end) / 2))
 println(f"Nearest region: {nearest}")
 </code></pre>
 <p>Expected output:</p>
@@ -389,7 +389,7 @@ let tree = interval_tree(exon_intervals)
 # Check each variant
 let exonic_variants = variants |&gt; filter(|v| {
     let v_interval = interval(v.chrom, v.pos - 1, v.pos)  # VCF 1-based -&gt; 0-based
-    count_overlaps(tree, v_interval) &gt; 0
+    count_overlaps(tree, v_interval.chrom, v_interval.start, v_interval.end) &gt; 0
 })
 
 println(f"Total variants: {len(variants)}")
@@ -428,7 +428,8 @@ coverage(reads, "chr1")
 <hr>
 <h2 id="coordinate-conversion"><a class="header" href="#coordinate-conversion">Coordinate Conversion</a></h2>
 <p>Converting between coordinate systems is something you will do constantly. Write explicit conversion functions and use them everywhere — never do ad-hoc <code>+1</code> or <code>-1</code> adjustments scattered through your code.</p>
-<pre><code class="language-bio"># BED to VCF coordinates (and back)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# BED to VCF coordinates (and back)
 fn bed_to_vcf(chrom, start, end) {
     # BED: 0-based, half-open -&gt; VCF: 1-based
     {chrom: chrom, pos: start + 1}
@@ -523,7 +524,7 @@ let tree = interval_tree(targets |&gt; map(|t| interval(t.chrom, t.start, t.end)
 # Classify variants
 let variants = read_vcf("data/variants.vcf")
 let on_target = variants |&gt; filter(|v| {
-    count_overlaps(tree, interval(v.chrom, v.pos - 1, v.pos)) &gt; 0
+    count_overlaps(tree, v.chrom, v.pos - 1, v.pos) &gt; 0
 }) |&gt; collect()
 
 let off_target = len(variants) - len(on_target)
@@ -651,9 +652,9 @@ Results saved
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

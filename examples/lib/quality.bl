@@ -1,0 +1,10 @@
+# quality.bl — read-quality helpers, imported by basics/imports.bl
+
+# FASTQ quality strings are Phred+33; decode before averaging.
+fn mean_quality(quality_string) {
+    mean(parse_qual(quality_string))
+}
+
+fn passes(quality_string, threshold) {
+    mean_quality(quality_string) >= threshold
+}

@@ -1,0 +1,81 @@
+# Rosalind: EDTA — Edit Distance Alignment
+# https://rosalind.info/problems/edta/
+#
+# Given: Two protein strings s and t.
+# Return: The edit distance between them, together with an optimal alignment.
+
+let s = "PRETTY"
+let t = "PRTTEIN"
+
+fn set_row(grid, index, row) {
+    range(0, len(grid)) |> map(|i| if i == index then row else grid[i])
+}
+
+# Levenshtein table: substitution, deletion and insertion each cost one.
+let rows = len(s) + 1
+let cols = len(t) + 1
+let grid = range(0, rows) |> map(|i| range(0, cols) |> map(|j| if i == 0 then j else i))
+
+let i = 1
+while i < rows {
+    let si = substr(s, i - 1, 1)
+    let row = [i]
+    let j = 1
+    while j < cols {
+        let cost = if si == substr(t, j - 1, 1) then 0 else 1
+        row = push(row, min([grid[i - 1][j - 1] + cost, grid[i - 1][j] + 1, row[j - 1] + 1]))
+        j = j + 1
+    }
+    grid = set_row(grid, i, row)
+    i = i + 1
+}
+
+let distance = grid[rows - 1][cols - 1]
+
+# Walk the table backwards to recover one alignment. Gaps are written as "-".
+let top = ""
+let bottom = ""
+let x = len(s)
+let y = len(t)
+while x > 0 or y > 0 {
+    let sx = if x > 0 then substr(s, x - 1, 1) else ""
+    let ty = if y > 0 then substr(t, y - 1, 1) else ""
+    let cost = if x > 0 and y > 0 and sx == ty then 0 else 1
+    if x > 0 and y > 0 and grid[x][y] == grid[x - 1][y - 1] + cost {
+        top = sx ++ top
+        bottom = ty ++ bottom
+        x = x - 1
+        y = y - 1
+    } else {
+        if x > 0 and grid[x][y] == grid[x - 1][y] + 1 {
+            top = sx ++ top
+            bottom = "-" ++ bottom
+            x = x - 1
+        } else {
+            top = "-" ++ top
+            bottom = ty ++ bottom
+            y = y - 1
+        }
+    }
+}
+
+fn without_gaps(text) {
+    range(0, len(text)) |> filter(|k| substr(text, k, 1) != "-") |> map(|k| substr(text, k, 1)) |> join("")
+}
+
+let mismatches = range(0, len(top)) |> count_if(|k| substr(top, k, 1) != substr(bottom, k, 1))
+
+println("Result:   " + str(distance))
+println("  " + top)
+println("  " + bottom)
+println("Expected: 4 — PRETTY vs PRTTEIN")
+
+fn test_edta_edit_distance_alignment() {
+    assert distance == 4, "EDTA: distance " + str(distance)
+    # The alignment must have equal length rows that recover the inputs once
+    # gaps are removed, and cost exactly the reported distance.
+    assert len(top) == len(bottom), "EDTA: rows differ in length"
+    assert without_gaps(top) == s, "EDTA: top row does not spell s"
+    assert without_gaps(bottom) == t, "EDTA: bottom row does not spell t"
+    assert mismatches == distance, "EDTA: alignment costs " + str(mismatches) + ", not " + str(distance)
+}

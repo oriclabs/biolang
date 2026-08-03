@@ -1,8 +1,11 @@
+mod events;
 mod notebook;
+mod testing;
 mod update;
 
+use bl_import as import;
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process;
 use std::time::Instant;
 
@@ -26,9 +29,48 @@ enum Commands {
         /// Show each step as it executes
         #[arg(short, long)]
         verbose: bool,
+        /// Emit versioned JSON Lines execution events
+        #[arg(long)]
+        events: bool,
+        /// Print the script's final non-nil value
+        #[arg(long)]
+        print_result: bool,
+    },
+    /// Parse BioLang files without executing them
+    Check {
+        /// Paths to one or more .bl files
+        #[arg(required = true)]
+        files: Vec<String>,
+    },
+    /// Run `test_*` functions and report pass or fail
+    Test {
+        /// Files or directories to search; defaults to the working directory
+        files: Vec<String>,
+        /// Emit versioned JSON Lines test events
+        #[arg(long)]
+        events: bool,
+    },
+    /// Rewrite BioLang files in the canonical layout
+    Fmt {
+        /// Paths to .bl files, or `-` to format stdin to stdout
+        #[arg(required = true)]
+        files: Vec<String>,
+        /// Report which files would change without writing them
+        #[arg(long)]
+        check: bool,
+        /// Print the formatted source instead of rewriting the file
+        #[arg(long)]
+        stdout: bool,
+        /// Spaces per indent level
+        #[arg(long, default_value_t = 4)]
+        indent: usize,
     },
     /// Start the interactive REPL
-    Repl,
+    Repl {
+        /// Use the newline-delimited JSON protocol for editor integrations
+        #[arg(long)]
+        json: bool,
+    },
     /// Start the LSP server (for editor integration)
     Lsp,
     /// Add a plugin (local path)
@@ -52,9 +94,9 @@ enum Commands {
         #[arg(long)]
         name: Option<String>,
     },
-    /// Run a literate notebook (.bln file)
+    /// Run a literate notebook (.bln or .bl.md file)
     Notebook {
-        /// Path to the .bln or .ipynb file
+        /// Path to the .bln, .bl.md, or .ipynb file
         file: String,
         /// Export format: html
         #[arg(long)]
@@ -77,10 +119,46 @@ enum Commands {
         #[arg(long)]
         branch: Option<String>,
     },
+    /// List or copy examples bundled with an installed or local package
+    Examples {
+        /// Installed package name or local package directory
+        package: String,
+        /// Copy the complete example set into this new or empty directory
+        #[arg(long, value_name = "DIR")]
+        copy: Option<String>,
+    },
+    /// Convert Python, R, Jupyter, or R Markdown source to BioLang
+    Import {
+        /// Source file to convert (.py, .R, .ipynb, .Rmd), or `-` to read stdin
+        file: String,
+        /// Source format: python, r, ipynb, rmd (auto-detected from extension)
+        #[arg(long)]
+        from: Option<String>,
+        /// Original file name used for format detection and naming (required with `-`)
+        #[arg(long)]
+        name: Option<String>,
+        /// Write output to this file instead of stdout
+        #[arg(short, long)]
+        output: Option<String>,
+        /// Validate generated BioLang syntax and exit non-zero when diagnostics remain
+        #[arg(long)]
+        validate: bool,
+        /// Emit the full import result (content + validation) as JSON on stdout
+        #[arg(long)]
+        json: bool,
+    },
+    /// Check the environment and per-capability readiness (native vs container)
+    Doctor,
     /// Show version and check for updates
     Version,
     /// Upgrade to the latest release
     Upgrade,
+    /// Export structured language and builtin metadata
+    Metadata {
+        /// Output format
+        #[arg(long, default_value = "json")]
+        format: String,
+    },
 }
 
 fn main() {
@@ -95,8 +173,8 @@ fn main() {
 
             // Background update check for interactive commands
             match &cli.command {
-                Some(Commands::Run { .. })
-                | Some(Commands::Repl)
+                Some(Commands::Run { events: false, .. })
+                | Some(Commands::Repl { json: false })
                 | None => {
                     update::check_for_updates_background();
                 }
@@ -104,8 +182,26 @@ fn main() {
             }
 
             match cli.command {
-                Some(Commands::Run { file, verbose }) => run_file(&file, verbose),
-                Some(Commands::Notebook { file, export, from_ipynb, to_ipynb }) => {
+                Some(Commands::Run {
+                    file,
+                    verbose,
+                    events,
+                    print_result,
+                }) => run_file(&file, verbose, events, print_result),
+                Some(Commands::Check { files }) => check_files(&files),
+                Some(Commands::Test { files, events }) => run_tests(&files, events),
+                Some(Commands::Fmt {
+                    files,
+                    check,
+                    stdout,
+                    indent,
+                }) => format_files(&files, check, stdout, indent),
+                Some(Commands::Notebook {
+                    file,
+                    export,
+                    from_ipynb,
+                    to_ipynb,
+                }) => {
                     if from_ipynb {
                         notebook::ipynb_to_bln(&file);
                     } else if to_ipynb {
@@ -113,8 +209,12 @@ fn main() {
                     } else if let Some(fmt) = export {
                         match fmt.as_str() {
                             "html" => notebook::export_html(&file),
+                            "typst" | "typ" => notebook::export_typst(&file),
+                            "pdf" => notebook::export_pdf(&file),
                             _ => {
-                                eprintln!("Unknown export format '{fmt}'. Supported: html");
+                                eprintln!(
+                                    "Unknown export format '{fmt}'. Supported: html, typst, pdf"
+                                );
                                 process::exit(1);
                             }
                         }
@@ -132,22 +232,92 @@ fn main() {
                     git,
                     branch,
                 }) => cmd_install(source.as_deref(), git.as_deref(), branch.as_deref()),
+                Some(Commands::Examples { package, copy }) => {
+                    cmd_examples(&package, copy.as_deref())
+                }
+                Some(Commands::Import {
+                    file,
+                    from,
+                    name,
+                    output,
+                    validate,
+                    json,
+                }) => cmd_import(
+                    &file,
+                    from.as_deref(),
+                    name.as_deref(),
+                    output.as_deref(),
+                    validate,
+                    json,
+                ),
+                Some(Commands::Doctor) => print!("{}", bl_runtime::capabilities::doctor_report()),
                 Some(Commands::Version) => update::cmd_version(),
                 Some(Commands::Upgrade) => update::cmd_upgrade(),
-                Some(Commands::Repl) | None => start_repl(),
+                Some(Commands::Metadata { format }) => cmd_metadata(&format),
+                Some(Commands::Repl { json: true }) => {
+                    if let Err(error) = bl_repl::run_console_protocol() {
+                        eprintln!("Console protocol failed: {error}");
+                        process::exit(1);
+                    }
+                }
+                Some(Commands::Repl { json: false }) | None => start_repl(),
             }
         })
         .expect("failed to spawn main thread");
     handler.join().expect("main thread panicked");
 }
 
-fn run_file(path: &str, verbose: bool) {
-    let source = match std::fs::read_to_string(path) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("Error reading '{path}': {e}");
+fn cmd_metadata(format: &str) {
+    if format != "json" {
+        eprintln!("Unknown metadata format '{format}'. Supported: json");
+        process::exit(1);
+    }
+    match serde_json::to_string_pretty(&bl_repl::biolang_metadata()) {
+        Ok(document) => println!("{document}"),
+        Err(error) => {
+            eprintln!("Cannot serialize BioLang metadata: {error}");
             process::exit(1);
         }
+    }
+}
+
+fn fail_run(message: String, structured_events: bool, start: &Instant) -> ! {
+    if structured_events {
+        events::emit(serde_json::json!({
+            "protocol": "biolang.events/v1",
+            "event": "error",
+            "message": message,
+        }));
+        events::emit(serde_json::json!({
+            "protocol": "biolang.events/v1",
+            "event": "finished",
+            "status": "failed",
+            "durationMs": start.elapsed().as_millis(),
+        }));
+    } else {
+        eprintln!("{message}");
+    }
+    process::exit(1);
+}
+
+/// Upper bound on typed results promoted from print/println in one run, so a
+/// loop printing a table per iteration cannot flood the event stream.
+const MAX_DISPLAYED_RESULTS: usize = 32;
+
+/// Upper bound on inline trace events. Higher than the typed-result cap because
+/// a trace line is a short string, but still bounded so a print inside a loop
+/// over a million reads cannot flood the event stream.
+const MAX_TRACE_EVENTS: usize = 500;
+
+fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bool) {
+    let start = Instant::now();
+    let source = match std::fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(error) => fail_run(
+            format!("Error reading '{path}': {error}"),
+            structured_events,
+            &start,
+        ),
     };
 
     // Show what we're running
@@ -156,28 +326,37 @@ fn run_file(path: &str, verbose: bool) {
         .file_name()
         .map(|f| f.to_string_lossy().to_string())
         .unwrap_or_else(|| path.to_string());
-    eprintln!("\x1b[2m▶ running {filename}\x1b[0m");
+    if structured_events {
+        events::emit(serde_json::json!({
+            "protocol": "biolang.events/v1",
+            "event": "started",
+            "path": path,
+            "file": filename,
+        }));
+    } else {
+        eprintln!("\x1b[2m▶ running {filename}\x1b[0m");
+    }
 
     let tokens = match bl_lexer::Lexer::new(&source).tokenize() {
         Ok(t) => t,
-        Err(e) => {
-            eprintln!("{}", e.format_with_source(&source));
-            process::exit(1);
-        }
+        Err(error) => fail_run(error.format_with_source(&source), structured_events, &start),
     };
 
     let parse_result = match bl_parser::Parser::new(tokens).parse() {
         Ok(r) => r,
-        Err(e) => {
-            eprintln!("{}", e.format_with_source(&source));
-            process::exit(1);
-        }
+        Err(error) => fail_run(error.format_with_source(&source), structured_events, &start),
     };
     if parse_result.has_errors() {
-        for e in &parse_result.errors {
-            eprintln!("{}", e.format_with_source(&source));
-        }
-        process::exit(1);
+        fail_run(
+            parse_result
+                .errors
+                .iter()
+                .map(|error| error.format_with_source(&source))
+                .collect::<Vec<_>>()
+                .join("\n"),
+            structured_events,
+            &start,
+        );
     }
     let program = parse_result.program;
 
@@ -188,21 +367,321 @@ fn run_file(path: &str, verbose: bool) {
     } else {
         interpreter.set_current_file(Some(PathBuf::from(path)));
     }
-    let start = Instant::now();
+    if structured_events {
+        bl_runtime::builtins::set_output_sink(Some(std::sync::Arc::new(|text| {
+            events::emit(serde_json::json!({
+                "protocol": "biolang.events/v1",
+                "event": "output",
+                "stream": "stdout",
+                "text": text,
+            }));
+        })));
+        // A printed table is a result the author asked to look at. Emitting one
+        // only for the program's trailing expression hid every table written
+        // the idiomatic way, as `println(...)` returns Nil.
+        let displayed = std::sync::atomic::AtomicUsize::new(0);
+        let traced = std::sync::atomic::AtomicUsize::new(0);
+        let lines = events::LineIndex::new(&source);
+        bl_runtime::builtins::set_display_sink(Some(std::sync::Arc::new(move |value, offset| {
+            // A `trace` event carries the line that produced the value so the
+            // editor can annotate the source, not just the output log.
+            if let Some(offset) = offset {
+                if traced.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < MAX_TRACE_EVENTS {
+                    events::emit(serde_json::json!({
+                        "protocol": "biolang.events/v1",
+                        "event": "trace",
+                        "line": lines.line_of(offset),
+                        "text": events::value_preview(value),
+                    }));
+                }
+            }
+            if displayed.load(std::sync::atomic::Ordering::Relaxed) >= MAX_DISPLAYED_RESULTS {
+                return;
+            }
+            if !events::is_structured_result(value) {
+                return;
+            }
+            displayed.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            events::emit(serde_json::json!({
+                "protocol": "biolang.events/v1",
+                "event": "result",
+                "value": events::value_to_json(value),
+            }));
+        })));
+    }
     match interpreter.run(&program) {
-        Ok(_) => {
-            bl_runtime::builtins::flush_trailing_newline();
+        Ok(value) => {
+            if structured_events {
+                bl_runtime::builtins::flush_trailing_newline();
+                bl_runtime::builtins::set_output_sink(None);
+                bl_runtime::builtins::set_display_sink(None);
+                // A script ending in `println(...)` returns Nil. Reporting that
+                // as a result padded the run summary with a phantom entry
+                // beside the tables the author actually printed.
+                if !matches!(value, bl_core::value::Value::Nil) {
+                    events::emit(serde_json::json!({
+                        "protocol": "biolang.events/v1",
+                        "event": "result",
+                        "value": events::value_to_json(&value),
+                    }));
+                }
+                events::emit(serde_json::json!({
+                    "protocol": "biolang.events/v1",
+                    "event": "finished",
+                    "status": "succeeded",
+                    "durationMs": start.elapsed().as_millis(),
+                }));
+            } else {
+                bl_runtime::builtins::flush_trailing_newline();
+                if print_result && !matches!(value, bl_core::value::Value::Nil) {
+                    println!("{value}");
+                }
+                let elapsed = start.elapsed();
+                eprintln!("\x1b[2m✓ done in {elapsed:.2?}\x1b[0m");
+            }
             bl_runtime::tempfiles::cleanup_all();
-            let elapsed = start.elapsed();
-            eprintln!("\x1b[2m✓ done in {elapsed:.2?}\x1b[0m");
         }
         Err(e) => {
-            bl_runtime::builtins::flush_trailing_newline();
+            if structured_events {
+                bl_runtime::builtins::set_output_sink(None);
+                bl_runtime::builtins::set_display_sink(None);
+                events::emit(serde_json::json!({
+                    "protocol": "biolang.events/v1",
+                    "event": "error",
+                    "message": e.format_with_source(&source),
+                }));
+                events::emit(serde_json::json!({
+                    "protocol": "biolang.events/v1",
+                    "event": "finished",
+                    "status": "failed",
+                    "durationMs": start.elapsed().as_millis(),
+                }));
+            } else {
+                bl_runtime::builtins::flush_trailing_newline();
+                eprintln!("{}", e.format_with_source(&source));
+            }
             bl_runtime::tempfiles::cleanup_all();
-            eprintln!("{}", e.format_with_source(&source));
             process::exit(1);
         }
     }
+}
+
+/// Format `files` in place, or report/print instead when asked.
+///
+/// Exits non-zero when `--check` finds work to do, so it drops straight into a
+/// CI step or a pre-commit hook.
+fn format_files(files: &[String], check: bool, to_stdout: bool, indent: usize) {
+    let options = bl_fmt::FormatOptions {
+        indent_width: indent.clamp(1, 16),
+        ..bl_fmt::FormatOptions::default()
+    };
+    let mut changed = 0usize;
+    let mut failures = 0usize;
+
+    for path in files {
+        if path == "-" {
+            let mut source = String::new();
+            if let Err(error) = std::io::Read::read_to_string(&mut std::io::stdin(), &mut source) {
+                eprintln!("cannot read stdin: {error}");
+                failures += 1;
+                continue;
+            }
+            print!("{}", bl_fmt::format_source(&source, options));
+            continue;
+        }
+
+        let source = match std::fs::read_to_string(path) {
+            Ok(source) => source,
+            Err(error) => {
+                eprintln!("{path}: cannot read file: {error}");
+                failures += 1;
+                continue;
+            }
+        };
+        let formatted = bl_fmt::format_source(&source, options);
+        if to_stdout {
+            print!("{formatted}");
+            continue;
+        }
+        if formatted == source {
+            continue;
+        }
+        changed += 1;
+        if check {
+            println!("{path}");
+            continue;
+        }
+        if let Err(error) = std::fs::write(path, &formatted) {
+            eprintln!("{path}: cannot write file: {error}");
+            failures += 1;
+        } else {
+            println!("formatted {path}");
+        }
+    }
+
+    if failures > 0 {
+        process::exit(1);
+    }
+    if check && changed > 0 {
+        eprintln!(
+            "{changed} file{} would be reformatted",
+            if changed == 1 { "" } else { "s" }
+        );
+        process::exit(1);
+    }
+}
+
+/// Run `test_*` functions across the given files or directories.
+///
+/// Exits non-zero on any failure so it drops into CI without a wrapper.
+fn run_tests(files: &[String], structured_events: bool) {
+    let targets = if files.is_empty() {
+        vec![".".to_string()]
+    } else {
+        files.to_vec()
+    };
+    let paths = testing::collect_files(&targets);
+    if paths.is_empty() {
+        eprintln!("No .bl files found");
+        process::exit(1);
+    }
+
+    let started = Instant::now();
+    let mut passed = 0usize;
+    let mut failed = 0usize;
+    let mut files_with_tests = 0usize;
+
+    for path in &paths {
+        let display = path.display().to_string().replace('\\', "/");
+        let outcomes = match testing::run_file(path) {
+            Ok(outcomes) => outcomes,
+            Err(error) => {
+                failed += 1;
+                if structured_events {
+                    events::emit(serde_json::json!({
+                        "protocol": "biolang.events/v1",
+                        "event": "testFailed",
+                        "file": display,
+                        "name": "(file)",
+                        "message": error,
+                    }));
+                } else {
+                    eprintln!("{error}");
+                }
+                continue;
+            }
+        };
+        if outcomes.is_empty() {
+            continue;
+        }
+        files_with_tests += 1;
+        if !structured_events {
+            println!("\n{display}");
+        }
+        for outcome in outcomes {
+            let label = testing::describe(&outcome.name);
+            if outcome.passed {
+                passed += 1;
+            } else {
+                failed += 1;
+            }
+            if structured_events {
+                events::emit(serde_json::json!({
+                    "protocol": "biolang.events/v1",
+                    "event": if outcome.passed { "testPassed" } else { "testFailed" },
+                    "file": display,
+                    "name": outcome.name,
+                    "label": label,
+                    "durationMs": outcome.duration_ms,
+                    "message": outcome.message,
+                }));
+            } else if outcome.passed {
+                println!("  \x1b[32mok\x1b[0m   {label} ({} ms)", outcome.duration_ms);
+            } else {
+                println!("  \x1b[31mFAIL\x1b[0m {label}");
+                if let Some(message) = &outcome.message {
+                    println!("       {message}");
+                }
+            }
+        }
+    }
+
+    let elapsed = started.elapsed();
+    if structured_events {
+        events::emit(serde_json::json!({
+            "protocol": "biolang.events/v1",
+            "event": "testFinished",
+            "passed": passed,
+            "failed": failed,
+            "files": files_with_tests,
+            "durationMs": elapsed.as_millis(),
+        }));
+    } else if passed + failed == 0 {
+        println!("No tests found. Name a function `test_something` to make it one.");
+    } else {
+        println!(
+            "\n{passed} passed, {failed} failed in {files_with_tests} file{} ({elapsed:.2?})",
+            if files_with_tests == 1 { "" } else { "s" }
+        );
+    }
+    if failed > 0 {
+        process::exit(1);
+    }
+}
+
+fn check_files(files: &[String]) {
+    let mut failures = 0usize;
+    for path in files {
+        let source = match std::fs::read_to_string(path) {
+            Ok(source) => source,
+            Err(error) => {
+                eprintln!("{path}: cannot read file: {error}");
+                failures += 1;
+                continue;
+            }
+        };
+        let tokens = match bl_lexer::Lexer::new(&source).tokenize() {
+            Ok(tokens) => tokens,
+            Err(error) => {
+                eprintln!("{path}:\n{}", error.format_with_source(&source));
+                failures += 1;
+                continue;
+            }
+        };
+        let parsed = match bl_parser::Parser::new(tokens).parse() {
+            Ok(parsed) => parsed,
+            Err(error) => {
+                eprintln!("{path}:\n{}", error.format_with_source(&source));
+                failures += 1;
+                continue;
+            }
+        };
+        if parsed.has_errors() {
+            eprintln!(
+                "{path}:\n{}",
+                parsed
+                    .errors
+                    .iter()
+                    .map(|error| error.format_with_source(&source))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            );
+            failures += 1;
+        }
+    }
+    if failures > 0 {
+        eprintln!(
+            "{failures} of {} BioLang file{} failed syntax validation",
+            files.len(),
+            if files.len() == 1 { "" } else { "s" }
+        );
+        process::exit(1);
+    }
+    println!(
+        "Checked {} BioLang file{}",
+        files.len(),
+        if files.len() == 1 { "" } else { "s" }
+    );
 }
 
 fn start_repl() {
@@ -259,10 +738,7 @@ fn cmd_add(name: &str, local_path: Option<&str>) {
     // Validate source has plugin.json
     let manifest_path = source.join("plugin.json");
     if !manifest_path.is_file() {
-        eprintln!(
-            "Error: no plugin.json found in '{}'",
-            source.display()
-        );
+        eprintln!("Error: no plugin.json found in '{}'", source.display());
         process::exit(1);
     }
 
@@ -428,6 +904,209 @@ fn cmd_install(source: Option<&str>, git: Option<&str>, branch: Option<&str>) {
                 eprintln!("Error: {e}");
                 process::exit(1);
             }
+        }
+    }
+}
+
+fn cmd_examples(package: &str, copy: Option<&str>) {
+    let local = PathBuf::from(package);
+    let package_dir = if local.is_dir() {
+        local
+    } else {
+        bl_runtime::package::resolve_package(package).unwrap_or_else(|| {
+            eprintln!("Package '{package}' is not installed. Install it first with `bl install`.");
+            process::exit(1);
+        })
+    };
+
+    let examples = match bl_runtime::package::list_examples(&package_dir) {
+        Ok(examples) => examples,
+        Err(error) => {
+            eprintln!("Error: {error}");
+            process::exit(1);
+        }
+    };
+
+    if let Some(destination) = copy {
+        let destination = PathBuf::from(destination);
+        match bl_runtime::package::copy_examples(&package_dir, &destination) {
+            Ok(path) => {
+                println!(
+                    "Copied {} example file(s) to {}",
+                    examples.len(),
+                    path.display()
+                )
+            }
+            Err(error) => {
+                eprintln!("Error: {error}");
+                process::exit(1);
+            }
+        }
+        return;
+    }
+
+    let root = package_dir.join("examples");
+    println!("Examples for {package} ({})", root.display());
+    for example in examples {
+        println!("{}", example.display());
+    }
+}
+
+fn cmd_import(
+    file: &str,
+    from: Option<&str>,
+    name: Option<&str>,
+    output: Option<&str>,
+    validate: bool,
+    json: bool,
+) {
+    let from_stdin = file == "-";
+
+    // The name used for format detection and output naming: explicit --name wins,
+    // otherwise the source path's file name. Required when reading from stdin.
+    let filename = match name {
+        Some(n) => n.to_string(),
+        None if from_stdin => {
+            eprintln!("Reading from stdin requires --name <file.py|.R|.ipynb|.Rmd>");
+            process::exit(1);
+        }
+        None => PathBuf::from(file)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| file.to_string()),
+    };
+
+    let source = if from_stdin {
+        let mut buffer = String::new();
+        if let Err(e) = std::io::Read::read_to_string(&mut std::io::stdin(), &mut buffer) {
+            eprintln!("Error reading stdin: {e}");
+            process::exit(1);
+        }
+        buffer
+    } else {
+        match std::fs::read_to_string(file) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Error reading '{file}': {e}");
+                process::exit(1);
+            }
+        }
+    };
+
+    let lang = match from {
+        Some(l) => l.to_lowercase(),
+        None => match import::detect_language(Path::new(&filename)) {
+            Some(l) => l.to_string(),
+            None => {
+                eprintln!(
+                    "Cannot detect language from '{filename}'.\n\
+                     Use --from python, r, ipynb, or rmd"
+                );
+                process::exit(1);
+            }
+        },
+    };
+
+    let lang = match import::normalize_format(&lang) {
+        Some(format) => format.to_string(),
+        None => {
+            eprintln!("Unsupported import format '{lang}'. Supported: python, r, ipynb, rmd");
+            process::exit(1);
+        }
+    };
+
+    let is_notebook = import::is_notebook_format(&lang);
+
+    if !json {
+        eprintln!(
+            "Converting {filename} ({lang} → BioLang {})…",
+            if is_notebook {
+                ".bln notebook"
+            } else {
+                ".bl script"
+            }
+        );
+    }
+
+    let imported = match import::import_source(&source, &lang, &filename) {
+        Ok(imported) => imported,
+        Err(error) => {
+            eprintln!("Import failed: {error}");
+            process::exit(1);
+        }
+    };
+
+    // JSON mode: emit the full ImportResult (content + validation) and return.
+    // Validation diagnostics are carried in the payload, so exit stays 0.
+    if json {
+        match serde_json::to_string(&imported) {
+            Ok(text) => {
+                println!("{text}");
+                return;
+            }
+            Err(error) => {
+                eprintln!("Cannot serialize import result: {error}");
+                process::exit(1);
+            }
+        }
+    }
+
+    let converted = imported.content;
+
+    // Derive a default output path when --output is not given for notebooks
+    let derived_output: Option<String> = if is_notebook && output.is_none() {
+        let stem = Path::new(&filename)
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| filename.clone());
+        Some(format!("{stem}.bln"))
+    } else {
+        None
+    };
+
+    let out_path = output.or(derived_output.as_deref());
+
+    match out_path {
+        Some(out_path) => {
+            if let Err(e) = std::fs::write(out_path, &converted) {
+                eprintln!("Error writing '{out_path}': {e}");
+                process::exit(1);
+            }
+            eprintln!("Written to {out_path}");
+            if is_notebook {
+                eprintln!("Run: bl notebook {out_path}");
+            } else {
+                eprintln!("Run: bl check {out_path}");
+            }
+        }
+        None => {
+            print!("{converted}");
+        }
+    }
+    if validate {
+        if imported.validation.valid {
+            eprintln!(
+                "Validation passed ({} {} checked)",
+                imported.validation.units_checked,
+                if is_notebook { "cells" } else { "script" }
+            );
+        } else {
+            eprintln!(
+                "Validation found {} diagnostic{}:",
+                imported.validation.diagnostics.len(),
+                if imported.validation.diagnostics.len() == 1 {
+                    ""
+                } else {
+                    "s"
+                }
+            );
+            for diagnostic in &imported.validation.diagnostics {
+                eprintln!(
+                    "{}:{}:{}: {}",
+                    diagnostic.unit, diagnostic.line, diagnostic.column, diagnostic.message
+                );
+            }
+            process::exit(2);
         }
     }
 }

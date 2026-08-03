@@ -1,0 +1,34 @@
+# multimodal — Multi-modal single-cell integration for BioLang
+#
+# Supports CITE-seq (RNA + protein ADT) and 10x Multiome (RNA + ATAC).
+# Uses Weighted Nearest Neighbor (WNN) to combine modality-specific embeddings.
+#
+# Quick start — CITE-seq:
+#   import "multimodal" as mm
+#   import "singlecell" as sc
+#
+#   let obj = mm.from_citeseq(rna_matrix, adt_matrix, genes, proteins, barcodes)
+#   let obj = sc.normalize(obj) |> sc.variable_genes |> sc.neighbors
+#   let obj = mm.normalize_adt(obj)
+#   let obj = mm.wnn(obj)           # WNN over RNA-PCA + ADT embeddings
+#   mm.cluster_wnn(obj)
+#
+# Quick start — Multiome (RNA + ATAC):
+#   let obj = mm.wnn_rna_atac(obj)  # WNN over RNA-PCA + LSI (ATAC) embeddings
+
+import "multimodal/src/wnn"     as wnn
+import "multimodal/src/citeseq" as citeseq
+
+fn from_citeseq(rna, adt, genes, proteins, barcodes) {
+  citeseq.from_citeseq(rna, adt, genes, proteins, barcodes)
+}
+fn normalize_adt(obj, target = 10000.0) { citeseq.normalize_adt(obj, target) }
+
+# WNN for CITE-seq: RNA PCA embedding + ADT normalised counts
+fn wnn(obj, k = 20)          { wnn.integrate(obj, "obsm_X_pca", "adt_norm", k) }
+
+# WNN for Multiome: RNA PCA + ATAC LSI embeddings
+fn wnn_rna_atac(obj, k = 20) { wnn.integrate(obj, "obsm_X_pca", "obsm_X_lsi", k) }
+
+fn cluster_wnn(obj, resolution = 0.5) { wnn.cluster_wnn(obj, resolution) }
+fn get_wnn(obj)                        { wnn.get_wnn(obj) }

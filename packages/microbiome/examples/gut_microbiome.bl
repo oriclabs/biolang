@@ -1,0 +1,14 @@
+import "microbiome" as mb
+
+let otus     = read_csv("data/feature_table.tsv", sep="\t")
+let taxonomy = read_csv("data/taxonomy.tsv", sep="\t")
+
+mb.alpha_table(otus, method="shannon")
+mb.alpha_table(otus, method="chao1")
+
+let rarefied = mb.rarefy_matrix(otus, 5000)
+
+mb.beta(rarefied, method="bray_curtis")
+
+mb.top_taxa(taxonomy, n=15, level="genus")
+mb.top_taxa(taxonomy, n=10, level="phylum")

@@ -37,10 +37,36 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
         </script>
+
+        <!-- Custom JS scripts for mdbook-pdf PDF generation -->
+        <script type='text/javascript'>
+            let markAllContentHasLoadedForPrinting = () =>
+                window.setTimeout(
+                    () => {
+                        let p = document.createElement('div');
+                        p.setAttribute('id', 'content-has-all-loaded-for-mdbook-pdf-generation');
+                        document.body.appendChild(p);
+                    }, 100
+                );
+
+            window.addEventListener('load', () => {
+                // Expand all the <details> elements for printing.
+                r = document.getElementsByTagName('details');
+                for (let i of r)
+                    i.open = true;
+
+                try {
+                    MathJax.Hub.Register.StartupHook('End', markAllContentHasLoadedForPrinting);
+                } catch (e) {
+                    markAllContentHasLoadedForPrinting();
+                }
+            });
+        </script>
+    <div style="display: none"><a href="#introduction">introduction</a><a href="#ch01-getting-started">ch01-getting-started</a><a href="#ch02-bio-literals">ch02-bio-literals</a><a href="#ch03-variables-types">ch03-variables-types</a><a href="#ch04-collections-tables">ch04-collections-tables</a><a href="#ch05-pipes-transforms">ch05-pipes-transforms</a><a href="#ch06-functions-closures">ch06-functions-closures</a><a href="#ch07-control-flow">ch07-control-flow</a><a href="#ch08-error-handling">ch08-error-handling</a><a href="#ch09-file-io">ch09-file-io</a><a href="#ch10-intervals-variants">ch10-intervals-variants</a><a href="#ch11-pipelines">ch11-pipelines</a><a href="#ch12-nfcore">ch12-nfcore</a><a href="#ch13-biocontainers">ch13-biocontainers</a><a href="#ch13b-galaxy">ch13b-galaxy</a><a href="#ch14-statistics-linalg">ch14-statistics-linalg</a><a href="#ch15b-omics-packages">ch15b-omics-packages</a><a href="#ch15-bio-apis">ch15-bio-apis</a><a href="#ch16-streams-scale">ch16-streams-scale</a><a href="#ch16b-sqlite-notifications">ch16b-sqlite-notifications</a><a href="#ch16c-knowledge-graphs">ch16c-knowledge-graphs</a><a href="#ch16d-pdb-enrichment">ch16d-pdb-enrichment</a><a href="#ch17-notebooks">ch17-notebooks</a><a href="#ch18-plugins">ch18-plugins</a><a href="#ch18b-tooling">ch18b-tooling</a><a href="#ch19-benchmarks">ch19-benchmarks</a><a href="#appendix-builtins">appendix-builtins</a><a href="#appendix-operators">appendix-operators</a></div>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,7 +207,7 @@
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
 <blockquote>
-<p><strong>Download PDF</strong>: <a href="the-biolang-book.pdf">The BioLang Programming Language (PDF)</a></p>
+<p><strong>Download PDF</strong>: <a href="../pdf/output.pdf">The BioLang Programming Language (PDF)</a></p>
 </blockquote>
 <p>BioLang is a domain-specific language built for bioinformatics. It is not a general-purpose language that happens to have biology libraries — every feature, from its type system to its operators, exists because bioinformatics workflows demand it.</p>
 <h2 id="why-a-dsl"><a class="header" href="#why-a-dsl">Why a DSL?</a></h2>
@@ -264,7 +290,9 @@ cargo build --release
 <p>Or use the interactive REPL:</p>
 <pre><code class="language-bash">bl repl
 </code></pre>
-<p>Every code block in this book is valid BioLang. Copy, paste, run.</p>
+<p>Every block labeled <code>biolang</code> or <code>bio</code> is syntax-checked against the current
+BioLang parser. Conceptual workflows and deliberate error demonstrations are
+labeled as text rather than executable BioLang.</p>
 <h3 id="sample-data"><a class="header" href="#sample-data">Sample Data</a></h3>
 <p>Many examples in this book reference files like <code>contigs.fa</code>, <code>reads.fq</code>, <code>calls.vcf</code>,
 and <code>gene_counts.csv</code>. BioLang ships with sample data for all of these in the
@@ -401,10 +429,10 @@ let input_file = args.input
 let min_qual = into(args.min_quality ?? "20", "Int")
 
 let reads = read_fastq(input_file)
-  |&gt; filter(|r| mean(r.quality) &gt;= min_qual)
+  |&gt; filter(|r| mean_phred(r.quality) &gt;= min_qual)
 
 print(f"Passing reads: {len(reads)}")
-print(f"Mean quality: {reads |&gt; map(|r| mean(r.quality)) |&gt; mean()}")
+print(f"Mean quality: {reads |&gt; map(|r| mean_phred(r.quality)) |&gt; mean()}")
 </code></pre>
 <h2 id="your-first-script-fasta-gc-content-analyzer"><a class="header" href="#your-first-script-fasta-gc-content-analyzer">Your First Script: FASTA GC Content Analyzer</a></h2>
 <p>BioLang includes sample data in <code>examples/sample-data/</code> — see the
@@ -414,7 +442,7 @@ below uses <code>examples/sample-data/contigs.fa</code>.</p>
 <pre><code class="language-biolang"># gc_scan.bl
 # Read a FASTA file, compute per-sequence GC content, report statistics.
 
-let sequences = read_fasta("data/sequences.fasta")
+let sequences = read_fasta("examples/sample-data/contigs.fa")
 
 # Compute GC content for each sequence
 let gc_table = sequences
@@ -426,7 +454,7 @@ let gc_table = sequences
   |&gt; table()
 
 # Summary statistics
-let gc_vals = gc_table |&gt; select("gc")
+let gc_vals = col(gc_table, "gc")
 let mean_gc = mean(gc_vals)
 let std_gc = stdev(gc_vals)
 let min_gc = min(gc_vals)
@@ -441,7 +469,7 @@ print(f"Standard deviation: {std_gc:.4f}")
 # |&gt; into binds the pipe result to a variable (like let, but reads left-to-right)
 gc_table
   |&gt; filter(|row| abs(row.gc - mean_gc) &gt; 2.0 * std_gc)
-  |&gt; sort("gc", descending: true)
+  |&gt; sort_by(|row| -row.gc)
   |&gt; into outliers
 
 print(f"\nOutlier contigs ({len(outliers)}):")
@@ -462,44 +490,35 @@ Outlier contigs (12):
 </code></pre>
 <h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
 <p>Initialize a BioLang project:</p>
-<pre><code class="language-bash">bl init my-rnaseq-pipeline
+<pre><code class="language-bash">mkdir my-rnaseq-pipeline
 cd my-rnaseq-pipeline
+bl init --name my-rnaseq-pipeline
 </code></pre>
 <p>This creates the following structure:</p>
 <pre><code>my-rnaseq-pipeline/
-  .biolang/
-    config.yaml       # project configuration
-    plugins/           # local plugin overrides
+  biolang.toml       # package metadata and dependencies
+  main.bl            # entry point
+</code></pre>
+<p>Create project-specific directories and modules when the analysis needs them:</p>
+<pre><code class="language-text">my-rnaseq-pipeline/
+  biolang.toml
+  main.bl
   src/
-    main.bl            # entry point
-  data/                # input data directory
-  results/             # output directory
+    paths.bl
+    qc.bl
+  data/
+  results/
 </code></pre>
-<h3 id="biolangconfigyaml"><a class="header" href="#biolangconfigyaml"><code>.biolang/config.yaml</code></a></h3>
-<pre><code class="language-yaml">name: my-rnaseq-pipeline
-version: 0.3.0
-entry: src/main.bl
+<p>The manifest records package metadata and optional path or Git dependencies:</p>
+<pre><code class="language-toml">[package]
+name = "my-rnaseq-pipeline"
+version = "0.1.0"
 
-paths:
-  data: ./data
-  results: ./results
-  reference: /shared/references/GRCh38
-
-defaults:
-  min_quality: 30
-  threads: 8
+[dependencies]
+shared-qc = { path = "../shared-qc" }
+variants = { git = "https://github.com/example/variants.git", branch = "main" }
 </code></pre>
-<p>Access project config values in your scripts:</p>
-<pre><code class="language-biolang"># src/main.bl
-# Access project paths via import
-import "src/paths.bl" as paths
-
-let min_qual = 30
-
-read_fastq(f"{paths.data}/sample_R1.fastq.gz")
-  |&gt; filter(|r| mean(r.quality) &gt;= min_qual)
-  |&gt; write_fastq(f"{paths.results}/filtered_R1.fastq.gz")
-</code></pre>
+<p>Run <code>bl install</code> in the project directory to install the declared dependencies.</p>
 <h3 id="multi-file-projects"><a class="header" href="#multi-file-projects">Multi-file projects</a></h3>
 <p>Use <code>import</code> to split your pipeline across files:</p>
 <pre><code class="language-biolang"># src/main.bl
@@ -531,9 +550,10 @@ directories:</p>
 <p>Resolution order for <code>import "module.bl"</code>:</p>
 <ol>
 <li>Relative to the importing file</li>
-<li>Project <code>.biolang/plugins/</code> directory</li>
+<li>The current working directory</li>
 <li>Each directory in <code>BIOLANG_PATH</code></li>
-<li>System-wide library path (<code>~/.biolang/lib/</code>)</li>
+<li><code>~/.biolang/stdlib/</code></li>
+<li><code>~/.biolang/packages/</code></li>
 </ol>
 <p>This is useful for sharing utility modules across projects:</p>
 <pre><code class="language-biolang"># This resolves via BIOLANG_PATH if not found locally
@@ -567,7 +587,8 @@ let lower = dna"atcgatcg"
 print(lower)   # =&gt; dna"ATCGATCG"
 </code></pre>
 <p>Invalid bases cause a compile-time error:</p>
-<pre><code class="language-biolang"># This is a compile error -- U is not a DNA base
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# This is a compile error -- U is not a DNA base
 let bad = dna"AUCG"
 # Error: invalid DNA base 'U' at position 1
 </code></pre>
@@ -589,13 +610,13 @@ let bad = dna"AUCG"
 </code></pre>
 <p>Each character maps to a Phred quality score. You can work with them numerically:</p>
 <pre><code class="language-biolang">let q = qual"IIIIIHHHGG"
-print(mean(q))       # =&gt; 37.2
-print(min(q))        # =&gt; 38  (G = 38)
-print(max(q))        # =&gt; 40  (I = 40)
+print(mean_phred(q)) # =&gt; 39.2
+print(min_phred(q))  # =&gt; 38  (G = 38)
+print(max_phred(q))  # =&gt; 40  (I = 40)
 
 # Filter reads by mean quality
 let reads = read_fastq("data/reads.fastq")
-let hq_reads = reads |&gt; filter(|r| mean(r.quality) &gt;= 30)
+let hq_reads = reads |&gt; filter(|r| mean_phred(r.quality) &gt;= 30)
 </code></pre>
 <h2 id="sequence-operations"><a class="header" href="#sequence-operations">Sequence Operations</a></h2>
 <h3 id="complement-and-reverse-complement"><a class="header" href="#complement-and-reverse-complement">Complement and Reverse Complement</a></h3>
@@ -958,7 +979,8 @@ print(sample.mean_coverage)   # =&gt; 32.5
 </code></pre>
 <h3 id="string-keys"><a class="header" href="#string-keys">String Keys</a></h3>
 <p>Record keys can be identifiers or strings:</p>
-<pre><code class="language-biolang">let annotation = {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let annotation = {
   "gene_name": "EGFR",
   "Gene Ontology": "GO:0005524",
   chrom: "chr7"
@@ -1024,7 +1046,8 @@ print(is_record(rec))  # =&gt; true
 print(is_str(rec))     # =&gt; false
 </code></pre>
 <p>Available type check functions:</p>
-<pre><code class="language-biolang">is_int(val)
+<pre><code class="language-biolang">let val = dna"ATCG"
+is_int(val)
 is_float(val)
 is_str(val)
 is_bool(val)
@@ -1063,7 +1086,8 @@ let region = into(variant("chr1", 1000, "A", "T"), "Interval")
 </code></pre>
 <h2 id="type-aliases"><a class="header" href="#type-aliases">Type Aliases</a></h2>
 <p>Define aliases to make code self-documenting:</p>
-<pre><code class="language-biolang">type Locus = Record
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+type Locus = Record
 type SampleMeta = Record
 type QCMetrics = Record
 
@@ -1087,7 +1111,10 @@ let threads = args.threads ?? 4
 </code></pre>
 <h3 id="-optional-chain"><a class="header" href="#-optional-chain"><code>?.</code> Optional Chain</a></h3>
 <p>Safely accesses nested fields, returning nil if any intermediate value is nil:</p>
-<pre><code class="language-biolang">let clinvar_status = variant_record?.annotation?.clinvar?.significance
+<pre><code class="language-biolang">let variant_record = {
+  annotation: {clinvar: {significance: "Pathogenic"}}
+}
+let clinvar_status = variant_record?.annotation?.clinvar?.significance
 # Returns nil if annotation, clinvar, or significance is missing
 
 # Combine with ??
@@ -1191,7 +1218,7 @@ by_type |&gt; each(|g| print(f"  {g.key}: {len(g.values)}"))
 # Flag high-impact variants
 let high_impact = classified
   |&gt; filter(|v| v.is_valid &amp;&amp; v.variant_type != "SNV" &amp;&amp; v.size &gt; 50)
-  |&gt; sort("size", descending: true)
+  |&gt; sort_by(|v| -v.size)
 
 print(f"\nHigh-impact structural variants (&gt;50bp): {len(high_impact)}")
 high_impact |&gt; take(10) |&gt; each(|v| {
@@ -1277,7 +1304,7 @@ created from lists of records:</p>
 ])
 </code></pre>
 <h3 id="column-access"><a class="header" href="#column-access">Column Access</a></h3>
-<pre><code class="language-biolang">let coverages = samples |&gt; select("coverage")
+<pre><code class="language-biolang">let coverages = col(samples, "coverage")
 print(coverages)   # =&gt; [35.2, 31.4, 42.1, 36.8]
 
 # Multiple columns
@@ -1290,7 +1317,7 @@ let subset = samples |&gt; select("sample_id", "coverage")
 </code></pre>
 <h2 id="table-operations"><a class="header" href="#table-operations">Table Operations</a></h2>
 <h3 id="select--choose-columns"><a class="header" href="#select--choose-columns"><code>select</code> – Choose Columns</a></h3>
-<pre><code class="language-biolang">let qc_summary = full_table |&gt; select("sample_id", "total_reads", "pct_mapped", "mean_coverage")
+<pre><code class="language-biolang">let qc_summary = samples |&gt; select("sample_id", "reads", "coverage")
 </code></pre>
 <h3 id="mutate--add-or-transform-columns"><a class="header" href="#mutate--add-or-transform-columns"><code>mutate</code> – Add or Transform Columns</a></h3>
 <pre><code class="language-biolang">let enriched = samples
@@ -1299,8 +1326,8 @@ let subset = samples |&gt; select("sample_id", "coverage")
   |&gt; mutate("label", |row| f"{row.sample_id}_{row.tissue}")
 </code></pre>
 <h3 id="summarize--aggregate-statistics"><a class="header" href="#summarize--aggregate-statistics"><code>summarize</code> – Aggregate Statistics</a></h3>
-<pre><code class="language-biolang">let coverages = samples |&gt; select("coverage")
-let all_reads = samples |&gt; select("reads")
+<pre><code class="language-biolang">let coverages = col(samples, "coverage")
+let all_reads = col(samples, "reads")
 
 let stats = {
   n_samples: len(samples),
@@ -1318,8 +1345,8 @@ print(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
   |&gt; summarize(|tissue, group| {
     tissue: tissue,
     n: len(group),
-    mean_cov: mean(group |&gt; select("coverage")),
-    mean_reads: mean(group |&gt; select("reads")),
+    mean_cov: mean(col(group, "coverage")),
+    mean_reads: mean(col(group, "reads")),
   })
 
 by_tissue |&gt; each(|row|
@@ -1343,31 +1370,26 @@ let good_tumor = samples
   |&gt; filter(|row| row.coverage &gt;= 30.0)
   |&gt; filter(|row| row.reads &gt;= 40_000_000)
 </code></pre>
-<h3 id="joins-conceptual"><a class="header" href="#joins-conceptual">Joins (Conceptual)</a></h3>
-<p>Table joins are planned for a future release. Currently, use <code>map</code> with lookups:</p>
+<h3 id="joins"><a class="header" href="#joins">Joins</a></h3>
+<p>Use <code>inner_join</code> when only matched rows should remain, or <code>left_join</code> when all
+rows from the first table must be preserved:</p>
 <pre><code class="language-biolang">let annotations = table([
   {sample_id: "S001", patient: "P101", stage: "III"},
   {sample_id: "S002", patient: "P101", stage: "III"},
   {sample_id: "S003", patient: "P202", stage: "II"}
 ])
 
-# Manual left join via lookup
-let ann_map = annotations |&gt; group_by("sample_id")
-let joined = samples |&gt; map(|row| {
-  let ann_rows = ann_map[row.sample_id]
-  let ann = if !is_nil(ann_rows) then first(ann_rows) else nil
-  {...row, patient: ann?.patient ?? "unknown", stage: ann?.stage ?? "unknown"}
-})
+let joined = left_join(samples, annotations, "sample_id")
 </code></pre>
 <h2 id="ranges"><a class="header" href="#ranges">Ranges</a></h2>
 <p>Ranges generate sequences of integers, useful for genomic coordinate windows:</p>
-<pre><code class="language-biolang">let indices = 0..10          # [0, 1, 2, ..., 9]
-let inclusive = 0..=10       # [0, 1, 2, ..., 10]
-let stepped = 0..100..10    # [0, 10, 20, ..., 90]
+<pre><code class="language-biolang">let indices = range(0, 10)          # [0, 1, 2, ..., 9]
+let inclusive = range(0, 11)        # [0, 1, 2, ..., 10]
+let stepped = range(0, 100, 10)     # [0, 10, 20, ..., 90]
 
 # Chromosome positions in 1 Mb windows
 let chrom_length = 248_956_422   # chr1
-let windows = 0..chrom_length..1_000_000
+let windows = range(0, chrom_length, 1_000_000)
   |&gt; map(|start| {
     chrom: "chr1",
     start: start,
@@ -1444,7 +1466,8 @@ qc_flagged |&gt; write_tsv("qc_summary.csv")
 </code></pre>
 <h2 id="example-gene-expression-matrix--filter-and-normalize"><a class="header" href="#example-gene-expression-matrix--filter-and-normalize">Example: Gene Expression Matrix – Filter and Normalize</a></h2>
 <p>Load a counts matrix, filter low-count genes, and apply TPM normalization.</p>
-<pre><code class="language-biolang"># expression_normalize.bl
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# expression_normalize.bl
 # Filter low-count genes and compute TPM from a raw counts matrix.
 
 let counts = csv("gene_counts.csv")   # rows = genes, columns = samples
@@ -1513,7 +1536,8 @@ tpm_table |&gt; write_tsv("tpm_normalized.csv")
 </code></pre>
 <h2 id="example-merge-variant-calls-from-multiple-samples"><a class="header" href="#example-merge-variant-calls-from-multiple-samples">Example: Merge Variant Calls from Multiple Samples</a></h2>
 <p>Combine VCF calls from multiple samples into a unified genotype matrix.</p>
-<pre><code class="language-biolang"># merge_variants.bl
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# merge_variants.bl
 # Merge variant calls from multiple samples into a unified table.
 
 let sample_vcfs = [
@@ -1616,14 +1640,15 @@ gc_content(dna"ATCGATCGATCG")
 dna"ATCGATCGATCG" |&gt; gc_content()
 
 # And these:
-filter(reads, |r| mean(r.quality) &gt;= 30)
-reads |&gt; filter(|r| mean(r.quality) &gt;= 30)
+let reads = read_fastq("data/reads.fastq")
+filter(reads, |r| mean_phred(r.quality) &gt;= 30)
+reads |&gt; filter(|r| mean_phred(r.quality) &gt;= 30)
 </code></pre>
 <h3 id="why-pipe-first-matters-for-bioinformatics"><a class="header" href="#why-pipe-first-matters-for-bioinformatics">Why Pipe-First Matters for Bioinformatics</a></h3>
 <p>Without pipes, nested function calls read inside-out:</p>
 <pre><code class="language-biolang"># Hard to follow -- you read from the innermost call outward
 write_tsv(
-  sort(
+  sort_by(
     summarize(
       group_by(
         filter(read_vcf("data/variants.vcf"), |v| v.qual &gt;= 30),
@@ -1631,8 +1656,7 @@ write_tsv(
       ),
       |chrom, rows| {n: len(rows), mean_qual: mean(col(rows, "qual"))}
     ),
-    "n",
-    descending: true
+    |row| -row.n
   ),
   "chrom_summary.csv"
 )
@@ -1643,7 +1667,7 @@ the analysis:</p>
   |&gt; filter(|v| v.qual &gt;= 30)
   |&gt; group_by("chrom")
   |&gt; summarize(|chrom, rows| {n: len(rows), mean_qual: mean(col(rows, "qual"))})
-  |&gt; sort("n", descending: true)
+  |&gt; sort_by(|row| -row.n)
   |&gt; write_tsv("chrom_summary.csv")
 </code></pre>
 <p>Each line is one transformation step. You can read the pipeline like a protocol.</p>
@@ -1659,7 +1683,7 @@ read_bam("sample.sorted.bam")
     mean_mapq: mean(col(rows, "mapq")),
     mean_insert: mean(col(rows, "insert_size"))
   })
-  |&gt; sort("mapped_reads", descending: true)
+  |&gt; sort_by(|row| -row.mapped_reads)
   |&gt; mutate("pct", |row| row.mapped_reads / sum(col(rows, "mapped_reads")) * 100.0)
   |&gt; write_tsv("alignment_stats.csv")
 </code></pre>
@@ -1698,7 +1722,7 @@ After length filter: 2539847
   |&gt;&gt; |seqs| write_fasta(seqs, "contigs_gt1kb.fa")
   |&gt; filter(|s| gc_content(s.seq) &gt;= 0.3 &amp;&amp; gc_content(s.seq) &lt;= 0.7)
   |&gt;&gt; |seqs| write_fasta(seqs, "contigs_normal_gc.fa")
-  |&gt; sort(|s| seq_len(s.seq), descending: true)
+  |&gt; sort_by(|s| -seq_len(s.seq))
   |&gt; take(100)
   |&gt; write_fasta("top100_contigs.fa")
 </code></pre>
@@ -1726,7 +1750,7 @@ print(f"Reference genome size: {total_bases / 1e9:.2f} Gb")
 <h3 id="sort--order-elements"><a class="header" href="#sort--order-elements"><code>sort</code> – Order Elements</a></h3>
 <pre><code class="language-biolang"># Rank genes by expression level
 let top_genes = csv("tpm.csv")
-  |&gt; sort("tpm", descending: true)
+  |&gt; sort_by(|row| -row.tpm)
   |&gt; take(50)
   |&gt; map(|row| row.gene_name)
 </code></pre>
@@ -1764,7 +1788,7 @@ let cumulative = read_bam("sorted.bam")
 <h3 id="window-and-chunk--sliding-and-fixed-blocks"><a class="header" href="#window-and-chunk--sliding-and-fixed-blocks"><code>window</code> and <code>chunk</code> – Sliding and Fixed Blocks</a></h3>
 <pre><code class="language-biolang"># Sliding window GC content
 let gc_track = dna"ATCGATCGATCGATCGCCCCGGGG"
-  |&gt; window(size: 10, step: 5)
+  |&gt; window(10)
   |&gt; map(|w| gc_content(w))
 
 # Chunk reads into batches for parallel processing
@@ -1779,17 +1803,17 @@ let r2 = read_fastq("data/reads.fastq")
 
 let paired = zip(r1, r2) |&gt; map(|pair| {
   id: pair[0].id,
-  r1_qual: mean(pair[0].quality),
-  r2_qual: mean(pair[1].quality),
+  r1_qual: mean_phred(pair[0].quality),
+  r2_qual: mean_phred(pair[1].quality),
   combined_length: seq_len(pair[0].seq) + seq_len(pair[1].seq)
 })
 </code></pre>
 <h3 id="enumerate--track-position"><a class="header" href="#enumerate--track-position"><code>enumerate</code> – Track Position</a></h3>
 <pre><code class="language-biolang"># Number contigs by size rank
 read_fasta("data/sequences.fasta")
-  |&gt; sort(|s| seq_len(s.seq), descending: true)
+  |&gt; sort_by(|s| -seq_len(s.seq))
   |&gt; enumerate()
-  |&gt; map(|i, seq| {rank: i + 1, id: seq.id, length: seq_len(seq.seq)})
+  |&gt; map(|pair| {rank: pair[0] + 1, id: pair[1].id, length: seq_len(pair[1].seq)})
   |&gt; take(10)
   |&gt; each(|row| print(f"#{row.rank}: {row.id} ({row.length} bp)"))
 </code></pre>
@@ -1799,10 +1823,11 @@ approach is <code>let name = expr</code>. But this reads right-to-left, breaking
 The <code>|&gt; into</code> operator binds the result of a pipe chain to a name while
 preserving left-to-right reading order:</p>
 <pre><code class="language-biolang"># Traditional style — reads right-to-left:
-let passed = variants |&gt; filter(|v| v.quality &gt;= 30)
+let variants = read_vcf("data/variants.vcf")
+let passed = variants |&gt; filter(|v| v.qual &gt;= 30)
 
 # With |&gt; into — reads left-to-right:
-variants |&gt; filter(|v| v.quality &gt;= 30) |&gt; into passed
+variants |&gt; filter(|v| v.qual &gt;= 30) |&gt; into passed_again
 </code></pre>
 <p>The syntax <code>expr |&gt; into name</code> is equivalent to <code>let name = expr</code>. It evaluates
 the expression, binds the result to <code>name</code> (creating or shadowing), and returns
@@ -1814,7 +1839,9 @@ read_fastq("data/reads.fastq")
   |&gt; filter(|r| mean_phred(r.quality) &gt;= 30)
   |&gt; into high_quality
 
-high_quality |&gt; map(|r| trim(r, 20)) |&gt; into trimmed
+high_quality
+  |&gt; map(|r| {...r, trim_end: trim_quality(r.quality, 20)})
+  |&gt; into trimmed
 
 print(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")
 </code></pre>
@@ -1930,7 +1957,9 @@ read_vcf("data/variants.vcf")
   |&gt;&gt; |vs| print(f"Actionable variants: {len(vs)}")
 
   # Step 7: Sort by priority and position
-  |&gt; sort(["tier", "chrom", "pos"])
+  |&gt; sort_by(|v| v.pos)
+  |&gt; sort_by(|v| v.chrom)
+  |&gt; sort_by(|v| v.tier)
 
   # Step 8: Generate report
   |&gt; map(|v| {
@@ -2010,7 +2039,7 @@ let all_somatic = pair_results
     n_patients: len(g.values),
     patients: g.values |&gt; map(|v| v.patient)
   })
-  |&gt; sort("n_patients", descending: true)
+  |&gt; sort_by(|row| -row.n_patients)
 
 print(f"\nRecurrent somatic variants (in &gt;= 2 patients): {len(all_somatic)}")
 all_somatic |&gt; take(20) |&gt; each(|v|
@@ -2062,11 +2091,12 @@ computation and invoke it wherever it is needed.</p>
 <p>A function is introduced with the <code>fn</code> keyword, followed by a name, a
 parameter list, and a body enclosed in braces.</p>
 <pre><code class="language-biolang">fn gc_content(seq) {
-    let gc = seq |&gt; filter(|b| b == "G" || b == "C") |&gt; len()
+    let bases = range(0, seq_len(seq)) |&gt; map(|i| char_at(str(seq), i))
+    let gc = bases |&gt; filter(|b| b == "G" || b == "C") |&gt; len()
     gc / seq_len(seq)
 }
 
-let ratio = gc_content("ATGCGCTA")
+let ratio = gc_content(dna"ATGCGCTA")
 # ratio =&gt; 0.5
 </code></pre>
 <p>The last expression in the body is the implicit return value. There is no need
@@ -2089,7 +2119,8 @@ use <code>return</code>.</p>
 </code></pre>
 <h2 id="default-parameters"><a class="header" href="#default-parameters">Default Parameters</a></h2>
 <p>Parameters can carry default values. Callers may omit them.</p>
-<pre><code class="language-biolang">fn trim_reads(records, min_qual: 20, min_len: 36) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn trim_reads(records, min_qual: 20, min_len: 36) {
     records
         |&gt; filter(|r| mean(r.quality) &gt;= min_qual)
         |&gt; filter(|r| seq_len(r.seq) &gt;= min_len)
@@ -2136,6 +2167,10 @@ for building specialised predicates on the fly.</p>
 }
 
 let deep_enough = make_depth_filter(30)
+let variants = [
+    {info: {DP: 12}},
+    {info: {DP: 48}}
+]
 let filtered = variants |&gt; filter(deep_enough)
 </code></pre>
 <h2 id="higher-order-functions"><a class="header" href="#higher-order-functions">Higher-Order Functions</a></h2>
@@ -2146,16 +2181,22 @@ returns one, or both.</p>
 }
 
 let filters = [
-    |r| mean(r.quality) &gt;= 20,
+    |r| mean_phred(r.quality) &gt;= 20,
     |r| seq_len(r.seq) &gt;= 50,
     |r| gc_content(r.seq) &lt; 0.8
 ]
 
+let raw_reads = read_fastq("data/reads.fastq")
 let passing = apply_qc_chain(raw_reads, filters)
 </code></pre>
 <p>Because pipe inserts as the first argument, you can chain higher-order
 functions fluently:</p>
-<pre><code class="language-biolang">let top_genes = counts
+<pre><code class="language-biolang">let counts = [
+    {gene_name: "TP53", biotype: "protein_coding", tpm: 72.4},
+    {gene_name: "MALAT1", biotype: "lncRNA", tpm: 530.0},
+    {gene_name: "BRCA1", biotype: "protein_coding", tpm: 18.7}
+]
+let top_genes = counts
     |&gt; filter(|g| g.biotype == "protein_coding")
     |&gt; sort_by(|g| -g.tpm)
     |&gt; take(100)
@@ -2204,9 +2245,9 @@ concerns like timing or input validation, use wrapper functions or <code>where</
 clauses.</p>
 <pre><code class="language-biolang"># Use a wrapper function for timing
 fn timed_align(fastq, ref_genome) {
-    let t0 = now()
+    let t0 = timestamp()
     let result = align_reads(fastq, ref_genome)
-    print("Alignment took " + str(now() - t0) + "s")
+    print("Alignment took " + str(timestamp() - t0) + "s")
     result
 }
 
@@ -2227,7 +2268,8 @@ ontology DAGs.</p>
 }
 </code></pre>
 <p>Combine <code>@memoize</code> with recursion for dynamic-programming-style algorithms:</p>
-<pre><code class="language-biolang">@memoize
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+@memoize
 fn needleman_wunsch_score(seq1, seq2, i, j, gap_penalty: -2) {
     if i == 0 then { return j * gap_penalty }
     if j == 0 then { return i * gap_penalty }
@@ -2246,7 +2288,8 @@ let score = needleman_wunsch_score("AGTACG", "ACATAG", 6, 6)
 <h2 id="example-memoized-k-mer-scoring-function"><a class="header" href="#example-memoized-k-mer-scoring-function">Example: Memoized K-mer Scoring Function</a></h2>
 <p>Counting k-mer matches across many sequences calls the same function millions
 of times. Caching the GC computation removes redundant work.</p>
-<pre><code class="language-biolang">@memoize
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+@memoize
 fn kmer_gc(kmer_str) {
     gc_content(dna(kmer_str))
 }
@@ -2267,7 +2310,8 @@ print(f"K-mers: {result.n_kmers}, Mean GC: {result.mean_gc:.3f}")
 <h2 id="example-reusable-qc-filter-factory"><a class="header" href="#example-reusable-qc-filter-factory">Example: Reusable QC Filter Factory</a></h2>
 <p>A factory function returns a closure configured with experiment-specific
 thresholds. Different sequencing protocols produce different acceptable ranges.</p>
-<pre><code class="language-biolang">fn make_qc_filter(min_qual: 20, min_len: 50, max_n_frac: 0.05) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn make_qc_filter(min_qual: 20, min_len: 50, max_n_frac: 0.05) {
     |read| {
         let avg_q = mean(read.quality)
         let n_frac = (read.seq |&gt; filter(|b| b == "N") |&gt; len()) / seq_len(read.seq)
@@ -2359,7 +2403,8 @@ found and not-found cases gracefully.</p>
 <h2 id="ifelse-expressions"><a class="header" href="#ifelse-expressions">if/else Expressions</a></h2>
 <p><code>if/else</code> in BioLang is an expression – it returns a value. This lets you
 embed conditional logic directly in assignments and pipes.</p>
-<pre><code class="language-biolang">let label = if gc_content(seq) &gt; 0.6 {
+<pre><code class="language-biolang">let seq = dna"ATGCGCATGC"
+let label = if gc_content(seq) &gt; 0.6 {
     "GC-rich"
 } else if gc_content(seq) &lt; 0.4 {
     "AT-rich"
@@ -2368,7 +2413,9 @@ embed conditional logic directly in assignments and pipes.</p>
 }
 </code></pre>
 <p>Because it is an expression, you can use it inline:</p>
-<pre><code class="language-biolang">let allele_freq = if total_depth &gt; 0 { alt_count / total_depth } else { 0.0 }
+<pre><code class="language-biolang">let total_depth = 80
+let alt_count = 24
+let allele_freq = if total_depth &gt; 0 { alt_count / total_depth } else { 0.0 }
 </code></pre>
 <h2 id="match-expressions"><a class="header" href="#match-expressions">match Expressions</a></h2>
 <p><code>match</code> compares a value against a series of patterns. Like <code>if</code>, it is an
@@ -2383,7 +2430,8 @@ let amino_acid = match codon {
 }
 </code></pre>
 <p>Patterns can destructure records:</p>
-<pre><code class="language-biolang">fn describe_alignment(aln) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn describe_alignment(aln) {
     match aln {
         {mapped: true, mapq: q} if q &gt;= 30 =&gt; "high-confidence"
         {mapped: true, mapq: q} if q &gt;= 10 =&gt; "low-confidence"
@@ -2499,7 +2547,9 @@ the first true condition wins. <code>otherwise</code> is the fallback.</p>
 }
 </code></pre>
 <p><code>given</code> is an expression, so you can assign its result:</p>
-<pre><code class="language-biolang">let risk = given {
+<pre><code class="language-biolang">let allele_freq = 0.32
+let coverage = 45
+let risk = given {
     allele_freq &gt;= 0.5 &amp;&amp; coverage &gt;= 30 =&gt; "high_confidence_somatic"
     allele_freq &gt;= 0.2                   =&gt; "moderate_evidence"
     allele_freq &gt;= 0.05                  =&gt; "low_frequency"
@@ -2554,7 +2604,8 @@ negative checks.</p>
 </code></pre>
 <h2 id="example-classify-variants-by-type"><a class="header" href="#example-classify-variants-by-type">Example: Classify Variants by Type</a></h2>
 <p>Read a VCF and produce a summary table of variant types using <code>match</code>.</p>
-<pre><code class="language-biolang">let variants = read_vcf("data/variants.vcf")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let variants = read_vcf("data/variants.vcf")
 
 let classified = variants |&gt; map(|v| {
     let vtype = match true {
@@ -2644,7 +2695,8 @@ for sample in samples {
 <h2 id="example-input-validation-with-guard"><a class="header" href="#example-input-validation-with-guard">Example: Input Validation with guard</a></h2>
 <p>A variant-calling wrapper that validates every precondition before running
 the expensive computation.</p>
-<pre><code class="language-biolang">fn call_variants(bam_path, ref_path, bed_path, min_depth: 10) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn call_variants(bam_path, ref_path, bed_path, min_depth: 10) {
     guard file_exists(bam_path) else {
         return {error: "BAM file not found: " + bam_path}
     }
@@ -2815,7 +2867,8 @@ let annotation = try {
 </code></pre>
 <h3 id="exponential-backoff"><a class="header" href="#exponential-backoff">Exponential Backoff</a></h3>
 <p>For high-traffic APIs, increase delay between retries using a helper:</p>
-<pre><code class="language-biolang">fn fetch_with_backoff(url, max_attempts: 5) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn fetch_with_backoff(url, max_attempts: 5) {
     let attempt = 0
     let result = nil
 
@@ -2847,7 +2900,11 @@ let gene_name = annotation?.gene_name ?? "unknown"
 let af = variant.info?.AF ?? variant.info?.MAF ?? 0.0
 </code></pre>
 <p><code>??</code> chains naturally. The first non-nil value wins:</p>
-<pre><code class="language-biolang">let symbol = record.hugo_symbol ?? record.gene_id ?? record.locus_tag ?? "uncharacterised"
+<pre><code class="language-biolang">let record = {gene_id: "ENSG00000141510"}
+let symbol = if has_key(record, "hugo_symbol") then record.hugo_symbol
+    else if has_key(record, "gene_id") then record.gene_id
+    else if has_key(record, "locus_tag") then record.locus_tag
+    else "uncharacterised"
 </code></pre>
 <h2 id="optional-chaining-"><a class="header" href="#optional-chaining-">Optional Chaining: ?.</a></h2>
 <p>The <code>?.</code> operator short-circuits a field access chain when any intermediate
@@ -2868,7 +2925,8 @@ let protein_change = variant.annotation?.consequences?.protein?.hgvs
 <h3 id="missing-fields-in-records"><a class="header" href="#missing-fields-in-records">Missing Fields in Records</a></h3>
 <p>Biological file formats are under-specified. A BED file might have 3 columns
 or 12. A VCF INFO field might omit half the keys. Build defensive accessors.</p>
-<pre><code class="language-biolang">fn safe_info(variant, key, default: nil) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+fn safe_info(variant, key, default: nil) {
     try {
         let info = parse_info(variant.info_str)
         info[key] ?? default
@@ -2904,7 +2962,8 @@ let clnsig = safe_info(v, "CLNSIG", default: "not_reported")
 </code></pre>
 <h3 id="nil-safe-aggregation"><a class="header" href="#nil-safe-aggregation">Nil-safe Aggregation</a></h3>
 <p>When computing statistics over optional fields, filter out nil values first:</p>
-<pre><code class="language-biolang">let qualities = variants
+<pre><code class="language-biolang">let variants = read_vcf("data/variants.vcf")
+let qualities = variants
     |&gt; map(|v| v.qual)
     |&gt; filter(|q| q != nil)
 
@@ -2965,7 +3024,8 @@ let sequences = parse_fasta_robust("mixed_quality.fasta")
 <h2 id="example-retrying-api-calls-to-ncbi"><a class="header" href="#example-retrying-api-calls-to-ncbi">Example: Retrying API Calls to NCBI</a></h2>
 <p>Query NCBI’s E-utilities for gene summaries, handling the rate limit and
 transient failures that are common on public APIs.</p>
-<pre><code class="language-biolang"># requires: internet connection
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# requires: internet connection
 # requires: NCBI_API_KEY (optional, increases rate limit)
 fn fetch_gene_summaries(gene_ids) {
     let results = []
@@ -3016,7 +3076,8 @@ for s in summaries {
 <p>Real VCF files have inconsistent INFO columns. Some records carry <code>AF</code>, others
 do not. Some have <code>CLNSIG</code>, most do not. Use <code>?.</code> and <code>??</code> to process them
 uniformly.</p>
-<pre><code class="language-biolang">let variants = read_vcf("data/variants.vcf")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let variants = read_vcf("data/variants.vcf")
 
 let annotated = variants |&gt; map(|v| {
     let info = parse_info(v.info_str)
@@ -3090,29 +3151,31 @@ substitute these paths wherever the examples below use bare filenames.
 Run <code>bl run examples/quickstart.bl</code> to verify all files are present.</p>
 </blockquote>
 <h2 id="reading-fasta"><a class="header" href="#reading-fasta">Reading FASTA</a></h2>
-<p><code>read_fasta()</code> returns a list of records, each with <code>header</code> and <code>seq</code> fields.</p>
+<p><code>read_fasta()</code> returns a table with <code>id</code>, <code>description</code>, <code>seq</code>, and <code>length</code>
+columns.</p>
 <pre><code class="language-biolang">let contigs = read_fasta("data/sequences.fasta")
 
 for c in contigs {
-    print(c.header + ": " + str(len(c.seq)) + " bp")
+    print(c.id + ": " + str(c.length) + " bp")
 }
 
 # Find the longest contig
-contigs |&gt; sort(|a, b| len(b.seq) - len(a.seq)) |&gt; first() |&gt; into longest
-print("Longest: " + longest.header + " (" + str(len(longest.seq)) + " bp)")
+contigs |&gt; sort_by(|c| -c.length) |&gt; first() |&gt; into longest
+print("Longest: " + longest.id + " (" + str(longest.length) + " bp)")
 </code></pre>
 <p>FASTA records carry the raw sequence as a string. Use bio literals for
 compile-time validated sequences, and <code>read_fasta</code> for runtime file data.</p>
 <h2 id="reading-fastq"><a class="header" href="#reading-fastq">Reading FASTQ</a></h2>
-<p><code>read_fastq()</code> returns records with <code>id</code>, <code>seq</code>, <code>quality</code>, and <code>comment</code>
-fields. Quality scores are integer Phred values.</p>
+<p><code>read_fastq()</code> returns a table with <code>id</code>, <code>description</code>, <code>seq</code>, <code>length</code>, and
+<code>quality</code> columns. The <code>quality</code> value is the FASTQ ASCII quality string; use
+<code>mean_phred</code>, <code>min_phred</code>, or <code>max_phred</code> to decode it.</p>
 <pre><code class="language-biolang">let reads = read_fastq("data/reads.fastq")
 
 reads |&gt; map(|r| gc_content(r.seq)) |&gt; mean() |&gt; into gc_mean
 let summary = {
     total: len(reads),
     mean_length: reads |&gt; map(|r| len(r.seq)) |&gt; mean(),
-    mean_qual: reads |&gt; map(|r| mean(r.quality)) |&gt; mean(),
+    mean_qual: reads |&gt; map(|r| mean_phred(r.quality)) |&gt; mean(),
     gc_pct: gc_mean * 100
 }
 
@@ -3145,19 +3208,25 @@ print("Total target region: " + str(total_bp) + " bp")
 print("Number of targets: " + str(len(targets)))
 
 # Group by chromosome
-let by_chrom = targets |&gt; group_by("chrom")
-for (chrom, regions) in by_chrom {
-    let bp = regions |&gt; map(|r| r.end - r.start) |&gt; reduce(0, |a, b| a + b)
-    print(chrom + ": " + str(len(regions)) + " targets, " + str(bp) + " bp")
-}
+let by_chrom = targets
+    |&gt; group_by("chrom")
+    |&gt; summarize(|chrom, regions| {
+        chrom: chrom,
+        targets: len(regions),
+        bp: regions |&gt; map(|r| r.end - r.start) |&gt; reduce(0, |a, b| a + b)
+    })
+by_chrom |&gt; each(|row|
+    print(row.chrom + ": " + str(row.targets) + " targets, " + str(row.bp) + " bp")
+)
 </code></pre>
 <h2 id="reading-gffgtf"><a class="header" href="#reading-gffgtf">Reading GFF/GTF</a></h2>
-<p><code>read_gff()</code> parses GFF3 and GTF formats. Records have <code>chrom</code>, <code>source</code>,
-<code>type</code>, <code>start</code>, <code>end</code>, <code>score</code>, <code>strand</code>, <code>phase</code>, and <code>attributes</code> (a map).</p>
+<p><code>read_gff()</code> parses GFF3 into a table with <code>seqid</code>, <code>source</code>, <code>type</code>, <code>start</code>,
+<code>end</code>, <code>score</code>, <code>strand</code>, <code>phase</code>, and the raw <code>attributes</code> text. Use
+<code>read_gtf()</code> when you need parsed GTF attributes as a record.</p>
 <pre><code class="language-biolang">let features = read_gff("data/annotations.gff")
 
 let genes = features |&gt; filter(|f| f.type == "gene")
-let protein_coding = genes |&gt; filter(|g| g.attributes.gene_type == "protein_coding")
+let protein_coding = genes |&gt; filter(|g| contains(g.attributes, "protein_coding"))
 
 print("Total genes: " + str(len(genes)))
 print("Protein-coding: " + str(len(protein_coding)))
@@ -3214,7 +3283,7 @@ let stream = read_fastq("data/reads.fastq")
 
 # Streams work with all HOFs -- processing is lazy
 let high_qual_count = stream
-    |&gt; filter(|r| mean(r.quality) &gt;= 30)
+    |&gt; filter(|r| mean_phred(r.quality) &gt;= 30)
     |&gt; filter(|r| len(r.seq) &gt;= 100)
     |&gt; len()
 
@@ -3225,7 +3294,7 @@ or read the file again:</p>
 <pre><code class="language-biolang"># Two-pass: first pass counts, second pass filters
 let total = read_fastq("data/reads.fastq") |&gt; len()
 let passing = read_fastq("data/reads.fastq")
-    |&gt; filter(|r| mean(r.quality) &gt;= 20)
+    |&gt; filter(|r| mean_phred(r.quality) &gt;= 20)
     |&gt; len()
 
 print("Pass rate: " + str(round(passing / total * 100, 2)) + "%")
@@ -3248,7 +3317,8 @@ because <code>map</code> on a stream produces a stream.</p>
 <h2 id="example-extract-coding-sequences-from-gff--fasta"><a class="header" href="#example-extract-coding-sequences-from-gff--fasta">Example: Extract Coding Sequences from GFF + FASTA</a></h2>
 <p>Combine a genome FASTA with GFF annotation to extract CDS sequences for each
 protein-coding gene.</p>
-<pre><code class="language-biolang">let genome = read_fasta("data/sequences.fasta")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let genome = read_fasta("data/sequences.fasta")
 let features = read_gff("data/annotations.gff")
 
 # Build a lookup from chromosome name to sequence
@@ -3290,7 +3360,8 @@ print("Extracted " + str(len(cds_records)) + " coding sequences")
 <h2 id="example-filter-vcf-by-quality-and-write-passing-variants"><a class="header" href="#example-filter-vcf-by-quality-and-write-passing-variants">Example: Filter VCF by Quality and Write Passing Variants</a></h2>
 <p>Apply multiple quality filters to a VCF and write both passing and failing
 records to separate files.</p>
-<pre><code class="language-biolang">let variants = read_vcf("data/variants.vcf")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let variants = read_vcf("data/variants.vcf")
 
 let results = variants |&gt; map(|v| {
     let info = parse_info(v.info_str)
@@ -3329,7 +3400,8 @@ print("  Low MQ (&lt;40): " + str(low_mq))
 <h2 id="example-merge-bed-files-and-compute-coverage"><a class="header" href="#example-merge-bed-files-and-compute-coverage">Example: Merge BED Files and Compute Coverage</a></h2>
 <p>Load target regions from multiple BED files, merge overlapping intervals, and
 compute total coverage.</p>
-<pre><code class="language-biolang">let bed_files = [
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let bed_files = [
     "targets_panel_v1.bed",
     "targets_panel_v2.bed",
     "custom_hotspots.bed"
@@ -3429,15 +3501,14 @@ the <code>interval()</code> constructor.</p>
 let exon = interval("chr1", 11869, 12227, strand: "+")
 </code></pre>
 <h3 id="interval-fields"><a class="header" href="#interval-fields">Interval Fields</a></h3>
-<p>Every interval has <code>chrom</code>, <code>start</code>, and <code>end</code>. Optional fields include
-<code>strand</code>, <code>name</code>, and <code>score</code>.</p>
-<pre><code class="language-biolang">let region = interval("chr7", 55181000, 55182000, strand: "+", name: "EGFR_exon20")
+<p>Every interval has <code>chrom</code>, <code>start</code>, <code>end</code>, and <code>strand</code>. Attach names, scores,
+or other annotations to table rows before building an interval tree.</p>
+<pre><code class="language-biolang">let region = interval("chr7", 55181000, 55182000, "+")
 
 print(region.chrom)   # chr7
 print(region.start)   # 55181000
 print(region.end)     # 55182000
 print(region.strand)  # +
-print(region.name)    # EGFR_exon20
 
 let width = region.end - region.start
 print("Width: " + str(width) + " bp")
@@ -3474,22 +3545,22 @@ let common = intersect(a, b)
 build an interval tree. Construction is O(n log n); each query is O(log n + k)
 where k is the number of hits.</p>
 <pre><code class="language-biolang">let exons = read_bed("data/exons.bed")
-    |&gt; map(|e| interval(e.chrom, e.start, e.end, name: e.name))
 
 let tree = interval_tree(exons)
 </code></pre>
 <h3 id="query_overlaps"><a class="header" href="#query_overlaps">query_overlaps</a></h3>
 <p>Find all intervals in the tree that overlap a query region.</p>
 <pre><code class="language-biolang">let query = interval("chr17", 43044294, 43044295)  # single position in BRCA1
-let hits = query_overlaps(tree, query)
+let hits = query_overlaps(tree, query.chrom, query.start, query.end)
 
 for hit in hits {
-    print("Overlaps: " + hit.name + " " + str(hit.start) + "-" + str(hit.end))
+    print("Overlaps: " + hit.chrom + ":" + str(hit.start) + "-" + str(hit.end))
 }
 </code></pre>
 <h3 id="query_nearest"><a class="header" href="#query_nearest">query_nearest</a></h3>
 <p>Find the closest interval to a query, even if there is no overlap.</p>
-<pre><code class="language-biolang">let snp_pos = interval("chr7", 55181378, 55181379)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let snp_pos = interval("chr7", 55181378, 55181379)
 let nearest = query_nearest(tree, snp_pos)
 
 let d = if snp_pos.end &lt;= nearest.start then nearest.start - snp_pos.end else snp_pos.start - nearest.end
@@ -3499,15 +3570,18 @@ print("Nearest feature: " + nearest.name
 <h3 id="coverage"><a class="header" href="#coverage">coverage</a></h3>
 <p>Compute per-base coverage across a set of intervals – how many intervals
 cover each position.</p>
-<pre><code class="language-biolang">let reads_as_intervals = aligned_reads
-    |&gt; map(|r| interval(r.chrom, r.start, r.end))
-
-let tree = interval_tree(reads_as_intervals)
+<pre><code class="language-biolang">let aligned_reads = table([
+    {chrom: "chr17", start: 43044000, end: 43044400},
+    {chrom: "chr17", start: 43044200, end: 43044600},
+    {chrom: "chr17", start: 43044800, end: 43045200}
+])
+let tree = interval_tree(aligned_reads)
 let target = interval("chr17", 43044000, 43045000)
 
-let cov = coverage(tree, target)
-print("Mean depth over target: " + str(mean(cov)))
-print("Bases &gt;= 30x: " + str(cov |&gt; filter(|d| d &gt;= 30) |&gt; len()))
+let cov = coverage(tree)
+    |&gt; filter(|row| row.chrom == target.chrom &amp;&amp; row.start &lt; target.end &amp;&amp; row.end &gt; target.start)
+print("Mean segment depth over target: " + str(mean(col(cov, "depth"))))
+print("Segments &gt;= 2x: " + str(cov |&gt; filter(|row| row.depth &gt;= 2) |&gt; len()))
 </code></pre>
 <h2 id="variants"><a class="header" href="#variants">Variants</a></h2>
 <p>A variant represents a difference from the reference genome. Create one with
@@ -3583,7 +3657,8 @@ print(info.GENEINFO) # "BRCA1:672"
 <h2 id="example-find-genes-overlapping-with-chip-seq-peaks"><a class="header" href="#example-find-genes-overlapping-with-chip-seq-peaks">Example: Find Genes Overlapping with ChIP-seq Peaks</a></h2>
 <p>Identify which genes have promoter regions that overlap with transcription
 factor binding peaks from a ChIP-seq experiment.</p>
-<pre><code class="language-biolang"># Load gene annotations
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Load gene annotations
 let genes = read_gff("data/annotations.gff")
     |&gt; filter(|f| f.type == "gene" &amp;&amp; f.attributes.gene_type == "protein_coding")
 
@@ -3643,7 +3718,8 @@ write_tsv(genes_with_peaks, "genes_with_h3k27ac_peaks.csv")
 <p>Transition/transversion ratio (Ti/Tv) is a key quality metric for SNP calling.
 Whole-genome sequencing typically yields Ti/Tv around 2.0-2.1; exome around
 2.8-3.0. Deviations suggest systematic errors.</p>
-<pre><code class="language-biolang">let variants = read_vcf("data/variants.vcf")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let variants = read_vcf("data/variants.vcf")
 
 # Keep only PASS SNPs
 let pass_snps = variants
@@ -3708,7 +3784,8 @@ write_tsv(spectrum, "substitution_spectrum.csv")
 <h2 id="example-annotate-variants-with-overlapping-regulatory-regions"><a class="header" href="#example-annotate-variants-with-overlapping-regulatory-regions">Example: Annotate Variants with Overlapping Regulatory Regions</a></h2>
 <p>Given a set of variants and a regulatory region BED file (e.g., ENCODE cCREs),
 annotate each variant with the regulatory elements it falls within.</p>
-<pre><code class="language-biolang"># Load regulatory regions from ENCODE
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Load regulatory regions from ENCODE
 let regulatory = read_bed("data/regions.bed")
     |&gt; map(|r| interval(r.chrom, r.start, r.end, name: r.name ?? "cCRE"))
 
@@ -3935,7 +4012,8 @@ reference directly.</p>
 <p>A pipeline can accept parameters, turning it into a reusable template. When you
 declare <code>pipeline name(params) { ... }</code>, BioLang defines a callable function
 instead of executing immediately.</p>
-<pre><code class="language-biolang"># Define a reusable alignment template
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Define a reusable alignment template
 pipeline align_sample(sample_id, r1, r2, reference) {
   stage sorted -&gt; shell("bwa-mem2 mem -t 16 " + reference + " " + r1 + " " + r2
         + " | samtools sort -@ 8 -o " + sample_id + ".sorted.bam")
@@ -3968,10 +4046,11 @@ println("Aligned " + str(len(bams)) + " samples")
 <p>For data-parallel operations on lists, <code>par_map</code> and <code>par_filter</code> distribute
 work across available cores.</p>
 <pre><code class="language-biolang">let sequences = read_fasta("data/sequences.fasta")
+  |&gt; to_records()
 
 # Compute GC content in parallel
 let gc_values = sequences
-  |&gt; par_map(|seq| {name: seq.name, gc: gc_content(seq.sequence)})
+  |&gt; par_map(|seq| {name: seq.id, gc: gc_content(seq.seq)})
 
 # Filter in parallel
 let high_gc = gc_values
@@ -3983,7 +4062,8 @@ println("High GC sequences: " + str(len(high_gc)))
 <p>For workflows that need to run a block of statements per item, <code>parallel for</code>
 fans out iterations. In the current tree-walking interpreter these run
 sequentially; a future bytecode backend will parallelize them.</p>
-<pre><code class="language-biolang">let samples = [
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let samples = [
   {id: "tumor_01", r1: "t01_R1.fq.gz", r2: "t01_R2.fq.gz"},
   {id: "tumor_02", r1: "t02_R1.fq.gz", r2: "t02_R2.fq.gz"},
   {id: "normal_01", r1: "n01_R1.fq.gz", r2: "n01_R2.fq.gz"},
@@ -4086,7 +4166,8 @@ notify("FASTQ QC complete: " + str(qc.total_reads) + " reads, Q30=" + str(qc.q30
 </code></pre>
 <h2 id="example-variant-calling-pipeline"><a class="header" href="#example-variant-calling-pipeline">Example: Variant Calling Pipeline</a></h2>
 <p>Germline variant calling from FASTQ to filtered VCF using pipeline blocks.</p>
-<pre><code class="language-biolang">pipeline germline_variants {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+pipeline germline_variants {
   stage aligned -&gt; shell(
     "bwa-mem2 mem -t 16 -R '@RG\\tID:S1\\tSM:sample' GRCh38.fa "
     + "sample_R1.fq.gz sample_R2.fq.gz "
@@ -4122,7 +4203,8 @@ println(germline_variants)
 </code></pre>
 <h2 id="example-multi-sample-analysis"><a class="header" href="#example-multi-sample-analysis">Example: Multi-Sample Analysis</a></h2>
 <p>Processing a cohort with parameterized pipelines and aggregation.</p>
-<pre><code class="language-biolang"># Reusable per-sample pipeline
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Reusable per-sample pipeline
 pipeline process_sample(sample_id, r1, r2) {
   stage bam -&gt; shell(
     "bwa-mem2 mem -t 8 -R '@RG\\tID:" + sample_id + "\\tSM:" + sample_id
@@ -4176,7 +4258,8 @@ slack("Cohort processing complete: " + str(len(passed)) + "/" + str(len(results)
 <h2 id="pipeline-composition"><a class="header" href="#pipeline-composition">Pipeline Composition</a></h2>
 <p>Pipelines are values. Parameterized pipelines are functions. You can call one
 from another to build layered workflows.</p>
-<pre><code class="language-biolang">pipeline align_one(sample) {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+pipeline align_one(sample) {
   stage sorted -&gt; shell(
     "bwa-mem2 mem -t 8 GRCh38.fa " + sample.r1 + " " + sample.r2
     + " | samtools sort -@ 4 -o " + sample.id + ".sorted.bam"
@@ -4410,7 +4493,8 @@ the nf-core CLI tool, and your pipeline configuration files.</p>
 <p>Before launching a whole-genome sequencing analysis with Sarek, you want to
 confirm that your reference genome configuration covers every required parameter
 and that no deprecated options have crept into your config.</p>
-<pre><code class="language-biolang"># Fetch the Sarek parameter schema
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Fetch the Sarek parameter schema
 let params = nfcore_params("sarek")
 
 # Extract all reference genome parameters
@@ -4636,7 +4720,8 @@ our_tools |&gt; each(|tool| {
 <h2 id="tool-details"><a class="header" href="#tool-details">Tool Details</a></h2>
 <p><code>biocontainers_info</code> returns a detailed record for a single tool, including its
 full version history with per-version container images.</p>
-<pre><code class="language-biolang">let info = biocontainers_info("samtools")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let info = biocontainers_info("samtools")
 # info =&gt; {
 #   name: "samtools",
 #   description: "Tools for manipulating NGS alignments...",
@@ -4751,7 +4836,8 @@ control alongside the pipeline definition.</p>
 <h2 id="example-tool-discovery-for-a-new-analysis"><a class="header" href="#example-tool-discovery-for-a-new-analysis">Example: Tool Discovery for a New Analysis</a></h2>
 <p>When starting a new analysis type, you need to survey what tools are available.
 Here we explore the methylation analysis landscape.</p>
-<pre><code class="language-biolang"># What methylation tools exist in BioContainers?
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# What methylation tools exist in BioContainers?
 let methyl_tools = biocontainers_search("methylation", 50)
 
 print(str(len(methyl_tools)) + " methylation-related tools found")
@@ -4796,7 +4882,8 @@ bismark.versions |&gt; take(5) |&gt; each(|v| {
 <h2 id="example-container-image-audit"><a class="header" href="#example-container-image-audit">Example: Container Image Audit</a></h2>
 <p>For an existing pipeline, verify that every tool has a valid BioContainers
 image and flag any that are outdated.</p>
-<pre><code class="language-biolang"># Current pipeline tools and their pinned versions
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Current pipeline tools and their pinned versions
 let pinned = [
   {tool: "bwa-mem2",  version: "2.2.1--hd03093a_2"},
   {tool: "samtools",  version: "1.17--h50ea8bc_0"},
@@ -4997,7 +5084,8 @@ print("Galaxy tools: " + str(len(gx_results)))
 </code></pre>
 <p>This pattern scales to any tool or keyword. Here is a more thorough version
 that prints details from each registry side by side.</p>
-<pre><code class="language-biolang"># Compare tool availability across registries
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Compare tool availability across registries
 let tools = ["samtools", "bcftools", "hisat2", "salmon"]
 
 tools |&gt; each(|name| {
@@ -5239,7 +5327,7 @@ let result = wilcoxon(treated, control)
 <p>Test whether observed genotype frequencies match Hardy-Weinberg expectations.</p>
 <pre><code class="language-biolang">let observed = [210, 480, 310]  # AA, Aa, aa genotypes
 let n = sum(observed)
-let p = (2 * observed[0] + observed[1]) / (2 * n)
+let p = (2.0 * observed[0] + observed[1]) / (2.0 * n)
 let q = 1.0 - p
 let expected = [p * p * n, 2 * p * q * n, q * q * n]
 
@@ -5305,19 +5393,15 @@ let spearman = spearman(gene_a, gene_b)
 <h2 id="linear-models"><a class="header" href="#linear-models">Linear Models</a></h2>
 <p>Fit a linear model to predict expression from covariates.</p>
 <pre><code class="language-biolang">let data = tsv("sample_metadata.tsv")
-let expression = data |&gt; col("gene_expr")
-let age = data |&gt; col("age")
-let batch = data |&gt; col("batch_id")
-
-let model = lm(expression, [age, batch])
+let model = lm(~gene_expr ~ age + batch_id, data)
 # model =&gt; {
-#   coefficients: [{name: "intercept", estimate: 5.2, se: 0.8, p: 0.001},
-#                  {name: "x1", estimate: 0.03, se: 0.01, p: 0.02},
-#                  {name: "x2", estimate: -1.1, se: 0.4, p: 0.008}],
+#   coefficients: [5.2, 0.03, -1.1],
+#   std_errors: [0.8, 0.01, 0.4],
+#   p_values: [0.001, 0.02, 0.008],
 #   r_squared: 0.45,
 #   adj_r_squared: 0.42,
 #   f_statistic: 12.3,
-#   pvalue: 0.00002
+#   f_p_value: 0.00002
 # }
 </code></pre>
 <h2 id="matrix-creation-and-operations"><a class="header" href="#matrix-creation-and-operations">Matrix Creation and Operations</a></h2>
@@ -5493,7 +5577,8 @@ print("AUC(0-24h): " + str(auc) + " mg*hr")
 </code></pre>
 <h2 id="example-population-genetics-hardy-weinberg"><a class="header" href="#example-population-genetics-hardy-weinberg">Example: Population Genetics (Hardy-Weinberg)</a></h2>
 <p>Simulate genotype frequencies and test for equilibrium across loci.</p>
-<pre><code class="language-biolang"># Observed genotype counts at 50 SNP loci
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Observed genotype counts at 50 SNP loci
 let loci = tsv("genotype_counts.tsv")
 # columns: locus, AA, Aa, aa
 
@@ -5533,6 +5618,476 @@ operations that appear throughout computational biology. Descriptive stats,
 hypothesis tests with multiple-testing correction, matrix decompositions, and
 ODE integration are all available as built-in functions, keeping your analysis
 in a single language from raw data to publication-ready results.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="omics-packages"><a class="header" href="#omics-packages">Omics Packages</a></h1>
+<p>The BioLang source tree includes 37 importable packages spanning common omics
+and bioinformatics domains. Each package provides a curated, pipe-friendly API.
+Most operations use BioLang’s native runtime; individual workflows may still
+call files, services, or external tools documented by that package.</p>
+<p>Install a local package with <code>bl install</code>, or declare it in <code>biolang.toml</code>.
+Packages declaring <code>[lib].entry</code> can be imported by package name; other
+packages use their explicit <code>src/mod</code> entry:</p>
+<pre><code class="language-bash">bl install packages/variants
+</code></pre>
+<pre><code class="language-biolang">import "singlecell"       as sc
+import "variants" as vcf
+import "rnaseq"   as rna
+</code></pre>
+<p>For a source checkout, set <code>BIOLANG_PATH</code> to the repository’s <code>packages</code>
+directory before running examples. Installed packages are discovered under
+<code>~/.biolang/packages/</code>. Use <code>bl examples &lt;package&gt; --copy &lt;directory&gt;</code> to make
+an independent working copy of examples bundled with an installed package.</p>
+<h2 id="current-package-catalog"><a class="header" href="#current-package-catalog">Current Package Catalog</a></h2>
+<p>Every package exposes code from <code>src/mod.bl</code>; packages with <code>[lib].entry</code> also
+support the short package-name import. The table is the complete catalog in the
+current source tree:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Package</th><th>Primary use</th><th>Package</th><th>Primary use</th></tr>
+</thead>
+<tbody>
+<tr><td><code>annotation</code></td><td>GTF/GFF parsing and feature annotation</td><td><code>atac</code></td><td>ATAC-seq QC, peaks, and accessibility</td></tr>
+<tr><td><code>cellchat</code></td><td>Ligand-receptor communication scoring</td><td><code>celltypes</code></td><td>Marker-based cell-type annotation</td></tr>
+<tr><td><code>chipseq</code></td><td>ChIP-seq peaks, FRiP, and consensus sets</td><td><code>clustering</code></td><td>General clustering workflows</td></tr>
+<tr><td><code>cnv</code></td><td>Copy-number segments and gene-level calls</td><td><code>crispr</code></td><td>CRISPR screen QC and hit ranking</td></tr>
+<tr><td><code>deconvolution</code></td><td>Bulk-mixture cell proportion estimates</td><td><code>differential</code></td><td>Differential expression testing</td></tr>
+<tr><td><code>drug</code></td><td>Dose-response curves and synergy</td><td><code>grn</code></td><td>Gene-regulatory network inference</td></tr>
+<tr><td><code>gwas</code></td><td>Summary statistics, loci, and inflation</td><td><code>hic</code></td><td>Hi-C matrices and contact analysis</td></tr>
+<tr><td><code>immune</code></td><td>Immune signatures and repertoire summaries</td><td><code>longread</code></td><td>Long-read QC and length summaries</td></tr>
+<tr><td><code>metabolomics</code></td><td>Feature matrices and metabolite analysis</td><td><code>methylation</code></td><td>CpG and region methylation analysis</td></tr>
+<tr><td><code>microbiome</code></td><td>Taxonomic abundance and diversity</td><td><code>motif</code></td><td>Motif scans and enrichment</td></tr>
+<tr><td><code>multimodal</code></td><td>Cross-modality integration</td><td><code>network</code></td><td>Biological graph analysis</td></tr>
+<tr><td><code>oric</code></td><td>Bacterial origin-of-replication prediction</td><td><code>pathway</code></td><td>Pathway and gene-set enrichment</td></tr>
+<tr><td><code>phylo</code></td><td>Newick trees and phylogenetic distances</td><td><code>popgen</code></td><td>Population-genetics statistics</td></tr>
+<tr><td><code>proteomics</code></td><td>Protein abundance and differential analysis</td><td><code>qpcr</code></td><td>Ct, delta-Ct, and delta-delta-Ct</td></tr>
+<tr><td><code>rnaseq</code></td><td>Bulk RNA-seq count processing</td><td><code>scref</code></td><td>Single-cell reference mapping</td></tr>
+<tr><td><code>singlecell</code></td><td>Single-cell QC, normalization, and clustering</td><td><code>spatial</code></td><td>Spatial transcriptomics analysis</td></tr>
+<tr><td><code>statistics</code></td><td>Reusable statistical helpers</td><td><code>structure</code></td><td>PDB and protein-structure analysis</td></tr>
+<tr><td><code>survival</code></td><td>Kaplan-Meier and survival workflows</td><td><code>variants</code></td><td>VCF filtering and variant summaries</td></tr>
+<tr><td><code>velocity</code></td><td>RNA-velocity workflows</td><td></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<p>Use <code>bl metadata --format json</code> for core builtin signatures. Package APIs live
+in each package’s <code>src/mod.bl</code>, which is the authoritative public surface.</p>
+<hr>
+<h2 id="1-variant-analysis"><a class="header" href="#1-variant-analysis">1. Variant Analysis</a></h2>
+<p>The <code>variants</code> package wraps VCF parsing, filtering, and quality metrics.
+Use it for germline QC pipelines or to feed variant tables into downstream
+population genetics analysis.</p>
+<pre><code class="language-biolang">import "variants" as vcf
+
+let raw  = vcf.load("results/calls.vcf")
+vcf.qc_report(raw)
+
+let pass = vcf.load_filtered("results/calls.vcf", 30.0, true)
+vcf.summary(pass)
+vcf.titv(pass)
+
+# Rare variant analysis (AF &lt; 0.1%)
+let rare = vcf.rare(pass, 0.001)
+vcf.by_chrom(rare, "chr17")
+</code></pre>
+<p>Key functions: <code>load</code>, <code>load_filtered</code>, <code>summary</code>, <code>titv</code>, <code>rare</code>, <code>by_chrom</code>, <code>qc_report</code></p>
+<hr>
+<h2 id="2-bulk-rna-seq"><a class="header" href="#2-bulk-rna-seq">2. Bulk RNA-seq</a></h2>
+<p>The <code>rnaseq</code> package loads Salmon and featureCounts output, normalizes counts,
+and prepares matrices for differential expression analysis with the <code>differential</code> package.</p>
+<pre><code class="language-biolang">import "rnaseq"       as rna
+import "differential" as de
+
+let counts = rna.from_featurecounts("results/counts.txt")
+rna.library_sizes(counts)
+rna.correlation(counts)
+
+let counts = rna.filter_genes(counts, 10, 3)
+let norm   = rna.normalize_sf(counts)
+
+let conditions = ["ctrl", "ctrl", "ctrl", "treated", "treated", "treated"]
+let results = de.de_wald(norm, [0, 1, 2], [3, 4, 5])
+results |&gt; filter(|r| r.padj &lt;= 0.05 &amp;&amp; abs(r.log2fc) &gt;= 1.0)
+</code></pre>
+<p>Key functions: <code>from_salmon</code>, <code>from_featurecounts</code>, <code>filter_genes</code>, <code>normalize_sf</code>, <code>library_sizes</code>, <code>correlation</code></p>
+<hr>
+<h2 id="single-cell-rna-seq"><a class="header" href="#single-cell-rna-seq">Single-cell RNA-seq</a></h2>
+<p>The <code>singlecell</code> package provides a sparse 10x workflow with synchronized cell
+and gene metadata. Filtering, normalization, variable-gene selection, PCA,
+neighbor-graph construction, and Leiden clustering can run without converting
+the expression matrix to a dense cells-by-genes array.</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let cells = sc.load("filtered_feature_bc_matrix")
+let result = cells
+    |&gt; sc.filter_genes(3)
+    |&gt; sc.filter_cells(200, 5000, 20.0)
+    |&gt; sc.normalize(10000.0)
+    |&gt; sc.variable_genes(2000)
+    |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15)
+    |&gt; sc.cluster_leiden(15, 0.5)
+
+println(sc.summary(result))
+write_text("umap.svg", sc.plot_umap(result))
+</code></pre>
+<p>Use <code>sc.merge</code> before integration when samples share the same gene order.
+<code>sc.integrate</code> corrects the PCA embedding and records batch labels. Native
+AnnData Zarr exchange preserves CSR <code>X</code> matrices and observation/variable
+index names:</p>
+<pre><code class="language-biolang">write_anndata("analysis.zarr", result)
+let restored = read_anndata("analysis.zarr")
+</code></pre>
+<p>Direct <code>.h5ad</code> I/O requires conversion with Python/anndata or a configured
+container. Arbitrary AnnData metadata columns and auxiliary layers are not yet
+copied by the native Zarr interchange. Validation scripts for Scanpy and Seurat are under
+<code>packages/singlecell/examples/validation</code>; compare cluster partitions by barcode using
+ARI rather than comparing arbitrary numeric cluster IDs.</p>
+<p>Key functions: <code>load</code>, <code>filter_genes</code>, <code>filter_cells</code>, <code>normalize</code>,
+<code>variable_genes</code>, <code>run_pca</code>, <code>neighbors</code>, <code>cluster_leiden</code>, <code>merge</code>, <code>integrate</code></p>
+<hr>
+<h2 id="3-phylogenetics"><a class="header" href="#3-phylogenetics">3. Phylogenetics</a></h2>
+<p>The <code>phylo</code> package reads Newick trees, computes patristic distances, and
+reconstructs trees with UPGMA — useful for viral phylodynamics and species
+comparisons.</p>
+<pre><code class="language-biolang">import "phylo" as ph
+
+let tree = ph.load("data/sarscov2_sequences.nwk")
+ph.n_leaves(tree)
+ph.leaves(tree)
+
+ph.distance(tree, "Alpha", "Delta")
+
+let dmat    = ph.distance_matrix(tree)
+let rebuilt = ph.build_upgma(ph.leaves(tree), dmat)
+ph.faith_pd(tree)
+</code></pre>
+<p>Key functions: <code>load</code>, <code>n_leaves</code>, <code>leaves</code>, <code>distance</code>, <code>distance_matrix</code>, <code>build_upgma</code>, <code>faith_pd</code></p>
+<hr>
+<h2 id="4-chip-seq--atac-seq"><a class="header" href="#4-chip-seq--atac-seq">4. ChIP-seq &amp; ATAC-seq</a></h2>
+<p>The <code>chipseq</code> package processes NarrowPeak files from MACS3, computes FRiP
+and TSS enrichment QC metrics, and builds consensus peak sets across replicates.</p>
+<pre><code class="language-biolang">import "chipseq" as cs
+
+let ctrl    = cs.load_narrowpeak("results/ctrl_peaks.narrowPeak")
+let treated = cs.load_narrowpeak("results/treated_peaks.narrowPeak")
+
+cs.qc_report(ctrl, 320000, 25000000)
+cs.qc_report(treated, 280000, 22000000)
+
+let consensus = cs.consensus([cs.merge(ctrl), cs.merge(treated)], 2)
+cs.mean_peak_size(consensus)
+cs.n_peaks(consensus)
+</code></pre>
+<p>Key functions: <code>load_narrowpeak</code>, <code>merge</code>, <code>consensus</code>, <code>qc_report</code>, <code>n_peaks</code>, <code>mean_peak_size</code></p>
+<hr>
+<h2 id="5-microbiome"><a class="header" href="#5-microbiome">5. Microbiome</a></h2>
+<p>The <code>microbiome</code> package computes alpha and beta diversity indices, performs
+rarefaction, and collapses OTU tables to arbitrary taxonomic ranks.</p>
+<pre><code class="language-biolang">import "microbiome" as mb
+
+let otus     = read_csv("data/feature_table.tsv")
+let taxonomy = read_csv("data/taxonomy.tsv")
+
+mb.alpha_table(otus, "shannon")
+mb.alpha_table(otus, "chao1")
+
+let rarefied = mb.rarefy_matrix(otus, 5000)
+mb.beta(rarefied, "bray_curtis")
+
+mb.top_taxa(taxonomy, 15, "genus")
+mb.top_taxa(taxonomy, 10, "phylum")
+</code></pre>
+<p>Key functions: <code>alpha_table</code>, <code>beta</code>, <code>rarefy_matrix</code>, <code>top_taxa</code>, <code>relative_abundance</code></p>
+<hr>
+<h2 id="6-statistics"><a class="header" href="#6-statistics">6. Statistics</a></h2>
+<p>The <code>statistics</code> package extends the core statistical builtins with
+multiple-testing correction, permutation tests, bootstrap confidence
+intervals, and genomic inflation factors for GWAS.</p>
+<pre><code class="language-biolang">import "statistics" as stat
+
+let p_values = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 0.9]
+
+let adj_bh   = stat.bh(p_values)
+let adj_bonf = stat.bonferroni(p_values)
+stat.significant(adj_bh, 0.05)
+stat.inflation(p_values)
+
+let group_a = [2.1, 2.3, 1.9, 2.5, 2.2]
+let group_b = [3.1, 2.8, 3.4, 2.9, 3.2]
+stat.permtest(group_a, group_b, 10000)
+stat.bootstrap(group_a, 5000, 0.95)
+</code></pre>
+<p>Key functions: <code>bh</code>, <code>bonferroni</code>, <code>significant</code>, <code>inflation</code>, <code>fisher</code>, <code>chi2</code>, <code>permtest</code>, <code>bootstrap</code>, <code>pearson</code></p>
+<hr>
+<h2 id="7-rt-qpcr"><a class="header" href="#7-rt-qpcr">7. RT-qPCR</a></h2>
+<p>The <code>qpcr</code> package implements the ΔCt and ΔΔCt method, standard-curve
+efficiency calculation, and geNorm stability scoring for reference gene
+selection.</p>
+<pre><code class="language-biolang">import "qpcr" as qpcr
+
+# Standard curve → amplification efficiency
+let standard_cts  = [15.2, 18.5, 21.8, 25.1, 28.4]
+let log_dilutions = [0.0, -1.0, -2.0, -3.0, -4.0]
+qpcr.efficiency(standard_cts, log_dilutions)
+
+# ΔCt and ΔΔCt fold change
+let dct         = qpcr.dct(28.5, 22.0)
+let fold_change = qpcr.ddct(dct, 6.2)
+
+# Plate-level normalization and stability scoring
+# let norm = qpcr.normalize(ct_table, ref_indices=[0, 1])
+# qpcr.stability(ct_table, ref_indices=[0, 1])
+</code></pre>
+<p>Key functions: <code>dct</code>, <code>ddct</code>, <code>efficiency</code>, <code>normalize</code>, <code>stability</code>, <code>best_reference</code></p>
+<hr>
+<h2 id="8-proteomics"><a class="header" href="#8-proteomics">8. Proteomics</a></h2>
+<p>The <code>proteomics</code> package processes MaxQuant label-free quantification (LFQ)
+output through the full preprocessing pipeline and identifies differentially
+abundant proteins.</p>
+<pre><code class="language-biolang">import "proteomics" as prot
+
+# Load proteinGroups.txt → log2 → quantile normalize → impute
+let mat = prot.full_pipeline("data/proteinGroups.txt")
+
+# Differential abundance: samples 0-2 vs 3-5
+let de   = prot.ttest(mat, [0, 1, 2], [3, 4, 5])
+let hits = prot.significant(de, 1.0, 0.05)
+
+# Prepare volcano plot data
+prot.volcano(de, 1.0, 0.05)
+</code></pre>
+<p>Key functions: <code>load</code>, <code>log2_transform</code>, <code>quantile_normalize</code>, <code>impute</code>, <code>preprocess</code>, <code>full_pipeline</code>, <code>ttest</code>, <code>significant</code>, <code>volcano</code></p>
+<hr>
+<h2 id="9-dna-methylation"><a class="header" href="#9-dna-methylation">9. DNA Methylation</a></h2>
+<p>The <code>methylation</code> package handles RRBS and EPIC array data: beta/M-value
+conversion, differentially methylated region (DMR) calling, CpG density, and
+epigenetic clock prediction.</p>
+<pre><code class="language-biolang">import "methylation" as meth
+
+# beta_matrix: CpGs × samples
+# let m_matrix = beta_matrix |&gt; rows |&gt; map(fn(r) -&gt; meth.to_mvalue(r))
+
+# Differential methylation (cases vs controls)
+# let dmrs = meth.find_dmrs(beta_matrix, [0,1,2,3,4], [5,6,7,8,9])
+# let diff = meth.diff_cpgs(beta_matrix, [0,1,2], [3,4,5])
+# meth.significant_cpgs(diff, 0.15, 0.05)
+
+# Epigenetic age (Horvath clock)
+# meth.clock_age(beta_vec_353cpgs, horvath_coefs)
+
+# CpG density in a window
+let positions = [100, 120, 145, 300, 320, 340, 360]
+meth.density(positions, 200)
+</code></pre>
+<p>Key functions: <code>to_mvalue</code>, <code>to_beta</code>, <code>find_dmrs</code>, <code>diff_cpgs</code>, <code>significant_cpgs</code>, <code>density</code>, <code>clock_age</code></p>
+<hr>
+<h2 id="10-protein-structure"><a class="header" href="#10-protein-structure">10. Protein Structure</a></h2>
+<p>The <code>structure</code> package parses PDB files, computes Kabsch-aligned RMSD,
+builds residue contact maps, assigns secondary structure (DSSP-lite), and
+extracts Ramachandran phi/psi angles.</p>
+<pre><code class="language-biolang">import "structure" as st
+
+let pred    = st.load("data/alphafold_prediction.pdb")
+let exp     = st.load("data/experimental.pdb")
+
+let pred_ca = st.ca_atoms(pred)
+let exp_ca  = st.ca_atoms(exp)
+
+st.rmsd(pred_ca, exp_ca)
+st.ss_composition(pred_ca)
+st.contacts(pred_ca, 8.0)
+st.ramachandran(st.backbone(pred))
+</code></pre>
+<p>Key functions: <code>load</code>, <code>ca_atoms</code>, <code>backbone</code>, <code>chain</code>, <code>residues</code>, <code>rmsd</code>, <code>contacts</code>, <code>ss</code>, <code>ss_composition</code>, <code>ramachandran</code></p>
+<hr>
+<h2 id="11-biological-networks"><a class="header" href="#11-biological-networks">11. Biological Networks</a></h2>
+<p>The <code>network</code> package loads STRING or custom PPI edge lists and computes
+degree centrality, Brandes betweenness, BFS shortest paths, connected
+components, and hypergeometric disease module enrichment.</p>
+<pre><code class="language-biolang">import "network" as net
+
+let ppi = net.load_string("data/9606.protein.links.v12.0.txt")
+  |&gt; net.filter_score(0.7)
+
+net.hub_genes(ppi, 20)
+net.components(ppi)
+
+let lcc        = net.largest_component(ppi)
+let brca_genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2", "PALB2"]
+let disease_net = net.subnetwork(lcc, brca_genes)
+
+net.degree(disease_net)
+net.path(lcc, "TP53", "BRCA1")
+net.enrichment(brca_genes, ppi, 20000)
+</code></pre>
+<p>Key functions: <code>load_string</code>, <code>load_csv</code>, <code>filter_score</code>, <code>subnetwork</code>, <code>degree</code>, <code>betweenness</code>, <code>path</code>, <code>components</code>, <code>hub_genes</code>, <code>largest_component</code>, <code>enrichment</code></p>
+<hr>
+<h2 id="12-population-genetics"><a class="header" href="#12-population-genetics">12. Population Genetics</a></h2>
+<p>The <code>popgen</code> package implements core population genetics statistics: HWE
+tests, Weir-Cockerham Fst, Tajima’s D, LD r², allele frequency spectrum, and
+nucleotide diversity — all computed directly from genotype matrices.</p>
+<pre><code class="language-biolang">import "popgen" as pg
+
+# Hardy-Weinberg equilibrium test
+pg.hwe(360, 480, 160)
+
+# Fst between two populations
+let ac_eur = [45, 12, 89, 3, 67]
+let ac_afr = [78,  5, 92, 8, 34]
+pg.fst(ac_eur, ac_afr, 200, 200)
+
+# Tajima's D neutrality test
+pg.tajima(15, 20, 1000)
+
+# LD between two variants
+let geno_a = [0, 1, 1, 2, 0, 1, 2, 0]
+let geno_b = [0, 1, 1, 2, 0, 1, 1, 0]
+pg.ld(geno_a, geno_b)
+</code></pre>
+<p>Key functions: <code>hwe</code>, <code>fst</code>, <code>tajima</code>, <code>ld</code>, <code>ld_matrix</code>, <code>afs</code>, <code>pi</code>, <code>watterson_theta</code></p>
+<hr>
+<h2 id="cnv"><a class="header" href="#cnv">cnv</a></h2>
+<p>The <code>cnv</code> package implements copy number variation analysis from whole-genome or whole-exome sequencing read-depth data. Use it to call amplifications and deletions in tumor samples, compute allele-specific copy numbers from B-allele frequencies, and summarise genome-wide CNV burden.</p>
+<pre><code class="language-biolang">import "cnv" as cnv
+</code></pre>
+<pre><code class="language-biolang">import "cnv" as cnv
+
+# Per-bin log2 ratios from mosdepth output
+# let ratios   = cnv.ratios(tumor_depths, normal_depths)
+
+# Circular binary segmentation
+# let segments = cnv.segment(ratios)
+
+# Integer CN calls (diploid reference)
+# cnv.call(segments, ploidy=2)
+
+# Allele-specific CN from SNP heterozygotes
+# let baf = read_csv("tumor_snps.tsv") |&gt; col("baf")
+# cnv.allelic(baf, ratios)
+
+# Genome-wide summary
+# cnv.summary(segments)
+</code></pre>
+<p><strong>Key functions:</strong> <code>ratios</code>, <code>segment</code>, <code>call</code>, <code>allelic</code>, <code>summary</code></p>
+<hr>
+<h2 id="hic"><a class="header" href="#hic">hic</a></h2>
+<p>The <code>hic</code> package provides tools for Hi-C chromatin conformation capture data: ICE normalization of raw contact matrices, insulation score computation for TAD detection, and distance-decay analysis. Use it any time you need to identify topologically associating domains or inspect 3D genome organisation.</p>
+<pre><code class="language-biolang">import "hic" as hic
+</code></pre>
+<pre><code class="language-biolang">import "hic" as hic
+
+# contact_matrix: N×N Table (genomic bins × bins, values = contact counts)
+
+# ICE normalization
+# let norm   = hic.normalize(contact_matrix)
+
+# Insulation score (window = 10 bins)
+# let scores = hic.insulation(norm, 10)
+
+# TAD boundaries from insulation score minima
+# let tads   = hic.boundaries(scores, delta=0.15)
+
+# Distance decay: average contacts vs genomic separation
+# hic.decay(norm)
+</code></pre>
+<p><strong>Key functions:</strong> <code>normalize</code>, <code>insulation</code>, <code>boundaries</code>, <code>decay</code>, <code>expected</code></p>
+<hr>
+<h2 id="atac"><a class="header" href="#atac">atac</a></h2>
+<p>The <code>atac</code> package provides ATAC-seq quality control metrics derived from fragment size distributions. Use it to assess chromatin accessibility library quality — NFR enrichment, nucleosome phasing, and TSS enrichment — before proceeding to peak calling.</p>
+<pre><code class="language-biolang">import "atac" as atac
+</code></pre>
+<pre><code class="language-biolang">import "atac" as atac
+
+# Fragment lengths from filtered BAM
+# let frag_lengths = read_csv("fragments.tsv") |&gt; col("tlen") |&gt; map(fn(x) -&gt; abs(x))
+
+# Full QC report
+# atac.qc(frag_lengths)
+
+# Fragment size histogram
+# atac.sizes(frag_lengths)
+
+# NFR enrichment score (&gt; 1.5 = good quality)
+# atac.nfr(frag_lengths)
+
+# Nucleosome fraction breakdown (NFR / mono / di / tri)
+# atac.nucleosomes(frag_lengths)
+
+# TSS enrichment (requires per-fragment TSS distances)
+# atac.tss(frag_lengths, tss_distances, flank=2000)
+</code></pre>
+<p><strong>Key functions:</strong> <code>qc</code>, <code>nfr</code>, <code>sizes</code>, <code>nucleosomes</code>, <code>tss</code></p>
+<hr>
+<h2 id="drug"><a class="header" href="#drug">drug</a></h2>
+<p>The <code>drug</code> package fits dose-response curves and computes drug combination synergy scores. Use it for GDSC/PRISM-style pharmacogenomics analysis, IC50 estimation from viability data, and Bliss or Loewe synergy scoring for combination screens.</p>
+<pre><code class="language-biolang">import "drug" as drug
+</code></pre>
+<pre><code class="language-biolang">import "drug" as drug
+
+let concentrations = [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+let viabilities    = [98.0, 95.0, 88.0, 70.0, 45.0, 20.0, 8.0, 3.0]
+
+# Fit 4-parameter logistic → {ic50, slope, top, bottom, r2}
+let params = drug.fit(concentrations, viabilities)
+
+# Area under dose-response curve (lower = more sensitive)
+drug.auc(concentrations, viabilities)
+
+# Combination synergy
+drug.bliss(75.0, 60.0, 30.0)
+drug.loewe(1.0, 2.0, 0.5, 1.0)
+</code></pre>
+<p><strong>Key functions:</strong> <code>fit</code>, <code>curve</code>, <code>auc</code>, <code>bliss</code>, <code>loewe</code>, <code>rank</code></p>
+<hr>
+<h2 id="gwas"><a class="header" href="#gwas">gwas</a></h2>
+<p>The <code>gwas</code> package handles GWAS summary statistics: flexible column-name auto-detection, Manhattan and QQ plot data preparation, genomic inflation, and distance-based locus clumping. Use it to process output from PLINK, BOLT-LMM, SAIGE, or any standard GWAS tool.</p>
+<pre><code class="language-biolang">import "gwas" as gwas
+</code></pre>
+<pre><code class="language-biolang">import "gwas" as gwas
+
+# Auto-detect column names (CHR/BP/SNP/P/BETA/SE/A1/A2/MAF)
+let ss = gwas.load("data/my_gwas_sumstats.txt")
+
+# Genomic inflation factor (should be ~1.0)
+gwas.lambda(ss.pval)
+
+# Genome-wide significant hits (p &lt; 5×10⁻⁸)
+let hits = gwas.hits(ss)
+
+# Distance-based LD clumping → independent loci
+let loci = gwas.clump(ss, 5e-8, 250)
+
+# Data for Manhattan and QQ plots
+gwas.manhattan(ss)
+gwas.qq(ss.pval)
+</code></pre>
+<p><strong>Key functions:</strong> <code>load</code>, <code>hits</code>, <code>clump</code>, <code>lambda</code>, <code>manhattan</code>, <code>qq</code></p>
+<hr>
+<h2 id="annotation"><a class="header" href="#annotation">annotation</a></h2>
+<p>The <code>annotation</code> package parses GTF/GFF3 gene annotation files and performs genomic interval operations. Use it to annotate ChIP-seq or ATAC-seq peaks with nearest genes, extract promoter regions, compute interval overlaps, and build Ensembl-to-gene-name lookup tables.</p>
+<pre><code class="language-biolang">import "annotation" as ann
+</code></pre>
+<pre><code class="language-biolang">import "annotation" as ann
+
+# Load GENCODE or Ensembl GTF (auto-detects GTF vs GFF3)
+let gtf   = ann.load("data/gencode.v45.annotation.gtf")
+
+# Gene bodies and promoter windows
+let genes = ann.genes(gtf)
+let proms = ann.promoters(gtf, 2000, 200)
+
+# Ensembl ID → gene name lookup
+let idmap = ann.id_map(gtf)
+
+# Annotate peaks with nearest gene + feature type
+# let peaks = read_csv("data/macs3_peaks.narrowPeak")
+# ann.annotate(peaks, gtf)
+
+# Overlap ChIP-seq peaks with ATAC-seq peaks
+# let atac_peaks = read_csv("data/atac_peaks.bed")
+# ann.overlap(peaks, atac_peaks)
+</code></pre>
+<p><strong>Key functions:</strong> <code>load</code>, <code>genes</code>, <code>promoters</code>, <code>id_map</code>, <code>annotate</code>, <code>overlap</code></p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="chapter-13-biological-database-apis"><a class="header" href="#chapter-13-biological-database-apis">Chapter 13: Biological Database APIs</a></h1>
 <p>Bioinformatics analysis rarely lives in isolation. You query NCBI for gene
@@ -5952,7 +6507,8 @@ print("Total bases: " + str(total_bases))
 <p>When you need batch operations on a stream, <code>chunk</code> groups elements into
 fixed-size lists. This is useful for writing output in blocks or batching API
 calls.</p>
-<pre><code class="language-biolang"># Process a FASTQ in chunks of 10,000 reads
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Process a FASTQ in chunks of 10,000 reads
 read_fastq("data/reads.fastq")
   |&gt; chunk(10000)
   |&gt; each(|batch| {
@@ -6024,7 +6580,8 @@ per_chrom_stats |&gt; sort_by(|s| s.chrom) |&gt; write_tsv("chrom_stats.tsv")
 </code></pre>
 <h3 id="par_filter"><a class="header" href="#par_filter">par_filter</a></h3>
 <p>Filter elements in parallel. Useful when the predicate itself is expensive.</p>
-<pre><code class="language-biolang"># requires: internet connection
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# requires: internet connection
 let variants = tsv("all_variants.tsv")
 
 let pathogenic = par_filter(variants, |v| {
@@ -6058,7 +6615,8 @@ that plague genomics scripts.</p>
 <h2 id="example-process-a-100gb-fastq"><a class="header" href="#example-process-a-100gb-fastq">Example: Process a 100GB FASTQ</a></h2>
 <p>Stream 4 billion reads, filter by quality, and compute statistics without
 loading the file into memory.</p>
-<pre><code class="language-biolang">let input = "novaseq_R1.fastq.gz"  # 100 GB compressed
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let input = "novaseq_R1.fastq.gz"  # 100 GB compressed
 
 let stats = {
   total: 0,
@@ -6094,7 +6652,8 @@ print("GC content:   " + str(gc) + "%")
 constant regardless of file size.</p>
 <h2 id="example-parallel-variant-annotation-across-chromosomes"><a class="header" href="#example-parallel-variant-annotation-across-chromosomes">Example: Parallel Variant Annotation Across Chromosomes</a></h2>
 <p>Split variant annotation work by chromosome to use all cores.</p>
-<pre><code class="language-biolang"># requires: internet connection
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# requires: internet connection
 let vcf_path = "cohort.vcf.gz"
 let chromosomes = range(1, 23) |&gt; map(|n| "chr" + str(n))
 let chromosomes = concat(chromosomes, ["chrX", "chrY"])
@@ -6156,7 +6715,8 @@ gc_profile |&gt; write_tsv("chr22_gc_profile.tsv")
 <h2 id="example-batch-processing-thousands-of-samples"><a class="header" href="#example-batch-processing-thousands-of-samples">Example: Batch Processing Thousands of Samples</a></h2>
 <p>Process a large sample cohort using chunked parallelism to avoid overwhelming
 system resources.</p>
-<pre><code class="language-biolang">let manifest = tsv("sample_manifest.tsv")  # 2,000 samples
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let manifest = tsv("sample_manifest.tsv")  # 2,000 samples
 print("Processing " + str(len(manifest)) + " samples")
 
 let batch_size = 16  # process 16 samples at a time
@@ -6251,7 +6811,8 @@ let scratch = sqlite()
 <p><code>sql()</code> executes any SQL statement. SELECT queries return a Table; write
 statements return the number of affected rows. Use <code>?</code> placeholders for
 parameterized queries.</p>
-<pre><code class="language-biolang"># Create a table
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Create a table
 sql(db, "CREATE TABLE IF NOT EXISTS qc (
   sample TEXT PRIMARY KEY,
   total_reads INTEGER,
@@ -6304,7 +6865,8 @@ sql_schema(db, "qc")
 </code></pre>
 <h3 id="pipeline-example"><a class="header" href="#pipeline-example">Pipeline Example</a></h3>
 <p>Store QC results from every sample run, then query across all runs:</p>
-<pre><code class="language-biolang">let db = sqlite("lab_results.db")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let db = sqlite("lab_results.db")
 
 sql(db, "CREATE TABLE IF NOT EXISTS qc (
   sample TEXT, run_date TEXT, total INTEGER, passing INTEGER, rate REAL
@@ -6573,7 +7135,7 @@ let g = network |&gt; reduce(g, |g, edge|
 # Find hub genes (highest degree)
 let gene_degrees = nodes(g) |&gt; map(|n| {gene: n, deg: degree(g, n)})
 gene_degrees
-  |&gt; sort_by(|r| r.deg, desc: true)
+  |&gt; sort_by(|r| -r.deg)
   |&gt; take(10)
   |&gt; each(|r| print(r.gene + ": " + str(r.deg) + " interactions"))
 
@@ -6703,7 +7265,7 @@ results
 <pre><code class="language-biolang"># Prepare ranked table with gene and score columns
 let ranked = tsv("de_results.tsv")
   |&gt; select("gene", "log2fc")
-  |&gt; rename({log2fc: "score"})
+  |&gt; rename("log2fc", "score")
   |&gt; sort_by(|r| -r.score)
 
 # Load gene sets
@@ -7082,13 +7644,11 @@ stdout. Each message is a single line of JSON terminated by a newline.</p>
 <p>The plugin should clean up resources and exit.</p>
 <h2 id="installing-plugins"><a class="header" href="#installing-plugins">Installing Plugins</a></h2>
 <h3 id="from-a-directory"><a class="header" href="#from-a-directory">From a Directory</a></h3>
-<pre><code class="language-bash">bl add ./my-plugins/blast-wrapper
+<pre><code class="language-bash">bl add blast-wrapper --path ./my-plugins/blast-wrapper
 </code></pre>
-<p>This copies (or symlinks) the plugin into <code>~/.biolang/plugins/blast-wrapper/</code>.</p>
-<h3 id="from-a-git-repository"><a class="header" href="#from-a-git-repository">From a Git Repository</a></h3>
-<pre><code class="language-bash">bl add https://github.com/lab/biolang-deseq2.git
-</code></pre>
-<p>BioLang clones the repository into the plugins directory.</p>
+<p>This copies the local plugin into <code>~/.biolang/plugins/blast-wrapper/</code>. The
+current <code>bl add</code> command accepts a local path; clone a Git repository first,
+then pass its directory with <code>--path</code>.</p>
 <h3 id="removing-plugins"><a class="header" href="#removing-plugins">Removing Plugins</a></h3>
 <pre><code class="language-bash">bl remove blast-wrapper
 </code></pre>
@@ -7102,7 +7662,8 @@ stdout. Each message is a single line of JSON terminated by a newline.</p>
 <p>Both show the plugin name, version, kind, and available functions.</p>
 <h2 id="using-plugins-in-scripts"><a class="header" href="#using-plugins-in-scripts">Using Plugins in Scripts</a></h2>
 <p>Once installed, import a plugin by name and call its functions.</p>
-<pre><code class="language-biolang">import "blast-wrapper"
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+import "blast-wrapper"
 
 # Build a custom database
 makeblastdb(input: "my_sequences.fa", dbtype: "nucl", out: "custom_db")
@@ -7243,7 +7804,8 @@ if __name__ == "__main__":
     main()
 </code></pre>
 <p>Install and use:</p>
-<pre><code class="language-biolang">bl add ./blast-wrapper
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+bl add blast-wrapper --path ./blast-wrapper
 
 # In a BioLang script:
 import "blast-wrapper"
@@ -7403,9 +7965,10 @@ while (TRUE) {
 close(con)
 </code></pre>
 <h3 id="using-the-deseq2-plugin"><a class="header" href="#using-the-deseq2-plugin">Using the DESeq2 Plugin</a></h3>
-<pre><code class="language-biolang"># requires: internet connection (for ncbi_gene calls below)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# requires: internet connection (for ncbi_gene calls below)
 # requires: NCBI_API_KEY (optional, increases rate limit)
-bl add ./deseq2-plugin
+bl add deseq2 --path ./deseq2-plugin
 
 # In a BioLang script:
 import "deseq2"
@@ -7607,6 +8170,118 @@ dispatch loop, and install with <code>bl add</code>. Plugins integrate fully wit
 parallel operations, and the rest of BioLang. Python plugins wrap command-line
 bioinformatics tools, R plugins bring statistical packages like DESeq2, and
 Deno/TypeScript plugins connect to REST APIs and external services.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="chapter-18b-packages-migration-and-cli-tooling"><a class="header" href="#chapter-18b-packages-migration-and-cli-tooling">Chapter 18B: Packages, Migration, and CLI Tooling</a></h1>
+<p>BioLang’s command-line interface covers source validation, package setup,
+cross-language migration, notebook conversion, editor integration, environment
+diagnostics, and machine-readable API discovery.</p>
+<h2 id="check-before-you-run"><a class="header" href="#check-before-you-run">Check Before You Run</a></h2>
+<p><code>bl check</code> parses one or more scripts without executing them:</p>
+<pre><code class="language-bash">bl check main.bl src/qc.bl src/report.bl
+</code></pre>
+<p>Use it in continuous integration and before running a workflow against large
+inputs. <code>bl run --verbose</code> shows execution steps, while <code>bl run --events</code>
+emits versioned JSON Lines events for desktop clients and automation:</p>
+<pre><code class="language-bash">bl run --verbose main.bl
+bl run --events main.bl
+</code></pre>
+<h2 id="packages"><a class="header" href="#packages">Packages</a></h2>
+<p>A package is BioLang source code described by <code>biolang.toml</code>. Initialize the
+current directory:</p>
+<pre><code class="language-bash">mkdir sequence-qc
+cd sequence-qc
+bl init --name sequence-qc
+</code></pre>
+<p>The command creates:</p>
+<pre><code class="language-text">sequence-qc/
+  biolang.toml
+  main.bl
+</code></pre>
+<p>Dependencies can be local paths or Git repositories:</p>
+<pre><code class="language-toml">[package]
+name = "sequence-qc"
+version = "0.1.0"
+
+[dependencies]
+shared = { path = "../shared" }
+variants = { git = "https://github.com/example/variants.git", branch = "main" }
+</code></pre>
+<p>Run <code>bl install</code> to install manifest dependencies. A specific local package or
+Git package can also be installed directly:</p>
+<pre><code class="language-bash">bl install ../shared
+bl install variants --git https://github.com/example/variants.git --branch main
+</code></pre>
+<p>Packages may bundle runnable examples. They remain available after installation,
+without retaining the package source repository:</p>
+<pre><code class="language-bash">bl examples variants
+bl examples variants --copy variants-examples
+</code></pre>
+<p>The first command lists the installed package’s example files. The second copies
+the complete tree, including nested data or validation files, into a new or
+empty working directory. During package development, the command also accepts a
+local package directory in place of the installed name.</p>
+<p>Version-only registry dependencies are recognized in the manifest but the
+current CLI does not fetch them from a registry.</p>
+<h2 id="packages-versus-plugins"><a class="header" href="#packages-versus-plugins">Packages Versus Plugins</a></h2>
+<p>Packages contain BioLang modules and are installed under
+<code>~/.biolang/packages/</code>. Plugins are separate processes that communicate with
+BioLang through the plugin JSON protocol and are installed under
+<code>~/.biolang/plugins/</code>.</p>
+<pre><code class="language-bash">bl add aligner --path ./plugins/aligner
+bl plugins
+bl remove aligner
+</code></pre>
+<p>Use a package for reusable BioLang logic. Use a plugin when an external
+program, another language runtime, or process isolation is required.</p>
+<h2 id="import-python-r-and-notebooks"><a class="header" href="#import-python-r-and-notebooks">Import Python, R, and Notebooks</a></h2>
+<p><code>bl import</code> converts Python, R, Jupyter, and R Markdown sources to BioLang.
+Always inspect the generated code: conversion preserves intent where possible,
+but library-specific calls can require manual replacement.</p>
+<pre><code class="language-bash">bl import analysis.py --validate -o analysis.bl
+bl import analysis.R --validate -o analysis.bl
+bl import report.ipynb --validate -o report.bl
+bl import report.Rmd --validate -o report.bl
+</code></pre>
+<p>The source format is inferred from the extension. Use <code>--from</code> to override it,
+or provide a name when reading standard input:</p>
+<pre><code class="language-bash">bl import legacy.txt --from python --validate -o legacy.bl
+python generate.py | bl import - --from python --name generated.py --validate
+</code></pre>
+<p><code>--validate</code> reports remaining BioLang diagnostics and exits nonzero when the
+conversion still needs attention. <code>--json</code> returns the converted content and
+validation result as structured JSON for editor integrations.</p>
+<h2 id="notebook-interchange"><a class="header" href="#notebook-interchange">Notebook Interchange</a></h2>
+<p>BioLang runs <code>.bln</code>, <code>.bl.md</code>, and <code>.ipynb</code> notebooks:</p>
+<pre><code class="language-bash">bl notebook analysis.bln
+bl notebook analysis.bl.md
+</code></pre>
+<p>Convert between BioLang and Jupyter notebooks or export a self-contained HTML
+report:</p>
+<pre><code class="language-bash">bl notebook study.ipynb --from-ipynb &gt; study.bln
+bl notebook study.bln --to-ipynb &gt; study.ipynb
+bl notebook study.bln --export html &gt; study.html
+</code></pre>
+<p>Notebook cells share one session and execute in document order.</p>
+<h2 id="environment-and-editor-integration"><a class="header" href="#environment-and-editor-integration">Environment and Editor Integration</a></h2>
+<p>Run the environment doctor before relying on native tools, containers, or
+network capabilities:</p>
+<pre><code class="language-bash">bl doctor
+</code></pre>
+<p>Editors start the language server with <code>bl lsp</code>. Tooling that needs completion,
+signature, and builtin documentation can consume the same structured metadata:</p>
+<pre><code class="language-bash">bl metadata --format json &gt; biolang-metadata.json
+</code></pre>
+<p>Use <code>bl version</code> to show the installed release and check for updates, then
+<code>bl upgrade</code> to install the latest available release.</p>
+<h2 id="reproducible-migration-checklist"><a class="header" href="#reproducible-migration-checklist">Reproducible Migration Checklist</a></h2>
+<ol>
+<li>Convert with <code>bl import --validate</code>.</li>
+<li>Replace Python or R library calls that have no direct BioLang equivalent.</li>
+<li>Confirm file paths and generate or document every expected input.</li>
+<li>Run <code>bl check</code> over all generated <code>.bl</code> files.</li>
+<li>Compare key statistics against the original Python or R workflow.</li>
+<li>Record BioLang and package versions with the analysis outputs.</li>
+</ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="benchmarks--correctness"><a class="header" href="#benchmarks--correctness">Benchmarks &amp; Correctness</a></h1>
 <p>BioLang is benchmarked against Python (BioPython) and R (Bioconductor) on 30 bioinformatics tasks spanning sequence I/O, k-mer analysis, interval overlaps, variant processing, and multi-step pipelines. All results are reproducible from the <code>benchmarks/</code> directory.</p>
@@ -7825,7 +8500,7 @@ print("Primer Tm = " + str(temp) + "C, reverse complement = " + str(rc))
 </table>
 </div>
 <pre><code class="language-biolang"># Example: enumerate quality-filtered reads
-let good_reads = reads
+let good_reads = read_fastq("data/reads.fastq")
   |&gt; filter(|r| mean_phred(r.quality) &gt; 30)
   |&gt; enumerate()
   |&gt; head(5)
@@ -7860,6 +8535,10 @@ BioLang’s pipeline style.</p>
 </table>
 </div>
 <pre><code class="language-biolang"># Example: parallel GC content across a genome's chromosomes
+let chromosomes = [
+  {name: "chrA", seq: dna"ATGCGCGTAA"},
+  {name: "chrB", seq: dna"ATATATGCAT"}
+]
 let gc_values = chromosomes
   |&gt; par_map(|chr| {name: chr.name, gc: gc_content(chr.seq)})
   |&gt; sort_by(|r| r.gc)
@@ -7879,7 +8558,8 @@ sample sheets, variant tables, and expression matrices.</p>
 <tr><td><code>mutate(tbl, name, fn) -&gt; Table</code></td><td>Add or transform a column</td></tr>
 <tr><td><code>summarize(grouped, |key, rows| {...}) -&gt; Table</code></td><td>Aggregate grouped data via closure</td></tr>
 <tr><td><code>group_by(tbl, col) -&gt; GroupedTable</code></td><td>Group rows by a column value (table variant)</td></tr>
-<tr><td><code>join(a, b, on, how?) -&gt; Table</code></td><td>Join two tables on a key column</td></tr>
+<tr><td><code>inner_join(a, b, on) -&gt; Table</code></td><td>Keep rows whose key occurs in both tables</td></tr>
+<tr><td><code>left_join(a, b, on) -&gt; Table</code></td><td>Keep every left row and attach matching right columns</td></tr>
 <tr><td><code>csv(path) -&gt; Table</code></td><td>Read a CSV file into a table</td></tr>
 <tr><td><code>tsv(path) -&gt; Table</code></td><td>Read a TSV file into a table</td></tr>
 <tr><td><code>write_tsv(tbl, path) -&gt; Nil</code></td><td>Write a table to CSV</td></tr>
@@ -7907,11 +8587,11 @@ streams that integrate with pipes; writers flush on completion.</p>
 <tr><th>Builtin</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>read_fasta(path) -&gt; List[Record]</code></td><td>Parse FASTA; each record has <code>id</code>, <code>desc</code>, <code>seq</code> fields</td></tr>
-<tr><td><code>read_fastq(path) -&gt; List[Record]</code></td><td>Parse FASTQ; each record has <code>id</code>, <code>seq</code>, <code>quality</code>, <code>length</code> fields</td></tr>
-<tr><td><code>read_vcf(path) -&gt; List[Record]</code></td><td>Parse VCF; each record has <code>chrom</code>, <code>pos</code>, <code>ref</code>, <code>alt</code>, <code>qual</code>, <code>info</code> fields</td></tr>
-<tr><td><code>read_bed(path) -&gt; List[Record]</code></td><td>Parse BED; each record has <code>chrom</code>, <code>start</code>, <code>end</code> and optional fields</td></tr>
-<tr><td><code>read_gff(path) -&gt; List[Record]</code></td><td>Parse GFF/GTF; each record has <code>seqid</code>, <code>type</code>, <code>start</code>, <code>end</code>, <code>attributes</code></td></tr>
+<tr><td><code>read_fasta(path) -&gt; Table</code></td><td>Parse FASTA; columns are <code>id</code>, <code>description</code>, <code>seq</code>, and <code>length</code></td></tr>
+<tr><td><code>read_fastq(path) -&gt; Table</code></td><td>Parse FASTQ; columns are <code>id</code>, <code>description</code>, <code>seq</code>, <code>length</code>, and <code>quality</code></td></tr>
+<tr><td><code>read_vcf(path) -&gt; Table</code></td><td>Parse VCF; columns include <code>chrom</code>, <code>pos</code>, <code>ref</code>, <code>alt</code>, <code>qual</code>, and <code>info</code></td></tr>
+<tr><td><code>read_bed(path) -&gt; Table</code></td><td>Parse BED; columns include <code>chrom</code>, <code>start</code>, and <code>end</code></td></tr>
+<tr><td><code>read_gff(path) -&gt; Table</code></td><td>Parse GFF/GTF; columns include <code>seqid</code>, <code>type</code>, <code>start</code>, <code>end</code>, and raw <code>attributes</code> text</td></tr>
 <tr><td><code>write_fasta(records, path) -&gt; Nil</code></td><td>Write records to FASTA format</td></tr>
 <tr><td><code>write_fastq(records, path) -&gt; Nil</code></td><td>Write records to FASTQ format</td></tr>
 <tr><td><code>write_bed(records, path) -&gt; Nil</code></td><td>Write records to BED format</td></tr>
@@ -7935,9 +8615,9 @@ read_fastq("data/reads.fastq")
 <tbody>
 <tr><td><code>interval(chrom, start, end, strand?) -&gt; Interval</code></td><td>Create a genomic interval</td></tr>
 <tr><td><code>interval_tree(intervals) -&gt; IntervalTree</code></td><td>Build an index for fast overlap queries</td></tr>
-<tr><td><code>query_overlaps(tree, query) -&gt; List[Interval]</code></td><td>All intervals overlapping the query</td></tr>
-<tr><td><code>query_nearest(tree, query, k?) -&gt; List[Interval]</code></td><td>K nearest intervals to the query</td></tr>
-<tr><td><code>coverage(intervals) -&gt; List[Record]</code></td><td>Per-base or per-region coverage depth</td></tr>
+<tr><td><code>query_overlaps(tree, chrom, start, end) -&gt; Table</code></td><td>Rows overlapping a half-open query range</td></tr>
+<tr><td><code>count_overlaps(tree, chrom, start, end) -&gt; Int</code></td><td>Number of rows overlapping a query range</td></tr>
+<tr><td><code>coverage(tree) -&gt; Table</code></td><td>Coverage segments with <code>chrom</code>, <code>start</code>, <code>end</code>, and <code>depth</code></td></tr>
 <tr><td><code>merge_intervals(intervals, dist?) -&gt; List[Interval]</code></td><td>Merge overlapping or nearby intervals</td></tr>
 <tr><td><code>intersect(a, b) -&gt; List[Interval]</code></td><td>Pairwise intersection of two interval sets</td></tr>
 <tr><td><code>subtract(a, b) -&gt; List[Interval]</code></td><td>Regions in <code>a</code> not covered by <code>b</code></td></tr>
@@ -7948,7 +8628,7 @@ read_fastq("data/reads.fastq")
 let promoters = read_bed("data/regions.bed") |&gt; map(|r| interval(r.chrom, r.start, r.end))
 let peaks     = read_bed("data/exons.bed") |&gt; map(|r| interval(r.chrom, r.start, r.end))
 let tree      = interval_tree(peaks)
-let hits      = promoters |&gt; flat_map(|p| query_overlaps(tree, p))
+let hits      = promoters |&gt; flat_map(|p| query_overlaps(tree, p.chrom, p.start, p.end))
 print("Found " + str(len(hits)) + " promoter-peak overlaps")
 </code></pre>
 <hr>
@@ -7977,9 +8657,12 @@ print("Found " + str(len(hits)) + " promoter-peak overlaps")
 </table>
 </div>
 <pre><code class="language-biolang"># Example: compute Ti/Tv ratio for a VCF
-let vars = read_vcf("data/variants.vcf") |&gt; filter(|v| v.qual &gt; 30)
+let vars = vcf_filter(vcf_parse(read_text("data/variants.vcf")), 30)
 let summary = variant_summary(vars)
-print("Ti/Tv = " + str(summary.ti_tv_ratio) + ", SNPs = " + str(summary.snp_count))
+let snp_rows = summary |&gt; filter(|row| row.type_ == "SNP")
+let snp_count = if len(snp_rows) &gt; 0 { snp_rows[0].count } else { 0 }
+print(summary)
+print("Ti/Tv = " + str(titv_ratio(vars)) + ", SNPs = " + str(snp_count))
 </code></pre>
 <hr>
 <h2 id="statistics"><a class="header" href="#statistics">Statistics</a></h2>
@@ -8218,10 +8901,10 @@ serialization.</p>
 </thead>
 <tbody>
 <tr><td><code>print(val) -&gt; Nil</code></td><td>Print a value followed by a newline</td></tr>
-<tr><td><code>assert(cond, msg?) -&gt; Nil</code></td><td>Panic with <code>msg</code> if <code>cond</code> is false</td></tr>
+<tr><td><code>assert cond, msg?</code></td><td>Abort with <code>msg</code> if <code>cond</code> is false</td></tr>
 <tr><td><code>sleep(ms) -&gt; Nil</code></td><td>Pause execution for <code>ms</code> milliseconds</td></tr>
-<tr><td><code>now() -&gt; Float</code></td><td>Current timestamp in seconds since epoch</td></tr>
-<tr><td><code>now() - start</code></td><td>Seconds elapsed since <code>start</code> (use <code>now()</code> for both timestamps)</td></tr>
+<tr><td><code>now() -&gt; Str</code></td><td>Current UTC time in ISO 8601 format</td></tr>
+<tr><td><code>timestamp() -&gt; Int</code></td><td>Current Unix timestamp in seconds; subtract two values to measure elapsed time</td></tr>
 <tr><td><code>bp(n) -&gt; Int</code></td><td>Identity; documents that <code>n</code> is in base pairs</td></tr>
 <tr><td><code>kb(n) -&gt; Int</code></td><td>Convert kilobases to base pairs (<code>n * 1000</code>)</td></tr>
 <tr><td><code>mb(n) -&gt; Int</code></td><td>Convert megabases to base pairs (<code>n * 1_000_000</code>)</td></tr>
@@ -8234,10 +8917,539 @@ serialization.</p>
 </table>
 </div>
 <pre><code class="language-biolang"># Example: time a heavy operation
-let t0 = now()
+let t0 = timestamp()
 let result = read_fasta("data/sequences.fasta")
   |&gt; flat_map(|r| find_orfs(r.seq, 300))
-print("Found " + str(len(result)) + " ORFs in " + str(now() - t0) + "s")
+print("Found " + str(len(result)) + " ORFs in " + str(timestamp() - t0) + "s")
+</code></pre>
+<hr>
+<h2 id="single-cell-analysis"><a class="header" href="#single-cell-analysis">Single-Cell Analysis</a></h2>
+<p>Builtins for single-cell RNA-seq workflows. Higher-level operations are
+available via the <code>singlecell</code>, <code>cellchat</code>, <code>spatial</code>, <code>velocity</code>,
+<code>celltypes</code>, <code>multimodal</code>, and <code>grn</code> packages.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>lr_score(matrix, cell_labels, lr_pairs)</code></td><td>3</td><td>Pairwise ligand-receptor scoring between clusters</td></tr>
+<tr><td><code>lr_aggregate(lr_scores, pathway_map)</code></td><td>2</td><td>Pathway-level aggregation of LR scores</td></tr>
+<tr><td><code>spatial_neighbors(coords, k)</code></td><td>2</td><td>2-D k-NN adjacency from spatial coordinates</td></tr>
+<tr><td><code>spatial_moransi(expr_vec, spatial_adj)</code></td><td>2</td><td>Moran’s I spatial autocorrelation statistic</td></tr>
+<tr><td><code>reference_classify(query, ref_matrix, ref_labels)</code></td><td>3</td><td>Cosine k-NN label transfer from a reference dataset</td></tr>
+<tr><td><code>pseudobulk_aggregate(matrix, cell_labels, sample_labels)</code></td><td>3</td><td>Sum cells×genes counts per (cluster, sample); rows are genes</td></tr>
+<tr><td><code>wnn_graph(matrix_a, matrix_b, k)</code></td><td>3</td><td>Weighted nearest-neighbor graph for multimodal integration</td></tr>
+<tr><td><code>velocity_estimate(spliced, unspliced)</code></td><td>2</td><td>RNA velocity (β·u − s) per gene per cell</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "singlecell" as sc
+import "cellchat"   as cc
+
+let obj = sc.load("data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+  |&gt; sc.filter_cells(200, 5000, 20.0)
+  |&gt; sc.normalize
+  |&gt; sc.variable_genes(2000)
+  |&gt; sc.neighbors(15)
+  |&gt; sc.cluster
+
+let scores = cc.score(obj)
+cc.top(scores, 20)
+cc.senders(scores)
+cc.pathways(scores) |&gt; take(10)
+</code></pre>
+<hr>
+<h2 id="variants--population-genetics"><a class="header" href="#variants--population-genetics">Variants &amp; Population Genetics</a></h2>
+<p>Builtins for VCF-level variant analysis and population genetics statistics.
+The <code>variants</code> and <code>popgen</code> packages provide higher-level workflows.</p>
+<h3 id="variant-parsing"><a class="header" href="#variant-parsing">Variant Parsing</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>vcf_parse(text)</code></td><td>1</td><td>Parse VCF text into a table of variant records</td></tr>
+<tr><td><code>vcf_filter(variants, min_qual, pass_only?)</code></td><td>1-3</td><td>Filter a parsed VCF table by minimum QUAL and optional <code>PASS</code> status</td></tr>
+<tr><td><code>titv_ratio(variants)</code></td><td>1</td><td>Transition / transversion ratio</td></tr>
+<tr><td><code>variant_summary(variants)</code></td><td>1</td><td>Aggregate SNP, insertion, deletion, and MNV counts</td></tr>
+<tr><td><code>allele_freq(variants, field?)</code></td><td>1-2</td><td>Extract an INFO allele-frequency field (default <code>AF</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="population-genetics"><a class="header" href="#population-genetics">Population Genetics</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>hwe_test(n_aa, n_ab, n_bb)</code></td><td>3</td><td>Hardy-Weinberg chi-square test</td></tr>
+<tr><td><code>fst_weir_cockerham(pop1, pop2)</code></td><td>2</td><td>Weir-Cockerham Fst from matching <code>[n_ref, n_total]</code> rows</td></tr>
+<tr><td><code>tajima_d(site_differences, n_sequences)</code></td><td>2</td><td>Tajima’s D neutrality test statistic</td></tr>
+<tr><td><code>ld_r2(geno_a, geno_b)</code></td><td>2</td><td>Linkage disequilibrium r² between two variants</td></tr>
+<tr><td><code>allele_freq_spectrum(counts, n_sequences?)</code></td><td>1-2</td><td>Folded site frequency spectrum</td></tr>
+<tr><td><code>nucleotide_diversity(geno_matrix)</code></td><td>1</td><td>Nucleotide diversity (π) across sites</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "variants" as vcf
+import "popgen"   as pg
+
+let pass = vcf.load_filtered("results/calls.vcf", 30.0, true)
+vcf.summary(pass)
+vcf.titv(pass)
+
+pg.hwe(360, 480, 160)
+pg.fst([45, 12, 89], [78, 5, 92], 200, 200)
+pg.tajima(15, 20, 1000)
+</code></pre>
+<hr>
+<h2 id="bulk-rna-seq"><a class="header" href="#bulk-rna-seq">Bulk RNA-seq</a></h2>
+<p>Builtins for loading and normalising bulk RNA-seq quantification output.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>parse_salmon(quant_sf)</code></td><td>1</td><td>Parse Salmon <code>quant.sf</code> text into a gene expression table</td></tr>
+<tr><td><code>parse_featurecounts(counts_txt)</code></td><td>1</td><td>Parse featureCounts output into a counts table</td></tr>
+<tr><td><code>size_factors(count_matrix)</code></td><td>1</td><td>DESeq2-style median-ratio size factors</td></tr>
+<tr><td><code>filter_low_counts(count_matrix, min_count, min_samples)</code></td><td>3</td><td>Remove genes with fewer than <code>min_count</code> in <code>min_samples</code> samples</td></tr>
+<tr><td><code>tpm_matrix(count_matrix, gene_lengths)</code></td><td>2</td><td>Convert raw counts to TPM</td></tr>
+<tr><td><code>sample_correlation(count_matrix)</code></td><td>1</td><td>Pairwise Pearson correlation between samples</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "rnaseq"       as rna
+import "differential" as de
+
+let counts = rna.from_featurecounts("results/counts.txt")
+let counts = rna.filter_genes(counts, 10, 3)
+let norm   = rna.normalize_sf(counts)
+
+let conditions = ["ctrl", "ctrl", "ctrl", "treated", "treated", "treated"]
+let results = de.de_wald(norm, [0, 1, 2], [3, 4, 5])
+results |&gt; filter(|r| r.padj &lt;= 0.05 &amp;&amp; abs(r.log2fc) &gt;= 1.0)
+</code></pre>
+<hr>
+<h2 id="phylogenetics"><a class="header" href="#phylogenetics">Phylogenetics</a></h2>
+<p>Builtins for Newick tree parsing and distance-based phylogenetics.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>nw_parse(newick_str)</code></td><td>1</td><td>Parse a Newick string into a tree record</td></tr>
+<tr><td><code>tree_leaves(tree)</code></td><td>1</td><td>List all leaf names in the tree</td></tr>
+<tr><td><code>patristic_distance(tree, leaf_a, leaf_b)</code></td><td>3</td><td>Sum of branch lengths between two leaves</td></tr>
+<tr><td><code>nw_to_distance_matrix(tree)</code></td><td>1</td><td>All-pairs patristic distance matrix</td></tr>
+<tr><td><code>upgma(leaves, dist_matrix)</code></td><td>2</td><td>UPGMA tree reconstruction from a distance matrix</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "phylo" as ph
+
+let tree = ph.load("data/sarscov2_sequences.nwk")
+ph.n_leaves(tree)
+ph.distance(tree, "Alpha", "Delta")
+
+let dmat    = ph.distance_matrix(tree)
+let rebuilt = ph.build_upgma(ph.leaves(tree), dmat)
+</code></pre>
+<hr>
+<h2 id="chip-seq--atac-seq"><a class="header" href="#chip-seq--atac-seq">ChIP-seq / ATAC-seq</a></h2>
+<p>Builtins for peak-level quality control and consensus peak generation.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>merge_peaks(peaks)</code></td><td>1</td><td>Merge overlapping NarrowPeak records</td></tr>
+<tr><td><code>consensus_peaks(peak_lists, min_samples)</code></td><td>2</td><td>Peaks present in at least <code>min_samples</code> replicates</td></tr>
+<tr><td><code>frip_score(reads_in_peaks, total_reads)</code></td><td>2</td><td>Fraction of Reads In Peaks quality metric</td></tr>
+<tr><td><code>tss_enrichment(peaks, tss_sites)</code></td><td>2</td><td>TSS enrichment score for ATAC QC</td></tr>
+<tr><td><code>peak_annotation(peaks, annotations)</code></td><td>2</td><td>Annotate peaks with nearest genomic features</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "chipseq" as cs
+
+let ctrl    = cs.load_narrowpeak("results/ctrl_peaks.narrowPeak")
+let treated = cs.load_narrowpeak("results/treated_peaks.narrowPeak")
+
+cs.qc_report(ctrl, 320000, 25000000)
+
+let consensus = cs.consensus([cs.merge(ctrl), cs.merge(treated)], 2)
+cs.n_peaks(consensus)
+</code></pre>
+<hr>
+<h2 id="microbiome"><a class="header" href="#microbiome">Microbiome</a></h2>
+<p>Builtins for alpha/beta diversity, rarefaction, and taxonomic composition.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>alpha_diversity(count_vec, method)</code></td><td>2</td><td>Shannon, Simpson, or Chao1 alpha diversity</td></tr>
+<tr><td><code>beta_diversity(matrix_a, matrix_b, method)</code></td><td>3</td><td>Bray-Curtis or Jaccard beta diversity</td></tr>
+<tr><td><code>rarefaction(count_vec, depth)</code></td><td>2</td><td>Subsample counts to <code>depth</code> without replacement</td></tr>
+<tr><td><code>relative_abundance(count_vec)</code></td><td>1</td><td>Fractional abundances (sums to 1.0)</td></tr>
+<tr><td><code>taxonomic_collapse(otu_table, taxonomy, level)</code></td><td>3</td><td>Aggregate OTU counts at a given taxonomic rank</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "microbiome" as mb
+
+let otus = read_csv("data/feature_table.tsv")
+mb.alpha_table(otus, "shannon")
+
+let rarefied = mb.rarefy_matrix(otus, 5000)
+mb.beta(rarefied, "bray_curtis")
+
+let taxonomy = read_csv("data/taxonomy.tsv")
+mb.top_taxa(taxonomy, 10, "genus")
+</code></pre>
+<hr>
+<h2 id="statistics-extended"><a class="header" href="#statistics-extended">Statistics (Extended)</a></h2>
+<p>Higher-level statistical testing beyond the core <code>ttest</code>, <code>chi_square</code>, and
+<code>p_adjust</code> builtins. The <code>statistics</code> package wraps these with convenient
+defaults.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>bh_adjust(p_values)</code></td><td>1</td><td>Benjamini-Hochberg FDR correction, order preserved</td></tr>
+<tr><td><code>bonferroni_adjust(p_values)</code></td><td>1</td><td>Bonferroni correction, clamped to 1.0</td></tr>
+<tr><td><code>fisher_exact(a, b, c, d)</code></td><td>4</td><td>Two-sided Fisher’s exact test; returns <code>{p_value, odds_ratio}</code></td></tr>
+<tr><td><code>chi_square(observed, expected)</code></td><td>2</td><td>Chi-squared goodness-of-fit; returns <code>{statistic, df, p_value}</code></td></tr>
+<tr><td><code>permutation_test(a, b, n)</code></td><td>3</td><td>Permutation test with <code>n</code> shuffles; returns p-value</td></tr>
+<tr><td><code>bootstrap_ci(values, n, conf)</code></td><td>3</td><td>Percentile bootstrap CI; returns <code>{mean, lower, upper, std_err}</code></td></tr>
+<tr><td><code>genomic_inflation(p_values)</code></td><td>1</td><td>Genomic inflation factor λ from GWAS p-values</td></tr>
+<tr><td><code>pearson_correlation(x, y)</code></td><td>2</td><td>Pearson r, zero-variance safe</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "statistics" as stat
+
+let p_values = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 0.9]
+let adj_bh   = stat.bh(p_values)
+stat.significant(adj_bh, 0.05)
+stat.inflation(p_values)
+
+let group_a = [2.1, 2.3, 1.9, 2.5, 2.2]
+let group_b = [3.1, 2.8, 3.4, 2.9, 3.2]
+stat.permtest(group_a, group_b, 10000)
+</code></pre>
+<hr>
+<h2 id="rt-qpcr"><a class="header" href="#rt-qpcr">RT-qPCR</a></h2>
+<p>Builtins for ΔCt/ΔΔCt analysis, standard-curve efficiency, and geNorm
+reference gene selection.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>delta_ct(sample_ct, ref_ct)</code></td><td>2</td><td>ΔCt = sample_ct − reference_ct</td></tr>
+<tr><td><code>delta_delta_ct(sample_dct, control_dct)</code></td><td>2</td><td>Fold change = 2^(−ΔΔCt)</td></tr>
+<tr><td><code>pcr_efficiency(cts, log_dilutions)</code></td><td>2</td><td>Efficiency from standard curve; returns <code>{efficiency, slope}</code></td></tr>
+<tr><td><code>reference_normalize(ct_table, ref_indices)</code></td><td>2</td><td>Per-sample normalization using reference gene mean</td></tr>
+<tr><td><code>genorm_stability(ct_table, ref_indices)</code></td><td>2</td><td>geNorm M-score stability ranking</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "qpcr" as qpcr
+
+let standard_cts  = [15.2, 18.5, 21.8, 25.1, 28.4]
+let log_dilutions = [0.0, -1.0, -2.0, -3.0, -4.0]
+qpcr.efficiency(standard_cts, log_dilutions)
+
+let dct         = qpcr.dct(28.5, 22.0)
+let fold_change = qpcr.ddct(dct, 6.2)
+</code></pre>
+<hr>
+<h2 id="proteomics"><a class="header" href="#proteomics">Proteomics</a></h2>
+<p>Builtins for MaxQuant LFQ data: loading, normalization, imputation, and
+differential abundance.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>load_maxquant(text)</code></td><td>1</td><td>Parse MaxQuant <code>proteinGroups.txt</code> into a matrix</td></tr>
+<tr><td><code>log2_transform(matrix)</code></td><td>1</td><td>Log2-transform all intensity values</td></tr>
+<tr><td><code>quantile_normalize(matrix)</code></td><td>1</td><td>Quantile normalization across samples</td></tr>
+<tr><td><code>impute_minvalue(matrix, percentile)</code></td><td>2</td><td>Impute missing values with a low-percentile constant</td></tr>
+<tr><td><code>protein_ttest(matrix, group_a, group_b)</code></td><td>3</td><td>Per-protein two-sample t-test; returns <code>{log2fc, p_value}</code></td></tr>
+<tr><td><code>volcano_data(test_result, fc, p)</code></td><td>3</td><td>Classify each protein as up/down/unchanged</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "proteomics" as prot
+
+let mat  = prot.full_pipeline("data/proteinGroups.txt")
+let de   = prot.ttest(mat, [0, 1, 2], [3, 4, 5])
+let hits = prot.significant(de, 1.0, 0.05)
+prot.volcano(de, 1.0, 0.05)
+</code></pre>
+<hr>
+<h2 id="dna-methylation"><a class="header" href="#dna-methylation">DNA Methylation</a></h2>
+<p>Builtins for RRBS/EPIC array data: beta/M-value conversion, DMR calling,
+CpG density, and epigenetic clocks.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>beta_to_mvalue(beta_vec)</code></td><td>1</td><td>Convert β values to M-values (logit)</td></tr>
+<tr><td><code>mvalue_to_beta(m_vec)</code></td><td>1</td><td>Convert M-values back to β (inverse logit)</td></tr>
+<tr><td><code>dmr_find(beta_matrix, group_a, group_b, min_delta, min_cpgs)</code></td><td>5</td><td>Find differentially methylated regions</td></tr>
+<tr><td><code>cpg_density(positions, window)</code></td><td>2</td><td>CpG density per window of base pairs</td></tr>
+<tr><td><code>epigenetic_age(beta_vec, coefs)</code></td><td>2</td><td>Predicted age from a linear clock model (e.g. Horvath)</td></tr>
+<tr><td><code>differential_methylation(beta_matrix, group_a, group_b)</code></td><td>3</td><td>Site-level ΔBeta and p-value for each CpG</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "methylation" as meth
+
+# let m_matrix = beta_matrix |&gt; rows |&gt; map(fn(r) -&gt; meth.to_mvalue(r))
+# let dmrs = meth.find_dmrs(beta_matrix, [0,1,2,3,4], [5,6,7,8,9])
+# let diff = meth.diff_cpgs(beta_matrix, [0,1,2], [3,4,5])
+# meth.significant_cpgs(diff, 0.15, 0.05)
+
+let positions = [100, 120, 145, 300, 320, 340, 360]
+meth.density(positions, 200)
+</code></pre>
+<hr>
+<h2 id="protein-structure"><a class="header" href="#protein-structure">Protein Structure</a></h2>
+<p>Builtins for PDB parsing, structural alignment (Kabsch RMSD), contact maps,
+and secondary structure assignment.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>pdb_parse(text)</code></td><td>1</td><td>Parse PDB ATOM records into a table with chain/residue/coordinate fields</td></tr>
+<tr><td><code>rmsd(coords_a, coords_b)</code></td><td>2</td><td>Optimal Kabsch RMSD between two Cα coordinate sets</td></tr>
+<tr><td><code>contact_map(coords, dist)</code></td><td>2</td><td>Boolean contact matrix at <code>dist</code> Å cutoff</td></tr>
+<tr><td><code>secondary_structure(coords)</code></td><td>1</td><td>DSSP-lite assignment: H (helix), E (sheet), C (coil) per residue</td></tr>
+<tr><td><code>backbone_angles(coords)</code></td><td>1</td><td>Phi/psi dihedral angles for Ramachandran analysis</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "structure" as st
+
+let pred    = st.load("data/alphafold_prediction.pdb")
+let exp     = st.load("data/experimental.pdb")
+let pred_ca = st.ca_atoms(pred)
+let exp_ca  = st.ca_atoms(exp)
+
+st.rmsd(pred_ca, exp_ca)
+st.ss_composition(pred_ca)
+st.contacts(pred_ca, 8.0)
+</code></pre>
+<hr>
+<h2 id="biological-networks"><a class="header" href="#biological-networks">Biological Networks</a></h2>
+<p>Builtins for protein-protein interaction network analysis: centrality,
+shortest paths, connected components, and disease module enrichment.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>load_ppi(text)</code></td><td>1</td><td>Parse STRING TSV edge list into a table of <code>{source, target, score}</code></td></tr>
+<tr><td><code>degree_centrality(edges)</code></td><td>1</td><td>Degree (number of neighbours) for every node</td></tr>
+<tr><td><code>betweenness_centrality(edges)</code></td><td>1</td><td>Brandes BFS betweenness for every node</td></tr>
+<tr><td><code>shortest_path(edges, src, tgt)</code></td><td>3</td><td>BFS shortest path between two nodes</td></tr>
+<tr><td><code>connected_components(edges)</code></td><td>1</td><td>Union-Find component labels for every node</td></tr>
+<tr><td><code>network_enrichment(gene_list, edges, bg_size)</code></td><td>3</td><td>Hypergeometric enrichment of a gene set in the network</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "network" as net
+
+let ppi = net.load_string("data/9606.protein.links.v12.0.txt")
+  |&gt; net.filter_score(0.7)
+
+net.hub_genes(ppi, 20)
+let lcc = net.largest_component(ppi)
+
+let brca = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2"]
+net.path(lcc, "TP53", "BRCA1")
+net.enrichment(brca, ppi, 20000)
+</code></pre>
+<hr>
+<h2 id="copy-number-variation-cnv"><a class="header" href="#copy-number-variation-cnv">Copy Number Variation (cnv)</a></h2>
+<p>Builtins for CNV analysis from WGS/WES read-depth data.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>log2_ratios(tumor, normal)</code></td><td>2</td><td>log2((tumor+1)/(normal+1)) per bin</td></tr>
+<tr><td><code>cbs_segment(ratios)</code></td><td>1</td><td>Circular binary segmentation → Table of segments</td></tr>
+<tr><td><code>cn_call(segments, ploidy)</code></td><td>2</td><td>Integer CN from log2-ratio segments</td></tr>
+<tr><td><code>allele_specific_cn(baf, ratio)</code></td><td>2</td><td>Major/minor allele CN from B-allele freq + ratio</td></tr>
+<tr><td><code>cnv_summary(segments)</code></td><td>1</td><td>Fraction altered, n_segments, mean ratio</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "cnv" as cnv
+
+# let ratios   = cnv.ratios(tumor_depths, normal_depths)
+# let segments = cnv.segment(ratios)
+# cnv.call(segments, ploidy=2)
+# cnv.summary(segments)
+
+# Allele-specific CN from SNP heterozygotes
+# let baf = read_csv("tumor_snps.tsv") |&gt; col("baf")
+# cnv.allelic(baf, ratios)
+</code></pre>
+<hr>
+<h2 id="hi-c--3d-genomics-hic"><a class="header" href="#hi-c--3d-genomics-hic">Hi-C &amp; 3D Genomics (hic)</a></h2>
+<p>Builtins for chromatin conformation capture data.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ice_normalize(matrix)</code></td><td>1</td><td>Iterative correction (ICE) of contact matrix</td></tr>
+<tr><td><code>insulation_score(matrix, window)</code></td><td>2</td><td>Diamond insulation score per bin</td></tr>
+<tr><td><code>tad_boundaries(scores, min_delta)</code></td><td>2</td><td>Local minima in insulation score → TAD boundaries</td></tr>
+<tr><td><code>distance_decay(matrix)</code></td><td>1</td><td>Mean contact frequency vs genomic distance</td></tr>
+<tr><td><code>expected_contacts(matrix)</code></td><td>1</td><td>Distance-decay expected contact matrix</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "hic" as hic
+
+# let norm   = hic.normalize(contact_matrix)
+# let scores = hic.insulation(norm, 10)
+# let tads   = hic.boundaries(scores, delta=0.15)
+# hic.decay(norm)
+</code></pre>
+<hr>
+<h2 id="atac-seq-atac"><a class="header" href="#atac-seq-atac">ATAC-seq (atac)</a></h2>
+<p>Builtins for ATAC-seq quality control and fragment analysis.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>fragment_size_dist(lengths)</code></td><td>1</td><td>Histogram of fragment lengths in 10-bp bins</td></tr>
+<tr><td><code>nfr_enrichment(lengths)</code></td><td>1</td><td>NFR/mono-nucleosome ratio (&gt;1.5 = good quality)</td></tr>
+<tr><td><code>nucleosome_fractions(lengths)</code></td><td>1</td><td>Sub-NFR / NFR / mono / di / tri fractions</td></tr>
+<tr><td><code>tss_enrichment_score(lengths, dists, flank)</code></td><td>3</td><td>TSS signal / background ratio</td></tr>
+<tr><td><code>atac_qc(lengths)</code></td><td>1</td><td>Combined QC record: NFR fraction, median size, etc.</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "atac" as atac
+
+# let frag_lengths = read_csv("fragments.tsv") |&gt; col("tlen") |&gt; map(fn(x) -&gt; abs(x))
+# atac.qc(frag_lengths)
+# atac.nfr(frag_lengths)
+# atac.sizes(frag_lengths)
+# atac.nucleosomes(frag_lengths)
+</code></pre>
+<hr>
+<h2 id="drug-response-drug"><a class="header" href="#drug-response-drug">Drug Response (drug)</a></h2>
+<p>Builtins for dose-response modelling and combination synergy.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>fit_ic50(concentrations, viabilities)</code></td><td>2</td><td>4-parameter logistic fit → <code>{ic50, slope, top, bottom, r2}</code></td></tr>
+<tr><td><code>dose_response_curve(concs, ic50, slope, top, bottom)</code></td><td>5</td><td>Evaluate 4PL model at given concentrations</td></tr>
+<tr><td><code>auc_response(concentrations, viabilities)</code></td><td>2</td><td>Area under dose-response curve (trapezoidal, log10-normalized)</td></tr>
+<tr><td><code>bliss_synergy(viab_a, viab_b, viab_combo)</code></td><td>3</td><td>Bliss independence synergy score</td></tr>
+<tr><td><code>loewe_synergy(ic50_a, ic50_b, conc_a, conc_b, obs)</code></td><td>5</td><td>Loewe additivity synergy (1 - CI)</td></tr>
+<tr><td><code>drug_rank(ic50_table, ascending)</code></td><td>2</td><td>Rank drugs by IC50</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "drug" as drug
+
+let concs  = [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+let viabs  = [98.0, 95.0, 88.0, 70.0, 45.0, 20.0, 8.0, 3.0]
+
+let params = drug.fit(concs, viabs)
+drug.auc(concs, viabs)
+drug.bliss(75.0, 60.0, 30.0)
+drug.loewe(1.0, 2.0, 0.5, 1.0)
+</code></pre>
+<hr>
+<h2 id="gwas-gwas"><a class="header" href="#gwas-gwas">GWAS (gwas)</a></h2>
+<p>Builtins for genome-wide association study summary statistics.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>parse_sumstats(text)</code></td><td>1</td><td>Auto-detect column names (CHR/BP/SNP/P/BETA/SE/A1/A2/MAF)</td></tr>
+<tr><td><code>manhattan_data(sumstats)</code></td><td>1</td><td>Cumulative positions + -log10(p) for Manhattan plot</td></tr>
+<tr><td><code>qq_data(pvals)</code></td><td>1</td><td>Expected vs observed -log10(p) for QQ plot</td></tr>
+<tr><td><code>clump(sumstats, p_threshold, window_kb)</code></td><td>3</td><td>Greedy distance-based LD clumping</td></tr>
+<tr><td><code>top_loci(sumstats, p_threshold)</code></td><td>2</td><td>Genome-wide significant hits</td></tr>
+<tr><td><code>lambda_gc(pvals)</code></td><td>1</td><td>Genomic inflation factor λ</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "gwas" as gwas
+
+let ss   = gwas.load("data/my_gwas_sumstats.txt")
+gwas.lambda(ss.pval)
+let hits = gwas.hits(ss)
+let loci = gwas.clump(ss, 5e-8, 250)
+gwas.manhattan(ss)
+gwas.qq(ss.pval)
+</code></pre>
+<hr>
+<h2 id="genomic-annotation-annotation"><a class="header" href="#genomic-annotation-annotation">Genomic Annotation (annotation)</a></h2>
+<p>Builtins for GTF/GFF3 parsing and genomic interval annotation.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Builtin</th><th>Arity</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>parse_gtf(text)</code></td><td>1</td><td>Parse GTF or GFF3 → Table with gene_id, gene_name, chrom, start, end, strand</td></tr>
+<tr><td><code>gene_bodies(gtf)</code></td><td>1</td><td>Collapse transcripts to gene-level min/max intervals</td></tr>
+<tr><td><code>promoters(gtf, upstream, downstream)</code></td><td>3</td><td>Strand-aware TSS ± window intervals</td></tr>
+<tr><td><code>interval_overlap(query, subject)</code></td><td>2</td><td>Chrom-aware interval overlap between two Tables</td></tr>
+<tr><td><code>annotate_peaks(peaks, gtf)</code></td><td>2</td><td>Nearest gene + Promoter/Intragenic/Distal classification</td></tr>
+<tr><td><code>gene_id_map(gtf)</code></td><td>1</td><td>Ensembl ID → gene name mapping Table</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-biolang">import "annotation" as ann
+
+let gtf   = ann.load("data/gencode.v45.annotation.gtf")
+let genes = ann.genes(gtf)
+let proms = ann.promoters(gtf, 2000, 200)
+let idmap = ann.id_map(gtf)
+
+# let peaks = read_csv("peaks.narrowPeak")
+# ann.annotate(peaks, gtf)
+# ann.overlap(peaks, atac_peaks)
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="appendix-b-operator-reference"><a class="header" href="#appendix-b-operator-reference">Appendix B: Operator Reference</a></h1>
@@ -8536,7 +9748,8 @@ statements. Use them freely to organize code into logical sections.</p>
 </tbody>
 </table>
 </div>
-<pre><code class="language-biolang"># This is a regular comment
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# This is a regular comment
 
 ## Compute GC content for a DNA sequence.
 ## Returns a float between 0.0 and 1.0.
@@ -8587,8 +9800,8 @@ auto-generated documentation.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
         <script>
         window.addEventListener('load', function() {

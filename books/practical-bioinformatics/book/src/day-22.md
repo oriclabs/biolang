@@ -415,7 +415,7 @@ fn process_sample(file_path, config) {
     let reads = read_fastq(file_path)
     let total_count = len(reads)
 
-    let filtered = reads |> quality_filter(config.min_quality)
+    let filtered = reads |> filter(|r| mean_phred(r.quality) >= config.min_quality)
     let length_filtered = filtered |> filter(|r| len(r.seq) >= config.min_length)
     let pass_count = len(length_filtered)
 
@@ -509,7 +509,7 @@ fn kmer_profile(reads, k) {
 }
 
 let kmer_results = config.input_files |> map(|f| {
-    let reads = read_fastq(f) |> quality_filter(config.min_quality)
+    let reads = read_fastq(f) |> filter(|r| mean_phred(r.quality) >= config.min_quality)
     let profile = kmer_profile(reads, config.kmer_size)
     let top_10 = profile |> filter(|_k, i| i < 10)
     {file: f, top_kmers: top_10, unique_kmers: len(profile)}
@@ -547,7 +547,7 @@ fn gc_distribution(reads, gc_low, gc_high) {
 }
 
 let gc_results = config.input_files |> map(|f| {
-    let reads = read_fastq(f) |> quality_filter(config.min_quality)
+    let reads = read_fastq(f) |> filter(|r| mean_phred(r.quality) >= config.min_quality)
     let gc = gc_distribution(reads, config.gc_low, config.gc_high)
     println("  " + f + ": GC mean=" + str(int(gc.mean * 1000) / 10) +
           "%, " + str(gc.outliers) + " outlier reads")
@@ -742,7 +742,8 @@ fn read_complexity(seq, k) {
 Write a script that runs the pipeline with three different `min_quality` settings (10, 20, 30) and compares the results. Use a separate config file for each run. Produce a comparison table showing how the pass rate changes with quality threshold.
 
 *Hint*: You can modify the config programmatically:
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let base_config = json_decode(read_lines("config.json") |> reduce(|a, b| a + b))
 let thresholds = [10, 20, 30]
 let sweep_results = thresholds |> map(|q| {

@@ -28,8 +28,8 @@
         <section class="mb-12" id="json_parse">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">json_parse</span></h2>
           <p class="text-slate-400 mt-2">Parse a JSON string into a BioLang value (map, list, string, number, bool, or nil).</p>
-          <pre><code class="language-biolang">json_parse(s) -> value</code></pre>
-          <pre><code class="language-biolang">let data = json_parse('{"gene": "BRCA1", "variants": [1, 2, 3]}')
+          <pre><code class="language-text">json_parse(s) -> value</code></pre>
+          <pre><code class="language-biolang">let data = json_parse("{\"gene\": \"BRCA1\", \"variants\": [1, 2, 3]}")
 println(data.gene)       # "BRCA1"
 println(data.variants)   # [1, 2, 3]</code></pre>
         </section>
@@ -37,7 +37,7 @@ println(data.variants)   # [1, 2, 3]</code></pre>
         <section class="mb-12" id="json_stringify">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">json_stringify</span> / <span class="text-violet-400 font-mono">json_pretty</span></h2>
           <p class="text-slate-400 mt-2">Serialize a value to a JSON string. <code>json_pretty</code> adds indentation.</p>
-          <pre><code class="language-biolang">json_stringify(value) -> string
+          <pre><code class="language-text">json_stringify(value) -> string
 json_pretty(value) -> string</code></pre>
           <pre><code class="language-biolang">let result = {"gene": "BRCA1", "pvalue": 0.001, "significant": true}
 json_stringify(result)
@@ -54,7 +54,7 @@ json_pretty(result)
         <section class="mb-12" id="read_json">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">read_json</span> / <span class="text-violet-400 font-mono">write_json</span></h2>
           <p class="text-slate-400 mt-2">Read/write JSON from/to files.</p>
-          <pre><code class="language-biolang">read_json(path) -> value
+          <pre><code class="language-text">read_json(path) -> value
 write_json(value, path) -> string</code></pre>
           <pre><code class="language-biolang">let config = read_json("pipeline_config.json")
 println("Threads:", config.threads)
@@ -66,8 +66,8 @@ write_json(results, "qc_summary.json")</code></pre>
         <section class="mb-12" id="json_keys">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">json_keys</span></h2>
           <p class="text-slate-400 mt-2">Return the list of keys from a JSON object (map).</p>
-          <pre><code class="language-biolang">json_keys(value) -> list</code></pre>
-          <pre><code class="language-biolang">let data = json_parse('{"gene": "BRCA1", "pvalue": 0.001, "significant": true}')
+          <pre><code class="language-text">json_keys(value) -> list</code></pre>
+          <pre><code class="language-biolang">let data = json_parse("{\"gene\": \"BRCA1\", \"pvalue\": 0.001, \"significant\": true}")
 json_keys(data)   # ["gene", "pvalue", "significant"]
 
 # Inspect API response structure

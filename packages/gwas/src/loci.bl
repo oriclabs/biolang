@@ -1,0 +1,3 @@
+fn significant(sumstats, p=5e-8)       { top_loci(sumstats, p) }
+fn clump(sumstats, p=5e-8, window=250)  { clump(sumstats, p, window) }
+fn lambda(pvals)                        { lambda_gc(pvals) }

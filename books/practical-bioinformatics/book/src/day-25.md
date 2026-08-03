@@ -193,7 +193,8 @@ Transient errors --- network timeouts, rate limits, temporary server unavailabil
 
 The simplest retry pattern loops a fixed number of times:
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let retry = |f, max_attempts| {
     let attempt = 1
     let last_error = ""
@@ -220,7 +221,8 @@ let retry = |f, max_attempts| {
 
 Usage:
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let data = retry(|| { read_csv("network_share/data.csv") }, 3)
 ```
 
@@ -531,7 +533,8 @@ When a pipeline runs overnight, `print()` output disappears into a terminal that
 
 ### Error Log as a Table
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let create_error_log = || {
     []
 }
@@ -663,7 +666,7 @@ let run_pipeline = |input_dir, output_dir| {
                     ok
                 })
 
-                let filtered = valid |> quality_filter(20)
+                let filtered = valid |> filter(|r| mean_phred(r.quality) >= 20)
 
                 let stats = {
                     file: file,
@@ -738,7 +741,8 @@ A robust pipeline should handle all five error cases without crashing, processin
 
 ### Testing Error Classification
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let test_classify = || {
     let cases = [
         { input: "file not found: x.fastq", expected: "missing" },
@@ -762,7 +766,8 @@ let test_classify = || {
 
 ### Testing Retry Logic
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 let test_retry = || {
     let call_count = 0
 

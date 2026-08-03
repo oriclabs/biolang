@@ -122,7 +122,8 @@ Here is a complete lazy pipeline:
 
 > **Requires CLI:** This example uses file I/O not available in the browser. Run with `bl run`.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # This builds a pipeline — no data moves yet
 let pipeline = fastq("data/reads.fastq")
     |> filter(|r| mean_phred(r.qual) >= 30)

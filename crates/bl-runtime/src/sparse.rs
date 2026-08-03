@@ -45,7 +45,7 @@ pub fn call_sparse_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "normalize_sparse" => builtin_normalize_sparse(args),
         _ => Err(BioLangError::runtime(
             bl_core::error::ErrorKind::NameError,
-            &format!("unknown sparse builtin: {name}"),
+            format!("unknown sparse builtin: {name}"),
             None,
         )),
     }
@@ -56,50 +56,83 @@ fn builtin_sparse_matrix(args: Vec<Value>) -> Result<Value> {
     if args.len() == 3 {
         let nrow = match &args[0] {
             Value::Int(n) => *n as usize,
-            other => return Err(BioLangError::type_error(
-                format!("sparse_matrix() nrow must be Int, got {}", other.type_of()), None,
-            )),
+            other => {
+                return Err(BioLangError::type_error(
+                    format!("sparse_matrix() nrow must be Int, got {}", other.type_of()),
+                    None,
+                ))
+            }
         };
         let ncol = match &args[1] {
             Value::Int(n) => *n as usize,
-            other => return Err(BioLangError::type_error(
-                format!("sparse_matrix() ncol must be Int, got {}", other.type_of()), None,
-            )),
+            other => {
+                return Err(BioLangError::type_error(
+                    format!("sparse_matrix() ncol must be Int, got {}", other.type_of()),
+                    None,
+                ))
+            }
         };
         let entries = match &args[2] {
             Value::List(items) => items,
-            other => return Err(BioLangError::type_error(
-                format!("sparse_matrix() entries must be List, got {}", other.type_of()), None,
-            )),
+            other => {
+                return Err(BioLangError::type_error(
+                    format!(
+                        "sparse_matrix() entries must be List, got {}",
+                        other.type_of()
+                    ),
+                    None,
+                ))
+            }
         };
         let mut rows = Vec::with_capacity(entries.len());
         let mut cols = Vec::with_capacity(entries.len());
         let mut vals = Vec::with_capacity(entries.len());
-        for entry in entries {
+        for entry in entries.iter() {
             match entry {
                 Value::Record(map) => {
                     let r = match map.get("row") {
                         Some(Value::Int(n)) => *n as usize,
                         Some(Value::Float(f)) => *f as usize,
-                        _ => return Err(BioLangError::type_error("sparse_matrix() entry missing 'row'", None)),
+                        _ => {
+                            return Err(BioLangError::type_error(
+                                "sparse_matrix() entry missing 'row'",
+                                None,
+                            ))
+                        }
                     };
                     let c = match map.get("col") {
                         Some(Value::Int(n)) => *n as usize,
                         Some(Value::Float(f)) => *f as usize,
-                        _ => return Err(BioLangError::type_error("sparse_matrix() entry missing 'col'", None)),
+                        _ => {
+                            return Err(BioLangError::type_error(
+                                "sparse_matrix() entry missing 'col'",
+                                None,
+                            ))
+                        }
                     };
                     let v = match map.get("val") {
                         Some(Value::Float(f)) => *f,
                         Some(Value::Int(n)) => *n as f64,
-                        _ => return Err(BioLangError::type_error("sparse_matrix() entry missing 'val'", None)),
+                        _ => {
+                            return Err(BioLangError::type_error(
+                                "sparse_matrix() entry missing 'val'",
+                                None,
+                            ))
+                        }
                     };
                     rows.push(r);
                     cols.push(c);
                     vals.push(v);
                 }
-                other => return Err(BioLangError::type_error(
-                    format!("sparse_matrix() entries must be Records, got {}", other.type_of()), None,
-                )),
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "sparse_matrix() entries must be Records, got {}",
+                            other.type_of()
+                        ),
+                        None,
+                    ))
+                }
             }
         }
         let sm = SparseMatrix::from_triplets(&rows, &cols, &vals, nrow, ncol);
@@ -120,7 +153,7 @@ fn builtin_sparse_matrix(args: Vec<Value>) -> Result<Value> {
         // From nested lists (dense)
         Value::List(outer) => {
             let mut dense = Vec::new();
-            for row_val in outer {
+            for row_val in outer.iter() {
                 match row_val {
                     Value::List(inner) => {
                         let row: Vec<f64> = inner
@@ -159,8 +192,9 @@ fn builtin_to_dense(args: Vec<Value>) -> Result<Value> {
         Value::SparseMatrix(sm) => {
             let dense = sm.to_dense();
             let data: Vec<f64> = dense.iter().flat_map(|row| row.iter().copied()).collect();
-            let mut m = Matrix::new(data, sm.nrow, sm.ncol)
-                .map_err(|e| BioLangError::runtime(bl_core::error::ErrorKind::TypeError, &e, None))?;
+            let mut m = Matrix::new(data, sm.nrow, sm.ncol).map_err(|e| {
+                BioLangError::runtime(bl_core::error::ErrorKind::TypeError, &e, None)
+            })?;
             m.row_names = sm.row_names.clone();
             m.col_names = sm.col_names.clone();
             Ok(Value::Matrix(m))
@@ -196,7 +230,10 @@ fn builtin_sparse_get(args: Vec<Value>) -> Result<Value> {
         Value::SparseMatrix(sm) => sm,
         other => {
             return Err(BioLangError::type_error(
-                format!("sparse_get() requires SparseMatrix, got {}", other.type_of()),
+                format!(
+                    "sparse_get() requires SparseMatrix, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -205,7 +242,10 @@ fn builtin_sparse_get(args: Vec<Value>) -> Result<Value> {
         Value::Int(n) => *n as usize,
         other => {
             return Err(BioLangError::type_error(
-                format!("sparse_get() row index must be Int, got {}", other.type_of()),
+                format!(
+                    "sparse_get() row index must be Int, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -214,7 +254,10 @@ fn builtin_sparse_get(args: Vec<Value>) -> Result<Value> {
         Value::Int(n) => *n as usize,
         other => {
             return Err(BioLangError::type_error(
-                format!("sparse_get() col index must be Int, got {}", other.type_of()),
+                format!(
+                    "sparse_get() col index must be Int, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -236,10 +279,18 @@ fn builtin_sparse_row_sums(args: Vec<Value>) -> Result<Value> {
     match &args[0] {
         Value::SparseMatrix(sm) => {
             let sums = sm.row_sums();
-            Ok(Value::List(sums.into_iter().map(Value::Float).collect()))
+            Ok(Value::List(
+                sums.into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ))
         }
         other => Err(BioLangError::type_error(
-            format!("sparse_row_sums() requires SparseMatrix, got {}", other.type_of()),
+            format!(
+                "sparse_row_sums() requires SparseMatrix, got {}",
+                other.type_of()
+            ),
             None,
         )),
     }
@@ -249,10 +300,18 @@ fn builtin_sparse_col_sums(args: Vec<Value>) -> Result<Value> {
     match &args[0] {
         Value::SparseMatrix(sm) => {
             let sums = sm.col_sums();
-            Ok(Value::List(sums.into_iter().map(Value::Float).collect()))
+            Ok(Value::List(
+                sums.into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ))
         }
         other => Err(BioLangError::type_error(
-            format!("sparse_col_sums() requires SparseMatrix, got {}", other.type_of()),
+            format!(
+                "sparse_col_sums() requires SparseMatrix, got {}",
+                other.type_of()
+            ),
             None,
         )),
     }
@@ -263,7 +322,10 @@ fn builtin_normalize_sparse(args: Vec<Value>) -> Result<Value> {
         Value::SparseMatrix(sm) => sm,
         other => {
             return Err(BioLangError::type_error(
-                format!("normalize_sparse() requires SparseMatrix, got {}", other.type_of()),
+                format!(
+                    "normalize_sparse() requires SparseMatrix, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -272,7 +334,10 @@ fn builtin_normalize_sparse(args: Vec<Value>) -> Result<Value> {
         Value::Str(s) => s.as_str(),
         other => {
             return Err(BioLangError::type_error(
-                format!("normalize_sparse() method must be Str, got {}", other.type_of()),
+                format!(
+                    "normalize_sparse() method must be Str, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -283,7 +348,7 @@ fn builtin_normalize_sparse(args: Vec<Value>) -> Result<Value> {
         _ => {
             return Err(BioLangError::runtime(
                 bl_core::error::ErrorKind::TypeError,
-                &format!("normalize_sparse() unknown method: {method}. Use 'log1p_cpm' or 'scale'"),
+                format!("normalize_sparse() unknown method: {method}. Use 'log1p_cpm' or 'scale'"),
                 None,
             ))
         }
@@ -300,7 +365,10 @@ fn extract_usize_list(val: Option<&Value>, field: &str) -> Result<Vec<usize>> {
             .map(|v| match v {
                 Value::Int(n) => Ok(*n as usize),
                 other => Err(BioLangError::type_error(
-                    format!("sparse_matrix() {field} must contain Ints, got {}", other.type_of()),
+                    format!(
+                        "sparse_matrix() {field} must contain Ints, got {}",
+                        other.type_of()
+                    ),
                     None,
                 )),
             })
@@ -320,7 +388,10 @@ fn extract_f64_list(val: Option<&Value>, field: &str) -> Result<Vec<f64>> {
                 Value::Float(f) => Ok(*f),
                 Value::Int(n) => Ok(*n as f64),
                 other => Err(BioLangError::type_error(
-                    format!("sparse_matrix() {field} must contain numbers, got {}", other.type_of()),
+                    format!(
+                        "sparse_matrix() {field} must contain numbers, got {}",
+                        other.type_of()
+                    ),
                     None,
                 )),
             })

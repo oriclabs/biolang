@@ -1,0 +1,32 @@
+# Rosalind: LIA — Independent Alleles
+# https://rosalind.info/problems/lia/
+#
+# Given: Integers k <= 7 and N <= 2^k. Tom is AaBb; every organism mates with
+# an AaBb partner and has two children.
+# Return: The probability that at least N organisms in generation k are AaBb.
+
+let k = 2
+let n = 1
+
+# Mendel's second law makes the two loci independent, so each child is AaBb
+# with probability 1/4 regardless of generation. Generation k holds 2^k
+# organisms, so the count is Binomial(2^k, 1/4).
+let population = int(pow(2.0, float(k)))
+let p = 0.25
+
+fn factorial(x) { range(1, x + 1) |> reduce(|acc, i| acc * i, 1) }
+fn choose(total, taken) { factorial(total) / (factorial(taken) * factorial(total - taken)) }
+
+# P(at least N) = 1 - P(fewer than N).
+let below = range(0, n)
+    |> map(|i| float(choose(population, i)) * pow(p, float(i)) * pow(1.0 - p, float(population - i)))
+    |> sum()
+
+let result = 1.0 - below
+
+println("Result:   " + str(round(result, 3)))
+println("Expected: 0.684")
+
+fn test_lia_independent_alleles() {
+    assert round(result, 3) == 0.684, "LIA: got " + str(result)
+}

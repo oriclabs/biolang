@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -252,7 +252,8 @@ our_tools |&gt; each(|tool| {
 <h2 id="tool-details"><a class="header" href="#tool-details">Tool Details</a></h2>
 <p><code>biocontainers_info</code> returns a detailed record for a single tool, including its
 full version history with per-version container images.</p>
-<pre><code class="language-biolang">let info = biocontainers_info("samtools")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let info = biocontainers_info("samtools")
 # info =&gt; {
 #   name: "samtools",
 #   description: "Tools for manipulating NGS alignments...",
@@ -367,7 +368,8 @@ control alongside the pipeline definition.</p>
 <h2 id="example-tool-discovery-for-a-new-analysis"><a class="header" href="#example-tool-discovery-for-a-new-analysis">Example: Tool Discovery for a New Analysis</a></h2>
 <p>When starting a new analysis type, you need to survey what tools are available.
 Here we explore the methylation analysis landscape.</p>
-<pre><code class="language-biolang"># What methylation tools exist in BioContainers?
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# What methylation tools exist in BioContainers?
 let methyl_tools = biocontainers_search("methylation", 50)
 
 print(str(len(methyl_tools)) + " methylation-related tools found")
@@ -412,7 +414,8 @@ bismark.versions |&gt; take(5) |&gt; each(|v| {
 <h2 id="example-container-image-audit"><a class="header" href="#example-container-image-audit">Example: Container Image Audit</a></h2>
 <p>For an existing pipeline, verify that every tool has a valid BioContainers
 image and flag any that are outdated.</p>
-<pre><code class="language-biolang"># Current pipeline tools and their pinned versions
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Current pipeline tools and their pinned versions
 let pinned = [
   {tool: "bwa-mem2",  version: "2.2.1--hd03093a_2"},
   {tool: "samtools",  version: "1.17--h50ea8bc_0"},
@@ -549,8 +552,8 @@ browsing and ad hoc version tracking.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

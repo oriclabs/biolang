@@ -1,0 +1,19 @@
+import "immune" as imm
+
+# Load 10x Genomics TCR contig annotations
+let vdj = imm.load("data/filtered_contig_annotations.csv")
+
+# Repertoire diversity metrics
+imm.diversity(vdj)
+
+# Clonal expansion (clones > 1% of repertoire)
+imm.expansion(vdj, threshold=0.01)
+
+# Top 10 most abundant clonotypes
+imm.top_clones(vdj, n=10)
+
+# V-gene usage frequency
+imm.vj_usage(vdj)
+
+# CDR3 length distribution
+imm.cdr3_lengths(vdj)

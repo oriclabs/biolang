@@ -1,0 +1,46 @@
+# Rosalind: 3SUM — 3SUM
+# https://rosalind.info/problems/3sum/
+#
+# Given: A positive integer k, a positive integer n, and k arrays of size n.
+# Return: For each array, three indices 1 <= p < q < r <= n with
+# A[p] + A[q] + A[r] = 0 if they exist, and -1 otherwise.
+
+let arrays = [
+    [2, -3, 4, 10, 5],
+    [8, -6, 4, -2, -8],
+    [-5, 2, 3, 2, -4],
+    [2, 4, -5, 6, 8],
+]
+
+# The straightforward cubic scan. Taking the indices in increasing order gives
+# the lexicographically first triple, which is the one the sample reports, so
+# unlike 2SUM the answers here can be compared literally.
+fn three_sum(xs) {
+    let answer = "-1"
+    let p = 0
+    while p < len(xs) and answer == "-1" {
+        let q = p + 1
+        while q < len(xs) and answer == "-1" {
+            let r = q + 1
+            while r < len(xs) and answer == "-1" {
+                if xs[p] + xs[q] + xs[r] == 0 {
+                    answer = str(p + 1) + " " + str(q + 1) + " " + str(r + 1)
+                }
+                r = r + 1
+            }
+            q = q + 1
+        }
+        p = p + 1
+    }
+    answer
+}
+
+let answers = arrays |> map(|xs| three_sum(xs))
+let result = answers |> join(" / ")
+
+println("Result:   " + result)
+println("Expected: -1 / 1 2 4 / 1 2 3 / -1")
+
+fn test_3sum_finds_zero_triples() {
+    assert result == "-1 / 1 2 4 / 1 2 3 / -1", "3SUM: got " + result
+}

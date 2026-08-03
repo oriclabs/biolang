@@ -40,6 +40,10 @@ pub struct GenomicInterval {
 
 impl fmt::Display for GenomicInterval {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}-{}({})", self.chrom, self.start, self.end, self.strand)
+        write!(
+            f,
+            "{}:{}-{}({})",
+            self.chrom, self.start, self.end, self.strand
+        )
     }
 }

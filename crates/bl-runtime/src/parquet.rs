@@ -69,7 +69,7 @@ fn builtin_read_parquet(args: Vec<Value>) -> Result<Value> {
 
     // Read all row groups
     let mut rows: Vec<Vec<Value>> = Vec::new();
-    let mut row_iter = reader.get_row_iter(None).map_err(|e| {
+    let row_iter = reader.get_row_iter(None).map_err(|e| {
         BioLangError::runtime(
             ErrorKind::IOError,
             format!("read_parquet: cannot iterate rows in '{path}': {e}"),
@@ -77,7 +77,7 @@ fn builtin_read_parquet(args: Vec<Value>) -> Result<Value> {
         )
     })?;
 
-    while let Some(row_result) = row_iter.next() {
+    for row_result in row_iter {
         let row = row_result.map_err(|e| {
             BioLangError::runtime(
                 ErrorKind::IOError,
@@ -126,8 +126,8 @@ fn field_to_value(field: &parquet::record::Field) -> Value {
             // Days since Unix epoch
             Value::Int(*d as i64)
         }
-        Field::TimestampMillis(ts) => Value::Int(*ts as i64),
-        Field::TimestampMicros(ts) => Value::Int(*ts as i64),
+        Field::TimestampMillis(ts) => Value::Int(*ts),
+        Field::TimestampMicros(ts) => Value::Int(*ts),
         Field::Decimal(d) => Value::Str(format!("{d:?}")),
         Field::Float16(f) => Value::Float(f64::from(f32::from(*f))),
         // Nested types: flatten to string representation
@@ -136,11 +136,11 @@ fn field_to_value(field: &parquet::record::Field) -> Value {
             for (name, f) in row.get_column_iter() {
                 map.insert(name.to_string(), field_to_value(f));
             }
-            Value::Record(map)
+            Value::Record((map).into())
         }
         Field::ListInternal(list) => {
             let elements: Vec<Value> = list.elements().iter().map(field_to_value).collect();
-            Value::List(elements)
+            Value::List((elements).into())
         }
         Field::MapInternal(map) => {
             let mut result = HashMap::new();
@@ -151,7 +151,7 @@ fn field_to_value(field: &parquet::record::Field) -> Value {
                 };
                 result.insert(key_str, field_to_value(v));
             }
-            Value::Record(result)
+            Value::Record((result).into())
         }
     }
 }
@@ -167,7 +167,10 @@ fn builtin_write_parquet(args: Vec<Value>) -> Result<Value> {
         }
         other => {
             return Err(BioLangError::type_error(
-                format!("write_parquet() requires Table or List, got {}", other.type_of()),
+                format!(
+                    "write_parquet() requires Table or List, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -222,7 +225,7 @@ fn extract_compression(opts: &Value) -> Result<parquet::basic::Compression> {
             // Allow passing compression as a plain string
             let mut map = HashMap::new();
             map.insert("compression".to_string(), Value::Str(s.clone()));
-            extract_compression(&Value::Record(map))
+            extract_compression(&Value::Record((map).into()))
         }
         _ => Err(BioLangError::type_error(
             "write_parquet() options must be a record like {compression: \"snappy\"}",
@@ -369,10 +372,7 @@ fn write_table_as_parquet(
                 ColType::Int => {
                     let mut values = Vec::with_capacity(batch_rows);
                     for row_idx in row_offset..batch_end {
-                        let val = table
-                            .rows
-                            .get(row_idx)
-                            .and_then(|r| r.get(col_idx));
+                        let val = table.rows.get(row_idx).and_then(|r| r.get(col_idx));
                         match val {
                             Some(Value::Int(i)) => {
                                 values.push(*i);
@@ -425,10 +425,7 @@ fn write_table_as_parquet(
                 ColType::Float => {
                     let mut values = Vec::with_capacity(batch_rows);
                     for row_idx in row_offset..batch_end {
-                        let val = table
-                            .rows
-                            .get(row_idx)
-                            .and_then(|r| r.get(col_idx));
+                        let val = table.rows.get(row_idx).and_then(|r| r.get(col_idx));
                         match val {
                             Some(Value::Float(f)) => {
                                 values.push(*f);
@@ -481,10 +478,7 @@ fn write_table_as_parquet(
                 ColType::Bool => {
                     let mut values = Vec::with_capacity(batch_rows);
                     for row_idx in row_offset..batch_end {
-                        let val = table
-                            .rows
-                            .get(row_idx)
-                            .and_then(|r| r.get(col_idx));
+                        let val = table.rows.get(row_idx).and_then(|r| r.get(col_idx));
                         match val {
                             Some(Value::Bool(b)) => {
                                 values.push(*b);
@@ -528,10 +522,7 @@ fn write_table_as_parquet(
                 ColType::Str => {
                     let mut values: Vec<ByteArray> = Vec::with_capacity(batch_rows);
                     for row_idx in row_offset..batch_end {
-                        let val = table
-                            .rows
-                            .get(row_idx)
-                            .and_then(|r| r.get(col_idx));
+                        let val = table.rows.get(row_idx).and_then(|r| r.get(col_idx));
                         match val {
                             Some(Value::Str(s)) => {
                                 values.push(ByteArray::from(s.as_str()));
@@ -599,7 +590,7 @@ fn write_table_as_parquet(
     result.insert("rows".to_string(), Value::Int(nrows as i64));
     result.insert("cols".to_string(), Value::Int(ncols as i64));
     result.insert("output".to_string(), Value::Str(path.to_string()));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 /// Convert a list of records to a table, then write as Parquet.

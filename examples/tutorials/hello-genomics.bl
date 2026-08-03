@@ -31,7 +31,7 @@ let revcomp = reverse_complement(forward)
 print(forward)  # ATGCGATCG
 print(revcomp)  # CGATCGCAT
 
-assert(reverse_complement(revcomp) == forward)
+assert reverse_complement(revcomp) == forward
 
 # ── 4. Transcription ─────────────────────────────────────────
 
@@ -42,7 +42,7 @@ print(rna_seq)          # AUGCGAUCG
 print(type(rna_seq))    # RNA
 
 let direct_rna = rna"AUGCGAUCG"
-assert(rna_seq == direct_rna)
+assert rna_seq == direct_rna
 
 # ── 5. Translation ───────────────────────────────────────────
 
@@ -62,10 +62,10 @@ let seq = dna"ATGCGATCGATCGATCG"
 let first_five = seq[0..5]
 print(first_five)  # ATGCG
 
-let rest = seq[5..]
-print(rest)        # ATCGATCGATCG
+let remainder = subseq(seq, 5, len(seq))
+print(remainder)   # ATCGATCGATCG
 
-let tail = seq[-4..]
+let tail = subseq(seq, len(seq) - 4, len(seq))
 print(tail)        # ATCG
 
 let codon = subseq(seq, 0, 3)
@@ -82,10 +82,7 @@ let gc_class = match gc_content(seq) {
 }
 print(gc_class)  # medium GC
 
-let has_start = match seq[0..3] {
-  dna"ATG" => true,
-  _        => false,
-}
+let has_start = seq[0..3] == dna"ATG"
 print(f"Starts with ATG: {has_start}")
 
 # ── 8. Full Analysis Report ──────────────────────────────────

@@ -1,0 +1,27 @@
+# variants — VCF variant analysis for BioLang
+#
+# Quick start:
+#   import "variants" as vcf
+#
+#   let vars = vcf.load("sample.vcf")
+#   let pass = vcf.load_filtered("sample.vcf", min_qual=20.0, require_pass=true)
+#   vcf.qc_report(pass)
+#   vcf.titv(pass)
+#   vcf.snps_only(pass) |> vcf.by_chrom("chr1")
+
+import "variants/src/parse" as parse
+import "variants/src/stats" as stats
+
+fn load(path)                                                   { parse.load(path) }
+fn load_filtered(path, min_qual=20.0, require_pass=true)        { parse.load_filtered(path, min_qual, require_pass) }
+fn filter(table, min_qual=0.0, require_pass=false)              { vcf_filter(table, min_qual, require_pass) }
+fn snps_only(table)                                             { parse.snps_only(table) }
+fn indels_only(table)                                           { parse.indels_only(table) }
+fn by_chrom(table, chrom)                                       { parse.by_chrom(table, chrom) }
+fn in_region(table, chrom, start, end)                          { parse.in_region(table, chrom, start, end) }
+fn summary(table)                                               { stats.summary(table) }
+fn titv(table)                                                  { stats.titv(table) }
+fn afs(table, field="AF")                                       { stats.afs(table, field) }
+fn rare(table, max_af=0.01)                                     { stats.rare_variants(table, max_af) }
+fn common(table, min_af=0.05)                                   { stats.common_variants(table, min_af) }
+fn qc_report(table)                                             { stats.qc_report(table) }

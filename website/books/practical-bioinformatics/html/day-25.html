@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-02d32199.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -319,7 +319,8 @@ if result.ok {
 <p>Transient errors — network timeouts, rate limits, temporary server unavailability — often resolve on their own. Retry logic gives your pipeline resilience against these hiccups.</p>
 <h3 id="simple-retry"><a class="header" href="#simple-retry">Simple Retry</a></h3>
 <p>The simplest retry pattern loops a fixed number of times:</p>
-<pre><code class="language-bio">let retry = |f, max_attempts| {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let retry = |f, max_attempts| {
     let attempt = 1
     let last_error = ""
     let result = nil
@@ -343,7 +344,8 @@ if result.ok {
 }
 </code></pre>
 <p>Usage:</p>
-<pre><code class="language-bio">let data = retry(|| { read_csv("network_share/data.csv") }, 3)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let data = retry(|| { read_csv("network_share/data.csv") }, 3)
 </code></pre>
 <h3 id="retry-with-exponential-backoff"><a class="header" href="#retry-with-exponential-backoff">Retry with Exponential Backoff</a></h3>
 <p>Fixed-interval retries can overwhelm a struggling server. Exponential backoff increases the wait time between attempts, giving the server time to recover:</p>
@@ -591,7 +593,8 @@ if result.ok {
 <h2 id="section-7-logging-errors"><a class="header" href="#section-7-logging-errors">Section 7: Logging Errors</a></h2>
 <p>When a pipeline runs overnight, <code>print()</code> output disappears into a terminal that nobody is watching. Write errors to a structured log file that you can analyze after the fact.</p>
 <h3 id="error-log-as-a-table"><a class="header" href="#error-log-as-a-table">Error Log as a Table</a></h3>
-<pre><code class="language-bio">let create_error_log = || {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let create_error_log = || {
     []
 }
 
@@ -703,7 +706,7 @@ save_error_log(errors, "output/error_log.csv")
                     ok
                 })
 
-                let filtered = valid |&gt; quality_filter(20)
+                let filtered = valid |&gt; filter(|r| mean_phred(r.quality) &gt;= 20)
 
                 let stats = {
                     file: file,
@@ -769,7 +772,8 @@ println(f"Pipeline {result.status}: {result.succeeded}/{result.total_samples} sa
 </ul>
 <p>A robust pipeline should handle all five error cases without crashing, processing the good samples and logging the bad ones.</p>
 <h3 id="testing-error-classification"><a class="header" href="#testing-error-classification">Testing Error Classification</a></h3>
-<pre><code class="language-bio">let test_classify = || {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let test_classify = || {
     let cases = [
         { input: "file not found: x.fastq", expected: "missing" },
         { input: "permission denied", expected: "access" },
@@ -790,7 +794,8 @@ println(f"Pipeline {result.status}: {result.succeeded}/{result.total_samples} sa
 }
 </code></pre>
 <h3 id="testing-retry-logic"><a class="header" href="#testing-retry-logic">Testing Retry Logic</a></h3>
-<pre><code class="language-bio">let test_retry = || {
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let test_retry = || {
     let call_count = 0
 
     let flaky_fn = || {
@@ -912,9 +917,9 @@ println(f"Pipeline {result.status}: {result.succeeded}/{result.total_samples} sa
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

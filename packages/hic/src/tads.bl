@@ -1,0 +1,4 @@
+fn insulation(matrix, window=10) { insulation_score(matrix, window) }
+fn boundaries(scores, delta=0.1)  { tad_boundaries(scores, delta) }
+fn decay(matrix)                  { distance_decay(matrix) }
+fn expected(matrix)               { expected_contacts(matrix) }

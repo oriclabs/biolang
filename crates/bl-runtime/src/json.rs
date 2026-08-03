@@ -17,15 +17,18 @@ pub fn json_to_value(j: serde_json::Value) -> Value {
             }
         }
         serde_json::Value::String(s) => Value::Str(s),
-        serde_json::Value::Array(arr) => {
-            Value::List(arr.into_iter().map(json_to_value).collect())
-        }
+        serde_json::Value::Array(arr) => Value::List(
+            arr.into_iter()
+                .map(json_to_value)
+                .collect::<Vec<_>>()
+                .into(),
+        ),
         serde_json::Value::Object(map) => {
             let record: HashMap<String, Value> = map
                 .into_iter()
                 .map(|(k, v)| (k, json_to_value(v)))
                 .collect();
-            Value::Record(record)
+            Value::Record((record).into())
         }
     }
 }
@@ -38,12 +41,12 @@ pub fn value_to_json(v: &Value) -> serde_json::Value {
         Value::Int(n) => serde_json::json!(*n),
         Value::Float(f) => serde_json::json!(*f),
         Value::Str(s) => serde_json::Value::String(s.clone()),
-        Value::List(items) => {
-            serde_json::Value::Array(items.iter().map(value_to_json).collect())
-        }
+        Value::List(items) => serde_json::Value::Array(items.iter().map(value_to_json).collect()),
         Value::Map(map) | Value::Record(map) => {
-            let obj: serde_json::Map<String, serde_json::Value> =
-                map.iter().map(|(k, v)| (k.clone(), value_to_json(v))).collect();
+            let obj: serde_json::Map<String, serde_json::Value> = map
+                .iter()
+                .map(|(k, v)| (k.clone(), value_to_json(v)))
+                .collect();
             serde_json::Value::Object(obj)
         }
         Value::DNA(seq) => serde_json::Value::String(seq.data.clone()),
@@ -127,7 +130,11 @@ fn require_str<'a>(val: &'a Value, func: &str) -> Result<&'a str> {
 fn builtin_json_parse(args: Vec<Value>) -> Result<Value> {
     let s = require_str(&args[0], "json_parse")?;
     let json: serde_json::Value = serde_json::from_str(s).map_err(|e| {
-        BioLangError::runtime(ErrorKind::TypeError, format!("json_parse() invalid JSON: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("json_parse() invalid JSON: {e}"),
+            None,
+        )
     })?;
     Ok(json_to_value(json))
 }
@@ -151,7 +158,11 @@ fn builtin_read_json(args: Vec<Value>) -> Result<Value> {
         BioLangError::runtime(ErrorKind::IOError, format!("read_json() failed: {e}"), None)
     })?;
     let json: serde_json::Value = serde_json::from_str(&content).map_err(|e| {
-        BioLangError::runtime(ErrorKind::TypeError, format!("read_json() invalid JSON: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("read_json() invalid JSON: {e}"),
+            None,
+        )
     })?;
     Ok(json_to_value(json))
 }
@@ -168,18 +179,32 @@ fn builtin_write_json(args: Vec<Value>) -> Result<Value> {
         )
     })?;
     std::fs::write(path, content).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("write_json() failed: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("write_json() failed: {e}"),
+            None,
+        )
     })?;
     Ok(Value::Nil)
 }
 
 fn builtin_json_pretty(args: Vec<Value>) -> Result<Value> {
-    let s = require_str(&args[0], "json_pretty")?;
-    let json: serde_json::Value = serde_json::from_str(s).map_err(|e| {
-        BioLangError::runtime(ErrorKind::TypeError, format!("json_pretty() invalid JSON: {e}"), None)
-    })?;
+    let json = match &args[0] {
+        Value::Str(s) => serde_json::from_str(s).map_err(|e| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("json_pretty() invalid JSON: {e}"),
+                None,
+            )
+        })?,
+        value => value_to_json(value),
+    };
     let pretty = serde_json::to_string_pretty(&json).map_err(|e| {
-        BioLangError::runtime(ErrorKind::TypeError, format!("json_pretty() error: {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("json_pretty() error: {e}"),
+            None,
+        )
     })?;
     Ok(Value::Str(pretty))
 }
@@ -188,7 +213,7 @@ fn builtin_json_keys(args: Vec<Value>) -> Result<Value> {
     match &args[0] {
         Value::Record(map) | Value::Map(map) => {
             let keys: Vec<Value> = map.keys().map(|k| Value::Str(k.clone())).collect();
-            Ok(Value::List(keys))
+            Ok(Value::List((keys).into()))
         }
         Value::Str(s) => {
             let json: serde_json::Value = serde_json::from_str(s).map_err(|e| {
@@ -201,7 +226,7 @@ fn builtin_json_keys(args: Vec<Value>) -> Result<Value> {
             match json {
                 serde_json::Value::Object(map) => {
                     let keys: Vec<Value> = map.keys().map(|k| Value::Str(k.clone())).collect();
-                    Ok(Value::List(keys))
+                    Ok(Value::List((keys).into()))
                 }
                 _ => Err(BioLangError::type_error(
                     "json_keys() requires a JSON object string",
@@ -210,9 +235,11 @@ fn builtin_json_keys(args: Vec<Value>) -> Result<Value> {
             }
         }
         other => Err(BioLangError::type_error(
-            format!("json_keys() requires Record/Map/Str, got {}", other.type_of()),
+            format!(
+                "json_keys() requires Record/Map/Str, got {}",
+                other.type_of()
+            ),
             None,
         )),
     }
 }
-

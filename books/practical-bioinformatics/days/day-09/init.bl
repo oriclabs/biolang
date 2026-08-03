@@ -49,7 +49,7 @@ let gene_rows = [
 ]
 
 let gene_lines = [gene_header] + gene_rows
-write_lines(gene_lines, "data/gene_list.csv")
+write_lines("data/gene_list.csv", gene_lines)
 print(f"  Created data/gene_list.csv ({len(gene_rows)} cancer driver genes)")
 
 # ============================================================
@@ -87,7 +87,7 @@ let var_rows = [
 ]
 
 let var_lines = [var_header] + var_rows
-write_lines(var_lines, "data/variants_to_annotate.csv")
+write_lines("data/variants_to_annotate.csv", var_lines)
 print(f"  Created data/variants_to_annotate.csv ({len(var_rows)} ClinVar variants)")
 
 print("")

@@ -1,6 +1,6 @@
 use crate::ast::{Param, Stmt};
-use crate::sparse_matrix::SparseMatrix;
 use crate::span::Spanned;
+use crate::sparse_matrix::SparseMatrix;
 use crate::types::Type;
 pub use bio_core::{BioSequence, GenomicInterval, Kmer, Strand};
 use std::any::Any;
@@ -17,9 +17,15 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Str(String),
-    List(Vec<Value>),
-    Map(HashMap<String, Value>),
-    Record(HashMap<String, Value>),
+    /// Lists are `Arc`-backed so `Value::clone()` is O(1) (a refcount bump)
+    /// instead of an O(n) deep copy. Mutation sites use `Arc::make_mut` /
+    /// rebuild-then-wrap (copy-on-write), matching the language's existing
+    /// "operations return a new value" semantics.
+    List(Arc<Vec<Value>>),
+    /// Maps are `Arc`-backed for the same reason as `List` (see above).
+    Map(Arc<HashMap<String, Value>>),
+    /// Records are `Arc`-backed for the same reason as `List` (see above).
+    Record(Arc<HashMap<String, Value>>),
 
     /// User-defined function / closure
     Function {
@@ -172,8 +178,51 @@ pub struct Table {
 }
 
 impl Table {
+    /// Short type name for each column, in the vocabulary dplyr and pandas
+    /// users read: `int`, `dbl`, `str`, `bool`.
+    ///
+    /// Derived from the values rather than a declared schema, because BioLang
+    /// tables carry no column types. Nil is ignored so one missing value does
+    /// not turn a numeric column into `any`, and a genuinely mixed column says
+    /// `any` rather than claiming a type it does not have.
+    pub fn column_types(&self) -> Vec<&'static str> {
+        (0..self.columns.len())
+            .map(|index| {
+                let mut saw_int = false;
+                let mut saw_float = false;
+                let mut saw_str = false;
+                let mut saw_bool = false;
+                let mut saw_other = false;
+                for row in &self.rows {
+                    match row.get(index) {
+                        None | Some(Value::Nil) => {}
+                        Some(Value::Int(_)) => saw_int = true,
+                        Some(Value::Float(_)) => saw_float = true,
+                        Some(Value::Str(_)) => saw_str = true,
+                        Some(Value::Bool(_)) => saw_bool = true,
+                        Some(_) => saw_other = true,
+                    }
+                }
+                match (saw_other, saw_str, saw_bool, saw_float, saw_int) {
+                    (true, ..) => "any",
+                    (_, true, false, false, false) => "str",
+                    (_, false, true, false, false) => "bool",
+                    // An int mixed with floats is still a numeric column.
+                    (_, false, false, true, _) => "dbl",
+                    (_, false, false, false, true) => "int",
+                    (_, false, false, false, false) => "nil",
+                    _ => "any",
+                }
+            })
+            .collect()
+    }
+
     pub fn new(columns: Vec<String>, rows: Vec<Vec<Value>>) -> Self {
-        Self { columns, rows, max_col_width: None }
+        Self {
+            columns,
+            rows,
+            max_col_width: None,
+        }
     }
 
     pub fn empty() -> Self {
@@ -234,7 +283,11 @@ impl Table {
             })
             .collect();
 
-        Self { columns, rows, max_col_width: None }
+        Self {
+            columns,
+            rows,
+            max_col_width: None,
+        }
     }
 }
 
@@ -268,10 +321,12 @@ impl StreamValue {
 
     /// Pull the next value from the stream. Returns None when exhausted.
     pub fn next(&self) -> Option<Value> {
-        self.started.store(true, std::sync::atomic::Ordering::Relaxed);
+        self.started
+            .store(true, std::sync::atomic::Ordering::Relaxed);
         let result = self.inner.lock().unwrap().next();
         if result.is_none() {
-            self.exhausted.store(true, std::sync::atomic::Ordering::Relaxed);
+            self.exhausted
+                .store(true, std::sync::atomic::Ordering::Relaxed);
         }
         result
     }
@@ -373,8 +428,16 @@ impl Value {
             Value::Record(r) => !r.is_empty(),
             Value::Table(t) => !t.rows.is_empty(),
             Value::Matrix(m) => m.nrow > 0 && m.ncol > 0,
-            Value::Range { start, end, inclusive } => {
-                if *inclusive { end >= start } else { end > start }
+            Value::Range {
+                start,
+                end,
+                inclusive,
+            } => {
+                if *inclusive {
+                    end >= start
+                } else {
+                    end > start
+                }
             }
             Value::Set(items) => !items.is_empty(),
             Value::Tuple(items) => !items.is_empty(),
@@ -529,6 +592,14 @@ impl fmt::Display for Value {
                 for w in &mut widths {
                     *w = (*w).min(cap);
                 }
+                // The type row is printed under the header, so its label has to
+                // fit too: a clipped `<bool` reads as a rendering fault.
+                let types = t.column_types();
+                for (index, name) in types.iter().enumerate() {
+                    if let Some(width) = widths.get_mut(index) {
+                        *width = (*width).max(name.chars().count() + 2);
+                    }
+                }
                 // Header
                 let hdr: Vec<String> = t
                     .columns
@@ -544,6 +615,24 @@ impl fmt::Display for Value {
                     })
                     .collect();
                 writeln!(f, " {}", hdr.join(" | "))?;
+                // Column types under the headers, the way a tibble prints them.
+                // Knowing a column is `str` rather than `int` is most of what
+                // people are checking for when they print a table at all.
+                let typed: Vec<String> = types
+                    .iter()
+                    .enumerate()
+                    .map(|(i, name)| {
+                        let label = format!("<{name}>");
+                        let len = label.chars().count();
+                        let width = widths.get(i).copied().unwrap_or(len);
+                        if len < width {
+                            format!("{}{}", label, " ".repeat(width - len))
+                        } else {
+                            label.chars().take(width).collect()
+                        }
+                    })
+                    .collect();
+                writeln!(f, " {}", typed.join(" | "))?;
                 // Separator
                 let sep: Vec<String> = widths.iter().map(|w| "-".repeat(*w)).collect();
                 writeln!(f, " {}", sep.join("-+-"))?;
@@ -557,7 +646,8 @@ impl fmt::Display for Value {
                             let w = widths.get(i).copied().unwrap_or(0);
                             let slen = s.chars().count();
                             if slen > w {
-                                let truncated: String = s.chars().take(w.saturating_sub(1)).collect();
+                                let truncated: String =
+                                    s.chars().take(w.saturating_sub(1)).collect();
                                 format!("{}~", truncated)
                             } else if slen < w {
                                 format!("{}{}", s, " ".repeat(w - slen))
@@ -575,14 +665,22 @@ impl fmt::Display for Value {
             }
             Value::Interval(iv) => write!(f, "{iv}"),
             Value::Matrix(m) => write!(f, "{m}"),
-            Value::Range { start, end, inclusive } => {
+            Value::Range {
+                start,
+                end,
+                inclusive,
+            } => {
                 if *inclusive {
                     write!(f, "{start}..={end}")
                 } else {
                     write!(f, "{start}..{end}")
                 }
             }
-            Value::EnumValue { enum_name, variant, fields } => {
+            Value::EnumValue {
+                enum_name,
+                variant,
+                fields,
+            } => {
                 if fields.is_empty() {
                     write!(f, "{enum_name}::{variant}")
                 } else {
@@ -623,11 +721,32 @@ impl fmt::Display for Value {
                 write!(f, ")")
             }
             Value::CompiledClosure(_) => write!(f, "<compiled fn>"),
-            Value::Gene { symbol, chrom, start, end, strand, biotype, .. } => {
-                write!(f, "Gene({symbol} {chrom}:{start}-{end}:{strand} [{biotype}])")
+            Value::Gene {
+                symbol,
+                chrom,
+                start,
+                end,
+                strand,
+                biotype,
+                ..
+            } => {
+                write!(
+                    f,
+                    "Gene({symbol} {chrom}:{start}-{end}:{strand} [{biotype}])"
+                )
             }
-            Value::Variant { chrom, pos, ref_allele, alt_allele, quality, .. } => {
-                write!(f, "Variant({chrom}:{pos} {ref_allele}>{alt_allele} Q={quality:.0})")
+            Value::Variant {
+                chrom,
+                pos,
+                ref_allele,
+                alt_allele,
+                quality,
+                ..
+            } => {
+                write!(
+                    f,
+                    "Variant({chrom}:{pos} {ref_allele}>{alt_allele} Q={quality:.0})"
+                )
             }
             Value::Genome { name, assembly, .. } => write!(f, "Genome({name} {assembly})"),
             Value::Quality(scores) => {
@@ -635,7 +754,11 @@ impl fmt::Display for Value {
                 write!(f, "Quality({ascii})")
             }
             Value::AlignedRead(r) => {
-                write!(f, "AlignedRead({} {}:{} {})", r.qname, r.rname, r.pos, r.cigar)
+                write!(
+                    f,
+                    "AlignedRead({} {}:{} {})",
+                    r.qname, r.rname, r.pos, r.cigar
+                )
             }
         }
     }
@@ -659,12 +782,28 @@ impl PartialEq for Value {
             (Value::Interval(a), Value::Interval(b)) => a == b,
             (Value::Matrix(a), Value::Matrix(b)) => a == b,
             (
-                Value::Range { start: s1, end: e1, inclusive: i1 },
-                Value::Range { start: s2, end: e2, inclusive: i2 },
+                Value::Range {
+                    start: s1,
+                    end: e1,
+                    inclusive: i1,
+                },
+                Value::Range {
+                    start: s2,
+                    end: e2,
+                    inclusive: i2,
+                },
             ) => s1 == s2 && e1 == e2 && i1 == i2,
             (
-                Value::EnumValue { enum_name: a, variant: av, fields: af },
-                Value::EnumValue { enum_name: b, variant: bv, fields: bf },
+                Value::EnumValue {
+                    enum_name: a,
+                    variant: av,
+                    fields: af,
+                },
+                Value::EnumValue {
+                    enum_name: b,
+                    variant: bv,
+                    fields: bf,
+                },
             ) => a == b && av == bv && af == bf,
             (
                 Value::PluginFunction {
@@ -681,27 +820,127 @@ impl PartialEq for Value {
             (Value::Set(a), Value::Set(b)) => a == b,
             (Value::Tuple(a), Value::Tuple(b)) => a == b,
             (
-                Value::Regex { pattern: a, flags: af },
-                Value::Regex { pattern: b, flags: bf },
+                Value::Regex {
+                    pattern: a,
+                    flags: af,
+                },
+                Value::Regex {
+                    pattern: b,
+                    flags: bf,
+                },
             ) => a == b && af == bf,
             (Value::Kmer(a), Value::Kmer(b)) => a == b,
             (Value::SparseMatrix(a), Value::SparseMatrix(b)) => a == b,
             (Value::CompiledClosure(a), Value::CompiledClosure(b)) => Arc::ptr_eq(a, b),
             (
-                Value::Gene { symbol: a, gene_id: ai, .. },
-                Value::Gene { symbol: b, gene_id: bi, .. },
+                Value::Gene {
+                    symbol: a,
+                    gene_id: ai,
+                    ..
+                },
+                Value::Gene {
+                    symbol: b,
+                    gene_id: bi,
+                    ..
+                },
             ) => a == b && ai == bi,
             (
-                Value::Variant { chrom: ac, pos: ap, ref_allele: ar, alt_allele: aa, .. },
-                Value::Variant { chrom: bc, pos: bp, ref_allele: br, alt_allele: ba, .. },
+                Value::Variant {
+                    chrom: ac,
+                    pos: ap,
+                    ref_allele: ar,
+                    alt_allele: aa,
+                    ..
+                },
+                Value::Variant {
+                    chrom: bc,
+                    pos: bp,
+                    ref_allele: br,
+                    alt_allele: ba,
+                    ..
+                },
             ) => ac == bc && ap == bp && ar == br && aa == ba,
             (
-                Value::Genome { name: an, assembly: aa, .. },
-                Value::Genome { name: bn, assembly: ba, .. },
+                Value::Genome {
+                    name: an,
+                    assembly: aa,
+                    ..
+                },
+                Value::Genome {
+                    name: bn,
+                    assembly: ba,
+                    ..
+                },
             ) => an == bn && aa == ba,
             (Value::Quality(a), Value::Quality(b)) => a == b,
             (Value::AlignedRead(a), Value::AlignedRead(b)) => a == b,
             _ => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod table_type_tests {
+    use super::*;
+
+    fn table(columns: &[&str], rows: Vec<Vec<Value>>) -> Table {
+        Table::new(columns.iter().map(|c| (*c).to_string()).collect(), rows)
+    }
+
+    #[test]
+    fn infers_the_familiar_short_type_names() {
+        let t = table(
+            &["gene", "n", "score", "hit"],
+            vec![vec![
+                Value::Str("TP53".into()),
+                Value::Int(3),
+                Value::Float(1.5),
+                Value::Bool(true),
+            ]],
+        );
+        assert_eq!(t.column_types(), vec!["str", "int", "dbl", "bool"]);
+    }
+
+    #[test]
+    fn a_missing_value_does_not_change_a_column_type() {
+        let t = table(
+            &["n"],
+            vec![vec![Value::Int(1)], vec![Value::Nil], vec![Value::Int(3)]],
+        );
+        assert_eq!(t.column_types(), vec!["int"]);
+    }
+
+    #[test]
+    fn ints_mixed_with_floats_are_one_numeric_column() {
+        let t = table(&["x"], vec![vec![Value::Int(1)], vec![Value::Float(2.5)]]);
+        assert_eq!(t.column_types(), vec!["dbl"]);
+    }
+
+    #[test]
+    fn a_genuinely_mixed_column_says_any_rather_than_guessing() {
+        let t = table(
+            &["x"],
+            vec![vec![Value::Int(1)], vec![Value::Str("a".into())]],
+        );
+        assert_eq!(t.column_types(), vec!["any"]);
+    }
+
+    #[test]
+    fn an_all_nil_column_reports_nil() {
+        let t = table(&["x"], vec![vec![Value::Nil]]);
+        assert_eq!(t.column_types(), vec!["nil"]);
+    }
+
+    #[test]
+    fn printing_puts_the_type_row_under_the_header_without_clipping_it() {
+        let t = table(&["a"], vec![vec![Value::Bool(true)]]);
+        let rendered = format!("{}", Value::Table(t));
+        // A clipped `<bool` would read as a rendering fault.
+        assert!(rendered.contains("<bool>"), "{rendered}");
+        let lines: Vec<&str> = rendered.lines().collect();
+        assert!(
+            lines[2].contains("<bool>"),
+            "type row misplaced:\n{rendered}"
+        );
     }
 }

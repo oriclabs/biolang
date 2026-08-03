@@ -93,24 +93,13 @@ impl NcbiDatasetsClient {
     }
 
     /// Get genes by symbol.
-    pub fn gene_by_symbol(
-        &self,
-        symbols: &[&str],
-        taxon: &str,
-    ) -> Result<Vec<DatasetGene>> {
+    pub fn gene_by_symbol(&self, symbols: &[&str], taxon: &str) -> Result<Vec<DatasetGene>> {
         let base = base_url();
         let syms = symbols.join(",");
-        let url = format!(
-            "{base}/gene/symbol/{syms}/taxon/{taxon}"
-        );
+        let url = format!("{base}/gene/symbol/{syms}/taxon/{taxon}");
         let auth = self.api_key_header();
-        let headers: Vec<(&str, &str)> = auth
-            .iter()
-            .map(|(k, v)| (*k, v.as_str()))
-            .collect();
-        let json = self
-            .base
-            .get_json_with_headers(&url, &headers)?;
+        let headers: Vec<(&str, &str)> = auth.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        let json = self.base.get_json_with_headers(&url, &headers)?;
 
         parse_genes(&json)
     }
@@ -121,13 +110,8 @@ impl NcbiDatasetsClient {
         let id_str = ids.join(",");
         let url = format!("{base}/gene/id/{id_str}");
         let auth = self.api_key_header();
-        let headers: Vec<(&str, &str)> = auth
-            .iter()
-            .map(|(k, v)| (*k, v.as_str()))
-            .collect();
-        let json = self
-            .base
-            .get_json_with_headers(&url, &headers)?;
+        let headers: Vec<(&str, &str)> = auth.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        let json = self.base.get_json_with_headers(&url, &headers)?;
 
         parse_genes(&json)
     }
@@ -135,17 +119,10 @@ impl NcbiDatasetsClient {
     /// Get taxonomy information.
     pub fn taxonomy(&self, taxon: &str) -> Result<TaxonomyInfo> {
         let base = base_url();
-        let url = format!(
-            "{base}/taxonomy/taxon/{taxon}"
-        );
+        let url = format!("{base}/taxonomy/taxon/{taxon}");
         let auth = self.api_key_header();
-        let headers: Vec<(&str, &str)> = auth
-            .iter()
-            .map(|(k, v)| (*k, v.as_str()))
-            .collect();
-        let json = self
-            .base
-            .get_json_with_headers(&url, &headers)?;
+        let headers: Vec<(&str, &str)> = auth.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        let json = self.base.get_json_with_headers(&url, &headers)?;
 
         let tax = json["taxonomy_nodes"]
             .as_array()
@@ -168,36 +145,20 @@ impl NcbiDatasetsClient {
                 .map(|n| n.to_string())
                 .or_else(|| t["tax_id"].as_str().map(String::from))
                 .unwrap_or_default(),
-            organism_name: t["organism_name"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
-            common_name: t["common_name"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
+            organism_name: t["organism_name"].as_str().unwrap_or_default().to_string(),
+            common_name: t["common_name"].as_str().unwrap_or_default().to_string(),
             lineage,
-            rank: t["rank"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string(),
+            rank: t["rank"].as_str().unwrap_or_default().to_string(),
         })
     }
 
     /// Get genome assembly summary by accession.
     pub fn genome_summary(&self, accession: &str) -> Result<GenomeSummary> {
         let base = base_url();
-        let url = format!(
-            "{base}/genome/accession/{accession}"
-        );
+        let url = format!("{base}/genome/accession/{accession}");
         let auth = self.api_key_header();
-        let headers: Vec<(&str, &str)> = auth
-            .iter()
-            .map(|(k, v)| (*k, v.as_str()))
-            .collect();
-        let json = self
-            .base
-            .get_json_with_headers(&url, &headers)?;
+        let headers: Vec<(&str, &str)> = auth.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        let json = self.base.get_json_with_headers(&url, &headers)?;
 
         let report = json["reports"]
             .as_array()
@@ -223,12 +184,8 @@ impl NcbiDatasetsClient {
                 .as_str()
                 .unwrap_or_default()
                 .to_string(),
-            total_sequence_length: stats["total_sequence_length"]
-                .as_u64()
-                .unwrap_or(0),
-            gc_percent: stats["gc_percent"]
-                .as_f64()
-                .unwrap_or(0.0),
+            total_sequence_length: stats["total_sequence_length"].as_u64().unwrap_or(0),
+            gc_percent: stats["gc_percent"].as_f64().unwrap_or(0.0),
         })
     }
 }
@@ -250,14 +207,8 @@ fn parse_genes(json: &serde_json::Value) -> Result<Vec<DatasetGene>> {
                     .map(|n| n.to_string())
                     .or_else(|| gene["gene_id"].as_str().map(String::from))
                     .unwrap_or_default(),
-                symbol: gene["symbol"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
-                description: gene["description"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
+                symbol: gene["symbol"].as_str().unwrap_or_default().to_string(),
+                description: gene["description"].as_str().unwrap_or_default().to_string(),
                 taxname: gene["taxname"]
                     .as_str()
                     .or_else(|| gene["tax_name"].as_str())
@@ -269,14 +220,8 @@ fn parse_genes(json: &serde_json::Value) -> Result<Vec<DatasetGene>> {
                     .and_then(|v| v.as_str())
                     .unwrap_or_default()
                     .to_string(),
-                gene_type: gene["type"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
-                common_name: gene["common_name"]
-                    .as_str()
-                    .unwrap_or_default()
-                    .to_string(),
+                gene_type: gene["type"].as_str().unwrap_or_default().to_string(),
+                common_name: gene["common_name"].as_str().unwrap_or_default().to_string(),
             });
         }
     }
@@ -363,10 +308,8 @@ mod tests {
     #[test]
     fn test_parse_genes_missing_gene_object() {
         // Report exists but has no "gene" key
-        let json: serde_json::Value = serde_json::from_str(
-            r#"{"reports": [{"something_else": {}}]}"#,
-        )
-        .unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(r#"{"reports": [{"something_else": {}}]}"#).unwrap();
         let genes = parse_genes(&json).unwrap();
         assert_eq!(genes.len(), 1);
         assert_eq!(genes[0].gene_id, "");

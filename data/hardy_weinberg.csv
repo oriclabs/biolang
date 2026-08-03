@@ -1,0 +1,6 @@
+snp_id,ref,alt,p,expected_AA,expected_AB,expected_BB,observed_AA,observed_AB,observed_BB
+rs1805007,C,T,0.91,828,164,8,830,160,10
+rs4988235,G,A,0.74,548,384,68,540,400,60
+rs12913832,A,G,0.72,518,403,79,525,390,85
+rs1801133,C,T,0.64,410,461,129,405,470,125
+rs7412,C,T,0.92,846,148,6,850,142,8

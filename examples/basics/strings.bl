@@ -51,21 +51,20 @@ println("ABC < DEF: " + str("ABC" < "DEF"))
 println("equal: " + str("ATG" == "ATG"))
 
 # Multi-line strings
-let fasta = ">seq1 test sequence
-ATGCGATCGATCG
-GCTAGCTAGCTAG"
+let fasta = ">seq1 test sequence\nATGCGATCGATCG\nGCTAGCTAGCTAG"
 println(fasta)
 
 # Practical: parse a FASTA header
-let parts = ">gi|123|ref|NM_001|description here"
-    |> substr(1)
+let fasta_header = ">gi|123|ref|NM_001|description here"
+let parts = fasta_header
+    |> substr(1, str_len(fasta_header) - 1)
     |> split("|")
 println("GI: " + parts[1])
 println("Accession: " + parts[3])
 
 # String interpolation with pipes
 let gc = "ATGCGCTA"
-    |> chars()
+    |> regex_find(".")
     |> filter(|c| c == "G" || c == "C")
     |> len()
 let total = str_len("ATGCGCTA")

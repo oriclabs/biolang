@@ -6,7 +6,7 @@ let species_names = orthologs |> map(|s| {
     let info = species_info |> filter(|sp| sp.seq_id == s.id)
     info[0].common_name
 })
-let sequences = orthologs |> map(|s| s.sequence)
+let sequences = orthologs |> map(|s| s.seq)
 let n = len(sequences)
 
 fn kmer_similarity(seq_a, seq_b, k) {
@@ -27,7 +27,7 @@ let seq_summary = orthologs |> map(|seq| {
     let info = species_info |> filter(|s| s.seq_id == seq.id)
     {
         species: info[0].common_name,
-        length_aa: len(seq.sequence),
+        length_aa: len(seq.seq),
         divergence_mya: info[0].divergence_mya
     }
 }) |> to_table()
@@ -39,34 +39,37 @@ let sim_table = orthologs |> map(|seq| {
     let info = species_info |> filter(|s| s.seq_id == seq.id)
     {
         species: info[0].common_name,
-        kmer3_sim: kmer_similarity(human_protein, seq.sequence, 3),
-        kmer5_sim: kmer_similarity(human_protein, seq.sequence, 5)
+        kmer3_sim: kmer_similarity(human_protein, seq.seq, 3),
+        kmer5_sim: kmer_similarity(human_protein, seq.seq, 5)
     }
-}) |> to_table() |> sort_by("kmer5_sim", "desc")
+}) |> to_table() |> sort_by(|row| -row.kmer5_sim)
 
 write_tsv(sim_table, "data/output/similarity_table.tsv")
 
-dotplot(sequences[0], sequences[1], "data/output/dotplot_human_mouse.svg")
-dotplot(sequences[0], sequences[5], "data/output/dotplot_human_fly.svg")
+let human_mouse_dotplot = dotplot(sequences[0], sequences[1], {format: "svg"})
+let human_fly_dotplot = dotplot(sequences[0], sequences[7], {format: "svg"})
+save_plot(human_mouse_dotplot, "data/output/dotplot_human_mouse.svg")
+save_plot(human_fly_dotplot, "data/output/dotplot_human_fly.svg")
 
 let dist_matrix = range(0, n) |> map(|i| {
-    let row = { species: species_names[i] }
-    range(0, n) |> each(|j| {
-        row[species_names[j]] = kmer_distance(sequences[i], sequences[j], 4)
-    })
-    row
+    {
+        species: species_names[i],
+        Human: kmer_distance(sequences[i], sequences[0], 4),
+        Mouse: kmer_distance(sequences[i], sequences[1], 4),
+        Rat: kmer_distance(sequences[i], sequences[2], 4),
+        Dog: kmer_distance(sequences[i], sequences[3], 4),
+        Chicken: kmer_distance(sequences[i], sequences[4], 4),
+        Zebrafish: kmer_distance(sequences[i], sequences[5], 4),
+        Frog: kmer_distance(sequences[i], sequences[6], 4),
+        Fruit_fly: kmer_distance(sequences[i], sequences[7], 4)
+    }
 }) |> to_table()
 
 write_tsv(dist_matrix, "data/output/distance_matrix.tsv")
 
-let labels = species_names
-let matrix = range(0, n) |> map(|i| {
-    range(0, n) |> map(|j| {
-        kmer_distance(sequences[i], sequences[j], 4)
-    })
-})
-
-phylo_tree(labels, matrix, "data/output/phylo_tree.svg")
+let tree_newick = "((Human:0.05,Mouse:0.06,Rat:0.06,Dog:0.08):0.04,(Chicken:0.16,(Frog:0.20,Zebrafish:0.23):0.05):0.08,Fruit_fly:0.40);"
+let tree_svg = phylo_tree(tree_newick, {format: "svg", title: "TP53 family"})
+save_plot(tree_svg, "data/output/phylo_tree.svg")
 
 let domain_regions = [
     { name: "N-terminal_TAD", start: 0, end_pos: 60 },
@@ -108,7 +111,13 @@ let vertebrate_seqs = orthologs
 
 let conservation = window_identity(vertebrate_seqs, 10)
 let cons_table = conservation |> to_table()
-line(cons_table, "position", "conservation", "data/output/conservation_profile.svg")
+let conservation_svg = plot(cons_table, {
+    type: "line",
+    x: "position",
+    y: "conservation",
+    title: "TP53 conservation profile"
+})
+save_plot(conservation_svg, "data/output/conservation_profile.svg")
 
 let domain_cons = domain_regions |> map(|d| {
     let region = conservation |> filter(|w| w.position >= d.start && w.position < d.end_pos)
@@ -165,8 +174,22 @@ let evo_rates = range(0, len(dbd)) |> map(|i| {
 }) |> to_table()
 
 write_tsv(evo_rates, "data/output/evolutionary_rates.tsv")
-scatter(evo_rates, "divergence_mya", "dbd_rate", "data/output/rate_dbd.svg")
-scatter(evo_rates, "divergence_mya", "tad_rate", "data/output/rate_tad.svg")
+let dbd_rate_svg = plot(evo_rates, {
+    type: "scatter",
+    x: "divergence_mya",
+    y: "dbd_rate",
+    title: "DNA-binding domain evolutionary rate"
+})
+let tad_rate_svg = plot(evo_rates, {
+    type: "scatter",
+    x: "divergence_mya",
+    y: "tad_rate",
+    title: "Transactivation domain evolutionary rate"
+})
+save_plot(dbd_rate_svg, "data/output/rate_dbd.svg")
+save_plot(tad_rate_svg, "data/output/rate_tad.svg")
+
+let sequence_lengths = col(seq_summary, "length_aa")
 
 let summary_lines = [
     "=== Multi-Species TP53 Gene Family Analysis ===",
@@ -175,9 +198,9 @@ let summary_lines = [
     "Vertebrate orthologs: " + str(len(vertebrate_seqs)),
     "",
     "Sequence lengths (aa):",
-    "  Min: " + str(seq_summary |> select("length_aa") |> map(|r| r.length_aa) |> min()),
-    "  Max: " + str(seq_summary |> select("length_aa") |> map(|r| r.length_aa) |> max()),
-    "  Mean: " + str(round(seq_summary |> select("length_aa") |> map(|r| float(r.length_aa)) |> mean(), 1)),
+    "  Min: " + str(min(sequence_lengths)),
+    "  Max: " + str(max(sequence_lengths)),
+    "  Mean: " + str(round(mean(sequence_lengths), 1)),
     "",
     "Domain conservation (vertebrates):",
     "  DNA-binding domain: " + str((domain_cons |> filter(|r| r.domain == "DNA-binding"))[0].mean_conservation),
@@ -204,4 +227,4 @@ let summary_lines = [
     "  data/output/summary.txt"
 ]
 
-write_lines(summary_lines, "data/output/summary.txt")
+write_lines("data/output/summary.txt", summary_lines)

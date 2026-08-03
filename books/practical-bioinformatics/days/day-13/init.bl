@@ -73,7 +73,7 @@ let counts_rows = [
 ]
 
 let counts_lines = [counts_header] + counts_rows
-write_lines(counts_lines, "data/counts.csv")
+write_lines("data/counts.csv", counts_lines)
 print(f"  Created data/counts.csv ({len(counts_rows)} genes x 6 samples)")
 
 # ============================================================
@@ -121,7 +121,7 @@ let lengths_rows = [
 ]
 
 let lengths_lines = [lengths_header] + lengths_rows
-write_lines(lengths_lines, "data/gene_lengths.csv")
+write_lines("data/gene_lengths.csv", lengths_lines)
 print(f"  Created data/gene_lengths.csv ({len(lengths_rows)} genes)")
 
 print("")

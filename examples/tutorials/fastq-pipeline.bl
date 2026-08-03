@@ -19,46 +19,71 @@ print(f"Length:   {first.length}")
 
 # ── 2. Read Statistics ────────────────────────────────────────
 
-let stats = read_stats(reads)
+let stats = read_stats("examples/sample-data/reads.fq")
 
 print("\n=== Read Statistics ===")
-print(f"Total reads:  {stats.count}")
-print(f"Mean length:  {round(stats.mean_length, 1)}")
-print(f"Mean quality: {round(stats.mean_quality, 2)}")
+print(f"Total reads:  {stats.total_reads}")
+print(f"Mean length:  {round(stats.length.mean, 1)}")
+print(f"Mean quality: {round(stats.quality.mean, 2)}")
 print(f"Mean GC:      {round(stats.gc_content, 4)}")
-print(f"Q20 %:        {round(stats.q20_pct, 1)}")
-print(f"Q30 %:        {round(stats.q30_pct, 1)}")
+print(f"Q20 %:        {round(stats.quality.q20_pct, 1)}")
+print(f"Q30 %:        {round(stats.quality.q30_pct, 1)}")
 
 let gc_values = map(reads, |r| gc_content(r.seq))
 print(f"GC range: {min(gc_values)} - {max(gc_values)}")
 
 # ── 3. Quality Filtering ─────────────────────────────────────
 
-let passed = filter_reads(reads, "quality", 20)
-let passed_list = collect(passed)
+# `filter_reads` and `trim_quality` are file-to-file operations — they take an
+# input path and an output path. Working on reads already in memory is just
+# `filter` and `map`, which is what the rest of this tutorial uses.
+
+fn mean_q(r) { mean(parse_qual(r.quality)) }
+
+let passed_list = reads |> filter(|r| mean_q(r) >= 20)
 print(f"\nPassed quality filter (Q>=20): {len(passed_list)} reads")
 
-let long_reads = filter_reads(reads, "length", 50)
-let long_list = collect(long_reads)
+let long_list = reads |> filter(|r| len(r.seq) >= 50)
 print(f"Passed length filter (>=50bp): {len(long_list)} reads")
 
-let clean = reads |>
-  filter_reads("quality", 20) |>
-  filter_reads("length", 50) |>
-  collect()
+let clean = reads
+  |> filter(|r| mean_q(r) >= 20)
+  |> filter(|r| len(r.seq) >= 50)
 
 print(f"After both filters: {len(clean)} reads")
 
 # ── 4. Quality Trimming ──────────────────────────────────────
 
-let trimmed = trim_quality(reads, 20, 30)
-let trimmed_list = collect(trimmed)
+# Drop leading and trailing bases below Q20, the same rule the Rosalind BFIL
+# problem uses.
+fn trim_read(r) {
+    let scores = parse_qual(r.quality)
+    let keep = range(0, len(scores)) |> filter(|i| scores[i] >= 20)
+    if len(keep) == 0 {
+        { id: r.id, seq: dna(""), quality: "" }
+    } else {
+        let start = min(keep)
+        # A record's quality string can be longer than its sequence, so clamp
+        # rather than trusting the quality index to be in range.
+        let stop = min([max(keep) + 1, len(r.seq)])
+        {
+            id: r.id,
+            # subseq() slices a sequence value directly and keeps its type;
+            # str() on DNA renders as "DNA(...)", so substr() is the wrong tool.
+            seq: subseq(r.seq, start, stop),
+            quality: substr(r.quality, start, stop - start)
+        }
+    }
+}
+
+let trimmed_list = reads |> map(trim_read)
 print(f"\nAfter trimming: {len(trimmed_list)} reads")
 
-let raw_stats = read_stats(reads)
-let trim_stats = read_stats(trimmed_list)
-print(f"Mean length before: {round(raw_stats.mean_length, 1)}")
-print(f"Mean length after:  {round(trim_stats.mean_length, 1)}")
+# read_stats() reads a file in a single native pass, so it cannot describe an
+# in-memory list. Mean length over a collection is a one-liner anyway.
+fn mean_length(rs) { mean(rs |> map(|r| float(len(r.seq)))) }
+print(f"Mean length before: {round(mean_length(reads), 1)}")
+print(f"Mean length after:  {round(mean_length(trimmed_list), 1)}")
 
 # ── 5. K-mer Analysis ────────────────────────────────────────
 
@@ -72,7 +97,9 @@ print(f"K-mers in first read: {len(first_kmers)}")
 
 # ── 6. Adapter Detection ─────────────────────────────────────
 
-let detected = detect_adapters(reads)
+# detect_adapters(), like read_stats(), scans the file itself rather than reads
+# already in memory. `read_stats` above reported the same scan under `adapters`.
+let detected = detect_adapters("examples/sample-data/reads.fq")
 print("\nDetected adapters:")
 print(detected)
 

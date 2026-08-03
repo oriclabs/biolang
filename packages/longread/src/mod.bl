@@ -1,0 +1,20 @@
+# longread — Long-read sequencing QC for BioLang
+#
+# Quick start:
+#   import "longread" as lr
+#
+#   let fq = read_text("data/reads.fastq")
+#   lr.stats(fq)
+#   lr.filter(fq, min_length=1000, min_quality=8.0)
+#   lr.n50(read_lengths)
+
+import "longread/src/qc" as qc
+
+fn stats(fastq_text)                        { qc.stats(fastq_text) }
+fn n50(lengths)                             { qc.n50(lengths) }
+fn length_hist(lengths, bins=20)            { qc.length_hist(lengths, bins) }
+fn gc_per_read(fastq_text)                  { qc.gc_per_read(fastq_text) }
+fn quality_dist(fastq_text)                 { qc.quality_dist(fastq_text) }
+fn filter(fastq_text, min_length=1000, min_quality=7.0) {
+  quality_filter(fastq_text, min_length, min_quality)
+}

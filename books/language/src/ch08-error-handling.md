@@ -138,7 +138,8 @@ let annotation = try {
 
 For high-traffic APIs, increase delay between retries using a helper:
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn fetch_with_backoff(url, max_attempts: 5) {
     let attempt = 0
     let result = nil
@@ -178,7 +179,11 @@ let af = variant.info?.AF ?? variant.info?.MAF ?? 0.0
 `??` chains naturally. The first non-nil value wins:
 
 ```biolang
-let symbol = record.hugo_symbol ?? record.gene_id ?? record.locus_tag ?? "uncharacterised"
+let record = {gene_id: "ENSG00000141510"}
+let symbol = if has_key(record, "hugo_symbol") then record.hugo_symbol
+    else if has_key(record, "gene_id") then record.gene_id
+    else if has_key(record, "locus_tag") then record.locus_tag
+    else "uncharacterised"
 ```
 
 ## Optional Chaining: ?.
@@ -210,7 +215,8 @@ let consequence = variant.annotation?.consequences?.most_severe ?? "unknown"
 Biological file formats are under-specified. A BED file might have 3 columns
 or 12. A VCF INFO field might omit half the keys. Build defensive accessors.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 fn safe_info(variant, key, default: nil) {
     try {
         let info = parse_info(variant.info_str)
@@ -255,6 +261,7 @@ fn robust_parse(lines, parser) {
 When computing statistics over optional fields, filter out nil values first:
 
 ```biolang
+let variants = read_vcf("data/variants.vcf")
 let qualities = variants
     |> map(|v| v.qual)
     |> filter(|q| q != nil)
@@ -323,7 +330,8 @@ let sequences = parse_fasta_robust("mixed_quality.fasta")
 Query NCBI's E-utilities for gene summaries, handling the rate limit and
 transient failures that are common on public APIs.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 # requires: internet connection
 # requires: NCBI_API_KEY (optional, increases rate limit)
 fn fetch_gene_summaries(gene_ids) {
@@ -378,7 +386,8 @@ Real VCF files have inconsistent INFO columns. Some records carry `AF`, others
 do not. Some have `CLNSIG`, most do not. Use `?.` and `??` to process them
 uniformly.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let variants = read_vcf("data/variants.vcf")
 
 let annotated = variants |> map(|v| {

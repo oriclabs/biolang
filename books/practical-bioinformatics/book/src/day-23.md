@@ -120,10 +120,10 @@ Tables are convenient for viewing data, but for per-sample processing, you want 
 
 ```bio
 fn sheet_to_samples(sheet) {
-    let ids = sheet |> select("sample_id") |> flatten()
-    let files = sheet |> select("fastq_file") |> flatten()
-    let tissues = sheet |> select("tissue") |> flatten()
-    let groups = sheet |> select("group") |> flatten()
+    let ids = col(sheet, "sample_id")
+    let files = col(sheet, "reads_file")
+    let tissues = col(sheet, "tissue")
+    let groups = col(sheet, "condition")
     range(0, len(ids)) |> map(|i| {
         id: ids[i],
         fastq: files[i],
@@ -197,7 +197,7 @@ fn process_sample(sample, config) {
     let reads = read_fastq(sample.fastq)
     let total = len(reads)
 
-    let filtered = reads |> quality_filter(config.min_quality)
+    let filtered = reads |> filter(|r| mean_phred(r.quality) >= config.min_quality)
     let passed = filtered |> filter(|r| len(r.seq) >= config.min_length)
     let pass_count = len(passed)
 

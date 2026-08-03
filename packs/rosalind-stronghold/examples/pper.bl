@@ -1,0 +1,19 @@
+# Rosalind: PPER — Partial Permutations
+# https://rosalind.info/problems/pper/
+#
+# Given: Positive integers n and k with 100 >= n > 0 and 10 >= k > 0.
+# Return: The number of partial permutations P(n, k), modulo 1,000,000.
+
+let n = 21
+let k = 7
+let modulus = 1000000
+
+# P(n, k) = n * (n-1) * ... * (n-k+1), reduced at every step to stay small.
+let result = range(0, k) |> reduce(|acc, i| (acc * (n - i)) % modulus, 1)
+
+println("Result:   " + str(result))
+println("Expected: 51200")
+
+fn test_pper_partial_permutations() {
+    assert result == 51200, "PPER: got " + str(result)
+}

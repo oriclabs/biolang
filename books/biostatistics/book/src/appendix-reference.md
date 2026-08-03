@@ -10,7 +10,7 @@ This appendix lists BioLang's statistical builtins by category. For each functio
 |---|---|---|
 | `mean(x)` | Arithmetic mean | `mean([2, 4, 6])` → `4.0` |
 | `median(x)` | Middle value | `median([1, 3, 7])` → `3.0` |
-| `sd(x)` | Sample standard deviation | `sd([2, 4, 6])` → `2.0` |
+| `stdev(x)` | Sample standard deviation | `stdev([2, 4, 6])` → `2.0` |
 | `var(x)` | Sample variance | `var([2, 4, 6])` → `4.0` |
 | `min(x)` | Minimum value | `min([3, 1, 4])` → `1` |
 | `max(x)` | Maximum value | `max([3, 1, 4])` → `4` |
@@ -133,7 +133,8 @@ rhyper(100, 200, 19800, 500)
 
 > **Post-hoc comparisons:** Follow a significant ANOVA with pairwise tests and p-value correction:
 >
-> ```bio
+> ```text
+# Conceptual or diagnostic example; not directly executable.
 > # Pairwise t-tests with Bonferroni correction
 > let pvals = []
 > for i in 0..len(groups) {
@@ -154,7 +155,8 @@ rhyper(100, 200, 19800, 500)
 
 > **Effect sizes for categorical data** are computed inline:
 >
-> ```bio
+> ```text
+# Conceptual or diagnostic example; not directly executable.
 > # Odds ratio
 > let or = (a * d) / (b * c)
 >
@@ -174,19 +176,22 @@ rhyper(100, 200, 19800, 500)
 
 | Function | Description | Example |
 |---|---|---|
-| `lm(y, x)` | Simple linear regression | `lm(expression, age)` |
-| `lm(y, [x1, x2, ...])` | Multiple linear regression | `lm(expression, [age, sex, batch])` |
-| `glm(formula, table, family)` | Generalized linear model | `glm("y ~ x", data, "binomial")` |
+| `lm(x, y)` | Simple linear regression | `lm(age, expression)` |
+| `lm(formula, table)` | Multiple linear regression | `lm(~expression ~ age + sex + batch, data)` |
+| `glm(formula, table, family?)` | Generalized linear model | `glm(~outcome ~ age + marker, data, "binomial")` |
 
-Supported GLM families: `"binomial"` (logistic), `"poisson"`, `"negbin"` (negative binomial).
+Supported GLM families: `"binomial"` (or `"logistic"`), `"gaussian"` (or `"linear"`), and `"poisson"`.
 
 Access model results:
 
 ```bio
-let model = lm(expression, [age, sex, batch])
+let age = [34, 41, 52, 59, 63, 70]
+let expression = [8.1, 8.8, 9.4, 10.2, 10.6, 11.1]
+let model = lm(age, expression)
 print("R-squared: " + str(round(model.r_squared, 3)))
-let residuals = model.residuals
-qq_plot(residuals, {title: "Residual Normality Check"})
+let residuals = range(0, len(age))
+  |> map(|i| expression[i] - (model.intercept + model.slope * age[i]))
+histogram(residuals, {title: "Residual Distribution"})
 ```
 
 ## Multiple Testing Correction
@@ -216,14 +221,17 @@ print("Significant genes (FDR < 0.05): " + str(sig_count))
 
 ```bio
 # PCA then clustering
+let expr_matrix = [
+  [8.2, 7.9, 3.1, 2.8],
+  [8.6, 8.1, 3.4, 3.0],
+  [3.0, 3.3, 8.4, 8.0],
+  [2.7, 3.0, 8.8, 8.2]
+]
 let result = pca(expr_matrix)
-pca_plot(result, {title: "Sample PCA"})
+pca_plot(matrix(expr_matrix), {title: "Sample PCA"})
 
-# Estimate optimal k via silhouette
-let scores = range(2, 10) |> map(|k| {
-  let km = kmeans(data, k)
-  km.silhouette
-})
+# Cluster the same samples into two groups
+let clusters = kmeans(expr_matrix, 2)
 ```
 
 ## Statistical Visualization
@@ -248,9 +256,9 @@ let scores = range(2, 10) |> map(|k| {
 
 | Function | Description | Example |
 |---|---|---|
-| `scatter(x, y, options)` | ASCII scatter plot | `scatter(age, expr, {xlabel: "Age", ylabel: "Expr"})` |
+| `scatter(x, y)` | ASCII scatter plot | `scatter(age, expression)` |
 | `boxplot(data, options)` | ASCII box plot | `boxplot(table({"Ctrl": g1, "Treat": g2}), {title: "Comparison"})` |
-| `bar_chart(labels, values, options)` | ASCII bar chart | `bar_chart(names, counts, {title: "Counts"})` |
+| `bar_chart(data, options?)` | ASCII bar chart from a record or table | `bar_chart(count_table, {label: "group", value: "count"})` |
 | `sparkline(data)` | Inline sparkline | `sparkline(timeseries)` |
 | `hist(data, options)` | ASCII histogram | `hist(data, {bins: 20})` |
 
@@ -343,7 +351,7 @@ print("95% CI: [" + str(round(ci_lo, 3)) + ", " + str(round(ci_hi, 3)) + "]")
 # Prior: N(mu0, sigma0^2); Data: n observations with mean x_bar and known sigma
 let prior_mu = 0.0
 let prior_prec = 1.0 / (10.0 ** 2)   # prior precision = 1/sigma0^2
-let data_prec = len(data) / (sd(data) ** 2)
+let data_prec = len(data) / (stdev(data) ** 2)
 let post_prec = prior_prec + data_prec
 let post_mu = (prior_prec * prior_mu + data_prec * mean(data)) / post_prec
 let post_sd = sqrt(1.0 / post_prec)
@@ -353,7 +361,8 @@ let post_sd = sqrt(1.0 / post_prec)
 
 BioLang provides basic building blocks for survival analysis. For simple comparisons:
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Compare survival times between two groups
 let result = ttest(arm1_times, arm2_times)
 print("p-value: " + str(round(result.p_value, 4)))
@@ -367,5 +376,5 @@ print("Median survival — Arm A: " + str(med_a) + ", Arm B: " + str(med_b))
 let hr = med_b / med_a
 
 # Regression on survival times
-let model = lm(survival_time, [age, stage, treatment])
+let model = lm(~survival_time ~ age + stage + treatment, patient_data)
 ```

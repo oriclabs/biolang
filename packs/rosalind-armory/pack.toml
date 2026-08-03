@@ -1,0 +1,172 @@
+# BioLang example pack: Rosalind — Bioinformatics Armory
+#
+# Schema notes:
+#   status         "solved"  reproduces the official Rosalind answer
+#                  "partial" runs and teaches, but does not reproduce the
+#                            official answer; `blocked_on` says why
+#                  "blocked" no working solution yet
+#   network        true when the example calls out to NCBI or another service.
+#                  Network problems are never a hard CI gate — a rate limit or
+#                  an outage is not a BioLang regression.
+#   deterministic  false when the correct answer legitimately changes over time.
+#   asserted       true when the file carries `test_*` functions that `bl test`
+#                  verifies. Only hermetic files can be asserted.
+
+[pack]
+id = "rosalind-armory"
+name = "Rosalind — Bioinformatics Armory"
+version = "0.1.0"
+track = "bioinformatics-armory"
+description = "All 15 problems from the Rosalind Bioinformatics Armory, worked in BioLang."
+list_url = "https://rosalind.info/problems/list-view/?location=bioinformatics-armory"
+requires = ">=0.4"
+
+# Solutions are MIT, same as BioLang. Problem statements belong to Rosalind:
+# each file paraphrases Given/Return in a line or two and links to the source
+# rather than reproducing the prose or the per-user datasets.
+license = "MIT"
+statements_license = "Problem statements © rosalind.info — paraphrased and linked, not reproduced."
+
+[[problem]]
+id = "INI"
+title = "Introduction to the Bioinformatics Armory"
+file = "examples/ini.bl"
+url = "https://rosalind.info/problems/ini/"
+status = "solved"
+asserted = true
+topics = ["sequence", "counting"]
+
+[[problem]]
+id = "GBK"
+title = "GenBank Introduction"
+file = "examples/gbk.bl"
+url = "https://rosalind.info/problems/gbk/"
+status = "solved"
+network = true
+deterministic = false
+asserted = false
+note = "Entrez record counts grow as GenBank is updated, so no fixed answer can be asserted."
+topics = ["databases", "entrez"]
+
+[[problem]]
+id = "FRMT"
+title = "Data Formats"
+file = "examples/frmt.bl"
+url = "https://rosalind.info/problems/frmt/"
+status = "solved"
+network = true
+asserted = false
+topics = ["databases", "fasta"]
+
+[[problem]]
+id = "MEME"
+title = "New Motif Discovery"
+file = "examples/meme.bl"
+url = "https://rosalind.info/problems/meme/"
+status = "partial"
+blocked_on = "no probabilistic motif discovery; finds exact shared substrings instead of a MEME position-weight motif"
+asserted = true
+topics = ["motifs", "protein"]
+
+[[problem]]
+id = "NEED"
+title = "Pairwise Global Alignment"
+file = "examples/need.bl"
+url = "https://rosalind.info/problems/need/"
+status = "solved"
+network = true
+asserted = true
+note = "Reproduces the EMBOSS Needle score of 257 using align() with affine gaps (match 5, mismatch -4, gap_open -9, gap_extend -1). Asserted, but excluded from the hermetic CI gate because it fetches from NCBI."
+topics = ["alignment"]
+
+[[problem]]
+id = "TFSQ"
+title = "FASTQ format introduction"
+file = "examples/tfsq.bl"
+url = "https://rosalind.info/problems/tfsq/"
+status = "solved"
+asserted = true
+topics = ["fastq", "formats"]
+
+[[problem]]
+id = "PHRE"
+title = "Read Quality Distribution"
+file = "examples/phre.bl"
+url = "https://rosalind.info/problems/phre/"
+status = "solved"
+asserted = true
+topics = ["fastq", "quality"]
+
+[[problem]]
+id = "PTRA"
+title = "Protein Translation"
+file = "examples/ptra.bl"
+url = "https://rosalind.info/problems/ptra/"
+status = "solved"
+asserted = true
+topics = ["translation", "codon-tables"]
+
+[[problem]]
+id = "FILT"
+title = "Read Filtration by Quality"
+file = "examples/filt.bl"
+url = "https://rosalind.info/problems/filt/"
+status = "solved"
+asserted = true
+topics = ["fastq", "quality"]
+
+[[problem]]
+id = "RVCO"
+title = "Complementing a Strand of DNA"
+file = "examples/rvco.bl"
+url = "https://rosalind.info/problems/rvco/"
+status = "solved"
+asserted = true
+topics = ["sequence"]
+
+[[problem]]
+id = "SUBO"
+title = "Suboptimal Local Alignment"
+file = "examples/subo.bl"
+url = "https://rosalind.info/problems/subo/"
+status = "solved"
+asserted = true
+slow = true
+note = "Brute-force O(n^3) window scan; ~25 s. A motif-index approach would be the natural follow-up."
+topics = ["alignment", "motifs"]
+
+[[problem]]
+id = "BPHR"
+title = "Base Quality Distribution"
+file = "examples/bphr.bl"
+url = "https://rosalind.info/problems/bphr/"
+status = "solved"
+asserted = true
+topics = ["fastq", "quality"]
+
+[[problem]]
+id = "CLUS"
+title = "Global Multiple Alignment"
+file = "examples/clus.bl"
+url = "https://rosalind.info/problems/clus/"
+status = "solved"
+asserted = true
+topics = ["alignment", "fasta"]
+
+[[problem]]
+id = "ORFR"
+title = "Finding Genes with ORFs"
+file = "examples/orfr.bl"
+url = "https://rosalind.info/problems/orfr/"
+status = "solved"
+asserted = true
+topics = ["orf", "translation"]
+
+[[problem]]
+id = "BFIL"
+title = "Base Filtration by Quality"
+file = "examples/bfil.bl"
+url = "https://rosalind.info/problems/bfil/"
+status = "solved"
+asserted = true
+topics = ["fastq", "quality", "trimming"]

@@ -48,7 +48,7 @@ The `manhattan()` function expects a table with `chrom`, `pos`, and `pvalue` col
 To produce SVG for a publication figure:
 
 ```bio
-let svg = manhattan(gwas, format: "svg", title: "GWAS Results")
+let svg = manhattan(gwas, {format: "svg", title: "GWAS Results"})
 save_svg(svg, "figures/manhattan.svg")
 ```
 
@@ -77,11 +77,11 @@ Gene expression experiments produce continuous measurements across conditions. V
 A violin plot combines a box plot with a kernel density estimate, showing the full shape of the data distribution in each group.
 
 ```bio
-let groups = {
+let groups = table({
     control: [5.2, 4.8, 5.1, 4.9, 5.3, 5.0, 4.7, 5.4],
     low_dose: [6.5, 7.1, 6.8, 6.3, 7.0, 6.6, 6.9, 7.2],
     high_dose: [9.2, 8.8, 9.5, 9.0, 8.6, 9.3, 8.9, 9.1]
-}
+})
 violin(groups, title: "Expression by Treatment Group")
 ```
 
@@ -171,7 +171,10 @@ let studies = [
     {study: "Chen 2022", effect: 1.2, ci_lower: 0.8, ci_upper: 1.8},
     {study: "Patel 2023", effect: 1.6, ci_lower: 1.2, ci_upper: 2.1},
 ] |> to_table()
-forest_plot(studies, title: "Meta-Analysis: Gene X Association")
+forest_plot(studies, {
+    label: "study", estimate: "effect", lower: "ci_lower", upper: "ci_upper",
+    title: "Meta-Analysis: Gene X Association"
+})
 ```
 
 The `forest_plot()` function expects columns `study`, `effect`, `ci_lower`, and `ci_upper`. Each study is shown as a point with horizontal whiskers for the confidence interval. A vertical line at effect = 1.0 marks the null.
@@ -293,9 +296,13 @@ An oncoprint shows the mutation landscape of a cancer cohort. Each row is a gene
 
 ```bio
 let mutations_matrix = [
-    {gene: "TP53", sample1: "Missense", sample2: "Nonsense", sample3: "None", sample4: "Missense"},
-    {gene: "KRAS", sample1: "None", sample2: "Missense", sample3: "Missense", sample4: "None"},
-    {gene: "EGFR", sample1: "Amplification", sample2: "None", sample3: "None", sample4: "Deletion"},
+    {gene: "TP53", sample: "sample1", type: "missense"},
+    {gene: "TP53", sample: "sample2", type: "nonsense"},
+    {gene: "TP53", sample: "sample4", type: "missense"},
+    {gene: "KRAS", sample: "sample2", type: "missense"},
+    {gene: "KRAS", sample: "sample3", type: "missense"},
+    {gene: "EGFR", sample: "sample1", type: "amplification"},
+    {gene: "EGFR", sample: "sample4", type: "deletion"},
 ] |> to_table()
 oncoprint(mutations_matrix, title: "Mutation Landscape")
 ```
@@ -328,7 +335,7 @@ let contacts = [
     [20, 40, 100, 30],
     [5, 10, 30, 100],
 ]
-hic_map(contacts, title: "Chromatin Contacts")
+hic_map(matrix(contacts), title: "Chromatin Contacts")
 ```
 
 The `hic_map()` function takes a nested list (symmetric matrix) of contact frequencies.
@@ -381,7 +388,7 @@ All bio visualization functions support two output modes:
 manhattan(gwas, title: "Quick Look")
 
 # SVG output — returns a string
-let svg = manhattan(gwas, format: "svg", title: "GWAS Results")
+let svg = manhattan(gwas, {format: "svg", title: "GWAS Results"})
 save_svg(svg, "figures/manhattan.svg")
 
 # save_plot is an alias for save_svg

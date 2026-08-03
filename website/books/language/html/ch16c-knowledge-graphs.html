@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -294,7 +294,7 @@ let g = network |&gt; reduce(g, |g, edge|
 # Find hub genes (highest degree)
 let gene_degrees = nodes(g) |&gt; map(|n| {gene: n, deg: degree(g, n)})
 gene_degrees
-  |&gt; sort_by(|r| r.deg, desc: true)
+  |&gt; sort_by(|r| -r.deg)
   |&gt; take(10)
   |&gt; each(|r| print(r.gene + ": " + str(r.deg) + " interactions"))
 
@@ -379,8 +379,8 @@ print("Connected components: " + str(len(components)))
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

@@ -1,0 +1,15 @@
+fn rmsd(pdb_a, pdb_b)              { rmsd(pdb_a, pdb_b) }
+fn contacts(pdb_table, dist=8.0)   { contact_map(pdb_table, dist) }
+fn ss(pdb_table)                   { secondary_structure(pdb_table) }
+fn ramachandran(pdb_table)         { backbone_angles(pdb_table) }
+
+fn ss_composition(pdb_table) {
+  let assignments = secondary_structure(pdb_table)
+  let n = len(assignments)
+  {
+    helix:      assignments |> filter(fn(s) -> s == "H") |> len,
+    sheet:      assignments |> filter(fn(s) -> s == "E") |> len,
+    coil:       assignments |> filter(fn(s) -> s == "C") |> len,
+    n_residues: n
+  }
+}

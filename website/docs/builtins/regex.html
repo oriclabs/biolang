@@ -28,7 +28,7 @@
         <section class="mb-12" id="regex_match">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">regex_match</span></h2>
           <p class="text-slate-400 mt-2">Test if the entire string matches a pattern.</p>
-          <pre><code class="language-biolang">regex_match(s, pattern) -> bool</code></pre>
+          <pre><code class="language-text">regex_match(s, pattern) -> bool</code></pre>
           <pre><code class="language-biolang">regex_match("ATCGATCG", "^[ATCG]+$")   # true
 regex_match("ATCXATCG", "^[ATCG]+$")   # false (X is not ATCG)
 regex_match("NM_001256", "^NM_\\d+$")  # true
@@ -41,7 +41,7 @@ regex_match(header, "^>\\w+\\|\\w+\\|\\w+$")   # true</code></pre>
         <section class="mb-12" id="regex_find">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">regex_find</span></h2>
           <p class="text-slate-400 mt-2">Find the first match of a pattern in a string. Returns <code>nil</code> if no match.</p>
-          <pre><code class="language-biolang">regex_find(s, pattern) -> string | nil</code></pre>
+          <pre><code class="language-text">regex_find(s, pattern) -> string | nil</code></pre>
           <pre><code class="language-biolang">regex_find("Gene: BRCA1, Variant: c.5266dupC", "\\bc\\.[\\w]+")
 # "c.5266dupC"
 
@@ -52,7 +52,7 @@ regex_find("no numbers here", "\\d+")          # nil</code></pre>
         <section class="mb-12" id="regex_find_all">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">regex_find_all</span></h2>
           <p class="text-slate-400 mt-2">Find all non-overlapping matches.</p>
-          <pre><code class="language-biolang">regex_find_all(s, pattern) -> list</code></pre>
+          <pre><code class="language-text">regex_find_all(s, pattern) -> list</code></pre>
           <pre><code class="language-biolang">regex_find_all("ATG...TAA...ATG...TGA", "ATG")
 # ["ATG", "ATG"]
 
@@ -69,7 +69,7 @@ regex_find_all(seq, "ATG")   # ["ATG", "ATG", "ATG"]</code></pre>
         <section class="mb-12" id="regex_replace">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">regex_replace</span></h2>
           <p class="text-slate-400 mt-2">Replace all matches of a pattern. Supports capture group references (<code>$1</code>, <code>$2</code>).</p>
-          <pre><code class="language-biolang">regex_replace(s, pattern, replacement) -> string</code></pre>
+          <pre><code class="language-text">regex_replace(s, pattern, replacement) -> string</code></pre>
           <pre><code class="language-biolang">regex_replace("chr1:1000-2000", "(\\d+)-(\\d+)", "$1..$2")
 # "chr1:1000..2000"
 
@@ -79,26 +79,26 @@ regex_replace(header, "\\s+length=\\d+", "")   # "@SRR1234567.1"
 
 # Mask low-complexity regions
 let seq = "ATCGAAAAAAAATCG"
-regex_replace(seq, "A{4,}", |m| repeat("N", len(m)))
-# "ATCGNNNNNNNNTCG"</code></pre>
+regex_replace(seq, "A{4,}", "NNNN")
+# "ATCGNNNNTCG"</code></pre>
         </section>
 
         <section class="mb-12" id="regex_split">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">regex_split</span></h2>
           <p class="text-slate-400 mt-2">Split a string by a regex pattern.</p>
-          <pre><code class="language-biolang">regex_split(s, pattern) -> list</code></pre>
+          <pre><code class="language-text">regex_split(s, pattern) -> list</code></pre>
           <pre><code class="language-biolang">regex_split("gene1  gene2\tgene3", "\\s+")
 # ["gene1", "gene2", "gene3"]
 
 # Split CIGAR string into operations
-regex_split("50M2I30M1D20M", "(?<=[MIDNSHP=X])(?=\\d)")
+regex_split("50M2I30M1D20M", "(?&lt;=[MIDNSHP=X])(?=\\d)")
 # ["50M", "2I", "30M", "1D", "20M"]</code></pre>
         </section>
 
         <section class="mb-12" id="regex_captures">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">regex_captures</span></h2>
           <p class="text-slate-400 mt-2">Extract named or positional capture groups from the first match.</p>
-          <pre><code class="language-biolang">regex_captures(s, pattern) -> list | nil</code></pre>
+          <pre><code class="language-text">regex_captures(s, pattern) -> list | nil</code></pre>
           <pre><code class="language-biolang">let loc = "chr7:55249071-55249171"
 let caps = regex_captures(loc, "(chr\\w+):(\\d+)-(\\d+)")
 # ["chr7:55249071-55249171", "chr7", "55249071", "55249171"]

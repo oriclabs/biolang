@@ -1,0 +1,23 @@
+# Classify query cells against a reference atlas using k-NN cosine similarity.
+# Returns obj with .cell_types field: table (cell, label, confidence).
+fn from_reference(obj, ref_matrix, ref_labels) {
+  let query = obj.norm_matrix
+  let types = reference_classify(query, ref_matrix, ref_labels)
+  obj |> set_field("cell_types", types)
+}
+
+fn get_labels(obj)      { obj.cell_types }
+fn confidence_table(obj) {
+  obj.cell_types |> sort_by(fn(r) -> r.confidence, descending = true)
+}
+fn low_confidence(obj, threshold = 0.6) {
+  obj.cell_types |> filter(fn(r) -> r.confidence < threshold)
+}
+
+# Summarise how many cells were assigned each type
+fn type_counts(obj) {
+  obj.cell_types
+    |> group_by(fn(r) -> r.label)
+    |> map(fn(label, rows) -> {cell_type: label, count: len(rows)})
+    |> sort_by(fn(r) -> r.count, descending = true)
+}

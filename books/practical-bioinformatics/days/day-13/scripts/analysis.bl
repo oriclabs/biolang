@@ -74,10 +74,7 @@ print("")
 
 print("=== Step 7: Differential Expression ===")
 
-let de_results = diff_expr(counts,
-    control: ["normal_1", "normal_2", "normal_3"],
-    treatment: ["tumor_1", "tumor_2", "tumor_3"]
-)
+let de_results = diff_expr(counts, [0, 0, 0, 1, 1, 1])
 print(f"DE results: {nrow(de_results)} genes")
 print(de_results |> head(5))
 print("")
@@ -116,7 +113,11 @@ print("")
 print("=== Step 10: Visualization ===")
 
 print("Generating volcano plot...")
-volcano(de_results, fc_threshold: 1.0, p_threshold: 0.05, title: "Tumor vs Normal DE")
+volcano(de_results, {
+    fc_threshold: 1.0,
+    p_threshold: 0.05,
+    title: "Tumor vs Normal DE"
+})
 
 print("Generating MA plot...")
 ma_plot(de_results)

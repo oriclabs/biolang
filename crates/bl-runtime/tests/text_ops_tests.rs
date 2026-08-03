@@ -9,11 +9,14 @@ fn test_lines_basic() {
     let result = call_text_builtin("lines", vec![Value::Str("a\nb\nc".into())]).unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("a".into()),
-            Value::Str("b".into()),
-            Value::Str("c".into()),
-        ])
+        Value::List(
+            (vec![
+                Value::Str("a".into()),
+                Value::Str("b".into()),
+                Value::Str("c".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -22,11 +25,14 @@ fn test_lines_crlf() {
     let result = call_text_builtin("lines", vec![Value::Str("a\r\nb\r\nc".into())]).unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("a".into()),
-            Value::Str("b".into()),
-            Value::Str("c".into()),
-        ])
+        Value::List(
+            (vec![
+                Value::Str("a".into()),
+                Value::Str("b".into()),
+                Value::Str("c".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -35,26 +41,32 @@ fn test_lines_trailing_newline() {
     let result = call_text_builtin("lines", vec![Value::Str("a\nb\n".into())]).unwrap();
     assert_eq!(
         result,
-        Value::List(vec![Value::Str("a".into()), Value::Str("b".into())])
+        Value::List((vec![Value::Str("a".into()), Value::Str("b".into())]).into())
     );
 }
 
 #[test]
 fn test_lines_empty_string() {
     let result = call_text_builtin("lines", vec![Value::Str("".into())]).unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 #[test]
 fn test_lines_single_line_no_newline() {
     let result = call_text_builtin("lines", vec![Value::Str("hello".into())]).unwrap();
-    assert_eq!(result, Value::List(vec![Value::Str("hello".into())]));
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Str("hello".into())]).into())
+    );
 }
 
 #[test]
 fn test_lines_single_line_with_newline() {
     let result = call_text_builtin("lines", vec![Value::Str("hello\n".into())]).unwrap();
-    assert_eq!(result, Value::List(vec![Value::Str("hello".into())]));
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Str("hello".into())]).into())
+    );
 }
 
 // ── grep ─────────────────────────────────────────────────────────
@@ -71,7 +83,7 @@ fn test_grep_basic() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![Value::Str("PASS".into()), Value::Str("PASS".into())])
+        Value::List((vec![Value::Str("PASS".into()), Value::Str("PASS".into())]).into())
     );
 }
 
@@ -79,32 +91,29 @@ fn test_grep_basic() {
 fn test_grep_no_match() {
     let result = call_text_builtin(
         "grep",
-        vec![
-            Value::Str("hello\nworld".into()),
-            Value::Str("xyz".into()),
-        ],
+        vec![Value::Str("hello\nworld".into()), Value::Str("xyz".into())],
     )
     .unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 #[test]
 fn test_grep_every_line_matches() {
     let result = call_text_builtin(
         "grep",
-        vec![
-            Value::Str("abc\nabc\nabc".into()),
-            Value::Str("abc".into()),
-        ],
+        vec![Value::Str("abc\nabc\nabc".into()), Value::Str("abc".into())],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("abc".into()),
-            Value::Str("abc".into()),
-            Value::Str("abc".into()),
-        ])
+        Value::List(
+            (vec![
+                Value::Str("abc".into()),
+                Value::Str("abc".into()),
+                Value::Str("abc".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -113,18 +122,21 @@ fn test_grep_list_input() {
     let result = call_text_builtin(
         "grep",
         vec![
-            Value::List(vec![
-                Value::Str("foo".into()),
-                Value::Str("bar".into()),
-                Value::Str("baz".into()),
-            ]),
+            Value::List(
+                (vec![
+                    Value::Str("foo".into()),
+                    Value::Str("bar".into()),
+                    Value::Str("baz".into()),
+                ])
+                .into(),
+            ),
             Value::Str("ba".into()),
         ],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![Value::Str("bar".into()), Value::Str("baz".into())])
+        Value::List((vec![Value::Str("bar".into()), Value::Str("baz".into())]).into())
     );
 }
 
@@ -137,11 +149,14 @@ fn test_grep_invert() {
         vec![
             Value::Str("PASS\nFAIL\nPASS".into()),
             Value::Str("PASS".into()),
-            Value::Record(flags),
+            Value::Record((flags).into()),
         ],
     )
     .unwrap();
-    assert_eq!(result, Value::List(vec![Value::Str("FAIL".into())]));
+    assert_eq!(
+        result,
+        Value::List((vec![Value::Str("FAIL".into())]).into())
+    );
 }
 
 #[test]
@@ -153,7 +168,7 @@ fn test_grep_count() {
         vec![
             Value::Str("a\nb\na\nc\na".into()),
             Value::Str("a".into()),
-            Value::Record(flags),
+            Value::Record((flags).into()),
         ],
     )
     .unwrap();
@@ -169,17 +184,20 @@ fn test_grep_ignore_case() {
         vec![
             Value::Str("Hello\nhello\nHELLO".into()),
             Value::Str("hello".into()),
-            Value::Record(flags),
+            Value::Record((flags).into()),
         ],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("Hello".into()),
-            Value::Str("hello".into()),
-            Value::Str("HELLO".into()),
-        ])
+        Value::List(
+            (vec![
+                Value::Str("Hello".into()),
+                Value::Str("hello".into()),
+                Value::Str("HELLO".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -192,16 +210,19 @@ fn test_grep_line_numbers() {
         vec![
             Value::Str("a\nb\nc\nb".into()),
             Value::Str("b".into()),
-            Value::Record(flags),
+            Value::Record((flags).into()),
         ],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::List(vec![Value::Int(2), Value::Str("b".into())]),
-            Value::List(vec![Value::Int(4), Value::Str("b".into())]),
-        ])
+        Value::List(
+            (vec![
+                Value::List((vec![Value::Int(2), Value::Str("b".into())]).into()),
+                Value::List((vec![Value::Int(4), Value::Str("b".into())]).into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -217,10 +238,7 @@ fn test_grep_regex_pattern() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("abc123".into()),
-            Value::Str("def456".into()),
-        ])
+        Value::List((vec![Value::Str("abc123".into()), Value::Str("def456".into()),]).into())
     );
 }
 
@@ -231,7 +249,7 @@ fn test_grep_empty_input() {
         vec![Value::Str("".into()), Value::Str("anything".into())],
     )
     .unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 // ── grep_count ───────────────────────────────────────────────────
@@ -253,10 +271,7 @@ fn test_grep_count_basic() {
 fn test_grep_count_zero() {
     let result = call_text_builtin(
         "grep_count",
-        vec![
-            Value::Str("hello\nworld".into()),
-            Value::Str("zzz".into()),
-        ],
+        vec![Value::Str("hello\nworld".into()), Value::Str("zzz".into())],
     )
     .unwrap();
     assert_eq!(result, Value::Int(0));
@@ -277,7 +292,7 @@ fn test_cut_single_field() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![Value::Str("b".into()), Value::Str("e".into())])
+        Value::List((vec![Value::Str("b".into()), Value::Str("e".into())]).into())
     );
 }
 
@@ -288,16 +303,19 @@ fn test_cut_multiple_fields() {
         vec![
             Value::Str("a,b,c\nd,e,f".into()),
             Value::Str(",".into()),
-            Value::List(vec![Value::Int(0), Value::Int(2)]),
+            Value::List((vec![Value::Int(0), Value::Int(2)]).into()),
         ],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::List(vec![Value::Str("a".into()), Value::Str("c".into())]),
-            Value::List(vec![Value::Str("d".into()), Value::Str("f".into())]),
-        ])
+        Value::List(
+            (vec![
+                Value::List((vec![Value::Str("a".into()), Value::Str("c".into())]).into()),
+                Value::List((vec![Value::Str("d".into()), Value::Str("f".into())]).into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -312,7 +330,7 @@ fn test_cut_field_out_of_bounds() {
         ],
     )
     .unwrap();
-    assert_eq!(result, Value::List(vec![Value::Str("".into())]));
+    assert_eq!(result, Value::List((vec![Value::Str("".into())]).into()));
 }
 
 #[test]
@@ -329,11 +347,14 @@ fn test_cut_single_column_data() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("alpha".into()),
-            Value::Str("beta".into()),
-            Value::Str("gamma".into()),
-        ])
+        Value::List(
+            (vec![
+                Value::Str("alpha".into()),
+                Value::Str("beta".into()),
+                Value::Str("gamma".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -351,7 +372,7 @@ fn test_cut_single_column_out_of_bounds() {
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![Value::Str("".into()), Value::Str("".into())])
+        Value::List((vec![Value::Str("".into()), Value::Str("".into())]).into())
     );
 }
 
@@ -362,17 +383,14 @@ fn test_paste_default_tab() {
     let result = call_text_builtin(
         "paste",
         vec![
-            Value::List(vec![Value::Str("a".into()), Value::Str("b".into())]),
-            Value::List(vec![Value::Str("1".into()), Value::Str("2".into())]),
+            Value::List((vec![Value::Str("a".into()), Value::Str("b".into())]).into()),
+            Value::List((vec![Value::Str("1".into()), Value::Str("2".into())]).into()),
         ],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("a\t1".into()),
-            Value::Str("b\t2".into()),
-        ])
+        Value::List((vec![Value::Str("a\t1".into()), Value::Str("b\t2".into()),]).into())
     );
 }
 
@@ -381,18 +399,15 @@ fn test_paste_custom_sep() {
     let result = call_text_builtin(
         "paste",
         vec![
-            Value::List(vec![Value::Str("x".into()), Value::Str("y".into())]),
-            Value::List(vec![Value::Str("1".into()), Value::Str("2".into())]),
+            Value::List((vec![Value::Str("x".into()), Value::Str("y".into())]).into()),
+            Value::List((vec![Value::Str("1".into()), Value::Str("2".into())]).into()),
             Value::Str(",".into()),
         ],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("x,1".into()),
-            Value::Str("y,2".into()),
-        ])
+        Value::List((vec![Value::Str("x,1".into()), Value::Str("y,2".into()),]).into())
     );
 }
 
@@ -401,23 +416,29 @@ fn test_paste_unequal_lengths() {
     let result = call_text_builtin(
         "paste",
         vec![
-            Value::List(vec![
-                Value::Str("a".into()),
-                Value::Str("b".into()),
-                Value::Str("c".into()),
-            ]),
-            Value::List(vec![Value::Str("1".into())]),
+            Value::List(
+                (vec![
+                    Value::Str("a".into()),
+                    Value::Str("b".into()),
+                    Value::Str("c".into()),
+                ])
+                .into(),
+            ),
+            Value::List((vec![Value::Str("1".into())]).into()),
             Value::Str(",".into()),
         ],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("a,1".into()),
-            Value::Str("b,".into()),
-            Value::Str("c,".into()),
-        ])
+        Value::List(
+            (vec![
+                Value::Str("a,1".into()),
+                Value::Str("b,".into()),
+                Value::Str("c,".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -425,10 +446,10 @@ fn test_paste_unequal_lengths() {
 fn test_paste_both_empty() {
     let result = call_text_builtin(
         "paste",
-        vec![Value::List(vec![]), Value::List(vec![])],
+        vec![Value::List((vec![]).into()), Value::List((vec![]).into())],
     )
     .unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 #[test]
@@ -436,18 +457,15 @@ fn test_paste_one_empty() {
     let result = call_text_builtin(
         "paste",
         vec![
-            Value::List(vec![Value::Str("a".into()), Value::Str("b".into())]),
-            Value::List(vec![]),
+            Value::List((vec![Value::Str("a".into()), Value::Str("b".into())]).into()),
+            Value::List((vec![]).into()),
             Value::Str(",".into()),
         ],
     )
     .unwrap();
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("a,".into()),
-            Value::Str("b,".into()),
-        ])
+        Value::List((vec![Value::Str("a,".into()), Value::Str("b,".into()),]).into())
     );
 }
 
@@ -457,14 +475,17 @@ fn test_paste_one_empty() {
 fn test_uniq_count_basic() {
     let result = call_text_builtin(
         "uniq_count",
-        vec![Value::List(vec![
-            Value::Str("a".into()),
-            Value::Str("b".into()),
-            Value::Str("a".into()),
-            Value::Str("c".into()),
-            Value::Str("a".into()),
-            Value::Str("b".into()),
-        ])],
+        vec![Value::List(
+            (vec![
+                Value::Str("a".into()),
+                Value::Str("b".into()),
+                Value::Str("a".into()),
+                Value::Str("c".into()),
+                Value::Str("a".into()),
+                Value::Str("b".into()),
+            ])
+            .into(),
+        )],
     )
     .unwrap();
 
@@ -491,14 +512,17 @@ fn test_uniq_count_basic() {
 
 #[test]
 fn test_uniq_count_empty() {
-    let result = call_text_builtin("uniq_count", vec![Value::List(vec![])]).unwrap();
-    assert_eq!(result, Value::List(vec![]));
+    let result = call_text_builtin("uniq_count", vec![Value::List((vec![]).into())]).unwrap();
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 #[test]
 fn test_uniq_count_single() {
-    let result =
-        call_text_builtin("uniq_count", vec![Value::List(vec![Value::Int(42)])]).unwrap();
+    let result = call_text_builtin(
+        "uniq_count",
+        vec![Value::List((vec![Value::Int(42)]).into())],
+    )
+    .unwrap();
     if let Value::List(items) = &result {
         assert_eq!(items.len(), 1);
         if let Value::Record(rec) = &items[0] {
@@ -512,17 +536,20 @@ fn test_uniq_count_single() {
 fn test_uniq_count_all_unique() {
     let result = call_text_builtin(
         "uniq_count",
-        vec![Value::List(vec![
-            Value::Str("x".into()),
-            Value::Str("y".into()),
-            Value::Str("z".into()),
-        ])],
+        vec![Value::List(
+            (vec![
+                Value::Str("x".into()),
+                Value::Str("y".into()),
+                Value::Str("z".into()),
+            ])
+            .into(),
+        )],
     )
     .unwrap();
     if let Value::List(items) = &result {
         assert_eq!(items.len(), 3);
         // All have count 1, so order is by insertion
-        for item in items {
+        for item in items.iter() {
             if let Value::Record(rec) = item {
                 assert_eq!(rec.get("count"), Some(&Value::Int(1)));
             } else {
@@ -538,12 +565,15 @@ fn test_uniq_count_all_unique() {
 fn test_uniq_count_single_item_repeated() {
     let result = call_text_builtin(
         "uniq_count",
-        vec![Value::List(vec![
-            Value::Str("dup".into()),
-            Value::Str("dup".into()),
-            Value::Str("dup".into()),
-            Value::Str("dup".into()),
-        ])],
+        vec![Value::List(
+            (vec![
+                Value::Str("dup".into()),
+                Value::Str("dup".into()),
+                Value::Str("dup".into()),
+                Value::Str("dup".into()),
+            ])
+            .into(),
+        )],
     )
     .unwrap();
     if let Value::List(items) = &result {
@@ -563,8 +593,7 @@ fn test_uniq_count_single_item_repeated() {
 
 #[test]
 fn test_wc_basic() {
-    let result =
-        call_text_builtin("wc", vec![Value::Str("hello world\nfoo".into())]).unwrap();
+    let result = call_text_builtin("wc", vec![Value::Str("hello world\nfoo".into())]).unwrap();
     if let Value::Record(rec) = &result {
         assert_eq!(rec.get("lines"), Some(&Value::Int(2)));
         assert_eq!(rec.get("words"), Some(&Value::Int(3)));
@@ -623,8 +652,8 @@ fn test_stream_concat_two_lists() {
     let result = call_text_builtin(
         "stream_concat",
         vec![
-            Value::List(vec![Value::Int(1), Value::Int(2)]),
-            Value::List(vec![Value::Int(3), Value::Int(4)]),
+            Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
+            Value::List((vec![Value::Int(3), Value::Int(4)]).into()),
         ],
     )
     .unwrap();
@@ -644,7 +673,7 @@ fn test_stream_concat_stream_and_list() {
         "a",
         vec![Value::Str("x".into()), Value::Str("y".into())],
     ));
-    let list = Value::List(vec![Value::Str("z".into())]);
+    let list = Value::List((vec![Value::Str("z".into())]).into());
     let result = call_text_builtin("stream_concat", vec![stream, list]).unwrap();
     if let Value::Stream(s) = result {
         let items = s.collect_all();
@@ -663,7 +692,7 @@ fn test_stream_concat_stream_and_list() {
 fn test_stream_concat_both_empty() {
     let result = call_text_builtin(
         "stream_concat",
-        vec![Value::List(vec![]), Value::List(vec![])],
+        vec![Value::List((vec![]).into()), Value::List((vec![]).into())],
     )
     .unwrap();
     if let Value::Stream(s) = result {
@@ -679,8 +708,8 @@ fn test_stream_concat_first_empty() {
     let result = call_text_builtin(
         "stream_concat",
         vec![
-            Value::List(vec![]),
-            Value::List(vec![Value::Int(1), Value::Int(2)]),
+            Value::List((vec![]).into()),
+            Value::List((vec![Value::Int(1), Value::Int(2)]).into()),
         ],
     )
     .unwrap();
@@ -697,8 +726,8 @@ fn test_stream_concat_second_empty() {
     let result = call_text_builtin(
         "stream_concat",
         vec![
-            Value::List(vec![Value::Str("a".into())]),
-            Value::List(vec![]),
+            Value::List((vec![Value::Str("a".into())]).into()),
+            Value::List((vec![]).into()),
         ],
     )
     .unwrap();
@@ -726,10 +755,7 @@ fn test_lines_type_error() {
 fn test_grep_invalid_regex() {
     let result = call_text_builtin(
         "grep",
-        vec![
-            Value::Str("test".into()),
-            Value::Str("[invalid".into()),
-        ],
+        vec![Value::Str("test".into()), Value::Str("[invalid".into())],
     );
     assert!(result.is_err());
 }
@@ -751,13 +777,16 @@ fn test_cut_bad_field_type() {
 fn test_paste_type_error() {
     let result = call_text_builtin(
         "paste",
-        vec![Value::Str("not a list".into()), Value::List(vec![])],
+        vec![
+            Value::Str("not a list".into()),
+            Value::List((vec![]).into()),
+        ],
     );
     assert!(result.is_err());
 }
 
 #[test]
 fn test_wc_type_error() {
-    let result = call_text_builtin("wc", vec![Value::List(vec![])]);
+    let result = call_text_builtin("wc", vec![Value::List((vec![]).into())]);
     assert!(result.is_err());
 }

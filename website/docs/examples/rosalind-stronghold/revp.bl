@@ -1,0 +1,29 @@
+# Rosalind: REVP — Locating Restriction Sites
+# https://rosalind.info/problems/revp/
+#
+# Given: A DNA string of length at most 1 kbp.
+# Return: The position and length of every reverse palindrome of length
+# between 4 and 12, as 1-based positions.
+
+let s = "TCAATGCATGCGGGTCTATATGCAT"
+
+# A reverse palindrome reads the same as its own reverse complement, so a
+# window qualifies when it equals reverse_complement(window).
+fn is_reverse_palindrome(window) {
+    str(reverse_complement(dna(window))) == window
+}
+
+let found = range(4, 13) |> flat_map(|width| {
+    range(0, len(s) - width + 1)
+        |> filter(|i| is_reverse_palindrome(substr(s, i, width)))
+        |> map(|i| { position: i + 1, length: width })
+}) |> sort_by(|hit| hit.position)
+
+println("Result:   " + str(len(found)) + " palindromes")
+found |> each(|hit| println("  " + str(hit.position) + " " + str(hit.length)))
+println("Expected: 8 — (4,6) (5,4) (6,6) (7,4) (17,4) (18,4) (20,6) (21,4)")
+
+fn test_revp_reverse_palindromes() {
+    assert len(found) == 8, "REVP: got " + str(len(found))
+    assert found[0].position == 4 and found[0].length == 6, "REVP: first was " + str(found[0])
+}

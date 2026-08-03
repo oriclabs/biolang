@@ -8,16 +8,17 @@ println("length: " + str(len(bases)))
 println("first: " + bases[0])
 println("last: " + bases[-1])
 
-# Mutating operations
+# push/pop return new lists (BioLang collections are immutable — rebind to update).
 let nums = [1, 2, 3]
-push(nums, 4)
+let nums = push(nums, 4)
 println("after push: " + str(nums))
-let popped = pop(nums)
+let popped = nums[-1]       # save the last element before removing it
+let nums = pop(nums)        # pop() returns the shortened list
 println("popped: " + str(popped) + ", remaining: " + str(nums))
 
 # Searching and membership
 println("contains G: " + str(contains(bases, "G")))
-println("index of T: " + str(index_of(bases, "T")))
+println("index of T: " + str(index_of(join(bases, ""), "T")))
 
 # Transformations
 println("reversed: " + str(reverse(bases)))
@@ -34,27 +35,27 @@ let nested = [[1, 2], [3, 4], [5]]
 println("flatten: " + str(flatten(nested)))
 
 # Enumerate and zip
-for i, val in enumerate(["x", "y", "z"]) {
+for (i, val) in enumerate(["x", "y", "z"]) {
     println(str(i) + " => " + val)
 }
-let keys = ["name", "age"]
+let labels = ["name", "age"]
 let vals = ["Alice", 30]
-println("zip: " + str(zip(keys, vals)))
+println("zip: " + str(zip(labels, vals)))
 
 # ── Records ────────────────────────────────────────────
-let sample = {id: "S001", organism: "H. sapiens", reads: 1500000}
-println("sample: " + str(sample))
-println("organism: " + sample.organism)
+let sample_record = {id: "S001", organism: "H. sapiens", reads: 1500000}
+println("sample: " + str(sample_record))
+println("organism: " + sample_record.organism)
 
 # Record introspection
-println("keys: " + str(keys(sample)))
-println("values: " + str(values(sample)))
-println("has 'id': " + str(has_key(sample, "id")))
+println("keys: " + str(keys(sample_record)))
+println("values: " + str(values(sample_record)))
+println("has 'id': " + str(has_key(sample_record, "id")))
 
 # Modifying records
-let updated = merge(sample, {reads: 2000000, status: "complete"})
+let updated = merge(sample_record, {reads: 2000000, status: "complete"})
 println("merged: " + str(updated))
-let trimmed = remove_key(sample, "reads")
+let trimmed = remove_key(sample_record, "reads")
 println("removed reads: " + str(trimmed))
 
 # ── Sets ───────────────────────────────────────────────

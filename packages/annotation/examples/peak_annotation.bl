@@ -1,0 +1,19 @@
+import "annotation" as ann
+
+# Load GENCODE GTF
+let gtf = ann.load("data/gencode.v45.annotation.gtf")
+
+# Gene bodies and promoters
+let genes = ann.genes(gtf)
+let proms = ann.promoters(gtf, up=2000, down=200)
+
+# Ensembl ID → gene name lookup
+let id_map = ann.id_map(gtf)
+
+# Annotate ChIP-seq peaks with nearest gene
+# let peaks = read_csv("data/macs3_peaks.narrowPeak", sep="\t")
+# ann.annotate(peaks, gtf)
+
+# Overlap ChIP-seq peaks with ATAC peaks
+# let atac_peaks = read_csv("data/atac_peaks.bed", sep="\t")
+# ann.overlap(peaks, atac_peaks)

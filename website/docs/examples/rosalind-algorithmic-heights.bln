@@ -1,0 +1,2201 @@
+---
+title: Rosalind — Algorithmic Heights
+version: 0.1.0
+abstract: The Algorithmic Heights track: sorting, heaps, graph search and shortest paths, written in BioLang rather than called from a builtin.
+---
+
+# Rosalind — Algorithmic Heights
+
+The Algorithmic Heights track: sorting, heaps, graph search and shortest paths, written in BioLang rather than called from a builtin. Generated from `packs/rosalind-algorithmic-heights/pack.toml`.
+
+Run the whole notebook with `bl notebook rosalind-algorithmic-heights.bln`.
+
+## FIBO — Fibonacci Numbers
+
+[Problem statement](https://rosalind.info/problems/fibo/)
+
+```biolang
+# Rosalind: FIBO — Fibonacci Numbers
+# https://rosalind.info/problems/fibo/
+#
+# Given: A positive integer n <= 25.
+# Return: The value of F(n).
+
+let n = 6
+
+# The problem exists to contrast this with the textbook recursion: carrying the
+# last two values forward is linear, where recursing on F(n-1) + F(n-2) without
+# memoisation recomputes the same subproblems exponentially often.
+let previous = 0
+let current = 1
+let step = 0
+while step < n {
+    let next = previous + current
+    previous = current
+    current = next
+    step = step + 1
+}
+let result = previous
+
+println("Result:   " + str(result))
+println("Expected: 8")
+
+fn test_fibo_sixth_number() {
+    assert result == 8, "FIBO: got " + str(result)
+}
+```
+
+## BINS — Binary Search
+
+[Problem statement](https://rosalind.info/problems/bins/)
+
+```biolang
+# Rosalind: BINS — Binary Search
+# https://rosalind.info/problems/bins/
+#
+# Given: Two positive integers n and m, a sorted array A[1..n], and m keys.
+# Return: For each key, an index j with A[j] = key, or -1 if there is none.
+
+let a = [10, 20, 30, 40, 50]
+let queries = [40, 10, 35, 15, 40, 20]
+
+# Halve the live window until it is empty. Rosalind indexes from 1, so the
+# answer is the zero-based position plus one.
+fn binary_search(sorted, key) {
+    let lo = 0
+    let hi = len(sorted) - 1
+    let found = -1
+    while lo <= hi and found == -1 {
+        let mid = int((lo + hi) / 2)
+        let value = sorted[mid]
+        if value == key then {
+            found = mid + 1
+        } else {
+            if value < key then lo = mid + 1 else hi = mid - 1
+        }
+    }
+    found
+}
+
+let result = queries |> map(|k| str(binary_search(a, k))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 4 1 -1 -1 4 2")
+
+fn test_bins_locates_every_key() {
+    assert result == "4 1 -1 -1 4 2", "BINS: got " + result
+}
+```
+
+## DEG — Degree Array
+
+[Problem statement](https://rosalind.info/problems/deg/)
+
+```biolang
+# Rosalind: DEG — Degree Array
+# https://rosalind.info/problems/deg/
+#
+# Given: A simple graph with n vertices in the edge list format.
+# Return: An array D[1..n] where D[i] is the degree of vertex i.
+
+let n = 6
+let edge_list = [[1, 2], [2, 3], [6, 3], [5, 6], [2, 5], [2, 4], [4, 1]]
+
+# Each edge contributes one to both of its endpoints, so a single pass over the
+# edge list is enough — the adjacency structure never has to be built.
+let vertex_degree = []
+for _ in range(0, n) {
+    vertex_degree = push(vertex_degree, 0)
+}
+for edge in edge_list {
+    let u = edge[0] - 1
+    let v = edge[1] - 1
+    vertex_degree[u] = vertex_degree[u] + 1
+    vertex_degree[v] = vertex_degree[v] + 1
+}
+
+let result = vertex_degree |> map(|d| str(d)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 2 4 2 2 2 2")
+
+fn test_deg_degree_array() {
+    assert result == "2 4 2 2 2 2", "DEG: got " + result
+}
+```
+
+## INS — Insertion Sort
+
+[Problem statement](https://rosalind.info/problems/ins/)
+
+```biolang
+# Rosalind: INS — Insertion Sort
+# https://rosalind.info/problems/ins/
+#
+# Given: A positive integer n and an array A[1..n] of integers.
+# Return: The number of swaps performed by insertion sort on A[1..n].
+
+let a = [6, 10, 4, 5, 1, 2]
+
+# Insertion sort walks each element back past everything larger than it, so the
+# swap count is exactly the number of inversions in the array. The sort is done
+# in place, which is what makes the count meaningful.
+let xs = a
+let swaps = 0
+let i = 1
+while i < len(xs) {
+    let k = i
+    while k > 0 and xs[k] < xs[k - 1] {
+        let held = xs[k]
+        xs[k] = xs[k - 1]
+        xs[k - 1] = held
+        swaps = swaps + 1
+        k = k - 1
+    }
+    i = i + 1
+}
+
+println("Result:   " + str(swaps))
+println("Expected: 12")
+println("Sorted:   " + str(xs))
+
+fn test_ins_counts_swaps() {
+    assert swaps == 12, "INS: got " + str(swaps)
+    assert xs == [1, 2, 4, 5, 6, 10], "INS: the array was not sorted in place: " + str(xs)
+}
+```
+
+## DDEG — Double-Degree Array
+
+[Problem statement](https://rosalind.info/problems/ddeg/)
+
+```biolang
+# Rosalind: DDEG — Double-Degree Array
+# https://rosalind.info/problems/ddeg/
+#
+# Given: A simple graph with n vertices in the edge list format.
+# Return: An array D[1..n] where D[i] is the sum of the degrees of i's neighbours.
+
+let n = 5
+let edge_list = [[1, 2], [2, 3], [4, 3], [2, 4]]
+
+# Two passes rather than one: the neighbour sum for a vertex needs every degree
+# to be final first, so the degrees are counted before anything is summed.
+let vertex_degree = []
+for _ in range(0, n) {
+    vertex_degree = push(vertex_degree, 0)
+}
+for edge in edge_list {
+    vertex_degree[edge[0] - 1] = vertex_degree[edge[0] - 1] + 1
+    vertex_degree[edge[1] - 1] = vertex_degree[edge[1] - 1] + 1
+}
+
+let neighbour_sum = []
+for _ in range(0, n) {
+    neighbour_sum = push(neighbour_sum, 0)
+}
+for edge in edge_list {
+    let u = edge[0] - 1
+    let v = edge[1] - 1
+    neighbour_sum[u] = neighbour_sum[u] + vertex_degree[v]
+    neighbour_sum[v] = neighbour_sum[v] + vertex_degree[u]
+}
+
+let result = neighbour_sum |> map(|d| str(d)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 3 5 5 5 0")
+
+fn test_ddeg_neighbour_degree_sums() {
+    assert result == "3 5 5 5 0", "DDEG: got " + result
+}
+```
+
+## MAJ — Majority Element
+
+[Problem statement](https://rosalind.info/problems/maj/)
+
+```biolang
+# Rosalind: MAJ — Majority Element
+# https://rosalind.info/problems/maj/
+#
+# Given: A positive integer k, a positive integer n, and k arrays of size n.
+# Return: For each array, an element occurring strictly more than n/2 times,
+# or -1 if there is none.
+
+let arrays = [
+    [5, 5, 5, 5, 5, 5, 5, 5],
+    [8, 7, 7, 7, 1, 7, 3, 7],
+    [7, 1, 6, 5, 10, 100, 1000, 1],
+    [5, 1, 6, 7, 1, 1, 10, 1],
+]
+
+# A tally is the direct reading of the definition. Comparing 2 * count against
+# the length keeps the test in integers, so "strictly more than n/2" stays exact
+# for odd n instead of depending on how a division rounds.
+fn majority(xs) {
+    let counts = {}
+    for value in xs {
+        let key = str(value)
+        if contains(keys(counts), key) {
+            counts[key] = counts[key] + 1
+        } else {
+            counts[key] = 1
+        }
+    }
+
+    let answer = -1
+    for key in keys(counts) {
+        if counts[key] * 2 > len(xs) {
+            answer = int(key)
+        }
+    }
+    answer
+}
+
+let result = arrays |> map(|xs| str(majority(xs))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 5 7 -1 -1")
+
+fn test_maj_majority_elements() {
+    assert result == "5 7 -1 -1", "MAJ: got " + result
+}
+```
+
+## MER — Merge Two Sorted Arrays
+
+[Problem statement](https://rosalind.info/problems/mer/)
+
+```biolang
+# Rosalind: MER — Merge Two Sorted Arrays
+# https://rosalind.info/problems/mer/
+#
+# Given: A sorted array A[1..n] and a sorted array B[1..m].
+# Return: A sorted array C[1..n+m] containing all elements of A and B.
+
+let a = [2, 4, 10, 18]
+let b = [-5, 11, 12]
+
+# The merge step of merge sort. Sorting the concatenation would also work and
+# would also be slower: taking the smaller head each time is linear because both
+# inputs are already ordered.
+let merged = []
+let i = 0
+let j = 0
+while i < len(a) and j < len(b) {
+    if a[i] <= b[j] {
+        merged = push(merged, a[i])
+        i = i + 1
+    } else {
+        merged = push(merged, b[j])
+        j = j + 1
+    }
+}
+while i < len(a) {
+    merged = push(merged, a[i])
+    i = i + 1
+}
+while j < len(b) {
+    merged = push(merged, b[j])
+    j = j + 1
+}
+
+let result = merged |> map(|v| str(v)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: -5 2 4 10 11 12 18")
+
+fn test_mer_merges_in_order() {
+    assert result == "-5 2 4 10 11 12 18", "MER: got " + result
+}
+```
+
+## 2SUM — 2SUM
+
+[Problem statement](https://rosalind.info/problems/2sum/)
+
+```biolang
+# Rosalind: 2SUM — 2SUM
+# https://rosalind.info/problems/2sum/
+#
+# Given: A positive integer k, a positive integer n, and k arrays of size n.
+# Return: For each array, two indices 1 <= p < q <= n with A[p] = -A[q] if they
+# exist, and -1 otherwise.
+
+let arrays = [
+    [2, -3, 4, 10, 5],
+    [8, 2, 4, -2, -8],
+    [-5, 2, 3, 2, -4],
+    [5, 4, -5, 6, 8],
+]
+
+# Written as A[p] + A[q] == 0 rather than A[p] == -A[q]: the same condition, but
+# it does not depend on how unary minus binds inside an index expression.
+fn two_sum(xs) {
+    let answer = "-1"
+    let p = 0
+    while p < len(xs) and answer == "-1" {
+        let q = p + 1
+        while q < len(xs) and answer == "-1" {
+            if xs[p] + xs[q] == 0 {
+                answer = str(p + 1) + " " + str(q + 1)
+            }
+            q = q + 1
+        }
+        p = p + 1
+    }
+    answer
+}
+
+# Any valid pair is accepted, so the answers are checked against the definition
+# rather than against one particular string. The sample output reports "2 4" for
+# the second array; the scan below reaches 8 and -8 first and reports "1 5",
+# which is equally correct.
+fn is_valid(xs, answer) {
+    if answer == "-1" {
+        let found = false
+        let p = 0
+        while p < len(xs) {
+            let q = p + 1
+            while q < len(xs) {
+                if xs[p] + xs[q] == 0 {
+                    found = true
+                }
+                q = q + 1
+            }
+            p = p + 1
+        }
+        found == false
+    } else {
+        let parts = answer |> split(" ") |> map(|t| int(t))
+        let p = parts[0] - 1
+        let q = parts[1] - 1
+        p < q and xs[p] + xs[q] == 0
+    }
+}
+
+let answers = arrays |> map(|xs| two_sum(xs))
+let verdicts = range(0, len(arrays)) |> map(|i| is_valid(arrays[i], answers[i]))
+
+for i in range(0, len(arrays)) {
+    println("Array " + str(i + 1) + ": " + answers[i] + "  valid: " + str(verdicts[i]))
+}
+println("Sample output: -1 / 2 4 / -1 / 1 3")
+
+fn test_2sum_answers_are_valid() {
+    assert verdicts == [true, true, true, true], "2SUM: " + str(verdicts)
+    assert answers[0] == "-1", "2SUM[1]: expected no pair, got " + answers[0]
+    assert answers[2] == "-1", "2SUM[3]: expected no pair, got " + answers[2]
+}
+```
+
+## BFS — Breadth-First Search
+
+[Problem statement](https://rosalind.info/problems/bfs/)
+
+```biolang
+# Rosalind: BFS — Breadth-First Search
+# https://rosalind.info/problems/bfs/
+#
+# Given: A simple directed graph with n vertices in the edge list format.
+# Return: An array D[1..n] where D[i] is the length of a shortest path from
+# vertex 1 to vertex i, and -1 where i is unreachable.
+
+let n = 6
+let edge_list = [[4, 6], [6, 5], [4, 3], [3, 5], [2, 1], [1, 4]]
+
+# Directed: each edge is added once, so 2 -> 1 does not make 2 reachable.
+let adjacent = []
+for _ in range(0, n) {
+    adjacent = push(adjacent, [])
+}
+for edge in edge_list {
+    let u = edge[0] - 1
+    adjacent[u] = push(adjacent[u], edge[1] - 1)
+}
+
+let distance = []
+for _ in range(0, n) {
+    distance = push(distance, -1)
+}
+distance[0] = 0
+
+# The queue is a list plus a read cursor. Breadth-first order is what makes the
+# first arrival at a vertex the shortest one, so a vertex is only ever assigned
+# a distance once — the -1 test doubles as the visited check.
+let queue = [0]
+let queue_head = 0
+while queue_head < len(queue) {
+    let current = queue[queue_head]
+    queue_head = queue_head + 1
+    for next in adjacent[current] {
+        if distance[next] == -1 {
+            distance[next] = distance[current] + 1
+            queue = push(queue, next)
+        }
+    }
+}
+
+let result = distance |> map(|d| str(d)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 0 -1 2 1 3 2")
+
+fn test_bfs_shortest_path_lengths() {
+    assert result == "0 -1 2 1 3 2", "BFS: got " + result
+}
+```
+
+## CC — Connected Components
+
+[Problem statement](https://rosalind.info/problems/cc/)
+
+```biolang
+# Rosalind: CC — Connected Components
+# https://rosalind.info/problems/cc/
+#
+# Given: A simple graph with n vertices in the edge list format.
+# Return: The number of connected components in the graph.
+
+let n = 12
+let edge_list = [
+    [1, 2], [1, 5], [5, 9], [5, 10], [9, 10],
+    [3, 4], [3, 7], [3, 8], [4, 8], [7, 11],
+    [8, 11], [11, 12], [8, 12],
+]
+
+# Undirected, so every edge goes in both directions. Vertex 6 appears in no
+# edge and is still a component of its own, which is why the sweep below starts
+# from every vertex rather than from the endpoints of the edge list.
+let adjacent = []
+for _ in range(0, n) {
+    adjacent = push(adjacent, [])
+}
+for edge in edge_list {
+    let u = edge[0] - 1
+    let v = edge[1] - 1
+    adjacent[u] = push(adjacent[u], v)
+    adjacent[v] = push(adjacent[v], u)
+}
+
+let seen = []
+for _ in range(0, n) {
+    seen = push(seen, false)
+}
+
+let components = 0
+for start in range(0, n) {
+    if seen[start] == false {
+        components = components + 1
+        # Flood the whole component from this vertex before moving on.
+        let stack = [start]
+        seen[start] = true
+        while len(stack) > 0 {
+            let current = stack[len(stack) - 1]
+            stack = slice(stack, 0, len(stack) - 1)
+            for next in adjacent[current] {
+                if seen[next] == false {
+                    seen[next] = true
+                    stack = push(stack, next)
+                }
+            }
+        }
+    }
+}
+
+println("Result:   " + str(components))
+println("Expected: 3")
+
+fn test_cc_component_count() {
+    assert components == 3, "CC: got " + str(components)
+}
+```
+
+## HEA — Building a Heap
+
+[Problem statement](https://rosalind.info/problems/hea/)
+
+```biolang
+# Rosalind: HEA — Building a Heap
+# https://rosalind.info/problems/hea/
+#
+# Given: A positive integer n and an array A[1..n] of integers.
+# Return: A permuted array A satisfying the binary max heap property: for any
+# 2 <= i <= n, A[floor(i/2)] >= A[i].
+
+let a = [1, 3, 5, 7, 2]
+
+# Floyd's construction: sift down from the last internal node backwards. Doing
+# it in this order is what makes building the heap linear rather than n log n —
+# every subtree below a node is already a heap by the time the node is sifted.
+fn sift_down(heap, start, size) {
+    let xs = heap
+    let root = start
+    let settled = false
+    while settled == false {
+        let largest = root
+        let left = 2 * root + 1
+        let right = 2 * root + 2
+        if left < size and xs[left] > xs[largest] then largest = left
+        if right < size and xs[right] > xs[largest] then largest = right
+        if largest == root {
+            settled = true
+        } else {
+            let held = xs[root]
+            xs[root] = xs[largest]
+            xs[largest] = held
+            root = largest
+        }
+    }
+    xs
+}
+
+let heap = a
+let node = int(len(heap) / 2) - 1
+while node >= 0 {
+    heap = sift_down(heap, node, len(heap))
+    node = node - 1
+}
+
+let result = heap |> map(|v| str(v)) |> join(" ")
+
+# Any permutation with the heap property is accepted, so the property itself is
+# what gets checked. The sample output is 7 5 1 3 2; sifting down from the last
+# internal node reaches 7 3 5 1 2, which satisfies the same condition.
+let violations = range(1, len(heap)) |> filter(|i| heap[int((i + 1) / 2) - 1] < heap[i])
+
+println("Result:   " + result)
+println("Sample:   7 5 1 3 2")
+println("Heap property violations: " + str(len(violations)))
+
+fn test_hea_satisfies_the_heap_property() {
+    assert len(violations) == 0, "HEA: heap property broken at 1-based positions " + str(violations)
+    assert sort(heap) == sort(a), "HEA: the result is not a permutation of the input: " + result
+}
+```
+
+## MS — Merge Sort
+
+[Problem statement](https://rosalind.info/problems/ms/)
+
+```biolang
+# Rosalind: MS — Merge Sort
+# https://rosalind.info/problems/ms/
+#
+# Given: A positive integer n and an array A[1..n] of integers.
+# Return: A sorted array A[1..n].
+
+let a = [20, 19, 35, -18, 17, -20, 20, 1, 4, 4]
+
+fn merge(left, right) {
+    let out = []
+    let i = 0
+    let j = 0
+    while i < len(left) and j < len(right) {
+        # `<=` rather than `<` keeps equal elements in their original order,
+        # which is what makes this sort stable. The array holds 4 twice and 20
+        # twice, so the distinction is live here.
+        if left[i] <= right[j] {
+            out = push(out, left[i])
+            i = i + 1
+        } else {
+            out = push(out, right[j])
+            j = j + 1
+        }
+    }
+    while i < len(left) {
+        out = push(out, left[i])
+        i = i + 1
+    }
+    while j < len(right) {
+        out = push(out, right[j])
+        j = j + 1
+    }
+    out
+}
+
+fn merge_sort(xs) {
+    if len(xs) <= 1 {
+        xs
+    } else {
+        let middle = int(len(xs) / 2)
+        merge(merge_sort(slice(xs, 0, middle)), merge_sort(slice(xs, middle, len(xs))))
+    }
+}
+
+let sorted = merge_sort(a)
+let result = sorted |> map(|v| str(v)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: -20 -18 1 4 4 17 19 20 20 35")
+
+fn test_ms_sorts_the_array() {
+    assert result == "-20 -18 1 4 4 17 19 20 20 35", "MS: got " + result
+}
+```
+
+## PAR — 2-Way Partition
+
+[Problem statement](https://rosalind.info/problems/par/)
+
+```biolang
+# Rosalind: PAR — 2-Way Partition
+# https://rosalind.info/problems/par/
+#
+# Given: A positive integer n and an array A[1..n] of integers.
+# Return: A permutation B of A with an index q such that everything before q is
+# <= A[1], B[q] = A[1], and everything after q is > A[1].
+
+let a = [7, 2, 5, 6, 1, 3, 9, 4, 8]
+
+# Lomuto's scheme: one pass, with a boundary that marks where the "not greater
+# than the pivot" run ends. The pivot is parked at the front during the sweep
+# and swapped into the boundary at the end, which is what puts it at q.
+let xs = a
+let pivot = xs[0]
+let boundary = 1
+let j = 1
+while j < len(xs) {
+    if xs[j] <= pivot {
+        let held = xs[boundary]
+        xs[boundary] = xs[j]
+        xs[j] = held
+        boundary = boundary + 1
+    }
+    j = j + 1
+}
+let held = xs[0]
+xs[0] = xs[boundary - 1]
+xs[boundary - 1] = held
+let q = boundary - 1
+
+let result = xs |> map(|v| str(v)) |> join(" ")
+
+# Every partition around this pivot is accepted, so the three conditions are
+# checked rather than one particular arrangement. The sample output is
+# 5 6 3 4 1 2 7 9 8; this sweep produces a different valid one.
+let before_ok = range(0, q) |> filter(|i| xs[i] > pivot)
+let after_ok = range(q + 1, len(xs)) |> filter(|i| xs[i] <= pivot)
+
+println("Result:   " + result)
+println("Sample:   5 6 3 4 1 2 7 9 8")
+println("Pivot " + str(pivot) + " sits at 1-based index " + str(q + 1))
+
+fn test_par_partitions_around_the_pivot() {
+    assert xs[q] == pivot, "PAR: the pivot is not at q, got " + str(xs[q])
+    assert len(before_ok) == 0, "PAR: values greater than the pivot before q at " + str(before_ok)
+    assert len(after_ok) == 0, "PAR: values not greater than the pivot after q at " + str(after_ok)
+    assert sort(xs) == sort(a), "PAR: the result is not a permutation of the input: " + result
+}
+```
+
+## 3SUM — 3SUM
+
+[Problem statement](https://rosalind.info/problems/3sum/)
+
+```biolang
+# Rosalind: 3SUM — 3SUM
+# https://rosalind.info/problems/3sum/
+#
+# Given: A positive integer k, a positive integer n, and k arrays of size n.
+# Return: For each array, three indices 1 <= p < q < r <= n with
+# A[p] + A[q] + A[r] = 0 if they exist, and -1 otherwise.
+
+let arrays = [
+    [2, -3, 4, 10, 5],
+    [8, -6, 4, -2, -8],
+    [-5, 2, 3, 2, -4],
+    [2, 4, -5, 6, 8],
+]
+
+# The straightforward cubic scan. Taking the indices in increasing order gives
+# the lexicographically first triple, which is the one the sample reports, so
+# unlike 2SUM the answers here can be compared literally.
+fn three_sum(xs) {
+    let answer = "-1"
+    let p = 0
+    while p < len(xs) and answer == "-1" {
+        let q = p + 1
+        while q < len(xs) and answer == "-1" {
+            let r = q + 1
+            while r < len(xs) and answer == "-1" {
+                if xs[p] + xs[q] + xs[r] == 0 {
+                    answer = str(p + 1) + " " + str(q + 1) + " " + str(r + 1)
+                }
+                r = r + 1
+            }
+            q = q + 1
+        }
+        p = p + 1
+    }
+    answer
+}
+
+let answers = arrays |> map(|xs| three_sum(xs))
+let result = answers |> join(" / ")
+
+println("Result:   " + result)
+println("Expected: -1 / 1 2 4 / 1 2 3 / -1")
+
+fn test_3sum_finds_zero_triples() {
+    assert result == "-1 / 1 2 4 / 1 2 3 / -1", "3SUM: got " + result
+}
+```
+
+## BIP — Testing Bipartiteness
+
+[Problem statement](https://rosalind.info/problems/bip/)
+
+```biolang
+# Rosalind: BIP — Testing Bipartiteness
+# https://rosalind.info/problems/bip/
+#
+# Given: A positive integer k and k simple graphs in the edge list format.
+# Return: For each graph, 1 if it is bipartite and -1 otherwise.
+
+let graphs = [
+    { vertices: 3, edges: [[1, 2], [3, 2], [3, 1]] },
+    { vertices: 4, edges: [[1, 4], [3, 1], [1, 2]] },
+]
+
+# Two-colour by breadth-first search. A graph is bipartite exactly when this
+# never has to give a vertex the colour its neighbour already has, so the odd
+# cycle in the first graph — the triangle — is what forces the -1.
+fn is_bipartite(graph) {
+    let n = graph.vertices
+    let adjacent = []
+    for _ in range(0, n) {
+        adjacent = push(adjacent, [])
+    }
+    for edge in graph.edges {
+        let u = edge[0] - 1
+        let v = edge[1] - 1
+        adjacent[u] = push(adjacent[u], v)
+        adjacent[v] = push(adjacent[v], u)
+    }
+
+    let colour = []
+    for _ in range(0, n) {
+        colour = push(colour, -1)
+    }
+
+    let consistent = true
+    # The graph need not be connected, so every uncoloured vertex starts a sweep.
+    for start in range(0, n) {
+        if colour[start] == -1 {
+            colour[start] = 0
+            let queue = [start]
+            let head = 0
+            while head < len(queue) {
+                let current = queue[head]
+                head = head + 1
+                for next in adjacent[current] {
+                    if colour[next] == -1 {
+                        colour[next] = 1 - colour[current]
+                        queue = push(queue, next)
+                    } else {
+                        if colour[next] == colour[current] {
+                            consistent = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if consistent then 1 else -1
+}
+
+let result = graphs |> map(|g| str(is_bipartite(g))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: -1 1")
+
+fn test_bip_detects_odd_cycles() {
+    assert result == "-1 1", "BIP: got " + result
+}
+```
+
+## DAG — Testing Acyclicity
+
+[Problem statement](https://rosalind.info/problems/dag/)
+
+```biolang
+# Rosalind: DAG — Testing Acyclicity
+# https://rosalind.info/problems/dag/
+#
+# Given: A positive integer k and k simple directed graphs in the edge list format.
+# Return: For each graph, 1 if the graph is acyclic and -1 otherwise.
+
+let graphs = [
+    { vertices: 2, edges: [[1, 2]] },
+    { vertices: 4, edges: [[4, 1], [1, 2], [2, 3], [3, 1]] },
+    { vertices: 4, edges: [[4, 3], [3, 2], [2, 1]] },
+]
+
+# Kahn's algorithm, used as a test rather than to produce an order: repeatedly
+# remove a vertex with no remaining incoming edge. Anything left over lies on a
+# cycle, because every vertex in it keeps an incoming edge from the vertex
+# before it. The second graph leaves 1, 2 and 3 behind.
+fn is_acyclic(graph) {
+    let n = graph.vertices
+    let adjacent = []
+    let indegree = []
+    for _ in range(0, n) {
+        adjacent = push(adjacent, [])
+        indegree = push(indegree, 0)
+    }
+    for edge in graph.edges {
+        let u = edge[0] - 1
+        let v = edge[1] - 1
+        adjacent[u] = push(adjacent[u], v)
+        indegree[v] = indegree[v] + 1
+    }
+
+    let queue = []
+    for v in range(0, n) {
+        if indegree[v] == 0 {
+            queue = push(queue, v)
+        }
+    }
+
+    let removed = 0
+    let head = 0
+    while head < len(queue) {
+        let current = queue[head]
+        head = head + 1
+        removed = removed + 1
+        for next in adjacent[current] {
+            indegree[next] = indegree[next] - 1
+            if indegree[next] == 0 {
+                queue = push(queue, next)
+            }
+        }
+    }
+
+    if removed == n then 1 else -1
+}
+
+let result = graphs |> map(|g| str(is_acyclic(g))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 1 -1 1")
+
+fn test_dag_detects_cycles() {
+    assert result == "1 -1 1", "DAG: got " + result
+}
+```
+
+## DIJ — Dijkstra's Algorithm
+
+[Problem statement](https://rosalind.info/problems/dij/)
+
+```biolang
+# Rosalind: DIJ — Dijkstra's Algorithm
+# https://rosalind.info/problems/dij/
+#
+# Given: A simple directed graph with positive edge weights and n vertices in
+# the edge list format.
+# Return: An array D[1..n] of shortest path lengths from vertex 1, with -1 where
+# a vertex is unreachable.
+
+let n = 6
+let edge_list = [
+    [3, 4, 4], [1, 2, 4], [1, 3, 2], [2, 3, 3], [6, 3, 2],
+    [3, 5, 5], [5, 4, 1], [3, 2, 1], [2, 4, 2], [2, 5, 3],
+]
+
+let adjacent = []
+for _ in range(0, n) {
+    adjacent = push(adjacent, [])
+}
+for edge in edge_list {
+    let u = edge[0] - 1
+    adjacent[u] = push(adjacent[u], [edge[1] - 1, edge[2]])
+}
+
+# Scanning for the nearest unsettled vertex rather than using a priority queue:
+# quadratic, and clearer. Positive weights are what make the greedy choice safe
+# — once a vertex is settled no later path can improve it.
+let infinity = 1000000000
+let distance = []
+let settled = []
+for _ in range(0, n) {
+    distance = push(distance, infinity)
+    settled = push(settled, false)
+}
+distance[0] = 0
+
+let step = 0
+while step < n {
+    let nearest = -1
+    for v in range(0, n) {
+        if settled[v] == false and distance[v] < infinity {
+            if nearest == -1 or distance[v] < distance[nearest] {
+                nearest = v
+            }
+        }
+    }
+    if nearest == -1 {
+        step = n
+    } else {
+        settled[nearest] = true
+        for link in adjacent[nearest] {
+            let next = link[0]
+            let weight = link[1]
+            if distance[nearest] + weight < distance[next] {
+                distance[next] = distance[nearest] + weight
+            }
+        }
+        step = step + 1
+    }
+}
+
+let result = distance |> map(|d| if d == infinity then "-1" else str(d)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 0 3 2 5 6 -1")
+
+fn test_dij_shortest_paths() {
+    assert result == "0 3 2 5 6 -1", "DIJ: got " + result
+}
+```
+
+## HS — Heap Sort
+
+[Problem statement](https://rosalind.info/problems/hs/)
+
+```biolang
+# Rosalind: HS — Heap Sort
+# https://rosalind.info/problems/hs/
+#
+# Given: A positive integer n and an array A[1..n] of integers.
+# Return: A sorted array A.
+
+let a = [2, 6, 7, 1, 3, 5, 4, 8, 9]
+
+fn sift_down(heap, start, size) {
+    let xs = heap
+    let root = start
+    let settled = false
+    while settled == false {
+        let largest = root
+        let left = 2 * root + 1
+        let right = 2 * root + 2
+        if left < size and xs[left] > xs[largest] then largest = left
+        if right < size and xs[right] > xs[largest] then largest = right
+        if largest == root {
+            settled = true
+        } else {
+            let held = xs[root]
+            xs[root] = xs[largest]
+            xs[largest] = held
+            root = largest
+        }
+    }
+    xs
+}
+
+# Build the max heap (as in HEA), then repeatedly move the largest element to
+# the end and shrink the heap by one. The sorted tail grows from the right, so
+# no second array is needed — this sorts in place.
+let xs = a
+let node = int(len(xs) / 2) - 1
+while node >= 0 {
+    xs = sift_down(xs, node, len(xs))
+    node = node - 1
+}
+
+let size = len(xs)
+while size > 1 {
+    let held = xs[0]
+    xs[0] = xs[size - 1]
+    xs[size - 1] = held
+    size = size - 1
+    xs = sift_down(xs, 0, size)
+}
+
+let result = xs |> map(|v| str(v)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 1 2 3 4 5 6 7 8 9")
+
+fn test_hs_sorts_the_array() {
+    assert result == "1 2 3 4 5 6 7 8 9", "HS: got " + result
+}
+```
+
+## INV — Counting Inversions
+
+[Problem statement](https://rosalind.info/problems/inv/)
+
+```biolang
+# Rosalind: INV — Counting Inversions
+# https://rosalind.info/problems/inv/
+#
+# Given: A positive integer n and an array A[1..n] of integers.
+# Return: The number of inversions in A.
+
+let a = [-6, 1, 15, 8, 10]
+
+# Counted during a merge sort rather than by comparing every pair. When the
+# merge takes an element from the right half, every element still waiting in the
+# left half is greater than it and forms an inversion with it, so the whole
+# remaining left half can be counted at once. That is what makes this n log n
+# where INS's swap count is quadratic — the two problems ask for the same number.
+let inversions = 0
+
+fn merge_count(left, right) {
+    let out = []
+    let i = 0
+    let j = 0
+    while i < len(left) and j < len(right) {
+        if left[i] <= right[j] {
+            out = push(out, left[i])
+            i = i + 1
+        } else {
+            out = push(out, right[j])
+            j = j + 1
+            inversions = inversions + (len(left) - i)
+        }
+    }
+    while i < len(left) {
+        out = push(out, left[i])
+        i = i + 1
+    }
+    while j < len(right) {
+        out = push(out, right[j])
+        j = j + 1
+    }
+    out
+}
+
+fn sort_and_count(xs) {
+    if len(xs) <= 1 {
+        xs
+    } else {
+        let middle = int(len(xs) / 2)
+        merge_count(sort_and_count(slice(xs, 0, middle)), sort_and_count(slice(xs, middle, len(xs))))
+    }
+}
+
+let sorted = sort_and_count(a)
+
+println("Result:   " + str(inversions))
+println("Expected: 2")
+println("Sorted:   " + str(sorted))
+
+fn test_inv_counts_inversions() {
+    assert inversions == 2, "INV: got " + str(inversions)
+    assert sorted == sort(a), "INV: the merge did not sort: " + str(sorted)
+}
+```
+
+## PAR3 — 3-Way Partition
+
+[Problem statement](https://rosalind.info/problems/par3/)
+
+```biolang
+# Rosalind: PAR3 — 3-Way Partition
+# https://rosalind.info/problems/par3/
+#
+# Given: A positive integer n and an array A[1..n] of integers.
+# Return: A permutation B of A with indices q <= r such that B[i] < A[1] before
+# q, B[i] = A[1] from q to r, and B[i] > A[1] after r.
+
+let a = [4, 5, 6, 4, 1, 2, 5, 7, 4]
+
+# Dijkstra's Dutch national flag: one pass, three regions. `low` ends the run
+# below the pivot, `high` begins the run above it, and `scan` walks the unknown
+# middle. Swapping down from `high` does not advance `scan`, because the value
+# swapped in has not been looked at yet — the array holds 4 three times, so the
+# equal region is what this problem is really testing.
+let xs = a
+let pivot = xs[0]
+let low = 0
+let cursor = 0
+let high = len(xs) - 1
+while cursor <= high {
+    if xs[cursor] < pivot {
+        let held = xs[low]
+        xs[low] = xs[cursor]
+        xs[cursor] = held
+        low = low + 1
+        cursor = cursor + 1
+    } else {
+        if xs[cursor] > pivot {
+            let held = xs[high]
+            xs[high] = xs[cursor]
+            xs[cursor] = held
+            high = high - 1
+        } else {
+            cursor = cursor + 1
+        }
+    }
+}
+
+let result = xs |> map(|v| str(v)) |> join(" ")
+
+# Any valid arrangement is accepted, so the three regions are checked rather
+# than one particular output. The sample shows 2 1 4 4 4 5 7 6 5.
+let below = range(0, low) |> filter(|i| xs[i] >= pivot)
+let equal = range(low, high + 1) |> filter(|i| xs[i] != pivot)
+let above = range(high + 1, len(xs)) |> filter(|i| xs[i] <= pivot)
+
+println("Result:   " + result)
+println("Sample:   2 1 4 4 4 5 7 6 5")
+println("Regions:  below " + str(low) + ", equal " + str(high + 1 - low) + ", above " + str(len(xs) - high - 1))
+
+fn test_par3_three_regions() {
+    assert len(below) == 0, "PAR3: not-smaller values before q at " + str(below)
+    assert len(equal) == 0, "PAR3: values other than the pivot between q and r at " + str(equal)
+    assert len(above) == 0, "PAR3: not-greater values after r at " + str(above)
+    assert sort(xs) == sort(a), "PAR3: the result is not a permutation of the input: " + result
+}
+```
+
+## SQ — Square in a Graph
+
+[Problem statement](https://rosalind.info/problems/sq/)
+
+```biolang
+# Rosalind: SQ — Square in a Graph
+# https://rosalind.info/problems/sq/
+#
+# Given: A positive integer k and k simple undirected graphs in the edge list format.
+# Return: For each graph, 1 if it contains a simple cycle of length 4, and -1 otherwise.
+
+let graphs = [
+    { vertices: 4, edges: [[3, 4], [4, 2], [3, 2], [3, 1], [1, 2]] },
+    { vertices: 4, edges: [[1, 2], [3, 4], [2, 4], [4, 1]] },
+]
+
+# A four-cycle is two vertices joined by two different paths of length two, so
+# the question is whether any pair of vertices has two neighbours in common.
+# Searching for the cycle directly would mean trying orderings; counting shared
+# neighbours needs one pass over the pairs.
+fn has_square(graph) {
+    let n = graph.vertices
+    let neighbours = []
+    for _ in range(0, n) {
+        neighbours = push(neighbours, [])
+    }
+    for edge in graph.edges {
+        let u = edge[0] - 1
+        let v = edge[1] - 1
+        neighbours[u] = push(neighbours[u], v)
+        neighbours[v] = push(neighbours[v], u)
+    }
+
+    let found = false
+    let u = 0
+    while u < n and found == false {
+        let v = u + 1
+        while v < n and found == false {
+            let shared = 0
+            for candidate in neighbours[u] {
+                if contains(neighbours[v], candidate) {
+                    shared = shared + 1
+                }
+            }
+            if shared >= 2 {
+                found = true
+            }
+            v = v + 1
+        }
+        u = u + 1
+    }
+    if found then 1 else -1
+}
+
+let result = graphs |> map(|g| str(has_square(g))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 1 -1")
+
+fn test_sq_finds_four_cycles() {
+    assert result == "1 -1", "SQ: got " + result
+}
+```
+
+## BF — Bellman-Ford Algorithm
+
+[Problem statement](https://rosalind.info/problems/bf/)
+
+```biolang
+# Rosalind: BF — Bellman-Ford Algorithm
+# https://rosalind.info/problems/bf/
+#
+# Given: A simple directed graph with integer edge weights (possibly negative)
+# and n vertices in the edge list format.
+# Return: An array D[1..n] of shortest path lengths from vertex 1, with "x"
+# where a vertex is unreachable.
+
+let n = 9
+let edge_list = [
+    [1, 2, 10], [3, 2, 1], [3, 4, 1], [4, 5, 3], [5, 6, -1],
+    [7, 6, -1], [8, 7, 1], [1, 8, 8], [7, 2, -4], [2, 6, 2],
+    [6, 3, -2], [9, 5, -10], [9, 4, 7],
+]
+
+# Dijkstra cannot be used here: a negative edge can improve a vertex after it
+# has been settled. Bellman-Ford instead relaxes every edge n-1 times, which is
+# enough because a shortest path visits at most n vertices.
+let infinity = 1000000000
+let distance = []
+for _ in range(0, n) {
+    distance = push(distance, infinity)
+}
+distance[0] = 0
+
+let sweep = 0
+while sweep < n - 1 {
+    let changed = false
+    for edge in edge_list {
+        let u = edge[0] - 1
+        let v = edge[1] - 1
+        let weight = edge[2]
+        if distance[u] < infinity and distance[u] + weight < distance[v] {
+            distance[v] = distance[u] + weight
+            changed = true
+        }
+    }
+    # Nothing improved, so nothing will: the remaining rounds cannot change it.
+    if changed == false then sweep = n
+    sweep = sweep + 1
+}
+
+let result = distance |> map(|d| if d == infinity then "x" else str(d)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 0 5 5 6 9 7 9 8 x")
+
+fn test_bf_handles_negative_weights() {
+    assert result == "0 5 5 6 9 7 9 8 x", "BF: got " + result
+}
+```
+
+## CTE — Shortest Cycle Through a Given Edge
+
+[Problem statement](https://rosalind.info/problems/cte/)
+
+```biolang
+# Rosalind: CTE — Shortest Cycle Through a Given Edge
+# https://rosalind.info/problems/cte/
+#
+# Given: A positive integer k and k simple directed graphs with positive edge
+# weights, each with a first specified edge.
+# Return: For each graph, the length of a shortest cycle through the first edge,
+# or -1 if there is none.
+
+let graphs = [
+    { vertices: 4, edges: [[2, 4, 2], [3, 2, 1], [1, 4, 3], [2, 1, 10], [1, 3, 4]] },
+    { vertices: 4, edges: [[3, 2, 1], [2, 4, 2], [4, 1, 3], [2, 1, 10], [1, 3, 4]] },
+]
+
+# A cycle through the edge u -> v is that edge plus a shortest path from v back
+# to u, so the whole problem reduces to one Dijkstra run from v. Weights are
+# positive here, which is what lets Dijkstra be used rather than Bellman-Ford.
+let infinity = 1000000000
+
+fn shortest_path(graph, source, target) {
+    let n = graph.vertices
+    let adjacent = []
+    for _ in range(0, n) {
+        adjacent = push(adjacent, [])
+    }
+    for edge in graph.edges {
+        adjacent[edge[0] - 1] = push(adjacent[edge[0] - 1], [edge[1] - 1, edge[2]])
+    }
+
+    let distance = []
+    let settled = []
+    for _ in range(0, n) {
+        distance = push(distance, infinity)
+        settled = push(settled, false)
+    }
+    distance[source] = 0
+
+    let remaining = n
+    while remaining > 0 {
+        let nearest = -1
+        for v in range(0, n) {
+            if settled[v] == false and distance[v] < infinity {
+                if nearest == -1 or distance[v] < distance[nearest] {
+                    nearest = v
+                }
+            }
+        }
+        if nearest == -1 {
+            remaining = 0
+        } else {
+            settled[nearest] = true
+            for link in adjacent[nearest] {
+                if distance[nearest] + link[1] < distance[link[0]] {
+                    distance[link[0]] = distance[nearest] + link[1]
+                }
+            }
+            remaining = remaining - 1
+        }
+    }
+    distance[target]
+}
+
+fn shortest_cycle(graph) {
+    let first = graph.edges[0]
+    let back = shortest_path(graph, first[1] - 1, first[0] - 1)
+    if back == infinity then -1 else back + first[2]
+}
+
+let result = graphs |> map(|g| str(shortest_cycle(g))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: -1 10")
+
+fn test_cte_shortest_cycle_through_an_edge() {
+    assert result == "-1 10", "CTE: got " + result
+}
+```
+
+## MED — Median
+
+[Problem statement](https://rosalind.info/problems/med/)
+
+```biolang
+# Rosalind: MED — Median
+# https://rosalind.info/problems/med/
+#
+# Given: A positive integer n, an array A[1..n] of integers, and a number k.
+# Return: The k-th smallest element of A.
+
+let a = [2, 36, 5, 21, 8, 13, 11, 20, 5, 4, 1]
+let k = 8
+
+# Quickselect: partition around a pivot, then recurse into the side that holds
+# the k-th element instead of both. Sorting would answer the question too and do
+# more work than asked — this is the problem's point. The array holds 5 twice,
+# so the equal region is kept separate rather than folded into one side.
+fn select_kth(xs, rank) {
+    if len(xs) <= 1 {
+        xs[0]
+    } else {
+        let pivot = xs[int(len(xs) / 2)]
+        let below = xs |> filter(|v| v < pivot)
+        let equal = xs |> filter(|v| v == pivot)
+        let above = xs |> filter(|v| v > pivot)
+
+        if rank <= len(below) {
+            select_kth(below, rank)
+        } else {
+            if rank <= len(below) + len(equal) {
+                pivot
+            } else {
+                select_kth(above, rank - len(below) - len(equal))
+            }
+        }
+    }
+}
+
+let result = select_kth(a, k)
+
+println("Result:   " + str(result))
+println("Expected: 13")
+println("Sorted:   " + str(sort(a)))
+
+fn test_med_kth_smallest() {
+    assert result == 13, "MED: got " + str(result)
+    assert result == sort(a)[k - 1], "MED: disagrees with sorting, got " + str(result)
+}
+```
+
+## PS — Partial Sort
+
+[Problem statement](https://rosalind.info/problems/ps/)
+
+```biolang
+# Rosalind: PS — Partial Sort
+# https://rosalind.info/problems/ps/
+#
+# Given: A positive integer n, an array A[1..n] of integers, and a positive
+# integer k.
+# Return: The k smallest elements of a sorted array A.
+
+let a = [4, -6, 7, 8, -9, 100, 12, 13, 56, 17]
+let k = 3
+
+# Only the first k elements are wanted, so a heap of size k is the usual answer:
+# it keeps the work at n log k rather than n log n. With k = 3 out of 10 the
+# distinction is academic, so this takes the direct route and sorts. The shape
+# of the answer is the same; PS and MED together are the pair worth comparing,
+# since MED shows the selection that avoids the full sort.
+let smallest = slice(sort(a), 0, k)
+let result = smallest |> map(|v| str(v)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: -9 -6 4")
+
+fn test_ps_k_smallest() {
+    assert result == "-9 -6 4", "PS: got " + result
+    assert len(smallest) == k, "PS: expected " + str(k) + " values, got " + str(len(smallest))
+}
+```
+
+## TS — Topological Sorting
+
+[Problem statement](https://rosalind.info/problems/ts/)
+
+```biolang
+# Rosalind: TS — Topological Sorting
+# https://rosalind.info/problems/ts/
+#
+# Given: A simple directed acyclic graph with n vertices in the edge list format.
+# Return: A topological sorting of the graph.
+
+let n = 4
+let edge_list = [[1, 2], [3, 1], [3, 2], [4, 3], [4, 2]]
+
+# Kahn's algorithm, the same sweep DAG uses to test for cycles — here the order
+# in which vertices come off the queue is the answer rather than a by-product.
+let adjacent = []
+let indegree = []
+for _ in range(0, n) {
+    adjacent = push(adjacent, [])
+    indegree = push(indegree, 0)
+}
+for edge in edge_list {
+    let u = edge[0] - 1
+    let v = edge[1] - 1
+    adjacent[u] = push(adjacent[u], v)
+    indegree[v] = indegree[v] + 1
+}
+
+let order = []
+for v in range(0, n) {
+    if indegree[v] == 0 {
+        order = push(order, v)
+    }
+}
+let queue_head = 0
+while queue_head < len(order) {
+    let current = order[queue_head]
+    queue_head = queue_head + 1
+    for next in adjacent[current] {
+        indegree[next] = indegree[next] - 1
+        if indegree[next] == 0 {
+            order = push(order, next)
+        }
+    }
+}
+
+let result = order |> map(|v| str(v + 1)) |> join(" ")
+
+# Any order with every edge pointing forwards is accepted. Taking the lowest
+# numbered ready vertex first happens to reproduce the sample here.
+let position = []
+for _ in range(0, n) {
+    position = push(position, 0)
+}
+for i in range(0, len(order)) {
+    position[order[i]] = i
+}
+let backwards = edge_list |> filter(|e| position[e[0] - 1] >= position[e[1] - 1])
+
+println("Result:   " + result)
+println("Expected: 4 3 1 2  (any valid order is accepted)")
+
+fn test_ts_orders_every_edge_forwards() {
+    assert len(order) == n, "TS: expected " + str(n) + " vertices, got " + str(len(order))
+    assert len(backwards) == 0, "TS: these edges point backwards: " + str(backwards)
+}
+```
+
+## HDAG — Hamiltonian Path in DAG
+
+[Problem statement](https://rosalind.info/problems/hdag/)
+
+```biolang
+# Rosalind: HDAG — Hamiltonian Path in DAG
+# https://rosalind.info/problems/hdag/
+#
+# Given: A positive integer k and k simple directed acyclic graphs in the edge
+# list format.
+# Return: For each graph, "1" followed by a Hamiltonian path if one exists, and
+# "-1" otherwise.
+
+let graphs = [
+    { vertices: 3, edges: [[1, 2], [2, 3], [1, 3]] },
+    { vertices: 4, edges: [[4, 3], [3, 2], [4, 1]] },
+]
+
+# Finding a Hamiltonian path is hard in general and easy on a DAG, which is why
+# the problem restricts to one. A DAG has a Hamiltonian path exactly when its
+# topological order is unique, and that holds exactly when consecutive vertices
+# in the order are joined by an edge. So: sort topologically, then check the
+# n-1 consecutive pairs.
+fn hamiltonian_path(graph) {
+    let n = graph.vertices
+    let adjacent = []
+    let indegree = []
+    for _ in range(0, n) {
+        adjacent = push(adjacent, [])
+        indegree = push(indegree, 0)
+    }
+    for edge in graph.edges {
+        let u = edge[0] - 1
+        let v = edge[1] - 1
+        adjacent[u] = push(adjacent[u], v)
+        indegree[v] = indegree[v] + 1
+    }
+
+    let order = []
+    for v in range(0, n) {
+        if indegree[v] == 0 {
+            order = push(order, v)
+        }
+    }
+    let head = 0
+    while head < len(order) {
+        let current = order[head]
+        head = head + 1
+        for next in adjacent[current] {
+            indegree[next] = indegree[next] - 1
+            if indegree[next] == 0 {
+                order = push(order, next)
+            }
+        }
+    }
+
+    let joined = true
+    for i in range(0, len(order) - 1) {
+        if contains(adjacent[order[i]], order[i + 1]) == false {
+            joined = false
+        }
+    }
+
+    if joined {
+        "1 " + (order |> map(|v| str(v + 1)) |> join(" "))
+    } else {
+        "-1"
+    }
+}
+
+let answers = graphs |> map(|g| hamiltonian_path(g))
+let result = answers |> join(" / ")
+
+println("Result:   " + result)
+println("Expected: 1 1 2 3 / -1")
+
+fn test_hdag_finds_hamiltonian_paths() {
+    assert answers[0] == "1 1 2 3", "HDAG[1]: got " + answers[0]
+    assert answers[1] == "-1", "HDAG[2]: got " + answers[1]
+}
+```
+
+## NWC — Negative Weight Cycle
+
+[Problem statement](https://rosalind.info/problems/nwc/)
+
+```biolang
+# Rosalind: NWC — Negative Weight Cycle
+# https://rosalind.info/problems/nwc/
+#
+# Given: A positive integer k and k simple directed graphs with integer edge
+# weights in the edge list format.
+# Return: For each graph, 1 if it contains a negative weight cycle, -1 otherwise.
+
+let graphs = [
+    { vertices: 4, edges: [[1, 4, 4], [4, 2, 3], [2, 3, 1], [3, 1, 6], [2, 1, -7]] },
+    { vertices: 3, edges: [[1, 2, -8], [2, 3, 20], [3, 1, -1], [3, 2, -30]] },
+]
+
+# Bellman-Ford's other use. After n-1 rounds of relaxation every shortest path
+# is final, so an edge that still improves on round n can only be doing it by
+# going round a negative cycle. Every distance starts at 0 rather than only
+# vertex 1, which is the same as adding a source joined to every vertex by a
+# zero-weight edge: the cycle need not be reachable from vertex 1.
+fn has_negative_cycle(graph) {
+    let n = graph.vertices
+    let distance = []
+    for _ in range(0, n) {
+        distance = push(distance, 0)
+    }
+
+    let sweep = 0
+    while sweep < n - 1 {
+        for edge in graph.edges {
+            let u = edge[0] - 1
+            let v = edge[1] - 1
+            if distance[u] + edge[2] < distance[v] {
+                distance[v] = distance[u] + edge[2]
+            }
+        }
+        sweep = sweep + 1
+    }
+
+    let improved = false
+    for edge in graph.edges {
+        if distance[edge[0] - 1] + edge[2] < distance[edge[1] - 1] {
+            improved = true
+        }
+    }
+    if improved then 1 else -1
+}
+
+let result = graphs |> map(|g| str(has_negative_cycle(g))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: -1 1")
+
+fn test_nwc_detects_negative_cycles() {
+    assert result == "-1 1", "NWC: got " + result
+}
+```
+
+## QS — Quick Sort
+
+[Problem statement](https://rosalind.info/problems/qs/)
+
+```biolang
+# Rosalind: QS — Quick Sort
+# https://rosalind.info/problems/qs/
+#
+# Given: A positive integer n and an array A[1..n] of integers.
+# Return: A sorted array A[1..n].
+
+let a = [5, -2, 4, 7, 8, -10, 11]
+
+# Partition around a pivot, then sort each side. Splitting into three parts
+# rather than two keeps duplicates out of the recursion: everything equal to the
+# pivot is already in its final place, so neither side has to carry it. That is
+# the same split MED uses to select without sorting.
+fn quicksort(xs) {
+    if len(xs) <= 1 {
+        xs
+    } else {
+        let pivot = xs[int(len(xs) / 2)]
+        let below = xs |> filter(|v| v < pivot)
+        let equal = xs |> filter(|v| v == pivot)
+        let above = xs |> filter(|v| v > pivot)
+        concat(concat(quicksort(below), equal), quicksort(above))
+    }
+}
+
+let sorted = quicksort(a)
+let result = sorted |> map(|v| str(v)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: -10 -2 4 5 7 8 11")
+
+fn test_qs_sorts_the_array() {
+    assert result == "-10 -2 4 5 7 8 11", "QS: got " + result
+    assert sorted == sort(a), "QS: disagrees with the builtin sort: " + result
+}
+```
+
+## SCC — Strongly Connected Components
+
+[Problem statement](https://rosalind.info/problems/scc/)
+
+```biolang
+# Rosalind: SCC — Strongly Connected Components
+# https://rosalind.info/problems/scc/
+#
+# Given: A simple directed graph with n vertices in the edge list format.
+# Return: The number of strongly connected components in the graph.
+
+let n = 6
+let edge_list = [[4, 1], [1, 2], [2, 4], [5, 6], [3, 2], [5, 3], [3, 5]]
+
+# Kosaraju's algorithm. Two passes: the first records the order in which
+# vertices finish, the second walks the reversed graph taking vertices in the
+# reverse of that order. Every tree of the second pass is exactly one component,
+# because finishing last means nothing outside the component can reach back in.
+#
+# Both passes are iterative. A recursive depth-first search reads better but its
+# depth is the length of a path, and this pack's problems allow 10^3 vertices.
+let adjacent = []
+let reversed = []
+for _ in range(0, n) {
+    adjacent = push(adjacent, [])
+    reversed = push(reversed, [])
+}
+for edge in edge_list {
+    let u = edge[0] - 1
+    let v = edge[1] - 1
+    adjacent[u] = push(adjacent[u], v)
+    reversed[v] = push(reversed[v], u)
+}
+
+# Pass one: push each vertex after every edge out of it has been followed.
+let visited = []
+for _ in range(0, n) {
+    visited = push(visited, false)
+}
+let finish_order = []
+for start in range(0, n) {
+    if visited[start] == false {
+        visited[start] = true
+        let stack = [[start, 0]]
+        while len(stack) > 0 {
+            let top = stack[len(stack) - 1]
+            let vertex = top[0]
+            let next_child = top[1]
+            if next_child < len(adjacent[vertex]) {
+                stack[len(stack) - 1] = [vertex, next_child + 1]
+                let child = adjacent[vertex][next_child]
+                if visited[child] == false {
+                    visited[child] = true
+                    stack = push(stack, [child, 0])
+                }
+            } else {
+                finish_order = push(finish_order, vertex)
+                stack = slice(stack, 0, len(stack) - 1)
+            }
+        }
+    }
+}
+
+# Pass two: walk the reversed graph, latest finisher first.
+let component = []
+for _ in range(0, n) {
+    component = push(component, -1)
+}
+let components = 0
+let position = len(finish_order) - 1
+while position >= 0 {
+    let start = finish_order[position]
+    if component[start] == -1 {
+        component[start] = components
+        let stack = [start]
+        while len(stack) > 0 {
+            let current = stack[len(stack) - 1]
+            stack = slice(stack, 0, len(stack) - 1)
+            for previous in reversed[current] {
+                if component[previous] == -1 {
+                    component[previous] = components
+                    stack = push(stack, previous)
+                }
+            }
+        }
+        components = components + 1
+    }
+    position = position - 1
+}
+
+println("Result:   " + str(components))
+println("Expected: 3")
+println("Membership (vertex -> component): " + str(component))
+
+fn test_scc_component_count() {
+    assert components == 3, "SCC: got " + str(components)
+    # 1, 2 and 4 lie on a cycle, as do 3 and 5; 6 is on its own.
+    assert component[0] == component[1], "SCC: 1 and 2 should share a component"
+    assert component[0] == component[3], "SCC: 1 and 4 should share a component"
+    assert component[2] == component[4], "SCC: 3 and 5 should share a component"
+    assert component[5] != component[4], "SCC: 6 should be on its own"
+}
+```
+
+## 2SAT — 2-Satisfiability
+
+[Problem statement](https://rosalind.info/problems/2sat/)
+
+```biolang
+# Rosalind: 2SAT — 2-Satisfiability
+# https://rosalind.info/problems/2sat/
+#
+# Given: A positive integer k and k 2SAT formulas, each a list of two-literal
+# clauses over n variables, where -3 means "not x3".
+# Return: For each formula, 0 if it cannot be satisfied, or 1 followed by a
+# satisfying assignment.
+
+let formulas = [
+    { variables: 2, clauses: [[1, 2], [-1, 2], [1, -2], [-1, -2]] },
+    { variables: 3, clauses: [[1, 2], [2, 3], [-1, -2], [-2, -3]] },
+]
+
+# Two literals per clause is what makes this tractable where 3SAT is not. A
+# clause (a or b) is the pair of implications "not a => b" and "not b => a", so
+# a formula is a directed graph on the 2n literals. It is unsatisfiable exactly
+# when some variable and its negation are strongly connected — that would say
+# each implies the other.
+#
+# The assignment falls out of the same components. Kosaraju numbers them in
+# topological order, so making each variable agree with whichever of its two
+# literals is numbered higher never points an implication from a true literal to
+# a false one, which is what satisfies every clause at once.
+
+# Literal l becomes a node: x_i is 2(i-1) and its negation 2(i-1)+1.
+fn literal_node(literal) {
+    if literal > 0 {
+        2 * (literal - 1)
+    } else {
+        2 * (0 - literal - 1) + 1
+    }
+}
+
+fn negate_node(node) {
+    if node % 2 == 0 then node + 1 else node - 1
+}
+
+fn strong_components(size, links) {
+    let adjacent = []
+    let reversed = []
+    for _ in range(0, size) {
+        adjacent = push(adjacent, [])
+        reversed = push(reversed, [])
+    }
+    for link in links {
+        adjacent[link[0]] = push(adjacent[link[0]], link[1])
+        reversed[link[1]] = push(reversed[link[1]], link[0])
+    }
+
+    let visited = []
+    for _ in range(0, size) {
+        visited = push(visited, false)
+    }
+    let finish_order = []
+    for start in range(0, size) {
+        if visited[start] == false {
+            visited[start] = true
+            let stack = [[start, 0]]
+            while len(stack) > 0 {
+                let top = stack[len(stack) - 1]
+                let vertex = top[0]
+                let next_child = top[1]
+                if next_child < len(adjacent[vertex]) {
+                    stack[len(stack) - 1] = [vertex, next_child + 1]
+                    let child = adjacent[vertex][next_child]
+                    if visited[child] == false {
+                        visited[child] = true
+                        stack = push(stack, [child, 0])
+                    }
+                } else {
+                    finish_order = push(finish_order, vertex)
+                    stack = slice(stack, 0, len(stack) - 1)
+                }
+            }
+        }
+    }
+
+    let component = []
+    for _ in range(0, size) {
+        component = push(component, -1)
+    }
+    let count = 0
+    let position = size - 1
+    while position >= 0 {
+        let start = finish_order[position]
+        if component[start] == -1 {
+            component[start] = count
+            let stack = [start]
+            while len(stack) > 0 {
+                let current = stack[len(stack) - 1]
+                stack = slice(stack, 0, len(stack) - 1)
+                for previous in reversed[current] {
+                    if component[previous] == -1 {
+                        component[previous] = count
+                        stack = push(stack, previous)
+                    }
+                }
+            }
+            count = count + 1
+        }
+        position = position - 1
+    }
+    component
+}
+
+fn solve(formula) {
+    let n = formula.variables
+    let size = 2 * n
+
+    let links = []
+    for clause in formula.clauses {
+        let a = literal_node(clause[0])
+        let b = literal_node(clause[1])
+        links = push(links, [negate_node(a), b])
+        links = push(links, [negate_node(b), a])
+    }
+
+    let component = strong_components(size, links)
+
+    let satisfiable = true
+    for i in range(0, n) {
+        if component[2 * i] == component[2 * i + 1] {
+            satisfiable = false
+        }
+    }
+
+    if satisfiable == false {
+        "0"
+    } else {
+        let assignment = []
+        for i in range(0, n) {
+            # The literal in the later component is the one to make true.
+            if component[2 * i] > component[2 * i + 1] {
+                assignment = push(assignment, i + 1)
+            } else {
+                assignment = push(assignment, 0 - (i + 1))
+            }
+        }
+        "1 " + (assignment |> map(|v| str(v)) |> join(" "))
+    }
+}
+
+# Any satisfying assignment is accepted, so the answers are checked by putting
+# them back into the formula rather than against the sample text.
+fn satisfies(formula, answer) {
+    if answer == "0" {
+        true
+    } else {
+        let parts = answer |> split(" ")
+        let values = slice(parts, 1, len(parts)) |> map(|t| int(t))
+        let unmet = formula.clauses |> filter(|clause| {
+            let first = contains(values, clause[0])
+            let second = contains(values, clause[1])
+            first == false and second == false
+        })
+        len(unmet) == 0
+    }
+}
+
+let answers = formulas |> map(|f| solve(f))
+let verdicts = range(0, len(formulas)) |> map(|i| satisfies(formulas[i], answers[i]))
+
+for i in range(0, len(formulas)) {
+    println("Formula " + str(i + 1) + ": " + answers[i] + "   satisfied: " + str(verdicts[i]))
+}
+println("Sample output: 0 / 1 1 -2 3")
+
+fn test_2sat_solves_and_refutes() {
+    assert answers[0] == "0", "2SAT[1]: this formula is unsatisfiable, got " + answers[0]
+    assert verdicts == [true, true], "2SAT: an answer does not satisfy its formula: " + str(verdicts)
+    assert substr(answers[1], 0, 1) == "1", "2SAT[2]: expected a satisfying assignment, got " + answers[1]
+}
+```
+
+## GS — General Sink
+
+[Problem statement](https://rosalind.info/problems/gs/)
+
+```biolang
+# Rosalind: GS — General Sink
+# https://rosalind.info/problems/gs/
+#
+# Given: A positive integer k and k simple directed graphs in the edge list format.
+# Return: For each graph, a vertex from which all other vertices are reachable,
+# or -1 if there is none.
+
+let graphs = [
+    { vertices: 3, edges: [[3, 2], [2, 1]] },
+    { vertices: 3, edges: [[3, 2], [1, 2]] },
+]
+
+# Reachability from each vertex in turn. At this size that is the clear way to
+# say it; the linear answer condenses the strongly connected components and
+# checks whether the single source of the condensation reaches everything, which
+# is the same test done once instead of n times.
+fn reachable_from(adjacent, start, n) {
+    let seen = []
+    for _ in range(0, n) {
+        seen = push(seen, false)
+    }
+    seen[start] = true
+    let stack = [start]
+    let reached = 1
+    while len(stack) > 0 {
+        let current = stack[len(stack) - 1]
+        stack = slice(stack, 0, len(stack) - 1)
+        for next in adjacent[current] {
+            if seen[next] == false {
+                seen[next] = true
+                reached = reached + 1
+                stack = push(stack, next)
+            }
+        }
+    }
+    reached
+}
+
+fn general_sink(graph) {
+    let n = graph.vertices
+    let adjacent = []
+    for _ in range(0, n) {
+        adjacent = push(adjacent, [])
+    }
+    for edge in graph.edges {
+        adjacent[edge[0] - 1] = push(adjacent[edge[0] - 1], edge[1] - 1)
+    }
+
+    let answer = -1
+    for v in range(0, n) {
+        if answer == -1 and reachable_from(adjacent, v, n) == n {
+            answer = v + 1
+        }
+    }
+    answer
+}
+
+let result = graphs |> map(|g| str(general_sink(g))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 3 -1")
+
+fn test_gs_finds_the_source_vertex() {
+    assert result == "3 -1", "GS: got " + result
+}
+```
+
+## SC — Semi-Connected Graph
+
+[Problem statement](https://rosalind.info/problems/sc/)
+
+```biolang
+# Rosalind: SC — Semi-Connected Graph
+# https://rosalind.info/problems/sc/
+#
+# Given: A positive integer k and k simple directed graphs in the edge list format.
+# Return: For each graph, 1 if the graph is semi-connected and -1 otherwise.
+
+let graphs = [
+    { vertices: 3, edges: [[3, 2], [2, 1]] },
+    { vertices: 3, edges: [[3, 2], [1, 2]] },
+]
+
+# Semi-connected means every pair of vertices is comparable: one of the two
+# reaches the other. The second graph fails on the pair 1 and 3 — both reach 2
+# and neither reaches the other. Reachability is computed from every vertex and
+# the pairs are then checked directly, which says the definition out loud.
+fn reachable_set(adjacent, start, n) {
+    let seen = []
+    for _ in range(0, n) {
+        seen = push(seen, false)
+    }
+    seen[start] = true
+    let stack = [start]
+    while len(stack) > 0 {
+        let current = stack[len(stack) - 1]
+        stack = slice(stack, 0, len(stack) - 1)
+        for next in adjacent[current] {
+            if seen[next] == false {
+                seen[next] = true
+                stack = push(stack, next)
+            }
+        }
+    }
+    seen
+}
+
+fn is_semi_connected(graph) {
+    let n = graph.vertices
+    let adjacent = []
+    for _ in range(0, n) {
+        adjacent = push(adjacent, [])
+    }
+    for edge in graph.edges {
+        adjacent[edge[0] - 1] = push(adjacent[edge[0] - 1], edge[1] - 1)
+    }
+
+    let reaches = []
+    for v in range(0, n) {
+        reaches = push(reaches, reachable_set(adjacent, v, n))
+    }
+
+    let comparable = true
+    for u in range(0, n) {
+        for v in range(u + 1, n) {
+            if reaches[u][v] == false and reaches[v][u] == false {
+                comparable = false
+            }
+        }
+    }
+    if comparable then 1 else -1
+}
+
+let result = graphs |> map(|g| str(is_semi_connected(g))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 1 -1")
+
+fn test_sc_checks_every_pair() {
+    assert result == "1 -1", "SC: got " + result
+}
+```
+
+## SDAG — Shortest Paths in DAG
+
+[Problem statement](https://rosalind.info/problems/sdag/)
+
+```biolang
+# Rosalind: SDAG — Shortest Paths in DAG
+# https://rosalind.info/problems/sdag/
+#
+# Given: A weighted DAG with integer edge weights and n vertices in the edge
+# list format.
+# Return: An array D[1..n] of shortest path lengths from vertex 1, with "x"
+# where a vertex is unreachable.
+
+let n = 5
+let edge_list = [[2, 3, 4], [4, 3, -2], [1, 4, 1], [1, 5, -3], [2, 4, -2], [5, 4, 1]]
+
+# Weights can be negative, so Dijkstra is out; but the graph is acyclic, so
+# Bellman-Ford's n-1 rounds are unnecessary. Relaxing the edges once in
+# topological order is enough, because a vertex is only ever reached from
+# vertices that come before it. That makes this linear where BF is quadratic.
+let adjacent = []
+let indegree = []
+for _ in range(0, n) {
+    adjacent = push(adjacent, [])
+    indegree = push(indegree, 0)
+}
+for edge in edge_list {
+    adjacent[edge[0] - 1] = push(adjacent[edge[0] - 1], [edge[1] - 1, edge[2]])
+    indegree[edge[1] - 1] = indegree[edge[1] - 1] + 1
+}
+
+let order = []
+for v in range(0, n) {
+    if indegree[v] == 0 {
+        order = push(order, v)
+    }
+}
+let queue_head = 0
+while queue_head < len(order) {
+    let current = order[queue_head]
+    queue_head = queue_head + 1
+    for link in adjacent[current] {
+        indegree[link[0]] = indegree[link[0]] - 1
+        if indegree[link[0]] == 0 {
+            order = push(order, link[0])
+        }
+    }
+}
+
+let infinity = 1000000000
+let distance = []
+for _ in range(0, n) {
+    distance = push(distance, infinity)
+}
+distance[0] = 0
+
+for v in order {
+    if distance[v] < infinity {
+        for link in adjacent[v] {
+            if distance[v] + link[1] < distance[link[0]] {
+                distance[link[0]] = distance[v] + link[1]
+            }
+        }
+    }
+}
+
+let result = distance |> map(|d| if d == infinity then "x" else str(d)) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 0 x -4 -2 -3")
+
+fn test_sdag_shortest_paths() {
+    assert result == "0 x -4 -2 -3", "SDAG: got " + result
+}
+```
+

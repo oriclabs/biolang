@@ -1,0 +1,12 @@
+import "variants" as vcf
+
+let raw = vcf.load("results/calls.vcf")
+vcf.qc_report(raw)
+
+let pass = vcf.load_filtered("results/calls.vcf", min_qual=30.0, require_pass=true)
+vcf.summary(pass)
+vcf.titv(pass)
+
+# Rare variant analysis
+let rare = vcf.rare(pass, max_af=0.001)
+vcf.by_chrom(rare, "chr17")

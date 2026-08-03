@@ -24,9 +24,9 @@ try {
     println("Parse error: " + str(e))
 }
 
-# assert() — fails with a message if condition is false
+# assert — fails with a message if condition is false
 fn process_reads(reads) {
-    assert(len(reads) > 0, "reads list must not be empty")
+    assert len(reads) > 0, "reads list must not be empty"
     println("Processing " + str(len(reads)) + " reads")
 }
 

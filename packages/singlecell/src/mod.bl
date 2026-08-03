@@ -1,0 +1,237 @@
+# singlecell — Single-cell RNA-seq analysis for BioLang
+#
+# Provides a Seurat-compatible workflow for 10x Genomics and other scRNA-seq data.
+#
+# Typical pipeline:
+#   import "singlecell" as sc
+#
+#   let obj = sc.load("path/to/10x/")              # read MEX directory
+#   let obj = sc.filter_cells(obj)                 # remove low-quality cells
+#   let obj = sc.normalize(obj)                    # library-size normalize + log1p
+#   let obj = sc.variable_genes(obj, 2000)         # select HVGs
+#   let obj = sc.neighbors(obj, 15)                # k-NN graph on HVG matrix
+#   let obj = sc.cluster(obj)                      # k-means clustering
+#   let obj = sc.pseudotime(obj, start_cell = 0)   # diffusion pseudotime
+#
+# Object model: each function returns an enriched Record with new fields added.
+# See core.bl, preprocess.bl, markers.bl, integration.bl, trajectory.bl.
+
+import "singlecell/src/core"        as _core
+import "singlecell/src/preprocess"  as _pre
+import "singlecell/src/markers"     as _mark
+import "singlecell/src/integration" as _int
+import "singlecell/src/trajectory"  as _traj
+import "singlecell/src/standard"    as _std
+import "singlecell/src/plots"       as _plots
+import "singlecell/src/advanced"    as _advanced
+import "singlecell/src/advanced_plots" as _advanced_plots
+
+# ─── One-call workflow ─────────────────────────────────────────────────────────
+#
+# standard() runs the usual pipeline and prints the explicit version it ran,
+# marking every parameter [default] or [set]. Start here, then paste the printed
+# pipeline back and edit whichever step you need.
+#
+# Name the optional arguments. All eight are numbers, so positionally they are
+# indistinguishable and a transposed pair produces a different, plausible
+# answer with no error:
+#
+#   sc.standard(obj, resolution: 1.0)                       # change one thing
+#   sc.standard(obj, min_genes: 20, max_pct_mito: 5.0)      # or a few
+#   sc.standard(obj, 0.5, 100, 15, 20, 2500, 5.0, 3, 1e4)   # valid, unreadable
+
+fn standard(obj, resolution = nil, n_hvg = nil, k = nil,
+            min_genes = nil, max_genes = nil, max_pct_mito = nil,
+            min_cells = nil, target = nil, quiet = false) {
+    _std.standard(obj, resolution, n_hvg, k, min_genes, max_genes,
+                  max_pct_mito, min_cells, target, quiet)
+}
+fn sweep(obj, resolutions = [0.1, 0.3, 0.5, 0.7, 1.0], n_hvg = nil, k = nil) {
+    _std.sweep(obj, resolutions, n_hvg, k)
+}
+
+# ─── Core / object creation ────────────────────────────────────────────────────
+
+fn load(path)                            { _core.load(path) }
+fn from_matrix(matrix, genes, barcodes) { _core.from_matrix(matrix, genes, barcodes) }
+fn n_cells(obj)                          { _core.n_cells(obj) }
+fn n_genes(obj)                          { _core.n_genes(obj) }
+fn get_matrix(obj)                       { _core.get_matrix(obj) }
+fn get_norm_matrix(obj)                  { _core.get_norm_matrix(obj) }
+fn get_genes(obj)                        { _core.get_genes(obj) }
+fn get_barcodes(obj)                     { _core.get_barcodes(obj) }
+fn get_hvg_genes(obj)                    { _core.get_hvg_genes(obj) }
+fn get_clusters(obj)                     { _core.get_clusters(obj) }
+fn get_pseudotime(obj)                   { _core.get_pseudotime(obj) }
+fn get_doublet_scores(obj)               { _core.get_doublet_scores(obj) }
+fn summary(obj)                          { _core.summary(obj) }
+
+# ─── QC and preprocessing ──────────────────────────────────────────────────────
+
+fn qc(obj)                               { _pre.qc(obj) }
+fn filter_cells(obj, min_genes = 200, max_genes = 5000, max_pct_mito = 25.0) {
+    _pre.filter_cells(obj, min_genes, max_genes, max_pct_mito)
+}
+fn filter_genes(obj, min_cells = 3)      { _pre.filter_genes(obj, min_cells) }
+fn normalize(obj, target = 10000.0)      { _pre.normalize(obj, target) }
+fn sctransform(obj)                      { _pre.sctransform(obj) }
+fn variable_genes(obj, n = 2000)         { _pre.variable_genes(obj, n) }
+fn scale(obj)                            { _pre.scale(obj) }
+fn run_pca(obj, n_pcs = 50)              { _pre.run_pca(obj, n_pcs) }
+fn neighbors(obj, k = 15)               { _pre.neighbors(obj, k) }
+fn cluster(obj, k = 0)                   { _pre.cluster(obj, k) }
+fn cluster_leiden(obj, k = 15, resolution = 1.0) { _pre.cluster_leiden(obj, k, resolution) }
+
+# ─── Cell annotation and scoring ──────────────────────────────────────────────
+
+fn cell_cycle(obj, s_genes, g2m_genes)   { _mark.cell_cycle(obj, s_genes, g2m_genes) }
+fn gene_module_score(obj, gene_indices)  { _mark.gene_module_score(obj, gene_indices) }
+fn doublets(obj, n_sim = 500)            { _mark.doublets(obj, n_sim) }
+fn flag_doublets(obj, threshold = 0.5)  { _mark.flag_doublets(obj, threshold) }
+fn marker_table(obj, cluster_a, cluster_b) {
+    _mark.marker_table(obj, cluster_a, cluster_b)
+}
+fn pseudobulk(obj, sample_ids)           { _mark.pseudobulk(obj, sample_ids) }
+## Build raw and log-CPM donor-condition-cell-type pseudobulk profiles.
+fn pseudobulk_profiles(obj, donors, conditions, cell_types, min_cells = 10) {
+    _advanced.pseudobulk_profiles(obj, donors, conditions, cell_types, min_cells)
+}
+## Test a condition effect within one cell type using paired donor profiles.
+fn paired_pseudobulk_de(obj, donors, conditions, cell_types, target_type,
+                        condition_a, condition_b, min_cells = 10) {
+    _advanced.paired_pseudobulk_de(
+        obj, donors, conditions, cell_types, target_type,
+        condition_a, condition_b, min_cells
+    )
+}
+## Return paired donor log2-CPM values for one gene and two conditions.
+fn donor_gene_table(obj, gene, donors, conditions, cell_types, target_type,
+                    condition_a, condition_b, min_cells = 10) {
+    _advanced.donor_gene_table(
+        obj, gene, donors, conditions, cell_types, target_type,
+        condition_a, condition_b, min_cells
+    )
+}
+## Calculate cell-type counts and proportions for every donor-condition sample.
+fn composition_table(donors, conditions, cell_types) {
+    _advanced.composition_table(donors, conditions, cell_types)
+}
+## Test donor-paired changes in cell-type proportions between two conditions.
+fn paired_composition_test(donors, conditions, cell_types,
+                           condition_a, condition_b, min_cells = 20) {
+    _advanced.paired_composition_test(
+        donors, conditions, cell_types, condition_a, condition_b, min_cells
+    )
+}
+## Calculate per-cell and mean silhouette coefficients for current clusters.
+fn cluster_diagnostics(obj)              { _advanced.cluster_diagnostics(obj) }
+## Sweep Leiden resolutions and report cluster count, silhouette, and ARI.
+fn cluster_stability(obj, resolutions = [0.2, 0.5, 0.8, 1.0, 1.5], k = 15) {
+    _advanced.cluster_stability(obj, resolutions, k)
+}
+## Prepare a signed gene-ranking table for the core gsea() function.
+fn ranked_genes(de_results)              { _advanced.ranked_genes(de_results) }
+
+# ─── Integration ──────────────────────────────────────────────────────────────
+
+fn integrate(obj, batch_ids)                    { _int.integrate(obj, batch_ids) }
+fn integrate_from_column(obj, batch_col)        { _int.integrate_from_column(obj, batch_col) }
+fn merge(obj_a, obj_b, batch_a = 0, batch_b = 1) {
+    _int.merge(obj_a, obj_b, batch_a, batch_b)
+}
+
+# ─── Trajectory / pseudotime ──────────────────────────────────────────────────
+
+fn pseudotime(obj, start_cell)                  { _traj.pseudotime(obj, start_cell) }
+fn order_by_pseudotime(obj)                     { _traj.order_by_pseudotime(obj) }
+fn pseudotime_bins(pt, n_bins = 10)             { _traj.pseudotime_bins(pt, n_bins) }
+fn smooth_along_pseudotime(obj, gene_idx, n_bins = 20) {
+    _traj.smooth_along_pseudotime(obj, gene_idx, n_bins)
+}
+
+# ─── Plots ─────────────────────────────────────────────────────────────────────
+#
+# These take the sc object directly and do the Matrix -> List<Record> conversion
+# the plotting builtins require. SVG-returning functions give back a Str; the two
+# ASCII ones print and return nil.
+
+fn plot_umap(obj, title = "UMAP")            { _plots.plot_umap(obj, title) }
+fn plot_pca(obj, title = "PCA")              { _plots.plot_pca(obj, title) }
+fn plot_feature(obj, gene, title = nil)       { _plots.plot_feature(obj, gene, title) }
+fn plot_violin(obj, gene)                    { _plots.plot_violin(obj, gene) }
+fn plot_markers(obj, n_per_cluster = 5)      { _plots.plot_markers(obj, n_per_cluster) }
+fn plot_elbow(obj, n_pcs = 15)               { _plots.plot_elbow(obj, n_pcs) }
+fn plot_proportions(obj, groups = nil)       { _plots.plot_proportions(obj, groups) }
+fn expr_dotplot(obj, genes, title = "expression dot plot") {
+    _plots.expr_dotplot(obj, genes, title)
+}
+## Render QC metric distributions as an SVG violin plot.
+fn plot_qc_violin(obj, title = "Cell quality distributions") {
+    _advanced_plots.plot_qc_violin(obj, title)
+}
+## Render counts versus detected genes, coloured by mitochondrial fraction.
+fn plot_qc_scatter(obj, title = "Counts, genes, and mitochondrial fraction") {
+    _advanced_plots.plot_qc_scatter(obj, title)
+}
+## Render distributions and the counts-versus-genes relationship in one SVG.
+fn plot_qc_dashboard(obj, title = "Single-cell quality dashboard") {
+    _advanced_plots.plot_qc_dashboard(obj, title)
+}
+## Render a UMAP coloured by arbitrary per-cell group labels.
+fn plot_embedding(obj, groups, title = "UMAP") {
+    _advanced_plots.plot_embedding(obj, groups, title)
+}
+## Render one gene on split UMAP panels sharing a common expression scale.
+fn plot_feature_split(obj, gene, groups, title = nil) {
+    _advanced_plots.plot_feature_split(obj, gene, groups, title)
+}
+## Render mean expression of selected genes across arbitrary cell groups.
+fn plot_group_heatmap(obj, genes, groups, title = "Mean expression by group") {
+    _advanced_plots.plot_group_heatmap(obj, genes, groups, title)
+}
+## Render effect size against adjusted significance for a DE result table.
+fn plot_volcano(results, title = "Differential expression",
+                fc_cutoff = 1.0, padj_cutoff = 0.05) {
+    _advanced_plots.plot_volcano(results, title, fc_cutoff, padj_cutoff)
+}
+## Render mean expression against log2 fold change for a DE result table.
+fn plot_ma(results, title = "MA plot", fc_cutoff = 1.0, padj_cutoff = 0.05) {
+    _advanced_plots.plot_ma(results, title, fc_cutoff, padj_cutoff)
+}
+## Render paired per-donor expression trajectories for one gene.
+fn plot_donor_expression(obj, gene, donors, conditions, cell_types, target_type,
+                         condition_a, condition_b, min_cells = 10) {
+    _advanced_plots.plot_donor_expression(
+        obj, gene, donors, conditions, cell_types, target_type,
+        condition_a, condition_b, min_cells
+    )
+}
+## Render donor-labelled PCA of pseudobulk profiles, coloured by condition.
+fn plot_pseudobulk_pca(obj, donors, conditions, cell_types,
+                       target_type = nil, min_cells = 10) {
+    _advanced_plots.plot_pseudobulk_pca(
+        obj, donors, conditions, cell_types, target_type, min_cells
+    )
+}
+## Render stacked cell-type proportions for every donor-condition sample.
+fn plot_composition(donors, conditions, cell_types,
+                    title = "Cell-type composition by sample") {
+    _advanced_plots.plot_composition(donors, conditions, cell_types, title)
+}
+## Render UpSet-style intersections across significant DE gene sets.
+fn plot_de_overlap(result_sets, names,
+                   title = "Differential-expression set intersections") {
+    _advanced_plots.plot_de_overlap(result_sets, names, title)
+}
+## Render signed enrichment scores as a labelled lollipop plot.
+fn plot_enrichment(results, title = "Ranked gene-set enrichment") {
+    _advanced_plots.plot_enrichment(results, title)
+}
+## Render silhouette across a Leiden resolution sweep.
+fn plot_cluster_stability(stability, title = "Cluster resolution stability") {
+    _advanced_plots.plot_cluster_stability(stability, title)
+}
+## Render per-cell silhouette coefficients grouped by cluster.
+fn plot_silhouette(diagnostics, title = "Cell silhouette coefficients") {
+    _advanced_plots.plot_silhouette(diagnostics, title)
+}

@@ -5,12 +5,20 @@
     "build": "npx tailwindcss -i src/input.css -o assets/styles.css --minify",
     "watch": "npx tailwindcss -i src/input.css -o assets/styles.css --watch",
     "serve": "npx http-server . -p 3000 -c-1 --ext html",
-    "dev": "start /B npx http-server . -p 3000 -c-1 --ext html && npx tailwindcss -i src/input.css -o assets/styles.css --watch"
+    "dev": "npx http-server . -p 3000 -c-1 --ext html",
+    "dev:css": "npx tailwindcss -i src/input.css -o assets/styles.css --watch",
+    "build:wasm-catalog": "node tests/write_wasm_builtins.mjs",
+    "test:docs:syntax": "node tests/check_cli_syntax.mjs --dir docs && node tests/check_interpolation.mjs docs",
+    "test:studio": "node tests/somer-studio.mjs",
+    "test:studio-import": "node tests/import-studio.mjs",
+    "prepublish-check": "node tests/prepublish-check.mjs",
+    "prepublish-check:report": "playwright show-report tests/e2e/report"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "tailwindcss": "^3.4.19"
   },
   "dependencies": {
-    "sharp": "^0.34.5"
+    "sharp": "^0.35.3"
   }
 }

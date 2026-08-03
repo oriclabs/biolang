@@ -139,21 +139,24 @@ Use this when you want to predict an outcome from one or more predictor variable
 
 | Outcome type | Number of predictors | Test | BioLang |
 |---|---|---|---|
-| Continuous | 1 | Simple linear regression | `lm(y, x)` |
-| Continuous | Multiple | Multiple linear regression | `lm(y, [x1, x2, x3])` |
-| Binary (0/1) | Any | Logistic regression | `glm("y ~ x", table, "binomial")` |
-| Count | Any | Poisson regression | `glm("y ~ x", table, "poisson")` |
-| Count, overdispersed | Any | Negative binomial regression | `glm("y ~ x", table, "negbin")` |
-| Continuous, clustered data | Any | Mixed-effects model | `lm(y, x)` (per group) |
+| Continuous | 1 | Simple linear regression | `lm(x, y)` |
+| Continuous | Multiple | Multiple linear regression | `lm(~y ~ x1 + x2 + x3, table)` |
+| Binary (0/1) | Any | Logistic regression | `glm(~y ~ x, table, "binomial")` |
+| Count | Any | Poisson regression | `glm(~y ~ x, table, "poisson")` |
+| Count, overdispersed | Any | External negative-binomial tool or package | Not a current `glm` family |
+| Continuous, clustered data | Any | Stratified models or an external mixed-effects tool | Fit and report per group |
 
 ### Checking Regression Assumptions
 
 ```bio
-let model = lm(expression, [age, sex, batch])
+let age = [34, 41, 52, 59, 63, 70]
+let expression = [8.1, 8.8, 9.4, 10.2, 10.6, 11.1]
+let model = lm(age, expression)
 
-# Check residuals with Q-Q plot
-let residuals = model.residuals
-qq_plot(residuals, {title: "Residual Normality Check"})
+# Compute residuals from the fitted line
+let residuals = range(0, len(age))
+  |> map(|i| expression[i] - (model.intercept + model.slope * age[i]))
+histogram(residuals, {title: "Residual Distribution"})
 print("R-squared: " + str(round(model.r_squared, 3)))
 ```
 
@@ -168,7 +171,7 @@ Use this when your outcome is the time until something happens (death, relapse, 
 | Estimate survival curve | Kaplan-Meier | Sort event times, compute stepwise survival |
 | Compare survival between two groups | Log-rank test | `ttest(times_a, times_b)` as proxy |
 | Compare survival, multiple groups | Log-rank test | `anova([group1_times, group2_times, ...])` |
-| Adjust for covariates | Cox proportional hazards | `lm(time, [covariates])` |
+| Adjust for covariates | Cox proportional hazards | `cox_ph(time, event, covariates)` |
 | Estimate median survival | From sorted times | `sort(times)[len(times) / 2]` |
 
 > **Clinical relevance:** In clinical trials, the hazard ratio from a Cox model is the primary efficacy endpoint. A hazard ratio of 0.65 means the treatment group has a 35% lower instantaneous risk of the event at any time point. Always report the 95% confidence interval alongside the point estimate.
@@ -220,6 +223,6 @@ Use this whenever you perform more than one statistical test on the same dataset
 | 20,000 gene differential expression | t-test + BH correction | `p_adjust(pvals, "BH")` |
 | Sample clustering from RNA-seq | PCA + hierarchical clustering | `pca(data)` then `hclust(scores)` |
 | Correlation: expression vs. methylation | Spearman (often non-linear) | `spearman(expr, meth)` |
-| GWAS: genotype vs. phenotype | Logistic regression + BH | `glm("pheno ~ geno", tbl, "binomial")` |
-| Clinical outcome predictors | Regression model | `lm(outcome, [age, stage, treatment])` |
+| GWAS: genotype vs. phenotype | Logistic regression + BH | `glm(~pheno ~ geno, tbl, "binomial")` |
+| Clinical outcome predictors | Regression model | `lm(~outcome ~ age + stage + treatment, tbl)` |
 | Sample size for planned experiment | Power analysis | Compute with `qnorm()` and effect size |

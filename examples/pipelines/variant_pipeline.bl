@@ -5,11 +5,11 @@
 # ── Load VCF ────────────────────────────────────────────────────
 
 let input_path = "tests/data/test.vcf"
-println("Loading VCF: " ++ input_path)
+println(format("Loading VCF: {}", input_path))
 
-let variants = vcf(input_path)
+let variants = vcf(input_path) |> collect()
 let total = variants |> count()
-println("Total variant records: " ++ str(total))
+println(format("Total variant records: {}", total))
 
 # ── Basic counts by variant type ────────────────────────────────
 
@@ -19,9 +19,9 @@ let insertions = indels |> filter(|v| len(v.alt) > len(v.ref))
 let deletions  = indels |> filter(|v| len(v.alt) < len(v.ref))
 
 println("\nVariant breakdown:")
-println("  SNPs:       " ++ str(snps |> count()))
-println("  Insertions: " ++ str(insertions |> count()))
-println("  Deletions:  " ++ str(deletions |> count()))
+println(format("  SNPs:       {}", snps |> count()))
+println(format("  Insertions: {}", insertions |> count()))
+println(format("  Deletions:  {}", deletions |> count()))
 
 # ── Quality filtering ───────────────────────────────────────────
 # Keep PASS variants with QUAL >= 30
@@ -30,22 +30,21 @@ let high_qual = variants
     |> filter(|v| v.filter == "PASS" || v.filter == ".")
     |> filter(|v| v.qual >= 30.0)
 
-println("\nHigh-quality (QUAL >= 30, PASS): " ++ str(high_qual |> count())
-    ++ " / " ++ str(total))
+println(format("\nHigh-quality (QUAL >= 30, PASS): {} / {}", high_qual |> count(), total))
 
 # ── Annotate with computed fields ───────────────────────────────
 # Add variant_type and allele_length_diff columns
 
 let annotated = high_qual |> map(|v| {
-    "chrom":      v.chrom,
-    "pos":        v.pos,
-    "ref":        v.ref,
-    "alt":        v.alt,
-    "qual":       v.qual,
-    "type":       if len(v.ref) == 1 && len(v.alt) == 1 then "SNP"
-                  else if len(v.alt) > len(v.ref) then "INS"
-                  else "DEL",
-    "size_delta": len(v.alt) - len(v.ref)
+    chrom: v.chrom,
+    pos: v.pos,
+    ref_allele: v.ref,
+    alt_allele: v.alt,
+    qual: v.qual,
+    type: if len(v.ref) == 1 && len(v.alt) == 1 then "SNP"
+          else if len(v.alt) > len(v.ref) then "INS"
+          else "DEL",
+    size_delta: len(v.alt) - len(v.ref)
 })
 
 # ── Transition / Transversion ratio (SNPs only) ─────────────────
@@ -53,11 +52,11 @@ let annotated = high_qual |> map(|v| {
 let ti_bases = [["A","G"], ["G","A"], ["C","T"], ["T","C"]]
 let snp_ann = annotated |> filter(|v| v.type == "SNP")
 let transitions = snp_ann
-    |> filter(|v| ti_bases |> any(|pair| pair[0] == v.ref && pair[1] == v.alt))
+    |> filter(|v| ti_bases |> any(|pair| pair[0] == v.ref_allele && pair[1] == v.alt_allele))
     |> count()
 let transversions = (snp_ann |> count()) - transitions
 let ti_tv = if transversions > 0 then transitions / transversions else 0.0
-println("Ti/Tv ratio: " ++ str(ti_tv))
+println(format("Ti/Tv ratio: {}", ti_tv))
 
 # ── Per-chromosome summary ──────────────────────────────────────
 
@@ -66,12 +65,13 @@ println("\n--- Per-Chromosome Summary ---")
 let chrom_summary = annotated
     |> table()
     |> group_by("chrom")
-    |> summarize(
-        "count"    = count(),
-        "mean_qual" = mean(qual),
-        "snps"     = count(filter(|r| r.type == "SNP")),
-        "indels"   = count(filter(|r| r.type != "SNP"))
-    )
+    |> summarize(|chrom, rows| {
+        chrom: chrom,
+        count: len(rows),
+        mean_qual: rows |> map(|r| r.qual) |> mean(),
+        snps: rows |> filter(|r| r.type == "SNP") |> len(),
+        indels: rows |> filter(|r| r.type != "SNP") |> len()
+    })
     |> arrange("chrom")
 
 chrom_summary |> println()
@@ -82,8 +82,8 @@ println("\n--- Top 10 Variants by Quality ---")
 
 let top_variants = annotated
     |> table()
-    |> arrange(desc("qual"))
-    |> select("chrom", "pos", "ref", "alt", "type", "qual")
+    |> arrange("-qual")
+    |> select("chrom", "pos", "ref_allele", "alt_allele", "type", "qual")
     |> head(10)
 
 top_variants |> println()

@@ -1,0 +1,45 @@
+# Rosalind: MAJ — Majority Element
+# https://rosalind.info/problems/maj/
+#
+# Given: A positive integer k, a positive integer n, and k arrays of size n.
+# Return: For each array, an element occurring strictly more than n/2 times,
+# or -1 if there is none.
+
+let arrays = [
+    [5, 5, 5, 5, 5, 5, 5, 5],
+    [8, 7, 7, 7, 1, 7, 3, 7],
+    [7, 1, 6, 5, 10, 100, 1000, 1],
+    [5, 1, 6, 7, 1, 1, 10, 1],
+]
+
+# A tally is the direct reading of the definition. Comparing 2 * count against
+# the length keeps the test in integers, so "strictly more than n/2" stays exact
+# for odd n instead of depending on how a division rounds.
+fn majority(xs) {
+    let counts = {}
+    for value in xs {
+        let key = str(value)
+        if contains(keys(counts), key) {
+            counts[key] = counts[key] + 1
+        } else {
+            counts[key] = 1
+        }
+    }
+
+    let answer = -1
+    for key in keys(counts) {
+        if counts[key] * 2 > len(xs) {
+            answer = int(key)
+        }
+    }
+    answer
+}
+
+let result = arrays |> map(|xs| str(majority(xs))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 5 7 -1 -1")
+
+fn test_maj_majority_elements() {
+    assert result == "5 7 -1 -1", "MAJ: got " + result
+}

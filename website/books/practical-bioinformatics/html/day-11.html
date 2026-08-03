@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-beee4806.js";
+            window.path_to_searchindex_js = "searchindex-02d32199.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-cf8b2d25.js"></script>
@@ -313,13 +313,13 @@ let seq2 = dna"ATCGTTGATCG"
 dotplot(seq1, seq2)
 </code></pre>
 <p>The <code>dotplot()</code> function generates an SVG visualization. You can customize it:</p>
-<pre><code class="language-bio">dotplot(seq1, seq2, window: 3, title: "Pairwise comparison")
+<pre><code class="language-bio">dotplot(seq1, seq2, {window: 3, title: "Pairwise comparison"})
 </code></pre>
 <p>The <code>window</code> parameter sets the match window size. A window of 1 shows every single-base match (noisy). A window of 3 or larger filters out random matches, leaving only meaningful stretches of similarity.</p>
 <h3 id="self-dotplots"><a class="header" href="#self-dotplots">Self-Dotplots</a></h3>
 <p>Comparing a sequence against itself is a powerful way to find internal repeats. Any repeated region appears as a parallel diagonal line offset from the main diagonal.</p>
 <pre><code class="language-bio">let repeat_seq = dna"ATCGATCGATCGATCG"
-dotplot(repeat_seq, repeat_seq, window: 3, title: "Self-comparison: internal repeats")
+dotplot(repeat_seq, repeat_seq, {window: 3, title: "Self-comparison: internal repeats"})
 </code></pre>
 <p>The main diagonal (where the sequence matches itself perfectly) will always be present. Parallel lines above or below the diagonal indicate tandem repeats.</p>
 <hr>
@@ -616,9 +616,9 @@ Chicken | 1113       | 370            | 52.8
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
-        <script src="book-runner-ee861d9e.js"></script>
+        <script src="mermaid-35374ef1.min.js"></script>
+        <script src="mermaid-init-12acb6c2.js"></script>
+        <script src="book-runner-395634af.js"></script>
 
 
 

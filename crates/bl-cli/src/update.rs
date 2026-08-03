@@ -30,9 +30,8 @@ struct UpdateCache {
 }
 
 fn config_dir() -> Option<PathBuf> {
-    dirs_path().map(|d| {
-        let _ = fs::create_dir_all(&d);
-        d
+    dirs_path().inspect(|d| {
+        let _ = fs::create_dir_all(d);
     })
 }
 
@@ -104,20 +103,30 @@ fn is_newer(latest: &str, current: &str) -> bool {
 
 fn platform_asset_name() -> &'static str {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    { "biolang-linux-x86_64.tar.gz" }
+    {
+        "biolang-linux-x86_64.tar.gz"
+    }
     #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-    { "biolang-macos-x86_64.tar.gz" }
+    {
+        "biolang-macos-x86_64.tar.gz"
+    }
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    { "biolang-macos-aarch64.tar.gz" }
+    {
+        "biolang-macos-aarch64.tar.gz"
+    }
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    { "biolang-windows-x86_64.zip" }
+    {
+        "biolang-windows-x86_64.zip"
+    }
     #[cfg(not(any(
         all(target_os = "linux", target_arch = "x86_64"),
         all(target_os = "macos", target_arch = "x86_64"),
         all(target_os = "macos", target_arch = "aarch64"),
         all(target_os = "windows", target_arch = "x86_64"),
     )))]
-    { "" }
+    {
+        ""
+    }
 }
 
 fn fetch_latest_release() -> Result<GitHubRelease, String> {
@@ -162,7 +171,9 @@ pub fn check_for_updates_background() {
     // Cache is stale or missing — check in background
     std::thread::spawn(|| {
         if let Ok(release) = fetch_latest_release() {
-            let version = release.tag_name.strip_prefix('v')
+            let version = release
+                .tag_name
+                .strip_prefix('v')
                 .unwrap_or(&release.tag_name)
                 .to_string();
 
@@ -214,7 +225,9 @@ pub fn cmd_version() {
     eprint!("Checking for updates... ");
     match fetch_latest_release() {
         Ok(release) => {
-            let version = release.tag_name.strip_prefix('v')
+            let version = release
+                .tag_name
+                .strip_prefix('v')
                 .unwrap_or(&release.tag_name)
                 .to_string();
 
@@ -262,7 +275,9 @@ pub fn cmd_upgrade() {
         }
     };
 
-    let latest = release.tag_name.strip_prefix('v')
+    let latest = release
+        .tag_name
+        .strip_prefix('v')
         .unwrap_or(&release.tag_name)
         .to_string();
 
@@ -341,7 +356,12 @@ pub fn cmd_upgrade() {
         });
 
         let status = Command::new("tar")
-            .args(["xzf", &archive_path.to_string_lossy(), "-C", &tmp_dir.to_string_lossy()])
+            .args([
+                "xzf",
+                &archive_path.to_string_lossy(),
+                "-C",
+                &tmp_dir.to_string_lossy(),
+            ])
             .status();
 
         match status {

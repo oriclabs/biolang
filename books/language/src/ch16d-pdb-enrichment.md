@@ -126,7 +126,7 @@ For ranked gene lists (e.g., by fold change or t-statistic):
 # Prepare ranked table with gene and score columns
 let ranked = tsv("de_results.tsv")
   |> select("gene", "log2fc")
-  |> rename({log2fc: "score"})
+  |> rename("log2fc", "score")
   |> sort_by(|r| -r.score)
 
 # Load gene sets
@@ -216,4 +216,4 @@ k_results |> filter(|r| r.fdr < 0.05) |> each(|r|
 | `read_gmt(path)` | Str | Map{name -> List[Str]} | Parse GMT gene set file |
 | `enrich(genes, sets, bg)` | List, Map, Int | Table | ORA with hypergeometric test + BH FDR |
 | `ora(genes, sets, bg)` | List, Map, Int | Table | Alias for `enrich()` |
-| `gsea(ranked, sets)` | Table, Map | Table | GSEA with permutation test + BH FDR |
+| `gsea(ranked, sets, seed?)` | Table, Map, Int | Table | GSEA with permutation test + BH FDR; fixed default seed, pass `seed:` to vary |

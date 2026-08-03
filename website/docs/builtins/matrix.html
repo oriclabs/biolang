@@ -47,9 +47,9 @@ let d = diag([1, 2, 3])                    # 3x3 diagonal</code></pre>
 
         <section class="mb-12" id="operations">
           <h2 class="text-2xl font-bold text-white">Operations</h2>
-          <pre><code class="language-biolang">transpose(mat) -> matrix
-dot(a, b) -> float           # vector dot product
-mat_mul(a, b) -> matrix      # matrix multiplication
+          <pre><code class="language-text">transpose(mat) -> matrix
+dot(a, b) -> matrix          # matrix multiplication
+mat_mul(a, b) -> matrix      # matrix multiplication alias
 inverse(mat) -> matrix       # matrix inverse (Gauss-Jordan elimination)
 determinant(mat) -> float    # determinant via LU decomposition
 solve(A, b) -> list          # solve linear system Ax = b
@@ -86,7 +86,7 @@ solve(A, b)   # [1.0, 3.0]</code></pre>
             </table>
           </div>
           <pre><code class="language-biolang"># PCA on gene expression matrix (genes x samples)
-let expr = read_csv("data/expression.csv") |> matrix_from_table("value")
+let expr = read_csv("data/expression.csv") |> matrix_from_table(["value"])
 let result = pca(expr, 3)
 
 println("Variance explained:", result.variance_explained)
@@ -104,22 +104,22 @@ scatter(result.scores, {
           <h3 class="text-xl font-bold text-white mt-8 mb-4">Linear Algebra Examples</h3>
           <pre><code class="language-biolang"># PCA on gene expression matrix
 let expr = matrix([[10, 20, 15], [8, 25, 12], [11, 18, 20]])
-let centered = mat_map(expr, |x| x - mean(expr))
+let centered = mat_map(expr, |x| x - mean(expr.data))
 let cov = mat_mul(transpose(centered), centered)
 let pca_result = eigenvalues(cov)
 println("PC1 variance:", first(pca_result.values))
 
 # Solve linear regression: coefficients = (X'X)^-1 X'y
 let X = matrix([[1, 2], [1, 4], [1, 6], [1, 8]])
-let y = [3.1, 5.2, 6.8, 9.1]
+let y = matrix([[3.1], [5.2], [6.8], [9.1]])
 let XtX = mat_mul(transpose(X), X)
-let Xty = mat_mul(transpose(X), matrix([y]))
-let coeffs = solve(XtX, Xty)</code></pre>
+let Xty = mat_mul(transpose(X), y)
+let coeffs = solve(XtX, Xty.data)</code></pre>
         </section>
 
         <section class="mb-12" id="statistics">
           <h2 class="text-2xl font-bold text-white">Matrix Statistics</h2>
-          <pre><code class="language-biolang">cor_matrix(mat) -> matrix    # correlation matrix
+          <pre><code class="language-text">cor_matrix(mat) -> matrix    # correlation matrix
 cov_matrix(mat) -> matrix    # covariance matrix
 row_sums(mat) -> list
 col_sums(mat) -> list</code></pre>

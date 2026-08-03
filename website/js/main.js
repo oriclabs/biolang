@@ -222,7 +222,28 @@
     document.body.classList.add('components-loaded');
   }, 3000);
 
+  // ── Clickable table rows ──
+  //
+  // Coverage tables mark rows with data-row-href. The row's own link stays the
+  // accessible target — keyboard focus, middle-click and "open in new tab" all
+  // go through it — and this only widens the hit area for a plain left click.
+  // A stretched CSS pseudo-element was tried first and did not cover the row.
+  function initRowLinks() {
+    document.addEventListener('click', function (event) {
+      // Never hijack a click already heading somewhere, or a modified click
+      // the reader means to open in a new tab or window.
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+      if (event.target.closest('a, button, input, select, textarea')) return;
+      if (window.getSelection && String(window.getSelection()).length > 0) return;
+
+      var row = event.target.closest('tr[data-row-href]');
+      if (!row) return;
+      window.location.href = row.getAttribute('data-row-href');
+    });
+  }
+
   function initAll() {
+    initRowLinks();
     loadComponents().finally(function () {
       clearTimeout(revealTimeout);
     });

@@ -1,0 +1,27 @@
+# phylo — Phylogenetics for BioLang
+#
+# Newick tree parsing, pairwise distance matrices, UPGMA tree building,
+# and phylogenetic diversity metrics.
+#
+# Quick start:
+#   import "phylo" as ph
+#
+#   let tree = ph.load("sequences.nwk")
+#   ph.leaves(tree)
+#   ph.distance(tree, "Human", "Chimp")
+#   let dmat = ph.distance_matrix(tree)
+#   let tree2 = ph.build_upgma(ph.leaves(tree), dmat)
+
+import "phylo/src/tree"     as tree
+import "phylo/src/diversity" as div
+
+fn load(path)                           { tree.load(path) }
+fn from_string(nw_str)                  { tree.from_string(nw_str) }
+fn leaves(t)                            { tree.leaves(t) }
+fn n_leaves(t)                          { tree.n_leaves(t) }
+fn distance(t, a, b)                    { tree.distance(t, a, b) }
+fn distance_matrix(t)                   { tree.distance_matrix(t) }
+fn build_upgma(labels, dmat)            { tree.build_upgma(labels, dmat) }
+fn faith_pd(t)                          { div.faith_pd(t) }
+fn mean_pairwise_distance(t, taxa)      { div.mean_pairwise_distance(t, taxa) }
+fn nearest_taxon_distance(t)            { div.nearest_taxon_distance(t) }

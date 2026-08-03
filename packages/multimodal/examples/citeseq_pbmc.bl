@@ -1,0 +1,22 @@
+import "singlecell" as sc
+import "multimodal" as mm
+
+# Load RNA and ADT (protein) modalities from separate MEX directories
+let rna = read_10x("data/citeseq/rna/")
+let adt = read_10x("data/citeseq/adt/")
+
+let obj = mm.from_citeseq(rna.matrix, adt.matrix, rna.genes, adt.genes, rna.barcodes)
+
+# Process RNA modality
+let obj = obj
+  |> sc.filter_cells
+  |> sc.normalize
+  |> sc.variable_genes(2000)
+  |> sc.neighbors
+
+# Normalise ADT counts
+let obj = mm.normalize_adt(obj)
+
+# Build WNN graph integrating RNA-PCA and ADT embeddings, then cluster
+let obj = mm.wnn(obj, 20)
+mm.cluster_wnn(obj, resolution = 0.5)

@@ -1,0 +1,11 @@
+[package]
+name = "grn"
+version = "0.1.0"
+description = "Gene regulatory network inference: co-expression and TF activity scoring (SCENIC-lite)"
+authors = ["BioLang"]
+
+[dependencies]
+singlecell = { path = "../singlecell" }
+
+[lib]
+entry = "src/mod.bl"

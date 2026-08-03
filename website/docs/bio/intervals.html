@@ -119,13 +119,16 @@ print(nearest)</code></pre>
 
         <h2>Sliding Window Analysis</h2>
         <p>
-          Use <code>kmers()</code> to extract sliding windows of a given size for
+          Use <code>windows()</code> to extract typed sliding windows of a given size for
           genome-wide analyses:
         </p>
-        <pre><code class="language-biolang"># Sliding window GC content using kmers
+        <pre><code class="language-biolang"># Sliding-window GC content
 let seq = dna"ATCGATCGATCGATCGATCGATCG"
-kmers(seq, 6)
-  |> map(|k| gc_content(k))
+windows(seq, 6, 1)
+  |> map(|window| {
+    start: window.pos,
+    gc: gc_content(window.seq)
+  })
   |> to_table()
   |> print()</code></pre>
 
@@ -147,6 +150,152 @@ let result = intersect(promoters, peaks)
 result = subtract(result, repeats)
 result = merge_intervals(result)
 write_bed(result, "clean_promoter_peaks.bed")</code></pre>
+
+        <h2>Table-Based BED Operations</h2>
+        <p>
+          The following functions operate on <strong>Tables</strong> that have <code>chrom</code>,
+          <code>start</code>, and <code>end</code> columns — matching standard BED format. They
+          implement the most-used <em>bedtools</em> operations natively, without shelling out to
+          external tools. All coordinate arithmetic follows the zero-based, half-open convention.
+        </p>
+
+        <h3>bed_intersect(a, b)</h3>
+        <p>
+          For each row in table <code>a</code>, finds every overlapping row in table <code>b</code>
+          (same <code>chrom</code>, overlapping coordinates). Returns a table containing all
+          columns from <code>a</code> plus three derived columns:
+        </p>
+        <ul>
+          <li><code>overlap_start</code> — start of the shared region</li>
+          <li><code>overlap_end</code> — end of the shared region</li>
+          <li><code>overlap_length</code> — number of overlapping bases</li>
+        </ul>
+        <p>
+          Rows in <code>a</code> with no overlap in <code>b</code> are dropped. To keep them,
+          use <code>bed_closest()</code> with a distance filter instead.
+        </p>
+        <pre><code class="language-biolang"># Find CDS intervals that overlap a variant set
+let cds    = read_bed("annotation/cds.bed")
+let vcf    = read_bed("variants/snps.bed")   # bed3+ export from VCF
+
+let coding_variants = bed_intersect(cds, vcf)
+
+# coding_variants now has all cds columns plus overlap_start, overlap_end, overlap_length
+print(nrow(coding_variants), "variants fall inside coding sequence")
+
+# Filter to only variants with at least 1 bp overlap (always true for bed_intersect,
+# but useful after a join that may produce zero-length artefacts)
+let confirmed = coding_variants |> filter(|r| r.overlap_length > 0)
+
+# Summarise per gene
+confirmed
+  |> group_by("gene_id")
+  |> summarize(|gene_id, rows| {
+       { gene_id: gene_id, variant_count: len(rows) }
+     })
+  |> sort_by(|row| -row.variant_count)
+  |> print()</code></pre>
+
+        <h3>bed_subtract(a, b)</h3>
+        <p>
+          Removes all bases in <code>b</code> from the intervals in <code>a</code>. An interval
+          in <code>a</code> that is only <em>partially</em> covered by <code>b</code> is split
+          into one or two shorter intervals. The returned table has the same columns as <code>a</code>;
+          extra columns from <code>b</code> are not included.
+        </p>
+        <pre><code class="language-biolang"># Mask repeat regions from a gene annotation before peak analysis
+let genes   = read_bed("annotation/genes.bed")
+let repeats = read_bed("annotation/repeatmasker.bed")
+
+let clean_genes = bed_subtract(genes, repeats)
+
+print(nrow(genes),       "input gene intervals")
+print(nrow(clean_genes), "intervals after repeat masking")
+
+# Compare total coverage before and after
+let bp_before = genes       |> map(|r| r.end - r.start) |> sum()
+let bp_after  = clean_genes |> map(|r| r.end - r.start) |> sum()
+
+print("Repeat content removed:", bp_before - bp_after, "bp")
+
+# Write masked annotation for downstream analysis
+write_bed(clean_genes, "annotation/genes_masked.bed")</code></pre>
+
+        <h3>bed_merge(a, gap?)</h3>
+        <p>
+          Merges overlapping or adjacent intervals within <code>a</code>. The optional
+          <code>gap</code> parameter (default <code>0</code>) allows intervals separated by at
+          most <em>gap</em> bases to be merged as well — useful for collapsing nearly-adjacent
+          peaks into a single region. The algorithm sorts by <code>(chrom, start)</code> and
+          then greedily extends intervals. The returned table has the same columns as <code>a</code>;
+          non-coordinate columns are taken from the <strong>first row</strong> of each merged
+          group.
+        </p>
+        <pre><code class="language-biolang"># Merge overlapping exons produced by an RNA-seq assembler
+let raw_exons = read_bed("rnaseq/assembled_exons.bed")
+
+# Strict merge: only overlapping / book-ended intervals
+let merged_strict = bed_merge(raw_exons)
+print(nrow(merged_strict), "exons after strict merge")
+
+# Permissive merge: also join exons separated by &lt;= 50 bp (e.g. small introns)
+let merged_50 = bed_merge(raw_exons, 50)
+print(nrow(merged_50), "exons after 50 bp gap merge")
+
+# Typical ChIP-seq workflow: load peaks, merge, write
+read_bed("chipseq/peaks.bed")
+  |> bed_merge(0)
+  |> write_bed("chipseq/peaks_merged.bed")
+
+# Count how many raw peaks collapsed into each merged region
+let with_counts =
+  bed_intersect(merged_strict, raw_exons)
+    |> group_by("chrom")
+    |> summarize(|chrom, rows| {
+         { chrom: chrom, source_count: len(rows) }
+       })
+print(with_counts)</code></pre>
+
+        <h3>bed_closest(a, b)</h3>
+        <p>
+          For each row in <code>a</code>, finds the single nearest row in <code>b</code> on the
+          same chromosome. The <code>distance</code> column is <code>0</code> when the intervals
+          overlap; otherwise it is the number of bases between the nearest endpoints. Columns
+          from <code>b</code> are prefixed with <code>b_</code> to avoid name collisions.
+        </p>
+        <pre><code class="language-biolang"># Assign each ChIP-seq peak to its nearest annotated gene
+let peaks = read_bed("chipseq/peaks_merged.bed")
+let genes = read_bed("annotation/genes.bed")   # must have chrom, start, end, gene_name
+
+let peak_gene = bed_closest(peaks, genes)
+
+# peak_gene columns: all peak cols + b_chrom, b_start, b_end, b_gene_name, distance
+
+# Keep only peaks within 50 kb of a gene
+let proximal = peak_gene |> filter(|r| r.distance &lt;= 50000)
+print(nrow(proximal), "peaks within 50 kb of a gene")
+
+# Summarise: how many peaks per gene, and what is the median distance?
+proximal
+  |> group_by("b_gene_name")
+  |> summarize(|gene_name, rows| {
+       {
+         gene_name: gene_name,
+         peak_count: len(rows),
+         median_distance: rows |> col("distance") |> median()
+       }
+     })
+  |> sort_by(|row| -row.peak_count)
+  |> head(20)
+  |> print()
+
+# Full pipeline: load → merge peaks → assign genes → filter → export
+read_bed("chipseq/peaks.bed")
+  |> bed_merge(100)
+  |> bed_closest(genes)
+  |> filter(|r| r.distance &lt;= 10000)
+  |> select("chrom", "start", "end", "b_gene_name", "distance")
+  |> write_bed("chipseq/peak_gene_assignments.bed")</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="formats.html" class="text-violet-400 hover:text-violet-300">&larr; Formats</a>

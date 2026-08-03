@@ -177,7 +177,7 @@ let results = gene_ids
     gene: id,
     ncbi: ncbi_search("gene", id),
     ensembl: ensembl_symbol("human", id),
-    uniprot: uniprot_search("gene:{id} AND organism_id:9606")
+    uniprot: uniprot_search(f"gene:{id} AND organism_id:9606")
   })
   |> to_table()
   |> print()</code></pre>

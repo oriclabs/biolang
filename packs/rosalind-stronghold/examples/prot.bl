@@ -1,0 +1,17 @@
+# Rosalind: PROT — Translating RNA into Protein
+# https://rosalind.info/problems/prot/
+#
+# Given: An RNA string s corresponding to a strand of mRNA.
+# Return: The protein string encoded by s.
+
+let s = rna"AUGGCCAUGGCGCCCAGAACUGAGAUCAAUAGUACCCGUAUUAACGGGUGA"
+
+# translate() stops at the first stop codon, which is what the problem asks for.
+let peptide = translate(s)
+
+println("Result:   " ++ str(peptide))
+println("Expected: MAMAPRTEINSTRING")
+
+fn test_prot_translation() {
+    assert str(peptide) == "MAMAPRTEINSTRING", "PROT: got " ++ str(peptide)
+}

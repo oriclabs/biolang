@@ -1,0 +1,30 @@
+# Rosalind: IPRB — Mendel's First Law
+# https://rosalind.info/problems/iprb/
+#
+# Given: Positive integers k (homozygous dominant), m (heterozygous) and
+# n (homozygous recessive) organisms.
+# Return: The probability that two randomly chosen mating organisms produce an
+# individual with a dominant allele.
+
+let k = 2.0
+let m = 2.0
+let n = 2.0
+let total = k + m + n
+
+# Work out the recessive probability and subtract: only mm, mn and nn pairings
+# can produce a recessive offspring.
+# A continued expression keeps its operator at the end of the line.
+let mm = (m / total) * ((m - 1.0) / (total - 1.0)) * 0.25
+let mn = (m / total) * (n / (total - 1.0)) * 0.5
+let nm = (n / total) * (m / (total - 1.0)) * 0.5
+let nn = (n / total) * ((n - 1.0) / (total - 1.0))
+let p_recessive = mm + mn + nm + nn
+
+let result = 1.0 - p_recessive
+
+println("Result:   " + str(round(result, 5)))
+println("Expected: 0.78333")
+
+fn test_iprb_dominant_probability() {
+    assert round(result, 5) == 0.78333, "IPRB: got " + str(result)
+}

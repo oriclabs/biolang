@@ -34,11 +34,11 @@ for d in range(0, 4) {
         let n = sample_sizes[s]
         let pow = all_powers[d][s]
         let n_sig = round(pow * 1000)
-        lines = append(lines, f"{es},{n},{pow},{n_sig},1000")
+        lines = push(lines, f"{es},{n},{pow},{n_sig},1000")
     }
 }
 
-write_lines(lines, "data/power_simulation.csv")
+write_lines("data/power_simulation.csv", lines)
 println("Wrote data/power_simulation.csv: 28 power estimates")
 println("  4 effect sizes (d=0.3-1.2) x 7 sample sizes (n=5-100)")
 
@@ -61,10 +61,10 @@ let sensitivity = [0.27, 0.50, 0.77, 0.91, 0.96]
 let fdr_vals = [0.175, 0.072, 0.027, 0.013, 0.007]
 
 for i in range(0, 5) {
-    rna_lines = append(rna_lines, f"{reps[i]},{detected[i]},{fp[i]},{sensitivity[i]},{fdr_vals[i]}")
+    rna_lines = push(rna_lines, f"{reps[i]},{detected[i]},{fp[i]},{sensitivity[i]},{fdr_vals[i]}")
 }
 
-write_lines(rna_lines, "data/rnaseq_design.csv")
+write_lines("data/rnaseq_design.csv", rna_lines)
 println("Wrote data/rnaseq_design.csv: 5 replicate scenarios")
 println("  Based on Schurch et al. 2016 RNA (yeast WT vs snf2 knockout)")
 println("  n=2: sensitivity 0.27; n=12: sensitivity 0.96")

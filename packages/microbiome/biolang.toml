@@ -1,0 +1,8 @@
+[package]
+name = "microbiome"
+version = "0.1.0"
+description = "Microbiome analysis: 16S/shotgun diversity, taxonomic profiling, differential abundance"
+authors = ["BioLang"]
+
+[lib]
+entry = "src/mod.bl"

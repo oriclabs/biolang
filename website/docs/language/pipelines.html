@@ -70,9 +70,9 @@ println(f"Pipeline result: {analysis}")</code></pre>
         <pre><code class="language-biolang"># Define a parameterized pipeline (becomes a function)
 pipeline classify(values, threshold) {
   stage high -> values |> filter(|v| v >= threshold)
-  stage low -> values |> filter(|v| v < threshold)
+  stage low -> values |> filter(|v| v &lt; threshold)
   println(f"  High ({">="}{threshold}): {high}")
-  println(f"  Low  (<{threshold}): {low}")
+  println(f"  Low  (&lt;{threshold}): {low}")
   {high: high, low: low}
 }
 

@@ -185,12 +185,14 @@ lollipop({data: lollipop_data, title: "Key Spike Mutations Across Variants", len
 # ── 10. Summary Report ──
 println("=== Summary Report ===")
 
-let report = "# SARS-CoV-2 Spike Phylogenomics\n\n"
-  + "## Variants Analyzed\n" + len(names) |> str() + " lineages from Wuhan to XBB.1.5\n\n"
-  + "## Phylogenetic Tree\nNJ tree from Hamming distances; Omicron lineages cluster together\n\n"
-  + "## RBD Mutations\nOmicron variants accumulate most RBD mutations (positive selection, dN/dS > 1)\n\n"
-  + "## Sketch Comparison\nMinHash-based tree topology consistent with alignment-based tree\n\n"
-  + "## Key Finding\nProgressive antigenic drift concentrated in receptor-binding domain\n"
+let report = join([
+  "# SARS-CoV-2 Spike Phylogenomics\n\n",
+  format("## Variants Analyzed\n{} lineages from Wuhan to XBB.1.5\n\n", len(names)),
+  "## Phylogenetic Tree\nNJ tree from Hamming distances; Omicron lineages cluster together\n\n",
+  "## RBD Mutations\nOmicron variants accumulate most RBD mutations (positive selection, dN/dS > 1)\n\n",
+  "## Sketch Comparison\nMinHash-based tree topology consistent with alignment-based tree\n\n",
+  "## Key Finding\nProgressive antigenic drift concentrated in receptor-binding domain\n"
+], "")
 
 write_text("spike_phylogenomics_report.md", report)
 println("Report saved to spike_phylogenomics_report.md")

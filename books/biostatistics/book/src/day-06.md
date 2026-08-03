@@ -338,7 +338,8 @@ print("Drug B: {means[1]:.1} nM, 95% CI [{ci_b[0]:.1}, {ci_b[1]:.1}]")
 print("Drug C: {means[2]:.1} nM, 95% CI [{ci_c[0]:.1}, {ci_c[1]:.1}]")
 
 # Bar chart with error bars
-bar_chart(drugs, means, {title: "IC50 Comparison with 95% CIs", y_label: "IC50 (nM)", error_bars: [ci_a, ci_b, ci_c]})
+let ci_chart = table({"drug": drugs, "mean_ic50": means})
+bar_chart(ci_chart, {label: "drug", value: "mean_ic50"})
 ```
 
 ### CI for Difference Between Two Means

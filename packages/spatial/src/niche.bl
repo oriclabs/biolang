@@ -1,0 +1,24 @@
+# For each pair of cluster labels, count how often they are spatial neighbors.
+# Returns a table: pair, observed (cluster_a:cluster_b co-occurrence count)
+fn niche_enrichment(obj) {
+  let adj      = obj.spatial_adj
+  let clusters = obj.clusters
+  # Count observed co-occurrences of cluster pairs across spatial edges
+  let observed = adj
+    |> map(fn(r) -> {a: clusters[r.cell], b: clusters[r.neighbor]})
+    |> group_by(fn(r) -> r.a + ":" + r.b)
+    |> map(fn(key, rows) -> {
+        pair:     key,
+        observed: len(rows)
+      })
+    |> sort_by(fn(r) -> r.observed, descending = true)
+  # TODO: compute expected under random permutation and log-enrichment score
+  observed
+}
+
+# Which clusters surround a given cluster most often?
+fn top_neighbors_of(obj, cluster) {
+  niche_enrichment(obj)
+    |> filter(fn(r) -> r.pair |> starts_with(cluster + ":"))
+    |> sort_by(fn(r) -> r.observed, descending = true)
+}

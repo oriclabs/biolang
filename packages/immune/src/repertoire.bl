@@ -1,0 +1,15 @@
+fn diversity(vdj_table) {
+  clonotype_diversity(vdj_table)
+}
+
+fn expansion(vdj_table, threshold=0.01) {
+  clonal_expansion(vdj_table, threshold)
+}
+
+fn top_clones(vdj_table, n=10) {
+  vdj_table
+    |> group_by(fn(r) -> r.cdr3)
+    |> map(fn(cdr3, rows) -> {cdr3: cdr3, count: len(rows)})
+    |> sort_by(fn(r) -> r.count, descending=true)
+    |> head(n)
+}

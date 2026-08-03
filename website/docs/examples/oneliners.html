@@ -44,7 +44,8 @@
         <pre><code class="language-biolang">dna"AATTCCGG" |> base_counts |> print</code></pre>
 
         <h3>Check if sequence is palindromic</h3>
-        <pre><code class="language-biolang">let seq = dna"GAATTC"; seq == reverse_complement(seq) |> print</code></pre>
+        <pre><code class="language-biolang">let seq = dna"GAATTC"
+seq == reverse_complement(seq) |> print</code></pre>
 
         <h2>K-mer Analysis</h2>
 
@@ -55,7 +56,8 @@
         <pre><code class="language-biolang">dna"ATCGATCGATCG" |> kmers(4) |> unique |> len |> print</code></pre>
 
         <h3>Most frequent k-mer</h3>
-        <pre><code class="language-biolang">dna"ATCGATCGATCG" |> kmers(3) |> frequencies |> sort_by(|a, b| b.1 - a.1) |> first |> print</code></pre>
+        <pre><code class="language-biolang">let freq = dna"ATCGATCGATCG" |> kmers(3) |> frequencies
+keys(freq) |> map(|k| {kmer: k, count: freq[k]}) |> sort_by(|r| -r.count) |> first |> print</code></pre>
 
         <h2>FASTQ Operations</h2>
 
@@ -116,7 +118,7 @@
         <pre><code class="language-biolang">tsv("data.tsv") |> map(|row| row["gene_name"]) |> unique |> print</code></pre>
 
         <h3>Sum a numeric column</h3>
-        <pre><code class="language-biolang">read_csv("data/counts.csv") |> map(|row| row["count"] |> int) |> sum |> print</code></pre>
+        <pre><code class="language-biolang">read_csv("data/counts.csv") |> map(|row| row.S1_ctrl |> int) |> sum |> print</code></pre>
 
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

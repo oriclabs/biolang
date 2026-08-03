@@ -22,14 +22,15 @@ let background = ["TP53", "BRCA1", "BRCA2", "BAX", "BCL2", "CASP3", "CASP9",
                    "BAK1", "TSC1", "TSC2", "EGFR", "KRAS", "MYC"]
 
 # ── ORA: Over-Representation Analysis ──
-# ora(gene_list, gene_sets, background) -> table of enriched pathways
-let ora_results = ora(de_genes, gene_sets, background)
+# ora(gene_list, gene_sets, background_size) -> table of enriched pathways
+let ora_results = ora(de_genes, gene_sets, len(background))
 println("=== ORA Results ===")
 println(ora_results)
 
 # ── Enrichment analysis (Fisher's exact) ──
-# enrich(gene_list, gene_sets, background) -> enrichment table
-let enrich_results = enrich(de_genes, gene_sets, background)
+# enrich(gene_list, gene_sets, background_size) -> enrichment table.
+# Unlike ora(), which takes the background gene list, enrich() takes its size.
+let enrich_results = enrich(de_genes, gene_sets, len(background))
 println("\n=== Enrichment Results ===")
 println(enrich_results)
 
@@ -52,6 +53,6 @@ let ranked = [
     {gene: "PIK3CA", score: -2.0}
 ]
 
-let gsea_results = gsea(ranked, gene_sets)
+let gsea_results = gsea(from_records(ranked), gene_sets)
 println("\n=== GSEA Results ===")
 println(gsea_results)

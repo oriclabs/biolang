@@ -1,4 +1,5 @@
 use crate::opcode::OpCode;
+use crate::upvalue::UpvalueDescriptor;
 use bl_core::ast::Expr;
 use bl_core::span::{Span, Spanned};
 use bl_core::value::Value;
@@ -116,6 +117,8 @@ pub struct CompiledFunction {
     pub params: Vec<ParamInfo>,
     pub chunk: Chunk,
     pub upvalue_count: u16,
+    /// Descriptors for each captured upvalue, read by the VM when executing Closure.
+    pub upvalue_descs: Vec<UpvalueDescriptor>,
     pub is_generator: bool,
     pub is_async: bool,
 }

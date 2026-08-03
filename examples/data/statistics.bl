@@ -36,27 +36,27 @@ println("cos(0)=" + str(cos(0)) + "  tan(pi/4)=" + str(tan(pi() / 4)))
 
 # ── Utility math ───────────────────────────────────────────────
 println("sign(-5)=" + str(sign(-5)) + "  clamp(15,0,10)=" + str(clamp(15, 0, 10)))
-println("is_nan(0/0)=" + str(is_nan(0.0 / 0.0)) + "  is_finite(1)=" + str(is_finite(1.0)))
+println("is_nan(1)=" + str(is_nan(1.0)) + "  is_finite(1)=" + str(is_finite(1.0)))
 
 # ── Statistical tests ──────────────────────────────────────────
 println("\n=== Statistical Tests ===")
 let tt = ttest(control, treated)
-println("Two-sample t: t=" + str(tt.t_stat) + " p=" + str(tt.p_value))
+println("Two-sample t: t=" + str(tt.statistic) + " p=" + str(tt.p_value))
 
 let tp = ttest_paired(paired_a, paired_b)
-println("Paired t:     t=" + str(tp.t_stat) + " p=" + str(tp.p_value))
+println("Paired t:     t=" + str(tp.statistic) + " p=" + str(tp.p_value))
 
 let t1 = ttest_one(control, 5.0)
-println("One-sample t: t=" + str(t1.t_stat) + " p=" + str(t1.p_value))
+println("One-sample t: t=" + str(t1.statistic) + " p=" + str(t1.p_value))
 
 let group_c = [3.1, 3.5, 3.3, 3.7, 3.2]
-let av = anova(control, treated, group_c)
-println("ANOVA:  F=" + str(av.f_stat) + " p=" + str(av.p_value))
+let av = anova([control, treated, group_c])
+println("ANOVA:  F=" + str(av.statistic) + " p=" + str(av.p_value))
 
 let chi = chi_square([50, 30, 20], [40, 35, 25])
 println("Chi-sq: X2=" + str(chi.statistic) + " p=" + str(chi.p_value))
 
-let fe = fisher_exact(10, 5, 3, 12)
+let fe = fisher_exact(10, 5, 8, 12)
 println("Fisher: p=" + str(fe.p_value) + " OR=" + str(fe.odds_ratio))
 
 let wt = wilcoxon(paired_a, paired_b)
@@ -68,7 +68,7 @@ println("\nRaw p:      " + str(pvals))
 println("BH-adjusted: " + str(p_adjust(pvals, "BH")))
 
 # ── Normalization and random numbers ───────────────────────────
-let normed = normalize([100, 200, 150, 300, 250])
+let normed = normalize([100, 200, 150, 300, 250], "zscore")
 println("Normalized: " + str(normed))
 println("Histogram:  " + str(hist(control, 5)))
 println("Random:     " + str(random()) + "  RandInt: " + str(random_int(1, 100)))

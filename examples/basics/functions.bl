@@ -21,7 +21,7 @@ println(repeat_str("ab"))
 println(repeat_str("xy", 5))
 
 # Named arguments
-fn describe(name, role: "researcher", org: "unknown") {
+fn describe(name, role = "researcher", org = "unknown") {
     println(name + " is a " + role + " at " + org)
 }
 describe("Alice", role: "bioinformatician", org: "Sanger")

@@ -1,0 +1,39 @@
+# Rosalind: CONS — Consensus and Profile
+# https://rosalind.info/problems/cons/
+#
+# Given: A collection of DNA strings of equal length in FASTA format.
+# Return: A consensus string, and the profile matrix of base counts per column.
+
+let strings = [
+    "ATCCAGCT", "GGGCAACT", "ATGGATCT", "AAGCAACC",
+    "TTGGAACT", "ATGCCATT", "ATGGCACT"
+]
+
+let bases = ["A", "C", "G", "T"]
+# Held as plain strings: str() on a DNA value renders as "DNA(...)", so substr
+# would slice the wrapper rather than the sequence.
+let width = len(strings[0])
+
+# profile[base][column] — how often each base appears at each position.
+let profile = bases |> map(|b| {
+    range(0, width) |> map(|i| strings |> count_if(|s| substr(s, i, 1) == b))
+})
+
+# The consensus takes whichever base is commonest in each column.
+let consensus_string = range(0, width)
+    |> map(|i| {
+        let column = range(0, 4) |> map(|b| { base: bases[b], n: profile[b][i] })
+        let best = column |> sort_by(|e| e.n) |> reverse() |> first()
+        best.base
+    })
+    |> join("")
+
+println("Result:   " + consensus_string)
+println("Expected: ATGCAACT")
+range(0, 4) |> each(|b| println("  " + bases[b] + ": " + (profile[b] |> map(|n| str(n)) |> join(" "))))
+
+fn test_cons_consensus_and_profile() {
+    assert consensus_string == "ATGCAACT", "CONS: got " + consensus_string
+    assert profile[0][0] == 5, "CONS: A count at column 1 was " + str(profile[0][0])
+    assert profile[3][0] == 1, "CONS: T count at column 1 was " + str(profile[3][0])
+}

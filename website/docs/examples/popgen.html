@@ -114,7 +114,7 @@ let hwe_results = vcf
   })
 
 let out_of_hwe = hwe_results |> filter(|r| { !r.in_hwe }) |> len
-print(f"Variants out of HWE (p < 0.001): {out_of_hwe}")
+print(f"Variants out of HWE (p &lt; 0.001): {out_of_hwe}")
 hwe_results |> write_tsv("hwe_results.tsv")</code></pre>
 
         <h3>Observed vs expected heterozygosity</h3>
@@ -164,7 +164,7 @@ let fst_values = vcf
     # Hudson Fst estimator: (af1 - af2)^2 / (af_mean * (1 - af_mean))
     let fst = if af1 != nil && af2 != nil {
       let af_mean = (af1 + af2) / 2.0
-      if af_mean > 0.0 && af_mean < 1.0 {
+      if af_mean > 0.0 && af_mean &lt; 1.0 {
         pow(af1 - af2, 2) / (af_mean * (1.0 - af_mean))
       } else { nil }
     } else { nil }
@@ -192,13 +192,13 @@ let windowed = fst_data
   |> group_by("chrom")
   |> flat_map(|chrom, snps| {
     let sorted = snps |> sort_by(|a, b| (a["pos"] |> int) - (b["pos"] |> int))
-    let max_pos = sorted |> last |> get("pos") |> int
+    let max_pos = (sorted |> last()).pos |> int
     let starts = range(0, max_pos, step)
     starts |> map(|start| {
-      let end = start + window_size
+      let stop = start + window_size
       let items = sorted |> filter(|s| {
         let p = s["pos"] |> int
-        p >= start && p < end
+        p >= start && p &lt; stop
       })
       { chrom: chrom, mid: start + window_size / 2, n_snps: items |> len,
         mean_fst: items |> map(|x| { x["fst"] |> float }) |> mean,
@@ -233,7 +233,7 @@ let filtered = vcf
     let af = n_alt |> float / (n_total * 2) |> float
     { v: v, gts: gts, af: af }
   })
-  |> filter(|x| { x.af > 0.05 && x.af < 0.95 })
+  |> filter(|x| { x.af > 0.05 && x.af &lt; 0.95 })
 
 let geno_rows = filtered |> map(|x| {
   x.gts |> map(|g| {
@@ -252,7 +252,7 @@ let geno_matrix = matrix(geno_rows)
 let pca_result = geno_matrix |> pca(10)
 
 print("Variance explained:")
-for i, var_pct in pca_result.variance_ratio |> enumerate {
+for [i, var_pct] in pca_result.variance_ratio |> enumerate {
   print(f"  PC{i + 1}: {(var_pct * 100.0) |> round(2)}%")
 }
 
@@ -282,7 +282,7 @@ let coord_mat = matrix(coord_vals)
 
 # Build adjacency from pairwise distances (connect k nearest neighbors)
 let k = 15
-let dm = dist_matrix(coord_mat)
+let dm = dist_matrix(coord_mat, "euclidean")
 let n = dm |> len
 let adj = range(0, n) |> map(|i| {
   let dists = dm[i] |> enumerate |> filter(|j, _| { j != i }) |> sort_by(|a, b| a[1] - b[1]) |> take(k)
@@ -294,9 +294,13 @@ let clusters = leiden(matrix(adj), 0.8)
 # Compare clusters to known populations
 let comparison = labeled
   |> mutate("cluster", |i, _| { clusters[i] })
-  |> group_by(.population, .cluster)
-  |> summarize(|key, rows| { population: key[0], cluster: key[1], n: len(rows) })
-  |> sort_by(.population, .cluster)
+  |> mutate("group_key", |_, row| { row.population + ":" + str(row.cluster) })
+  |> group_by("group_key")
+  |> summarize(|_, rows| {
+       let first_row = first(rows)
+       { population: first_row.population, cluster: first_row.cluster, n: len(rows) }
+     })
+  |> sort_by(|row| row.population + ":" + str(row.cluster))
 
 comparison |> print</code></pre>
 

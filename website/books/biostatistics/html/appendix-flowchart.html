@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
@@ -357,21 +357,24 @@ qq_plot(data, {title: "Normality Check"})
 <tr><th>Outcome type</th><th>Number of predictors</th><th>Test</th><th>BioLang</th></tr>
 </thead>
 <tbody>
-<tr><td>Continuous</td><td>1</td><td>Simple linear regression</td><td><code>lm(y, x)</code></td></tr>
-<tr><td>Continuous</td><td>Multiple</td><td>Multiple linear regression</td><td><code>lm(y, [x1, x2, x3])</code></td></tr>
-<tr><td>Binary (0/1)</td><td>Any</td><td>Logistic regression</td><td><code>glm("y ~ x", table, "binomial")</code></td></tr>
-<tr><td>Count</td><td>Any</td><td>Poisson regression</td><td><code>glm("y ~ x", table, "poisson")</code></td></tr>
-<tr><td>Count, overdispersed</td><td>Any</td><td>Negative binomial regression</td><td><code>glm("y ~ x", table, "negbin")</code></td></tr>
-<tr><td>Continuous, clustered data</td><td>Any</td><td>Mixed-effects model</td><td><code>lm(y, x)</code> (per group)</td></tr>
+<tr><td>Continuous</td><td>1</td><td>Simple linear regression</td><td><code>lm(x, y)</code></td></tr>
+<tr><td>Continuous</td><td>Multiple</td><td>Multiple linear regression</td><td><code>lm(~y ~ x1 + x2 + x3, table)</code></td></tr>
+<tr><td>Binary (0/1)</td><td>Any</td><td>Logistic regression</td><td><code>glm(~y ~ x, table, "binomial")</code></td></tr>
+<tr><td>Count</td><td>Any</td><td>Poisson regression</td><td><code>glm(~y ~ x, table, "poisson")</code></td></tr>
+<tr><td>Count, overdispersed</td><td>Any</td><td>External negative-binomial tool or package</td><td>Not a current <code>glm</code> family</td></tr>
+<tr><td>Continuous, clustered data</td><td>Any</td><td>Stratified models or an external mixed-effects tool</td><td>Fit and report per group</td></tr>
 </tbody>
 </table>
 </div>
 <h3 id="checking-regression-assumptions"><a class="header" href="#checking-regression-assumptions">Checking Regression Assumptions</a></h3>
-<pre><code class="language-bio">let model = lm(expression, [age, sex, batch])
+<pre><code class="language-bio">let age = [34, 41, 52, 59, 63, 70]
+let expression = [8.1, 8.8, 9.4, 10.2, 10.6, 11.1]
+let model = lm(age, expression)
 
-# Check residuals with Q-Q plot
-let residuals = model.residuals
-qq_plot(residuals, {title: "Residual Normality Check"})
+# Compute residuals from the fitted line
+let residuals = range(0, len(age))
+  |&gt; map(|i| expression[i] - (model.intercept + model.slope * age[i]))
+histogram(residuals, {title: "Residual Distribution"})
 print("R-squared: " + str(round(model.r_squared, 3)))
 </code></pre>
 <blockquote>
@@ -388,7 +391,7 @@ print("R-squared: " + str(round(model.r_squared, 3)))
 <tr><td>Estimate survival curve</td><td>Kaplan-Meier</td><td>Sort event times, compute stepwise survival</td></tr>
 <tr><td>Compare survival between two groups</td><td>Log-rank test</td><td><code>ttest(times_a, times_b)</code> as proxy</td></tr>
 <tr><td>Compare survival, multiple groups</td><td>Log-rank test</td><td><code>anova([group1_times, group2_times, ...])</code></td></tr>
-<tr><td>Adjust for covariates</td><td>Cox proportional hazards</td><td><code>lm(time, [covariates])</code></td></tr>
+<tr><td>Adjust for covariates</td><td>Cox proportional hazards</td><td><code>cox_ph(time, event, covariates)</code></td></tr>
 <tr><td>Estimate median survival</td><td>From sorted times</td><td><code>sort(times)[len(times) / 2]</code></td></tr>
 </tbody>
 </table>
@@ -460,8 +463,8 @@ print("R-squared: " + str(round(model.r_squared, 3)))
 <tr><td>20,000 gene differential expression</td><td>t-test + BH correction</td><td><code>p_adjust(pvals, "BH")</code></td></tr>
 <tr><td>Sample clustering from RNA-seq</td><td>PCA + hierarchical clustering</td><td><code>pca(data)</code> then <code>hclust(scores)</code></td></tr>
 <tr><td>Correlation: expression vs. methylation</td><td>Spearman (often non-linear)</td><td><code>spearman(expr, meth)</code></td></tr>
-<tr><td>GWAS: genotype vs. phenotype</td><td>Logistic regression + BH</td><td><code>glm("pheno ~ geno", tbl, "binomial")</code></td></tr>
-<tr><td>Clinical outcome predictors</td><td>Regression model</td><td><code>lm(outcome, [age, stage, treatment])</code></td></tr>
+<tr><td>GWAS: genotype vs. phenotype</td><td>Logistic regression + BH</td><td><code>glm(~pheno ~ geno, tbl, "binomial")</code></td></tr>
+<tr><td>Clinical outcome predictors</td><td>Regression model</td><td><code>lm(~outcome ~ age + stage + treatment, tbl)</code></td></tr>
 <tr><td>Sample size for planned experiment</td><td>Power analysis</td><td>Compute with <code>qnorm()</code> and effect size</td></tr>
 </tbody>
 </table>
@@ -519,7 +522,7 @@ print("R-squared: " + str(round(model.r_squared, 3)))
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

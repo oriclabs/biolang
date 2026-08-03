@@ -1,0 +1,51 @@
+# Rosalind: LONG — Genome Assembly as Shortest Superstring
+# https://rosalind.info/problems/long/
+#
+# Given: At most 50 DNA strings of equal length, where every pair overlaps by
+# more than half their length.
+# Return: The shortest superstring containing all of them.
+
+let reads = ["ATTAGACCTG", "CCTGCCGGAA", "AGACCTGCCG", "GCCGGAATAC"]
+
+# Longest suffix of a that is also a prefix of b, considering only overlaps
+# longer than half — which the problem guarantees is unique.
+fn overlap_length(a, b) {
+    let limit = min([len(a), len(b)])
+    let best = 0
+    let width = limit
+    while width > limit / 2 and best == 0 {
+        if substr(a, len(a) - width, width) == substr(b, 0, width) then best = width
+        width = width - 1
+    }
+    best
+}
+
+# Repeatedly glue on whichever remaining read overlaps the growing assembly.
+let remaining = drop(reads, 1)
+let assembled = reads[0]
+
+while len(remaining) > 0 {
+    let joined = false
+    let next_remaining = []
+    for candidate in remaining {
+        if !joined and overlap_length(assembled, candidate) > 0 {
+            assembled = assembled ++ substr(candidate, overlap_length(assembled, candidate), len(candidate) - overlap_length(assembled, candidate))
+            joined = true
+        } else {
+            if !joined and overlap_length(candidate, assembled) > 0 {
+                assembled = substr(candidate, 0, len(candidate) - overlap_length(candidate, assembled)) ++ assembled
+                joined = true
+            } else {
+                next_remaining = push(next_remaining, candidate)
+            }
+        }
+    }
+    remaining = next_remaining
+}
+
+println("Result:   " + assembled)
+println("Expected: ATTAGACCTGCCGGAATAC")
+
+fn test_long_shortest_superstring() {
+    assert assembled == "ATTAGACCTGCCGGAATAC", "LONG: got " + assembled
+}

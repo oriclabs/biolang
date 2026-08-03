@@ -147,8 +147,13 @@ impl BioLangError {
             }
         }
 
-        // Print suggestions/hints
-        if !self.suggestions.is_empty() {
+        // An explicit suggestion wins; otherwise derive one centrally, so an
+        // error raised anywhere still says something useful.
+        if self.suggestions.is_empty() {
+            for hint in crate::hints::suggest(&self.kind, &self.message) {
+                result.push_str(&format!("\n  hint: {}", hint.text));
+            }
+        } else {
             for s in &self.suggestions {
                 result.push_str(&format!("\n  hint: {s}"));
             }
@@ -193,13 +198,19 @@ impl std::error::Error for BioLangError {}
 
 pub type Result<T> = std::result::Result<T, BioLangError>;
 
+/// Resolve a span offset to a 1-based line and column.
+///
+/// `offset` is a **character** index, not a byte index: the lexer works over
+/// `source.chars().collect()`, so every span it produces counts characters.
+/// This used to compare against `char_indices()` byte positions, which made
+/// every error in a file containing non-ASCII text point at the wrong line —
+/// and the `# ──────` section headers used throughout the examples are three
+/// bytes per character, so the reported line drifted further the longer the
+/// file got.
 fn offset_to_line_col(source: &str, offset: usize) -> (usize, usize) {
     let mut line = 1;
     let mut col = 1;
-    for (i, ch) in source.char_indices() {
-        if i >= offset {
-            break;
-        }
+    for ch in source.chars().take(offset) {
         if ch == '\n' {
             line += 1;
             col = 1;
@@ -208,4 +219,51 @@ fn offset_to_line_col(source: &str, offset: usize) -> (usize, usize) {
         }
     }
     (line, col)
+}
+
+#[cfg(test)]
+mod line_col_tests {
+    use super::*;
+
+    /// Spans come from the lexer, which indexes `source.chars().collect()`, so
+    /// offsets count characters. Resolving them as byte offsets made every
+    /// error in a file containing non-ASCII point at the wrong line.
+    #[test]
+    fn resolves_character_offsets_not_byte_offsets() {
+        // Each `─` is one character but three bytes in UTF-8.
+        let source = "# ───\nlet a = 1\nlet b = 2\n";
+        let offset = source.chars().position(|c| c == 'b').unwrap();
+        assert_eq!(offset_to_line_col(source, offset), (3, 5));
+    }
+
+    #[test]
+    fn ascii_only_source_is_unaffected() {
+        let source = "let a = 1\nlet b = 2\n";
+        let offset = source.chars().position(|c| c == 'b').unwrap();
+        assert_eq!(offset_to_line_col(source, offset), (2, 5));
+    }
+
+    /// The drift used to grow with each multi-byte line, so a header-heavy file
+    /// misreported by several lines rather than one.
+    #[test]
+    fn drift_does_not_accumulate_over_many_multibyte_lines() {
+        let header = "# ──────────\n";
+        let mut source = header.repeat(6);
+        source.push_str("let bad = 1\n");
+        let offset = source.chars().position(|c| c == 'b').unwrap();
+        assert_eq!(offset_to_line_col(&source, offset), (7, 5));
+    }
+
+    #[test]
+    fn start_of_source_is_line_one_column_one() {
+        assert_eq!(offset_to_line_col("let a = 1", 0), (1, 1));
+    }
+
+    /// A span pointing past the end must not panic or wrap.
+    #[test]
+    fn offset_beyond_end_clamps_to_the_last_position() {
+        let source = "let a = 1\n";
+        let (line, _) = offset_to_line_col(source, 9_999);
+        assert_eq!(line, 2);
+    }
 }

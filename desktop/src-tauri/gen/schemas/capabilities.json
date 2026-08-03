@@ -1,0 +1,1 @@
+{"main-window":{"identifier":"main-window","description":"Capabilities for the trusted BioLang Desktop application window","local":true,"windows":["main","output-*"],"permissions":["core:default","core:webview:allow-create-webview-window","core:window:allow-create"]}}

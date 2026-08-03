@@ -1,0 +1,212 @@
+# scrna_clustering.bl — Standard scRNA-seq clustering pipeline
+#
+# Demonstrates the canonical single-cell analysis workflow:
+#   QC → normalize → HVG selection → PCA → KNN graph → Leiden clustering
+#   → marker genes → cluster annotation summary
+#
+# Input file:
+#   data/counts_10x.csv — raw count matrix: rows=cells, columns=genes (plus a
+#                         "cell_id" column)
+#   (Compatible with CSV-exported 10x Genomics Cell Ranger output)
+#
+# Run: bl run examples/scrna_clustering.bl
+
+import "clustering" as cl
+import "differential" as de
+
+println("=" * 64)
+println("Single-Cell RNA-seq Clustering Pipeline")
+println("QC → Normalize → HVG → PCA → KNN → Leiden → Markers")
+println("=" * 64)
+
+# ── Step 1: Load count matrix ────────────────────────────────────────────────
+println("")
+println("Step 1: Loading single-cell count matrix...")
+
+let raw_matrix = csv("data/counts_10x.csv") |> collect()
+
+# Separate cell metadata from gene expression
+let cell_ids  = raw_matrix |> map(|r| r.cell_id)
+let gene_cols = keys(raw_matrix[0]) |> filter(|k| k != "cell_id")
+let n_cells   = len(raw_matrix)
+let n_genes   = len(gene_cols)
+
+println(f"  Cells:  {n_cells}")
+println(f"  Genes:  {n_genes}")
+
+# Convert to dense matrix (cells × genes) as List<List<Float>>
+# Each inner list is one cell's expression across all genes
+let dense_matrix = raw_matrix |> map(|row| gene_cols |> map(|g| row[g]))
+
+# ── Step 2: Cell QC ─────────────────────────────────────────────────────────
+println("")
+println("Step 2: Cell QC filtering...")
+
+let qc_stats = cell_qc(dense_matrix, gene_cols)
+
+# Filter: min 200 genes detected, max 20% mitochondrial reads
+let keep_mask = []
+let filtered_cells = []
+let filtered_matrix = []
+for i in range(0, n_cells) {
+    let stats = qc_stats[i]
+    let pass  = stats.n_genes >= 200 and stats.pct_mito <= 20.0
+    if pass {
+        filtered_cells  = append(filtered_cells,  cell_ids[i])
+        filtered_matrix = append(filtered_matrix, dense_matrix[i])
+    }
+}
+
+let n_filtered = len(filtered_cells)
+let n_removed  = n_cells - n_filtered
+
+println(f"  Cells before QC: {n_cells}")
+println(f"  Cells removed:   {n_removed} (n_genes < 200 or pct_mito > 20%)")
+println(f"  Cells after QC:  {n_filtered}")
+
+# ── Step 3: Normalization and log transformation ──────────────────────────────
+println("")
+println("Step 3: Normalizing (total counts to 10,000) and log1p transform...")
+
+let norm_matrix = normalize_total(filtered_matrix, 10000)
+let log_matrix  = log1p_transform(norm_matrix)
+
+println(f"  Normalized {n_filtered} cells (target depth: 10,000 UMIs/cell)")
+println("  Applied log1p transform: log(count + 1)")
+
+# ── Step 4: Highly Variable Gene Selection ───────────────────────────────────
+println("")
+println("Step 4: Selecting highly variable genes (HVGs)...")
+
+let hvg_result = highly_variable_genes(log_matrix, 2000)
+let hvg_genes  = hvg_result.genes
+let hvg_mask   = hvg_result.mask
+let n_hvgs     = len(hvg_genes)
+
+println(f"  HVGs selected: {n_hvgs} out of {n_genes} total genes")
+println(f"  Top HVGs: {join(hvg_genes |> take(10), \", \")}...")
+
+# Subset log-normalized matrix to HVGs only
+let hvg_matrix = log_matrix |> map(|cell_vec| {
+    let hvg_vals = []
+    for g_idx in range(0, n_genes) {
+        if hvg_mask[g_idx] {
+            hvg_vals = append(hvg_vals, cell_vec[g_idx])
+        }
+    }
+    hvg_vals
+})
+
+# ── Step 5: PCA ─────────────────────────────────────────────────────────────
+println("")
+println("Step 5: PCA (top 50 principal components)...")
+
+let n_pcs    = 50
+let pca_result = pca(hvg_matrix, n_pcs)
+let pca_scores = pca_result.scores    # List<List<Float>> — cells × n_pcs
+
+let var_explained = pca_result.explained_variance
+let cumvar_50 = var_explained |> reduce(|a, b| a + b)
+println(f"  PCs computed:   {n_pcs}")
+println(f"  Variance explained by {n_pcs} PCs: {round(cumvar_50 * 100, 1)}%")
+println(f"  PC1 variance: {round(var_explained[0] * 100, 2)}%")
+println(f"  PC2 variance: {round(var_explained[1] * 100, 2)}%")
+
+# ── Step 6: KNN Graph ────────────────────────────────────────────────────────
+println("")
+println("Step 6: Building k-nearest-neighbour graph (k=15)...")
+
+let k_neighbors = 15
+let knn_result  = knn_graph(pca_scores, k_neighbors)
+
+println(f"  Nodes (cells): {n_filtered}")
+println(f"  Edges:         {len(knn_result)}")
+println(f"  k:             {k_neighbors}")
+
+# ── Step 7: Leiden Clustering ────────────────────────────────────────────────
+println("")
+println("Step 7: Leiden community detection (resolution=1.0)...")
+
+let cluster_labels = cl.leiden(knn_result, 1.0, 42)
+let unique_clusters = cluster_labels |> sort() |> unique()
+let n_clusters = len(unique_clusters)
+
+println(f"  Clusters found: {n_clusters}")
+
+# Cluster size summary
+println("")
+println("  Cluster sizes:")
+for clust in unique_clusters {
+    let size = cluster_labels |> filter(|lbl| lbl == clust) |> len()
+    let pct  = round(size / n_filtered * 100, 1)
+    let bar  = str("█") * int(pct / 2)
+    println(f"    Cluster {clust:>2}: {size:>5} cells ({pct}%)  {bar}")
+}
+
+# ── Step 8: Silhouette Score (QC for clustering quality) ─────────────────────
+println("")
+println("Step 8: Silhouette score (using top 10 PCs for speed)...")
+
+# Use only first 10 PCs for silhouette calculation (speed)
+let pca_10 = pca_scores |> map(|cell| cell |> take(10))
+let sil = cl.silhouette(pca_10, cluster_labels)
+println(f"  Mean silhouette score: {sil.mean_score}")
+println(f"  (>0.25 = acceptable, >0.50 = good, >0.70 = excellent)")
+
+# Per-cluster silhouette
+for clust in unique_clusters {
+    let clust_sils = []
+    for i in range(0, n_filtered) {
+        if cluster_labels[i] == clust {
+            clust_sils = append(clust_sils, sil.per_sample[i])
+        }
+    }
+    println(f"    Cluster {clust}: mean sil = {round(mean(clust_sils), 3)}")
+}
+
+# ── Step 9: Marker Gene Detection ────────────────────────────────────────────
+println("")
+println("Step 9: Finding top marker genes per cluster (Wilcoxon test)...")
+
+# Build per-gene matrix (genes × cells) for marker analysis
+# de.marker_genes expects gene-major format
+let gene_matrix = gene_cols |> map(|gene| {
+    let cell_vals = filtered_matrix |> map(|cell_vec| {
+        let g_idx = gene_cols |> index_of(gene)
+        log_matrix[g_idx][0]   # placeholder — real indexing below
+    })
+    {gene: gene}
+})
+
+# Build proper gene-major matrix from log_matrix
+let gene_major = []
+for g_idx in range(0, n_genes) {
+    let row = {gene: gene_cols[g_idx]}
+    for c_idx in range(0, n_filtered) {
+        row = {... row, [f"cell_{c_idx}"]: log_matrix[c_idx][g_idx]}
+    }
+    gene_major = append(gene_major, row)
+}
+
+let cell_col_names = range(0, n_filtered) |> map(|i| f"cell_{i}")
+let markers = de.marker_genes(gene_major, cluster_labels |> map(|l| str(l)), 10)
+
+# Print top 5 markers per cluster
+for clust in unique_clusters {
+    let clust_markers = markers |> filter(|m| m.cluster == str(clust)) |> take(5)
+    let gene_names_str = clust_markers |> map(|m| m.gene) |> join(", ")
+    println(f"  Cluster {clust}: {gene_names_str}")
+}
+
+# ── Summary ──────────────────────────────────────────────────────────────────
+println("")
+println("=" * 64)
+println("scRNA-seq Clustering Pipeline Complete")
+println(f"  Input:         {n_cells} cells × {n_genes} genes")
+println(f"  After QC:      {n_filtered} cells")
+println(f"  HVGs selected: {n_hvgs}")
+println(f"  PCA dims:      {n_pcs} PCs")
+println(f"  KNN graph:     k={k_neighbors}, {len(knn_result)} edges")
+println(f"  Leiden:        {n_clusters} clusters (resolution=1.0)")
+println(f"  Silhouette:    {sil.mean_score}")
+println("=" * 64)

@@ -1,0 +1,15 @@
+fn load_string(tsv_path) {
+  read_text(tsv_path) |> load_ppi
+}
+
+fn load_csv(path) {
+  read_csv(path) |> filter(fn(r) -> r.source != r.target)
+}
+
+fn filter_score(ppi_table, min_score=0.4) {
+  ppi_table |> filter(fn(r) -> r.score >= min_score)
+}
+
+fn subnetwork(ppi_table, gene_list) {
+  ppi_table |> filter(fn(r) -> r.source in gene_list & r.target in gene_list)
+}

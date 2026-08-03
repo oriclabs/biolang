@@ -39,6 +39,15 @@ fn test_float_arithmetic() {
 }
 
 #[test]
+fn test_property_generators_follow_set_seed() {
+    let code = r#"
+set_seed(42)
+[gen_int(1, 100), gen_float(), gen_str(8)]
+"#;
+    assert_eq!(eval(code), eval(code));
+}
+
+#[test]
 fn test_string_concat() {
     assert_eq!(
         eval(r#""hello" + " " + "world""#),
@@ -60,9 +69,7 @@ fn test_pipe_to_lambda() {
 
 #[test]
 fn test_milestone() {
-    let tokens = Lexer::new("let x = 10 |> |n| n * 2\nx")
-        .tokenize()
-        .unwrap();
+    let tokens = Lexer::new("let x = 10 |> |n| n * 2\nx").tokenize().unwrap();
     let program = Parser::new(tokens).parse().unwrap().program;
     let mut interp = Interpreter::new();
     let result = interp.run(&program).unwrap();
@@ -113,7 +120,7 @@ fn test_comparison() {
 fn test_list_operations() {
     assert_eq!(
         eval("[1, 2, 3]"),
-        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into())
     );
     assert_eq!(eval("len([1, 2, 3])"), Value::Int(3));
 }
@@ -137,18 +144,13 @@ fn test_map_filter() {
     let result = eval("map([1, 2, 3, 4], |x| x * 2)");
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Int(2),
-            Value::Int(4),
-            Value::Int(6),
-            Value::Int(8)
-        ])
+        Value::List((vec![Value::Int(2), Value::Int(4), Value::Int(6), Value::Int(8)]).into())
     );
 
     let result = eval("filter([1, 2, 3, 4, 5], |x| x > 3)");
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(4), Value::Int(5)])
+        Value::List((vec![Value::Int(4), Value::Int(5)]).into())
     );
 }
 
@@ -163,13 +165,16 @@ fn test_sort() {
     let result = eval("sort([3, 1, 4, 1, 5])");
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Int(1),
-            Value::Int(1),
-            Value::Int(3),
-            Value::Int(4),
-            Value::Int(5)
-        ])
+        Value::List(
+            (vec![
+                Value::Int(1),
+                Value::Int(1),
+                Value::Int(3),
+                Value::Int(4),
+                Value::Int(5)
+            ])
+            .into()
+        )
     );
 }
 
@@ -239,7 +244,7 @@ fn test_assert_fail() {
 #[test]
 fn test_type_builtin() {
     assert_eq!(eval("type(42)"), Value::Str("Int".into()));
-    assert_eq!(eval("type(3.14)"), Value::Str("Float".into()));
+    assert_eq!(eval("type(2.75)"), Value::Str("Float".into()));
     assert_eq!(eval(r#"type("hello")"#), Value::Str("Str".into()));
     assert_eq!(eval("type(true)"), Value::Str("Bool".into()));
     assert_eq!(eval("type(nil)"), Value::Str("Nil".into()));
@@ -259,7 +264,7 @@ make_list()
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into())
     );
 }
 
@@ -320,12 +325,7 @@ fn test_reassignment_error_undefined() {
 #[test]
 fn test_bio_transcribe_translate() {
     let result = eval(r#"dna"ATGATCGATCG" |> transcribe() |> translate()"#);
-    assert_eq!(
-        result,
-        Value::Protein(BioSequence {
-            data: "MID".into()
-        })
-    );
+    assert_eq!(result, Value::Protein(BioSequence { data: "MID".into() }));
 }
 
 #[test]
@@ -380,7 +380,7 @@ fn test_to_stream_and_collect() {
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into())
     );
 }
 
@@ -393,7 +393,7 @@ fn test_stream_take() {
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(10), Value::Int(20), Value::Int(30)])
+        Value::List((vec![Value::Int(10), Value::Int(20), Value::Int(30)]).into())
     );
 }
 
@@ -416,7 +416,7 @@ fn test_stream_map() {
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(10), Value::Int(20), Value::Int(30)])
+        Value::List((vec![Value::Int(10), Value::Int(20), Value::Int(30)]).into())
     );
 }
 
@@ -439,7 +439,7 @@ fn test_stream_filter() {
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(4), Value::Int(5), Value::Int(6)])
+        Value::List((vec![Value::Int(4), Value::Int(5), Value::Int(6)]).into())
     );
 }
 
@@ -450,7 +450,7 @@ fn test_stream_filter_then_take() {
 [1, 2, 3, 4, 5, 6] |> to_stream() |> filter(|x| x > 1) |> take(1)
 "#,
     );
-    assert_eq!(result, Value::List(vec![Value::Int(2)]));
+    assert_eq!(result, Value::List((vec![Value::Int(2)]).into()));
 }
 
 #[test]
@@ -462,7 +462,7 @@ fn test_stream_take_then_map() {
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(2), Value::Int(4), Value::Int(6)])
+        Value::List((vec![Value::Int(2), Value::Int(4), Value::Int(6)]).into())
     );
 }
 
@@ -481,7 +481,7 @@ fn test_collect_list_passthrough() {
     let result = eval(r#"collect([1, 2, 3])"#);
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into())
     );
 }
 
@@ -533,10 +533,7 @@ colnames(t)
     );
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("age".into()),
-            Value::Str("name".into())
-        ])
+        Value::List((vec![Value::Str("age".into()), Value::Str("name".into())]).into())
     );
 }
 
@@ -592,10 +589,7 @@ t.name
     );
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("Alice".into()),
-            Value::Str("Bob".into())
-        ])
+        Value::List((vec![Value::Str("Alice".into()), Value::Str("Bob".into())]).into())
     );
 }
 
@@ -709,7 +703,7 @@ colnames(t2)
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Str("new_name".into())])
+        Value::List((vec![Value::Str("new_name".into())]).into())
     );
 }
 
@@ -782,14 +776,8 @@ iv.chrom
 
 #[test]
 fn test_interval_fields() {
-    assert_eq!(
-        eval(r#"interval("chr1", 100, 200).start"#),
-        Value::Int(100)
-    );
-    assert_eq!(
-        eval(r#"interval("chr1", 100, 200).end"#),
-        Value::Int(200)
-    );
+    assert_eq!(eval(r#"interval("chr1", 100, 200).start"#), Value::Int(100));
+    assert_eq!(eval(r#"interval("chr1", 100, 200).end"#), Value::Int(200));
     assert_eq!(
         eval(r#"interval("chr1", 100, 200, "+").strand"#),
         Value::Str("+".into())
@@ -835,10 +823,7 @@ t |> map(|r| r.name)
     );
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("Alice".into()),
-            Value::Str("Bob".into())
-        ])
+        Value::List((vec![Value::Str("Alice".into()), Value::Str("Bob".into())]).into())
     );
 }
 
@@ -1152,6 +1137,39 @@ fn test_import_directory_module() {
 }
 
 #[test]
+fn test_import_package_manifest_entry() {
+    let dir = tempfile::tempdir().unwrap();
+    let pkg_dir = dir.path().join("mypackage");
+    std::fs::create_dir_all(pkg_dir.join("src")).unwrap();
+    std::fs::write(
+        pkg_dir.join("biolang.toml"),
+        r#"[package]
+name = "mypackage"
+version = "0.1.0"
+
+[lib]
+entry = "src/mod.bl"
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        pkg_dir.join("src").join("mod.bl"),
+        "fn greeting(name) { \"hello \" + name }",
+    )
+    .unwrap();
+
+    let main_src = r#"import "mypackage" as pkg
+        pkg.greeting("BioLang")"#;
+
+    let tokens = Lexer::new(main_src).tokenize().unwrap();
+    let program = Parser::new(tokens).parse().unwrap().program;
+    let mut interp = Interpreter::new();
+    interp.set_current_file(Some(dir.path().join("main.bl")));
+    let result = interp.run(&program).unwrap();
+    assert_eq!(result, Value::Str("hello BioLang".to_string()));
+}
+
+#[test]
 fn test_import_not_found() {
     use bl_core::error::ErrorKind;
 
@@ -1235,7 +1253,7 @@ fn test_text_cut_pipe() {
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Str("b".into()), Value::Str("e".into())])
+        Value::List((vec![Value::Str("b".into()), Value::Str("e".into())]).into())
     );
 }
 
@@ -1365,10 +1383,7 @@ x
 fn test_null_coalesce() {
     assert_eq!(eval("nil ?? 42"), Value::Int(42));
     assert_eq!(eval("10 ?? 42"), Value::Int(10));
-    assert_eq!(
-        eval(r#""hello" ?? "default""#),
-        Value::Str("hello".into())
-    );
+    assert_eq!(eval(r#""hello" ?? "default""#), Value::Str("hello".into()));
     assert_eq!(eval("nil ?? nil ?? 99"), Value::Int(99));
 }
 
@@ -1709,7 +1724,7 @@ fn test_string_multiply_repeat() {
 #[test]
 fn test_unary_negation() {
     assert_eq!(eval("-5"), Value::Int(-5));
-    assert_eq!(eval("-3.14"), Value::Float(-3.14));
+    assert_eq!(eval("-2.75"), Value::Float(-2.75));
     assert_eq!(eval("-(2 + 3)"), Value::Int(-5));
 }
 
@@ -1938,11 +1953,14 @@ fn classify(x) {
     );
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("negative".into()),
-            Value::Str("zero".into()),
-            Value::Str("positive".into()),
-        ])
+        Value::List(
+            (vec![
+                Value::Str("negative".into()),
+                Value::Str("zero".into()),
+                Value::Str("positive".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -1968,9 +1986,9 @@ x + y
 #[test]
 fn test_empty_list_operations() {
     assert_eq!(eval("len([])"), Value::Int(0));
-    assert_eq!(eval("sort([])"), Value::List(vec![]));
-    assert_eq!(eval("map([], |x| x * 2)"), Value::List(vec![]));
-    assert_eq!(eval("filter([], |x| x > 0)"), Value::List(vec![]));
+    assert_eq!(eval("sort([])"), Value::List((vec![]).into()));
+    assert_eq!(eval("map([], |x| x * 2)"), Value::List((vec![]).into()));
+    assert_eq!(eval("filter([], |x| x > 0)"), Value::List((vec![]).into()));
 }
 
 #[test]
@@ -2022,12 +2040,7 @@ fn test_list_concatenation() {
     let result = eval("[1, 2] + [3, 4]");
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Int(1),
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4)
-        ])
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)]).into())
     );
 }
 
@@ -2041,7 +2054,7 @@ t.x
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(10), Value::Int(20), Value::Int(30)])
+        Value::List((vec![Value::Int(10), Value::Int(20), Value::Int(30)]).into())
     );
 }
 
@@ -2082,7 +2095,7 @@ fn test_stream_chaining_map_then_filter() {
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(9), Value::Int(12), Value::Int(15)])
+        Value::List((vec![Value::Int(9), Value::Int(12), Value::Int(15)]).into())
     );
 }
 
@@ -2093,7 +2106,7 @@ fn test_stream_take_zero() {
 [1, 2, 3] |> to_stream() |> take(0)
 "#,
     );
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 #[test]
@@ -2113,7 +2126,7 @@ fn test_collect_empty_stream() {
 [] |> to_stream() |> collect()
 "#,
     );
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 // ── Error handling: try/catch ──────────────────────────────────────────
@@ -2197,12 +2210,7 @@ fn test_rna_transcription() {
 fn test_protein_translation_start_codon() {
     // AUG = M (methionine / start codon)
     let result = eval(r#"rna"AUGGCC" |> translate()"#);
-    assert_eq!(
-        result,
-        Value::Protein(BioSequence {
-            data: "MA".into()
-        })
-    );
+    assert_eq!(result, Value::Protein(BioSequence { data: "MA".into() }));
 }
 
 #[test]
@@ -2255,30 +2263,18 @@ fn test_string_contains() {
         eval(r#"contains("hello world", "world")"#),
         Value::Bool(true)
     );
-    assert_eq!(
-        eval(r#"contains("hello", "xyz")"#),
-        Value::Bool(false)
-    );
+    assert_eq!(eval(r#"contains("hello", "xyz")"#), Value::Bool(false));
 }
 
 #[test]
 fn test_string_upper_lower() {
-    assert_eq!(
-        eval(r#"upper("hello")"#),
-        Value::Str("HELLO".into())
-    );
-    assert_eq!(
-        eval(r#"lower("HELLO")"#),
-        Value::Str("hello".into())
-    );
+    assert_eq!(eval(r#"upper("hello")"#), Value::Str("HELLO".into()));
+    assert_eq!(eval(r#"lower("HELLO")"#), Value::Str("hello".into()));
 }
 
 #[test]
 fn test_string_trim() {
-    assert_eq!(
-        eval(r#"trim("  hello  ")"#),
-        Value::Str("hello".into())
-    );
+    assert_eq!(eval(r#"trim("  hello  ")"#), Value::Str("hello".into()));
 }
 
 #[test]
@@ -2286,11 +2282,14 @@ fn test_string_split() {
     let result = eval(r#"split("a,b,c", ",")"#);
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("a".into()),
-            Value::Str("b".into()),
-            Value::Str("c".into())
-        ])
+        Value::List(
+            (vec![
+                Value::Str("a".into()),
+                Value::Str("b".into()),
+                Value::Str("c".into())
+            ])
+            .into()
+        )
     );
 }
 
@@ -2313,7 +2312,7 @@ fn test_empty_string_operations() {
     assert_eq!(eval(r#"trim("")"#), Value::Str("".into()));
     assert_eq!(
         eval(r#"split("", ",")"#),
-        Value::List(vec![Value::Str("".into())])
+        Value::List((vec![Value::Str("".into())]).into())
     );
 }
 
@@ -2369,13 +2368,16 @@ fn test_range_single_arg() {
     let result = eval("range(5)");
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Int(0),
-            Value::Int(1),
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4)
-        ])
+        Value::List(
+            (vec![
+                Value::Int(0),
+                Value::Int(1),
+                Value::Int(2),
+                Value::Int(3),
+                Value::Int(4)
+            ])
+            .into()
+        )
     );
 }
 
@@ -2384,19 +2386,14 @@ fn test_range_two_args() {
     let result = eval("range(2, 6)");
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4),
-            Value::Int(5)
-        ])
+        Value::List((vec![Value::Int(2), Value::Int(3), Value::Int(4), Value::Int(5)]).into())
     );
 }
 
 #[test]
 fn test_range_empty() {
     let result = eval("range(0)");
-    assert_eq!(result, Value::List(vec![]));
+    assert_eq!(result, Value::List((vec![]).into()));
 }
 
 // ── Multiple return and complex expressions ────────────────────────────
@@ -2447,7 +2444,7 @@ fn test_map_with_index_via_enumerate() {
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(11), Value::Int(21), Value::Int(31)])
+        Value::List((vec![Value::Int(11), Value::Int(21), Value::Int(31)]).into())
     );
 }
 
@@ -2575,9 +2572,9 @@ fn test_int_to_str() {
 
 #[test]
 fn test_float_to_str() {
-    let result = eval("str(3.14)");
+    let result = eval("str(2.75)");
     match result {
-        Value::Str(s) => assert!(s.starts_with("3.14")),
+        Value::Str(s) => assert!(s.starts_with("2.75")),
         other => panic!("expected Str, got {other:?}"),
     }
 }
@@ -2589,7 +2586,7 @@ fn test_str_to_int() {
 
 #[test]
 fn test_str_to_float() {
-    assert_eq!(eval(r#"float("3.14")"#), Value::Float(3.14));
+    assert_eq!(eval(r#"float("2.75")"#), Value::Float(2.75));
 }
 
 // ── Misc builtins ──────────────────────────────────────────────────────
@@ -2598,7 +2595,7 @@ fn test_str_to_float() {
 fn test_abs_builtin() {
     assert_eq!(eval("abs(-5)"), Value::Int(5));
     assert_eq!(eval("abs(5)"), Value::Int(5));
-    assert_eq!(eval("abs(-3.14)"), Value::Float(3.14));
+    assert_eq!(eval("abs(-2.75)"), Value::Float(2.75));
 }
 
 #[test]
@@ -2714,10 +2711,7 @@ fn test_pipe_lambda_complex() {
 fn test_dna_type_check() {
     assert_eq!(eval(r#"type(dna"ATCG")"#), Value::Str("DNA".into()));
     assert_eq!(eval(r#"type(rna"AUCG")"#), Value::Str("RNA".into()));
-    assert_eq!(
-        eval(r#"type(protein"MVLK")"#),
-        Value::Str("Protein".into())
-    );
+    assert_eq!(eval(r#"type(protein"MVLK")"#), Value::Str("Protein".into()));
 }
 
 // ── F-string edge cases ────────────────────────────────────────────────
@@ -2746,11 +2740,14 @@ fn test_sort_strings() {
     let result = eval(r#"sort(["banana", "apple", "cherry"])"#);
     assert_eq!(
         result,
-        Value::List(vec![
-            Value::Str("apple".into()),
-            Value::Str("banana".into()),
-            Value::Str("cherry".into()),
-        ])
+        Value::List(
+            (vec![
+                Value::Str("apple".into()),
+                Value::Str("banana".into()),
+                Value::Str("cherry".into()),
+            ])
+            .into()
+        )
     );
 }
 
@@ -2786,7 +2783,7 @@ fn test_null_coalesce_with_list() {
     let result = eval("nil ?? [1, 2, 3]");
     assert_eq!(
         result,
-        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into())
     );
 }
 
@@ -2822,7 +2819,7 @@ fn is_even(n) { n % 2 == 0 }
     );
     assert_eq!(
         result,
-        Value::List(vec![Value::Bool(true), Value::Bool(false)])
+        Value::List((vec![Value::Bool(true), Value::Bool(false)]).into())
     );
 }
 
@@ -2841,7 +2838,8 @@ half(7.0)
 
 // Helper to build a BED-like table in BioLang code
 fn bed_table(rows: &[(&str, i64, i64)]) -> String {
-    let records: Vec<String> = rows.iter()
+    let records: Vec<String> = rows
+        .iter()
         .map(|(c, s, e)| format!("{{chrom: \"{c}\", start: {s}, end: {e}}}"))
         .collect();
     format!("table([{}])", records.join(", "))
@@ -2855,7 +2853,12 @@ let t = {}
 let tree = interval_tree(t)
 tree.__type
 "#,
-        bed_table(&[("chr1", 100, 200), ("chr1", 150, 300), ("chr1", 500, 600), ("chr2", 100, 200)])
+        bed_table(&[
+            ("chr1", 100, 200),
+            ("chr1", 150, 300),
+            ("chr1", 500, 600),
+            ("chr2", 100, 200)
+        ])
     ));
     assert_eq!(result, Value::Str("interval_tree".to_string()));
 }
@@ -2869,7 +2872,12 @@ let tree = interval_tree(t)
 let hits = query_overlaps(tree, "chr1", 120, 250)
 nrow(hits)
 "#,
-        bed_table(&[("chr1", 100, 200), ("chr1", 150, 300), ("chr1", 500, 600), ("chr2", 100, 200)])
+        bed_table(&[
+            ("chr1", 100, 200),
+            ("chr1", 150, 300),
+            ("chr1", 500, 600),
+            ("chr2", 100, 200)
+        ])
     ));
     assert_eq!(result, Value::Int(2)); // [100,200] and [150,300] overlap [120,250]
 }
@@ -2910,7 +2918,12 @@ let t = {}
 let tree = interval_tree(t)
 count_overlaps(tree, "chr1", 120, 250)
 "#,
-        bed_table(&[("chr1", 100, 200), ("chr1", 150, 300), ("chr1", 500, 600), ("chr2", 100, 200)])
+        bed_table(&[
+            ("chr1", 100, 200),
+            ("chr1", 150, 300),
+            ("chr1", 500, 600),
+            ("chr2", 100, 200)
+        ])
     ));
     assert_eq!(result, Value::Int(2));
 }
@@ -2950,8 +2963,18 @@ let queries = {}
 let tree = interval_tree(regions)
 bulk_overlaps(tree, queries)
 "#,
-        bed_table(&[("chr1", 100, 200), ("chr1", 150, 300), ("chr1", 500, 600), ("chr2", 100, 200)]),
-        bed_table(&[("chr1", 120, 250), ("chr1", 550, 650), ("chr2", 50, 150), ("chr3", 100, 200)])
+        bed_table(&[
+            ("chr1", 100, 200),
+            ("chr1", 150, 300),
+            ("chr1", 500, 600),
+            ("chr2", 100, 200)
+        ]),
+        bed_table(&[
+            ("chr1", 120, 250),
+            ("chr1", 550, 650),
+            ("chr2", 50, 150),
+            ("chr3", 100, 200)
+        ])
     ));
     // Query 1: [120,250] overlaps [100,200] and [150,300] = 2
     // Query 2: [550,650] overlaps [500,600] = 1
@@ -3005,7 +3028,12 @@ let queries = {}
 let bulk = bulk_overlaps(tree, queries)
 bulk == c1 + c2 + c3
 "#,
-        bed_table(&[("chr1", 10, 20), ("chr1", 15, 30), ("chr1", 50, 60), ("chr1", 55, 70)]),
+        bed_table(&[
+            ("chr1", 10, 20),
+            ("chr1", 15, 30),
+            ("chr1", 50, 60),
+            ("chr1", 55, 70)
+        ]),
         bed_table(&[("chr1", 12, 25), ("chr1", 52, 58), ("chr1", 100, 200)])
     ));
     assert_eq!(result, Value::Bool(true));
@@ -3041,11 +3069,26 @@ nrow(cov) > 0
 
 #[test]
 fn test_sizes() {
-    eprintln!("Value size: {} bytes", std::mem::size_of::<bl_core::value::Value>());
-    eprintln!("Expr size: {} bytes", std::mem::size_of::<bl_core::ast::Expr>());
-    eprintln!("Spanned<Expr> size: {} bytes", std::mem::size_of::<bl_core::span::Spanned<bl_core::ast::Expr>>());
-    eprintln!("Stmt size: {} bytes", std::mem::size_of::<bl_core::ast::Stmt>());
-    eprintln!("Spanned<Stmt> size: {} bytes", std::mem::size_of::<bl_core::span::Spanned<bl_core::ast::Stmt>>());
+    eprintln!(
+        "Value size: {} bytes",
+        std::mem::size_of::<bl_core::value::Value>()
+    );
+    eprintln!(
+        "Expr size: {} bytes",
+        std::mem::size_of::<bl_core::ast::Expr>()
+    );
+    eprintln!(
+        "Spanned<Expr> size: {} bytes",
+        std::mem::size_of::<bl_core::span::Spanned<bl_core::ast::Expr>>()
+    );
+    eprintln!(
+        "Stmt size: {} bytes",
+        std::mem::size_of::<bl_core::ast::Stmt>()
+    );
+    eprintln!(
+        "Spanned<Stmt> size: {} bytes",
+        std::mem::size_of::<bl_core::span::Spanned<bl_core::ast::Stmt>>()
+    );
 }
 
 // ============================================================================
@@ -3075,8 +3118,14 @@ fn eval_err_full(code: &str) -> String {
 #[test]
 fn test_error_did_you_mean_variable() {
     let msg = eval_err_msg("let value = 42\nvaleu");
-    assert!(msg.contains("did you mean"), "expected 'did you mean' in: {msg}");
-    assert!(msg.contains("value"), "expected 'value' suggestion in: {msg}");
+    assert!(
+        msg.contains("did you mean"),
+        "expected 'did you mean' in: {msg}"
+    );
+    assert!(
+        msg.contains("value"),
+        "expected 'value' suggestion in: {msg}"
+    );
 }
 
 #[test]
@@ -3169,7 +3218,7 @@ fn test_conservation_scores_via_interpreter() {
     let result = eval(r#"conservation_scores(["ACGT", "ACGT", "ACGT"])"#);
     if let Value::List(scores) = result {
         assert_eq!(scores.len(), 4);
-        for s in &scores {
+        for s in scores.iter() {
             assert_eq!(s, &Value::Float(1.0));
         }
     } else {
@@ -3180,19 +3229,23 @@ fn test_conservation_scores_via_interpreter() {
 #[test]
 fn test_msa_pipeline_via_interpreter() {
     // Full pipeline: msa → distance_matrix
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let aln = msa(["ACGTACGT", "ACGAACGT"])
         distance_matrix(aln)
-    "#);
+    "#,
+    );
     assert!(matches!(result, Value::Matrix(_)));
 }
 
 #[test]
 fn test_msa_conservation_pipeline_via_interpreter() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let aln = msa(["ACGT", "ACGT", "TTTT"])
         conservation_scores(aln)
-    "#);
+    "#,
+    );
     if let Value::List(scores) = result {
         assert!(!scores.is_empty());
     } else {
@@ -3212,7 +3265,10 @@ fn test_suggest_builtin_close_match() {
 fn test_suggest_builtin_gc_contnt() {
     let suggestion = bl_runtime::builtins::suggest_builtin("gc_contnt");
     // Should suggest gc_content
-    assert!(suggestion.is_some(), "expected a suggestion for 'gc_contnt'");
+    assert!(
+        suggestion.is_some(),
+        "expected a suggestion for 'gc_contnt'"
+    );
     assert_eq!(suggestion.unwrap(), "gc_content");
 }
 
@@ -3225,10 +3281,21 @@ fn test_suggest_builtin_no_match() {
 #[test]
 fn test_all_builtin_names_not_empty() {
     let names = bl_runtime::builtins::all_builtin_names();
-    assert!(names.len() > 100, "expected 100+ builtins, got {}", names.len());
+    assert!(
+        names.len() > 100,
+        "expected 100+ builtins, got {}",
+        names.len()
+    );
+    assert!(
+        names.windows(2).all(|pair| pair[0] < pair[1]),
+        "builtin names must be sorted and unique"
+    );
     assert!(names.contains(&"mean"));
     assert!(names.contains(&"gc_content"));
     assert!(names.contains(&"print"));
+    assert!(names.contains(&"sleep"));
+    assert!(names.contains(&"doctor"));
+    assert!(names.contains(&"config"));
 }
 
 // ── Interpreter Performance Tests ──────────────────────────────────
@@ -3380,10 +3447,16 @@ result
 "#;
     assert_eq!(
         eval(code),
-        Value::List(vec![
-            Value::Int(10), Value::Int(20), Value::Int(30),
-            Value::Int(40), Value::Int(50),
-        ])
+        Value::List(
+            (vec![
+                Value::Int(10),
+                Value::Int(20),
+                Value::Int(30),
+                Value::Int(40),
+                Value::Int(50),
+            ])
+            .into()
+        )
     );
 }
 
@@ -3392,7 +3465,7 @@ fn test_par_map_single_item() {
     let code = r#"
 [42] |> par_map(|x| x + 1)
 "#;
-    assert_eq!(eval(code), Value::List(vec![Value::Int(43)]));
+    assert_eq!(eval(code), Value::List((vec![Value::Int(43)]).into()));
 }
 
 #[test]
@@ -3400,7 +3473,7 @@ fn test_par_map_empty_list() {
     let code = r#"
 [] |> par_map(|x| x * 2)
 "#;
-    assert_eq!(eval(code), Value::List(vec![]));
+    assert_eq!(eval(code), Value::List((vec![]).into()));
 }
 
 #[test]
@@ -3410,7 +3483,7 @@ fn test_par_filter_all_pass() {
 "#;
     assert_eq!(
         eval(code),
-        Value::List(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
+        Value::List((vec![Value::Int(1), Value::Int(2), Value::Int(3)]).into())
     );
 }
 
@@ -3419,7 +3492,7 @@ fn test_par_filter_none_pass() {
     let code = r#"
 [1, 2, 3] |> par_filter(|x| false)
 "#;
-    assert_eq!(eval(code), Value::List(vec![]));
+    assert_eq!(eval(code), Value::List((vec![]).into()));
 }
 
 #[test]
@@ -3460,10 +3533,16 @@ collect(mapped)
 "#;
     assert_eq!(
         eval(code),
-        Value::List(vec![
-            Value::Int(10), Value::Int(20), Value::Int(30),
-            Value::Int(40), Value::Int(50),
-        ])
+        Value::List(
+            (vec![
+                Value::Int(10),
+                Value::Int(20),
+                Value::Int(30),
+                Value::Int(40),
+                Value::Int(50),
+            ])
+            .into()
+        )
     );
 }
 
@@ -3563,7 +3642,7 @@ process([1, 2, 3])
 "#;
     assert_eq!(
         eval(code),
-        Value::List(vec![Value::Int(2), Value::Int(4), Value::Int(6)])
+        Value::List((vec![Value::Int(2), Value::Int(4), Value::Int(6)]).into())
     );
 }
 

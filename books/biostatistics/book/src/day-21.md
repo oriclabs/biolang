@@ -302,7 +302,14 @@ In genomics, the scores are your cells (or samples) and the loadings are your ge
 
 ```bio
 # PCA biplot with top gene loadings
-let result = pca(expression_matrix)
+let expression_matrix = matrix([
+    [8.2, 7.9, 3.1, 2.8],
+    [8.6, 8.1, 3.4, 3.0],
+    [3.0, 3.3, 8.4, 8.0],
+    [2.7, 3.0, 8.8, 8.2]
+])
+let pca_result = pca(expression_matrix)
+let result = expression_matrix
 pca_plot(result, {title: "PCA Biplot — Top 10 Gene Loadings"})
 ```
 
@@ -321,7 +328,8 @@ pca_plot(result, {title: "PCA Biplot — Top 10 Gene Loadings"})
 
 After running PCA, a common next step is to extract the genes with the largest (absolute) loadings on PC1 and PC2. These are the genes responsible for the dominant patterns of variation.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # Run PCA on 500-gene by 2000-cell expression matrix
 let col_names = seq(1, 500) |> map(|i| "Gene_" + str(i))
@@ -369,7 +377,8 @@ PCA finds the direction of maximum variance, not maximum biological interest. If
 
 ## PCA in BioLang
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # Complete PCA analysis pipeline
 

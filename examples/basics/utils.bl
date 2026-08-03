@@ -1,0 +1,8 @@
+# utils.bl — a tiny module imported by imports.bl
+#
+# Every top-level `fn` and `let` in a file is exported by default.
+
+fn double(x) { x * 2 }
+fn triple(x) { x * 3 }
+
+let PI = 3.14159

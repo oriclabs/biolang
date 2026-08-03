@@ -43,7 +43,7 @@ let vcf_lines = [
     "chr17\t31344811\trs1800056\tC\tT\t45\tPASS\tDP=35;AF=0.06;IMPACT=missense;GENE=NF1;HGVS=p.Leu844Phe;CLINVAR=VCV000360913",
     "chr11\t32417913\trs587783045\tA\tG\t140\tPASS\tDP=50;AF=0.20;IMPACT=splice_region;GENE=WT1;HGVS=c.1168+5A>G;CLINVAR=VCV000012539"
 ]
-write_lines(vcf_lines, "data/patient.vcf")
+write_lines("data/patient.vcf", vcf_lines)
 
 # --- Real gene annotations from NCBI Gene ---
 let gene_db_lines = [
@@ -74,7 +74,7 @@ let gene_db_lines = [
     "RAD51C\tchr17\t58692373\t58735611\t-\tHomologous recombination repair\t602774\tmoderate",
     "NBN\tchr8\t89933278\t89984750\t+\tDNA double-strand break repair, MRN complex\t602667\tmoderate"
 ]
-write_lines(gene_db_lines, "data/gene_db.tsv")
+write_lines("data/gene_db.tsv", gene_db_lines)
 
 # --- Real ClinVar classification data with accession numbers ---
 let clinvar_lines = [
@@ -105,7 +105,7 @@ let clinvar_lines = [
     "chr17:31344811:C:T\tVCV000360913\tuncertain\t1\t2023-12-10\tNeurofibromatosis type 1",
     "chr11:32417913:A:G\tVCV000012539\tlikely_pathogenic\t2\t2024-04-18\tWilms tumor"
 ]
-write_lines(clinvar_lines, "data/clinvar_db.tsv")
+write_lines("data/clinvar_db.tsv", clinvar_lines)
 
 # --- Cancer gene panel based on MSK-IMPACT / NCCN guidelines (50 genes) ---
 let cancer_panel_lines = [
@@ -160,7 +160,7 @@ let cancer_panel_lines = [
     "TERT\tTelomerase reverse transcriptase\tsomatic\tMSK-IMPACT",
     "MTOR\tPI3K-mTOR signaling\tsomatic\tMSK-IMPACT"
 ]
-write_lines(cancer_panel_lines, "data/cancer_panel.tsv")
+write_lines("data/cancer_panel.tsv", cancer_panel_lines)
 
 # --- ACMG SF v3.2 (2023) Secondary Findings gene list ---
 # Full 81-gene list grouped by clinical category
@@ -248,13 +248,13 @@ let acmg_lines = [
     "TTR\tAmyloidosis\tHereditary transthyretin amyloidosis\tAD",
     "HBB\tHemoglobinopathy\tSickle cell disease / beta-thalassemia\tAR"
 ]
-write_lines(acmg_lines, "data/acmg_genes.tsv")
+write_lines("data/acmg_genes.tsv", acmg_lines)
 
 # --- De-identified patient metadata ---
 let patient_lines = [
     "patient_id\tsample_id\tindication\tgender\tage\tordering_physician\treport_date\tsequencing_platform\tmean_coverage\tpanel",
     "EDU-2024-001\tWES-S-04872\tSuspected hereditary cancer syndrome; family history of breast and ovarian cancer\tFemale\t42\tDr. Example (Educational Demo)\t2024-11-15\tIllumina NovaSeq 6000\t250x\tMSK-IMPACT 505"
 ]
-write_lines(patient_lines, "data/patient_info.tsv")
+write_lines("data/patient_info.tsv", patient_lines)
 
 print("Day 28 data initialized: clinical VCF (25 ClinVar variants), gene/ClinVar DBs, MSK-IMPACT panel, ACMG SF v3.2")

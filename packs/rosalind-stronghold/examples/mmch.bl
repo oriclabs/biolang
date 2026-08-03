@@ -1,0 +1,34 @@
+# Rosalind: MMCH — Maximum Matchings and RNA Secondary Structures
+# https://rosalind.info/problems/mmch/
+#
+# Given: An RNA string s.
+# Return: The total number of maximum matchings of basepair edges.
+
+let s = "AUGCUUC"
+
+fn count_base(seq, base) {
+    range(0, len(seq)) |> count_if(|i| substr(seq, i, 1) == base)
+}
+
+# P(n, k) — the number of ways to pair k of the scarcer base with n of the
+# commoner one.
+fn partial_permutations(n, k) {
+    range(0, k) |> reduce(|acc, i| acc * (n - i), 1)
+}
+
+fn pairing_ways(first, second) {
+    partial_permutations(max([first, second]), min([first, second]))
+}
+
+# A continued expression keeps its operator at the end of the line, so these are
+# bound separately rather than split across a leading `*`.
+let au_ways = pairing_ways(count_base(s, "A"), count_base(s, "U"))
+let gc_ways = pairing_ways(count_base(s, "G"), count_base(s, "C"))
+let result = au_ways * gc_ways
+
+println("Result:   " + str(result))
+println("Expected: 6")
+
+fn test_mmch_maximum_matchings() {
+    assert result == 6, "MMCH: got " + str(result)
+}

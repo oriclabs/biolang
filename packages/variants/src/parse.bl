@@ -1,0 +1,25 @@
+# Parse and filter VCF files.
+
+fn load(vcf_path) {
+  read_text(vcf_path) |> vcf_parse
+}
+
+fn load_filtered(vcf_path, min_qual = 20.0, require_pass = true) {
+  load(vcf_path) |> vcf_filter(min_qual, require_pass)
+}
+
+fn snps_only(table) {
+  table |> filter(fn(r) -> len(r.ref_) == 1 & len(r.alt) == 1)
+}
+
+fn indels_only(table) {
+  table |> filter(fn(r) -> len(r.ref_) != len(r.alt))
+}
+
+fn by_chrom(table, chrom) {
+  table |> filter(fn(r) -> r.chrom == chrom)
+}
+
+fn in_region(table, chrom, start, end) {
+  table |> filter(fn(r) -> r.chrom == chrom & r.pos >= start & r.pos <= end)
+}

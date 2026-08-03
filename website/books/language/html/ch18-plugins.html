@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -290,13 +290,11 @@ stdout. Each message is a single line of JSON terminated by a newline.</p>
 <p>The plugin should clean up resources and exit.</p>
 <h2 id="installing-plugins"><a class="header" href="#installing-plugins">Installing Plugins</a></h2>
 <h3 id="from-a-directory"><a class="header" href="#from-a-directory">From a Directory</a></h3>
-<pre><code class="language-bash">bl add ./my-plugins/blast-wrapper
+<pre><code class="language-bash">bl add blast-wrapper --path ./my-plugins/blast-wrapper
 </code></pre>
-<p>This copies (or symlinks) the plugin into <code>~/.biolang/plugins/blast-wrapper/</code>.</p>
-<h3 id="from-a-git-repository"><a class="header" href="#from-a-git-repository">From a Git Repository</a></h3>
-<pre><code class="language-bash">bl add https://github.com/lab/biolang-deseq2.git
-</code></pre>
-<p>BioLang clones the repository into the plugins directory.</p>
+<p>This copies the local plugin into <code>~/.biolang/plugins/blast-wrapper/</code>. The
+current <code>bl add</code> command accepts a local path; clone a Git repository first,
+then pass its directory with <code>--path</code>.</p>
 <h3 id="removing-plugins"><a class="header" href="#removing-plugins">Removing Plugins</a></h3>
 <pre><code class="language-bash">bl remove blast-wrapper
 </code></pre>
@@ -310,7 +308,8 @@ stdout. Each message is a single line of JSON terminated by a newline.</p>
 <p>Both show the plugin name, version, kind, and available functions.</p>
 <h2 id="using-plugins-in-scripts"><a class="header" href="#using-plugins-in-scripts">Using Plugins in Scripts</a></h2>
 <p>Once installed, import a plugin by name and call its functions.</p>
-<pre><code class="language-biolang">import "blast-wrapper"
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+import "blast-wrapper"
 
 # Build a custom database
 makeblastdb(input: "my_sequences.fa", dbtype: "nucl", out: "custom_db")
@@ -451,7 +450,8 @@ if __name__ == "__main__":
     main()
 </code></pre>
 <p>Install and use:</p>
-<pre><code class="language-biolang">bl add ./blast-wrapper
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+bl add blast-wrapper --path ./blast-wrapper
 
 # In a BioLang script:
 import "blast-wrapper"
@@ -611,9 +611,10 @@ while (TRUE) {
 close(con)
 </code></pre>
 <h3 id="using-the-deseq2-plugin"><a class="header" href="#using-the-deseq2-plugin">Using the DESeq2 Plugin</a></h3>
-<pre><code class="language-biolang"># requires: internet connection (for ncbi_gene calls below)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# requires: internet connection (for ncbi_gene calls below)
 # requires: NCBI_API_KEY (optional, increases rate limit)
-bl add ./deseq2-plugin
+bl add deseq2 --path ./deseq2-plugin
 
 # In a BioLang script:
 import "deseq2"
@@ -824,7 +825,7 @@ Deno/TypeScript plugins connect to REST APIs and external services.</p>
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="ch19-benchmarks.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="ch18b-tooling.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -838,7 +839,7 @@ Deno/TypeScript plugins connect to REST APIs and external services.</p>
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="ch19-benchmarks.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="ch18b-tooling.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -867,8 +868,8 @@ Deno/TypeScript plugins connect to REST APIs and external services.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

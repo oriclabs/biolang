@@ -1,0 +1,12 @@
+fn lfc(count_table, ctrl_cols, trt_cols) {
+  lfc_guides(count_table, ctrl_cols, trt_cols)
+}
+
+fn score(count_table, ctrl_cols, trt_cols) {
+  mageck_score(count_table, ctrl_cols, trt_cols)
+}
+
+fn top_hits(count_table, ctrl_cols, trt_cols, n=20) {
+  mageck_score(count_table, ctrl_cols, trt_cols)
+    |> essential_genes(n)
+}

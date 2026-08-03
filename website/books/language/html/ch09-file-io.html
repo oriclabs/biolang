@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-2455ae1f.js";
+            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8c84de9.js"></script>
+        <script src="toc-0d7bde73.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -190,29 +190,31 @@ substitute these paths wherever the examples below use bare filenames.
 Run <code>bl run examples/quickstart.bl</code> to verify all files are present.</p>
 </blockquote>
 <h2 id="reading-fasta"><a class="header" href="#reading-fasta">Reading FASTA</a></h2>
-<p><code>read_fasta()</code> returns a list of records, each with <code>header</code> and <code>seq</code> fields.</p>
+<p><code>read_fasta()</code> returns a table with <code>id</code>, <code>description</code>, <code>seq</code>, and <code>length</code>
+columns.</p>
 <pre><code class="language-biolang">let contigs = read_fasta("data/sequences.fasta")
 
 for c in contigs {
-    print(c.header + ": " + str(len(c.seq)) + " bp")
+    print(c.id + ": " + str(c.length) + " bp")
 }
 
 # Find the longest contig
-contigs |&gt; sort(|a, b| len(b.seq) - len(a.seq)) |&gt; first() |&gt; into longest
-print("Longest: " + longest.header + " (" + str(len(longest.seq)) + " bp)")
+contigs |&gt; sort_by(|c| -c.length) |&gt; first() |&gt; into longest
+print("Longest: " + longest.id + " (" + str(longest.length) + " bp)")
 </code></pre>
 <p>FASTA records carry the raw sequence as a string. Use bio literals for
 compile-time validated sequences, and <code>read_fasta</code> for runtime file data.</p>
 <h2 id="reading-fastq"><a class="header" href="#reading-fastq">Reading FASTQ</a></h2>
-<p><code>read_fastq()</code> returns records with <code>id</code>, <code>seq</code>, <code>quality</code>, and <code>comment</code>
-fields. Quality scores are integer Phred values.</p>
+<p><code>read_fastq()</code> returns a table with <code>id</code>, <code>description</code>, <code>seq</code>, <code>length</code>, and
+<code>quality</code> columns. The <code>quality</code> value is the FASTQ ASCII quality string; use
+<code>mean_phred</code>, <code>min_phred</code>, or <code>max_phred</code> to decode it.</p>
 <pre><code class="language-biolang">let reads = read_fastq("data/reads.fastq")
 
 reads |&gt; map(|r| gc_content(r.seq)) |&gt; mean() |&gt; into gc_mean
 let summary = {
     total: len(reads),
     mean_length: reads |&gt; map(|r| len(r.seq)) |&gt; mean(),
-    mean_qual: reads |&gt; map(|r| mean(r.quality)) |&gt; mean(),
+    mean_qual: reads |&gt; map(|r| mean_phred(r.quality)) |&gt; mean(),
     gc_pct: gc_mean * 100
 }
 
@@ -245,19 +247,25 @@ print("Total target region: " + str(total_bp) + " bp")
 print("Number of targets: " + str(len(targets)))
 
 # Group by chromosome
-let by_chrom = targets |&gt; group_by("chrom")
-for (chrom, regions) in by_chrom {
-    let bp = regions |&gt; map(|r| r.end - r.start) |&gt; reduce(0, |a, b| a + b)
-    print(chrom + ": " + str(len(regions)) + " targets, " + str(bp) + " bp")
-}
+let by_chrom = targets
+    |&gt; group_by("chrom")
+    |&gt; summarize(|chrom, regions| {
+        chrom: chrom,
+        targets: len(regions),
+        bp: regions |&gt; map(|r| r.end - r.start) |&gt; reduce(0, |a, b| a + b)
+    })
+by_chrom |&gt; each(|row|
+    print(row.chrom + ": " + str(row.targets) + " targets, " + str(row.bp) + " bp")
+)
 </code></pre>
 <h2 id="reading-gffgtf"><a class="header" href="#reading-gffgtf">Reading GFF/GTF</a></h2>
-<p><code>read_gff()</code> parses GFF3 and GTF formats. Records have <code>chrom</code>, <code>source</code>,
-<code>type</code>, <code>start</code>, <code>end</code>, <code>score</code>, <code>strand</code>, <code>phase</code>, and <code>attributes</code> (a map).</p>
+<p><code>read_gff()</code> parses GFF3 into a table with <code>seqid</code>, <code>source</code>, <code>type</code>, <code>start</code>,
+<code>end</code>, <code>score</code>, <code>strand</code>, <code>phase</code>, and the raw <code>attributes</code> text. Use
+<code>read_gtf()</code> when you need parsed GTF attributes as a record.</p>
 <pre><code class="language-biolang">let features = read_gff("data/annotations.gff")
 
 let genes = features |&gt; filter(|f| f.type == "gene")
-let protein_coding = genes |&gt; filter(|g| g.attributes.gene_type == "protein_coding")
+let protein_coding = genes |&gt; filter(|g| contains(g.attributes, "protein_coding"))
 
 print("Total genes: " + str(len(genes)))
 print("Protein-coding: " + str(len(protein_coding)))
@@ -314,7 +322,7 @@ let stream = read_fastq("data/reads.fastq")
 
 # Streams work with all HOFs -- processing is lazy
 let high_qual_count = stream
-    |&gt; filter(|r| mean(r.quality) &gt;= 30)
+    |&gt; filter(|r| mean_phred(r.quality) &gt;= 30)
     |&gt; filter(|r| len(r.seq) &gt;= 100)
     |&gt; len()
 
@@ -325,7 +333,7 @@ or read the file again:</p>
 <pre><code class="language-biolang"># Two-pass: first pass counts, second pass filters
 let total = read_fastq("data/reads.fastq") |&gt; len()
 let passing = read_fastq("data/reads.fastq")
-    |&gt; filter(|r| mean(r.quality) &gt;= 20)
+    |&gt; filter(|r| mean_phred(r.quality) &gt;= 20)
     |&gt; len()
 
 print("Pass rate: " + str(round(passing / total * 100, 2)) + "%")
@@ -348,7 +356,8 @@ because <code>map</code> on a stream produces a stream.</p>
 <h2 id="example-extract-coding-sequences-from-gff--fasta"><a class="header" href="#example-extract-coding-sequences-from-gff--fasta">Example: Extract Coding Sequences from GFF + FASTA</a></h2>
 <p>Combine a genome FASTA with GFF annotation to extract CDS sequences for each
 protein-coding gene.</p>
-<pre><code class="language-biolang">let genome = read_fasta("data/sequences.fasta")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let genome = read_fasta("data/sequences.fasta")
 let features = read_gff("data/annotations.gff")
 
 # Build a lookup from chromosome name to sequence
@@ -390,7 +399,8 @@ print("Extracted " + str(len(cds_records)) + " coding sequences")
 <h2 id="example-filter-vcf-by-quality-and-write-passing-variants"><a class="header" href="#example-filter-vcf-by-quality-and-write-passing-variants">Example: Filter VCF by Quality and Write Passing Variants</a></h2>
 <p>Apply multiple quality filters to a VCF and write both passing and failing
 records to separate files.</p>
-<pre><code class="language-biolang">let variants = read_vcf("data/variants.vcf")
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let variants = read_vcf("data/variants.vcf")
 
 let results = variants |&gt; map(|v| {
     let info = parse_info(v.info_str)
@@ -429,7 +439,8 @@ print("  Low MQ (&lt;40): " + str(low_mq))
 <h2 id="example-merge-bed-files-and-compute-coverage"><a class="header" href="#example-merge-bed-files-and-compute-coverage">Example: Merge BED Files and Compute Coverage</a></h2>
 <p>Load target regions from multiple BED files, merge overlapping intervals, and
 compute total coverage.</p>
-<pre><code class="language-biolang">let bed_files = [
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+let bed_files = [
     "targets_panel_v1.bed",
     "targets_panel_v2.bed",
     "custom_hotspots.bed"
@@ -567,8 +578,8 @@ compress when the output path ends in <code>.gz</code>.</p>
         <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="theme/toolbar-buttons-44fb6898.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

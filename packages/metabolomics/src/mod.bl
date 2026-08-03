@@ -1,0 +1,17 @@
+# metabolomics — LC-MS metabolomics for BioLang
+#
+# Quick start:
+#   import "metabolomics" as metab
+#
+#   metab.match_mz(180.0634, hmdb_db, ppm=5.0)
+#   metab.group(features, mz_ppm=5.0, rt_tol=0.1)
+#   metab.enrich(hit_list, pathway_db)
+
+import "metabolomics/src/features" as feat
+
+fn match_mz(mz, db, ppm=5.0)               { feat.match_mz(mz, db, ppm) }
+fn group(table, mz_ppm=5.0, rt_tol=0.1)    { feat.group(table, mz_ppm, rt_tol) }
+fn isotopes(intensities, n_carbons)          { feat.isotopes(intensities, n_carbons) }
+fn log_transform(table)                      { log_transform(table) }
+fn normalize(table, method="median")         { normalize_samples(table, method) }
+fn enrich(metabolites, pathway_db)           { pathway_enrichment(metabolites, pathway_db) }

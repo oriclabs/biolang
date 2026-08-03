@@ -1,0 +1,26 @@
+# microbiome — Microbiome analysis for BioLang
+#
+# 16S amplicon and shotgun metagenomics: diversity, taxonomic profiling,
+# rarefaction, differential abundance.
+#
+# Quick start:
+#   import "microbiome" as mb
+#
+#   mb.alpha(count_matrix[0], method="shannon")
+#   mb.alpha_table(count_matrix)
+#   mb.beta(count_matrix)
+#   mb.top_taxa(taxonomy_table, n=10, level="genus")
+#   mb.rarefy_matrix(count_matrix, depth=5000)
+
+import "microbiome/src/diversity" as div
+import "microbiome/src/taxonomy"  as tax
+
+fn alpha(counts, method="shannon")           { div.alpha(counts, method) }
+fn alpha_table(matrix, method="shannon")     { div.alpha_table(matrix, method) }
+fn beta(matrix, method="bray_curtis")        { div.beta(matrix, method) }
+fn rarefy(counts, depth)                     { div.rarefy(counts, depth) }
+fn rarefy_matrix(matrix, depth)              { div.rarefy_matrix(matrix, depth) }
+fn collapse(table, level="genus")            { tax.collapse(table, level) }
+fn rel_abundance(counts)                     { tax.rel_abundance(counts) }
+fn top_taxa(table, n=10, level="genus")      { tax.top_taxa(table, n, level) }
+fn filter_taxa(table, min_prev=0.1, min_abund=0.001) { tax.filter_taxa(table, min_prev, min_abund) }

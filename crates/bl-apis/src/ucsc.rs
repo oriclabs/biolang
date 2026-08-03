@@ -73,14 +73,8 @@ impl UcscClient {
             for (name, info) in obj {
                 genomes.push(Genome {
                     name: name.clone(),
-                    description: info["description"]
-                        .as_str()
-                        .unwrap_or_default()
-                        .to_string(),
-                    organism: info["organism"]
-                        .as_str()
-                        .unwrap_or_default()
-                        .to_string(),
+                    description: info["description"].as_str().unwrap_or_default().to_string(),
+                    organism: info["organism"].as_str().unwrap_or_default().to_string(),
                 });
             }
         }
@@ -98,18 +92,9 @@ impl UcscClient {
             for (name, info) in obj {
                 tracks.push(Track {
                     name: name.clone(),
-                    short_label: info["shortLabel"]
-                        .as_str()
-                        .unwrap_or_default()
-                        .to_string(),
-                    long_label: info["longLabel"]
-                        .as_str()
-                        .unwrap_or_default()
-                        .to_string(),
-                    type_: info["type"]
-                        .as_str()
-                        .unwrap_or_default()
-                        .to_string(),
+                    short_label: info["shortLabel"].as_str().unwrap_or_default().to_string(),
+                    long_label: info["longLabel"].as_str().unwrap_or_default().to_string(),
+                    type_: info["type"].as_str().unwrap_or_default().to_string(),
                 });
             }
         }
@@ -118,22 +103,13 @@ impl UcscClient {
     }
 
     /// Get DNA sequence for a genomic region.
-    pub fn get_sequence(
-        &self,
-        genome: &str,
-        chrom: &str,
-        start: u64,
-        end: u64,
-    ) -> Result<String> {
+    pub fn get_sequence(&self, genome: &str, chrom: &str, start: u64, end: u64) -> Result<String> {
         let base = base_url();
         let url = format!(
             "{base}/getData/sequence?genome={genome};chrom={chrom};start={start};end={end}"
         );
         let json = self.base.get_json(&url)?;
-        Ok(json["dna"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string())
+        Ok(json["dna"].as_str().unwrap_or_default().to_string())
     }
 
     /// Get track data for a genomic region.

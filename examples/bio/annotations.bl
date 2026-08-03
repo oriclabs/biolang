@@ -62,8 +62,15 @@ genes |> each(|g| {
 # ── Feature Span Histogram ───────────────────────────────────
 let exon_sizes = exons |> map(|e| e.end - e.start)
 println("\nExon sizes: ", exon_sizes)
-println("Min exon: ", exon_sizes |> min(), " bp")
-println("Max exon: ", exon_sizes |> max(), " bp")
+
+# min() and max() need at least one value, and a GFF need not contain exons at
+# all — this sample file is gene-level only.
+if len(exon_sizes) > 0 {
+    println("Min exon: ", exon_sizes |> min(), " bp")
+    println("Max exon: ", exon_sizes |> max(), " bp")
+} else {
+    println("No exon features in this file — nothing to summarise.")
+}
 
 # ── Writing Filtered Annotations ─────────────────────────────
 # genes |> write_gff("/tmp/genes_only.gff")

@@ -76,10 +76,10 @@ for i in range(0, 60) {
     let ic50_raw = round(10.0 * (1.0 + log_ic50 * 0.5), 3)
     # Clamp to realistic range
     let ic50 = if ic50_raw < 0.01 { 0.01 } else if ic50_raw > 100.0 { 100.0 } else { ic50_raw }
-    lines = append(lines, f"{cell_names[i]},{cancer_types[i]},{egfr},{round(ic50, 3)}")
+    lines = push(lines, f"{cell_names[i]},{cancer_types[i]},{egfr},{round(ic50, 3)}")
 }
 
-write_lines(lines, "data/cell_line_drug.csv")
+write_lines("data/cell_line_drug.csv", lines)
 println("Wrote data/cell_line_drug.csv: 60 cell lines (EGFR expression vs erlotinib IC50)")
 println("  Real cell line names from CCLE (12 cancer types)")
 println("  Expected negative correlation r ~ -0.55 (higher EGFR = more sensitive)")

@@ -95,7 +95,11 @@ impl AlignedRead {
 
     /// Convert to a GenomicInterval spanning the aligned region.
     pub fn to_interval(&self) -> GenomicInterval {
-        let strand = if self.is_reverse() { Strand::Minus } else { Strand::Plus };
+        let strand = if self.is_reverse() {
+            Strand::Minus
+        } else {
+            Strand::Plus
+        };
         GenomicInterval {
             chrom: self.rname.clone(),
             start: self.pos,

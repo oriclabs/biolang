@@ -1,5 +1,5 @@
-use bio_core::{GenomicInterval, Strand};
 use bio_core::interval_ops::*;
+use bio_core::{GenomicInterval, Strand};
 
 fn iv(chrom: &str, start: i64, end: i64) -> GenomicInterval {
     GenomicInterval {
@@ -12,7 +12,11 @@ fn iv(chrom: &str, start: i64, end: i64) -> GenomicInterval {
 
 #[test]
 fn test_sort_intervals() {
-    let mut ivs = vec![iv("chr2", 100, 200), iv("chr1", 300, 400), iv("chr1", 100, 200)];
+    let mut ivs = vec![
+        iv("chr2", 100, 200),
+        iv("chr1", 300, 400),
+        iv("chr1", 100, 200),
+    ];
     sort_intervals(&mut ivs);
     assert_eq!(ivs[0], iv("chr1", 100, 200));
     assert_eq!(ivs[1], iv("chr1", 300, 400));
@@ -55,7 +59,11 @@ fn test_merge_empty() {
 
 #[test]
 fn test_intersect() {
-    let a = vec![iv("chr1", 100, 200), iv("chr1", 300, 400), iv("chr2", 100, 200)];
+    let a = vec![
+        iv("chr1", 100, 200),
+        iv("chr1", 300, 400),
+        iv("chr2", 100, 200),
+    ];
     let b = vec![iv("chr1", 150, 250), iv("chr2", 500, 600)];
     let result = intersect(&a, &b);
     assert_eq!(result.len(), 1);

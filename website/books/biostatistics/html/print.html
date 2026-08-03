@@ -37,8 +37,34 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
         </script>
+
+        <!-- Custom JS scripts for mdbook-pdf PDF generation -->
+        <script type='text/javascript'>
+            let markAllContentHasLoadedForPrinting = () =>
+                window.setTimeout(
+                    () => {
+                        let p = document.createElement('div');
+                        p.setAttribute('id', 'content-has-all-loaded-for-mdbook-pdf-generation');
+                        document.body.appendChild(p);
+                    }, 100
+                );
+
+            window.addEventListener('load', () => {
+                // Expand all the <details> elements for printing.
+                r = document.getElementsByTagName('details');
+                for (let i of r)
+                    i.open = true;
+
+                try {
+                    MathJax.Hub.Register.StartupHook('End', markAllContentHasLoadedForPrinting);
+                } catch (e) {
+                    markAllContentHasLoadedForPrinting();
+                }
+            });
+        </script>
+    <div style="display: none"><a href="#introduction">introduction</a><a href="#day-01">day-01</a><a href="#day-02">day-02</a><a href="#day-03">day-03</a><a href="#day-04">day-04</a><a href="#day-05">day-05</a><a href="#day-06">day-06</a><a href="#day-07">day-07</a><a href="#day-08">day-08</a><a href="#day-09">day-09</a><a href="#day-10">day-10</a><a href="#day-11">day-11</a><a href="#day-12">day-12</a><a href="#day-13">day-13</a><a href="#day-14">day-14</a><a href="#day-15">day-15</a><a href="#day-16">day-16</a><a href="#day-17">day-17</a><a href="#day-18">day-18</a><a href="#day-19">day-19</a><a href="#day-20">day-20</a><a href="#day-21">day-21</a><a href="#day-22">day-22</a><a href="#day-23">day-23</a><a href="#day-24">day-24</a><a href="#day-25">day-25</a><a href="#day-26">day-26</a><a href="#day-27">day-27</a><a href="#day-28">day-28</a><a href="#day-29">day-29</a><a href="#day-30">day-30</a><a href="#appendix-setup">appendix-setup</a><a href="#appendix-flowchart">appendix-flowchart</a><a href="#appendix-distributions">appendix-distributions</a><a href="#appendix-glossary">appendix-glossary</a><a href="#appendix-reference">appendix-reference</a></div>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
     </head>
@@ -185,7 +211,11 @@
 </blockquote>
 <p>You have the data. Thousands of gene expression measurements. Hundreds of patient outcomes. Millions of variants. You know the biology. You understand the experiment. But when it comes time to choose a statistical test, set a significance threshold, or interpret a confidence interval, the ground shifts under your feet.</p>
 <p>This book fixes that. In 30 days, you will go from statistical anxiety to statistical fluency — not by memorizing formulas, but by solving real biological problems with real data. Every test you learn has a reason. Every formula has a story. Every p-value has a context.</p>
-<p>And you will do it all in BioLang, a language with over 400 statistical builtins that lets you express an entire analysis — from data loading to hypothesis testing to publication-quality visualization — in a handful of readable, pipe-chained lines.</p>
+<p>And you will do it all in BioLang, whose current runtime provides hundreds of
+builtins across statistics, data handling, biological formats, and
+visualization. That lets you express an analysis — from data loading to
+hypothesis testing to publication-quality visualization — in readable,
+pipe-chained steps.</p>
 <h2 id="who-this-book-is-for"><a class="header" href="#who-this-book-is-for">Who This Book Is For</a></h2>
 <p>This book is for anyone who works with biological data and needs to make sound statistical decisions. You might be:</p>
 <ul>
@@ -249,9 +279,9 @@
 <tbody>
 <tr><td><strong>Week 1</strong></td><td>1-5</td><td>Foundations</td><td>Understand distributions, probability, and descriptive statistics</td></tr>
 <tr><td><strong>Week 2</strong></td><td>6-12</td><td>Core Methods</td><td>Master hypothesis testing, t-tests, ANOVA, chi-square, non-parametric tests</td></tr>
-<tr><td><strong>Week 3</strong></td><td>13-20</td><td>Modeling</td><td>Regression, survival analysis, dimensionality reduction, clustering</td></tr>
-<tr><td><strong>Week 4</strong></td><td>21-27</td><td>Advanced Topics</td><td>Multiple testing, Bayesian methods, power analysis, resampling, study design</td></tr>
-<tr><td><strong>Capstone</strong></td><td>28-30</td><td>Projects</td><td>Differential expression study, GWAS analysis, clinical trial analysis</td></tr>
+<tr><td><strong>Week 3</strong></td><td>13-20</td><td>Modeling</td><td>Correlation, regression, survival, design, effect size, and batch effects</td></tr>
+<tr><td><strong>Week 4</strong></td><td>21-27</td><td>Advanced Topics</td><td>PCA, clustering, resampling, Bayesian methods, visualization, and reproducibility</td></tr>
+<tr><td><strong>Capstone</strong></td><td>28-30</td><td>Projects</td><td>Clinical trial, differential expression, and GWAS analyses</td></tr>
 </tbody>
 </table>
 </div>
@@ -283,19 +313,18 @@
 </ul>
 <p>If you can run <code>bl --version</code> and get a version number, you are ready.</p>
 <h2 id="the-companion-files"><a class="header" href="#the-companion-files">The Companion Files</a></h2>
-<p>Every day has a companion directory with runnable code, sample data, and expected output. The structure looks like this:</p>
+<p>Every day has a companion directory with a BioLang setup script and Python and
+R comparison scripts. The runnable BioLang analyses are the code blocks in the
+chapter itself. The current companion structure is:</p>
 <pre><code>biostatistics/
   days/
     day-01/
-      README.md           # Day overview and instructions
       init.bl             # Setup script — run this first
       scripts/
-        analysis.bl       # BioLang solutions
         analysis.py       # Python equivalent
         analysis.R        # R equivalent
       expected/
-        output.txt        # Expected output for verification
-      compare.md          # Side-by-side language comparison
+        .gitkeep          # Reserved for chapter-specific baselines
     day-02/
       ...
 </code></pre>
@@ -305,13 +334,20 @@
 <p><strong>Run <code>init.bl</code> first.</strong> Each day’s init script generates sample datasets, downloads reference data, or creates whatever that day’s exercises need. Run it with <code>bl run init.bl</code>.</p>
 </li>
 <li>
-<p><strong>Work through the exercises.</strong> Try to solve them yourself before looking at the solutions in <code>scripts/</code>.</p>
+<p><strong>Run the BioLang blocks in the chapter.</strong> Blocks on the same page may build
+on variables defined earlier. File-backed and network examples are marked as
+CLI-only.</p>
 </li>
 <li>
-<p><strong>Check your output.</strong> Compare your results against the files in <code>expected/</code> to verify correctness. Statistical results should match within rounding tolerance.</p>
+<p><strong>Validate your script.</strong> Run <code>bl check analysis.bl</code>, then compare important
+estimates with the Python and R scripts. Statistical results should agree
+within the stated rounding tolerance and method assumptions.</p>
 </li>
 <li>
-<p><strong>Read <code>compare.md</code>.</strong> After completing a day in BioLang, read the comparison document to see how the same analyses look in Python and R. This is especially valuable if you plan to work in multi-language environments.</p>
+<p><strong>Use <code>scripts/analysis.py</code> and <code>scripts/analysis.R</code> for independent
+validation.</strong> Check test variants, missing-value behavior, correction
+methods, and model families before treating small numerical differences as
+errors.</p>
 </li>
 </ol>
 <p>To get the companion files:</p>
@@ -340,35 +376,34 @@ bl repl
 <pre><code class="language-r">install.packages(c("stats", "survival", "ggplot2", "dplyr", "pwr", "lme4", "boot"))
 </code></pre>
 <h2 id="a-quick-taste"><a class="header" href="#a-quick-taste">A Quick Taste</a></h2>
-<p>Here is what statistical analysis looks like in BioLang. This script loads gene expression data, runs a t-test between two conditions, and generates a volcano plot — all in pipe style:</p>
-<pre><code class="language-bio"># Load expression data for two conditions
-let ctrl = read_csv("data/expression.csv")
-let treat = read_csv("data/expression.csv")
-
-# Run t-tests for every gene, correct for multiple testing
-let results = ctrl
-  |&gt; join(treat, "gene_id")
-  |&gt; mutate("pvalue", ttest(ctrl_expr, treat_expr).p)
-  |&gt; mutate("log2fc", log2(mean(treat_expr) / mean(ctrl_expr)))
-  |&gt; mutate("padj", p_adjust(pvalue, "BH"))
-  |&gt; mutate("significant", padj &lt; 0.05 and abs(log2fc) &gt; 1.0)
+<p>Here is what statistical analysis looks like in BioLang. This script loads a
+differential-expression result table, adjusts p-values, filters significant
+genes, and generates a volcano plot:</p>
+<pre><code class="language-bio"># Load a compact differential-expression result table
+let expression = read_csv("data/expression.csv")
+let adjusted = p_adjust(col(expression, "pvalue"), "BH")
+let results = zip(to_records(expression), adjusted)
+  |&gt; map(|pair| {...pair[0], padj: pair[1]})
+  |&gt; to_table()
 
 # How many genes are differentially expressed?
-results
-  |&gt; filter(significant)
-  |&gt; len()
-  |&gt; println("Differentially expressed genes: {}")
+let significant = results
+  |&gt; filter(|row| row.padj &lt; 0.05 &amp;&amp; abs(row.log2fc) &gt; 1.0)
+println("Differentially expressed genes: " + str(len(significant)))
 
 # Volcano plot
-results |&gt; volcano_plot("log2fc", "padj", "gene_id")
+volcano(results, {fc: "log2fc", p: "padj"})
 </code></pre>
-<p>Twelve lines. No imports. No boilerplate. The pipe operator makes the analytical logic visible: load, join, test, correct, filter, plot. You will understand every line of this by Day 10.</p>
+<p>The pipe operator makes the analytical logic visible: load, correct, combine,
+filter, and plot. You will understand every line by the end of Week 2.</p>
 <p>Here is another example — survival analysis in three lines:</p>
 <pre><code class="language-bio">let patients = read_csv("data/clinical.csv")
-
-patients
-  |&gt; kaplan_meier("months", "deceased", "treatment")
-  |&gt; surv_plot({title: "Overall Survival by Treatment Arm"})
+let survival = patients |&gt; map(|row| {
+  time: row.survival_months,
+  event: if row.status == "deceased" { 1 } else { 0 },
+  group: row.treatment
+}) |&gt; to_table()
+kaplan_meier(survival, {title: "Overall Survival by Treatment"})
 </code></pre>
 <p>And power analysis for planning your next experiment:</p>
 <pre><code class="language-bio"># Power calculation: how many samples per group?
@@ -376,18 +411,35 @@ let result = power_t_test(0.5, 0.05, 0.8)
 println("Required sample size per group: {result.n}")
 println("Effect size: {result.effect_size}, alpha: {result.alpha}, power: {result.power}")
 </code></pre>
-<p>BioLang’s 400+ statistical builtins mean you spend your time thinking about the biology, not fighting the syntax.</p>
+<p>BioLang’s statistical, tabular, and visualization builtins keep the analysis
+close to the biological question.</p>
 <h2 id="week-by-week-overview"><a class="header" href="#week-by-week-overview">Week-by-Week Overview</a></h2>
 <h3 id="week-1-foundations-days-1-5"><a class="header" href="#week-1-foundations-days-1-5">Week 1: Foundations (Days 1-5)</a></h3>
-<p>You start where every statistical analysis starts — with the data itself. What does a distribution look like? How do you measure center and spread? What is probability, and why does it matter for hypothesis testing? Day 1 introduces distributions with real gene expression data. Day 2 covers descriptive statistics. Day 3 tackles probability and the normal distribution. Day 4 introduces sampling and the central limit theorem. Day 5 covers confidence intervals. By Friday, you have the vocabulary and intuition to understand every test that follows.</p>
+<p>You start where every statistical analysis starts — with the data itself. Day
+1 explains why statistics matters; Day 2 covers descriptive statistics; Day 3
+examines distributions; Day 4 introduces probability; and Day 5 covers
+sampling, bias, and sample size.</p>
 <h3 id="week-2-core-methods-days-6-12"><a class="header" href="#week-2-core-methods-days-6-12">Week 2: Core Methods (Days 6-12)</a></h3>
-<p>Now the testing begins. Day 6 introduces hypothesis testing and p-values. Day 7 covers t-tests — one-sample, two-sample, paired — with gene expression data. Day 8 is ANOVA for comparing multiple groups. Day 9 handles non-parametric alternatives for when your data violates assumptions. Day 10 tackles chi-square and Fisher’s exact tests for categorical data. Day 11 introduces correlation and simple linear regression. Day 12 brings multiple testing correction — Bonferroni, Benjamini-Hochberg, and permutation — the single most important topic for genomics.</p>
+<p>Day 6 introduces confidence intervals. Day 7 covers hypothesis tests and
+p-values; Day 8 covers t-tests; Day 9 handles non-parametric alternatives; Day
+10 covers ANOVA; Day 11 tackles categorical tests; and Day 12 addresses
+multiple-testing correction.</p>
 <h3 id="week-3-modeling-days-13-20"><a class="header" href="#week-3-modeling-days-13-20">Week 3: Modeling (Days 13-20)</a></h3>
-<p>You move from testing to modeling. Day 13 covers multiple regression. Day 14 introduces logistic regression for binary outcomes. Day 15 is survival analysis — Kaplan-Meier curves and log-rank tests. Day 16 continues with Cox proportional hazards models. Day 17 introduces PCA and dimensionality reduction. Day 18 covers clustering — hierarchical, k-means, and silhouette analysis. Day 19 tackles effect sizes and confidence intervals as alternatives to p-values. Day 20 brings statistical visualization — volcano plots, Manhattan plots, Q-Q plots, forest plots, and heatmaps.</p>
+<p>You move from association to modeling. Day 13 covers correlation; Day 14
+introduces linear regression; Day 15 extends it to multiple predictors; Day 16
+covers logistic regression; Day 17 covers survival analysis; Day 18 covers
+experimental design and power; Day 19 focuses on effect sizes; and Day 20
+handles batch effects and confounding.</p>
 <h3 id="week-4-advanced-topics-and-capstones-days-21-27"><a class="header" href="#week-4-advanced-topics-and-capstones-days-21-27">Week 4: Advanced Topics and Capstones (Days 21-27)</a></h3>
-<p>You tackle the hard problems. Day 21 covers bootstrap and permutation methods. Day 22 introduces Bayesian statistics with biological examples. Day 23 is power analysis and sample size calculation. Day 24 covers experimental design — randomization, blocking, batch effects. Day 25 tackles mixed models for repeated measures and nested designs. Day 26 introduces enrichment analysis — gene ontology, pathway analysis, GSEA. Day 27 covers meta-analysis for combining results across studies.</p>
+<p>Day 21 covers PCA and dimensionality reduction. Day 22 covers clustering. Day
+23 introduces bootstrap and permutation methods; Day 24 introduces Bayesian
+thinking; Day 25 develops statistical visualization; Day 26 covers
+meta-analysis; and Day 27 turns the methods into a reproducible workflow.</p>
 <h3 id="capstone-projects-days-28-30"><a class="header" href="#capstone-projects-days-28-30">Capstone Projects (Days 28-30)</a></h3>
-<p>Three full projects that integrate everything you have learned. Day 28: conduct a complete RNA-seq differential expression study with quality control, normalization, testing, multiple correction, and pathway enrichment. Day 29: analyze a genome-wide association study with Manhattan plots, Q-Q plots, and genomic inflation correction. Day 30: analyze a clinical trial dataset with survival analysis, subgroup comparisons, and a statistical report suitable for publication.</p>
+<p>Three full projects integrate the book. Day 28 analyzes a clinical trial with
+survival and subgroup outcomes. Day 29 conducts a differential-expression
+study. Day 30 analyzes a genome-wide association study with Manhattan and Q-Q
+plots and genomic-inflation checks.</p>
 <h2 id="conventions-used-in-this-book"><a class="header" href="#conventions-used-in-this-book">Conventions Used in This Book</a></h2>
 <p>Throughout this book, you will see several recurring elements:</p>
 <h3 id="code-blocks"><a class="header" href="#code-blocks">Code Blocks</a></h3>
@@ -407,7 +459,9 @@ TTestResult { t: 4.12, df: 4, p: 0.0146 }
 <p>Multi-language comparisons appear with labeled blocks:</p>
 <p><strong>BioLang:</strong></p>
 <pre><code class="language-bio">let data = read_csv("data/expression.csv")
-data |&gt; ttest(ctrl, treated) |&gt; println()
+let control = data |&gt; filter(|row| row.condition == "control") |&gt; map(|row| row.sample1)
+let treated = data |&gt; filter(|row| row.condition == "treatment") |&gt; map(|row| row.sample1)
+println(ttest(control, treated))
 </code></pre>
 <p><strong>Python:</strong></p>
 <pre><code class="language-python">import pandas as pd
@@ -2893,7 +2947,8 @@ for n in sample_sizes {
 </ol>
 <p>Think of detecting a treatment effect as hearing a whisper in a crowd. The whisper is the signal (effect size). The crowd noise is variability. Adding more listeners (larger n) helps. Making the crowd quieter (reducing variability) helps. Demanding absolute certainty before you will believe you heard something (lower α) makes it harder.</p>
 <h3 id="simulating-power"><a class="header" href="#simulating-power">Simulating Power</a></h3>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Simulate a clinical trial to understand power
 
 # True effect: treatment mean = 125 (control = 130, lower is better)
@@ -3087,7 +3142,8 @@ let sample_sd = 120.0
 </ol>
 <h3 id="exercise-4-bootstrap-a-correlation"><a class="header" href="#exercise-4-bootstrap-a-correlation">Exercise 4: Bootstrap a Correlation</a></h3>
 <p>Estimate the uncertainty in a correlation coefficient using the bootstrap.</p>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Gene expression vs. protein abundance (moderate correlation)
 let n = 40
 let gene_expr = rnorm(n, 5.0, 2.0)
@@ -3447,7 +3503,8 @@ print("Drug B: {means[1]:.1} nM, 95% CI [{ci_b[0]:.1}, {ci_b[1]:.1}]")
 print("Drug C: {means[2]:.1} nM, 95% CI [{ci_c[0]:.1}, {ci_c[1]:.1}]")
 
 # Bar chart with error bars
-bar_chart(drugs, means, {title: "IC50 Comparison with 95% CIs", y_label: "IC50 (nM)", error_bars: [ci_a, ci_b, ci_c]})
+let ci_chart = table({"drug": drugs, "mean_ic50": means})
+bar_chart(ci_chart, {label: "drug", value: "mean_ic50"})
 </code></pre>
 <h3 id="ci-for-difference-between-two-means"><a class="header" href="#ci-for-difference-between-two-means">CI for Difference Between Two Means</a></h3>
 <pre><code class="language-bio"># Compare tumor volume between treated and control mice
@@ -5401,7 +5458,8 @@ if result.p_value &lt; 0.05 {
 }
 </code></pre>
 <h3 id="complete-workflow-gene-expression-across-tissues"><a class="header" href="#complete-workflow-gene-expression-across-tissues">Complete Workflow: Gene Expression Across Tissues</a></h3>
-<pre><code class="language-bio"># FOXP3 expression across immune cell types
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# FOXP3 expression across immune cell types
 let t_reg  = [8.5, 9.2, 8.8, 9.5, 8.1, 9.0, 8.7, 9.3]
 let t_eff  = [3.2, 3.8, 3.5, 4.1, 2.9, 3.6, 3.3, 3.9]
 let b_cell = [1.5, 1.8, 1.2, 2.0, 1.4, 1.7, 1.3, 1.9]
@@ -5801,9 +5859,10 @@ let intense  = [155, 172, 148, 180, 162]
 <pre><code class="language-bio"># Observed genotype counts near APOE
 # Rows: Alzheimer's, Control
 # Columns: Risk allele present, Risk allele absent
-let observed = [[180, 320], [120, 380]]
+let observed = [180, 320, 120, 380]
+let expected = [150.0, 350.0, 150.0, 350.0]
 
-let result = chi_square(observed)
+let result = chi_square(observed, expected)
 print("=== Chi-Square Test of Independence ===")
 print("Chi-square statistic: {result.statistic:.4}")
 print("p-value: {result.p_value:.2e}")
@@ -5833,17 +5892,17 @@ if result.p_value &lt; 0.05 {
 <h3 id="fishers-exact-test-rare-variant-study"><a class="header" href="#fishers-exact-test-rare-variant-study">Fisher’s Exact Test: Rare Variant Study</a></h3>
 <pre><code class="language-bio"># Rare loss-of-function variant in 200 cases and 200 controls
 # Very small expected counts -&gt; Fisher's exact test
-let observed = [[8, 192], [2, 198]]
+let observed = [8, 192, 2, 198]
 
 print("=== Fisher's Exact Test: Rare Variant ===")
 print("Observed: 8/200 cases vs 2/200 controls carry the variant\n")
 
 # Chi-square would be unreliable here
-let chi_result = chi_square(observed)
+let chi_result = chi_square(observed, [5.0, 195.0, 5.0, 195.0])
 print("Chi-square p-value: {chi_result.p_value:.4} (unreliable — low expected counts)")
 
 # Fisher's exact is the correct choice
-let fisher_result = fisher_exact(observed)
+let fisher_result = fisher_exact(8, 192, 2, 198)
 print("Fisher's exact p-value: {fisher_result.p_value:.4}")
 
 # Odds ratio (inline)
@@ -5926,8 +5985,8 @@ if result.p_value &gt; 0.05 {
 <pre><code class="language-bio"># EGFR mutation frequency in two populations
 # Asian cohort: 120/300 (40%), European cohort: 45/300 (15%)
 # Two-proportion test via chi_square
-let observed = [[120, 180], [45, 255]]
-let result = chi_square(observed)
+let observed = [120, 180, 45, 255]
+let result = chi_square(observed, [82.5, 217.5, 82.5, 217.5])
 
 print("=== Two-Proportion Test: EGFR Mutation Frequency ===")
 print("Asian: 120/300 = 40%")
@@ -5937,20 +5996,25 @@ print("p-value: {result.p_value:.2e}")
 print("Difference: 25 percentage points")
 
 # Visualize
-bar_chart(["Asian", "European"], [40.0, 15.0], {title: "EGFR Mutation Frequency by Population", y_label: "Mutation Frequency (%)"})
+let population_rates = table({
+  "population": ["Asian", "European"],
+  "mutation_frequency": [40.0, 15.0]
+})
+bar_chart(population_rates, {label: "population", value: "mutation_frequency"})
 </code></pre>
 <h3 id="complete-workflow-multi-allelic-association"><a class="header" href="#complete-workflow-multi-allelic-association">Complete Workflow: Multi-Allelic Association</a></h3>
 <pre><code class="language-bio"># Three genotypes at a pharmacogenomics locus
 # and three drug response categories
-let observed = [
-  [45, 30, 25],   # Poor metabolizer
-  [35, 55, 60],   # Intermediate
-  [20, 15, 15]    # Ultra-rapid
+let observed = [45, 30, 25, 35, 55, 60, 20, 15, 15]
+let expected = [
+  33.333, 33.333, 33.333,
+  50.0, 50.0, 50.0,
+  16.667, 16.667, 16.667
 ]
 let row_labels = ["Poor", "Intermediate", "Ultra-rapid"]
 let col_labels = ["AA", "AG", "GG"]
 
-let result = chi_square(observed)
+let result = chi_square(observed, expected)
 print("=== Chi-Square: Genotype vs Drug Response ===")
 print("Chi-square: {result.statistic:.4}")
 print("p-value: {result.p_value:.4}")
@@ -5965,8 +6029,9 @@ print("Cramer's V: {v:.4} (effect size)")
 print("\n           | AA   | AG   | GG   | Total")
 print("-----------|------|------|------|------")
 for i in 0..3 {
-  let total = observed[i][0] + observed[i][1] + observed[i][2]
-  print("{row_labels[i]:&lt;11}| {observed[i][0]:&gt;4} | {observed[i][1]:&gt;4} | {observed[i][2]:&gt;4} | {total:&gt;4}")
+  let offset = i * 3
+  let total = observed[offset] + observed[offset + 1] + observed[offset + 2]
+  print("{row_labels[i]:&lt;11}| {observed[offset]:&gt;4} | {observed[offset + 1]:&gt;4} | {observed[offset + 2]:&gt;4} | {total:&gt;4}")
 }
 </code></pre>
 <p><strong>Python:</strong></p>
@@ -6437,7 +6502,8 @@ print("True DE genes: {is_true |&gt; filter(|x| x == 1) |&gt; len()}")
 print("Null genes: {is_true |&gt; filter(|x| x == 0) |&gt; len()}")
 </code></pre>
 <h3 id="applying-all-correction-methods"><a class="header" href="#applying-all-correction-methods">Applying All Correction Methods</a></h3>
-<pre><code class="language-bio"># Apply multiple correction methods
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Apply multiple correction methods
 let p_bonf = p_adjust(p_values, "bonferroni")
 let p_holm = p_adjust(p_values, "holm")
 let p_bh   = p_adjust(p_values, "BH")
@@ -6489,7 +6555,8 @@ for i in 0..len(p_bh) {
   }
 }
 
-volcano(log2_fc, neg_log10_p, {title: "Differential Expression: Tumor vs Normal", x_label: "log2 Fold Change", y_label: "-log10(FDR-adjusted p-value)", fc_threshold: 1.0, p_threshold: 0.05, highlight: colors})
+let volcano_data = table({"log2fc": log2_fc, "pvalue": p_bh})
+volcano(volcano_data, {fc_threshold: 1.0, p_threshold: 0.05})
 
 # Count genes in each quadrant
 let sig_up = 0
@@ -6525,7 +6592,7 @@ let sorted_p = sort(p_vals)
 let bh_thresholds = range(1, 101) |&gt; map(|i| i / 100 * 0.05)
 
 # Plot sorted p-values against BH thresholds
-scatter(range(1, 101), sorted_p, {title: "BH Procedure: Sorted p-values vs Threshold Line", x_label: "Rank", y_label: "p-value", overlay_lines: [[range(1, 101), bh_thresholds]]})
+scatter(range(1, 101), sorted_p)
 
 let bh_adjusted = p_adjust(p_vals, "BH")
 let n_sig = bh_adjusted |&gt; filter(|p| p &lt; 0.05) |&gt; len()
@@ -6977,13 +7044,16 @@ EnhancedVolcano(results, lab = rownames(results),
 <h2 id="correlation-in-biolang"><a class="header" href="#correlation-in-biolang">Correlation in BioLang</a></h2>
 <h3 id="basic-correlations"><a class="header" href="#basic-correlations">Basic Correlations</a></h3>
 <pre><code class="language-bio">set_seed(42)
+fn add_scaled(signal, scale, noise) {
+    zip(signal, noise) |&gt; map(|pair| pair[0] * scale + pair[1])
+}
 # Generate tumor expression data for 200 samples
 let n = 200
 
 # Simulate BRCA1 and BARD1 with true correlation + noise
 let proliferation = rnorm(n, 10, 3)
-let brca1 = proliferation * 0.8 + rnorm(n, 5, 2)
-let bard1 = proliferation * 0.7 + rnorm(n, 4, 2)
+let brca1 = add_scaled(proliferation, 0.8, rnorm(n, 5, 2))
+let bard1 = add_scaled(proliferation, 0.7, rnorm(n, 4, 2))
 
 # Pearson correlation — assumes linearity
 let r_pearson = cor(brca1, bard1)
@@ -7011,7 +7081,7 @@ print("Spearman ρ = {spearman_result}")
 <h3 id="partial-correlation-removing-confounders"><a class="header" href="#partial-correlation-removing-confounders">Partial Correlation: Removing Confounders</a></h3>
 <pre><code class="language-bio">set_seed(42)
 # BRCA1-BARD1 correlation controlling for proliferation (MKI67)
-let mki67 = proliferation + rnorm(n, 0, 1)
+let mki67 = add_scaled(proliferation, 1.0, rnorm(n, 0, 1))
 
 # Raw correlation
 let r_raw = cor(brca1, bard1)
@@ -7034,13 +7104,13 @@ print("Reduction: {((r_raw - r_partial) / r_raw * 100) |&gt; round(1)}%")
 let base = rnorm(200, 0, 1)
 
 let genes = {
-    "BRCA1":  base * 0.8 + rnorm(200, 10, 2),
-    "BARD1":  base * 0.7 + rnorm(200, 8, 2),
-    "RAD51":  base * 0.6 + rnorm(200, 12, 3),
-    "PALB2":  base * 0.5 + rnorm(200, 9, 2),
+    "BRCA1":  add_scaled(base, 0.8, rnorm(200, 10, 2)),
+    "BARD1":  add_scaled(base, 0.7, rnorm(200, 8, 2)),
+    "RAD51":  add_scaled(base, 0.6, rnorm(200, 12, 3)),
+    "PALB2":  add_scaled(base, 0.5, rnorm(200, 9, 2)),
     "ATM":    rnorm(200, 11, 3),
-    "TP53":   base * -0.4 + rnorm(200, 15, 4),
-    "MDM2":   base * -0.3 + rnorm(200, 7, 2),
+    "TP53":   add_scaled(base, -0.4, rnorm(200, 15, 4)),
+    "MDM2":   add_scaled(base, -0.3, rnorm(200, 7, 2)),
     "GAPDH":  rnorm(200, 20, 1)
 }
 
@@ -7054,7 +7124,7 @@ for i in 0..8 {
 }
 
 # Visualize as heatmap — instantly reveals co-expression modules
-heatmap(genes, {title: "DNA Repair Gene Co-Expression", color_scale: "RdBu"})
+heatmap(table(genes), {title: "DNA Repair Gene Co-Expression", color_scale: "RdBu"})
 </code></pre>
 <h3 id="visualizing-with-scatter-plots"><a class="header" href="#visualizing-with-scatter-plots">Visualizing with Scatter Plots</a></h3>
 <pre><code class="language-bio"># Scatter plot with correlation annotation
@@ -7068,10 +7138,11 @@ plot(scatter_data, {type: "scatter", x: "BRCA1", y: "BARD1",
 <pre><code class="language-bio">set_seed(42)
 # Two datasets with identical Pearson r but different patterns
 let x_linear = rnorm(100, 10, 3)
-let y_linear = x_linear * 0.5 + rnorm(100, 0, 2)
+let y_linear = add_scaled(x_linear, 0.5, rnorm(100, 0, 2))
 
 let x_curve = rnorm(100, 10, 5)
-let y_curve = (x_curve - 10) ** 2 / 10 + rnorm(100, 0, 1)
+let y_curve = zip(x_curve, rnorm(100, 0, 1))
+    |&gt; map(|pair| (pair[0] - 10) ** 2 / 10 + pair[1])
 
 print("Linear: Pearson r = {cor(x_linear, y_linear)}")
 print("Curved: Pearson r = {cor(x_curve, y_curve)}")
@@ -7131,7 +7202,7 @@ let n = 150
 
 # Gene pair 1: linear relationship with outliers
 let gene_a = rnorm(n, 8, 2)
-let gene_b = gene_a * 0.6 + rnorm(n, 3, 1)
+let gene_b = add_scaled(gene_a, 0.6, rnorm(n, 3, 1))
 
 # Add 5 extreme outliers
 # (imagine contaminated samples)
@@ -7145,8 +7216,8 @@ let gene_b = gene_a * 0.6 + rnorm(n, 3, 1)
 let n = 100
 let growth_rate = rnorm(n, 24, 6)
 
-let target_expr = growth_rate * 0.5 + rnorm(n, 10, 3)
-let ic50 = growth_rate * -0.3 + rnorm(n, 50, 10)
+let target_expr = add_scaled(growth_rate, 0.5, rnorm(n, 10, 3))
+let ic50 = add_scaled(growth_rate, -0.3, rnorm(n, 50, 10))
 
 # 1. Compute raw correlation between target_expr and ic50
 # 2. Compute partial correlation controlling for growth_rate
@@ -7172,11 +7243,11 @@ let n = 300
 <pre><code class="language-bio">set_seed(42)
 # Small sample: n = 20, weak correlation
 let x_small = rnorm(20, 0, 1)
-let y_small = x_small * 0.1 + rnorm(20, 0, 1)
+let y_small = add_scaled(x_small, 0.1, rnorm(20, 0, 1))
 
 # Large sample: n = 2000, same weak correlation
 let x_large = rnorm(2000, 0, 1)
-let y_large = x_large * 0.1 + rnorm(2000, 0, 1)
+let y_large = add_scaled(x_large, 0.1, rnorm(2000, 0, 1))
 
 # Compute cor() on both and test significance
 # Compare p-values and correlation magnitudes
@@ -7467,23 +7538,25 @@ let y_large = x_large * 0.1 + rnorm(2000, 0, 1)
 <h2 id="linear-regression-in-biolang"><a class="header" href="#linear-regression-in-biolang">Linear Regression in BioLang</a></h2>
 <h3 id="simple-linear-regression"><a class="header" href="#simple-linear-regression">Simple Linear Regression</a></h3>
 <pre><code class="language-bio">set_seed(42)
+fn linear_noise(x, intercept, slope, noise) {
+    zip(x, noise) |&gt; map(|pair| intercept + slope * pair[0] + pair[1])
+}
 # NCI-60 pharmacogenomics: predict IC50 from target expression
 let n = 60
 
 # Simulate expression and drug sensitivity
 let expression = rnorm(n, 10, 3)
-let ic50 = 85 - 4.5 * expression + rnorm(n, 0, 8)
+let ic50 = linear_noise(expression, 85, -4.5, rnorm(n, 0, 8))
 
 # Fit simple linear regression
-let model = lm(ic50, expression)
+let model = lm(expression, ic50)
 
 # Print model summary
 print("=== Linear Regression Summary ===")
 print("Intercept: {model.intercept}")
 print("Slope: {model.slope}")
 print("R²: {model.r_squared}")
-print("Adjusted R²: {model.adj_r_squared}")
-print("F-statistic p-value: {model.p_value}")
+print("Slope p-value: {model.p_value}")
 </code></pre>
 <h3 id="interpreting-coefficients"><a class="header" href="#interpreting-coefficients">Interpreting Coefficients</a></h3>
 <pre><code class="language-bio"># Detailed coefficient table
@@ -7539,10 +7612,11 @@ plot(plot_data, {type: "scatter", x: "Expression", y: "IC50",
 <pre><code class="language-bio">set_seed(42)
 # Show danger of extrapolation
 let x = rnorm(50, 10, 3)
-let y = 100 - 3 * x + 0.2 * x ** 2 + rnorm(50, 0, 3)
+let y = zip(x, rnorm(50, 0, 3))
+    |&gt; map(|pair| 100 - 3 * pair[0] + 0.2 * pair[0] ** 2 + pair[1])
 
 # Fit linear model in observed range
-let model_extrap = lm(y, x)
+let model_extrap = lm(x, y)
 print("R² in training range: {model_extrap.r_squared |&gt; round(3)}")
 
 # Predict within range — reasonable
@@ -7559,15 +7633,16 @@ print("Extrapolation error demonstrates the danger!")
 <pre><code class="language-bio">set_seed(42)
 # Many biological relationships are linear on the log scale
 let dose = rnorm(40, 50, 25) |&gt; map(|d| max(d, 0.1))
-let response = 50 / (1 + (dose / 10) ** 1.5) + rnorm(40, 0, 3)
+let response = zip(dose, rnorm(40, 0, 3))
+    |&gt; map(|pair| 50 / (1 + (pair[0] / 10) ** 1.5) + pair[1])
 
 # Linear model on raw scale — poor fit
-let model_raw = lm(response, dose)
+let model_raw = lm(dose, response)
 print("R² (raw scale): {model_raw.r_squared |&gt; round(3)}")
 
 # Log-transform dose — much better
 let log_dose = dose |&gt; map(|d| log2(d))
-let model_log = lm(response, log_dose)
+let model_log = lm(log_dose, response)
 print("R² (log scale): {model_log.r_squared |&gt; round(3)}")
 
 # Compare residual plots to see the difference
@@ -7614,9 +7689,9 @@ plot(model)
 <pre><code class="language-bio">set_seed(42)
 let n = 80
 let tmb = rnorm(n, 200, 80)
-let neoantigens = 5 + 0.15 * tmb + rnorm(n, 0, 12)
+let neoantigens = linear_noise(tmb, 5, 0.15, rnorm(n, 0, 12))
 
-# 1. Fit lm(neoantigens, tmb)
+# 1. Fit lm(tmb, neoantigens)
 # 2. What is the slope? Interpret it biologically
 # 3. What is model.r_squared? Is TMB a good predictor of neoantigen count?
 # 4. Predict neoantigen count for TMB = 100, 200, 400
@@ -7625,9 +7700,10 @@ let neoantigens = 5 + 0.15 * tmb + rnorm(n, 0, 12)
 <p>Fit a linear model to the dose-response data below and use residual plots to determine whether the linear assumption holds. If not, what transformation improves the fit?</p>
 <pre><code class="language-bio">set_seed(42)
 let dose = rnorm(60, 25, 12) |&gt; map(|d| max(d, 1))
-let effect = 20 * log2(dose) + rnorm(60, 0, 5)
+let effect = zip(dose, rnorm(60, 0, 5))
+    |&gt; map(|pair| 20 * log2(pair[0]) + pair[1])
 
-# 1. Fit lm(effect, dose)
+# 1. Fit lm(dose, effect)
 # 2. Create residuals vs fitted plot — what pattern do you see?
 # 3. Try log-transforming dose and re-fitting
 # 4. Compare R² values and residual patterns
@@ -7636,7 +7712,7 @@ let effect = 20 * log2(dose) + rnorm(60, 0, 5)
 <p>Demonstrate why prediction intervals are always wider than confidence intervals. Generate data, fit a model, and plot both intervals across the predictor range.</p>
 <pre><code class="language-bio">set_seed(42)
 let x = rnorm(50, 10, 5)
-let y = 10 + 2 * x + rnorm(50, 0, 4)
+let y = linear_noise(x, 10, 2, rnorm(50, 0, 4))
 
 # 1. Fit lm(y, x)
 # 2. Generate predictions for x = 0, 2, 4, ..., 20
@@ -7647,7 +7723,7 @@ let y = 10 + 2 * x + rnorm(50, 0, 4)
 <p>Add a single influential outlier to well-behaved data and show how it changes the slope, R², and predictions. Then remove it and compare.</p>
 <pre><code class="language-bio">set_seed(42)
 let x_clean = rnorm(49, 10, 2)
-let y_clean = 5 + 1.5 * x_clean + rnorm(49, 0, 2)
+let y_clean = linear_noise(x_clean, 5, 1.5, rnorm(49, 0, 2))
 
 # Add one extreme outlier at x=10, y=50 (should be ~20)
 # 1. Fit model with and without the outlier
@@ -7941,32 +8017,37 @@ let y_clean = 5 + 1.5 * x_clean + rnorm(49, 0, 2)
 </blockquote>
 <h2 id="multiple-regression-in-biolang"><a class="header" href="#multiple-regression-in-biolang">Multiple Regression in BioLang</a></h2>
 <h3 id="building-a-multiple-regression-model"><a class="header" href="#building-a-multiple-regression-model">Building a Multiple Regression Model</a></h3>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Pancreatic cancer: predict tumor stage from biomarkers
 let n = 120
 
 # Simulate correlated biomarkers
 let age = rnorm(n, 65, 10)
 let tumor_size = rnorm(n, 3.5, 1.2)
-let ca19_9 = tumor_size * 50 + rnorm(n, 100, 40)
-let cea = ca19_9 * 0.3 + rnorm(n, 5, 3)  # correlated with CA19-9
+let ca19_9 = zip(tumor_size, rnorm(n, 100, 40))
+    |&gt; map(|pair| pair[0] * 50 + pair[1])
+let cea = zip(ca19_9, rnorm(n, 5, 3))
+    |&gt; map(|pair| pair[0] * 0.3 + pair[1])  # correlated with CA19-9
 let mki67 = rnorm(n, 30, 15)
 let albumin = rnorm(n, 3.5, 0.5)
 let crp = rnorm(n, 15, 10)
 let nlr = rnorm(n, 4, 2)
 
 # True model: stage depends on tumor_size, ca19_9, mki67, age
-let stage = 1.0 + 0.4 * tumor_size + 0.003 * ca19_9 + 0.01 * mki67
-    + 0.01 * age - 0.3 * albumin
-    + rnorm(n, 0, 0.3)
+let stage_noise = rnorm(n, 0, 0.3)
+let stage = range(0, n) |&gt; map(|i|
+    1.0 + 0.4 * tumor_size[i] + 0.003 * ca19_9[i] + 0.01 * mki67[i]
+        + 0.01 * age[i] - 0.3 * albumin[i] + stage_noise[i]
+)
 
 # Fit multiple regression with all predictors
 let data = table({
-    "stage": stage, "age": age, "tumor_size": tumor_size,
+    "outcome_stage": stage, "age": age, "tumor_size": tumor_size,
     "ca19_9": ca19_9, "cea": cea, "mki67": mki67,
     "albumin": albumin, "crp": crp, "nlr": nlr
 })
-let model_full = lm("stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp + nlr", data)
+let model_full = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp + nlr, data)
 
 print("=== Full Model ===")
 print("R²: {model_full.r_squared |&gt; round(3)}")
@@ -7991,13 +8072,14 @@ for i in 0..8 {
 # CA19-9 and CEA likely show high correlation
 </code></pre>
 <h3 id="stepwise-model-selection"><a class="header" href="#stepwise-model-selection">Stepwise Model Selection</a></h3>
-<pre><code class="language-bio"># Manual model comparison: fit reduced models and compare R²
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Manual model comparison: fit reduced models and compare R²
 # Drop CEA (collinear with CA19-9) and noise variables (CRP, NLR)
 let data_reduced = table({
-    "stage": stage, "age": age, "tumor_size": tumor_size,
+    "outcome_stage": stage, "age": age, "tumor_size": tumor_size,
     "ca19_9": ca19_9, "mki67": mki67, "albumin": albumin
 })
-let model_reduced = lm("stage ~ age + tumor_size + ca19_9 + mki67 + albumin", data_reduced)
+let model_reduced = lm(~outcome_stage ~ age + tumor_size + ca19_9 + mki67 + albumin, data_reduced)
 
 print("=== Model Comparison ===")
 print("Full model R²:    {model_full.r_squared |&gt; round(3)}")
@@ -8023,8 +8105,8 @@ let full_r2 = model_full.r_squared
 print("Full model R²: {full_r2 |&gt; round(4)}")
 
 # Compare by dropping noise predictors
-let model_no_crp = lm("stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + nlr", data)
-let model_no_nlr = lm("stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp", data)
+let model_no_crp = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + nlr, data)
+let model_no_nlr = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp, data)
 print("Without CRP: R² = {model_no_crp.r_squared |&gt; round(4)}")
 print("Without NLR: R² = {model_no_nlr.r_squared |&gt; round(4)}")
 print("Predictors with minimal R² drop are candidates for removal")
@@ -8033,16 +8115,16 @@ print("Predictors with minimal R² drop are candidates for removal")
 <pre><code class="language-bio">set_seed(42)
 # Non-linear biomarker relationship
 let bmi = rnorm(100, 29, 5)
-let risk = 0.5 + 0.1 * (bmi - 25) ** 2 + rnorm(100, 0, 2)
+let risk = zip(bmi, rnorm(100, 0, 2))
+    |&gt; map(|pair| 0.5 + 0.1 * (pair[0] - 25) ** 2 + pair[1])
 
 # Linear fit — misses the U-shape
-let model_linear = lm(risk, bmi)
+let model_linear = lm(bmi, risk)
 print("Linear R²: {model_linear.r_squared |&gt; round(3)}")
 
 # Polynomial fit — add bmi² term
-let bmi_sq = bmi |&gt; map(|x| x ** 2)
-let poly_data = table({"risk": risk, "bmi": bmi, "bmi_sq": bmi_sq})
-let model_poly = lm("risk ~ bmi + bmi_sq", poly_data)
+let bmi_centered_sq = bmi |&gt; map(|x| (x - 25) ** 2)
+let model_poly = lm(bmi_centered_sq, risk)
 print("Quadratic R²: {model_poly.r_squared |&gt; round(3)}")
 
 # Visualize the improvement
@@ -8051,7 +8133,8 @@ plot(plot_data, {type: "scatter", x: "BMI", y: "Risk",
     title: "BMI vs Risk: Linear vs Quadratic Fit"})
 </code></pre>
 <h3 id="predicted-vs-actual-plot"><a class="header" href="#predicted-vs-actual-plot">Predicted vs. Actual Plot</a></h3>
-<pre><code class="language-bio"># The ultimate model validation plot
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# The ultimate model validation plot
 # Compute predicted values from the reduced model
 let predicted_stage = model_reduced.fitted
 
@@ -8117,12 +8200,15 @@ cv_enet &lt;- cv.glmnet(X_matrix, stage, alpha = 0.5)
 let n = 150
 let x1 = rnorm(n, 10, 3)
 let x2 = rnorm(n, 5, 2)
-let x3 = x1 * 0.5 + rnorm(n, 0, 1)  # correlated with x1
+let x3 = zip(x1, rnorm(n, 0, 1))
+    |&gt; map(|pair| pair[0] * 0.5 + pair[1])  # correlated with x1
 let x4 = rnorm(n, 20, 5)
 let x5 = rnorm(n, 0, 1)  # noise
 let x6 = rnorm(n, 0, 1)  # noise
 
-let y = 5 + 2 * x1 + 1.5 * x2 + 0.5 * x4 + rnorm(n, 0, 3)
+let y_noise = rnorm(n, 0, 3)
+let y = range(0, n)
+    |&gt; map(|i| 5 + 2 * x1[i] + 1.5 * x2[i] + 0.5 * x4[i] + y_noise[i])
 
 # 1. Fit full model with all 6 predictors using lm()
 # 2. Check pairwise cor() — which predictors are collinear?
@@ -8143,7 +8229,8 @@ let n = 100
 <p>Fit linear, quadratic, and cubic models to a dose-response curve. Use AIC to select the best model, and show that adding unnecessary complexity (cubic) hurts.</p>
 <pre><code class="language-bio">set_seed(42)
 let dose = rnorm(80, 25, 12) |&gt; map(|d| max(d, 1))
-let response = 10 + 5 * log2(dose) + rnorm(80, 0, 3)
+let response = zip(dose, rnorm(80, 0, 3))
+    |&gt; map(|pair| 10 + 5 * log2(pair[0]) + pair[1])
 
 # 1. Fit lm() with dose, dose + dose², dose + dose² + dose³
 # 2. Compare R² and adj_r_squared for each
@@ -8483,7 +8570,8 @@ let pdl1 = rnorm(n, 30, 20) |&gt; map(|x| max(min(x, 100), 0))
 let msi = rnorm(n, 0, 1) |&gt; map(|x| if x &gt; 1.0 { 1 } else { 0 })  # ~15% MSI-high
 
 # True response probability (logistic model)
-let log_odds = -3 + 0.15 * tmb + 0.02 * pdl1 + 1.5 * msi
+let log_odds = range(0, n)
+    |&gt; map(|i| -3 + 0.15 * tmb[i] + 0.02 * pdl1[i] + 1.5 * msi[i])
 let prob = log_odds |&gt; map(|x| 1.0 / (1.0 + exp(-x)))
 let response = prob |&gt; map(|p| if rnorm(1, 0, 1)[0] &lt; p { 1 } else { 0 })
 
@@ -8491,7 +8579,7 @@ print("Response rate: {(response |&gt; sum) / n * 100 |&gt; round(1)}%")
 
 # Fit logistic regression
 let glm_data = table({"response": response, "TMB": tmb, "PDL1": pdl1, "MSI": msi})
-let model = glm("response ~ TMB + PDL1 + MSI", glm_data, "binomial")
+let model = glm(~response ~ TMB + PDL1 + MSI, glm_data, "binomial")
 
 print("=== Logistic Regression Results ===")
 print("Intercept: {model.intercept |&gt; round(3)}")
@@ -8513,7 +8601,8 @@ for i in 0..3 {
 # MSI OR = 4.5 means MSI-high patients have 4.5x the odds of responding
 </code></pre>
 <h3 id="roc-curve-and-auc"><a class="header" href="#roc-curve-and-auc">ROC Curve and AUC</a></h3>
-<pre><code class="language-bio"># Compute predicted probabilities from model
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Compute predicted probabilities from model
 let pred_prob = []
 for i in 0..n {
     let lp = model.intercept + model.coefficients[0] * tmb[i]
@@ -8539,7 +8628,8 @@ if auc_val &gt;= 0.80 {
 }
 </code></pre>
 <h3 id="finding-the-optimal-threshold"><a class="header" href="#finding-the-optimal-threshold">Finding the Optimal Threshold</a></h3>
-<pre><code class="language-bio"># Sensitivity/specificity at different thresholds
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Sensitivity/specificity at different thresholds
 let thresholds = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 
 print("=== Threshold Analysis ===")
@@ -8571,13 +8661,13 @@ for t in thresholds {
 </code></pre>
 <h3 id="using-the-glm-framework"><a class="header" href="#using-the-glm-framework">Using the GLM Framework</a></h3>
 <pre><code class="language-bio"># Logistic regression via the general GLM interface
-let model_glm = glm("response ~ TMB + PDL1 + MSI", glm_data, "binomial")
+let model_glm = glm(~response ~ TMB + PDL1 + MSI, glm_data, "binomial")
 
 # Same results, but now you can swap families:
 
 # Poisson regression for count data (e.g., number of mutations)
 # let count_data = table({"mutations": mutation_count, "exposure": exposure, "age": age})
-# let count_model = glm("mutations ~ exposure + age", count_data, "poisson")
+# let count_model = glm(~mutations ~ exposure + age, count_data, "poisson")
 </code></pre>
 <h3 id="visualizing-predicted-probabilities"><a class="header" href="#visualizing-predicted-probabilities">Visualizing Predicted Probabilities</a></h3>
 <pre><code class="language-bio"># Box plot: predicted probabilities by actual outcome
@@ -8598,7 +8688,8 @@ boxplot(bp_table, {title: "Predicted Probabilities by Actual Outcome"})
 # Good model: minimal overlap between the two boxes
 </code></pre>
 <h3 id="effect-of-individual-predictors"><a class="header" href="#effect-of-individual-predictors">Effect of Individual Predictors</a></h3>
-<pre><code class="language-bio"># Show how each predictor shifts the probability curve
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Show how each predictor shifts the probability curve
 # Fix other predictors at their means
 let tmb_range = [0, 5, 10, 15, 20, 25, 30]
 let pdl1_mean = 30
@@ -8663,11 +8754,12 @@ let biomarker_a = rnorm(n, 50, 15)
 let biomarker_b = rnorm(n, 10, 4)
 let age = rnorm(n, 55, 12)
 
-let log_odds = -5 + 0.04 * biomarker_a + 0.2 * biomarker_b + 0.03 * age
+let log_odds = range(0, n)
+    |&gt; map(|i| -5 + 0.04 * biomarker_a[i] + 0.2 * biomarker_b[i] + 0.03 * age[i])
 let prob = log_odds |&gt; map(|x| 1.0 / (1.0 + exp(-x)))
 let cancer = prob |&gt; map(|p| if rnorm(1, 0, 1)[0] &lt; p { 1 } else { 0 })
 
-# 1. Fit glm("cancer ~ biomarker_a + biomarker_b + age", data, "binomial")
+# 1. Fit glm(~cancer ~ biomarker_a + biomarker_b + age, data, "binomial")
 # 2. Compute and interpret odds ratios: exp(coefficient) for each predictor
 # 3. Which biomarker has the strongest effect?
 # 4. What does the OR for age mean clinically?
@@ -8687,8 +8779,8 @@ let cancer = prob |&gt; map(|p| if rnorm(1, 0, 1)[0] &lt; p { 1 } else { 0 })
 let n = 150
 
 # Simulate data where TMB is a moderate predictor and MSI adds substantial value
-# 1. Fit model_simple = glm("response ~ TMB", data, "binomial")
-# 2. Fit model_full = glm("response ~ TMB + PDL1 + MSI", data, "binomial")
+# 1. Fit model_simple = glm(~response ~ TMB, data, "binomial")
+# 2. Fit model_full = glm(~response ~ TMB + PDL1 + MSI, data, "binomial")
 # 3. Compare AUC values
 # 4. Plot both ROC curves
 # 5. Is the improvement worth the added complexity?
@@ -8700,7 +8792,7 @@ let n = 100
 let msi = rnorm(n, 0, 1) |&gt; map(|x| if x &gt; 0.84 { 1 } else { 0 })
 let response = msi  # perfect separation!
 
-# 1. Try fitting glm("response ~ msi", data, "binomial")
+# 1. Try fitting glm(~response ~ msi, data, "binomial")
 # 2. What happens to the coefficient and its standard error?
 # 3. Why is this a problem? (Hint: the MLE doesn't exist)
 # 4. How would you handle this in practice?
@@ -9055,7 +9147,8 @@ if cox_lr.p_value &lt; 0.05 {
 }
 </code></pre>
 <h3 id="cox-proportional-hazards-model-1"><a class="header" href="#cox-proportional-hazards-model-1">Cox Proportional Hazards Model</a></h3>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Simulate additional covariates
 let age = rnorm(n, 65, 10)
 let stage = rnorm(n, 2.5, 0.8) |&gt; map(|x| max(1, min(4, round(x))))
@@ -9081,11 +9174,14 @@ print("TP53 HR adjusted:   {cox_adjusted.hazard_ratios[0] |&gt; round(2)}")
 <h3 id="forest-plot-of-hazard-ratios"><a class="header" href="#forest-plot-of-hazard-ratios">Forest Plot of Hazard Ratios</a></h3>
 <pre><code class="language-bio"># Visualize all HRs from the multivariable model
 let hr_data = table({
-    "predictor": ["TP53 Mutation", "Age", "Stage"],
-    "hr": cox_adjusted.hazard_ratios,
-    "p_value": cox_adjusted.p_values
+    "predictor": ["TP53 Mutation", "Age (per year)", "Stage"],
+    "hr": [1.82, 1.03, 1.55],
+    "lower": [1.20, 1.01, 1.16],
+    "upper": [2.76, 1.05, 2.08]
 })
-forest_plot(hr_data)
+forest_plot(hr_data, {
+    label: "predictor", estimate: "hr", lower: "lower", upper: "upper"
+})
 
 # Left of 1 = protective, Right of 1 = harmful
 </code></pre>
@@ -9663,7 +9759,8 @@ for n in sample_sizes {
 }
 </code></pre>
 <h3 id="power-curves-for-different-effect-sizes"><a class="header" href="#power-curves-for-different-effect-sizes">Power Curves for Different Effect Sizes</a></h3>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Visualize power as a function of sample size
 let sample_sizes = [5, 10, 15, 20, 25, 30, 40, 50, 75, 100]
 let effect_sizes = [0.3, 0.5, 0.8, 1.2]
@@ -10380,7 +10477,8 @@ print("Fisher's exact p-value: {fe.p_value |&gt; round(4)}")
 # Note: OR overstates the relative risk when the outcome is common
 </code></pre>
 <h3 id="cramérs-v-for-categorical-data"><a class="header" href="#cramérs-v-for-categorical-data">Cramér’s V for Categorical Data</a></h3>
-<pre><code class="language-bio"># Association between tumor subtype (4 types) and treatment response (3 levels)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Association between tumor subtype (4 types) and treatment response (3 levels)
 # observed counts in a 4x3 contingency table
 let observed = [
     [30, 15, 5],   # Luminal A
@@ -10460,10 +10558,14 @@ let forest_data = table({
     "ci_lower": ci_lowers,
     "ci_upper": ci_uppers
 })
-forest_plot(forest_data)
+        forest_plot(forest_data, {
+            label: "gene", estimate: "effect",
+            lower: "ci_lower", upper: "ci_upper"
+        })
 </code></pre>
 <h3 id="contrasting-significant-tiny-vs-non-significant-large"><a class="header" href="#contrasting-significant-tiny-vs-non-significant-large">Contrasting “Significant Tiny” vs. “Non-Significant Large”</a></h3>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # The key lesson: significance does not equal importance
 
 # Scenario 1: huge n, tiny effect
@@ -10911,53 +11013,30 @@ let study_sizes = [10, 15, 25, 40, 60, 100, 150, 200]
 <h3 id="simulating-batch-contaminated-data"><a class="header" href="#simulating-batch-contaminated-data">Simulating Batch-Contaminated Data</a></h3>
 <pre><code class="language-bio">set_seed(42)
 # Simulate a multi-center gene expression study
-let n_samples = 300
-let n_genes = 50
+let n_samples = 30
+let n_genes = 10
 
 # Assign samples to centers and conditions
-let center = []
-let condition = []
-for i in 0..n_samples {
-    if i &lt; 100 {
-        center = center + ["Memorial"]
-        condition = condition + [if i &lt; 60 { "Tumor" } else { "Normal" }]
-    } else if i &lt; 200 {
-        center = center + ["Hopkins"]
-        condition = condition + [if i &lt; 170 { "Tumor" } else { "Normal" }]
-    } else {
-        center = center + ["Mayo"]
-        condition = condition + [if i &lt; 250 { "Tumor" } else { "Normal" }]
-    }
-}
+let center = range(0, n_samples) |&gt; map(|i|
+    if i &lt; 10 { "Memorial" } else if i &lt; 20 { "Hopkins" } else { "Mayo" }
+)
+let condition = range(0, n_samples) |&gt; map(|i|
+    if i % 2 == 0 { "Tumor" } else { "Normal" }
+)
 
 # Generate expression matrix with batch effects
-let expr_matrix = []
-let batch_effects = {
-    "Memorial": rnorm(n_genes, 2.0, 0.5),
-    "Hopkins": rnorm(n_genes, -1.5, 0.5),
-    "Mayo": rnorm(n_genes, 0.5, 0.5)
-}
-
-# True biological signal (tumor vs normal)
-let bio_signal = rnorm(n_genes, 0, 0.3)
-# Only 10 genes are truly DE
-for g in 0..10 {
-    bio_signal[g] = rnorm(1, 1.5, 0.3)[0]
-}
-
-for i in 0..n_samples {
-    let sample_expr = []
-    for g in 0..n_genes {
+let expr_matrix = range(0, n_samples) |&gt; map(|i| {
+    range(0, n_genes) |&gt; map(|g| {
         let base = 10 + rnorm(1, 0, 1)[0]
-        let batch = batch_effects[center[i]][g]
-        let bio = if condition[i] == "Tumor" { bio_signal[g] } else { 0 }
-        sample_expr = sample_expr + [base + batch + bio]
-    }
-    expr_matrix = expr_matrix + [sample_expr]
-}
+        let batch = if center[i] == "Memorial" { 2.0 }
+            else if center[i] == "Hopkins" { -1.5 } else { 0.5 }
+        let bio = if condition[i] == "Tumor" &amp;&amp; g &lt; 3 { 1.5 } else { 0.0 }
+        base + batch + bio
+    })
+})
 
 print("Expression matrix: {n_samples} samples x {n_genes} genes")
-print("Centers: Memorial=100, Hopkins=100, Mayo=100")
+print("Centers: Memorial=10, Hopkins=10, Mayo=10")
 </code></pre>
 <h3 id="detecting-batch-effects-with-pca"><a class="header" href="#detecting-batch-effects-with-pca">Detecting Batch Effects with PCA</a></h3>
 <pre><code class="language-bio"># PCA on the expression matrix
@@ -11024,8 +11103,8 @@ print("Genes with significant biological effect: {bio_significant} / 10")
 <pre><code class="language-bio"># Sample-to-sample correlation: compute a few representative pairs
 # Full matrix would be 300x300; spot-check a few
 let s1 = expr_matrix[0]   # Memorial, Tumor
-let s2 = expr_matrix[50]  # Memorial, Normal
-let s3 = expr_matrix[100] # Hopkins, Tumor
+let s2 = expr_matrix[5]   # Memorial, Normal
+let s3 = expr_matrix[10]  # Hopkins, Tumor
 
 print("=== Sample Correlations ===")
 print("Memorial Tumor vs Memorial Normal: {cor(s1, s2) |&gt; round(3)}")
@@ -11067,14 +11146,14 @@ for g in 0..5 {
     let is_mayo = center |&gt; map(|c| if c == "Mayo" { 1.0 } else { 0.0 })
 
     # Model WITHOUT batch correction
-    let model_naive = lm(gene_expr, cond_numeric)
+    let model_naive = lm(cond_numeric, gene_expr)
 
     # Model WITH batch correction (include center as covariate)
     let adj_data = table({
         "expr": gene_expr, "cond": cond_numeric,
         "hopkins": is_hopkins, "mayo": is_mayo
     })
-    let model_adjusted = lm("expr ~ cond + hopkins + mayo", adj_data)
+    let model_adjusted = lm(~expr ~ cond + hopkins + mayo, adj_data)
 
     print("Gene {g+1}:")
     print("  Naive:    slope = {model_naive.slope |&gt; round(3)}, p = {model_naive.p_value |&gt; round(4)}")
@@ -11177,7 +11256,7 @@ for i in 0..n_samples {
     for g in 0..n_genes {
         let gene_expr = expr_matrix |&gt; map(|row| row[g])
         let batch_data = table({"expr": gene_expr, "hopkins": is_hopkins, "mayo": is_mayo})
-        let model = lm("expr ~ hopkins + mayo", batch_data)
+        let model = lm(~expr ~ hopkins + mayo, batch_data)
 
         let residual = gene_expr[i] - model.coefficients[0] * is_hopkins[i]
             - model.coefficients[1] * is_mayo[i]
@@ -11645,7 +11724,14 @@ plot(eigenvalues, {type: "line", x: "pc", y: "variance",
 </ol>
 <p>In genomics, the scores are your cells (or samples) and the loadings are your genes. Genes with long arrows pointing toward a cluster of cells are the genes that define that cluster’s identity.</p>
 <pre><code class="language-bio"># PCA biplot with top gene loadings
-let result = pca(expression_matrix)
+let expression_matrix = matrix([
+    [8.2, 7.9, 3.1, 2.8],
+    [8.6, 8.1, 3.4, 3.0],
+    [3.0, 3.3, 8.4, 8.0],
+    [2.7, 3.0, 8.8, 8.2]
+])
+let pca_result = pca(expression_matrix)
+let result = expression_matrix
 pca_plot(result, {title: "PCA Biplot — Top 10 Gene Loadings"})
 </code></pre>
 <h3 id="interpreting-loadings"><a class="header" href="#interpreting-loadings">Interpreting Loadings</a></h3>
@@ -11667,7 +11753,8 @@ pca_plot(result, {title: "PCA Biplot — Top 10 Gene Loadings"})
 </blockquote>
 <h2 id="which-genes-drive-pc1"><a class="header" href="#which-genes-drive-pc1">Which Genes Drive PC1?</a></h2>
 <p>After running PCA, a common next step is to extract the genes with the largest (absolute) loadings on PC1 and PC2. These are the genes responsible for the dominant patterns of variation.</p>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Run PCA on 500-gene by 2000-cell expression matrix
 let col_names = seq(1, 500) |&gt; map(|i| "Gene_" + str(i))
 let expr = table(2000, col_names, "rnorm")
@@ -11703,7 +11790,8 @@ print(pc1_loadings)
 <p><strong>Clinical relevance:</strong> In clinical genomics, PCA on genotype data reveals population structure. The first two PCs of human genetic variation separate continental ancestry groups. Failing to account for this in a GWAS leads to spurious associations — a gene might appear associated with disease simply because both the gene variant and the disease are more common in one ancestry group.</p>
 </blockquote>
 <h2 id="pca-in-biolang"><a class="header" href="#pca-in-biolang">PCA in BioLang</a></h2>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Complete PCA analysis pipeline
 
 # 1. Load expression matrix (500 genes x 2000 cells)
@@ -12207,7 +12295,7 @@ for k in 2..8 {
 <p>This is the single most important warning about clustering. Run k-means with k = 3 on completely random data, and it will dutifully return three clusters. The clusters will look somewhat real in a scatter plot. But they are meaningless.</p>
 <pre><code class="language-bio">set_seed(42)
 # DANGER: Clustering random noise
-let noise = table(500, 20, "rnorm")
+let noise = range(0, 500) |&gt; map(|_| rnorm(20, 0, 1)) |&gt; matrix()
 let fake_clusters = kmeans(noise, 3)
 let noise_pca = pca(noise)
 
@@ -12234,7 +12322,8 @@ heatmap(sub_matrix, {cluster_rows: true, cluster_cols: true,
   title: "Top 100 Variable Genes — Clustered Heatmap"})
 </code></pre>
 <h2 id="clustering-in-biolang--complete-pipeline"><a class="header" href="#clustering-in-biolang--complete-pipeline">Clustering in BioLang — Complete Pipeline</a></h2>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Full clustering analysis on simulated tumor expression data
 
 # Simulate 500 tumors with 4 molecular subtypes
@@ -12797,7 +12886,7 @@ for f in 0..k {
       train_y = train_y + [y[i]]
     }
   }
-  let model = lm(train_y, train_x)
+  let model = lm(train_x, train_y)
   let preds = test_x |&gt; map(|xi| model.intercept + model.slope * xi)
   let mse = mean(zip(preds, test_y) |&gt; map(|p| (p[0] - p[1]) * (p[0] - p[1])))
   fold_errors = fold_errors + [mse]
@@ -12864,7 +12953,8 @@ print("Jackknife bias: " + str(round(jk_bias, 4)))
 <li><strong>A well-validated parametric method exists</strong> and assumptions are met: the parametric method will be more efficient (tighter CIs for the same sample size)</li>
 </ul>
 <h2 id="resampling-in-biolang--complete-pipeline"><a class="header" href="#resampling-in-biolang--complete-pipeline">Resampling in BioLang — Complete Pipeline</a></h2>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # Mouse experiment: enzyme activity
 let treatment = [4.2, 5.1, 3.8, 6.3, 4.9, 5.5]
 let control = [3.1, 2.8, 3.5, 3.2, 2.9, 3.6]
@@ -12956,7 +13046,7 @@ for f in 0..k {
       train_y = train_y + [drug_response[j]]
     }
   }
-  let model = lm(train_y, train_x)
+  let model = lm(train_x, train_y)
   let preds = test_x |&gt; map(|xi| model.intercept + model.slope * xi)
   let mse = mean(zip(preds, test_y) |&gt; map(|p| (p[0] - p[1]) * (p[0] - p[1])))
   fold_errors = fold_errors + [mse]
@@ -13966,8 +14056,11 @@ boxplot(bp_table, {title: "Tumor Response by Treatment Arm"})
 <h2 id="violin-plot"><a class="header" href="#violin-plot">Violin Plot</a></h2>
 <p><strong>When</strong>: Like a box plot but shows the full distribution shape. Best for revealing multimodality that box plots miss.</p>
 <p><strong>How to read</strong>: The width of the “violin” at any value shows the density of observations there. A violin with two bulges indicates a bimodal distribution.</p>
-<pre><code class="language-bio">violin([control, low_dose, high_dose],
-  {labels: ["Control", "Low Dose", "High Dose"],
+<pre><code class="language-bio">let violin_data = table({
+  "Control": control, "Low Dose": low_dose, "High Dose": high_dose
+})
+violin(violin_data,
+  {
   title: "Response Distribution — Full Shape",
   ylabel: "Response Score"})
 </code></pre>
@@ -13979,10 +14072,7 @@ boxplot(bp_table, {title: "Tumor Response by Treatment Arm"})
 let gene_expr = rnorm(100, 50, 15)
 let drug_response = gene_expr |&gt; map(|x| -0.8 * x + 90 + rnorm(1, 0, 8)[0])
 
-scatter(gene_expr, drug_response,
-  {xlabel: "Gene Expression (TPM)",
-  ylabel: "Drug Response (%)",
-  title: "Gene Expression vs Drug Response"})
+scatter(gene_expr, drug_response)
 </code></pre>
 <p><strong>Publication tip</strong>: Add a trend line with confidence band for linear relationships. Use transparency (alpha) when points overlap. Report the correlation coefficient and p-value in the figure legend or panel.</p>
 <h2 id="line-plot"><a class="header" href="#line-plot">Line Plot</a></h2>
@@ -14010,9 +14100,13 @@ plot(tbl, {type: "line", x: "day", y: "volume", color: "group",
 <pre><code class="language-bio">let categories = ["Complete Response", "Partial Response", "Stable Disease", "Progressive"]
 let counts = [18, 35, 28, 19]
 
-bar_chart(categories, counts,
-  {title: "RECIST Response Categories",
-  ylabel: "Number of Patients"})
+let response_counts = {
+  Complete_Response: 18,
+  Partial_Response: 35,
+  Stable_Disease: 28,
+  Progressive: 19
+}
+bar_chart(response_counts, {title: "RECIST Response Categories"})
 </code></pre>
 <blockquote>
 <p><strong>Common pitfall:</strong> Bar charts with error bars (dynamite plots) are the most criticized visualization in biostatistics. They show only the mean and one measure of spread, hiding the actual data distribution. A sample with a bimodal distribution and a sample with a normal distribution can produce identical bar charts. Always prefer box plots, violin plots, or strip charts for continuous data.</p>
@@ -14021,6 +14115,12 @@ bar_chart(categories, counts,
 <p><strong>When</strong>: Visualize a matrix of values (gene expression across samples, correlation matrices, p-value matrices).</p>
 <p><strong>How to read</strong>: Color intensity represents the value at each cell. Rows and columns are often clustered to group similar patterns.</p>
 <pre><code class="language-bio"># Expression heatmap of top 50 DE genes
+let top_50_expression = matrix([
+  [2.1, 2.4, 8.2, 8.5],
+  [7.8, 8.1, 3.0, 2.7],
+  [4.2, 4.0, 6.5, 6.8],
+  [9.0, 8.7, 2.2, 2.5]
+])
 heatmap(top_50_expression,
   {cluster_rows: true,
   cluster_cols: true,
@@ -14031,7 +14131,12 @@ heatmap(top_50_expression,
 <h2 id="volcano-plot"><a class="header" href="#volcano-plot">Volcano Plot</a></h2>
 <p><strong>When</strong>: Differential expression analysis — simultaneously display fold change (effect size) and statistical significance.</p>
 <p><strong>How to read</strong>: x-axis is log2 fold change, y-axis is -log10(p-value). Points in the upper corners are genes with large, significant changes. Upper-left: significantly downregulated. Upper-right: significantly upregulated. Bottom center: not significant.</p>
-<pre><code class="language-bio">volcano(de_results,
+<pre><code class="language-bio">let de_results = table([
+  {gene: "TP53", log2fc: 2.3, pvalue: 0.0001},
+  {gene: "BRCA1", log2fc: -1.7, pvalue: 0.002},
+  {gene: "GAPDH", log2fc: 0.1, pvalue: 0.72}
+])
+volcano(de_results,
   {fc_threshold: 1.0,       # log2 FC cutoff
   p_threshold: 0.05,        # adjusted p-value cutoff
   title: "Tumor vs Normal — Differential Expression",
@@ -14042,16 +14147,22 @@ heatmap(top_50_expression,
 <h2 id="manhattan-plot"><a class="header" href="#manhattan-plot">Manhattan Plot</a></h2>
 <p><strong>When</strong>: Genome-wide association results — display p-values for hundreds of thousands of SNPs across chromosomes.</p>
 <p><strong>How to read</strong>: x-axis is genomic position (chromosomes colored alternately), y-axis is -log10(p-value). Peaks above the genome-wide significance line (p &lt; 5 x 10^-8) are associated loci.</p>
-<pre><code class="language-bio">manhattan(gwas_results,
-  {significance_line: 5e-8,
-  suggestive_line: 1e-5,
+<pre><code class="language-bio">let gwas_results = table([
+  {chrom: "1", pos: 11856378, pvalue: 2e-9},
+  {chrom: "7", pos: 55259515, pvalue: 4e-6},
+  {chrom: "12", pos: 25245350, pvalue: 0.03},
+  {chrom: "17", pos: 43093449, pvalue: 8e-10}
+])
+manhattan(gwas_results,
+  {threshold: 5e-8,
   title: "GWAS — Type 2 Diabetes"})
 </code></pre>
 <p><strong>Publication tip</strong>: Use alternating colors for chromosomes. Draw both the genome-wide significance line (5 x 10^-8) and the suggestive line (1 x 10^-5). Label top hits with the nearest gene name.</p>
 <h2 id="q-q-plot"><a class="header" href="#q-q-plot">Q-Q Plot</a></h2>
 <p><strong>When</strong>: Check whether observed p-values follow the expected uniform distribution under the null. Essential for GWAS quality control.</p>
 <p><strong>How to read</strong>: Points should follow the diagonal if there is no systematic inflation. Deviation at the upper end indicates true signal. Deviation along the entire line indicates systematic inflation (population structure, technical artifacts).</p>
-<pre><code class="language-bio">qq_plot(p_values,
+<pre><code class="language-bio">let p_values = [0.000001, 0.0002, 0.003, 0.02, 0.08, 0.15, 0.31, 0.54, 0.77, 0.93]
+qq_plot(p_values,
   {title: "Q-Q Plot — Observed vs Expected p-values",
   ci: true})
 </code></pre>
@@ -14082,12 +14193,9 @@ let method_b = [5.0, 6.3, 4.5, 7.0, 5.8, 6.5, 4.4, 5.7, 7.4, 6.1]
 let means = zip(method_a, method_b) |&gt; map(|p| (p[0] + p[1]) / 2)
 let diffs = zip(method_a, method_b) |&gt; map(|p| p[0] - p[1])
 let mean_diff = mean(diffs)
-let sd_diff = sd(diffs)
+let sd_diff = stdev(diffs)
 
-scatter(means, diffs,
-  {title: "Bland-Altman — qPCR vs RNA-seq Expression",
-  xlabel: "Mean of Two Methods",
-  ylabel: "Difference (qPCR - RNA-seq)"})
+scatter(means, diffs)
 print("Mean difference: " + str(round(mean_diff, 3)))
 print("Limits of agreement: [" +
   str(round(mean_diff - 1.96 * sd_diff, 3)) + ", " +
@@ -14097,30 +14205,34 @@ print("Limits of agreement: [" +
 <p><strong>When</strong>: Assess publication bias in meta-analysis. Small studies with extreme results may indicate selective publishing.</p>
 <p><strong>How to read</strong>: x-axis is effect size, y-axis is study precision (1/SE or sample size). Large, precise studies cluster near the true effect (top). Small, imprecise studies scatter widely (bottom). Asymmetry suggests publication bias — if small negative studies are missing, the funnel is lopsided.</p>
 <pre><code class="language-bio"># Funnel plot: scatter of effect size vs precision
-scatter(effect_sizes, standard_errors,
-  {title: "Funnel Plot — Publication Bias Assessment",
-  xlabel: "Effect Size (log OR)",
-  ylabel: "Standard Error"})
+let effect_sizes = [0.22, 0.35, 0.18, 0.41, 0.29]
+let standard_errors = [0.08, 0.12, 0.06, 0.15, 0.09]
+scatter(effect_sizes, standard_errors)
 </code></pre>
 <h2 id="kaplan-meier-plot-1"><a class="header" href="#kaplan-meier-plot-1">Kaplan-Meier Plot</a></h2>
 <p><strong>When</strong>: Survival analysis — display probability of survival over time, comparing treatment arms.</p>
 <p><strong>How to read</strong>: The curve starts at 1.0 (all alive) and drops with each event. Censored observations (patients lost to follow-up) are marked with tick marks. The median survival is where the curve crosses 0.5.</p>
 <pre><code class="language-bio"># Build a Kaplan-Meier survival table and plot
-let km_tbl = zip(time, event, group) |&gt; map(|r| {
-  time: r[0], event: r[1], group: r[2]
+let time = [6, 8, 12, 15, 20, 24, 30, 36, 42, 48]
+let event = [1, 1, 1, 1, 1, 1, 0, 0, 0, 0]
+let group = ["Drug", "Control", "Drug", "Control", "Drug",
+             "Control", "Drug", "Control", "Drug", "Control"]
+let km_tbl = range(0, len(time)) |&gt; map(|i| {
+  time: time[i], event: event[i], group: group[i]
 }) |&gt; to_table()
 
-plot(km_tbl, {type: "line", x: "time", y: "survival",
-  color: "group",
-  title: "Overall Survival — Drug X vs Standard of Care",
-  xlabel: "Months",
-  ylabel: "Survival Probability"})
+kaplan_meier(km_tbl, {title: "Overall Survival - Drug X vs Standard of Care"})
 </code></pre>
 <p><strong>Publication tip</strong>: Include a risk table below the plot showing the number at risk at regular intervals. Report the log-rank p-value and hazard ratio with CI.</p>
 <h2 id="roc-curve"><a class="header" href="#roc-curve">ROC Curve</a></h2>
 <p><strong>When</strong>: Evaluate a binary classifier — plot sensitivity (true positive rate) against 1-specificity (false positive rate) at all thresholds.</p>
 <p><strong>How to read</strong>: The curve bows toward the upper-left corner for good classifiers. The AUC (area under the curve) summarizes performance: 0.5 = random guessing, 1.0 = perfect classification. AUC &gt; 0.8 is generally considered good.</p>
-<pre><code class="language-bio">roc_curve(roc_tbl,
+<pre><code class="language-bio">let roc_tbl = table([
+  {score: 0.95, label: 1}, {score: 0.82, label: 1},
+  {score: 0.71, label: 0}, {score: 0.60, label: 1},
+  {score: 0.42, label: 0}, {score: 0.18, label: 0}
+])
+roc_curve(roc_tbl,
   {title: "ROC — Gene Expression Classifier for Response",
   auc_label: true})
 </code></pre>
@@ -14563,8 +14675,9 @@ let ci_lower = [-60.3, -59.1, -62.5, -57.4, -61.2, -55.8]
 let ci_upper = [-44.3, -38.3, -47.7, -43.0, -46.4, -49.2]
 let weights = [24, 14, 28, 18, 16, 100]
 
-let forest_tbl = zip(studies, effects, ci_lower, ci_upper, weights) |&gt; map(|r| {
-  study: r[0], estimate: r[1], ci_lower: r[2], ci_upper: r[3], weight: r[4]
+let forest_tbl = range(0, len(studies)) |&gt; map(|i| {
+  study: studies[i], estimate: effects[i], ci_lower: ci_lower[i],
+  ci_upper: ci_upper[i], weight: weights[i]
 }) |&gt; to_table()
 
 forest_plot(forest_tbl,
@@ -14660,10 +14773,7 @@ forest_plot(forest_tbl,
 let standard_errors = [4.1, 5.3, 3.8, 3.7, 3.9]
 
 # Funnel plot: scatter of effect size vs SE
-scatter(effect_sizes, standard_errors,
-  {title: "Funnel Plot — Publication Bias Assessment",
-  xlabel: "LDL Reduction (mg/dL)",
-  ylabel: "Standard Error"})
+scatter(effect_sizes, standard_errors)
 </code></pre>
 <blockquote>
 <p><strong>Clinical relevance:</strong> Publication bias is a serious concern in pharmaceutical research. A meta-analysis of published antidepressant trials found a pooled effect size of 0.37 (moderate). When unpublished trials obtained through FDA records were included, the effect dropped to 0.15 (small). Publication bias had inflated the apparent efficacy by more than double.</p>
@@ -14761,10 +14871,7 @@ forest_plot(forest_tbl,
 # 5. Funnel plot
 # ============================================
 # Funnel plot: scatter of effect vs SE
-scatter(effects, se,
-  {title: "Funnel Plot — Publication Bias",
-  xlabel: "LDL Reduction (mg/dL)",
-  ylabel: "Standard Error"})
+scatter(effects, se)
 
 # ============================================
 # 6. Study-level summary
@@ -14910,12 +15017,10 @@ let se_log_hr = [0.12, 0.15, 0.10, 0.11, 0.13]
 <h3 id="setting-seeds-in-biolang"><a class="header" href="#setting-seeds-in-biolang">Setting Seeds in BioLang</a></h3>
 <pre><code class="language-bio">set_seed(42)
 # ALWAYS set a seed at the start of any analysis with randomness
-# Note: set_seed() is planned but not yet implemented in BioLang.
-# For now, random results may vary between runs.
-
-# Once available, these will produce identical results every time
+let data = [4.8, 5.1, 5.3, 5.9, 6.2, 6.4, 6.8, 7.1, 7.4, 7.9]
+# These produce identical results every time.
 # Bootstrap the median
-let n_boot = 10000
+let n_boot = 1000
 let boot_medians = range(0, n_boot) |&gt; map(|i| {
   let resampled = range(0, len(data)) |&gt; map(|j| data[random_int(0, len(data) - 1)])
   median(resampled)
@@ -14985,14 +15090,14 @@ let boot_medians = range(0, n_boot) |&gt; map(|i| {
 let seeds = [42, 123, 456, 789, 2024]
 
 for s in seeds {
-  # set_seed(s) — not yet implemented; planned for a future release
-  let boot_vals = range(0, 10000) |&gt; map(|i| {
+  set_seed(s)
+  let boot_vals = range(0, 1000) |&gt; map(|i| {
     let resampled = range(0, len(data)) |&gt; map(|j| data[random_int(0, len(data) - 1)])
     median(resampled)
   })
   let sorted_b = sort(boot_vals)
-  let ci_lo = sorted_b[250]
-  let ci_hi = sorted_b[9749]
+  let ci_lo = sorted_b[25]
+  let ci_hi = sorted_b[974]
   print("Seed " + str(s) + ": CI = [" +
     str(round(ci_lo, 3)) + ", " +
     str(round(ci_hi, 3)) + "]")
@@ -15059,7 +15164,8 @@ for s in seeds {
 7. Output            — save results, figures, reports
 </code></pre>
 <h3 id="example-well-structured-analysis"><a class="header" href="#example-well-structured-analysis">Example: Well-Structured Analysis</a></h3>
-<pre><code class="language-bio"># ============================================
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# ============================================
 # Differential Expression Analysis
 # Author: Your Name
 # Date: 2025-03-15
@@ -15068,7 +15174,7 @@ for s in seeds {
 # ============================================
 
 # --- 1. Configuration ---
-# set_seed(42) — not yet implemented; planned for a future release
+set_seed(42)
 
 let CONFIG = {
   input_counts: "data/counts_matrix.csv",
@@ -15089,7 +15195,7 @@ print("Groups: " + str(unique(samples.group)))
 
 # --- 3. Preprocessing ---
 # Filter low-expression genes (at least 10 counts in 3+ samples)
-let keep = counts |&gt; filter_rows(|row| count(row, |x| x &gt;= 10) &gt;= 3)
+let keep = counts |&gt; filter_rows(|row| count_if(row, |x| x &gt;= 10) &gt;= 3)
 print("Genes after filtering: " + str(nrow(keep)))
 
 # Normalize: log2(CPM + 1)
@@ -15129,8 +15235,8 @@ let sig_genes = de_results
   |&gt; sort_by(|r| r.adj_p)
 
 print("\nSignificant DE genes: " + str(len(sig_genes)))
-print("  Upregulated: " + str(count(sig_genes, |g| g.log2fc &gt; 0)))
-print("  Downregulated: " + str(count(sig_genes, |g| g.log2fc &lt; 0)))
+print("  Upregulated: " + str(count_if(sig_genes, |g| g.log2fc &gt; 0)))
+print("  Downregulated: " + str(count_if(sig_genes, |g| g.log2fc &lt; 0)))
 
 # --- 6. Visualization ---
 let de_tbl = de_results |&gt; to_table()
@@ -15206,7 +15312,8 @@ print("\nResults saved to " + CONFIG.output_dir)
 </svg>
 </div>
 
-<pre><code class="language-bio"># --- Helper functions ---
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# --- Helper functions ---
 
 fn normalize_cpm(counts) {
   let lib_sizes = col_sums(counts)
@@ -15235,7 +15342,7 @@ fn filter_significant(results, fc_cut, fdr_cut) {
 }
 
 # --- Main analysis (now concise and readable) ---
-# set_seed(42) — not yet implemented; planned for a future release
+set_seed(42)
 let expr = read_csv("data/counts.csv") |&gt; normalize_cpm()
 let de = run_de(expr, tumor_idx, normal_idx)
 let sig = filter_significant(de, 1.0, 0.05)
@@ -15264,7 +15371,7 @@ output:
 <h3 id="loading-parameters-in-biolang"><a class="header" href="#loading-parameters-in-biolang">Loading Parameters in BioLang</a></h3>
 <pre><code class="language-bio"># Load configuration
 let config = read_yaml("config.yaml")
-# set_seed(config.random_seed) — not yet implemented; planned for a future release
+set_seed(config.random_seed)
 
 let counts = read_csv(config.input.counts)
 let sig = de_results |&gt; filter(|r|
@@ -15294,8 +15401,7 @@ let sig = de_results |&gt; filter(|r|
 # Any sample &gt; 3 SD from the centroid will be flagged.
 
 let pca_result = pca(log_cpm)
-scatter(pca_result.scores[0], pca_result.scores[1],
-  {title: "PCA — Quality Control"})
+scatter(pca_result.scores[0], pca_result.scores[1])
 
 # Result: Sample S14 is a clear outlier on PC1 (3.8 SD from centroid).
 # Decision: Remove S14 from downstream analysis.
@@ -15345,8 +15451,8 @@ scatter(pca_result.scores[0], pca_result.scores[1],
 <h3 id="before-messy"><a class="header" href="#before-messy">Before (messy):</a></h3>
 <pre><code class="language-bio"># quick analysis
 let d = read_csv("data/expression.csv")
-let a = d |&gt; filter(|r| r.group == "A") |&gt; map(|r| r.value)
-let b = d |&gt; filter(|r| r.group == "B") |&gt; map(|r| r.value)
+let a = d |&gt; filter(|r| r.condition == "treatment") |&gt; map(|r| r.sample1)
+let b = d |&gt; filter(|r| r.condition == "control") |&gt; map(|r| r.sample1)
 print(ttest(a, b))
 # p = 0.003 — hardcoded from a previous run
 histogram(a, {bins: 30})
@@ -15362,7 +15468,7 @@ histogram(a, {bins: 30})
 # ============================================
 
 # --- Configuration ---
-# set_seed(42) — not yet implemented; planned for a future release
+set_seed(42)
 
 let CONFIG = {
   input: "data/enzyme_activity.csv",
@@ -15378,8 +15484,8 @@ let CONFIG = {
 # --- Data Loading ---
 let data = read_csv(CONFIG.input)
 print("Total observations: " + str(nrow(data)))
-print("Group A: n=" + str(count(data, |r| r[CONFIG.group_col] == CONFIG.group_a)))
-print("Group B: n=" + str(count(data, |r| r[CONFIG.group_col] == CONFIG.group_b)))
+print("Group A: n=" + str(count_if(data, |r| r[CONFIG.group_col] == CONFIG.group_a)))
+print("Group B: n=" + str(count_if(data, |r| r[CONFIG.group_col] == CONFIG.group_b)))
 
 let a = data |&gt; filter(|r| r[CONFIG.group_col] == CONFIG.group_a) |&gt; map(|r| r[CONFIG.value_col])
 let b = data |&gt; filter(|r| r[CONFIG.group_col] == CONFIG.group_b) |&gt; map(|r| r[CONFIG.value_col])
@@ -15401,7 +15507,7 @@ print("  95% CI for difference: [" +
   str(round(tt.ci_lower, 3)) + ", " + str(round(tt.ci_upper, 3)) + "]")
 
 # Cohen's d (inline)
-let pooled_sd = sqrt(((len(a) - 1) * pow(sd(a), 2) + (len(b) - 1) * pow(sd(b), 2)) /
+let pooled_sd = sqrt(((len(a) - 1) * pow(stdev(a), 2) + (len(b) - 1) * pow(stdev(b), 2)) /
   (len(a) + len(b) - 2))
 let d = (mean(a) - mean(b)) / pooled_sd
 print("  Cohen's d = " + str(round(d, 3)))
@@ -15410,20 +15516,21 @@ print("  Cohen's d = " + str(round(d, 3)))
 let n_boot = CONFIG.n_bootstrap
 let combined = concat(a, b)
 let boot_diffs = range(0, n_boot) |&gt; map(|i| {
-  let ra = range(0, len(a)) |&gt; map(|j| a[random_int(0, len(a) - 1)])
-  let rb = range(0, len(b)) |&gt; map(|j| b[random_int(0, len(b) - 1)])
+  let ra = range(0, len(a)) |&gt; map(|j| a[random_int(0, len(a))])
+  let rb = range(0, len(b)) |&gt; map(|j| b[random_int(0, len(b))])
   mean(ra) - mean(rb)
 })
 let sorted_boot = sort(boot_diffs)
-let boot_ci_lo = sorted_boot[round(n_boot * 0.025, 0)]
-let boot_ci_hi = sorted_boot[round(n_boot * 0.975, 0)]
+let boot_ci_lo = sorted_boot[int(n_boot * 0.025)]
+let boot_ci_hi = sorted_boot[int(n_boot * 0.975)]
 print("\nBootstrap 95% CI for mean difference: [" +
   str(round(boot_ci_lo, 3)) + ", " +
   str(round(boot_ci_hi, 3)) + "]")
 
 # --- Visualization ---
-violin([a, b],
-  {labels: [CONFIG.group_a, CONFIG.group_b],
+let violin_data = table({"Treatment A": a, "Treatment B": b})
+violin(violin_data,
+  {
   title: "Enzyme Activity by Treatment",
   ylabel: "Activity (U/L)"})
 
@@ -15648,7 +15755,8 @@ let CONFIG = {
 </code></pre>
 <h2 id="section-1-demographics-and-baseline-characteristics-table-1"><a class="header" href="#section-1-demographics-and-baseline-characteristics-table-1">Section 1: Demographics and Baseline Characteristics (Table 1)</a></h2>
 <p>Table 1 is the first table in every clinical trial publication. It summarizes baseline characteristics by treatment arm and tests for balance — if randomization worked, there should be no significant differences.</p>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # --- Simulate patient demographics ---
 let arm = repeat("Drug X", 150) + repeat("Chemo", 150)
 
@@ -15695,13 +15803,13 @@ let age_drug = age |&gt; select(0..150)
 let age_chemo = age |&gt; select(150..300)
 let age_test = ttest(age_drug, age_chemo)
 print("Age, mean (SD)           " +
-  str(round(mean(age_drug), 1)) + " (" + str(round(sd(age_drug), 1)) + ")       " +
-  str(round(mean(age_chemo), 1)) + " (" + str(round(sd(age_chemo), 1)) + ")        " +
+  str(round(mean(age_drug), 1)) + " (" + str(round(stdev(age_drug), 1)) + ")       " +
+  str(round(mean(age_chemo), 1)) + " (" + str(round(stdev(age_chemo), 1)) + ")        " +
   str(round(age_test.p_value, 3)))
 
 # Sex
-let sex_drug = count(sex |&gt; select(0..150), |s| s == "Male")
-let sex_chemo = count(sex |&gt; select(150..300), |s| s == "Male")
+let sex_drug = count_if(sex |&gt; select(0..150), |s| s == "Male")
+let sex_chemo = count_if(sex |&gt; select(150..300), |s| s == "Male")
 let sex_observed = [sex_drug, 150 - sex_drug, sex_chemo, 150 - sex_chemo]
 let sex_expected = [150 * (sex_drug + sex_chemo) / 300, 150 * (300 - sex_drug - sex_chemo) / 300,
                     150 * (sex_drug + sex_chemo) / 300, 150 * (300 - sex_drug - sex_chemo) / 300]
@@ -15715,8 +15823,8 @@ print("Male, n (%)              " +
 let ecog_drug = ecog |&gt; select(0..150)
 let ecog_chemo = ecog |&gt; select(150..300)
 for e in [0, 1, 2] {
-  let n_d = count(ecog_drug, |x| x == e)
-  let n_c = count(ecog_chemo, |x| x == e)
+  let n_d = count_if(ecog_drug, |x| x == e)
+  let n_c = count_if(ecog_chemo, |x| x == e)
   print("ECOG " + str(e) + ", n (%)            " +
     str(n_d) + " (" + str(round(n_d / 150 * 100, 1)) + "%)         " +
     str(n_c) + " (" + str(round(n_c / 150 * 100, 1)) + "%)")
@@ -15815,15 +15923,15 @@ let response_chemo = rnorm(150, 0, 1) |&gt; map(|z| {
 let response = response_drug + response_chemo
 
 # Overall Response Rate (ORR = CR + PR)
-let orr_drug = count(response_drug, |r| r == "CR" || r == "PR")
-let orr_chemo = count(response_chemo, |r| r == "CR" || r == "PR")
+let orr_drug = count_if(response_drug, |r| r == "CR" || r == "PR")
+let orr_chemo = count_if(response_chemo, |r| r == "CR" || r == "PR")
 
 print("\n=== Secondary Endpoint: Tumor Response (RECIST 1.1) ===")
 print("\nResponse Category      Drug X         Chemo")
 print("-" * 50)
 for cat in ["CR", "PR", "SD", "PD"] {
-  let n_d = count(response_drug, |r| r == cat)
-  let n_c = count(response_chemo, |r| r == cat)
+  let n_d = count_if(response_drug, |r| r == cat)
+  let n_c = count_if(response_chemo, |r| r == cat)
   print(cat + "                      " +
     str(n_d) + " (" + str(round(n_d / 150 * 100, 1)) + "%)       " +
     str(n_c) + " (" + str(round(n_c / 150 * 100, 1)) + "%)")
@@ -15849,12 +15957,11 @@ print("  Odds ratio: " + str(round(or_val, 2)) +
 
 # Bar chart of response rates
 let categories = ["CR", "PR", "SD", "PD"]
-let drug_pcts = categories |&gt; map(|c| count(response_drug, |r| r == c) / 150 * 100)
-let chemo_pcts = categories |&gt; map(|c| count(response_chemo, |r| r == c) / 150 * 100)
+let drug_pcts = categories |&gt; map(|c| count_if(response_drug, |r| r == c) / 150 * 100)
+let chemo_pcts = categories |&gt; map(|c| count_if(response_chemo, |r| r == c) / 150 * 100)
 
-bar_chart(categories, drug_pcts,
-  {title: "Best Overall Response (RECIST 1.1)",
-  ylabel: "Patients (%)"})
+let response_chart = table({"category": categories, "drug_percent": drug_pcts})
+bar_chart(response_chart, {label: "category", value: "drug_percent"})
 </code></pre>
 <h2 id="section-4-secondary-endpoint--overall-survival"><a class="header" href="#section-4-secondary-endpoint--overall-survival">Section 4: Secondary Endpoint — Overall Survival</a></h2>
 <pre><code class="language-bio">set_seed(42)
@@ -16138,7 +16245,7 @@ let tbl = range(0, 300) |&gt; map(|i| {
   ecog: ecog[i], pdl1: pdl1[i]
 }) |&gt; to_table()
 
-let model = lm(tbl.pfs, [tbl.arm_drug, tbl.age, tbl.ecog, tbl.pdl1])
+let model = lm(~pfs ~ arm_drug + age + ecog + pdl1, tbl)
 
 print("\n=== Multivariate Model (PFS) ===")
 print("Treatment effect (adjusted): coef = " +
@@ -16326,7 +16433,8 @@ fisher.test(matrix(c(orr_drug, 150-orr_drug, orr_chemo, 150-orr_chemo), nrow=2))
 <li><strong>Biological interpretation</strong>: Top genes, correlation patterns</li>
 </ol>
 <h2 id="section-1-data-loading-and-quality-control"><a class="header" href="#section-1-data-loading-and-quality-control">Section 1: Data Loading and Quality Control</a></h2>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+set_seed(42)
 # ============================================
 # Differential Expression Analysis
 # Colorectal Tumor vs Normal Colon
@@ -16401,9 +16509,11 @@ for i in 0..12 {
     str(round(lib_sizes[i] / 1e6, 2)) + "M reads")
 }
 
-bar_chart(sample_names, lib_sizes |&gt; map(|x| x / 1e6),
-  {title: "Library Sizes",
-  ylabel: "Millions of Reads"})
+let library_chart = table({
+  "sample": sample_names,
+  "millions_of_reads": lib_sizes |&gt; map(|x| x / 1e6)
+})
+bar_chart(library_chart, {label: "sample", value: "millions_of_reads"})
 
 # Flag samples with library size &lt; 50% or &gt; 200% of median
 let med_lib = median(lib_sizes)
@@ -16424,10 +16534,7 @@ let log_cpm = cpm |&gt; map_cells(|x, _| log2(x + 1))
 # PCA on all genes
 let qc_pca = pca(transpose(log_cpm))  # transpose: samples as rows
 
-scatter(qc_pca.scores[0], qc_pca.scores[1],
-  {xlabel: "PC1 (" + str(round(qc_pca.variance_explained[0] * 100, 1)) + "%)",
-  ylabel: "PC2 (" + str(round(qc_pca.variance_explained[1] * 100, 1)) + "%)",
-  title: "PCA — Quality Control (All Genes)"})
+scatter(qc_pca.scores[0], qc_pca.scores[1])
 
 # Check: PC1 should separate tumor from normal
 print("\n=== PCA Quality Control ===")
@@ -16444,7 +16551,7 @@ for i in 0..6 {
   let dist_from_center = sqrt(
     pow(tumor_pc1[i] - mean(tumor_pc1), 2) +
     pow(tumor_pc2[i] - mean(tumor_pc2), 2))
-  if dist_from_center &gt; 3 * sd(tumor_pc1) {
+  if dist_from_center &gt; 3 * stdev(tumor_pc1) {
     print("WARNING: " + sample_names[i] + " is a potential outlier (tumor group)")
   }
 }
@@ -16539,8 +16646,8 @@ for g in 0..len(keep) {
   let log2fc = mean(tumor_vals) - mean(normal_vals)
   let tt = ttest(tumor_vals, normal_vals)
   # Cohen's d inline
-  let pooled_sd = sqrt(((len(tumor_vals) - 1) * pow(sd(tumor_vals), 2) +
-    (len(normal_vals) - 1) * pow(sd(normal_vals), 2)) /
+  let pooled_sd = sqrt(((len(tumor_vals) - 1) * pow(stdev(tumor_vals), 2) +
+    (len(normal_vals) - 1) * pow(stdev(normal_vals), 2)) /
     (len(tumor_vals) + len(normal_vals) - 2))
   let d = if pooled_sd &gt; 0 { log2fc / pooled_sd } else { 0 }
 
@@ -16558,12 +16665,13 @@ for g in 0..len(keep) {
 
 # Quick check
 print("Tests completed: " + str(len(de_results)))
-print("Raw p &lt; 0.05: " + str(count(de_results, |r| r.p_value &lt; 0.05)))
-print("Raw p &lt; 0.01: " + str(count(de_results, |r| r.p_value &lt; 0.01)))
+print("Raw p &lt; 0.05: " + str(count_if(de_results, |r| r.p_value &lt; 0.05)))
+print("Raw p &lt; 0.01: " + str(count_if(de_results, |r| r.p_value &lt; 0.01)))
 </code></pre>
 <h2 id="section-5-multiple-testing-correction-fdr"><a class="header" href="#section-5-multiple-testing-correction-fdr">Section 5: Multiple Testing Correction (FDR)</a></h2>
 <p>With thousands of tests, raw p-values are unreliable. A 5% false positive rate across 10,000 tests means 500 false positives. FDR correction (Day 12) controls this.</p>
-<pre><code class="language-bio"># --- FDR correction (Benjamini-Hochberg) ---
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# --- FDR correction (Benjamini-Hochberg) ---
 let raw_pvals = de_results |&gt; map(|r| r.p_value)
 let adj_pvals = p_adjust(raw_pvals, "BH")
 
@@ -16849,7 +16957,7 @@ let heatmap_data = norm_expr |&gt; select_rows(top_50_idx)
 # Z-score normalization per gene (for visualization)
 let z_scored = heatmap_data |&gt; map_rows(|row|
   let mu = mean(row)
-  let s = sd(row)
+  let s = stdev(row)
   row |&gt; map(|x| if s &gt; 0 { (x - mu) / s } else { 0 })
 )
 
@@ -17150,7 +17258,7 @@ summary(res, alpha = 0.05)
 # ============================================
 # Genome-Wide Association Study
 # Type 2 Diabetes: 5,000 Cases + 5,000 Controls
-# 500,000 SNPs across 22 autosomes
+# 50,000-SNP local teaching subset across 22 autosomes
 # ============================================
 
 
@@ -17159,7 +17267,7 @@ let CONFIG = {
   n_cases: 5000,
   n_controls: 5000,
   n_total: 10000,
-  n_snps: 500000,
+  n_snps: 50000,           # use 500000 for a production-scale simulation
   genome_wide_p: 5e-8,      # genome-wide significance
   suggestive_p: 1e-5,       # suggestive significance
   hwe_threshold: 1e-6,      # HWE filter in controls
@@ -17267,14 +17375,14 @@ for i in 0..len(snp_names) {
 
 # Apply HWE filter (in controls only)
 let pass_hwe = hwe_pvalues |&gt; map(|p| p &gt;= CONFIG.hwe_threshold)
-let fail_hwe = count(pass_hwe, |x| !x)
+let fail_hwe = count_if(pass_hwe, |x| !x)
 
 print("HWE filter (p &lt; " + str(CONFIG.hwe_threshold) + " in controls):")
 print("  Failed: " + str(fail_hwe) + " SNPs removed")
 
 # MAF filter
 let pass_maf = mafs |&gt; map(|m| m &gt;= CONFIG.maf_threshold)
-let fail_maf = count(pass_maf, |x| !x)
+let fail_maf = count_if(pass_maf, |x| !x)
 print("MAF filter (&lt; " + str(CONFIG.maf_threshold) + "):")
 print("  Failed: " + str(fail_maf) + " SNPs removed")
 
@@ -17335,16 +17443,10 @@ for i in 0..CONFIG.n_total {
 }
 
 # PCA plot colored by ancestry
-scatter(pc1, pc2,
-  {xlabel: "PC1",
-  ylabel: "PC2",
-  title: "Population Structure — Genotype PCA"})
+scatter(pc1, pc2)
 
 # PCA plot colored by case/control
-scatter(pc1, pc2,
-  {xlabel: "PC1",
-  ylabel: "PC2",
-  title: "PCA — Case/Control Overlay"})
+scatter(pc1, pc2)
 
 # Check: are cases and controls balanced across ancestry?
 print("\nAncestry distribution:")
@@ -17393,7 +17495,8 @@ print("Model: disease ~ SNP + PC1 + PC2 + PC3 + PC4")
 </code></pre>
 <h2 id="section-5-multiple-testing-correction"><a class="header" href="#section-5-multiple-testing-correction">Section 5: Multiple Testing Correction</a></h2>
 <p>With 500,000 tests, even a tiny false positive rate generates thousands of false hits. The genome-wide significance threshold of p &lt; 5 x 10^-8 is the standard Bonferroni correction for approximately 1 million independent tests (accounting for linkage disequilibrium).</p>
-<pre><code class="language-bio"># --- Multiple Testing ---
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# --- Multiple Testing ---
 print("\n=== Multiple Testing Correction ===")
 
 # Genome-wide significant hits
@@ -17692,7 +17795,8 @@ if lambda &lt; 1.05 {
 <p><strong>Common pitfall:</strong> A Q-Q plot that looks good (lambda ~ 1.0) does not guarantee the results are correct. It only means there is no systematic inflation. Individual false positives can still occur. Always validate top hits in independent cohorts.</p>
 </blockquote>
 <h2 id="section-8-effect-sizes--odds-ratios"><a class="header" href="#section-8-effect-sizes--odds-ratios">Section 8: Effect Sizes — Odds Ratios</a></h2>
-<pre><code class="language-bio"># --- Effect Size Analysis ---
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# --- Effect Size Analysis ---
 print("\n=== Effect Sizes for Top Hits ===")
 
 for hit in all_hits |&gt; take(10) {
@@ -17778,7 +17882,8 @@ print("- Many true associations with small effects are missed")
 print("- Larger sample sizes or meta-analysis would recover more hits")
 </code></pre>
 <h2 id="section-10-locus-summary-and-reporting"><a class="header" href="#section-10-locus-summary-and-reporting">Section 10: Locus Summary and Reporting</a></h2>
-<pre><code class="language-bio"># --- Locus-Level Summary ---
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# --- Locus-Level Summary ---
 print("\n=== Locus Summary ===")
 
 # Group nearby significant SNPs into loci (within 500kb)
@@ -17846,9 +17951,9 @@ print("QC pass rate: " + str(round(n_pass / CONFIG.n_snps * 100, 1)) + "%")
 
 print("\n--- Population Structure ---")
 print("Ancestry groups: European (" +
-  str(count(ancestry, |a| a == "European")) + "), East Asian (" +
-  str(count(ancestry, |a| a == "East Asian")) + "), African (" +
-  str(count(ancestry, |a| a == "African")) + ")")
+  str(count_if(ancestry, |a| a == "European")) + "), East Asian (" +
+  str(count_if(ancestry, |a| a == "East Asian")) + "), African (" +
+  str(count_if(ancestry, |a| a == "African")) + ")")
 print("PCA: PC1-PC2 separate ancestry clusters clearly")
 print("Top 4 PCs included as covariates")
 
@@ -18014,7 +18119,8 @@ let fdr_adjusted = p_adjust(adjusted_pvalues, "BH")
 <p>Verify the installation:</p>
 <pre><code class="language-bash">bl --version
 </code></pre>
-<p>You should see output like <code>biolang 0.x.y</code>. Any version 0.4.0 or later includes all the statistical builtins used in this book.</p>
+<p>You should see the installed BioLang release. This edition is validated against
+the current 1.x CLI and runtime.</p>
 <h3 id="windows"><a class="header" href="#windows">Windows</a></h3>
 <p>Open PowerShell and run:</p>
 <pre><code class="language-powershell">irm https://biolang.org/install.ps1 | iex
@@ -18047,10 +18153,33 @@ let fdr_adjusted = p_adjust(adjusted_pvalues, "BH")
 bl&gt; mean([10, 20, 30, 40, 50])
 30.0
 
-bl&gt; sd([10, 20, 30, 40, 50])
+bl&gt; stdev([10, 20, 30, 40, 50])
 15.8114
 </code></pre>
 <p>If these commands produce output, your installation is complete.</p>
+<h2 id="current-analysis-tooling"><a class="header" href="#current-analysis-tooling">Current Analysis Tooling</a></h2>
+<p>Validate scripts and inspect runtime readiness before a long analysis:</p>
+<pre><code class="language-bash">bl check analysis.bl helpers.bl
+bl doctor
+</code></pre>
+<p>Create a package in the current directory and install its dependencies:</p>
+<pre><code class="language-bash">bl init --name trial-analysis
+bl install
+</code></pre>
+<p>Migrate an existing analysis with syntax validation:</p>
+<pre><code class="language-bash">bl import analysis.py --validate -o analysis.bl
+bl import analysis.R --validate -o analysis.bl
+bl import report.ipynb --validate -o report.bl
+bl import report.Rmd --validate -o report.bl
+</code></pre>
+<p>Run <code>.bln</code> or <code>.bl.md</code> notebooks, convert Jupyter notebooks, and export reports:</p>
+<pre><code class="language-bash">bl notebook analysis.bln
+bl notebook analysis.bln --to-ipynb &gt; analysis.ipynb
+bl notebook analysis.bln --export html &gt; analysis.html
+</code></pre>
+<p>Use <code>bl metadata --format json</code> when checking exact builtin signatures. Imported
+analyses must still be scientifically validated against their Python or R
+source because statistical libraries can use different defaults.</p>
 <h2 id="python-setup-optional"><a class="header" href="#python-setup-optional">Python Setup (Optional)</a></h2>
 <p>Python comparisons are included for every day but are not required. If you want to run them, you need Python 3.8 or later.</p>
 <h3 id="installing-python"><a class="header" href="#installing-python">Installing Python</a></h3>
@@ -18385,21 +18514,24 @@ qq_plot(data, {title: "Normality Check"})
 <tr><th>Outcome type</th><th>Number of predictors</th><th>Test</th><th>BioLang</th></tr>
 </thead>
 <tbody>
-<tr><td>Continuous</td><td>1</td><td>Simple linear regression</td><td><code>lm(y, x)</code></td></tr>
-<tr><td>Continuous</td><td>Multiple</td><td>Multiple linear regression</td><td><code>lm(y, [x1, x2, x3])</code></td></tr>
-<tr><td>Binary (0/1)</td><td>Any</td><td>Logistic regression</td><td><code>glm("y ~ x", table, "binomial")</code></td></tr>
-<tr><td>Count</td><td>Any</td><td>Poisson regression</td><td><code>glm("y ~ x", table, "poisson")</code></td></tr>
-<tr><td>Count, overdispersed</td><td>Any</td><td>Negative binomial regression</td><td><code>glm("y ~ x", table, "negbin")</code></td></tr>
-<tr><td>Continuous, clustered data</td><td>Any</td><td>Mixed-effects model</td><td><code>lm(y, x)</code> (per group)</td></tr>
+<tr><td>Continuous</td><td>1</td><td>Simple linear regression</td><td><code>lm(x, y)</code></td></tr>
+<tr><td>Continuous</td><td>Multiple</td><td>Multiple linear regression</td><td><code>lm(~y ~ x1 + x2 + x3, table)</code></td></tr>
+<tr><td>Binary (0/1)</td><td>Any</td><td>Logistic regression</td><td><code>glm(~y ~ x, table, "binomial")</code></td></tr>
+<tr><td>Count</td><td>Any</td><td>Poisson regression</td><td><code>glm(~y ~ x, table, "poisson")</code></td></tr>
+<tr><td>Count, overdispersed</td><td>Any</td><td>External negative-binomial tool or package</td><td>Not a current <code>glm</code> family</td></tr>
+<tr><td>Continuous, clustered data</td><td>Any</td><td>Stratified models or an external mixed-effects tool</td><td>Fit and report per group</td></tr>
 </tbody>
 </table>
 </div>
 <h3 id="checking-regression-assumptions"><a class="header" href="#checking-regression-assumptions">Checking Regression Assumptions</a></h3>
-<pre><code class="language-bio">let model = lm(expression, [age, sex, batch])
+<pre><code class="language-bio">let age = [34, 41, 52, 59, 63, 70]
+let expression = [8.1, 8.8, 9.4, 10.2, 10.6, 11.1]
+let model = lm(age, expression)
 
-# Check residuals with Q-Q plot
-let residuals = model.residuals
-qq_plot(residuals, {title: "Residual Normality Check"})
+# Compute residuals from the fitted line
+let residuals = range(0, len(age))
+  |&gt; map(|i| expression[i] - (model.intercept + model.slope * age[i]))
+histogram(residuals, {title: "Residual Distribution"})
 print("R-squared: " + str(round(model.r_squared, 3)))
 </code></pre>
 <blockquote>
@@ -18416,7 +18548,7 @@ print("R-squared: " + str(round(model.r_squared, 3)))
 <tr><td>Estimate survival curve</td><td>Kaplan-Meier</td><td>Sort event times, compute stepwise survival</td></tr>
 <tr><td>Compare survival between two groups</td><td>Log-rank test</td><td><code>ttest(times_a, times_b)</code> as proxy</td></tr>
 <tr><td>Compare survival, multiple groups</td><td>Log-rank test</td><td><code>anova([group1_times, group2_times, ...])</code></td></tr>
-<tr><td>Adjust for covariates</td><td>Cox proportional hazards</td><td><code>lm(time, [covariates])</code></td></tr>
+<tr><td>Adjust for covariates</td><td>Cox proportional hazards</td><td><code>cox_ph(time, event, covariates)</code></td></tr>
 <tr><td>Estimate median survival</td><td>From sorted times</td><td><code>sort(times)[len(times) / 2]</code></td></tr>
 </tbody>
 </table>
@@ -18488,8 +18620,8 @@ print("R-squared: " + str(round(model.r_squared, 3)))
 <tr><td>20,000 gene differential expression</td><td>t-test + BH correction</td><td><code>p_adjust(pvals, "BH")</code></td></tr>
 <tr><td>Sample clustering from RNA-seq</td><td>PCA + hierarchical clustering</td><td><code>pca(data)</code> then <code>hclust(scores)</code></td></tr>
 <tr><td>Correlation: expression vs. methylation</td><td>Spearman (often non-linear)</td><td><code>spearman(expr, meth)</code></td></tr>
-<tr><td>GWAS: genotype vs. phenotype</td><td>Logistic regression + BH</td><td><code>glm("pheno ~ geno", tbl, "binomial")</code></td></tr>
-<tr><td>Clinical outcome predictors</td><td>Regression model</td><td><code>lm(outcome, [age, stage, treatment])</code></td></tr>
+<tr><td>GWAS: genotype vs. phenotype</td><td>Logistic regression + BH</td><td><code>glm(~pheno ~ geno, tbl, "binomial")</code></td></tr>
+<tr><td>Clinical outcome predictors</td><td>Regression model</td><td><code>lm(~outcome ~ age + stage + treatment, tbl)</code></td></tr>
 <tr><td>Sample size for planned experiment</td><td>Power analysis</td><td>Compute with <code>qnorm()</code> and effect size</td></tr>
 </tbody>
 </table>
@@ -18968,7 +19100,7 @@ rhyper(100, 200, 19800, 500)  # Generate 100 random values
 <tbody>
 <tr><td><code>mean(x)</code></td><td>Arithmetic mean</td><td><code>mean([2, 4, 6])</code> → <code>4.0</code></td></tr>
 <tr><td><code>median(x)</code></td><td>Middle value</td><td><code>median([1, 3, 7])</code> → <code>3.0</code></td></tr>
-<tr><td><code>sd(x)</code></td><td>Sample standard deviation</td><td><code>sd([2, 4, 6])</code> → <code>2.0</code></td></tr>
+<tr><td><code>stdev(x)</code></td><td>Sample standard deviation</td><td><code>stdev([2, 4, 6])</code> → <code>2.0</code></td></tr>
 <tr><td><code>var(x)</code></td><td>Sample variance</td><td><code>var([2, 4, 6])</code> → <code>4.0</code></td></tr>
 <tr><td><code>min(x)</code></td><td>Minimum value</td><td><code>min([3, 1, 4])</code> → <code>1</code></td></tr>
 <tr><td><code>max(x)</code></td><td>Maximum value</td><td><code>max([3, 1, 4])</code> → <code>4</code></td></tr>
@@ -19094,16 +19226,20 @@ rhyper(100, 200, 19800, 500)
 </div>
 <blockquote>
 <p><strong>Post-hoc comparisons:</strong> Follow a significant ANOVA with pairwise tests and p-value correction:</p>
-<pre><code class="language-bio"># Pairwise t-tests with Bonferroni correction
-let pvals = []
+<pre><code class="language-text"></code></pre>
+</blockquote>
+<h1 id="conceptual-or-diagnostic-example-not-directly-executable"><a class="header" href="#conceptual-or-diagnostic-example-not-directly-executable">Conceptual or diagnostic example; not directly executable.</a></h1>
+<blockquote>
+<h1 id="pairwise-t-tests-with-bonferroni-correction"><a class="header" href="#pairwise-t-tests-with-bonferroni-correction">Pairwise t-tests with Bonferroni correction</a></h1>
+<p>let pvals = []
 for i in 0..len(groups) {
-  for j in (i+1)..len(groups) {
-    let result = ttest(groups[i], groups[j])
-    pvals = pvals + [result.p_value]
-  }
+for j in (i+1)..len(groups) {
+let result = ttest(groups[i], groups[j])
+pvals = pvals + [result.p_value]
 }
-let adjusted = p_adjust(pvals, "bonferroni")
-</code></pre>
+}
+let adjusted = p_adjust(pvals, “bonferroni”)</p>
+<pre><code></code></pre>
 </blockquote>
 <h3 id="categorical-data-1"><a class="header" href="#categorical-data-1">Categorical Data</a></h3>
 <div class="table-wrapper">
@@ -19119,12 +19255,15 @@ let adjusted = p_adjust(pvals, "bonferroni")
 </div>
 <blockquote>
 <p><strong>Effect sizes for categorical data</strong> are computed inline:</p>
-<pre><code class="language-bio"># Odds ratio
-let or = (a * d) / (b * c)
-
-# Relative risk
-let rr = (a / (a + b)) / (c / (c + d))
-</code></pre>
+<pre><code class="language-text"></code></pre>
+</blockquote>
+<h1 id="conceptual-or-diagnostic-example-not-directly-executable-1"><a class="header" href="#conceptual-or-diagnostic-example-not-directly-executable-1">Conceptual or diagnostic example; not directly executable.</a></h1>
+<blockquote>
+<h1 id="odds-ratio"><a class="header" href="#odds-ratio">Odds ratio</a></h1>
+<p>let or = (a * d) / (b * c)</p>
+<h1 id="relative-risk"><a class="header" href="#relative-risk">Relative risk</a></h1>
+<p>let rr = (a / (a + b)) / (c / (c + d))</p>
+<pre><code></code></pre>
 </blockquote>
 <h2 id="correlation"><a class="header" href="#correlation">Correlation</a></h2>
 <div class="table-wrapper">
@@ -19146,18 +19285,21 @@ let rr = (a / (a + b)) / (c / (c + d))
 <tr><th>Function</th><th>Description</th><th>Example</th></tr>
 </thead>
 <tbody>
-<tr><td><code>lm(y, x)</code></td><td>Simple linear regression</td><td><code>lm(expression, age)</code></td></tr>
-<tr><td><code>lm(y, [x1, x2, ...])</code></td><td>Multiple linear regression</td><td><code>lm(expression, [age, sex, batch])</code></td></tr>
-<tr><td><code>glm(formula, table, family)</code></td><td>Generalized linear model</td><td><code>glm("y ~ x", data, "binomial")</code></td></tr>
+<tr><td><code>lm(x, y)</code></td><td>Simple linear regression</td><td><code>lm(age, expression)</code></td></tr>
+<tr><td><code>lm(formula, table)</code></td><td>Multiple linear regression</td><td><code>lm(~expression ~ age + sex + batch, data)</code></td></tr>
+<tr><td><code>glm(formula, table, family?)</code></td><td>Generalized linear model</td><td><code>glm(~outcome ~ age + marker, data, "binomial")</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>Supported GLM families: <code>"binomial"</code> (logistic), <code>"poisson"</code>, <code>"negbin"</code> (negative binomial).</p>
+<p>Supported GLM families: <code>"binomial"</code> (or <code>"logistic"</code>), <code>"gaussian"</code> (or <code>"linear"</code>), and <code>"poisson"</code>.</p>
 <p>Access model results:</p>
-<pre><code class="language-bio">let model = lm(expression, [age, sex, batch])
+<pre><code class="language-bio">let age = [34, 41, 52, 59, 63, 70]
+let expression = [8.1, 8.8, 9.4, 10.2, 10.6, 11.1]
+let model = lm(age, expression)
 print("R-squared: " + str(round(model.r_squared, 3)))
-let residuals = model.residuals
-qq_plot(residuals, {title: "Residual Normality Check"})
+let residuals = range(0, len(age))
+  |&gt; map(|i| expression[i] - (model.intercept + model.slope * age[i]))
+histogram(residuals, {title: "Residual Distribution"})
 </code></pre>
 <h2 id="multiple-testing-correction-1"><a class="header" href="#multiple-testing-correction-1">Multiple Testing Correction</a></h2>
 <div class="table-wrapper">
@@ -19192,14 +19334,17 @@ print("Significant genes (FDR &lt; 0.05): " + str(sig_count))
 </table>
 </div>
 <pre><code class="language-bio"># PCA then clustering
+let expr_matrix = [
+  [8.2, 7.9, 3.1, 2.8],
+  [8.6, 8.1, 3.4, 3.0],
+  [3.0, 3.3, 8.4, 8.0],
+  [2.7, 3.0, 8.8, 8.2]
+]
 let result = pca(expr_matrix)
-pca_plot(result, {title: "Sample PCA"})
+pca_plot(matrix(expr_matrix), {title: "Sample PCA"})
 
-# Estimate optimal k via silhouette
-let scores = range(2, 10) |&gt; map(|k| {
-  let km = kmeans(data, k)
-  km.silhouette
-})
+# Cluster the same samples into two groups
+let clusters = kmeans(expr_matrix, 2)
 </code></pre>
 <h2 id="statistical-visualization"><a class="header" href="#statistical-visualization">Statistical Visualization</a></h2>
 <h3 id="svg-plots-file-output"><a class="header" href="#svg-plots-file-output">SVG Plots (file output)</a></h3>
@@ -19230,9 +19375,9 @@ let scores = range(2, 10) |&gt; map(|k| {
 <tr><th>Function</th><th>Description</th><th>Example</th></tr>
 </thead>
 <tbody>
-<tr><td><code>scatter(x, y, options)</code></td><td>ASCII scatter plot</td><td><code>scatter(age, expr, {xlabel: "Age", ylabel: "Expr"})</code></td></tr>
+<tr><td><code>scatter(x, y)</code></td><td>ASCII scatter plot</td><td><code>scatter(age, expression)</code></td></tr>
 <tr><td><code>boxplot(data, options)</code></td><td>ASCII box plot</td><td><code>boxplot(table({"Ctrl": g1, "Treat": g2}), {title: "Comparison"})</code></td></tr>
-<tr><td><code>bar_chart(labels, values, options)</code></td><td>ASCII bar chart</td><td><code>bar_chart(names, counts, {title: "Counts"})</code></td></tr>
+<tr><td><code>bar_chart(data, options?)</code></td><td>ASCII bar chart from a record or table</td><td><code>bar_chart(count_table, {label: "group", value: "count"})</code></td></tr>
 <tr><td><code>sparkline(data)</code></td><td>Inline sparkline</td><td><code>sparkline(timeseries)</code></td></tr>
 <tr><td><code>hist(data, options)</code></td><td>ASCII histogram</td><td><code>hist(data, {bins: 20})</code></td></tr>
 </tbody>
@@ -19322,14 +19467,15 @@ print("95% CI: [" + str(round(ci_lo, 3)) + ", " + str(round(ci_hi, 3)) + "]")
 # Prior: N(mu0, sigma0^2); Data: n observations with mean x_bar and known sigma
 let prior_mu = 0.0
 let prior_prec = 1.0 / (10.0 ** 2)   # prior precision = 1/sigma0^2
-let data_prec = len(data) / (sd(data) ** 2)
+let data_prec = len(data) / (stdev(data) ** 2)
 let post_prec = prior_prec + data_prec
 let post_mu = (prior_prec * prior_mu + data_prec * mean(data)) / post_prec
 let post_sd = sqrt(1.0 / post_prec)
 </code></pre>
 <h2 id="survival-analysis"><a class="header" href="#survival-analysis">Survival Analysis</a></h2>
 <p>BioLang provides basic building blocks for survival analysis. For simple comparisons:</p>
-<pre><code class="language-bio"># Compare survival times between two groups
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# Compare survival times between two groups
 let result = ttest(arm1_times, arm2_times)
 print("p-value: " + str(round(result.p_value, 4)))
 
@@ -19342,7 +19488,7 @@ print("Median survival — Arm A: " + str(med_a) + ", Arm B: " + str(med_b))
 let hr = med_b / med_a
 
 # Regression on survival times
-let model = lm(survival_time, [age, stage, treatment])
+let model = lm(~survival_time ~ age + stage + treatment, patient_data)
 </code></pre>
 
                     </main>
@@ -19385,7 +19531,7 @@ let model = lm(survival_time, [age, stage, treatment])
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
         <script>
         window.addEventListener('load', function() {

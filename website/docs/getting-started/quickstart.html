@@ -94,7 +94,7 @@ len(seq) |> print()
           Sequence literals are validated at parse time. Invalid bases produce a compile error, not a
           runtime crash:
         </p>
-        <pre><code class="language-biolang"># This is a compile error — 'X' is not a valid DNA base
+        <pre><code class="language-text"># This is a compile error — 'X' is not a valid DNA base
 let bad = dna"ATCXGATCG"
 # Error: invalid DNA base 'X' at position 4</code></pre>
 
@@ -156,7 +156,7 @@ samples
           The REPL provides syntax highlighting, tab completion, and multi-line input. Try pasting
           any of the examples above:
         </p>
-        <pre><code class="language-biolang">bl&gt; dna"GATTACA" |> reverse_complement()
+        <pre><code class="language-text">bl&gt; dna"GATTACA" |> reverse_complement()
 TGTAATC
 
 bl&gt; [10, 20, 30] |> sum()
@@ -178,14 +178,8 @@ Dna</code></pre>
         <pre><code class="language-bash"># Run a script
 bl run analysis.bl
 
-# Run with arguments
-bl run analysis.bl -- --input reads.fastq --threshold 30
-
 # Check syntax without running
-bl check analysis.bl
-
-# Format a script
-bl fmt analysis.bl</code></pre>
+bl check analysis.bl</code></pre>
 
         <h2>Sample Data</h2>
         <p>

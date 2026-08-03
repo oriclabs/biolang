@@ -5,32 +5,33 @@
 
 # ── FASTA: read and analyze contigs ──
 let contigs = fasta("examples/sample-data/contigs.fa", "table")
-print("Contigs loaded: " + str(nrow(contigs)))
+println("Contigs loaded: " + str(nrow(contigs)))
 contigs |> select("id") |> print()
 
 # ── FASTQ: quality check ──
 let reads = fastq("examples/sample-data/reads.fq", "table")
-print("\nReads loaded: " + str(nrow(reads)))
+println("\nReads loaded: " + str(nrow(reads)))
 
-# Filter high-quality reads (mean quality > 30)
-let hq = reads |> filter(|r| mean(r.qual) > 30)
-print("High-quality reads: " + str(nrow(hq)))
+# Filter high-quality reads (mean quality > 30).
+# The `quality` column holds the raw Phred string, so decode it before averaging.
+let hq = reads |> filter(|r| mean(parse_qual(r.quality)) > 30)
+println("High-quality reads: " + str(nrow(hq)))
 
 # ── VCF: variant analysis ──
-let variants = vcf("examples/sample-data/calls.vcf")
-print("\nVariants loaded: " + str(len(variants)))
+let variants = vcf("examples/sample-data/calls.vcf", "table")
+println("\nVariants loaded: " + str(len(variants)))
 
 # Filter PASS variants with quality > 50 — use |> into for left-to-right binding
 variants |> filter(|v| v.filter == "PASS" and v.quality > 50) |> into pass_vars
-print("PASS variants (qual > 50): " + str(len(pass_vars)))
+println("PASS variants (qual > 50): " + str(len(pass_vars)))
 
 # ── BED: genomic regions ──
 let promoters = bed("examples/sample-data/promoters.bed", "table")
-print("\nPromoter regions: " + str(nrow(promoters)))
+println("\nPromoter regions: " + str(nrow(promoters)))
 
 # ── CSV: gene expression ──
 let counts = read_csv("examples/sample-data/gene_counts.csv")
-print("\nGenes in expression matrix: " + str(nrow(counts)))
+println("\nGenes in expression matrix: " + str(nrow(counts)))
 
 # Show top 5 genes by control mean expression
 counts
@@ -44,13 +45,13 @@ counts
 # ── GFF: gene annotations ──
 let features = gff("examples/sample-data/annotations.gff", "table")
 let genes = features |> filter(|f| f.type == "gene")
-print("\nAnnotated genes: " + str(nrow(genes)))
+println("\nAnnotated genes: " + str(nrow(genes)))
 
 # ── DNA sequence operations ──
 let seq = dna"ATCGATCGATCGTAGCTAGCTAGCTAGCTGATCGATCG"
-print("\nSequence: " + str(seq))
-print("Length: " + str(len(seq)))
-print("GC content: " + str(gc(seq)))
-print("Reverse complement: " + str(rev_comp(seq)))
+println("\nSequence: " + str(seq))
+println("Length: " + str(len(seq)))
+println("GC content: " + str(gc_content(seq)))
+println("Reverse complement: " + str(reverse_complement(seq)))
 
-print("\n--- Quickstart complete! ---")
+println("\n--- Quickstart complete! ---")

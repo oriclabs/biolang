@@ -52,12 +52,15 @@ print(f"Sequence length: {prot |> seq_len} aa")</code></pre>
 let residues = to_string(prot) |> split("")
 let total = residues |> len
 
-# Count each amino acid using frequencies()
-let composition = residues |> frequencies
+# frequencies() returns a Record; convert it to sortable rows
+let residue_counts = residues |> frequencies
+let composition = residue_counts
+  |> keys
+  |> map(|aa| {key: aa, value: residue_counts[aa]})
   |> sort_by(|a, b| b.value - a.value)
 
 for entry in composition {
-  let pct = entry.value |> float / total |> float * 100.0
+  let pct = float(entry.value) / float(total) * 100.0
   print(f"{entry.key}: {entry.value} ({pct |> round(1)}%)")
 }
 
@@ -73,9 +76,9 @@ let seq = protein"MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFKDLGE"
 let residues = to_string(seq) |> split("")
 let counts = residues |> frequencies
 
-let n_trp = counts |> find(|x| { x.key == "W" }) |> map(|x| x.value) |> first
-let n_tyr = counts |> find(|x| { x.key == "Y" }) |> map(|x| x.value) |> first
-let n_cys = counts |> find(|x| { x.key == "C" }) |> map(|x| x.value) |> first
+let n_trp = if has_key(counts, "W") { counts["W"] } else { 0 }
+let n_tyr = if has_key(counts, "Y") { counts["Y"] } else { 0 }
+let n_cys = if has_key(counts, "C") { counts["C"] } else { 0 }
 
 let ext_coeff = (n_trp * 5500) + (n_tyr * 1490) + ((n_cys / 2) * 125)
 print(f"Extinction coefficient: {ext_coeff} M^-1 cm^-1")
@@ -110,7 +113,7 @@ print(f"N-terminal hydrophobic fraction: {hydro_frac |> round(3)} (>0.5 suggests
         <h3>Domain annotation from Pfam hits</h3>
         <pre><code class="language-biolang"># Parse Pfam domain hits
 let domains = tsv("pfam_results.tsv")
-  |> filter(|d| { d["e_value"] |> float < 1e-5 })
+  |> filter(|d| { d["e_value"] |> float &lt; 1e-5 })
   |> sort_by(|a, b| a.start - b.start)
 
 print("Significant domains found:")
@@ -132,8 +135,9 @@ if has_kinase && has_sh2 {
 let prot = protein"MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFKDLGE"
 let seq_str = to_string(prot)
 
-# Split at K or R not followed by P using regex
-let peptides = seq_str |> regex_split("[KR](?!P)")
+# Rust-style regular expressions do not support look-around. Split after K/R;
+# filter proline exceptions separately when strict trypsin rules are required.
+let peptides = seq_str |> regex_split("[KR]")
   |> filter(|p| { p |> len > 0 })
 
 # Amino acid masses for computing peptide mass
@@ -174,8 +178,8 @@ let proteins = read_fasta("proteome.fa")
 
 let mass_db = proteins
   |> flat_map(|p| {
-    let peps = to_string(p.seq) |> regex_split("[KR](?!P)")
-      |> filter(|pep| { pep |> len >= 6 && pep |> len <= 30 })
+    let peps = to_string(p.seq) |> regex_split("[KR]")
+      |> filter(|pep| { pep |> len >= 6 && pep |> len &lt;= 30 })
     peps |> map(|pep| { {
       protein: p.id,
       peptide: pep,
@@ -200,7 +204,7 @@ let matches = observed |> flat_map(|obs_mz| {
   theoretical
     |> filter(|t| {
       let ppm = ((obs_mz - t["mass"] |> float) / (t["mass"] |> float) * 1e6) |> abs
-      ppm < tolerance_ppm
+      ppm &lt; tolerance_ppm
     })
     |> map(|t| { {
       observed_mz: obs_mz,
@@ -225,7 +229,7 @@ for i in 0..(proteins |> len) {
     let k1 = proteins[i].seq |> kmers(3) |> set
     let k2 = proteins[j].seq |> kmers(3) |> set
     let shared = intersection(k1, k2)
-    let similarity = len(shared) |> float / min(len(k1), len(k2)) |> float
+    let similarity = float(len(shared)) / float(min(len(k1), len(k2)))
     print(f"{proteins[i].id} vs {proteins[j].id}: {(similarity * 100.0) |> round(1)}% k-mer similarity")
   }
 }</code></pre>
@@ -247,11 +251,11 @@ let conservation = range(0, n_cols) |> map(|col| {
 })
 
 let n_conserved = conservation |> filter(|c| { c >= 0.9 }) |> len
-let n_variable = conservation |> filter(|c| { c < 0.5 }) |> len
+let n_variable = conservation |> filter(|c| { c &lt; 0.5 }) |> len
 
 print(f"MSA columns: {n_cols}")
 print(f"Highly conserved (>=90%): {n_conserved}")
-print(f"Variable (<50%): {n_variable}")
+print(f"Variable (&lt;50%): {n_variable}")
 print(f"Overall conservation: {conservation |> mean |> round(3)}")</code></pre>
 
       </article>

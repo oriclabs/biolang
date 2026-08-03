@@ -409,7 +409,8 @@ if result.p_value < 0.05 {
 
 ### Complete Workflow: Gene Expression Across Tissues
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # FOXP3 expression across immune cell types
 let t_reg  = [8.5, 9.2, 8.8, 9.5, 8.1, 9.0, 8.7, 9.3]
 let t_eff  = [3.2, 3.8, 3.5, 4.1, 2.9, 3.6, 3.3, 3.9]

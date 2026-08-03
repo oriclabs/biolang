@@ -16,7 +16,11 @@ pub struct SqliteDb {
 fn extract_db(val: &Value) -> Result<&SqliteDb> {
     match val {
         Value::CompiledClosure(any) => any.downcast_ref::<SqliteDb>().ok_or_else(|| {
-            BioLangError::runtime(ErrorKind::TypeError, "expected a SQLite database handle", None)
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "expected a SQLite database handle",
+                None,
+            )
         }),
         _ => Err(BioLangError::runtime(
             ErrorKind::TypeError,
@@ -265,7 +269,7 @@ fn builtin_sql_insert(args: Vec<Value>) -> Result<Value> {
             let mut total = 0usize;
             {
                 let mut stmt = tx.prepare(&sql).map_err(sql_err)?;
-                for rec in records {
+                for rec in records.iter() {
                     let map = match rec {
                         Value::Record(m) => m,
                         _ => {
@@ -312,7 +316,7 @@ fn builtin_sql_tables(args: Vec<Value>) -> Result<Value> {
         .map_err(sql_err)?
         .filter_map(|r| r.ok())
         .collect();
-    Ok(Value::List(names))
+    Ok(Value::List((names).into()))
 }
 
 // ── sql_schema(db, table_name) ───────────────────────────────────
@@ -375,6 +379,7 @@ fn builtin_sql_close(_args: Vec<Value>) -> Result<Value> {
 // ── is_db(value) ─────────────────────────────────────────────────
 
 fn builtin_is_db(args: Vec<Value>) -> Result<Value> {
-    let is = matches!(&args[0], Value::CompiledClosure(any) if any.downcast_ref::<SqliteDb>().is_some());
+    let is =
+        matches!(&args[0], Value::CompiledClosure(any) if any.downcast_ref::<SqliteDb>().is_some());
     Ok(Value::Bool(is))
 }

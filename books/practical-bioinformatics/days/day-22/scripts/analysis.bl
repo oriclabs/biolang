@@ -73,12 +73,13 @@ fn process_sample(file_path, config) {
     let t = timer_start()
     let reads = read_fastq(file_path)
     let total_count = len(reads)
-    let filtered = reads |> quality_filter(config.min_quality)
-    let length_filtered = filtered |> filter(|r| len(r.seq) >= config.min_length)
+    let length_filtered = reads |> filter(|r| {
+        len(r.seq) >= config.min_length and mean_phred(r.quality) >= config.min_quality
+    })
     let pass_count = len(length_filtered)
     let gc_values = length_filtered |> map(|r| gc_content(r.seq))
     let lengths = length_filtered |> map(|r| len(r.seq))
-    let qualities = length_filtered |> map(|r| mean(r.qual))
+    let qualities = length_filtered |> map(|r| mean_phred(r.quality))
     {
         file: file_path,
         total_reads: total_count,

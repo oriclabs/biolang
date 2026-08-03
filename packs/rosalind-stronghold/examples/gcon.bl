@@ -1,0 +1,73 @@
+# Rosalind: GCON — Global Alignment with Constant Gap Penalty
+# https://rosalind.info/problems/gcon/
+#
+# Given: Two protein strings.
+# Return: The maximum global alignment score using BLOSUM62 and a constant gap
+# penalty of 5 — a run of gaps costs 5 however long it is.
+
+let s = "PLEASANTLY"
+let t = "MEANLY"
+let gap_open = -5.0
+let gap_extend = 0.0
+
+let blosum = score_matrix("blosum62")
+let residues = blosum.row_names
+let width = blosum.ncol
+
+fn residue_index(names, ch) {
+    (range(0, len(names)) |> filter(|i| names[i] == ch))[0]
+}
+
+fn substitution(mat, names, cols, a, b) {
+    mat.data[residue_index(names, a) * cols + residue_index(names, b)]
+}
+
+# The affine recurrence with a zero extension cost: opening a gap is charged
+# once and continuing it is free, which is exactly "constant".
+fn constant_gap_score(a, b, mat, names, cols, open_penalty, extend_penalty) {
+    let n = len(b)
+    let very_low = -1000000.0
+
+    let prev_m = concat([0.0], range(1, n + 1) |> map(|_| very_low))
+    let prev_x = concat([very_low], range(1, n + 1) |> map(|_| very_low))
+    let prev_y = concat([very_low], range(1, n + 1) |> map(|_| open_penalty))
+
+    let i = 1
+    while i <= len(a) {
+        let ai = substr(a, i - 1, 1)
+        let row_m = [very_low]
+        let row_x = [open_penalty]
+        let row_y = [very_low]
+
+        let j = 1
+        while j <= n {
+            let sub = substitution(mat, names, cols, ai, substr(b, j - 1, 1))
+            let best_prev = max([prev_m[j - 1], prev_x[j - 1], prev_y[j - 1]])
+            row_m = push(row_m, best_prev + sub)
+            row_x = push(row_x, max([prev_m[j] + open_penalty, prev_x[j] + extend_penalty]))
+            row_y = push(row_y, max([row_m[j - 1] + open_penalty, row_y[j - 1] + extend_penalty]))
+            j = j + 1
+        }
+
+        prev_m = row_m
+        prev_x = row_x
+        prev_y = row_y
+        i = i + 1
+    }
+
+    max([prev_m[n], prev_x[n], prev_y[n]])
+}
+
+let result = constant_gap_score(s, t, blosum, residues, width, gap_open, gap_extend)
+
+println("Result:   " + str(int(result)))
+println("Expected: 13 — the same pair scores 8 under GLOB's per-residue gap of 5,")
+println("          so charging the four-residue gap once instead of four times")
+println("          recovers 3 x 5 = 15 minus the 10 already counted.")
+
+fn test_gcon_constant_gap_alignment() {
+    assert int(result) == 13, "GCON: got " + str(result)
+    # A constant gap penalty can never score worse than the linear one, which
+    # charges the same opening plus more for every extra residue.
+    assert int(result) >= 8, "GCON: scored below the linear-gap result"
+}

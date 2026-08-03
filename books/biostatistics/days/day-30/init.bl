@@ -4,7 +4,7 @@
 #   (DIAbetes Genetics Replication And Meta-analysis, DIAGRAM consortium)
 #   50 true association loci with published odds ratios and chromosomal positions
 #   Gene names, rs IDs, and effect sizes from published T2D GWAS catalog
-#   499,950 null SNPs generated programmatically with uniform p-value distribution
+#   49,950 null SNPs generated programmatically with uniform p-value distribution
 
 println("Setting up Day 30: Capstone — GWAS Analysis")
 mkdir("data")
@@ -22,7 +22,7 @@ let study_lines = [
     "lambda_gc,1.02",
     "source,Simulated_based_on_Mahajan_2018_NatGenet"
 ]
-write_lines(study_lines, "data/sample_info.csv")
+write_lines("data/sample_info.csv", study_lines)
 
 # ── 50 true T2D GWAS associations ──
 # Real loci from Mahajan et al. 2018, DIAGRAM consortium, and GWAS Catalog
@@ -128,24 +128,24 @@ let true_loci = [
 ]
 
 # ── Build the full GWAS summary stats ──
-println("Generating 500,000 SNP summary statistics...")
+println("Generating a 50,000-SNP teaching subset...")
 
 let header = "snp_id,chr,position,ref,alt,maf,beta,se,p_value,odds_ratio,true_association"
 let lines = [header]
 
 # Write 50 true associations first
 for locus in true_loci {
-    lines = append(lines, locus + ",1")
+    lines = push(lines, locus + ",1")
 }
 println("  50 true T2D loci written (from Mahajan et al. 2018)")
 
-# ── Generate 499,950 null SNPs programmatically ──
-println("  Generating 499,950 null SNPs...")
+# ── Generate 49,950 null SNPs programmatically ──
+println("  Generating 49,950 null SNPs...")
 
 let ref_alleles = ["A", "C", "G", "T"]
 let alt_alleles = ["T", "G", "A", "C"]
 
-for i in range(0, 499950) {
+let null_rows = range(0, 49950) |> map(|i| {
     # Deterministic pseudo-random values
     let seed1 = (i * 2654435761 + 12345) % 2147483647
     let seed2 = (i * 1664525 + 1013904223) % 2147483647
@@ -174,16 +174,17 @@ for i in range(0, 499950) {
     let ref_al = ref_alleles[ref_idx]
     let alt_al = alt_alleles[alt_idx]
 
-    lines = append(lines, f"{snp_id},{chr},{pos},{ref_al},{alt_al},{maf},{beta},{se},{p_val},{or_val},0")
-}
+    f"{snp_id},{chr},{pos},{ref_al},{alt_al},{maf},{beta},{se},{p_val},{or_val},0"
+})
+lines = lines + null_rows
 
-write_lines(lines, "data/gwas_summary.csv")
+write_lines("data/gwas_summary.csv", lines)
 
 println("")
 println("Created data/sample_info.csv")
 println("  Study metadata: 5,000 cases + 5,000 controls, European ancestry")
 println("Created data/gwas_summary.csv")
-println("  500,000 SNPs total")
+println("  50,000 SNPs in the local teaching subset")
 println("  50 true T2D associations from Mahajan et al. 2018 / DIAGRAM")
 println("  Loci include: TCF7L2, PPARG, KCNJ11, FTO, SLC30A8, CDKN2A/B, etc.")
-println("  499,950 null SNPs with uniform p-value distribution")
+println("  49,950 null SNPs with uniform p-value distribution")

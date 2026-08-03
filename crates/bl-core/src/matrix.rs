@@ -67,7 +67,9 @@ impl Matrix {
     }
 
     pub fn col(&self, j: usize) -> Vec<f64> {
-        (0..self.nrow).map(|i| self.data[i * self.ncol + j]).collect()
+        (0..self.nrow)
+            .map(|i| self.data[i * self.ncol + j])
+            .collect()
     }
 
     pub fn transpose(&self) -> Self {
@@ -90,7 +92,12 @@ impl Matrix {
         if self.nrow != other.nrow || self.ncol != other.ncol {
             return Err("dimension mismatch for add".into());
         }
-        let data: Vec<f64> = self.data.iter().zip(&other.data).map(|(a, b)| a + b).collect();
+        let data: Vec<f64> = self
+            .data
+            .iter()
+            .zip(&other.data)
+            .map(|(a, b)| a + b)
+            .collect();
         Ok(Self {
             data,
             nrow: self.nrow,
@@ -104,7 +111,12 @@ impl Matrix {
         if self.nrow != other.nrow || self.ncol != other.ncol {
             return Err("dimension mismatch for sub".into());
         }
-        let data: Vec<f64> = self.data.iter().zip(&other.data).map(|(a, b)| a - b).collect();
+        let data: Vec<f64> = self
+            .data
+            .iter()
+            .zip(&other.data)
+            .map(|(a, b)| a - b)
+            .collect();
         Ok(Self {
             data,
             nrow: self.nrow,
@@ -118,7 +130,12 @@ impl Matrix {
         if self.nrow != other.nrow || self.ncol != other.ncol {
             return Err("dimension mismatch for mul".into());
         }
-        let data: Vec<f64> = self.data.iter().zip(&other.data).map(|(a, b)| a * b).collect();
+        let data: Vec<f64> = self
+            .data
+            .iter()
+            .zip(&other.data)
+            .map(|(a, b)| a * b)
+            .collect();
         Ok(Self {
             data,
             nrow: self.nrow,
@@ -196,7 +213,10 @@ impl Matrix {
     /// Matrix trace (sum of diagonal elements). Requires square matrix.
     pub fn trace(&self) -> Result<f64, String> {
         if self.nrow != self.ncol {
-            return Err(format!("trace requires square matrix, got {}x{}", self.nrow, self.ncol));
+            return Err(format!(
+                "trace requires square matrix, got {}x{}",
+                self.nrow, self.ncol
+            ));
         }
         Ok((0..self.nrow).map(|i| self.get(i, i)).sum())
     }
@@ -210,7 +230,10 @@ impl Matrix {
     #[allow(clippy::needless_range_loop)]
     pub fn determinant(&self) -> Result<f64, String> {
         if self.nrow != self.ncol {
-            return Err(format!("determinant requires square matrix, got {}x{}", self.nrow, self.ncol));
+            return Err(format!(
+                "determinant requires square matrix, got {}x{}",
+                self.nrow, self.ncol
+            ));
         }
         let n = self.nrow;
         if n == 0 {
@@ -254,7 +277,10 @@ impl Matrix {
     #[allow(clippy::needless_range_loop)]
     pub fn inverse(&self) -> Result<Self, String> {
         if self.nrow != self.ncol {
-            return Err(format!("inverse requires square matrix, got {}x{}", self.nrow, self.ncol));
+            return Err(format!(
+                "inverse requires square matrix, got {}x{}",
+                self.nrow, self.ncol
+            ));
         }
         let n = self.nrow;
         // Augmented matrix [A | I]
@@ -309,10 +335,17 @@ impl Matrix {
     #[allow(clippy::needless_range_loop)]
     pub fn solve(&self, b: &[f64]) -> Result<Vec<f64>, String> {
         if self.nrow != self.ncol {
-            return Err(format!("solve requires square matrix, got {}x{}", self.nrow, self.ncol));
+            return Err(format!(
+                "solve requires square matrix, got {}x{}",
+                self.nrow, self.ncol
+            ));
         }
         if b.len() != self.nrow {
-            return Err(format!("solve: b length {} != matrix rows {}", b.len(), self.nrow));
+            return Err(format!(
+                "solve: b length {} != matrix rows {}",
+                b.len(),
+                self.nrow
+            ));
         }
         let n = self.nrow;
         // Augmented [A | b]
@@ -364,7 +397,10 @@ impl Matrix {
     #[allow(clippy::needless_range_loop)]
     pub fn eigen(&self) -> Result<(Vec<f64>, Self), String> {
         if self.nrow != self.ncol {
-            return Err(format!("eigen requires square matrix, got {}x{}", self.nrow, self.ncol));
+            return Err(format!(
+                "eigen requires square matrix, got {}x{}",
+                self.nrow, self.ncol
+            ));
         }
         let n = self.nrow;
         if n == 0 {
@@ -435,11 +471,18 @@ impl Matrix {
         let (eigenvalues, v_mat) = ata.eigen()?;
 
         // Singular values = sqrt of eigenvalues (clamp negatives from numerical error)
-        let singular_unsorted: Vec<f64> = eigenvalues.iter().map(|&e| if e > 0.0 { e.sqrt() } else { 0.0 }).collect();
+        let singular_unsorted: Vec<f64> = eigenvalues
+            .iter()
+            .map(|&e| if e > 0.0 { e.sqrt() } else { 0.0 })
+            .collect();
 
         // Sort by descending singular value
         let mut indices: Vec<usize> = (0..n).collect();
-        indices.sort_by(|&a, &b| singular_unsorted[b].partial_cmp(&singular_unsorted[a]).unwrap_or(std::cmp::Ordering::Equal));
+        indices.sort_by(|&a, &b| {
+            singular_unsorted[b]
+                .partial_cmp(&singular_unsorted[a])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         let singular: Vec<f64> = indices.iter().map(|&i| singular_unsorted[i]).collect();
 
@@ -482,9 +525,7 @@ fn qr_decompose(a: &[Vec<f64>], n: usize) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
     let mut r = vec![vec![0.0; n]; n];
 
     // Get columns of A
-    let cols: Vec<Vec<f64>> = (0..n)
-        .map(|j| (0..n).map(|i| a[i][j]).collect())
-        .collect();
+    let cols: Vec<Vec<f64>> = (0..n).map(|j| (0..n).map(|i| a[i][j]).collect()).collect();
 
     for j in 0..n {
         let mut u = cols[j].clone();
@@ -505,9 +546,7 @@ fn qr_decompose(a: &[Vec<f64>], n: usize) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
     }
 
     // Convert Q from column-storage to row-storage
-    let q_rows: Vec<Vec<f64>> = (0..n)
-        .map(|i| (0..n).map(|j| q[i][j]).collect())
-        .collect();
+    let q_rows: Vec<Vec<f64>> = (0..n).map(|i| (0..n).map(|j| q[i][j]).collect()).collect();
     (q_rows, r)
 }
 

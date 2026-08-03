@@ -1,0 +1,212 @@
+# singlecell/src/preprocess.bl — QC, normalization, and embedding
+#
+# Wraps core singlecell builtins for the common Seurat-style workflow:
+#   filter_cells → normalize → variable_genes → scale → neighbors → cluster
+
+## qc(obj) → Record
+##
+## Compute per-cell and per-gene QC metrics, adding them to obj.
+##   obj.cell_qc_table — Table{cell_idx, total_counts, n_genes, pct_mito}
+##   obj.gene_qc_table — Table{gene_idx, n_cells, mean_expression, pct_dropout}
+fn qc(obj) {
+    let cqc = cell_qc(obj.matrix, obj.genes)
+    let gqc = gene_qc(obj.matrix, obj.genes)
+    {... obj, cell_qc_table: cqc, gene_qc_table: gqc}
+}
+
+## filter_cells(obj, min_genes, max_genes, max_pct_mito) → Record
+##
+## Keep cells with gene counts in [min_genes, max_genes] and
+## mitochondrial fraction ≤ max_pct_mito.
+## Computes QC metrics on demand (does not require qc() to be called first).
+fn filter_cells(obj, min_genes = 200, max_genes = 5000, max_pct_mito = 25.0) {
+    let metrics = cell_qc(obj.matrix, obj.genes)
+    let detected = col(metrics, "n_genes")
+    let pct_mito = col(metrics, "pct_mito")
+    let keep_idx = range(0, obj.n_cells) |> filter(|i| {
+        detected[i] >= min_genes and detected[i] <= max_genes and
+            pct_mito[i] <= max_pct_mito
+    })
+    sc_subset_cells(obj, keep_idx)
+}
+
+## filter_genes(obj, min_cells) → Record
+##
+## Keep genes expressed in at least min_cells cells.
+fn filter_genes(obj, min_cells = 3) {
+    let metrics = gene_qc(obj.matrix, obj.genes)
+    let detected = col(metrics, "n_cells")
+    let keep_gene_idx = range(0, obj.n_genes)
+        |> filter(|j| detected[j] >= min_cells)
+    sc_subset_genes(obj, keep_gene_idx)
+}
+
+## normalize(obj, target) → Record
+##
+## Library-size normalisation (counts per target) followed by log1p.
+## Adds obj.norm_matrix (cells × genes).
+fn normalize(obj, target = 10000.0) {
+    let norm = normalize_total(obj.matrix, target) |> log1p_transform()
+    # Objects from other packages (atac.activity, velocity) carry the core
+    # fields but not always `layers`, so seed it from the raw counts rather
+    # than failing on a field the producer was never required to set.
+    let base = if contains(keys(obj), "layers") { obj.layers } else { {counts: obj.matrix} }
+    {... obj,
+        norm_matrix: norm,
+        layers: {... base, lognorm: norm}
+    }
+}
+
+## sctransform(obj) → Record
+##
+## Regularised negative-binomial regression (Pearson residuals),
+## clipped at ±sqrt(n_cells). Adds obj.norm_matrix.
+fn sctransform(obj) {
+    let residuals = sc_sctransform(obj.matrix)
+    {... obj, norm_matrix: residuals}
+}
+
+## variable_genes(obj, n) → Record
+##
+## Select the top n highly variable genes by dispersion (squared coefficient of
+## variation, variance / mean²) computed on norm_matrix. Genes are ranked
+## globally, without binning by mean expression, so selection favours
+## low-expression genes more than scanpy's `seurat` flavour or Seurat's VST.
+## Compare downstream structure across tools, not the gene lists themselves.
+##
+## Adds obj.hvg (List<Int>), obj.hvg_matrix (cells × HVGs),
+## and obj.hvg_genes (List<Str>).
+fn variable_genes(obj, n = 2000) {
+    let mat = obj.norm_matrix
+    let hvg_idx  = highly_variable_genes(mat, n)
+    let hvg_mat  = select_cols(mat, hvg_idx)
+    let hvg_g    = hvg_idx |> map(|j| obj.genes[j])
+    {... obj, hvg: hvg_idx, hvg_matrix: hvg_mat, hvg_genes: hvg_g}
+}
+
+## run_pca(obj, n_pcs) -> Record
+##
+## Compute PCA from HVGs, normalized values, or raw counts, in that order.
+## Sparse inputs remain sparse; only the compact cells-by-components score
+## matrix is materialized.
+##
+## Batch correction happens after this step, not before: `integrate` corrects
+## the scores this produces, and `neighbors` then prefers the corrected
+## embedding. Re-running run_pca on an integrated object recomputes from
+## expression and discards the correction.
+fn run_pca(obj, n_pcs = 50) {
+    let k = keys(obj)
+    let mat = if contains(k, "hvg_matrix") {
+        obj.hvg_matrix
+    } else if contains(k, "norm_matrix") {
+        obj.norm_matrix
+    } else {
+        obj.matrix
+    }
+    let result = sc_pca(mat, n_pcs)
+    {... obj,
+        pca: result,
+        pca_scores: result.scores,
+        pca_loadings: result.loadings
+    }
+}
+
+## scale(obj) → Record
+##
+## Per-gene mean-centering and unit-variance scaling of norm_matrix. Adds
+## obj.scaled_matrix (cells × genes).
+##
+## Dense only. Centering destroys sparsity — a scaled 10x matrix is a dense
+## n_cells × n_genes array — so this raises rather than quietly densifying an
+## object loaded from a 10x directory. run_pca centers mathematically without
+## materializing that array and is what production workflows should use.
+fn scale(obj) {
+    if not contains(keys(obj), "norm_matrix") {
+        error("sc.scale() needs normalized values — call sc.normalize() first")
+    }
+    if typeof(obj.norm_matrix) == "SparseMatrix" {
+        error("sc.scale() is dense-only and this object's matrix is sparse " +
+              "(" + str(obj.n_cells) + " cells x " + str(obj.n_genes) + " genes). " +
+              "Scaling would materialize every zero. Use sc.run_pca(), which " +
+              "centers without densifying.")
+    }
+    let mat = obj.norm_matrix
+    let n_c = len(mat)
+    let n_g = if n_c > 0 then len(mat[0]) else 0
+
+    let gene_means = range(0, n_g) |> map(|j|
+        mean(range(0, n_c) |> map(|i| mat[i][j]))
+    )
+    let gene_stds = range(0, n_g) |> map(|j| {
+        let m  = gene_means[j]
+        let sq = range(0, n_c) |> map(|i| (mat[i][j] - m) ** 2.0)
+        sqrt(mean(sq) + 1e-8)
+    })
+
+    let scaled = mat |> map(|row|
+        range(0, n_g) |> map(|j| (row[j] - gene_means[j]) / gene_stds[j])
+    )
+    {... obj, scaled_matrix: scaled}
+}
+
+## The embedding downstream steps should cluster on: the batch-corrected one
+## when `integrate` has run, otherwise the raw PCA scores. Every consumer must
+## agree on this, or the same object gives different answers depending on which
+## step you call.
+fn embedding_of(obj) {
+    if contains(keys(obj), "integrated_embedding") {
+        return obj.integrated_embedding
+    }
+    obj.pca_scores
+}
+
+## neighbors(obj, k) → Record
+##
+## Build a k-nearest-neighbour graph on the PCA scores, or on the integrated
+## embedding when `integrate` has run. Runs run_pca first if needed.
+## Adds obj.knn (List<Record{source, target, distance}>).
+##
+## Exact search, so cost is quadratic in n_cells.
+fn neighbors(obj, k = 15) {
+    let prepared = if contains(keys(obj), "pca_scores") {
+        obj
+    } else {
+        run_pca(obj)
+    }
+    let graph = knn_graph(embedding_of(prepared), k)
+    {... prepared, knn: graph, n_neighbors: k}
+}
+
+## cluster(obj, k) → Record
+##
+## k-means on the same embedding `neighbors` uses. When k is 0 (the default) it
+## is chosen from the cell count: 2 / 5 / 10 / 20 for <=20, <=100, <=400, and
+## larger objects. That is a placeholder, not an estimate — pass k explicitly,
+## or prefer cluster_leiden, which discovers the count from the graph.
+##
+## Adds obj.clusters (List<Int>) and obj.cluster_inertia (Float).
+fn cluster(obj, k = 0) {
+    let prepared = if contains(keys(obj), "pca_scores") { obj } else { run_pca(obj) }
+    let embed = embedding_of(prepared)
+    let n_c   = len(embed)
+    let k_act = if k > 0 then k
+                else if n_c > 400 then 20
+                else if n_c > 100 then 10
+                else if n_c > 20  then 5
+                else 2
+    let result = kmeans(embed, k_act)
+    {... prepared, clusters: result.clusters, cluster_inertia: result.inertia}
+}
+
+## cluster_leiden(obj, k, resolution) → Record
+##
+## Community-detection clustering with the real Leiden algorithm (local moving
+## + refinement + aggregation) on a symmetric kNN graph of the HVG embedding.
+## Unlike `cluster` (k-means), the number of clusters is discovered from the
+## data and every community is guaranteed internally connected.
+## Adds obj.clusters (List<Int>).
+fn cluster_leiden(obj, k = 15, resolution = 1.0) {
+    let prepared = if contains(keys(obj), "knn") { obj } else { neighbors(obj, k) }
+    let clusters = leiden_graph(prepared.knn, prepared.n_cells, resolution)
+    {... prepared, clusters: clusters, resolution: resolution}
+}

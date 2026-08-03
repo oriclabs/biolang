@@ -14,6 +14,12 @@ pub struct Checker {
     warnings: Vec<TypeWarning>,
 }
 
+impl Default for Checker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Checker {
     pub fn new() -> Self {
         Self {
@@ -50,9 +56,7 @@ impl Checker {
                     }
                 }
             }
-            Stmt::Fn {
-                params, body, ..
-            } => {
+            Stmt::Fn { params, body, .. } => {
                 // Check param defaults against annotations
                 for p in params {
                     if let (Some(ann), Some(default)) = (&p.type_ann, &p.default) {

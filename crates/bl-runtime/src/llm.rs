@@ -66,8 +66,7 @@ fn detect_provider() -> Result<LlmConfig> {
 
     // 2. OpenAI
     if let Ok(key) = std::env::var("OPENAI_API_KEY") {
-        let model =
-            std::env::var("OPENAI_MODEL").unwrap_or_else(|_| "gpt-4o".to_string());
+        let model = std::env::var("OPENAI_MODEL").unwrap_or_else(|_| "gpt-4o".to_string());
         let base = std::env::var("OPENAI_BASE_URL")
             .unwrap_or_else(|_| "https://api.openai.com".to_string());
         return Ok(LlmConfig {
@@ -128,7 +127,7 @@ fn format_context(val: &Value) -> String {
         Value::Record(m) | Value::Map(m) => {
             // Pretty-print record as key: value lines
             let mut lines = Vec::new();
-            for (k, v) in m {
+            for (k, v) in m.iter() {
                 lines.push(format!("{k}: {v}"));
             }
             lines.join("\n")
@@ -175,7 +174,8 @@ fn call_anthropic(config: &LlmConfig, system: &str, user_msg: &str) -> Result<St
         ]
     });
 
-    let resp = crate::http::shared_agent().post(&url)
+    let resp = crate::http::shared_agent()
+        .post(&url)
         .set("x-api-key", &config.api_key)
         .set("anthropic-version", "2023-06-01")
         .set("content-type", "application/json")
@@ -205,7 +205,11 @@ fn call_anthropic(config: &LlmConfig, system: &str, user_msg: &str) -> Result<St
     })?;
 
     // Extract text from content[0].text
-    if let Some(err_msg) = json.get("error").and_then(|e| e.get("message")).and_then(serde_json::Value::as_str) {
+    if let Some(err_msg) = json
+        .get("error")
+        .and_then(|e| e.get("message"))
+        .and_then(serde_json::Value::as_str)
+    {
         return Err(BioLangError::runtime(
             ErrorKind::IOError,
             format!("Anthropic API error: {err_msg}"),
@@ -246,7 +250,9 @@ fn call_openai_compatible(config: &LlmConfig, system: &str, user_msg: &str) -> R
         ]
     });
 
-    let mut req = crate::http::shared_agent().post(&url).set("content-type", "application/json");
+    let mut req = crate::http::shared_agent()
+        .post(&url)
+        .set("content-type", "application/json");
     if !config.api_key.is_empty() {
         req = req.set("authorization", &format!("Bearer {}", config.api_key));
     }
@@ -411,11 +417,13 @@ fn builtin_llm_models() -> Result<Value> {
         Value::Str("OPENAI_BASE_URL — custom OpenAI endpoint".into()),
         Value::Str("OLLAMA_MODEL — Ollama (local, no key needed)".into()),
         Value::Str("OLLAMA_BASE_URL — override (default: http://localhost:11434)".into()),
-        Value::Str("LLM_BASE_URL + LLM_API_KEY + LLM_MODEL — any OpenAI-compatible provider".into()),
+        Value::Str(
+            "LLM_BASE_URL + LLM_API_KEY + LLM_MODEL — any OpenAI-compatible provider".into(),
+        ),
     ];
-    rec.insert("env_vars".to_string(), Value::List(env_vars));
+    rec.insert("env_vars".to_string(), Value::List((env_vars).into()));
 
-    Ok(Value::Record(rec))
+    Ok(Value::Record((rec).into()))
 }
 
 // ── Tests ────────────────────────────────────────────────────────
@@ -423,6 +431,20 @@ fn builtin_llm_models() -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The three tests that follow set and clear the same process-wide
+    /// environment variables. Cargo runs a crate's tests in parallel threads of
+    /// one process, so without serialising them one test clears a key while
+    /// another is midway through checking it, and the suite failed about one run
+    /// in three. Poisoning is stepped over deliberately: if one of them panics
+    /// the others should still report their own result rather than all fail.
+    static ENV_GUARD: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn lock_env() -> std::sync::MutexGuard<'static, ()> {
+        ENV_GUARD
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 
     #[test]
     fn test_llm_models_no_provider() {
@@ -441,6 +463,7 @@ mod tests {
 
     #[test]
     fn test_chat_no_provider_gives_clear_error() {
+        let _env = lock_env();
         // Ensure no keys are set for this test
         let saved_anthropic = std::env::var("ANTHROPIC_API_KEY").ok();
         let saved_openai = std::env::var("OPENAI_API_KEY").ok();
@@ -477,18 +500,19 @@ mod tests {
     fn test_format_context_record() {
         let mut m = HashMap::new();
         m.insert("exit_code".to_string(), Value::Int(1));
-        m.insert("stderr".to_string(), Value::Str("error: file not found".into()));
-        let ctx = format_context(&Value::Record(m));
+        m.insert(
+            "stderr".to_string(),
+            Value::Str("error: file not found".into()),
+        );
+        let ctx = format_context(&Value::Record((m).into()));
         assert!(ctx.contains("exit_code: 1"));
         assert!(ctx.contains("error: file not found"));
     }
 
     #[test]
     fn test_format_context_list() {
-        let list = Value::List(vec![
-            Value::Str("line1".into()),
-            Value::Str("line2".into()),
-        ]);
+        let list =
+            Value::List((vec![Value::Str("line1".into()), Value::Str("line2".into())]).into());
         let ctx = format_context(&list);
         assert_eq!(ctx, "line1\nline2");
     }
@@ -514,6 +538,7 @@ mod tests {
 
     #[test]
     fn test_detect_provider_anthropic() {
+        let _env = lock_env();
         let saved = std::env::var("ANTHROPIC_API_KEY").ok();
         std::env::set_var("ANTHROPIC_API_KEY", "test-key-123");
 
@@ -534,7 +559,9 @@ mod tests {
     fn test_chat_live() {
         let result = call_llm_builtin(
             "chat",
-            vec![Value::Str("What does gc_content() do in BioLang? One sentence.".into())],
+            vec![Value::Str(
+                "What does gc_content() do in BioLang? One sentence.".into(),
+            )],
         )
         .unwrap();
         if let Value::Str(s) = &result {
@@ -568,7 +595,7 @@ mod tests {
         let ctx = format_context(&Value::Nil);
         // Nil formatted via Display
         assert!(!ctx.is_empty() || ctx.is_empty()); // Just ensure no panic
-        // The Display impl for Nil typically prints "nil" or ""
+                                                    // The Display impl for Nil typically prints "nil" or ""
     }
 
     // Edge case: format_context with a string
@@ -582,10 +609,7 @@ mod tests {
     #[test]
     fn test_build_user_message_long_context() {
         let long_ctx = "x".repeat(100_000);
-        let args = vec![
-            Value::Str("analyze".into()),
-            Value::Str(long_ctx.clone()),
-        ];
+        let args = vec![Value::Str("analyze".into()), Value::Str(long_ctx.clone())];
         let msg = build_user_message("analyze", &args);
         assert!(msg.contains("--- Context ---"));
         assert!(msg.len() > 100_000);
@@ -595,6 +619,7 @@ mod tests {
     // Edge case: detect_provider with no env vars set returns Err
     #[test]
     fn test_detect_provider_no_env_vars() {
+        let _env = lock_env();
         // Save and clear all provider env vars
         let saved = [
             ("ANTHROPIC_API_KEY", std::env::var("ANTHROPIC_API_KEY").ok()),
@@ -622,14 +647,14 @@ mod tests {
     // Edge case: format_context with empty record
     #[test]
     fn test_format_context_empty_record() {
-        let ctx = format_context(&Value::Record(HashMap::new()));
+        let ctx = format_context(&Value::Record((HashMap::new()).into()));
         assert!(ctx.is_empty());
     }
 
     // Edge case: format_context with empty list
     #[test]
     fn test_format_context_empty_list() {
-        let ctx = format_context(&Value::List(vec![]));
+        let ctx = format_context(&Value::List((vec![]).into()));
         assert!(ctx.is_empty());
     }
 

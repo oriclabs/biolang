@@ -1,0 +1,17 @@
+[package]
+name = "singlecell"
+version = "0.2.0"
+description = "Single-cell RNA-seq analysis, donor-aware statistics, diagnostics, and publication-ready visualization"
+authors = ["BioLang Contributors"]
+license = "MIT"
+keywords = ["scrna-seq", "seurat", "clustering", "pseudotime", "10x"]
+categories = ["bioinformatics", "genomics", "single-cell"]
+homepage = "https://biolang.dev/docs/bio/singlecell"
+repository = "https://github.com/biolang/packages/singlecell"
+readme = "README.md"
+
+[dependencies]
+# Uses BioLang core builtins only.
+
+[lib]
+entry = "src/mod.bl"

@@ -1,0 +1,31 @@
+# Rosalind: KMP — Speeding Up Motif Finding
+# https://rosalind.info/problems/kmp/
+#
+# Given: A DNA string s.
+# Return: The failure array of s: for each prefix, the length of the longest
+# proper prefix that is also a suffix of it.
+
+let s = "CAGCATGGTATCACAGCAGAG"
+
+# The Knuth-Morris-Pratt construction: extend the previous border where the
+# next character agrees, otherwise fall back through shorter borders.
+let failure = [0]
+let border = 0
+let i = 1
+while i < len(s) {
+    while border > 0 and substr(s, i, 1) != substr(s, border, 1) {
+        border = failure[border - 1]
+    }
+    if substr(s, i, 1) == substr(s, border, 1) then border = border + 1
+    failure = push(failure, border)
+    i = i + 1
+}
+
+let formatted = failure |> map(|v| str(v)) |> join(" ")
+
+println("Result:   " + formatted)
+println("Expected: 0 0 0 1 2 0 0 0 0 0 0 1 2 1 2 3 4 5 3 0 0")
+
+fn test_kmp_failure_array() {
+    assert formatted == "0 0 0 1 2 0 0 0 0 0 0 1 2 1 2 3 4 5 3 0 0", "KMP: got " + formatted
+}

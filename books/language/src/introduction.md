@@ -1,6 +1,6 @@
 # Introduction
 
-> **Download PDF**: [The BioLang Programming Language (PDF)](the-biolang-book.pdf)
+> **Download PDF**: [The BioLang Programming Language (PDF)](../pdf/output.pdf)
 
 BioLang is a domain-specific language built for bioinformatics. It is not a general-purpose language that happens to have biology libraries — every feature, from its type system to its operators, exists because bioinformatics workflows demand it.
 
@@ -125,7 +125,9 @@ Or use the interactive REPL:
 bl repl
 ```
 
-Every code block in this book is valid BioLang. Copy, paste, run.
+Every block labeled `biolang` or `bio` is syntax-checked against the current
+BioLang parser. Conceptual workflows and deliberate error demonstrations are
+labeled as text rather than executable BioLang.
 
 ### Sample Data
 

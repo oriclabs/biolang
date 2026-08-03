@@ -413,7 +413,7 @@ print(f"Found {len(gene_ids)} genes")
 let chunk_size = 10
 let chunks = chunk(gene_ids, chunk_size)
 
-for i, batch in enumerate(chunks) {
+for [i, batch] in enumerate(chunks) {
   let summaries = ncbi_summary(batch, "gene")
   print(f"Batch {i + 1}: processed {len(summaries)} genes")
   sleep(500)  # half-second pause between batches

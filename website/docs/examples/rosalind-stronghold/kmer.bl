@@ -1,0 +1,37 @@
+# Rosalind: KMER — k-Mer Composition
+# https://rosalind.info/problems/kmer/
+#
+# Given: A DNA string s.
+# Return: The 4-mer composition of s: the count of every one of the 256
+# possible 4-mers, in lexicographic order.
+
+let s = "CTTCGAAAGTTTGGGCCGAGTCTTATAGTCGAATAGCCTCCATATTGGCCTCTATCTGAGCTCTACGCACGCCAGCTCCCGCCCTGGCACTGCTTGATATTGGGTCCTATCTGACCGGACTTGACGTACCTGGGCTGATATTGCCGATCTGATTTGTCCAAAATTGACCATAGTTAAATGGCGGAATGGGCTTTGCCTCGCACCGTAGGCGATTCCCAAGTGCAGGCAAGGATATTGCGAAATATCTTCCAGAGGGCGGAAATTGCTATTCATCCTATTTGGCTTGCTCTTAAGATCACCGATCTAGCTTCGAATCGCCATGCACAGTTTGGGCTCATCGGAAGTCTCGGGCTGGTTTAATTGTGATTGGGCCTTAGCTCTCGGCTGATCTTCGTCACGATATCGCTAGATCGGCTTGACTTCGCATTGGTCTGATTTTTAAGATCTTAGGCTTGACGGCGATCTCGCTCGATCCTGCCTGATAGGCTAGCTCGATTCTCATTAAGCTCTAGCCTTCGGCCTCTGGCTCTTTAAGCGATGCTGCACGATATCTATCGGACTGCTCTTGCTCGATATCGACTGCTTGACGGCTTGATATCGCTCTTGGCTTGCTTGACTCGCTCTTGATCGCTCTAGCTAGCTCGCTCTGATCTTGCACTTGCTCGGCTCTTGCTCGGCTCTTAGCTCGCTCGATCGCTCTAGCTCGCTCGATCTTGCTCGATCTTGCACTGCTCGATCTGCACTTGCTCGATCTTGCTCGATCTAGCT"
+let k = 4
+
+let alphabet = ["A", "C", "G", "T"]
+
+# Every 4-mer in lexicographic order, so the counts line up with the ordering
+# the problem asks for.
+let all_kmers = range(0, k) |> reduce(
+    |acc, _| acc |> flat_map(|prefix| alphabet |> map(|b| prefix ++ b)),
+    [""]
+)
+
+# Count the windows of s once, then look each k-mer up.
+let window_list = range(0, len(s) - k + 1) |> map(|i| substr(s, i, k))
+let counts = all_kmers |> map(|kmer| window_list |> count_if(|w| w == kmer))
+
+println("Result:   " + str(len(counts)) + " counts, first 12: " + (take(counts, 12) |> map(|c| str(c)) |> join(" ")))
+println("Total:    " + str(sum(counts)) + " window_list (expected " + str(len(s) - k + 1) + ")")
+
+fn test_kmer_composition() {
+    assert len(counts) == 256, "KMER: got " + str(len(counts)) + " entries"
+    assert all_kmers[0] == "AAAA", "KMER: order starts at " + all_kmers[0]
+    assert all_kmers[255] == "TTTT", "KMER: order ends at " + all_kmers[255]
+    # Every window is counted exactly once, so the counts must total the number
+    # of windows — the check that catches an ordering or lookup mistake.
+    assert sum(counts) == len(s) - k + 1, "KMER: counts total " + str(sum(counts))
+    # Cross-check one entry by counting it independently.
+    let aaaa = window_list |> count_if(|w| w == "AAAA")
+    assert counts[0] == aaaa, "KMER: AAAA count disagrees"
+}

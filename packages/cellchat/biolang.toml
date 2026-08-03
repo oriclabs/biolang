@@ -1,0 +1,11 @@
+[package]
+name = "cellchat"
+version = "0.1.0"
+description = "Cell-cell communication analysis via ligand-receptor scoring"
+authors = ["BioLang"]
+
+[dependencies]
+singlecell = { path = "../singlecell" }
+
+[lib]
+entry = "src/mod.bl"

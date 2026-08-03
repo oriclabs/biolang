@@ -134,9 +134,8 @@ let reads = read_fastq("C:/Users/rajba/new_data/reads.fq.gz")</code></pre>
         <pre><code class="language-biolang"># Bad: loads entire file into a list
 let all = read_fastq("big.fastq")
 
-# Good: stream and filter
-let filtered = read_fastq("big.fastq")
-  |> filter_reads(30)</code></pre>
+# Good: filter directly from one FASTQ file to another
+filter_reads("big.fastq", "filtered.fastq", {min_quality: 30})</code></pre>
         <p>
           Streams process one record at a time, so memory usage stays constant regardless of
           file size. Avoid <code>collect()</code> on large datasets unless you need random access.
@@ -237,10 +236,9 @@ sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keyc
 
         <h3><code>expected DNA, got String</code></h3>
         <p>
-          Plain strings and DNA sequences are different types. Use a DNA literal or the
-          <code>dna()</code> constructor:
+          Plain strings and DNA sequences are different types. Use a validated DNA literal:
         </p>
-        <pre><code class="language-biolang"># Wrong: plain string
+        <pre><code class="language-text"># Wrong: plain string
 let seq = "ATCG"
 reverse_complement(seq)  # Error: expected DNA, got String
 
@@ -248,9 +246,8 @@ reverse_complement(seq)  # Error: expected DNA, got String
 let seq = dna"ATCG"
 reverse_complement(seq)  # Works
 
-# Right: runtime conversion
-let seq = dna("ATCG")
-reverse_complement(seq)  # Works</code></pre>
+# Dynamic strings can still be passed to sequence operations that accept strings,
+# but use a literal when a DNA value is required.</code></pre>
 
         <h3><code>cannot add Int and Float</code></h3>
         <p>
@@ -354,7 +351,7 @@ bl run script.bl</code></pre>
           </li>
         </ul>
         <p>Use the REPL's <code>:time</code> command or <code>:profile</code> to identify bottlenecks:</p>
-        <pre><code class="language-biolang"># In the REPL
+        <pre><code class="language-text"># In the REPL
 :time read_fastq("big.fq") |> filter(|r| mean_phred(r.quality) >= 30) |> len()
 
 :profile my_function(data)</code></pre>
@@ -454,6 +451,10 @@ let hits = regions
           causes zero matches in joins and overlaps. Normalize before combining:
         </p>
         <pre><code class="language-biolang"># Strip "chr" prefix
+let intervals = [
+  {chrom: "chr1", start: 100, end: 200},
+  {chrom: "chrX", start: 300, end: 450},
+]
 let normalized = intervals |> map(|iv| replace(iv.chrom, "chr", ""))
 replace("chr1", "chr", "")   # "1"
 replace("chrX", "chr", "")   # "X"
@@ -556,8 +557,8 @@ read_fastq("old_data.fastq")
 # Check before processing
 let variants = read_vcf("data.vcf")
 variants
-  |> filter(|v| len(split(v["alt"], ",")) > 1)
-  |> map(|v| print("Multi-allelic: " + v["chrom"] + ":" + v["pos"]))</code></pre>
+  |> filter(|v| v.is_multiallelic)
+  |> each(|v| print(f"Multi-allelic: {v.chrom}:{v.pos}"))</code></pre>
 
         <h3>INFO field parsing surprises</h3>
         <p>
@@ -567,8 +568,8 @@ variants
         <pre><code class="language-biolang"># VCF records from read_vcf have parsed INFO fields
 let variants = read_vcf("data.vcf")
 let v = first(variants)
-# v["info"]["DP"] → 30 (Int)
-# v["info"]["AF"] → 0.5 (Float)</code></pre>
+# v.info.DP → 30 (Int)
+# v.info.AF → 0.5 (Float)</code></pre>
 
         <!-- Conda/HPC -->
         <h2 id="conda-hpc">Conda &amp; HPC Clusters</h2>

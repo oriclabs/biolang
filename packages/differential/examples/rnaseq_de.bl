@@ -1,0 +1,151 @@
+# rnaseq_de.bl — Complete RNA-seq differential expression pipeline
+#
+# Demonstrates DESeq2-style normalization, Wald test, p-value adjustment,
+# volcano plot summary, and CSV export using the `differential` package.
+#
+# Input files (CSV):
+#   data/counts.csv     — raw count matrix: columns gene, ctrl_1..ctrl_N, treated_1..treated_N
+#   data/conditions.csv — sample metadata: columns sample_id, condition
+#
+# Run: bl run examples/rnaseq_de.bl
+
+import "differential" as de
+
+println("=" * 62)
+println("RNA-seq Differential Expression Pipeline")
+println("Using: differential package (DESeq2-style normalization)")
+println("=" * 62)
+
+# ── Step 1: Load raw count matrix ────────────────────────────────────────────
+println("")
+println("Step 1: Loading raw count matrix...")
+
+let counts = csv("data/counts.csv") |> collect()
+let conditions_tbl = csv("data/conditions.csv") |> collect()
+
+let n_genes = len(counts)
+let n_samples = len(conditions_tbl)
+
+println(f"  Genes:   {n_genes}")
+println(f"  Samples: {n_samples}")
+
+# Identify sample columns by condition
+let ctrl_samples = conditions_tbl
+    |> filter(|r| r.condition == "control")
+    |> map(|r| r.sample_id)
+
+let treated_samples = conditions_tbl
+    |> filter(|r| r.condition == "treated")
+    |> map(|r| r.sample_id)
+
+println(f"  Control samples ({len(ctrl_samples)}): {join(ctrl_samples, \", \")}")
+println(f"  Treated samples ({len(treated_samples)}): {join(treated_samples, \", \")}")
+
+# ── Step 2: DESeq2 Normalization ─────────────────────────────────────────────
+println("")
+println("Step 2: Applying DESeq2 median-of-ratios normalization...")
+
+let sf = de.size_factors(counts)
+println("  Size factors:")
+let all_sample_cols = ctrl_samples + treated_samples
+for i in range(0, len(all_sample_cols)) {
+    println(f"    {all_sample_cols[i]}: {round(sf[i], 4)}")
+}
+
+let norm_counts = de.deseq2_norm(counts)
+println(f"  Normalized {n_genes} genes across {n_samples} samples")
+
+# ── Step 3: Wald Test (treated vs control) ───────────────────────────────────
+println("")
+println("Step 3: Running Wald test (treated vs control)...")
+
+let de_results = de.de_wald(norm_counts, ctrl_samples, treated_samples)
+
+let sig_genes  = de_results |> filter(|r| r.significant)
+let up_genes   = sig_genes  |> filter(|r| r.log2fc > 0)
+let down_genes = sig_genes  |> filter(|r| r.log2fc < 0)
+
+println(f"  Total genes tested:  {len(de_results)}")
+println(f"  Significant (FDR<5%, |log2FC|>=1): {len(sig_genes)}")
+println(f"  Upregulated:   {len(up_genes)}")
+println(f"  Downregulated: {len(down_genes)}")
+
+# ── Step 4: P-value adjustment summary ──────────────────────────────────────
+println("")
+println("Step 4: P-value adjustment (Benjamini-Hochberg) summary...")
+
+let n_padj05  = de_results |> filter(|r| r.padj < 0.05) |> len()
+let n_padj01  = de_results |> filter(|r| r.padj < 0.01) |> len()
+let n_padj001 = de_results |> filter(|r| r.padj < 0.001) |> len()
+
+println(f"  FDR < 0.05:  {n_padj05} genes")
+println(f"  FDR < 0.01:  {n_padj01} genes")
+println(f"  FDR < 0.001: {n_padj001} genes")
+
+# ── Step 5: Volcano Plot Summary (ASCII) ─────────────────────────────────────
+println("")
+println("Step 5: Volcano plot summary")
+println("  (x = log2FC, y = -log10(padj))")
+println("")
+println("  Quadrant             Genes")
+println("  ─────────────────────────────────────────")
+
+let up_sig   = de_results |> filter(|r| r.log2fc >  1.0 and r.padj < 0.05)
+let down_sig = de_results |> filter(|r| r.log2fc < -1.0 and r.padj < 0.05)
+let ns       = de_results |> filter(|r| r.padj >= 0.05)
+let fc_only  = de_results |> filter(|r| abs(r.log2fc) >= 1.0 and r.padj >= 0.05)
+
+println(f"  Up   (FC>2,   FDR<5%): {len(up_sig)}")
+println(f"  Down (FC<0.5, FDR<5%): {len(down_sig)}")
+println(f"  FC only (not sig):     {len(fc_only)}")
+println(f"  Not significant:       {len(ns)}")
+
+# Top 10 upregulated
+println("")
+println("  Top 10 upregulated genes:")
+let top_up = up_sig
+    |> sort_by(|r| r.log2fc)
+    |> reverse()
+    |> take(10)
+
+for g in top_up {
+    let neg_log_p = - log2(g.padj + 0.000000001) / log2(10)
+    println(f"    {g.gene}: log2FC={g.log2fc}, FDR={g.padj}, -log10(FDR)={round(neg_log_p, 2)}")
+}
+
+# Top 10 downregulated
+println("")
+println("  Top 10 downregulated genes:")
+let top_down = down_sig
+    |> sort_by(|r| r.log2fc)
+    |> take(10)
+
+for g in top_down {
+    let neg_log_p = - log2(g.padj + 0.000000001) / log2(10)
+    println(f"    {g.gene}: log2FC={g.log2fc}, FDR={g.padj}, -log10(FDR)={round(neg_log_p, 2)}")
+}
+
+# ── Step 6: Write results to CSV ─────────────────────────────────────────────
+println("")
+println("Step 6: Writing results to CSV...")
+
+mkdir("results")
+
+# Full results table
+write_csv(de_results, "results/de_results_all.csv")
+println(f"  Wrote {len(de_results)} rows → results/de_results_all.csv")
+
+# Significant only
+write_csv(sig_genes, "results/de_results_significant.csv")
+println(f"  Wrote {len(sig_genes)} rows → results/de_results_significant.csv")
+
+# ── Summary ──────────────────────────────────────────────────────────────────
+println("")
+println("=" * 62)
+println("Pipeline complete.")
+println(f"  Input:  {n_genes} genes × {n_samples} samples")
+println(f"  DE genes (FDR<5%, |log2FC|>=1): {len(sig_genes)}")
+println(f"    Up: {len(up_genes)}  Down: {len(down_genes)}")
+println("  Output: results/de_results_all.csv")
+println("          results/de_results_significant.csv")
+println("=" * 62)

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::hash::BuildHasher;
 use std::fmt;
+use std::hash::BuildHasher;
 
 /// A k-mer stored as 2-bit encoded u64.
 ///
@@ -73,14 +73,21 @@ impl Kmer {
             let bits = (complemented >> (2 * i)) & 0b11;
             rc |= bits << (2 * (k - 1 - i));
         }
-        Kmer { encoded: rc, k: self.k }
+        Kmer {
+            encoded: rc,
+            k: self.k,
+        }
     }
 
     /// Canonical form: min(self, reverse_complement).
     /// Strand-agnostic representation.
     pub fn canonical(&self) -> Kmer {
         let rc = self.reverse_complement();
-        if self.encoded <= rc.encoded { *self } else { rc }
+        if self.encoded <= rc.encoded {
+            *self
+        } else {
+            rc
+        }
     }
 
     /// Extract all k-mers from a sequence using a sliding window.
@@ -89,7 +96,11 @@ impl Kmer {
             return Vec::new();
         }
         let k_usize = k as usize;
-        let mask = if k == 32 { u64::MAX } else { (1u64 << (2 * k_usize)) - 1 };
+        let mask = if k == 32 {
+            u64::MAX
+        } else {
+            (1u64 << (2 * k_usize)) - 1
+        };
         let bytes = seq.as_bytes();
 
         let mut kmers = Vec::with_capacity(seq.len() - k_usize + 1);
@@ -129,7 +140,11 @@ impl Kmer {
             return;
         }
         let k_usize = k as usize;
-        let mask = if k == 32 { u64::MAX } else { (1u64 << (2 * k_usize)) - 1 };
+        let mask = if k == 32 {
+            u64::MAX
+        } else {
+            (1u64 << (2 * k_usize)) - 1
+        };
         let bytes = seq.as_bytes();
         let mut encoded = 0u64;
         let mut valid_run = 0usize;

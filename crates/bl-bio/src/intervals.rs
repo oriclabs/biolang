@@ -37,7 +37,9 @@ pub fn call_interval_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
 
 /// Extract (chrom_idx, start_idx, end_idx) from a table with those columns.
 fn get_interval_cols(table: &Table, func: &str) -> Result<(usize, usize, usize)> {
-    let ci = table.col_index("chrom").or_else(|| table.col_index("seqid"));
+    let ci = table
+        .col_index("chrom")
+        .or_else(|| table.col_index("seqid"));
     let si = table.col_index("start");
     let ei = table.col_index("end");
 
@@ -81,19 +83,11 @@ fn to_genomic(chrom: &str, start: i64, end: i64) -> GenomicInterval {
 }
 
 /// Collect all intervals from a table as GenomicIntervals.
-fn table_to_intervals(
-    table: &Table,
-    ci: usize,
-    si: usize,
-    ei: usize,
-) -> Vec<GenomicInterval> {
+fn table_to_intervals(table: &Table, ci: usize, si: usize, ei: usize) -> Vec<GenomicInterval> {
     table
         .rows
         .iter()
-        .filter_map(|row| {
-            row_interval(row, ci, si, ei)
-                .map(|(c, s, e)| to_genomic(&c, s, e))
-        })
+        .filter_map(|row| row_interval(row, ci, si, ei).map(|(c, s, e)| to_genomic(&c, s, e)))
         .collect()
 }
 
@@ -101,7 +95,13 @@ fn intervals_to_table(intervals: Vec<GenomicInterval>) -> Value {
     let columns = vec!["chrom".to_string(), "start".to_string(), "end".to_string()];
     let rows: Vec<Vec<Value>> = intervals
         .into_iter()
-        .map(|iv| vec![Value::Str(iv.chrom), Value::Int(iv.start), Value::Int(iv.end)])
+        .map(|iv| {
+            vec![
+                Value::Str(iv.chrom),
+                Value::Int(iv.start),
+                Value::Int(iv.end),
+            ]
+        })
         .collect();
     Value::Table(Table::new(columns, rows))
 }
@@ -120,7 +120,10 @@ fn builtin_intersect(args: Vec<Value>) -> Result<Value> {
     for arow in &a.rows {
         if let Some((achrom, astart, aend)) = row_interval(arow, aci, asi, aei) {
             let a_iv = to_genomic(&achrom, astart, aend);
-            if b_intervals.iter().any(|bi| bio_core::interval_ops::overlaps(&a_iv, bi)) {
+            if b_intervals
+                .iter()
+                .any(|bi| bio_core::interval_ops::overlaps(&a_iv, bi))
+            {
                 result_rows.push(arow.to_vec());
             }
         }
@@ -154,7 +157,10 @@ fn builtin_subtract(args: Vec<Value>) -> Result<Value> {
     for arow in &a.rows {
         if let Some((achrom, astart, aend)) = row_interval(arow, aci, asi, aei) {
             let a_iv = to_genomic(&achrom, astart, aend);
-            if !b_intervals.iter().any(|bi| bio_core::interval_ops::overlaps(&a_iv, bi)) {
+            if !b_intervals
+                .iter()
+                .any(|bi| bio_core::interval_ops::overlaps(&a_iv, bi))
+            {
                 result_rows.push(arow.to_vec());
             }
         }
@@ -234,4 +240,3 @@ fn builtin_flank(args: Vec<Value>) -> Result<Value> {
 
     Ok(Value::Table(Table::new(columns, rows)))
 }
-

@@ -76,20 +76,20 @@ if container_available() {
 # List cached tool images
 let images = tool_list()
 for img in images {
-  print("#{img}")
+  print(f"{img}")
 }</code></pre>
 
         <h3>Searching BioContainers registry</h3>
         <pre><code class="language-biolang"># Search for tools
 let results = tool_search("samtools")
 for tool in take(results, 5) {
-  print("#{tool.name} - #{tool.description}")
+  print(f"{tool.name} - {tool.description}")
 }
 
 # Get detailed info for a tool
 let info = tool_info("bwa-mem2")
-print("#{info.name}: #{info.description}")
-print("Image: #{info.image}")</code></pre>
+print(f"{info.name}: {info.description}")
+print(f"Image: {info.image}")</code></pre>
 
         <h2>Multi-Tool Pipelines</h2>
 
@@ -97,9 +97,9 @@ print("Image: #{info.image}")</code></pre>
         <pre><code class="language-biolang"># Run a full alignment pipeline using containers
 let sample = "sample_001"
 let ref = "refs/GRCh38.fa"
-let r1 = "fastq/#{sample}_R1.fq.gz"
-let r2 = "fastq/#{sample}_R2.fq.gz"
-let out_dir = "results/#{sample}"
+let r1 = f"fastq/{sample}_R1.fq.gz"
+let r2 = f"fastq/{sample}_R2.fq.gz"
+let out_dir = f"results/{sample}"
 
 mkdir(out_dir)
 
@@ -107,37 +107,37 @@ mkdir(out_dir)
 print("Running FastQC...")
 container_run(
   "quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0",
-  "fastqc /data/#{r1} /data/#{r2} -o /data/#{out_dir}"
+  f"fastqc /data/{r1} /data/{r2} -o /data/{out_dir}"
 )
 
 # Step 2: Trimming
 print("Trimming adapters...")
 container_run(
   "quay.io/biocontainers/fastp:0.23.4--hadf994f_2",
-  "fastp -i /data/#{r1} -I /data/#{r2} -o /data/#{out_dir}/trimmed_R1.fq.gz -O /data/#{out_dir}/trimmed_R2.fq.gz --json /data/#{out_dir}/fastp.json --thread 4"
+  f"fastp -i /data/{r1} -I /data/{r2} -o /data/{out_dir}/trimmed_R1.fq.gz -O /data/{out_dir}/trimmed_R2.fq.gz --json /data/{out_dir}/fastp.json --thread 4"
 )
 
 # Step 3: Alignment
 print("Aligning reads...")
 container_run(
   "quay.io/biocontainers/bwa-mem2:2.2.1--he513fc3_0",
-  "bwa-mem2 mem -t 8 /data/#{ref} /data/#{out_dir}/trimmed_R1.fq.gz /data/#{out_dir}/trimmed_R2.fq.gz > /data/#{out_dir}/aligned.sam"
+  f"bwa-mem2 mem -t 8 /data/{ref} /data/{out_dir}/trimmed_R1.fq.gz /data/{out_dir}/trimmed_R2.fq.gz > /data/{out_dir}/aligned.sam"
 )
 
 # Step 4: SAM to sorted BAM
 print("Sorting BAM...")
 container_run(
   "quay.io/biocontainers/samtools:1.19--h50ea8bc_0",
-  "samtools sort -@ 4 -o /data/#{out_dir}/sorted.bam /data/#{out_dir}/aligned.sam"
+  f"samtools sort -@ 4 -o /data/{out_dir}/sorted.bam /data/{out_dir}/aligned.sam"
 )
 
 # Step 5: Index
 container_run(
   "quay.io/biocontainers/samtools:1.19--h50ea8bc_0",
-  "samtools index /data/#{out_dir}/sorted.bam"
+  f"samtools index /data/{out_dir}/sorted.bam"
 )
 
-print("Pipeline complete for #{sample}")</code></pre>
+print(f"Pipeline complete for {sample}")</code></pre>
 
         <h2>Custom Containers</h2>
 
@@ -157,16 +157,16 @@ container_run(
 
         <h3>Building a container from BioLang</h3>
         <pre><code class="language-biolang"># Generate a Dockerfile for a custom tool set
-let dockerfile = "
-FROM ubuntu:22.04
-RUN apt-get update && apt-get install -y \\
-    samtools=1.19-1 \\
-    bcftools=1.19-1 \\
-    bedtools=2.31.0
-WORKDIR /data
-"
+let dockerfile = join([
+  "FROM ubuntu:22.04",
+  "RUN apt-get update && apt-get install -y \\",
+  "    samtools=1.19-1 \\",
+  "    bcftools=1.19-1 \\",
+  "    bedtools=2.31.0",
+  "WORKDIR /data"
+], "\n")
 
-write_text(dockerfile, "Dockerfile")
+write_text("Dockerfile", dockerfile)
 let build = shell("docker build -t my-biotools:latest .")
 if build.exit_code == 0 {
   print("Custom container built successfully")
@@ -187,14 +187,14 @@ container_run(
         <h3>Cleaning up</h3>
         <pre><code class="language-biolang"># List cached tool images
 let cached = tool_list()
-print("Cached images: #{len(cached)}")
+print(f"Cached images: {len(cached)}")
 
 # Remove a specific cached image via shell
 shell("docker rmi quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0")
 
 # Prune unused images
 let result = shell("docker image prune -f")
-print("Cleanup: #{result.stdout}")</code></pre>
+print(f"Cleanup: {result.stdout}")</code></pre>
 
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

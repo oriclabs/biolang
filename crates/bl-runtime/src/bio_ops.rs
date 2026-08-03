@@ -34,7 +34,7 @@ pub fn call_bio_ops_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "diff_expr" => builtin_diff_expr(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
-            &format!("unknown bio_ops builtin: {name}"),
+            format!("unknown bio_ops builtin: {name}"),
             None,
         )),
     }
@@ -48,7 +48,10 @@ fn builtin_de_bruijn_graph(args: Vec<Value>) -> Result<Value> {
                 Value::DNA(s) | Value::RNA(s) => Ok(s.data.clone()),
                 Value::Str(s) => Ok(s.clone()),
                 other => Err(BioLangError::type_error(
-                    format!("de_bruijn_graph() requires List of DNA/Str, got {}", other.type_of()),
+                    format!(
+                        "de_bruijn_graph() requires List of DNA/Str, got {}",
+                        other.type_of()
+                    ),
                     None,
                 )),
             })
@@ -85,14 +88,14 @@ fn builtin_de_bruijn_graph(args: Vec<Value>) -> Result<Value> {
             rec.insert("from".into(), Value::Str(e.from.clone()));
             rec.insert("to".into(), Value::Str(e.to.clone()));
             rec.insert("label".into(), Value::Str(e.label.clone()));
-            Value::Record(rec)
+            Value::Record((rec).into())
         })
         .collect();
 
     let mut result = HashMap::new();
-    result.insert("nodes".into(), Value::List(node_list));
-    result.insert("edges".into(), Value::List(edge_list));
-    Ok(Value::Record(result))
+    result.insert("nodes".into(), Value::List((node_list).into()));
+    result.insert("edges".into(), Value::List((edge_list).into()));
+    Ok(Value::Record((result).into()))
 }
 
 fn builtin_neighbor_joining(args: Vec<Value>) -> Result<Value> {
@@ -106,7 +109,7 @@ fn builtin_neighbor_joining(args: Vec<Value>) -> Result<Value> {
         }
         Value::List(outer) => {
             let mut dists = Vec::new();
-            for row_val in outer {
+            for row_val in outer.iter() {
                 match row_val {
                     Value::List(inner) => {
                         let row: Vec<f64> = inner
@@ -131,7 +134,10 @@ fn builtin_neighbor_joining(args: Vec<Value>) -> Result<Value> {
         }
         other => {
             return Err(BioLangError::type_error(
-                format!("neighbor_joining() requires Matrix or List, got {}", other.type_of()),
+                format!(
+                    "neighbor_joining() requires Matrix or List, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -147,13 +153,19 @@ fn builtin_neighbor_joining(args: Vec<Value>) -> Result<Value> {
             rec.insert("distance".into(), Value::Float(n.distance));
             rec.insert(
                 "children".into(),
-                Value::List(n.children.iter().map(|&c| Value::Int(c as i64)).collect()),
+                Value::List(
+                    n.children
+                        .iter()
+                        .map(|&c| Value::Int(c as i64))
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
             );
-            Value::Record(rec)
+            Value::Record((rec).into())
         })
         .collect();
 
-    Ok(Value::List(nodes))
+    Ok(Value::List((nodes).into()))
 }
 
 fn matrix_from_value(val: &Value) -> Result<Vec<Vec<f64>>> {
@@ -167,7 +179,7 @@ fn matrix_from_value(val: &Value) -> Result<Vec<Vec<f64>>> {
         }
         Value::List(outer) => {
             let mut rows = Vec::new();
-            for row_val in outer {
+            for row_val in outer.iter() {
                 match row_val {
                     Value::List(inner) => {
                         let row: Vec<f64> = inner
@@ -238,7 +250,13 @@ fn builtin_umap(args: Vec<Value>) -> Result<Value> {
     let n_epochs = extract_record_usize(&args, 2, "n_epochs", 200);
     let min_dist = extract_record_float(&args, 2, "min_dist", 0.1);
 
-    let embeddings = bl_core::bio_core::dimreduce_ops::umap(&data, n_components, n_neighbors, n_epochs, min_dist);
+    let embeddings = bl_core::bio_core::dimreduce_ops::umap(
+        &data,
+        n_components,
+        n_neighbors,
+        n_epochs,
+        min_dist,
+    );
 
     let nrow = embeddings.len();
     let ncol = if nrow > 0 { embeddings[0].len() } else { 0 };
@@ -263,7 +281,13 @@ fn builtin_tsne(args: Vec<Value>) -> Result<Value> {
     let n_iter = extract_record_usize(&args, 2, "n_iter", 1000);
     let learning_rate = extract_record_float(&args, 2, "learning_rate", 200.0);
 
-    let embeddings = bl_core::bio_core::dimreduce_ops::tsne(&data, n_components, perplexity, n_iter, learning_rate);
+    let embeddings = bl_core::bio_core::dimreduce_ops::tsne(
+        &data,
+        n_components,
+        perplexity,
+        n_iter,
+        learning_rate,
+    );
 
     let nrow = embeddings.len();
     let ncol = if nrow > 0 { embeddings[0].len() } else { 0 };
@@ -285,8 +309,14 @@ fn builtin_leiden(args: Vec<Value>) -> Result<Value> {
         1.0
     };
 
-    let clusters = bl_core::bio_core::cluster_ops::louvain(&adj, resolution);
-    Ok(Value::List(clusters.into_iter().map(|c| Value::Int(c as i64)).collect()))
+    let clusters = bl_core::bio_core::cluster_ops::leiden(&adj, resolution);
+    Ok(Value::List(
+        clusters
+            .into_iter()
+            .map(|c| Value::Int(c as i64))
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 fn builtin_diff_expr(args: Vec<Value>) -> Result<Value> {
@@ -320,7 +350,10 @@ fn builtin_diff_expr(args: Vec<Value>) -> Result<Value> {
         }
         other => {
             return Err(BioLangError::type_error(
-                format!("diff_expr() requires Table or Matrix, got {}", other.type_of()),
+                format!(
+                    "diff_expr() requires Table or Matrix, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -332,7 +365,10 @@ fn builtin_diff_expr(args: Vec<Value>) -> Result<Value> {
             .map(|v| match v {
                 Value::Int(n) => Ok(*n as usize),
                 other => Err(BioLangError::type_error(
-                    format!("diff_expr() groups must be List[Int], got {}", other.type_of()),
+                    format!(
+                        "diff_expr() groups must be List[Int], got {}",
+                        other.type_of()
+                    ),
                     None,
                 )),
             })
@@ -345,7 +381,8 @@ fn builtin_diff_expr(args: Vec<Value>) -> Result<Value> {
         }
     };
 
-    let results = bl_core::bio_core::diffexpr_ops::diff_expr(&counts, &groups, gene_names.as_deref());
+    let results =
+        bl_core::bio_core::diffexpr_ops::diff_expr(&counts, &groups, gene_names.as_deref());
 
     let columns = vec![
         "gene".into(),

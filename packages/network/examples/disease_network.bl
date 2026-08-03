@@ -1,0 +1,17 @@
+import "network" as net
+
+let ppi = net.load_string("data/9606.protein.links.v12.0.txt")
+  |> net.filter_score(0.7)
+
+net.hub_genes(ppi, 20)
+net.components(ppi)
+
+let lcc = net.largest_component(ppi)
+
+# Disease gene subnetwork
+let brca_genes = ["TP53", "BRCA1", "BRCA2", "ATM", "CHEK2", "PALB2"]
+let disease_net = net.subnetwork(lcc, brca_genes)
+
+net.degree(disease_net)
+net.path(lcc, "TP53", "BRCA1")
+net.enrichment(brca_genes, ppi, 20000)

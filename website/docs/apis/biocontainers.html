@@ -83,10 +83,8 @@ print("Latest version:", info.latest_version)
 print("Total versions:", info.version_count)
 
 # List all available images for the latest version
-info.versions
-  |> first()
-  |> get("images")
-  |> print()</code></pre>
+let latest = info.versions |> first()
+print(latest.images)</code></pre>
         <p>
           Returns a Record with nested versions and images.
         </p>
@@ -174,14 +172,14 @@ tools
         <pre><code class="language-biolang"># See how many versions are available for popular tools
 biocontainers_popular(10)
   |> map(|t| { name: t.name, versions: t.version_count, latest: t.latest_version })
-  |> sort(.versions)
+  |> sort_by(|tool| tool.versions)
   |> reverse()
   |> print()</code></pre>
 
         <h3>Search and Inspect a Tool</h3>
         <pre><code class="language-biolang"># Find a tool and get its full details
 let results = biocontainers_search("minimap2", 1)
-let tool_name = results |> first() |> get("name")
+let tool_name = (results |> first()).name
 
 # Get detailed info
 let info = biocontainers_info(tool_name)

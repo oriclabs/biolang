@@ -25,8 +25,9 @@ fn process_sample(sample, config) {
     let t = timer_start()
     let reads = read_fastq(sample.fastq)
     let total = len(reads)
-    let filtered = reads |> quality_filter(config.min_quality)
-    let passed = filtered |> filter(|r| len(r.seq) >= config.min_length)
+    let passed = reads |> filter(|r| {
+        len(r.seq) >= config.min_length and mean_phred(r.quality) >= config.min_quality
+    })
     let pass_count = len(passed)
     let gc_values = passed |> map(|r| gc_content(r.seq))
     let lengths = passed |> map(|r| len(r.seq))

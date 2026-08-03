@@ -68,16 +68,16 @@
 # tables.bio — working with tabular data
 
 # Read a gene expression file
-let expr = read_read_csv("data/expression.csv")
+let expr = read_csv("data/expression.csv")
 
 # Preview the table
 print(expr)
 # ┌──────────┬────────┬────────┬────────┬────────┐
-# │ gene     │ sample1│ sample2│ sample3│ group  │
+# │ gene     │ sample1│ sample2│ sample3│ condition │
 # ├──────────┼────────┼────────┼────────┼────────┤
-# │ TP53     │  142.5 │  138.2 │  155.8 │ control│
-# │ BRCA1    │   87.3 │   92.1 │   84.6 │ control│
-# │ MYC      │  512.4 │  498.7 │  534.1 │ case   │
+# │ BRCA1    │   12.5 │   11.8 │   13.2 │ treatment │
+# │ TP53     │    8.3 │    7.9 │    8.8 │ treatment │
+# │ KRAS     │    6.2 │    5.9 │    6.5 │ control   │
 # │ ...      │   ...  │   ...  │   ...  │ ...    │
 # └──────────┴────────┴────────┴────────┴────────┘
 
@@ -93,10 +93,10 @@ print(f"Columns: {colnames(expr)}")</code></pre>
           Use <code>select()</code> to pick specific columns. This returns a new table.
         </p>
         <pre><code class="language-biolang"># Select specific columns
-let subset = expr |> select("gene", "sample1", "group")
+let subset = expr |> select("gene", "sample1", "condition")
 
 # Select all columns except one
-let no_group = expr |> drop_cols("group")
+let no_condition = expr |> drop_cols("condition")
 
 # Rename columns
 let renamed = expr
@@ -113,8 +113,8 @@ print(with_mean)</code></pre>
         <p>
           The <code>filter()</code> function keeps rows that match a condition.
         </p>
-        <pre><code class="language-biolang"># Filter by group
-let controls = expr |> filter(|row| row.group == "control")
+        <pre><code class="language-biolang"># Filter by condition
+let controls = expr |> filter(|row| row.condition == "control")
 print(f"Control genes: {nrow(controls)}")
 
 # Filter by expression level
@@ -122,7 +122,7 @@ let high_expr = expr |> filter(|row| row.sample1 > 100.0)
 
 # Combine conditions — use |> into for left-to-right binding
 expr |> filter(|row|
-  row.group == "case" and row.sample1 > 200.0
+  row.condition == "treatment" and row.sample1 > 10.0
 ) |> into interesting
 
 # Filter using a list of gene names
@@ -151,12 +151,12 @@ print(top5)</code></pre>
         <p>
           Group rows by a column and compute aggregate statistics per group.
         </p>
-        <pre><code class="language-biolang"># Group by the "group" column and compute stats
-let groups = expr |> group_by("group")
+        <pre><code class="language-biolang"># Group by the "condition" column and compute stats
+let groups = expr |> group_by("condition")
 
 # summarize takes a Map (from group_by) and a callback |key, subtable| => Record
 let summary = summarize(groups, |key, g| {
-  group:   key,
+  condition: key,
   count:   nrow(g),
   mean_s1: mean(col(g, "sample1")),
   max_s1:  max(col(g, "sample1")),
@@ -165,17 +165,17 @@ let summary = summarize(groups, |key, g| {
 
 print(summary)
 # ┌─────────┬───────┬────────┬────────┬────────┐
-# │ group   │ count │ mean_s1│ max_s1 │ std_s1 │
+# │ condition │ count │ mean_s1│ max_s1 │ std_s1 │
 # ├─────────┼───────┼────────┼────────┼────────┤
-# │ control │    50 │  125.4 │  342.1 │   67.8 │
-# │ case    │    50 │  198.7 │  534.1 │   89.2 │
+# │ control   │     5 │   5.84 │    7.5 │   1.77 │
+# │ treatment │     5 │  13.12 │   22.1 │   5.42 │
 # └─────────┴───────┴────────┴────────┴────────┘
 
 # Add a flag column, then group and summarize
-let flagged = expr |> mutate("high_expr", |row| row.sample1 > 200.0)
-let flag_groups = flagged |> group_by("group")
+let flagged = expr |> mutate("high_expr", |row| row.sample1 > 10.0)
+let flag_groups = flagged |> group_by("condition")
 let flag_summary = summarize(flag_groups, |key, g| {
-  group: key,
+  condition: key,
   n:     nrow(g),
 })</code></pre>
 
@@ -186,14 +186,17 @@ let flag_summary = summarize(flag_groups, |key, g| {
         </p>
         <pre><code class="language-biolang"># requires: data/gene_annotations.csv in working directory
 # Load a gene annotation table
-let annotations = read_read_csv("data/expression.csv")
-# gene, chromosome, start, end, description
+let annotations = from_records([
+  {gene: "BRCA1", chromosome: "chr17", start: 43044295, end: 43170245},
+  {gene: "TP53", chromosome: "chr17", start: 7661779, end: 7687550},
+  {gene: "EGFR", chromosome: "chr7", start: 55019017, end: 55211628},
+])
 
 # Inner join: only genes present in both tables
 let annotated = inner_join(expr, annotations, "gene")
 
 print(colnames(annotated))
-# [gene, sample1, sample2, sample3, group, chromosome, start, end, description]
+# [gene, sample1, sample2, sample3, condition, pvalue, log2fc, chromosome, start, end]
 
 # Left join: keep all expression rows, add annotations where available
 let full = left_join(expr, annotations, "gene")
@@ -209,11 +212,11 @@ let long = pivot_longer(expr, ["sample1", "sample2", "sample3"], "sample", "expr
 
 print(long)
 # ┌──────┬─────────┬─────────┬────────────┐
-# │ gene │ group   │ sample  │ expression │
+# │ gene │ condition │ sample  │ expression │
 # ├──────┼─────────┼─────────┼────────────┤
-# │ TP53 │ control │ sample1 │      142.5 │
-# │ TP53 │ control │ sample2 │      138.2 │
-# │ TP53 │ control │ sample3 │      155.8 │
+# │ BRCA1 │ treatment │ sample1 │       12.5 │
+# │ BRCA1 │ treatment │ sample2 │       11.8 │
+# │ BRCA1 │ treatment │ sample3 │       13.2 │
 # │ ...  │ ...     │ ...     │        ... │
 # └──────┴─────────┴─────────┴────────────┘
 
@@ -236,8 +239,8 @@ let with_ratio = expr |> mutate("ratio", |row| row.sample1 / (row.sample2 + 0.00
 
 # Conditional column
 let classified = expr |> mutate("expression_level", |row|
-  if row.sample1 > 500.0 then "high"
-  else if row.sample1 > 100.0 then "medium"
+  if row.sample1 > 15.0 then "high"
+  else if row.sample1 > 8.0 then "medium"
   else "low"
 )</code></pre>
 
@@ -277,10 +280,10 @@ write_csv(top20, "results/top20_genes.csv")
 
 # Complete pipeline: read, process, write
 let result = read_csv("data/expression.csv")
-  |> filter(|row| row.group == "case")
+  |> filter(|row| row.condition == "treatment")
   |> mutate("mean", |row| (row.sample1 + row.sample2 + row.sample3) / 3.0)
   |> arrange("mean", "desc")
-  |> select("gene", "mean", "group")
+  |> select("gene", "mean", "condition")
 write_csv(result, "results/top_case_genes.csv")
 
 print("Pipeline complete.")</code></pre>

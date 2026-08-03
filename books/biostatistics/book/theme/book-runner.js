@@ -51,6 +51,84 @@
 
   // WASM module state
   var wasm = null;
+
+  // ── Native-only call detection ──
+  //
+  // The WASM build ships a subset of the CLI's builtins. Rather than maintain a
+  // regex allowlist (which drifted, leaving Run buttons on blocks that could
+  // never work), ask the module what it actually has and name the missing
+  // function in the message.
+  var __blKnown = null;
+  function __blKnownBuiltins() {
+    if (__blKnown) return __blKnown;
+    if (!wasm || !wasm.list_builtins) return null;
+    try {
+      var arr = JSON.parse(wasm.list_builtins());
+      __blKnown = {};
+      (arr || []).forEach(function (b) {
+        if (b && b.name) __blKnown[b.name] = true;
+      });
+      return __blKnown;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  var __BL_KEYWORDS = {
+    "if": 1, "for": 1, "while": 1, "fn": 1, "let": 1, "match": 1, "return": 1,
+    "and": 1, "or": 1, "not": 1, "in": 1, "else": 1, "import": 1, "yield": 1,
+    "enum": 1, "into": 1, "true": 1, "false": 1, "nil": 1
+  };
+
+  // Names the snippet binds itself: let/fn, fn params, for vars, lambda params.
+  function __blLocalNames(code) {
+    var local = {}, m, re;
+    re = /\b(?:let|fn)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+    while ((m = re.exec(code))) local[m[1]] = true;
+    re = /\bfn\s+[A-Za-z_][A-Za-z0-9_]*\s*\(([^)]*)\)/g;
+    while ((m = re.exec(code))) {
+      m[1].split(",").forEach(function (p) {
+        var n = p.split("=")[0].trim();
+        if (n) local[n] = true;
+      });
+    }
+    re = /\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b/g;
+    while ((m = re.exec(code))) local[m[1]] = true;
+    re = /\|([^|\n]*)\|/g;
+    while ((m = re.exec(code))) {
+      m[1].split(",").forEach(function (p) {
+        var n = p.trim();
+        if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(n)) local[n] = true;
+      });
+    }
+    return local;
+  }
+
+  // Distinct called names this build cannot provide. Empty when the builtin
+  // list is unavailable, so an unknown state never blocks a run.
+  function blUnsupportedCalls(code) {
+    var known = __blKnownBuiltins();
+    if (!known) return [];
+    var local = __blLocalNames(code), bad = [], m;
+    var re = /([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
+    while ((m = re.exec(code))) {
+      var n = m[1];
+      if (local[n] || known[n] || __BL_KEYWORDS[n]) continue;
+      if (bad.indexOf(n) === -1) bad.push(n);
+    }
+    return bad;
+  }
+
+  function blShowNativeOnly(outputEl, names) {
+    var list = names.join(", ");
+    var el = outputEl.querySelector(".bl-result") || outputEl;
+    outputEl.style.display = "block";
+    el.textContent =
+      "Not available in the browser: " + list + "\n\n" +
+      "This example uses functions that only exist in the CLI build " +
+      "(file system, shell, or network APIs). Run it locally with:\n\n    bl run example.bl";
+    el.style.color = "#fbbf24";
+  }
   var wasmLoading = false;
   var wasmQueue = [];
   var wasmBasePath = "../../../wasm";
@@ -73,7 +151,7 @@
       '  var mod = await import("' + wasmBasePath + '/bl_wasm.js");',
       '  await mod.default();',
       '  mod.init();',
-      '  window.__blWasm = { evaluate: mod.evaluate, reset: mod.reset };',
+      '  window.__blWasm = { evaluate: mod.evaluate, reset: mod.reset, list_builtins: mod.list_builtins };',
       '  window.dispatchEvent(new Event("bl-wasm-ready"));',
       '} catch(e) {',
       '  window.__blWasmError = e;',
@@ -111,7 +189,7 @@
     var code = pre.querySelector("code");
     var text = code ? code.textContent : "";
     // Write operations are always CLI-only
-    if (/\b(write_csv|write_fasta|write_fastq|write_vcf|write_bed)\b/.test(text)) return true;
+    if (/\b(write_csv|write_tsv|write_json|write_text|write_lines|write_fasta|write_fastq|write_vcf|write_bed)\b/.test(text)) return true;
     if (/\b(open|save|write_file|write_lines|mkdir)\s*\(/.test(text)) return true;
     if (/\b(save_plot|save_svg|save_png)\s*\(/.test(text)) return true;
     // Read operations are allowed — they use the fetch bridge to load data from the server
@@ -325,6 +403,12 @@
     outputEl.style.display = "block";
     outputEl.innerHTML = "";
 
+    var __missing = blUnsupportedCalls(code);
+    if (__missing.length) {
+      blShowNativeOnly(outputEl, __missing);
+      if (btn) { btn.disabled = false; btn.innerHTML = '&#9654; Run'; }
+      return;
+    }
     var t0 = performance.now();
     var resultJson;
     try {

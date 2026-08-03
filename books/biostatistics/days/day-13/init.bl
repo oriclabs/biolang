@@ -51,10 +51,10 @@ for i in range(0, 200) {
     let noise6 = ((i * 69621 + 29) % 1000) / 1000.0 - 0.5
     let gapdh = round(12.8 + noise6 * 0.4, 2)
 
-    lines = append(lines, f"TCGA_{i + 1:04},{brca1},{bard1},{rad51},{tp53},{mki67},{gapdh}")
+    lines = push(lines, f"TCGA_{i + 1:04},{brca1},{bard1},{rad51},{tp53},{mki67},{gapdh}")
 }
 
-write_lines(lines, "data/gene_pairs.csv")
+write_lines("data/gene_pairs.csv", lines)
 println("Wrote data/gene_pairs.csv: 200 samples x 6 genes")
 println("  BRCA1-BARD1 r~0.75, BRCA1-RAD51 r~0.65, MKI67-BRCA1 r~0.45")
 
@@ -84,19 +84,19 @@ let x4 = [8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 19.0, 8.0, 8.0, 8.0]
 let y4 = [6.58, 5.76, 7.71, 8.84, 8.47, 7.04, 5.25, 12.50, 5.56, 7.91, 6.89]
 
 for i in range(0, 11) {
-    ans_lines = append(ans_lines, f"I,{x1[i]},{y1[i]}")
+    ans_lines = push(ans_lines, f"I,{x1[i]},{y1[i]}")
 }
 for i in range(0, 11) {
-    ans_lines = append(ans_lines, f"II,{x2[i]},{y2[i]}")
+    ans_lines = push(ans_lines, f"II,{x2[i]},{y2[i]}")
 }
 for i in range(0, 11) {
-    ans_lines = append(ans_lines, f"III,{x3[i]},{y3[i]}")
+    ans_lines = push(ans_lines, f"III,{x3[i]},{y3[i]}")
 }
 for i in range(0, 11) {
-    ans_lines = append(ans_lines, f"IV,{x4[i]},{y4[i]}")
+    ans_lines = push(ans_lines, f"IV,{x4[i]},{y4[i]}")
 }
 
-write_lines(ans_lines, "data/anscombe.csv")
+write_lines("data/anscombe.csv", ans_lines)
 println("Wrote data/anscombe.csv: Anscombe's quartet (4 x 11 points)")
 println("  All sets: mean(x)=9, mean(y)=7.5, r=0.816, y=3.0+0.5x")
 println("")

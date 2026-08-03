@@ -25,9 +25,9 @@ println("Cleaned: " + regex_replace(messy, "\\s+", " "))
 let raw = "ATCG ATCG\nATCG\tATCG"
 println("Stripped: " + regex_replace(raw, "[^ACGTN]", ""))
 
-# ── regex_split: break strings on a pattern ─────────────────────
+# ── Extract repeated pattern matches ────────────────────────────
 let cigar = "50M2I30M1D20M"
-println("CIGAR ops: " + str(regex_split(cigar, "(?<=[MIDNSHP=X])")))
+println("CIGAR ops: " + str(regex_find(cigar, "[0-9]+[MIDNSHP=X]")))
 
 let info = "gene=TP53;impact=HIGH;consequence=missense"
 println("Fields: " + str(regex_split(info, ";")))

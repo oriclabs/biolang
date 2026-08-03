@@ -180,10 +180,10 @@ let input_file = args.input
 let min_qual = into(args.min_quality ?? "20", "Int")
 
 let reads = read_fastq(input_file)
-  |> filter(|r| mean(r.quality) >= min_qual)
+  |> filter(|r| mean_phred(r.quality) >= min_qual)
 
 print(f"Passing reads: {len(reads)}")
-print(f"Mean quality: {reads |> map(|r| mean(r.quality)) |> mean()}")
+print(f"Mean quality: {reads |> map(|r| mean_phred(r.quality)) |> mean()}")
 ```
 
 ## Your First Script: FASTA GC Content Analyzer
@@ -198,7 +198,7 @@ Create a file called `gc_scan.bl`:
 # gc_scan.bl
 # Read a FASTA file, compute per-sequence GC content, report statistics.
 
-let sequences = read_fasta("data/sequences.fasta")
+let sequences = read_fasta("examples/sample-data/contigs.fa")
 
 # Compute GC content for each sequence
 let gc_table = sequences
@@ -210,7 +210,7 @@ let gc_table = sequences
   |> table()
 
 # Summary statistics
-let gc_vals = gc_table |> select("gc")
+let gc_vals = col(gc_table, "gc")
 let mean_gc = mean(gc_vals)
 let std_gc = stdev(gc_vals)
 let min_gc = min(gc_vals)
@@ -225,7 +225,7 @@ print(f"Standard deviation: {std_gc:.4f}")
 # |> into binds the pipe result to a variable (like let, but reads left-to-right)
 gc_table
   |> filter(|row| abs(row.gc - mean_gc) > 2.0 * std_gc)
-  |> sort("gc", descending: true)
+  |> sort_by(|row| -row.gc)
   |> into outliers
 
 print(f"\nOutlier contigs ({len(outliers)}):")
@@ -256,53 +256,45 @@ Outlier contigs (12):
 Initialize a BioLang project:
 
 ```bash
-bl init my-rnaseq-pipeline
+mkdir my-rnaseq-pipeline
 cd my-rnaseq-pipeline
+bl init --name my-rnaseq-pipeline
 ```
 
 This creates the following structure:
 
 ```
 my-rnaseq-pipeline/
-  .biolang/
-    config.yaml       # project configuration
-    plugins/           # local plugin overrides
+  biolang.toml       # package metadata and dependencies
+  main.bl            # entry point
+```
+
+Create project-specific directories and modules when the analysis needs them:
+
+```text
+my-rnaseq-pipeline/
+  biolang.toml
+  main.bl
   src/
-    main.bl            # entry point
-  data/                # input data directory
-  results/             # output directory
+    paths.bl
+    qc.bl
+  data/
+  results/
 ```
 
-### `.biolang/config.yaml`
+The manifest records package metadata and optional path or Git dependencies:
 
-```yaml
-name: my-rnaseq-pipeline
-version: 0.3.0
-entry: src/main.bl
+```toml
+[package]
+name = "my-rnaseq-pipeline"
+version = "0.1.0"
 
-paths:
-  data: ./data
-  results: ./results
-  reference: /shared/references/GRCh38
-
-defaults:
-  min_quality: 30
-  threads: 8
+[dependencies]
+shared-qc = { path = "../shared-qc" }
+variants = { git = "https://github.com/example/variants.git", branch = "main" }
 ```
 
-Access project config values in your scripts:
-
-```biolang
-# src/main.bl
-# Access project paths via import
-import "src/paths.bl" as paths
-
-let min_qual = 30
-
-read_fastq(f"{paths.data}/sample_R1.fastq.gz")
-  |> filter(|r| mean(r.quality) >= min_qual)
-  |> write_fastq(f"{paths.results}/filtered_R1.fastq.gz")
-```
+Run `bl install` in the project directory to install the declared dependencies.
 
 ### Multi-file projects
 
@@ -345,9 +337,10 @@ export BIOLANG_PATH="/home/user/biolang-libs:/shared/team-modules"
 Resolution order for `import "module.bl"`:
 
 1. Relative to the importing file
-2. Project `.biolang/plugins/` directory
+2. The current working directory
 3. Each directory in `BIOLANG_PATH`
-4. System-wide library path (`~/.biolang/lib/`)
+4. `~/.biolang/stdlib/`
+5. `~/.biolang/packages/`
 
 This is useful for sharing utility modules across projects:
 

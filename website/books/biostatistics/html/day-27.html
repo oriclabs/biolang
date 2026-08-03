@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-89a22c3d.js";
+            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f5d8e804.js"></script>
@@ -208,12 +208,10 @@
 <h3 id="setting-seeds-in-biolang"><a class="header" href="#setting-seeds-in-biolang">Setting Seeds in BioLang</a></h3>
 <pre><code class="language-bio">set_seed(42)
 # ALWAYS set a seed at the start of any analysis with randomness
-# Note: set_seed() is planned but not yet implemented in BioLang.
-# For now, random results may vary between runs.
-
-# Once available, these will produce identical results every time
+let data = [4.8, 5.1, 5.3, 5.9, 6.2, 6.4, 6.8, 7.1, 7.4, 7.9]
+# These produce identical results every time.
 # Bootstrap the median
-let n_boot = 10000
+let n_boot = 1000
 let boot_medians = range(0, n_boot) |&gt; map(|i| {
   let resampled = range(0, len(data)) |&gt; map(|j| data[random_int(0, len(data) - 1)])
   median(resampled)
@@ -283,14 +281,14 @@ let boot_medians = range(0, n_boot) |&gt; map(|i| {
 let seeds = [42, 123, 456, 789, 2024]
 
 for s in seeds {
-  # set_seed(s) — not yet implemented; planned for a future release
-  let boot_vals = range(0, 10000) |&gt; map(|i| {
+  set_seed(s)
+  let boot_vals = range(0, 1000) |&gt; map(|i| {
     let resampled = range(0, len(data)) |&gt; map(|j| data[random_int(0, len(data) - 1)])
     median(resampled)
   })
   let sorted_b = sort(boot_vals)
-  let ci_lo = sorted_b[250]
-  let ci_hi = sorted_b[9749]
+  let ci_lo = sorted_b[25]
+  let ci_hi = sorted_b[974]
   print("Seed " + str(s) + ": CI = [" +
     str(round(ci_lo, 3)) + ", " +
     str(round(ci_hi, 3)) + "]")
@@ -357,7 +355,8 @@ for s in seeds {
 7. Output            — save results, figures, reports
 </code></pre>
 <h3 id="example-well-structured-analysis"><a class="header" href="#example-well-structured-analysis">Example: Well-Structured Analysis</a></h3>
-<pre><code class="language-bio"># ============================================
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# ============================================
 # Differential Expression Analysis
 # Author: Your Name
 # Date: 2025-03-15
@@ -366,7 +365,7 @@ for s in seeds {
 # ============================================
 
 # --- 1. Configuration ---
-# set_seed(42) — not yet implemented; planned for a future release
+set_seed(42)
 
 let CONFIG = {
   input_counts: "data/counts_matrix.csv",
@@ -387,7 +386,7 @@ print("Groups: " + str(unique(samples.group)))
 
 # --- 3. Preprocessing ---
 # Filter low-expression genes (at least 10 counts in 3+ samples)
-let keep = counts |&gt; filter_rows(|row| count(row, |x| x &gt;= 10) &gt;= 3)
+let keep = counts |&gt; filter_rows(|row| count_if(row, |x| x &gt;= 10) &gt;= 3)
 print("Genes after filtering: " + str(nrow(keep)))
 
 # Normalize: log2(CPM + 1)
@@ -427,8 +426,8 @@ let sig_genes = de_results
   |&gt; sort_by(|r| r.adj_p)
 
 print("\nSignificant DE genes: " + str(len(sig_genes)))
-print("  Upregulated: " + str(count(sig_genes, |g| g.log2fc &gt; 0)))
-print("  Downregulated: " + str(count(sig_genes, |g| g.log2fc &lt; 0)))
+print("  Upregulated: " + str(count_if(sig_genes, |g| g.log2fc &gt; 0)))
+print("  Downregulated: " + str(count_if(sig_genes, |g| g.log2fc &lt; 0)))
 
 # --- 6. Visualization ---
 let de_tbl = de_results |&gt; to_table()
@@ -504,7 +503,8 @@ print("\nResults saved to " + CONFIG.output_dir)
 </svg>
 </div>
 
-<pre><code class="language-bio"># --- Helper functions ---
+<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
+# --- Helper functions ---
 
 fn normalize_cpm(counts) {
   let lib_sizes = col_sums(counts)
@@ -533,7 +533,7 @@ fn filter_significant(results, fc_cut, fdr_cut) {
 }
 
 # --- Main analysis (now concise and readable) ---
-# set_seed(42) — not yet implemented; planned for a future release
+set_seed(42)
 let expr = read_csv("data/counts.csv") |&gt; normalize_cpm()
 let de = run_de(expr, tumor_idx, normal_idx)
 let sig = filter_significant(de, 1.0, 0.05)
@@ -562,7 +562,7 @@ output:
 <h3 id="loading-parameters-in-biolang"><a class="header" href="#loading-parameters-in-biolang">Loading Parameters in BioLang</a></h3>
 <pre><code class="language-bio"># Load configuration
 let config = read_yaml("config.yaml")
-# set_seed(config.random_seed) — not yet implemented; planned for a future release
+set_seed(config.random_seed)
 
 let counts = read_csv(config.input.counts)
 let sig = de_results |&gt; filter(|r|
@@ -592,8 +592,7 @@ let sig = de_results |&gt; filter(|r|
 # Any sample &gt; 3 SD from the centroid will be flagged.
 
 let pca_result = pca(log_cpm)
-scatter(pca_result.scores[0], pca_result.scores[1],
-  {title: "PCA — Quality Control"})
+scatter(pca_result.scores[0], pca_result.scores[1])
 
 # Result: Sample S14 is a clear outlier on PC1 (3.8 SD from centroid).
 # Decision: Remove S14 from downstream analysis.
@@ -643,8 +642,8 @@ scatter(pca_result.scores[0], pca_result.scores[1],
 <h3 id="before-messy"><a class="header" href="#before-messy">Before (messy):</a></h3>
 <pre><code class="language-bio"># quick analysis
 let d = read_csv("data/expression.csv")
-let a = d |&gt; filter(|r| r.group == "A") |&gt; map(|r| r.value)
-let b = d |&gt; filter(|r| r.group == "B") |&gt; map(|r| r.value)
+let a = d |&gt; filter(|r| r.condition == "treatment") |&gt; map(|r| r.sample1)
+let b = d |&gt; filter(|r| r.condition == "control") |&gt; map(|r| r.sample1)
 print(ttest(a, b))
 # p = 0.003 — hardcoded from a previous run
 histogram(a, {bins: 30})
@@ -660,7 +659,7 @@ histogram(a, {bins: 30})
 # ============================================
 
 # --- Configuration ---
-# set_seed(42) — not yet implemented; planned for a future release
+set_seed(42)
 
 let CONFIG = {
   input: "data/enzyme_activity.csv",
@@ -676,8 +675,8 @@ let CONFIG = {
 # --- Data Loading ---
 let data = read_csv(CONFIG.input)
 print("Total observations: " + str(nrow(data)))
-print("Group A: n=" + str(count(data, |r| r[CONFIG.group_col] == CONFIG.group_a)))
-print("Group B: n=" + str(count(data, |r| r[CONFIG.group_col] == CONFIG.group_b)))
+print("Group A: n=" + str(count_if(data, |r| r[CONFIG.group_col] == CONFIG.group_a)))
+print("Group B: n=" + str(count_if(data, |r| r[CONFIG.group_col] == CONFIG.group_b)))
 
 let a = data |&gt; filter(|r| r[CONFIG.group_col] == CONFIG.group_a) |&gt; map(|r| r[CONFIG.value_col])
 let b = data |&gt; filter(|r| r[CONFIG.group_col] == CONFIG.group_b) |&gt; map(|r| r[CONFIG.value_col])
@@ -699,7 +698,7 @@ print("  95% CI for difference: [" +
   str(round(tt.ci_lower, 3)) + ", " + str(round(tt.ci_upper, 3)) + "]")
 
 # Cohen's d (inline)
-let pooled_sd = sqrt(((len(a) - 1) * pow(sd(a), 2) + (len(b) - 1) * pow(sd(b), 2)) /
+let pooled_sd = sqrt(((len(a) - 1) * pow(stdev(a), 2) + (len(b) - 1) * pow(stdev(b), 2)) /
   (len(a) + len(b) - 2))
 let d = (mean(a) - mean(b)) / pooled_sd
 print("  Cohen's d = " + str(round(d, 3)))
@@ -708,20 +707,21 @@ print("  Cohen's d = " + str(round(d, 3)))
 let n_boot = CONFIG.n_bootstrap
 let combined = concat(a, b)
 let boot_diffs = range(0, n_boot) |&gt; map(|i| {
-  let ra = range(0, len(a)) |&gt; map(|j| a[random_int(0, len(a) - 1)])
-  let rb = range(0, len(b)) |&gt; map(|j| b[random_int(0, len(b) - 1)])
+  let ra = range(0, len(a)) |&gt; map(|j| a[random_int(0, len(a))])
+  let rb = range(0, len(b)) |&gt; map(|j| b[random_int(0, len(b))])
   mean(ra) - mean(rb)
 })
 let sorted_boot = sort(boot_diffs)
-let boot_ci_lo = sorted_boot[round(n_boot * 0.025, 0)]
-let boot_ci_hi = sorted_boot[round(n_boot * 0.975, 0)]
+let boot_ci_lo = sorted_boot[int(n_boot * 0.025)]
+let boot_ci_hi = sorted_boot[int(n_boot * 0.975)]
 print("\nBootstrap 95% CI for mean difference: [" +
   str(round(boot_ci_lo, 3)) + ", " +
   str(round(boot_ci_hi, 3)) + "]")
 
 # --- Visualization ---
-violin([a, b],
-  {labels: [CONFIG.group_a, CONFIG.group_b],
+let violin_data = table({"Treatment A": a, "Treatment B": b})
+violin(violin_data,
+  {
   title: "Enzyme Activity by Treatment",
   ylabel: "Activity (U/L)"})
 
@@ -900,7 +900,7 @@ renv::snapshot() # Lock package versions with renv
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-ee861d9e.js"></script>
+        <script src="theme/book-runner-395634af.js"></script>
 
 
 

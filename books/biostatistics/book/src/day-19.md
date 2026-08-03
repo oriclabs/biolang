@@ -430,7 +430,8 @@ print("Fisher's exact p-value: {fe.p_value |> round(4)}")
 
 ### Cramér's V for Categorical Data
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # Association between tumor subtype (4 types) and treatment response (3 levels)
 # observed counts in a 4x3 contingency table
 let observed = [
@@ -517,12 +518,16 @@ let forest_data = table({
     "ci_lower": ci_lowers,
     "ci_upper": ci_uppers
 })
-forest_plot(forest_data)
+        forest_plot(forest_data, {
+            label: "gene", estimate: "effect",
+            lower: "ci_lower", upper: "ci_upper"
+        })
 ```
 
 ### Contrasting "Significant Tiny" vs. "Non-Significant Large"
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 set_seed(42)
 # The key lesson: significance does not equal importance
 

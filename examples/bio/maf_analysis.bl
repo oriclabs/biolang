@@ -11,43 +11,43 @@ println("Total mutations: ", mutations |> count())
 # ── Inspect First Records ────────────────────────────────────
 println("\n=== Mutation Records ===")
 mutations |> take(5) |> each(|m| {
-    println("  ", m.hugo_symbol, "  ", m.chrom, ":", m.start,
-            "  ", m.variant_classification, "  ", m.variant_type)
+    println("  ", m.Hugo_Symbol, "  ", m.Chromosome, ":", m.Start_Position,
+            "  ", m.Variant_Classification, "  ", m.Variant_Type)
 })
 
 # ── Filter by Variant Type ───────────────────────────────────
-let snps = mutations |> filter(|m| m.variant_type == "SNP")
-let ins  = mutations |> filter(|m| m.variant_type == "INS")
-let del  = mutations |> filter(|m| m.variant_type == "DEL")
+let snps = mutations |> filter(|m| m.Variant_Type == "SNP")
+let ins  = mutations |> filter(|m| m.Variant_Type == "INS")
+let del  = mutations |> filter(|m| m.Variant_Type == "DEL")
 println("\nSNPs:       ", snps |> count())
 println("Insertions: ", ins |> count())
 println("Deletions:  ", del |> count())
 
 # ── Variant Classification Breakdown ─────────────────────────
-let classes = mutations |> map(|m| m.variant_classification) |> unique()
+let classes = mutations |> map(|m| m.Variant_Classification) |> unique()
 println("\nVariant classifications:")
 classes |> each(|cls| {
-    let n = mutations |> filter(|m| m.variant_classification == cls) |> count()
+    let n = mutations |> filter(|m| m.Variant_Classification == cls) |> count()
     println("  ", cls, ": ", n)
 })
 
 # ── Gene-Level Mutation Burden ────────────────────────────────
-let genes = mutations |> map(|m| m.hugo_symbol) |> unique()
+let genes = mutations |> map(|m| m.Hugo_Symbol) |> unique()
 println("\nMutations per gene:")
 genes |> each(|g| {
-    let n = mutations |> filter(|m| m.hugo_symbol == g) |> count()
+    let n = mutations |> filter(|m| m.Hugo_Symbol == g) |> count()
     println("  ", g, ": ", n)
 })
 
 # ── Non-Silent Mutations ─────────────────────────────────────
 let silent = ["Silent", "Intron", "3'UTR", "5'UTR", "IGR"]
-let non_silent = mutations |> filter(|m| !(silent |> contains(m.variant_classification)))
+let non_silent = mutations |> filter(|m| !(silent |> contains(m.Variant_Classification)))
 println("\nNon-silent mutations: ", non_silent |> count())
 
 # ── Chromosomal Distribution ─────────────────────────────────
-let chroms = mutations |> map(|m| m.chrom) |> unique()
+let chroms = mutations |> map(|m| m.Chromosome) |> unique()
 println("\nMutations per chromosome:")
 chroms |> each(|c| {
-    let n = mutations |> filter(|m| m.chrom == c) |> count()
+    let n = mutations |> filter(|m| m.Chromosome == c) |> count()
     println("  ", c, ": ", n)
 })

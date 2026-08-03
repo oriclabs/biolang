@@ -1,0 +1,186 @@
+# singlecell/src/standard.bl — the standard workflow as one call
+#
+# Every scRNA tutorial runs the same twelve steps, but only about four of them
+# are real decisions: the QC cutoffs, how many variable genes, the neighbourhood
+# size, and the clustering resolution. standard() runs the ceremony and prints
+# the pipeline it ran, with each decision marked [default] or [set], so the
+# knobs stay visible instead of being buried.
+#
+# The printed pipeline is valid BioLang — paste it back and edit any step.
+#
+#   let res = sc.standard(obj)                          # explore
+#   let res = sc.standard(obj, resolution: 1.5)         # tune what matters most
+#   let res = sc.standard(obj, resolution: 1.5, quiet: true)
+#
+# Name them. Every optional parameter here is a number, so a positional call
+# gives no protection against transposing two of them, and the result is a
+# different analysis that still looks reasonable. Naming them is the same
+# discipline the decision report exists to enforce.
+#
+# Parameters left as nil take a default AND get flagged in the report; passing
+# a value explicitly marks it [set]. That distinction is the point — it tells
+# you what you have not thought about yet.
+
+import "singlecell/src/preprocess" as _pre
+
+fn _or(v, fallback)  { if v == nil { fallback } else { v } }
+fn _src(v)           { if v == nil { "default" } else { "set" } }
+
+fn _decision(name, value, source, note) {
+    {name: name, value: value, source: source, note: note}
+}
+
+## standard(obj, resolution, n_hvg, k, min_genes, max_genes, max_pct_mito,
+##          min_cells, target, quiet) -> Record
+##
+## Runs filter_genes -> filter_cells -> normalize -> variable_genes -> PCA
+## -> neighbors -> cluster_leiden and returns the clustered object with a
+## `decisions` field describing every parameter used.
+fn standard(obj, resolution = nil, n_hvg = nil, k = nil,
+            min_genes = nil, max_genes = nil, max_pct_mito = nil,
+            min_cells = nil, target = nil, quiet = false) {
+
+    let r_res  = _or(resolution, 0.5)
+    let r_hvg  = _or(n_hvg, 2000)
+    let r_k    = _or(k, 15)
+    let r_ming = _or(min_genes, 200)
+    let r_maxg = _or(max_genes, 5000)
+    let r_mito = _or(max_pct_mito, 25.0)
+    let r_minc = _or(min_cells, 3)
+    let r_targ = _or(target, 10000.0)
+
+    let n_before = obj.n_cells
+
+    let out = obj
+        |> _pre.filter_genes(r_minc)
+        |> _pre.filter_cells(r_ming, r_maxg, r_mito)
+        |> _pre.normalize(r_targ)
+        |> _pre.variable_genes(r_hvg)
+        |> _pre.run_pca()
+        |> _pre.neighbors(r_k)
+        |> _pre.cluster_leiden(r_k, r_res)
+
+    let n_clusters = out.clusters |> unique |> len
+
+    let decisions = [
+        _decision("min_cells",    str(r_minc), _src(min_cells),    "gene kept if seen in >= this many cells"),
+        _decision("min_genes",    str(r_ming), _src(min_genes),    "cell kept if it has >= this many genes"),
+        _decision("max_genes",    str(r_maxg), _src(max_genes),    "upper cut, catches doublets"),
+        _decision("max_pct_mito", str(r_mito), _src(max_pct_mito), "needs gene SYMBOLS to work (MT- prefix)"),
+        _decision("target",       str(r_targ), _src(target),       "counts-per-cell before log1p"),
+        _decision("n_hvg",        str(r_hvg),  _src(n_hvg),        "variable genes kept"),
+        _decision("k",            str(r_k),    _src(k),            "neighbours in the kNN graph"),
+        _decision("resolution",   str(r_res),  _src(resolution),   "drives cluster count — tune this first"),
+    ]
+
+    if not quiet {
+        report(out, decisions, n_before, n_clusters)
+    }
+
+    # Warnings are NOT suppressed by quiet — quiet hides the report, not
+    # problems. Filtering everything away is easy to do by accident (min_genes
+    # is larger than the gene count on small or subset matrices) and shows up
+    # downstream only as an empty result.
+    let warnings = check(out, obj, n_before, r_ming)
+    for w in warnings { println("  WARNING: " + w) }
+
+    {... out, decisions: decisions, n_clusters: n_clusters, warnings: warnings}
+}
+
+## check(out, obj, n_before, min_genes) -> List<Str>
+##
+## Conditions that make the result meaningless but do not raise on their own.
+fn check(out, obj, n_before, min_genes) {
+    let w = []
+    if out.n_cells == 0 {
+        w = w + ["filtering removed every cell (" + str(n_before) + " -> 0). " +
+                 "min_genes=" + str(min_genes) + " may exceed this matrix's " +
+                 str(obj.n_genes) + " genes."]
+    } else {
+        if float(out.n_cells) < 0.5 * float(n_before) {
+            w = w + ["filtering removed " +
+                     str(round(100.0 * (1.0 - float(out.n_cells) / float(n_before)), 1)) +
+                     "% of cells (" + str(n_before) + " -> " + str(out.n_cells) +
+                     "). Check min_genes / max_pct_mito."]
+        }
+        if len(out.clusters |> unique) <= 1 {
+            w = w + ["only one cluster found — try a higher resolution, or the " +
+                     "data may have no structure at this k."]
+        }
+    }
+    w
+}
+
+## report(obj, decisions, n_before, n_clusters)
+##
+## Print the equivalent explicit pipeline and the decision table.
+fn report(obj, decisions, n_before, n_clusters) {
+    let d = |name| decisions |> find(|x| x.name == name)
+
+    println("sc.standard — equivalent explicit pipeline:")
+    println("")
+    println("    obj |> sc.filter_genes(" + d("min_cells").value + ")")
+    println("        |> sc.filter_cells(" + d("min_genes").value + ", " +
+            d("max_genes").value + ", " + d("max_pct_mito").value + ")")
+    println("        |> sc.normalize(" + d("target").value + ")")
+    println("        |> sc.variable_genes(" + d("n_hvg").value + ")")
+    println("        |> sc.run_pca()")
+    println("        |> sc.neighbors(" + d("k").value + ")")
+    println("        |> sc.cluster_leiden(" + d("k").value + ", " +
+            d("resolution").value + ")")
+    println("")
+    println("  " + str(n_before) + " cells in -> " + str(obj.n_cells) +
+            " kept -> " + str(n_clusters) + " clusters")
+    println("")
+    println("  parameter      value      source     note")
+    for x in decisions {
+        let mark = if x.source == "default" { "[default]" } else { "[set]    " }
+        println("  " + pad_right(x.name, 14, " ") + " " + pad_right(x.value, 10, " ") +
+                " " + mark + "  " + x.note)
+    }
+
+    let untouched = decisions |> filter(|x| x.source == "default") |> len
+    if untouched > 0 {
+        println("")
+        println("  " + str(untouched) + " of " + str(len(decisions)) +
+                " parameters are defaults. Resolution is the one that changes")
+        println("  the answer most — try sc.standard(obj, 1.0) and compare.")
+    }
+}
+
+## sweep(obj, resolutions, n_hvg, k) -> List<Record>
+##
+## Cluster at several resolutions and report how many clusters each gives.
+## The cluster count plateauing over a range of resolutions is weak evidence
+## that it reflects structure in the data; a count that climbs steadily with
+## resolution means the parameter is doing the work, not the biology.
+##
+## Takes an object you have ALREADY filtered — it does not re-run QC. The
+## expensive prep (normalize, HVG, kNN) happens once and only the clustering
+## is repeated, so a sweep costs barely more than a single run.
+fn sweep(obj, resolutions = [0.1, 0.3, 0.5, 0.7, 1.0], n_hvg = nil, k = nil) {
+    let r_hvg = _or(n_hvg, 2000)
+    let r_k   = _or(k, 15)
+
+    let base = obj
+        |> _pre.normalize(10000.0)
+        |> _pre.variable_genes(r_hvg)
+        |> _pre.neighbors(r_k)
+
+    let rows = resolutions |> map(|r| {
+        let out = base |> _pre.cluster_leiden(r_k, r)
+        {resolution: r, n_clusters: out.clusters |> unique |> len}
+    })
+
+    println("resolution sweep (" + str(obj.n_cells) + " cells, k=" + str(r_k) + "):")
+    for row in rows {
+        println("  res=" + pad_right(str(row.resolution), 6, " ") + " -> " +
+                str(row.n_clusters) + " clusters")
+    }
+
+    let counts = rows |> map(|r| r.n_clusters) |> unique
+    if len(counts) == 1 {
+        println("  stable at " + str(counts[0]) + " clusters across this range.")
+    }
+    rows
+}

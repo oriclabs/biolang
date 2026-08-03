@@ -28,13 +28,13 @@ let de_fc = [
     -2.3, -1.8, -1.6, -1.5, -2.1, -1.9, -2.4, -3.1
 ]
 
-let lines = ["gene,log2fc,mean_expr,t_stat,p_value,true_de"]
+let header = ["gene,log2fc,mean_expr,t_stat,p_value,true_de"]
 
 # Deterministic seed-like index for reproducible pseudo-noise
 # For null genes: p-values spread uniformly via simple hash
 # For true DE genes: p-values near zero, proportional to effect size
 
-for i in range(0, 18000) {
+let null_rows = range(0, 18000) |> map(|i| {
     let gene = f"GENE_{i + 1}"
     # Deterministic pseudo-uniform p-value from index
     let hash = ((i * 2654435761) % 1000000) / 1000000.0
@@ -44,11 +44,11 @@ for i in range(0, 18000) {
     let fc = round(fc_noise * 0.4, 3)
     let expr = round(3.0 + (i % 100) * 0.08, 1)
     let t = round(fc / 0.25, 3)
-    lines = append(lines, f"{gene},{fc},{expr},{t},{p},0")
-}
+    f"{gene},{fc},{expr},{t},{p},0"
+})
 
 # 2000 true DE genes: 40 named + 1960 with realistic parameters
-for i in range(0, 2000) {
+let de_rows = range(0, 2000) |> map(|i| {
     let gene = if i < 40 { de_genes[i] } else { f"DE_GENE_{i + 1}" }
     let base_fc = if i < 40 {
         de_fc[i]
@@ -69,10 +69,11 @@ for i in range(0, 2000) {
     let p_round = round(p, 7)
     let expr = round(5.0 + (i % 80) * 0.1, 1)
     let t = round(fc / 0.2, 3)
-    lines = append(lines, f"{gene},{fc},{expr},{t},{p_round},1")
-}
+    f"{gene},{fc},{expr},{t},{p_round},1"
+})
 
-write_lines(lines, "data/de_results.csv")
+let lines = header + null_rows + de_rows
+write_lines("data/de_results.csv", lines)
 println("Wrote data/de_results.csv: 20,000 genes (18,000 null + 2,000 true DE)")
 println("  True DE genes include real TCGA BRCA basal vs luminal markers")
 println("  ESR1 (log2FC=-5.2), KRT5 (+4.5), FOXC1 (+4.3), GATA3 (-3.9)")

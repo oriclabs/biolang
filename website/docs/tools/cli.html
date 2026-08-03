@@ -25,9 +25,8 @@
         <h1>Command-Line Interface</h1>
         <p>
           The <code>bl</code> command is BioLang's unified CLI. It handles script execution,
-          the interactive REPL, the language server, code formatting, type checking, project
-          management, plugin management, testing, and benchmarking. Install it once and you
-          have everything you need.
+          the interactive REPL, the language server, syntax checking, packages, plugins,
+          notebooks, source import, environment diagnostics, and upgrades.
         </p>
 
         <h2>bl run</h2>
@@ -37,20 +36,11 @@
         <pre><code class="language-bash"># Run a script
 bl run analysis.bl
 
-# Run with arguments (accessible via args() builtin)
-bl run pipeline.bl --input reads.fastq --output results/
-
-# Run from stdin
-echo 'print("hello")' | bl run -
-
-# Run with verbose output (shows timing info)
+# Run with verbose execution tracing
 bl run analysis.bl --verbose
 
-# Run with a specific data directory
-bl run analysis.bl --data-dir /mnt/data/
-
-# Dry run — parse and type-check without executing
-bl run analysis.bl --dry-run</code></pre>
+# Emit JSON Lines lifecycle and output events for tool integrations
+bl run analysis.bl --events</code></pre>
 
         <h2>bl repl</h2>
         <p>
@@ -60,11 +50,8 @@ bl run analysis.bl --dry-run</code></pre>
         <pre><code class="language-bash"># Start the REPL
 bl repl
 
-# Start with a script pre-loaded into the environment
-bl repl --load setup.bl
-
-# Start with specific plugins enabled
-bl repl --plugin my-plugin</code></pre>
+# Use the newline-delimited JSON protocol used by editor integrations
+bl repl --json</code></pre>
 
         <h2>bl lsp</h2>
         <p>
@@ -74,68 +61,27 @@ bl repl --plugin my-plugin</code></pre>
         </p>
         <pre><code class="language-bash"># Start LSP server (communicates over stdin/stdout)
 bl lsp
-
-# Start with debug logging
-bl lsp --log-level debug --log-file /tmp/bl-lsp.log</code></pre>
+</code></pre>
 
         <h2>bl check</h2>
         <p>
-          Type-check and validate a script without executing it. Reports errors and warnings:
+          Parse one or more scripts without executing them. Each argument must be a file:
         </p>
         <pre><code class="language-bash"># Check a single file
 bl check analysis.bl
 
-# Check all .bl files in a directory
-bl check src/
-
-# Check with strict mode (warnings become errors)
-bl check --strict analysis.bl
-
-# Output in JSON format (for CI integration)
-bl check --format json analysis.bl</code></pre>
+# Check several files in one invocation
+bl check src/main.bl tests/test_sequences.bl</code></pre>
         <p>Example output:</p>
         <pre><code class="language-text">analysis.bl:12:5: error: undefined variable 'samplse' (did you mean 'samples'?)
-analysis.bl:24:1: warning: unused variable 'temp_result'
-analysis.bl:31:10: error: type mismatch: expected DNA, got RNA
-
-2 errors, 1 warning</code></pre>
-
-        <h2>bl fmt</h2>
-        <p>
-          Format BioLang source code according to the standard style. Handles indentation,
-          spacing, pipe chain formatting, and comment alignment:
-        </p>
-        <pre><code class="language-bash"># Format a file in place
-bl fmt analysis.bl
-
-# Format all .bl files in current directory
-bl fmt .
-
-# Check if files are formatted (exit code 1 if not — useful in CI)
-bl fmt --check analysis.bl
-
-# Print formatted output to stdout instead of modifying the file
-bl fmt --stdout analysis.bl
-
-# Format with specific options
-bl fmt --indent-width 4 --max-line-length 100 analysis.bl</code></pre>
+1 error</code></pre>
 
         <h2>bl add / bl remove</h2>
         <p>
-          Manage project dependencies (plugins):
+          Add or remove locally installed plugins:
         </p>
-        <pre><code class="language-bash"># Add a plugin to the current project
-bl add plot-tools
-bl add stats-extra
-
-# Add a specific version
-bl add plot-tools@1.2.0
-
-# Add from a git repository
-bl add git:https://github.com/user/bl-plugin.git
-
-# Add from a local path
-bl add path:../my-plugin
+        <pre><code class="language-bash"># Add a plugin from a local directory
+bl add somer.align --path ../somer-align
 
 # Remove a plugin
 bl remove plot-tools
@@ -145,134 +91,112 @@ bl plugins</code></pre>
 
         <h2>bl plugins</h2>
         <p>
-          List, search, and manage plugins:
+          List installed plugins:
         </p>
         <pre><code class="language-bash"># List installed plugins
 bl plugins
 
-# List with details
-bl plugins --verbose
-
-# Search the plugin registry
-bl plugins search "statistics"
-
-# Show details for a specific plugin
-bl plugins info plot-tools
-
-# Update all plugins
-bl plugins update
-
-# Update a specific plugin
-bl plugins update plot-tools</code></pre>
+</code></pre>
 
         <h2>bl init</h2>
         <p>
-          Initialize a new BioLang project with standard directory structure:
+          Create <code>biolang.toml</code> in the current directory:
         </p>
         <pre><code class="language-bash"># Create a new project in the current directory
 bl init
 
-# Create a new project in a named directory
-bl init my-analysis
-
-# Initialize with a specific template
-bl init --template rnaseq-pipeline my-project
-bl init --template variant-calling my-project</code></pre>
-        <p>Generated project structure:</p>
-        <pre><code class="language-text">my-analysis/
-  biolang.toml       # Project manifest
-  src/
-    main.bl          # Entry point
-  data/              # Input data directory
-  results/           # Output directory
-  tests/
-    test_main.bl     # Test file</code></pre>
+# Override the package name
+bl init --name my-analysis</code></pre>
 
         <h2>bl install</h2>
         <p>
-          Install all dependencies listed in <code>biolang.toml</code>:
+          Install dependencies from <code>biolang.toml</code>, a local package path, or Git:
         </p>
         <pre><code class="language-bash"># Install all project dependencies
 bl install
 
-# Install with verbose output
-bl install --verbose
+# Install a local package
+bl install ../packages/oric
 
-# Install and lock versions
-bl install --lock</code></pre>
+# Install a package from Git
+bl install oric --git https://github.com/example/oric.git --branch main</code></pre>
 
-        <h2>bl test</h2>
+        <h2>bl import</h2>
+        <p>Convert Python, R, Jupyter, or R Markdown source into BioLang.</p>
+        <pre><code class="language-bash"># Auto-detect the source format from its extension
+bl import analysis.py --output analysis.bl --validate
+
+# Emit the generated source and validation diagnostics as JSON
+bl import notebook.ipynb --json
+
+# Import stdin when a source name and format are supplied
+bl import - --from r --name analysis.R --output analysis.bl</code></pre>
+
+        <h2>bl doctor / bl metadata</h2>
         <p>
-          Run tests defined in <code>.bl</code> files. Test functions are any function whose
-          name starts with <code>test_</code>:
+          Inspect native and container capability readiness, or export the authoritative
+          language metadata consumed by editors and documentation checks.
         </p>
-        <pre><code class="language-bash"># Run all tests
-bl test
+        <pre><code class="language-bash">bl doctor
+bl metadata --format json</code></pre>
 
-# Run tests in a specific file
-bl test tests/test_pipeline.bl
-
-# Run tests matching a pattern
-bl test --filter "test_gc_content"
-
-# Run with verbose output (shows each test name)
-bl test --verbose</code></pre>
+        <h2>Testing scripts</h2>
+        <p>
+          Write test functions with <code>assert</code>, call them from the script, and run
+          the file with <code>bl run</code>:
+        </p>
+        <pre><code class="language-bash">bl run tests/test_sequences.bl</code></pre>
         <p>Example test file:</p>
         <pre><code class="language-biolang"># tests/test_sequences.bl
 
-let test_gc_content = || {
+fn test_gc_content() {
   let seq = dna"ATCGATCG"
-  assert(seq |> gc_content() == 0.5)
+  assert gc_content(seq) == 0.5, "GC content"
 }
 
-let test_reverse_complement = || {
+fn test_reverse_complement() {
   let seq = dna"ATCG"
-  assert(seq |> reverse_complement() == dna"CGAT")
+  assert reverse_complement(seq) == dna"CGAT", "reverse complement"
 }
 
-let test_transcribe = || {
+fn test_transcribe() {
   let seq = dna"ATCG"
   let rna = seq |> transcribe()
-  assert(rna == rna"AUCG")
-}</code></pre>
+  assert rna == rna"AUCG", "transcription"
+}
 
-        <h2>bl bench</h2>
+test_gc_content()
+test_reverse_complement()
+test_transcribe()</code></pre>
+
+        <h2>Benchmark scripts</h2>
         <p>
-          Run benchmarks to measure performance of BioLang code. Benchmark functions are
-          prefixed with <code>bench_</code>:
+          Use <code>time_it</code> around named functions and run the benchmark as a normal
+          BioLang script:
         </p>
-        <pre><code class="language-bash"># Run all benchmarks
-bl bench
-
-# Run benchmarks in a specific file
-bl bench benchmarks/bench_kmers.bl
-
-# Run with specific iteration count
-bl bench --iterations 100
-
-# Output in JSON format
-bl bench --format json</code></pre>
+        <pre><code class="language-bash">bl run benchmarks/bench_kmers.bl</code></pre>
         <p>Example benchmark file:</p>
         <pre><code class="language-biolang"># benchmarks/bench_kmers.bl
 
-let bench_kmer_count = || {
+fn bench_kmer_count() {
   let seq = dna"ATCGATCGATCG" * 1000    # Repeat 1000 times
   seq |> kmer_count(21)
 }
 
-let bench_gc_content = || {
+fn bench_gc_content() {
   let seq = dna"ATCGATCGATCG" * 10000
   seq |> gc_content()
-}</code></pre>
+}
+
+time_it(bench_kmer_count)
+time_it(bench_gc_content)</code></pre>
 
         <h2>bl version</h2>
         <p>
           Show the current BioLang version and check for updates from GitHub Releases:
         </p>
         <pre><code class="language-bash">bl version
-# BioLang v0.1.0
-#
-# Checking for updates... up to date.</code></pre>
+# BioLang v1.0.0</code></pre>
         <p>
           If a newer version is available, it will tell you to run <code>bl upgrade</code>.
         </p>
@@ -282,14 +206,7 @@ let bench_gc_content = || {
           Download and install the latest BioLang release. Automatically detects your
           platform and downloads the correct binary from GitHub Releases:
         </p>
-        <pre><code class="language-bash">bl upgrade
-# BioLang v0.1.0
-#
-# Checking for latest release... v0.2.0 found.
-# Downloading biolang-linux-x86_64.tar.gz...
-# Extracting...
-# Replacing /usr/local/bin/bl...
-# Upgraded to BioLang v0.2.0!</code></pre>
+        <pre><code class="language-bash">bl upgrade</code></pre>
         <p>
           BioLang also checks for updates automatically in the background when you run
           <code>bl run</code> or <code>bl repl</code>. This check runs at most once per 24 hours,
@@ -299,7 +216,7 @@ let bench_gc_content = || {
 
         <h2>Global Options</h2>
         <p>
-          These flags are available on all <code>bl</code> subcommands:
+          The root command supports:
         </p>
         <div class="not-prose overflow-x-auto mb-8">
           <table class="w-full text-sm text-left">
@@ -310,10 +227,7 @@ let bench_gc_content = || {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-800">
-              <tr><td class="py-3 px-4 font-mono">--verbose, -v</td><td class="py-3 px-4">Verbose output</td></tr>
-              <tr><td class="py-3 px-4 font-mono">--quiet, -q</td><td class="py-3 px-4">Suppress non-error output</td></tr>
-              <tr><td class="py-3 px-4 font-mono">--color &lt;auto|always|never&gt;</td><td class="py-3 px-4">Color output mode</td></tr>
-              <tr><td class="py-3 px-4 font-mono">--version</td><td class="py-3 px-4">Print version</td></tr>
+              <tr><td class="py-3 px-4 font-mono">--version, -V</td><td class="py-3 px-4">Print version</td></tr>
               <tr><td class="py-3 px-4 font-mono">--help, -h</td><td class="py-3 px-4">Print help</td></tr>
             </tbody>
           </table>
@@ -330,10 +244,11 @@ let bench_gc_content = || {
             </thead>
             <tbody class="divide-y divide-slate-800">
               <tr><td class="py-3 px-4 font-mono">BIOLANG_PATH</td><td class="py-3 px-4">Additional search paths for imports (colon-separated)</td></tr>
+              <tr><td class="py-3 px-4 font-mono">BIOLANG_DATA_DIR</td><td class="py-3 px-4">Base directory for relative data reads and writes</td></tr>
+              <tr><td class="py-3 px-4 font-mono">BIOLANG_IMAGE_DIR</td><td class="py-3 px-4">Directory used for downloaded container images</td></tr>
               <tr><td class="py-3 px-4 font-mono">NCBI_API_KEY</td><td class="py-3 px-4">NCBI API key for higher rate limits</td></tr>
               <tr><td class="py-3 px-4 font-mono">COSMIC_API_KEY</td><td class="py-3 px-4">COSMIC database API key</td></tr>
               <tr><td class="py-3 px-4 font-mono">BIOLANG_NO_UPDATE_CHECK</td><td class="py-3 px-4">Set to <code>1</code> to disable automatic update checking</td></tr>
-              <tr><td class="py-3 px-4 font-mono">BL_LOG</td><td class="py-3 px-4">Log level (trace, debug, info, warn, error)</td></tr>
             </tbody>
           </table>
         </div>

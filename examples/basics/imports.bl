@@ -1,23 +1,32 @@
 # imports.bl — Module imports in BioLang
-# NOTE: This file documents import syntax but won't run standalone
-# since the referenced modules don't exist here.
+#
+# Every module referenced below exists next to this file, so this runs as
+# written rather than only describing the syntax.
 
 # ── Basic import ───────────────────────────────────────
 # Imports all exported names into current scope
 import "utils.bl"
 
+println("double(5)  = ", double(5))
+println("triple(5)  = ", triple(5))
+println("PI         = ", PI)
+
 # ── Aliased import ─────────────────────────────────────
 # Import a module under a namespace
 import "stats.bl" as stats
 
-# Access functions via the alias
-# let mean = stats.mean([1, 2, 3])
-# let sd = stats.stdev([1, 2, 3])
+let sample = [2, 4, 4, 4, 5, 5, 7, 9]
+println("mean       = ", stats.mean_of(sample))
+println("stdev      = ", stats.stdev_of(sample))
 
 # ── Relative paths ─────────────────────────────────────
 # Paths are relative to the importing file
 import "../lib/fasta.bl" as fasta
 import "../lib/quality.bl" as qc
+
+println("header id  = ", fasta.header_id(">contig_1 length=500"))
+println("GC         = ", fasta.gc_fraction("ATGCGC"))
+println("mean qual  = ", qc.mean_quality("IIIIIHHHH"))
 
 # ── Practical example ─────────────────────────────────
 # A typical project might look like:

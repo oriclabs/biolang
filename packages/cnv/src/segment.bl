@@ -1,0 +1,4 @@
+fn ratios(tumor, normal)        { log2_ratios(tumor, normal) }
+fn segment(ratios)              { cbs_segment(ratios) }
+fn call(segments, ploidy=2)     { cn_call(segments, ploidy) }
+fn allelic(baf, ratio)          { allele_specific_cn(baf, ratio) }

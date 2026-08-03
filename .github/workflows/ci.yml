@@ -1,0 +1,196 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  BIOLANG_NO_UPDATE_CHECK: "1"
+
+jobs:
+  rust:
+    name: Rust tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace
+
+  lint:
+    name: Rust lint (advisory)
+    runs-on: ubuntu-latest
+    # Advisory until the existing `cargo fmt` and clippy debt is cleared. Making
+    # these blocking today would turn CI red on code this workflow never touched,
+    # which is how a red build stops meaning anything.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets
+
+  packs:
+    name: Example packs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      # Manifest integrity first: a pack that lies about its own contents makes
+      # every number below meaningless.
+      - name: Verify pack manifests
+        run: node scripts/verify-packs.mjs
+
+      # Deploy builds the same artifacts from the same manifests, so a manifest
+      # that cannot be built should fail here rather than on the way to Pages.
+      - name: Build pack artifacts
+        run: node scripts/build-packs.mjs
+
+      # The docs record which problems run in a browser, worked out from the
+      # module's own builtin catalog. That catalog is generated rather than
+      # committed, so without this step a clean checkout regenerates the pages
+      # without the column and the staleness check below fails on a difference
+      # that says nothing about the code.
+      - name: Generate the browser builtin catalog
+        working-directory: website
+        run: node tests/write_wasm_builtins.mjs
+
+      # The pack docs pages are committed so the repository stays browsable, so
+      # they have to be regenerated whenever a pack changes. Same contract as the
+      # help index below.
+      - name: Regenerate pack docs and check they are committed
+        run: |
+          node scripts/generate-pack-docs.mjs
+          git diff --exit-code -- website/docs/examples \
+            || (echo "pack docs are stale — run 'node scripts/generate-pack-docs.mjs' and commit"; exit 1)
+
+      - name: Build the CLI
+        run: cargo build -p bl-cli
+
+      - name: Parse every pack example
+        run: |
+          find packs -name '*.bl' -print0 | xargs -0 ./target/debug/bl check
+
+      # `bl test` only executes files that define `test_*` functions, so the
+      # network-dependent examples declared in pack.toml are inert here. This
+      # job must stay hermetic — an NCBI outage is not a BioLang regression.
+      - name: Run pack assertions
+        # Only the hermetic problems: verify-packs emits the asserted, non-network
+        # set, because `bl test packs` would also run the ones that fetch from NCBI.
+        run: ./target/debug/bl test $(node scripts/verify-packs.mjs --hermetic-files)
+
+      # Every other check runs an example on its own. A workbench session or a
+      # REPL keeps state between runs, so a top-level `let` in one example
+      # outlives it — BINS bound `keys` and MAJ then failed on `keys(counts)`
+      # with "List is not callable". This runs each pack as one session.
+      - name: Run each pack as one shared session
+        run: node scripts/check-pack-session.mjs
+
+      # Ratchet on examples/: no new breakage, and the known-broken list can
+      # only shrink. See examples/known-broken.txt for why it is a ratchet
+      # rather than a plain pass/fail gate.
+      - name: Run every example
+        run: node scripts/check-examples-run.mjs
+
+      # The packs are advertised as runnable in the browser. Native passing does
+      # not prove that: the WASM build ships a subset of the builtins, so a pack
+      # can be green here and dead in the playground. Run the same sources
+      # through the real module and check the answers they print.
+      # Every pack, not just the default one. This step ran only the armory
+      # pack until the Algorithmic Heights pack was added, so a problem that
+      # needed a parser fix newer than the committed WASM passed CI while
+      # failing in the playground.
+      - name: Check packs run in the browser build
+        working-directory: website
+        run: |
+          for pack in ../packs/*/; do
+            node tests/run_pack_wasm.mjs "$(basename "$pack")"
+          done
+
+      # The docs table tells readers which problems run in a browser, worked out
+      # by static analysis. This runs each one for real and fails if the claim
+      # and the behaviour disagree in either direction.
+      - name: Audit the docs "Runs in" claims
+        working-directory: website
+        run: node tests/audit_browser_claims.mjs
+
+      # Run buttons were once disabled across whole pages because comments were
+      # scanned as code. These pages must offer Run on every block.
+      - name: Check Run buttons are offered
+        working-directory: website
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test tests/e2e/run-button-availability.spec.mjs
+
+  network-packs:
+    name: Example packs (network)
+    runs-on: ubuntu-latest
+    # Never gates a pull request. Remote services rate-limit and go down, and a
+    # red X for that trains people to ignore red X's.
+    continue-on-error: true
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p bl-cli
+      - name: Run network-dependent pack examples
+        run: |
+          set +e
+          status=0
+          for file in packs/rosalind-armory/examples/frmt.bl \
+                      packs/rosalind-armory/examples/gbk.bl \
+                      packs/rosalind-armory/examples/need.bl; do
+            echo "=== $file"
+            ./target/debug/bl run "$file" || status=1
+          done
+          exit $status
+
+  desktop:
+    name: Workbench checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p bl-cli
+      - name: Install workbench dependencies
+        working-directory: desktop
+        run: npm ci
+      - name: Regenerate the help index and check it is committed
+        working-directory: desktop
+        run: |
+          npm run generate:help
+          git diff --exit-code -- src/generated \
+            || (echo "help index is stale — run 'npm run generate:help' and commit"; exit 1)
+      - name: Verify documented examples
+        working-directory: desktop
+        run: npm run check:examples
+
+      # The module is committed twice — website/wasm serves the playground and
+      # desktop/public/wasm ships inside the workbench. They drifted once
+      # already, leaving the workbench without builtins the playground had.
+      - name: Check the two WASM copies match
+        run: |
+          cmp website/wasm/bl_wasm_bg.wasm desktop/public/wasm/bl_wasm_bg.wasm \
+            && cmp website/wasm/bl_wasm.js desktop/public/wasm/bl_wasm.js \
+            || (echo "WASM copies differ — rebuild and copy so both ship the same builtins"; exit 1)

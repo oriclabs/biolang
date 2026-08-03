@@ -1,0 +1,288 @@
+{
+  "environment": {
+    "machine": "Windows 11 (AMD64)",
+    "cpu": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+    "biolang": "bl 1.0.0",
+    "python": "3.13.14",
+    "biopython": "1.87",
+    "repeats": 7,
+    "warmup": 2,
+    "seed": 20260803,
+    "input": "1,000,000 bp synthetic genome, 1000 x 300 bp reads"
+  },
+  "mismatches": [],
+  "results": [
+    {
+      "workload": "reverse complement (1 Mb)",
+      "implementation": "BioLang",
+      "answer": "TGCCCCGCCAGA",
+      "median_ms": 5.17,
+      "mad_ms": 0.07000000000000028,
+      "samples_ms": [
+        5.17,
+        5.12,
+        5.1,
+        5.64,
+        5.29,
+        5.25,
+        5.15
+      ]
+    },
+    {
+      "workload": "reverse complement (1 Mb)",
+      "implementation": "Biopython",
+      "answer": "TGCCCCGCCAGA",
+      "median_ms": 4.716299998108298,
+      "mad_ms": 0.11510000331327319,
+      "samples_ms": [
+        4.76769998203963,
+        5.02849998883903,
+        4.716299998108298,
+        4.825000010896474,
+        4.601199994795024,
+        4.463099990971386,
+        4.364499996881932
+      ]
+    },
+    {
+      "workload": "reverse complement (1 Mb)",
+      "implementation": "Python stdlib",
+      "answer": "TGCCCCGCCAGA",
+      "median_ms": 4.5544999884441495,
+      "mad_ms": 0.10750000365078449,
+      "samples_ms": [
+        4.260900022927672,
+        4.2922000284306705,
+        4.656200006138533,
+        4.5544999884441495,
+        4.3747000163421035,
+        4.58850001450628,
+        4.661999992094934
+      ]
+    },
+    {
+      "workload": "GC content (1 Mb)",
+      "implementation": "BioLang",
+      "answer": "0.500308",
+      "median_ms": 3.93,
+      "mad_ms": 0.13000000000000034,
+      "samples_ms": [
+        4.13,
+        3.93,
+        3.8,
+        3.88,
+        3.98,
+        3.65,
+        4.46
+      ]
+    },
+    {
+      "workload": "GC content (1 Mb)",
+      "implementation": "Biopython",
+      "answer": "0.500308",
+      "median_ms": 13.940800039563328,
+      "mad_ms": 0.04750007065013051,
+      "samples_ms": [
+        14.117300044745207,
+        13.940800039563328,
+        13.842199987266213,
+        14.09139996394515,
+        13.968900020699948,
+        13.893299968913198,
+        13.900300022214651
+      ]
+    },
+    {
+      "workload": "GC content (1 Mb)",
+      "implementation": "Python stdlib",
+      "answer": "0.500308",
+      "median_ms": 7.597999996505678,
+      "mad_ms": 0.11880003148689866,
+      "samples_ms": [
+        7.479199965018779,
+        7.7327999752014875,
+        7.684500014875084,
+        7.597999996505678,
+        7.371800020337105,
+        7.958700007293373,
+        7.568700006231666
+      ]
+    },
+    {
+      "workload": "translation (1 Mb -> protein)",
+      "implementation": "BioLang",
+      "answer": "PRGTEFKISQNY",
+      "median_ms": 3.45,
+      "mad_ms": 0.020000000000000018,
+      "samples_ms": [
+        3.43,
+        3.53,
+        3.45,
+        3.43,
+        3.79,
+        3.47,
+        3.42
+      ]
+    },
+    {
+      "workload": "translation (1 Mb -> protein)",
+      "implementation": "Biopython",
+      "answer": "PRGTEFKISQNY",
+      "median_ms": 55.762399977538735,
+      "mad_ms": 1.3498999760486186,
+      "samples_ms": [
+        55.762399977538735,
+        59.6023999969475,
+        53.660100034903735,
+        56.35710002388805,
+        54.412500001490116,
+        55.561899964232,
+        59.595500002615154
+      ]
+    },
+    {
+      "workload": "edit distance (2 kb x 2 kb)",
+      "implementation": "BioLang",
+      "answer": "1051",
+      "median_ms": 14.58,
+      "mad_ms": 0.17999999999999972,
+      "samples_ms": [
+        14.4,
+        14.58,
+        14.1,
+        14.32,
+        14.67,
+        15.44,
+        14.74
+      ]
+    },
+    {
+      "workload": "edit distance (2 kb x 2 kb)",
+      "implementation": "edlib (C)",
+      "answer": "1051",
+      "median_ms": 3.771500021684915,
+      "mad_ms": 0.13669999316334724,
+      "samples_ms": [
+        3.771500021684915,
+        4.150900000240654,
+        3.9384999545291066,
+        3.7691000034101307,
+        3.843099984806031,
+        3.6348000285215676,
+        3.6216999869793653
+      ]
+    },
+    {
+      "workload": "edit distance (2 kb x 2 kb)",
+      "implementation": "Biopython",
+      "answer": "1051",
+      "median_ms": 10.510699998121709,
+      "mad_ms": 0.08919998072087765,
+      "samples_ms": [
+        11.835299956146628,
+        10.510699998121709,
+        10.536300018429756,
+        10.573299950920045,
+        10.421500017400831,
+        10.409899987280369,
+        10.354499972891062
+      ]
+    },
+    {
+      "workload": "FASTA parse (1000 reads)",
+      "implementation": "BioLang",
+      "answer": "1000 300000",
+      "median_ms": 5.96,
+      "mad_ms": 0.08000000000000007,
+      "samples_ms": [
+        5.96,
+        5.9,
+        5.98,
+        6.19,
+        5.88,
+        5.87,
+        6.11
+      ]
+    },
+    {
+      "workload": "FASTA parse (1000 reads)",
+      "implementation": "Biopython",
+      "answer": "1000 300000",
+      "median_ms": 3.4804000169970095,
+      "mad_ms": 0.17930002650246024,
+      "samples_ms": [
+        3.4394999966025352,
+        4.818699962925166,
+        3.4804000169970095,
+        3.2683999743312597,
+        3.557500021997839,
+        3.943400050047785,
+        3.3010999904945493
+      ]
+    },
+    {
+      "workload": "k-mer counting (k=8, 1 Mb)",
+      "implementation": "BioLang",
+      "answer": "65536",
+      "median_ms": 430.87,
+      "mad_ms": 25.670000000000016,
+      "samples_ms": [
+        419.92,
+        430.87,
+        404.17,
+        456.54,
+        463.75,
+        432.0,
+        372.37
+      ]
+    },
+    {
+      "workload": "k-mer counting (k=8, 1 Mb)",
+      "implementation": "Python dict",
+      "answer": "65536",
+      "median_ms": 167.23910003202036,
+      "mad_ms": 3.2700999872758985,
+      "samples_ms": [
+        158.7757999659516,
+        172.3152999766171,
+        164.1671999823302,
+        171.7272999812849,
+        170.50920001929626,
+        165.50600004848093,
+        167.23910003202036
+      ]
+    },
+    {
+      "workload": "interpreted loop (300k iterations)",
+      "implementation": "BioLang",
+      "answer": "899997",
+      "median_ms": 76.96,
+      "mad_ms": 1.230000000000004,
+      "samples_ms": [
+        78.19,
+        77.32,
+        73.29,
+        76.96,
+        78.03,
+        74.63,
+        72.58
+      ]
+    },
+    {
+      "workload": "interpreted loop (300k iterations)",
+      "implementation": "Python",
+      "answer": "899997",
+      "median_ms": 16.31400000769645,
+      "mad_ms": 0.15279999934136868,
+      "samples_ms": [
+        16.46680000703782,
+        16.53309998800978,
+        16.31400000769645,
+        16.444699955172837,
+        16.18199999211356,
+        15.917900018393993,
+        16.084000002592802
+      ]
+    }
+  ]
+}

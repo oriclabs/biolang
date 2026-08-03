@@ -1,0 +1,609 @@
+# singlecell/src/advanced_plots.bl - publication-oriented single-cell SVG plots
+
+import "singlecell/src/plots" as _base
+import "singlecell/src/advanced" as _adv
+
+fn _records(data) {
+    if typeof(data) == "Table" { to_records(data) } else { data }
+}
+
+fn _svg_start(w, h, title) {
+    ["<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + str(w) +
+     "\" height=\"" + str(h) + "\" viewBox=\"0 0 " + str(w) + " " + str(h) + "\">",
+     "<rect width=\"100%\" height=\"100%\" fill=\"#ffffff\"/>",
+     "<text x=\"48\" y=\"28\" font-family=\"sans-serif\" font-size=\"15\" " +
+     "font-weight=\"bold\" fill=\"#0f172a\">" + title + "</text>"]
+}
+
+fn _palette(i) {
+    let colours = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed",
+                   "#0891b2", "#be185d", "#4d7c0f", "#475569", "#9333ea"]
+    colours[i % len(colours)]
+}
+
+## plot_qc_violin(obj, title) -> Str (SVG)
+fn plot_qc_violin(obj, title = "Cell quality distributions") {
+    let metrics = cell_qc(obj.matrix, obj.genes)
+    violin(select(metrics, "n_genes", "total_counts", "pct_mito"), {title: title})
+}
+
+## plot_qc_scatter(obj, title) -> Str (SVG)
+fn plot_qc_scatter(obj, title = "Counts, genes, and mitochondrial fraction") {
+    let metrics = cell_qc(obj.matrix, obj.genes)
+    _base._scatter_svg(
+        col(metrics, "total_counts"),
+        col(metrics, "n_genes"),
+        col(metrics, "pct_mito"),
+        title,
+        "% mitochondrial"
+    )
+}
+
+fn _hist_panel(parts, values, x0, y0, w, h, label) {
+    let bins = 24
+    let lo = min(values)
+    let hi = max(values)
+    let span = if hi > lo { hi - lo } else { 1.0 }
+    let counts = range(0, bins) |> map(|b| {
+        let lower = lo + span * float(b) / float(bins)
+        let upper = lo + span * float(b + 1) / float(bins)
+        values |> filter(|v| v >= lower and
+            (v < upper or (b == bins - 1 and v <= upper))) |> len
+    })
+    let peak = if max(counts) > 0 { max(counts) } else { 1 }
+    parts = parts + [
+        "<rect x=\"" + str(x0) + "\" y=\"" + str(y0) + "\" width=\"" + str(w) +
+        "\" height=\"" + str(h) + "\" fill=\"#f8fafc\" stroke=\"#cbd5e1\"/>",
+        "<text x=\"" + str(x0+8) + "\" y=\"" + str(y0+18) +
+        "\" font-family=\"sans-serif\" font-size=\"11\" fill=\"#334155\">" + label + "</text>"
+    ]
+    for b in range(0, bins) {
+        let bw = float(w-20) / float(bins)
+        let bh = int(float(h-42) * float(counts[b]) / float(peak))
+        parts = parts + ["<rect x=\"" + str(float(x0+10)+float(b)*bw) + "\" y=\"" +
+            str(y0+h-20-bh) + "\" width=\"" + str(bw-1.0) + "\" height=\"" +
+            str(bh) + "\" fill=\"#2563eb\" fill-opacity=\"0.75\"/>"]
+    }
+    parts
+}
+
+## plot_qc_dashboard(obj, title) -> Str (SVG)
+##
+## One inspection surface for library size, detected genes, mitochondrial
+## fraction, and the counts-vs-genes relationship.
+fn plot_qc_dashboard(obj, title = "Single-cell quality dashboard") {
+    let metrics = cell_qc(obj.matrix, obj.genes)
+    let totals = col(metrics, "total_counts")
+    let detected = col(metrics, "n_genes")
+    let mito = col(metrics, "pct_mito")
+    let w = 920
+    let h = 620
+    let parts = _svg_start(w, h, title)
+    parts = _hist_panel(parts, totals, 34, 50, 270, 190, "Total counts")
+    parts = _hist_panel(parts, detected, 324, 50, 270, 190, "Detected genes")
+    parts = _hist_panel(parts, mito, 614, 50, 270, 190, "Mitochondrial %")
+
+    let x0 = 58
+    let y0 = 282
+    let pw = 800
+    let ph = 270
+    let xlo = min(totals)
+    let xspan = if max(totals) > xlo { max(totals)-xlo } else { 1.0 }
+    let ylo = min(detected)
+    let yspan = if max(detected) > ylo { max(detected)-ylo } else { 1.0 }
+    let mlo = min(mito)
+    let mspan = if max(mito) > mlo { max(mito)-mlo } else { 1.0 }
+    parts = parts + [
+        "<rect x=\"" + str(x0) + "\" y=\"" + str(y0) + "\" width=\"" + str(pw) +
+        "\" height=\"" + str(ph) + "\" fill=\"#f8fafc\" stroke=\"#cbd5e1\"/>",
+        "<text x=\"" + str(x0+8) + "\" y=\"" + str(y0+20) +
+        "\" font-family=\"sans-serif\" font-size=\"11\">Counts vs detected genes; colour = mitochondrial %</text>"
+    ]
+    for i in range(0, obj.n_cells) {
+        let px = x0+12+int(float(pw-24)*(totals[i]-xlo)/xspan)
+        let py = y0+ph-12-int(float(ph-40)*(detected[i]-ylo)/yspan)
+        parts = parts + ["<circle cx=\"" + str(px) + "\" cy=\"" + str(py) +
+            "\" r=\"2.4\" fill=\"" + _base._ramp((mito[i]-mlo)/mspan) +
+            "\" fill-opacity=\"0.76\"/>"]
+    }
+    join(parts + ["</svg>"], "\n")
+}
+
+## plot_embedding(obj, groups, title) -> Str (SVG)
+##
+## Categorical UMAP for arbitrary per-cell labels such as condition, donor,
+## cell type, or cell-cycle phase.
+fn plot_embedding(obj, groups, title = "UMAP") {
+    if len(groups) != obj.n_cells {
+        error("sc.plot_embedding() needs one group label per cell")
+    }
+    let base = if contains(keys(obj), "pca_scores") {
+        obj.pca_scores
+    } else {
+        sc_pca(_base._matrix_of(obj), 30).scores
+    }
+    let emb = if contains(keys(obj), "umap") { obj.umap } else { umap(base, 2) }
+    let points = range(0, obj.n_cells) |> map(|i| {
+        let r = row(emb, i)
+        {x: r[0], y: r[1], cluster: str(groups[i])}
+    })
+    umap_plot(points, {title: title})
+}
+
+fn _split_scatter_panel(parts, rows, values, members, x0, y0, w, h, title, lo, span) {
+    if len(members) == 0 { return parts }
+    let xs = members |> map(|i| rows[i][0])
+    let ys = members |> map(|i| rows[i][1])
+    let xlo = min(xs)
+    let xspan = if max(xs) > xlo { max(xs) - xlo } else { 1.0 }
+    let ylo = min(ys)
+    let yspan = if max(ys) > ylo { max(ys) - ylo } else { 1.0 }
+    parts = parts + [
+        "<rect x=\"" + str(x0) + "\" y=\"" + str(y0) + "\" width=\"" + str(w) +
+        "\" height=\"" + str(h) + "\" fill=\"#f8fafc\" stroke=\"#cbd5e1\"/>",
+        "<text x=\"" + str(x0 + 8) + "\" y=\"" + str(y0 + 18) +
+        "\" font-family=\"sans-serif\" font-size=\"12\" fill=\"#334155\">" + title + "</text>"
+    ]
+    for i in members {
+        let px = x0 + 12 + int(float(w - 24) * (rows[i][0] - xlo) / xspan)
+        let py = y0 + h - 12 - int(float(h - 38) * (rows[i][1] - ylo) / yspan)
+        parts = parts + ["<circle cx=\"" + str(px) + "\" cy=\"" + str(py) +
+            "\" r=\"2.4\" fill=\"" + _base._ramp((values[i] - lo) / span) +
+            "\" fill-opacity=\"0.82\"/>"]
+    }
+    parts
+}
+
+## plot_feature_split(obj, gene, groups, title) -> Str (SVG)
+fn plot_feature_split(obj, gene, groups, title = nil) {
+    if len(groups) != obj.n_cells {
+        error("sc.plot_feature_split() needs one group label per cell")
+    }
+    let gi = _base._expression_gene_index(obj, gene)
+    if gi < 0 { error("sc.plot_feature_split(): gene '" + gene + "' not found") }
+    let matrix = _base._expression_matrix_of(obj)
+    let values = range(0, obj.n_cells) |> map(|i| matrix_at(matrix, i, gi))
+    let base = if contains(keys(obj), "pca_scores") { obj.pca_scores } else { sc_pca(matrix, 30).scores }
+    let emb = if contains(keys(obj), "umap") { obj.umap } else { umap(base, 2) }
+    let rows = _base._rows(emb, obj.n_cells)
+    let labels = groups |> map(|g| str(g))
+    let levels = labels |> unique |> sort
+    let cols = if len(levels) < 3 { len(levels) } else { 3 }
+    let panel_w = 270
+    let panel_h = 240
+    let rows_n = int(ceil(float(len(levels)) / float(cols)))
+    let w = 32 + cols * (panel_w + 16)
+    let h = 62 + rows_n * (panel_h + 16)
+    let lo = min(values)
+    let span = if max(values) > lo { max(values) - lo } else { 1.0 }
+    let parts = _svg_start(w, h, if title == nil { gene + " by group" } else { title })
+    for k in range(0, len(levels)) {
+        let members = range(0, obj.n_cells) |> filter(|i| labels[i] == levels[k])
+        parts = _split_scatter_panel(
+            parts, rows, values, members,
+            32 + (k % cols) * (panel_w + 16),
+            46 + (k / cols) * (panel_h + 16),
+            panel_w, panel_h, levels[k], lo, span
+        )
+    }
+    join(parts + ["</svg>"], "\n")
+}
+
+## plot_group_heatmap(obj, genes, groups, title) -> Str (SVG)
+##
+## Mean normalized expression by any cell grouping. Use cell-cycle phase,
+## condition, donor, curated cell type, or cluster labels.
+fn plot_group_heatmap(obj, genes, groups, title = "Mean expression by group") {
+    if len(groups) != obj.n_cells {
+        error("sc.plot_group_heatmap() needs one group label per cell")
+    }
+    let matrix = _base._expression_matrix_of(obj)
+    let labels = groups |> map(|g| str(g))
+    let levels = labels |> unique |> sort
+    let present = genes |> filter(|g| _base._expression_gene_index(obj, g) >= 0)
+    if len(present) == 0 {
+        error("sc.plot_group_heatmap(): none of the requested genes were found")
+    }
+    let rows = present |> map(|gene| {
+        let gi = _base._expression_gene_index(obj, gene)
+        let values = levels |> map(|level| {
+            let members = range(0, obj.n_cells) |> filter(|i| labels[i] == level)
+            mean(members |> map(|i| matrix_at(matrix, i, gi)))
+        })
+        {... _base._record_of(levels, values), gene: gene}
+    })
+    clustered_heatmap(table(rows), {title: title})
+}
+
+fn _de_xy_svg(data, xs, ys, title, x_label, y_label, fc_cutoff, padj_cutoff) {
+    let w = 620
+    let h = 480
+    let left = 66
+    let right = 24
+    let top = 48
+    let bottom = 58
+    let xlo = min(xs)
+    let xspan = if max(xs) > xlo { max(xs) - xlo } else { 1.0 }
+    let ylo = min(ys)
+    let yspan = if max(ys) > ylo { max(ys) - ylo } else { 1.0 }
+    let parts = _svg_start(w, h, title) + [
+        "<line x1=\"" + str(left) + "\" y1=\"" + str(h-bottom) + "\" x2=\"" +
+        str(w-right) + "\" y2=\"" + str(h-bottom) + "\" stroke=\"#64748b\"/>",
+        "<line x1=\"" + str(left) + "\" y1=\"" + str(top) + "\" x2=\"" +
+        str(left) + "\" y2=\"" + str(h-bottom) + "\" stroke=\"#64748b\"/>"
+    ]
+    for i in range(0, len(data)) {
+        let px = left + int(float(w-left-right) * (xs[i] - xlo) / xspan)
+        let py = h-bottom-int(float(h-top-bottom) * (ys[i] - ylo) / yspan)
+        let sig = data[i].padj < padj_cutoff and abs(data[i].log2fc) >= fc_cutoff
+        let fill = if sig {
+            if data[i].log2fc > 0.0 { "#dc2626" } else { "#2563eb" }
+        } else {
+            "#94a3b8"
+        }
+        parts = parts + ["<circle cx=\"" + str(px) + "\" cy=\"" + str(py) +
+            "\" r=\"" + (if sig { "3.0" } else { "2.1" }) + "\" fill=\"" +
+            fill + "\" fill-opacity=\"0.78\"><title>" + data[i].gene + "</title></circle>"]
+    }
+    parts = parts + [
+        "<text x=\"" + str((left+w-right)/2) + "\" y=\"" + str(h-14) +
+        "\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"11\" fill=\"#475569\">" +
+        x_label + "</text>",
+        "<text x=\"16\" y=\"" + str((top+h-bottom)/2) +
+        "\" transform=\"rotate(-90 16 " + str((top+h-bottom)/2) +
+        ")\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"11\" fill=\"#475569\">" +
+        y_label + "</text>",
+        "</svg>"
+    ]
+    join(parts, "\n")
+}
+
+## plot_volcano(de_results, title, fc_cutoff, padj_cutoff) -> Str (SVG)
+fn plot_volcano(de_results, title = "Differential expression", fc_cutoff = 1.0,
+                padj_cutoff = 0.05) {
+    let data = _records(de_results)
+    let xs = data |> map(|r| r.log2fc)
+    let ys = data |> map(|r| -log10(if r.padj > 1e-300 { r.padj } else { 1e-300 }))
+    _de_xy_svg(data, xs, ys, title, "log2 fold change", "-log10 adjusted p",
+               fc_cutoff, padj_cutoff)
+}
+
+## plot_ma(de_results, title, fc_cutoff, padj_cutoff) -> Str (SVG)
+fn plot_ma(de_results, title = "MA plot", fc_cutoff = 1.0, padj_cutoff = 0.05) {
+    let data = _records(de_results)
+    let xs = data |> map(|r| log10(1.0 + (r.mean_a + r.mean_b) / 2.0))
+    let ys = data |> map(|r| r.log2fc)
+    _de_xy_svg(data, xs, ys, title, "log10 mean expression", "log2 fold change",
+               fc_cutoff, padj_cutoff)
+}
+
+## plot_donor_expression(...) -> Str (SVG)
+fn plot_donor_expression(obj, gene, donors, conditions, cell_types, target_type,
+                         condition_a, condition_b, min_cells = 10) {
+    let data = _adv.donor_gene_table(
+        obj, gene, donors, conditions, cell_types, target_type,
+        condition_a, condition_b, min_cells
+    )
+    let donor_levels = data |> map(|r| r.donor) |> unique |> sort
+    let values = data |> map(|r| r.value)
+    let lo = min(values)
+    let span = if max(values) > lo { max(values) - lo } else { 1.0 }
+    let w = 520
+    let h = 440
+    let x1 = 170
+    let x2 = 350
+    let top = 54
+    let bottom = 54
+    let parts = _svg_start(w, h, gene + " across paired donors")
+    for i in range(0, len(donor_levels)) {
+        let donor = donor_levels[i]
+        let a = (data |> filter(|r| r.donor == donor and
+                                      r.condition == str(condition_a)) |> first()).value
+        let b = (data |> filter(|r| r.donor == donor and
+                                      r.condition == str(condition_b)) |> first()).value
+        let ya = h-bottom-int(float(h-top-bottom)*(a-lo)/span)
+        let yb = h-bottom-int(float(h-top-bottom)*(b-lo)/span)
+        let colour = _palette(i)
+        parts = parts + [
+            "<line x1=\"" + str(x1) + "\" y1=\"" + str(ya) + "\" x2=\"" + str(x2) +
+            "\" y2=\"" + str(yb) + "\" stroke=\"" + colour + "\" stroke-opacity=\"0.7\"/>",
+            "<circle cx=\"" + str(x1) + "\" cy=\"" + str(ya) + "\" r=\"4\" fill=\"" + colour + "\"/>",
+            "<circle cx=\"" + str(x2) + "\" cy=\"" + str(yb) + "\" r=\"4\" fill=\"" + colour +
+            "\"><title>" + donor + "</title></circle>"
+        ]
+    }
+    parts = parts + [
+        "<text x=\"" + str(x1) + "\" y=\"" + str(h-20) +
+        "\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12\">" +
+        str(condition_a) + "</text>",
+        "<text x=\"" + str(x2) + "\" y=\"" + str(h-20) +
+        "\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12\">" +
+        str(condition_b) + "</text>",
+        "<text x=\"18\" y=\"" + str(h/2) + "\" transform=\"rotate(-90 18 " +
+        str(h/2) + ")\" text-anchor=\"middle\" font-family=\"sans-serif\" " +
+        "font-size=\"11\" fill=\"#475569\">log2 CPM</text></svg>"
+    ]
+    join(parts, "\n")
+}
+
+## plot_pseudobulk_pca(...) -> Str (SVG)
+fn plot_pseudobulk_pca(obj, donors, conditions, cell_types,
+                        target_type = nil, min_cells = 10) {
+    let pb = _adv.pseudobulk_profiles(
+        obj, donors, conditions, cell_types, min_cells
+    )
+    let keep = range(0, len(pb.profiles)) |> filter(|i|
+        target_type == nil or pb.profiles[i].cell_type == str(target_type))
+    if len(keep) < 3 { error("sc.plot_pseudobulk_pca() needs at least three profiles") }
+    let matrix = keep |> map(|i| pb.logcpm_matrix[i])
+    let fit = sc_pca(matrix, 2)
+    let xs = range(0, len(keep)) |> map(|j| fit.scores[j][0])
+    let ys = range(0, len(keep)) |> map(|j| fit.scores[j][1])
+    let levels = keep |> map(|i| pb.profiles[i].condition) |> unique |> sort
+    let xlo = min(xs)
+    let xspan = if max(xs) > xlo { max(xs)-xlo } else { 1.0 }
+    let ylo = min(ys)
+    let yspan = if max(ys) > ylo { max(ys)-ylo } else { 1.0 }
+    let w = 640
+    let h = 480
+    let left = 68
+    let top = 52
+    let cw = 500
+    let ch = 350
+    let parts = _svg_start(w, h, "Pseudobulk sample PCA") + [
+        "<line x1=\"" + str(left) + "\" y1=\"" + str(top+ch) + "\" x2=\"" +
+        str(left+cw) + "\" y2=\"" + str(top+ch) + "\" stroke=\"#64748b\"/>",
+        "<line x1=\"" + str(left) + "\" y1=\"" + str(top) + "\" x2=\"" +
+        str(left) + "\" y2=\"" + str(top+ch) + "\" stroke=\"#64748b\"/>"
+    ]
+    for j in range(0, len(keep)) {
+        let profile = pb.profiles[keep[j]]
+        let colour_index = find_index(levels, |level| level == profile.condition)
+        let px = left+int(float(cw)*(xs[j]-xlo)/xspan)
+        let py = top+ch-int(float(ch)*(ys[j]-ylo)/yspan)
+        parts = parts + [
+            "<circle cx=\"" + str(px) + "\" cy=\"" + str(py) +
+            "\" r=\"5\" fill=\"" + _palette(colour_index) + "\"/>",
+            "<text x=\"" + str(px+7) + "\" y=\"" + str(py-6) +
+            "\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#334155\">" +
+            profile.donor + "</text>"
+        ]
+    }
+    for i in range(0, len(levels)) {
+        parts = parts + [
+            "<circle cx=\"" + str(w-122) + "\" cy=\"" + str(58+i*18) +
+            "\" r=\"4\" fill=\"" + _palette(i) + "\"/>",
+            "<text x=\"" + str(w-112) + "\" y=\"" + str(62+i*18) +
+            "\" font-family=\"sans-serif\" font-size=\"10\">" + levels[i] + "</text>"
+        ]
+    }
+    parts = parts + [
+        "<text x=\"" + str(left+cw/2) + "\" y=\"" + str(h-18) +
+        "\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"11\">PC 1</text>",
+        "<text x=\"18\" y=\"" + str(top+ch/2) + "\" transform=\"rotate(-90 18 " +
+        str(top+ch/2) + ")\" text-anchor=\"middle\" font-family=\"sans-serif\" " +
+        "font-size=\"11\">PC 2</text></svg>"
+    ]
+    join(parts, "\n")
+}
+
+## plot_composition(donors, conditions, cell_types, title) -> Str (SVG)
+fn plot_composition(donors, conditions, cell_types,
+                     title = "Cell-type composition by sample") {
+    let data = _adv.composition_table(donors, conditions, cell_types)
+    let samples = data |> map(|r| r.donor + "@@" + r.condition) |> unique |> sort
+    let types = data |> map(|r| r.cell_type) |> unique |> sort
+    let w = 100 + len(samples) * 62
+    let h = 440
+    let left = 64
+    let base_y = 360
+    let chart_h = 285
+    let parts = _svg_start(w, h, title)
+    for s in range(0, len(samples)) {
+        let donor = split(samples[s], "@@")[0]
+        let condition = split(samples[s], "@@")[1]
+        let y = base_y
+        for t in range(0, len(types)) {
+            let found = data |> filter(|r| r.donor == donor and
+                r.condition == condition and r.cell_type == types[t])
+            let p = if len(found) > 0 { found[0].proportion } else { 0.0 }
+            let bh = int(float(chart_h) * p)
+            y = y - bh
+            parts = parts + ["<rect x=\"" + str(left + s*62) + "\" y=\"" + str(y) +
+                "\" width=\"42\" height=\"" + str(bh) + "\" fill=\"" + _palette(t) +
+                "\"><title>" + types[t] + ": " + str(round(100.0*p, 1)) + "%</title></rect>"]
+        }
+        parts = parts + ["<text x=\"" + str(left+s*62+21) + "\" y=\"382\" " +
+            "transform=\"rotate(45 " + str(left+s*62+21) + " 382)\" font-family=\"sans-serif\" " +
+            "font-size=\"9\" fill=\"#475569\">" + donor + " " + condition + "</text>"]
+    }
+    for t in range(0, len(types)) {
+        parts = parts + ["<rect x=\"" + str(w-150) + "\" y=\"" + str(48+t*17) +
+            "\" width=\"10\" height=\"10\" fill=\"" + _palette(t) + "\"/><text x=\"" +
+            str(w-134) + "\" y=\"" + str(57+t*17) +
+            "\" font-family=\"sans-serif\" font-size=\"9\">" + types[t] + "</text>"]
+    }
+    join(parts + ["</svg>"], "\n")
+}
+
+## plot_de_overlap(result_sets, names, title) -> Str (SVG)
+##
+## UpSet-style bars for intersections of significant genes across DE results.
+fn plot_de_overlap(result_sets, names,
+                    title = "Differential-expression set intersections") {
+    if len(result_sets) != len(names) {
+        error("sc.plot_de_overlap() needs one name per result set")
+    }
+    let sig_sets = result_sets |> map(|set|
+        _records(set) |> filter(|r| r.padj < 0.05) |> map(|r| r.gene) |> unique)
+    let universe = sig_sets |> flatten |> unique
+    let patterns = universe |> map(|gene| {
+        gene: gene,
+        pattern: join(range(0, len(sig_sets))
+            |> map(|i| if contains(sig_sets[i], gene) { "1" } else { "0" }), "")
+    })
+    let combos = patterns |> map(|r| r.pattern) |> unique
+        |> map(|pattern| {
+            pattern: pattern,
+            count: patterns |> filter(|r| r.pattern == pattern) |> len
+        })
+        |> sort(|a, b| if a.count > b.count { -1 } else { 1 })
+        |> take(20)
+    let w = 130 + len(combos) * 42
+    let h = 440
+    let top = 58
+    let bar_h = 230
+    let mx = if len(combos) > 0 { combos |> map(|c| c.count) |> max } else { 1 }
+    let parts = _svg_start(w, h, title)
+    for i in range(0, len(combos)) {
+        let bh = int(float(bar_h) * float(combos[i].count) / float(mx))
+        let x = 105 + i*42
+        parts = parts + [
+            "<rect x=\"" + str(x) + "\" y=\"" + str(top+bar_h-bh) +
+            "\" width=\"26\" height=\"" + str(bh) + "\" fill=\"#2563eb\"/>",
+            "<text x=\"" + str(x+13) + "\" y=\"" + str(top+bar_h-bh-5) +
+            "\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"9\">" +
+            str(combos[i].count) + "</text>"
+        ]
+        for j in range(0, len(names)) {
+            let active = char_at(combos[i].pattern, j) == "1"
+            parts = parts + ["<circle cx=\"" + str(x+13) + "\" cy=\"" +
+                str(318+j*18) + "\" r=\"4\" fill=\"" +
+                (if active { "#0f172a" } else { "#cbd5e1" }) + "\"/>"]
+        }
+    }
+    for j in range(0, len(names)) {
+        parts = parts + ["<text x=\"96\" y=\"" + str(322+j*18) +
+            "\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"10\">" +
+            names[j] + "</text>"]
+    }
+    join(parts + ["</svg>"], "\n")
+}
+
+## plot_enrichment(results, title) -> Str (SVG)
+fn plot_enrichment(results, title = "Ranked gene-set enrichment") {
+    let data = _records(results) |> take(20)
+    let labels = data |> map(|r| if contains(keys(r), "pathway") { r.pathway } else { r.term })
+    let values = data |> map(|r|
+        if contains(keys(r), "nes") { r.nes } else {
+            if contains(keys(r), "score") { r.score } else { r.enrichment }
+        })
+    let w = 680
+    let h = 70 + len(data)*24
+    let x0 = 250
+    let span = if len(values) > 0 { max(values |> map(|v| abs(v))) } else { 1.0 }
+    let parts = _svg_start(w, h, title)
+    for i in range(0, len(data)) {
+        let y = 56+i*24
+        let x = x0 + int(180.0*values[i]/(if span > 0.0 { span } else { 1.0 }))
+        parts = parts + [
+            "<text x=\"" + str(x0-12) + "\" y=\"" + str(y+4) +
+            "\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"10\">" +
+            labels[i] + "</text>",
+            "<line x1=\"" + str(x0) + "\" y1=\"" + str(y) + "\" x2=\"" + str(x) +
+            "\" y2=\"" + str(y) + "\" stroke=\"" +
+            (if values[i] >= 0.0 { "#dc2626" } else { "#2563eb" }) + "\" stroke-width=\"2\"/>",
+            "<circle cx=\"" + str(x) + "\" cy=\"" + str(y) + "\" r=\"4\" fill=\"" +
+            (if values[i] >= 0.0 { "#dc2626" } else { "#2563eb" }) + "\"/>"
+        ]
+    }
+    join(parts + ["</svg>"], "\n")
+}
+
+## plot_cluster_stability(stability, title) -> Str (SVG)
+fn plot_cluster_stability(stability, title = "Cluster resolution stability") {
+    let data = _records(stability)
+    let w = 620
+    let h = 420
+    let left = 64
+    let top = 50
+    let cw = 510
+    let ch = 290
+    let rmin = data |> map(|r| r.resolution) |> min
+    let rspan0 = data |> map(|r| r.resolution) |> max
+    let rspan = if rspan0 > rmin { rspan0-rmin } else { 1.0 }
+    let parts = _svg_start(w, h, title) + [
+        "<line x1=\"" + str(left) + "\" y1=\"" + str(top+ch) + "\" x2=\"" +
+        str(left+cw) + "\" y2=\"" + str(top+ch) + "\" stroke=\"#64748b\"/>",
+        "<line x1=\"" + str(left) + "\" y1=\"" + str(top) + "\" x2=\"" +
+        str(left) + "\" y2=\"" + str(top+ch) + "\" stroke=\"#64748b\"/>",
+        "<line x1=\"" + str(left) + "\" y1=\"" + str(top+ch/2) + "\" x2=\"" +
+        str(left+cw) + "\" y2=\"" + str(top+ch/2) +
+        "\" stroke=\"#cbd5e1\" stroke-dasharray=\"4 4\"/>",
+        "<text x=\"" + str(left-10) + "\" y=\"" + str(top+5) +
+        "\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\">1</text>",
+        "<text x=\"" + str(left-10) + "\" y=\"" + str(top+ch/2+4) +
+        "\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\">0</text>",
+        "<text x=\"" + str(left-10) + "\" y=\"" + str(top+ch+4) +
+        "\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"9\">-1</text>"
+    ]
+    let previous = nil
+    for i in range(0, len(data)) {
+        let x = left + int(float(cw)*(data[i].resolution-rmin)/rspan)
+        let y = top + ch - int(float(ch)*((data[i].silhouette+1.0)/2.0))
+        if previous != nil {
+            parts = parts + ["<line x1=\"" + str(previous.x) + "\" y1=\"" +
+                str(previous.y) + "\" x2=\"" + str(x) + "\" y2=\"" + str(y) +
+                "\" stroke=\"#2563eb\" stroke-width=\"2\"/>"]
+        }
+        parts = parts + ["<circle cx=\"" + str(x) + "\" cy=\"" + str(y) +
+            "\" r=\"5\" fill=\"#2563eb\"><title>resolution " +
+            str(data[i].resolution) + ", silhouette " + str(data[i].silhouette) +
+            ", clusters " + str(data[i].n_clusters) + ", ARI vs previous " +
+            (if data[i].ari_previous == nil {
+                "n/a (first resolution)"
+            } else {
+                str(data[i].ari_previous)
+            }) + "</title></circle>",
+            "<text x=\"" + str(x) + "\" y=\"" + str(top+ch+18) +
+            "\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"9\">" +
+            str(data[i].resolution) + "</text>",
+            "<text x=\"" + str(x) + "\" y=\"" + str(y-10) +
+            "\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"8\" fill=\"#475569\">" +
+            str(data[i].n_clusters) + " clusters</text>"]
+        previous = {x: x, y: y}
+    }
+    join(parts + [
+        "<text x=\"" + str(left+cw/2) + "\" y=\"" + str(h-16) +
+        "\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"11\">Leiden resolution</text>",
+        "<text x=\"18\" y=\"" + str(top+ch/2) + "\" transform=\"rotate(-90 18 " +
+        str(top+ch/2) + ")\" text-anchor=\"middle\" font-family=\"sans-serif\" " +
+        "font-size=\"11\">mean silhouette</text></svg>"
+    ], "\n")
+}
+
+## plot_silhouette(diagnostics, title) -> Str (SVG)
+fn plot_silhouette(diagnostics, title = "Cell silhouette coefficients") {
+    # cluster_diagnostics returns nil scores when a silhouette is not defined
+    # for the partition (one cluster, or every cell its own). Say so rather
+    # than drawing a chart of zeros that looks like a real, terrible result.
+    if diagnostics.mean_score == nil {
+        return join(_svg_start(680, 120, title) + [
+            "<text x=\"48\" y=\"72\" font-family=\"sans-serif\" font-size=\"12\" " +
+            "fill=\"#b45309\">silhouette not defined: " +
+            str(diagnostics.undefined_reason) + "</text></svg>"
+        ], "\n")
+    }
+    let values = diagnostics.per_sample
+    let clusters = diagnostics.clusters
+    let ordered = range(0, len(values))
+        |> map(|i| {value: values[i], cluster: clusters[i]})
+        |> sort(|a, b| if a.cluster < b.cluster or
+            (a.cluster == b.cluster and a.value < b.value) { -1 } else { 1 })
+    let w = 680
+    let h = 150 + len(values)*4
+    let zero = 330
+    let parts = _svg_start(w, h, title)
+    for i in range(0, len(ordered)) {
+        let x = zero + int(280.0*ordered[i].value)
+        parts = parts + ["<line x1=\"" + str(zero) + "\" y1=\"" + str(56+i*4) +
+            "\" x2=\"" + str(x) + "\" y2=\"" + str(56+i*4) +
+            "\" stroke=\"" + _palette(ordered[i].cluster) + "\" stroke-width=\"3\"/>"]
+    }
+    parts = parts + ["<line x1=\"" + str(zero) + "\" y1=\"48\" x2=\"" + str(zero) +
+        "\" y2=\"" + str(64+len(values)*4) + "\" stroke=\"#0f172a\"/>",
+        "<text x=\"48\" y=\"" + str(h-22) +
+        "\" font-family=\"sans-serif\" font-size=\"11\">mean silhouette: " +
+        str(diagnostics.mean_score) + "</text></svg>"]
+    join(parts, "\n")
+}

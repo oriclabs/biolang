@@ -1,0 +1,28 @@
+# Rosalind: FIBO — Fibonacci Numbers
+# https://rosalind.info/problems/fibo/
+#
+# Given: A positive integer n <= 25.
+# Return: The value of F(n).
+
+let n = 6
+
+# The problem exists to contrast this with the textbook recursion: carrying the
+# last two values forward is linear, where recursing on F(n-1) + F(n-2) without
+# memoisation recomputes the same subproblems exponentially often.
+let previous = 0
+let current = 1
+let step = 0
+while step < n {
+    let next = previous + current
+    previous = current
+    current = next
+    step = step + 1
+}
+let result = previous
+
+println("Result:   " + str(result))
+println("Expected: 8")
+
+fn test_fibo_sixth_number() {
+    assert result == 8, "FIBO: got " + str(result)
+}

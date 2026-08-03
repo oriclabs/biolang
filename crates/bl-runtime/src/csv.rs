@@ -35,7 +35,10 @@ pub fn csv_builtin_list() -> Vec<(&'static str, Arity)> {
 }
 
 pub fn is_csv_builtin(name: &str) -> bool {
-    matches!(name, "csv" | "read_csv" | "tsv" | "read_tsv" | "write_csv" | "write_tsv")
+    matches!(
+        name,
+        "csv" | "read_csv" | "tsv" | "read_tsv" | "write_csv" | "write_tsv"
+    )
 }
 
 pub fn call_csv_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
@@ -67,7 +70,11 @@ fn require_str<'a>(val: &'a Value, func: &str) -> Result<&'a str> {
 /// Read a delimited file into a Table (legacy: reads entire file into string).
 fn read_delimited(path: &str, sep: &str, has_header: bool) -> Result<Value> {
     let content = std::fs::read_to_string(path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("csv: cannot read '{path}': {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("csv: cannot read '{path}': {e}"),
+            None,
+        )
     })?;
 
     let mut lines: Vec<&str> = content.lines().collect();
@@ -120,24 +127,32 @@ fn read_delimited_buffered(path: &str, sep: &str, has_header: bool) -> Result<Va
     use std::io::BufRead;
 
     let file = std::fs::File::open(path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("csv: cannot open '{path}': {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("csv: cannot open '{path}': {e}"),
+            None,
+        )
     })?;
-    let mut reader: Box<dyn BufRead> = if path.ends_with(".gz") || path.ends_with(".csv.gz") || path.ends_with(".tsv.gz") {
-        #[cfg(feature = "native")]
-        {
-            Box::new(std::io::BufReader::with_capacity(128 * 1024, flate2::read::GzDecoder::new(file)))
-        }
-        #[cfg(not(feature = "native"))]
-        {
-            return Err(BioLangError::runtime(
-                ErrorKind::IOError,
-                format!("csv: gzip support requires native feature: '{path}'"),
-                None,
-            ));
-        }
-    } else {
-        Box::new(std::io::BufReader::with_capacity(128 * 1024, file))
-    };
+    let mut reader: Box<dyn BufRead> =
+        if path.ends_with(".gz") || path.ends_with(".csv.gz") || path.ends_with(".tsv.gz") {
+            #[cfg(feature = "native")]
+            {
+                Box::new(std::io::BufReader::with_capacity(
+                    128 * 1024,
+                    flate2::read::GzDecoder::new(file),
+                ))
+            }
+            #[cfg(not(feature = "native"))]
+            {
+                return Err(BioLangError::runtime(
+                    ErrorKind::IOError,
+                    format!("csv: gzip support requires native feature: '{path}'"),
+                    None,
+                ));
+            }
+        } else {
+            Box::new(std::io::BufReader::with_capacity(128 * 1024, file))
+        };
     let sep_char = sep.chars().next().unwrap_or(',');
 
     let mut line_buf = String::new();
@@ -153,7 +168,11 @@ fn read_delimited_buffered(path: &str, sep: &str, has_header: bool) -> Result<Va
 
     let first_clean = {
         let trimmed = line_buf.trim_end();
-        if trimmed.starts_with('\u{feff}') { &trimmed[3..] } else { trimmed }
+        if trimmed.starts_with('\u{feff}') {
+            &trimmed[3..]
+        } else {
+            trimmed
+        }
     };
 
     let col_names: Vec<String>;
@@ -181,9 +200,13 @@ fn read_delimited_buffered(path: &str, sep: &str, has_header: bool) -> Result<Va
         let bytes = reader.read_line(&mut line_buf).map_err(|e| {
             BioLangError::runtime(ErrorKind::IOError, format!("csv: read error: {e}"), None)
         })?;
-        if bytes == 0 { break; }
+        if bytes == 0 {
+            break;
+        }
         let line = line_buf.trim_end();
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
 
         // Fast path: no quotes in line — use split directly
         if !line.contains('"') {
@@ -263,7 +286,12 @@ fn parse_csv_line_char(line: &str, sep: char) -> Vec<String> {
 /// Parse a field value, auto-detecting type.
 fn parse_field(s: &str) -> Value {
     let trimmed = s.trim();
-    if trimmed.is_empty() || trimmed == "NA" || trimmed == "na" || trimmed == "null" || trimmed == "." {
+    if trimmed.is_empty()
+        || trimmed == "NA"
+        || trimmed == "na"
+        || trimmed == "null"
+        || trimmed == "."
+    {
         return Value::Nil;
     }
     if trimmed == "true" || trimmed == "TRUE" {
@@ -337,7 +365,11 @@ fn read_csv_from_url(url: &str, sep: &str, has_header: bool) -> Result<Value> {
     // Try the WASM fetch hook first
     if let Some(result) = try_fetch_url(url) {
         let text = result.map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("read_csv: fetch error for '{url}': {e}"), None)
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("read_csv: fetch error for '{url}': {e}"),
+                None,
+            )
         })?;
         return parse_csv_text(&text, sep, has_header);
     }
@@ -346,12 +378,20 @@ fn read_csv_from_url(url: &str, sep: &str, has_header: bool) -> Result<Value> {
     #[cfg(feature = "native")]
     {
         let resp = ureq::get(url).call().map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("read_csv: HTTP error for '{url}': {e}"), None)
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("read_csv: HTTP error for '{url}': {e}"),
+                None,
+            )
         })?;
         let text = resp.into_string().map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("read_csv: read error for '{url}': {e}"), None)
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("read_csv: read error for '{url}': {e}"),
+                None,
+            )
         })?;
-        return parse_csv_text(&text, sep, has_header);
+        parse_csv_text(&text, sep, has_header)
     }
 
     #[cfg(not(feature = "native"))]
@@ -373,51 +413,48 @@ fn parse_csv_text(text: &str, sep: &str, has_header: bool) -> Result<Value> {
         Some(l) => l,
         None => return Ok(Value::Table(Table::empty())),
     };
-    let first_clean = if first_line.starts_with('\u{feff}') { &first_line[3..] } else { first_line };
+    let first_clean = if first_line.starts_with('\u{feff}') {
+        &first_line[3..]
+    } else {
+        first_line
+    };
 
     let col_names: Vec<String>;
     let mut rows: Vec<Vec<Value>> = Vec::new();
 
     if has_header {
-        col_names = split_csv_line(first_clean, sep_char).into_iter().map(|s| s.to_string()).collect();
+        col_names = parse_csv_line_char(first_clean, sep_char);
     } else {
-        let fields = split_csv_line(first_clean, sep_char);
-        col_names = (0..fields.len()).map(|i| format!("col_{}", i + 1)).collect();
-        rows.push(fields.into_iter().map(|f| infer_value(f)).collect());
+        let fields = parse_csv_line_char(first_clean, sep_char);
+        col_names = (0..fields.len())
+            .map(|i| format!("col_{}", i + 1))
+            .collect();
+        rows.push(fields.iter().map(|f| infer_value(f)).collect());
     }
 
     for line in lines {
         let trimmed = line.trim_end();
-        if trimmed.is_empty() { continue; }
-        let fields = split_csv_line(trimmed, sep_char);
-        rows.push(fields.into_iter().map(|f| infer_value(f)).collect());
-    }
-
-    let ncols = col_names.len();
-    let mut columns: Vec<Vec<Value>> = vec![Vec::with_capacity(rows.len()); ncols];
-    for row in &rows {
-        for (c, val) in row.iter().enumerate() {
-            if c < ncols {
-                columns[c].push(val.clone());
-            }
+        if trimmed.is_empty() {
+            continue;
         }
+        let fields = parse_csv_line_char(trimmed, sep_char);
+        let mut row: Vec<Value> = fields.iter().map(|f| infer_value(f)).collect();
+        row.resize(col_names.len(), Value::Nil);
+        row.truncate(col_names.len());
+        rows.push(row);
     }
 
-    Ok(Value::Table(Table {
-        columns: col_names,
-        rows: columns,
-        max_col_width: None,
-    }))
-}
-
-fn split_csv_line(line: &str, sep: char) -> Vec<&str> {
-    // Simple split (doesn't handle quoted fields with embedded separators)
-    line.split(sep).collect()
+    Ok(Value::Table(Table::new(col_names, rows)))
 }
 
 fn infer_value(s: &str) -> Value {
     let trimmed = s.trim();
-    if trimmed.is_empty() || trimmed == "NA" || trimmed == "na" || trimmed == "N/A" || trimmed == "." {
+    if trimmed.is_empty()
+        || trimmed == "NA"
+        || trimmed == "na"
+        || trimmed == "N/A"
+        || trimmed == "."
+    {
         return Value::Nil;
     }
     if let Ok(i) = trimmed.parse::<i64>() {
@@ -447,9 +484,7 @@ fn builtin_read_tsv_eager(args: Vec<Value>) -> Result<Value> {
 
 fn wants_stream_csv(opts: &Value) -> bool {
     match opts {
-        Value::Record(m) | Value::Map(m) => {
-            m.get("stream").map(|v| v.is_truthy()).unwrap_or(false)
-        }
+        Value::Record(m) | Value::Map(m) => m.get("stream").map(|v| v.is_truthy()).unwrap_or(false),
         _ => false,
     }
 }
@@ -464,7 +499,8 @@ fn extract_csv_options(opts: &Value, path: &str) -> Result<(String, bool)> {
                     _ => None,
                 })
                 .unwrap_or_else(|| {
-                    if path.ends_with(".tsv") || path.ends_with(".tab") || path.ends_with(".tsv.gz") {
+                    if path.ends_with(".tsv") || path.ends_with(".tab") || path.ends_with(".tsv.gz")
+                    {
                         "\t".to_string()
                     } else {
                         ",".to_string()
@@ -490,7 +526,11 @@ fn extract_csv_options(opts: &Value, path: &str) -> Result<(String, bool)> {
 fn write_delimited(table: &Table, path: &str, sep: &str, write_header: bool) -> Result<Value> {
     use std::io::Write;
     let mut file = std::fs::File::create(path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("write_csv: cannot create '{path}': {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("write_csv: cannot create '{path}': {e}"),
+            None,
+        )
     })?;
 
     let nrows = table.num_rows();
@@ -513,7 +553,7 @@ fn write_delimited(table: &Table, path: &str, sep: &str, write_header: bool) -> 
     result.insert("rows".to_string(), Value::Int(nrows as i64));
     result.insert("cols".to_string(), Value::Int(table.columns.len() as i64));
     result.insert("output".to_string(), Value::Str(path.to_string()));
-    Ok(Value::Record(result))
+    Ok(Value::Record((result).into()))
 }
 
 fn format_csv_field(val: &Value, sep: &str) -> String {
@@ -614,14 +654,18 @@ impl Iterator for CsvIter {
                 let val = fields.get(i).map(|s| s.as_str()).unwrap_or("");
                 map.insert(col.clone(), parse_field(val));
             }
-            return Some(Value::Record(map));
+            return Some(Value::Record((map).into()));
         }
     }
 }
 
 fn read_csv_stream(path: &str, sep: &str, has_header: bool) -> Result<Value> {
     let file = std::fs::File::open(path).map_err(|e| {
-        BioLangError::runtime(ErrorKind::IOError, format!("csv: cannot open '{path}': {e}"), None)
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("csv: cannot open '{path}': {e}"),
+            None,
+        )
     })?;
     let mut reader: Box<dyn BufRead + Send> = if path.ends_with(".gz") {
         #[cfg(feature = "native")]
@@ -645,7 +689,11 @@ fn read_csv_stream(path: &str, sep: &str, has_header: bool) -> Result<Value> {
     let col_names = if has_header {
         let mut header_line = String::new();
         reader.read_line(&mut header_line).map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("csv: cannot read header: {e}"), None)
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("csv: cannot read header: {e}"),
+                None,
+            )
         })?;
         // Remove BOM if present
         let trimmed = if header_line.starts_with('\u{feff}') {
@@ -653,12 +701,19 @@ fn read_csv_stream(path: &str, sep: &str, has_header: bool) -> Result<Value> {
         } else {
             &header_line
         };
-        parse_csv_line_char(trimmed.trim_end_matches('\n').trim_end_matches('\r'), sep_char)
+        parse_csv_line_char(
+            trimmed.trim_end_matches('\n').trim_end_matches('\r'),
+            sep_char,
+        )
     } else {
         // Read first line to determine column count, then chain it back
         let mut first_line = String::new();
         reader.read_line(&mut first_line).map_err(|e| {
-            BioLangError::runtime(ErrorKind::IOError, format!("csv: cannot read first line: {e}"), None)
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("csv: cannot read first line: {e}"),
+                None,
+            )
         })?;
         let first_trimmed = first_line.trim_end_matches('\n').trim_end_matches('\r');
         let ncols = parse_csv_line_char(first_trimmed, sep_char).len();
@@ -688,4 +743,29 @@ fn read_csv_stream(path: &str, sep: &str, has_header: bool) -> Result<Value> {
             sep: sep_char,
         }),
     )))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn in_memory_csv_parser_preserves_rows_and_quoted_fields() {
+        let parsed = parse_csv_text(
+            "gene,count,note\nBRCA1,452,\"tumor, suppressor\"\nTP53,890,guardian\n",
+            ",",
+            true,
+        )
+        .unwrap();
+
+        let Value::Table(table) = parsed else {
+            panic!("expected table");
+        };
+        assert_eq!(table.columns, vec!["gene", "count", "note"]);
+        assert_eq!(table.rows.len(), 2);
+        assert_eq!(table.rows[0][0], Value::Str("BRCA1".into()));
+        assert_eq!(table.rows[0][1], Value::Int(452));
+        assert_eq!(table.rows[0][2], Value::Str("tumor, suppressor".into()));
+        assert_eq!(table.rows[1][0], Value::Str("TP53".into()));
+    }
 }

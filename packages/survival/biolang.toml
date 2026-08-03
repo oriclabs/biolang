@@ -1,0 +1,18 @@
+[package]
+name = "survival"
+version = "0.1.0"
+description = "Kaplan-Meier survival curves and Cox proportional hazards models"
+authors = ["BioLang Contributors"]
+license = "MIT"
+keywords = ["survival", "kaplan-meier", "cox", "clinical"]
+categories = ["bioinformatics", "statistics", "clinical"]
+homepage = "https://biolang.dev/docs/bio/survival"
+repository = "https://github.com/biolang/packages/survival"
+readme = "README.md"
+
+[dependencies]
+# No external dependencies — uses BioLang core builtins only:
+#   kaplan_meier, cox_ph, log_rank_test, mean, variance, sqrt, abs, round
+
+[lib]
+entry = "src/mod.bl"

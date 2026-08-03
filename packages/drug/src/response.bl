@@ -1,0 +1,3 @@
+fn fit(concs, viabs)                              { fit_ic50(concs, viabs) }
+fn curve(concs, ic50, slope, top, bottom)          { dose_response_curve(concs, ic50, slope, top, bottom) }
+fn auc(concs, viabs)                              { auc_response(concs, viabs) }

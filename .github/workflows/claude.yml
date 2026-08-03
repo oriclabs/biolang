@@ -19,6 +19,11 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
+      # The action exchanges a GitHub OIDC token for its own credentials, and a
+      # workflow cannot request one unless it asks for this. Without it every
+      # run failed in about twenty seconds on "Could not fetch an OIDC token",
+      # whatever the commit contained.
+      id-token: write
     steps:
       - uses: anthropics/claude-code-action@v1
         with:

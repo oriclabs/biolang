@@ -1,0 +1,8 @@
+[package]
+name = "statistics"
+version = "0.1.0"
+description = "Statistical tests: multiple testing correction, Fisher exact, chi-square, permutation, bootstrap, logistic regression"
+authors = ["BioLang"]
+
+[lib]
+entry = "src/mod.bl"

@@ -6,6 +6,10 @@ on:
     paths:
       - 'website/**'
       - 'books/**'
+      - 'packs/**'
+      - 'desktop/**'
+      - 'scripts/build-packs.mjs'
+      - 'scripts/lib/**'
   workflow_dispatch:
 
 permissions:
@@ -39,6 +43,42 @@ jobs:
           npm ci
           npx tailwindcss -i src/input.css -o assets/styles.css --minify
 
+      # wasm/builtins.json is gitignored, so it is absent from a fresh checkout
+      # and the playground silently fell back to its regex allowlist — the very
+      # drift the generated catalog exists to prevent. Regenerate it at deploy
+      # time from the committed module so the two cannot disagree.
+      - name: Generate the browser builtin catalog
+        working-directory: website
+        run: node tests/write_wasm_builtins.mjs
+
+      # Publish the example packs as part of the site rather than as release
+      # assets: the playground, the docs pages, and `bl packs` then all read one
+      # URL (/packs/index.json), and a pack fix ships without cutting a release.
+      - name: Build example packs
+        run: |
+          node scripts/build-packs.mjs --out website/packs
+          # Sample data the documentation examples read, so a workbench
+          # workspace has data/counts.csv and its siblings.
+          node scripts/build-data-bundle.mjs --out website/packs
+          node scripts/generate-pack-docs.mjs
+
+      # The workbench already runs without Tauri (see desktop/src/browserRuntime.ts)
+      # and vite is configured with a relative base, so the same build serves from
+      # a subpath. `tsc && vite build` is invoked directly rather than via
+      # `npm run build`, whose prebuild regenerates the help index and needs the
+      # Rust CLI; those generated files are committed, and ci.yml already fails
+      # if they are stale.
+      - name: Build the browser workbench
+        working-directory: desktop
+        run: |
+          npm ci
+          npx tsc
+          npx vite build
+      - name: Stage the workbench
+        run: |
+          rm -rf website/workbench
+          cp -r desktop/dist website/workbench
+
       - name: Install mdBook preprocessors
         run: cargo install mdbook-mermaid --no-default-features 2>/dev/null || true
 
@@ -47,6 +87,7 @@ jobs:
           mdbook build books/language
           mdbook build books/practical-bioinformatics/book
           mdbook build books/biostatistics/book
+          mdbook build books/single-cell-rna-seq
 
       - uses: actions/upload-pages-artifact@v3
         with:

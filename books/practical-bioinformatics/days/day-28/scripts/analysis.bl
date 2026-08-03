@@ -35,7 +35,7 @@ fn extract_info_field(info_str, field_name) {
 }
 
 fn quality_filter(variants, min_qual, min_dp) {
-    variants |> where(|row| {
+    variants |> filter(|row| {
         let q = float(row.qual)
         let d = try { int(extract_info_field(row.info, "DP")) } catch err { 0 }
         q >= min_qual and d >= min_dp
@@ -47,7 +47,7 @@ fn make_variant_key(row) {
 }
 
 fn frequency_filter(variants, max_af) {
-    variants |> where(|row| {
+    variants |> filter(|row| {
         let af_str = extract_info_field(row.info, "AF")
         let af = try { float(af_str) } catch err { 0.0 }
         af <= max_af
@@ -56,7 +56,7 @@ fn frequency_filter(variants, max_af) {
 
 fn panel_filter(variants, panel) {
     let panel_genes = panel |> select("gene") |> map(|row| row.gene)
-    variants |> where(|row| {
+    variants |> filter(|row| {
         let gene = try { row.gene } catch err { "" }
         panel_genes |> filter(|g| g == gene) |> len() > 0
     })
@@ -237,7 +237,7 @@ let classified = panel_variants |> map(|row| score_variant(row))
 let qc_stats = compute_qc_stats(variants, qc_passed, rare_variants, panel_variants)
 
 let report_lines = build_report(patient_info, classified, qc_stats)
-write_lines(report_lines, "data/output/clinical_report.txt")
+write_lines("data/output/clinical_report.txt", report_lines)
 
 let classified_table = classified |> to_table()
 write_tsv(classified_table, "data/output/classified_variants.tsv")

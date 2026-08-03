@@ -169,7 +169,7 @@ let tree = interval_tree(regions)
 
 # Query: what overlaps this region?
 let query = interval("chr17", 43065000, 43085000)
-let hits = query_overlaps(tree, query)
+let hits = query_overlaps(tree, query.chrom, query.start, query.end)
 println(f"Overlapping regions: {len(hits)}")
 ```
 
@@ -198,7 +198,7 @@ let regions = [
 let tree = interval_tree(regions)
 
 let query = interval("chr17", 43065000, 43085000)
-let n = count_overlaps(tree, query)
+let n = count_overlaps(tree, query.chrom, query.start, query.end)
 println(f"Number of overlaps: {n}")
 ```
 
@@ -238,7 +238,7 @@ To find the closest region when there is no overlap:
 ```bio
 # Find nearest non-overlapping interval
 let lonely = interval("chr17", 43055000, 43056000)
-let nearest = query_nearest(tree, lonely)
+let nearest = query_nearest(tree, lonely.chrom, int((lonely.start + lonely.end) / 2))
 println(f"Nearest region: {nearest}")
 ```
 
@@ -269,7 +269,7 @@ let tree = interval_tree(exon_intervals)
 # Check each variant
 let exonic_variants = variants |> filter(|v| {
     let v_interval = interval(v.chrom, v.pos - 1, v.pos)  # VCF 1-based -> 0-based
-    count_overlaps(tree, v_interval) > 0
+    count_overlaps(tree, v_interval.chrom, v_interval.start, v_interval.end) > 0
 })
 
 println(f"Total variants: {len(variants)}")
@@ -324,7 +324,8 @@ The `coverage()` function takes a list of `[start, end]` pairs and renders a spa
 
 Converting between coordinate systems is something you will do constantly. Write explicit conversion functions and use them everywhere --- never do ad-hoc `+1` or `-1` adjustments scattered through your code.
 
-```bio
+```text
+# Conceptual or diagnostic example; not directly executable.
 # BED to VCF coordinates (and back)
 fn bed_to_vcf(chrom, start, end) {
     # BED: 0-based, half-open -> VCF: 1-based
@@ -445,7 +446,7 @@ let tree = interval_tree(targets |> map(|t| interval(t.chrom, t.start, t.end)))
 # Classify variants
 let variants = read_vcf("data/variants.vcf")
 let on_target = variants |> filter(|v| {
-    count_overlaps(tree, interval(v.chrom, v.pos - 1, v.pos)) > 0
+    count_overlaps(tree, v.chrom, v.pos - 1, v.pos) > 0
 }) |> collect()
 
 let off_target = len(variants) - len(on_target)

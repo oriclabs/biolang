@@ -1,0 +1,54 @@
+# Rosalind: LOCA — Local Alignment with Scoring Matrix
+# https://rosalind.info/problems/loca/
+#
+# Given: Two protein strings.
+# Return: The maximum local alignment score using PAM250 and a constant gap
+# penalty of 5.
+
+let s = "MEANLYPRTEINSTRING"
+let t = "PLEASANTLYEINSTEIN"
+let gap = -5.0
+
+let pam = score_matrix("pam250")
+let residues = pam.row_names
+let width = pam.ncol
+
+fn residue_index(names, ch) {
+    (range(0, len(names)) |> filter(|i| names[i] == ch))[0]
+}
+
+fn substitution(mat, names, cols, a, b) {
+    mat.data[residue_index(names, a) * cols + residue_index(names, b)]
+}
+
+# Smith-Waterman: identical recurrence to the global case except that a cell
+# never drops below zero, and the answer is the best cell anywhere.
+fn local_score(a, b, mat, names, cols, gap_penalty) {
+    let previous = range(0, len(b) + 1) |> map(|j| 0.0)
+    let best = 0.0
+    let i = 1
+    while i <= len(a) {
+        let current = [0.0]
+        let ai = substr(a, i - 1, 1)
+        let j = 1
+        while j <= len(b) {
+            let diagonal = previous[j - 1] + substitution(mat, names, cols, ai, substr(b, j - 1, 1))
+            let cell = max([0.0, diagonal, previous[j] + gap_penalty, current[j - 1] + gap_penalty])
+            current = push(current, cell)
+            if cell > best then best = cell
+            j = j + 1
+        }
+        previous = current
+        i = i + 1
+    }
+    best
+}
+
+let result = local_score(s, t, pam, residues, width, gap)
+
+println("Result:   " + str(int(result)))
+println("Expected: 23")
+
+fn test_loca_pam250_local_alignment() {
+    assert int(result) == 23, "LOCA: got " + str(result)
+}

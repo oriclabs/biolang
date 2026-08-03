@@ -1,0 +1,28 @@
+# Rosalind: PMCH — Perfect Matchings and RNA Secondary Structures
+# https://rosalind.info/problems/pmch/
+#
+# Given: An RNA string s with the same number of A as U and of G as C.
+# Return: The total number of perfect matchings of basepair edges.
+
+let s = "AGCUAGUCAU"
+
+fn count_base(seq, base) {
+    range(0, len(seq)) |> count_if(|i| substr(seq, i, 1) == base)
+}
+
+fn factorial(n) {
+    range(1, n + 1) |> reduce(|acc, i| acc * i, 1)
+}
+
+# Every A pairs with some U and every G with some C, independently, so the
+# count is |A|! * |G|!.
+let adenine = count_base(s, "A")
+let guanine = count_base(s, "G")
+let result = factorial(adenine) * factorial(guanine)
+
+println("Result:   " + str(result))
+println("Expected: 12")
+
+fn test_pmch_perfect_matchings() {
+    assert result == 12, "PMCH: got " + str(result)
+}

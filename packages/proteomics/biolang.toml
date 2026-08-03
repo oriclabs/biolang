@@ -1,0 +1,11 @@
+[package]
+name = "proteomics"
+version = "0.1.0"
+description = "Mass spectrometry proteomics: MaxQuant loading, normalization, imputation, differential abundance"
+authors = ["BioLang"]
+
+[dependencies]
+statistics = { path = "../statistics" }
+
+[lib]
+entry = "src/mod.bl"

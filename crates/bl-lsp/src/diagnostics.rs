@@ -11,10 +11,7 @@ pub fn diagnose(source: &str) -> Vec<Diagnostic> {
         Err(e) => {
             let (line, col) = offset_to_line_col(source, e.span.map(|s| s.start).unwrap_or(0));
             diagnostics.push(Diagnostic {
-                range: Range::new(
-                    Position::new(line, col),
-                    Position::new(line, col + 1),
-                ),
+                range: Range::new(Position::new(line, col), Position::new(line, col + 1)),
                 severity: Some(DiagnosticSeverity::ERROR),
                 source: Some("biolang".into()),
                 message: e.message.clone(),
@@ -27,13 +24,9 @@ pub fn diagnose(source: &str) -> Vec<Diagnostic> {
     match Parser::new(tokens).parse() {
         Ok(result) => {
             for e in &result.errors {
-                let (line, col) =
-                    offset_to_line_col(source, e.span.map(|s| s.start).unwrap_or(0));
+                let (line, col) = offset_to_line_col(source, e.span.map(|s| s.start).unwrap_or(0));
                 diagnostics.push(Diagnostic {
-                    range: Range::new(
-                        Position::new(line, col),
-                        Position::new(line, col + 1),
-                    ),
+                    range: Range::new(Position::new(line, col), Position::new(line, col + 1)),
                     severity: Some(DiagnosticSeverity::ERROR),
                     source: Some("biolang".into()),
                     message: e.message.clone(),
@@ -42,13 +35,9 @@ pub fn diagnose(source: &str) -> Vec<Diagnostic> {
             }
         }
         Err(e) => {
-            let (line, col) =
-                offset_to_line_col(source, e.span.map(|s| s.start).unwrap_or(0));
+            let (line, col) = offset_to_line_col(source, e.span.map(|s| s.start).unwrap_or(0));
             diagnostics.push(Diagnostic {
-                range: Range::new(
-                    Position::new(line, col),
-                    Position::new(line, col + 1),
-                ),
+                range: Range::new(Position::new(line, col), Position::new(line, col + 1)),
                 severity: Some(DiagnosticSeverity::ERROR),
                 source: Some("biolang".into()),
                 message: e.message.clone(),

@@ -30,7 +30,7 @@
         <section class="mb-12" id="manhattan">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">manhattan</span></h2>
           <p class="text-slate-400 mt-2">Manhattan plot for genome-wide association studies. Alternating chromosome colors with significance threshold line.</p>
-          <pre><code class="language-biolang">manhattan(tbl, opts?) -> svg</code></pre>
+          <pre><code class="language-text">manhattan(tbl, opts?) -> svg</code></pre>
           <table class="w-full text-sm mt-4">
             <thead><tr class="border-b border-slate-800"><th class="text-left py-2 px-3 text-slate-400">Option</th><th class="text-left py-2 px-3 text-slate-400">Type</th><th class="text-left py-2 px-3 text-slate-400">Description</th></tr></thead>
             <tbody>
@@ -167,7 +167,7 @@ manhattan(gwas, {
         <section class="mb-12" id="qq_plot">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">qq_plot</span></h2>
           <p class="text-slate-400 mt-2">Quantile-quantile plot for p-value distribution assessment. Includes genomic inflation factor (lambda).</p>
-          <pre><code class="language-biolang">qq_plot(pvalues, opts?) -> svg</code></pre>
+          <pre><code class="language-text">qq_plot(pvalues, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">let pvals = gwas |> select("P") |> to_records |> map(|r| r.P)
 qq_plot(pvals, {title: "QQ Plot", show_lambda: true})</code></pre>
 <div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
@@ -229,7 +229,7 @@ qq_plot(pvals, {title: "QQ Plot", show_lambda: true})</code></pre>
         <section class="mb-12" id="ideogram">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">ideogram</span></h2>
           <p class="text-slate-400 mt-2">Chromosome ideogram with banding patterns and highlighted regions.</p>
-          <pre><code class="language-biolang">ideogram(genome, highlights?, opts?) -> svg</code></pre>
+          <pre><code class="language-text">ideogram(chromosome_bands, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">ideogram("hg38", [
   {chrom: "chr17", start: 43044295, end: 43170245, label: "BRCA1", color: "red"},
   {chrom: "chr13", start: 32315474, end: 32400266, label: "BRCA2", color: "blue"}
@@ -239,7 +239,7 @@ qq_plot(pvals, {title: "QQ Plot", show_lambda: true})</code></pre>
         <section class="mb-12" id="circos">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">circos</span></h2>
           <p class="text-slate-400 mt-2">Circular genome plot with multiple data tracks (links, scatter, histogram, heatmap).</p>
-          <pre><code class="language-biolang">circos(tracks, opts?) -> svg</code></pre>
+          <pre><code class="language-text">circos(tracks, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">circos([
   {type: "ideogram", genome: "hg38"},
   {type: "scatter", data: gwas_hits, r_inner: 0.7, r_outer: 0.9},
@@ -250,7 +250,7 @@ qq_plot(pvals, {title: "QQ Plot", show_lambda: true})</code></pre>
         <section class="mb-12" id="hic_map">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">hic_map</span></h2>
           <p class="text-slate-400 mt-2">Hi-C contact map visualization. Renders chromatin interaction frequencies as a triangular or square heatmap.</p>
-          <pre><code class="language-biolang">hic_map(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">hic_map(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">hic_map(contact_matrix, {resolution: "10kb", title: "Hi-C chr1"})</code></pre>
         </section>
 
@@ -259,62 +259,38 @@ qq_plot(pvals, {title: "QQ Plot", show_lambda: true})</code></pre>
         <section class="mb-12" id="oncoprint">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">oncoprint</span></h2>
           <p class="text-slate-400 mt-2">Mutation landscape visualization (genes x samples).</p>
-          <pre><code class="language-biolang">oncoprint(mutations, opts?) -> svg</code></pre>
-          <pre><code class="language-biolang">let muts = read_csv("data/expression.csv")
+          <pre><code class="language-text">oncoprint(mutations, opts?) -> svg</code></pre>
+          <pre><code class="language-biolang">let muts = table({
+  gene: ["TP53", "TP53", "BRCA1", "EGFR"],
+  sample: ["S01", "S02", "S01", "S03"],
+  type: ["missense", "nonsense", "frameshift", "missense"]
+})
 oncoprint(muts, {
-  gene_col: "Hugo_Symbol",
-  sample_col: "Tumor_Sample_Barcode",
-  type_col: "Variant_Classification",
-  top_n: 20,
-  title: "Mutation Landscape"
+  gene: "gene",
+  sample: "sample"
 })</code></pre>
 <div class="mt-2 mb-6 rounded-lg border border-slate-700 overflow-hidden">
   <div class="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700 text-xs text-slate-500 font-mono">Output</div>
   <div class="p-4 bg-slate-900/50 flex justify-center">
-    <svg class="max-w-full" viewBox="0 0 500 220" width="500" height="220" font-family="system-ui, sans-serif" xmlns="http://www.w3.org/2000/svg">
-      <rect width="500" height="220" fill="#0f172a" rx="4"/>
-      <text x="250" y="20" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="bold">Mutation Landscape</text>
-      <!-- Gene labels (rows) -->
-      <text x="60" y="57" text-anchor="end" fill="#94a3b8" font-size="10">TP53</text>
-      <text x="60" y="87" text-anchor="end" fill="#94a3b8" font-size="10">PIK3CA</text>
-      <text x="60" y="117" text-anchor="end" fill="#94a3b8" font-size="10">KRAS</text>
-      <text x="60" y="147" text-anchor="end" fill="#94a3b8" font-size="10">BRCA1</text>
-      <text x="60" y="177" text-anchor="end" fill="#94a3b8" font-size="10">EGFR</text>
-      <!-- Background cells (gray = no mutation) -->
-      <!-- Row 1: TP53 -->
-      <rect x="70" y="40" width="42" height="26" fill="#1e293b" rx="2"/><rect x="118" y="40" width="42" height="26" fill="#22c55e" rx="2"/>
-      <rect x="166" y="40" width="42" height="26" fill="#ef4444" rx="2"/><rect x="214" y="40" width="42" height="26" fill="#22c55e" rx="2"/>
-      <rect x="262" y="40" width="42" height="26" fill="#1e293b" rx="2"/><rect x="310" y="40" width="42" height="26" fill="#22c55e" rx="2"/>
-      <rect x="358" y="40" width="42" height="26" fill="#ef4444" rx="2"/><rect x="406" y="40" width="42" height="26" fill="#22c55e" rx="2"/>
-      <!-- Row 2: PIK3CA -->
-      <rect x="70" y="70" width="42" height="26" fill="#22c55e" rx="2"/><rect x="118" y="70" width="42" height="26" fill="#1e293b" rx="2"/>
-      <rect x="166" y="70" width="42" height="26" fill="#22c55e" rx="2"/><rect x="214" y="70" width="42" height="26" fill="#1e293b" rx="2"/>
-      <rect x="262" y="70" width="42" height="26" fill="#22c55e" rx="2"/><rect x="310" y="70" width="42" height="26" fill="#1e293b" rx="2"/>
-      <rect x="358" y="70" width="42" height="26" fill="#1e293b" rx="2"/><rect x="406" y="70" width="42" height="26" fill="#3b82f6" rx="2"/>
-      <!-- Row 3: KRAS -->
-      <rect x="70" y="100" width="42" height="26" fill="#1e293b" rx="2"/><rect x="118" y="100" width="42" height="26" fill="#22c55e" rx="2"/>
-      <rect x="166" y="100" width="42" height="26" fill="#1e293b" rx="2"/><rect x="214" y="100" width="42" height="26" fill="#1e293b" rx="2"/>
-      <rect x="262" y="100" width="42" height="26" fill="#ef4444" rx="2"/><rect x="310" y="100" width="42" height="26" fill="#1e293b" rx="2"/>
-      <rect x="358" y="100" width="42" height="26" fill="#22c55e" rx="2"/><rect x="406" y="100" width="42" height="26" fill="#1e293b" rx="2"/>
-      <!-- Row 4: BRCA1 -->
-      <rect x="70" y="130" width="42" height="26" fill="#3b82f6" rx="2"/><rect x="118" y="130" width="42" height="26" fill="#1e293b" rx="2"/>
-      <rect x="166" y="130" width="42" height="26" fill="#1e293b" rx="2"/><rect x="214" y="130" width="42" height="26" fill="#3b82f6" rx="2"/>
-      <rect x="262" y="130" width="42" height="26" fill="#1e293b" rx="2"/><rect x="310" y="130" width="42" height="26" fill="#22c55e" rx="2"/>
-      <rect x="358" y="130" width="42" height="26" fill="#1e293b" rx="2"/><rect x="406" y="130" width="42" height="26" fill="#1e293b" rx="2"/>
-      <!-- Row 5: EGFR -->
-      <rect x="70" y="160" width="42" height="26" fill="#1e293b" rx="2"/><rect x="118" y="160" width="42" height="26" fill="#1e293b" rx="2"/>
-      <rect x="166" y="160" width="42" height="26" fill="#22c55e" rx="2"/><rect x="214" y="160" width="42" height="26" fill="#1e293b" rx="2"/>
-      <rect x="262" y="160" width="42" height="26" fill="#22c55e" rx="2"/><rect x="310" y="160" width="42" height="26" fill="#1e293b" rx="2"/>
-      <rect x="358" y="160" width="42" height="26" fill="#1e293b" rx="2"/><rect x="406" y="160" width="42" height="26" fill="#ef4444" rx="2"/>
-      <!-- Legend -->
-      <rect x="100" y="198" width="12" height="12" fill="#22c55e" rx="1"/>
-      <text x="116" y="208" fill="#94a3b8" font-size="9">Missense</text>
-      <rect x="175" y="198" width="12" height="12" fill="#ef4444" rx="1"/>
-      <text x="191" y="208" fill="#94a3b8" font-size="9">Nonsense</text>
-      <rect x="250" y="198" width="12" height="12" fill="#3b82f6" rx="1"/>
-      <text x="266" y="208" fill="#94a3b8" font-size="9">Frameshift</text>
-      <rect x="330" y="198" width="12" height="12" fill="#1e293b" rx="1" stroke="#334155" stroke-width="0.5"/>
-      <text x="346" y="208" fill="#94a3b8" font-size="9">No mutation</text>
+    <svg class="max-w-full" xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200">
+      <rect width="400" height="200" fill="white"/>
+      <text x="97" y="62.3" text-anchor="end" font-size="10" font-family="sans-serif">TP53</text>
+      <rect x="100" y="40" width="92.3" height="35.7" fill="#f0f0f0"/>
+      <rect x="100" y="45.5" width="92.3" height="25.7" fill="#e15759"/>
+      <rect x="193.3" y="40" width="92.3" height="35.7" fill="#f0f0f0"/>
+      <rect x="193.3" y="45.5" width="92.3" height="25.7" fill="#333"/>
+      <rect x="286.7" y="40" width="92.3" height="35.7" fill="#f0f0f0"/>
+      <text x="97" y="99" text-anchor="end" font-size="10" font-family="sans-serif">BRCA1</text>
+      <rect x="100" y="76.7" width="92.3" height="35.7" fill="#f0f0f0"/>
+      <rect x="100" y="82.2" width="92.3" height="25.7" fill="#4e79a7"/>
+      <rect x="193.3" y="76.7" width="92.3" height="35.7" fill="#f0f0f0"/>
+      <rect x="286.7" y="76.7" width="92.3" height="35.7" fill="#f0f0f0"/>
+      <text x="97" y="135.7" text-anchor="end" font-size="10" font-family="sans-serif">EGFR</text>
+      <rect x="100" y="113.3" width="92.3" height="35.7" fill="#f0f0f0"/>
+      <rect x="193.3" y="113.3" width="92.3" height="35.7" fill="#f0f0f0"/>
+      <rect x="286.7" y="113.3" width="92.3" height="35.7" fill="#f0f0f0"/>
+      <rect x="286.7" y="118.8" width="92.3" height="25.7" fill="#e15759"/>
+      <text x="200" y="25" text-anchor="middle" font-size="16" font-family="sans-serif">OncoPrint</text>
     </svg>
   </div>
 </div>
@@ -325,21 +301,21 @@ oncoprint(muts, {
         <section class="mb-12" id="rainfall">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">rainfall</span></h2>
           <p class="text-slate-400 mt-2">Mutation rainfall plot showing inter-mutation distances along the genome. Useful for identifying localized hypermutation (kataegis).</p>
-          <pre><code class="language-biolang">rainfall(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">rainfall(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">rainfall(variants, {chrom: "chr", pos: "position", title: "Mutation Rainfall"})</code></pre>
         </section>
 
         <section class="mb-12" id="cnv_plot">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">cnv_plot</span></h2>
           <p class="text-slate-400 mt-2">Copy number variation plot across the genome. Displays log2 ratios with gain/loss coloring and segmentation lines.</p>
-          <pre><code class="language-biolang">cnv_plot(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">cnv_plot(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">cnv_plot(cnv_data, {chrom: "chr", start: "start", end: "end", ratio: "log2ratio", title: "CNV Profile"})</code></pre>
         </section>
 
         <section class="mb-12" id="lollipop">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">lollipop</span></h2>
           <p class="text-slate-400 mt-2">Protein mutation lollipop plot. Shows mutations along a protein domain diagram with frequency stems.</p>
-          <pre><code class="language-biolang">lollipop(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">lollipop(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">lollipop(mutations, {position: "aa_pos", label: "mutation", height: "count", length: 393, title: "TP53 Mutations"})</code></pre>
         </section>
 
@@ -348,42 +324,42 @@ oncoprint(muts, {
         <section class="mb-12" id="violin">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">violin</span></h2>
           <p class="text-slate-400 mt-2">Violin plot showing distribution shape. Data is a record of <code>{group_name: [values]}</code> or a table.</p>
-          <pre><code class="language-biolang">violin(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">violin(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">violin({"WT": [30,32,28,35], "KO": [22,25,20,18]}, {title: "Expression"})</code></pre>
         </section>
 
         <section class="mb-12" id="density">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">density</span></h2>
           <p class="text-slate-400 mt-2">Kernel density estimation plot. Smooths a distribution of values into a continuous curve.</p>
-          <pre><code class="language-biolang">density(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">density(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">density(quality_scores, {title: "Quality Distribution", bandwidth: 0.5})</code></pre>
         </section>
 
         <section class="mb-12" id="kaplan_meier">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">kaplan_meier</span></h2>
           <p class="text-slate-400 mt-2">Survival analysis plot with step function curves and optional confidence intervals. Supports group comparison.</p>
-          <pre><code class="language-biolang">kaplan_meier(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">kaplan_meier(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">kaplan_meier(survival_data, {time: "months", event: "status", group: "treatment", title: "Overall Survival"})</code></pre>
         </section>
 
         <section class="mb-12" id="forest_plot">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">forest_plot</span></h2>
           <p class="text-slate-400 mt-2">Meta-analysis forest plot with effect sizes and confidence intervals. Shows individual study estimates and pooled summary.</p>
-          <pre><code class="language-biolang">forest_plot(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">forest_plot(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">forest_plot(studies, {effect: "OR", ci_low: "lower", ci_high: "upper", title: "Meta-Analysis"})</code></pre>
         </section>
 
         <section class="mb-12" id="roc_curve">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">roc_curve</span></h2>
           <p class="text-slate-400 mt-2">ROC curve with AUC annotation. Visualizes classifier performance with true/false positive rate tradeoff.</p>
-          <pre><code class="language-biolang">roc_curve(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">roc_curve(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">roc_curve(predictions, {fpr: "fpr", tpr: "tpr", auc: 0.85, title: "Classifier Performance"})</code></pre>
         </section>
 
         <section class="mb-12" id="pca_plot">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">pca_plot</span></h2>
           <p class="text-slate-400 mt-2">PCA scatter plot with group coloring and variance explained annotations on each axis.</p>
-          <pre><code class="language-biolang">pca_plot(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">pca_plot(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">pca_plot(pca_result, {group: "cell_type", title: "PCA of Samples"})</code></pre>
         </section>
 
@@ -391,10 +367,15 @@ oncoprint(muts, {
 
         <section class="mb-12" id="sashimi">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">sashimi</span></h2>
-          <pre><code class="language-biolang">sashimi(bam, region, opts?) -> svg</code></pre>
-          <pre><code class="language-biolang">sashimi("sample.bam", "chr17:43044295-43170245", {
-  annotation: "gencode.gtf",
-  min_junction_reads: 5,
+          <p class="text-slate-400 mt-2">Render splice junction counts, optionally with a coverage table.</p>
+          <pre><code class="language-text">sashimi(junctions, opts?) -> svg
+sashimi({coverage: coverage_table, junctions: junction_table}, opts?) -> svg</code></pre>
+          <pre><code class="language-biolang">let junctions = table([
+  {start: 43045600, end: 43049100, count: 42},
+  {start: 43045600, end: 43051000, count: 17}
+])
+
+sashimi(junctions, {
   title: "BRCA1 Splicing"
 })</code></pre>
         </section>
@@ -402,7 +383,7 @@ oncoprint(muts, {
         <section class="mb-12" id="clustered_heatmap">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">clustered_heatmap</span></h2>
           <p class="text-slate-400 mt-2">Heatmap with hierarchical clustering on rows, columns, or both. Adds dendrograms and reorders axes by similarity. Works with any numeric matrix — especially useful for expression data.</p>
-          <pre><code class="language-biolang">clustered_heatmap(matrix, opts?) -> svg</code></pre>
+          <pre><code class="language-text">clustered_heatmap(matrix, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">clustered_heatmap(expr_matrix, {cluster_rows: true, cluster_cols: true, title: "Clustered Expression"})</code></pre>
         </section>
 
@@ -476,14 +457,14 @@ phylo_tree(tree, {layout: "circular", title: "Species Tree"})</code></pre>
         <section class="mb-12" id="venn">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">venn</span></h2>
           <p class="text-slate-400 mt-2">Venn diagram for 2-4 sets. Shows overlapping and unique counts with labeled regions.</p>
-          <pre><code class="language-biolang">venn(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">venn(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">venn({A: genes_a, B: genes_b, C: genes_c}, {title: "Gene Set Overlap"})</code></pre>
         </section>
 
         <section class="mb-12" id="upset">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">upset</span></h2>
           <p class="text-slate-400 mt-2">UpSet plot for complex set intersections. Scales better than Venn diagrams for 4+ sets, showing intersection sizes as a bar chart with a dot matrix indicating set membership.</p>
-          <pre><code class="language-biolang">upset(data, opts?) -> svg</code></pre>
+          <pre><code class="language-text">upset(data, opts?) -> svg</code></pre>
           <pre><code class="language-biolang">upset({ChIP: chip_genes, RNA: rna_genes, ATAC: atac_genes}, {title: "Multi-Omics Intersection"})</code></pre>
         </section>
 

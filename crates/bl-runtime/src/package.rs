@@ -8,6 +8,8 @@ pub struct Manifest {
     pub package: PackageInfo,
     #[serde(default)]
     pub dependencies: HashMap<String, Dependency>,
+    #[serde(default)]
+    pub lib: Option<LibraryInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,6 +22,11 @@ pub struct PackageInfo {
     pub authors: Vec<String>,
     #[serde(default)]
     pub license: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LibraryInfo {
+    pub entry: String,
 }
 
 /// A dependency — either a version string or a table with path/git.
@@ -69,20 +76,23 @@ pub fn init_package(dir: &Path, name: &str) -> Result<PathBuf, String> {
             license: None,
         },
         dependencies: HashMap::new(),
+        lib: None,
     };
 
     let toml_str = toml::to_string_pretty(&manifest)
         .map_err(|e| format!("Failed to serialize manifest: {e}"))?;
 
     let path = dir.join("biolang.toml");
-    std::fs::write(&path, toml_str)
-        .map_err(|e| format!("Cannot write {}: {e}", path.display()))?;
+    std::fs::write(&path, toml_str).map_err(|e| format!("Cannot write {}: {e}", path.display()))?;
 
     // Create main.bl
     let main_path = dir.join("main.bl");
     if !main_path.exists() {
-        std::fs::write(&main_path, "# BioLang project\nprintln(\"Hello from BioLang!\")\n")
-            .map_err(|e| format!("Cannot write main.bl: {e}"))?;
+        std::fs::write(
+            &main_path,
+            "# BioLang project\nprintln(\"Hello from BioLang!\")\n",
+        )
+        .map_err(|e| format!("Cannot write main.bl: {e}"))?;
     }
 
     Ok(path)
@@ -96,8 +106,7 @@ pub fn install_path_dep(name: &str, source_path: &Path) -> Result<PathBuf, Strin
             .map_err(|e| format!("Cannot remove existing {}: {e}", target.display()))?;
     }
 
-    copy_dir_recursive(source_path, &target)
-        .map_err(|e| format!("Cannot copy package: {e}"))?;
+    copy_dir_recursive(source_path, &target).map_err(|e| format!("Cannot copy package: {e}"))?;
 
     Ok(target)
 }
@@ -136,6 +145,46 @@ pub fn resolve_package(name: &str) -> Option<PathBuf> {
     }
 }
 
+/// Resolve the explicit `[lib].entry` declared by a package manifest.
+///
+/// The canonical-path check prevents a package from using `..` or an absolute
+/// path to make its public entrypoint escape the package directory.
+pub fn resolve_library_entry(dir: &Path) -> Result<Option<PathBuf>, String> {
+    if !dir.join("biolang.toml").is_file() {
+        return Ok(None);
+    }
+
+    let manifest = read_manifest(dir)?;
+    let Some(lib) = manifest.lib else {
+        return Ok(None);
+    };
+
+    let package_root = dir
+        .canonicalize()
+        .map_err(|e| format!("Cannot resolve package directory {}: {e}", dir.display()))?;
+    let entry = dir.join(&lib.entry).canonicalize().map_err(|e| {
+        format!(
+            "Cannot resolve library entry '{}' for package '{}': {e}",
+            lib.entry, manifest.package.name
+        )
+    })?;
+
+    if !entry.starts_with(&package_root) {
+        return Err(format!(
+            "Library entry '{}' for package '{}' escapes the package directory",
+            lib.entry, manifest.package.name
+        ));
+    }
+    if !entry.is_file() {
+        return Err(format!(
+            "Library entry '{}' for package '{}' is not a file",
+            lib.entry, manifest.package.name
+        ));
+    }
+
+    Ok(Some(entry))
+}
+
 /// List installed packages.
 pub fn list_packages() -> Vec<(String, Option<Manifest>)> {
     let dir = packages_dir();
@@ -157,6 +206,70 @@ pub fn list_packages() -> Vec<(String, Option<Manifest>)> {
     packages
 }
 
+/// List files bundled under a package's `examples` directory.
+pub fn list_examples(package_dir: &Path) -> Result<Vec<PathBuf>, String> {
+    let root = package_dir.join("examples");
+    if !root.is_dir() {
+        return Err(format!(
+            "Package at {} does not contain an examples directory",
+            package_dir.display()
+        ));
+    }
+    let mut examples = Vec::new();
+    collect_relative_files(&root, &root, &mut examples)
+        .map_err(|error| format!("Cannot read {}: {error}", root.display()))?;
+    examples.sort();
+    if examples.is_empty() {
+        return Err(format!("Package examples are empty at {}", root.display()));
+    }
+    Ok(examples)
+}
+
+/// Copy a package's complete example set to a new or empty working directory.
+pub fn copy_examples(package_dir: &Path, destination: &Path) -> Result<PathBuf, String> {
+    let source = package_dir.join("examples");
+    list_examples(package_dir)?;
+    if destination.exists() {
+        if !destination.is_dir() {
+            return Err(format!(
+                "Example destination is not a directory: {}",
+                destination.display()
+            ));
+        }
+        let mut entries = std::fs::read_dir(destination)
+            .map_err(|error| format!("Cannot read {}: {error}", destination.display()))?;
+        if entries.next().is_some() {
+            return Err(format!(
+                "Example destination must be new or empty: {}",
+                destination.display()
+            ));
+        }
+    }
+    copy_dir_recursive(&source, destination)
+        .map_err(|error| format!("Cannot copy package examples: {error}"))?;
+    destination
+        .canonicalize()
+        .or_else(|_| std::path::absolute(destination))
+        .map_err(|error| format!("Cannot resolve {}: {error}", destination.display()))
+}
+
+fn collect_relative_files(
+    root: &Path,
+    directory: &Path,
+    files: &mut Vec<PathBuf>,
+) -> std::io::Result<()> {
+    for entry in std::fs::read_dir(directory)? {
+        let entry = entry?;
+        if entry.file_type()?.is_dir() {
+            collect_relative_files(root, &entry.path(), files)?;
+        } else {
+            let path = entry.path();
+            files.push(path.strip_prefix(root).unwrap_or(&path).to_path_buf());
+        }
+    }
+    Ok(())
+}
+
 fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(dst)?;
     for entry in std::fs::read_dir(src)? {
@@ -170,4 +283,51 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{copy_examples, list_examples};
+    use std::path::PathBuf;
+
+    #[test]
+    fn lists_and_copies_nested_package_examples() {
+        let temp = tempfile::tempdir().unwrap();
+        let package = temp.path().join("demo");
+        let examples = package.join("examples");
+        std::fs::create_dir_all(examples.join("data")).unwrap();
+        std::fs::write(examples.join("quickstart.bl"), "println(\"ok\")\n").unwrap();
+        std::fs::write(examples.join("data").join("input.tsv"), "gene\tcount\n").unwrap();
+
+        assert_eq!(
+            list_examples(&package).unwrap(),
+            vec![
+                PathBuf::from("data").join("input.tsv"),
+                PathBuf::from("quickstart.bl"),
+            ]
+        );
+
+        let destination = temp.path().join("working-examples");
+        copy_examples(&package, &destination).unwrap();
+        assert!(destination.join("quickstart.bl").is_file());
+        assert!(destination.join("data").join("input.tsv").is_file());
+    }
+
+    #[test]
+    fn refuses_to_merge_examples_into_a_nonempty_directory() {
+        let temp = tempfile::tempdir().unwrap();
+        let package = temp.path().join("demo");
+        std::fs::create_dir_all(package.join("examples")).unwrap();
+        std::fs::write(package.join("examples").join("quickstart.bl"), "").unwrap();
+        let destination = temp.path().join("existing");
+        std::fs::create_dir_all(&destination).unwrap();
+        std::fs::write(destination.join("keep.txt"), "keep").unwrap();
+
+        let error = copy_examples(&package, &destination).unwrap_err();
+        assert!(error.contains("new or empty"));
+        assert_eq!(
+            std::fs::read_to_string(destination.join("keep.txt")).unwrap(),
+            "keep"
+        );
+    }
 }

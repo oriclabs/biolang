@@ -1,0 +1,16 @@
+import "crispr" as crispr
+
+# Load MAGeCK count table (guides x samples)
+let counts = crispr.load("data/counts.txt")
+
+# QC: check coverage and guide distribution
+crispr.qc(counts)
+
+# Log fold-change: samples 0-1 are plasmid controls, 2-3 are day-18 treatment
+let lfc = crispr.lfc(counts, ctrl=[0, 1], trt=[2, 3])
+
+# Gene-level RRA scores
+let scores = crispr.score(counts, ctrl=[0, 1], trt=[2, 3])
+
+# Top 20 essential genes
+crispr.hits(counts, ctrl=[0, 1], trt=[2, 3], n=20)

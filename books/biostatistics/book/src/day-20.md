@@ -265,53 +265,30 @@ Here, center and condition are **completely confounded**. Every difference betwe
 ```bio
 set_seed(42)
 # Simulate a multi-center gene expression study
-let n_samples = 300
-let n_genes = 50
+let n_samples = 30
+let n_genes = 10
 
 # Assign samples to centers and conditions
-let center = []
-let condition = []
-for i in 0..n_samples {
-    if i < 100 {
-        center = center + ["Memorial"]
-        condition = condition + [if i < 60 { "Tumor" } else { "Normal" }]
-    } else if i < 200 {
-        center = center + ["Hopkins"]
-        condition = condition + [if i < 170 { "Tumor" } else { "Normal" }]
-    } else {
-        center = center + ["Mayo"]
-        condition = condition + [if i < 250 { "Tumor" } else { "Normal" }]
-    }
-}
+let center = range(0, n_samples) |> map(|i|
+    if i < 10 { "Memorial" } else if i < 20 { "Hopkins" } else { "Mayo" }
+)
+let condition = range(0, n_samples) |> map(|i|
+    if i % 2 == 0 { "Tumor" } else { "Normal" }
+)
 
 # Generate expression matrix with batch effects
-let expr_matrix = []
-let batch_effects = {
-    "Memorial": rnorm(n_genes, 2.0, 0.5),
-    "Hopkins": rnorm(n_genes, -1.5, 0.5),
-    "Mayo": rnorm(n_genes, 0.5, 0.5)
-}
-
-# True biological signal (tumor vs normal)
-let bio_signal = rnorm(n_genes, 0, 0.3)
-# Only 10 genes are truly DE
-for g in 0..10 {
-    bio_signal[g] = rnorm(1, 1.5, 0.3)[0]
-}
-
-for i in 0..n_samples {
-    let sample_expr = []
-    for g in 0..n_genes {
+let expr_matrix = range(0, n_samples) |> map(|i| {
+    range(0, n_genes) |> map(|g| {
         let base = 10 + rnorm(1, 0, 1)[0]
-        let batch = batch_effects[center[i]][g]
-        let bio = if condition[i] == "Tumor" { bio_signal[g] } else { 0 }
-        sample_expr = sample_expr + [base + batch + bio]
-    }
-    expr_matrix = expr_matrix + [sample_expr]
-}
+        let batch = if center[i] == "Memorial" { 2.0 }
+            else if center[i] == "Hopkins" { -1.5 } else { 0.5 }
+        let bio = if condition[i] == "Tumor" && g < 3 { 1.5 } else { 0.0 }
+        base + batch + bio
+    })
+})
 
 print("Expression matrix: {n_samples} samples x {n_genes} genes")
-print("Centers: Memorial=100, Hopkins=100, Mayo=100")
+print("Centers: Memorial=10, Hopkins=10, Mayo=10")
 ```
 
 ### Detecting Batch Effects with PCA
@@ -387,8 +364,8 @@ print("Genes with significant biological effect: {bio_significant} / 10")
 # Sample-to-sample correlation: compute a few representative pairs
 # Full matrix would be 300x300; spot-check a few
 let s1 = expr_matrix[0]   # Memorial, Tumor
-let s2 = expr_matrix[50]  # Memorial, Normal
-let s3 = expr_matrix[100] # Hopkins, Tumor
+let s2 = expr_matrix[5]   # Memorial, Normal
+let s3 = expr_matrix[10]  # Hopkins, Tumor
 
 print("=== Sample Correlations ===")
 print("Memorial Tumor vs Memorial Normal: {cor(s1, s2) |> round(3)}")
@@ -436,14 +413,14 @@ for g in 0..5 {
     let is_mayo = center |> map(|c| if c == "Mayo" { 1.0 } else { 0.0 })
 
     # Model WITHOUT batch correction
-    let model_naive = lm(gene_expr, cond_numeric)
+    let model_naive = lm(cond_numeric, gene_expr)
 
     # Model WITH batch correction (include center as covariate)
     let adj_data = table({
         "expr": gene_expr, "cond": cond_numeric,
         "hopkins": is_hopkins, "mayo": is_mayo
     })
-    let model_adjusted = lm("expr ~ cond + hopkins + mayo", adj_data)
+    let model_adjusted = lm(~expr ~ cond + hopkins + mayo, adj_data)
 
     print("Gene {g+1}:")
     print("  Naive:    slope = {model_naive.slope |> round(3)}, p = {model_naive.p_value |> round(4)}")
@@ -549,7 +526,7 @@ for i in 0..n_samples {
     for g in 0..n_genes {
         let gene_expr = expr_matrix |> map(|row| row[g])
         let batch_data = table({"expr": gene_expr, "hopkins": is_hopkins, "mayo": is_mayo})
-        let model = lm("expr ~ hopkins + mayo", batch_data)
+        let model = lm(~expr ~ hopkins + mayo, batch_data)
 
         let residual = gene_expr[i] - model.coefficients[0] * is_hopkins[i]
             - model.coefficients[1] * is_mayo[i]

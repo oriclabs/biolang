@@ -1,5 +1,5 @@
 /// Tracks loop state for break/continue jump patching.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LoopContext {
     /// Instruction index of the loop header (target for `continue`).
     pub loop_start: usize,

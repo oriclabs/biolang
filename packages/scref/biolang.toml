@@ -1,0 +1,17 @@
+[package]
+name = "scref"
+version = "0.1.0"
+description = "Reference single-cell methods (scanpy/scvi-tools/leidenalg) run reproducibly in containers"
+authors = ["BioLang Contributors"]
+license = "MIT"
+keywords = ["scrna-seq", "scanpy", "scvi", "leiden", "container", "reproducible"]
+categories = ["bioinformatics", "genomics", "single-cell"]
+
+[dependencies]
+# Uses BioLang core builtins only:
+#   write_anndata, read_anndata, container_available, container_run,
+#   container_pull, write_text, read_lines, abs_path, remove, split, join,
+#   int, float, str, range, map
+
+[lib]
+entry = "src/mod.bl"

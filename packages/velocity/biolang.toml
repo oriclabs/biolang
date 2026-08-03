@@ -1,0 +1,11 @@
+[package]
+name = "velocity"
+version = "0.1.0"
+description = "RNA velocity: infer transcriptional dynamics from spliced/unspliced counts"
+authors = ["BioLang"]
+
+[dependencies]
+singlecell = { path = "../singlecell" }
+
+[lib]
+entry = "src/mod.bl"

@@ -12,18 +12,19 @@ interfaces and stream support for files that exceed available memory.
 
 ## Reading FASTA
 
-`read_fasta()` returns a list of records, each with `header` and `seq` fields.
+`read_fasta()` returns a table with `id`, `description`, `seq`, and `length`
+columns.
 
 ```biolang
 let contigs = read_fasta("data/sequences.fasta")
 
 for c in contigs {
-    print(c.header + ": " + str(len(c.seq)) + " bp")
+    print(c.id + ": " + str(c.length) + " bp")
 }
 
 # Find the longest contig
-contigs |> sort(|a, b| len(b.seq) - len(a.seq)) |> first() |> into longest
-print("Longest: " + longest.header + " (" + str(len(longest.seq)) + " bp)")
+contigs |> sort_by(|c| -c.length) |> first() |> into longest
+print("Longest: " + longest.id + " (" + str(longest.length) + " bp)")
 ```
 
 FASTA records carry the raw sequence as a string. Use bio literals for
@@ -31,8 +32,9 @@ compile-time validated sequences, and `read_fasta` for runtime file data.
 
 ## Reading FASTQ
 
-`read_fastq()` returns records with `id`, `seq`, `quality`, and `comment`
-fields. Quality scores are integer Phred values.
+`read_fastq()` returns a table with `id`, `description`, `seq`, `length`, and
+`quality` columns. The `quality` value is the FASTQ ASCII quality string; use
+`mean_phred`, `min_phred`, or `max_phred` to decode it.
 
 ```biolang
 let reads = read_fastq("data/reads.fastq")
@@ -41,7 +43,7 @@ reads |> map(|r| gc_content(r.seq)) |> mean() |> into gc_mean
 let summary = {
     total: len(reads),
     mean_length: reads |> map(|r| len(r.seq)) |> mean(),
-    mean_qual: reads |> map(|r| mean(r.quality)) |> mean(),
+    mean_qual: reads |> map(|r| mean_phred(r.quality)) |> mean(),
     gc_pct: gc_mean * 100
 }
 
@@ -83,23 +85,29 @@ print("Total target region: " + str(total_bp) + " bp")
 print("Number of targets: " + str(len(targets)))
 
 # Group by chromosome
-let by_chrom = targets |> group_by("chrom")
-for (chrom, regions) in by_chrom {
-    let bp = regions |> map(|r| r.end - r.start) |> reduce(0, |a, b| a + b)
-    print(chrom + ": " + str(len(regions)) + " targets, " + str(bp) + " bp")
-}
+let by_chrom = targets
+    |> group_by("chrom")
+    |> summarize(|chrom, regions| {
+        chrom: chrom,
+        targets: len(regions),
+        bp: regions |> map(|r| r.end - r.start) |> reduce(0, |a, b| a + b)
+    })
+by_chrom |> each(|row|
+    print(row.chrom + ": " + str(row.targets) + " targets, " + str(row.bp) + " bp")
+)
 ```
 
 ## Reading GFF/GTF
 
-`read_gff()` parses GFF3 and GTF formats. Records have `chrom`, `source`,
-`type`, `start`, `end`, `score`, `strand`, `phase`, and `attributes` (a map).
+`read_gff()` parses GFF3 into a table with `seqid`, `source`, `type`, `start`,
+`end`, `score`, `strand`, `phase`, and the raw `attributes` text. Use
+`read_gtf()` when you need parsed GTF attributes as a record.
 
 ```biolang
 let features = read_gff("data/annotations.gff")
 
 let genes = features |> filter(|f| f.type == "gene")
-let protein_coding = genes |> filter(|g| g.attributes.gene_type == "protein_coding")
+let protein_coding = genes |> filter(|g| contains(g.attributes, "protein_coding"))
 
 print("Total genes: " + str(len(genes)))
 print("Protein-coding: " + str(len(protein_coding)))
@@ -169,7 +177,7 @@ let stream = read_fastq("data/reads.fastq")
 
 # Streams work with all HOFs -- processing is lazy
 let high_qual_count = stream
-    |> filter(|r| mean(r.quality) >= 30)
+    |> filter(|r| mean_phred(r.quality) >= 30)
     |> filter(|r| len(r.seq) >= 100)
     |> len()
 
@@ -183,7 +191,7 @@ or read the file again:
 # Two-pass: first pass counts, second pass filters
 let total = read_fastq("data/reads.fastq") |> len()
 let passing = read_fastq("data/reads.fastq")
-    |> filter(|r| mean(r.quality) >= 20)
+    |> filter(|r| mean_phred(r.quality) >= 20)
     |> len()
 
 print("Pass rate: " + str(round(passing / total * 100, 2)) + "%")
@@ -214,7 +222,8 @@ because `map` on a stream produces a stream.
 Combine a genome FASTA with GFF annotation to extract CDS sequences for each
 protein-coding gene.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let genome = read_fasta("data/sequences.fasta")
 let features = read_gff("data/annotations.gff")
 
@@ -260,7 +269,8 @@ print("Extracted " + str(len(cds_records)) + " coding sequences")
 Apply multiple quality filters to a VCF and write both passing and failing
 records to separate files.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let variants = read_vcf("data/variants.vcf")
 
 let results = variants |> map(|v| {
@@ -303,7 +313,8 @@ print("  Low MQ (<40): " + str(low_mq))
 Load target regions from multiple BED files, merge overlapping intervals, and
 compute total coverage.
 
-```biolang
+```text
+# Conceptual or diagnostic example; not directly executable.
 let bed_files = [
     "targets_panel_v1.bed",
     "targets_panel_v2.bed",

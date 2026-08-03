@@ -2,11 +2,15 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const evaluate: (a: number, b: number) => [number, number];
+export const format: (a: number, b: number, c: number) => [number, number];
+export const import_source: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
 export const init: () => void;
 export const list_builtins: () => [number, number];
 export const list_variables: () => [number, number];
+export const qc_metrics: (a: number, b: number, c: number, d: number) => [number, number];
 export const reset: () => void;
 export const tokenize: (a: number, b: number) => [number, number];
+export const validate_import: (a: number, b: number, c: number) => [number, number];
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_free: (a: number, b: number, c: number) => void;

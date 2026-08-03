@@ -1,0 +1,57 @@
+# Rosalind: SQ — Square in a Graph
+# https://rosalind.info/problems/sq/
+#
+# Given: A positive integer k and k simple undirected graphs in the edge list format.
+# Return: For each graph, 1 if it contains a simple cycle of length 4, and -1 otherwise.
+
+let graphs = [
+    { vertices: 4, edges: [[3, 4], [4, 2], [3, 2], [3, 1], [1, 2]] },
+    { vertices: 4, edges: [[1, 2], [3, 4], [2, 4], [4, 1]] },
+]
+
+# A four-cycle is two vertices joined by two different paths of length two, so
+# the question is whether any pair of vertices has two neighbours in common.
+# Searching for the cycle directly would mean trying orderings; counting shared
+# neighbours needs one pass over the pairs.
+fn has_square(graph) {
+    let n = graph.vertices
+    let neighbours = []
+    for _ in range(0, n) {
+        neighbours = push(neighbours, [])
+    }
+    for edge in graph.edges {
+        let u = edge[0] - 1
+        let v = edge[1] - 1
+        neighbours[u] = push(neighbours[u], v)
+        neighbours[v] = push(neighbours[v], u)
+    }
+
+    let found = false
+    let u = 0
+    while u < n and found == false {
+        let v = u + 1
+        while v < n and found == false {
+            let shared = 0
+            for candidate in neighbours[u] {
+                if contains(neighbours[v], candidate) {
+                    shared = shared + 1
+                }
+            }
+            if shared >= 2 {
+                found = true
+            }
+            v = v + 1
+        }
+        u = u + 1
+    }
+    if found then 1 else -1
+}
+
+let result = graphs |> map(|g| str(has_square(g))) |> join(" ")
+
+println("Result:   " + result)
+println("Expected: 1 -1")
+
+fn test_sq_finds_four_cycles() {
+    assert result == "1 -1", "SQ: got " + result
+}

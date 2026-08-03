@@ -127,7 +127,7 @@ impl Compiler {
 
         // Pop locals in this scope, emitting CloseUpvalue for captured ones.
         while let Some(local) = self.ctx().locals.last() {
-            if local.depth <= depth - 1 {
+            if local.depth < depth {
                 break;
             }
             if local.is_captured {
@@ -295,6 +295,7 @@ impl Compiler {
             params: ctx.params,
             chunk: ctx.chunk,
             upvalue_count: ctx.upvalues.len() as u16,
+            upvalue_descs: ctx.upvalues,
             is_generator: ctx.is_generator,
             is_async: ctx.is_async,
         })
@@ -317,6 +318,16 @@ impl Compiler {
                     self.emit(OpCode::DefineGlobal(idx));
                 }
             }
+            // Indexed assignment mutates a value in place, which the stack
+            // machine has no opcode for. Reject it explicitly so callers fall
+            // back to the tree-walking interpreter rather than silently
+            // compiling something with different semantics.
+            Stmt::IndexAssign { .. } => {
+                return Err(CompileError::new(
+                    "indexed assignment (x[i] = v) is not supported in compiled mode",
+                    Some(stmt.span),
+                ));
+            }
             Stmt::Assign { name, value } => {
                 self.compile_expr(value)?;
                 if let Some(slot) = self.resolve_local(name) {
@@ -337,24 +348,12 @@ impl Compiler {
                 decorators: _,
                 ..
             } => {
-                let func = self.compile_function_def(name, params, body, *is_generator, *is_async)?;
-                let upvalue_descs: Vec<UpvalueDescriptor> = if !self.contexts.is_empty() {
-                    // The upvalues were stored in the context that just got popped
-                    // We need to get them from the compiled function's metadata
-                    // Actually, the upvalues are stored in the context we just finished
-                    // Let's grab them before finish
-                    Vec::new() // upvalues handled inside compile_function_def
-                } else {
-                    Vec::new()
-                };
-
+                let func =
+                    self.compile_function_def(name, params, body, *is_generator, *is_async)?;
+                // upvalue_descs are stored inside CompiledFunction; the VM reads them
+                // from there when executing Closure to wire up captured variables.
                 let const_idx = self.add_constant(Constant::Function(func));
                 self.emit_span(OpCode::Closure(const_idx), stmt.span);
-
-                // Emit upvalue descriptors (handled by VM during Closure creation)
-                for desc in &upvalue_descs {
-                    let _ = desc; // upvalues encoded in the CompiledFunction
-                }
 
                 if self.ctx().scope_depth > 0 {
                     self.add_local(name.clone());
@@ -371,7 +370,12 @@ impl Compiler {
                 }
                 self.emit_span(OpCode::Return, stmt.span);
             }
-            Stmt::For { pattern, iter, body, .. } => {
+            Stmt::For {
+                pattern,
+                iter,
+                body,
+                ..
+            } => {
                 self.compile_expr(iter)?;
                 self.emit(OpCode::PushIter);
 
@@ -381,7 +385,9 @@ impl Compiler {
                 // Define loop variable as local (the IterNext pushed value IS the local)
                 self.begin_scope();
                 match pattern {
-                    ForPattern::Single(var) => { self.add_local(var.clone()); }
+                    ForPattern::Single(var) => {
+                        self.add_local(var.clone());
+                    }
                     ForPattern::ListDestr(names) => {
                         // For bytecode, bind first name as the whole item (simplified)
                         self.add_local(names[0].clone());
@@ -405,11 +411,8 @@ impl Compiler {
                     self.compile_stmt(s)?;
                 }
 
-                // Pop the loop variable before looping back
-                // (end_scope won't do it because we manually handle it)
-                self.ctx_mut().locals.pop(); // remove local tracking
-                self.ctx_mut().scope_depth -= 1;
-                self.emit(OpCode::Pop); // pop the loop variable value
+                // Close scope: emits CloseUpvalue for captured loop vars, Pop for the rest.
+                self.end_scope();
 
                 // Loop back to IterNext
                 let back = (self.current_offset() - loop_start) as u16;
@@ -461,7 +464,24 @@ impl Compiler {
                 }
             }
             Stmt::Continue => {
-                if let Some(loop_ctx) = self.ctx().loop_stack.last() {
+                if let Some(loop_ctx) = self.ctx().loop_stack.last().cloned() {
+                    // Pop all locals introduced since the loop scope began (including the loop
+                    // variable itself), so IterNext sees the clean stack it expects.
+                    let to_pop: Vec<bool> = self
+                        .ctx()
+                        .locals
+                        .iter()
+                        .rev()
+                        .take_while(|l| l.depth >= loop_ctx.scope_depth)
+                        .map(|l| l.is_captured)
+                        .collect();
+                    for is_captured in to_pop {
+                        if is_captured {
+                            self.emit(OpCode::CloseUpvalue);
+                        } else {
+                            self.emit(OpCode::Pop);
+                        }
+                    }
                     let loop_start = loop_ctx.loop_start;
                     let back = (self.current_offset() - loop_start) as u16;
                     self.emit_span(OpCode::Loop(back), stmt.span);
@@ -499,7 +519,10 @@ impl Compiler {
                         }
                         self.emit(OpCode::Pop);
                     }
-                    DestructPattern::ListWithRest { elements, rest_name } => {
+                    DestructPattern::ListWithRest {
+                        elements,
+                        rest_name,
+                    } => {
                         for (i, name) in elements.iter().enumerate() {
                             self.emit(OpCode::Dup);
                             let idx = self.add_constant(Constant::Value(Value::Int(i as i64)));
@@ -566,17 +589,17 @@ impl Compiler {
             }
             Stmt::Import { path, alias } => {
                 let path_idx = self.add_name(path.clone());
-                let has_alias = if alias.is_some() { 1 } else { 0 };
-                if let Some(alias_name) = alias {
-                    let _ = self.add_name(alias_name.clone());
-                }
-                self.emit_span(OpCode::Import(path_idx, has_alias), stmt.span);
+                // u16::MAX signals "no alias"; any other value is the name-pool index.
+                let alias_idx = if let Some(alias_name) = alias {
+                    self.add_name(alias_name.clone())
+                } else {
+                    u16::MAX
+                };
+                self.emit_span(OpCode::Import(path_idx, alias_idx), stmt.span);
             }
             Stmt::Yield(expr) => {
-                // Yield compiles similarly to return in generator context
                 self.compile_expr(expr)?;
-                // The VM handles yield collection
-                self.emit_span(OpCode::Return, stmt.span);
+                self.emit_span(OpCode::Yield, stmt.span);
             }
             Stmt::Enum { name, variants } => {
                 // Emit as a series of global definitions
@@ -614,9 +637,13 @@ impl Compiler {
                 // Runtime handles struct/trait/impl registration.
             }
             // New statement types — not yet supported in bytecode compiler
-            Stmt::Unless { .. } | Stmt::Guard { .. } | Stmt::Defer(_)
-            | Stmt::ParallelFor { .. } | Stmt::Stage { .. }
-            | Stmt::FromImport { .. } | Stmt::NilAssign { .. }
+            Stmt::Unless { .. }
+            | Stmt::Guard { .. }
+            | Stmt::Defer(_)
+            | Stmt::ParallelFor { .. }
+            | Stmt::Stage { .. }
+            | Stmt::FromImport { .. }
+            | Stmt::NilAssign { .. }
             | Stmt::TypeAlias { .. } => {}
         }
         Ok(())
@@ -710,8 +737,12 @@ impl Compiler {
                     BinaryOp::Gt => self.emit(OpCode::Greater),
                     BinaryOp::Le => self.emit(OpCode::LessEqual),
                     BinaryOp::Ge => self.emit(OpCode::GreaterEqual),
-                    BinaryOp::Pow | BinaryOp::BitAnd | BinaryOp::BitXor
-                    | BinaryOp::Shl | BinaryOp::Shr | BinaryOp::Concat => {
+                    BinaryOp::Pow
+                    | BinaryOp::BitAnd
+                    | BinaryOp::BitXor
+                    | BinaryOp::Shl
+                    | BinaryOp::Shr
+                    | BinaryOp::Concat => {
                         // Stub: emit Nil for now (not yet supported in bytecode)
                         self.emit(OpCode::Nil)
                     }
@@ -722,7 +753,8 @@ impl Compiler {
                 // `expr |> into name` — evaluate, store, leave value on stack
                 self.compile_expr(value)?;
                 self.emit(OpCode::Dup);
-                let slot = self.resolve_local(name)
+                let slot = self
+                    .resolve_local(name)
                     .unwrap_or_else(|| self.add_local(name.clone()));
                 self.emit(OpCode::SetLocal(slot));
             }
@@ -760,10 +792,7 @@ impl Compiler {
                         for arg in args {
                             self.compile_expr(&arg.value)?;
                         }
-                        self.emit_span(
-                            OpCode::CallNative(builtin_id, args.len() as u8),
-                            expr.span,
-                        );
+                        self.emit_span(OpCode::CallNative(builtin_id, args.len() as u8), expr.span);
                         return Ok(());
                     }
                 }
@@ -902,13 +931,13 @@ impl Compiler {
                 for entry in entries {
                     match entry {
                         RecordEntry::Field(key, value) => {
-                            let idx = self.add_name(key.clone());
+                            // Push the key as a string Value, not as a name-pool index.
+                            let idx = self.add_constant(Constant::Value(Value::Str(key.clone())));
                             self.emit(OpCode::Constant(idx));
                             self.compile_expr(value)?;
                             field_count += 1;
                         }
                         RecordEntry::Spread(_) => {
-                            // Spread in compiled records not yet supported
                             return Err(CompileError::new(
                                 "record spread (...) is not supported in compiled mode",
                                 Some(expr.span),
@@ -923,7 +952,10 @@ impl Compiler {
                     self.add_constant(Constant::AstFragment(Box::new(inner.as_ref().clone())));
                 self.emit(OpCode::MakeFormula(const_idx));
             }
-            Expr::Match { expr: match_expr, arms } => {
+            Expr::Match {
+                expr: match_expr,
+                arms,
+            } => {
                 self.compile_expr(match_expr)?;
 
                 let mut end_jumps = Vec::new();
@@ -1039,8 +1071,7 @@ impl Compiler {
                 for part in parts {
                     match part {
                         StringPart::Lit(s) => {
-                            let idx =
-                                self.add_constant(Constant::Value(Value::Str(s.clone())));
+                            let idx = self.add_constant(Constant::Value(Value::Str(s.clone())));
                             self.emit(OpCode::Constant(idx));
                         }
                         StringPart::Expr(e) => {
@@ -1079,14 +1110,12 @@ impl Compiler {
                 if let Some(cond) = condition {
                     self.compile_expr(cond)?;
                     let skip = self.emit(OpCode::JumpIfFalse(0));
-                    self.emit(OpCode::Pop); // pop condition result
-
-                    // element expression
-                    // Get accumulator, compute element, push to list
+                    self.emit(OpCode::Pop); // pop condition bool (true branch)
                     self.compile_expr(elem_expr)?;
-
+                    let after = self.emit(OpCode::Jump(0));
                     self.patch_jump(skip);
-                    // If condition was false, don't add element
+                    self.emit(OpCode::Pop); // pop condition bool (false branch)
+                    self.patch_jump(after);
                 } else {
                     self.compile_expr(elem_expr)?;
                 }
@@ -1167,8 +1196,7 @@ impl Compiler {
                 let f_idx = self.add_constant(Constant::Value(Value::Str(flags.clone())));
                 self.emit(OpCode::Constant(p_idx));
                 self.emit(OpCode::Constant(f_idx));
-                // VM constructs Regex from two strings on stack
-                self.emit(OpCode::MakeList(2)); // temporary: VM decodes
+                self.emit(OpCode::MakeRegex);
             }
             Expr::Await(inner) => {
                 self.compile_expr(inner)?;
@@ -1176,13 +1204,14 @@ impl Compiler {
                 // For bytecode, we just pass through
             }
             Expr::StructLit { name, fields } => {
-                // Compile as Record with __type field
-                let type_key_idx = self.add_name("__type".to_string());
+                // Compile as Record with __type field. All keys must be string Values.
+                let type_key_idx =
+                    self.add_constant(Constant::Value(Value::Str("__type".to_string())));
                 self.emit(OpCode::Constant(type_key_idx));
-                let type_val_idx = self.add_name(name.clone());
+                let type_val_idx = self.add_constant(Constant::Value(Value::Str(name.clone())));
                 self.emit(OpCode::Constant(type_val_idx));
                 for (key, val) in fields {
-                    let idx = self.add_name(key.clone());
+                    let idx = self.add_constant(Constant::Value(Value::Str(key.clone())));
                     self.emit(OpCode::Constant(idx));
                     self.compile_expr(val)?;
                 }
@@ -1202,8 +1231,14 @@ impl Compiler {
                 self.emit(OpCode::Constant(idx));
             }
             // New expression types — fall back to Nil in bytecode compiler (experimental)
-            Expr::In { .. } | Expr::DoBlock { .. } | Expr::TypeCast { .. } | Expr::ThenPipe { .. } | Expr::Slice { .. }
-            | Expr::TapPipe { .. } | Expr::Given { .. } | Expr::Retry { .. } => {
+            Expr::In { .. }
+            | Expr::DoBlock { .. }
+            | Expr::TypeCast { .. }
+            | Expr::ThenPipe { .. }
+            | Expr::Slice { .. }
+            | Expr::TapPipe { .. }
+            | Expr::Given { .. }
+            | Expr::Retry { .. } => {
                 self.emit(OpCode::Nil);
             }
         }
