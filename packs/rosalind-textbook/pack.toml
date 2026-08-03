@@ -880,3 +880,73 @@ status = "solved"
 asserted = true
 note = "An edge costs the same read in either direction, so the score does not depend on where a root is placed — hang one in the middle of any edge, run BA7F unchanged, then remove it. The labelling can differ; the score cannot, which the assertion checks by comparing the rooted and unrooted totals."
 topics = ["phylogeny", "dynamic-programming"]
+
+[[problem]]
+id = "BA9A"
+title = "Construct a Trie from a Collection of Patterns"
+file = "examples/ba9a.bl"
+url = "https://rosalind.info/problems/ba9a/"
+status = "solved"
+asserted = true
+note = "Patterns sharing a prefix share a path, so the trie is walked once per text position no matter how many patterns there are. Node numbering is explicitly free, so the assertions are structural: every pattern spellable, no node with two edges on one symbol."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9B"
+title = "Implement TrieMatching"
+file = "examples/ba9b.bl"
+url = "https://rosalind.info/problems/ba9b/"
+status = "solved"
+asserted = true
+note = "Every pattern is tested at once by a single walk, so the cost is the text length times the longest pattern rather than times the pattern count. Cross-checked against a plain scan."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9H"
+title = "Pattern Matching with the Suffix Array"
+file = "examples/ba9h.bl"
+url = "https://rosalind.info/problems/ba9h/"
+status = "solved"
+asserted = true
+note = "The same answer as BA9B reached the other way, and the example says which to reach for: a trie is built from the patterns and suits many patterns against one text; a suffix array is built from the text and suits one text queried repeatedly."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "BA9K"
+title = "Generate the Last-to-First Mapping of a String"
+file = "examples/ba9k.bl"
+url = "https://rosalind.info/problems/ba9k/"
+status = "solved"
+asserted = true
+note = "The kth occurrence of a symbol in one column is the kth in the other, so a row is found by counting rather than searching. Asserted to be a bijection over every row, which is what makes the walk in BA9J terminate."
+topics = ["strings", "suffix-structures", "compression"]
+
+[[problem]]
+id = "BA9L"
+title = "Implement BWMatching"
+file = "examples/ba9l.bl"
+url = "https://rosalind.info/problems/ba9l/"
+status = "solved"
+asserted = true
+note = "Searching the transform without ever rebuilding the text: sorted rows mean every match forms one contiguous band, narrowed one symbol at a time. Cross-checked by inverting the transform — the point being that the search never needed to."
+topics = ["strings", "suffix-structures", "compression"]
+
+[[problem]]
+id = "BA9M"
+title = "Implement BetterBWMatching"
+file = "examples/ba9m.bl"
+url = "https://rosalind.info/problems/ba9m/"
+status = "solved"
+asserted = true
+note = "Two precomputed tables remove BWMatching's scan, so a query costs time proportional to the pattern rather than to the text. That difference is what makes indexing a genome once and querying it billions of times practical."
+topics = ["strings", "suffix-structures", "compression"]
+
+[[problem]]
+id = "BA9Q"
+title = "Construct the Partial Suffix Array of a String"
+file = "examples/ba9q.bl"
+url = "https://rosalind.info/problems/ba9q/"
+status = "solved"
+asserted = true
+note = "A full suffix array of a human genome is 12 GB before the sequence itself. Keeping every Kth value cuts that by a factor of K, with the rest recoverable by walking the BWT — the compromise real read aligners ship with."
+topics = ["strings", "suffix-structures"]

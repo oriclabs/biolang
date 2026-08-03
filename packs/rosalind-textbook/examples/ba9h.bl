@@ -1,0 +1,67 @@
+# Rosalind: BA9H — Pattern Matching with the Suffix Array
+# https://rosalind.info/problems/ba9h/
+#
+# Given: A string Text and a collection of strings Patterns.
+# Return: Every starting position in Text where some pattern occurs.
+
+let text = "AATCGGGTTCAATCGGGGT"
+let patterns = ["ATCG", "GGGT"]
+
+# The same answer as BA9B, reached the other way. Every occurrence of a pattern
+# is the start of a suffix beginning with it, and the suffix array holds the
+# suffixes in sorted order — so those suffixes form one contiguous band, findable
+# by binary search.
+#
+# The trade against the trie: the trie is built from the patterns and scans the
+# text once, so it suits many patterns against one text. The suffix array is
+# built from the text and searched per pattern, so it suits one text queried
+# repeatedly — a reference genome, indexed once.
+let sa = suffix_array(text)
+
+fn suffix_at(source, start) { substr(source, start, len(source) - start) }
+
+fn starts_with(haystack, needle) {
+    len(haystack) >= len(needle) and substr(haystack, 0, len(needle)) == needle
+}
+
+fn band_for(pattern, order, source) {
+    # Lower edge: the first suffix not less than the pattern.
+    let low = 0
+    let high = len(order)
+    while low < high {
+        let middle = floor((low + high) / 2)
+        if suffix_at(source, order[middle]) < pattern { low = middle + 1 } else { high = middle }
+    }
+    let start = low
+    # Upper edge: the first suffix that no longer begins with it.
+    high = len(order)
+    while low < high {
+        let middle = floor((low + high) / 2)
+        if starts_with(suffix_at(source, order[middle]), pattern) {
+            low = middle + 1
+        } else {
+            high = middle
+        }
+    }
+    { start: start, stop: low }
+}
+
+let found = sort(patterns |> flat_map(|pattern| {
+    let band = band_for(pattern, sa, text)
+    range(band.start, band.stop) |> map(|i| sa[i])
+}))
+
+println("Result:   " + (found |> map(|p| str(p)) |> join(" ")))
+println("Expected: 1 4 11 15")
+
+fn test_ba9h_suffix_array_matching() {
+    assert (found |> map(|p| str(p)) |> join(" ")) == "1 4 11 15", "BA9H: got " + str(found)
+    # Same answer as scanning, which is the only thing that matters.
+    let by_brute_force = sort(patterns |> flat_map(|p|
+        range(0, len(text) - len(p) + 1) |> filter(|s| substr(text, s, len(p)) == p)))
+    assert found == by_brute_force,
+        "BA9H: the suffix array found " + str(found) + " but scanning finds " + str(by_brute_force)
+    # A pattern that is not there returns an empty band rather than a wrong one.
+    let missing = band_for("TTTT", sa, text)
+    assert missing.stop == missing.start, "BA9H: TTTT should match nothing"
+}
