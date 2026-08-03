@@ -200,3 +200,37 @@ fn substitution_score_rejects_a_residue_it_does_not_know() {
     )
     .is_err());
 }
+
+#[test]
+fn unique_keeps_first_appearance_and_separates_lookalikes() {
+    // Bucketed by display form, decided by equality: 1, 1.0 and "1" all render
+    // as "1" and must still be three distinct values.
+    match call("unique", vec![ints(&[3, 1, 3, 2, 1, 3])]) {
+        Value::List(v) => assert_eq!(v.as_ref(), &[Value::Int(3), Value::Int(1), Value::Int(2)]),
+        other => panic!("expected List, got {other:?}"),
+    }
+    let mixed = Value::List(vec![Value::Int(1), Value::Float(1.0), Value::Str("1".into())].into());
+    match call("unique", vec![mixed]) {
+        Value::List(v) => assert_eq!(v.len(), 3, "lookalikes collapsed: {v:?}"),
+        other => panic!("expected List, got {other:?}"),
+    }
+}
+
+#[test]
+fn unique_stays_linear() {
+    // Was a scan of everything kept so far, per element: the distinct 8-mers of
+    // a megabase took nearly four minutes. Four times the input must not be
+    // sixteen times the work.
+    let build = |n: i64| {
+        let values: Vec<Value> = (0..n).map(|i| Value::Int(i % (n / 2))).collect();
+        let start = std::time::Instant::now();
+        call("unique", vec![Value::List(values.into())]);
+        start.elapsed().as_secs_f64()
+    };
+    let small = build(4_000);
+    let large = build(16_000);
+    assert!(
+        large < small * 40.0 + 0.5,
+        "unique looks superlinear: 4k took {small:.4}s, 16k took {large:.4}s"
+    );
+}

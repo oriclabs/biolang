@@ -118,3 +118,6 @@ node_modules/
 
 # Written by the doc-example sweep for the CLI checker to consume.
 /website/tests/cli-only-blocks.json
+
+# Benchmark inputs are generated from a seed by bench/harness.py.
+/bench/data/

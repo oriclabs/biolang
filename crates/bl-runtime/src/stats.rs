@@ -652,11 +652,27 @@ fn builtin_cor(args: Vec<Value>) -> Result<Value> {
 fn builtin_unique(args: Vec<Value>) -> Result<Value> {
     match &args[0] {
         Value::List(items) => {
-            let mut seen = Vec::new();
+            // Bucketed by a cheap key, then confirmed with the real equality.
+            // This used to scan everything kept so far for each element, which
+            // is fine for the handful of values an example holds and quadratic
+            // on anything real: the distinct 8-mers of a one-megabase sequence
+            // took just under four minutes, against 141 ms for a Python set.
+            //
+            // Value holds floats, so it cannot derive Hash. The key is its
+            // display form, which may collide across types — 1 and 1.0 both
+            // render as "1" — so a bucket is a candidate list, not an answer,
+            // and membership is still decided by `==`. Order of first
+            // appearance is preserved, as before.
+            let mut buckets: HashMap<String, Vec<usize>> = HashMap::new();
+            let mut seen: Vec<Value> = Vec::new();
             for item in items.iter() {
-                if !seen.contains(item) {
-                    seen.push(item.clone());
+                let key = format!("{item}");
+                let bucket = buckets.entry(key).or_default();
+                if bucket.iter().any(|&i| &seen[i] == item) {
+                    continue;
                 }
+                bucket.push(seen.len());
+                seen.push(item.clone());
             }
             Ok(Value::List((seen).into()))
         }
