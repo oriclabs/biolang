@@ -934,3 +934,13 @@ status = "solved"
 asserted = true
 note = "An 'x' means not scored, not a third state — so a partial character still separates the taxa it did see, and missing data does not make it useless. Quartets are recorded canonically because neither side nor the order within a side carries meaning, and two characters often support the same one."
 topics = ["phylogeny"]
+
+[[problem]]
+id = "CHBP"
+title = "Character-Based Phylogeny"
+file = "examples/chbp.bl"
+url = "https://rosalind.info/problems/chbp/"
+status = "solved"
+asserted = true
+note = "The inverse of CTBL. It works because a consistent table's splits are laminar — any two nested or disjoint, never crossing — and a laminar family is exactly a tree. Returns a differently-rooted Newick, so the assertion compares induced splits rather than a formatting choice."
+topics = ["phylogeny"]
