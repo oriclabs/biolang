@@ -6,15 +6,45 @@ and writing your first real analysis.
 
 ## Installation
 
-### From crates.io
+The quickest route needs nothing installed beforehand — not even Rust.
+
+### Linux and macOS
+
+```bash
+curl -fsSL https://lang.bio/install.sh | sh
+```
+
+### Windows
+
+```powershell
+iwr -useb https://lang.bio/install.ps1 | iex
+```
+
+Either one works out your platform and architecture, downloads that build from
+the latest GitHub release, checks it against the `checksums.sha256` published
+alongside it, and installs two binaries: `bl`, which is both the REPL and the
+script runner, and `bl-lsp`, the language server your editor talks to.
+
+They install to `/usr/local/bin` on Linux and macOS, and to
+`%LOCALAPPDATA%\Programs\BioLang\bin` on Windows — the Windows location needs no
+administrator rights and is added to your user `PATH` for you. Set
+`BIOLANG_INSTALL_DIR` to put them somewhere else.
+
+### With Cargo
+
+If you already have Rust 1.75 or newer:
 
 ```bash
 cargo install --git https://github.com/oriclabs/biolang bl-cli
 ```
 
-This installs the `bl` binary, which provides both the REPL and the script runner.
+This builds from source, so it takes a few minutes where the installers take
+seconds. BioLang is not published to crates.io yet, which is why this is a
+`--git` install rather than `cargo install biolang`.
 
-### From source
+### From a clone
+
+What you want if you intend to change anything:
 
 ```bash
 git clone https://github.com/oriclabs/biolang.git

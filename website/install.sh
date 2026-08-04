@@ -55,6 +55,40 @@ main() {
   To build from source instead: cargo install --git https://github.com/$REPO bl-cli"
     fi
 
+    # Verify against the checksums published with the release. This script is
+    # piped from the internet straight into a shell, so confirming the archive
+    # is the one that was published costs one request and is worth making.
+    # The Windows installer did this from the start; parity here means the docs
+    # can say both verify without qualifying which.
+    SUMS_URL="https://github.com/$REPO/releases/download/${LATEST}/checksums.sha256"
+    if curl -fsSL "$SUMS_URL" -o "$TMPDIR/checksums.sha256" 2>/dev/null; then
+        # Releases up to v1.1.0 recorded artifacts/<name>/<name> rather than a
+        # bare filename, so match on the trailing component either way.
+        EXPECTED=$(awk -v a="$ARCHIVE" '$2 ~ ("(^|/)" a "$") { print $1; exit }' "$TMPDIR/checksums.sha256")
+        if [ -z "$EXPECTED" ]; then
+            say "note: $ARCHIVE is not listed in checksums.sha256; skipping verification."
+        else
+            if command -v sha256sum >/dev/null 2>&1; then
+                ACTUAL=$(sha256sum "$TMPDIR/$ARCHIVE" | cut -d' ' -f1)
+            elif command -v shasum >/dev/null 2>&1; then
+                ACTUAL=$(shasum -a 256 "$TMPDIR/$ARCHIVE" | cut -d' ' -f1)
+            else
+                ACTUAL=""
+                say "note: no sha256sum or shasum available; skipping verification."
+            fi
+            if [ -n "$ACTUAL" ]; then
+                if [ "$EXPECTED" != "$ACTUAL" ]; then
+                    err "checksum mismatch for $ARCHIVE
+  expected $EXPECTED
+  actual   $ACTUAL"
+                fi
+                say "Checksum verified."
+            fi
+        fi
+    else
+        say "note: checksums.sha256 not published for ${LATEST}; skipping verification."
+    fi
+
     # Extract
     say "Extracting..."
     tar xzf "$TMPDIR/$ARCHIVE" -C "$TMPDIR"

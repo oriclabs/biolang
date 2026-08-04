@@ -82,30 +82,60 @@ Given/Return in a line or two and links to the original rather than reproducing 
 
 ## Install
 
-### From source
+### One line
 
 ```bash
-git clone https://github.com/oriclabs/biolang.git
-cd biolang
-cargo install --path crates/bl-cli
+# Linux and macOS
+curl -fsSL https://lang.bio/install.sh | sh
 ```
+
+```powershell
+# Windows
+iwr -useb https://lang.bio/install.ps1 | iex
+```
+
+Both detect your platform, verify the download against the `checksums.sha256`
+published with the release, and install `bl` and `bl-lsp`. Set
+`BIOLANG_INSTALL_DIR` to choose where they go — it defaults to `/usr/local/bin`
+on Linux and macOS, and `%LOCALAPPDATA%\Programs\BioLang\bin` on Windows, which
+needs no administrator rights.
 
 ### From releases
 
-Download pre-built binaries from [Releases](https://github.com/oriclabs/biolang/releases).
+Pre-built binaries for every tagged release are on the
+[Releases](https://github.com/oriclabs/biolang/releases) page, for Linux
+(x86_64, aarch64), macOS (x86_64, Apple Silicon) and Windows (x86_64).
 
 ```bash
-# Linux
+# Linux x86_64
 curl -L https://github.com/oriclabs/biolang/releases/latest/download/biolang-linux-x86_64.tar.gz | tar xz
 sudo mv bl /usr/local/bin/
 
 # macOS (Apple Silicon)
 curl -L https://github.com/oriclabs/biolang/releases/latest/download/biolang-macos-aarch64.tar.gz | tar xz
 sudo mv bl /usr/local/bin/
+```
 
-# Windows (PowerShell)
+```powershell
+# Windows
 Invoke-WebRequest -Uri https://github.com/oriclabs/biolang/releases/latest/download/biolang-windows-x86_64.zip -OutFile biolang.zip
 Expand-Archive biolang.zip -DestinationPath .
+```
+
+### From source
+
+Needs Rust 1.75 or newer.
+
+```bash
+cargo install --git https://github.com/oriclabs/biolang bl-cli
+```
+
+Or from a clone, which is what you want if you intend to change anything:
+
+```bash
+git clone https://github.com/oriclabs/biolang.git
+cd biolang
+cargo install --path crates/bl-cli
 ```
 
 ## Quick Start
