@@ -11,8 +11,22 @@ pub struct Lexer {
 
 impl Lexer {
     pub fn new(source: &str) -> Self {
+        let mut source: Vec<char> = source.chars().collect();
+        // A UTF-8 BOM leads any file written by Windows PowerShell's
+        // `Out-File -Encoding utf8` or by Notepad "Save as UTF-8", so it is the
+        // ordinary result of writing a .bl file on Windows rather than an
+        // exotic input. Without this the first line failed to lex with
+        // "unexpected character: ''", pointing at something invisible.
+        //
+        // Overwritten with a space rather than removed: dropping the character
+        // would shift every span in the file back by one, so every reported
+        // column on line 1 would be wrong. A leading space lexes as whitespace
+        // and leaves offsets exactly as they are in the file on disk.
+        if source.first() == Some(&'\u{feff}') {
+            source[0] = ' ';
+        }
         Self {
-            source: source.chars().collect(),
+            source,
             pos: 0,
             tokens: Vec::new(),
         }
@@ -978,5 +992,57 @@ impl Lexer {
         self.tokens
             .push(Token::new(make_token(value), Span::new(start, self.pos)));
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod bom_tests {
+    use super::*;
+
+    fn kinds(source: &str) -> Vec<TokenKind> {
+        Lexer::new(source)
+            .tokenize()
+            .expect("should lex")
+            .into_iter()
+            .map(|t| t.kind)
+            .collect()
+    }
+
+    #[test]
+    fn leading_bom_is_accepted() {
+        // What PowerShell's `Out-File -Encoding utf8` writes.
+        let with_bom = "\u{feff}let x = 1";
+        let without = "let x = 1";
+        assert_eq!(kinds(with_bom), kinds(without));
+    }
+
+    #[test]
+    fn leading_bom_does_not_shift_spans() {
+        // The reason the BOM is overwritten with a space rather than removed:
+        // stripping it would move every span on the first line back by one.
+        let with_bom = Lexer::new("\u{feff}let x = 1").tokenize().unwrap();
+        let without = Lexer::new(" let x = 1").tokenize().unwrap();
+        let spans: Vec<_> = with_bom
+            .iter()
+            .map(|t| (t.span.start, t.span.end))
+            .collect();
+        let expect: Vec<_> = without.iter().map(|t| (t.span.start, t.span.end)).collect();
+        assert_eq!(spans, expect);
+        // `let` begins at offset 1, exactly where it sits in the file.
+        assert_eq!(spans[0].0, 1);
+    }
+
+    #[test]
+    fn bom_only_source_lexes_as_empty() {
+        assert_eq!(kinds("\u{feff}"), kinds(" "));
+    }
+
+    #[test]
+    fn a_bom_after_the_start_is_still_rejected() {
+        // Only a leading BOM is an encoding artefact. One in the middle of a
+        // file is a genuine stray character and should still be reported.
+        assert!(Lexer::new("let x = 1\n\u{feff}let y = 2")
+            .tokenize()
+            .is_err());
     }
 }
