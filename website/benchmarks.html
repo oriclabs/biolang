@@ -218,7 +218,7 @@
 
       <!-- ==================== WINDOWS TAB ==================== -->
       <div id="bench-windows" style="display: none;">
-        <p class="text-slate-500 text-xs text-center mb-6">Windows 11 &mdash; Intel i9-12900K, 32 GB RAM &mdash; BioLang 0.3.0, Python 3.12.4</p>
+        <p class="text-slate-500 text-xs text-center mb-6">Windows 11 &mdash; Intel i9-12900K, 32 GB RAM &mdash; BioLang 1.1.0, Python 3.13.14, R 4.6.1 &mdash; re-measured August 2026</p>
 
         <div class="overflow-x-auto">
           <table class="bench-table w-full text-sm text-left">
@@ -234,45 +234,75 @@
             <tbody class="text-slate-300">
               <!-- Sequence I/O -->
               <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Sequence I/O</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA Statistics</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTQ QC</td><td class="py-2.5 px-4 text-violet-400 font-mono">2.02s</td><td class="py-2.5 px-4 font-mono">3.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">1.5x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTQ (26 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">2.05s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.0x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Reverse Complement</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
-
-              <!-- Real-world Genomes -->
-              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Real-world Genomes</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">E. coli Genome</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Human Chr22</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">GC Content (51 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA Statistics</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.065s</td><td class="py-2.5 px-4 font-mono">0.578s</td><td class="py-2.5 px-4 font-mono">1.56s</td><td class="py-2.5 px-4 text-green-400 font-semibold">8.9x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTQ QC</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.820s</td><td class="py-2.5 px-4 font-mono">2.56s</td><td class="py-2.5 px-4 font-mono">5.49s</td><td class="py-2.5 px-4 text-green-400 font-semibold">3.1x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">E.coli Genome Stats</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.034s</td><td class="py-2.5 px-4 font-mono">0.344s</td><td class="py-2.5 px-4 font-mono">1.40s</td><td class="py-2.5 px-4 text-green-400 font-semibold">10.1x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Human Chr22 Stats</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.096s</td><td class="py-2.5 px-4 font-mono">0.660s</td><td class="py-2.5 px-4 font-mono">1.76s</td><td class="py-2.5 px-4 text-green-400 font-semibold">6.9x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">GC Content (51 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.133s</td><td class="py-2.5 px-4 font-mono">0.940s</td><td class="py-2.5 px-4 font-mono">1.72s</td><td class="py-2.5 px-4 text-green-400 font-semibold">7.1x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Reverse Complement</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.159s</td><td class="py-2.5 px-4 font-mono">0.481s</td><td class="py-2.5 px-4 font-mono">1.60s</td><td class="py-2.5 px-4 text-green-400 font-semibold">3.0x</td></tr>
 
               <!-- K-mer Analysis -->
               <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">K-mer Analysis</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">K-mer Counting</td><td class="py-2.5 px-4 text-violet-400 font-mono">6.04s</td><td class="py-2.5 px-4 font-mono">18.14s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">3.0x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Chr22 21-mers</td><td class="py-2.5 px-4 text-violet-400 font-mono">9.08s</td><td class="py-2.5 px-4 font-mono">24.24s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.7x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Protein K-mers</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">K-mer Counting</td><td class="py-2.5 px-4 text-violet-400 font-mono">8.39s</td><td class="py-2.5 px-4 font-mono">28.77s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">3.4x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Chr22 21-mer Count</td><td class="py-2.5 px-4 text-violet-400 font-mono">13.85s</td><td class="py-2.5 px-4 font-mono">27.59s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.0x</td></tr>
 
-              <!-- Intervals & Overlaps -->
-              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Intervals &amp; Overlaps</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ENCODE Peak Overlap</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.03s</td><td class="py-2.5 px-4 font-mono">3.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.9x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">BED Overlap (synthetic)</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <!-- Variant Analysis -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Variant Analysis</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">VCF Filtering</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.083s</td><td class="py-2.5 px-4 font-mono">0.107s</td><td class="py-2.5 px-4 font-mono">6.05s</td><td class="py-2.5 px-4 text-green-400 font-semibold">1.3x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar Variants</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.180s</td><td class="py-2.5 px-4 font-mono">0.103s</td><td class="py-2.5 px-4 font-mono">0.841s</td><td class="py-2.5 px-4 text-amber-400">Py 1.7x</td></tr>
 
-              <!-- Variant & Data -->
-              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Variant &amp; Data</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">VCF Filtering</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar Variants</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">CSV Join + Group-by</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <!-- Data Wrangling -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Data Wrangling</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">CSV Join + Group-by</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.071s</td><td class="py-2.5 px-4 font-mono">0.077s</td><td class="py-2.5 px-4 font-mono">0.529s</td><td class="py-2.5 px-4">~1.0x</td></tr>
 
-              <!-- Pipelines -->
-              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Pipelines</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTQ QC Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">2.03s</td><td class="py-2.5 px-4 font-mono">5.06s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.5x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Variant Analysis Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.03s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar Variant Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.02s</td><td class="py-2.5 px-4 font-mono">1.02s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Multi-Sample Aggregation</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.05s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
-              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar + Ensembl Annotation</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.01s</td><td class="py-2.5 px-4 font-mono">1.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <!-- Protein Analysis -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Protein Analysis</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Protein K-mers</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.036s</td><td class="py-2.5 px-4 font-mono">0.278s</td><td class="py-2.5 px-4 font-mono">1.29s</td><td class="py-2.5 px-4 text-green-400 font-semibold">7.7x</td></tr>
+
+              <!-- File I/O -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">File I/O</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA Small (30 KB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.023s</td><td class="py-2.5 px-4 font-mono">0.300s</td><td class="py-2.5 px-4 font-mono">1.30s</td><td class="py-2.5 px-4 text-green-400 font-semibold">13.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA Medium (4.6 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.032s</td><td class="py-2.5 px-4 font-mono">0.309s</td><td class="py-2.5 px-4 font-mono">1.38s</td><td class="py-2.5 px-4 text-green-400 font-semibold">9.7x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA Large (51 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.103s</td><td class="py-2.5 px-4 font-mono">0.498s</td><td class="py-2.5 px-4 font-mono">1.54s</td><td class="py-2.5 px-4 text-green-400 font-semibold">4.8x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTQ (26 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.548s</td><td class="py-2.5 px-4 font-mono">0.952s</td><td class="py-2.5 px-4 font-mono">4.49s</td><td class="py-2.5 px-4 text-green-400 font-semibold">1.7x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">VCF (2.3 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.046s</td><td class="py-2.5 px-4 font-mono">0.050s</td><td class="py-2.5 px-4 font-mono">0.294s</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">CSV (0.1 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.026s</td><td class="py-2.5 px-4 font-mono">0.055s</td><td class="py-2.5 px-4 font-mono">0.269s</td><td class="py-2.5 px-4 text-green-400 font-semibold">2.1x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA gzipped (1.3 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.037s</td><td class="py-2.5 px-4 font-mono">0.357s</td><td class="py-2.5 px-4 font-mono">1.37s</td><td class="py-2.5 px-4 text-green-400 font-semibold">9.6x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTA Large gzipped (10 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.158s</td><td class="py-2.5 px-4 font-mono">0.578s</td><td class="py-2.5 px-4 font-mono">1.72s</td><td class="py-2.5 px-4 text-green-400 font-semibold">3.7x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Write Filtered FASTA</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.203s</td><td class="py-2.5 px-4 font-mono">0.681s</td><td class="py-2.5 px-4 font-mono">1.50s</td><td class="py-2.5 px-4 text-green-400 font-semibold">3.4x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">GFF3 (1.7 MB)</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.119s</td><td class="py-2.5 px-4 font-mono">0.052s</td><td class="py-2.5 px-4 font-mono">0.380s</td><td class="py-2.5 px-4 text-amber-400">Py 2.3x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">GFF3 Ensembl chr22</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.348s</td><td class="py-2.5 px-4 font-mono">0.072s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-amber-400">Py 4.8x</td></tr>
+
+              <!-- Interval Operations -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Interval Operations</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">BED Interval Overlap</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.063s</td><td class="py-2.5 px-4 font-mono">0.065s</td><td class="py-2.5 px-4 font-mono">1.16s</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ENCODE Peak Overlap</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.193s</td><td class="py-2.5 px-4 font-mono">3.13s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">16.2x</td></tr>
+
+              <!-- QC Pipeline -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">QC Pipeline</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">FASTQ QC Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">1.03s</td><td class="py-2.5 px-4 font-mono">5.04s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">4.9x</td></tr>
+
+              <!-- Variant Pipeline -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Variant Pipeline</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Variant Analysis Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.102s</td><td class="py-2.5 px-4 font-mono">0.147s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">1.4x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar Variant Pipeline</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.152s</td><td class="py-2.5 px-4 font-mono">0.144s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+
+              <!-- Multi-Sample Pipeline -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Multi-Sample Pipeline</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Multi-Sample Aggregation</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.080s</td><td class="py-2.5 px-4 font-mono">0.082s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+
+              <!-- RNA-seq Mini Pipeline -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">RNA-seq Mini Pipeline</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">RNA-seq DE Analysis</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.029s</td><td class="py-2.5 px-4 font-mono">0.056s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-green-400 font-semibold">1.9x</td></tr>
+
+              <!-- Annotation Pipeline -->
+              <tr class="border-b border-slate-800/50 bg-slate-900/30"><td class="py-2.5 px-4 text-slate-400 font-semibold" colspan="5">Annotation Pipeline</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">Variant Annotation</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.108s</td><td class="py-2.5 px-4 font-mono">0.095s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4">~1.0x</td></tr>
+              <tr class="border-b border-slate-800/50"><td class="py-2.5 px-4">ClinVar + Ensembl Annotation</td><td class="py-2.5 px-4 text-violet-400 font-mono">0.126s</td><td class="py-2.5 px-4 font-mono">0.085s</td><td class="py-2.5 px-4 text-slate-600">&mdash;</td><td class="py-2.5 px-4 text-amber-400">Py 1.5x</td></tr>
             </tbody>
           </table>
         </div>
-        <p class="text-slate-500 text-xs mt-4">Windows process creation adds ~1s overhead per invocation, compressing speedup ratios for fast benchmarks. Only CPU-bound tasks exceeding this floor (k-mers, overlaps, QC pipeline) show true differences. See the Linux tab for accurate algorithmic performance comparison.</p>
+        <p class="text-slate-500 text-xs mt-4">These figures were re-measured on BioLang 1.1.0 in August 2026. The previous Windows set was not measuring Windows: the runner launched each command with PowerShell&rsquo;s <code>Start-Process -Wait</code>, which adds about 987&nbsp;ms per invocation &mdash; <code>bl --version</code> takes 1.012s through it and 0.025s through <code>System.Diagnostics.Process</code>. That cost fell on BioLang and Python alike, so it favoured neither; it simply buried both, which is why every sub-second task used to read ~1.0x. Process creation genuinely is slower on Windows than Linux, but by tens of milliseconds, not a second.</p>
       </div>
 
       <p class="text-slate-500 text-xs mt-6 text-center">K-mer counting uses canonical (strand-agnostic) 21-mers in BioLang vs forward-only in Python &mdash; BioLang does strictly more work.</p>
@@ -331,7 +361,7 @@
           <ul class="text-sm text-slate-400 space-y-1.5">
             <li><span class="text-slate-300">K-mers:</span> BioLang uses canonical (strand-agnostic) 21-mers; Python uses forward-only. BioLang does strictly more work.</li>
             <li><span class="text-slate-300">Python wins:</span> VCF/CSV/GFF parsing and pipeline orchestration use Python's highly optimized C extensions (regex, csv, dict).</li>
-            <li><span class="text-slate-300">Windows:</span> ~1s process creation overhead compresses speedup ratios for sub-second tasks.</li>
+            <li><span class="text-slate-300">Windows:</span> process creation costs tens of milliseconds more than Linux, which still shows in the smallest tasks &mdash; a 30&nbsp;kB FASTA parse is 13x here against 76x on Linux, because BioLang&rsquo;s own startup grows from 2&nbsp;ms to 23&nbsp;ms.</li>
           </ul>
         </div>
       </div>

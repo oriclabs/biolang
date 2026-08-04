@@ -6,11 +6,17 @@ Every number below comes from `benchmarks/results/latest/linux/scores.yaml`, whi
 
 ## Test Environment
 
-- Intel Core i9-12900K, 15 GB RAM, Linux 6.6.87 (WSL2)
+### Linux (WSL2)
+
+- Intel Core i9-12900K, 15 GB RAM, Linux 6.6.87
 - BioLang 1.1.0, Python 3.12.3, R 4.4.2
 - Measured 2026-08-04
 
-The Windows set in `benchmarks/results/latest/windows/` was last measured on BioLang 0.2.1 in March 2026 and has not been re-run. Those ratios are not comparable with the table below, so they are not quoted here.
+### Windows 11
+
+- Intel Core i9-12900K, 32 GB RAM
+- BioLang 1.1.0, Python 3.13.14, R 4.6.1
+- Measured 2026-08-04
 
 ## Read the times before the ratios
 
@@ -61,6 +67,24 @@ Python's `csv`, `re` and `dict` are heavily optimised C extensions, and on text-
 | VCF (2.3 MB) | 0.019s | 0.014s | Py 1.4x faster |
 
 GFF3 parsing is the clearest gap and worth naming: on Ensembl chr22, BioLang is eight times slower than Python. That is a real weakness in the GFF path, not a measurement artefact.
+
+### Windows
+
+BioLang is faster on **26 of the 32** tasks on Windows, against 21 on Linux. That is not because Windows suits it better; it is because Python's interpreter startup costs more there (0.300s against 0.153s for the same small parse), so several tasks Python narrowly won on Linux go the other way. It is the same startup effect as above, pointing the other direction.
+
+| Task | BioLang | Python | R | Speedup |
+|---|---|---|---|---|
+| ENCODE Peak Overlap | 0.193s | 3.133s | -- | **16.2x** |
+| E. coli Genome Stats | 0.034s | 0.344s | 1.40s | **10.1x** |
+| GC Content (51 MB) | 0.133s | 0.940s | 1.72s | **7.1x** |
+| FASTQ QC Pipeline | 1.035s | 5.039s | -- | **4.9x** |
+| K-mer Counting | 8.390s | 28.768s | -- | **3.4x** |
+| Chr22 21-mer Count | 13.849s | 27.594s | -- | **2.0x** |
+| GFF3 Ensembl chr22 | 0.348s | 0.072s | -- | Py 4.8x faster |
+
+The GFF3 weakness reproduces on both platforms, which is the useful thing about running the suite twice.
+
+Earlier editions of this chapter said Windows adds roughly a second of process-creation overhead per invocation. That was wrong, and it was a statement about the benchmark runner rather than about Windows. `run_all.ps1` launched every command through PowerShell's `Start-Process -Wait`, which costs about 987 ms: `bl --version` measures 1.012s through it and 0.025s through `System.Diagnostics.Process`. The cost applied to BioLang and Python equally, so it favoured neither — it buried both, which is why every sub-second task used to report `~1.0x`. The runner now starts processes directly. Windows process creation is genuinely dearer than Linux, by tens of milliseconds: BioLang's own startup goes from about 2 ms to 23 ms, which is why the 30 KB FASTA parse reads 13x here and 76x on Linux.
 
 ## Code Conciseness
 
