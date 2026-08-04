@@ -57,6 +57,27 @@ alignment builtin that could not reach a substitution matrix.
 Solutions are MIT. Problem statements belong to rosalind.info — each example paraphrases
 Given/Return in a line or two and links to the original rather than reproducing it.
 
+## Checked against BioPython and Bioconductor
+
+Rosalind answers the question "is this right against a published answer". The other half is
+whether it agrees with the tools people already use. [`benchmarks/correctness/`](benchmarks/correctness)
+holds 18 tasks — GC content, k-mer counts, VCF filtering, reverse complement, translation,
+group-by aggregation, GFF feature counts, sequence stats, interval merges — each written three
+times, in BioLang, in Python with BioPython, and in R with Bioconductor. All three emit JSON and
+a recursive comparator checks them: floats to 1e-6, integers and strings exactly.
+
+Nine run on generated data; the [other nine](benchmarks/correctness/real_world) use real genomes
+and variant sets from NCBI, ClinVar and ENCODE, which is where the awkward cases live —
+non-standard bases, multi-allelic variants, overlapping bacterial genes.
+
+```bash
+cd benchmarks/correctness && ./validate.sh          # generated data
+python download_real_data.py && ./validate_real.sh  # real data (~25 MB)
+```
+
+Agreement is strong evidence, not proof: it adopts BioPython's and Bioconductor's conventions as
+the reference, and a shared misreading of a format would stay invisible to it.
+
 ## Features
 
 - **Bio-native types** -- DNA, RNA, Protein, Interval, Variant, Gene, AlignedRead, Quality
