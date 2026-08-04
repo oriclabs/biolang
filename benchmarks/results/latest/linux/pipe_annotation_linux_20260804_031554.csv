@@ -1,0 +1,5 @@
+task,language,time_sec,loc
+annotation,biolang,0.085,12
+annotation,python,0.053,29
+annotation_real,biolang,0.095,12
+annotation_real,python,0.034,31

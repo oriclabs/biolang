@@ -1,0 +1,5 @@
+task,language,time_sec,loc
+3_kmer_count,biolang,6.119,7
+3_kmer_count,python,19.908,15
+10_chr22_kmers,biolang,9.960,7
+10_chr22_kmers,python,28.262,16

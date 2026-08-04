@@ -1,0 +1,4 @@
+task,language,time_sec,loc
+8_protein_kmers,biolang,0.011,13
+8_protein_kmers,python,0.154,26
+8_protein_kmers,r,1.071,19

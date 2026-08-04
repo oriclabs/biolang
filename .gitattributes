@@ -1,0 +1,16 @@
+# Shell scripts must keep LF endings whatever the platform. A Windows checkout
+# was giving them CRLF, and Linux then refuses to run them at all — the shebang
+# resolves to `bash\r`, which is not a program. That made benchmarks/run_all.sh
+# unrunnable in a container built from a Windows working copy, which is how the
+# 30-task suite came to sit un-rerun for months.
+*.sh text eol=lf
+
+# Same reasoning for anything else executed by a POSIX interpreter.
+*.bash text eol=lf
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
+
+# Windows-only scripts keep CRLF.
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
