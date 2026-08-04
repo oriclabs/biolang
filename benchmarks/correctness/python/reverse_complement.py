@@ -5,7 +5,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 
 results = {}
-for record in SeqIO.parse("data/contigs.fa", "fasta"):
+for record in SeqIO.parse("data/sequences.fa", "fasta"):
     rc = str(Seq(str(record.seq)).reverse_complement())
     results[record.id] = rc
 

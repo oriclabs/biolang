@@ -1,6 +1,7 @@
 # Count features by type from GFF3. Output JSON.
-let features = gff("data/annotations.gff") |> collect()
+let features = gff("data/annotations.gff3") |> collect()
 let total = len(features)
-let by_type = features |> count_by("type")
+let by_type = {}
+features |> count_by("type") |> each(|r| { by_type[r.key] = r.count })
 let output = {total_features: total, by_type: by_type}
-println(json_stringify(output, 2))
+println(json_pretty(output))

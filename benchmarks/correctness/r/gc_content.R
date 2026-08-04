@@ -2,7 +2,10 @@
 library(Biostrings)
 library(jsonlite)
 
-seqs <- readDNAStringSet("data/contigs.fa")
+seqs <- readDNAStringSet("data/sequences.fa")
+# readDNAStringSet keeps the entire header line; BioLang and BioPython
+# use the identifier up to the first space.
+names(seqs) <- sub(" .*$", "", names(seqs))
 gc_per_seq <- sapply(names(seqs), function(nm) {
     s <- as.character(seqs[[nm]])
     nchar_g <- nchar(gsub("[^G]", "", s))
@@ -14,5 +17,5 @@ result <- list(
     gc_per_sequence = as.list(gc_per_seq),
     n_sequences = length(seqs)
 )
-cat(toJSON(result, auto_unbox = TRUE, pretty = TRUE))
+cat(toJSON(result, auto_unbox = TRUE, pretty = TRUE, digits = 10))
 cat("\n")

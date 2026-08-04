@@ -1,7 +1,5 @@
-let seqs = read_fasta("real_data/yeast_genome.fa") |> collect()
+# GC content per sequence, S. cerevisiae genome. Output JSON.
+let seqs = read_fasta("real_data/yeast_genome.fa")
 let result = {}
-for seq in seqs
-  let gc = gc_content(seq.seq)
-  result[seq.id] = gc
-end
-print(to_json({gc_per_sequence: result}))
+seqs |> each(|s| { result[s.id] = gc_content(s.seq) })
+println(json_pretty({gc_per_sequence: result}))

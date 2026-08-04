@@ -1,16 +1,16 @@
-# Group CSV by cohort, compute count and mean depth. Output JSON.
+# Group CSV by cohort, compute count and mean age. Output JSON.
 library(jsonlite)
 
-samples <- read.csv("data/samples.csv")
-groups <- split(samples, samples$cohort)
+meta <- read.csv("data/metadata.csv")
+groups <- split(meta, meta$cohort)
 results <- list()
 for (cohort in sort(names(groups))) {
     g <- groups[[cohort]]
     results[[cohort]] <- list(
         count = nrow(g),
-        mean_depth = round(mean(g$depth), 6)
+        mean_age = round(mean(g$age), 6)
     )
 }
 
-cat(toJSON(list(groups = results), auto_unbox = TRUE, pretty = TRUE))
+cat(toJSON(list(groups = results), auto_unbox = TRUE, pretty = TRUE, digits = 10))
 cat("\n")

@@ -50,8 +50,9 @@ def compare(a, b, path='', tol=1e-6):
         sa, sb = str(a)[:80], str(b)[:80]
         return [f'{path}: {sa} vs {sb}']
     return []
-with open(sys.argv[1]) as f: a = json.load(f)
-with open(sys.argv[2]) as f: b = json.load(f)
+# PowerShell's > writes UTF-8 with a BOM; utf-8-sig strips one when present.
+with open(sys.argv[1], encoding='utf-8-sig') as f: a = json.load(f)
+with open(sys.argv[2], encoding='utf-8-sig') as f: b = json.load(f)
 errs = compare(a, b)
 if errs:
     for e in errs[:10]: print(f'  DIFF: {e}')
@@ -67,39 +68,51 @@ Write-Host ""
 
 Set-Location $ScriptDir
 
+. (Join-Path $ScriptDir "write_evidence.ps1")
+$script:Evidence = @()
+
 function Run-Comparison($label, $refCmd, $refScript, $blScript, $task) {
     $blOut = [System.IO.Path]::GetTempFileName()
     $refOut = [System.IO.Path]::GetTempFileName()
     $cmpFile = [System.IO.Path]::GetTempFileName() + ".py"
     Set-Content -Path $cmpFile -Value $CompareScript
 
+    # Native commands writing to stderr become terminating NativeCommandErrors
+    # while $ErrorActionPreference is "Stop", so `bl run`'s progress banner and
+    # Rscript's package notices reported every task as crashed whatever the exit
+    # code was. Same fault validate.ps1 had.
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
         & $refCmd $refScript > $refOut 2>$null
-        if ($LASTEXITCODE -ne 0) { throw "failed" }
-    } catch {
-        Write-Host "SKIP ($label failed)" -ForegroundColor Yellow
-        Remove-Item -Force $blOut, $refOut, $cmpFile -ErrorAction SilentlyContinue
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "SKIP ($label failed)" -ForegroundColor Yellow
+            Remove-Item -Force $blOut, $refOut, $cmpFile -ErrorAction SilentlyContinue
+            $script:Evidence += [pscustomobject]@{ task = $task; reference = $label; result = "skip" }
         return "skip"
-    }
-
-    try {
+        }
         & $BL run $blScript > $blOut 2>$null
-        if ($LASTEXITCODE -ne 0) { throw "failed" }
-    } catch {
-        Write-Host "FAIL (BioLang crashed)" -ForegroundColor Red
-        Remove-Item -Force $blOut, $refOut, $cmpFile -ErrorAction SilentlyContinue
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "FAIL (BioLang crashed)" -ForegroundColor Red
+            Remove-Item -Force $blOut, $refOut, $cmpFile -ErrorAction SilentlyContinue
+            $script:Evidence += [pscustomobject]@{ task = $task; reference = $label; result = "fail" }
         return "fail"
+        }
+    } finally {
+        $ErrorActionPreference = $prev
     }
 
     & $PY $cmpFile $blOut $refOut 2>$null
     if ($LASTEXITCODE -eq 0) {
         Write-Host "PASS" -ForegroundColor Green
         Remove-Item -Force $blOut, $refOut, $cmpFile -ErrorAction SilentlyContinue
+        $script:Evidence += [pscustomobject]@{ task = $task; reference = $label; result = "pass" }
         return "pass"
     } else {
         Write-Host "FAIL" -ForegroundColor Red
         & $PY $cmpFile $blOut $refOut 2>$null
         Remove-Item -Force $blOut, $refOut, $cmpFile -ErrorAction SilentlyContinue
+        $script:Evidence += [pscustomobject]@{ task = $task; reference = $label; result = "fail" }
         return "fail"
     }
 }
@@ -140,4 +153,11 @@ if ($HasR) {
 }
 
 $totalFail = $PyFail + $RFail
+$pySummary = "$PyPass passed, $PyFail failed, $PySkip skipped"
+$rSummary = if ($HasR) { "$RPass passed, $RFail failed, $RSkip skipped" } else { "not run" }
+Write-Evidence -Slug "real-world" -Suite "Real-data correctness" -DataDesc "E. coli K-12, S. cerevisiae, ClinVar via download_real_data.py" `
+               -Evidence $script:Evidence -ScriptDir $ScriptDir `
+               -BL $BL -PY $PY -RS $RS -HasR $HasR `
+               -PySummary $pySummary -RSummary $rSummary
+
 if ($totalFail -gt 0) { exit 1 }

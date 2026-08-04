@@ -2,7 +2,7 @@
 library(GenomicRanges)
 library(jsonlite)
 
-bed <- read.table("data/promoters.bed", sep = "\t", stringsAsFactors = FALSE)
+bed <- read.table("data/regions.bed", sep = "\t", stringsAsFactors = FALSE)
 colnames(bed)[1:3] <- c("chrom", "start", "end")
 n <- nrow(bed)
 total_span <- sum(bed$end - bed$start)
@@ -22,5 +22,5 @@ result <- list(
     per_chromosome = chrom_counts,
     merged_count = merged_count
 )
-cat(toJSON(result, auto_unbox = TRUE, pretty = TRUE))
+cat(toJSON(result, auto_unbox = TRUE, pretty = TRUE, digits = 10))
 cat("\n")

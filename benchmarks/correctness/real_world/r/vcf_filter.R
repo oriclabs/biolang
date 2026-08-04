@@ -21,5 +21,5 @@ for (line in lines) {
 }
 per_chrom <- as.list(table(pathogenic_chroms))
 per_chrom <- lapply(per_chrom, as.integer)
-cat(toJSON(list(total_variants = total, pathogenic_count = length(pathogenic_chroms), per_chromosome = per_chrom), auto_unbox = TRUE))
+cat(toJSON(list(total_variants = total, pathogenic_count = length(pathogenic_chroms), per_chromosome = per_chrom), auto_unbox = TRUE, digits = 10))
 cat("\n")
