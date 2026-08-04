@@ -13557,6 +13557,24 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "reversal_distance",
+      "signature": "reversal_distance(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "reverse",
       "signature": "reverse(list) → List",
       "category": "list",
@@ -14755,6 +14773,24 @@
     {
       "name": "sort_by",
       "signature": "sort_by(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "sorting_reversals",
+      "signature": "sorting_reversals(arg1, arg2)",
       "category": "runtime",
       "summary": "Registered BioLang builtin accepting 2 argument(s).",
       "parameters": [

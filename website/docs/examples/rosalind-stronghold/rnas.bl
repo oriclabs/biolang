@@ -1,0 +1,71 @@
+# Rosalind: RNAS — Wobble Bonding and RNA Secondary Structures
+# https://rosalind.info/problems/rnas/
+#
+# Given: An RNA string.
+# Return: The number of valid non-crossing matchings of its bonding graph,
+# allowing wobble (U-G) pairs, where no bond spans fewer than 4 intervening
+# positions.
+
+let rna_string = "AUGCUAGUACGGAGCGAGUCUAGCGAGCGAUGUCGUGAGUACUAUAUAUGCGCAUAAGCCACGU"
+
+# Real RNA does not only pair A-U and C-G. The wobble pair U-G is nearly as
+# stable and appears throughout functional RNA, so a structure count that
+# excludes it understates what a molecule can fold into.
+#
+# The other constraint is physical: a hairpin cannot turn in fewer than about
+# four bases, so a bond between positions closer than that is impossible however
+# well the bases match.
+fn can_pair(a, b) {
+    (a == "A" and b == "U") or (a == "U" and b == "A")
+        or (a == "C" and b == "G") or (a == "G" and b == "C")
+        or (a == "U" and b == "G") or (a == "G" and b == "U")
+}
+
+# Counting by recursion over intervals: position i either stays unpaired, or
+# bonds with some k, which splits the interval into two independent halves. Both
+# halves are asked about repeatedly, so without a memo the same interval is
+# recomputed exponentially often.
+#
+# `has_key` is what makes the memo worth having — `contains(keys(memo), k)`
+# rebuilds the whole key list on every probe, turning the lookup itself into the
+# bottleneck it was meant to remove.
+let memo = {}
+
+fn count_matchings(i, j) {
+    if j - i < 5 { return 1 }
+    let key = str(i) + "," + str(j)
+    if has_key(memo, key) { return memo[key] }
+
+    # i unpaired.
+    let total = count_matchings(i + 1, j)
+    # i bonded to k, which must leave four bases inside the loop.
+    for k in range(i + 4, j) {
+        if can_pair(substr(rna_string, i, 1), substr(rna_string, k, 1)) {
+            total = total + count_matchings(i + 1, k) * count_matchings(k + 1, j)
+        }
+    }
+    memo[key] = total
+    total
+}
+
+let answer = count_matchings(0, len(rna_string))
+
+println("Result:   " + str(answer))
+println("Expected: 284850219977421")
+
+fn test_rnas_wobble_bonding() {
+    assert answer == 284850219977421, "RNAS: got " + str(answer)
+    # The memo is doing real work: far fewer intervals than the recursion visits.
+    assert len(keys(memo)) < len(rna_string) * len(rna_string),
+        "RNAS: the memo should hold at most one entry per interval"
+    assert len(keys(memo)) > 0, "RNAS: the memo should be used at all"
+
+    # Wobble pairs genuinely matter — U-G is accepted where a strict
+    # Watson-Crick rule would reject it.
+    assert can_pair("U", "G") and can_pair("G", "U"), "RNAS: wobble pairs bond"
+    assert can_pair("A", "G") == false, "RNAS: A-G does not"
+    # A string too short to turn a hairpin has exactly one matching: the empty one.
+    assert count_matchings(0, 4) == 1, "RNAS: nothing can bond within four bases"
+    # The empty matching is always counted, so the total is never zero.
+    assert answer > 0, "RNAS: the empty matching always counts"
+}

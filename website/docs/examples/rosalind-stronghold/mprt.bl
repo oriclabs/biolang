@@ -1,0 +1,72 @@
+# Rosalind: MPRT — Finding a Protein Motif
+# https://rosalind.info/problems/mprt/
+#
+# Given: UniProt access IDs.
+# Return: For each protein containing the N-glycosylation motif, its ID and the
+# 1-based positions where the motif occurs.
+#
+# This example fetches from UniProt, so it runs in the advisory job rather than
+# the hermetic gate every other Stronghold problem passes.
+
+let ids = ["A2Z669", "B5ZC00", "P07204_TRBM_HUMAN", "P20840_SAG1_YEAST"]
+
+# N{P}[ST]{P} — asparagine, then anything but proline, then serine or threonine,
+# then anything but proline. Not a fixed string, which is the point: a motif is a
+# pattern with alternatives and exclusions, and searching for it is not
+# substring matching.
+fn has_motif_at(protein, i) {
+    substr(protein, i, 1) == "N"
+        and substr(protein, i + 1, 1) != "P"
+        and (substr(protein, i + 2, 1) == "S" or substr(protein, i + 2, 1) == "T")
+        and substr(protein, i + 3, 1) != "P"
+}
+
+fn motif_positions(protein) {
+    range(0, len(protein) - 3) |> filter(|i| has_motif_at(protein, i)) |> map(|i| i + 1)
+}
+
+# UniProt is keyed by the accession alone; the trailing name in an ID like
+# P07204_TRBM_HUMAN is Rosalind's own annotation.
+fn accession_of(id) { split(id, "_")[0] }
+
+fn sequence_of(id) {
+    let fasta = str(uniprot_fasta(accession_of(id)))
+    lines(fasta) |> filter(|line| substr(line, 0, 1) != ">") |> join("")
+}
+
+let found = ids
+    |> map(|id| { id: id, positions: motif_positions(sequence_of(id)) })
+    |> filter(|entry| len(entry.positions) > 0)
+
+println("Result:")
+for entry in found {
+    println("  " + entry.id)
+    println("  " + (entry.positions |> map(|p| str(p)) |> join(" ")))
+}
+println("Expected: B5ZC00 85 118 142 306 395")
+println("          P07204_TRBM_HUMAN 47 115 116 382 409")
+println("          P20840_SAG1_YEAST 79 109 135 248 306 348 364 402 485 501 614")
+
+fn test_mprt_finding_a_protein_motif() {
+    let expected = {
+        "B5ZC00": [85, 118, 142, 306, 395],
+        "P07204_TRBM_HUMAN": [47, 115, 116, 382, 409],
+        "P20840_SAG1_YEAST": [79, 109, 135, 248, 306, 348, 364, 402, 485, 501, 614],
+    }
+    assert len(found) == 3, "MPRT: expected 3 proteins with the motif, got " + str(len(found))
+    for entry in found {
+        assert contains(keys(expected), entry.id), "MPRT: unexpected protein " + entry.id
+        assert entry.positions == expected[entry.id],
+            "MPRT: " + entry.id + " gave " + str(entry.positions)
+    }
+    # A2Z669 has no motif, and leaving it out of the answer is part of the task.
+    assert (found |> count_if(|e| e.id == "A2Z669")) == 0, "MPRT: A2Z669 has no motif"
+
+    # The matcher itself, checked without the network: the exclusions are what
+    # make this a motif rather than a substring search.
+    assert motif_positions("NASA") == [1], "MPRT: NAS_ matches"
+    assert motif_positions("NPSA") == [], "MPRT: proline in the second position blocks it"
+    assert motif_positions("NASP") == [], "MPRT: proline in the fourth blocks it"
+    assert motif_positions("NAGA") == [], "MPRT: the third must be S or T"
+    assert motif_positions("NATA") == [1], "MPRT: threonine works as well as serine"
+}

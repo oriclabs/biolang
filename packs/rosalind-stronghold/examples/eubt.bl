@@ -1,0 +1,106 @@
+# Rosalind: EUBT — Enumerating Unrooted Binary Trees
+# https://rosalind.info/problems/eubt/
+#
+# Given: n taxa.
+# Return: Every unrooted binary tree on those taxa, in Newick format.
+
+let taxa = ["dog", "cat", "mouse", "elephant"]
+
+# Built by insertion: start with the only tree on three taxa — a star — then add
+# each remaining taxon by splitting one existing edge in two and hanging it off
+# the new node. Every unrooted binary tree arises exactly once this way, which is
+# why the count is the double factorial (2n-5)!! and why it explodes: fifteen
+# trees at n=5, over two million at n=10.
+#
+# That growth is the reason nobody enumerates trees to find the best one. It is
+# also why the parsimony and distance methods in this pack exist.
+let edges_start = [
+    { a: "center", b: taxa[0] },
+    { a: "center", b: taxa[1] },
+    { a: "center", b: taxa[2] },
+]
+
+let trees = [edges_start]
+for step in range(3, len(taxa)) {
+    let leaf = taxa[step]
+    let grown = []
+    for tree in trees {
+        for i in range(0, len(tree)) {
+            let fresh = "node" + str(step) + "_" + str(i)
+            let split_edge = tree[i]
+            let others = range(0, len(tree)) |> filter(|j| j != i) |> map(|j| tree[j])
+            grown = push(grown, others + [
+                { a: split_edge.a, b: fresh },
+                { a: fresh, b: split_edge.b },
+                { a: fresh, b: leaf },
+            ])
+        }
+    }
+    trees = grown
+}
+
+fn neighbours_of(tree, node) {
+    (tree |> filter(|e| e.a == node) |> map(|e| e.b))
+        + (tree |> filter(|e| e.b == node) |> map(|e| e.a))
+}
+
+fn is_taxon(node, names) { contains(names, node) }
+
+fn walk(tree, node, parent, names) {
+    if is_taxon(node, names) { return node }
+    let children = neighbours_of(tree, node) |> filter(|c| c != parent)
+    "(" + (children |> map(|c| walk(tree, c, node, names)) |> join(",")) + ")"
+}
+
+# Written from the first taxon, which an unrooted tree does not privilege — it
+# is just somewhere to start reading.
+fn to_newick(tree, names) {
+    let anchor = names[0]
+    let hub = neighbours_of(tree, anchor)[0]
+    let branches = neighbours_of(tree, hub) |> filter(|c| c != anchor)
+    "(" + anchor + "," + (branches |> map(|c| walk(tree, c, hub, names)) |> join(",")) + ");"
+}
+
+let written = trees |> map(|t| to_newick(t, taxa))
+
+println("Result:")
+for line in written { println("  " + line) }
+println("Expected: three trees — (mouse,cat)|(elephant,dog), (elephant,mouse)|(cat,dog),")
+println("          (elephant,cat)|(mouse,dog), written from a different anchor.")
+
+fn test_eubt_enumerating_unrooted_binary_trees() {
+    # (2n-5)!! trees: 1 x 3 for n = 4.
+    assert len(trees) == 3, "EUBT: expected 3 trees, got " + str(len(trees))
+    assert len(unique(written)) == 3, "EUBT: the trees must be distinct"
+
+    # A tree on n taxa has 2n-3 edges and n-2 internal nodes.
+    for tree in trees {
+        assert len(tree) == 2 * len(taxa) - 3,
+            "EUBT: expected " + str(2 * len(taxa) - 3) + " edges, got " + str(len(tree))
+        for taxon in taxa {
+            assert len(neighbours_of(tree, taxon)) == 1, "EUBT: " + taxon + " must be a leaf"
+        }
+    }
+
+    # The three topologies are exactly the three ways of pairing four taxa. That
+    # is the whole content of the answer, and it does not depend on how the
+    # Newick is rooted.
+    fn pairing_of(tree, names) {
+        # The one internal edge separates the taxa into two pairs. Which side the
+        # edge happens to be stored from is arbitrary, so the smaller of the two
+        # names the topology.
+        let internal = tree |> filter(|e|
+            is_taxon(e.a, names) == false and is_taxon(e.b, names) == false)
+        let side = neighbours_of(tree, internal[0].a) |> filter(|x| is_taxon(x, names))
+        let other = names |> filter(|t| contains(side, t) == false)
+        let one = join(sort(side), ",")
+        let two = join(sort(other), ",")
+        if one < two then one else two
+    }
+    let pairings = trees |> map(|t| pairing_of(t, taxa)) |> sort()
+    assert len(unique(pairings)) == 3, "EUBT: each tree must pair the taxa differently"
+    # With four taxa the topology is fixed by which one cat is paired with, and
+    # all three possibilities appear exactly once.
+    assert pairings == sort(["cat,dog", "cat,mouse", "cat,elephant"]),
+        "EUBT: got pairings " + join(pairings, " | ")
+}

@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Strings</h1>
-        <p class="text-lg text-slate-400 mb-6">5 problems from
+        <p class="text-lg text-slate-400 mb-6">6 problems from
         <a href="../rosalind-stronghold.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Stronghold</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -38,6 +38,7 @@
           <a href="#ling" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Linguistic Complexity of a Genome">LING</a>
           <a href="#lrep" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Finding the Longest Multiple Repeat">LREP</a>
           <a href="#mrep" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Identifying Maximal Repeats">MREP</a>
+          <a href="#suff" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Encoding Suffix Trees">SUFF</a>
         </nav>
 
         <section id="kmp" class="mt-12">
@@ -48,7 +49,7 @@
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=KMP" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="kmp.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The failure array records, for each prefix, the longest proper prefix that is also a suffix — so a mismatch can resume without re-reading the text. That is what makes matching linear rather than quadratic, and it is the same insight the trie and suffix-array problems generalise.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: KMP — Speeding Up Motif Finding
 # https://rosalind.info/problems/kmp/
 #
@@ -90,7 +91,7 @@ fn test_kmp_failure_array() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=TRIE" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="trie.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Patterns sharing a prefix share a path, so the text is scanned once regardless of how many patterns are sought. That is the property that makes trie matching worth building, and BA9A and BA9B use it directly.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: TRIE — Introduction to Pattern Matching
 # https://rosalind.info/problems/trie/
 #
@@ -160,7 +161,7 @@ fn test_trie_pattern_matching() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LING" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="ling.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The fraction of substrings that actually occur out of all that could. Repetitive sequence scores low because it reuses the same substrings — which is exactly what makes repeats hard to assemble through, as GREP demonstrates.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LING — Linguistic Complexity of a Genome
 # https://rosalind.info/problems/ling/
 #
@@ -390,6 +391,97 @@ fn test_mrep_maximal_repeats() {
         &quot;MREP: the longer repeat is missing from &quot; + str(result)
     assert contains(result, &quot;ATGGGTCCAGAGTTTTGTAATTT&quot;),
         &quot;MREP: the shorter repeat is missing from &quot; + str(result)
+}</code></pre>
+        </section>
+
+        <section id="suff" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">SUFF &mdash; Encoding Suffix Trees</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/suff/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SUFF" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="suff.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Built from the suffix array and LCP array rather than by collapsing a trie. Both give the same tree; a trie of all suffixes has O(n^2) nodes first, whereas the arrays are linear — which is why aligners store the arrays and never materialise the tree.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: SUFF — Encoding Suffix Trees
+# https://rosalind.info/problems/suff/
+#
+# Given: A DNA string s ending in $.
+# Return: The substrings labelling the edges of the suffix tree of s.
+
+let text = &quot;ATAAATG$&quot;
+
+# Built from the suffix array and its LCP array rather than by inserting every
+# suffix into a trie and collapsing it. Both give the same tree; the difference
+# is cost. A trie of all suffixes has O(n^2) nodes before anything is collapsed,
+# whereas the two arrays are linear in the text and the tree can be read off them
+# in a single left-to-right pass.
+#
+# That is why aligners store the arrays and never materialise the tree: for a
+# human genome the tree does not fit, and the arrays do.
+let sa = suffix_array(text)
+let lcp = lcp_array(text)
+
+# A leaf hangs from the deeper of what its suffix shares with either neighbour,
+# so its edge is whatever is left of the suffix below that depth.
+let leaf_labels = range(0, len(sa)) |&gt; map(|i| {
+    let before = if i == 0 then 0 else lcp[i]
+    let after = if i + 1 &lt; len(sa) then lcp[i + 1] else 0
+    let depth = max([before, after])
+    substr(text, sa[i] + depth, len(text) - sa[i] - depth)
+})
+
+# Internal nodes come from the LCP array alone: a run of suffixes sharing a
+# prefix of length L hangs off one node at depth L. A stack tracks which are
+# still open as the array is scanned.
+let internal_labels = []
+let stack = [{ depth: 0, start: 0 }]
+for i in range(1, len(sa)) {
+    let shared = lcp[i]
+    let last_start = sa[i]
+    while stack[len(stack) - 1].depth &gt; shared {
+        let closing = stack[len(stack) - 1]
+        stack = slice(stack, 0, len(stack) - 1)
+        let parent_depth = max([stack[len(stack) - 1].depth, shared])
+        internal_labels = push(internal_labels,
+            substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+        last_start = closing.start
+    }
+    if stack[len(stack) - 1].depth &lt; shared {
+        stack = push(stack, { depth: shared, start: last_start })
+    }
+}
+while len(stack) &gt; 1 {
+    let closing = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    let parent_depth = stack[len(stack) - 1].depth
+    internal_labels = push(internal_labels,
+        substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+}
+
+let labels = leaf_labels + internal_labels
+
+println(&quot;Result:   &quot; + join(sort(labels), &quot; &quot;))
+println(&quot;Expected (any order): AAATG$ G$ T ATG$ TG$ A A AAATG$ G$ T G$ $&quot;)
+
+fn test_suff_encoding_suffix_trees() {
+    let expected = [&quot;AAATG$&quot;, &quot;G$&quot;, &quot;T&quot;, &quot;ATG$&quot;, &quot;TG$&quot;, &quot;A&quot;, &quot;A&quot;, &quot;AAATG$&quot;, &quot;G$&quot;, &quot;T&quot;, &quot;G$&quot;, &quot;$&quot;]
+    assert sort(labels) == sort(expected), &quot;SUFF: got &quot; + join(sort(labels), &quot; &quot;)
+    # One leaf per suffix, each reaching the sentinel.
+    assert len(leaf_labels) == len(text), &quot;SUFF: one leaf per suffix&quot;
+    for label in leaf_labels {
+        assert substr(label, len(label) - 1, 1) == &quot;$&quot;, &quot;SUFF: a leaf edge must reach the end&quot;
+    }
+    # Every label is a real substring, and the whole tree spells every suffix.
+    for label in labels {
+        assert contains(text, label), &quot;SUFF: &quot; + label + &quot; is not in the text&quot;
+    }
+    # Concatenating the edges costs less than storing the suffixes outright —
+    # which is the saving a suffix tree exists for.
+    let edge_characters = labels |&gt; map(|l| len(l)) |&gt; sum()
+    let all_suffixes = range(0, len(text)) |&gt; map(|i| len(text) - i) |&gt; sum()
+    assert edge_characters &lt; all_suffixes,
+        &quot;SUFF: the tree should be smaller than the suffixes it encodes&quot;
 }</code></pre>
         </section>
       </article>

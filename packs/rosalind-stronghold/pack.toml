@@ -26,6 +26,7 @@ file = "examples/dna.bl"
 url = "https://rosalind.info/problems/dna/"
 status = "solved"
 asserted = true
+note = "A warm-up for the site's input format rather than a biological question — but the four counts it produces are exactly what GC content is computed from, and a lopsided base composition is the first thing a QC tool flags as contamination or adapter read-through."
 topics = ["sequence", "counting"]
 
 [[problem]]
@@ -35,6 +36,7 @@ file = "examples/rna.bl"
 url = "https://rosalind.info/problems/rna/"
 status = "solved"
 asserted = true
+note = "One character substituted for another, which is a fair summary of transcription only if you ignore splicing, capping and polyadenylation. SPLC covers the part this leaves out."
 topics = ["sequence", "transcription"]
 
 [[problem]]
@@ -44,6 +46,7 @@ file = "examples/revc.bl"
 url = "https://rosalind.info/problems/revc/"
 status = "solved"
 asserted = true
+note = "The most-used operation in the whole track. A read carries no record of which strand it came from, so a motif present on one strand appears as its reverse complement on the other — which is why REVP, BA6E and GASM all have to search both."
 topics = ["sequence"]
 
 [[problem]]
@@ -53,6 +56,7 @@ file = "examples/hamm.bl"
 url = "https://rosalind.info/problems/hamm/"
 status = "solved"
 asserted = true
+note = "Counts differing positions, which undercounts mutations: a site can change and change back, leaving no trace. RSUB shows exactly that happening, and it is why distance models correct for unseen substitutions rather than using raw counts."
 topics = ["sequence", "mutations"]
 
 [[problem]]
@@ -62,6 +66,7 @@ file = "examples/fib.bl"
 url = "https://rosalind.info/problems/fib/"
 status = "solved"
 asserted = true
+note = "A recurrence-relation exercise wearing rabbits, not population biology — nothing here dies, competes or mutates. WFMD and EBIN are where real population dynamics appear."
 topics = ["combinatorics", "recurrence"]
 
 [[problem]]
@@ -71,6 +76,7 @@ file = "examples/gc.bl"
 url = "https://rosalind.info/problems/gc/"
 status = "solved"
 asserted = true
+note = "GC content ranges from about 16 to 75 percent across bacteria, and a difference under 5 percent is taken as evidence of the same species — which is why a fragment's GC content alone narrows down where it came from. It also biases sequencing: GC-rich regions amplify poorly and end up under-covered."
 topics = ["sequence", "fasta"]
 
 [[problem]]
@@ -80,6 +86,7 @@ file = "examples/prot.bl"
 url = "https://rosalind.info/problems/prot/"
 status = "solved"
 asserted = true
+note = "Sixty-four codons encode twenty amino acids and a stop, so the code is degenerate and translation discards information. MRNA counts exactly how much."
 topics = ["translation"]
 
 [[problem]]
@@ -89,6 +96,7 @@ file = "examples/subs.bl"
 url = "https://rosalind.info/problems/subs/"
 status = "solved"
 asserted = true
+note = "Finding every occurrence, overlaps included, because real motifs do overlap. The motifs worth finding are restriction sites (REVP) and binding sites — though a real binding site is a tendency rather than a fixed string, which KSIM and MPRT address."
 topics = ["motifs"]
 
 [[problem]]
@@ -98,6 +106,7 @@ file = "examples/fibd.bl"
 url = "https://rosalind.info/problems/fibd/"
 status = "solved"
 asserted = true
+note = "FIB with a death clock added. Still a recurrence exercise rather than population biology, and useful mainly for showing that the state has to widen from one number to an age profile."
 topics = ["combinatorics", "recurrence"]
 
 [[problem]]
@@ -107,6 +116,7 @@ file = "examples/iprb.bl"
 url = "https://rosalind.info/problems/iprb/"
 status = "solved"
 asserted = true
+note = "Mendel's first law as a probability question. The whole content is that two alleles segregate independently, which is what makes the offspring distribution a product rather than something requiring simulation."
 topics = ["probability", "genetics"]
 
 [[problem]]
@@ -116,6 +126,7 @@ file = "examples/iev.bl"
 url = "https://rosalind.info/problems/iev/"
 status = "solved"
 asserted = true
+note = "Expectation is linear whether or not the events are independent, so the answer is a weighted sum with no interaction between genotypes to model. That property is why expected values are reached for far more often than full distributions."
 topics = ["probability", "genetics"]
 
 [[problem]]
@@ -125,6 +136,7 @@ file = "examples/mrna.bl"
 url = "https://rosalind.info/problems/mrna/"
 status = "solved"
 asserted = true
+note = "The reverse of PROT, and it cannot be done — the code is degenerate, so a protein maps back to many mRNAs. Leucine, serine and arginine take six codons each. Counting them needs a modulus because the total outgrows any integer."
 topics = ["combinatorics", "translation"]
 
 [[problem]]
@@ -134,6 +146,7 @@ file = "examples/prtm.bl"
 url = "https://rosalind.info/problems/prtm/"
 status = "solved"
 asserted = true
+note = "Monoisotopic masses, which is what a high-resolution instrument reports when it can resolve individual isotope peaks; low-resolution and high-mass measurements give average masses instead, differing by roughly 0.06 percent. Everything in the mass-spectrometry chapter rests on this sum."
 topics = ["protein", "mass-spectrometry"]
 
 [[problem]]
@@ -143,6 +156,7 @@ file = "examples/perm.bl"
 url = "https://rosalind.info/problems/perm/"
 status = "solved"
 asserted = true
+note = "Permutations as gene orders. n! grows fast enough that enumeration stops being possible almost immediately, which is the premise SIGN, REAR and SORT build on — there, gene order is the data and the question is how few reversals separate two of them."
 topics = ["combinatorics"]
 
 [[problem]]
@@ -152,6 +166,7 @@ file = "examples/pper.bl"
 url = "https://rosalind.info/problems/pper/"
 status = "solved"
 asserted = true
+note = "Ordered selections rather than full orderings, taken modulo a million because the count outgrows the answer format long before it outgrows the biology. Combinatorial groundwork for the counting problems, not a biological question in itself."
 topics = ["combinatorics"]
 
 [[problem]]
@@ -161,6 +176,7 @@ file = "examples/edit.bl"
 url = "https://rosalind.info/problems/edit/"
 status = "solved"
 asserted = true
+note = "The crude version of sequence comparison, and the pack refines it twice: GLOB stops treating every substitution as equally costly, and GAFF stops treating a gap of k bases as k separate events. Useful mainly as the baseline those two improve on."
 topics = ["alignment", "edit-distance"]
 
 [[problem]]
@@ -170,6 +186,7 @@ file = "examples/glob.bl"
 url = "https://rosalind.info/problems/glob/"
 status = "solved"
 asserted = true
+note = "BLOSUM62 is built from substitution frequencies actually observed in aligned protein blocks, so swapping a residue for a chemically similar one costs little and swapping it for an unrelated one costs a lot. That is the information EDIT throws away by charging one for every mismatch."
 topics = ["alignment", "blosum62"]
 
 [[problem]]
@@ -179,6 +196,7 @@ file = "examples/loca.bl"
 url = "https://rosalind.info/problems/loca/"
 status = "solved"
 asserted = true
+note = "Two proteins may share a single conserved domain inside otherwise unrelated sequence. A global alignment has to align the unrelated parts too and buries the signal; local alignment reports only the stretch that matches, which is what makes it the basis of database search."
 topics = ["alignment", "pam250"]
 
 [[problem]]
@@ -188,6 +206,7 @@ file = "examples/gaff.bl"
 url = "https://rosalind.info/problems/gaff/"
 status = "solved"
 asserted = true
+note = "One insertion of ten bases is a single mutational event, not ten. Charging per base makes an aligner scatter several short gaps where one long gap is right, so opening a gap costs more than extending it."
 topics = ["alignment", "affine-gaps"]
 
 [[problem]]
@@ -208,6 +227,7 @@ file = "examples/sset.bl"
 url = "https://rosalind.info/problems/sset/"
 status = "solved"
 asserted = true
+note = "Two to the n, which is the point. Any method that examines every subset of a set of sites stops being usable in the low twenties, and that is the wall the search problems elsewhere in this pack are built to avoid."
 topics = ["combinatorics"]
 
 [[problem]]
@@ -217,6 +237,7 @@ file = "examples/pmch.bl"
 url = "https://rosalind.info/problems/pmch/"
 status = "solved"
 asserted = true
+note = "RNA folds back on itself and pairs. This counts the ways every base could be paired, which requires the A and U counts to match and the C and G counts to match — a condition real sequences rarely satisfy, which is what MMCH addresses."
 topics = ["combinatorics", "rna-structure"]
 
 [[problem]]
@@ -226,6 +247,7 @@ file = "examples/mmch.bl"
 url = "https://rosalind.info/problems/mmch/"
 status = "solved"
 asserted = true
+note = "PMCH without the assumption that everything pairs. Real RNA leaves bases unpaired because the counts do not match, so the question becomes how many bonds are possible rather than how many arrangements are complete."
 topics = ["combinatorics", "rna-structure"]
 
 [[problem]]
@@ -235,6 +257,7 @@ file = "examples/cat.bl"
 url = "https://rosalind.info/problems/cat/"
 status = "solved"
 asserted = true
+note = "Catalan numbers count matchings that do not cross, and non-crossing is a physical constraint rather than a mathematical convenience: crossing bonds are pseudoknots, which this model excludes. MOTZ relaxes the requirement that everything pairs, and RNAS adds wobble bonds and a minimum hairpin turn."
 topics = ["combinatorics", "rna-structure", "dynamic-programming"]
 
 [[problem]]
@@ -244,6 +267,7 @@ file = "examples/lia.bl"
 url = "https://rosalind.info/problems/lia/"
 status = "solved"
 asserted = true
+note = "Mendel's second law. Alleles at different loci assort independently, so the two-locus probability factors — which is what makes this a binomial calculation rather than a simulation."
 topics = ["probability", "genetics"]
 
 [[problem]]
@@ -253,6 +277,7 @@ file = "examples/sexl.bl"
 url = "https://rosalind.info/problems/sexl/"
 status = "solved"
 asserted = true
+note = "Males carry one X, so a recessive allele on it is expressed with no second copy to mask it. The proportion of affected males is therefore the allele frequency itself, which is why X-linked recessive conditions appear far more often in males than females."
 topics = ["probability", "genetics"]
 
 [[problem]]
@@ -262,6 +287,7 @@ file = "examples/afrq.bl"
 url = "https://rosalind.info/problems/afrq/"
 status = "solved"
 asserted = true
+note = "Hardy-Weinberg run backwards: the disease frequency gives the allele frequency, and the carrier frequency 2pq follows. For a rare recessive allele carriers vastly outnumber sufferers, which is the counterintuitive result the arithmetic exists to make obvious."
 topics = ["probability", "hardy-weinberg"]
 
 [[problem]]
@@ -271,6 +297,7 @@ file = "examples/prob.bl"
 url = "https://rosalind.info/problems/prob/"
 status = "solved"
 asserted = true
+note = "Computed in logarithms because the raw probability of any particular long string underflows to zero — the same reason the HMM problems decode in log space rather than multiplying probabilities directly."
 topics = ["probability", "gc-content"]
 
 [[problem]]
@@ -280,6 +307,7 @@ file = "examples/lexf.bl"
 url = "https://rosalind.info/problems/lexf/"
 status = "solved"
 asserted = true
+note = "Enumerating every k-mer over an alphabet, which is 4 to the k for DNA. Fine at k=3 and hopeless by k=20, which is why the k-mer problems index sequences rather than enumerate possibilities."
 topics = ["combinatorics", "strings"]
 
 [[problem]]
@@ -299,6 +327,7 @@ file = "examples/tran.bl"
 url = "https://rosalind.info/problems/tran/"
 status = "solved"
 asserted = true
+note = "A random mutation process would give a ratio near 0.5, since there are twice as many ways to make a transversion. Real human data sits near 2.1 genome-wide and near 3 in exomes, largely because methylated cytosine deaminates to thymine. The ratio is therefore a standard quality check: a callset far from those values is reporting sequencing error rather than biology."
 topics = ["sequence", "mutations"]
 
 [[problem]]
@@ -308,6 +337,7 @@ file = "examples/splc.bl"
 url = "https://rosalind.info/problems/splc/"
 status = "solved"
 asserted = true
+note = "What RNA glossed over. A eukaryotic gene is not a contiguous coding sequence — introns are cut out before translation, so the protein comes from the exons joined together. Removing the introns first is the difference between the right protein and nonsense."
 topics = ["translation", "splicing"]
 
 [[problem]]
@@ -317,6 +347,7 @@ file = "examples/cons.bl"
 url = "https://rosalind.info/problems/cons/"
 status = "solved"
 asserted = true
+note = "A profile is the same object BA2's motif search builds and scores against: counts per base per position. The consensus reads off the commonest base at each, which is a useful summary and a lossy one — it discards how strong the preference was."
 topics = ["sequence", "profile"]
 
 [[problem]]
@@ -326,6 +357,7 @@ file = "examples/grph.bl"
 url = "https://rosalind.info/problems/grph/"
 status = "solved"
 asserted = true
+note = "Overlap graphs make reads the nodes, which makes assembly a Hamiltonian path — NP-hard. DBRU makes reads the edges instead and gets an Eulerian path, solvable in linear time. Same data, different graph, and the whole reason modern assemblers use de Bruijn graphs."
 topics = ["graphs", "assembly"]
 
 [[problem]]
@@ -335,6 +367,7 @@ file = "examples/revp.bl"
 url = "https://rosalind.info/problems/revp/"
 status = "solved"
 asserted = true
+note = "Restriction enzymes cut at reverse palindromes because they bind as symmetric dimers, one subunit per strand, so the site reads the same on both. That is why these particular sequences matter and why they are always even in length."
 topics = ["sequence", "palindromes"]
 
 [[problem]]
@@ -344,6 +377,7 @@ file = "examples/tree.bl"
 url = "https://rosalind.info/problems/tree/"
 status = "solved"
 asserted = true
+note = "A tree on n nodes has exactly n-1 edges, so the answer is that count minus the edges already present, with no search involved. The point is recognising the invariant rather than exploring the graph."
 topics = ["phylogeny", "graphs"]
 
 [[problem]]
@@ -353,6 +387,7 @@ file = "examples/inod.bl"
 url = "https://rosalind.info/problems/inod/"
 status = "solved"
 asserted = true
+note = "An unrooted binary tree with n leaves always has n-2 internal nodes, whatever its shape. That fixed relationship is what lets EUBT count trees by insertion and CNTQ count quartets without ever examining a topology."
 topics = ["phylogeny"]
 
 [[problem]]
@@ -362,6 +397,7 @@ file = "examples/sign.bl"
 url = "https://rosalind.info/problems/sign/"
 status = "solved"
 asserted = true
+note = "Signed permutations: 2^n times n! of them, because each gene may also be flipped. The sign is not decoration — a reversed gene reads on the opposite strand, which is exactly what REAR and SORT measure."
 topics = ["combinatorics"]
 
 [[problem]]
@@ -371,6 +407,7 @@ file = "examples/lgis.bl"
 url = "https://rosalind.info/problems/lgis/"
 status = "solved"
 asserted = true
+note = "Longest increasing subsequence, which in a genomic setting is how conserved order is recovered from a comparison of two genomes: positions that stay in ascending order form a synteny block, and the rest is rearrangement."
 topics = ["dynamic-programming"]
 
 [[problem]]
@@ -380,6 +417,7 @@ file = "examples/sseq.bl"
 url = "https://rosalind.info/problems/sseq/"
 status = "solved"
 asserted = true
+note = "A subsequence rather than a substring — the characters need not be contiguous. That is the right model for a motif split across exons, since the intervening introns are spliced out before the protein is made."
 topics = ["motifs"]
 
 [[problem]]
@@ -389,6 +427,7 @@ file = "examples/pdst.bl"
 url = "https://rosalind.info/problems/pdst/"
 status = "solved"
 asserted = true
+note = "Pairwise p-distance: the fraction of positions at which two sequences differ. It is the crude measure HAMM warns about, applied to every pair, and it feeds the tree-building problems that follow."
 topics = ["phylogeny", "distance"]
 
 [[problem]]
@@ -398,6 +437,7 @@ file = "examples/asmq.bl"
 url = "https://rosalind.info/problems/asmq/"
 status = "solved"
 asserted = true
+note = "N50 is the contig length at which half the assembly sits in contigs that long or longer. It is the standard summary and a gameable one: joining contigs wrongly raises it, so a high N50 is evidence of a long assembly rather than a correct one."
 topics = ["assembly"]
 
 [[problem]]
@@ -407,6 +447,7 @@ file = "examples/orf.bl"
 url = "https://rosalind.info/problems/orf/"
 status = "solved"
 asserted = true
+note = "Six frames, not three — the gene may sit on either strand, and there is no way to tell from the sequence which. Each frame is scanned from every start codon to the first stop."
 topics = ["orf", "translation"]
 
 [[problem]]
@@ -416,6 +457,7 @@ file = "examples/lexv.bl"
 url = "https://rosalind.info/problems/lexv/"
 status = "solved"
 asserted = true
+note = "Ordering strings of unequal length, where a prefix sorts before anything extending it. Ordinary lexicographic order on padded strings gets this wrong, which is the whole exercise."
 topics = ["combinatorics", "strings"]
 
 [[problem]]
@@ -425,6 +467,7 @@ file = "examples/seto.bl"
 url = "https://rosalind.info/problems/seto/"
 status = "solved"
 asserted = true
+note = "Set operations as groundwork. Worth having explicitly because several later problems phrase their answer as a complement or an intersection, and getting the universe wrong is a common way to be quietly off by a few elements."
 topics = ["sets"]
 
 [[problem]]
@@ -444,6 +487,7 @@ file = "examples/kmp.bl"
 url = "https://rosalind.info/problems/kmp/"
 status = "solved"
 asserted = true
+note = "The failure array records, for each prefix, the longest proper prefix that is also a suffix — so a mismatch can resume without re-reading the text. That is what makes matching linear rather than quadratic, and it is the same insight the trie and suffix-array problems generalise."
 topics = ["strings", "motifs"]
 
 [[problem]]
@@ -453,6 +497,7 @@ file = "examples/dbru.bl"
 url = "https://rosalind.info/problems/dbru/"
 status = "solved"
 asserted = true
+note = "Reads become edges rather than nodes, which turns assembly from a Hamiltonian path problem into an Eulerian one. GRPH shows the alternative; this is the construction real assemblers are built on."
 topics = ["graphs", "assembly"]
 
 [[problem]]
@@ -462,6 +507,7 @@ file = "examples/aspc.bl"
 url = "https://rosalind.info/problems/aspc/"
 status = "solved"
 asserted = true
+note = "Summing binomial coefficients, motivated by alternative splicing: one gene yields many proteins depending on which exons are kept. The count grows fast enough that the modulus is doing real work."
 topics = ["combinatorics"]
 
 [[problem]]
@@ -471,6 +517,7 @@ file = "examples/corr.bl"
 url = "https://rosalind.info/problems/corr/"
 status = "solved"
 asserted = true
+note = "Assumes a correct read appears at least twice and an erroneous one exactly once — which is what read depth buys and why coverage matters. Reverse complements count as the same read, since strand is not recorded."
 topics = ["sequence", "error-correction"]
 
 [[problem]]
@@ -490,6 +537,7 @@ file = "examples/eval.bl"
 url = "https://rosalind.info/problems/eval/"
 status = "solved"
 asserted = true
+note = "The expected number of times a motif appears in a random sequence, which is what makes an observed count interesting or unremarkable. Without a baseline, finding a site says nothing at all."
 topics = ["probability", "gc-content"]
 
 [[problem]]
@@ -499,6 +547,7 @@ file = "examples/long.bl"
 url = "https://rosalind.info/problems/long/"
 status = "solved"
 asserted = true
+note = "Shortest superstring is NP-hard in general. This is solvable only because the problem guarantees every pair overlaps by more than half their length, which makes the correct overlap unique and a greedy merge safe. GREP shows what happens when that guarantee is dropped."
 topics = ["assembly"]
 
 [[problem]]
@@ -518,6 +567,7 @@ file = "examples/ebin.bl"
 url = "https://rosalind.info/problems/ebin/"
 status = "solved"
 asserted = true
+note = "Expected allele counts under Wright-Fisher, where expectation is linear and so the answer is a sum of binomial means. WFMD gives the distribution this summarises."
 topics = ["probability"]
 
 [[problem]]
@@ -537,6 +587,7 @@ file = "examples/root.bl"
 url = "https://rosalind.info/problems/root/"
 status = "solved"
 asserted = true
+note = "Rooted binary trees on n leaves number (2n-3)!!, which passes a billion by n=11. That growth is why phylogenetics searches tree space rather than enumerating it."
 topics = ["phylogeny", "combinatorics"]
 
 [[problem]]
@@ -546,6 +597,7 @@ file = "examples/cunr.bl"
 url = "https://rosalind.info/problems/cunr/"
 status = "solved"
 asserted = true
+note = "The unrooted count, (2n-5)!!, which is the rooted count one step back — a rooted tree is an unrooted one with a root placed on some edge. EUBT constructs these rather than counting them."
 topics = ["phylogeny", "combinatorics"]
 
 [[problem]]
@@ -555,6 +607,7 @@ file = "examples/motz.bl"
 url = "https://rosalind.info/problems/motz/"
 status = "solved"
 asserted = true
+note = "Motzkin numbers drop CAT's requirement that every base pairs, which is the more realistic model: real RNA leaves plenty unpaired. RNAS goes further and adds wobble bonds and a minimum hairpin length."
 topics = ["combinatorics", "rna-structure", "dynamic-programming"]
 
 [[problem]]
@@ -574,6 +627,7 @@ file = "examples/trie.bl"
 url = "https://rosalind.info/problems/trie/"
 status = "solved"
 asserted = true
+note = "Patterns sharing a prefix share a path, so the text is scanned once regardless of how many patterns are sought. That is the property that makes trie matching worth building, and BA9A and BA9B use it directly."
 topics = ["strings", "trie"]
 
 [[problem]]
@@ -583,6 +637,7 @@ file = "examples/wfmd.bl"
 url = "https://rosalind.info/problems/wfmd/"
 status = "solved"
 asserted = true
+note = "Genetic drift: allele frequencies move at random in a finite population, and an allele can be lost or fixed with no selection involved at all. It is the null model everything claiming selection has to be tested against."
 topics = ["probability", "genetics"]
 
 [[problem]]
@@ -612,6 +667,7 @@ file = "examples/ctbl.bl"
 url = "https://rosalind.info/problems/ctbl/"
 status = "solved"
 asserted = true
+note = "A character table records the splits a set of taxa admits. CHBP inverts it back into a tree, which works only because the splits of a consistent table are nested or disjoint and never crossing."
 topics = ["phylogeny", "newick"]
 
 [[problem]]
@@ -672,6 +728,7 @@ file = "examples/ling.bl"
 url = "https://rosalind.info/problems/ling/"
 status = "solved"
 asserted = true
+note = "The fraction of substrings that actually occur out of all that could. Repetitive sequence scores low because it reuses the same substrings — which is exactly what makes repeats hard to assemble through, as GREP demonstrates."
 topics = ["strings", "complexity"]
 
 [[problem]]
@@ -813,3 +870,204 @@ status = "solved"
 asserted = true
 note = "A split is nontrivial only when both sides hold at least two strings; a position where one string differs from all the others separates nothing. Which state is written as 1 is arbitrary, so the assertion accepts a row or its complement."
 topics = ["phylogeny", "character-tables"]
+
+[[problem]]
+id = "SUFF"
+title = "Encoding Suffix Trees"
+file = "examples/suff.bl"
+url = "https://rosalind.info/problems/suff/"
+status = "solved"
+asserted = true
+note = "Built from the suffix array and LCP array rather than by collapsing a trie. Both give the same tree; a trie of all suffixes has O(n^2) nodes first, whereas the arrays are linear — which is why aligners store the arrays and never materialise the tree."
+topics = ["strings", "suffix-structures"]
+
+[[problem]]
+id = "SGRA"
+title = "Using the Spectrum Graph to Infer Peptides"
+file = "examples/sgra.bl"
+url = "https://rosalind.info/problems/sgra/"
+status = "solved"
+asserted = true
+note = "Monoisotopic masses, so differences are matched within a tolerance rather than exactly. The graph is a DAG since masses only increase, so the longest path is one scan in sorted order instead of an exponential search."
+topics = ["mass-spectrometry", "graphs"]
+
+[[problem]]
+id = "FULL"
+title = "Inferring Peptide from Full Spectrum"
+file = "examples/full.bl"
+url = "https://rosalind.info/problems/full/"
+status = "solved"
+asserted = true
+note = "A peptide fragments from both ends at once, so a b-ion and its y-ion sum to the parent mass and the list mixes them unlabelled. It does not matter which is which — taking an ion spends its complement, since a prefix and its suffix are one event and cannot both extend the chain."
+topics = ["mass-spectrometry"]
+
+[[problem]]
+id = "ALPH"
+title = "Alignment-Based Phylogeny"
+file = "examples/alph.bl"
+url = "https://rosalind.info/problems/alph/"
+status = "solved"
+asserted = true
+note = "Small parsimony with the gap as a fifth symbol rather than a missing value — in an alignment a gap is evidence that an indel happened, and treating it as unknown would make every column containing one free. Finds a different labelling of equal score, so the assertion recounts the changes."
+topics = ["phylogeny", "alignment"]
+
+[[problem]]
+id = "GASM"
+title = "Genome Assembly Using Reads"
+file = "examples/gasm.bl"
+url = "https://rosalind.info/problems/gasm/"
+status = "solved"
+asserted = true
+note = "A read gives no clue which strand it came from, so the graph holds every read and its reverse complement and falls into two mirror cycles. Returns AATCTGT — a rotation of the reverse complement of GATTACA, which the assertion checks up to both rotation and strand."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "MULT"
+title = "Multiple Alignment"
+file = "examples/mult.bl"
+url = "https://rosalind.info/problems/mult/"
+status = "solved"
+asserted = true
+note = "Four sequences need a hypercube and 2^k-1 moves out of every cell — fifteen here, against three for a pairwise alignment. Exact multiple alignment costs O(n^k), which is why every tool that aligns hundreds of sequences is approximating."
+topics = ["alignment", "dynamic-programming"]
+
+[[problem]]
+id = "GREP"
+title = "Genome Assembly with Perfect Coverage and Repeats"
+file = "examples/grep.bl"
+url = "https://rosalind.info/problems/grep/"
+status = "solved"
+asserted = true
+note = "PCOV returns one answer; this is the honest version. Repeats make the Eulerian cycle non-unique and all six cycles are genomes consistent with the reads — so the reads do not determine the chromosome, and reporting one would be picking arbitrarily."
+topics = ["assembly", "graphs"]
+
+[[problem]]
+id = "MPRT"
+title = "Finding a Protein Motif"
+file = "examples/mprt.bl"
+url = "https://rosalind.info/problems/mprt/"
+status = "solved"
+network = true
+asserted = true
+note = "Fetches from UniProt, so it runs in the advisory job rather than the hermetic gate. The motif matcher itself is asserted offline — N{P}[ST]{P} has alternatives and exclusions, so it is a pattern rather than a substring search."
+topics = ["motifs", "databases"]
+
+[[problem]]
+id = "OSYM"
+title = "Isolating Symbols in Alignments"
+file = "examples/osym.bl"
+url = "https://rosalind.info/problems/osym/"
+status = "solved"
+asserted = true
+note = "The best alignment through a given pairing is the best way of reaching it plus the best way of leaving it, so one forward table and one backward table answer all 49 pairs at once — the same trick BA5K uses to find a middle edge."
+topics = ["alignment", "dynamic-programming"]
+
+[[problem]]
+id = "ITWV"
+title = "Finding Disjoint Motifs in a Gene"
+file = "examples/itwv.bl"
+url = "https://rosalind.info/problems/itwv/"
+status = "solved"
+asserted = true
+note = "Two motifs competing for the same characters, which is what makes this different from finding each separately. Every reachable state must consume the current character or the window ends — carrying one forward unconsumed would let the motifs match unrelated parts of the sequence."
+topics = ["motifs", "dynamic-programming"]
+
+[[problem]]
+id = "CNTQ"
+title = "Counting Quartets"
+file = "examples/cntq.bl"
+url = "https://rosalind.info/problems/cntq/"
+status = "solved"
+asserted = true
+note = "The answer is C(n,4), and the reason matters more than the number: in a fully resolved tree any four taxa are separated into two pairs by some edge, so the shape never enters into it. The assertion enumerates all 15 subsets and confirms it rather than trusting the formula."
+topics = ["phylogeny", "combinatorics"]
+
+[[problem]]
+id = "QRT"
+title = "Quartets"
+file = "examples/qrt.bl"
+url = "https://rosalind.info/problems/qrt/"
+status = "solved"
+asserted = true
+note = "An 'x' means not scored, not a third state — so a partial character still separates the taxa it did see, and missing data does not make it useless. Quartets are recorded canonically because neither side nor the order within a side carries meaning, and two characters often support the same one."
+topics = ["phylogeny"]
+
+[[problem]]
+id = "CHBP"
+title = "Character-Based Phylogeny"
+file = "examples/chbp.bl"
+url = "https://rosalind.info/problems/chbp/"
+status = "solved"
+asserted = true
+note = "The inverse of CTBL. It works because a consistent table's splits are laminar — any two nested or disjoint, never crossing — and a laminar family is exactly a tree. Returns a differently-rooted Newick, so the assertion compares induced splits rather than a formatting choice."
+topics = ["phylogeny"]
+
+[[problem]]
+id = "EUBT"
+title = "Enumerating Unrooted Binary Trees"
+file = "examples/eubt.bl"
+url = "https://rosalind.info/problems/eubt/"
+status = "solved"
+asserted = true
+note = "Built by insertion: every unrooted binary tree arises exactly once by splitting an edge and hanging the next taxon off it, which is why the count is (2n-5)!! — fifteen trees at n=5, over two million at n=10. That growth is why nobody enumerates trees to find the best one."
+topics = ["phylogeny", "combinatorics"]
+
+[[problem]]
+id = "QRTD"
+title = "Quartet Distance"
+file = "examples/qrtd.bl"
+url = "https://rosalind.info/problems/qrtd/"
+status = "solved"
+asserted = true
+note = "Quartets degrade gracefully where splits do not: moving one taxon changes a handful of quartets but can destroy every split at once. Asserted to be zero between a tree and itself, which is the identity any distance must satisfy."
+topics = ["phylogeny"]
+
+[[problem]]
+id = "RNAS"
+title = "Wobble Bonding and RNA Secondary Structures"
+file = "examples/rnas.bl"
+url = "https://rosalind.info/problems/rnas/"
+status = "solved"
+asserted = true
+note = "Real RNA pairs U-G nearly as readily as A-U, so a count excluding wobble understates what a molecule can fold into. Memoised with has_key — contains(keys(memo), k) rebuilds the key list on every probe and would make the lookup the bottleneck the memo was meant to remove."
+topics = ["rna", "dynamic-programming"]
+
+[[problem]]
+id = "KSIM"
+title = "Finding All Similar Motifs"
+file = "examples/ksim.bl"
+url = "https://rosalind.info/problems/ksim/"
+status = "solved"
+asserted = true
+note = "A binding site is a tendency rather than a fixed string, so exact search finds a fraction of real sites — the motif here does not occur exactly at all. Checks every (start, length) pair directly, which is O(n^2) and stated as such: a 50 kbp genome would need the fitting-alignment form instead."
+topics = ["motifs", "alignment"]
+
+[[problem]]
+id = "RSUB"
+title = "Identifying Reversing Substitutions"
+file = "examples/rsub.bl"
+url = "https://rosalind.info/problems/rsub/"
+status = "solved"
+asserted = true
+note = "A site that mutates and mutates back looks, from the tips alone, as though nothing happened — which is exactly what makes distant relationships hard to recover. Only the internal labels reveal it, which is why the problem supplies them."
+topics = ["phylogeny"]
+
+[[problem]]
+id = "REAR"
+title = "Reversal Distance"
+file = "examples/rear.bl"
+url = "https://rosalind.info/problems/rear/"
+status = "solved"
+asserted = true
+note = "Where BA6C's 2-break distance had a closed form, this has none at size 10 and must be searched: 45 reversals per step, 3.6 million reachable orders, distance reaching 9. The builtin searches from both ends and meets in the middle, so each side only reaches depth 4 or 5."
+topics = ["rearrangements", "search"]
+
+[[problem]]
+id = "SORT"
+title = "Sorting by Reversals"
+file = "examples/sort.bl"
+url = "https://rosalind.info/problems/sort/"
+status = "solved"
+asserted = true
+note = "REAR asks how far apart two gene orders are; this asks for the route, which is what actually says how the rearrangement happened. The assertion applies the reversals and checks they produce the target — a plausible list that does not sort is the failure this invites."
+topics = ["rearrangements", "search"]

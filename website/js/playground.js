@@ -73,10 +73,21 @@
     }
   }
 
+  // Keywords that are followed by a parenthesis and would otherwise be read as
+  // calls to functions that do not exist, disabling the block.
+  //
+  // This list must stay in step with CALL_KEYWORDS in scripts/generate-pack-docs.mjs
+  // and KEYWORDS in tests/audit_browser_claims.mjs. It did not: `then` was
+  // missing here and present in both of those, so every block written as
+  // `if x then (…) else …` was marked CLI Only in the browser while the docs
+  // table and the browser-claims audit both said it ran. Neither of those
+  // checks looks at the button, which is why the page-level Playwright sweep
+  // exists.
   var __BL_KEYWORDS = {
     "if": 1, "for": 1, "while": 1, "fn": 1, "let": 1, "match": 1, "return": 1,
-    "and": 1, "or": 1, "not": 1, "in": 1, "else": 1, "import": 1, "yield": 1,
-    "enum": 1, "into": 1, "true": 1, "false": 1, "nil": 1
+    "and": 1, "or": 1, "not": 1, "in": 1, "else": 1, "then": 1, "import": 1,
+    "yield": 1, "enum": 1, "into": 1, "true": 1, "false": 1, "nil": 1,
+    "try": 1, "catch": 1, "assert": 1, "dna": 1, "rna": 1, "protein": 1
   };
 
   // Names the snippet binds itself: let/fn, fn params, for vars, lambda params.
@@ -110,10 +121,19 @@
     return names;
   }
 
+  // Blocks on a docs page share one interpreter session, so a block that uses a
+  // name defined by an earlier CLI-only block cannot run either.
+  //
+  // The comparison is against code with comments and strings blanked out. It
+  // used to run against the raw text, so prose was enough to trigger it: ITWV
+  // was disabled because a comment of its own read "two motifs be found in
+  // unrelated parts", and an earlier network-only block happened to define a
+  // variable called `found`. Nothing in ITWV depended on it.
   function blUsesUnavailablePageLocal(code) {
-    var locals = __blLocalNames(code);
+    var stripped = blStripNonCode(code);
+    var locals = __blLocalNames(stripped);
     return Object.keys(__blUnavailablePageLocals).some(function(name) {
-      return !locals[name] && new RegExp("\\b" + name + "\\b").test(code);
+      return !locals[name] && new RegExp("\\b" + name + "\\b").test(stripped);
     });
   }
 
@@ -136,12 +156,34 @@
   // reads any "word (" as a missing builtin — "renders as DNA(ACGT)" or
   // "appears at least twice (counting ...)" both did — and wrongly disables the
   // block as requiring file I/O or the network.
+  // Blank out comments and string contents in one pass, tracking which of the
+  // two we are inside.
+  //
+  // Doing it in two passes — comments first, then strings — breaks on a string
+  // containing a hash. `let joined = a + "#" + b` became `let joined = a + "`,
+  // which left an unbalanced quote and made the string stripper mis-pair every
+  // quote after it, exposing the contents of later strings as if they were
+  // code. BA9E was disabled in the browser for exactly that reason: the letters
+  // AGA out of a println were read as a call to a function that does not exist.
   function blStripNonCode(code) {
-    return String(code)
-      .split("\n")
-      .map(function (line) { return line.replace(/#.*$/, ""); })
-      .join("\n")
-      .replace(/"(?:[^"\\]|\\.)*"/g, '""');
+    var text = String(code), out = "", inString = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text.charAt(i);
+      if (inString) {
+        if (c === "\\") { out += "  "; i++; continue; }
+        if (c === '"') { inString = false; out += '"'; continue; }
+        out += (c === "\n" ? "\n" : " ");
+        continue;
+      }
+      if (c === '"') { inString = true; out += '"'; continue; }
+      if (c === "#") {
+        while (i < text.length && text.charAt(i) !== "\n") i++;
+        out += "\n";
+        continue;
+      }
+      out += c;
+    }
+    return out;
   }
 
   function blUnsupportedCalls(code) {

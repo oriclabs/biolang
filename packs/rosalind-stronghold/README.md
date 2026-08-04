@@ -1,69 +1,35 @@
 # Rosalind — Bioinformatics Stronghold
 
 Worked solutions to the [Bioinformatics Stronghold](https://rosalind.info/problems/list-view/),
-**79 of its 107 problems**, every one asserted against the official answer or
+**all 105 of its problems**, every one asserted against the official answer or
 against a property that answer must satisfy.
 
-## Why 79 and not 107
+## Notes on a few of them
 
-The pack is not a completion badge. It exists so a reader can see how BioLang
-handles each kind of bioinformatics problem, and that coverage is already
-complete — every technique in the track appears here, most of them repeatedly:
+Several problems have more than one correct answer, and those assert the
+defining property rather than the published string:
 
-| Technique | Problems |
-|---|---|
-| Sequence operations | DNA, RNA, REVC, HAMM, GC, TRAN, SUBS, KMER, CONS, REVP, CORR |
-| Combinatorics | FIB, FIBD, MRNA, PERM, PPER, SSET, LEXF, LEXV, SIGN, ASPC, ROOT, CUNR |
-| Probability and genetics | IPRB, IEV, LIA, SEXL, AFRQ, PROB, INDC, WFMD, EBIN, FOUN, RSTR, MEND |
-| Alignment | EDIT, EDTA, CTEA, GLOB, LOCA, GAFF, GCON, OAP, SIMS |
-| RNA structure | PMCH, MMCH, CAT, MOTZ |
-| Phylogeny and Newick | NWCK, NKEW, CTBL, SPTD, TREE, INOD, PDST, MEND, CSET |
-| Assembly and graphs | GRPH, DBRU, LONG, PCOV, ASMQ |
-| Mass spectrometry | PRTM, SPEC, CONV, PRSM |
-| Strings and search | LCSM, LCSQ, SCSP, KMP, TRIE, LGIS, SSEQ, LING, SETO, PDPL |
-| Translation and ORFs | PROT, SPLC, ORF |
+- `GASM` returns a rotation of the reverse-complement strand. A read carries no
+  strand information, so the graph holds every read and its mirror and falls
+  into two cycles; either spells the genome.
+- `GREP` returns all six Eulerian cycles rather than one. Repeats make the
+  assembly genuinely ambiguous, and reporting a single genome would be picking
+  arbitrarily.
+- `ALPH` and `CHBP` find a different labelling and a different rooting at the
+  same cost, so they recount the changes and compare induced splits.
 
-The 28 problems not included repeat techniques already shown, and each costs
-disproportionately more to add. They are listed below with the reason, so the
-gap is a decision on the record rather than an omission.
+Two carry caveats worth reading before trusting them at scale:
 
-## What is not here, and why
+- `KSIM` checks every (start, length) pair, which is O(n^2). Correct and instant
+  on the sample; a 50 kbp genome would need the fitting-alignment form instead.
+- `MPRT` fetches from UniProt, so it runs in the advisory job rather than the
+  hermetic gate. Its motif matcher is asserted offline, so the logic stays
+  gated even when the service is unreachable.
 
-**Blocked by the language, not by effort**
-
-- `REAR`, `SORT` — reversal distance needs a breadth-first search over
-  permutations of length 10, roughly 3.6 million states. BioLang has no index
-  assignment, so every visited-set update rebuilds a list; the search cannot
-  finish.
-- `SUFF`, `LREP`, `MREP` — these take a suffix tree as *input* in a bespoke
-  format, so most of the work is parsing a structure rather than showing
-  anything about sequences.
-
-**Would make the test suite slow**
-
-- `SMGB`, `LAFF`, `MGAP`, `OSYM`, `ITWV`, `MULT` — all dynamic programming.
-  `SIMS`, already in the pack, takes about 40 seconds on a 20x99 grid for the
-  same reason: each row is rebuilt as a new list. Six more would dominate the
-  build for techniques `GLOB`, `LOCA`, `GAFF` and `GCON` already demonstrate.
-
-**Need machinery beyond the problem itself**
-
-- `QRT`, `QRTD`, `CNTQ`, `CHBP`, `CSTR`, `EUBT`, `ALPH` — character table to
-  tree construction in both directions. `CTBL` and `SPTD` already show the
-  split reasoning these rest on.
-- `GASM`, `GREP` — assembly search beyond what `LONG` and `PCOV` demonstrate.
-- `RNAS`, `KSIM`, `RSUB` — need memoisation to finish in reasonable time.
-
-**Depends on a remote service**
-
-- `MPRT` — fetches motifs from UniProt, so it could not be part of the
-  hermetic test gate that every other problem here passes.
-
-**Unverifiable from the problem statement alone**
-
-- `SGRA`, `FULL` — I could not reconstruct their sample data with enough
-  confidence to assert an answer, and an unverified solution in a pack whose
-  whole claim is verification would be worse than an absent one.
+`REAR` and `SORT` are the only two whose search lives in Rust rather than in
+BioLang. Ten elements admit 45 reversals and 3.6 million reachable orders, and
+the distance reaches 9 — a bidirectional search finishes in milliseconds
+compiled and not at all interpreted.
 
 ## Running it
 

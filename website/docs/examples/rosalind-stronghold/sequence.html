@@ -53,7 +53,7 @@
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=DNA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="dna.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A warm-up for the site's input format rather than a biological question — but the four counts it produces are exactly what GC content is computed from, and a lopsided base composition is the first thing a QC tool flags as contamination or adapter read-through.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: DNA — Counting DNA Nucleotides
 # https://rosalind.info/problems/dna/
 #
@@ -81,7 +81,7 @@ fn test_dna_nucleotide_counts() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=RNA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="rna.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">One character substituted for another, which is a fair summary of transcription only if you ignore splicing, capping and polyadenylation. SPLC covers the part this leaves out.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: RNA — Transcribing DNA into RNA
 # https://rosalind.info/problems/rna/
 #
@@ -107,7 +107,7 @@ fn test_rna_transcription() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=REVC" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="revc.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The most-used operation in the whole track. A read carries no record of which strand it came from, so a motif present on one strand appears as its reverse complement on the other — which is why REVP, BA6E and GASM all have to search both.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: REVC — Complementing a Strand of DNA
 # https://rosalind.info/problems/revc/
 #
@@ -133,7 +133,7 @@ fn test_revc_reverse_complement() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=HAMM" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="hamm.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Counts differing positions, which undercounts mutations: a site can change and change back, leaving no trace. RSUB shows exactly that happening, and it is why distance models correct for unseen substitutions rather than using raw counts.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: HAMM — Counting Point Mutations
 # https://rosalind.info/problems/hamm/
 #
@@ -161,7 +161,7 @@ fn test_hamm_point_mutations() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GC" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="gc.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">GC content ranges from about 16 to 75 percent across bacteria, and a difference under 5 percent is taken as evidence of the same species — which is why a fragment's GC content alone narrows down where it came from. It also biases sequencing: GC-rich regions amplify poorly and end up under-covered.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: GC — Computing GC Content
 # https://rosalind.info/problems/gc/
 #
@@ -194,7 +194,7 @@ fn test_gc_highest_content() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=TRAN" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="tran.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A random mutation process would give a ratio near 0.5, since there are twice as many ways to make a transversion. Real human data sits near 2.1 genome-wide and near 3 in exomes, largely because methylated cytosine deaminates to thymine. The ratio is therefore a standard quality check: a callset far from those values is reporting sequencing error rather than biology.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: TRAN — Transitions and Transversions
 # https://rosalind.info/problems/tran/
 #
@@ -232,7 +232,7 @@ fn test_tran_ratio() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CONS" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="cons.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A profile is the same object BA2's motif search builds and scores against: counts per base per position. The consensus reads off the commonest base at each, which is a useful summary and a lossy one — it discards how strong the preference was.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CONS — Consensus and Profile
 # https://rosalind.info/problems/cons/
 #
@@ -282,7 +282,7 @@ fn test_cons_consensus_and_profile() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=REVP" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="revp.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Restriction enzymes cut at reverse palindromes because they bind as symmetric dimers, one subunit per strand, so the site reads the same on both. That is why these particular sequences matter and why they are always even in length.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: REVP — Locating Restriction Sites
 # https://rosalind.info/problems/revp/
 #
@@ -322,7 +322,7 @@ fn test_revp_reverse_palindromes() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CORR" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="corr.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Assumes a correct read appears at least twice and an erroneous one exactly once — which is what read depth buys and why coverage matters. Reverse complements count as the same read, since strand is not recorded.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CORR — Error Correction in Reads
 # https://rosalind.info/problems/corr/
 #

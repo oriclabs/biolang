@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Alignment</h1>
-        <p class="text-lg text-slate-400 mb-6">12 problems from
+        <p class="text-lg text-slate-400 mb-6">14 problems from
         <a href="../rosalind-stronghold.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Stronghold</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -45,6 +45,8 @@
           <a href="#laff" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Local Alignment with Affine Gap Penalty">LAFF</a>
           <a href="#smgb" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Semiglobal Alignment">SMGB</a>
           <a href="#mgap" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Maximizing the Gap Symbols of an Optimal Alignment">MGAP</a>
+          <a href="#mult" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Multiple Alignment">MULT</a>
+          <a href="#osym" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Isolating Symbols in Alignments">OSYM</a>
         </nav>
 
         <section id="edit" class="mt-12">
@@ -55,7 +57,7 @@
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=EDIT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="edit.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The crude version of sequence comparison, and the pack refines it twice: GLOB stops treating every substitution as equally costly, and GAFF stops treating a gap of k bases as k separate events. Useful mainly as the baseline those two improve on.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: EDIT — Edit Distance
 # https://rosalind.info/problems/edit/
 #
@@ -83,7 +85,7 @@ fn test_edit_distance() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GLOB" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="glob.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">BLOSUM62 is built from substitution frequencies actually observed in aligned protein blocks, so swapping a residue for a chemically similar one costs little and swapping it for an unrelated one costs a lot. That is the information EDIT throws away by charging one for every mismatch.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: GLOB — Global Alignment with Scoring Matrix
 # https://rosalind.info/problems/glob/
 #
@@ -146,7 +148,7 @@ fn test_glob_blosum62_global_alignment() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LOCA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="loca.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Two proteins may share a single conserved domain inside otherwise unrelated sequence. A global alignment has to align the unrelated parts too and buries the signal; local alignment reports only the stretch that matches, which is what makes it the basis of database search.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LOCA — Local Alignment with Scoring Matrix
 # https://rosalind.info/problems/loca/
 #
@@ -211,7 +213,7 @@ fn test_loca_pam250_local_alignment() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GAFF" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="gaff.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">One insertion of ten bases is a single mutational event, not ten. Charging per base makes an aligner scatter several short gaps where one long gap is right, so opening a gap costs more than extending it.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: GAFF — Global Alignment with Scoring Matrix and Affine Gap Penalty
 # https://rosalind.info/problems/gaff/
 #
@@ -792,6 +794,212 @@ fn test_mgap_maximum_gap_symbols() {
     # The subsequence has to be a real one of both strings.
     assert is_subsequence(common, str(s)), &quot;MGAP: LCS is not a subsequence of s&quot;
     assert is_subsequence(common, str(t)), &quot;MGAP: LCS is not a subsequence of t&quot;
+}</code></pre>
+        </section>
+
+        <section id="mult" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">MULT &mdash; Multiple Alignment</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/mult/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=MULT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="mult.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Four sequences need a hypercube and 2^k-1 moves out of every cell — fifteen here, against three for a pairwise alignment. Exact multiple alignment costs O(n^k), which is why every tool that aligns hundreds of sequences is approximating.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: MULT — Multiple Alignment
+# https://rosalind.info/problems/mult/
+#
+# Given: Four DNA strings of length at most 10.
+# Return: A multiple alignment of maximum score, where every mismatched pair in
+# a column costs 1 and matched symbols — including two gaps — cost nothing.
+
+let sequences = [&quot;ATATCCG&quot;, &quot;TCCG&quot;, &quot;ATGTACTG&quot;, &quot;ATGTCTG&quot;]
+
+# Two sequences need a table, three a cube, four a hypercube — and the number of
+# moves out of each cell is 2^k - 1, every non-empty choice of which sequences
+# advance. Fifteen here, against three for a pairwise alignment.
+#
+# That is the whole lesson of this problem: exact multiple alignment costs
+# O(n^k), so it stops being possible at a handful of short sequences. Every tool
+# that aligns hundreds of sequences is approximating, usually by aligning pairs
+# and merging.
+let moves = range(1, 16) |&gt; map(|mask|
+    range(0, 4) |&gt; map(|s| (mask / pow(2, s)) % 2 |&gt; floor()))
+
+let lengths = sequences |&gt; map(|s| len(s))
+
+fn key(at) { at |&gt; map(|v| str(v)) |&gt; join(&quot;,&quot;) }
+
+# A column costs one for every disagreeing pair. Two gaps agree; a gap against a
+# base does not.
+fn column_cost(symbols) {
+    range(0, len(symbols))
+        |&gt; flat_map(|i| range(i + 1, len(symbols))
+            |&gt; filter(|j| symbols[i] != symbols[j]))
+        |&gt; len()
+}
+
+let best = {}
+let came_from = {}
+best[key([0, 0, 0, 0])] = 0
+
+for i in range(0, lengths[0] + 1) {
+    for j in range(0, lengths[1] + 1) {
+        for k in range(0, lengths[2] + 1) {
+            for l in range(0, lengths[3] + 1) {
+                let here = [i, j, k, l]
+                if i + j + k + l &gt; 0 {
+                    let at = key(here)
+                    best[at] = 0 - 1000000
+                    for move in moves {
+                        let previous = range(0, 4) |&gt; map(|s| here[s] - move[s])
+                        if (previous |&gt; count_if(|v| v &lt; 0)) == 0 {
+                            let symbols = range(0, 4) |&gt; map(|s|
+                                if move[s] == 1 then substr(sequences[s], previous[s], 1) else &quot;-&quot;)
+                            let candidate = best[key(previous)] - column_cost(symbols)
+                            if candidate &gt; best[at] {
+                                best[at] = candidate
+                                came_from[at] = move
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let score = best[key(lengths)]
+
+let rows = [&quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;]
+let at = lengths
+while (at |&gt; sum()) &gt; 0 {
+    let move = came_from[key(at)]
+    for s in range(0, 4) {
+        if move[s] == 1 {
+            rows[s] = substr(sequences[s], at[s] - 1, 1) + rows[s]
+            at[s] = at[s] - 1
+        } else {
+            rows[s] = &quot;-&quot; + rows[s]
+        }
+    }
+}
+
+println(&quot;Result:   &quot; + str(score))
+for line in rows { println(&quot;          &quot; + line) }
+println(&quot;Expected: -18&quot;)
+println(&quot;          ATAT-CCG / -T---CCG / ATGTACTG / ATGT-CTG&quot;)
+
+fn test_mult_multiple_alignment() {
+    assert score == 0 - 18, &quot;MULT: scored &quot; + str(score)
+    # Structural checks, since several alignments reach the optimum.
+    let widths = rows |&gt; map(|r| len(r)) |&gt; unique()
+    assert len(widths) == 1, &quot;MULT: every row must be the same length&quot;
+    for s in range(0, 4) {
+        assert replace(rows[s], &quot;-&quot;, &quot;&quot;) == sequences[s],
+            &quot;MULT: row &quot; + str(s) + &quot; is not its original sequence&quot;
+    }
+    # The alignment shown must actually score what was claimed.
+    let recounted = 0 - (range(0, widths[0])
+        |&gt; map(|c| column_cost(rows |&gt; map(|r| substr(r, c, 1))))
+        |&gt; sum())
+    assert recounted == score,
+        &quot;MULT: the alignment shown scores &quot; + str(recounted) + &quot;, not &quot; + str(score)
+    # No column is entirely gaps — that move does not exist, and one would be
+    # free under this scoring.
+    let empty_columns = range(0, widths[0])
+        |&gt; count_if(|c| (rows |&gt; count_if(|r| substr(r, c, 1) == &quot;-&quot;)) == 4)
+    assert empty_columns == 0, &quot;MULT: an all-gap column would be free and meaningless&quot;
+}</code></pre>
+        </section>
+
+        <section id="osym" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">OSYM &mdash; Isolating Symbols in Alignments</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/osym/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=OSYM" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="osym.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The best alignment through a given pairing is the best way of reaching it plus the best way of leaving it, so one forward table and one backward table answer all 49 pairs at once — the same trick BA5K uses to find a middle edge.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: OSYM — Isolating Symbols in Alignments
+# https://rosalind.info/problems/osym/
+#
+# Given: Two DNA strings.
+# Return: The maximum global alignment score, and the sum over all (j,k) of the
+# best score of any alignment that pairs s[j] with t[k].
+# Matches score +1, mismatches and gaps -1.
+
+let first_string = &quot;ATAGATA&quot;
+let second_string = &quot;ACAGGTA&quot;
+let gap = 0 - 1
+
+fn substitution(a, b) { if a == b then 1 else 0 - 1 }
+
+# The question is not what the best alignment is, but how good the best
+# alignment *through each particular pairing* would be. Recomputing an alignment
+# for every one of the 49 pairs would be quadratic work repeated quadratically.
+#
+# Instead: the best alignment through (j,k) is the best way of reaching it plus
+# the best way of leaving it. One table filled forwards and one filled backwards
+# answer every pair at once — the same trick BA5K uses to find a middle edge.
+fn forward_table(rows, columns, indel) {
+    let table = [range(0, len(columns) + 1) |&gt; map(|j| j * indel)]
+    for i in range(1, len(rows) + 1) {
+        let line = [i * indel]
+        for j in range(1, len(columns) + 1) {
+            let diagonal = table[i - 1][j - 1]
+                + substitution(substr(rows, i - 1, 1), substr(columns, j - 1, 1))
+            let up = table[i - 1][j] + indel
+            let left = line[j - 1] + indel
+            line = push(line, max([diagonal, up, left]))
+        }
+        table = push(table, line)
+    }
+    table
+}
+
+let forward = forward_table(first_string, second_string, gap)
+# The backward table is the forward one on both strings reversed, so only one
+# direction has to be written.
+let backward_reversed = forward_table(reverse(first_string), reverse(second_string), gap)
+
+let n = len(first_string)
+let m = len(second_string)
+
+fn backward_at(table, i, j, rows, columns) {
+    # Score of aligning s[i..) with t[j..), read out of the reversed table.
+    table[rows - i][columns - j]
+}
+
+let best_score = forward[n][m]
+
+let total = range(1, n + 1) |&gt; flat_map(|j| range(1, m + 1) |&gt; map(|k| {
+    let paired = substitution(substr(first_string, j - 1, 1), substr(second_string, k - 1, 1))
+    forward[j - 1][k - 1] + paired + backward_at(backward_reversed, j, k, n, m)
+})) |&gt; sum()
+
+println(&quot;Result:   &quot; + str(best_score))
+println(&quot;          &quot; + str(total))
+println(&quot;Expected: 3&quot;)
+println(&quot;          -139&quot;)
+
+fn test_osym_isolating_symbols() {
+    assert best_score == 3, &quot;OSYM: the best alignment scores &quot; + str(best_score)
+    assert total == 0 - 139, &quot;OSYM: the sum is &quot; + str(total)
+
+    # No pairing can beat the unconstrained optimum, and at least one must reach
+    # it — the best alignment pairs something.
+    let every = range(1, n + 1) |&gt; flat_map(|j| range(1, m + 1) |&gt; map(|k| {
+        let paired = substitution(substr(first_string, j - 1, 1), substr(second_string, k - 1, 1))
+        forward[j - 1][k - 1] + paired + backward_at(backward_reversed, j, k, n, m)
+    }))
+    assert max(every) == best_score,
+        &quot;OSYM: the best constrained score should equal the unconstrained one&quot;
+    for value in every {
+        assert value &lt;= best_score, &quot;OSYM: a constrained alignment cannot beat the optimum&quot;
+    }
+    assert len(every) == n * m, &quot;OSYM: one entry per pair of positions&quot;
 }</code></pre>
         </section>
       </article>

@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Mass spectrometry</h1>
-        <p class="text-lg text-slate-400 mb-6">3 problems from
+        <p class="text-lg text-slate-400 mb-6">5 problems from
         <a href="../rosalind-stronghold.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Stronghold</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -36,6 +36,8 @@
           <a href="#spec" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Inferring Protein from Spectrum">SPEC</a>
           <a href="#conv" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Comparing Spectra with the Spectral Convolution">CONV</a>
           <a href="#prsm" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Matching a Spectrum to a Protein">PRSM</a>
+          <a href="#sgra" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Using the Spectrum Graph to Infer Peptides">SGRA</a>
+          <a href="#full" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Inferring Peptide from Full Spectrum">FULL</a>
         </nav>
 
         <section id="spec" class="mt-12">
@@ -219,6 +221,195 @@ fn test_prsm_spectrum_to_protein() {
     assert maximal |&gt; contains(&quot;IASMQS&quot;), &quot;PRSM: IASMQS is not among the maximal proteins&quot;
     # A complete spectrum holds two fragments per bond.
     assert len(complete_spectrum(&quot;IASMQS&quot;)) == 2 * (len(&quot;IASMQS&quot;) - 1), &quot;PRSM: spectrum size is wrong&quot;
+}</code></pre>
+        </section>
+
+        <section id="sgra" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">SGRA &mdash; Using the Spectrum Graph to Infer Peptides</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/sgra/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SGRA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="sgra.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Monoisotopic masses, so differences are matched within a tolerance rather than exactly. The graph is a DAG since masses only increase, so the longest path is one scan in sorted order instead of an exponential search.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: SGRA — Using the Spectrum Graph to Infer Peptides
+# https://rosalind.info/problems/sgra/
+#
+# Given: A list of positive real numbers (a spectrum).
+# Return: The longest protein string matching the spectrum graph.
+
+let spectrum = [
+    3524.8542, 3623.5245, 3710.9335, 3841.974, 3929.00603,
+    3970.0326, 4026.05879, 4057.0646, 4083.08025,
+]
+
+# Monoisotopic masses, not the integer table the cyclopeptide problems use.
+# Real instrument readings carry decimals, so a difference is matched within a
+# tolerance rather than exactly — 1e-4 here, which is far tighter than the gap
+# between any two residue masses and far looser than float noise.
+let monoisotopic = {
+    A: 71.03711,  C: 103.00919, D: 115.02694, E: 129.04259, F: 147.06841,
+    G: 57.02146,  H: 137.05891, I: 113.08406, K: 128.09496, L: 113.08406,
+    M: 131.04049, N: 114.04293, P: 97.05276,  Q: 128.05858, R: 156.10111,
+    S: 87.03203,  T: 101.04768, V: 99.06841,  W: 186.07931, Y: 163.06333
+}
+let tolerance = 0.0001
+
+# Where L and I collide exactly, and K and Q nearly do, take the first — a
+# spectrum cannot separate them, so naming either is equally correct.
+let residues = [&quot;G&quot;, &quot;A&quot;, &quot;S&quot;, &quot;P&quot;, &quot;V&quot;, &quot;T&quot;, &quot;C&quot;, &quot;L&quot;, &quot;N&quot;, &quot;D&quot;,
+                &quot;Q&quot;, &quot;K&quot;, &quot;E&quot;, &quot;M&quot;, &quot;H&quot;, &quot;F&quot;, &quot;R&quot;, &quot;Y&quot;, &quot;W&quot;]
+
+fn residue_between(lighter, heavier, table, letters, slack) {
+    let gap = heavier - lighter
+    let hits = letters |&gt; filter(|letter| abs(table[letter] - gap) &lt; slack)
+    if len(hits) &gt; 0 then hits[0] else &quot;&quot;
+}
+
+# The graph is a DAG — masses only increase — so the longest path is found by
+# scanning in sorted order and never revisiting a node. Searching the paths
+# themselves would be exponential; here each node is settled once, from the best
+# way of reaching it.
+let ordered = sort(spectrum)
+let best = ordered |&gt; map(|_| &quot;&quot;)
+# Where each best path began, so the answer's mass can be checked against the
+# span it was actually read across. The path skips nodes, so this cannot be
+# recovered by counting backwards from the end.
+let origin = range(0, len(ordered))
+
+for j in range(0, len(ordered)) {
+    for i in range(0, j) {
+        let letter = residue_between(ordered[i], ordered[j], monoisotopic, residues, tolerance)
+        if letter != &quot;&quot; and len(best[i]) + 1 &gt; len(best[j]) {
+            best[j] = best[i] + letter
+            origin[j] = origin[i]
+        }
+    }
+}
+
+let finish = argmax(best |&gt; map(|s| len(s)))
+let answer = best[finish]
+
+println(&quot;Result:   &quot; + answer)
+println(&quot;Expected: WMSPG&quot;)
+
+fn test_sgra_spectrum_graph() {
+    assert answer == &quot;WMSPG&quot;, &quot;SGRA: got &quot; + answer
+    # Every residue of the answer must be a real gap between two spectrum values.
+    assert len(answer) == 5, &quot;SGRA: expected a 5-residue peptide&quot;
+    # The peptide's own mass is the span it was read across.
+    let peptide_mass = chars(answer) |&gt; map(|c| monoisotopic[c]) |&gt; sum()
+    let span = ordered[finish] - ordered[origin[finish]]
+    assert abs(peptide_mass - span) &lt; len(answer) * tolerance,
+        &quot;SGRA: the peptide weighs &quot; + str(round(peptide_mass, 4))
+            + &quot; but spans &quot; + str(round(span, 4))
+    # Nothing longer exists in the graph.
+    for candidate in best {
+        assert len(candidate) &lt;= len(answer), &quot;SGRA: a longer path was missed&quot;
+    }
+}</code></pre>
+        </section>
+
+        <section id="full" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">FULL &mdash; Inferring Peptide from Full Spectrum</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/full/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=FULL" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="full.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A peptide fragments from both ends at once, so a b-ion and its y-ion sum to the parent mass and the list mixes them unlabelled. It does not matter which is which — taking an ion spends its complement, since a prefix and its suffix are one event and cannot both extend the chain.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: FULL — Inferring Peptide from Full Spectrum
+# https://rosalind.info/problems/full/
+#
+# Given: 2n+3 positive reals — a parent mass, then the b-ions and y-ions of a
+# peptide of length n, in no particular order.
+# Return: A protein string of length n consistent with them.
+
+let parent_mass = 1988.21104821
+let ions = [
+    610.391039105, 738.485999105, 766.492149105, 863.544909105,
+    867.528589105, 992.587499105, 995.623549105, 1120.6824591,
+    1124.6661391, 1221.7188991, 1249.7250491, 1377.8200091,
+]
+
+let monoisotopic = {
+    A: 71.03711,  C: 103.00919, D: 115.02694, E: 129.04259, F: 147.06841,
+    G: 57.02146,  H: 137.05891, I: 113.08406, K: 128.09496, L: 113.08406,
+    M: 131.04049, N: 114.04293, P: 97.05276,  Q: 128.05858, R: 156.10111,
+    S: 87.03203,  T: 101.04768, V: 99.06841,  W: 186.07931, Y: 163.06333
+}
+let residues = [&quot;G&quot;, &quot;A&quot;, &quot;S&quot;, &quot;P&quot;, &quot;V&quot;, &quot;T&quot;, &quot;C&quot;, &quot;L&quot;, &quot;N&quot;, &quot;D&quot;,
+                &quot;Q&quot;, &quot;K&quot;, &quot;E&quot;, &quot;M&quot;, &quot;H&quot;, &quot;F&quot;, &quot;R&quot;, &quot;Y&quot;, &quot;W&quot;]
+let tolerance = 0.001
+
+# A peptide fragments from both ends at once. A b-ion is a prefix, a y-ion the
+# matching suffix, so the two always sum to the parent mass — and the list mixes
+# them with no labels saying which is which.
+#
+# The trick is that it does not matter. Walk upwards from the lightest ion; the
+# next ion differing from it by a residue mass is the next prefix, whichever kind
+# it nominally is. Taking an ion also spends its complement, since a prefix and
+# its suffix are one fragmentation event and cannot both extend the chain.
+let ordered = sort(ions)
+let used = ordered |&gt; map(|_| false)
+
+fn residue_between(lighter, heavier, table, letters, slack) {
+    let gap = heavier - lighter
+    let hits = letters |&gt; filter(|letter| abs(table[letter] - gap) &lt; slack)
+    if len(hits) &gt; 0 then hits[0] else &quot;&quot;
+}
+
+fn index_of_mass(masses, wanted, slack) {
+    let hits = range(0, len(masses)) |&gt; filter(|i| abs(masses[i] - wanted) &lt; slack)
+    if len(hits) &gt; 0 then hits[0] else 0 - 1
+}
+
+fn spend(marks, masses, at, total, slack) {
+    marks[at] = true
+    let partner = index_of_mass(masses, total - masses[at], slack)
+    if partner &gt;= 0 { marks[partner] = true }
+    marks
+}
+
+let peptide = &quot;&quot;
+let current = 0
+used = spend(used, ordered, current, parent_mass, tolerance)
+
+let searching = true
+while searching {
+    let onward = range(current + 1, len(ordered))
+        |&gt; filter(|j| used[j] == false
+                  and residue_between(ordered[current], ordered[j],
+                                      monoisotopic, residues, tolerance) != &quot;&quot;)
+    if len(onward) == 0 {
+        searching = false
+    } else {
+        let next_index = onward[0]
+        peptide = peptide + residue_between(ordered[current], ordered[next_index],
+                                            monoisotopic, residues, tolerance)
+        used = spend(used, ordered, next_index, parent_mass, tolerance)
+        current = next_index
+    }
+}
+
+println(&quot;Result:   &quot; + peptide)
+println(&quot;Expected: KEKEP&quot;)
+
+fn test_full_inferring_peptide_from_full_spectrum() {
+    assert peptide == &quot;KEKEP&quot;, &quot;FULL: got &quot; + peptide
+    # n is fixed by the input's size, and the answer has to match it.
+    let n = (len(ions) + 1 - 3) / 2
+    assert len(peptide) == n, &quot;FULL: expected &quot; + str(n) + &quot; residues&quot;
+    # Every ion pairs with another summing to the parent mass — the property that
+    # makes b-ions and y-ions indistinguishable here, and the reason taking one
+    # spends the other.
+    for mass in ordered {
+        let partner = index_of_mass(ordered, parent_mass - mass, tolerance)
+        assert partner &gt;= 0, &quot;FULL: &quot; + str(round(mass, 4)) + &quot; has no complement&quot;
+    }
+    assert len(ordered) % 2 == 0, &quot;FULL: the ions must pair up&quot;
 }</code></pre>
         </section>
       </article>

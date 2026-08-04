@@ -58,7 +58,7 @@
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=FIB" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="fib.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A recurrence-relation exercise wearing rabbits, not population biology — nothing here dies, competes or mutates. WFMD and EBIN are where real population dynamics appear.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: FIB — Rabbits and Recurrence Relations
 # https://rosalind.info/problems/fib/
 #
@@ -100,7 +100,7 @@ fn test_fib_rabbit_pairs() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=FIBD" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="fibd.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">FIB with a death clock added. Still a recurrence exercise rather than population biology, and useful mainly for showing that the state has to widen from one number to an age profile.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: FIBD — Mortal Fibonacci Rabbits
 # https://rosalind.info/problems/fibd/
 #
@@ -142,7 +142,7 @@ fn test_fibd_mortal_rabbits() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=MRNA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="mrna.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The reverse of PROT, and it cannot be done — the code is degenerate, so a protein maps back to many mRNAs. Leucine, serine and arginine take six codons each. Counting them needs a modulus because the total outgrows any integer.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: MRNA — Inferring mRNA from Protein
 # https://rosalind.info/problems/mrna/
 #
@@ -180,7 +180,7 @@ fn test_mrna_possible_rna_strings() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PERM" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="perm.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Permutations as gene orders. n! grows fast enough that enumeration stops being possible almost immediately, which is the premise SIGN, REAR and SORT build on — there, gene order is the data and the question is how few reversals separate two of them.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PERM — Enumerating Gene Orders
 # https://rosalind.info/problems/perm/
 #
@@ -222,7 +222,7 @@ fn test_perm_permutation_count() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PPER" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="pper.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Ordered selections rather than full orderings, taken modulo a million because the count outgrows the answer format long before it outgrows the biology. Combinatorial groundwork for the counting problems, not a biological question in itself.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PPER — Partial Permutations
 # https://rosalind.info/problems/pper/
 #
@@ -252,7 +252,7 @@ fn test_pper_partial_permutations() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SSET" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="sset.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Two to the n, which is the point. Any method that examines every subset of a set of sites stops being usable in the low twenties, and that is the wall the search problems elsewhere in this pack are built to avoid.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: SSET — Counting Subsets
 # https://rosalind.info/problems/sset/
 #
@@ -281,7 +281,7 @@ fn test_sset_subset_count() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PMCH" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="pmch.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">RNA folds back on itself and pairs. This counts the ways every base could be paired, which requires the A and U counts to match and the C and G counts to match — a condition real sequences rarely satisfy, which is what MMCH addresses.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PMCH — Perfect Matchings and RNA Secondary Structures
 # https://rosalind.info/problems/pmch/
 #
@@ -320,7 +320,7 @@ fn test_pmch_perfect_matchings() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=MMCH" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="mmch.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">PMCH without the assumption that everything pairs. Real RNA leaves bases unpaired because the counts do not match, so the question becomes how many bonds are possible rather than how many arrangements are complete.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: MMCH — Maximum Matchings and RNA Secondary Structures
 # https://rosalind.info/problems/mmch/
 #
@@ -365,7 +365,7 @@ fn test_mmch_maximum_matchings() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CAT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="cat.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Catalan numbers count matchings that do not cross, and non-crossing is a physical constraint rather than a mathematical convenience: crossing bonds are pseudoknots, which this model excludes. MOTZ relaxes the requirement that everything pairs, and RNAS adds wobble bonds and a minimum hairpin turn.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CAT — Catalan Numbers and RNA Secondary Structures
 # https://rosalind.info/problems/cat/
 #
@@ -415,7 +415,7 @@ fn test_cat_noncrossing_matchings() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LEXF" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="lexf.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Enumerating every k-mer over an alphabet, which is 4 to the k for DNA. Fine at k=3 and hopeless by k=20, which is why the k-mer problems index sequences rather than enumerate possibilities.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LEXF — Enumerating k-mers Lexicographically
 # https://rosalind.info/problems/lexf/
 #
@@ -460,7 +460,7 @@ fn test_lexf_lexicographic_kmers() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SIGN" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="sign.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Signed permutations: 2^n times n! of them, because each gene may also be flipped. The sign is not decoration — a reversed gene reads on the opposite strand, which is exactly what REAR and SORT measure.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: SIGN — Enumerating Oriented Gene Orderings
 # https://rosalind.info/problems/sign/
 #
@@ -512,7 +512,7 @@ fn test_sign_signed_permutations() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LEXV" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="lexv.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Ordering strings of unequal length, where a prefix sorts before anything extending it. Ordinary lexicographic order on padded strings gets this wrong, which is the whole exercise.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LEXV — Ordering Strings of Varying Length Lexicographically
 # https://rosalind.info/problems/lexv/
 #
@@ -559,7 +559,7 @@ fn test_lexv_varying_length_order() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ASPC" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="aspc.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Summing binomial coefficients, motivated by alternative splicing: one gene yields many proteins depending on which exons are kept. The count grows fast enough that the modulus is doing real work.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: ASPC — Introduction to Alternative Splicing
 # https://rosalind.info/problems/aspc/
 #
@@ -608,7 +608,7 @@ fn test_aspc_alternative_splicing() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=MOTZ" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="motz.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Motzkin numbers drop CAT's requirement that every base pairs, which is the more realistic model: real RNA leaves plenty unpaired. RNAS goes further and adds wobble bonds and a minimum hairpin length.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: MOTZ — Motzkin Numbers and RNA Secondary Structures
 # https://rosalind.info/problems/motz/
 #

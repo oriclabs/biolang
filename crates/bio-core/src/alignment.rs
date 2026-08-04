@@ -343,8 +343,118 @@ fn cigar_op(a: u8, b: u8) -> char {
     }
 }
 
-/// Levenshtein edit distance. O(min(n,m)) space.
+/// Levenshtein edit distance, computed with Myers' bit-parallel algorithm.
+///
+/// The dynamic-programming table has one cell per pair of positions, and the
+/// only thing that ever changes between vertically adjacent cells is +1, 0 or
+/// -1. Myers exploits that: the whole column of differences is carried in two
+/// machine words, one bit per row, and a single add-and-xor advances 64 rows at
+/// once. The cost falls from O(nm) cell updates to O(nm/64) word operations.
+///
+/// This is the same algorithm edlib uses, which is why it was worth having —
+/// the benchmark had BioLang four times slower than edlib on identical work.
+///
+/// [`edit_distance_dp`] is kept beside it as the reference. It is the oracle the
+/// property tests check this against, because a bit-parallel routine that is
+/// subtly wrong looks exactly like one that is right until it does not.
 pub fn edit_distance(seq1: &str, seq2: &str) -> usize {
+    let a = seq1.as_bytes();
+    let b = seq2.as_bytes();
+    // The pattern goes in the bit vectors, so the shorter string belongs there:
+    // the work is ceil(m/64) words per character of the other one.
+    let (pattern, text) = if a.len() <= b.len() { (a, b) } else { (b, a) };
+    if pattern.is_empty() {
+        return text.len();
+    }
+    myers_edit_distance(pattern, text)
+}
+
+const WORD: usize = 64;
+
+fn myers_edit_distance(pattern: &[u8], text: &[u8]) -> usize {
+    let m = pattern.len();
+    let blocks = m.div_ceil(WORD);
+
+    // Which pattern positions carry each byte, one bitmask per block. Both cases
+    // map to the same entry, matching the case-insensitive comparison the
+    // reference implementation has always done.
+    let mut peq = vec![0u64; 256 * blocks];
+    for (i, &byte) in pattern.iter().enumerate() {
+        let upper = byte.to_ascii_uppercase() as usize;
+        peq[upper * blocks + i / WORD] |= 1u64 << (i % WORD);
+    }
+
+    // Column 0 of the table is 0,1,2,...,m — every vertical delta is +1.
+    let mut vp = vec![u64::MAX; blocks];
+    let mut vn = vec![0u64; blocks];
+    let mut score = m;
+
+    let last_block = blocks - 1;
+    let last_bit = 1u64 << ((m - 1) % WORD);
+    let top_bit = 1u64 << (WORD - 1);
+
+    for &byte in text {
+        let upper = byte.to_ascii_uppercase() as usize;
+        // Row 0 of the table is 0,1,2,...,n, so the horizontal delta entering
+        // the first block is +1. Setting it to 0 here would compute a
+        // semi-global distance instead, which is the usual way to get this
+        // algorithm subtly wrong.
+        let mut carry: i32 = 1;
+
+        for block in 0..blocks {
+            let mut eq = peq[upper * blocks + block];
+            let vp_b = vp[block];
+            let vn_b = vn[block];
+            if carry < 0 {
+                eq |= 1;
+            }
+
+            let xv = eq | vn_b;
+            let xh = (((eq & vp_b).wrapping_add(vp_b)) ^ vp_b) | eq;
+            let mut ph = vn_b | !(xh | vp_b);
+            let mut mh = vp_b & xh;
+
+            // The delta leaving this block feeds the next one.
+            let next_carry = if ph & top_bit != 0 {
+                1
+            } else if mh & top_bit != 0 {
+                -1
+            } else {
+                0
+            };
+
+            // Only the pattern's final row moves the running distance.
+            if block == last_block {
+                if ph & last_bit != 0 {
+                    score += 1;
+                } else if mh & last_bit != 0 {
+                    score -= 1;
+                }
+            }
+
+            ph <<= 1;
+            mh <<= 1;
+            if carry > 0 {
+                ph |= 1;
+            } else if carry < 0 {
+                mh |= 1;
+            }
+
+            vp[block] = mh | !(xv | ph);
+            vn[block] = ph & xv;
+            carry = next_carry;
+        }
+    }
+
+    score
+}
+
+/// The textbook dynamic-programming edit distance, O(min(n,m)) space.
+///
+/// Retained as the reference implementation. It is slower by roughly the word
+/// size and far easier to read, which makes it the right thing to check the
+/// bit-parallel version against.
+pub fn edit_distance_dp(seq1: &str, seq2: &str) -> usize {
     let a = seq1.as_bytes();
     let b = seq2.as_bytes();
     let (short, long) = if a.len() <= b.len() { (a, b) } else { (b, a) };
@@ -480,5 +590,108 @@ pub fn scoring_matrix(name: &str) -> Option<&'static [[i32; 20]; 20]> {
         "pam250" => Some(&PAM250),
         "blosum45" => Some(&BLOSUM45),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod myers_tests {
+    use super::{edit_distance, edit_distance_dp};
+
+    /// A tiny deterministic PRNG, so a failure is reproducible from its seed.
+    struct Rng(u64);
+
+    impl Rng {
+        fn next(&mut self) -> u64 {
+            self.0 ^= self.0 << 13;
+            self.0 ^= self.0 >> 7;
+            self.0 ^= self.0 << 17;
+            self.0
+        }
+
+        fn string(&mut self, len: usize, alphabet: &[u8]) -> String {
+            (0..len)
+                .map(|_| alphabet[(self.next() % alphabet.len() as u64) as usize] as char)
+                .collect()
+        }
+    }
+
+    #[test]
+    fn agrees_with_the_reference_on_random_pairs() {
+        // The bit-parallel version is only trustworthy insofar as it matches the
+        // straightforward one. Lengths deliberately straddle the 64-bit word
+        // boundary, which is where a blocked implementation goes wrong.
+        let mut rng = Rng(0x5EED_1234_ABCD_0001);
+        let lengths = [0, 1, 2, 7, 31, 63, 64, 65, 100, 127, 128, 129, 200, 257];
+        for &m in &lengths {
+            for &n in &lengths {
+                for _ in 0..12 {
+                    let a = rng.string(m, b"ACGT");
+                    let b = rng.string(n, b"ACGT");
+                    assert_eq!(
+                        edit_distance(&a, &b),
+                        edit_distance_dp(&a, &b),
+                        "disagreement on {a:?} vs {b:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn agrees_on_a_wider_alphabet() {
+        // A four-letter alphabet gives many matches; a wide one gives few, and
+        // the two exercise different paths through the carry logic.
+        let mut rng = Rng(0xABCD_0000_1111_2222);
+        for _ in 0..300 {
+            let (la, lb) = ((rng.next() % 150) as usize, (rng.next() % 150) as usize);
+            let a = rng.string(la, b"ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+            let b = rng.string(lb, b"ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+            assert_eq!(edit_distance(&a, &b), edit_distance_dp(&a, &b));
+        }
+    }
+
+    #[test]
+    fn known_answers() {
+        assert_eq!(edit_distance("", ""), 0);
+        assert_eq!(edit_distance("", "ACGT"), 4);
+        assert_eq!(edit_distance("ACGT", ""), 4);
+        assert_eq!(edit_distance("ACGT", "ACGT"), 0);
+        assert_eq!(edit_distance("kitten", "sitting"), 3);
+        assert_eq!(edit_distance("PLEASANTLY", "MEANLY"), 5);
+        // A pure insertion, a pure deletion, and a pure substitution.
+        assert_eq!(edit_distance("ACGT", "ACGTA"), 1);
+        assert_eq!(edit_distance("ACGTA", "ACGT"), 1);
+        assert_eq!(edit_distance("ACGT", "ACCT"), 1);
+    }
+
+    #[test]
+    fn stays_case_insensitive() {
+        // The reference has always compared case-insensitively; the bit-parallel
+        // version folds case when it builds its masks, and must agree.
+        assert_eq!(edit_distance("acgt", "ACGT"), 0);
+        assert_eq!(edit_distance("AcGtAcGt", "aCgTaCgT"), 0);
+        assert_eq!(edit_distance("acgt", "ACGA"), 1);
+    }
+
+    #[test]
+    fn argument_order_does_not_matter() {
+        // Edit distance is symmetric, and the implementation puts whichever
+        // string is shorter into the bit vectors — so this checks the swap.
+        let mut rng = Rng(0x1357_9BDF_2468_ACE0);
+        for _ in 0..200 {
+            let (la, lb) = ((rng.next() % 140) as usize, (rng.next() % 140) as usize);
+            let a = rng.string(la, b"ACGT");
+            let b = rng.string(lb, b"ACGT");
+            assert_eq!(edit_distance(&a, &b), edit_distance(&b, &a));
+        }
+    }
+
+    #[test]
+    fn a_long_pair_spanning_many_blocks() {
+        // Thirty-two blocks, which is the shape the benchmark uses.
+        let mut rng = Rng(0x2222_3333_4444_5555);
+        let a = rng.string(2000, b"ACGT");
+        let b = rng.string(2000, b"ACGT");
+        assert_eq!(edit_distance(&a, &b), edit_distance_dp(&a, &b));
     }
 }

@@ -1,0 +1,4 @@
+
+# Playwright run artefacts — regenerated on every run, never meaningful in a diff.
+test-results/
+playwright-report/

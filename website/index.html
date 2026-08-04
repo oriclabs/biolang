@@ -273,7 +273,7 @@ ncbi_gene("BRCA1") |> println()</code></pre>
             <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
           </div>
           <h3 class="text-lg font-semibold text-white mb-2">Rust Performance</h3>
-          <p class="text-sm text-slate-400">Native Rust I/O via noodles. Up to <strong class="text-slate-200">7.1x</strong> faster on ENCODE overlap, <strong class="text-slate-200">7.0x</strong> on protein k-mers, <strong class="text-slate-200">6.7x</strong> on FASTA parsing, <strong class="text-slate-200">3.2x</strong> on k-mer counting, 50–70% fewer lines of code. <a href="benchmarks.html" class="text-violet-400 hover:text-violet-300">See benchmarks &rarr;</a></p>
+          <p class="text-sm text-slate-400">Native Rust I/O via noodles, and sequence work that runs in compiled code rather than a loop: <strong class="text-slate-200">16x</strong> faster than BioPython on translation, <strong class="text-slate-200">3.6x</strong> on GC content. It loses elsewhere &mdash; k-mer counting is <strong class="text-slate-200">3.9x slower</strong> than a Python dict, and anything written as an interpreted loop is slower still. <a href="benchmarks.html" class="text-violet-400 hover:text-violet-300">See benchmarks &rarr;</a></p>
         </div>
       </div>
     </div>
@@ -283,14 +283,14 @@ ncbi_gene("BRCA1") |> println()</code></pre>
   <!-- Rosalind coverage: the one claim on this page a stranger can check -->
   <section class="py-20 border-b border-slate-800/50">
     <div class="max-w-5xl mx-auto px-6">
-      <h2 class="text-3xl font-bold text-white text-center mb-4">258 Rosalind problems, every answer checked</h2>
+      <h2 class="text-3xl font-bold text-white text-center mb-4">278 Rosalind problems, every answer checked</h2>
       <p class="text-slate-400 text-center mb-2 max-w-3xl mx-auto">
         <a href="https://rosalind.info" class="text-violet-400 hover:text-violet-300">Rosalind</a> is the bioinformatics
         problem set used in teaching worldwide. These problems are not mine to choose, and the answers are not mine to mark: each
         solution is asserted against the official answer, and every one is re-run on each commit &mdash; natively, and
         again through the same WebAssembly build this site serves.
       </p>
-      <p class="text-slate-500 text-center mb-8 text-sm">Three of the four tracks are complete. The Stronghold is not, and the numbers below say so.</p>
+      <p class="text-slate-500 text-center mb-8 text-sm">All four tracks are complete &mdash; every problem in each, asserted against its published answer.</p>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <a href="/docs/examples/rosalind-armory.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
@@ -304,9 +304,9 @@ ncbi_gene("BRCA1") |> println()</code></pre>
           <div class="text-xs text-slate-500">complete</div>
         </a>
         <a href="/docs/examples/rosalind-stronghold.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
-          <div class="text-2xl font-bold text-violet-400">85 / 105</div>
+          <div class="text-2xl font-bold text-green-400">105 / 105</div>
           <div class="text-sm text-slate-300 mt-1">Stronghold</div>
-          <div class="text-xs text-slate-500">in progress</div>
+          <div class="text-xs text-slate-500">complete</div>
         </a>
         <a href="/docs/examples/rosalind-textbook.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
           <div class="text-2xl font-bold text-green-400">124 / 124</div>
@@ -470,7 +470,7 @@ print(df.describe())</code></pre>
 
       <p class="text-slate-500 text-xs mb-6">Linux (WSL2) &mdash; Intel i9-12900K, 16 GB RAM. Python wins on VCF/CSV text parsing where C extensions dominate. K-mer counting uses canonical (strand-agnostic) 21-mers &mdash; BioLang does strictly more work.</p>
 
-      <p class="text-slate-500 text-xs mb-6">Take the startup out and the picture changes, so here it is too. Timed per operation on a 1&nbsp;Mb genome, median of seven runs, every implementation checked to return the same answer: translation <strong class="text-slate-400">13.9&times; faster</strong> than BioPython and GC content <strong class="text-slate-400">1.9&times; faster</strong> than the Python standard library, but reverse complement 1.4&times; <em>slower</em>, FASTA parsing 1.7&times; slower, and edit distance 3.9&times; slower than <a href="https://github.com/Martinsos/edlib" class="text-violet-400 hover:text-violet-300">edlib</a>, which is SIMD C. The harness that produces all of it is <a href="https://github.com/oriclabs/biolang/blob/main/bench/harness.py" class="text-violet-400 hover:text-violet-300">bench/harness.py</a> &mdash; seeded inputs, recorded versions, run it yourself.</p>
+      <p class="text-slate-500 text-xs mb-6">Take the startup out and the picture changes, so here it is too. Timed per operation on a 1&nbsp;Mb genome, every implementation checked to return the same answer before any timing is believed. BioLang wins where a Rust builtin does the work &mdash; translation <strong class="text-slate-400">16&times; faster</strong> than BioPython, GC content <strong class="text-slate-400">3.6&times;</strong>, Viterbi decoding <strong class="text-slate-400">4.7&times;</strong> faster than pure Python. It loses wherever the work happens in interpreted BioLang: k-mer counting <strong class="text-slate-400">3.9&times; slower</strong> than a Python dict, FASTA parsing 3.3&times; slower, a plain loop <strong class="text-slate-400">9&times; slower</strong> than CPython. Against C it still loses, by less than it did &mdash; edit distance runs Myers&rsquo; bit-parallel algorithm now, the same one <a href="https://github.com/Martinsos/edlib" class="text-violet-400 hover:text-violet-300">edlib</a> uses, which took it from 4.0&times; slower to 1.9&times;. Suffix arrays are still 6.8&times; behind pydivsufsort, because they use prefix doubling where it uses SA-IS. The harness is <a href="https://github.com/oriclabs/biolang/blob/main/bench/harness.py" class="text-violet-400 hover:text-violet-300">bench/harness.py</a>, and <a href="https://github.com/oriclabs/biolang/blob/main/bench/Dockerfile" class="text-violet-400 hover:text-violet-300">bench/Dockerfile</a> pins all three toolchains so you can reproduce it.</p>
 
       <div class="text-center">
         <a href="benchmarks.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition-colors border border-slate-700">

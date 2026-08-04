@@ -1,0 +1,50 @@
+# Rosalind: SORT — Sorting by Reversals
+# https://rosalind.info/problems/sort/
+#
+# Given: Two permutations of length 10.
+# Return: The reversal distance, and a shortest collection of reversals taking
+# the first to the second.
+
+let from_order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+let to_order = [1, 8, 9, 3, 2, 7, 6, 5, 4, 10]
+
+# REAR asks how far apart two gene orders are; this asks for the route. The
+# search is the same — the distance is just the length of what comes back — but
+# the sequence is what actually says how the rearrangement happened, and a
+# distance without one is unfalsifiable.
+#
+# Any shortest sequence is correct. Reversals commute in some orders and not
+# others, so several routes of the same length usually exist.
+let steps = sorting_reversals(from_order, to_order)
+
+println("Result:   " + str(len(steps)))
+for step in steps { println("          " + str(step[0]) + " " + str(step[1])) }
+println("Expected: 2, then 4 9 and 2 5 — any shortest route is accepted")
+
+fn test_sort_sorting_by_reversals() {
+    assert len(steps) == 2, "SORT: expected 2 reversals, got " + str(len(steps))
+    assert len(steps) == reversal_distance(from_order, to_order),
+        "SORT: the route must be as long as the distance"
+
+    # The route has to work. Applying the reversals in order must produce the
+    # target — a plausible-looking list that does not sort is the failure this
+    # problem invites.
+    let current = from_order
+    for step in steps {
+        let from_index = step[0] - 1
+        let to_index = step[1] - 1
+        let head = range(0, from_index) |> map(|i| current[i])
+        let middle = range(from_index, to_index + 1)
+            |> map(|i| current[to_index - (i - from_index)])
+        let tail = range(to_index + 1, len(current)) |> map(|i| current[i])
+        current = head + middle + tail
+    }
+    assert current == to_order,
+        "SORT: the reversals give " + str(current) + ", not " + str(to_order)
+
+    # Every interval is a real one, and reverses more than a single element.
+    for step in steps {
+        assert step[0] >= 1 and step[1] <= len(from_order), "SORT: interval out of range"
+        assert step[0] < step[1], "SORT: reversing one element does nothing"
+    }
+}

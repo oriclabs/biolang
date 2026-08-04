@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Assembly</h1>
-        <p class="text-lg text-slate-400 mb-6">3 problems from
+        <p class="text-lg text-slate-400 mb-6">5 problems from
         <a href="../rosalind-stronghold.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Stronghold</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -36,6 +36,8 @@
           <a href="#asmq" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Assessing Assembly Quality with N50 and N75">ASMQ</a>
           <a href="#long" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Genome Assembly as Shortest Superstring">LONG</a>
           <a href="#pcov" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Genome Assembly with Perfect Coverage">PCOV</a>
+          <a href="#gasm" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Genome Assembly Using Reads">GASM</a>
+          <a href="#grep" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Genome Assembly with Perfect Coverage and Repeats">GREP</a>
         </nav>
 
         <section id="asmq" class="mt-12">
@@ -46,7 +48,7 @@
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ASMQ" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="asmq.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">N50 is the contig length at which half the assembly sits in contigs that long or longer. It is the standard summary and a gameable one: joining contigs wrongly raises it, so a high N50 is evidence of a long assembly rather than a correct one.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: ASMQ — Assessing Assembly Quality with N50 and N75
 # https://rosalind.info/problems/asmq/
 #
@@ -97,7 +99,7 @@ fn test_asmq_n50_and_n75() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LONG" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="long.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Shortest superstring is NP-hard in general. This is solvable only because the problem guarantees every pair overlaps by more than half their length, which makes the correct overlap unique and a greedy merge safe. GREP shows what happens when that guarantee is dropped.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LONG — Genome Assembly as Shortest Superstring
 # https://rosalind.info/problems/long/
 #
@@ -204,6 +206,212 @@ fn test_pcov_perfect_coverage() {
     assert covered == len(reads), &quot;PCOV: only &quot; + str(covered) + &quot; of &quot; + str(len(reads)) + &quot; reads appear&quot;
     # The walk must close: the last read's suffix returns to the first's prefix.
     assert suffix_of(order[len(order) - 1]) == prefix_of(order[0]), &quot;PCOV: the cycle does not close&quot;
+}</code></pre>
+        </section>
+
+        <section id="gasm" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">GASM &mdash; Genome Assembly Using Reads</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/gasm/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GASM" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="gasm.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A read gives no clue which strand it came from, so the graph holds every read and its reverse complement and falls into two mirror cycles. Returns AATCTGT — a rotation of the reverse complement of GATTACA, which the assertion checks up to both rotation and strand.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: GASM — Genome Assembly Using Reads
+# https://rosalind.info/problems/gasm/
+#
+# Given: Error-free reads of equal length, whose de Bruijn graph is two directed
+# cycles.
+# Return: A cyclic superstring of minimal length containing every read or its
+# reverse complement.
+
+let reads = [&quot;AATCT&quot;, &quot;TGTAA&quot;, &quot;GATTA&quot;, &quot;ACAGA&quot;]
+
+# A read gives no clue which strand it came from, so the assembly graph has to
+# hold every read *and* its reverse complement — which is why the de Bruijn graph
+# here always falls into exactly two cycles, one the mirror of the other. Either
+# spells the answer; they are the same circular genome read from opposite
+# strands.
+#
+# k is not given. The right one is the largest that still leaves every node with
+# somewhere to go, so it is searched for downwards from the read length: too
+# large and the graph breaks into fragments, too small and distinct repeats
+# collapse into one node.
+let both_strands = reads |&gt; flat_map(|r| [r, str(reverse_complement(dna(r)))])
+
+# Every k-length window of every read, not the reads themselves. The reads are
+# longer than the k that works, and using them whole leaves the graph with more
+# nodes than edges — which is what a broken assembly looks like.
+fn windows_of(patterns, k) {
+    patterns
+        |&gt; flat_map(|p| range(0, len(p) - k + 1) |&gt; map(|i| substr(p, i, k)))
+        |&gt; unique()
+}
+
+fn cycle_through(k, patterns) {
+    let edges_of = windows_of(patterns, k)
+    let graph = {}
+    for pattern in edges_of {
+        let prefix = substr(pattern, 0, k - 1)
+        let suffix = substr(pattern, 1, k - 1)
+        if contains(keys(graph), prefix) {
+            graph[prefix] = push(graph[prefix], suffix)
+        } else {
+            graph[prefix] = [suffix]
+        }
+    }
+    # Exactly one way in and one way out of every node, or this k does not give a
+    # clean pair of cycles.
+    let nodes = unique(keys(graph) + (keys(graph) |&gt; flat_map(|n| graph[n])))
+    let single_exit = nodes |&gt; count_if(|n| contains(keys(graph), n) and len(graph[n]) == 1)
+    if single_exit != len(nodes) { return &quot;&quot; }
+
+    let start = sort(keys(graph))[0]
+    let walk = [start]
+    let at = graph[start][0]
+    while at != start {
+        walk = push(walk, at)
+        at = graph[at][0]
+    }
+    # Half the nodes belong to the mirror cycle, so a correct walk covers exactly
+    # half of them.
+    if len(walk) * 2 != len(nodes) { return &quot;&quot; }
+    # Circular, so only the leading character of each node is kept — the trailing
+    # k-1 are the leading ones come round again.
+    walk |&gt; map(|node| substr(node, 0, 1)) |&gt; join(&quot;&quot;)
+}
+
+let answer = &quot;&quot;
+let k = len(reads[0])
+while answer == &quot;&quot; and k &gt; 2 {
+    answer = cycle_through(k, both_strands)
+    k = k - 1
+}
+
+println(&quot;Result:   &quot; + answer)
+println(&quot;Expected: GATTACA  (any rotation, of either strand, is accepted)&quot;)
+
+fn test_gasm_genome_assembly() {
+    assert len(answer) == 7, &quot;GASM: expected a 7-character superstring, got &quot; + str(len(answer))
+    # Every read, or its reverse complement, must appear when the string is read
+    # around the circle.
+    let wrapped = answer + substr(answer, 0, len(reads[0]) - 1)
+    for read in reads {
+        let flipped = str(reverse_complement(dna(read)))
+        assert contains(wrapped, read) or contains(wrapped, flipped),
+            &quot;GASM: neither &quot; + read + &quot; nor &quot; + flipped + &quot; occurs&quot;
+    }
+    # GATTACA is one rotation of one strand; the answer is correct up to both.
+    let rotations = range(0, len(answer)) |&gt; map(|i| substr(wrapped, i, len(answer)))
+    let mirror = str(reverse_complement(dna(answer)))
+    let mirror_wrapped = mirror + substr(mirror, 0, len(answer))
+    let mirror_rotations = range(0, len(answer)) |&gt; map(|i| substr(mirror_wrapped, i, len(answer)))
+    assert contains(rotations, &quot;GATTACA&quot;) or contains(mirror_rotations, &quot;GATTACA&quot;),
+        &quot;GASM: &quot; + answer + &quot; is not GATTACA up to rotation and strand&quot;
+}</code></pre>
+        </section>
+
+        <section id="grep" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">GREP &mdash; Genome Assembly with Perfect Coverage and Repeats</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/grep/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GREP" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="grep.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">PCOV returns one answer; this is the honest version. Repeats make the Eulerian cycle non-unique and all six cycles are genomes consistent with the reads — so the reads do not determine the chromosome, and reporting one would be picking arbitrarily.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: GREP — Genome Assembly with Perfect Coverage and Repeats
+# https://rosalind.info/problems/grep/
+#
+# Given: (k+1)-mers from one strand of a circular chromosome.
+# Return: Every circular string assembled by a complete cycle in the de Bruijn
+# graph, each beginning with the first (k+1)-mer given.
+
+let patterns = [
+    &quot;CAG&quot;, &quot;AGT&quot;, &quot;GTT&quot;, &quot;TTT&quot;, &quot;TTG&quot;, &quot;TGG&quot;, &quot;GGC&quot;, &quot;GCG&quot;, &quot;CGT&quot;,
+    &quot;GTT&quot;, &quot;TTC&quot;, &quot;TCA&quot;, &quot;CAA&quot;, &quot;AAT&quot;, &quot;ATT&quot;, &quot;TTC&quot;, &quot;TCA&quot;,
+]
+
+# PCOV assumes perfect coverage and returns one answer. This is the honest
+# version: repeats make the Eulerian cycle non-unique, and every cycle is a
+# genome consistent with the reads. Six here — so the reads simply do not
+# determine the chromosome, and reporting one would be picking arbitrarily.
+#
+# That ambiguity is why repeats are the hard part of real assembly, and why
+# BA3J's paired reads exist: extra distance information cuts the alternatives
+# down.
+let k = len(patterns[0]) - 1
+
+let edges_list = patterns |&gt; map(|p| {
+    from_node: substr(p, 0, k),
+    to_node: substr(p, 1, k),
+})
+
+let start_node = edges_list[0].from_node
+
+# Depth-first over the edge multiset. Hierholzer finds one cycle in linear time;
+# finding them all is a search, and only feasible because the graph is small.
+let complete = []
+let stack = [{
+    at: edges_list[0].to_node,
+    used: range(0, len(edges_list)) |&gt; map(|i| i == 0),
+    walk: [start_node, edges_list[0].to_node],
+}]
+
+while len(stack) &gt; 0 {
+    let state = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+
+    let remaining = state.used |&gt; count_if(|u| u == false)
+    if remaining == 0 {
+        # A cycle only counts if it closed.
+        if state.at == start_node { complete = push(complete, state.walk) }
+    } else {
+        for i in range(0, len(edges_list)) {
+            if state.used[i] == false and edges_list[i].from_node == state.at {
+                let marked = state.used
+                marked[i] = true
+                stack = push(stack, {
+                    at: edges_list[i].to_node,
+                    used: marked,
+                    walk: push(state.walk, edges_list[i].to_node),
+                })
+            }
+        }
+    }
+}
+
+# A circular string keeps one character per edge — the trailing k are the leading
+# k come round again.
+let assembled = complete
+    |&gt; map(|walk| range(0, len(walk) - 1) |&gt; map(|i| substr(walk[i], 0, 1)) |&gt; join(&quot;&quot;))
+    |&gt; unique()
+    |&gt; sort()
+
+println(&quot;Result:&quot;)
+for line in assembled { println(&quot;  &quot; + line) }
+println(&quot;Expected: CAGTTCAATTTGGCGTT CAGTTCAATTGGCGTTT CAGTTTCAATTGGCGTT&quot;)
+println(&quot;          CAGTTTGGCGTTCAATT CAGTTGGCGTTCAATTT CAGTTGGCGTTTCAATT&quot;)
+
+fn test_grep_assembly_with_repeats() {
+    let expected = [&quot;CAGTTCAATTTGGCGTT&quot;, &quot;CAGTTCAATTGGCGTTT&quot;, &quot;CAGTTTCAATTGGCGTT&quot;,
+                    &quot;CAGTTTGGCGTTCAATT&quot;, &quot;CAGTTGGCGTTCAATTT&quot;, &quot;CAGTTGGCGTTTCAATT&quot;]
+    assert assembled == sort(expected), &quot;GREP: got &quot; + join(assembled, &quot; &quot;)
+    # Each answer is as long as there are reads, and starts with the first one.
+    for answer in assembled {
+        assert len(answer) == len(patterns),
+            &quot;GREP: &quot; + answer + &quot; should be &quot; + str(len(patterns)) + &quot; long&quot;
+        assert substr(answer, 0, k + 1) == patterns[0],
+            &quot;GREP: &quot; + answer + &quot; must begin with &quot; + patterns[0]
+        # And read around the circle, its composition is exactly the input.
+        let wrapped = answer + substr(answer, 0, k)
+        let composition = range(0, len(answer)) |&gt; map(|i| substr(wrapped, i, k + 1))
+        assert sort(composition) == sort(patterns),
+            &quot;GREP: &quot; + answer + &quot; does not have the given composition&quot;
+    }
+    # The point of the problem: more than one genome fits.
+    assert len(assembled) &gt; 1, &quot;GREP: repeats should leave the assembly ambiguous&quot;
 }</code></pre>
         </section>
       </article>

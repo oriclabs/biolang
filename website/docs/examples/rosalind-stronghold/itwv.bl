@@ -1,0 +1,90 @@
+# Rosalind: ITWV — Finding Disjoint Motifs in a Gene
+# https://rosalind.info/problems/itwv/
+#
+# Given: A DNA string s and a collection of patterns.
+# Return: The matrix M where M[j][k] = 1 if patterns j and k can be interwoven
+# into some substring of s.
+
+let text = "GACCACGGTT"
+let patterns = ["ACAG", "GT", "CCG"]
+
+# Two motifs are interwoven when a stretch of the sequence spells both at once,
+# each as a subsequence, using every character for at most one of them. That is
+# what makes this different from finding each motif separately: they compete for
+# the same characters, so the question is whether a shared stretch can satisfy
+# both — which matters when asking whether two binding sites can overlap.
+#
+# The state is (how much of t is placed, how much of u is placed), and the
+# characters of s are consumed in order. Each character extends whichever motif
+# it matches, so a cell is reachable from at most two others.
+fn can_interweave(source, start, left, right) {
+    let rows = len(left)
+    let columns = len(right)
+    # reached[a][b] — the first a of `left` and first b of `right` are placed.
+    let reached = range(0, rows + 1) |> map(|_| range(0, columns + 1) |> map(|_| false))
+    reached[0] = reached[0]
+    let seed = reached[0]
+    seed[0] = true
+    reached[0] = seed
+
+    let at = start
+    let done = false
+    while at < len(source) and done == false {
+        let symbol = substr(source, at, 1)
+        let next = range(0, rows + 1) |> map(|a| range(0, columns + 1) |> map(|_| false))
+        for a in range(0, rows + 1) {
+            let line = next[a]
+            for b in range(0, columns + 1) {
+                if reached[a][b] {
+                    # The character can be skipped only by ending the window, so
+                    # every reachable state must consume it or the window stops
+                    # here. Carrying it forward unconsumed is what would let the
+                    # two motifs be found in unrelated parts of the sequence.
+                    if a < rows and substr(left, a, 1) == symbol {
+                        let advanced = next[a + 1]
+                        advanced[b] = true
+                        next[a + 1] = advanced
+                    }
+                    if b < columns and substr(right, b, 1) == symbol {
+                        line[b + 1] = true
+                    }
+                }
+            }
+            next[a] = line
+        }
+        reached = next
+        if reached[rows][columns] { done = true }
+        at = at + 1
+    }
+    done
+}
+
+fn interwoven_anywhere(source, left, right) {
+    (range(0, len(source)) |> count_if(|start| can_interweave(source, start, left, right))) > 0
+}
+
+let pairings = range(0, len(patterns)) |> map(|j|
+    range(0, len(patterns)) |> map(|k|
+        if interwoven_anywhere(text, patterns[j], patterns[k]) then 1 else 0))
+
+println("Result:")
+for line in pairings { println("  " + (line |> map(|v| str(v)) |> join(" "))) }
+println("Expected: 0 0 1 / 0 1 0 / 1 0 0")
+
+fn test_itwv_disjoint_motifs() {
+    let shown = pairings |> map(|line| line |> map(|v| str(v)) |> join(" ")) |> join(" / ")
+    assert shown == "0 0 1 / 0 1 0 / 1 0 0", "ITWV: got " + shown
+    # The relation is symmetric — interweaving t with u is the same question as
+    # interweaving u with t.
+    for j in range(0, len(patterns)) {
+        for k in range(0, len(patterns)) {
+            assert pairings[j][k] == pairings[k][j], "ITWV: the pairings must be symmetric"
+        }
+    }
+    # GT with itself works: GACCACGGTT contains GGTT, which spells GT twice using
+    # disjoint characters.
+    assert pairings[1][1] == 1, "ITWV: GT interweaves with itself"
+    # ACAG with itself does not — there are not enough characters to spell it
+    # twice disjointly anywhere.
+    assert pairings[0][0] == 0, "ITWV: ACAG cannot be interwoven with itself"
+}

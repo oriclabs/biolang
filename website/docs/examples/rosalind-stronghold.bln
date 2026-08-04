@@ -4258,3 +4258,1756 @@ fn test_cstr_character_table() {
 }
 ```
 
+## SUFF — Encoding Suffix Trees
+
+[Problem statement](https://rosalind.info/problems/suff/)
+
+```biolang
+# Rosalind: SUFF — Encoding Suffix Trees
+# https://rosalind.info/problems/suff/
+#
+# Given: A DNA string s ending in $.
+# Return: The substrings labelling the edges of the suffix tree of s.
+
+let text = "ATAAATG$"
+
+# Built from the suffix array and its LCP array rather than by inserting every
+# suffix into a trie and collapsing it. Both give the same tree; the difference
+# is cost. A trie of all suffixes has O(n^2) nodes before anything is collapsed,
+# whereas the two arrays are linear in the text and the tree can be read off them
+# in a single left-to-right pass.
+#
+# That is why aligners store the arrays and never materialise the tree: for a
+# human genome the tree does not fit, and the arrays do.
+let sa = suffix_array(text)
+let lcp = lcp_array(text)
+
+# A leaf hangs from the deeper of what its suffix shares with either neighbour,
+# so its edge is whatever is left of the suffix below that depth.
+let leaf_labels = range(0, len(sa)) |> map(|i| {
+    let before = if i == 0 then 0 else lcp[i]
+    let after = if i + 1 < len(sa) then lcp[i + 1] else 0
+    let depth = max([before, after])
+    substr(text, sa[i] + depth, len(text) - sa[i] - depth)
+})
+
+# Internal nodes come from the LCP array alone: a run of suffixes sharing a
+# prefix of length L hangs off one node at depth L. A stack tracks which are
+# still open as the array is scanned.
+let internal_labels = []
+let stack = [{ depth: 0, start: 0 }]
+for i in range(1, len(sa)) {
+    let shared = lcp[i]
+    let last_start = sa[i]
+    while stack[len(stack) - 1].depth > shared {
+        let closing = stack[len(stack) - 1]
+        stack = slice(stack, 0, len(stack) - 1)
+        let parent_depth = max([stack[len(stack) - 1].depth, shared])
+        internal_labels = push(internal_labels,
+            substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+        last_start = closing.start
+    }
+    if stack[len(stack) - 1].depth < shared {
+        stack = push(stack, { depth: shared, start: last_start })
+    }
+}
+while len(stack) > 1 {
+    let closing = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    let parent_depth = stack[len(stack) - 1].depth
+    internal_labels = push(internal_labels,
+        substr(text, closing.start + parent_depth, closing.depth - parent_depth))
+}
+
+let labels = leaf_labels + internal_labels
+
+println("Result:   " + join(sort(labels), " "))
+println("Expected (any order): AAATG$ G$ T ATG$ TG$ A A AAATG$ G$ T G$ $")
+
+fn test_suff_encoding_suffix_trees() {
+    let expected = ["AAATG$", "G$", "T", "ATG$", "TG$", "A", "A", "AAATG$", "G$", "T", "G$", "$"]
+    assert sort(labels) == sort(expected), "SUFF: got " + join(sort(labels), " ")
+    # One leaf per suffix, each reaching the sentinel.
+    assert len(leaf_labels) == len(text), "SUFF: one leaf per suffix"
+    for label in leaf_labels {
+        assert substr(label, len(label) - 1, 1) == "$", "SUFF: a leaf edge must reach the end"
+    }
+    # Every label is a real substring, and the whole tree spells every suffix.
+    for label in labels {
+        assert contains(text, label), "SUFF: " + label + " is not in the text"
+    }
+    # Concatenating the edges costs less than storing the suffixes outright —
+    # which is the saving a suffix tree exists for.
+    let edge_characters = labels |> map(|l| len(l)) |> sum()
+    let all_suffixes = range(0, len(text)) |> map(|i| len(text) - i) |> sum()
+    assert edge_characters < all_suffixes,
+        "SUFF: the tree should be smaller than the suffixes it encodes"
+}
+```
+
+## SGRA — Using the Spectrum Graph to Infer Peptides
+
+[Problem statement](https://rosalind.info/problems/sgra/)
+
+```biolang
+# Rosalind: SGRA — Using the Spectrum Graph to Infer Peptides
+# https://rosalind.info/problems/sgra/
+#
+# Given: A list of positive real numbers (a spectrum).
+# Return: The longest protein string matching the spectrum graph.
+
+let spectrum = [
+    3524.8542, 3623.5245, 3710.9335, 3841.974, 3929.00603,
+    3970.0326, 4026.05879, 4057.0646, 4083.08025,
+]
+
+# Monoisotopic masses, not the integer table the cyclopeptide problems use.
+# Real instrument readings carry decimals, so a difference is matched within a
+# tolerance rather than exactly — 1e-4 here, which is far tighter than the gap
+# between any two residue masses and far looser than float noise.
+let monoisotopic = {
+    A: 71.03711,  C: 103.00919, D: 115.02694, E: 129.04259, F: 147.06841,
+    G: 57.02146,  H: 137.05891, I: 113.08406, K: 128.09496, L: 113.08406,
+    M: 131.04049, N: 114.04293, P: 97.05276,  Q: 128.05858, R: 156.10111,
+    S: 87.03203,  T: 101.04768, V: 99.06841,  W: 186.07931, Y: 163.06333
+}
+let tolerance = 0.0001
+
+# Where L and I collide exactly, and K and Q nearly do, take the first — a
+# spectrum cannot separate them, so naming either is equally correct.
+let residues = ["G", "A", "S", "P", "V", "T", "C", "L", "N", "D",
+                "Q", "K", "E", "M", "H", "F", "R", "Y", "W"]
+
+fn residue_between(lighter, heavier, table, letters, slack) {
+    let gap = heavier - lighter
+    let hits = letters |> filter(|letter| abs(table[letter] - gap) < slack)
+    if len(hits) > 0 then hits[0] else ""
+}
+
+# The graph is a DAG — masses only increase — so the longest path is found by
+# scanning in sorted order and never revisiting a node. Searching the paths
+# themselves would be exponential; here each node is settled once, from the best
+# way of reaching it.
+let ordered = sort(spectrum)
+let best = ordered |> map(|_| "")
+# Where each best path began, so the answer's mass can be checked against the
+# span it was actually read across. The path skips nodes, so this cannot be
+# recovered by counting backwards from the end.
+let origin = range(0, len(ordered))
+
+for j in range(0, len(ordered)) {
+    for i in range(0, j) {
+        let letter = residue_between(ordered[i], ordered[j], monoisotopic, residues, tolerance)
+        if letter != "" and len(best[i]) + 1 > len(best[j]) {
+            best[j] = best[i] + letter
+            origin[j] = origin[i]
+        }
+    }
+}
+
+let finish = argmax(best |> map(|s| len(s)))
+let answer = best[finish]
+
+println("Result:   " + answer)
+println("Expected: WMSPG")
+
+fn test_sgra_spectrum_graph() {
+    assert answer == "WMSPG", "SGRA: got " + answer
+    # Every residue of the answer must be a real gap between two spectrum values.
+    assert len(answer) == 5, "SGRA: expected a 5-residue peptide"
+    # The peptide's own mass is the span it was read across.
+    let peptide_mass = chars(answer) |> map(|c| monoisotopic[c]) |> sum()
+    let span = ordered[finish] - ordered[origin[finish]]
+    assert abs(peptide_mass - span) < len(answer) * tolerance,
+        "SGRA: the peptide weighs " + str(round(peptide_mass, 4))
+            + " but spans " + str(round(span, 4))
+    # Nothing longer exists in the graph.
+    for candidate in best {
+        assert len(candidate) <= len(answer), "SGRA: a longer path was missed"
+    }
+}
+```
+
+## FULL — Inferring Peptide from Full Spectrum
+
+[Problem statement](https://rosalind.info/problems/full/)
+
+```biolang
+# Rosalind: FULL — Inferring Peptide from Full Spectrum
+# https://rosalind.info/problems/full/
+#
+# Given: 2n+3 positive reals — a parent mass, then the b-ions and y-ions of a
+# peptide of length n, in no particular order.
+# Return: A protein string of length n consistent with them.
+
+let parent_mass = 1988.21104821
+let ions = [
+    610.391039105, 738.485999105, 766.492149105, 863.544909105,
+    867.528589105, 992.587499105, 995.623549105, 1120.6824591,
+    1124.6661391, 1221.7188991, 1249.7250491, 1377.8200091,
+]
+
+let monoisotopic = {
+    A: 71.03711,  C: 103.00919, D: 115.02694, E: 129.04259, F: 147.06841,
+    G: 57.02146,  H: 137.05891, I: 113.08406, K: 128.09496, L: 113.08406,
+    M: 131.04049, N: 114.04293, P: 97.05276,  Q: 128.05858, R: 156.10111,
+    S: 87.03203,  T: 101.04768, V: 99.06841,  W: 186.07931, Y: 163.06333
+}
+let residues = ["G", "A", "S", "P", "V", "T", "C", "L", "N", "D",
+                "Q", "K", "E", "M", "H", "F", "R", "Y", "W"]
+let tolerance = 0.001
+
+# A peptide fragments from both ends at once. A b-ion is a prefix, a y-ion the
+# matching suffix, so the two always sum to the parent mass — and the list mixes
+# them with no labels saying which is which.
+#
+# The trick is that it does not matter. Walk upwards from the lightest ion; the
+# next ion differing from it by a residue mass is the next prefix, whichever kind
+# it nominally is. Taking an ion also spends its complement, since a prefix and
+# its suffix are one fragmentation event and cannot both extend the chain.
+let ordered = sort(ions)
+let used = ordered |> map(|_| false)
+
+fn residue_between(lighter, heavier, table, letters, slack) {
+    let gap = heavier - lighter
+    let hits = letters |> filter(|letter| abs(table[letter] - gap) < slack)
+    if len(hits) > 0 then hits[0] else ""
+}
+
+fn index_of_mass(masses, wanted, slack) {
+    let hits = range(0, len(masses)) |> filter(|i| abs(masses[i] - wanted) < slack)
+    if len(hits) > 0 then hits[0] else 0 - 1
+}
+
+fn spend(marks, masses, at, total, slack) {
+    marks[at] = true
+    let partner = index_of_mass(masses, total - masses[at], slack)
+    if partner >= 0 { marks[partner] = true }
+    marks
+}
+
+let peptide = ""
+let current = 0
+used = spend(used, ordered, current, parent_mass, tolerance)
+
+let searching = true
+while searching {
+    let onward = range(current + 1, len(ordered))
+        |> filter(|j| used[j] == false
+                  and residue_between(ordered[current], ordered[j],
+                                      monoisotopic, residues, tolerance) != "")
+    if len(onward) == 0 {
+        searching = false
+    } else {
+        let next_index = onward[0]
+        peptide = peptide + residue_between(ordered[current], ordered[next_index],
+                                            monoisotopic, residues, tolerance)
+        used = spend(used, ordered, next_index, parent_mass, tolerance)
+        current = next_index
+    }
+}
+
+println("Result:   " + peptide)
+println("Expected: KEKEP")
+
+fn test_full_inferring_peptide_from_full_spectrum() {
+    assert peptide == "KEKEP", "FULL: got " + peptide
+    # n is fixed by the input's size, and the answer has to match it.
+    let n = (len(ions) + 1 - 3) / 2
+    assert len(peptide) == n, "FULL: expected " + str(n) + " residues"
+    # Every ion pairs with another summing to the parent mass — the property that
+    # makes b-ions and y-ions indistinguishable here, and the reason taking one
+    # spends the other.
+    for mass in ordered {
+        let partner = index_of_mass(ordered, parent_mass - mass, tolerance)
+        assert partner >= 0, "FULL: " + str(round(mass, 4)) + " has no complement"
+    }
+    assert len(ordered) % 2 == 0, "FULL: the ions must pair up"
+}
+```
+
+## ALPH — Alignment-Based Phylogeny
+
+[Problem statement](https://rosalind.info/problems/alph/)
+
+```biolang
+# Rosalind: ALPH — Alignment-Based Phylogeny
+# https://rosalind.info/problems/alph/
+#
+# Given: A rooted binary tree in Newick format and a multiple alignment of its
+# leaves.
+# Return: The minimum total Hamming distance over the tree's edges, and internal
+# node labels achieving it.
+
+# (((ostrich,cat)rat,(duck,fly)mouse)dog,(elephant,pikachu)hamster)robot;
+let children = {
+    "rat": ["ostrich", "cat"],
+    "mouse": ["duck", "fly"],
+    "dog": ["rat", "mouse"],
+    "hamster": ["elephant", "pikachu"],
+    "robot": ["dog", "hamster"],
+}
+let root = "robot"
+let leaves = {
+    "ostrich": "AC", "cat": "CA", "duck": "T-",
+    "fly": "GC", "elephant": "-T", "pikachu": "AA",
+}
+
+# The gap is a fifth symbol here, not a missing value. That is the whole reason
+# this problem is separate from the ordinary parsimony ones: in an alignment a
+# gap is evidence — an insertion or deletion actually happened — and treating it
+# as unknown would make every column containing one free.
+let symbols = ["A", "C", "G", "T", "-"]
+let width = len(leaves["ostrich"])
+
+fn is_leaf(node, leaf_map) { contains(keys(leaf_map), node) }
+
+# Sankoff: the cheapest cost of a subtree given its root's symbol is the sum over
+# children of their cheapest cost plus one if the symbol has to change. Columns
+# are independent, so each is solved separately and the scores added.
+fn score_column(node, position, leaf_map, child_map, alphabet) {
+    if is_leaf(node, leaf_map) {
+        let here = substr(leaf_map[node], position, 1)
+        return {
+            costs: alphabet |> map(|s| if s == here then 0 else 1000000),
+            picks: {}, solved: [], kids: [],
+        }
+    }
+    let kids = child_map[node]
+    let solved = kids |> map(|kid| score_column(kid, position, leaf_map, child_map, alphabet))
+    let picks = {}
+    let costs = range(0, len(alphabet)) |> map(|mine| {
+        range(0, len(kids)) |> map(|k| {
+            let options = range(0, len(alphabet))
+                |> map(|theirs| solved[k].costs[theirs] + (if theirs == mine then 0 else 1))
+            let chosen = argmin(options)
+            picks[str(mine) + "," + str(k)] = chosen
+            options[chosen]
+        }) |> sum()
+    })
+    { costs: costs, picks: picks, solved: solved, kids: kids }
+}
+
+fn assign(node, tree, chosen_index, labels, alphabet) {
+    labels[node] = labels[node] + alphabet[chosen_index]
+    for k in range(0, len(tree.kids)) {
+        if len(tree.solved[k].kids) > 0 {
+            labels = assign(tree.kids[k], tree.solved[k],
+                            tree.picks[str(chosen_index) + "," + str(k)], labels, alphabet)
+        }
+    }
+    labels
+}
+
+let labels = {}
+for node in keys(children) { labels[node] = "" }
+let total = 0
+for position in range(0, width) {
+    let solved = score_column(root, position, leaves, children, symbols)
+    let best = argmin(solved.costs)
+    total = total + solved.costs[best]
+    labels = assign(root, solved, best, labels, symbols)
+}
+
+let named = {}
+for node in keys(leaves) { named[node] = leaves[node] }
+for node in keys(children) { named[node] = labels[node] }
+
+fn hamming(a, b) { range(0, len(a)) |> count_if(|i| substr(a, i, 1) != substr(b, i, 1)) }
+
+println("Result:   " + str(total))
+for node in sort(keys(children)) { println("  " + node + ": " + named[node]) }
+println("Expected: 8  (rat AC, mouse TC, dog AC, hamster AT, robot AC)")
+println("This labelling differs and costs the same — several are optimal, and the")
+println("assertion recounts the changes rather than trusting the printed one.")
+
+fn test_alph_alignment_based_phylogeny() {
+    assert total == 8, "ALPH: scored " + str(total)
+    # The score has to be the changes the labelling actually shows — a number
+    # without a matching labelling is the usual bug here.
+    let shown = sort(keys(children)) |> flat_map(|parent|
+        children[parent] |> map(|kid| hamming(named[parent], named[kid]))) |> sum()
+    assert shown == total,
+        "ALPH: the labelling shows " + str(shown) + " changes but the score is " + str(total)
+    # Every internal label is the right length and drawn from the alphabet.
+    for node in keys(children) {
+        assert len(named[node]) == width, "ALPH: " + node + " has the wrong length"
+        assert (chars(named[node]) |> count_if(|c| contains(symbols, c) == false)) == 0,
+            "ALPH: " + named[node] + " uses a symbol outside the alphabet"
+    }
+    # Treating the gap as free would score lower, which is exactly what must not
+    # happen — it is a real evolutionary event.
+    assert (chars(leaves["duck"]) |> count_if(|c| c == "-")) == 1, "ALPH: duck carries a gap"
+}
+```
+
+## GASM — Genome Assembly Using Reads
+
+[Problem statement](https://rosalind.info/problems/gasm/)
+
+```biolang
+# Rosalind: GASM — Genome Assembly Using Reads
+# https://rosalind.info/problems/gasm/
+#
+# Given: Error-free reads of equal length, whose de Bruijn graph is two directed
+# cycles.
+# Return: A cyclic superstring of minimal length containing every read or its
+# reverse complement.
+
+let reads = ["AATCT", "TGTAA", "GATTA", "ACAGA"]
+
+# A read gives no clue which strand it came from, so the assembly graph has to
+# hold every read *and* its reverse complement — which is why the de Bruijn graph
+# here always falls into exactly two cycles, one the mirror of the other. Either
+# spells the answer; they are the same circular genome read from opposite
+# strands.
+#
+# k is not given. The right one is the largest that still leaves every node with
+# somewhere to go, so it is searched for downwards from the read length: too
+# large and the graph breaks into fragments, too small and distinct repeats
+# collapse into one node.
+let both_strands = reads |> flat_map(|r| [r, str(reverse_complement(dna(r)))])
+
+# Every k-length window of every read, not the reads themselves. The reads are
+# longer than the k that works, and using them whole leaves the graph with more
+# nodes than edges — which is what a broken assembly looks like.
+fn windows_of(patterns, k) {
+    patterns
+        |> flat_map(|p| range(0, len(p) - k + 1) |> map(|i| substr(p, i, k)))
+        |> unique()
+}
+
+fn cycle_through(k, patterns) {
+    let edges_of = windows_of(patterns, k)
+    let graph = {}
+    for pattern in edges_of {
+        let prefix = substr(pattern, 0, k - 1)
+        let suffix = substr(pattern, 1, k - 1)
+        if contains(keys(graph), prefix) {
+            graph[prefix] = push(graph[prefix], suffix)
+        } else {
+            graph[prefix] = [suffix]
+        }
+    }
+    # Exactly one way in and one way out of every node, or this k does not give a
+    # clean pair of cycles.
+    let nodes = unique(keys(graph) + (keys(graph) |> flat_map(|n| graph[n])))
+    let single_exit = nodes |> count_if(|n| contains(keys(graph), n) and len(graph[n]) == 1)
+    if single_exit != len(nodes) { return "" }
+
+    let start = sort(keys(graph))[0]
+    let walk = [start]
+    let at = graph[start][0]
+    while at != start {
+        walk = push(walk, at)
+        at = graph[at][0]
+    }
+    # Half the nodes belong to the mirror cycle, so a correct walk covers exactly
+    # half of them.
+    if len(walk) * 2 != len(nodes) { return "" }
+    # Circular, so only the leading character of each node is kept — the trailing
+    # k-1 are the leading ones come round again.
+    walk |> map(|node| substr(node, 0, 1)) |> join("")
+}
+
+let answer = ""
+let k = len(reads[0])
+while answer == "" and k > 2 {
+    answer = cycle_through(k, both_strands)
+    k = k - 1
+}
+
+println("Result:   " + answer)
+println("Expected: GATTACA  (any rotation, of either strand, is accepted)")
+
+fn test_gasm_genome_assembly() {
+    assert len(answer) == 7, "GASM: expected a 7-character superstring, got " + str(len(answer))
+    # Every read, or its reverse complement, must appear when the string is read
+    # around the circle.
+    let wrapped = answer + substr(answer, 0, len(reads[0]) - 1)
+    for read in reads {
+        let flipped = str(reverse_complement(dna(read)))
+        assert contains(wrapped, read) or contains(wrapped, flipped),
+            "GASM: neither " + read + " nor " + flipped + " occurs"
+    }
+    # GATTACA is one rotation of one strand; the answer is correct up to both.
+    let rotations = range(0, len(answer)) |> map(|i| substr(wrapped, i, len(answer)))
+    let mirror = str(reverse_complement(dna(answer)))
+    let mirror_wrapped = mirror + substr(mirror, 0, len(answer))
+    let mirror_rotations = range(0, len(answer)) |> map(|i| substr(mirror_wrapped, i, len(answer)))
+    assert contains(rotations, "GATTACA") or contains(mirror_rotations, "GATTACA"),
+        "GASM: " + answer + " is not GATTACA up to rotation and strand"
+}
+```
+
+## MULT — Multiple Alignment
+
+[Problem statement](https://rosalind.info/problems/mult/)
+
+```biolang
+# Rosalind: MULT — Multiple Alignment
+# https://rosalind.info/problems/mult/
+#
+# Given: Four DNA strings of length at most 10.
+# Return: A multiple alignment of maximum score, where every mismatched pair in
+# a column costs 1 and matched symbols — including two gaps — cost nothing.
+
+let sequences = ["ATATCCG", "TCCG", "ATGTACTG", "ATGTCTG"]
+
+# Two sequences need a table, three a cube, four a hypercube — and the number of
+# moves out of each cell is 2^k - 1, every non-empty choice of which sequences
+# advance. Fifteen here, against three for a pairwise alignment.
+#
+# That is the whole lesson of this problem: exact multiple alignment costs
+# O(n^k), so it stops being possible at a handful of short sequences. Every tool
+# that aligns hundreds of sequences is approximating, usually by aligning pairs
+# and merging.
+let moves = range(1, 16) |> map(|mask|
+    range(0, 4) |> map(|s| (mask / pow(2, s)) % 2 |> floor()))
+
+let lengths = sequences |> map(|s| len(s))
+
+fn key(at) { at |> map(|v| str(v)) |> join(",") }
+
+# A column costs one for every disagreeing pair. Two gaps agree; a gap against a
+# base does not.
+fn column_cost(symbols) {
+    range(0, len(symbols))
+        |> flat_map(|i| range(i + 1, len(symbols))
+            |> filter(|j| symbols[i] != symbols[j]))
+        |> len()
+}
+
+let best = {}
+let came_from = {}
+best[key([0, 0, 0, 0])] = 0
+
+for i in range(0, lengths[0] + 1) {
+    for j in range(0, lengths[1] + 1) {
+        for k in range(0, lengths[2] + 1) {
+            for l in range(0, lengths[3] + 1) {
+                let here = [i, j, k, l]
+                if i + j + k + l > 0 {
+                    let at = key(here)
+                    best[at] = 0 - 1000000
+                    for move in moves {
+                        let previous = range(0, 4) |> map(|s| here[s] - move[s])
+                        if (previous |> count_if(|v| v < 0)) == 0 {
+                            let symbols = range(0, 4) |> map(|s|
+                                if move[s] == 1 then substr(sequences[s], previous[s], 1) else "-")
+                            let candidate = best[key(previous)] - column_cost(symbols)
+                            if candidate > best[at] {
+                                best[at] = candidate
+                                came_from[at] = move
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+let score = best[key(lengths)]
+
+let rows = ["", "", "", ""]
+let at = lengths
+while (at |> sum()) > 0 {
+    let move = came_from[key(at)]
+    for s in range(0, 4) {
+        if move[s] == 1 {
+            rows[s] = substr(sequences[s], at[s] - 1, 1) + rows[s]
+            at[s] = at[s] - 1
+        } else {
+            rows[s] = "-" + rows[s]
+        }
+    }
+}
+
+println("Result:   " + str(score))
+for line in rows { println("          " + line) }
+println("Expected: -18")
+println("          ATAT-CCG / -T---CCG / ATGTACTG / ATGT-CTG")
+
+fn test_mult_multiple_alignment() {
+    assert score == 0 - 18, "MULT: scored " + str(score)
+    # Structural checks, since several alignments reach the optimum.
+    let widths = rows |> map(|r| len(r)) |> unique()
+    assert len(widths) == 1, "MULT: every row must be the same length"
+    for s in range(0, 4) {
+        assert replace(rows[s], "-", "") == sequences[s],
+            "MULT: row " + str(s) + " is not its original sequence"
+    }
+    # The alignment shown must actually score what was claimed.
+    let recounted = 0 - (range(0, widths[0])
+        |> map(|c| column_cost(rows |> map(|r| substr(r, c, 1))))
+        |> sum())
+    assert recounted == score,
+        "MULT: the alignment shown scores " + str(recounted) + ", not " + str(score)
+    # No column is entirely gaps — that move does not exist, and one would be
+    # free under this scoring.
+    let empty_columns = range(0, widths[0])
+        |> count_if(|c| (rows |> count_if(|r| substr(r, c, 1) == "-")) == 4)
+    assert empty_columns == 0, "MULT: an all-gap column would be free and meaningless"
+}
+```
+
+## GREP — Genome Assembly with Perfect Coverage and Repeats
+
+[Problem statement](https://rosalind.info/problems/grep/)
+
+```biolang
+# Rosalind: GREP — Genome Assembly with Perfect Coverage and Repeats
+# https://rosalind.info/problems/grep/
+#
+# Given: (k+1)-mers from one strand of a circular chromosome.
+# Return: Every circular string assembled by a complete cycle in the de Bruijn
+# graph, each beginning with the first (k+1)-mer given.
+
+let patterns = [
+    "CAG", "AGT", "GTT", "TTT", "TTG", "TGG", "GGC", "GCG", "CGT",
+    "GTT", "TTC", "TCA", "CAA", "AAT", "ATT", "TTC", "TCA",
+]
+
+# PCOV assumes perfect coverage and returns one answer. This is the honest
+# version: repeats make the Eulerian cycle non-unique, and every cycle is a
+# genome consistent with the reads. Six here — so the reads simply do not
+# determine the chromosome, and reporting one would be picking arbitrarily.
+#
+# That ambiguity is why repeats are the hard part of real assembly, and why
+# BA3J's paired reads exist: extra distance information cuts the alternatives
+# down.
+let k = len(patterns[0]) - 1
+
+let edges_list = patterns |> map(|p| {
+    from_node: substr(p, 0, k),
+    to_node: substr(p, 1, k),
+})
+
+let start_node = edges_list[0].from_node
+
+# Depth-first over the edge multiset. Hierholzer finds one cycle in linear time;
+# finding them all is a search, and only feasible because the graph is small.
+let complete = []
+let stack = [{
+    at: edges_list[0].to_node,
+    used: range(0, len(edges_list)) |> map(|i| i == 0),
+    walk: [start_node, edges_list[0].to_node],
+}]
+
+while len(stack) > 0 {
+    let state = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+
+    let remaining = state.used |> count_if(|u| u == false)
+    if remaining == 0 {
+        # A cycle only counts if it closed.
+        if state.at == start_node { complete = push(complete, state.walk) }
+    } else {
+        for i in range(0, len(edges_list)) {
+            if state.used[i] == false and edges_list[i].from_node == state.at {
+                let marked = state.used
+                marked[i] = true
+                stack = push(stack, {
+                    at: edges_list[i].to_node,
+                    used: marked,
+                    walk: push(state.walk, edges_list[i].to_node),
+                })
+            }
+        }
+    }
+}
+
+# A circular string keeps one character per edge — the trailing k are the leading
+# k come round again.
+let assembled = complete
+    |> map(|walk| range(0, len(walk) - 1) |> map(|i| substr(walk[i], 0, 1)) |> join(""))
+    |> unique()
+    |> sort()
+
+println("Result:")
+for line in assembled { println("  " + line) }
+println("Expected: CAGTTCAATTTGGCGTT CAGTTCAATTGGCGTTT CAGTTTCAATTGGCGTT")
+println("          CAGTTTGGCGTTCAATT CAGTTGGCGTTCAATTT CAGTTGGCGTTTCAATT")
+
+fn test_grep_assembly_with_repeats() {
+    let expected = ["CAGTTCAATTTGGCGTT", "CAGTTCAATTGGCGTTT", "CAGTTTCAATTGGCGTT",
+                    "CAGTTTGGCGTTCAATT", "CAGTTGGCGTTCAATTT", "CAGTTGGCGTTTCAATT"]
+    assert assembled == sort(expected), "GREP: got " + join(assembled, " ")
+    # Each answer is as long as there are reads, and starts with the first one.
+    for answer in assembled {
+        assert len(answer) == len(patterns),
+            "GREP: " + answer + " should be " + str(len(patterns)) + " long"
+        assert substr(answer, 0, k + 1) == patterns[0],
+            "GREP: " + answer + " must begin with " + patterns[0]
+        # And read around the circle, its composition is exactly the input.
+        let wrapped = answer + substr(answer, 0, k)
+        let composition = range(0, len(answer)) |> map(|i| substr(wrapped, i, k + 1))
+        assert sort(composition) == sort(patterns),
+            "GREP: " + answer + " does not have the given composition"
+    }
+    # The point of the problem: more than one genome fits.
+    assert len(assembled) > 1, "GREP: repeats should leave the assembly ambiguous"
+}
+```
+
+## MPRT — Finding a Protein Motif
+
+[Problem statement](https://rosalind.info/problems/mprt/)
+
+```biolang
+# @skip  (needs a network connection — remove this line to run it)
+# Rosalind: MPRT — Finding a Protein Motif
+# https://rosalind.info/problems/mprt/
+#
+# Given: UniProt access IDs.
+# Return: For each protein containing the N-glycosylation motif, its ID and the
+# 1-based positions where the motif occurs.
+#
+# This example fetches from UniProt, so it runs in the advisory job rather than
+# the hermetic gate every other Stronghold problem passes.
+
+let ids = ["A2Z669", "B5ZC00", "P07204_TRBM_HUMAN", "P20840_SAG1_YEAST"]
+
+# N{P}[ST]{P} — asparagine, then anything but proline, then serine or threonine,
+# then anything but proline. Not a fixed string, which is the point: a motif is a
+# pattern with alternatives and exclusions, and searching for it is not
+# substring matching.
+fn has_motif_at(protein, i) {
+    substr(protein, i, 1) == "N"
+        and substr(protein, i + 1, 1) != "P"
+        and (substr(protein, i + 2, 1) == "S" or substr(protein, i + 2, 1) == "T")
+        and substr(protein, i + 3, 1) != "P"
+}
+
+fn motif_positions(protein) {
+    range(0, len(protein) - 3) |> filter(|i| has_motif_at(protein, i)) |> map(|i| i + 1)
+}
+
+# UniProt is keyed by the accession alone; the trailing name in an ID like
+# P07204_TRBM_HUMAN is Rosalind's own annotation.
+fn accession_of(id) { split(id, "_")[0] }
+
+fn sequence_of(id) {
+    let fasta = str(uniprot_fasta(accession_of(id)))
+    lines(fasta) |> filter(|line| substr(line, 0, 1) != ">") |> join("")
+}
+
+let found = ids
+    |> map(|id| { id: id, positions: motif_positions(sequence_of(id)) })
+    |> filter(|entry| len(entry.positions) > 0)
+
+println("Result:")
+for entry in found {
+    println("  " + entry.id)
+    println("  " + (entry.positions |> map(|p| str(p)) |> join(" ")))
+}
+println("Expected: B5ZC00 85 118 142 306 395")
+println("          P07204_TRBM_HUMAN 47 115 116 382 409")
+println("          P20840_SAG1_YEAST 79 109 135 248 306 348 364 402 485 501 614")
+
+fn test_mprt_finding_a_protein_motif() {
+    let expected = {
+        "B5ZC00": [85, 118, 142, 306, 395],
+        "P07204_TRBM_HUMAN": [47, 115, 116, 382, 409],
+        "P20840_SAG1_YEAST": [79, 109, 135, 248, 306, 348, 364, 402, 485, 501, 614],
+    }
+    assert len(found) == 3, "MPRT: expected 3 proteins with the motif, got " + str(len(found))
+    for entry in found {
+        assert contains(keys(expected), entry.id), "MPRT: unexpected protein " + entry.id
+        assert entry.positions == expected[entry.id],
+            "MPRT: " + entry.id + " gave " + str(entry.positions)
+    }
+    # A2Z669 has no motif, and leaving it out of the answer is part of the task.
+    assert (found |> count_if(|e| e.id == "A2Z669")) == 0, "MPRT: A2Z669 has no motif"
+
+    # The matcher itself, checked without the network: the exclusions are what
+    # make this a motif rather than a substring search.
+    assert motif_positions("NASA") == [1], "MPRT: NAS_ matches"
+    assert motif_positions("NPSA") == [], "MPRT: proline in the second position blocks it"
+    assert motif_positions("NASP") == [], "MPRT: proline in the fourth blocks it"
+    assert motif_positions("NAGA") == [], "MPRT: the third must be S or T"
+    assert motif_positions("NATA") == [1], "MPRT: threonine works as well as serine"
+}
+```
+
+## OSYM — Isolating Symbols in Alignments
+
+[Problem statement](https://rosalind.info/problems/osym/)
+
+```biolang
+# Rosalind: OSYM — Isolating Symbols in Alignments
+# https://rosalind.info/problems/osym/
+#
+# Given: Two DNA strings.
+# Return: The maximum global alignment score, and the sum over all (j,k) of the
+# best score of any alignment that pairs s[j] with t[k].
+# Matches score +1, mismatches and gaps -1.
+
+let first_string = "ATAGATA"
+let second_string = "ACAGGTA"
+let gap = 0 - 1
+
+fn substitution(a, b) { if a == b then 1 else 0 - 1 }
+
+# The question is not what the best alignment is, but how good the best
+# alignment *through each particular pairing* would be. Recomputing an alignment
+# for every one of the 49 pairs would be quadratic work repeated quadratically.
+#
+# Instead: the best alignment through (j,k) is the best way of reaching it plus
+# the best way of leaving it. One table filled forwards and one filled backwards
+# answer every pair at once — the same trick BA5K uses to find a middle edge.
+fn forward_table(rows, columns, indel) {
+    let table = [range(0, len(columns) + 1) |> map(|j| j * indel)]
+    for i in range(1, len(rows) + 1) {
+        let line = [i * indel]
+        for j in range(1, len(columns) + 1) {
+            let diagonal = table[i - 1][j - 1]
+                + substitution(substr(rows, i - 1, 1), substr(columns, j - 1, 1))
+            let up = table[i - 1][j] + indel
+            let left = line[j - 1] + indel
+            line = push(line, max([diagonal, up, left]))
+        }
+        table = push(table, line)
+    }
+    table
+}
+
+let forward = forward_table(first_string, second_string, gap)
+# The backward table is the forward one on both strings reversed, so only one
+# direction has to be written.
+let backward_reversed = forward_table(reverse(first_string), reverse(second_string), gap)
+
+let n = len(first_string)
+let m = len(second_string)
+
+fn backward_at(table, i, j, rows, columns) {
+    # Score of aligning s[i..) with t[j..), read out of the reversed table.
+    table[rows - i][columns - j]
+}
+
+let best_score = forward[n][m]
+
+let total = range(1, n + 1) |> flat_map(|j| range(1, m + 1) |> map(|k| {
+    let paired = substitution(substr(first_string, j - 1, 1), substr(second_string, k - 1, 1))
+    forward[j - 1][k - 1] + paired + backward_at(backward_reversed, j, k, n, m)
+})) |> sum()
+
+println("Result:   " + str(best_score))
+println("          " + str(total))
+println("Expected: 3")
+println("          -139")
+
+fn test_osym_isolating_symbols() {
+    assert best_score == 3, "OSYM: the best alignment scores " + str(best_score)
+    assert total == 0 - 139, "OSYM: the sum is " + str(total)
+
+    # No pairing can beat the unconstrained optimum, and at least one must reach
+    # it — the best alignment pairs something.
+    let every = range(1, n + 1) |> flat_map(|j| range(1, m + 1) |> map(|k| {
+        let paired = substitution(substr(first_string, j - 1, 1), substr(second_string, k - 1, 1))
+        forward[j - 1][k - 1] + paired + backward_at(backward_reversed, j, k, n, m)
+    }))
+    assert max(every) == best_score,
+        "OSYM: the best constrained score should equal the unconstrained one"
+    for value in every {
+        assert value <= best_score, "OSYM: a constrained alignment cannot beat the optimum"
+    }
+    assert len(every) == n * m, "OSYM: one entry per pair of positions"
+}
+```
+
+## ITWV — Finding Disjoint Motifs in a Gene
+
+[Problem statement](https://rosalind.info/problems/itwv/)
+
+```biolang
+# Rosalind: ITWV — Finding Disjoint Motifs in a Gene
+# https://rosalind.info/problems/itwv/
+#
+# Given: A DNA string s and a collection of patterns.
+# Return: The matrix M where M[j][k] = 1 if patterns j and k can be interwoven
+# into some substring of s.
+
+let text = "GACCACGGTT"
+let patterns = ["ACAG", "GT", "CCG"]
+
+# Two motifs are interwoven when a stretch of the sequence spells both at once,
+# each as a subsequence, using every character for at most one of them. That is
+# what makes this different from finding each motif separately: they compete for
+# the same characters, so the question is whether a shared stretch can satisfy
+# both — which matters when asking whether two binding sites can overlap.
+#
+# The state is (how much of t is placed, how much of u is placed), and the
+# characters of s are consumed in order. Each character extends whichever motif
+# it matches, so a cell is reachable from at most two others.
+fn can_interweave(source, start, left, right) {
+    let rows = len(left)
+    let columns = len(right)
+    # reached[a][b] — the first a of `left` and first b of `right` are placed.
+    let reached = range(0, rows + 1) |> map(|_| range(0, columns + 1) |> map(|_| false))
+    reached[0] = reached[0]
+    let seed = reached[0]
+    seed[0] = true
+    reached[0] = seed
+
+    let at = start
+    let done = false
+    while at < len(source) and done == false {
+        let symbol = substr(source, at, 1)
+        let next = range(0, rows + 1) |> map(|a| range(0, columns + 1) |> map(|_| false))
+        for a in range(0, rows + 1) {
+            let line = next[a]
+            for b in range(0, columns + 1) {
+                if reached[a][b] {
+                    # The character can be skipped only by ending the window, so
+                    # every reachable state must consume it or the window stops
+                    # here. Carrying it forward unconsumed is what would let the
+                    # two motifs be found in unrelated parts of the sequence.
+                    if a < rows and substr(left, a, 1) == symbol {
+                        let advanced = next[a + 1]
+                        advanced[b] = true
+                        next[a + 1] = advanced
+                    }
+                    if b < columns and substr(right, b, 1) == symbol {
+                        line[b + 1] = true
+                    }
+                }
+            }
+            next[a] = line
+        }
+        reached = next
+        if reached[rows][columns] { done = true }
+        at = at + 1
+    }
+    done
+}
+
+fn interwoven_anywhere(source, left, right) {
+    (range(0, len(source)) |> count_if(|start| can_interweave(source, start, left, right))) > 0
+}
+
+let pairings = range(0, len(patterns)) |> map(|j|
+    range(0, len(patterns)) |> map(|k|
+        if interwoven_anywhere(text, patterns[j], patterns[k]) then 1 else 0))
+
+println("Result:")
+for line in pairings { println("  " + (line |> map(|v| str(v)) |> join(" "))) }
+println("Expected: 0 0 1 / 0 1 0 / 1 0 0")
+
+fn test_itwv_disjoint_motifs() {
+    let shown = pairings |> map(|line| line |> map(|v| str(v)) |> join(" ")) |> join(" / ")
+    assert shown == "0 0 1 / 0 1 0 / 1 0 0", "ITWV: got " + shown
+    # The relation is symmetric — interweaving t with u is the same question as
+    # interweaving u with t.
+    for j in range(0, len(patterns)) {
+        for k in range(0, len(patterns)) {
+            assert pairings[j][k] == pairings[k][j], "ITWV: the pairings must be symmetric"
+        }
+    }
+    # GT with itself works: GACCACGGTT contains GGTT, which spells GT twice using
+    # disjoint characters.
+    assert pairings[1][1] == 1, "ITWV: GT interweaves with itself"
+    # ACAG with itself does not — there are not enough characters to spell it
+    # twice disjointly anywhere.
+    assert pairings[0][0] == 0, "ITWV: ACAG cannot be interwoven with itself"
+}
+```
+
+## CNTQ — Counting Quartets
+
+[Problem statement](https://rosalind.info/problems/cntq/)
+
+```biolang
+# Rosalind: CNTQ — Counting Quartets
+# https://rosalind.info/problems/cntq/
+#
+# Given: n and an unrooted binary tree on n taxa in Newick format.
+# Return: The number of quartets consistent with the tree, modulo 1,000,000.
+
+let taxa = ["lobster", "cat", "dog", "caterpillar", "elephant", "mouse"]
+# (lobster,(cat,dog),(caterpillar,(elephant,mouse)));
+# Each internal edge splits the taxa in two; these are the non-trivial sides.
+let clades = [
+    ["cat", "dog"],
+    ["caterpillar", "elephant", "mouse"],
+    ["elephant", "mouse"],
+]
+
+# The answer is simply C(n,4), and the reason is worth more than the number: in a
+# *fully resolved* binary tree, any four taxa are separated by some internal edge
+# into two pairs, so every four-taxon set contributes exactly one consistent
+# quartet. Nothing about the tree's shape enters into it.
+#
+# That stops being true the moment the tree has an unresolved node, which is why
+# QRT and CHBP — where splits are partial — are real problems and this one is
+# not.
+let n = len(taxa)
+let answer = choose(n, 4) % 1000000
+
+println("Result:   " + str(answer))
+println("Expected: 15")
+
+fn test_cntq_counting_quartets() {
+    assert answer == 15, "CNTQ: got " + str(answer)
+
+    # Demonstrated rather than asserted: enumerate all four-taxon subsets and
+    # confirm each really is separated into two pairs by some edge.
+    fn subsets_of_four(items) {
+        range(0, len(items)) |> flat_map(|a|
+            range(a + 1, len(items)) |> flat_map(|b|
+                range(b + 1, len(items)) |> flat_map(|c|
+                    range(c + 1, len(items)) |> map(|d|
+                        [items[a], items[b], items[c], items[d]]))))
+    }
+
+    let quartets = subsets_of_four(taxa)
+    assert len(quartets) == choose(n, 4), "CNTQ: C(6,4) is 15 subsets"
+
+    let consistent = quartets |> count_if(|four|
+        (clades |> count_if(|clade|
+            (four |> count_if(|t| contains(clade, t))) == 2)) > 0)
+    assert consistent == len(quartets),
+        "CNTQ: " + str(consistent) + " of " + str(len(quartets)) + " subsets are separated"
+    assert consistent == answer, "CNTQ: the count and the formula must agree"
+}
+```
+
+## QRT — Quartets
+
+[Problem statement](https://rosalind.info/problems/qrt/)
+
+```biolang
+# Rosalind: QRT — Quartets
+# https://rosalind.info/problems/qrt/
+#
+# Given: A partial character table.
+# Return: Every quartet inferable from the splits its characters describe.
+
+let taxa = ["cat", "dog", "elephant", "ostrich", "mouse", "rabbit", "robot"]
+let characters = [
+    "01xxx00",
+    "x11xx00",
+    "111x00x",
+]
+
+# A partial character is one that could not be scored for every taxon — an 'x'
+# means "not known", not "third state". So a character constrains only the taxa
+# it actually saw, and the quartets it supports are pairs drawn from its two
+# scored groups.
+#
+# The whole point is that missing data does not make a character useless. It
+# still separates the taxa it did score, and those separations are what a tree
+# gets built from.
+fn group_of(character, symbol, names) {
+    range(0, len(names)) |> filter(|i| substr(character, i, 1) == symbol) |> map(|i| names[i])
+}
+
+fn pairs_of(items) {
+    range(0, len(items)) |> flat_map(|a|
+        range(a + 1, len(items)) |> map(|b| [items[a], items[b]]))
+}
+
+# A quartet has no orientation — {a,b}|{c,d} is the same as {c,d}|{a,b} — so each
+# is recorded in a canonical form and duplicates dropped. Two characters often
+# support the same quartet, and counting it twice would overstate the evidence.
+fn canonical(left, right) {
+    let one = join(sort(left), ",")
+    let two = join(sort(right), ",")
+    if one < two then one + "|" + two else two + "|" + one
+}
+
+let seen = {}
+let quartets = []
+for character in characters {
+    let zeros = group_of(character, "0", taxa)
+    let ones = group_of(character, "1", taxa)
+    for left in pairs_of(zeros) {
+        for right in pairs_of(ones) {
+            let key = canonical(left, right)
+            if contains(keys(seen), key) == false {
+                seen[key] = true
+                quartets = push(quartets, { left: left, right: right })
+            }
+        }
+    }
+}
+
+let written = quartets
+    |> map(|q| "{" + join(q.left, ", ") + "} {" + join(q.right, ", ") + "}")
+    |> sort()
+
+println("Result:")
+for line in written { println("  " + line) }
+println("Expected (any order): {elephant, dog} {rabbit, robot} / {cat, dog} {mouse, rabbit}")
+println("                      {mouse, rabbit} {cat, elephant} / {dog, elephant} {mouse, rabbit}")
+
+fn test_qrt_quartets() {
+    assert len(quartets) == 4, "QRT: expected 4 quartets, got " + str(len(quartets))
+    # Compared as unordered pairs of unordered pairs, since neither side nor the
+    # order within a side carries meaning.
+    let expected = [
+        canonical(["elephant", "dog"], ["rabbit", "robot"]),
+        canonical(["cat", "dog"], ["mouse", "rabbit"]),
+        canonical(["mouse", "rabbit"], ["cat", "elephant"]),
+        canonical(["dog", "elephant"], ["mouse", "rabbit"]),
+    ]
+    let got = quartets |> map(|q| canonical(q.left, q.right))
+    assert sort(got) == sort(expected), "QRT: got " + join(sort(got), " ")
+    # Every quartet's four taxa are distinct and really were scored by some
+    # character — an 'x' can never appear in one.
+    for q in quartets {
+        let four = q.left + q.right
+        assert len(unique(four)) == 4, "QRT: a quartet must name four different taxa"
+        let supporting = characters |> count_if(|c|
+            (q.left |> count_if(|t| substr(c, (range(0, len(taxa))
+                |> filter(|i| taxa[i] == t))[0], 1) == "0")) == 2
+            and (q.right |> count_if(|t| substr(c, (range(0, len(taxa))
+                |> filter(|i| taxa[i] == t))[0], 1) == "1")) == 2)
+        assert supporting > 0, "QRT: no character supports " + canonical(q.left, q.right)
+    }
+}
+```
+
+## CHBP — Character-Based Phylogeny
+
+[Problem statement](https://rosalind.info/problems/chbp/)
+
+```biolang
+# Rosalind: CHBP — Character-Based Phylogeny
+# https://rosalind.info/problems/chbp/
+#
+# Given: Species names and a consistent character table.
+# Return: An unrooted binary tree in Newick format modelling the table.
+
+let taxa = ["cat", "dog", "elephant", "mouse", "rabbit", "rat"]
+let characters = ["011101", "001101", "001100"]
+
+# The inverse of CTBL: there, a tree produced splits; here the splits have to
+# produce the tree. It works because a consistent table's splits are *laminar* —
+# any two are nested or disjoint, never crossing — and a laminar family is
+# exactly a tree.
+#
+# An unrooted tree has no first node, so a reference taxon is picked and every
+# split is taken from the side away from it. That makes the clades nest, and the
+# reference becomes the outermost branch.
+let reference = taxa[0]
+
+fn side_away_from(character, names, anchor) {
+    let anchor_index = (range(0, len(names)) |> filter(|i| names[i] == anchor))[0]
+    let anchor_state = substr(character, anchor_index, 1)
+    range(0, len(names))
+        |> filter(|i| substr(character, i, 1) != anchor_state)
+        |> map(|i| names[i])
+}
+
+let clades = characters |> map(|c| side_away_from(c, taxa, reference))
+
+fn is_subset(small, big) { (small |> count_if(|x| contains(big, x) == false)) == 0 }
+
+fn build(members, groups) {
+    # The groups strictly inside this one, and of those the maximal — anything
+    # contained in another is handled a level deeper.
+    let inside = groups |> filter(|g| is_subset(g, members) and len(g) < len(members))
+    let maximal = inside |> filter(|g|
+        (inside |> count_if(|other| len(other) > len(g) and is_subset(g, other))) == 0)
+    let covered = maximal |> flat_map(|g| g)
+    let loose = members |> filter(|m| contains(covered, m) == false)
+    let parts = (maximal |> map(|g| build(g, groups))) + loose
+    if len(parts) == 1 then parts[0] else "(" + join(parts, ",") + ")"
+}
+
+let rest = taxa |> filter(|t| t != reference)
+let inner = build(rest, clades)
+# The reference sits alongside the rest at the unrooted centre, so its branch is
+# spliced in rather than wrapped around.
+let newick = "(" + reference + "," + substr(inner, 1, len(inner) - 2) + ");"
+
+println("Result:   " + newick)
+println("Expected: (dog,(cat,rabbit),(rat,(elephant,mouse)));")
+println("Both describe one unrooted tree — they differ only in which branch is")
+println("written first, which an unrooted tree does not fix.")
+
+fn test_chbp_character_based_phylogeny() {
+    # The real requirement is that the tree induces exactly the table's splits.
+    # Newick is not canonical for an unrooted tree, so comparing strings would be
+    # comparing a formatting choice.
+    fn splits_of(tree_text, names) {
+        # Every parenthesised group is a clade; take each as a split.
+        let found = []
+        let stack = []
+        for i in range(0, len(tree_text)) {
+            let symbol = substr(tree_text, i, 1)
+            if symbol == "(" { stack = push(stack, i) }
+            if symbol == ")" {
+                let opened = stack[len(stack) - 1]
+                stack = slice(stack, 0, len(stack) - 1)
+                let inner_text = substr(tree_text, opened + 1, i - opened - 1)
+                let members = names |> filter(|t| contains(inner_text, t))
+                if len(members) > 1 and len(members) < len(names) {
+                    found = push(found, join(sort(members), ","))
+                }
+            }
+        }
+        unique(found)
+    }
+
+    let mine = splits_of(newick, taxa)
+    let published = splits_of("(dog,(cat,rabbit),(rat,(elephant,mouse)));", taxa)
+
+    # A split and its complement are the same split, so compare canonically.
+    fn canonical_splits(raw, names) {
+        raw |> map(|s| {
+            let members = split(s, ",")
+            let other = names |> filter(|t| contains(members, t) == false)
+            let one = join(sort(members), ",")
+            let two = join(sort(other), ",")
+            if one < two then one else two
+        }) |> unique() |> sort()
+    }
+
+    assert canonical_splits(mine, taxa) == canonical_splits(published, taxa),
+        "CHBP: splits " + join(canonical_splits(mine, taxa), " | ")
+            + " against " + join(canonical_splits(published, taxa), " | ")
+    # And those splits are exactly the ones the characters describe.
+    let from_characters = canonical_splits(
+        clades |> map(|c| join(sort(c), ",")), taxa)
+    assert canonical_splits(mine, taxa) == from_characters,
+        "CHBP: the tree must induce the table's splits and no others"
+}
+```
+
+## EUBT — Enumerating Unrooted Binary Trees
+
+[Problem statement](https://rosalind.info/problems/eubt/)
+
+```biolang
+# Rosalind: EUBT — Enumerating Unrooted Binary Trees
+# https://rosalind.info/problems/eubt/
+#
+# Given: n taxa.
+# Return: Every unrooted binary tree on those taxa, in Newick format.
+
+let taxa = ["dog", "cat", "mouse", "elephant"]
+
+# Built by insertion: start with the only tree on three taxa — a star — then add
+# each remaining taxon by splitting one existing edge in two and hanging it off
+# the new node. Every unrooted binary tree arises exactly once this way, which is
+# why the count is the double factorial (2n-5)!! and why it explodes: fifteen
+# trees at n=5, over two million at n=10.
+#
+# That growth is the reason nobody enumerates trees to find the best one. It is
+# also why the parsimony and distance methods in this pack exist.
+let edges_start = [
+    { a: "center", b: taxa[0] },
+    { a: "center", b: taxa[1] },
+    { a: "center", b: taxa[2] },
+]
+
+let trees = [edges_start]
+for step in range(3, len(taxa)) {
+    let leaf = taxa[step]
+    let grown = []
+    for tree in trees {
+        for i in range(0, len(tree)) {
+            let fresh = "node" + str(step) + "_" + str(i)
+            let split_edge = tree[i]
+            let others = range(0, len(tree)) |> filter(|j| j != i) |> map(|j| tree[j])
+            grown = push(grown, others + [
+                { a: split_edge.a, b: fresh },
+                { a: fresh, b: split_edge.b },
+                { a: fresh, b: leaf },
+            ])
+        }
+    }
+    trees = grown
+}
+
+fn neighbours_of(tree, node) {
+    (tree |> filter(|e| e.a == node) |> map(|e| e.b))
+        + (tree |> filter(|e| e.b == node) |> map(|e| e.a))
+}
+
+fn is_taxon(node, names) { contains(names, node) }
+
+fn walk(tree, node, parent, names) {
+    if is_taxon(node, names) { return node }
+    let children = neighbours_of(tree, node) |> filter(|c| c != parent)
+    "(" + (children |> map(|c| walk(tree, c, node, names)) |> join(",")) + ")"
+}
+
+# Written from the first taxon, which an unrooted tree does not privilege — it
+# is just somewhere to start reading.
+fn to_newick(tree, names) {
+    let anchor = names[0]
+    let hub = neighbours_of(tree, anchor)[0]
+    let branches = neighbours_of(tree, hub) |> filter(|c| c != anchor)
+    "(" + anchor + "," + (branches |> map(|c| walk(tree, c, hub, names)) |> join(",")) + ");"
+}
+
+let written = trees |> map(|t| to_newick(t, taxa))
+
+println("Result:")
+for line in written { println("  " + line) }
+println("Expected: three trees — (mouse,cat)|(elephant,dog), (elephant,mouse)|(cat,dog),")
+println("          (elephant,cat)|(mouse,dog), written from a different anchor.")
+
+fn test_eubt_enumerating_unrooted_binary_trees() {
+    # (2n-5)!! trees: 1 x 3 for n = 4.
+    assert len(trees) == 3, "EUBT: expected 3 trees, got " + str(len(trees))
+    assert len(unique(written)) == 3, "EUBT: the trees must be distinct"
+
+    # A tree on n taxa has 2n-3 edges and n-2 internal nodes.
+    for tree in trees {
+        assert len(tree) == 2 * len(taxa) - 3,
+            "EUBT: expected " + str(2 * len(taxa) - 3) + " edges, got " + str(len(tree))
+        for taxon in taxa {
+            assert len(neighbours_of(tree, taxon)) == 1, "EUBT: " + taxon + " must be a leaf"
+        }
+    }
+
+    # The three topologies are exactly the three ways of pairing four taxa. That
+    # is the whole content of the answer, and it does not depend on how the
+    # Newick is rooted.
+    fn pairing_of(tree, names) {
+        # The one internal edge separates the taxa into two pairs. Which side the
+        # edge happens to be stored from is arbitrary, so the smaller of the two
+        # names the topology.
+        let internal = tree |> filter(|e|
+            is_taxon(e.a, names) == false and is_taxon(e.b, names) == false)
+        let side = neighbours_of(tree, internal[0].a) |> filter(|x| is_taxon(x, names))
+        let other = names |> filter(|t| contains(side, t) == false)
+        let one = join(sort(side), ",")
+        let two = join(sort(other), ",")
+        if one < two then one else two
+    }
+    let pairings = trees |> map(|t| pairing_of(t, taxa)) |> sort()
+    assert len(unique(pairings)) == 3, "EUBT: each tree must pair the taxa differently"
+    # With four taxa the topology is fixed by which one cat is paired with, and
+    # all three possibilities appear exactly once.
+    assert pairings == sort(["cat,dog", "cat,mouse", "cat,elephant"]),
+        "EUBT: got pairings " + join(pairings, " | ")
+}
+```
+
+## QRTD — Quartet Distance
+
+[Problem statement](https://rosalind.info/problems/qrtd/)
+
+```biolang
+# Rosalind: QRTD — Quartet Distance
+# https://rosalind.info/problems/qrtd/
+#
+# Given: n taxa and two unrooted binary trees.
+# Return: The quartet distance between them.
+
+let taxa = ["A", "B", "C", "D", "E"]
+# (A,C,((B,D),E));   and   (C,(B,D),(A,E));
+# Each internal edge is a split; these are the non-trivial sides.
+let first_clades = [["B", "D"], ["B", "D", "E"]]
+let second_clades = [["B", "D"], ["A", "E"]]
+
+# Two trees can share every taxon and still disagree about almost everything, so
+# comparing them needs a measure. Quartets give one: each set of four taxa is
+# separated into two pairs by exactly one edge, and two trees either agree about
+# that pairing or they do not.
+#
+# It beats counting shared splits because it degrades gracefully — moving one
+# taxon changes a handful of quartets, where it can destroy every split at once.
+fn pairing_in(four, clades) {
+    # The clade cutting these four 2-and-2 names the quartet.
+    let cutting = clades |> filter(|c| (four |> count_if(|t| contains(c, t))) == 2)
+    if len(cutting) == 0 { return "" }
+    let side = four |> filter(|t| contains(cutting[0], t))
+    let other = four |> filter(|t| contains(cutting[0], t) == false)
+    let one = join(sort(side), ",")
+    let two = join(sort(other), ",")
+    if one < two then one + "|" + two else two + "|" + one
+}
+
+fn subsets_of_four(items) {
+    range(0, len(items)) |> flat_map(|a|
+        range(a + 1, len(items)) |> flat_map(|b|
+            range(b + 1, len(items)) |> flat_map(|c|
+                range(c + 1, len(items)) |> map(|d|
+                    [items[a], items[b], items[c], items[d]]))))
+}
+
+let quartets = subsets_of_four(taxa)
+let shared = quartets |> count_if(|four| {
+    let one = pairing_in(four, first_clades)
+    let two = pairing_in(four, second_clades)
+    one != "" and one == two
+})
+
+# Both trees are fully resolved, so each induces exactly one quartet per subset.
+let first_count = quartets |> count_if(|four| pairing_in(four, first_clades) != "")
+let second_count = quartets |> count_if(|four| pairing_in(four, second_clades) != "")
+let distance = first_count + second_count - 2 * shared
+
+println("Result:   " + str(distance))
+println("Expected: 4")
+println("(" + str(len(quartets)) + " quartets each, " + str(shared) + " agreeing)")
+
+fn test_qrtd_quartet_distance() {
+    assert distance == 4, "QRTD: got " + str(distance)
+    # A resolved tree resolves every four-taxon subset, which CNTQ established.
+    assert first_count == choose(len(taxa), 4), "QRTD: the first tree resolves all 5"
+    assert second_count == choose(len(taxa), 4), "QRTD: and so does the second"
+    assert shared == 3, "QRTD: 3 of the 5 quartets agree"
+
+    # A tree against itself is distance zero — the identity any distance must
+    # satisfy, and worth checking rather than assuming.
+    let self_shared = quartets |> count_if(|four| pairing_in(four, first_clades) != "")
+    assert first_count + first_count - 2 * self_shared == 0,
+        "QRTD: a tree must be distance 0 from itself"
+    # The two disagreeing quartets are the ones involving both B,D and A,E.
+    let disagreeing = quartets |> filter(|four|
+        pairing_in(four, first_clades) != pairing_in(four, second_clades))
+    assert len(disagreeing) == 2, "QRTD: exactly two quartets differ"
+}
+```
+
+## RNAS — Wobble Bonding and RNA Secondary Structures
+
+[Problem statement](https://rosalind.info/problems/rnas/)
+
+```biolang
+# Rosalind: RNAS — Wobble Bonding and RNA Secondary Structures
+# https://rosalind.info/problems/rnas/
+#
+# Given: An RNA string.
+# Return: The number of valid non-crossing matchings of its bonding graph,
+# allowing wobble (U-G) pairs, where no bond spans fewer than 4 intervening
+# positions.
+
+let rna_string = "AUGCUAGUACGGAGCGAGUCUAGCGAGCGAUGUCGUGAGUACUAUAUAUGCGCAUAAGCCACGU"
+
+# Real RNA does not only pair A-U and C-G. The wobble pair U-G is nearly as
+# stable and appears throughout functional RNA, so a structure count that
+# excludes it understates what a molecule can fold into.
+#
+# The other constraint is physical: a hairpin cannot turn in fewer than about
+# four bases, so a bond between positions closer than that is impossible however
+# well the bases match.
+fn can_pair(a, b) {
+    (a == "A" and b == "U") or (a == "U" and b == "A")
+        or (a == "C" and b == "G") or (a == "G" and b == "C")
+        or (a == "U" and b == "G") or (a == "G" and b == "U")
+}
+
+# Counting by recursion over intervals: position i either stays unpaired, or
+# bonds with some k, which splits the interval into two independent halves. Both
+# halves are asked about repeatedly, so without a memo the same interval is
+# recomputed exponentially often.
+#
+# `has_key` is what makes the memo worth having — `contains(keys(memo), k)`
+# rebuilds the whole key list on every probe, turning the lookup itself into the
+# bottleneck it was meant to remove.
+let memo = {}
+
+fn count_matchings(i, j) {
+    if j - i < 5 { return 1 }
+    let key = str(i) + "," + str(j)
+    if has_key(memo, key) { return memo[key] }
+
+    # i unpaired.
+    let total = count_matchings(i + 1, j)
+    # i bonded to k, which must leave four bases inside the loop.
+    for k in range(i + 4, j) {
+        if can_pair(substr(rna_string, i, 1), substr(rna_string, k, 1)) {
+            total = total + count_matchings(i + 1, k) * count_matchings(k + 1, j)
+        }
+    }
+    memo[key] = total
+    total
+}
+
+let answer = count_matchings(0, len(rna_string))
+
+println("Result:   " + str(answer))
+println("Expected: 284850219977421")
+
+fn test_rnas_wobble_bonding() {
+    assert answer == 284850219977421, "RNAS: got " + str(answer)
+    # The memo is doing real work: far fewer intervals than the recursion visits.
+    assert len(keys(memo)) < len(rna_string) * len(rna_string),
+        "RNAS: the memo should hold at most one entry per interval"
+    assert len(keys(memo)) > 0, "RNAS: the memo should be used at all"
+
+    # Wobble pairs genuinely matter — U-G is accepted where a strict
+    # Watson-Crick rule would reject it.
+    assert can_pair("U", "G") and can_pair("G", "U"), "RNAS: wobble pairs bond"
+    assert can_pair("A", "G") == false, "RNAS: A-G does not"
+    # A string too short to turn a hairpin has exactly one matching: the empty one.
+    assert count_matchings(0, 4) == 1, "RNAS: nothing can bond within four bases"
+    # The empty matching is always counted, so the total is never zero.
+    assert answer > 0, "RNAS: the empty matching always counts"
+}
+```
+
+## KSIM — Finding All Similar Motifs
+
+[Problem statement](https://rosalind.info/problems/ksim/)
+
+```biolang
+# Rosalind: KSIM — Finding All Similar Motifs
+# https://rosalind.info/problems/ksim/
+#
+# Given: k, a motif s, and a genome t.
+# Return: Every substring of t within edit distance k of s, as (position, length).
+
+let k = 2
+let motif = "ACGTAG"
+let sequence = "ACGGATCGGCATCGT"
+
+# Approximate matching, which is what real motif search always is: a binding site
+# is a tendency rather than a fixed string, and an exact search finds a fraction
+# of the real sites.
+#
+# A caveat worth stating rather than hiding: this checks every (start, length)
+# pair directly, which is O(n^2) edit-distance computations. It is clear and it
+# is correct, and at 15 bases it is instant — but the problem permits a 50 kbp
+# genome, where it would not finish. The scalable form is a fitting alignment:
+# one pass that lets the match begin anywhere in t for free, so every end
+# position is scored at once instead of every pair being scored separately.
+let matches = range(0, len(sequence)) |> flat_map(|start|
+    range(1, len(sequence) - start + 1)
+        |> filter(|length| edit_distance(motif, substr(sequence, start, length)) <= k)
+        |> map(|length| { start: start + 1, length: length }))
+
+println("Result:")
+for hit in matches { println("  " + str(hit.start) + " " + str(hit.length)) }
+println("Expected: 1 4 / 1 5 / 1 6")
+
+fn test_ksim_finding_all_similar_motifs() {
+    let written = matches |> map(|m| str(m.start) + " " + str(m.length))
+    assert sort(written) == sort(["1 4", "1 5", "1 6"]), "KSIM: got " + join(written, " / ")
+
+    # Every reported substring really is within k, and every one omitted is not —
+    # the second half is the part a filter can silently get wrong.
+    for hit in matches {
+        let piece = substr(sequence, hit.start - 1, hit.length)
+        assert edit_distance(motif, piece) <= k,
+            "KSIM: " + piece + " is further than " + str(k)
+    }
+    let missed = range(0, len(sequence)) |> flat_map(|start|
+        range(1, len(sequence) - start + 1)
+            |> filter(|length| edit_distance(motif, substr(sequence, start, length)) <= k)
+            |> filter(|length| (matches |> count_if(|m|
+                m.start == start + 1 and m.length == length)) == 0))
+    assert len(missed) == 0, "KSIM: a qualifying substring was not reported"
+
+    # An exact search finds nothing here, which is the whole point of allowing k.
+    assert contains(sequence, motif) == false, "KSIM: the motif does not occur exactly"
+    assert len(matches) > 0, "KSIM: yet three approximate matches exist"
+}
+```
+
+## RSUB — Identifying Reversing Substitutions
+
+[Problem statement](https://rosalind.info/problems/rsub/)
+
+```biolang
+# Rosalind: RSUB — Identifying Reversing Substitutions
+# https://rosalind.info/problems/rsub/
+#
+# Given: A rooted binary tree with every node labelled by a string.
+# Return: Every reversing substitution — a change that later changes back, with
+# no other change in between.
+
+# (((ostrich,cat)rat,mouse)dog,elephant)robot;
+let children = {
+    "robot": ["dog", "elephant"],
+    "dog": ["rat", "mouse"],
+    "rat": ["ostrich", "cat"],
+}
+let sequences = {
+    "robot": "AATTG", "dog": "GGGCA", "mouse": "AAGAC", "rat": "GTTGT",
+    "cat": "GAGGC", "ostrich": "GTGTC", "elephant": "AATTC",
+}
+let root = "robot"
+
+# A site that mutates and later mutates back looks, from the tips alone, as
+# though nothing ever happened — the ancestor and the descendant agree. Only the
+# internal labels reveal it, which is why this problem hands them over rather
+# than asking for them.
+#
+# It matters because reversing substitutions are exactly what makes distant
+# relationships hard to recover: the signal erases itself, and two lineages look
+# more similar than their history warrants.
+fn kids_of(node) { if has_key(children, node) then children[node] else [] }
+
+# Walk down from a node where a change occurred, following only lineages that
+# still carry the new character, and report wherever it changes back.
+fn reversions_below(start, position, was, became) {
+    let found = []
+    let frontier = kids_of(start)
+    while len(frontier) > 0 {
+        let node = frontier[0]
+        frontier = slice(frontier, 1, len(frontier))
+        let here = substr(sequences[node], position, 1)
+        if here == was {
+            # Changed back, with nothing else in between.
+            found = push(found, node)
+        } else {
+            # Still carrying the substitution; keep descending. Any third
+            # character ends the lineage's relevance.
+            if here == became { frontier = frontier + kids_of(node) }
+        }
+    }
+    found
+}
+
+let width = len(sequences[root])
+let reported = []
+let stack = [root]
+while len(stack) > 0 {
+    let parent = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    for child in kids_of(parent) {
+        stack = push(stack, child)
+        for i in range(0, width) {
+            let was = substr(sequences[parent], i, 1)
+            let became = substr(sequences[child], i, 1)
+            if was != became {
+                for reverted in reversions_below(child, i, was, became) {
+                    reported = push(reported, child + " " + reverted + " " + str(i + 1)
+                        + " " + was + "->" + became + "->" + was)
+                }
+            }
+        }
+    }
+}
+
+println("Result:")
+for line in sort(reported) { println("  " + line) }
+println("Expected (any order): dog mouse 1 A->G->A / dog mouse 2 A->G->A")
+println("                      rat ostrich 3 G->T->G / rat cat 3 G->T->G / dog rat 3 T->G->T")
+
+fn test_rsub_reversing_substitutions() {
+    let expected = ["dog mouse 1 A->G->A", "dog mouse 2 A->G->A",
+                    "rat ostrich 3 G->T->G", "rat cat 3 G->T->G", "dog rat 3 T->G->T"]
+    assert sort(reported) == sort(expected), "RSUB: got " + join(sort(reported), " / ")
+
+    # Every report must describe a real reversion: the character genuinely
+    # differs from the parent and genuinely returns at the named descendant.
+    for line in reported {
+        let parts = split(line, " ")
+        let changed = parts[0]
+        let reverted = parts[1]
+        let position = int(parts[2]) - 1
+        assert substr(sequences[changed], position, 1) != substr(sequences[reverted], position, 1),
+            "RSUB: " + line + " does not actually revert"
+    }
+    # The tips alone hide this: robot and mouse agree at position 1 despite two
+    # substitutions on the path between them.
+    assert substr(sequences["robot"], 0, 1) == substr(sequences["mouse"], 0, 1),
+        "RSUB: the endpoints agree, which is what makes the change invisible"
+    assert substr(sequences["dog"], 0, 1) != substr(sequences["robot"], 0, 1),
+        "RSUB: yet the intermediate differs from both"
+}
+```
+
+## REAR — Reversal Distance
+
+[Problem statement](https://rosalind.info/problems/rear/)
+
+```biolang
+# Rosalind: REAR — Reversal Distance
+# https://rosalind.info/problems/rear/
+#
+# Given: Up to five pairs of permutations of length 10.
+# Return: The reversal distance for each pair.
+
+let pairs = [
+    { from_order: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],  to_order: [3, 1, 5, 2, 7, 4, 9, 6, 10, 8] },
+    { from_order: [3, 10, 8, 2, 5, 4, 7, 1, 6, 9],  to_order: [5, 2, 3, 1, 7, 4, 10, 8, 6, 9] },
+    { from_order: [8, 6, 7, 9, 4, 1, 3, 10, 2, 5],  to_order: [8, 2, 7, 6, 9, 1, 5, 3, 10, 4] },
+    { from_order: [3, 9, 10, 4, 1, 8, 6, 7, 5, 2],  to_order: [2, 9, 8, 5, 1, 7, 3, 4, 6, 10] },
+    { from_order: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],  to_order: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+]
+
+# The 2-break distance in BA6C had a closed form — blocks minus cycles. Reversal
+# distance has no such formula at this size, so it has to be searched for, and
+# the search is why `reversal_distance` is a builtin rather than written here:
+# ten elements admit 45 reversals and 3.6 million reachable orders, and the
+# distance reaches 9. A one-sided search to that depth is hopeless; the builtin
+# searches from both ends and meets in the middle, so each side only reaches
+# depth 4 or 5.
+let distances = pairs |> map(|pair| reversal_distance(pair.from_order, pair.to_order))
+
+println("Result:   " + (distances |> map(|d| str(d)) |> join(" ")))
+println("Expected: 9 4 5 7 0")
+
+fn test_rear_reversal_distance() {
+    assert (distances |> map(|d| str(d)) |> join(" ")) == "9 4 5 7 0",
+        "REAR: got " + str(distances)
+    # Identical permutations are no distance apart, and the measure is symmetric
+    # because a reversal undoes itself.
+    assert distances[4] == 0, "REAR: the last pair is already sorted"
+    for pair in pairs {
+        assert reversal_distance(pair.to_order, pair.from_order)
+            == reversal_distance(pair.from_order, pair.to_order),
+            "REAR: the distance must be symmetric"
+    }
+}
+```
+
+## SORT — Sorting by Reversals
+
+[Problem statement](https://rosalind.info/problems/sort/)
+
+```biolang
+# Rosalind: SORT — Sorting by Reversals
+# https://rosalind.info/problems/sort/
+#
+# Given: Two permutations of length 10.
+# Return: The reversal distance, and a shortest collection of reversals taking
+# the first to the second.
+
+let from_order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+let to_order = [1, 8, 9, 3, 2, 7, 6, 5, 4, 10]
+
+# REAR asks how far apart two gene orders are; this asks for the route. The
+# search is the same — the distance is just the length of what comes back — but
+# the sequence is what actually says how the rearrangement happened, and a
+# distance without one is unfalsifiable.
+#
+# Any shortest sequence is correct. Reversals commute in some orders and not
+# others, so several routes of the same length usually exist.
+let steps = sorting_reversals(from_order, to_order)
+
+println("Result:   " + str(len(steps)))
+for step in steps { println("          " + str(step[0]) + " " + str(step[1])) }
+println("Expected: 2, then 4 9 and 2 5 — any shortest route is accepted")
+
+fn test_sort_sorting_by_reversals() {
+    assert len(steps) == 2, "SORT: expected 2 reversals, got " + str(len(steps))
+    assert len(steps) == reversal_distance(from_order, to_order),
+        "SORT: the route must be as long as the distance"
+
+    # The route has to work. Applying the reversals in order must produce the
+    # target — a plausible-looking list that does not sort is the failure this
+    # problem invites.
+    let current = from_order
+    for step in steps {
+        let from_index = step[0] - 1
+        let to_index = step[1] - 1
+        let head = range(0, from_index) |> map(|i| current[i])
+        let middle = range(from_index, to_index + 1)
+            |> map(|i| current[to_index - (i - from_index)])
+        let tail = range(to_index + 1, len(current)) |> map(|i| current[i])
+        current = head + middle + tail
+    }
+    assert current == to_order,
+        "SORT: the reversals give " + str(current) + ", not " + str(to_order)
+
+    # Every interval is a real one, and reverses more than a single element.
+    for step in steps {
+        assert step[0] >= 1 and step[1] <= len(from_order), "SORT: interval out of range"
+        assert step[0] < step[1], "SORT: reversing one element does nothing"
+    }
+}
+```
+

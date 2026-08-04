@@ -1,0 +1,51 @@
+# Rosalind: KSIM — Finding All Similar Motifs
+# https://rosalind.info/problems/ksim/
+#
+# Given: k, a motif s, and a genome t.
+# Return: Every substring of t within edit distance k of s, as (position, length).
+
+let k = 2
+let motif = "ACGTAG"
+let sequence = "ACGGATCGGCATCGT"
+
+# Approximate matching, which is what real motif search always is: a binding site
+# is a tendency rather than a fixed string, and an exact search finds a fraction
+# of the real sites.
+#
+# A caveat worth stating rather than hiding: this checks every (start, length)
+# pair directly, which is O(n^2) edit-distance computations. It is clear and it
+# is correct, and at 15 bases it is instant — but the problem permits a 50 kbp
+# genome, where it would not finish. The scalable form is a fitting alignment:
+# one pass that lets the match begin anywhere in t for free, so every end
+# position is scored at once instead of every pair being scored separately.
+let matches = range(0, len(sequence)) |> flat_map(|start|
+    range(1, len(sequence) - start + 1)
+        |> filter(|length| edit_distance(motif, substr(sequence, start, length)) <= k)
+        |> map(|length| { start: start + 1, length: length }))
+
+println("Result:")
+for hit in matches { println("  " + str(hit.start) + " " + str(hit.length)) }
+println("Expected: 1 4 / 1 5 / 1 6")
+
+fn test_ksim_finding_all_similar_motifs() {
+    let written = matches |> map(|m| str(m.start) + " " + str(m.length))
+    assert sort(written) == sort(["1 4", "1 5", "1 6"]), "KSIM: got " + join(written, " / ")
+
+    # Every reported substring really is within k, and every one omitted is not —
+    # the second half is the part a filter can silently get wrong.
+    for hit in matches {
+        let piece = substr(sequence, hit.start - 1, hit.length)
+        assert edit_distance(motif, piece) <= k,
+            "KSIM: " + piece + " is further than " + str(k)
+    }
+    let missed = range(0, len(sequence)) |> flat_map(|start|
+        range(1, len(sequence) - start + 1)
+            |> filter(|length| edit_distance(motif, substr(sequence, start, length)) <= k)
+            |> filter(|length| (matches |> count_if(|m|
+                m.start == start + 1 and m.length == length)) == 0))
+    assert len(missed) == 0, "KSIM: a qualifying substring was not reported"
+
+    # An exact search finds nothing here, which is the whole point of allowing k.
+    assert contains(sequence, motif) == false, "KSIM: the motif does not occur exactly"
+    assert len(matches) > 0, "KSIM: yet three approximate matches exist"
+}

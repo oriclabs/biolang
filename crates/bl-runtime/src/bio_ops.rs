@@ -7,6 +7,8 @@ use std::collections::HashMap;
 pub fn bio_ops_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
         ("de_bruijn_graph", Arity::Exact(2)),
+        ("reversal_distance", Arity::Exact(2)),
+        ("sorting_reversals", Arity::Exact(2)),
         ("neighbor_joining", Arity::Exact(1)),
         ("umap", Arity::Range(2, 3)),
         ("tsne", Arity::Range(2, 3)),
@@ -19,7 +21,14 @@ pub fn bio_ops_builtin_list() -> Vec<(&'static str, Arity)> {
 pub fn is_bio_ops_builtin(name: &str) -> bool {
     matches!(
         name,
-        "de_bruijn_graph" | "neighbor_joining" | "umap" | "tsne" | "leiden" | "diff_expr"
+        "de_bruijn_graph"
+            | "reversal_distance"
+            | "sorting_reversals"
+            | "neighbor_joining"
+            | "umap"
+            | "tsne"
+            | "leiden"
+            | "diff_expr"
     )
 }
 
@@ -27,6 +36,8 @@ pub fn is_bio_ops_builtin(name: &str) -> bool {
 pub fn call_bio_ops_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
     match name {
         "de_bruijn_graph" => builtin_de_bruijn_graph(args),
+        "reversal_distance" => builtin_reversal_distance(args),
+        "sorting_reversals" => builtin_sorting_reversals(args),
         "neighbor_joining" => builtin_neighbor_joining(args),
         "umap" => builtin_umap(args),
         "tsne" => builtin_tsne(args),
@@ -407,4 +418,194 @@ fn builtin_diff_expr(args: Vec<Value>) -> Result<Value> {
         .collect();
 
     Ok(Value::Table(Table::new(columns, rows)))
+}
+
+// ── Reversal distance ────────────────────────────────────────────────
+//
+// Chromosomes rearrange by reversal, so the fewest reversals separating two
+// gene orders measures how far two genomes have drifted. Unlike the 2-break
+// distance there is no useful closed form at this size, so it is searched for —
+// which is why the search lives in Rust: ten elements give 45 reversals and 3.6
+// million reachable orders.
+
+fn read_permutation(value: &Value, func: &str) -> Result<Vec<u8>> {
+    let items = match value {
+        Value::List(items) => items,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "{func}() requires a list of positive integers, got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+    };
+    let values: Vec<u8> = items
+        .iter()
+        .map(|item| match item {
+            Value::Int(n) if *n >= 1 && *n <= 255 => Ok(*n as u8),
+            Value::Int(n) => Err(BioLangError::type_error(
+                format!("{func}(): {n} is outside the range this supports (1..255)"),
+                None,
+            )),
+            other => Err(BioLangError::type_error(
+                format!(
+                    "{func}() permutations hold integers, got {}",
+                    other.type_of()
+                ),
+                None,
+            )),
+        })
+        .collect::<Result<_>>()?;
+
+    // A permutation, not merely a list: a repeated or missing value would make
+    // the relabelling below meaningless rather than merely wrong.
+    let mut seen = values.clone();
+    seen.sort_unstable();
+    seen.dedup();
+    if seen.len() != values.len() {
+        return Err(BioLangError::type_error(
+            format!("{func}() needs a permutation — a value is repeated"),
+            None,
+        ));
+    }
+    Ok(values)
+}
+
+fn both_permutations(args: &[Value], func: &str) -> Result<(Vec<u8>, Vec<u8>)> {
+    let source = read_permutation(&args[0], func)?;
+    let target = read_permutation(&args[1], func)?;
+    if source.len() != target.len() {
+        return Err(BioLangError::type_error(
+            format!(
+                "{func}(): the permutations are {} and {} long — they have to match",
+                source.len(),
+                target.len()
+            ),
+            None,
+        ));
+    }
+    Ok((source, target))
+}
+
+/// `reversal_distance(source, target)` — the fewest reversals taking one
+/// permutation to the other.
+fn builtin_reversal_distance(args: Vec<Value>) -> Result<Value> {
+    let (source, target) = both_permutations(&args, "reversal_distance")?;
+    bl_core::bio_core::reversal::reversal_distance(&source, &target)
+        .map(|d| Value::Int(d as i64))
+        .ok_or_else(|| {
+            BioLangError::type_error(
+                "reversal_distance(): the two must be permutations of the same values",
+                None,
+            )
+        })
+}
+
+/// `sorting_reversals(source, target)` — one shortest sequence of reversals, as
+/// 1-based inclusive `[from, to]` pairs.
+///
+/// 1-based because that is how the intervals are written in the literature and
+/// in the problems that ask for them; the core works 0-based.
+fn builtin_sorting_reversals(args: Vec<Value>) -> Result<Value> {
+    let (source, target) = both_permutations(&args, "sorting_reversals")?;
+    let steps =
+        bl_core::bio_core::reversal::sorting_reversals(&source, &target).ok_or_else(|| {
+            BioLangError::type_error(
+                "sorting_reversals(): the two must be permutations of the same values",
+                None,
+            )
+        })?;
+    let listed: Vec<Value> = steps
+        .into_iter()
+        .map(|(from, to)| {
+            Value::List(vec![Value::Int(from as i64 + 1), Value::Int(to as i64 + 1)].into())
+        })
+        .collect();
+    Ok(Value::List(listed.into()))
+}
+
+#[cfg(test)]
+mod reversal_tests {
+    use super::*;
+
+    fn permutation(values: &[i64]) -> Value {
+        Value::List(
+            values
+                .iter()
+                .map(|v| Value::Int(*v))
+                .collect::<Vec<_>>()
+                .into(),
+        )
+    }
+
+    #[test]
+    fn the_published_rear_distances() {
+        let cases: [(&[i64], &[i64], i64); 3] = [
+            (
+                &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                &[3, 1, 5, 2, 7, 4, 9, 6, 10, 8],
+                9,
+            ),
+            (
+                &[3, 10, 8, 2, 5, 4, 7, 1, 6, 9],
+                &[5, 2, 3, 1, 7, 4, 10, 8, 6, 9],
+                4,
+            ),
+            (
+                &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                0,
+            ),
+        ];
+        for (source, target, expected) in cases {
+            let got =
+                builtin_reversal_distance(vec![permutation(source), permutation(target)]).unwrap();
+            assert_eq!(got, Value::Int(expected), "{source:?} -> {target:?}");
+        }
+    }
+
+    #[test]
+    fn the_reversals_returned_actually_sort() {
+        let source = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        let target = [1, 8, 9, 3, 2, 7, 6, 5, 4, 10];
+        let steps =
+            builtin_sorting_reversals(vec![permutation(&source), permutation(&target)]).unwrap();
+        let mut current: Vec<i64> = source.to_vec();
+        match steps {
+            Value::List(items) => {
+                assert_eq!(items.len(), 2, "the sample needs two reversals");
+                for step in items.iter() {
+                    match step {
+                        Value::List(pair) => match (&pair[0], &pair[1]) {
+                            (Value::Int(from), Value::Int(to)) => {
+                                // 1-based inclusive.
+                                current[(*from as usize - 1)..*to as usize].reverse();
+                            }
+                            other => panic!("expected two ints, got {other:?}"),
+                        },
+                        other => panic!("expected a pair, got {other:?}"),
+                    }
+                }
+            }
+            other => panic!("expected a list, got {other:?}"),
+        }
+        assert_eq!(current, target.to_vec());
+    }
+
+    #[test]
+    fn a_repeated_value_is_not_a_permutation() {
+        let error =
+            builtin_reversal_distance(vec![permutation(&[1, 1, 2]), permutation(&[1, 2, 3])])
+                .expect_err("not a permutation");
+        assert!(error.to_string().contains("repeated"), "{error}");
+    }
+
+    #[test]
+    fn mismatched_lengths_are_reported() {
+        let error = builtin_reversal_distance(vec![permutation(&[1, 2, 3]), permutation(&[1, 2])])
+            .expect_err("different lengths");
+        assert!(error.to_string().contains("have to match"), "{error}");
+    }
 }

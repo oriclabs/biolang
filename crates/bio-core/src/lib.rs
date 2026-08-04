@@ -14,6 +14,7 @@ pub mod interval;
 pub mod interval_ops;
 pub mod kmer;
 pub mod phylo_ops;
+pub mod reversal;
 pub mod seq_ops;
 pub mod sequence;
 pub mod spectrum;

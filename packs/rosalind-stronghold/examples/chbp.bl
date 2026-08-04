@@ -1,0 +1,101 @@
+# Rosalind: CHBP — Character-Based Phylogeny
+# https://rosalind.info/problems/chbp/
+#
+# Given: Species names and a consistent character table.
+# Return: An unrooted binary tree in Newick format modelling the table.
+
+let taxa = ["cat", "dog", "elephant", "mouse", "rabbit", "rat"]
+let characters = ["011101", "001101", "001100"]
+
+# The inverse of CTBL: there, a tree produced splits; here the splits have to
+# produce the tree. It works because a consistent table's splits are *laminar* —
+# any two are nested or disjoint, never crossing — and a laminar family is
+# exactly a tree.
+#
+# An unrooted tree has no first node, so a reference taxon is picked and every
+# split is taken from the side away from it. That makes the clades nest, and the
+# reference becomes the outermost branch.
+let reference = taxa[0]
+
+fn side_away_from(character, names, anchor) {
+    let anchor_index = (range(0, len(names)) |> filter(|i| names[i] == anchor))[0]
+    let anchor_state = substr(character, anchor_index, 1)
+    range(0, len(names))
+        |> filter(|i| substr(character, i, 1) != anchor_state)
+        |> map(|i| names[i])
+}
+
+let clades = characters |> map(|c| side_away_from(c, taxa, reference))
+
+fn is_subset(small, big) { (small |> count_if(|x| contains(big, x) == false)) == 0 }
+
+fn build(members, groups) {
+    # The groups strictly inside this one, and of those the maximal — anything
+    # contained in another is handled a level deeper.
+    let inside = groups |> filter(|g| is_subset(g, members) and len(g) < len(members))
+    let maximal = inside |> filter(|g|
+        (inside |> count_if(|other| len(other) > len(g) and is_subset(g, other))) == 0)
+    let covered = maximal |> flat_map(|g| g)
+    let loose = members |> filter(|m| contains(covered, m) == false)
+    let parts = (maximal |> map(|g| build(g, groups))) + loose
+    if len(parts) == 1 then parts[0] else "(" + join(parts, ",") + ")"
+}
+
+let rest = taxa |> filter(|t| t != reference)
+let inner = build(rest, clades)
+# The reference sits alongside the rest at the unrooted centre, so its branch is
+# spliced in rather than wrapped around.
+let newick = "(" + reference + "," + substr(inner, 1, len(inner) - 2) + ");"
+
+println("Result:   " + newick)
+println("Expected: (dog,(cat,rabbit),(rat,(elephant,mouse)));")
+println("Both describe one unrooted tree — they differ only in which branch is")
+println("written first, which an unrooted tree does not fix.")
+
+fn test_chbp_character_based_phylogeny() {
+    # The real requirement is that the tree induces exactly the table's splits.
+    # Newick is not canonical for an unrooted tree, so comparing strings would be
+    # comparing a formatting choice.
+    fn splits_of(tree_text, names) {
+        # Every parenthesised group is a clade; take each as a split.
+        let found = []
+        let stack = []
+        for i in range(0, len(tree_text)) {
+            let symbol = substr(tree_text, i, 1)
+            if symbol == "(" { stack = push(stack, i) }
+            if symbol == ")" {
+                let opened = stack[len(stack) - 1]
+                stack = slice(stack, 0, len(stack) - 1)
+                let inner_text = substr(tree_text, opened + 1, i - opened - 1)
+                let members = names |> filter(|t| contains(inner_text, t))
+                if len(members) > 1 and len(members) < len(names) {
+                    found = push(found, join(sort(members), ","))
+                }
+            }
+        }
+        unique(found)
+    }
+
+    let mine = splits_of(newick, taxa)
+    let published = splits_of("(dog,(cat,rabbit),(rat,(elephant,mouse)));", taxa)
+
+    # A split and its complement are the same split, so compare canonically.
+    fn canonical_splits(raw, names) {
+        raw |> map(|s| {
+            let members = split(s, ",")
+            let other = names |> filter(|t| contains(members, t) == false)
+            let one = join(sort(members), ",")
+            let two = join(sort(other), ",")
+            if one < two then one else two
+        }) |> unique() |> sort()
+    }
+
+    assert canonical_splits(mine, taxa) == canonical_splits(published, taxa),
+        "CHBP: splits " + join(canonical_splits(mine, taxa), " | ")
+            + " against " + join(canonical_splits(published, taxa), " | ")
+    # And those splits are exactly the ones the characters describe.
+    let from_characters = canonical_splits(
+        clades |> map(|c| join(sort(c), ",")), taxa)
+    assert canonical_splits(mine, taxa) == from_characters,
+        "CHBP: the tree must induce the table's splits and no others"
+}

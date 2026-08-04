@@ -43,13 +43,12 @@ again through the same WebAssembly build the website serves.
 |---|---|---|
 | [Armory](https://lang.bio/docs/examples/rosalind-armory.html) | **15 / 15** | complete |
 | [Algorithmic Heights](https://lang.bio/docs/examples/rosalind-algorithmic-heights.html) | **34 / 34** | complete |
-| [Stronghold](https://lang.bio/docs/examples/rosalind-stronghold.html) | 85 / 105 | in progress |
+| [Stronghold](https://lang.bio/docs/examples/rosalind-stronghold.html) | **105 / 105** | complete |
 | [Textbook Track](https://lang.bio/docs/examples/rosalind-textbook.html) | **124 / 124** | complete |
 
-**258 problems; 255 are checked on every commit.** The other three reach out to NCBI, so
+**278 problems; 274 are checked on every commit.** The other four reach out to NCBI or UniProt, so
 they run in a separate advisory job rather than gating the build on a remote service being
-up. Three of the four tracks are complete; the
-Stronghold is not, and the numbers say so.
+up. All four tracks are complete.
 
 Writing them is also what surfaced most of the language fixes in recent releases: `{}`
 parsing as a block rather than an empty map, quadratic `push` and `unique`, and an

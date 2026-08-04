@@ -1,0 +1,13 @@
+# The build compiles from source inside the image, so a host target/ directory
+# is both useless and enormous — copying it can add tens of gigabytes and a
+# host-built binary would be linked against the wrong libc anyway.
+target/
+**/target/
+**/node_modules/
+.git/
+website/test-results/
+website/playwright-report/
+desktop/dist/
+dist/
+books/
+bench/data/

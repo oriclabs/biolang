@@ -1,0 +1,92 @@
+# Rosalind: GREP — Genome Assembly with Perfect Coverage and Repeats
+# https://rosalind.info/problems/grep/
+#
+# Given: (k+1)-mers from one strand of a circular chromosome.
+# Return: Every circular string assembled by a complete cycle in the de Bruijn
+# graph, each beginning with the first (k+1)-mer given.
+
+let patterns = [
+    "CAG", "AGT", "GTT", "TTT", "TTG", "TGG", "GGC", "GCG", "CGT",
+    "GTT", "TTC", "TCA", "CAA", "AAT", "ATT", "TTC", "TCA",
+]
+
+# PCOV assumes perfect coverage and returns one answer. This is the honest
+# version: repeats make the Eulerian cycle non-unique, and every cycle is a
+# genome consistent with the reads. Six here — so the reads simply do not
+# determine the chromosome, and reporting one would be picking arbitrarily.
+#
+# That ambiguity is why repeats are the hard part of real assembly, and why
+# BA3J's paired reads exist: extra distance information cuts the alternatives
+# down.
+let k = len(patterns[0]) - 1
+
+let edges_list = patterns |> map(|p| {
+    from_node: substr(p, 0, k),
+    to_node: substr(p, 1, k),
+})
+
+let start_node = edges_list[0].from_node
+
+# Depth-first over the edge multiset. Hierholzer finds one cycle in linear time;
+# finding them all is a search, and only feasible because the graph is small.
+let complete = []
+let stack = [{
+    at: edges_list[0].to_node,
+    used: range(0, len(edges_list)) |> map(|i| i == 0),
+    walk: [start_node, edges_list[0].to_node],
+}]
+
+while len(stack) > 0 {
+    let state = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+
+    let remaining = state.used |> count_if(|u| u == false)
+    if remaining == 0 {
+        # A cycle only counts if it closed.
+        if state.at == start_node { complete = push(complete, state.walk) }
+    } else {
+        for i in range(0, len(edges_list)) {
+            if state.used[i] == false and edges_list[i].from_node == state.at {
+                let marked = state.used
+                marked[i] = true
+                stack = push(stack, {
+                    at: edges_list[i].to_node,
+                    used: marked,
+                    walk: push(state.walk, edges_list[i].to_node),
+                })
+            }
+        }
+    }
+}
+
+# A circular string keeps one character per edge — the trailing k are the leading
+# k come round again.
+let assembled = complete
+    |> map(|walk| range(0, len(walk) - 1) |> map(|i| substr(walk[i], 0, 1)) |> join(""))
+    |> unique()
+    |> sort()
+
+println("Result:")
+for line in assembled { println("  " + line) }
+println("Expected: CAGTTCAATTTGGCGTT CAGTTCAATTGGCGTTT CAGTTTCAATTGGCGTT")
+println("          CAGTTTGGCGTTCAATT CAGTTGGCGTTCAATTT CAGTTGGCGTTTCAATT")
+
+fn test_grep_assembly_with_repeats() {
+    let expected = ["CAGTTCAATTTGGCGTT", "CAGTTCAATTGGCGTTT", "CAGTTTCAATTGGCGTT",
+                    "CAGTTTGGCGTTCAATT", "CAGTTGGCGTTCAATTT", "CAGTTGGCGTTTCAATT"]
+    assert assembled == sort(expected), "GREP: got " + join(assembled, " ")
+    # Each answer is as long as there are reads, and starts with the first one.
+    for answer in assembled {
+        assert len(answer) == len(patterns),
+            "GREP: " + answer + " should be " + str(len(patterns)) + " long"
+        assert substr(answer, 0, k + 1) == patterns[0],
+            "GREP: " + answer + " must begin with " + patterns[0]
+        # And read around the circle, its composition is exactly the input.
+        let wrapped = answer + substr(answer, 0, k)
+        let composition = range(0, len(answer)) |> map(|i| substr(wrapped, i, k + 1))
+        assert sort(composition) == sort(patterns),
+            "GREP: " + answer + " does not have the given composition"
+    }
+    # The point of the problem: more than one genome fits.
+    assert len(assembled) > 1, "GREP: repeats should leave the assembly ambiguous"
+}

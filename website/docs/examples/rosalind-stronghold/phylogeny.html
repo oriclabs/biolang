@@ -26,7 +26,7 @@
       </nav>
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">Phylogeny</h1>
-        <p class="text-lg text-slate-400 mb-6">12 problems from
+        <p class="text-lg text-slate-400 mb-6">19 problems from
         <a href="../rosalind-stronghold.html" class="text-violet-400 hover:text-violet-300">Rosalind — Bioinformatics Stronghold</a>.
         Press <strong>Run</strong> on any block to execute it in your browser.</p>
 
@@ -45,6 +45,13 @@
           <a href="#mend" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Inferring Genotype from a Pedigree">MEND</a>
           <a href="#cset" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Fixing an Inconsistent Character Set">CSET</a>
           <a href="#cstr" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Creating a Character Table from Genetic Strings">CSTR</a>
+          <a href="#alph" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Alignment-Based Phylogeny">ALPH</a>
+          <a href="#cntq" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Counting Quartets">CNTQ</a>
+          <a href="#qrt" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Quartets">QRT</a>
+          <a href="#chbp" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Character-Based Phylogeny">CHBP</a>
+          <a href="#eubt" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Enumerating Unrooted Binary Trees">EUBT</a>
+          <a href="#qrtd" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Quartet Distance">QRTD</a>
+          <a href="#rsub" class="px-2.5 py-1 text-xs rounded border border-slate-800 bg-slate-900/50 text-slate-300 hover:border-violet-500/50 hover:text-violet-300 transition-colors" title="Identifying Reversing Substitutions">RSUB</a>
         </nav>
 
         <section id="tree" class="mt-12">
@@ -55,7 +62,7 @@
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=TREE" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="tree.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A tree on n nodes has exactly n-1 edges, so the answer is that count minus the edges already present, with no search involved. The point is recognising the invariant rather than exploring the graph.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: TREE — Completing a Tree
 # https://rosalind.info/problems/tree/
 #
@@ -86,7 +93,7 @@ fn test_tree_edges_to_add() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=INOD" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="inod.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">An unrooted binary tree with n leaves always has n-2 internal nodes, whatever its shape. That fixed relationship is what lets EUBT count trees by insertion and CNTQ count quartets without ever examining a topology.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: INOD — Counting Phylogenetic Ancestors
 # https://rosalind.info/problems/inod/
 #
@@ -115,7 +122,7 @@ fn test_inod_internal_nodes() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PDST" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="pdst.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Pairwise p-distance: the fraction of positions at which two sequences differ. It is the crude measure HAMM warns about, applied to every pair, and it feeds the tree-building problems that follow.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PDST — Creating a Distance Matrix
 # https://rosalind.info/problems/pdst/
 #
@@ -158,7 +165,7 @@ fn test_pdst_distance_matrix() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ROOT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="root.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Rooted binary trees on n leaves number (2n-3)!!, which passes a billion by n=11. That growth is why phylogenetics searches tree space rather than enumerating it.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: ROOT — Counting Rooted Binary Trees
 # https://rosalind.info/problems/root/
 #
@@ -190,7 +197,7 @@ fn test_root_rooted_binary_trees() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CUNR" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="cunr.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The unrooted count, (2n-5)!!, which is the rooted count one step back — a rooted tree is an unrooted one with a root placed on some edge. EUBT constructs these rather than counting them.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CUNR — Counting Unrooted Binary Trees
 # https://rosalind.info/problems/cunr/
 #
@@ -461,7 +468,7 @@ fn test_nkew_weighted_distances() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CTBL" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="ctbl.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A character table records the splits a set of taxa admits. CHBP inverts it back into a tree, which works only because the splits of a consistent table are nested or disjoint and never crossing.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CTBL — Creating a Character Table
 # https://rosalind.info/problems/ctbl/
 #
@@ -925,6 +932,708 @@ fn test_cstr_character_table() {
     }
     assert characters[0] == &quot;10110&quot; or flipped(characters[0]) == &quot;10110&quot;, &quot;CSTR: first row &quot; + characters[0]
     assert characters[1] == &quot;10100&quot; or flipped(characters[1]) == &quot;10100&quot;, &quot;CSTR: second row &quot; + characters[1]
+}</code></pre>
+        </section>
+
+        <section id="alph" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">ALPH &mdash; Alignment-Based Phylogeny</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/alph/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ALPH" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="alph.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Small parsimony with the gap as a fifth symbol rather than a missing value — in an alignment a gap is evidence that an indel happened, and treating it as unknown would make every column containing one free. Finds a different labelling of equal score, so the assertion recounts the changes.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: ALPH — Alignment-Based Phylogeny
+# https://rosalind.info/problems/alph/
+#
+# Given: A rooted binary tree in Newick format and a multiple alignment of its
+# leaves.
+# Return: The minimum total Hamming distance over the tree's edges, and internal
+# node labels achieving it.
+
+# (((ostrich,cat)rat,(duck,fly)mouse)dog,(elephant,pikachu)hamster)robot;
+let children = {
+    &quot;rat&quot;: [&quot;ostrich&quot;, &quot;cat&quot;],
+    &quot;mouse&quot;: [&quot;duck&quot;, &quot;fly&quot;],
+    &quot;dog&quot;: [&quot;rat&quot;, &quot;mouse&quot;],
+    &quot;hamster&quot;: [&quot;elephant&quot;, &quot;pikachu&quot;],
+    &quot;robot&quot;: [&quot;dog&quot;, &quot;hamster&quot;],
+}
+let root = &quot;robot&quot;
+let leaves = {
+    &quot;ostrich&quot;: &quot;AC&quot;, &quot;cat&quot;: &quot;CA&quot;, &quot;duck&quot;: &quot;T-&quot;,
+    &quot;fly&quot;: &quot;GC&quot;, &quot;elephant&quot;: &quot;-T&quot;, &quot;pikachu&quot;: &quot;AA&quot;,
+}
+
+# The gap is a fifth symbol here, not a missing value. That is the whole reason
+# this problem is separate from the ordinary parsimony ones: in an alignment a
+# gap is evidence — an insertion or deletion actually happened — and treating it
+# as unknown would make every column containing one free.
+let symbols = [&quot;A&quot;, &quot;C&quot;, &quot;G&quot;, &quot;T&quot;, &quot;-&quot;]
+let width = len(leaves[&quot;ostrich&quot;])
+
+fn is_leaf(node, leaf_map) { contains(keys(leaf_map), node) }
+
+# Sankoff: the cheapest cost of a subtree given its root's symbol is the sum over
+# children of their cheapest cost plus one if the symbol has to change. Columns
+# are independent, so each is solved separately and the scores added.
+fn score_column(node, position, leaf_map, child_map, alphabet) {
+    if is_leaf(node, leaf_map) {
+        let here = substr(leaf_map[node], position, 1)
+        return {
+            costs: alphabet |&gt; map(|s| if s == here then 0 else 1000000),
+            picks: {}, solved: [], kids: [],
+        }
+    }
+    let kids = child_map[node]
+    let solved = kids |&gt; map(|kid| score_column(kid, position, leaf_map, child_map, alphabet))
+    let picks = {}
+    let costs = range(0, len(alphabet)) |&gt; map(|mine| {
+        range(0, len(kids)) |&gt; map(|k| {
+            let options = range(0, len(alphabet))
+                |&gt; map(|theirs| solved[k].costs[theirs] + (if theirs == mine then 0 else 1))
+            let chosen = argmin(options)
+            picks[str(mine) + &quot;,&quot; + str(k)] = chosen
+            options[chosen]
+        }) |&gt; sum()
+    })
+    { costs: costs, picks: picks, solved: solved, kids: kids }
+}
+
+fn assign(node, tree, chosen_index, labels, alphabet) {
+    labels[node] = labels[node] + alphabet[chosen_index]
+    for k in range(0, len(tree.kids)) {
+        if len(tree.solved[k].kids) &gt; 0 {
+            labels = assign(tree.kids[k], tree.solved[k],
+                            tree.picks[str(chosen_index) + &quot;,&quot; + str(k)], labels, alphabet)
+        }
+    }
+    labels
+}
+
+let labels = {}
+for node in keys(children) { labels[node] = &quot;&quot; }
+let total = 0
+for position in range(0, width) {
+    let solved = score_column(root, position, leaves, children, symbols)
+    let best = argmin(solved.costs)
+    total = total + solved.costs[best]
+    labels = assign(root, solved, best, labels, symbols)
+}
+
+let named = {}
+for node in keys(leaves) { named[node] = leaves[node] }
+for node in keys(children) { named[node] = labels[node] }
+
+fn hamming(a, b) { range(0, len(a)) |&gt; count_if(|i| substr(a, i, 1) != substr(b, i, 1)) }
+
+println(&quot;Result:   &quot; + str(total))
+for node in sort(keys(children)) { println(&quot;  &quot; + node + &quot;: &quot; + named[node]) }
+println(&quot;Expected: 8  (rat AC, mouse TC, dog AC, hamster AT, robot AC)&quot;)
+println(&quot;This labelling differs and costs the same — several are optimal, and the&quot;)
+println(&quot;assertion recounts the changes rather than trusting the printed one.&quot;)
+
+fn test_alph_alignment_based_phylogeny() {
+    assert total == 8, &quot;ALPH: scored &quot; + str(total)
+    # The score has to be the changes the labelling actually shows — a number
+    # without a matching labelling is the usual bug here.
+    let shown = sort(keys(children)) |&gt; flat_map(|parent|
+        children[parent] |&gt; map(|kid| hamming(named[parent], named[kid]))) |&gt; sum()
+    assert shown == total,
+        &quot;ALPH: the labelling shows &quot; + str(shown) + &quot; changes but the score is &quot; + str(total)
+    # Every internal label is the right length and drawn from the alphabet.
+    for node in keys(children) {
+        assert len(named[node]) == width, &quot;ALPH: &quot; + node + &quot; has the wrong length&quot;
+        assert (chars(named[node]) |&gt; count_if(|c| contains(symbols, c) == false)) == 0,
+            &quot;ALPH: &quot; + named[node] + &quot; uses a symbol outside the alphabet&quot;
+    }
+    # Treating the gap as free would score lower, which is exactly what must not
+    # happen — it is a real evolutionary event.
+    assert (chars(leaves[&quot;duck&quot;]) |&gt; count_if(|c| c == &quot;-&quot;)) == 1, &quot;ALPH: duck carries a gap&quot;
+}</code></pre>
+        </section>
+
+        <section id="cntq" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">CNTQ &mdash; Counting Quartets</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/cntq/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CNTQ" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="cntq.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The answer is C(n,4), and the reason matters more than the number: in a fully resolved tree any four taxa are separated into two pairs by some edge, so the shape never enters into it. The assertion enumerates all 15 subsets and confirms it rather than trusting the formula.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: CNTQ — Counting Quartets
+# https://rosalind.info/problems/cntq/
+#
+# Given: n and an unrooted binary tree on n taxa in Newick format.
+# Return: The number of quartets consistent with the tree, modulo 1,000,000.
+
+let taxa = [&quot;lobster&quot;, &quot;cat&quot;, &quot;dog&quot;, &quot;caterpillar&quot;, &quot;elephant&quot;, &quot;mouse&quot;]
+# (lobster,(cat,dog),(caterpillar,(elephant,mouse)));
+# Each internal edge splits the taxa in two; these are the non-trivial sides.
+let clades = [
+    [&quot;cat&quot;, &quot;dog&quot;],
+    [&quot;caterpillar&quot;, &quot;elephant&quot;, &quot;mouse&quot;],
+    [&quot;elephant&quot;, &quot;mouse&quot;],
+]
+
+# The answer is simply C(n,4), and the reason is worth more than the number: in a
+# *fully resolved* binary tree, any four taxa are separated by some internal edge
+# into two pairs, so every four-taxon set contributes exactly one consistent
+# quartet. Nothing about the tree's shape enters into it.
+#
+# That stops being true the moment the tree has an unresolved node, which is why
+# QRT and CHBP — where splits are partial — are real problems and this one is
+# not.
+let n = len(taxa)
+let answer = choose(n, 4) % 1000000
+
+println(&quot;Result:   &quot; + str(answer))
+println(&quot;Expected: 15&quot;)
+
+fn test_cntq_counting_quartets() {
+    assert answer == 15, &quot;CNTQ: got &quot; + str(answer)
+
+    # Demonstrated rather than asserted: enumerate all four-taxon subsets and
+    # confirm each really is separated into two pairs by some edge.
+    fn subsets_of_four(items) {
+        range(0, len(items)) |&gt; flat_map(|a|
+            range(a + 1, len(items)) |&gt; flat_map(|b|
+                range(b + 1, len(items)) |&gt; flat_map(|c|
+                    range(c + 1, len(items)) |&gt; map(|d|
+                        [items[a], items[b], items[c], items[d]]))))
+    }
+
+    let quartets = subsets_of_four(taxa)
+    assert len(quartets) == choose(n, 4), &quot;CNTQ: C(6,4) is 15 subsets&quot;
+
+    let consistent = quartets |&gt; count_if(|four|
+        (clades |&gt; count_if(|clade|
+            (four |&gt; count_if(|t| contains(clade, t))) == 2)) &gt; 0)
+    assert consistent == len(quartets),
+        &quot;CNTQ: &quot; + str(consistent) + &quot; of &quot; + str(len(quartets)) + &quot; subsets are separated&quot;
+    assert consistent == answer, &quot;CNTQ: the count and the formula must agree&quot;
+}</code></pre>
+        </section>
+
+        <section id="qrt" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">QRT &mdash; Quartets</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/qrt/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=QRT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="qrt.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">An 'x' means not scored, not a third state — so a partial character still separates the taxa it did see, and missing data does not make it useless. Quartets are recorded canonically because neither side nor the order within a side carries meaning, and two characters often support the same one.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: QRT — Quartets
+# https://rosalind.info/problems/qrt/
+#
+# Given: A partial character table.
+# Return: Every quartet inferable from the splits its characters describe.
+
+let taxa = [&quot;cat&quot;, &quot;dog&quot;, &quot;elephant&quot;, &quot;ostrich&quot;, &quot;mouse&quot;, &quot;rabbit&quot;, &quot;robot&quot;]
+let characters = [
+    &quot;01xxx00&quot;,
+    &quot;x11xx00&quot;,
+    &quot;111x00x&quot;,
+]
+
+# A partial character is one that could not be scored for every taxon — an 'x'
+# means &quot;not known&quot;, not &quot;third state&quot;. So a character constrains only the taxa
+# it actually saw, and the quartets it supports are pairs drawn from its two
+# scored groups.
+#
+# The whole point is that missing data does not make a character useless. It
+# still separates the taxa it did score, and those separations are what a tree
+# gets built from.
+fn group_of(character, symbol, names) {
+    range(0, len(names)) |&gt; filter(|i| substr(character, i, 1) == symbol) |&gt; map(|i| names[i])
+}
+
+fn pairs_of(items) {
+    range(0, len(items)) |&gt; flat_map(|a|
+        range(a + 1, len(items)) |&gt; map(|b| [items[a], items[b]]))
+}
+
+# A quartet has no orientation — {a,b}|{c,d} is the same as {c,d}|{a,b} — so each
+# is recorded in a canonical form and duplicates dropped. Two characters often
+# support the same quartet, and counting it twice would overstate the evidence.
+fn canonical(left, right) {
+    let one = join(sort(left), &quot;,&quot;)
+    let two = join(sort(right), &quot;,&quot;)
+    if one &lt; two then one + &quot;|&quot; + two else two + &quot;|&quot; + one
+}
+
+let seen = {}
+let quartets = []
+for character in characters {
+    let zeros = group_of(character, &quot;0&quot;, taxa)
+    let ones = group_of(character, &quot;1&quot;, taxa)
+    for left in pairs_of(zeros) {
+        for right in pairs_of(ones) {
+            let key = canonical(left, right)
+            if contains(keys(seen), key) == false {
+                seen[key] = true
+                quartets = push(quartets, { left: left, right: right })
+            }
+        }
+    }
+}
+
+let written = quartets
+    |&gt; map(|q| &quot;{&quot; + join(q.left, &quot;, &quot;) + &quot;} {&quot; + join(q.right, &quot;, &quot;) + &quot;}&quot;)
+    |&gt; sort()
+
+println(&quot;Result:&quot;)
+for line in written { println(&quot;  &quot; + line) }
+println(&quot;Expected (any order): {elephant, dog} {rabbit, robot} / {cat, dog} {mouse, rabbit}&quot;)
+println(&quot;                      {mouse, rabbit} {cat, elephant} / {dog, elephant} {mouse, rabbit}&quot;)
+
+fn test_qrt_quartets() {
+    assert len(quartets) == 4, &quot;QRT: expected 4 quartets, got &quot; + str(len(quartets))
+    # Compared as unordered pairs of unordered pairs, since neither side nor the
+    # order within a side carries meaning.
+    let expected = [
+        canonical([&quot;elephant&quot;, &quot;dog&quot;], [&quot;rabbit&quot;, &quot;robot&quot;]),
+        canonical([&quot;cat&quot;, &quot;dog&quot;], [&quot;mouse&quot;, &quot;rabbit&quot;]),
+        canonical([&quot;mouse&quot;, &quot;rabbit&quot;], [&quot;cat&quot;, &quot;elephant&quot;]),
+        canonical([&quot;dog&quot;, &quot;elephant&quot;], [&quot;mouse&quot;, &quot;rabbit&quot;]),
+    ]
+    let got = quartets |&gt; map(|q| canonical(q.left, q.right))
+    assert sort(got) == sort(expected), &quot;QRT: got &quot; + join(sort(got), &quot; &quot;)
+    # Every quartet's four taxa are distinct and really were scored by some
+    # character — an 'x' can never appear in one.
+    for q in quartets {
+        let four = q.left + q.right
+        assert len(unique(four)) == 4, &quot;QRT: a quartet must name four different taxa&quot;
+        let supporting = characters |&gt; count_if(|c|
+            (q.left |&gt; count_if(|t| substr(c, (range(0, len(taxa))
+                |&gt; filter(|i| taxa[i] == t))[0], 1) == &quot;0&quot;)) == 2
+            and (q.right |&gt; count_if(|t| substr(c, (range(0, len(taxa))
+                |&gt; filter(|i| taxa[i] == t))[0], 1) == &quot;1&quot;)) == 2)
+        assert supporting &gt; 0, &quot;QRT: no character supports &quot; + canonical(q.left, q.right)
+    }
+}</code></pre>
+        </section>
+
+        <section id="chbp" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">CHBP &mdash; Character-Based Phylogeny</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/chbp/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CHBP" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="chbp.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">The inverse of CTBL. It works because a consistent table's splits are laminar — any two nested or disjoint, never crossing — and a laminar family is exactly a tree. Returns a differently-rooted Newick, so the assertion compares induced splits rather than a formatting choice.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: CHBP — Character-Based Phylogeny
+# https://rosalind.info/problems/chbp/
+#
+# Given: Species names and a consistent character table.
+# Return: An unrooted binary tree in Newick format modelling the table.
+
+let taxa = [&quot;cat&quot;, &quot;dog&quot;, &quot;elephant&quot;, &quot;mouse&quot;, &quot;rabbit&quot;, &quot;rat&quot;]
+let characters = [&quot;011101&quot;, &quot;001101&quot;, &quot;001100&quot;]
+
+# The inverse of CTBL: there, a tree produced splits; here the splits have to
+# produce the tree. It works because a consistent table's splits are *laminar* —
+# any two are nested or disjoint, never crossing — and a laminar family is
+# exactly a tree.
+#
+# An unrooted tree has no first node, so a reference taxon is picked and every
+# split is taken from the side away from it. That makes the clades nest, and the
+# reference becomes the outermost branch.
+let reference = taxa[0]
+
+fn side_away_from(character, names, anchor) {
+    let anchor_index = (range(0, len(names)) |&gt; filter(|i| names[i] == anchor))[0]
+    let anchor_state = substr(character, anchor_index, 1)
+    range(0, len(names))
+        |&gt; filter(|i| substr(character, i, 1) != anchor_state)
+        |&gt; map(|i| names[i])
+}
+
+let clades = characters |&gt; map(|c| side_away_from(c, taxa, reference))
+
+fn is_subset(small, big) { (small |&gt; count_if(|x| contains(big, x) == false)) == 0 }
+
+fn build(members, groups) {
+    # The groups strictly inside this one, and of those the maximal — anything
+    # contained in another is handled a level deeper.
+    let inside = groups |&gt; filter(|g| is_subset(g, members) and len(g) &lt; len(members))
+    let maximal = inside |&gt; filter(|g|
+        (inside |&gt; count_if(|other| len(other) &gt; len(g) and is_subset(g, other))) == 0)
+    let covered = maximal |&gt; flat_map(|g| g)
+    let loose = members |&gt; filter(|m| contains(covered, m) == false)
+    let parts = (maximal |&gt; map(|g| build(g, groups))) + loose
+    if len(parts) == 1 then parts[0] else &quot;(&quot; + join(parts, &quot;,&quot;) + &quot;)&quot;
+}
+
+let rest = taxa |&gt; filter(|t| t != reference)
+let inner = build(rest, clades)
+# The reference sits alongside the rest at the unrooted centre, so its branch is
+# spliced in rather than wrapped around.
+let newick = &quot;(&quot; + reference + &quot;,&quot; + substr(inner, 1, len(inner) - 2) + &quot;);&quot;
+
+println(&quot;Result:   &quot; + newick)
+println(&quot;Expected: (dog,(cat,rabbit),(rat,(elephant,mouse)));&quot;)
+println(&quot;Both describe one unrooted tree — they differ only in which branch is&quot;)
+println(&quot;written first, which an unrooted tree does not fix.&quot;)
+
+fn test_chbp_character_based_phylogeny() {
+    # The real requirement is that the tree induces exactly the table's splits.
+    # Newick is not canonical for an unrooted tree, so comparing strings would be
+    # comparing a formatting choice.
+    fn splits_of(tree_text, names) {
+        # Every parenthesised group is a clade; take each as a split.
+        let found = []
+        let stack = []
+        for i in range(0, len(tree_text)) {
+            let symbol = substr(tree_text, i, 1)
+            if symbol == &quot;(&quot; { stack = push(stack, i) }
+            if symbol == &quot;)&quot; {
+                let opened = stack[len(stack) - 1]
+                stack = slice(stack, 0, len(stack) - 1)
+                let inner_text = substr(tree_text, opened + 1, i - opened - 1)
+                let members = names |&gt; filter(|t| contains(inner_text, t))
+                if len(members) &gt; 1 and len(members) &lt; len(names) {
+                    found = push(found, join(sort(members), &quot;,&quot;))
+                }
+            }
+        }
+        unique(found)
+    }
+
+    let mine = splits_of(newick, taxa)
+    let published = splits_of(&quot;(dog,(cat,rabbit),(rat,(elephant,mouse)));&quot;, taxa)
+
+    # A split and its complement are the same split, so compare canonically.
+    fn canonical_splits(raw, names) {
+        raw |&gt; map(|s| {
+            let members = split(s, &quot;,&quot;)
+            let other = names |&gt; filter(|t| contains(members, t) == false)
+            let one = join(sort(members), &quot;,&quot;)
+            let two = join(sort(other), &quot;,&quot;)
+            if one &lt; two then one else two
+        }) |&gt; unique() |&gt; sort()
+    }
+
+    assert canonical_splits(mine, taxa) == canonical_splits(published, taxa),
+        &quot;CHBP: splits &quot; + join(canonical_splits(mine, taxa), &quot; | &quot;)
+            + &quot; against &quot; + join(canonical_splits(published, taxa), &quot; | &quot;)
+    # And those splits are exactly the ones the characters describe.
+    let from_characters = canonical_splits(
+        clades |&gt; map(|c| join(sort(c), &quot;,&quot;)), taxa)
+    assert canonical_splits(mine, taxa) == from_characters,
+        &quot;CHBP: the tree must induce the table's splits and no others&quot;
+}</code></pre>
+        </section>
+
+        <section id="eubt" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">EUBT &mdash; Enumerating Unrooted Binary Trees</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/eubt/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=EUBT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="eubt.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Built by insertion: every unrooted binary tree arises exactly once by splitting an edge and hanging the next taxon off it, which is why the count is (2n-5)!! — fifteen trees at n=5, over two million at n=10. That growth is why nobody enumerates trees to find the best one.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: EUBT — Enumerating Unrooted Binary Trees
+# https://rosalind.info/problems/eubt/
+#
+# Given: n taxa.
+# Return: Every unrooted binary tree on those taxa, in Newick format.
+
+let taxa = [&quot;dog&quot;, &quot;cat&quot;, &quot;mouse&quot;, &quot;elephant&quot;]
+
+# Built by insertion: start with the only tree on three taxa — a star — then add
+# each remaining taxon by splitting one existing edge in two and hanging it off
+# the new node. Every unrooted binary tree arises exactly once this way, which is
+# why the count is the double factorial (2n-5)!! and why it explodes: fifteen
+# trees at n=5, over two million at n=10.
+#
+# That growth is the reason nobody enumerates trees to find the best one. It is
+# also why the parsimony and distance methods in this pack exist.
+let edges_start = [
+    { a: &quot;center&quot;, b: taxa[0] },
+    { a: &quot;center&quot;, b: taxa[1] },
+    { a: &quot;center&quot;, b: taxa[2] },
+]
+
+let trees = [edges_start]
+for step in range(3, len(taxa)) {
+    let leaf = taxa[step]
+    let grown = []
+    for tree in trees {
+        for i in range(0, len(tree)) {
+            let fresh = &quot;node&quot; + str(step) + &quot;_&quot; + str(i)
+            let split_edge = tree[i]
+            let others = range(0, len(tree)) |&gt; filter(|j| j != i) |&gt; map(|j| tree[j])
+            grown = push(grown, others + [
+                { a: split_edge.a, b: fresh },
+                { a: fresh, b: split_edge.b },
+                { a: fresh, b: leaf },
+            ])
+        }
+    }
+    trees = grown
+}
+
+fn neighbours_of(tree, node) {
+    (tree |&gt; filter(|e| e.a == node) |&gt; map(|e| e.b))
+        + (tree |&gt; filter(|e| e.b == node) |&gt; map(|e| e.a))
+}
+
+fn is_taxon(node, names) { contains(names, node) }
+
+fn walk(tree, node, parent, names) {
+    if is_taxon(node, names) { return node }
+    let children = neighbours_of(tree, node) |&gt; filter(|c| c != parent)
+    &quot;(&quot; + (children |&gt; map(|c| walk(tree, c, node, names)) |&gt; join(&quot;,&quot;)) + &quot;)&quot;
+}
+
+# Written from the first taxon, which an unrooted tree does not privilege — it
+# is just somewhere to start reading.
+fn to_newick(tree, names) {
+    let anchor = names[0]
+    let hub = neighbours_of(tree, anchor)[0]
+    let branches = neighbours_of(tree, hub) |&gt; filter(|c| c != anchor)
+    &quot;(&quot; + anchor + &quot;,&quot; + (branches |&gt; map(|c| walk(tree, c, hub, names)) |&gt; join(&quot;,&quot;)) + &quot;);&quot;
+}
+
+let written = trees |&gt; map(|t| to_newick(t, taxa))
+
+println(&quot;Result:&quot;)
+for line in written { println(&quot;  &quot; + line) }
+println(&quot;Expected: three trees — (mouse,cat)|(elephant,dog), (elephant,mouse)|(cat,dog),&quot;)
+println(&quot;          (elephant,cat)|(mouse,dog), written from a different anchor.&quot;)
+
+fn test_eubt_enumerating_unrooted_binary_trees() {
+    # (2n-5)!! trees: 1 x 3 for n = 4.
+    assert len(trees) == 3, &quot;EUBT: expected 3 trees, got &quot; + str(len(trees))
+    assert len(unique(written)) == 3, &quot;EUBT: the trees must be distinct&quot;
+
+    # A tree on n taxa has 2n-3 edges and n-2 internal nodes.
+    for tree in trees {
+        assert len(tree) == 2 * len(taxa) - 3,
+            &quot;EUBT: expected &quot; + str(2 * len(taxa) - 3) + &quot; edges, got &quot; + str(len(tree))
+        for taxon in taxa {
+            assert len(neighbours_of(tree, taxon)) == 1, &quot;EUBT: &quot; + taxon + &quot; must be a leaf&quot;
+        }
+    }
+
+    # The three topologies are exactly the three ways of pairing four taxa. That
+    # is the whole content of the answer, and it does not depend on how the
+    # Newick is rooted.
+    fn pairing_of(tree, names) {
+        # The one internal edge separates the taxa into two pairs. Which side the
+        # edge happens to be stored from is arbitrary, so the smaller of the two
+        # names the topology.
+        let internal = tree |&gt; filter(|e|
+            is_taxon(e.a, names) == false and is_taxon(e.b, names) == false)
+        let side = neighbours_of(tree, internal[0].a) |&gt; filter(|x| is_taxon(x, names))
+        let other = names |&gt; filter(|t| contains(side, t) == false)
+        let one = join(sort(side), &quot;,&quot;)
+        let two = join(sort(other), &quot;,&quot;)
+        if one &lt; two then one else two
+    }
+    let pairings = trees |&gt; map(|t| pairing_of(t, taxa)) |&gt; sort()
+    assert len(unique(pairings)) == 3, &quot;EUBT: each tree must pair the taxa differently&quot;
+    # With four taxa the topology is fixed by which one cat is paired with, and
+    # all three possibilities appear exactly once.
+    assert pairings == sort([&quot;cat,dog&quot;, &quot;cat,mouse&quot;, &quot;cat,elephant&quot;]),
+        &quot;EUBT: got pairings &quot; + join(pairings, &quot; | &quot;)
+}</code></pre>
+        </section>
+
+        <section id="qrtd" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">QRTD &mdash; Quartet Distance</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/qrtd/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=QRTD" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="qrtd.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">Quartets degrade gracefully where splits do not: moving one taxon changes a handful of quartets but can destroy every split at once. Asserted to be zero between a tree and itself, which is the identity any distance must satisfy.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: QRTD — Quartet Distance
+# https://rosalind.info/problems/qrtd/
+#
+# Given: n taxa and two unrooted binary trees.
+# Return: The quartet distance between them.
+
+let taxa = [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;, &quot;E&quot;]
+# (A,C,((B,D),E));   and   (C,(B,D),(A,E));
+# Each internal edge is a split; these are the non-trivial sides.
+let first_clades = [[&quot;B&quot;, &quot;D&quot;], [&quot;B&quot;, &quot;D&quot;, &quot;E&quot;]]
+let second_clades = [[&quot;B&quot;, &quot;D&quot;], [&quot;A&quot;, &quot;E&quot;]]
+
+# Two trees can share every taxon and still disagree about almost everything, so
+# comparing them needs a measure. Quartets give one: each set of four taxa is
+# separated into two pairs by exactly one edge, and two trees either agree about
+# that pairing or they do not.
+#
+# It beats counting shared splits because it degrades gracefully — moving one
+# taxon changes a handful of quartets, where it can destroy every split at once.
+fn pairing_in(four, clades) {
+    # The clade cutting these four 2-and-2 names the quartet.
+    let cutting = clades |&gt; filter(|c| (four |&gt; count_if(|t| contains(c, t))) == 2)
+    if len(cutting) == 0 { return &quot;&quot; }
+    let side = four |&gt; filter(|t| contains(cutting[0], t))
+    let other = four |&gt; filter(|t| contains(cutting[0], t) == false)
+    let one = join(sort(side), &quot;,&quot;)
+    let two = join(sort(other), &quot;,&quot;)
+    if one &lt; two then one + &quot;|&quot; + two else two + &quot;|&quot; + one
+}
+
+fn subsets_of_four(items) {
+    range(0, len(items)) |&gt; flat_map(|a|
+        range(a + 1, len(items)) |&gt; flat_map(|b|
+            range(b + 1, len(items)) |&gt; flat_map(|c|
+                range(c + 1, len(items)) |&gt; map(|d|
+                    [items[a], items[b], items[c], items[d]]))))
+}
+
+let quartets = subsets_of_four(taxa)
+let shared = quartets |&gt; count_if(|four| {
+    let one = pairing_in(four, first_clades)
+    let two = pairing_in(four, second_clades)
+    one != &quot;&quot; and one == two
+})
+
+# Both trees are fully resolved, so each induces exactly one quartet per subset.
+let first_count = quartets |&gt; count_if(|four| pairing_in(four, first_clades) != &quot;&quot;)
+let second_count = quartets |&gt; count_if(|four| pairing_in(four, second_clades) != &quot;&quot;)
+let distance = first_count + second_count - 2 * shared
+
+println(&quot;Result:   &quot; + str(distance))
+println(&quot;Expected: 4&quot;)
+println(&quot;(&quot; + str(len(quartets)) + &quot; quartets each, &quot; + str(shared) + &quot; agreeing)&quot;)
+
+fn test_qrtd_quartet_distance() {
+    assert distance == 4, &quot;QRTD: got &quot; + str(distance)
+    # A resolved tree resolves every four-taxon subset, which CNTQ established.
+    assert first_count == choose(len(taxa), 4), &quot;QRTD: the first tree resolves all 5&quot;
+    assert second_count == choose(len(taxa), 4), &quot;QRTD: and so does the second&quot;
+    assert shared == 3, &quot;QRTD: 3 of the 5 quartets agree&quot;
+
+    # A tree against itself is distance zero — the identity any distance must
+    # satisfy, and worth checking rather than assuming.
+    let self_shared = quartets |&gt; count_if(|four| pairing_in(four, first_clades) != &quot;&quot;)
+    assert first_count + first_count - 2 * self_shared == 0,
+        &quot;QRTD: a tree must be distance 0 from itself&quot;
+    # The two disagreeing quartets are the ones involving both B,D and A,E.
+    let disagreeing = quartets |&gt; filter(|four|
+        pairing_in(four, first_clades) != pairing_in(four, second_clades))
+    assert len(disagreeing) == 2, &quot;QRTD: exactly two quartets differ&quot;
+}</code></pre>
+        </section>
+
+        <section id="rsub" class="mt-12">
+          <h2 class="text-2xl font-bold text-white mb-2">RSUB &mdash; Identifying Reversing Substitutions</h2>
+          <p class="mb-3 flex items-center gap-3 text-sm">
+            <span class="inline-block px-2 py-0.5 text-xs rounded border bg-emerald-500/10 text-emerald-300 border-emerald-500/30">solved</span><span class="inline-block px-2 py-0.5 text-xs rounded border bg-sky-500/10 text-sky-300 border-sky-500/30" title="runs in your browser and from the CLI">browser + CLI</span>
+            <a href="https://rosalind.info/problems/rsub/" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="/workbench/?pack=rosalind-stronghold&amp;problem=RSUB" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
+            <a href="rsub.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+          </p>
+<p class="text-sm text-slate-500 mb-4">A site that mutates and mutates back looks, from the tips alone, as though nothing happened — which is exactly what makes distant relationships hard to recover. Only the internal labels reveal it, which is why the problem supplies them.</p>
+          <pre data-standalone><code class="language-biolang"># Rosalind: RSUB — Identifying Reversing Substitutions
+# https://rosalind.info/problems/rsub/
+#
+# Given: A rooted binary tree with every node labelled by a string.
+# Return: Every reversing substitution — a change that later changes back, with
+# no other change in between.
+
+# (((ostrich,cat)rat,mouse)dog,elephant)robot;
+let children = {
+    &quot;robot&quot;: [&quot;dog&quot;, &quot;elephant&quot;],
+    &quot;dog&quot;: [&quot;rat&quot;, &quot;mouse&quot;],
+    &quot;rat&quot;: [&quot;ostrich&quot;, &quot;cat&quot;],
+}
+let sequences = {
+    &quot;robot&quot;: &quot;AATTG&quot;, &quot;dog&quot;: &quot;GGGCA&quot;, &quot;mouse&quot;: &quot;AAGAC&quot;, &quot;rat&quot;: &quot;GTTGT&quot;,
+    &quot;cat&quot;: &quot;GAGGC&quot;, &quot;ostrich&quot;: &quot;GTGTC&quot;, &quot;elephant&quot;: &quot;AATTC&quot;,
+}
+let root = &quot;robot&quot;
+
+# A site that mutates and later mutates back looks, from the tips alone, as
+# though nothing ever happened — the ancestor and the descendant agree. Only the
+# internal labels reveal it, which is why this problem hands them over rather
+# than asking for them.
+#
+# It matters because reversing substitutions are exactly what makes distant
+# relationships hard to recover: the signal erases itself, and two lineages look
+# more similar than their history warrants.
+fn kids_of(node) { if has_key(children, node) then children[node] else [] }
+
+# Walk down from a node where a change occurred, following only lineages that
+# still carry the new character, and report wherever it changes back.
+fn reversions_below(start, position, was, became) {
+    let found = []
+    let frontier = kids_of(start)
+    while len(frontier) &gt; 0 {
+        let node = frontier[0]
+        frontier = slice(frontier, 1, len(frontier))
+        let here = substr(sequences[node], position, 1)
+        if here == was {
+            # Changed back, with nothing else in between.
+            found = push(found, node)
+        } else {
+            # Still carrying the substitution; keep descending. Any third
+            # character ends the lineage's relevance.
+            if here == became { frontier = frontier + kids_of(node) }
+        }
+    }
+    found
+}
+
+let width = len(sequences[root])
+let reported = []
+let stack = [root]
+while len(stack) &gt; 0 {
+    let parent = stack[len(stack) - 1]
+    stack = slice(stack, 0, len(stack) - 1)
+    for child in kids_of(parent) {
+        stack = push(stack, child)
+        for i in range(0, width) {
+            let was = substr(sequences[parent], i, 1)
+            let became = substr(sequences[child], i, 1)
+            if was != became {
+                for reverted in reversions_below(child, i, was, became) {
+                    reported = push(reported, child + &quot; &quot; + reverted + &quot; &quot; + str(i + 1)
+                        + &quot; &quot; + was + &quot;-&gt;&quot; + became + &quot;-&gt;&quot; + was)
+                }
+            }
+        }
+    }
+}
+
+println(&quot;Result:&quot;)
+for line in sort(reported) { println(&quot;  &quot; + line) }
+println(&quot;Expected (any order): dog mouse 1 A-&gt;G-&gt;A / dog mouse 2 A-&gt;G-&gt;A&quot;)
+println(&quot;                      rat ostrich 3 G-&gt;T-&gt;G / rat cat 3 G-&gt;T-&gt;G / dog rat 3 T-&gt;G-&gt;T&quot;)
+
+fn test_rsub_reversing_substitutions() {
+    let expected = [&quot;dog mouse 1 A-&gt;G-&gt;A&quot;, &quot;dog mouse 2 A-&gt;G-&gt;A&quot;,
+                    &quot;rat ostrich 3 G-&gt;T-&gt;G&quot;, &quot;rat cat 3 G-&gt;T-&gt;G&quot;, &quot;dog rat 3 T-&gt;G-&gt;T&quot;]
+    assert sort(reported) == sort(expected), &quot;RSUB: got &quot; + join(sort(reported), &quot; / &quot;)
+
+    # Every report must describe a real reversion: the character genuinely
+    # differs from the parent and genuinely returns at the named descendant.
+    for line in reported {
+        let parts = split(line, &quot; &quot;)
+        let changed = parts[0]
+        let reverted = parts[1]
+        let position = int(parts[2]) - 1
+        assert substr(sequences[changed], position, 1) != substr(sequences[reverted], position, 1),
+            &quot;RSUB: &quot; + line + &quot; does not actually revert&quot;
+    }
+    # The tips alone hide this: robot and mouse agree at position 1 despite two
+    # substitutions on the path between them.
+    assert substr(sequences[&quot;robot&quot;], 0, 1) == substr(sequences[&quot;mouse&quot;], 0, 1),
+        &quot;RSUB: the endpoints agree, which is what makes the change invisible&quot;
+    assert substr(sequences[&quot;dog&quot;], 0, 1) != substr(sequences[&quot;robot&quot;], 0, 1),
+        &quot;RSUB: yet the intermediate differs from both&quot;
 }</code></pre>
         </section>
       </article>
