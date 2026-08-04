@@ -5,7 +5,7 @@ from Bio import SeqIO
 
 lengths = []
 gc_values = []
-for record in SeqIO.parse("data/contigs.fa", "fasta"):
+for record in SeqIO.parse("data/sequences.fa", "fasta"):
     seq = str(record.seq).upper()
     lengths.append(len(seq))
     gc = (seq.count("G") + seq.count("C")) / len(seq) if len(seq) > 0 else 0.0

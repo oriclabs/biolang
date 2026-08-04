@@ -1,16 +1,10 @@
-let data = csv("real_data/clinvar_variants.csv")
-let groups = {}
-for row in data
-  let sig = row["clnsig"]
-  let vlen = to_float(row["var_len"])
-  if !has_key(groups, sig)
-    groups[sig] = {count: 0, total_len: 0.0}
-  end
-  groups[sig]["count"] = groups[sig]["count"] + 1
-  groups[sig]["total_len"] = groups[sig]["total_len"] + vlen
-end
+# Group ClinVar variants by clinical significance. Output JSON.
+let rows = csv("real_data/clinvar_variants.csv")
+let grouped = rows |> group_by("clnsig")
 let result = {}
-for sig, g in groups
-  result[sig] = {count: g["count"], mean_var_len: g["total_len"] / g["count"]}
-end
-print(to_json({groups: result}))
+keys(grouped) |> each(|sig| {
+    let g = grouped[sig]
+    let lens = col_values(g, "var_len") |> map(|v| float(v))
+    result[sig] = {count: len(g), mean_var_len: sum(lens) / float(len(g))}
+})
+println(json_pretty({groups: result}))

@@ -1,10 +1,18 @@
-let seqs = read_fasta("real_data/ecoli_genome.fa") |> collect()
-let seq_str = slice(seqs[0].seq, 0, 50000) |> to_string()
-let seq = dna(seq_str)
-let counts = kmer_count(seq, 5)
-let total = 0
-for k, v in counts
-  total = total + v
-end
-let sorted_kmers = entries(counts) |> sort_by(|e| -e[1]) |> head(10)
-print(to_json({sequence_id: seqs[0].id, total_kmers: total, unique_kmers: len(counts), top_10: sorted_kmers}))
+# Canonical 5-mers over the first 50 kb of E. coli. Output JSON.
+let seqs = read_fasta("real_data/ecoli_genome.fa")
+let seq = dna(upper(substr(str(seqs[0].seq), 0, 50000)))
+let k = 5
+let kmer_list = kmer_encode(seq, k) |> map(|x| kmer_decode(kmer_canonical(x)))
+let counts = frequencies(kmer_list)
+# Ordered by count descending then k-mer ascending. Counter.most_common leaves
+# ties in insertion order, which no other implementation can reproduce, so the
+# reference sorts the same way.
+let top = keys(counts)
+    |> map(|key| {kmer: key, count: counts[key]})
+    |> sort_by(|a, b| if a.count != b.count { b.count - a.count }
+                      else { if a.kmer < b.kmer { -1 } else { 1 } })
+    |> head(10)
+    |> map(|p| [p.kmer, p.count])
+let output = {sequence_id: seqs[0].id, total_kmers: len(kmer_list),
+              unique_kmers: len(keys(counts)), top_10: top}
+println(json_pretty(output))

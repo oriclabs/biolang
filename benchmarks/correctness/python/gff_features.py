@@ -5,7 +5,7 @@ from collections import Counter
 
 counts = Counter()
 total = 0
-with open("data/annotations.gff") as f:
+with open("data/annotations.gff3") as f:
     for line in f:
         if line.startswith("#") or line.strip() == "":
             continue

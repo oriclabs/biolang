@@ -1,20 +1,11 @@
-let seqs = read_fasta("real_data/yeast_genome.fa") |> collect()
-let lengths = seqs |> map(|s| len(s.seq)) |> sort() |> reverse()
+# Assembly statistics over the S. cerevisiae genome. Output JSON.
+let seqs = read_fasta("real_data/yeast_genome.fa")
+let lengths = seqs |> map(|s| seq_len(s.seq))
 let total = sum(lengths)
-let gc_total = 0
-for seq in seqs
-  gc_total = gc_total + gc_content(seq.seq) * len(seq.seq)
-end
-let overall_gc = gc_total / total
-
-let cumulative = 0
-let n50 = 0
-for l in lengths
-  cumulative = cumulative + l
-  if cumulative >= total / 2
-    n50 = l
-    break
-  end
-end
-
-print(to_json({n_sequences: len(seqs), total_length: total, n50: n50, gc_content: overall_gc}))
+# Length-weighted GC, matching the reference: sum(gc_i * len_i) / sum(len_i),
+# which is not the same as the mean of the per-sequence fractions.
+let weighted = seqs |> map(|s| gc_content(s.seq) * float(seq_len(s.seq))) |> sum()
+let overall_gc = weighted / float(total)
+let output = {n_sequences: len(lengths), total_length: total,
+              n50: n50(lengths), gc_content: overall_gc}
+println(json_pretty(output))

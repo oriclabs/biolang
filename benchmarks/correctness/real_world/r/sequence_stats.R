@@ -1,6 +1,7 @@
 library(Biostrings)
 library(jsonlite)
 seqs <- readDNAStringSet("real_data/yeast_genome.fa")
+names(seqs) <- sub(" .*$", "", names(seqs))
 lengths <- width(seqs)
 total <- sum(lengths)
 gc_weighted <- sum(sapply(1:length(seqs), function(i) {
@@ -12,5 +13,5 @@ overall_gc <- gc_weighted / total
 sorted_lengths <- sort(lengths, decreasing = TRUE)
 cumsum_lengths <- cumsum(sorted_lengths)
 n50 <- sorted_lengths[min(which(cumsum_lengths >= total / 2))]
-cat(toJSON(list(n_sequences = length(seqs), total_length = total, n50 = as.integer(n50), gc_content = overall_gc), auto_unbox = TRUE))
+cat(toJSON(list(n_sequences = length(seqs), total_length = total, n50 = as.integer(n50), gc_content = overall_gc), auto_unbox = TRUE, digits = 10))
 cat("\n")

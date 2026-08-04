@@ -1,26 +1,28 @@
-let lines = read_lines("real_data/clinvar.vcf") |> filter(|l| !starts_with(l, "#")) |> collect()
-let pathogenic = []
-for line in lines
-  let parts = split(line, "\t")
-  if len(parts) >= 8
-    let info = parts[7]
-    let fields = split(info, ";")
-    for f in fields
-      if starts_with(f, "CLNSIG=")
-        let sig = replace(f, "CLNSIG=", "")
-        if sig == "Pathogenic" or starts_with(sig, "Pathogenic/") or starts_with(sig, "Pathogenic|")
-          pathogenic = append(pathogenic, parts[0])
-        end
-      end
-    end
-  end
-end
+# Count ClinVar variants and those flagged Pathogenic, per chromosome.
+# Reads the file as text: the reference walks the INFO column the same way, and
+# comparing two parsers of the same bytes is the point of the exercise.
+let lines = read_lines("real_data/clinvar.vcf")
+let rows = lines |> filter(|l| not starts_with(l, "#"))
 let per_chrom = {}
-for c in pathogenic
-  if has_key(per_chrom, c)
-    per_chrom[c] = per_chrom[c] + 1
-  else
-    per_chrom[c] = 1
-  end
-end
-print(to_json({total_variants: len(lines), pathogenic_count: len(pathogenic), per_chromosome: per_chrom}))
+let pathogenic = 0
+rows |> each(|l| {
+    let parts = split(l, "\t")
+    if len(parts) >= 8 {
+        let info = parts[7]
+        let fields = split(info, ";")
+        let sigs = fields |> filter(|f| starts_with(f, "CLNSIG="))
+        if len(sigs) > 0 {
+            let sig = substr(sigs[0], 7)
+            # Pathogenic exactly, or a compound value that leads with it
+            # (Pathogenic/Likely_pathogenic, Pathogenic|drug_response).
+            if sig == "Pathogenic" or starts_with(sig, "Pathogenic/") or starts_with(sig, "Pathogenic|") {
+                pathogenic = pathogenic + 1
+                let c = parts[0]
+                per_chrom[c] = if has_key(per_chrom, c) { per_chrom[c] + 1 } else { 1 }
+            }
+        }
+    }
+})
+let output = {total_variants: len(rows), pathogenic_count: pathogenic,
+              per_chromosome: per_chrom}
+println(json_pretty(output))

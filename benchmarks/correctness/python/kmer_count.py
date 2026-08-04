@@ -11,7 +11,7 @@ def canonical(kmer):
     rc = reverse_complement(kmer)
     return min(kmer, rc)
 
-record = next(SeqIO.parse("data/contigs.fa", "fasta"))
+record = next(SeqIO.parse("data/sequences.fa", "fasta"))
 seq = str(record.seq).upper()
 k = 5
 counts = {}

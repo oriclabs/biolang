@@ -1,5 +1,5 @@
 # Translate first 3 FASTA sequences (trimmed to multiple of 3). Output JSON.
-let seqs = read_fasta("data/contigs.fa") |> head(3)
+let seqs = read_fasta("data/sequences.fa") |> head(3)
 let results = {}
 seqs |> each(|s| {
     let seq = s.seq
@@ -7,7 +7,7 @@ seqs |> each(|s| {
     let trimmed = subseq(seq, 0, trim_len)
     let rna = transcribe(trimmed)
     let protein = translate(rna)
-    results = merge(results, {[s.id]: str(protein)})
+    results[s.id] = str(protein)
 })
 let output = {translations: results}
-println(json_stringify(output, 2))
+println(json_pretty(output))

@@ -4,7 +4,7 @@ import sys
 from Bio import SeqIO
 
 results = {}
-for record in SeqIO.parse("data/contigs.fa", "fasta"):
+for record in SeqIO.parse("data/sequences.fa", "fasta"):
     seq = str(record.seq).upper()
     gc = (seq.count("G") + seq.count("C")) / len(seq) if len(seq) > 0 else 0.0
     results[record.id] = round(gc, 6)

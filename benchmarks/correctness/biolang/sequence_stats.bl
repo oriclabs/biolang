@@ -1,5 +1,5 @@
 # Compute N50, total length, sequence count, mean GC from FASTA. Output JSON.
-let seqs = read_fasta("data/contigs.fa")
+let seqs = read_fasta("data/sequences.fa")
 let lengths = seqs |> map(|s| seq_len(s.seq))
 let gc_vals = seqs |> map(|s| gc_content(s.seq))
 
@@ -25,4 +25,4 @@ sorted_lens |> each(|l| {
 
 let output = {n_sequences: n_seqs, total_length: total_len, n50: n50,
               min_length: min_len, max_length: max_len, mean_gc: mean_gc_val}
-println(json_stringify(output, 2))
+println(json_pretty(output))

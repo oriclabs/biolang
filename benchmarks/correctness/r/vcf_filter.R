@@ -23,5 +23,5 @@ result <- list(
     passed_qual30 = length(passed_chroms),
     per_chromosome = chrom_counts
 )
-cat(toJSON(result, auto_unbox = TRUE, pretty = TRUE))
+cat(toJSON(result, auto_unbox = TRUE, pretty = TRUE, digits = 10))
 cat("\n")

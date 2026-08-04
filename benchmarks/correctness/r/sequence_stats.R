@@ -2,7 +2,10 @@
 library(Biostrings)
 library(jsonlite)
 
-seqs <- readDNAStringSet("data/contigs.fa")
+seqs <- readDNAStringSet("data/sequences.fa")
+# readDNAStringSet keeps the entire header line; BioLang and BioPython
+# use the identifier up to the first space.
+names(seqs) <- sub(" .*$", "", names(seqs))
 lengths <- width(seqs)
 total_len <- sum(lengths)
 
@@ -28,5 +31,5 @@ result <- list(
     max_length = max(lengths),
     mean_gc = mean_gc
 )
-cat(toJSON(result, auto_unbox = TRUE, pretty = TRUE))
+cat(toJSON(result, auto_unbox = TRUE, pretty = TRUE, digits = 10))
 cat("\n")

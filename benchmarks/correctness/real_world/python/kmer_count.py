@@ -13,5 +13,8 @@ for i in range(len(seq) - k + 1):
         canonical = min(kmer, rc)
         counts[canonical] += 1
 total = sum(counts.values())
-top_10 = counts.most_common(10)
+# most_common leaves equal counts in insertion order, which is an artefact
+# of how this loop happened to walk the genome. Sort ties by k-mer so the
+# result is reproducible by any implementation.
+top_10 = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:10]
 print(json.dumps({"sequence_id": record.id, "total_kmers": total, "unique_kmers": len(counts), "top_10": top_10}))

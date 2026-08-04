@@ -1,13 +1,13 @@
-# Group CSV by cohort, compute count and mean depth. Output JSON.
-let samples = csv("data/samples.csv")
-let grouped = samples |> group_by("cohort")
+# Group CSV by cohort, compute count and mean age. Output JSON.
+let meta = csv("data/metadata.csv")
+let grouped = meta |> group_by("cohort")
 let cohort_names = keys(grouped) |> sort()
 let results = {}
 cohort_names |> each(|name| {
     let rows = grouped[name]
-    let depths = col_values(rows, "depth") |> map(|v| float(v))
-    let m = round(mean(depths), 6)
-    results = merge(results, {[name]: {count: len(rows), mean_depth: m}})
+    let ages = col_values(rows, "age") |> map(|v| float(v))
+    let m = round(mean(ages), 6)
+    results[name] = {count: len(rows), mean_age: m}
 })
 let output = {groups: results}
-println(json_stringify(output, 2))
+println(json_pretty(output))

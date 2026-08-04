@@ -5,7 +5,7 @@ from collections import defaultdict
 
 intervals = []
 chrom_counts = defaultdict(int)
-with open("data/promoters.bed") as f:
+with open("data/regions.bed") as f:
     for line in f:
         if line.startswith("#") or line.strip() == "":
             continue
