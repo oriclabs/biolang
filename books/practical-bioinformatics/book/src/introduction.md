@@ -121,8 +121,8 @@ To use the companion files:
 To get the companion files:
 
 ```bash
-git clone https://github.com/bioras/practical-bioinformatics.git
-cd practical-bioinformatics
+git clone https://github.com/oriclabs/biolang.git
+cd biolang/books/practical-bioinformatics
 ```
 
 Or download the ZIP from the book's website and extract it.
