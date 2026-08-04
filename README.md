@@ -346,7 +346,7 @@ reads |> map(|r| gc_content(r.seq)) |> histogram("GC Content")
 
 ## Benchmarks
 
-Benchmarked against Python (BioPython) and R (Bioconductor) on 30 bioinformatics tasks using real-world data (NCBI, UniProt, ClinVar, ENCODE). Correctness validated on both synthetic and real biological data (E. coli K-12, S. cerevisiae, ClinVar) with 9-task three-way comparison.
+Benchmarked against Python (BioPython) and R (Bioconductor) on 32 bioinformatics tasks using real-world data (NCBI, UniProt, ClinVar, ENCODE). Correctness validated on both synthetic and real biological data (E. coli K-12, S. cerevisiae, ClinVar) with 9-task three-way comparison.
 
 | Task | BioLang | Python | Speedup |
 |---|---|---|---|
