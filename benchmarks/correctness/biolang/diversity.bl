@@ -1,0 +1,13 @@
+# Shannon and Simpson diversity over GFF feature types. Output JSON.
+let features = gff("data/annotations.gff3") |> collect()
+let counts = {}
+features |> count_by("type") |> each(|r| { counts[r.key] = r.count })
+let total = float(len(features))
+let ps = keys(counts) |> sort() |> map(|k| float(counts[k]) / total)
+# Shannon uses natural log, so the unit is nats; Simpson is reported as the
+# probability that two draws differ (1 - sum p^2).
+let shannon = 0.0 - (ps |> map(|p| p * log(p)) |> sum())
+let simpson = 1.0 - (ps |> map(|p| p * p) |> sum())
+let output = {n_categories: len(ps), n_observations: len(features),
+              shannon: round(shannon, 9), simpson: round(simpson, 9)}
+println(json_pretty(output))

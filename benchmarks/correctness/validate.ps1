@@ -10,7 +10,8 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $DataDir = Split-Path -Parent $ScriptDir
 
-$Tasks = @("gc_content", "kmer_count", "vcf_filter", "reverse_complement", "translate", "csv_groupby", "gff_features", "sequence_stats", "bed_intervals")
+$Tasks = @("gc_content", "kmer_count", "vcf_filter", "reverse_complement", "translate", "csv_groupby", "gff_features", "sequence_stats", "bed_intervals",
+           "edit_distance", "alignment", "diversity", "hardy_weinberg", "peptide_mass")
 
 $CompareScript = @"
 import json, sys

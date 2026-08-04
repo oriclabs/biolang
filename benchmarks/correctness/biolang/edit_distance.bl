@@ -1,0 +1,13 @@
+# Levenshtein distance between the first five sequences, pairwise. Output JSON.
+let seqs = read_fasta("data/sequences.fa") |> head(5)
+let ids = seqs |> map(|s| s.id)
+let pairs = []
+range(0, len(seqs)) |> each(|i| {
+    range(i + 1, len(seqs)) |> each(|j| {
+        # Trimmed to 300 bases so the quadratic reference stays quick.
+        let a = substr(str(seqs[i].seq), 0, 300)
+        let b = substr(str(seqs[j].seq), 0, 300)
+        pairs = push(pairs, {a: ids[i], b: ids[j], distance: edit_distance(a, b)})
+    })
+})
+println(json_pretty({pairs: pairs}))

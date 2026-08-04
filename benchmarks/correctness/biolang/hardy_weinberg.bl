@@ -1,0 +1,19 @@
+# Hardy-Weinberg expectations from observed genotype counts. Output JSON.
+# Counts are fixed rather than derived from a file: the point is the arithmetic,
+# and a shared literal keeps all three implementations reading the same input.
+let cohorts = [
+    {name: "cohort_1", aa: 1469, ab: 138, bb: 5},
+    {name: "cohort_2", aa: 900,  ab: 850, bb: 250},
+    {name: "cohort_3", aa: 320,  ab: 480, bb: 200}
+]
+let results = cohorts |> map(|c| {
+    let n = float(c.aa + c.ab + c.bb)
+    let p = (2.0 * float(c.aa) + float(c.ab)) / (2.0 * n)
+    let q = 1.0 - p
+    {name: c.name, n: c.aa + c.ab + c.bb,
+     p: round(p, 9), q: round(q, 9),
+     exp_aa: round(p * p * n, 6),
+     exp_ab: round(2.0 * p * q * n, 6),
+     exp_bb: round(q * q * n, 6)}
+})
+println(json_pretty({cohorts: results}))

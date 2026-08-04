@@ -1,7 +1,7 @@
 ﻿{
     "suite":  "Real-data correctness",
     "data":  "E. coli K-12, S. cerevisiae, ClinVar via download_real_data.py",
-    "generated":  "2026-08-04 21:28:42",
+    "generated":  "2026-08-04 21:47:07",
     "platform":  "Microsoft Windows NT 10.0.26200.0",
     "biolang":  "bl 1.1.0",
     "python":  "Python 3.13.14",

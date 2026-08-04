@@ -1,0 +1,11 @@
+# Monoisotopic peptide mass. Output JSON.
+#
+# peptide_mass() sums the integer amino acid masses used in cyclopeptide
+# sequencing (G 57, A 71, S 87, ... W 186), which is why it returns an Int.
+# That is a different convention from the monoisotopic masses BioPython's
+# molecular_weight() reports, not a rounding of them: SKADYEK is 821 here and
+# 821.392 monoisotopic. The reference transcribes the same published table
+# rather than calling BioPython, so the two answer the same question.
+let peptides = ["SKADYEK", "MTEITAAMVKELRESTGAGMMDCK", "WYVGA", "PEPTIDEK"]
+let results = peptides |> map(|p| {peptide: p, mass: peptide_mass(protein(p))})
+println(json_pretty({peptides: results}))
