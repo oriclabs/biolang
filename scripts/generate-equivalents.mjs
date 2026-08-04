@@ -1,0 +1,252 @@
+#!/usr/bin/env node
+/**
+ * Generate the verified-equivalents page.
+ *
+ * The page shows the same computation in BioLang, Python and R as three tabs.
+ * Every trio on it comes from benchmarks/correctness/oneliners/cases.tsv, which
+ * the correctness suite runs in all three languages and compares — so a tabbed
+ * block here is one that CI has shown produces identical values, not a
+ * translation somebody wrote out and hoped about.
+ *
+ * That constraint is the point. Writing Python and R equivalents for the ~1300
+ * code blocks on the site by hand would mean 2600 unverified snippets sitting
+ * beside BioLang examples that are checked on every commit. Generating from the
+ * verified set instead means coverage grows with the correctness suite, one
+ * line of cases.tsv at a time.
+ *
+ *   node scripts/generate-equivalents.mjs
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const CASES = path.join(ROOT, "benchmarks", "correctness", "oneliners", "cases.tsv");
+const RESULTS = path.join(ROOT, "benchmarks", "correctness", "results", "oneliners.json");
+const OUT = path.join(ROOT, "website", "docs", "examples", "equivalents.html");
+
+const escape = (s) =>
+  String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+function loadCases() {
+  const lines = fs.readFileSync(CASES, "utf8").split(/\r?\n/);
+  let header = null;
+  const rows = [];
+  for (const line of lines) {
+    if (!line.trim() || line.trimStart().startsWith("#")) continue;
+    const parts = line.split("\t");
+    if (!header) { header = parts; continue; }
+    const row = {};
+    header.forEach((h, i) => { row[h] = parts[i] ?? ""; });
+    if (row.name && row.biolang) rows.push(row);
+  }
+  return rows;
+}
+
+function loadResults() {
+  if (!fs.existsSync(RESULTS)) return null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(RESULTS, "utf8"));
+    const byName = new Map();
+    for (const r of parsed.results ?? []) byName.set(r.name, r);
+    return byName;
+  } catch {
+    return null;
+  }
+}
+
+
+// A bare expression shows what to call but does not print anything, so the Run
+// button would appear to do nothing, and a copied Python snippet without its
+// import will not run at all. Wrap each expression in the language's print and
+// prepend only the imports that expression actually needs, so every pane is
+// something you can paste and run where it belongs.
+function pythonSetup(expr) {
+  const lines = [];
+  if (/statistics\./.test(expr)) lines.push("import statistics");
+  if (/math\./.test(expr)) lines.push("import math");
+  if (/Seq\(/.test(expr)) lines.push("from Bio.Seq import Seq");
+  if (/gc_fraction\(/.test(expr)) lines.push("from Bio.SeqUtils import gc_fraction");
+  return lines;
+}
+
+function rSetup(expr) {
+  const lines = [];
+  if (/DNAString|RNAString|reverseComplement|translate\(|complement\(/.test(expr)) {
+    lines.push("library(Biostrings)");
+  }
+  return lines;
+}
+
+const NL = "\n";
+
+function paneCode(lang, expr) {
+  const body = expr.trim();
+  if (lang === "biolang") return `println(${body})`;
+  if (lang === "python") return pythonSetup(body).concat([`print(${body})`]).join(NL);
+  return rSetup(body).concat([`print(${body})`]).join(NL);
+}
+
+const CATEGORY_TITLES = {
+  bio: "Sequences",
+  stats: "Statistics",
+  math: "Maths",
+  string: "Strings",
+  list: "Lists",
+  kmer: "K-mers",
+};
+
+function tabs(row, verdict) {
+  const panes = [
+    ["BioLang", "biolang", row.biolang],
+    ["Python", "python", row.python],
+    ["R", "r", row.r],
+  ].filter(([, , code]) => code && code.trim());
+
+  const differ = (row.expect || "").trim() === "differ";
+  const note = differ ? "conventions differ - see note" : "verified identical";
+  const href = differ ? "#conventions" : "../../../benchmarks/correctness/results/oneliners.md";
+
+  const body = panes.map(([label, lang, code]) =>
+    `        <div class="code-tab-pane" data-lang="${escape(label)}">
+          <pre><code class="language-${lang}">${escape(paneCode(lang, code))}</code></pre>
+        </div>`).join("\n");
+
+  const values = verdict
+    ? `        <p class="text-xs text-slate-500 mt-2">Returns <code>${escape(JSON.stringify(verdict.biolang))}</code>`
+      + (verdict.python !== undefined
+          ? ` in BioLang, <code>${escape(JSON.stringify(verdict.python))}</code> in Python`
+          : "")
+      + (verdict.r !== null && verdict.r !== undefined
+          ? `, <code>${escape(JSON.stringify(verdict.r))}</code> in R`
+          : "")
+      + ".</p>"
+    : "";
+
+  return `      <div class="code-tabs" data-verified-note="${escape(note)}" data-verified-href="${escape(href)}">
+${body}
+      </div>
+${values}`;
+}
+
+function main() {
+  const rows = loadCases();
+  const results = loadResults();
+  const byCategory = new Map();
+  for (const row of rows) {
+    const key = row.category || "other";
+    if (!byCategory.has(key)) byCategory.set(key, []);
+    byCategory.get(key).push(row);
+  }
+
+  const sections = [];
+  for (const [cat, items] of byCategory) {
+    const title = CATEGORY_TITLES[cat] || cat;
+    const blocks = items.map((row) => {
+      const verdict = results?.get(row.name) ?? null;
+      return `      <h3 class="text-base font-semibold text-white mt-8 mb-2">${escape(row.name)}</h3>\n`
+        + tabs(row, verdict);
+    }).join("\n");
+    sections.push(`    <section class="mb-10">
+      <h2 class="text-2xl font-bold text-white mb-2">${escape(title)}</h2>
+${blocks}
+    </section>`);
+  }
+
+  const differing = rows.filter((r) => (r.expect || "").trim() === "differ");
+  const conventions = differing.length === 0 ? "" : `
+    <section id="conventions" class="mb-10">
+      <h2 class="text-2xl font-bold text-white mb-2">Where the conventions differ</h2>
+      <p class="text-slate-400 mb-4">
+        These are recorded rather than hidden. Neither answer is wrong; the
+        languages round ties in different directions. The correctness suite
+        fails if one of these ever starts agreeing, so the note cannot go stale.
+      </p>
+      <ul class="list-disc pl-6 text-slate-400 space-y-1">
+${differing.map((r) => {
+    const v = results?.get(r.name);
+    const shown = v
+      ? `BioLang <code>${escape(JSON.stringify(v.biolang))}</code>, `
+        + `Python <code>${escape(JSON.stringify(v.python))}</code>`
+        + (v.r != null ? `, R <code>${escape(JSON.stringify(v.r))}</code>` : "")
+      : "";
+    return `        <li><code>${escape(r.biolang)}</code> &mdash; ${shown}</li>`;
+  }).join("\n")}
+      </ul>
+      <p class="text-slate-400 mt-4">
+        BioLang rounds half away from zero. Python and R round half to even.
+      </p>
+    </section>`;
+
+  const counted = rows.length;
+  const html = `<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verified Equivalents &mdash; BioLang</title>
+  <meta name="description" content="The same computation in BioLang, Python and R, with every trio checked by the correctness suite.">
+  <link rel="icon" href="../../assets/favicon.svg">
+  <link rel="stylesheet" href="../../assets/styles.css">
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="../../js/biolang-highlight.js"></script>
+  <style>
+    .code-tab-strip { display: flex; align-items: center; gap: 0.25rem; margin-bottom: -1px; flex-wrap: wrap; }
+    .code-tab { padding: 0.3rem 0.85rem; font-size: 0.8rem; font-weight: 600; color: rgb(148,163,184);
+                background: rgba(30,41,59,0.6); border: 1px solid rgba(51,65,85,0.6); border-bottom: none;
+                border-radius: 0.4rem 0.4rem 0 0; cursor: pointer; }
+    .code-tab:hover { color: rgb(226,232,240); }
+    .code-tab-active { color: rgb(167,139,250); background: rgb(15,23,42); border-color: rgba(139,92,246,0.4); }
+    .code-tab-note { margin-left: auto; font-size: 0.7rem; color: rgb(100,116,139); text-decoration: none; }
+    a.code-tab-note:hover { color: rgb(167,139,250); text-decoration: underline; }
+    .code-tabs pre { margin-top: 0; border-top-left-radius: 0; }
+    /* Without JavaScript every pane shows, stacked. Nothing is lost. */
+    .code-tab-pane[hidden] { display: none; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-300">
+  <!-- Generated by scripts/generate-equivalents.mjs from
+       benchmarks/correctness/oneliners/cases.tsv. Do not edit by hand. -->
+  <div data-component="header" data-base-path="../.."></div>
+  <div class="flex max-w-[90rem] mx-auto">
+    <div data-component="nav" data-base-path="../.." data-active="examples/equivalents"></div>
+    <main class="flex-1 min-w-0 px-6 py-10 max-w-4xl">
+      <h1 class="text-4xl font-bold text-white mb-3">Verified equivalents</h1>
+      <p class="text-lg text-slate-400 mb-4">
+        The same computation in BioLang, Python and R. Every trio on this page is
+        run in all three languages by the correctness suite and compared &mdash;
+        floats to 1e-9, integers and strings exactly &mdash; so these are checked
+        translations rather than plausible ones.
+      </p>
+      <p class="text-slate-400 mb-8">
+        ${counted} cases. Only the BioLang tab has a Run button, because only
+        BioLang runs in the browser; every tab can be copied. Add a case by
+        adding one row to
+        <code>benchmarks/correctness/oneliners/cases.tsv</code>, and it appears
+        here once it passes.
+      </p>
+${sections.join("\n")}
+${conventions}
+    </main>
+  </div>
+  <div data-component="footer" data-base-path="../.."></div>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/copy-code.js"></script>
+  <script src="../../js/code-tabs.js"></script>
+  <script src="../../js/playground.js"></script>
+</body>
+</html>
+`;
+
+  fs.mkdirSync(path.dirname(OUT), { recursive: true });
+  fs.writeFileSync(OUT, html, "utf8");
+  const differCount = differing.length;
+  console.log(`equivalents: ${counted} cases across ${byCategory.size} categories `
+    + `(${differCount} recorded as convention differences) -> `
+    + `${path.relative(ROOT, OUT).replace(/\\/g, "/")}`);
+}
+
+main();
