@@ -102,7 +102,7 @@ Every example in this book uses real biological data and real analysis tasks. Th
 Install BioLang:
 
 ```bash
-cargo install biolang
+cargo install --git https://github.com/oriclabs/biolang bl-cli
 ```
 
 Or build from source:

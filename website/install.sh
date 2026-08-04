@@ -27,11 +27,6 @@ main() {
         *)              err "Unsupported architecture: $ARCH" ;;
     esac
 
-    # Linux aarch64 not yet in release matrix
-    if [ "$PLATFORM" = "linux" ] && [ "$ARCH_NAME" = "aarch64" ]; then
-        err "Linux aarch64 builds are not yet available. Please build from source: https://github.com/$REPO"
-    fi
-
     ARCHIVE="biolang-${PLATFORM}-${ARCH_NAME}.tar.gz"
 
     # Get latest release tag
@@ -47,8 +42,18 @@ main() {
     TMPDIR=$(mktemp -d)
     trap 'rm -rf "$TMPDIR"' EXIT
 
+    # A missing archive is the ordinary failure here, not a network fault: a
+    # release may predate a platform being added to the build matrix. Say which
+    # platform is missing rather than printing a bare URL. Linux aarch64 was in
+    # exactly this state until it joined the matrix, and the hard-coded refusal
+    # that used to live above stayed long after it needed to.
     say "Downloading $ARCHIVE..."
-    curl -fSL --progress-bar "$URL" -o "$TMPDIR/$ARCHIVE" || err "Download failed. URL: $URL"
+    if ! curl -fSL --progress-bar "$URL" -o "$TMPDIR/$ARCHIVE"; then
+        err "No ${PLATFORM}-${ARCH_NAME} build in release ${LATEST}.
+  Looked for: $URL
+  Available builds are listed at https://github.com/$REPO/releases/tag/${LATEST}
+  To build from source instead: cargo install --git https://github.com/$REPO bl-cli"
+    fi
 
     # Extract
     say "Extracting..."
