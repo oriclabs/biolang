@@ -139,6 +139,7 @@ def main() -> int:
     ap.add_argument("--python", default=sys.executable)
     ap.add_argument("--rscript", default="Rscript")
     ap.add_argument("--json", dest="json_out")
+    ap.add_argument("--md", dest="md_out")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
@@ -217,6 +218,30 @@ def main() -> int:
     if args.json_out:
         with open(args.json_out, "w", encoding="utf-8") as h:
             json.dump({"cases": len(cases), "counts": counts, "results": results}, h, indent=2)
+
+    if args.md_out:
+        # A verdict alone is not evidence. Show what each language returned so a
+        # reader can check the comparison rather than take the word PASS for it.
+        def fmt(v):
+            if v is None:
+                return "-"
+            t = json.dumps(v)
+            return "`" + (t if len(t) <= 60 else t[:60] + "...") + "`"
+        lines = ["# One-liner correctness", "",
+                 f"{len(cases)} cases. Values are compared as JSON: floats to 1e-9, "
+                 "integers and strings exactly.", "",
+                 "`DIFFER` marks a known convention difference, recorded on purpose; "
+                 "such a case fails if it ever starts agreeing.", "",
+                 "| Case | Category | BioLang | Python | R | vs Py | vs R |",
+                 "|---|---|---|---|---|---|---|"]
+        for r in results:
+            lines.append(f"| {r['name']} | {r['category']} | {fmt(r['biolang'])} | "
+                         f"{fmt(r['python'])} | {fmt(r['r'])} | {r['vs_python']} | {r['vs_r']} |")
+        lines += ["", f"vs Python: {counts['py_pass']} passed, {counts['py_fail']} failed",
+                  "", f"vs R: {counts['r_pass']} passed, {counts['r_fail']} failed, "
+                  f"{counts['r_skip']} skipped", ""]
+        with open(args.md_out, "w", encoding="utf-8", newline=chr(10)) as h:
+            h.write(chr(10).join(lines))
 
     if bl["code"] != 0 and not bl["values"]:
         print(f"\nBioLang produced nothing. stderr:\n{bl['stderr']}")

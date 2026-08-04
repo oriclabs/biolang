@@ -1,4 +1,4 @@
-# Write a record of a correctness run.
+﻿# Write a record of a correctness run.
 #
 # A run that leaves nothing behind cannot be cited afterwards, and "we compared
 # against BioPython" is a much weaker claim than a table saying which tasks were
@@ -65,10 +65,43 @@ function Write-Evidence {
     [void]$md.Add("| Data | $DataDesc |")
     [void]$md.Add("| Tolerance | floats 1e-6; integers and strings exact |")
     [void]$md.Add("")
-    [void]$md.Add("| Task | Reference | Result |")
-    [void]$md.Add("|---|---|---|")
+    [void]$md.Add("| Task | Reference | Result | Bytes | SHA-256 (both sides) |")
+    [void]$md.Add("|---|---|---|---|---|")
     foreach ($e in $Evidence) {
-        [void]$md.Add("| $($e.task) | $($e.reference) | $($e.result.ToUpper()) |")
+        $sha = if ($e.biolang_sha256) {
+            if ($e.biolang_sha256 -eq $e.reference_sha256) { "``$($e.biolang_sha256.Substring(0,16))`` identical" }
+            else { "bl ``$($e.biolang_sha256.Substring(0,10))`` vs ref ``$($e.reference_sha256.Substring(0,10))``" }
+        } else { "-" }
+        $bytes = if ($e.biolang_bytes) { $e.biolang_bytes } else { "-" }
+        [void]$md.Add("| $($e.task) | $($e.reference) | $($e.result.ToUpper()) | $bytes | $sha |")
+    }
+    [void]$md.Add("")
+    [void]$md.Add("## Output values")
+    [void]$md.Add("")
+    [void]$md.Add("A verdict is only as good as what produced it. Each task's output is")
+    [void]$md.Add("canonicalised (keys sorted, no whitespace) before hashing, so an identical")
+    [void]$md.Add("digest means the two implementations agreed on every value. Outputs over")
+    [void]$md.Add("600 characters are truncated here - gc_content alone is 268 KB.")
+    [void]$md.Add("")
+    foreach ($e in $Evidence) {
+        if (-not $e.biolang_excerpt) { continue }
+        [void]$md.Add("### $($e.task) vs $($e.reference)")
+        [void]$md.Add("")
+        [void]$md.Add("BioLang:")
+        [void]$md.Add('```json')
+        [void]$md.Add($e.biolang_excerpt)
+        [void]$md.Add('```')
+        [void]$md.Add("")
+        [void]$md.Add("$($e.reference):")
+        [void]$md.Add('```json')
+        [void]$md.Add($e.reference_excerpt)
+        [void]$md.Add('```')
+        if ($e.differences) {
+            [void]$md.Add("")
+            [void]$md.Add("Differences:")
+            foreach ($d in $e.differences) { [void]$md.Add("- $d") }
+        }
+        [void]$md.Add("")
     }
     [void]$md.Add("")
     [void]$md.Add("vs Python: $PySummary")
