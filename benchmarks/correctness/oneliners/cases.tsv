@@ -1,0 +1,64 @@
+# One-liner correctness cases.
+#
+# One row per builtin behaviour, giving the same computation in BioLang, Python
+# and R. The runner generates a single script per language, so adding coverage
+# costs a line here rather than three new files — which is what makes covering
+# a couple of hundred builtins realistic at all.
+#
+# Columns are tab-separated: name, category, biolang, python, r
+# An empty r column skips R for that row.
+#
+# Python runs with: from Bio.Seq import Seq; from Bio.SeqUtils import gc_fraction
+#                   import math, statistics, json
+# R runs with:      library(Biostrings); library(jsonlite)
+#
+# Values are compared as JSON: floats to 1e-9, integers and strings exactly.
+name	category	biolang	python	r	expect
+gc_content_even	bio	gc_content(dna"ACGTACGT")	gc_fraction("ACGTACGT")	sum(strsplit("ACGTACGT","")[[1]] %in% c("G","C"))/8
+gc_content_gc_rich	bio	gc_content(dna"GGGGCCCC")	gc_fraction("GGGGCCCC")	sum(strsplit("GGGGCCCC","")[[1]] %in% c("G","C"))/8
+gc_content_at_only	bio	gc_content(dna"AAATTT")	gc_fraction("AAATTT")	sum(strsplit("AAATTT","")[[1]] %in% c("G","C"))/6
+reverse_complement	bio	str(reverse_complement(dna"ACGTACGT"))	str(Seq("ACGTACGT").reverse_complement())	as.character(reverseComplement(DNAString("ACGTACGT")))
+reverse_complement_palindrome	bio	str(reverse_complement(dna"GAATTC"))	str(Seq("GAATTC").reverse_complement())	as.character(reverseComplement(DNAString("GAATTC")))
+complement	bio	str(complement(dna"ACGTACGT"))	str(Seq("ACGTACGT").complement())	as.character(complement(DNAString("ACGTACGT")))
+transcribe	bio	str(transcribe(dna"ACGTACGT"))	str(Seq("ACGTACGT").transcribe())	gsub("T","U","ACGTACGT")
+translate_simple	bio	str(translate(rna"AUGGCCAUUGUA"))	str(Seq("AUGGCCAUUGUA").back_transcribe().translate())	as.character(translate(RNAString("AUGGCCAUUGUA")))
+translate_start	bio	str(translate(rna"AUGUUUUAA"))	str(Seq("AUGUUUUAA").back_transcribe().translate(to_stop=True))	sub("[*].*$","",as.character(translate(RNAString("AUGUUUUAA"))))
+seq_len	bio	seq_len(dna"ACGTACGTAA")	len("ACGTACGTAA")	nchar("ACGTACGTAA")
+hamming_zero	bio	hamming_distance(dna"ACGT", dna"ACGT")	sum(a != b for a, b in zip("ACGT", "ACGT"))	sum(strsplit("ACGT","")[[1]] != strsplit("ACGT","")[[1]])
+hamming_three	bio	hamming_distance(dna"GAGCCTACTAACGGGAT", dna"CATCGTAATGACGGCCT")	sum(a != b for a, b in zip("GAGCCTACTAACGGGAT", "CATCGTAATGACGGCCT"))	sum(strsplit("GAGCCTACTAACGGGAT","")[[1]] != strsplit("CATCGTAATGACGGCCT","")[[1]])
+edit_distance_classic	bio	edit_distance("kitten", "sitting")	3	as.integer(adist("kitten","sitting")[1,1])
+edit_distance_identical	bio	edit_distance("abcdef", "abcdef")	0	as.integer(adist("abcdef","abcdef")[1,1])
+edit_distance_empty	bio	edit_distance("", "abc")	3	as.integer(adist("","abc")[1,1])
+melting_temp_wallace	bio	round(tm(dna"ACGTACGTACGT"), 6)	round(2*("ACGTACGTACGT".count("A")+"ACGTACGTACGT".count("T")) + 4*("ACGTACGTACGT".count("G")+"ACGTACGTACGT".count("C")), 6)
+mean_ints	stats	mean([1.0, 2.0, 3.0, 4.0])	statistics.mean([1,2,3,4])	mean(c(1,2,3,4))
+mean_negative	stats	mean([-5.0, 0.0, 5.0])	statistics.mean([-5,0,5])	mean(c(-5,0,5))
+median_odd	stats	median([3.0, 1.0, 2.0])	statistics.median([3,1,2])	median(c(3,1,2))
+median_even	stats	median([4.0, 1.0, 3.0, 2.0])	statistics.median([4,1,3,2])	median(c(4,1,3,2))
+stdev_sample	stats	round(stdev([2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]), 9)	round(statistics.stdev([2,4,4,4,5,5,7,9]), 9)	round(sd(c(2,4,4,4,5,5,7,9)), 9)
+variance_sample	stats	round(variance([2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]), 9)	round(statistics.variance([2,4,4,4,5,5,7,9]), 9)	round(var(c(2,4,4,4,5,5,7,9)), 9)
+sum_floats	math	sum([1.5, 2.5, 3.0])	1.5+2.5+3.0	sum(c(1.5,2.5,3.0))
+min_list	math	min([4.0, 2.0, 9.0])	min([4,2,9])	min(c(4,2,9))
+max_list	math	max([4.0, 2.0, 9.0])	max([4,2,9])	max(c(4,2,9))
+abs_negative	math	abs(-7.5)	abs(-7.5)	abs(-7.5)
+sqrt_two	math	round(sqrt(2.0), 9)	round(math.sqrt(2), 9)	round(sqrt(2), 9)
+log_natural	math	round(log(10.0), 9)	round(math.log(10), 9)	round(log(10), 9)
+pow_int	math	round(pow(2.0, 10.0), 6)	round(2**10, 6)	round(2^10, 6)
+round_half_tie	math	round(2.5, 0)	round(2.5)	round(2.5)	differ
+round_binary_repr	math	round(2.675, 2)	round(2.675, 2)	round(2.675, 2)	differ
+floor_value	math	floor(3.7)	math.floor(3.7)	floor(3.7)
+ceil_value	math	ceil(3.2)	math.ceil(3.2)	ceiling(3.2)
+upper_case	string	upper("acgt")	"acgt".upper()	toupper("acgt")
+lower_case	string	lower("ACGT")	"ACGT".lower()	tolower("ACGT")
+trim_spaces	string	trim("  hello  ")	"  hello  ".strip()	trimws("  hello  ")
+substr_mid	string	substr("ABCDEFGH", 2, 3)	"ABCDEFGH"[2:5]	substr("ABCDEFGH", 3, 5)
+starts_with_true	string	starts_with("ACGTACGT", "ACG")	"ACGTACGT".startswith("ACG")	startsWith("ACGTACGT", "ACG")
+contains_substr	string	contains("ACGTACGT", "GTA")	"GTA" in "ACGTACGT"	grepl("GTA", "ACGTACGT", fixed=TRUE)
+split_count	string	len(split("a,b,c,d", ","))	len("a,b,c,d".split(","))	length(strsplit("a,b,c,d", ",", fixed=TRUE)[[1]])
+join_strings	string	join(["a", "b", "c"], "-")	"-".join(["a","b","c"])	paste(c("a","b","c"), collapse="-")
+replace_all	string	replace("banana", "a", "o")	"banana".replace("a","o")	gsub("a","o","banana",fixed=TRUE)
+list_len	list	len([1, 2, 3, 4, 5])	len([1,2,3,4,5])	length(c(1,2,3,4,5))
+list_sorted	list	sort([3, 1, 2])	sorted([3,1,2])	sort(c(3,1,2))
+list_reversed	list	reverse([1, 2, 3])	list(reversed([1,2,3]))	rev(c(1,2,3))
+list_unique	list	len(unique([1, 1, 2, 2, 3]))	len(set([1,1,2,2,3]))	length(unique(c(1,1,2,2,3)))
+kmers_count	kmer	len(kmers(dna"ACGTACGT", 3))	len("ACGTACGT") - 3 + 1	nchar("ACGTACGT") - 3 + 1
+kmer_distinct_count	kmer	kmer_distinct(dna"AAAAAA", 3)	len(set("AAAAAA"[i:i+3] for i in range(len("AAAAAA")-2)))	length(unique(substring("AAAAAA", 1:4, 3:6)))

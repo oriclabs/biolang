@@ -1,0 +1,468 @@
+{
+  "cases": 48,
+  "counts": {
+    "py_pass": 48,
+    "py_fail": 0,
+    "r_pass": 47,
+    "r_fail": 0,
+    "r_skip": 1
+  },
+  "results": [
+    {
+      "name": "gc_content_even",
+      "category": "bio",
+      "biolang": 0.5,
+      "python": 0.5,
+      "r": 0.5,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "gc_content_gc_rich",
+      "category": "bio",
+      "biolang": 1.0,
+      "python": 1.0,
+      "r": 1,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "gc_content_at_only",
+      "category": "bio",
+      "biolang": 0.0,
+      "python": 0.0,
+      "r": 0,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "reverse_complement",
+      "category": "bio",
+      "biolang": "ACGTACGT",
+      "python": "ACGTACGT",
+      "r": "ACGTACGT",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "reverse_complement_palindrome",
+      "category": "bio",
+      "biolang": "GAATTC",
+      "python": "GAATTC",
+      "r": "GAATTC",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "complement",
+      "category": "bio",
+      "biolang": "TGCATGCA",
+      "python": "TGCATGCA",
+      "r": "TGCATGCA",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "transcribe",
+      "category": "bio",
+      "biolang": "ACGUACGU",
+      "python": "ACGUACGU",
+      "r": "ACGUACGU",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "translate_simple",
+      "category": "bio",
+      "biolang": "MAIV",
+      "python": "MAIV",
+      "r": "MAIV",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "translate_start",
+      "category": "bio",
+      "biolang": "MF",
+      "python": "MF",
+      "r": "MF",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "seq_len",
+      "category": "bio",
+      "biolang": 10,
+      "python": 10,
+      "r": 10,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "hamming_zero",
+      "category": "bio",
+      "biolang": 0,
+      "python": 0,
+      "r": 0,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "hamming_three",
+      "category": "bio",
+      "biolang": 7,
+      "python": 7,
+      "r": 7,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "edit_distance_classic",
+      "category": "bio",
+      "biolang": 3,
+      "python": 3,
+      "r": 3,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "edit_distance_identical",
+      "category": "bio",
+      "biolang": 0,
+      "python": 0,
+      "r": 0,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "edit_distance_empty",
+      "category": "bio",
+      "biolang": 3,
+      "python": 3,
+      "r": 3,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "melting_temp_wallace",
+      "category": "bio",
+      "biolang": 36.0,
+      "python": 36,
+      "r": null,
+      "vs_python": "PASS",
+      "vs_r": "SKIP"
+    },
+    {
+      "name": "mean_ints",
+      "category": "stats",
+      "biolang": 2.5,
+      "python": 2.5,
+      "r": 2.5,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "mean_negative",
+      "category": "stats",
+      "biolang": 0.0,
+      "python": 0,
+      "r": 0,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "median_odd",
+      "category": "stats",
+      "biolang": 2.0,
+      "python": 2,
+      "r": 2,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "median_even",
+      "category": "stats",
+      "biolang": 2.5,
+      "python": 2.5,
+      "r": 2.5,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "stdev_sample",
+      "category": "stats",
+      "biolang": 2.138089935,
+      "python": 2.138089935,
+      "r": 2.138089935,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "variance_sample",
+      "category": "stats",
+      "biolang": 4.571428571,
+      "python": 4.571428571,
+      "r": 4.571428571,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "sum_floats",
+      "category": "math",
+      "biolang": 7.0,
+      "python": 7.0,
+      "r": 7,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "min_list",
+      "category": "math",
+      "biolang": 2.0,
+      "python": 2,
+      "r": 2,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "max_list",
+      "category": "math",
+      "biolang": 9.0,
+      "python": 9,
+      "r": 9,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "abs_negative",
+      "category": "math",
+      "biolang": 7.5,
+      "python": 7.5,
+      "r": 7.5,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "sqrt_two",
+      "category": "math",
+      "biolang": 1.414213562,
+      "python": 1.414213562,
+      "r": 1.414213562,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "log_natural",
+      "category": "math",
+      "biolang": 2.302585093,
+      "python": 2.302585093,
+      "r": 2.302585093,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "pow_int",
+      "category": "math",
+      "biolang": 1024.0,
+      "python": 1024,
+      "r": 1024,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "round_half_tie",
+      "category": "math",
+      "biolang": 3.0,
+      "python": 2,
+      "r": 2,
+      "vs_python": "DIFFER",
+      "vs_r": "DIFFER"
+    },
+    {
+      "name": "round_binary_repr",
+      "category": "math",
+      "biolang": 2.68,
+      "python": 2.67,
+      "r": 2.67,
+      "vs_python": "DIFFER",
+      "vs_r": "DIFFER"
+    },
+    {
+      "name": "floor_value",
+      "category": "math",
+      "biolang": 3,
+      "python": 3,
+      "r": 3,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "ceil_value",
+      "category": "math",
+      "biolang": 4,
+      "python": 4,
+      "r": 4,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "upper_case",
+      "category": "string",
+      "biolang": "ACGT",
+      "python": "ACGT",
+      "r": "ACGT",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "lower_case",
+      "category": "string",
+      "biolang": "acgt",
+      "python": "acgt",
+      "r": "acgt",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "trim_spaces",
+      "category": "string",
+      "biolang": "hello",
+      "python": "hello",
+      "r": "hello",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "substr_mid",
+      "category": "string",
+      "biolang": "CDE",
+      "python": "CDE",
+      "r": "CDE",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "starts_with_true",
+      "category": "string",
+      "biolang": true,
+      "python": true,
+      "r": true,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "contains_substr",
+      "category": "string",
+      "biolang": true,
+      "python": true,
+      "r": true,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "split_count",
+      "category": "string",
+      "biolang": 4,
+      "python": 4,
+      "r": 4,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "join_strings",
+      "category": "string",
+      "biolang": "a-b-c",
+      "python": "a-b-c",
+      "r": "a-b-c",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "replace_all",
+      "category": "string",
+      "biolang": "bonono",
+      "python": "bonono",
+      "r": "bonono",
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "list_len",
+      "category": "list",
+      "biolang": 5,
+      "python": 5,
+      "r": 5,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "list_sorted",
+      "category": "list",
+      "biolang": [
+        1,
+        2,
+        3
+      ],
+      "python": [
+        1,
+        2,
+        3
+      ],
+      "r": [
+        1,
+        2,
+        3
+      ],
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "list_reversed",
+      "category": "list",
+      "biolang": [
+        3,
+        2,
+        1
+      ],
+      "python": [
+        3,
+        2,
+        1
+      ],
+      "r": [
+        3,
+        2,
+        1
+      ],
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "list_unique",
+      "category": "list",
+      "biolang": 3,
+      "python": 3,
+      "r": 3,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "kmers_count",
+      "category": "kmer",
+      "biolang": 6,
+      "python": 6,
+      "r": 6,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    },
+    {
+      "name": "kmer_distinct_count",
+      "category": "kmer",
+      "biolang": 1,
+      "python": 1,
+      "r": 1,
+      "vs_python": "PASS",
+      "vs_r": "PASS"
+    }
+  ]
+}
