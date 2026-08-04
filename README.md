@@ -63,7 +63,7 @@ Given/Return in a line or two and links to the original rather than reproducing 
 - **Pipe operator** -- `|>` inserts the left side as the first argument: `a |> f(b)` = `f(a, b)`
 - **1000+ builtins** -- FASTQ/FASTA/VCF/BED/GFF I/O, sequence ops, statistics, genomic intervals, tables, 42 plot types
 - **Pipe-first pipelines** -- compose operations with `|>`, `group_by`, `count_by`, `filter_by` for efficient data processing
-- **15 Bio API clients** -- NCBI, Ensembl, UniProt, UCSC, KEGG, STRING, PDB, Reactome, GO, COSMIC, BioMart, NCBI Datasets, nf-core, BioContainers, Galaxy ToolShed
+- **21 Bio API clients** -- NCBI, Ensembl, UniProt, UCSC, KEGG, STRING, PDB, Reactome, GO, COSMIC, BioMart, NCBI Datasets, nf-core, BioContainers, Galaxy ToolShed
 - **SQLite** -- built-in database for storing and querying results
 - **Notifications** -- Slack, Teams, Telegram, Discord, email alerts from pipelines
 - **Streams** -- lazy evaluation for large files without loading into memory

@@ -12,7 +12,7 @@ id = "rosalind-stronghold"
 name = "Rosalind — Bioinformatics Stronghold"
 version = "0.1.0"
 track = "bioinformatics-stronghold"
-description = "Worked solutions to the Rosalind Bioinformatics Stronghold, 79 of 107 problems so far."
+description = "Worked solutions to all 105 problems of the Rosalind Bioinformatics Stronghold."
 list_url = "https://rosalind.info/problems/list-view/"
 requires = ">=0.4"
 

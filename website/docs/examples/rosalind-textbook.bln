@@ -1,12 +1,12 @@
 ---
 title: Rosalind — Bioinformatics Textbook Track
 version: 0.1.0
-abstract: The Bioinformatics Textbook Track: 33 of 124 problems, from pattern finding through assembly graphs to alignment.
+abstract: The Bioinformatics Textbook Track, all 124 problems, from pattern finding through assembly graphs to alignment.
 ---
 
 # Rosalind — Bioinformatics Textbook Track
 
-The Bioinformatics Textbook Track: 33 of 124 problems, from pattern finding through assembly graphs to alignment. Generated from `packs/rosalind-textbook/pack.toml`.
+The Bioinformatics Textbook Track, all 124 problems, from pattern finding through assembly graphs to alignment. Generated from `packs/rosalind-textbook/pack.toml`.
 
 Run the whole notebook with `bl notebook rosalind-textbook.bln`.
 

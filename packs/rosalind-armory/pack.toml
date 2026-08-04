@@ -17,7 +17,7 @@ id = "rosalind-armory"
 name = "Rosalind — Bioinformatics Armory"
 version = "0.1.0"
 track = "bioinformatics-armory"
-description = "All 15 problems from the Rosalind Bioinformatics Armory, worked in BioLang."
+description = "The Rosalind Bioinformatics Armory, all 15 problems: 14 solved and one partial."
 list_url = "https://rosalind.info/problems/list-view/?location=bioinformatics-armory"
 requires = ">=0.4"
 

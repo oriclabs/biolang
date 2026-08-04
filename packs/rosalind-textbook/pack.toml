@@ -11,7 +11,7 @@ id = "rosalind-textbook"
 name = "Rosalind — Bioinformatics Textbook Track"
 version = "0.1.0"
 track = "bioinformatics-textbook-track"
-description = "The Bioinformatics Textbook Track: 33 of 124 problems, from pattern finding through assembly graphs to alignment."
+description = "The Bioinformatics Textbook Track, all 124 problems, from pattern finding through assembly graphs to alignment."
 list_url = "https://rosalind.info/problems/list-view/?location=bioinformatics-textbook-track"
 requires = ">=0.4"
 

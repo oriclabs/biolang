@@ -1,12 +1,12 @@
 ---
 title: Rosalind — Bioinformatics Stronghold
 version: 0.1.0
-abstract: Worked solutions to the Rosalind Bioinformatics Stronghold, 79 of 107 problems so far.
+abstract: Worked solutions to all 105 problems of the Rosalind Bioinformatics Stronghold.
 ---
 
 # Rosalind — Bioinformatics Stronghold
 
-Worked solutions to the Rosalind Bioinformatics Stronghold, 79 of 107 problems so far. Generated from `packs/rosalind-stronghold/pack.toml`.
+Worked solutions to all 105 problems of the Rosalind Bioinformatics Stronghold. Generated from `packs/rosalind-stronghold/pack.toml`.
 
 Run the whole notebook with `bl notebook rosalind-stronghold.bln`.
 
