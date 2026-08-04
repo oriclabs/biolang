@@ -1,0 +1,7 @@
+task,language,time_sec,loc
+4_vcf_filter,biolang,0.066,11
+4_vcf_filter,python,0.061,28
+4_vcf_filter,r,5.414,19
+7_clinvar_filter,biolang,0.135,20
+7_clinvar_filter,python,0.064,28
+7_clinvar_filter,r,0.705,36

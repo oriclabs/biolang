@@ -509,8 +509,26 @@ YAMLHEADER
 # Cleanup temp files
 rm -f "$_BT_OUTPUT_FILE" "$_BT_VALID_FILE"
 
+# ── Promote to results/latest/<os>/ ──
+#
+# This step did not exist, and its absence is why the published figures sat at
+# bl 0.2.1 for five months: the runner wrote timestamped files, results/latest/
+# was what the website and README quoted, and copying between them was a manual
+# step nobody had written down. Re-running the suite did not update anything a
+# reader would ever see.
+LATEST_DIR="results/latest/$PLATFORM_TAG"
+mkdir -p "$LATEST_DIR"
+cp -f "$SCORES_FILE" "$LATEST_DIR/scores.yaml"
+cp -f "$SUMMARY_FILE" "$LATEST_DIR/summary.md"
+for f in results/*_"$PLATFORM_TAG"_"$TIMESTAMP".csv results/*_"$PLATFORM_TAG"_"$TIMESTAMP".md; do
+  [ -e "$f" ] || continue
+  cp -f "$f" "$LATEST_DIR/"
+done
+echo "Promoted:  $LATEST_DIR/scores.yaml"
+
 echo ""
 echo "================================================================"
 echo "Summary:  $SUMMARY_FILE"
 echo "Scores:   $SCORES_FILE"
+echo "Latest:   $LATEST_DIR/scores.yaml  (what the website quotes)"
 echo "================================================================"
