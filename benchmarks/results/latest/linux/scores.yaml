@@ -6,6 +6,9 @@ platform:
   os: "Linux 6.6.87.2-microsoft-standard-WSL2 x86_64"
   cpu: "12th Gen Intel(R) Core(TM) i9-12900K"
   ram: "15 GB"
+  # What the binary reported. It was built from the tree that shipped as
+  # v1.1.0, before the version bump, so these figures characterise v1.1.0 —
+  # nothing under crates/ changed between this run and that tag.
   biolang: "bl 1.0.0"
   python: "3.12.3"
   r: "4.4.2"

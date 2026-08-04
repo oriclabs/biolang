@@ -9,6 +9,84 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-04
+
+### Added
+- **Rosalind Stronghold complete (105/105)**, which completes all four tracks —
+  Armory 15/15, Algorithmic Heights 34/34, Textbook 124/124, Stronghold 105/105.
+  278 problems, of which 274 are asserted on every commit, natively and through
+  WASM. The four that are not are the ones whose answers are not unique.
+- A short context note on every Rosalind example saying what the problem is for,
+  rather than only how it is solved.
+- `reversal_distance(a, b)` and `sorting_reversals(a, b)` — bidirectional BFS
+  over permutations.
+- `chars(text)` — splits a string into characters. `split(text, "")` was the
+  workaround and it yields spurious empty strings at both ends.
+- Guide to embedding the WASM module in other applications, at
+  `/docs/tools/embedding.html`. Every claim in it is checked against the module
+  actually shipped.
+- Container image for the benchmark suite (`bench/Dockerfile`) carrying BioLang,
+  Python and R/Bioconductor together, so the three are measured by one kernel
+  rather than compared across machines.
+
+### Changed
+- `edit_distance` now uses Myers' bit-parallel algorithm, which computes 64
+  cells of the DP table per word operation. The previous quadratic
+  implementation is kept as `edit_distance_dp` and is the oracle the new one is
+  tested against, over 2352 random pairs at lengths straddling the word
+  boundary (63, 64, 65, 127, 128, 129, 257).
+- The published benchmark figures were re-measured on this release. They had
+  been labelled v0.3.0, were actually from 0.2.1, and were understating current
+  performance: ENCODE overlap 7.1x → 17.0x, protein k-mers 7.0x → 14.0x. See
+  #4 for the five separate faults that had kept the suite from being re-run.
+- The Playwright Run-button test now discovers all 45 documentation section
+  pages instead of three hardcoded ones, and reads `network = true` from pack
+  manifests so a legitimately disabled button is not reported as a failure.
+
+### Fixed
+- A `@compile`-decorated function reported "Function is not callable" the moment
+  it was called by name. Two call-dispatch paths exist and only one handled
+  `CompiledClosure`; the unhandled one is the path every ordinary named call
+  takes. The bytecode feature is off by default, so nothing had exercised it.
+- `eulerian_cycle` accepted a walk that did not close, and `eulerian_path`
+  missed the wrap-around edge because it inspected the path with `windows(2)`.
+- `.sh` files were committed with CRLF from a Windows checkout, which makes them
+  unrunnable on Linux — the shebang resolves to `bash\r`. `.gitattributes` now
+  pins them to LF.
+- `benchmarks/run_all.sh` never wrote to `results/latest/`, the directory the
+  website quotes, so re-running the suite could not change any published number.
+
+## [1.0.0] - 2026-08-03
+
+### Added
+- **Rosalind Textbook Track complete (124/124)** and the language work it
+  needed: hidden Markov models (Viterbi, forward, forward-backward, Baum-Welch,
+  profile HMMs with silent deletion states), Eulerian cycles and paths via
+  Hierholzer's algorithm, cyclopeptide sequencing and spectral convolution,
+  suffix arrays by prefix doubling with Kasai LCP, and motif profile builtins.
+- Rosalind example packs for the Armory and Algorithmic Heights tracks, with
+  the pack manifest format (`packs/<id>/pack.toml`) and the CI gates that verify
+  every example still runs.
+
+## [0.3.1] - 2026-03-16
+
+### Added
+- BioGist extension v1.1 — 18 entity types (clinical trials, funding,
+  repositories, p-values), 500+ drugs, 450+ cell lines, 43 species; inline
+  PubMed search, database links, compare tabs, co-occurrence matrix.
+
+## [0.3.0] - 2026-03-12
+
+### Added
+- Benchmark suite with native table builtins and I/O optimizations.
+- Correctness validation across 9 tasks, including R/Bioconductor comparisons.
+- WASM inline SVG rendering.
+- BLViewer Chrome extension; biostatistics book.
+
+### Fixed
+- Parser handling of `if`/`else` across newlines.
+- Builtin count corrected to 750+; plugin test isolation.
+
 ## [0.2.1] - 2026-03-09
 
 ### Added

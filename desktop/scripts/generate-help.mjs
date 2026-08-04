@@ -182,7 +182,19 @@ async function loadBuiltinMetadata() {
   } catch (error) {
     try {
       const cached = JSON.parse(await readFile(metadataPath, "utf8"));
-      if (cached.schemaVersion === 1 && Array.isArray(cached.builtins)) return cached;
+      if (cached.schemaVersion === 1 && Array.isArray(cached.builtins)) {
+        // Falling back to the snapshot used to be silent, and the run still
+        // printed its usual success line. Anyone who had only built --release
+        // would regenerate, see "Help index is current", commit nothing, and
+        // find out from CI. Say which binary was missing and what it costs.
+        console.warn(
+          `warning: ${executable} did not run (${error.message}).\n`
+          + "         Reusing the committed metadata snapshot, so anything added to the\n"
+          + "         runtime since it was written is missing from this index.\n"
+          + "         Build it with `cargo build -p bl-cli`, or set BIOLANG_CLI.",
+        );
+        return cached;
+      }
     } catch {
       // Report the authoritative CLI failure below when no snapshot exists.
     }
