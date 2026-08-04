@@ -12,10 +12,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [1.1.0] - 2026-08-04
 
 ### Added
-- **Rosalind Stronghold complete (105/105)**, which completes all four tracks —
-  Armory 15/15, Algorithmic Heights 34/34, Textbook 124/124, Stronghold 105/105.
-  278 problems, of which 274 are asserted on every commit, natively and through
-  WASM. The four that are not are the ones whose answers are not unique.
+- **Rosalind Stronghold complete (105/105)**, bringing all four tracks to
+  278 problems — Algorithmic Heights 34, Armory 15, Stronghold 105,
+  Textbook 124. 277 are solved and 276 carry assertions. The exceptions:
+  Armory MEME is `partial`, since it finds exact shared substrings rather than
+  a position-weight motif, and 4 problems fetch from remote databases, so they
+  are asserted but excluded from the hermetic CI gate. 274 are additionally
+  verified to run in the browser against the real WASM module.
 - A short context note on every Rosalind example saying what the problem is for,
   rather than only how it is solved.
 - `reversal_distance(a, b)` and `sorting_reversals(a, b)` — bidirectional BFS

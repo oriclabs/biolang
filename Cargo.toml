@@ -29,7 +29,7 @@ rust-version = "1.75"
 repository = "https://github.com/oriclabs/biolang"
 homepage = "https://lang.bio"
 documentation = "https://lang.bio/docs"
-description = "A pipe-first bioinformatics language with native DNA types and 750+ builtins"
+description = "A pipe-first bioinformatics language with native DNA types and 1000+ builtins"
 keywords = ["bioinformatics", "genomics", "dna", "pipe", "dsl"]
 categories = ["science", "command-line-utilities"]
 
