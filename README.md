@@ -5,7 +5,7 @@
 A pipe-first domain-specific language (DSL) for bioinformatics.
 
 BioLang is a DSL purpose-built for genomics and molecular biology. It brings
-first-class biological types, 1000+ domain builtins, 15 bio API clients, and composable pipelines
+first-class biological types, 1000+ domain builtins, 21 bio API clients, and composable pipelines
 to bioinformatics workflows. Write analysis scripts that read like the science
 they describe.
 
