@@ -121,3 +121,9 @@ node_modules/
 
 # Benchmark inputs are generated from a seed by bench/harness.py.
 /bench/data/
+
+# Scratch output. Three of these had been committed — an empty file named after
+# a fragment of a JS snippet, a dump of every builtin name, and the .bln output
+# of an .Rmd conversion. Nothing referenced any of them.
+*.tmp
+/test_notebook.*
