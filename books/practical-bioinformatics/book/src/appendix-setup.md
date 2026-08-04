@@ -51,7 +51,7 @@ If you prefer to build from source, you need Rust 1.75 or later:
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Clone and build
-git clone https://github.com/bioras/biolang.git
+git clone https://github.com/oriclabs/biolang.git
 cd biolang
 cargo build --release
 
@@ -326,8 +326,8 @@ The companion files contain all exercise solutions, sample data generators, and 
 ### Option 1: Git Clone
 
 ```bash
-git clone https://github.com/bioras/practical-bioinformatics.git
-cd practical-bioinformatics
+git clone https://github.com/oriclabs/biolang.git
+cd biolang/books/practical-bioinformatics
 ```
 
 ### Option 2: Download ZIP
@@ -455,5 +455,5 @@ export HTTPS_PROXY="http://proxy.example.com:8080"
 If you are stuck:
 
 1. Check the [BioLang documentation](https://biolang.org/docs/)
-2. Search the [GitHub Issues](https://github.com/bioras/biolang/issues)
+2. Search the [GitHub Issues](https://github.com/oriclabs/biolang/issues)
 3. Ask in the BioLang community forum

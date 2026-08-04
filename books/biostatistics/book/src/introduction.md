@@ -141,8 +141,8 @@ To use the companion files:
 To get the companion files:
 
 ```bash
-git clone https://github.com/bioras/practical-biostatistics.git
-cd practical-biostatistics
+git clone https://github.com/oriclabs/biolang.git
+cd biolang/books/biostatistics
 ```
 
 Or download the ZIP from the book's website and extract it.

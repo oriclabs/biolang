@@ -43,7 +43,7 @@ bl --version
 
 ### Manual Installation
 
-If the installer does not work for your system, download the appropriate binary from the [releases page](https://github.com/bioras/biolang/releases):
+If the installer does not work for your system, download the appropriate binary from the [releases page](https://github.com/oriclabs/biolang/releases):
 
 | Platform | File |
 |---|---|
