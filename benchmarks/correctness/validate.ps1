@@ -1,4 +1,4 @@
-# Correctness validation: run BioLang, Python, and R on the same tasks, compare JSON outputs.
+﻿# Correctness validation: run BioLang, Python, and R on the same tasks, compare JSON outputs.
 # Usage: .\validate.ps1 [-BL bl] [-PY python] [-RS Rscript]
 param(
     [string]$BL = "bl",
@@ -49,6 +49,21 @@ def compare(a, b, path='', tol=1e-6):
 with open(sys.argv[1], encoding='utf-8-sig') as f: a = json.load(f)
 with open(sys.argv[2], encoding='utf-8-sig') as f: b = json.load(f)
 errs = compare(a, b)
+
+# A verdict on its own is not evidence. Record what each side actually
+# produced: a digest over the canonicalised JSON, which is what makes
+# "identical" checkable, plus the size and an excerpt a person can read.
+# Full outputs are not embedded - gc_content alone is 268 KB.
+if len(sys.argv) > 3:
+    import hashlib
+    def digest(v):
+        canon = json.dumps(v, sort_keys=True, separators=(',', ':'))
+        excerpt = canon if len(canon) <= 600 else canon[:600] + ' ...'
+        return {'sha256': hashlib.sha256(canon.encode()).hexdigest(),
+                'bytes': len(canon), 'excerpt': excerpt}
+    with open(sys.argv[3], 'w', encoding='utf-8') as out:
+        json.dump({'biolang': digest(a), 'reference': digest(b),
+                   'differences': errs[:10]}, out)
 if errs:
     for e in errs[:10]: print(f'  DIFF: {e}')
     sys.exit(1)
@@ -64,6 +79,27 @@ Write-Host ""
 Set-Location $DataDir
 
 . (Join-Path $ScriptDir "write_evidence.ps1")
+function New-EvidenceRow($task, $label, $result, $recFile) {
+    # The comparator writes a small record with each side's digest, size and a
+    # readable excerpt. Fold it into the evidence row so the report can show
+    # what was produced rather than only whether it matched.
+    $row = [ordered]@{ task = $task; reference = $label; result = $result }
+    if ($recFile -and (Test-Path $recFile)) {
+        try {
+            $rec = Get-Content $recFile -Raw -Encoding UTF8 | ConvertFrom-Json
+            $row.biolang_sha256 = $rec.biolang.sha256
+            $row.biolang_bytes = $rec.biolang.bytes
+            $row.biolang_excerpt = $rec.biolang.excerpt
+            $row.reference_sha256 = $rec.reference.sha256
+            $row.reference_bytes = $rec.reference.bytes
+            $row.reference_excerpt = $rec.reference.excerpt
+            if ($rec.differences) { $row.differences = $rec.differences }
+        } catch { }
+        Remove-Item -Force $recFile -ErrorAction SilentlyContinue
+    }
+    [pscustomobject]$row
+}
+
 $script:Evidence = @()
 
 function Run-Comparison($label, $refCmd, $refScript, $blScript, $task) {
@@ -76,7 +112,7 @@ function Run-Comparison($label, $refCmd, $refScript, $blScript, $task) {
     # while $ErrorActionPreference is "Stop", and that terminates the try block
     # even when the program exited 0. `bl run` prints "> running x.bl" and
     # "done in ..." to stderr, Rscript announces package loading, and BioPython
-    # warns — so every task reported "crashed" or "failed" no matter what it
+    # warns - so every task reported "crashed" or "failed" no matter what it
     # did. Nothing in this suite has ever reached the comparison step.
     # Exit codes answer the question; stderr does not.
     $prev = $ErrorActionPreference
@@ -87,7 +123,7 @@ function Run-Comparison($label, $refCmd, $refScript, $blScript, $task) {
         if ($LASTEXITCODE -ne 0) {
             Write-Host "SKIP ($label failed)" -ForegroundColor Yellow
             Remove-Item -Force $blOut, $refOut, $cmpFile -ErrorAction SilentlyContinue
-            $script:Evidence += [pscustomobject]@{ task = $task; reference = $label; result = "skip" }
+            $script:Evidence += New-EvidenceRow $task $label "skip" $null
         return "skip"
         }
 
@@ -96,7 +132,7 @@ function Run-Comparison($label, $refCmd, $refScript, $blScript, $task) {
         if ($LASTEXITCODE -ne 0) {
             Write-Host "FAIL (BioLang crashed)" -ForegroundColor Red
             Remove-Item -Force $blOut, $refOut, $cmpFile -ErrorAction SilentlyContinue
-            $script:Evidence += [pscustomobject]@{ task = $task; reference = $label; result = "fail" }
+            $script:Evidence += New-EvidenceRow $task $label "fail" $recFile
         return "fail"
         }
     } finally {
@@ -108,18 +144,19 @@ function Run-Comparison($label, $refCmd, $refScript, $blScript, $task) {
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        & $PY $cmpFile $blOut $refOut 2>$null
+        $recFile = [System.IO.Path]::GetTempFileName()
+        & $PY $cmpFile $blOut $refOut $recFile 2>$null
         if ($LASTEXITCODE -eq 0) {
             Write-Host "PASS" -ForegroundColor Green
             Remove-Item -Force $blOut, $refOut, $cmpFile -ErrorAction SilentlyContinue
-            $script:Evidence += [pscustomobject]@{ task = $task; reference = $label; result = "pass" }
+            $script:Evidence += New-EvidenceRow $task $label "pass" $recFile
         return "pass"
         }
         Write-Host "FAIL" -ForegroundColor Red
         # Re-run without swallowing stderr so the mismatch is visible.
         & $PY $cmpFile $blOut $refOut
         Remove-Item -Force $blOut, $refOut, $cmpFile -ErrorAction SilentlyContinue
-        $script:Evidence += [pscustomobject]@{ task = $task; reference = $label; result = "fail" }
+        $script:Evidence += New-EvidenceRow $task $label "fail" $recFile
         return "fail"
     } finally {
         $ErrorActionPreference = $prev

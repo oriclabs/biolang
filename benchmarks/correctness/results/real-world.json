@@ -1,7 +1,7 @@
 ﻿{
     "suite":  "Real-data correctness",
     "data":  "E. coli K-12, S. cerevisiae, ClinVar via download_real_data.py",
-    "generated":  "2026-08-04 21:47:07",
+    "generated":  "2026-08-04 22:11:47",
     "platform":  "Microsoft Windows NT 10.0.26200.0",
     "biolang":  "bl 1.1.0",
     "python":  "Python 3.13.14",
@@ -15,87 +15,189 @@
                     {
                         "task":  "gc_content",
                         "reference":  "Python",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "908b0aa2099e6813d5bb32b4d0c5592d84baf452c76453de984f4d0431d4a749",
+                        "biolang_bytes":  590,
+                        "biolang_excerpt":  "{\"gc_per_sequence\":{\"NC_001133.9\":0.39270170012770506,\"NC_001134.8\":0.38341015071619705,\"NC_001135.5\":0.3853231002463521,\"NC_001136.10\":0.37906422800474954,\"NC_001137.3\":0.3850736902685855,\"NC_001138.5\":0.38728758036874306,\"NC_001139.9\":0.38061396593763175,\"NC_001140.6\":0.38495102578366747,\"NC_001141.2\":0.3890217509911614,\"NC_001142.9\":0.3837326399830506,\"NC_001143.9\":0.38069422449371343,\"NC_001144.5\":0.3847633551819414,\"NC_001145.3\":0.3820360848997924,\"NC_001146.8\":0.386379254729815,\"NC_001147.6\":0.38160215744471454,\"NC_001148.4\":0.380644385517464,\"NC_001224.1\":0.17109082642604834}}",
+                        "reference_sha256":  "908b0aa2099e6813d5bb32b4d0c5592d84baf452c76453de984f4d0431d4a749",
+                        "reference_bytes":  590,
+                        "reference_excerpt":  "{\"gc_per_sequence\":{\"NC_001133.9\":0.39270170012770506,\"NC_001134.8\":0.38341015071619705,\"NC_001135.5\":0.3853231002463521,\"NC_001136.10\":0.37906422800474954,\"NC_001137.3\":0.3850736902685855,\"NC_001138.5\":0.38728758036874306,\"NC_001139.9\":0.38061396593763175,\"NC_001140.6\":0.38495102578366747,\"NC_001141.2\":0.3890217509911614,\"NC_001142.9\":0.3837326399830506,\"NC_001143.9\":0.38069422449371343,\"NC_001144.5\":0.3847633551819414,\"NC_001145.3\":0.3820360848997924,\"NC_001146.8\":0.386379254729815,\"NC_001147.6\":0.38160215744471454,\"NC_001148.4\":0.380644385517464,\"NC_001224.1\":0.17109082642604834}}"
                     },
                     {
                         "task":  "kmer_count",
                         "reference":  "Python",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "eee815b0186f51d2c105d5a5a90eeed6636320e860199b5d487fdc290723ddf2",
+                        "biolang_bytes":  219,
+                        "biolang_excerpt":  "{\"sequence_id\":\"NC_000913.3\",\"top_10\":[[\"CGCCA\",286],[\"CCAGC\",285],[\"CAGCG\",284],[\"CGCCG\",283],[\"CGGCA\",273],[\"CTGGC\",272],[\"CAGCA\",270],[\"GGCGA\",251],[\"GCCGC\",244],[\"AAAAA\",233]],\"total_kmers\":49996,\"unique_kmers\":512}",
+                        "reference_sha256":  "eee815b0186f51d2c105d5a5a90eeed6636320e860199b5d487fdc290723ddf2",
+                        "reference_bytes":  219,
+                        "reference_excerpt":  "{\"sequence_id\":\"NC_000913.3\",\"top_10\":[[\"CGCCA\",286],[\"CCAGC\",285],[\"CAGCG\",284],[\"CGCCG\",283],[\"CGGCA\",273],[\"CTGGC\",272],[\"CAGCA\",270],[\"GGCGA\",251],[\"GCCGC\",244],[\"AAAAA\",233]],\"total_kmers\":49996,\"unique_kmers\":512}"
                     },
                     {
                         "task":  "vcf_filter",
                         "reference":  "Python",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "4f324eb45ce82e0b051b7e1a08c2274efb1b8d5b4e1077eae95a4464b5d422a1",
+                        "biolang_bytes":  71,
+                        "biolang_excerpt":  "{\"pathogenic_count\":46,\"per_chromosome\":{\"1\":46},\"total_variants\":5000}",
+                        "reference_sha256":  "4f324eb45ce82e0b051b7e1a08c2274efb1b8d5b4e1077eae95a4464b5d422a1",
+                        "reference_bytes":  71,
+                        "reference_excerpt":  "{\"pathogenic_count\":46,\"per_chromosome\":{\"1\":46},\"total_variants\":5000}"
                     },
                     {
                         "task":  "reverse_complement",
                         "reference":  "Python",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "77d5bcf2a65bff90eeb84efd0f6b1f8648455e46ce0c59d00c663abbb20fa0de",
+                        "biolang_bytes":  2256,
+                        "biolang_excerpt":  "{\"sequences\":[{\"id\":\"NC_001133.9\",\"original\":\"CCACACCACACCCACACACCCACACACCACACCACACACCACACCACACCCACACACACACATCCTAACACTACCCTAACACAGCCCTAATCTAACCCTGGCCAACCTGTCTCTCAACTTACCCTCCATTACCCTGCCTCCACTCGTTACCCTGTCCCATTCAACCATACCACTCCGAACCACCATCCATCCCTCTACTT\",\"revcomp\":\"AAGTAGAGGGATGGATGGTGGTTCGGAGTGGTATGGTTGAATGGGACAGGGTAACGAGTGGAGGCAGGGTAATGGAGGGTAAGTTGAGAGACAGGTTGGCCAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTGTGTGGGTGTGTGGGTGTGGTGTGG\"},{\"id\":\"NC_001134.8\",\"original\":\"AAATAGCCCTCATGTACGTCTCCTCCAAGCCCTGTTGTCTCTTACCCGGATGTTCAACCAAAAGCTACTTACTACCTTTATTTTATGTTTACTTTTTATAGGTTGT ...",
+                        "reference_sha256":  "77d5bcf2a65bff90eeb84efd0f6b1f8648455e46ce0c59d00c663abbb20fa0de",
+                        "reference_bytes":  2256,
+                        "reference_excerpt":  "{\"sequences\":[{\"id\":\"NC_001133.9\",\"original\":\"CCACACCACACCCACACACCCACACACCACACCACACACCACACCACACCCACACACACACATCCTAACACTACCCTAACACAGCCCTAATCTAACCCTGGCCAACCTGTCTCTCAACTTACCCTCCATTACCCTGCCTCCACTCGTTACCCTGTCCCATTCAACCATACCACTCCGAACCACCATCCATCCCTCTACTT\",\"revcomp\":\"AAGTAGAGGGATGGATGGTGGTTCGGAGTGGTATGGTTGAATGGGACAGGGTAACGAGTGGAGGCAGGGTAATGGAGGGTAAGTTGAGAGACAGGTTGGCCAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTGTGTGGGTGTGTGGGTGTGGTGTGG\"},{\"id\":\"NC_001134.8\",\"original\":\"AAATAGCCCTCATGTACGTCTCCTCCAAGCCCTGTTGTCTCTTACCCGGATGTTCAACCAAAAGCTACTTACTACCTTTATTTTATGTTTACTTTTTATAGGTTGT ..."
                     },
                     {
                         "task":  "translate",
                         "reference":  "Python",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "9113c66f3431a5da052d8b5c416e8391dcee42c323ba057e6404feed067063d2",
+                        "biolang_bytes":  507,
+                        "biolang_excerpt":  "{\"translations\":[{\"dna\":\"CCACACCACACCCACACACCCACACACCACACCACACACCACACCACACCCACACACACACATCCTAACACTACCCTAACACAGCCCTAATCTAACCCT\",\"id\":\"NC_001133.9\",\"protein\":\"PHHTHTPTHHTTHHTTPTHTHPNTTLTQP\"},{\"dna\":\"AAATAGCCCTCATGTACGTCTCCTCCAAGCCCTGTTGTCTCTTACCCGGATGTTCAACCAAAAGCTACTTACTACCTTTATTTTATGTTTACTTTTTAT\",\"id\":\"NC_001134.8\",\"protein\":\"K\"},{\"dna\":\"CCCACACACCACACCCACACCACACCCACACACCACACACACCACACCCACACACCCACACCACACCACACCCACACCACACCCACACACCCACACCCA\",\"id\":\"NC_001135.5\",\"protein\":\"PTHHTHTTPTHHTHHTHTPTPHHTHTTPTHPHP\"}]}",
+                        "reference_sha256":  "9113c66f3431a5da052d8b5c416e8391dcee42c323ba057e6404feed067063d2",
+                        "reference_bytes":  507,
+                        "reference_excerpt":  "{\"translations\":[{\"dna\":\"CCACACCACACCCACACACCCACACACCACACCACACACCACACCACACCCACACACACACATCCTAACACTACCCTAACACAGCCCTAATCTAACCCT\",\"id\":\"NC_001133.9\",\"protein\":\"PHHTHTPTHHTTHHTTPTHTHPNTTLTQP\"},{\"dna\":\"AAATAGCCCTCATGTACGTCTCCTCCAAGCCCTGTTGTCTCTTACCCGGATGTTCAACCAAAAGCTACTTACTACCTTTATTTTATGTTTACTTTTTAT\",\"id\":\"NC_001134.8\",\"protein\":\"K\"},{\"dna\":\"CCCACACACCACACCCACACCACACCCACACACCACACACACCACACCCACACACCCACACCACACCACACCCACACCACACCCACACACCCACACCCA\",\"id\":\"NC_001135.5\",\"protein\":\"PTHHTHTTPTHHTHHTHTPTPHHTHTTPTHPHP\"}]}"
                     },
                     {
                         "task":  "csv_groupby",
                         "reference":  "Python",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "02dab66868e9e0470d90d3d498c96871466177825c3319cd8354edc5f2e8422f",
+                        "biolang_bytes":  620,
+                        "biolang_excerpt":  "{\"groups\":{\"Benign\":{\"count\":212,\"mean_var_len\":2.4622641509433962},\"Benign/Likely_benign\":{\"count\":66,\"mean_var_len\":2.757575757575758},\"Conflicting_classifications_of_pathogenicity\":{\"count\":90,\"mean_var_len\":1.2},\"Likely_benign\":{\"count\":1744,\"mean_var_len\":1.5831422018348624},\"Likely_pathogenic\":{\"count\":26,\"mean_var_len\":154.53846153846155},\"Pathogenic\":{\"count\":39,\"mean_var_len\":35.15384615384615},\"Pathogenic/Likely_pathogenic\":{\"count\":7,\"mean_var_len\":8.714285714285714},\"Uncertain_significance\":{\"count\":2648,\"mean_var_len\":1.633308157099698},\"not_provided\":{\"count\":168,\"mean_var_len\":1 ...",
+                        "reference_sha256":  "02dab66868e9e0470d90d3d498c96871466177825c3319cd8354edc5f2e8422f",
+                        "reference_bytes":  620,
+                        "reference_excerpt":  "{\"groups\":{\"Benign\":{\"count\":212,\"mean_var_len\":2.4622641509433962},\"Benign/Likely_benign\":{\"count\":66,\"mean_var_len\":2.757575757575758},\"Conflicting_classifications_of_pathogenicity\":{\"count\":90,\"mean_var_len\":1.2},\"Likely_benign\":{\"count\":1744,\"mean_var_len\":1.5831422018348624},\"Likely_pathogenic\":{\"count\":26,\"mean_var_len\":154.53846153846155},\"Pathogenic\":{\"count\":39,\"mean_var_len\":35.15384615384615},\"Pathogenic/Likely_pathogenic\":{\"count\":7,\"mean_var_len\":8.714285714285714},\"Uncertain_significance\":{\"count\":2648,\"mean_var_len\":1.633308157099698},\"not_provided\":{\"count\":168,\"mean_var_len\":1 ..."
                     },
                     {
                         "task":  "gff_features",
                         "reference":  "Python",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "a4f4f96e1101b772bc95349eb3fab393f267b466732816045951ea9a8dc156fe",
+                        "biolang_bytes":  205,
+                        "biolang_excerpt":  "{\"by_type\":{\"CDS\":4340,\"exon\":216,\"gene\":4506,\"mobile_genetic_element\":50,\"ncRNA\":108,\"origin_of_replication\":1,\"pseudogene\":145,\"rRNA\":22,\"region\":1,\"sequence_feature\":48,\"tRNA\":86},\"total_features\":9523}",
+                        "reference_sha256":  "a4f4f96e1101b772bc95349eb3fab393f267b466732816045951ea9a8dc156fe",
+                        "reference_bytes":  205,
+                        "reference_excerpt":  "{\"by_type\":{\"CDS\":4340,\"exon\":216,\"gene\":4506,\"mobile_genetic_element\":50,\"ncRNA\":108,\"origin_of_replication\":1,\"pseudogene\":145,\"rRNA\":22,\"region\":1,\"sequence_feature\":48,\"tRNA\":86},\"total_features\":9523}"
                     },
                     {
                         "task":  "sequence_stats",
                         "reference":  "Python",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "02716b7905f0710c40f9ec4b846039ce1e2657fb6b55c8cc2ba6c80fd8b29a93",
+                        "biolang_bytes":  87,
+                        "biolang_excerpt":  "{\"gc_content\":0.3814786497278752,\"n50\":924431,\"n_sequences\":17,\"total_length\":12157105}",
+                        "reference_sha256":  "02716b7905f0710c40f9ec4b846039ce1e2657fb6b55c8cc2ba6c80fd8b29a93",
+                        "reference_bytes":  87,
+                        "reference_excerpt":  "{\"gc_content\":0.3814786497278752,\"n50\":924431,\"n_sequences\":17,\"total_length\":12157105}"
                     },
                     {
                         "task":  "bed_intervals",
                         "reference":  "Python",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "58622f50b7688807772a1d6480a502fb18da6d1ee88a47d3e9fc915f4b779492",
+                        "biolang_bytes":  99,
+                        "biolang_excerpt":  "{\"merged_count\":3680,\"n_intervals\":4506,\"per_chromosome\":{\"NC_000913.3\":4506},\"total_span\":4043784}",
+                        "reference_sha256":  "58622f50b7688807772a1d6480a502fb18da6d1ee88a47d3e9fc915f4b779492",
+                        "reference_bytes":  99,
+                        "reference_excerpt":  "{\"merged_count\":3680,\"n_intervals\":4506,\"per_chromosome\":{\"NC_000913.3\":4506},\"total_span\":4043784}"
                     },
                     {
                         "task":  "gc_content",
                         "reference":  "R",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "908b0aa2099e6813d5bb32b4d0c5592d84baf452c76453de984f4d0431d4a749",
+                        "biolang_bytes":  590,
+                        "biolang_excerpt":  "{\"gc_per_sequence\":{\"NC_001133.9\":0.39270170012770506,\"NC_001134.8\":0.38341015071619705,\"NC_001135.5\":0.3853231002463521,\"NC_001136.10\":0.37906422800474954,\"NC_001137.3\":0.3850736902685855,\"NC_001138.5\":0.38728758036874306,\"NC_001139.9\":0.38061396593763175,\"NC_001140.6\":0.38495102578366747,\"NC_001141.2\":0.3890217509911614,\"NC_001142.9\":0.3837326399830506,\"NC_001143.9\":0.38069422449371343,\"NC_001144.5\":0.3847633551819414,\"NC_001145.3\":0.3820360848997924,\"NC_001146.8\":0.386379254729815,\"NC_001147.6\":0.38160215744471454,\"NC_001148.4\":0.380644385517464,\"NC_001224.1\":0.17109082642604834}}",
+                        "reference_sha256":  "2c303285677addc5b513a0598982a80a3d9863ab63111ab9ac5d0325f21b63ad",
+                        "reference_bytes":  495,
+                        "reference_excerpt":  "{\"gc_per_sequence\":{\"NC_001133.9\":0.39270170013,\"NC_001134.8\":0.38341015072,\"NC_001135.5\":0.38532310025,\"NC_001136.10\":0.379064228,\"NC_001137.3\":0.38507369027,\"NC_001138.5\":0.38728758037,\"NC_001139.9\":0.38061396594,\"NC_001140.6\":0.38495102578,\"NC_001141.2\":0.38902175099,\"NC_001142.9\":0.38373263998,\"NC_001143.9\":0.38069422449,\"NC_001144.5\":0.38476335518,\"NC_001145.3\":0.3820360849,\"NC_001146.8\":0.38637925473,\"NC_001147.6\":0.38160215744,\"NC_001148.4\":0.38064438552,\"NC_001224.1\":0.17109082643}}"
                     },
                     {
                         "task":  "vcf_filter",
                         "reference":  "R",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "4f324eb45ce82e0b051b7e1a08c2274efb1b8d5b4e1077eae95a4464b5d422a1",
+                        "biolang_bytes":  71,
+                        "biolang_excerpt":  "{\"pathogenic_count\":46,\"per_chromosome\":{\"1\":46},\"total_variants\":5000}",
+                        "reference_sha256":  "4f324eb45ce82e0b051b7e1a08c2274efb1b8d5b4e1077eae95a4464b5d422a1",
+                        "reference_bytes":  71,
+                        "reference_excerpt":  "{\"pathogenic_count\":46,\"per_chromosome\":{\"1\":46},\"total_variants\":5000}"
                     },
                     {
                         "task":  "reverse_complement",
                         "reference":  "R",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "77d5bcf2a65bff90eeb84efd0f6b1f8648455e46ce0c59d00c663abbb20fa0de",
+                        "biolang_bytes":  2256,
+                        "biolang_excerpt":  "{\"sequences\":[{\"id\":\"NC_001133.9\",\"original\":\"CCACACCACACCCACACACCCACACACCACACCACACACCACACCACACCCACACACACACATCCTAACACTACCCTAACACAGCCCTAATCTAACCCTGGCCAACCTGTCTCTCAACTTACCCTCCATTACCCTGCCTCCACTCGTTACCCTGTCCCATTCAACCATACCACTCCGAACCACCATCCATCCCTCTACTT\",\"revcomp\":\"AAGTAGAGGGATGGATGGTGGTTCGGAGTGGTATGGTTGAATGGGACAGGGTAACGAGTGGAGGCAGGGTAATGGAGGGTAAGTTGAGAGACAGGTTGGCCAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTGTGTGGGTGTGTGGGTGTGGTGTGG\"},{\"id\":\"NC_001134.8\",\"original\":\"AAATAGCCCTCATGTACGTCTCCTCCAAGCCCTGTTGTCTCTTACCCGGATGTTCAACCAAAAGCTACTTACTACCTTTATTTTATGTTTACTTTTTATAGGTTGT ...",
+                        "reference_sha256":  "77d5bcf2a65bff90eeb84efd0f6b1f8648455e46ce0c59d00c663abbb20fa0de",
+                        "reference_bytes":  2256,
+                        "reference_excerpt":  "{\"sequences\":[{\"id\":\"NC_001133.9\",\"original\":\"CCACACCACACCCACACACCCACACACCACACCACACACCACACCACACCCACACACACACATCCTAACACTACCCTAACACAGCCCTAATCTAACCCTGGCCAACCTGTCTCTCAACTTACCCTCCATTACCCTGCCTCCACTCGTTACCCTGTCCCATTCAACCATACCACTCCGAACCACCATCCATCCCTCTACTT\",\"revcomp\":\"AAGTAGAGGGATGGATGGTGGTTCGGAGTGGTATGGTTGAATGGGACAGGGTAACGAGTGGAGGCAGGGTAATGGAGGGTAAGTTGAGAGACAGGTTGGCCAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTGTGTGGGTGTGTGGGTGTGGTGTGG\"},{\"id\":\"NC_001134.8\",\"original\":\"AAATAGCCCTCATGTACGTCTCCTCCAAGCCCTGTTGTCTCTTACCCGGATGTTCAACCAAAAGCTACTTACTACCTTTATTTTATGTTTACTTTTTATAGGTTGT ..."
                     },
                     {
                         "task":  "translate",
                         "reference":  "R",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "9113c66f3431a5da052d8b5c416e8391dcee42c323ba057e6404feed067063d2",
+                        "biolang_bytes":  507,
+                        "biolang_excerpt":  "{\"translations\":[{\"dna\":\"CCACACCACACCCACACACCCACACACCACACCACACACCACACCACACCCACACACACACATCCTAACACTACCCTAACACAGCCCTAATCTAACCCT\",\"id\":\"NC_001133.9\",\"protein\":\"PHHTHTPTHHTTHHTTPTHTHPNTTLTQP\"},{\"dna\":\"AAATAGCCCTCATGTACGTCTCCTCCAAGCCCTGTTGTCTCTTACCCGGATGTTCAACCAAAAGCTACTTACTACCTTTATTTTATGTTTACTTTTTAT\",\"id\":\"NC_001134.8\",\"protein\":\"K\"},{\"dna\":\"CCCACACACCACACCCACACCACACCCACACACCACACACACCACACCCACACACCCACACCACACCACACCCACACCACACCCACACACCCACACCCA\",\"id\":\"NC_001135.5\",\"protein\":\"PTHHTHTTPTHHTHHTHTPTPHHTHTTPTHPHP\"}]}",
+                        "reference_sha256":  "9113c66f3431a5da052d8b5c416e8391dcee42c323ba057e6404feed067063d2",
+                        "reference_bytes":  507,
+                        "reference_excerpt":  "{\"translations\":[{\"dna\":\"CCACACCACACCCACACACCCACACACCACACCACACACCACACCACACCCACACACACACATCCTAACACTACCCTAACACAGCCCTAATCTAACCCT\",\"id\":\"NC_001133.9\",\"protein\":\"PHHTHTPTHHTTHHTTPTHTHPNTTLTQP\"},{\"dna\":\"AAATAGCCCTCATGTACGTCTCCTCCAAGCCCTGTTGTCTCTTACCCGGATGTTCAACCAAAAGCTACTTACTACCTTTATTTTATGTTTACTTTTTAT\",\"id\":\"NC_001134.8\",\"protein\":\"K\"},{\"dna\":\"CCCACACACCACACCCACACCACACCCACACACCACACACACCACACCCACACACCCACACCACACCACACCCACACCACACCCACACACCCACACCCA\",\"id\":\"NC_001135.5\",\"protein\":\"PTHHTHTTPTHHTHHTHTPTPHHTHTTPTHPHP\"}]}"
                     },
                     {
                         "task":  "csv_groupby",
                         "reference":  "R",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "02dab66868e9e0470d90d3d498c96871466177825c3319cd8354edc5f2e8422f",
+                        "biolang_bytes":  620,
+                        "biolang_excerpt":  "{\"groups\":{\"Benign\":{\"count\":212,\"mean_var_len\":2.4622641509433962},\"Benign/Likely_benign\":{\"count\":66,\"mean_var_len\":2.757575757575758},\"Conflicting_classifications_of_pathogenicity\":{\"count\":90,\"mean_var_len\":1.2},\"Likely_benign\":{\"count\":1744,\"mean_var_len\":1.5831422018348624},\"Likely_pathogenic\":{\"count\":26,\"mean_var_len\":154.53846153846155},\"Pathogenic\":{\"count\":39,\"mean_var_len\":35.15384615384615},\"Pathogenic/Likely_pathogenic\":{\"count\":7,\"mean_var_len\":8.714285714285714},\"Uncertain_significance\":{\"count\":2648,\"mean_var_len\":1.633308157099698},\"not_provided\":{\"count\":168,\"mean_var_len\":1 ...",
+                        "reference_sha256":  "7c05ec9953af135ed6ca2cf28840bee891c0ad508046bd72a7fbe40e23fce9c5",
+                        "reference_bytes":  579,
+                        "reference_excerpt":  "{\"groups\":{\"Benign\":{\"count\":212,\"mean_var_len\":2.4622641509},\"Benign/Likely_benign\":{\"count\":66,\"mean_var_len\":2.7575757576},\"Conflicting_classifications_of_pathogenicity\":{\"count\":90,\"mean_var_len\":1.2},\"Likely_benign\":{\"count\":1744,\"mean_var_len\":1.5831422018},\"Likely_pathogenic\":{\"count\":26,\"mean_var_len\":154.5384615385},\"Pathogenic\":{\"count\":39,\"mean_var_len\":35.1538461538},\"Pathogenic/Likely_pathogenic\":{\"count\":7,\"mean_var_len\":8.7142857143},\"Uncertain_significance\":{\"count\":2648,\"mean_var_len\":1.6333081571},\"not_provided\":{\"count\":168,\"mean_var_len\":1.1726190476}}}"
                     },
                     {
                         "task":  "gff_features",
                         "reference":  "R",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "a4f4f96e1101b772bc95349eb3fab393f267b466732816045951ea9a8dc156fe",
+                        "biolang_bytes":  205,
+                        "biolang_excerpt":  "{\"by_type\":{\"CDS\":4340,\"exon\":216,\"gene\":4506,\"mobile_genetic_element\":50,\"ncRNA\":108,\"origin_of_replication\":1,\"pseudogene\":145,\"rRNA\":22,\"region\":1,\"sequence_feature\":48,\"tRNA\":86},\"total_features\":9523}",
+                        "reference_sha256":  "a4f4f96e1101b772bc95349eb3fab393f267b466732816045951ea9a8dc156fe",
+                        "reference_bytes":  205,
+                        "reference_excerpt":  "{\"by_type\":{\"CDS\":4340,\"exon\":216,\"gene\":4506,\"mobile_genetic_element\":50,\"ncRNA\":108,\"origin_of_replication\":1,\"pseudogene\":145,\"rRNA\":22,\"region\":1,\"sequence_feature\":48,\"tRNA\":86},\"total_features\":9523}"
                     },
                     {
                         "task":  "sequence_stats",
                         "reference":  "R",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "02716b7905f0710c40f9ec4b846039ce1e2657fb6b55c8cc2ba6c80fd8b29a93",
+                        "biolang_bytes":  87,
+                        "biolang_excerpt":  "{\"gc_content\":0.3814786497278752,\"n50\":924431,\"n_sequences\":17,\"total_length\":12157105}",
+                        "reference_sha256":  "5eb62228619f380356aaa98a440d3024f943bf7a8f632d00a5dfcc300134eaed",
+                        "reference_bytes":  82,
+                        "reference_excerpt":  "{\"gc_content\":0.38147864973,\"n50\":924431,\"n_sequences\":17,\"total_length\":12157105}"
                     },
                     {
                         "task":  "bed_intervals",
                         "reference":  "R",
-                        "result":  "pass"
+                        "result":  "pass",
+                        "biolang_sha256":  "58622f50b7688807772a1d6480a502fb18da6d1ee88a47d3e9fc915f4b779492",
+                        "biolang_bytes":  99,
+                        "biolang_excerpt":  "{\"merged_count\":3680,\"n_intervals\":4506,\"per_chromosome\":{\"NC_000913.3\":4506},\"total_span\":4043784}",
+                        "reference_sha256":  "58622f50b7688807772a1d6480a502fb18da6d1ee88a47d3e9fc915f4b779492",
+                        "reference_bytes":  99,
+                        "reference_excerpt":  "{\"merged_count\":3680,\"n_intervals\":4506,\"per_chromosome\":{\"NC_000913.3\":4506},\"total_span\":4043784}"
                     }
                 ]
 }
