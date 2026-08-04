@@ -864,8 +864,9 @@ markers |> filter(fn(r) -> r.gene in hits.snp)</code></pre>
       <h2 class="text-2xl font-bold text-white mb-3">Ready to try it?</h2>
       <p class="text-slate-400 mb-6">Single binary. No runtime deps. Works on Linux, macOS, Windows.</p>
       <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 font-mono text-sm mb-6 text-left max-w-md mx-auto">
-        <span class="text-violet-400">$</span> <span class="text-slate-200">cargo install --git https://github.com/oriclabs/biolang bl-cli</span><br>
-        <span class="text-violet-400">$</span> <span class="text-slate-200">bl repl</span>
+        <span class="text-violet-400">$</span> <span class="text-slate-200">curl -fsSL https://lang.bio/install.sh | sh</span><br>
+        <span class="text-violet-400">$</span> <span class="text-slate-200">bl repl</span><br>
+        <span class="text-slate-500"># Windows:</span> <span class="text-slate-200">iwr -useb https://lang.bio/install.ps1 | iex</span>
       </div>
       <div class="flex flex-wrap justify-center gap-3">
         <a href="docs/getting-started/index.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors">

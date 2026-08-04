@@ -99,19 +99,27 @@ Every example in this book uses real biological data and real analysis tasks. Th
 
 ## Running the Examples
 
-Install BioLang:
+Install BioLang — this needs nothing installed beforehand:
+
+```bash
+curl -fsSL https://lang.bio/install.sh | sh
+```
+
+On Windows:
+
+```powershell
+iwr -useb https://lang.bio/install.ps1 | iex
+```
+
+Or, if you already have Rust and would rather build it:
 
 ```bash
 cargo install --git https://github.com/oriclabs/biolang bl-cli
 ```
 
-Or build from source:
-
-```bash
-git clone https://github.com/oriclabs/biolang
-cd biolang
-cargo build --release
-```
+[Chapter 1](ch01-getting-started.md) covers the options in more detail. You can
+also skip installing altogether and run every example in the browser at
+[lang.bio/workbench](https://lang.bio/workbench/).
 
 Run any example from this book:
 
