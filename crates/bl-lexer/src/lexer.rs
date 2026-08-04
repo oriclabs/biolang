@@ -1022,7 +1022,10 @@ mod bom_tests {
         // stripping it would move every span on the first line back by one.
         let with_bom = Lexer::new("\u{feff}let x = 1").tokenize().unwrap();
         let without = Lexer::new(" let x = 1").tokenize().unwrap();
-        let spans: Vec<_> = with_bom.iter().map(|t| (t.span.start, t.span.end)).collect();
+        let spans: Vec<_> = with_bom
+            .iter()
+            .map(|t| (t.span.start, t.span.end))
+            .collect();
         let expect: Vec<_> = without.iter().map(|t| (t.span.start, t.span.end)).collect();
         assert_eq!(spans, expect);
         // `let` begins at offset 1, exactly where it sits in the file.
@@ -1038,6 +1041,8 @@ mod bom_tests {
     fn a_bom_after_the_start_is_still_rejected() {
         // Only a leading BOM is an encoding artefact. One in the middle of a
         // file is a genuine stray character and should still be reported.
-        assert!(Lexer::new("let x = 1\n\u{feff}let y = 2").tokenize().is_err());
+        assert!(Lexer::new("let x = 1\n\u{feff}let y = 2")
+            .tokenize()
+            .is_err());
     }
 }
