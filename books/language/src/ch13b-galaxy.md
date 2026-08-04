@@ -210,7 +210,7 @@ a starting point for further customization.
 ```biolang
 # Save the generated code
 let bl_code = galaxy_to_bl(workflow)
-write_file("rnaseq.bl", bl_code)
+write_text("rnaseq.bl", bl_code)
 print("Pipeline written to rnaseq.bl")
 ```
 
@@ -361,7 +361,7 @@ print("Generated pipeline:")
 print(bl_code)
 
 # Save to file
-write_file("wgs_variant_calling.bl", bl_code)
+write_text("wgs_variant_calling.bl", bl_code)
 print("Pipeline saved to wgs_variant_calling.bl")
 ```
 

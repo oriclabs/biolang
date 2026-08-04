@@ -382,7 +382,7 @@ let bl_code = nf_to_bl(parsed)
 print(bl_code)
 
 # Save to a file
-write_file("rnaseq.bl", bl_code)
+write_text("rnaseq.bl", bl_code)
 ```
 
 The generated code maps Nextflow constructs to BioLang equivalents:
@@ -405,6 +405,6 @@ print("Found " + to_string(len(keys(parsed.params))) + " parameters")
 
 # Generate BioLang code
 let bl_code = nf_to_bl(parsed)
-write_file("sarek.bl", bl_code)
+write_text("sarek.bl", bl_code)
 print("Generated sarek.bl")
 ```

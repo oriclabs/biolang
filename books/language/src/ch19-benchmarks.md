@@ -1,50 +1,66 @@
 # Benchmarks & Correctness
 
-BioLang is benchmarked against Python (BioPython) and R (Bioconductor) on 30 bioinformatics tasks spanning sequence I/O, k-mer analysis, interval overlaps, variant processing, and multi-step pipelines. All results are reproducible from the `benchmarks/` directory.
+BioLang is benchmarked against Python (BioPython) and R (Bioconductor) on 32 bioinformatics tasks spanning sequence I/O, k-mer analysis, interval overlaps, variant processing, and multi-step pipelines. All results are reproducible from the `benchmarks/` directory.
+
+Every number below comes from `benchmarks/results/latest/linux/scores.yaml`, which the benchmark runner writes. If a figure here disagrees with that file, the file is right.
 
 ## Test Environment
 
-### Linux (WSL2)
+- Intel Core i9-12900K, 15 GB RAM, Linux 6.6.87 (WSL2)
+- BioLang 1.1.0, Python 3.12.3, R 4.4.2
+- Measured 2026-08-04
 
-- Intel Core i9-12900K, 16 GB RAM
-- BioLang 0.3.0, Python 3.12.3, R 4.3.3
+The Windows set in `benchmarks/results/latest/windows/` was last measured on BioLang 0.2.1 in March 2026 and has not been re-run. Those ratios are not comparable with the table below, so they are not quoted here.
 
-### Windows 11
+## Read the times before the ratios
 
-- Intel Core i9-12900K, 32 GB RAM
-- BioLang 0.3.0, Python 3.12.4
+These are **whole-script** times: interpreter startup and library imports included, because that is what a one-off analysis actually costs. `import Bio` alone takes 400 ms or more, and BioLang starts in single-digit milliseconds.
+
+That framing flatters BioLang on small inputs, and the effect is large enough to change which numbers mean anything:
+
+- Tasks under a second improved about 5.5x between 0.2.1 and 1.1.0
+- Tasks over a second improved about 2.4x
+- The two heaviest — 6.1 s and 10.0 s of k-mer counting — moved about 2%
+
+So a 76x on a 30 KB FASTA is mostly a measurement of Python's import time. The k-mer and GC-content rows, where real work dominates the launch, are the ones worth comparing.
 
 ## Results Summary
 
+BioLang is faster on 21 of the 32 tasks.
+
 ### Where BioLang Wins
 
-BioLang's Rust I/O engine (noodles) and native 2-bit DNA encoding deliver the biggest gains on:
+The Rust I/O engine (noodles) and native 2-bit DNA encoding deliver the biggest gains on:
 
 | Task | BioLang | Python | Speedup |
 |---|---|---|---|
-| ENCODE Peak Overlap | 0.363s | 2.574s | **7.1x** |
-| Protein K-mers | 0.191s | 1.331s | **7.0x** |
-| FASTA Parse (30 KB) | 0.138s | 0.926s | **6.7x** |
-| FASTA gzipped | 0.141s | 0.930s | **6.6x** |
-| E. coli Genome | 0.176s | 1.081s | **6.1x** |
-| GC Content (51 MB) | 0.830s | 2.771s | **3.3x** |
-| K-mer Counting (21-mers) | 6.551s | 21.01s | **3.2x** |
-| FASTQ QC Pipeline | 2.349s | 5.059s | **2.2x** |
+| ENCODE Peak Overlap | 0.154s | 2.614s | **17.0x** |
+| E. coli Genome Stats | 0.010s | 0.164s | **16.4x** |
+| Protein K-mers | 0.011s | 0.154s | **14.0x** |
+| FASTA Statistics | 0.036s | 0.372s | **10.3x** |
+| FASTA gzipped (1.3 MB) | 0.018s | 0.168s | **9.3x** |
+| GC Content (51 MB) | 0.125s | 0.721s | **5.8x** |
+| FASTQ QC Pipeline | 1.024s | 3.630s | **3.5x** |
+| K-mer Counting (21-mers) | 6.119s | 19.908s | **3.3x** |
+| Chr22 21-mer Count | 9.960s | 28.262s | **2.8x** |
+
+The last two are the load-bearing rows. They run long enough that startup is a rounding error, and they are the ones to cite.
 
 ### Where Python Wins
 
-Python's `csv`, `re`, and `dict` modules are highly optimized C extensions. On text-heavy parsing tasks:
+Python's `csv`, `re` and `dict` are heavily optimised C extensions, and on text-heavy parsing they win outright:
 
 | Task | BioLang | Python | Result |
 |---|---|---|---|
-| VCF Filtering | 0.349s | 0.166s | Py 2.1x faster |
-| ClinVar Variants | 0.661s | 0.265s | Py 2.5x faster |
-| CSV Join + Group-by | 0.281s | 0.156s | Py 1.8x faster |
-| GFF3 Ensembl chr22 | 0.453s | 0.171s | Py 2.6x faster |
+| GFF3 Ensembl chr22 | 0.295s | 0.036s | Py 8.2x faster |
+| GFF3 (1.7 MB) | 0.087s | 0.016s | Py 5.4x faster |
+| ClinVar + Ensembl Annotation | 0.095s | 0.034s | Py 2.8x faster |
+| ClinVar Variants | 0.135s | 0.064s | Py 2.1x faster |
+| BED Interval Overlap | 0.049s | 0.028s | Py 1.8x faster |
+| CSV Join + Group-by | 0.052s | 0.033s | Py 1.6x faster |
+| VCF (2.3 MB) | 0.019s | 0.014s | Py 1.4x faster |
 
-### Windows Notes
-
-Windows process creation adds ~1s overhead per invocation, compressing speedup ratios for sub-second tasks. For accurate algorithmic comparison, refer to Linux results. CPU-bound tasks that exceed this floor (k-mer counting 3.0x, ENCODE overlap 2.9x, QC pipeline 2.5x) still show clear wins.
+GFF3 parsing is the clearest gap and worth naming: on Ensembl chr22, BioLang is eight times slower than Python. That is a real weakness in the GFF path, not a measurement artefact.
 
 ## Code Conciseness
 

@@ -36,7 +36,8 @@ and check if a newer release is available:
 
 ```bash
 bl version
-# BioLang v0.3.0
+# BioLang v1.1.0
+#
 # Checking for updates... up to date.
 ```
 
@@ -69,10 +70,22 @@ bl
 You will see the BioLang prompt:
 
 ```
-BioLang v0.3.0
-Type :help for commands, :quit to exit.
+  ____  _       _
+ | __ )(_) ___ | |    __ _ _ __   __ _
+ |  _ \| |/ _ \| |   / _` | '_ \ / _` |
+ | |_) | | (_) | |__| (_| | | | | (_| |
+ |____/|_|\___/|_____\__,_|_| |_|\__, |
+                                  |___/
+ BioLang — pipe-first bioinformatics DSL
+ v1.1.0  •  1018 builtins  •  NCBI[-] LLM[+]  Cache: 0B
+
+ Commands:  :help  :builtins  :quit  ?name  Tab for completion  •  Paste DNA/FASTA auto-detected
+
 bl>
 ```
+
+`NCBI[-]` means no `NCBI_API_KEY` is set, and `LLM[+]` that an LLM provider is
+configured. Both reflect your environment, so your banner may differ.
 
 Try evaluating a bio literal directly:
 
