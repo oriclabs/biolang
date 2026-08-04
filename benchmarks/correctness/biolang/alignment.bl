@@ -1,0 +1,12 @@
+# Global alignment of sequence pairs. Output JSON.
+let seqs = read_fasta("data/sequences.fa") |> head(4)
+let results = []
+range(0, len(seqs) - 1) |> each(|i| {
+    let a = dna(substr(str(seqs[i].seq), 0, 120))
+    let b = dna(substr(str(seqs[i + 1].seq), 0, 120))
+    # match 1, mismatch -1, gap -2: a plain Needleman-Wunsch scoring that all
+    # three implementations can be told to use.
+    let al = align(a, b, "global", 1, -1, -2)
+    results = push(results, {a: seqs[i].id, b: seqs[i + 1].id, score: al.score})
+})
+println(json_pretty({alignments: results}))

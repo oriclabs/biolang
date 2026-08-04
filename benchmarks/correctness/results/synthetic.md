@@ -1,6 +1,6 @@
 ﻿# Synthetic-data correctness
 
-Generated 2026-08-04 21:28:28 on Microsoft Windows NT 10.0.26200.0
+Generated 2026-08-04 21:46:41 on Microsoft Windows NT 10.0.26200.0
 
 | | |
 |---|---|
@@ -21,6 +21,11 @@ Generated 2026-08-04 21:28:28 on Microsoft Windows NT 10.0.26200.0
 | gff_features | Python | PASS |
 | sequence_stats | Python | PASS |
 | bed_intervals | Python | PASS |
+| edit_distance | Python | PASS |
+| alignment | Python | PASS |
+| diversity | Python | PASS |
+| hardy_weinberg | Python | PASS |
+| peptide_mass | Python | PASS |
 | gc_content | R | PASS |
 | vcf_filter | R | PASS |
 | reverse_complement | R | PASS |
@@ -29,8 +34,12 @@ Generated 2026-08-04 21:28:28 on Microsoft Windows NT 10.0.26200.0
 | gff_features | R | PASS |
 | sequence_stats | R | PASS |
 | bed_intervals | R | PASS |
+| edit_distance | R | PASS |
+| alignment | R | PASS |
+| diversity | R | PASS |
+| hardy_weinberg | R | PASS |
 
-vs Python: 9 passed, 0 failed, 0 skipped
+vs Python: 14 passed, 0 failed, 0 skipped
 
-vs R: 8 passed, 0 failed, 0 skipped
+vs R: 12 passed, 0 failed, 0 skipped
 

@@ -9,7 +9,7 @@ RS="${3:-Rscript}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DATA_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-TASKS=(gc_content kmer_count vcf_filter reverse_complement translate csv_groupby gff_features sequence_stats bed_intervals)
+TASKS=(gc_content kmer_count vcf_filter reverse_complement translate csv_groupby gff_features sequence_stats bed_intervals edit_distance alignment diversity hardy_weinberg peptide_mass)
 PASS=0
 FAIL=0
 SKIP=0
