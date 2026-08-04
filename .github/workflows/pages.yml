@@ -32,10 +32,21 @@ jobs:
           node-version: 20
 
       - name: Install mdBook
+        env:
+          # Pinned. This step used to resolve "latest" through the unauthenticated
+          # GitHub API, which is rate-limited per IP and shared across Actions
+          # runners. When it was throttled, tag_name was absent, `tag` became the
+          # empty string, and the URL collapsed to `download//mdbook--x86_64-...`,
+          # which 404s. The whole deploy then failed for a reason unrelated to
+          # anything in the commit. Pinning removes the API call, and makes the
+          # docs build reproducible: "latest" also meant a new mdBook release
+          # could change the published books with no commit behind it.
+          MDBOOK_VERSION: v0.5.4
         run: |
-          tag=$(curl -s https://api.github.com/repos/rust-lang/mdBook/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
-          curl -fsSL "https://github.com/rust-lang/mdBook/releases/download/${tag}/mdbook-${tag}-x86_64-unknown-linux-gnu.tar.gz" | tar xz
+          set -euo pipefail
+          curl -fsSL "https://github.com/rust-lang/mdBook/releases/download/${MDBOOK_VERSION}/mdbook-${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar xz
           sudo mv mdbook /usr/local/bin/
+          mdbook --version
 
       - name: Build Tailwind CSS
         working-directory: website
