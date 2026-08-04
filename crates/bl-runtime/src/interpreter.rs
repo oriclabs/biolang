@@ -2990,6 +2990,15 @@ impl Interpreter {
                 entrypoint,
                 positional,
             ),
+            // The other dispatch path (`call_value`) has always handled this;
+            // this one did not, so a `@compile`-decorated function reported
+            // "Function is not callable" the moment it was called by name —
+            // which is every way anyone would call it. The bytecode feature was
+            // off by default, so nothing exercised the gap.
+            #[cfg(feature = "bytecode")]
+            Value::CompiledClosure(ref closure_any) => {
+                crate::compiled::call_compiled_closure(closure_any, positional)
+            }
             other => Err(BioLangError::type_error(
                 format!("{} is not callable", other.type_of()),
                 Some(span),
