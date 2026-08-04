@@ -78,12 +78,25 @@
           install location.
         </p>
 
+        <h2>Quick Install (Windows)</h2>
+        <p>The same thing in PowerShell:</p>
+        <pre><code class="language-powershell">iwr -useb https://lang.bio/install.ps1 | iex</code></pre>
+        <p>
+          This downloads the latest release, checks it against the published
+          <code>checksums.sha256</code>, and installs <code>bl.exe</code> and
+          <code>bl-lsp.exe</code> to
+          <code>%LOCALAPPDATA%\Programs\BioLang\bin</code>, adding that directory to your
+          user <code>PATH</code>. No administrator rights are needed. Set
+          <code>BIOLANG_INSTALL_DIR</code> to install elsewhere, or
+          <code>BIOLANG_NO_MODIFY_PATH=1</code> to leave <code>PATH</code> alone.
+        </p>
+
         <h2>Install via Cargo</h2>
         <p>
           The fastest way to install BioLang if you already have a Rust toolchain. This installs the
           <code>bl</code> binary to your Cargo bin directory.
         </p>
-        <pre><code class="language-bash">cargo install biolang</code></pre>
+        <pre><code class="language-bash">cargo install --git https://github.com/oriclabs/biolang bl-cli</code></pre>
         <p>Verify the installation:</p>
         <pre><code class="language-bash">bl --version</code></pre>
         <p>

@@ -18,6 +18,20 @@ jobs:
             archive: biolang-linux-x86_64.tar.gz
             binary: bl
             lsp_binary: bl-lsp
+          # Built on a native arm64 runner rather than cross-compiled from
+          # x86_64. The dependency tree pulls in openssl-sys, ring, bzip2-sys
+          # and zstd-sys, all of which compile C and would each need a working
+          # cross toolchain. A native runner sidesteps that entirely, and
+          # GitHub provides arm64 Linux runners at no cost for public repos.
+          #
+          # The docs and install.sh have referred to biolang-linux-aarch64.tar.gz
+          # for some time; until now nothing built it, so that URL 404'd and
+          # install.sh told arm64 Linux users to build from source.
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            archive: biolang-linux-aarch64.tar.gz
+            binary: bl
+            lsp_binary: bl-lsp
           - os: macos-latest
             target: x86_64-apple-darwin
             archive: biolang-macos-x86_64.tar.gz
@@ -86,9 +100,18 @@ jobs:
 
       - name: Generate checksums
         run: |
-          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) | while read f; do
-            sha256sum "$f" >> checksums.sha256
-          done
+          set -euo pipefail
+          # download-artifact gives each artifact its own directory, so the paths
+          # here are artifacts/<name>/<name>. Recording them verbatim produced
+          # lines like
+          #   <sha>  artifacts/biolang-windows-x86_64.zip/biolang-windows-x86_64.zip
+          # which nobody can check with `sha256sum -c` beside a downloaded file.
+          # Hash from inside each directory so the file records the bare name.
+          : > checksums.sha256
+          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -print0 |
+            while IFS= read -r -d '' f; do
+              ( cd "$(dirname "$f")" && sha256sum "$(basename "$f")" )
+            done | sort -k2 >> checksums.sha256
           cat checksums.sha256
 
       - name: Create GitHub Release

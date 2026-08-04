@@ -9,7 +9,7 @@ and writing your first real analysis.
 ### From crates.io
 
 ```bash
-cargo install biolang
+cargo install --git https://github.com/oriclabs/biolang bl-cli
 ```
 
 This installs the `bl` binary, which provides both the REPL and the script runner.
