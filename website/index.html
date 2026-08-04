@@ -325,6 +325,51 @@ ncbi_gene("BRCA1") |> println()</code></pre>
     </div>
   </section>
 
+  <!-- Correctness against BioPython and Bioconductor -->
+  <section class="py-20 border-b border-slate-800/50">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-3xl font-bold text-white text-center mb-4">The same answers as BioPython and Bioconductor</h2>
+      <p class="text-slate-400 text-center mb-2 max-w-3xl mx-auto">
+        Rosalind answers &ldquo;does this match a published answer&rdquo;. This answers the other half:
+        does it agree with the tools people already use. Each task is written three times &mdash; once in
+        BioLang, once in Python with BioPython, once in R with Bioconductor &mdash; and a comparator checks
+        the values they produce: floats to 1e-6, integers and strings exactly.
+      </p>
+      <p class="text-slate-500 text-center mb-8 text-sm">
+        Every run records the tool versions, the data source, the tolerance, and a SHA-256 over each side&rsquo;s
+        output, so &ldquo;identical&rdquo; is something you can check rather than something we assert.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <a href="/docs/examples/equivalents.html" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
+          <div class="text-2xl font-bold text-green-400">48</div>
+          <div class="text-sm text-slate-300 mt-1">One-liners</div>
+          <div class="text-xs text-slate-500">side by side, tabbed</div>
+        </a>
+        <a href="https://github.com/oriclabs/biolang/tree/main/benchmarks/correctness" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
+          <div class="text-2xl font-bold text-green-400">14</div>
+          <div class="text-sm text-slate-300 mt-1">Tasks, generated data</div>
+          <div class="text-xs text-slate-500">12 also against R</div>
+        </a>
+        <a href="https://github.com/oriclabs/biolang/tree/main/benchmarks/correctness/real_world" class="bg-slate-800/60 rounded-lg p-5 text-center hover:bg-slate-800 transition-colors">
+          <div class="text-2xl font-bold text-green-400">9</div>
+          <div class="text-sm text-slate-300 mt-1">Tasks, real data</div>
+          <div class="text-xs text-slate-500">E. coli, yeast, ClinVar</div>
+        </a>
+      </div>
+
+      <p class="text-center">
+        <a href="/docs/examples/equivalents.html" class="inline-block px-6 py-3 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium transition-colors">Compare BioLang, Python and R &rarr;</a>
+      </p>
+      <p class="text-slate-500 text-xs text-center mt-6 max-w-3xl mx-auto">
+        Agreement is strong evidence, not proof: it adopts BioPython&rsquo;s and Bioconductor&rsquo;s conventions as the
+        reference, and a shared misreading of a file format would be invisible to it. Where the languages genuinely
+        disagree &mdash; BioLang rounds halves away from zero, Python and R round to even &mdash; that is
+        <a href="/docs/examples/equivalents.html#conventions" class="text-violet-400 hover:text-violet-300">recorded rather than hidden</a>.
+      </p>
+    </div>
+  </section>
+
   <section class="py-20 bg-slate-900/30 border-b border-slate-800/50">
     <div class="max-w-4xl mx-auto px-6">
       <h2 class="text-3xl font-bold text-white text-center mb-4">Try it in your browser</h2>
@@ -422,7 +467,7 @@ print(df.describe())</code></pre>
   <section class="py-20 bg-slate-900/30">
     <div class="max-w-5xl mx-auto px-6">
       <h2 class="text-3xl font-bold text-white text-center mb-4">Benchmarked against BioPython &amp; Bioconductor</h2>
-      <p class="text-slate-400 text-center mb-2">30 bioinformatics tasks on real-world data (NCBI, UniProt, ClinVar, ENCODE). Correctness validated on both synthetic and real biological data (E.&nbsp;coli, yeast, ClinVar) against BioPython and Bioconductor.</p>
+      <p class="text-slate-400 text-center mb-2">32 bioinformatics tasks on real-world data (NCBI, UniProt, ClinVar, ENCODE).</p>
       <p class="text-slate-400 text-center mb-8 text-sm">These are <strong class="text-slate-300">whole-script times</strong>: interpreter startup and library imports included, which is what a one-off analysis actually costs &mdash; <code class="text-violet-300">import Bio</code> alone takes 400&nbsp;ms or more. That framing flatters BioLang on small inputs, so read the large ones. Parsing a 30&nbsp;kB FASTA comes out 76&times; faster, which is mostly startup; counting k-mers across 51&nbsp;MB of chr22 comes out <strong class="text-slate-300">2.8&times;</strong>, and that is the figure that reflects the work rather than the launch. Re-measured on bl&nbsp;1.1.0 in August 2026 &mdash; the previous set was bl&nbsp;0.2.1 from March, and understated current performance.</p>
 
       <!-- Top wins highlight cards -->
