@@ -12,6 +12,14 @@ $ErrorActionPreference = "Stop"
 $Runs = 3
 
 Set-Location $PSScriptRoot
+# Set-Location moves PowerShell's location but not the process working
+# directory, and [System.IO.File] uses the latter. The per-category CSVs are
+# written by cmdlets and landed in benchmarks/results; summary.md, scores.yaml
+# and the per-category .md reports are written by [System.IO.File] with the
+# same relative paths and landed in a results/ directory beside wherever the
+# shell happened to start — usually the repository root. The two are kept in
+# step here so every relative path in this script means one thing.
+[Environment]::CurrentDirectory = $PSScriptRoot
 
 # ── Activate venv if present ──
 $venvActivate = Join-Path $PSScriptRoot ".venv\Scripts\Activate.ps1"
@@ -216,13 +224,36 @@ function Best-Time($cmd, $args_list) {
     $anySuccess = $false
     $script:LastOutput = ""
     for ($i = 0; $i -lt $Runs; $i++) {
-        $sw = [System.Diagnostics.Stopwatch]::StartNew()
         $tmpOut = [System.IO.Path]::GetTempFileName()
         $tmpErr = [System.IO.Path]::GetTempFileName()
+        # Start-Process -Wait adds about 987 ms to every measurement. Measured on
+        # this machine: `bl --version` takes 1.012s through Start-Process and
+        # 0.025s through System.Diagnostics.Process. That overhead landed on both
+        # BioLang and Python, so it did not favour either — it simply drowned
+        # them, which is why every published Windows figure under a second read
+        # "~1.0x" and the suite appeared to show no difference on Windows at all.
+        # The bash runner never had this problem; it invokes the binary directly.
+        $proc = New-Object System.Diagnostics.Process
+        $proc.StartInfo.FileName = $resolved.Source
+        # .NET Framework's ProcessStartInfo has no ArgumentList, so the arguments
+        # have to be one string. Quote any element containing a space; the script
+        # paths here have none today, but a benchmark under a path like
+        # "C:\My Data" would otherwise be split into two arguments.
+        $proc.StartInfo.Arguments = (
+            $args_list | ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } }
+        ) -join ' '
+        $proc.StartInfo.WorkingDirectory = $PSScriptRoot
+        $proc.StartInfo.UseShellExecute = $false
+        $proc.StartInfo.RedirectStandardOutput = $true
+        $proc.StartInfo.RedirectStandardError = $true
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
         try {
-            $proc = Start-Process -FilePath $cmd -ArgumentList $args_list -NoNewWindow -Wait -PassThru `
-                        -WorkingDirectory $PSScriptRoot `
-                        -RedirectStandardOutput $tmpOut -RedirectStandardError $tmpErr
+            $proc.Start() | Out-Null
+            # Read both pipes before waiting: a child that fills one of them
+            # blocks forever if nothing is draining it.
+            $stdout = $proc.StandardOutput.ReadToEnd()
+            $stderr = $proc.StandardError.ReadToEnd()
+            $proc.WaitForExit()
         } catch {
             Write-Host "    [FAILED] cannot run $cmd" -ForegroundColor Red
             Remove-Item $tmpOut, $tmpErr -Force -ErrorAction SilentlyContinue
@@ -230,6 +261,8 @@ function Best-Time($cmd, $args_list) {
         }
         $sw.Stop()
         $elapsed = $sw.Elapsed.TotalSeconds
+        [System.IO.File]::WriteAllText($tmpOut, $stdout)
+        [System.IO.File]::WriteAllText($tmpErr, $stderr)
         if ($proc.ExitCode -ne 0) {
             if (-not $anySuccess) {
                 $errText = (Get-Content $tmpErr -Raw -ErrorAction SilentlyContinue)
@@ -570,8 +603,24 @@ foreach ($cr in $allCategoryResults) {
 $yaml += "# null = benchmark did not run (script missing, tool not found, or data unavailable)" + [Environment]::NewLine
 [System.IO.File]::WriteAllText($scoresFile, $yaml, [System.Text.UTF8Encoding]::new($false))
 
+# ── Promote to results/latest/<os>/ ──
+#
+# The bash runner had no such step, and its absence is why the published Linux
+# figures sat at bl 0.2.1 for five months: the runner wrote timestamped files,
+# results/latest/ was what the website and README quoted, and copying between
+# them was a manual step nobody had written down. This script had the same gap,
+# so the Windows numbers went stale the same way.
+$latestDir = "results/latest/$platformTag"
+if (-not (Test-Path $latestDir)) { New-Item -ItemType Directory -Path $latestDir -Force | Out-Null }
+Copy-Item -Force $scoresFile  (Join-Path $latestDir "scores.yaml")
+Copy-Item -Force $summaryFile (Join-Path $latestDir "summary.md")
+Get-ChildItem "results" -File |
+    Where-Object { $_.Name -match "_${platformTag}_${timestamp}\.(csv|md)$" } |
+    ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $latestDir $_.Name) }
+
 Write-Host ""
 Write-Host "================================================================"
 Write-Host "Summary:  $summaryFile" -ForegroundColor Cyan
 Write-Host "Scores:   $scoresFile" -ForegroundColor Cyan
+Write-Host "Promoted: $latestDir/scores.yaml" -ForegroundColor Cyan
 Write-Host "================================================================"

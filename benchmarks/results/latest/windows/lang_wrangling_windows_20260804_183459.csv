@@ -1,0 +1,4 @@
+﻿task,language,time_sec,loc
+5_csv_wrangle,biolang,0.071,20
+5_csv_wrangle,python,0.077,35
+5_csv_wrangle,r,0.529,31
