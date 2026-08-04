@@ -27,12 +27,43 @@ const KEYWORDS = new Set([
   "dna", "rna", "protein",
 ]);
 
+/**
+ * Blank out comments and string contents in one pass, tracking which of the two
+ * we are inside.
+ *
+ * Two passes — comments first, then strings — breaks on a string containing a
+ * hash: a + "#" + b becomes a + ", leaving an unbalanced quote that makes the
+ * string stripper mis-pair every quote after it and expose later string
+ * contents as code. Must match blStripNonCode in website/js/playground.js.
+ */
+function stripNonCode(code) {
+  const NEWLINE = 10;
+  const QUOTE = 34;
+  const HASH = 35;
+  const BACKSLASH = 92;
+  let out = "";
+  let inString = false;
+  for (let i = 0; i < code.length; i += 1) {
+    const ch = code.charCodeAt(i);
+    if (inString) {
+      if (ch === BACKSLASH) { out += "  "; i += 1; continue; }
+      if (ch === QUOTE) { inString = false; out += code[i]; continue; }
+      out += ch === NEWLINE ? code[i] : " ";
+      continue;
+    }
+    if (ch === QUOTE) { inString = true; out += code[i]; continue; }
+    if (ch === HASH) {
+      while (i < code.length && code.charCodeAt(i) !== NEWLINE) i += 1;
+      out += code[i] === undefined ? "" : code[i];
+      continue;
+    }
+    out += code[i];
+  }
+  return out;
+}
+
 function missingInBrowser(source) {
-  const stripped = source
-    .split(/\r?\n/)
-    .map((line) => line.replace(/#.*$/, ""))
-    .join("\n")
-    .replace(/"([^"\\]|\\.)*"/g, '""');
+  const stripped = stripNonCode(source);
   // `fn name(...)` and `let name = |...|` both name a function. This must match
   // scripts/generate-pack-docs.mjs exactly — the two disagreeing is precisely
   // what this audit exists to catch, so a fix to one belongs in both.

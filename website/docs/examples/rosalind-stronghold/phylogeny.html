@@ -62,7 +62,7 @@
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=TREE" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="tree.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A tree on n nodes has exactly n-1 edges, so the answer is that count minus the edges already present, with no search involved. The point is recognising the invariant rather than exploring the graph.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: TREE — Completing a Tree
 # https://rosalind.info/problems/tree/
 #
@@ -93,7 +93,7 @@ fn test_tree_edges_to_add() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=INOD" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="inod.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">An unrooted binary tree with n leaves always has n-2 internal nodes, whatever its shape. That fixed relationship is what lets EUBT count trees by insertion and CNTQ count quartets without ever examining a topology.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: INOD — Counting Phylogenetic Ancestors
 # https://rosalind.info/problems/inod/
 #
@@ -122,7 +122,7 @@ fn test_inod_internal_nodes() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PDST" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="pdst.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Pairwise p-distance: the fraction of positions at which two sequences differ. It is the crude measure HAMM warns about, applied to every pair, and it feeds the tree-building problems that follow.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PDST — Creating a Distance Matrix
 # https://rosalind.info/problems/pdst/
 #
@@ -165,7 +165,7 @@ fn test_pdst_distance_matrix() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ROOT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="root.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Rooted binary trees on n leaves number (2n-3)!!, which passes a billion by n=11. That growth is why phylogenetics searches tree space rather than enumerating it.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: ROOT — Counting Rooted Binary Trees
 # https://rosalind.info/problems/root/
 #
@@ -197,7 +197,7 @@ fn test_root_rooted_binary_trees() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CUNR" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="cunr.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The unrooted count, (2n-5)!!, which is the rooted count one step back — a rooted tree is an unrooted one with a root placed on some edge. EUBT constructs these rather than counting them.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CUNR — Counting Unrooted Binary Trees
 # https://rosalind.info/problems/cunr/
 #
@@ -468,7 +468,7 @@ fn test_nkew_weighted_distances() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CTBL" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="ctbl.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A character table records the splits a set of taxa admits. CHBP inverts it back into a tree, which works only because the splits of a consistent table are nested or disjoint and never crossing.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CTBL — Creating a Character Table
 # https://rosalind.info/problems/ctbl/
 #

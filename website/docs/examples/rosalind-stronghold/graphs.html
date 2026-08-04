@@ -45,7 +45,7 @@
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GRPH" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="grph.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Overlap graphs make reads the nodes, which makes assembly a Hamiltonian path — NP-hard. DBRU makes reads the edges instead and gets an Eulerian path, solvable in linear time. Same data, different graph, and the whole reason modern assemblers use de Bruijn graphs.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: GRPH — Overlap Graphs
 # https://rosalind.info/problems/grph/
 #
@@ -91,7 +91,7 @@ fn test_grph_overlap_graph() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=DBRU" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="dbru.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Reads become edges rather than nodes, which turns assembly from a Hamiltonian path problem into an Eulerian one. GRPH shows the alternative; this is the construction real assemblers are built on.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: DBRU — Constructing a De Bruijn Graph
 # https://rosalind.info/problems/dbru/
 #

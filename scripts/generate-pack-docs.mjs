@@ -90,13 +90,44 @@ const CALL_KEYWORDS = new Set([
 ]);
 
 /** Builtins a source calls that the browser build does not have. */
+/**
+ * Blank out comments and string contents in one pass, tracking which of the two
+ * we are inside.
+ *
+ * Two passes — comments first, then strings — breaks on a string containing a
+ * hash: a + "#" + b becomes a + ", leaving an unbalanced quote that makes the
+ * string stripper mis-pair every quote after it and expose later string
+ * contents as code. Must match blStripNonCode in website/js/playground.js.
+ */
+function stripNonCode(code) {
+  const NEWLINE = 10;
+  const QUOTE = 34;
+  const HASH = 35;
+  const BACKSLASH = 92;
+  let out = "";
+  let inString = false;
+  for (let i = 0; i < code.length; i += 1) {
+    const ch = code.charCodeAt(i);
+    if (inString) {
+      if (ch === BACKSLASH) { out += "  "; i += 1; continue; }
+      if (ch === QUOTE) { inString = false; out += code[i]; continue; }
+      out += ch === NEWLINE ? code[i] : " ";
+      continue;
+    }
+    if (ch === QUOTE) { inString = true; out += code[i]; continue; }
+    if (ch === HASH) {
+      while (i < code.length && code.charCodeAt(i) !== NEWLINE) i += 1;
+      out += code[i] === undefined ? "" : code[i];
+      continue;
+    }
+    out += code[i];
+  }
+  return out;
+}
+
 function missingInBrowser(source, available) {
   if (!available) return [];
-  const stripped = source
-    .split(/\r?\n/)
-    .map((line) => line.replace(/#.*$/, ""))
-    .join("\n")
-    .replace(/"([^"\\]|\\.)*"/g, '""');
+  const stripped = stripNonCode(source);
   // Both ways of naming a function: `fn name(...)` and a lambda bound with
   // `let name = |...|`. Missing the second form reported every such helper as a
   // builtin the browser lacks, which marked working examples "CLI only".

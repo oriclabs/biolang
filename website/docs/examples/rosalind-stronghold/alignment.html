@@ -57,7 +57,7 @@
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=EDIT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="edit.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The crude version of sequence comparison, and the pack refines it twice: GLOB stops treating every substitution as equally costly, and GAFF stops treating a gap of k bases as k separate events. Useful mainly as the baseline those two improve on.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: EDIT — Edit Distance
 # https://rosalind.info/problems/edit/
 #
@@ -85,7 +85,7 @@ fn test_edit_distance() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GLOB" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="glob.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">BLOSUM62 is built from substitution frequencies actually observed in aligned protein blocks, so swapping a residue for a chemically similar one costs little and swapping it for an unrelated one costs a lot. That is the information EDIT throws away by charging one for every mismatch.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: GLOB — Global Alignment with Scoring Matrix
 # https://rosalind.info/problems/glob/
 #
@@ -148,7 +148,7 @@ fn test_glob_blosum62_global_alignment() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LOCA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="loca.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Two proteins may share a single conserved domain inside otherwise unrelated sequence. A global alignment has to align the unrelated parts too and buries the signal; local alignment reports only the stretch that matches, which is what makes it the basis of database search.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LOCA — Local Alignment with Scoring Matrix
 # https://rosalind.info/problems/loca/
 #
@@ -213,7 +213,7 @@ fn test_loca_pam250_local_alignment() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GAFF" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="gaff.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">One insertion of ten bases is a single mutational event, not ten. Charging per base makes an aligner scatter several short gaps where one long gap is right, so opening a gap costs more than extending it.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: GAFF — Global Alignment with Scoring Matrix and Affine Gap Penalty
 # https://rosalind.info/problems/gaff/
 #

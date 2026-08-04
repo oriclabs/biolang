@@ -623,7 +623,7 @@ fn test_perm_permutation_count() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PPER" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="pper.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Ordered selections rather than full orderings, taken modulo a million because the count outgrows the answer format long before it outgrows the biology. Combinatorial groundwork for the counting problems, not a biological question in itself.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PPER — Partial Permutations
 # https://rosalind.info/problems/pper/
 #
@@ -653,7 +653,7 @@ fn test_pper_partial_permutations() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=EDIT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="edit.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The crude version of sequence comparison, and the pack refines it twice: GLOB stops treating every substitution as equally costly, and GAFF stops treating a gap of k bases as k separate events. Useful mainly as the baseline those two improve on.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: EDIT — Edit Distance
 # https://rosalind.info/problems/edit/
 #
@@ -681,7 +681,7 @@ fn test_edit_distance() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GLOB" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="glob.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">BLOSUM62 is built from substitution frequencies actually observed in aligned protein blocks, so swapping a residue for a chemically similar one costs little and swapping it for an unrelated one costs a lot. That is the information EDIT throws away by charging one for every mismatch.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: GLOB — Global Alignment with Scoring Matrix
 # https://rosalind.info/problems/glob/
 #
@@ -744,7 +744,7 @@ fn test_glob_blosum62_global_alignment() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LOCA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="loca.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Two proteins may share a single conserved domain inside otherwise unrelated sequence. A global alignment has to align the unrelated parts too and buries the signal; local alignment reports only the stretch that matches, which is what makes it the basis of database search.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LOCA — Local Alignment with Scoring Matrix
 # https://rosalind.info/problems/loca/
 #
@@ -809,7 +809,7 @@ fn test_loca_pam250_local_alignment() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GAFF" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="gaff.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">One insertion of ten bases is a single mutational event, not ten. Charging per base makes an aligner scatter several short gaps where one long gap is right, so opening a gap costs more than extending it.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: GAFF — Global Alignment with Scoring Matrix and Affine Gap Penalty
 # https://rosalind.info/problems/gaff/
 #
@@ -949,7 +949,7 @@ fn test_oap_overlap_alignment() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SSET" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="sset.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Two to the n, which is the point. Any method that examines every subset of a set of sites stops being usable in the low twenties, and that is the wall the search problems elsewhere in this pack are built to avoid.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: SSET — Counting Subsets
 # https://rosalind.info/problems/sset/
 #
@@ -978,7 +978,7 @@ fn test_sset_subset_count() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PMCH" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="pmch.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">RNA folds back on itself and pairs. This counts the ways every base could be paired, which requires the A and U counts to match and the C and G counts to match — a condition real sequences rarely satisfy, which is what MMCH addresses.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PMCH — Perfect Matchings and RNA Secondary Structures
 # https://rosalind.info/problems/pmch/
 #
@@ -1017,7 +1017,7 @@ fn test_pmch_perfect_matchings() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=MMCH" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="mmch.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">PMCH without the assumption that everything pairs. Real RNA leaves bases unpaired because the counts do not match, so the question becomes how many bonds are possible rather than how many arrangements are complete.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: MMCH — Maximum Matchings and RNA Secondary Structures
 # https://rosalind.info/problems/mmch/
 #
@@ -1062,7 +1062,7 @@ fn test_mmch_maximum_matchings() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CAT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="cat.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Catalan numbers count matchings that do not cross, and non-crossing is a physical constraint rather than a mathematical convenience: crossing bonds are pseudoknots, which this model excludes. MOTZ relaxes the requirement that everything pairs, and RNAS adds wobble bonds and a minimum hairpin turn.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CAT — Catalan Numbers and RNA Secondary Structures
 # https://rosalind.info/problems/cat/
 #
@@ -1112,7 +1112,7 @@ fn test_cat_noncrossing_matchings() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LIA" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="lia.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Mendel's second law. Alleles at different loci assort independently, so the two-locus probability factors — which is what makes this a binomial calculation rather than a simulation.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LIA — Independent Alleles
 # https://rosalind.info/problems/lia/
 #
@@ -1155,7 +1155,7 @@ fn test_lia_independent_alleles() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SEXL" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="sexl.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Males carry one X, so a recessive allele on it is expressed with no second copy to mask it. The proportion of affected males is therefore the allele frequency itself, which is why X-linked recessive conditions appear far more often in males than females.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: SEXL — Sex-Linked Inheritance
 # https://rosalind.info/problems/sexl/
 #
@@ -1188,7 +1188,7 @@ fn test_sexl_carrier_probabilities() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=AFRQ" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="afrq.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Hardy-Weinberg run backwards: the disease frequency gives the allele frequency, and the carrier frequency 2pq follows. For a rare recessive allele carriers vastly outnumber sufferers, which is the counterintuitive result the arithmetic exists to make obvious.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: AFRQ — Counting Disease Carriers
 # https://rosalind.info/problems/afrq/
 #
@@ -1225,7 +1225,7 @@ fn test_afrq_carrier_proportions() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PROB" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="prob.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Computed in logarithms because the raw probability of any particular long string underflows to zero — the same reason the HMM problems decode in log space rather than multiplying probabilities directly.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PROB — Introduction to Random Strings
 # https://rosalind.info/problems/prob/
 #
@@ -1271,7 +1271,7 @@ fn test_prob_random_string_logs() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LEXF" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="lexf.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Enumerating every k-mer over an alphabet, which is 4 to the k for DNA. Fine at k=3 and hopeless by k=20, which is why the k-mer problems index sequences rather than enumerate possibilities.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LEXF — Enumerating k-mers Lexicographically
 # https://rosalind.info/problems/lexf/
 #
@@ -1367,7 +1367,7 @@ fn test_lcsm_shared_motif() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=TRAN" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="tran.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A random mutation process would give a ratio near 0.5, since there are twice as many ways to make a transversion. Real human data sits near 2.1 genome-wide and near 3 in exomes, largely because methylated cytosine deaminates to thymine. The ratio is therefore a standard quality check: a callset far from those values is reporting sequencing error rather than biology.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: TRAN — Transitions and Transversions
 # https://rosalind.info/problems/tran/
 #
@@ -1405,7 +1405,7 @@ fn test_tran_ratio() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SPLC" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="splc.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">What RNA glossed over. A eukaryotic gene is not a contiguous coding sequence — introns are cut out before translation, so the protein comes from the exons joined together. Removing the introns first is the difference between the right protein and nonsense.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: SPLC — RNA Splicing
 # https://rosalind.info/problems/splc/
 #
@@ -1438,7 +1438,7 @@ fn test_splc_rna_splicing() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CONS" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="cons.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A profile is the same object BA2's motif search builds and scores against: counts per base per position. The consensus reads off the commonest base at each, which is a useful summary and a lossy one — it discards how strong the preference was.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CONS — Consensus and Profile
 # https://rosalind.info/problems/cons/
 #
@@ -1488,7 +1488,7 @@ fn test_cons_consensus_and_profile() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=GRPH" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="grph.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Overlap graphs make reads the nodes, which makes assembly a Hamiltonian path — NP-hard. DBRU makes reads the edges instead and gets an Eulerian path, solvable in linear time. Same data, different graph, and the whole reason modern assemblers use de Bruijn graphs.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: GRPH — Overlap Graphs
 # https://rosalind.info/problems/grph/
 #
@@ -1534,7 +1534,7 @@ fn test_grph_overlap_graph() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=REVP" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="revp.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Restriction enzymes cut at reverse palindromes because they bind as symmetric dimers, one subunit per strand, so the site reads the same on both. That is why these particular sequences matter and why they are always even in length.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: REVP — Locating Restriction Sites
 # https://rosalind.info/problems/revp/
 #
@@ -1574,7 +1574,7 @@ fn test_revp_reverse_palindromes() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=TREE" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="tree.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A tree on n nodes has exactly n-1 edges, so the answer is that count minus the edges already present, with no search involved. The point is recognising the invariant rather than exploring the graph.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: TREE — Completing a Tree
 # https://rosalind.info/problems/tree/
 #
@@ -1605,7 +1605,7 @@ fn test_tree_edges_to_add() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=INOD" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="inod.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">An unrooted binary tree with n leaves always has n-2 internal nodes, whatever its shape. That fixed relationship is what lets EUBT count trees by insertion and CNTQ count quartets without ever examining a topology.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: INOD — Counting Phylogenetic Ancestors
 # https://rosalind.info/problems/inod/
 #
@@ -1634,7 +1634,7 @@ fn test_inod_internal_nodes() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SIGN" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="sign.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Signed permutations: 2^n times n! of them, because each gene may also be flipped. The sign is not decoration — a reversed gene reads on the opposite strand, which is exactly what REAR and SORT measure.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: SIGN — Enumerating Oriented Gene Orderings
 # https://rosalind.info/problems/sign/
 #
@@ -1686,7 +1686,7 @@ fn test_sign_signed_permutations() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LGIS" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="lgis.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Longest increasing subsequence, which in a genomic setting is how conserved order is recovered from a comparison of two genomes: positions that stay in ascending order form a synteny block, and the rest is rearrangement.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LGIS — Longest Increasing Subsequence
 # https://rosalind.info/problems/lgis/
 #
@@ -1757,7 +1757,7 @@ fn test_lgis_longest_runs() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SSEQ" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="sseq.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A subsequence rather than a substring — the characters need not be contiguous. That is the right model for a motif split across exons, since the intervening introns are spliced out before the protein is made.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: SSEQ — Finding a Spliced Motif
 # https://rosalind.info/problems/sseq/
 #
@@ -1799,7 +1799,7 @@ fn test_sseq_spliced_motif() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=PDST" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="pdst.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Pairwise p-distance: the fraction of positions at which two sequences differ. It is the crude measure HAMM warns about, applied to every pair, and it feeds the tree-building problems that follow.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: PDST — Creating a Distance Matrix
 # https://rosalind.info/problems/pdst/
 #
@@ -1842,7 +1842,7 @@ fn test_pdst_distance_matrix() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ASMQ" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="asmq.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">N50 is the contig length at which half the assembly sits in contigs that long or longer. It is the standard summary and a gameable one: joining contigs wrongly raises it, so a high N50 is evidence of a long assembly rather than a correct one.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: ASMQ — Assessing Assembly Quality with N50 and N75
 # https://rosalind.info/problems/asmq/
 #
@@ -1893,7 +1893,7 @@ fn test_asmq_n50_and_n75() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ORF" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="orf.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Six frames, not three — the gene may sit on either strand, and there is no way to tell from the sequence which. Each frame is scanned from every start codon to the first stop.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: ORF — Open Reading Frames
 # https://rosalind.info/problems/orf/
 #
@@ -1953,7 +1953,7 @@ fn test_orf_open_reading_frames() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LEXV" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="lexv.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Ordering strings of unequal length, where a prefix sorts before anything extending it. Ordinary lexicographic order on padded strings gets this wrong, which is the whole exercise.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LEXV — Ordering Strings of Varying Length Lexicographically
 # https://rosalind.info/problems/lexv/
 #
@@ -2000,7 +2000,7 @@ fn test_lexv_varying_length_order() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=SETO" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="seto.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Set operations as groundwork. Worth having explicitly because several later problems phrase their answer as a complement or an intersection, and getting the universe wrong is a common way to be quietly off by a few elements.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: SETO — Introduction to Set Operations
 # https://rosalind.info/problems/seto/
 #
@@ -2140,7 +2140,7 @@ fn test_lcsq_shared_spliced_motif() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=KMP" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="kmp.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The failure array records, for each prefix, the longest proper prefix that is also a suffix — so a mismatch can resume without re-reading the text. That is what makes matching linear rather than quadratic, and it is the same insight the trie and suffix-array problems generalise.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: KMP — Speeding Up Motif Finding
 # https://rosalind.info/problems/kmp/
 #
@@ -2182,7 +2182,7 @@ fn test_kmp_failure_array() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=DBRU" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="dbru.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Reads become edges rather than nodes, which turns assembly from a Hamiltonian path problem into an Eulerian one. GRPH shows the alternative; this is the construction real assemblers are built on.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: DBRU — Constructing a De Bruijn Graph
 # https://rosalind.info/problems/dbru/
 #
@@ -2221,7 +2221,7 @@ fn test_dbru_de_bruijn_graph() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ASPC" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="aspc.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Summing binomial coefficients, motivated by alternative splicing: one gene yields many proteins depending on which exons are kept. The count grows fast enough that the modulus is doing real work.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: ASPC — Introduction to Alternative Splicing
 # https://rosalind.info/problems/aspc/
 #
@@ -2270,7 +2270,7 @@ fn test_aspc_alternative_splicing() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CORR" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="corr.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Assumes a correct read appears at least twice and an erroneous one exactly once — which is what read depth buys and why coverage matters. Reverse complements count as the same read, since strand is not recorded.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CORR — Error Correction in Reads
 # https://rosalind.info/problems/corr/
 #
@@ -2415,7 +2415,7 @@ fn test_scsp_shortest_common_supersequence() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=EVAL" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="eval.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The expected number of times a motif appears in a random sequence, which is what makes an observed count interesting or unremarkable. Without a baseline, finding a site says nothing at all.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: EVAL — Expected Number of Restriction Sites
 # https://rosalind.info/problems/eval/
 #
@@ -2461,7 +2461,7 @@ fn test_eval_expected_sites() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LONG" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="long.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Shortest superstring is NP-hard in general. This is solvable only because the problem guarantees every pair overlaps by more than half their length, which makes the correct overlap unique and a greedy merge safe. GREP shows what happens when that guarantee is dropped.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LONG — Genome Assembly as Shortest Superstring
 # https://rosalind.info/problems/long/
 #
@@ -2571,7 +2571,7 @@ fn test_kmer_composition() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=EBIN" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="ebin.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Expected allele counts under Wright-Fisher, where expectation is linear and so the answer is a sum of binomial means. WFMD gives the distribution this summarises.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: EBIN — Wright-Fisher's Expected Behavior
 # https://rosalind.info/problems/ebin/
 #
@@ -2661,7 +2661,7 @@ fn test_spec_protein_from_spectrum() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=ROOT" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="root.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Rooted binary trees on n leaves number (2n-3)!!, which passes a billion by n=11. That growth is why phylogenetics searches tree space rather than enumerating it.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: ROOT — Counting Rooted Binary Trees
 # https://rosalind.info/problems/root/
 #
@@ -2693,7 +2693,7 @@ fn test_root_rooted_binary_trees() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CUNR" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="cunr.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The unrooted count, (2n-5)!!, which is the rooted count one step back — a rooted tree is an unrooted one with a root placed on some edge. EUBT constructs these rather than counting them.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CUNR — Counting Unrooted Binary Trees
 # https://rosalind.info/problems/cunr/
 #
@@ -2724,7 +2724,7 @@ fn test_cunr_unrooted_binary_trees() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=MOTZ" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="motz.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Motzkin numbers drop CAT's requirement that every base pairs, which is the more realistic model: real RNA leaves plenty unpaired. RNAS goes further and adds wobble bonds and a minimum hairpin length.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: MOTZ — Motzkin Numbers and RNA Secondary Structures
 # https://rosalind.info/problems/motz/
 #
@@ -2834,7 +2834,7 @@ fn test_indc_independent_segregation() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=TRIE" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="trie.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Patterns sharing a prefix share a path, so the text is scanned once regardless of how many patterns are sought. That is the property that makes trie matching worth building, and BA9A and BA9B use it directly.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: TRIE — Introduction to Pattern Matching
 # https://rosalind.info/problems/trie/
 #
@@ -2904,7 +2904,7 @@ fn test_trie_pattern_matching() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=WFMD" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="wfmd.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">Genetic drift: allele frequencies move at random in a finite population, and an allele can be lost or fixed with no selection involved at all. It is the null model everything claiming selection has to be tested against.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: WFMD — The Wright-Fisher Model of Genetic Drift
 # https://rosalind.info/problems/wfmd/
 #
@@ -3196,7 +3196,7 @@ fn test_nkew_weighted_distances() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=CTBL" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="ctbl.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">A character table records the splits a set of taxa admits. CHBP inverts it back into a tree, which works only because the splits of a consistent table are nested or disjoint and never crossing.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: CTBL — Creating a Character Table
 # https://rosalind.info/problems/ctbl/
 #
@@ -3732,7 +3732,7 @@ fn test_mend_pedigree_genotypes() {
             <a href="/workbench/?pack=rosalind-stronghold&amp;problem=LING" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="ling.bl" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
-
+<p class="text-sm text-slate-500 mb-4">The fraction of substrings that actually occur out of all that could. Repetitive sequence scores low because it reuses the same substrings — which is exactly what makes repeats hard to assemble through, as GREP demonstrates.</p>
           <pre data-standalone><code class="language-biolang"># Rosalind: LING — Linguistic Complexity of a Genome
 # https://rosalind.info/problems/ling/
 #
