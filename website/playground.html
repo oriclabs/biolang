@@ -80,6 +80,15 @@
       }
     }
 
+    /* JetBrains Mono ligates |> into a single right-pointing triangle. In a
+       playground that is actively misleading: the pipe operator is two
+       characters that a learner has to type, and the glyph shows neither of
+       them. Same for != and ->. Ligatures off wherever the font is used. */
+    [class^="pg-"], [class*=" pg-"], pre, code, textarea {
+      font-variant-ligatures: none;
+      font-feature-settings: "liga" 0, "calt" 0;
+    }
+
     .pg-panel-header {
       display: flex;
       align-items: center;

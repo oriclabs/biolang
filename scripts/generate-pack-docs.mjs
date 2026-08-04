@@ -294,7 +294,7 @@ async function problemSection(pack, problem, available) {
           <h2 class="text-2xl font-bold text-white mb-2">${escape(problem.id)} &mdash; ${escape(problem.title)}</h2>
           <p class="mb-3 flex items-center gap-3 text-sm">
             ${badge(problem.status)}${runsBadge(problem, source, available)}
-            <a href="${escape(problem.url)}" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+            <a href="${escape(problem.url)}" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Problem statement</a>
             <a href="${escape(workbench)}" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="${escape(download)}" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
           </p>
@@ -458,7 +458,7 @@ async function renderPack(packId, available) {
       <article class="prose prose-invert max-w-none">
         <h1 class="text-4xl font-bold text-white mb-2">${escape(title)}</h1>
         <p class="text-lg text-slate-400 mb-4">${escape(manifest.pack.description)}
-        <a href="${escape(manifest.pack.list_url ?? "https://rosalind.info")}" class="text-violet-400 hover:text-violet-300">See the problem list</a>.</p>
+        <a href="${escape(manifest.pack.list_url ?? "https://rosalind.info")}" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">See the problem list</a>.</p>
 
         <p class="text-sm text-slate-500 mb-8">${manifest.problem.length} problems &mdash;
         ${counts.solved} solved, ${counts.partial} partial.
