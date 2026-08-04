@@ -1,12 +1,12 @@
 ---
 title: Rosalind — Bioinformatics Armory
 version: 0.1.0
-abstract: All 15 problems from the Rosalind Bioinformatics Armory, worked in BioLang.
+abstract: The Rosalind Bioinformatics Armory, all 15 problems: 14 solved and one partial.
 ---
 
 # Rosalind — Bioinformatics Armory
 
-All 15 problems from the Rosalind Bioinformatics Armory, worked in BioLang. Generated from `packs/rosalind-armory/pack.toml`.
+The Rosalind Bioinformatics Armory, all 15 problems: 14 solved and one partial. Generated from `packs/rosalind-armory/pack.toml`.
 
 Run the whole notebook with `bl notebook rosalind-armory.bln`.
 
