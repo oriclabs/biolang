@@ -50,6 +50,24 @@ async function verifyPack(packId) {
     if (!manifest.pack[field]) fail(`pack.${field} is missing`);
   }
 
+  // Descriptions that count their own progress go stale silently, because
+  // nothing recomputes prose. Two of them shipped to /packs/index.json saying
+  // "79 of 107 problems so far" and "33 of 124 problems" long after both packs
+  // were finished — understating the work by a wide margin in the catalogue the
+  // Workbench reads. If a description states a count, it has to be the count.
+  const claim = /(\d+)\s+of\s+(\d+)\s+problems/i.exec(manifest.pack.description ?? "");
+  if (claim) {
+    const [, claimedSolved, claimedTotal] = claim.map(Number);
+    const actual = packCounts(manifest);
+    const total = manifest.problem.length;
+    if (claimedSolved !== actual.solved || claimedTotal !== total) {
+      fail(
+        `description claims "${claim[0]}" but the manifest has `
+          + `${actual.solved} solved of ${total}`,
+      );
+    }
+  }
+
   const onDisk = await blFiles(path.join(directory, "examples"));
   const listed = new Set();
   const seenIds = new Set();
