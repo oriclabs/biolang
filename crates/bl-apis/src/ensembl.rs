@@ -292,8 +292,7 @@ mod tests {
 
     #[test]
     fn canonical_transcript_is_empty_when_absent() {
-        let json: serde_json::Value =
-            serde_json::from_str(r#"{"id": "ENSG00000012048"}"#).unwrap();
+        let json: serde_json::Value = serde_json::from_str(r#"{"id": "ENSG00000012048"}"#).unwrap();
         assert_eq!(parse_gene(&json).unwrap().canonical_transcript, "");
     }
 

@@ -31,8 +31,10 @@ fn parse_errors(code: &str) -> String {
         .iter()
         .map(|e| e.to_string())
         .collect::<Vec<_>>()
-        .join("
-")
+        .join(
+            "
+",
+        )
 }
 
 #[test]

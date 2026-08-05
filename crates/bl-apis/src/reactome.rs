@@ -108,9 +108,7 @@ impl ReactomeClient {
                     for item in items {
                         entries.push(ReactomeEntry {
                             id: item["stId"].as_str().unwrap_or_default().to_string(),
-                            name: strip_highlight(
-                                item["name"].as_str().unwrap_or_default(),
-                            ),
+                            name: strip_highlight(item["name"].as_str().unwrap_or_default()),
                             schema_class: item["schemaClass"]
                                 .as_str()
                                 .or_else(|| group["name"].as_str())

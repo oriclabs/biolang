@@ -42,7 +42,7 @@ for result in vep {
 
 # Pipeline: symbol lookup -> get sequence -> analyze
 let egfr = ensembl_symbol("homo_sapiens", "EGFR")
-let egfr_seq = ensembl_sequence(egfr.canonical_transcript, "cds"))
+let egfr_seq = ensembl_sequence(egfr.canonical_transcript, "cds")
 let egfr_dna = dna(egfr_seq.seq)
 println("\nEGFR CDS GC content:", gc_content(egfr_dna))
 println("EGFR CDS length:", len(egfr_dna), "bp")

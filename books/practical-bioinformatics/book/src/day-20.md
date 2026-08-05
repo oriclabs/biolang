@@ -68,8 +68,8 @@ let results = []
 for sp in species {
     try {
         let gene = ensembl_symbol(sp.id, "BRCA1")
-        let protein = ensembl_sequence(gene.canonical_transcript, "protein"))
-        let cds = ensembl_sequence(gene.canonical_transcript, "cdna"))
+        let protein = ensembl_sequence(gene.canonical_transcript, "protein")
+        let cds = ensembl_sequence(gene.canonical_transcript, "cdna")
         let results = push(results, {
             species: sp.name,
             gene_id: gene.id,
@@ -406,7 +406,7 @@ fn compare_gene_across_species(gene_symbol, species_list) {
     for sp in species_list {
         try {
             let gene = ensembl_symbol(sp.id, gene_symbol)
-            let prot = ensembl_sequence(gene.canonical_transcript, "protein"))
+            let prot = ensembl_sequence(gene.canonical_transcript, "protein")
             let results = push(results, {
                 gene: gene_symbol,
                 species: sp.name,
@@ -544,8 +544,8 @@ let results = []
 for sp in species {
     try {
         let gene = ensembl_symbol(sp.id, "BRCA1")
-        let protein = ensembl_sequence(gene.canonical_transcript, "protein"))
-        let cds = ensembl_sequence(gene.canonical_transcript, "cdna"))
+        let protein = ensembl_sequence(gene.canonical_transcript, "protein")
+        let cds = ensembl_sequence(gene.canonical_transcript, "cdna")
         let results = push(results, {
             species: sp.name,
             gene_id: gene.id,

@@ -46,7 +46,11 @@ pub struct Repository {
     pub id: String,
     #[serde(default, deserialize_with = "de_loose_string")]
     pub name: String,
-    #[serde(default, alias = "repo_owner_username", deserialize_with = "de_loose_string")]
+    #[serde(
+        default,
+        alias = "repo_owner_username",
+        deserialize_with = "de_loose_string"
+    )]
     pub owner: String,
     #[serde(default, deserialize_with = "de_loose_string")]
     pub description: String,
@@ -60,7 +64,12 @@ pub struct Repository {
     pub times_downloaded: u64,
     #[serde(default, deserialize_with = "de_loose_string")]
     pub approved: String,
-    #[serde(default, alias = "update_time", alias = "full_last_updated", deserialize_with = "de_loose_string")]
+    #[serde(
+        default,
+        alias = "update_time",
+        alias = "full_last_updated",
+        deserialize_with = "de_loose_string"
+    )]
     pub last_updated: String,
     #[serde(default, deserialize_with = "de_loose_string")]
     pub create_time: String,
@@ -170,7 +179,11 @@ fn parse_repos_array(json: &serde_json::Value, url: &str) -> Result<Vec<Reposito
                 .map(|items| {
                     items
                         .iter()
-                        .map(|hit| hit.get("repository").cloned().unwrap_or_else(|| hit.clone()))
+                        .map(|hit| {
+                            hit.get("repository")
+                                .cloned()
+                                .unwrap_or_else(|| hit.clone())
+                        })
                         .collect()
                 })
                 .unwrap_or_default(),

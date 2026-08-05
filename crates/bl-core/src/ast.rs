@@ -490,7 +490,12 @@ impl FormatSpec {
     pub fn parse(spec: &str) -> std::result::Result<Self, String> {
         let chars: Vec<char> = spec.chars().collect();
         let mut i = 0;
-        let mut out = FormatSpec { align: None, width: None, precision: None, kind: None };
+        let mut out = FormatSpec {
+            align: None,
+            width: None,
+            precision: None,
+            kind: None,
+        };
 
         if i < chars.len() && matches!(chars[i], '<' | '>' | '^') {
             out.align = Some(chars[i]);
@@ -546,7 +551,10 @@ impl FormatSpec {
         if i != chars.len() {
             return Err(format!("trailing characters in format spec '{spec}'"));
         }
-        if out.align.is_none() && out.width.is_none() && out.precision.is_none() && out.kind.is_none()
+        if out.align.is_none()
+            && out.width.is_none()
+            && out.precision.is_none()
+            && out.kind.is_none()
         {
             return Err(format!("'{spec}' is empty"));
         }

@@ -54,8 +54,6 @@ pub struct Interpreter {
     pub verbose: bool,
 }
 
-
-
 /// Scientific notation in the shape Python prints it.
 ///
 /// Rust renders `1.2e-5`; Python renders `1.20e-05`, always signing the

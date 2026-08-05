@@ -4003,12 +4003,12 @@ Strand: -1
 let gene = ensembl_symbol("homo_sapiens", "BRCA1")
 
 # Get the protein sequence
-let protein = ensembl_sequence(gene.canonical_transcript, "protein"))
+let protein = ensembl_sequence(gene.canonical_transcript, "protein")
 println(f"Protein length: {len(protein.seq)} amino acids")
 println(f"First 50 aa: {protein.seq |&gt; take(50)}")
 
 # Get the coding sequence (CDS)
-let cds = ensembl_sequence(gene.canonical_transcript, "cds"))
+let cds = ensembl_sequence(gene.canonical_transcript, "cds")
 println(f"CDS length: {len(cds.seq)} bases")
 </code></pre>
 <p><code>ensembl_sequence()</code> takes an Ensembl ID and an optional sequence type: <code>"genomic"</code> (default), <code>"cds"</code>, <code>"cdna"</code>, or <code>"protein"</code>. It returns a record with <code>id</code>, <code>seq</code>, and <code>molecule</code> fields.</p>
@@ -4363,7 +4363,7 @@ fn gene_profile(symbol) {
     println(f"  Position: chr{ens.chromosome}:{ens.start}-{ens.end}")
 
     # Ensembl: protein sequence
-    let protein = ensembl_sequence(ens.canonical_transcript, "protein"))
+    let protein = ensembl_sequence(ens.canonical_transcript, "protein")
     println(f"  Protein: {len(protein.seq)} amino acids")
 
     # UniProt: function
@@ -4428,7 +4428,7 @@ let rows = []
 for symbol in genes {
     let gene = ncbi_gene(symbol)
     let ens = ensembl_symbol("homo_sapiens", symbol)
-    let protein = ensembl_sequence(ens.canonical_transcript, "protein"))
+    let protein = ensembl_sequence(ens.canonical_transcript, "protein")
     let network = string_network([symbol], 9606)
     let pathways = reactome_pathways(symbol)
 
@@ -5679,7 +5679,7 @@ let species = [
 
 let results = species |&gt; map(|sp| {
     let gene = ensembl_symbol(sp.species, "BRCA1")
-    let protein = ensembl_sequence(gene.canonical_transcript, "protein"))
+    let protein = ensembl_sequence(gene.canonical_transcript, "protein")
     {name: sp.name, gene_id: gene.id, protein_len: len(protein.seq)}
 })
 
@@ -5753,8 +5753,8 @@ fn compare_gene(gene_symbol, species_list) {
     for sp in species_list {
         try {
             let gene = ensembl_symbol(sp.species, gene_symbol)
-            let cds = ensembl_sequence(gene.canonical_transcript, "cdna"))
-            let prot = ensembl_sequence(gene.canonical_transcript, "protein"))
+            let cds = ensembl_sequence(gene.canonical_transcript, "cdna")
+            let prot = ensembl_sequence(gene.canonical_transcript, "protein")
             results = push(results, {
                 species: sp.name,
                 cds_length: len(cds.seq),
@@ -9830,8 +9830,8 @@ let results = []
 for sp in species {
     try {
         let gene = ensembl_symbol(sp.id, "BRCA1")
-        let protein = ensembl_sequence(gene.canonical_transcript, "protein"))
-        let cds = ensembl_sequence(gene.canonical_transcript, "cdna"))
+        let protein = ensembl_sequence(gene.canonical_transcript, "protein")
+        let cds = ensembl_sequence(gene.canonical_transcript, "cdna")
         let results = push(results, {
             species: sp.name,
             gene_id: gene.id,
@@ -10089,7 +10089,7 @@ fn compare_gene_across_species(gene_symbol, species_list) {
     for sp in species_list {
         try {
             let gene = ensembl_symbol(sp.id, gene_symbol)
-            let prot = ensembl_sequence(gene.canonical_transcript, "protein"))
+            let prot = ensembl_sequence(gene.canonical_transcript, "protein")
             let results = push(results, {
                 gene: gene_symbol,
                 species: sp.name,
@@ -10200,8 +10200,8 @@ let results = []
 for sp in species {
     try {
         let gene = ensembl_symbol(sp.id, "BRCA1")
-        let protein = ensembl_sequence(gene.canonical_transcript, "protein"))
-        let cds = ensembl_sequence(gene.canonical_transcript, "cdna"))
+        let protein = ensembl_sequence(gene.canonical_transcript, "protein")
+        let cds = ensembl_sequence(gene.canonical_transcript, "cdna")
         let results = push(results, {
             species: sp.name,
             gene_id: gene.id,

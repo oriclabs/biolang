@@ -22,7 +22,7 @@
 ```
 # BioLang — two function calls per species
 let gene = ensembl_symbol(sp.id, "BRCA1")
-let protein = ensembl_sequence(gene.canonical_transcript, "protein"))
+let protein = ensembl_sequence(gene.canonical_transcript, "protein")
 
 # Python — manual HTTP requests, JSON parsing, error handling
 url = f"https://rest.ensembl.org/lookup/symbol/{species}/{symbol}"

@@ -2062,10 +2062,7 @@ impl Parser {
                         // drop. Dropping it is why `{mu:.3f}` printed
                         // seventeen decimal places wherever it appeared.
                         let spec = FormatSpec::parse(&raw).map_err(|reason| {
-                            BioLangError::parser(
-                                format!("in f-string format spec: {reason}"),
-                                span,
-                            )
+                            BioLangError::parser(format!("in f-string format spec: {reason}"), span)
                         })?;
                         parts.push(StringPart::Formatted(expr, spec));
                     }

@@ -127,10 +127,7 @@ impl GnomadClient {
             });
         }
         let gene_id = gene["gene_id"].as_str().unwrap_or("").to_string();
-        let gene_name = gene["symbol"]
-            .as_str()
-            .unwrap_or(gene_symbol)
-            .to_string();
+        let gene_name = gene["symbol"].as_str().unwrap_or(gene_symbol).to_string();
         let variants = gene["variants"]
             .as_array()
             .unwrap_or(&vec![])

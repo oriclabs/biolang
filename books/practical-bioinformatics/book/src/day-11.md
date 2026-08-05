@@ -339,7 +339,7 @@ let species = [
 
 let results = species |> map(|sp| {
     let gene = ensembl_symbol(sp.species, "BRCA1")
-    let protein = ensembl_sequence(gene.canonical_transcript, "protein"))
+    let protein = ensembl_sequence(gene.canonical_transcript, "protein")
     {name: sp.name, gene_id: gene.id, protein_len: len(protein.seq)}
 })
 
@@ -429,8 +429,8 @@ fn compare_gene(gene_symbol, species_list) {
     for sp in species_list {
         try {
             let gene = ensembl_symbol(sp.species, gene_symbol)
-            let cds = ensembl_sequence(gene.canonical_transcript, "cdna"))
-            let prot = ensembl_sequence(gene.canonical_transcript, "protein"))
+            let cds = ensembl_sequence(gene.canonical_transcript, "cdna")
+            let prot = ensembl_sequence(gene.canonical_transcript, "protein")
             results = push(results, {
                 species: sp.name,
                 cds_length: len(cds.seq),
