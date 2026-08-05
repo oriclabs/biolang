@@ -2966,17 +2966,17 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "tool_search",
-        "tool_search(query, opts?) → List[{name, pulls, license, ...}]",
+        "tool_search(query, opts?) → List[{name, pulls, versions, ...}]",
         "container",
     ),
     (
         "tool_popular",
-        "tool_popular(limit?) → List (sorted by downloads)",
+        "tool_popular(limit?) → List (sorted by Quay popularity)",
         "container",
     ),
     (
         "tool_info",
-        "tool_info(name) → {name, pulls, license, versions: [...]}",
+        "tool_info(name) → {name, pulls, versions: [...]}",
         "container",
     ),
     (

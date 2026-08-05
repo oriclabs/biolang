@@ -1077,6 +1077,17 @@ impl Compiler {
                         StringPart::Expr(e) => {
                             self.compile_expr(e)?;
                         }
+                        StringPart::Formatted(_, _) => {
+                            // OpCode::StringInterp concatenates its operands and
+                            // has nowhere to carry a spec. Refusing is the point:
+                            // dropping the spec is exactly the bug this feature
+                            // was added to fix, and it should not come back by
+                            // way of the bytecode path.
+                            return Err(CompileError::new(
+                                "f-string format specs are not supported by the bytecode                                  compiler; run without the bytecode feature",
+                                Some(expr.span),
+                            ));
+                        }
                     }
                 }
                 self.emit(OpCode::StringInterp(parts.len() as u16));

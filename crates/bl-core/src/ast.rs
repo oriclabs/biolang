@@ -455,6 +455,126 @@ pub enum StringPart {
     Lit(String),
     /// Interpolated expression: `{expr}`
     Expr(Spanned<Expr>),
+    /// Interpolated expression with a format spec: `{expr:.3f}`.
+    ///
+    /// Kept separate from `Expr` so the common case stays a plain expression
+    /// and only the formatting path pays for the spec. The spec is stored as
+    /// written and validated at parse time.
+    Formatted(Spanned<Expr>, FormatSpec),
+}
+
+/// A format spec from an f-string, as in `{value:>10.3f}`.
+///
+/// Deliberately a small subset of Python's mini-language: alignment, width and
+/// precision, plus `f`, `e` and `%` types. Everything appearing in this
+/// project's own documentation is covered, and anything else is rejected at
+/// parse time rather than silently ignored - which is how `{mu:.3f}` came to
+/// print seventeen decimal places in the tutorials.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FormatSpec {
+    /// `<` left, `>` right, `^` centre.
+    pub align: Option<char>,
+    /// Minimum field width, padded with spaces.
+    pub width: Option<usize>,
+    /// Digits after the decimal point.
+    pub precision: Option<usize>,
+    /// `f` fixed point, `e` scientific, `%` percentage.
+    pub kind: Option<char>,
+}
+
+impl FormatSpec {
+    /// Parse a spec, or say why it is not one.
+    ///
+    /// Returns Err with a human-readable reason so the parser can report the
+    /// offending spec rather than dropping it.
+    pub fn parse(spec: &str) -> std::result::Result<Self, String> {
+        let chars: Vec<char> = spec.chars().collect();
+        let mut i = 0;
+        let mut out = FormatSpec { align: None, width: None, precision: None, kind: None };
+
+        if i < chars.len() && matches!(chars[i], '<' | '>' | '^') {
+            out.align = Some(chars[i]);
+            i += 1;
+        }
+
+        let start = i;
+        while i < chars.len() && chars[i].is_ascii_digit() {
+            i += 1;
+        }
+        if i > start {
+            out.width = Some(
+                chars[start..i]
+                    .iter()
+                    .collect::<String>()
+                    .parse()
+                    .map_err(|_| format!("width in '{spec}' is not a number"))?,
+            );
+        }
+
+        if i < chars.len() && chars[i] == '.' {
+            i += 1;
+            let start = i;
+            while i < chars.len() && chars[i].is_ascii_digit() {
+                i += 1;
+            }
+            if i == start {
+                return Err(format!("'{spec}' has a '.' with no precision after it"));
+            }
+            out.precision = Some(
+                chars[start..i]
+                    .iter()
+                    .collect::<String>()
+                    .parse()
+                    .map_err(|_| format!("precision in '{spec}' is not a number"))?,
+            );
+        }
+
+        if i < chars.len() {
+            match chars[i] {
+                'f' | 'e' | '%' => {
+                    out.kind = Some(chars[i]);
+                    i += 1;
+                }
+                other => {
+                    return Err(format!(
+                        "'{other}' in '{spec}' is not a supported format type (f, e or %)"
+                    ))
+                }
+            }
+        }
+
+        if i != chars.len() {
+            return Err(format!("trailing characters in format spec '{spec}'"));
+        }
+        if out.align.is_none() && out.width.is_none() && out.precision.is_none() && out.kind.is_none()
+        {
+            return Err(format!("'{spec}' is empty"));
+        }
+        Ok(out)
+    }
+
+    /// Pad an already-rendered body to the requested width.
+    ///
+    /// Rendering the number itself needs the runtime's Value, so it happens in
+    /// the interpreter; alignment is pure string work and lives here with the
+    /// spec it belongs to.
+    pub fn pad(&self, body: String) -> String {
+        match self.width {
+            None => body,
+            Some(width) if body.chars().count() < width => {
+                let fill = width - body.chars().count();
+                match self.align.unwrap_or('>') {
+                    '<' => body + &" ".repeat(fill),
+                    '^' => {
+                        let left = fill / 2;
+                        " ".repeat(left) + &body + &" ".repeat(fill - left)
+                    }
+                    _ => " ".repeat(fill) + &body,
+                }
+            }
+            _ => body,
+        }
+    }
 }
 
 /// Pattern for for-loop variable binding.

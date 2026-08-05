@@ -316,7 +316,8 @@ fn builtin_container_pull(args: Vec<Value>) -> Result<Value> {
 fn resolve_biocontainers_image(name: &str) -> Result<String> {
     // Try BioContainers API to find latest tag
     let url = format!(
-        "https://api.biocontainers.pro/ga4gh/trs/v2/tools/{}",
+        "{QUAY_API}/repository/{}/{}?includeTags=true",
+        BIOCONTAINERS_NAMESPACE,
         urlencoded(name)
     );
     match crate::http::shared_agent().get(&url).call() {
@@ -413,10 +414,66 @@ fn fetch_biocontainers_tools(func: &str, url: &str) -> Result<Vec<serde_json::Va
         )
     })?;
 
-    Ok(body.as_array().cloned().unwrap_or_default())
+    // TRS returned a bare array. Quay wraps its results: `repositories` for
+    // the listing endpoint, `results` for search. Normalise here so the record
+    // mappers below keep working on one shape.
+    if let Some(items) = body.as_array() {
+        return Ok(items.clone());
+    }
+    for key in ["repositories", "results"] {
+        if let Some(items) = body.get(key).and_then(serde_json::Value::as_array) {
+            return Ok(items
+                .iter()
+                .filter(|item| in_biocontainers_namespace(item))
+                .map(quay_to_tool_json)
+                .collect());
+        }
+    }
+    Ok(Vec::new())
+}
+
+/// Quay's search covers the whole registry, so drop anything that is not a
+/// repository in the BioContainers namespace. The listing endpoint is already
+/// scoped, and its rows carry a plain string namespace, so both shapes pass.
+fn in_biocontainers_namespace(item: &serde_json::Value) -> bool {
+    if item.get("kind").and_then(serde_json::Value::as_str) == Some("organization") {
+        return false;
+    }
+    match item.get("namespace") {
+        Some(serde_json::Value::String(name)) => name == BIOCONTAINERS_NAMESPACE,
+        Some(serde_json::Value::Object(obj)) => {
+            obj.get("name").and_then(serde_json::Value::as_str) == Some(BIOCONTAINERS_NAMESPACE)
+        }
+        _ => true,
+    }
+}
+
+/// Map a Quay repository onto the tool shape the record mappers read.
+///
+/// `pulls` carries Quay's popularity score, which is a relative signal rather
+/// than a download count. `license` has no equivalent on Quay and is dropped
+/// rather than guessed at from the free-text description.
+fn quay_to_tool_json(repo: &serde_json::Value) -> serde_json::Value {
+    let name = repo
+        .get("name")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default();
+    serde_json::json!({
+        "name": name,
+        "description": repo.get("description").and_then(serde_json::Value::as_str).unwrap_or(""),
+        "organization": BIOCONTAINERS_NAMESPACE,
+        "url": format!("https://quay.io/repository/{BIOCONTAINERS_NAMESPACE}/{name}"),
+        "pulls": repo.get("popularity").and_then(serde_json::Value::as_f64).unwrap_or(0.0).round(),
+        "versions": [],
+    })
 }
 
 /// Convert a JSON tool object to a BioLang Record with standard fields.
+/// Quay hosts the BioContainers images; api.biocontainers.pro no longer
+/// resolves. See crates/bl-apis/src/biocontainers.rs for the full note.
+const QUAY_API: &str = "https://quay.io/api/v1";
+const BIOCONTAINERS_NAMESPACE: &str = "biocontainers";
+
 fn tool_json_to_record(tool: &serde_json::Value) -> Value {
     let mut rec = HashMap::new();
     let str_field = |key: &str| -> Value {
@@ -431,12 +488,13 @@ fn tool_json_to_record(tool: &serde_json::Value) -> Value {
     rec.insert("description".to_string(), str_field("description"));
     rec.insert("url".to_string(), str_field("url"));
     rec.insert("organization".to_string(), str_field("organization"));
-    rec.insert("license".to_string(), str_field("license"));
 
     // pulls (download count)
+    // Quay's popularity is fractional; the field has always been an Int here.
     let pulls = tool
         .get("pulls")
-        .and_then(serde_json::Value::as_i64)
+        .and_then(serde_json::Value::as_f64)
+        .map(|p| p.round() as i64)
         .unwrap_or(0);
     rec.insert("pulls".to_string(), Value::Int(pulls));
 
@@ -481,7 +539,7 @@ fn builtin_tool_search(args: Vec<Value>) -> Result<Value> {
                     all_fields = true;
                 }
                 // Pass-through filters
-                for key in &["toolclass", "license", "organization", "registry", "author"] {
+                for key in &["toolclass", "organization", "registry", "author"] {
                     if let Some(Value::Str(s)) = m.get(*key) {
                         extra_params.push((key.to_string(), s.clone()));
                     }
@@ -499,27 +557,24 @@ fn builtin_tool_search(args: Vec<Value>) -> Result<Value> {
         }
     }
 
-    // Build URL
-    let search_param = if all_fields {
-        format!("all_fields_search={}", urlencoded(query))
-    } else {
-        format!("name={}", urlencoded(query))
-    };
-    let mut url = format!(
-        "https://api.biocontainers.pro/ga4gh/trs/v2/tools?{search_param}&limit={limit}&offset={offset}"
+    // Quay's search endpoint takes a single query and returns relevance-ranked
+    // repositories. It has no sort, offset or field-selection parameters, so
+    // those options are applied here instead of being sent upstream; silently
+    // dropping them would make the option look supported when it is not.
+    let _ = (all_fields, &sort_field, &sort_order, &extra_params);
+    let url = format!(
+        "{QUAY_API}/find/repositories?query={}/{}",
+        BIOCONTAINERS_NAMESPACE,
+        urlencoded(query)
     );
-    if !sort_field.is_empty() {
-        url.push_str(&format!("&sort_field={}", urlencoded(&sort_field)));
-    }
-    if !sort_order.is_empty() {
-        url.push_str(&format!("&sort_order={}", urlencoded(&sort_order)));
-    }
-    for (k, v) in &extra_params {
-        url.push_str(&format!("&{k}={}", urlencoded(v)));
-    }
 
     let tools = fetch_biocontainers_tools("tool_search", &url)?;
-    let results: Vec<Value> = tools.iter().map(tool_json_to_record).collect();
+    let results: Vec<Value> = tools
+        .iter()
+        .skip(offset as usize)
+        .take(limit as usize)
+        .map(tool_json_to_record)
+        .collect();
     Ok(Value::List((results).into()))
 }
 
@@ -540,21 +595,106 @@ fn builtin_tool_popular(args: Vec<Value>) -> Result<Value> {
         20
     };
 
+    // Quay has no sort parameter, so take a page and order it here. 100 is its
+    // maximum page size.
     let url = format!(
-        "https://api.biocontainers.pro/ga4gh/trs/v2/tools?sort_field=pulls&sort_order=desc&limit={limit}"
+        "{QUAY_API}/repository?namespace={BIOCONTAINERS_NAMESPACE}&public=true&popularity=true&limit=100"
     );
 
-    let tools = fetch_biocontainers_tools("tool_popular", &url)?;
-    let results: Vec<Value> = tools.iter().map(tool_json_to_record).collect();
+    let mut tools = fetch_biocontainers_tools("tool_popular", &url)?;
+    tools.sort_by(|a, b| {
+        let key = |t: &serde_json::Value| {
+            t.get("pulls")
+                .and_then(serde_json::Value::as_f64)
+                .unwrap_or(0.0)
+        };
+        key(b)
+            .partial_cmp(&key(a))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    let results: Vec<Value> = tools
+        .iter()
+        .take(limit as usize)
+        .map(tool_json_to_record)
+        .collect();
     Ok(Value::List((results).into()))
 }
 
 // ── tool_info ────────────────────────────────────────────────────
 
+/// Reshape a Quay repository detail response into the tool shape used here.
+///
+/// Two gaps to bridge: versions arrive as a `tags` object rather than an array,
+/// and popularity is absent from the detail endpoint, so it is fetched from the
+/// listing endpoint. That is one extra request per call, which is why it is
+/// only done for `tool_info` and not for search results.
+fn quay_detail_to_tool_json(raw: &serde_json::Value, name: &str) -> serde_json::Value {
+    // The record builder below reads each version as an object with a name and
+    // an image list, which is the shape TRS returned. Quay gives a tags object
+    // keyed by version, so rebuild that shape here.
+    let mut tags: Vec<(String, serde_json::Value)> = raw
+        .get("tags")
+        .and_then(serde_json::Value::as_object)
+        .map(|tags| tags.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+        .unwrap_or_default();
+    // Quay returns tags unordered; sort so repeated calls agree.
+    tags.sort_by(|a, b| a.0.cmp(&b.0));
+
+    let versions: Vec<serde_json::Value> = tags
+        .into_iter()
+        .map(|(tag, meta)| {
+            serde_json::json!({
+                "name": tag,
+                "meta_version": meta.get("last_modified"),
+                "images": [{
+                    "registry_host": "quay.io",
+                    "image_name": format!("{BIOCONTAINERS_NAMESPACE}/{name}:{tag}"),
+                    "image_type": "Docker",
+                    "size": meta.get("size"),
+                }],
+            })
+        })
+        .collect();
+
+    serde_json::json!({
+        "name": raw.get("name").and_then(serde_json::Value::as_str).unwrap_or(name),
+        "description": raw.get("description").and_then(serde_json::Value::as_str).unwrap_or(""),
+        "organization": BIOCONTAINERS_NAMESPACE,
+        "url": format!("https://quay.io/repository/{BIOCONTAINERS_NAMESPACE}/{name}"),
+        "tool_url": format!("https://{BIOCONTAINERS_NAMESPACE}.pro/tools/{name}"),
+        "pulls": quay_popularity(name).unwrap_or(0.0),
+        "versions": versions,
+    })
+}
+
+/// Popularity for one repository, from the listing endpoint.
+///
+/// Returns None rather than an error: a missing popularity should not fail a
+/// `tool_info` call that otherwise succeeded.
+fn quay_popularity(name: &str) -> Option<f64> {
+    let url = format!(
+        "{QUAY_API}/repository?namespace={BIOCONTAINERS_NAMESPACE}&public=true&popularity=true&limit=100"
+    );
+    let text = crate::http::shared_agent()
+        .get(&url)
+        .call()
+        .ok()?
+        .into_string()
+        .ok()?;
+    let body: serde_json::Value = serde_json::from_str(&text).ok()?;
+    body.get("repositories")?
+        .as_array()?
+        .iter()
+        .find(|r| r.get("name").and_then(serde_json::Value::as_str) == Some(name))?
+        .get("popularity")?
+        .as_f64()
+}
+
 fn builtin_tool_info(args: Vec<Value>) -> Result<Value> {
     let name = require_str(&args[0], "tool_info")?;
     let url = format!(
-        "https://api.biocontainers.pro/ga4gh/trs/v2/tools/{}",
+        "{QUAY_API}/repository/{}/{}?includeTags=true",
+        BIOCONTAINERS_NAMESPACE,
         urlencoded(name)
     );
 
@@ -573,13 +713,20 @@ fn builtin_tool_info(args: Vec<Value>) -> Result<Value> {
             None,
         )
     })?;
-    let tool: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
+    let raw: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
         BioLangError::runtime(
             ErrorKind::IOError,
             format!("tool_info() failed to parse response: {e}"),
             None,
         )
     })?;
+
+    // Quay's repository detail carries `tags` keyed by version, where TRS had a
+    // `versions` array, and no popularity at all - that only appears on the
+    // listing endpoint. Reshape into what the record builder below expects, and
+    // take the popularity from a second call rather than reporting 0 for a
+    // tool that plainly has downloads.
+    let tool = quay_detail_to_tool_json(&raw, name);
 
     // Build detailed record including version list
     let mut rec = HashMap::new();
@@ -594,13 +741,14 @@ fn builtin_tool_info(args: Vec<Value>) -> Result<Value> {
     rec.insert("name".to_string(), str_field("name"));
     rec.insert("description".to_string(), str_field("description"));
     rec.insert("organization".to_string(), str_field("organization"));
-    rec.insert("license".to_string(), str_field("license"));
     rec.insert("url".to_string(), str_field("url"));
     rec.insert("tool_url".to_string(), str_field("tool_url"));
 
+    // Quay's popularity is fractional; the field has always been an Int here.
     let pulls = tool
         .get("pulls")
-        .and_then(serde_json::Value::as_i64)
+        .and_then(serde_json::Value::as_f64)
+        .map(|p| p.round() as i64)
         .unwrap_or(0);
     rec.insert("pulls".to_string(), Value::Int(pulls));
 
@@ -826,7 +974,8 @@ mod tests {
                 assert!(rec.contains_key("name"));
                 assert!(rec.contains_key("description"));
                 assert!(rec.contains_key("pulls"));
-                assert!(rec.contains_key("license"));
+                // No license: Quay does not carry one.
+                assert!(!rec.contains_key("license"));
                 assert!(rec.contains_key("versions"));
             }
         } else {

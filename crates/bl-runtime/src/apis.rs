@@ -670,6 +670,10 @@ fn gene_to_record(gene: &bl_apis::ensembl::Gene) -> Value {
         "chromosome".to_string(),
         Value::Str(gene.chromosome.clone()),
     );
+    map.insert(
+        "canonical_transcript".to_string(),
+        Value::Str(gene.canonical_transcript.clone()),
+    );
     Value::Record((map).into())
 }
 
@@ -1398,6 +1402,20 @@ fn builtin_biocontainers_info(args: Vec<Value>) -> Result<Value> {
         })
         .collect();
     rec.insert("versions".into(), Value::List((versions).into()));
+    // The summary record from `biocontainers_search` carries these, and the
+    // documented examples read them off `biocontainers_info` too. Leaving them
+    // off meant every one of those examples died with "no field on record".
+    rec.insert(
+        "version_count".into(),
+        Value::Int(tool.versions.len() as i64),
+    );
+    rec.insert(
+        "latest_version".into(),
+        tool.versions
+            .first()
+            .map(|v| Value::Str(v.name.clone()))
+            .unwrap_or(Value::Nil),
+    );
     Ok(Value::Record((rec).into()))
 }
 
@@ -1802,10 +1820,7 @@ fn builtin_api_endpoints() -> Result<Value> {
     );
     rec.insert(
         "biocontainers".into(),
-        Value::Str(resolve_url(
-            "biocontainers",
-            "https://api.biocontainers.pro/ga4gh/trs/v2",
-        )),
+        Value::Str(resolve_url("biocontainers", "https://quay.io/api/v1")),
     );
     rec.insert(
         "galaxy_toolshed".into(),

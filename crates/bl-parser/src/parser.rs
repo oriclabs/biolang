@@ -2041,6 +2041,12 @@ impl Parser {
                 }
                 i += 1; // skip closing }
 
+                // Split a trailing format spec off at a top-level colon:
+                // `{mu:.3f}` is the value and how to render it. Nested colons
+                // belong to the expression - a record literal, a slice - so
+                // only depth zero counts.
+                let (expr_text, spec_text) = split_format_spec(&expr_text);
+
                 // Parse the sub-expression
                 let tokens = bl_lexer::Lexer::new(&expr_text).tokenize().map_err(|e| {
                     BioLangError::parser(format!("in f-string interpolation: {}", e.message), span)
@@ -2048,7 +2054,22 @@ impl Parser {
                 let expr = Parser::new(tokens).parse_single_expr().map_err(|e| {
                     BioLangError::parser(format!("in f-string interpolation: {}", e.message), span)
                 })?;
-                parts.push(StringPart::Expr(expr));
+
+                match spec_text {
+                    None => parts.push(StringPart::Expr(expr)),
+                    Some(raw) => {
+                        // An unrecognised spec is an error, not something to
+                        // drop. Dropping it is why `{mu:.3f}` printed
+                        // seventeen decimal places wherever it appeared.
+                        let spec = FormatSpec::parse(&raw).map_err(|reason| {
+                            BioLangError::parser(
+                                format!("in f-string format spec: {reason}"),
+                                span,
+                            )
+                        })?;
+                        parts.push(StringPart::Formatted(expr, spec));
+                    }
+                }
             } else {
                 text.push(chars[i]);
                 i += 1;
@@ -3214,4 +3235,37 @@ impl Parser {
             start.merge(end),
         ))
     }
+}
+
+/// Split `expr:spec` at a colon that is not inside brackets, braces, parens or
+/// a string.
+///
+/// Returns the expression and the spec, or the whole input and None when there
+/// is no top-level colon. BioLang has no ternary operator, so a colon at depth
+/// zero inside an interpolation is unambiguous.
+fn split_format_spec(text: &str) -> (String, Option<String>) {
+    let chars: Vec<char> = text.chars().collect();
+    let mut depth = 0i32;
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for (i, &c) in chars.iter().enumerate() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match c {
+            '\\' if in_string => escaped = true,
+            '"' => in_string = !in_string,
+            '(' | '[' | '{' if !in_string => depth += 1,
+            ')' | ']' | '}' if !in_string => depth -= 1,
+            ':' if !in_string && depth == 0 => {
+                let expr: String = chars[..i].iter().collect();
+                let spec: String = chars[i + 1..].iter().collect();
+                return (expr.trim().to_string(), Some(spec.trim().to_string()));
+            }
+            _ => {}
+        }
+    }
+    (text.to_string(), None)
 }

@@ -145,6 +145,29 @@ fn builtin_enrich(args: Vec<Value>, func: &str) -> Result<Value> {
     };
 
     let gene_sets: HashMap<String, Vec<String>> = match &args[1] {
+        Value::Record(r) => {
+            let mut sets = HashMap::new();
+            for (name, val) in r.iter() {
+                match val {
+                    Value::List(items) => {
+                        sets.insert(
+                            name.clone(),
+                            items
+                                .iter()
+                                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                                .collect(),
+                        );
+                    }
+                    _ => {
+                        return Err(BioLangError::type_error(
+                            format!("{func}() gene_sets values must be Lists"),
+                            None,
+                        ))
+                    }
+                }
+            }
+            sets
+        }
         Value::Map(m) => {
             let mut sets = HashMap::new();
             for (name, val) in m.iter() {
@@ -266,6 +289,24 @@ fn builtin_gsea(args: Vec<Value>) -> Result<Value> {
     // each set's null distribution depend on where it happened to land in the
     // hash table — a second, subtler source of run-to-run variation.
     let gene_sets: Vec<(String, Vec<String>)> = match &args[1] {
+        // Same as ora(): `{NAME: [...]}` is a Record, and rejecting it made the
+        // documented spelling fail.
+        Value::Record(r) => {
+            let mut sets: Vec<(String, Vec<String>)> = Vec::new();
+            for (name, val) in r.iter() {
+                if let Value::List(items) = val {
+                    sets.push((
+                        name.clone(),
+                        items
+                            .iter()
+                            .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                            .collect(),
+                    ));
+                }
+            }
+            sets.sort_by(|a, b| a.0.cmp(&b.0));
+            sets
+        }
         Value::Map(m) => {
             let mut sets: Vec<(String, Vec<String>)> = Vec::new();
             for (name, val) in m.iter() {

@@ -54,6 +54,56 @@ pub struct Interpreter {
     pub verbose: bool,
 }
 
+
+
+/// Scientific notation in the shape Python prints it.
+///
+/// Rust renders `1.2e-5`; Python renders `1.20e-05`, always signing the
+/// exponent and padding it to two digits. The corpus uses `:.2e` almost
+/// entirely for p-values next to figures readers know from Python, so it
+/// follows Python here.
+fn exponent_form(n: f64, precision: usize) -> String {
+    let rust_form = format!("{n:.precision$e}");
+    let Some((mantissa, exponent)) = rust_form.split_once('e') else {
+        return rust_form;
+    };
+    let (sign, digits) = match exponent.strip_prefix('-') {
+        Some(rest) => ('-', rest),
+        None => ('+', exponent),
+    };
+    format!("{mantissa}e{sign}{digits:0>2}")
+}
+
+/// Render a value under an f-string format spec.
+///
+/// Precision and the `f`, `e` and `%` types only mean anything for numbers; for
+/// anything else the value is rendered normally and only the width applies, so
+/// `{name:>10}` pads a string as expected.
+fn render_with_spec(value: &Value, spec: &bl_core::ast::FormatSpec) -> String {
+    let number = match value {
+        Value::Int(n) => Some(*n as f64),
+        Value::Float(f) => Some(*f),
+        _ => None,
+    };
+
+    let Some(n) = number else {
+        return format!("{value}");
+    };
+
+    match (spec.kind, spec.precision) {
+        (Some('%'), precision) => format!("{:.*}%", precision.unwrap_or(0), n * 100.0),
+        (Some('e'), precision) => exponent_form(n, precision.unwrap_or(6)),
+        (Some('f'), precision) => format!("{:.*}", precision.unwrap_or(6), n),
+        // A bare `.N` means N decimal places, which is the one deliberate
+        // divergence from Python. Python reads it as N *significant* digits and
+        // renders 95.23 as `1e+02` under `.1`; every `.N` in this repo means
+        // decimals, so following Python here would mangle its own tables.
+        (None, Some(precision)) => format!("{n:.precision$}"),
+        (None, None) => format!("{value}"),
+        _ => format!("{value}"),
+    }
+}
+
 impl Interpreter {
     pub fn new() -> Self {
         let mut env = Environment::new();
@@ -1069,6 +1119,12 @@ impl Interpreter {
                 let val = self.eval_expr(expr)?;
                 // Store the stage result with its name for provenance
                 self.env.define(format!("__stage_{name}"), val.clone());
+                // And bind the plain name, which is the whole point of naming a
+                // stage: `stage filtered -> data |> filter(...)` has to be able
+                // to see the `data` stage above it. Only the prefixed name was
+                // bound, so every multi-stage pipeline — the entire documented
+                // feature — failed with "undefined variable" on its second stage.
+                self.env.define(name.clone(), val.clone());
                 Ok(val)
             }
             Stmt::NilAssign { name, value } => {
@@ -1288,6 +1344,29 @@ impl Interpreter {
         if let Ok(cwd) = std::env::current_dir() {
             search_dirs.push(cwd);
         }
+
+        // 1b. Any `packages/` directory at or above the importing file and the
+        //     working directory.
+        //
+        // A package's own modules import each other by package-qualified name —
+        // `singlecell/src/core` from inside `packages/singlecell` — which only
+        // resolves when the directory *containing* the packages is searched.
+        // Without this, only `~/.biolang/packages` counted, so a package in the
+        // repository could not be imported at all: `import "singlecell"` failed
+        // even when run from inside that package's own directory, and so did
+        // every example shipped with it.
+        let mut package_roots: Vec<PathBuf> = Vec::new();
+        for start in search_dirs.clone() {
+            let mut dir = Some(start.as_path());
+            while let Some(current) = dir {
+                let candidate = current.join("packages");
+                if candidate.is_dir() && !package_roots.contains(&candidate) {
+                    package_roots.push(candidate);
+                }
+                dir = current.parent();
+            }
+        }
+        search_dirs.extend(package_roots);
 
         // 2. BIOLANG_PATH env var
         if let Ok(bp) = std::env::var("BIOLANG_PATH") {
@@ -2153,6 +2232,10 @@ impl Interpreter {
                             let val = self.eval_expr(e)?;
                             result.push_str(&format!("{val}"));
                         }
+                        StringPart::Formatted(e, spec) => {
+                            let val = self.eval_expr(e)?;
+                            result.push_str(&spec.pad(render_with_spec(&val, spec)));
+                        }
                     }
                 }
                 Ok(Value::Str(result))
@@ -2922,6 +3005,22 @@ impl Interpreter {
 
         match &func {
             Value::NativeFunction { name, arity } => {
+                // Builtins are positional. A named argument used to be dropped
+                // here, which was silent and wrong rather than loud: `round(x,
+                // digits: 2)` rounded to zero digits, and `ensembl_sequence(id,
+                // type: "protein")` returned genomic DNA. Whether it errored at
+                // all depended on whether the remaining positional count still
+                // satisfied the arity, so the same mistake was sometimes an
+                // ArityError and sometimes a wrong answer. Refuse it outright.
+                if let Some((arg_name, _)) = named.first() {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "{name}() takes positional arguments only, but got `{arg_name}:`. Pass the value positionally instead."
+                        ),
+                        Some(span),
+                    ));
+                }
+
                 // For builtins that take closures (map, filter, reduce, sort, mutate, summarize),
                 // we need special handling
                 match name.as_str() {
@@ -2930,6 +3029,10 @@ impl Interpreter {
                     | "try_call" | "take_while" | "ode_solve" | "par_map" | "par_filter"
                     | "prop_test" | "await_all" | "stream_batch" | "scatter_by" | "bench"
                     | "each" | "tap" | "inspect" | "group_apply" | "partition" | "sort_by"
+                    // Present on the method and UFCS lists below but missing
+                    // here, so a plain `case_when(...)` call fell through to the
+                    // bio dispatcher and failed as an unknown builtin.
+                    | "case_when"
                     | "count_if" => {
                         return self.call_hof(name, args, span);
                     }
@@ -3209,6 +3312,46 @@ impl Interpreter {
         span: bl_core::span::Span,
     ) -> Result<Value> {
         match name {
+            // The value-taking twin of the arm in `call_hof`. The pipe and UFCS
+            // paths land here with everything already evaluated, and this match
+            // also ends in `unreachable!()`, so omitting `case_when` turned
+            // `x |> case_when(...)` into an interpreter panic rather than an
+            // error. Arguments are eager on this path, which only means every
+            // branch value is computed before one is chosen.
+            "case_when" => {
+                if args.len() < 2 {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::ArityError,
+                        "case_when() takes pairs of (predicate, value)",
+                        Some(span),
+                    ));
+                }
+                let (subject, pairs) = if args.len() % 2 == 1 {
+                    (args[0].clone(), &args[1..])
+                } else {
+                    (Value::Nil, &args[..])
+                };
+                let pairs: Vec<Value> = pairs.to_vec();
+                for pair in pairs.chunks(2) {
+                    let [predicate, outcome] = pair else {
+                        return Err(BioLangError::runtime(
+                            ErrorKind::ArityError,
+                            "case_when() needs a value for every predicate",
+                            Some(span),
+                        ));
+                    };
+                    let holds = match predicate {
+                        Value::Function { .. } | Value::NativeFunction { .. } => self
+                            .call_value(predicate, vec![subject.clone()], span)?
+                            .is_truthy(),
+                        other => other.is_truthy(),
+                    };
+                    if holds {
+                        return Ok(outcome.clone());
+                    }
+                }
+                Ok(Value::Nil)
+            }
             "map" => {
                 if args.len() != 2 {
                     return Err(BioLangError::runtime(
@@ -5012,6 +5155,56 @@ impl Interpreter {
     /// Handle higher-order function builtins (map, filter, reduce, sort).
     fn call_hof(&mut self, name: &str, args: &[Arg], span: bl_core::span::Span) -> Result<Value> {
         match name {
+            // `case_when(pred, value, pred, value, ...)` — the first value whose
+            // predicate holds.
+            //
+            // It was registered as a builtin and listed on the method and UFCS
+            // dispatch paths, but never on the plain-call one and never given an
+            // implementation here. A direct call fell through to the bio
+            // dispatcher and died with "unknown bio builtin 'case_when'", while
+            // the piped form reached this function, matched nothing, and hit the
+            // `unreachable!()` at the bottom — a panic, from a builtin the
+            // metadata advertises and the docs demonstrate.
+            //
+            // Both spellings are documented, so both work. Piping supplies a
+            // subject as the leading argument, leaving an odd count; a plain
+            // call has none and an even one. Predicates receive the subject,
+            // which is what lets the documented `|_| ...` form ignore it and
+            // close over a row instead.
+            "case_when" => {
+                if args.len() < 2 {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::ArityError,
+                        "case_when() takes pairs of (predicate, value)",
+                        Some(span),
+                    ));
+                }
+                let (subject, pairs) = if args.len() % 2 == 1 {
+                    (self.eval_expr(&args[0].value)?, &args[1..])
+                } else {
+                    (Value::Nil, args)
+                };
+                for pair in pairs.chunks(2) {
+                    let [test, outcome] = pair else {
+                        return Err(BioLangError::runtime(
+                            ErrorKind::ArityError,
+                            "case_when() needs a value for every predicate",
+                            Some(span),
+                        ));
+                    };
+                    let predicate = self.eval_expr(&test.value)?;
+                    let holds = match &predicate {
+                        Value::Function { .. } | Value::NativeFunction { .. } => self
+                            .call_value(&predicate, vec![subject.clone()], span)?
+                            .is_truthy(),
+                        other => other.is_truthy(),
+                    };
+                    if holds {
+                        return self.eval_expr(&outcome.value);
+                    }
+                }
+                Ok(Value::Nil)
+            }
             "map" => {
                 if args.len() != 2 {
                     return Err(BioLangError::runtime(
