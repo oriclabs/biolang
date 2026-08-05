@@ -79,7 +79,7 @@ export function methodsParagraph(provenance: JobProvenance): string {
   }
 
   sentences.push(
-    `The analysis script and a complete provenance record are available as a run bundle exported from BioLang Studio.`,
+    `The analysis script and a complete provenance record are available as a run bundle exported from BioLang Workbench.`,
   );
 
   return sentences.join(" ");

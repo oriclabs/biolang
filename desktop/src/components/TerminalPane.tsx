@@ -82,7 +82,7 @@ export function TerminalPane() {
         }
         setState("ready");
         if (!isDesktop) {
-          terminal.writeln("\x1b[38;2;101;199;180mBioLang Studio Web\x1b[0m");
+          terminal.writeln("\x1b[38;2;101;199;180mBioLang Workbench Web\x1b[0m");
           terminal.writeln("A native PTY is not available in the browser.");
           terminal.writeln("Use the BioLang Console for local WASM expressions or select a SOMER runtime.\r\n");
         }

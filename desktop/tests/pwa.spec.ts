@@ -23,16 +23,16 @@ test("desktop dev startup serves the splash without a blocking predev task", () 
   expect(tauriConfig.app.windows[0]?.backgroundColor).toBe("#101216");
 });
 
-test("Studio Web runs BioLang WASM and restores its browser workspace", async ({ page }) => {
+test("Workbench Web runs BioLang WASM and restores its browser workspace", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "BioLang Studio Web" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "BioLang Workbench Web" })).toBeVisible();
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "./manifest.webmanifest");
   const manifest = await page.evaluate(async () => {
     const response = await fetch("./manifest.webmanifest");
     return response.json() as Promise<{ name: string; display: string }>;
   });
-  expect(manifest).toMatchObject({ name: "BioLang Studio Web", display: "standalone" });
+  expect(manifest).toMatchObject({ name: "BioLang Workbench Web", display: "standalone" });
 
   await page.getByRole("main").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.locator('.tree-row[data-path="analysis.bl"]').click();
@@ -55,7 +55,7 @@ test("Studio Web runs BioLang WASM and restores its browser workspace", async ({
   await expect(page.getByRole("menuitem", { name: "BioLang Console Ctrl+Shift+`", exact: true })).toBeEnabled();
 });
 
-test("Studio Web suggests package functions and inferred record fields", async ({ page }) => {
+test("Workbench Web suggests package functions and inferred record fields", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("main").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.locator('.tree-row[data-path="analysis.bl"]').click();
@@ -83,7 +83,7 @@ test("Studio Web suggests package functions and inferred record fields", async (
   await expect(suggestions).toContainText("has_clusters");
 });
 
-test("Studio Web renders SVG results and docks the panel", async ({ page }) => {
+test("Workbench Web renders SVG results and docks the panel", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("main").getByRole("button", { name: "Open Browser Workspace" }).click();
   await page.locator('.tree-row[data-path="analysis.bl"]').click();

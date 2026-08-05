@@ -41,7 +41,7 @@ export function learnerSteps(progress: LearnerProgress): Step[] {
   ];
 
   // Trust only appears on Desktop when a workspace is open and still restricted.
-  // Browser / Studio Web is always trusted, so the step would be noise there.
+  // Browser / Workbench Web is always trusted, so the step would be noise there.
   if (progress.hasWorkspace && progress.needsTrust) {
     steps.push({
       id: "trust",

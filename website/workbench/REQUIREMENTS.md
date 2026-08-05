@@ -1,4 +1,4 @@
-# BioGist Studio — Requirements
+# BioGist Workbench — Requirements
 
 **Full name:** Biological Genomic Interactive Scripting Terminal
 
@@ -6,7 +6,7 @@
 
 **What it does:** Browser-based BioLang notebook with code cells, markdown cells, inline plots, table viewers, and shared variables, powered locally by WebAssembly with optional SOMER remote execution. No server is required for local use.
 
-**URL:** `lang.bio/studio`
+**URL:** `lang.bio/workbench`
 
 **What it's NOT:**
 - Not Jupyter (no Python kernel, no server)
@@ -45,7 +45,7 @@ Same bridge as `lang.bio/playground`:
 ## Architecture
 
 ```
-lang.bio/studio/
+lang.bio/workbench/
 ├── index.html          # Main app page
 ├── app.js              # Notebook engine, cell management, execution
 ├── editor.js           # CodeMirror setup, BioLang syntax, autocomplete
@@ -222,7 +222,7 @@ When a cell outputs a `Table` value:
 
 BioLang's plot builtins (`plot()`, `scatter()`, `bar()`, `histogram()`, `volcano_plot()`, `heatmap()`, `boxplot()`, `pca_plot()`) output SVG strings.
 
-Studio renders them:
+Workbench renders them:
 - Inline below the code cell
 - Responsive: scale to cell width
 - Click to expand: full-screen lightbox view
@@ -262,7 +262,7 @@ Each template includes:
 
 ```
 ┌──────────────────────────────────────────────────┐
-│ BioGist Studio    [New] [Open] [Save] [Share] [⚙]│
+│ BioGist Workbench    [New] [Open] [Save] [Share] [⚙]│
 ├────────┬─────────────────────────────────────────┤
 │        │                                         │
 │ Files  │  [Markdown cell - rendered]             │
@@ -285,7 +285,7 @@ Each template includes:
 
 ```
 ┌──────────────────────┐
-│ Studio   [≡] [▶] [⚙] │
+│ Workbench   [≡] [▶] [⚙] │
 ├──────────────────────┤
 │                      │
 │ [Markdown cell]      │
@@ -510,9 +510,9 @@ Persisted in IndexedDB.
 
 | Product | Relationship |
 |---|---|
-| **BioGist** | Scan a paper → copy entity → use in Studio notebook |
-| **BioKhoj** | Find a paper → read methods → reproduce in Studio |
-| **lang.bio/playground** | Studio replaces playground as the primary WASM coding experience |
-| **BioLang CLI (`bl`)** | Studio is the browser equivalent of `bl repl` — same language, same builtins |
+| **BioGist** | Scan a paper → copy entity → use in Workbench notebook |
+| **BioKhoj** | Find a paper → read methods → reproduce in Workbench |
+| **lang.bio/playground** | Workbench replaces playground as the primary WASM coding experience |
+| **BioLang CLI (`bl`)** | Workbench is the browser equivalent of `bl repl` — same language, same builtins |
 
-**Studio does NOT replace the playground.** Playground stays as a simple single-block code runner for docs and tutorials. Studio is for multi-cell notebook workflows.
+**Workbench does NOT replace the playground.** Playground stays as a simple single-block code runner for docs and tutorials. Workbench is for multi-cell notebook workflows.

@@ -8,7 +8,7 @@ import "./styles.css";
 
 const detachedOutput = new URLSearchParams(window.location.search).has("detachedOutput");
 const application = (
-  <ErrorBoundary label={detachedOutput ? "Detached output" : "BioLang Studio"}>
+  <ErrorBoundary label={detachedOutput ? "Detached output" : "BioLang Workbench"}>
     {detachedOutput ? <DetachedOutput /> : <App />}
   </ErrorBoundary>
 );

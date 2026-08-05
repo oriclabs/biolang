@@ -1,6 +1,67 @@
 import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const packsDir = path.resolve(here, "..", "website", "packs");
+
+/**
+ * Serve the built example packs at /packs during `vite dev`.
+ *
+ * Example-pack deep links — /workbench/?pack=<id>&problem=<ID> — fetch the
+ * catalog from /packs/index.json at the origin root. On lang.bio that is
+ * website/packs/, which CI builds and the site serves. The dev server's root is
+ * desktop/public/, which has no packs directory, so every deep link 404'd on
+ * the catalog fetch and opened the workbench with nothing in it.
+ *
+ * Mapping the directory in rather than copying it keeps one source of truth,
+ * and means dev exercises the same code path as production instead of a
+ * special-cased base URL.
+ */
+function servePacksInDev(): Plugin {
+  return {
+    name: "biolang-serve-packs",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url ?? "";
+        if (!url.startsWith("/packs/")) return next();
+
+        // Strip the query and refuse anything that climbs out of the directory.
+        const rel = decodeURIComponent(url.slice("/packs/".length).split("?")[0]);
+        const target = path.resolve(packsDir, rel);
+        if (!target.startsWith(packsDir)) {
+          res.statusCode = 403;
+          res.end("Forbidden");
+          return;
+        }
+
+        if (!fs.existsSync(packsDir)) {
+          // Say what is missing and how to make it, rather than a bare 404 the
+          // app reports as "pack catalog unavailable".
+          res.statusCode = 503;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({
+            error: "Example packs have not been built",
+            expected: packsDir,
+            fix: "node scripts/build-packs.mjs --out website/packs",
+          }, null, 2));
+          return;
+        }
+
+        if (!fs.existsSync(target) || !fs.statSync(target).isFile()) return next();
+
+        res.setHeader("Content-Type",
+          target.endsWith(".json") ? "application/json" : "application/octet-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        fs.createReadStream(target).pipe(res);
+      });
+    },
+  };
+}
 
 function pwaServiceWorker(): Plugin {
   return {
@@ -83,7 +144,7 @@ self.addEventListener("fetch", (event) => {
 
 export default defineConfig({
   base: "./",
-  plugins: [react(), pwaServiceWorker()],
+  plugins: [react(), pwaServiceWorker(), servePacksInDev()],
   clearScreen: false,
   server: {
     host: "127.0.0.1",

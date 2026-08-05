@@ -507,7 +507,7 @@ const defaultSomerProfiles: SomerProfile[] = [
   },
 ];
 
-const productEdition = isDesktop ? "Desktop" : "Studio Web";
+const productEdition = isDesktop ? "Desktop" : "Workbench Web";
 const productName = `BioLang ${productEdition}`;
 const bottomPanelOrder: BottomPanel[] = ["assignment", "problems", "output", "tests", "console", "terminal", "jobs"];
 const defaultBottomPanels: BottomPanel[] = ["problems", "output", "console", "terminal"];
@@ -2377,7 +2377,7 @@ export function App() {
   /**
    * Push the selection — or the line the cursor is on — to the console.
    *
-   * Everyone arriving from RStudio or a Jupyter notebook reaches for this within
+   * Everyone arriving from RWorkbench or a Jupyter notebook reaches for this within
    * the first minute, and without it the only way to try one line was to comment
    * out the rest of the file or retype it into the console by hand.
    */
@@ -3805,7 +3805,7 @@ export function App() {
           </div>
           <IconButton label="Open workspace" onClick={selectWorkspace}><FolderOpen size={15} /></IconButton>
           <IconButton label="Save file" onClick={saveActive} disabled={!activeFile || !isDirtyFile(activeFile)}><Save size={15} /></IconButton>
-          {pwa.canInstall && <IconButton label="Install BioLang Studio Web" onClick={() => void pwa.install()}><Download size={15} /></IconButton>}
+          {pwa.canInstall && <IconButton label="Install BioLang Workbench Web" onClick={() => void pwa.install()}><Download size={15} /></IconButton>}
           <IconButton label="Toggle bottom panel" active={bottomPanelShown} disabled={!workspace} onClick={() => setBottomVisible((value) => !value)}><PanelBottom size={16} /></IconButton>
         </div>
       </header>

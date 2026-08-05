@@ -31,18 +31,18 @@ It must let a user complete the common BioLang workflow without leaving the appl
 - Reimplementing the BioLang compiler, runtime, formatter, LSP, or package manager in the GUI.
 - Requiring accounts, cloud storage, or a permanent network connection.
 - Becoming a hosted workflow platform equivalent to Galaxy.
-- Replacing the browser-based BioLang Studio notebook.
+- Replacing the browser-based BioLang Workbench notebook.
 - Providing a full general-purpose web browser with unrestricted desktop privileges.
 - Implementing collaborative editing in the first release.
 
 ---
 
-## Relationship to BioLang Studio
+## Relationship to BioLang Workbench
 
 | Product | Primary use | Runtime | Storage |
 |---|---|---|---|
 | BioLang Desktop | Projects, scripts, packages, terminal, large files, local and remote jobs | Native BioLang CLI and LSP | Local filesystem |
-| BioLang Studio | Lightweight notebooks, teaching, sharing, browser experiments | BioLang WASM | Browser storage |
+| BioLang Workbench | Lightweight notebooks, teaching, sharing, browser experiments | BioLang WASM | Browser storage |
 
 The products may share syntax metadata, documentation, themes, and notebook formats, but they have separate requirements and deployment models.
 

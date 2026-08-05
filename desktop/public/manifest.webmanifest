@@ -1,6 +1,6 @@
 {
   "id": "./",
-  "name": "BioLang Studio Web",
+  "name": "BioLang Workbench Web",
   "short_name": "BioLang",
   "description": "Installable BioLang workspace with WebAssembly and remote SOMER execution.",
   "start_url": "./",

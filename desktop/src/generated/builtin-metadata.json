@@ -16285,13 +16285,13 @@
     },
     {
       "name": "tool_info",
-      "signature": "tool_info(name) → {name, pulls, license, versions: [...]}",
+      "signature": "tool_info(name) → {name, pulls, versions: [...]}",
       "category": "container",
       "summary": "BioLang container builtin.",
       "parameters": [
         "name"
       ],
-      "returnType": "{name, pulls, license, versions: [...]}",
+      "returnType": "{name, pulls, versions: [...]}",
       "example": null,
       "arity": {
         "kind": "exact",
@@ -16317,13 +16317,13 @@
     },
     {
       "name": "tool_popular",
-      "signature": "tool_popular(limit?) → List (sorted by downloads)",
+      "signature": "tool_popular(limit?) → List (sorted by Quay popularity)",
       "category": "container",
       "summary": "BioLang container builtin.",
       "parameters": [
         "limit?"
       ],
-      "returnType": "List (sorted by downloads)",
+      "returnType": "List (sorted by Quay popularity)",
       "example": null,
       "arity": {
         "kind": "range",
@@ -16352,14 +16352,14 @@
     },
     {
       "name": "tool_search",
-      "signature": "tool_search(query, opts?) → List[{name, pulls, license, ...}]",
+      "signature": "tool_search(query, opts?) → List[{name, pulls, versions, ...}]",
       "category": "container",
       "summary": "BioLang container builtin.",
       "parameters": [
         "query",
         "opts?"
       ],
-      "returnType": "List[{name, pulls, license, ...}]",
+      "returnType": "List[{name, pulls, versions, ...}]",
       "example": null,
       "arity": {
         "kind": "range",

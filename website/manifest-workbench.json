@@ -1,8 +1,8 @@
 {
-  "name": "BioLang Studio",
-  "short_name": "BioLang Studio",
+  "name": "BioLang Workbench",
+  "short_name": "BioLang Workbench",
   "description": "Bioinformatics IDE with database search, code editor, and local file access. Write BioLang code, search NCBI/UniProt/PDB, analyze FASTA/VCF/CSV files — no server needed.",
-  "start_url": "/studio.html",
+  "start_url": "/workbench.html",
   "display": "standalone",
   "background_color": "#080c14",
   "theme_color": "#7c3aed",
@@ -18,7 +18,7 @@
   "categories": ["science", "developer tools", "productivity"],
   "file_handlers": [
     {
-      "action": "/studio.html",
+      "action": "/workbench.html",
       "accept": {
         "text/plain": [".bl", ".bln", ".R", ".r", ".Rmd", ".rmd", ".fasta", ".fa", ".fna", ".fastq", ".fq", ".vcf", ".bed", ".gff", ".gff3", ".gtf", ".csv", ".tsv", ".sam", ".txt"],
         "text/x-python": [".py"],

@@ -5,10 +5,10 @@
   <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0f172a">
-  <title>BioLang Studio — Bioinformatics IDE</title>
+  <title>BioLang Workbench — Bioinformatics IDE</title>
   <meta name="description" content="Bioinformatics IDE in your browser. Search NCBI, UniProt, PDB. Code editor, local file access, variable inspector. Run BioLang. All offline-capable.">
   <link rel="icon" href="assets/favicon.svg">
-  <link rel="manifest" href="manifest-studio.json">
+  <link rel="manifest" href="manifest-workbench.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -376,7 +376,7 @@
 <script type="module">
 import { SomerClient } from "./js/somer-client.js";
 // ══════════════════════════════════════════════════════════════
-// BioLang Studio — Bioinformatics IDE
+// BioLang Workbench — Bioinformatics IDE
 // ══════════════════════════════════════════════════════════════
 
 // ── WASM ──
@@ -427,10 +427,10 @@ function stripAnsi(s) { return s.replace(/\x1b\[[0-9;]*m/g, ""); }
 // ── Execution target ──
 const executionTarget = $("execution-target");
 const runtimeDialog = $("runtime-dialog");
-executionTarget.value = localStorage.getItem("biolang.studio.executionTarget") || "wasm";
-$("somer-url").value = localStorage.getItem("biolang.studio.somerUrl") || "http://127.0.0.1:8787";
-$("somer-resources").value = localStorage.getItem("biolang.studio.somerResources") || "standard";
-$("somer-token").value = sessionStorage.getItem("biolang.studio.somerToken") || "";
+executionTarget.value = localStorage.getItem("biolang.workbench.executionTarget") || "wasm";
+$("somer-url").value = localStorage.getItem("biolang.workbench.somerUrl") || "http://127.0.0.1:8787";
+$("somer-resources").value = localStorage.getItem("biolang.workbench.somerResources") || "standard";
+$("somer-token").value = sessionStorage.getItem("biolang.workbench.somerToken") || "";
 
 function updateRuntimeStatus() {
   $("runtime-status").textContent = executionTarget.value === "somer" ? "SOMER Remote" : "Local WASM";
@@ -444,15 +444,15 @@ function currentSomerClient() {
 }
 
 executionTarget.addEventListener("change", () => {
-  localStorage.setItem("biolang.studio.executionTarget", executionTarget.value);
+  localStorage.setItem("biolang.workbench.executionTarget", executionTarget.value);
   updateRuntimeStatus();
   if (executionTarget.value === "somer" && !$("somer-token").value) runtimeDialog.showModal();
 });
 $("runtime-settings").addEventListener("click", () => runtimeDialog.showModal());
 $("runtime-close").addEventListener("click", () => runtimeDialog.close());
-$("somer-url").addEventListener("change", () => localStorage.setItem("biolang.studio.somerUrl", $("somer-url").value.trim()));
-$("somer-resources").addEventListener("change", () => localStorage.setItem("biolang.studio.somerResources", $("somer-resources").value));
-$("somer-token").addEventListener("input", () => sessionStorage.setItem("biolang.studio.somerToken", $("somer-token").value));
+$("somer-url").addEventListener("change", () => localStorage.setItem("biolang.workbench.somerUrl", $("somer-url").value.trim()));
+$("somer-resources").addEventListener("change", () => localStorage.setItem("biolang.workbench.somerResources", $("somer-resources").value));
+$("somer-token").addEventListener("input", () => sessionStorage.setItem("biolang.workbench.somerToken", $("somer-token").value));
 $("runtime-test").addEventListener("click", async () => {
   $("runtime-connection-status").textContent = "Connecting...";
   try {
@@ -1002,8 +1002,8 @@ async function runRemoteCode(code) {
     const client = currentSomerClient();
     const submitted = await client.submitJob({
       executor: "biolang",
-      name: "studio.bl",
-      entrypoint: "studio.bl",
+      name: "workbench.bl",
+      entrypoint: "workbench.bl",
       source: code,
       resources: { profile: $("somer-resources").value },
     });

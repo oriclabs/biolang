@@ -597,7 +597,7 @@ test("workflow DAGs sort dependencies and generate all incoming branches", () =>
 test("core desktop workflow remains inside the workbench", async ({ page }) => {
   await page.goto("http://127.0.0.1:1420");
   await expect(page.getByText("No workspace open", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "BioLang Studio Web" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "BioLang Workbench Web" })).toBeVisible();
   await page.locator(".workspace-welcome").getByRole("button", { name: "Open Browser Workspace" }).click();
   await expect(page.getByText("analysis.bl", { exact: true }).first()).toBeVisible();
   await page.getByText("analysis.bl", { exact: true }).first().click();

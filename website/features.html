@@ -80,8 +80,8 @@ fastq("reads.fq.gz")
   |> mean
 
 # Query NCBI + Ensembl in one line
-ncbi_gene("BRCA1") |> print()
-ensembl_vep("17:g.43092919G>A") |> print()
+ncbi_gene("BRCA1") |> println()
+ensembl_vep("17:g.43092919G>A") |> println()
 
 # Ask an LLM about your data
 chat("What pathways involve BRCA1 and TP53?")</code></pre>

@@ -20,7 +20,7 @@ export function usePwa(showNotice: (message: string) => void) {
     };
     const installed = () => {
       setInstallPrompt(undefined);
-      showNotice("BioLang Studio Web installed");
+      showNotice("BioLang Workbench Web installed");
     };
     window.addEventListener("online", updateOnline);
     window.addEventListener("offline", updateOnline);
