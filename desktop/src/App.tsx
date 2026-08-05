@@ -2377,7 +2377,7 @@ export function App() {
   /**
    * Push the selection — or the line the cursor is on — to the console.
    *
-   * Everyone arriving from RWorkbench or a Jupyter notebook reaches for this within
+   * Everyone arriving from RStudio or a Jupyter notebook reaches for this within
    * the first minute, and without it the only way to try one line was to comment
    * out the rest of the file or retype it into the console by hand.
    */
