@@ -51,7 +51,7 @@ Since `sql()` returns a standard BioLang Table, you can pipe it directly:
 sql(db, "SELECT symbol, chrom, start, end FROM genes WHERE chrom = ?", ["chr17"])
   |> filter(|g| g.start > 40000000)
   |> sort_by(|g| g.start)
-  |> print()
+  |> println()
 ```
 
 ### Bulk Insert
@@ -70,7 +70,7 @@ let samples = [
   {id: "S2", depth: 38.7, mapped_pct: 97.5},
 ]
 let inserted = sql_insert(db, "qc_results", samples)
-print(str(inserted) + " rows inserted")
+println(str(inserted) + " rows inserted")
 ```
 
 ### Metadata

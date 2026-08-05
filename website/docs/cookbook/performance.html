@@ -61,9 +61,9 @@ let lengths = read_fastq("data/reads.fastq")
   |> map(|r| len(r.seq))
   |> collect
 
-print(f"Read count: {len(lengths)}")
-print(f"Mean length: {round(mean(lengths), 1)}")
-print(f"Min: {min(lengths)}, Max: {max(lengths)}")
+println(f"Read count: {len(lengths)}")
+println(f"Mean length: {round(mean(lengths), 1)}")
+println(f"Min: {min(lengths)}, Max: {max(lengths)}")
 
 # Multiple aggregations in a single pass using reduce
 let result = read_fastq("data/reads.fastq")
@@ -76,8 +76,8 @@ let result = read_fastq("data/reads.fastq")
     }
   })
 
-print(f"Total bases: {result.total}")
-print(f"Mean GC: {round(result.gc_sum / result.n, 3)}")</code></pre>
+println(f"Total bases: {result.total}")
+println(f"Mean GC: {round(result.gc_sum / result.n, 3)}")</code></pre>
 
         <h2>Parallel Processing</h2>
 
@@ -111,7 +111,7 @@ let stats = par_map(fastq_files, |fname| {
 })
 
 write_tsv(from_records(stats), "sample_stats.tsv")
-print(f"Processed {len(stats)} samples")</code></pre>
+println(f"Processed {len(stats)} samples")</code></pre>
 
         <h3>Chunked parallel processing</h3>
         <pre><code class="language-biolang"># Process a large file in chunks for controlled parallelism
@@ -136,7 +136,7 @@ read_fastq("data/reads.fastq")
 read_fasta("data/sequences.fasta")
   |> each(|record| {
     let gc = gc_content(record.seq)
-    print(f"{record.id}: GC={round(gc, 3)}")
+    println(f"{record.id}: GC={round(gc, 3)}")
   })
 
 # Option 2: Load only what you need
@@ -148,7 +148,7 @@ let seqs = read_fasta("data/sequences.fasta")
 read_fasta("data/sequences.fasta")
   |> chunk(100)
   |> each(|batch| {
-    print(f"Processing batch of {len(batch)} sequences")
+    println(f"Processing batch of {len(batch)} sequences")
   })</code></pre>
 
         <h3>K-mer counting at scale</h3>
@@ -160,7 +160,7 @@ let counts = kmer_count(dna"ATCGATCGATCG", 4)
 read_fastq("data/reads.fastq")
   |> kmer_count(21)
   |> head(20)
-  |> print()
+  |> println()
 
 # Bounded memory — only track top N k-mers (periodic pruning)
 read_fastq("data/reads.fastq")
@@ -211,7 +211,7 @@ fn filter_high_quality_reads() {
     |> count
 }
 let result = time_it(filter_high_quality_reads)
-print(f"Filtering took {result}ms")
+println(f"Filtering took {result}ms")
 
 # Profile individual stages
 let t1 = now()
@@ -222,19 +222,19 @@ let t2 = now()
 let filtered = data |> filter(|v| v.filter == "PASS") |> collect
 let filter_time = now() - t2
 
-print(f"Read: {read_time}ms, Filter: {filter_time}ms")</code></pre>
+println(f"Read: {read_time}ms, Filter: {filter_time}ms")</code></pre>
 
         <h3>Memory usage tracking</h3>
         <pre><code class="language-biolang"># Track memory by monitoring data sizes
 let data = read_fasta("data/sequences.fasta") |> collect
-print(f"Loaded {len(data)} sequences")
+println(f"Loaded {len(data)} sequences")
 
 # For large datasets, use streaming kmer_count (auto-spills to disk)
 let top_kmers = read_fasta("data/sequences.fasta")
   |> kmer_count(21, 50)     # top 50 k-mers, bounded memory
 
-print("Top 50 21-mers:")
-print(top_kmers)</code></pre>
+println("Top 50 21-mers:")
+println(top_kmers)</code></pre>
 
         <h2>JIT Compilation</h2>
 

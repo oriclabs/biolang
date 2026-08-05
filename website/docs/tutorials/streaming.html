@@ -70,7 +70,7 @@
 # Stream: constant memory regardless of file size
 let stream = fastq("data/reads.fastq")
 
-print(typeof(stream))  # Stream
+println(typeof(stream))  # Stream
 
 # Nothing has been read yet. The file is opened, but records are
 # only read when you consume the stream.</code></pre>
@@ -86,14 +86,14 @@ print(typeof(stream))  # Stream
 let n = fastq("data/reads.fastq")
   |> count()
 
-print(f"Total reads: {n}")  # counted one by one, constant memory
+println(f"Total reads: {n}")  # counted one by one, constant memory
 
 # Take the first N records
 let first_100 = fastq("data/reads.fastq")
   |> take(100)
   |> collect()  # materializes into a List
 
-print(f"First 100 reads loaded, {len(first_100)} records")
+println(f"First 100 reads loaded, {len(first_100)} records")
 
 # Drop the first 1000, then take 100
 let slice = fastq("data/reads.fastq")
@@ -106,7 +106,7 @@ let total_bases = 0
 for read in fastq("data/reads.fastq") {
   total_bases = total_bases + read.length
 }
-print(f"Total bases: {total_bases}")</code></pre>
+println(f"Total bases: {total_bases}")</code></pre>
 
         <!-- Step 3 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Stream Transformations</h2>
@@ -120,8 +120,8 @@ let gc_values = fastq("data/reads.fastq")
   |> map(|r| gc_content(r.seq))
   |> collect()
 
-print(f"GC values for long reads: {len(gc_values)}")
-print(f"Mean GC: {round(mean(gc_values), 4)}")
+println(f"GC values for long reads: {len(gc_values)}")
+println(f"Mean GC: {round(mean(gc_values), 4)}")
 
 # Chain multiple filters
 let clean = fastq("data/reads.fastq")
@@ -130,7 +130,7 @@ let clean = fastq("data/reads.fastq")
   |> filter(|r| gc_content(r.seq) &lt; 0.8)    # not too GC-rich
   |> collect()
 
-print(f"Clean reads: {len(clean)}")
+println(f"Clean reads: {len(clean)}")
 
 # For full quality trimming and filtering, use the file-level builtins:
 # trim_quality(input_path, output_path, threshold)
@@ -153,17 +153,17 @@ let stats = fastq("data/reads.fastq")
     }
   }, { n: 0, total_bases: 0, total_gc: 0.0 })
 
-print(f"Reads:       {stats.n}")
-print(f"Total bases: {stats.total_bases}")
-print(f"Mean GC:     {round(stats.total_gc / stats.n, 4)}")
+println(f"Reads:       {stats.n}")
+println(f"Total bases: {stats.total_bases}")
+println(f"Mean GC:     {round(stats.total_gc / stats.n, 4)}")
 
 # Collect GC values and summarize
 let gc_list = fastq("data/reads.fastq")
   |> map(|r| gc_content(r.seq))
   |> collect()
 
-print(f"Mean GC: {round(mean(gc_list), 4)}")
-print(f"GC range: {min(gc_list)} - {max(gc_list)}")</code></pre>
+println(f"Mean GC: {round(mean(gc_list), 4)}")
+println(f"GC range: {min(gc_list)} - {max(gc_list)}")</code></pre>
 
         <!-- Step 5 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Parallel Processing with par_map</h2>
@@ -182,7 +182,7 @@ let results = fastq("data/reads.fastq")
   |> filter(|r| r.gc > 0.3)
   |> collect()
 
-print(f"Processed {len(results)} reads in parallel")
+println(f"Processed {len(results)} reads in parallel")
 
 # Parallel BAM processing
 # BAM stream records are AlignedRead values with computed properties
@@ -202,7 +202,7 @@ let bam_stats = bam("huge.bam")
     }
   }, { mapped: 0, unmapped: 0, paired: 0 })
 
-print(f"Mapped: {bam_stats.mapped}, Unmapped: {bam_stats.unmapped}")</code></pre>
+println(f"Mapped: {bam_stats.mapped}, Unmapped: {bam_stats.unmapped}")</code></pre>
 
         <!-- Step 6 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Chunked Processing</h2>
@@ -217,7 +217,7 @@ let chunks = fastq("data/reads.fastq")
 
 for chunk in chunks {
   let gc_vals = chunk |> map(|r| gc_content(r.seq))
-  print(f"Chunk: {len(chunk)} reads, mean GC {round(mean(gc_vals), 3)}")
+  println(f"Chunk: {len(chunk)} reads, mean GC {round(mean(gc_vals), 3)}")
 }
 
 # Count with periodic progress
@@ -228,9 +228,9 @@ let chunks = fastq("data/reads.fastq")
 
 for chunk in chunks {
   total = total + len(chunk)
-  print(f"Processed {total} reads...")
+  println(f"Processed {total} reads...")
 }
-print(f"Done. Total: {total} reads")</code></pre>
+println(f"Done. Total: {total} reads")</code></pre>
 
         <!-- Step 7 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Side Effects with tee</h2>
@@ -241,11 +241,11 @@ print(f"Done. Total: {total} reads")</code></pre>
         <pre><code class="language-biolang"># Use tee to log while processing
 let results = fastq("data/reads.fastq")
   |> filter(|r| r.length >= 100)
-  |> tee(|r| print(f"Processing read {r.id}"))
+  |> tee(|r| println(f"Processing read {r.id}"))
   |> map(|r| gc_content(r.seq))
   |> collect()
 
-print(f"Computed GC for {len(results)} reads")</code></pre>
+println(f"Computed GC for {len(results)} reads")</code></pre>
 
         <!-- Step 8 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Streaming Other Formats</h2>
@@ -262,7 +262,7 @@ let mapped_count = bam("alignments.bam")
   |> filter(|r| r.is_mapped and r.mapq >= 20)
   |> count()
 
-print(f"High-quality mapped reads: {mapped_count}")
+println(f"High-quality mapped reads: {mapped_count}")
 
 # Stream VCF files
 # VCF records have fields: chrom, pos, id, ref, alt, qual, filter, info
@@ -270,7 +270,7 @@ let pass_count = vcf("data/variants.vcf")
   |> filter(|v| v.filter == "PASS")
   |> count()
 
-print(f"PASS variants: {pass_count}")
+println(f"PASS variants: {pass_count}")
 
 # Stream FASTA files (for large reference genomes)
 let gc_per_chrom = fasta("data/sequences.fasta")
@@ -280,7 +280,7 @@ let gc_per_chrom = fasta("data/sequences.fasta")
   |> collect()
 
 for entry in gc_per_chrom {
-  print(f"{entry.name}: GC = {round(entry.gc, 4)}")
+  println(f"{entry.name}: GC = {round(entry.gc, 4)}")
 }
 
 # Stream a BED file
@@ -289,14 +289,14 @@ let total_bases_covered = bed("data/regions.bed")
   |> map(|r| r.end - r.start)
   |> sum()
 
-print(f"Total bases in BED regions: {total_bases_covered}")</code></pre>
+println(f"Total bases in BED regions: {total_bases_covered}")</code></pre>
 
         <!-- Step 9 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Complete Streaming Pipeline</h2>
-        <pre><code class="language-biolang"># streaming_qc.bio — production FASTQ QC with streaming
+        <pre><code class="language-biolang"># streaming_qc.bl — production FASTQ QC with streaming
 
 fn stream_qc(input, output, report_path) {
-  print(f"Starting streaming QC on {input}...")
+  println(f"Starting streaming QC on {input}...")
 
   # Pass 1: compute stats (single pass, constant memory)
   let raw_stats = fastq(input)
@@ -311,7 +311,7 @@ fn stream_qc(input, output, report_path) {
       }
     }, { n: 0, bases: 0, gc_sum: 0.0, min_len: 999999, max_len: 0 })
 
-  print(f"Raw: {raw_stats.n} reads, {raw_stats.bases} bases")
+  println(f"Raw: {raw_stats.n} reads, {raw_stats.bases} bases")
 
   # Pass 2: trim to an intermediate file, then filter to the requested output
   let trimmed = temp_file()
@@ -322,7 +322,7 @@ fn stream_qc(input, output, report_path) {
   # Count clean reads
   let clean_count = fastq(output) |> count()
   let pass_rate = round(clean_count / raw_stats.n * 100.0, 1)
-  print(f"Clean: {clean_count} reads ({pass_rate}%)")
+  println(f"Clean: {clean_count} reads ({pass_rate}%)")
 
   # Write report
   let report = {
@@ -338,7 +338,7 @@ fn stream_qc(input, output, report_path) {
   }
 
   write_json(report_path, report)
-  print(f"Report saved to {report_path}")
+  println(f"Report saved to {report_path}")
 }
 
 stream_qc("huge.fastq.gz", "huge_clean.fastq.gz", "qc_report.json")</code></pre>

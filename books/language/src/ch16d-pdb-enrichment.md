@@ -9,11 +9,11 @@ BioLang provides direct access to the RCSB Protein Data Bank and built-in gene s
 ```biolang
 # requires: internet connection
 let entry = pdb_entry("4HHB")
-print(entry.title)          # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN"
-print(entry.method)         # "X-RAY DIFFRACTION"
-print(entry.resolution)     # 1.74
-print(entry.organism)       # "Homo sapiens"
-print(entry.release_date)   # "1984-07-17"
+println(entry.title)          # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN"
+println(entry.method)         # "X-RAY DIFFRACTION"
+println(entry.resolution)     # 1.74
+println(entry.organism)       # "Homo sapiens"
+println(entry.release_date)   # "1984-07-17"
 ```
 
 ### Searching
@@ -21,8 +21,8 @@ print(entry.release_date)   # "1984-07-17"
 ```biolang
 # requires: internet connection
 let ids = pdb_search("insulin receptor")
-print("Found " + str(len(ids)) + " structures")
-ids |> take(5) |> each(|id| print(id))
+println("Found " + str(len(ids)) + " structures")
+ids |> take(5) |> each(|id| println(id))
 ```
 
 ### Chains and Entities
@@ -32,17 +32,17 @@ ids |> take(5) |> each(|id| print(id))
 # Get all polymer entities (chains) in a structure
 let chains = pdb_chains("4HHB")
 chains |> each(|c|
-    print(c.description + " (" + c.entity_type + "): " + str(len(c.sequence)) + " residues")
+    println(c.description + " (" + c.entity_type + "): " + str(len(c.sequence)) + " residues")
 )
 
 # Get a specific entity
 let entity = pdb_entity("4HHB", 1)
-print(entity.description)
-print(entity.sequence)
+println(entity.description)
+println(entity.sequence)
 
 # Get sequence as Protein value
 let seq = pdb_sequence("4HHB", 1)
-print(len(seq))             # sequence length
+println(len(seq))             # sequence length
 ```
 
 ### Real-World Example: Compare Hemoglobin Chains
@@ -51,9 +51,9 @@ print(len(seq))             # sequence length
 # requires: internet connection
 let alpha = pdb_entity("4HHB", 1)
 let beta = pdb_entity("4HHB", 2)
-print("Alpha chain: " + str(len(alpha.sequence)) + " residues")
-print("Beta chain: " + str(len(beta.sequence)) + " residues")
-print("Alpha type: " + alpha.entity_type)
+println("Alpha chain: " + str(len(alpha.sequence)) + " residues")
+println("Beta chain: " + str(len(beta.sequence)) + " residues")
+println("Alpha type: " + alpha.entity_type)
 ```
 
 ## PubMed Integration
@@ -65,11 +65,11 @@ Search PubMed and retrieve abstracts:
 # requires: NCBI_API_KEY (optional, increases rate limit)
 # Search for recent CRISPR papers
 let results = pubmed_search("CRISPR Cas9 therapy", 5)
-print("Total results: " + str(results.count))
+println("Total results: " + str(results.count))
 
 # Fetch abstract for a specific paper
 let abstract = pubmed_abstract(results[0])
-print(abstract)
+println(abstract)
 ```
 
 ### Literature Review Pipeline
@@ -81,14 +81,14 @@ print(abstract)
 let gene = "BRCA1"
 let results = pubmed_search(gene + " cancer therapy 2024", 20)
 
-print("Found " + str(results.count) + " papers for " + gene)
+println("Found " + str(results.count) + " papers for " + gene)
 results.ids
   |> take(5)
   |> each(|pmid|
     let text = pubmed_abstract(pmid)
-    print("PMID " + pmid + ":")
-    print(text)
-    print("---")
+    println("PMID " + pmid + ":")
+    println(text)
+    println("---")
   )
 ```
 
@@ -111,7 +111,7 @@ let results = enrich(de_genes, gene_sets, 20000)
 # Filter significant results
 results
   |> filter(|r| r.fdr < 0.05)
-  |> each(|r| print(r.term + ": p=" + str(r.p_value) + " FDR=" + str(r.fdr)))
+  |> each(|r| println(r.term + ": p=" + str(r.p_value) + " FDR=" + str(r.fdr)))
 ```
 
 The `enrich()` function uses the hypergeometric test with Benjamini-Hochberg FDR correction.
@@ -138,7 +138,7 @@ let results = gsea(ranked, gene_sets)
 # Top enriched pathways
 results
   |> filter(|r| r.fdr < 0.25)
-  |> each(|r| print(r.term + ": NES=" + str(r.nes) + " FDR=" + str(r.fdr)))
+  |> each(|r| println(r.term + ": NES=" + str(r.nes) + " FDR=" + str(r.fdr)))
 ```
 
 Output columns: `term`, `es` (enrichment score), `nes` (normalized ES), `p_value`, `fdr`, `leading_edge`
@@ -168,7 +168,7 @@ let sig_genes = de
   |> map(|r| r.gene)
   |> collect()
 
-print("Significant DE genes: " + str(len(sig_genes)))
+println("Significant DE genes: " + str(len(sig_genes)))
 
 # 3. Load pathway gene sets
 let hallmark = read_gmt("h.all.v2024.1.Hs.symbols.gmt")
@@ -179,14 +179,14 @@ let h_results = enrich(sig_genes, hallmark, 20000)
 let k_results = enrich(sig_genes, kegg, 20000)
 
 # 5. Report significant pathways
-print("\n=== Hallmark Pathways ===")
+println("\n=== Hallmark Pathways ===")
 h_results |> filter(|r| r.fdr < 0.05) |> each(|r|
-    print(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
+    println(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
 )
 
-print("\n=== KEGG Pathways ===")
+println("\n=== KEGG Pathways ===")
 k_results |> filter(|r| r.fdr < 0.05) |> each(|r|
-    print(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
+    println(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
 )
 ```
 

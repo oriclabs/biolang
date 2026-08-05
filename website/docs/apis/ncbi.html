@@ -40,20 +40,20 @@
 
 # Search the gene database — returns list of ID strings
 let results = ncbi_search("gene", "BRCA1")
-print(results)
+println(results)
 # => ["672"]
 
 # Search PubMed for articles
 let articles = ncbi_search("pubmed", "CRISPR AND cancer", 10)
-articles |> print()
+articles |> println()
 
 # Search the nucleotide database
 let seqs = ncbi_search("nucleotide", "human mitochondria complete genome", 5)
-print(seqs)
+println(seqs)
 
 # Search SRA for sequencing runs
 let runs = ncbi_search("sra", "RNA-seq human liver", 20)
-print(runs)
+println(runs)
 
 # Advanced query syntax (Entrez query language)
 results = ncbi_search("gene", "BRCA1[Gene] AND Homo sapiens[Organism]")</code></pre>
@@ -68,7 +68,7 @@ results = ncbi_search("gene", "BRCA1[Gene] AND Homo sapiens[Organism]")</code></
 
 # Fetch a gene record in FASTA format
 let text = ncbi_fetch("NC_000017.11", "nucleotide", "fasta")
-print(text)
+println(text)
 
 # Fetch multiple gene summaries
 let ids = ["672", "7157", "1956"]   # BRCA1, TP53, EGFR
@@ -83,15 +83,15 @@ let abstracts = ncbi_fetch(["33257863", "32015508"], "pubmed", "abstract")</code
         </p>
         <pre><code class="language-biolang"># ncbi_gene(term, [max]) — search the gene database
 let gene = ncbi_gene("BRCA1")
-print(gene)
+println(gene)
 
 # ncbi_pubmed(term, [max]) — search PubMed
 let pubs = ncbi_pubmed("CRISPR AND cancer", 10)
-print(pubs)
+println(pubs)
 
 # ncbi_sequence(id) — fetch a sequence as FASTA text
 let seq = ncbi_sequence("NC_000017.11")
-print(seq)</code></pre>
+println(seq)</code></pre>
 
         <h2>Practical Examples</h2>
         <h3>Gene Research Pipeline</h3>
@@ -100,15 +100,15 @@ let gene_name = "TP53"
 
 # 1. Get gene info
 let gene = ncbi_gene(gene_name)
-print("Gene:", gene)
+println("Gene:", gene)
 
 # 2. Find recent publications
 let pubs = ncbi_pubmed(f"{gene_name} AND cancer AND 2024[PDAT]", 10)
-print("\nRecent publications:", pubs)
+println("\nRecent publications:", pubs)
 
 # 3. Get the reference sequence
 let seq = ncbi_sequence("NC_000017.11")
-print("\nSequence:", seq |> len(), "characters")</code></pre>
+println("\nSequence:", seq |> len(), "characters")</code></pre>
 
         <h3>Batch Gene Lookup</h3>
         <pre><code class="language-biolang"># Look up multiple genes
@@ -125,13 +125,13 @@ let summary = genes
   })
   |> to_table()
 
-summary |> print()
+summary |> println()
 summary |> write_csv("gene_summary.csv")</code></pre>
 
         <h3>SRA Data Discovery</h3>
         <pre><code class="language-biolang"># Find RNA-seq datasets for a tissue type
 let runs = ncbi_search("sra", "RNA-seq AND human AND liver AND Illumina", 50)
-print(runs)</code></pre>
+println(runs)</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="index.html" class="text-violet-400 hover:text-violet-300">&larr; Overview</a>

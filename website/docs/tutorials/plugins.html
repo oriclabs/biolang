@@ -380,18 +380,18 @@ let seqs = ["ATCGATCGATCG", "GATCGATCGATC", "CGATCGATCGAT"]
 
 let motifs = find_motifs(seqs, 6, 10, 0.3, "enumerate")
 
-print("=== Discovered Motifs ===")
-print(motifs)
+println("=== Discovered Motifs ===")
+println(motifs)
 
 # Generate an ASCII logo for some aligned sequences
 let alignment = ["ATCG", "ATCG", "ATCG", "AACG"]
 let logo = motif_logo(alignment, "results/top_motif_logo.svg", "ascii")
-print(logo)
+println(logo)
 
 # Scan with a known PWM loaded from CSV
 let pwm = read_csv("data/known_pwm.csv")
 let hits = scan_motif(seqs, pwm, 0.85)
-print(hits)</code></pre>
+println(hits)</code></pre>
 
         <!-- Step 8 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Error Handling and Validation</h2>
@@ -433,7 +433,8 @@ def find_motifs(sequences, min_length=6, max_length=12, min_support=0.5, method=
           When your function raises an exception, the main loop returns
           <code>{"error": "message"}</code> and BioLang displays it to the user:
         </p>
-        <pre><code class="language-biolang"># This produces a nice error message
+        <pre><code class="language-biolang"># illustrative: needs the motif-finder plugin, and deliberately errors
+# This produces a nice error message
 let result = find_motifs([], 1)
 # Error: [motif-finder] min_length must be at least 2</code></pre>
 

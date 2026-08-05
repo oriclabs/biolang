@@ -34,8 +34,18 @@ println("Result:   " + str(len(signed)))
 println("Expected: 8")
 signed |> each(|p| println("  " + (p |> map(|x| str(x)) |> join(" "))))
 
+# The published answer. Rosalind lists these in its own order and accepts any
+# ordering, so the check is set equality rather than a line-by-line match -
+# which is also why the printed output above does not look like the sample.
+let expected = ["-1 -2", "-1 2", "1 -2", "1 2", "-2 -1", "-2 1", "2 -1", "2 1"]
+
 fn test_sign_signed_permutations() {
     assert len(signed) == 8, "SIGN: got " + str(len(signed))
-    let distinct = signed |> map(|p| p |> map(|x| str(x)) |> join(" ")) |> unique()
+    let rendered = signed |> map(|p| p |> map(|x| str(x)) |> join(" "))
+    let distinct = rendered |> unique()
     assert len(distinct) == 8, "SIGN: duplicates present"
+    # Counting eight distinct rows would pass for eight wrong ones, so compare
+    # against the published set. Sorted, because the order is not part of the
+    # answer.
+    assert sort(distinct) == sort(expected), "SIGN: does not match the published set"
 }

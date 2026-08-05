@@ -36,7 +36,7 @@ let lines = read_lines("1ubq.pdb")
 # Extract header info
 let title = lines |> filter(|l| { l |> starts_with("TITLE") })
   |> map(|l| { l |> substr(10, 70) |> trim }) |> join(" ")
-print(f"Title: {title}")
+println(f"Title: {title}")
 
 # Parse ATOM records
 let atoms = lines
@@ -53,13 +53,13 @@ let atoms = lines
   }})
 
 let chains = atoms |> map(|a| { a.chain }) |> unique
-print(f"Chains: {chains |> join(", ")}")
-print(f"Total atoms: {atoms |> len}")
+println(f"Chains: {chains |> join(", ")}")
+println(f"Total atoms: {atoms |> len}")
 
 for ch in chains {
   let ch_atoms = atoms |> filter(|a| { a.chain == ch })
   let n_residues = ch_atoms |> map(|a| { a.resid }) |> unique |> len
-  print(f"  Chain {ch}: {n_residues} residues, {ch_atoms |> len} atoms")
+  println(f"  Chain {ch}: {n_residues} residues, {ch_atoms |> len} atoms")
 }</code></pre>
 
         <h3>Extracting C-alpha coordinates</h3>
@@ -80,25 +80,25 @@ let ca_atoms = lines
   |> filter(|a| { a.name == "CA" && a.chain == "A" })
 
 ca_atoms |> write_tsv("ca_coordinates.tsv")
-print(f"Extracted {ca_atoms |> len} C-alpha atoms")</code></pre>
+println(f"Extracted {ca_atoms |> len} C-alpha atoms")</code></pre>
 
         <h3>Fetching structures from RCSB</h3>
         <pre><code class="language-biolang"># requires: internet connection (PDB API)
 # Fetch structure metadata from RCSB PDB
 let entry = pdb_entry("6LU7")  # SARS-CoV-2 main protease
-print(f"Title: {entry.title}")
-print(f"Method: {entry.method}")
-print(f"Resolution: {entry.resolution}")
+println(f"Title: {entry.title}")
+println(f"Method: {entry.method}")
+println(f"Resolution: {entry.resolution}")
 
 # Get entity information (chains/subunits)
 let entities = pdb_chains("6LU7")
 for ent in entities {
-  print(f"  Entity {ent.entity_id} ({ent.entity_type}): {ent.description}")
+  println(f"  Entity {ent.entity_id} ({ent.entity_type}): {ent.description}")
 }
 
 # Get protein sequence for entity 1
 let seq = pdb_sequence("6LU7", 1)
-print(f"Entity 1 sequence ({seq |> seq_len} aa): {substr(seq, 0, 50)}...")</code></pre>
+println(f"Entity 1 sequence ({seq |> seq_len} aa): {substr(to_string(seq), 0, 50)}...")</code></pre>
 
         <h2>Contact Maps</h2>
 
@@ -143,13 +143,13 @@ for i in 0..n {
   }
 }
 
-print(f"Contacts (&lt; {cutoff} A): {contacts |> len}")
+println(f"Contacts (&lt; {cutoff} A): {contacts |> len}")
 contacts |> write_tsv("contact_map.tsv")
 
 # Sequence separation statistics
 let seq_sep = contacts |> map(|c| { abs(c.res_j - c.res_i) })
-print(f"Mean sequence separation: {seq_sep |> mean |> round(1)} residues")
-print(f"Long-range contacts (>12 res): {seq_sep |> filter(|s| { s > 12 }) |> len}")</code></pre>
+println(f"Mean sequence separation: {seq_sep |> mean |> round(1)} residues")
+println(f"Long-range contacts (>12 res): {seq_sep |> filter(|s| { s > 12 }) |> len}")</code></pre>
 
         <h3>Inter-chain contacts</h3>
         <pre><code class="language-biolang"># Find contacts between two chains (protein-protein interface)
@@ -174,9 +174,9 @@ let interface = chain_a |> flat_map(|atom_a| {
 let interface_residues_a = interface |> map(|x| { x.chain_a_res }) |> unique
 let interface_residues_b = interface |> map(|x| { x.chain_b_res }) |> unique
 
-print(f"Interface contacts: {interface |> len}")
-print(f"Interface residues chain A: {interface_residues_a |> len}")
-print(f"Interface residues chain B: {interface_residues_b |> len}")
+println(f"Interface contacts: {interface |> len}")
+println(f"Interface residues chain A: {interface_residues_a |> len}")
+println(f"Interface residues chain B: {interface_residues_b |> len}")
 interface |> write_tsv("interface_contacts.tsv")</code></pre>
 
         <h2>Ramachandran Analysis</h2>
@@ -236,7 +236,7 @@ let dihedrals = range(1, (residue_ids |> len) - 1) |> map(|idx| {
 })
 
 dihedrals |> write_tsv("ramachandran.tsv")
-print(f"Computed dihedral angles for {dihedrals |> len} residues")
+println(f"Computed dihedral angles for {dihedrals |> len} residues")
 
 # Classify: most-favored regions (simplified)
 fn is_favored(phi, psi) {
@@ -248,8 +248,8 @@ fn is_favored(phi, psi) {
 
 let favored = dihedrals |> filter(|d| { is_favored(d.phi, d.psi) }) |> len
 let total = dihedrals |> len
-print(f"Favored region: {favored} ({(favored |> float / total |> float * 100.0) |> round(1)}%)")
-print(f"Other:          {total - favored} ({((total - favored) |> float / total |> float * 100.0) |> round(1)}%)")</code></pre>
+println(f"Favored region: {favored} ({(favored |> float / total |> float * 100.0) |> round(1)}%)")
+println(f"Other:          {total - favored} ({((total - favored) |> float / total |> float * 100.0) |> round(1)}%)")</code></pre>
 
         <h2>B-factor Analysis</h2>
 
@@ -276,17 +276,17 @@ let all_means = bfactors |> map(|x| { x.mean_bfactor })
 let overall_mean = all_means |> mean
 let overall_std = all_means |> stdev
 
-print("B-factor Statistics:")
-print(f"  Mean: {overall_mean |> round(2)} A^2")
-print(f"  Std:  {overall_std |> round(2)} A^2")
-print(f"  Range: {all_means |> min |> round(2)} - {all_means |> max |> round(2)}")
+println("B-factor Statistics:")
+println(f"  Mean: {overall_mean |> round(2)} A^2")
+println(f"  Std:  {overall_std |> round(2)} A^2")
+println(f"  Range: {all_means |> min |> round(2)} - {all_means |> max |> round(2)}")
 
 # High B-factor residues (flexible regions)
 let threshold = overall_mean + 2.0 * overall_std
 let flexible = bfactors |> filter(|r| { r.mean_bfactor > threshold })
-print(f"\nHighly flexible residues (>{threshold |> round(1)} A^2):")
+println(f"\nHighly flexible residues (>{threshold |> round(1)} A^2):")
 for r in flexible {
-  print(f"  {r.resname}{r.resid}: {r.mean_bfactor |> round(2)} A^2")
+  println(f"  {r.resname}{r.resid}: {r.mean_bfactor |> round(2)} A^2")
 }
 
 bfactors |> write_tsv("bfactor_per_residue.tsv")</code></pre>
@@ -315,10 +315,10 @@ let helix_res = helices |> map(|h| { h.end - h.start + 1 }) |> sum
 let sheet_res = sheets |> map(|s| { s.end - s.start + 1 }) |> sum
 let total_res = residue_ids |> len
 
-print("Secondary Structure (from PDB header):")
-print(f"  Helices: {helices |> len} ({helix_res} residues, {(helix_res |> float / total_res |> float * 100.0) |> round(1)}%)")
-print(f"  Sheets:  {sheets |> len} ({sheet_res} residues, {(sheet_res |> float / total_res |> float * 100.0) |> round(1)}%)")
-print(f"  Coil:    ~{total_res - helix_res - sheet_res} residues")</code></pre>
+println("Secondary Structure (from PDB header):")
+println(f"  Helices: {helices |> len} ({helix_res} residues, {(helix_res |> float / total_res |> float * 100.0) |> round(1)}%)")
+println(f"  Sheets:  {sheets |> len} ({sheet_res} residues, {(sheet_res |> float / total_res |> float * 100.0) |> round(1)}%)")
+println(f"  Coil:    ~{total_res - helix_res - sheet_res} residues")</code></pre>
 
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

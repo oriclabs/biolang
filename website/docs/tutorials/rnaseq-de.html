@@ -64,14 +64,14 @@
           number of reads mapped to that gene in that sample.
         </p>
         <pre><code class="language-biolang"># requires: data/counts.csv in working directory
-# rnaseq.bio — differential expression analysis
+# rnaseq.bl — differential expression analysis
 
 # Read the count matrix
 let counts = read_csv("data/counts.csv")
 
-print(f"Genes: {nrow(counts)}")
-print(f"Samples: {ncol(counts) - 1}")  # minus the gene column
-print(head(counts, 5))
+println(f"Genes: {nrow(counts)}")
+println(f"Samples: {ncol(counts) - 1}")  # minus the gene column
+println(head(counts, 5))
 
 # Define sample groups
 let design = from_records([
@@ -83,8 +83,8 @@ let design = from_records([
   { sample: "S3_treat", group: "treated" },
 ])
 
-print("Design:")
-print(design)</code></pre>
+println("Design:")
+println(design)</code></pre>
 
         <!-- Step 2 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Exploratory Data Analysis</h2>
@@ -95,15 +95,15 @@ let lib_sizes = sample_cols
   |> map(|s| { sample: s, total_reads: sum(col(counts, s)) })
   |> from_records()
 
-print("\n=== Library Sizes ===")
-print(lib_sizes)
+println("\n=== Library Sizes ===")
+println(lib_sizes)
 
 # How many genes have zero counts in all samples?
 let zero_genes = counts
   |> filter(|row| {
     sample_cols |> all(|s| row[s] == 0)
   })
-print(f"Genes with zero counts in all samples: {nrow(zero_genes)}")
+println(f"Genes with zero counts in all samples: {nrow(zero_genes)}")
 
 # Filter out very low-count genes
 let min_count = 10
@@ -113,7 +113,7 @@ let expressed = counts |> filter(|row| {
   let n_above = sample_cols |> count_if(|s| row[s] >= min_count)
   n_above >= min_samples
 })
-print(f"Genes after filtering: {nrow(expressed)}")</code></pre>
+println(f"Genes after filtering: {nrow(expressed)}")</code></pre>
 
         <!-- Step 3 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Normalization</h2>
@@ -128,8 +128,8 @@ for i in range(0, len(sample_cols)) {
   cpm_table = mutate(cpm_table, s, |row| row[s] / total * 1_000_000.0)
 }
 
-print("CPM matrix:")
-print(head(cpm_table, 3))
+println("CPM matrix:")
+println(head(cpm_table, 3))
 
 # TPM normalization (Transcripts Per Kilobase Million)
 # Requires gene lengths
@@ -151,8 +151,8 @@ for s in sample_cols {
   tpm_table = mutate(tpm_table, s, |row| row[s] / total_rpk * 1_000_000.0)
 }
 
-print("\nTPM matrix:")
-print(head(tpm_table, 3))
+println("\nTPM matrix:")
+println(head(tpm_table, 3))
 
 # Log2 transform for visualization
 let log_cpm = cpm_table
@@ -163,7 +163,7 @@ for s in sample_cols {
 # Check the distribution
 for s in sample_cols {
   let vals = col(log_cpm, s)
-  print(f"{s}: mean={round(mean(vals), 2)}, median={round(median(vals), 2)}")
+  println(f"{s}: mean={round(mean(vals), 2)}, median={round(median(vals), 2)}")
 }</code></pre>
 
         <!-- Step 4 -->
@@ -174,8 +174,8 @@ for s in sample_cols {
 let groups = [0, 0, 0, 1, 1, 1]
 let de_results = diff_expr(expressed, groups)
 
-print("DE results:")
-print(head(de_results, 5))
+println("DE results:")
+println(head(de_results, 5))
 # ┌────────┬──────────┬──────────┬──────────┬──────────┐
 # │ gene   │ log2fc   │ pvalue   │ fdr      │ mean_expr│
 # ├────────┼──────────┼──────────┼──────────┼──────────┤
@@ -188,10 +188,10 @@ de_results |> filter(|row| row["padj"] &lt; 0.05 and abs(row["log2fc"]) > 1.0) |
 sig |> filter(|row| row["log2fc"] > 0.0) |> into up
 sig |> filter(|row| row["log2fc"] &lt; 0.0) |> into down
 
-print("\n=== Summary ===")
-print(f"Significant (FDR&lt;0.05, |log2FC|>1): {nrow(sig)}")
-print(f"  Upregulated:   {nrow(up)}")
-print(f"  Downregulated: {nrow(down)}")</code></pre>
+println("\n=== Summary ===")
+println(f"Significant (FDR&lt;0.05, |log2FC|>1): {nrow(sig)}")
+println(f"  Upregulated:   {nrow(up)}")
+println(f"  Downregulated: {nrow(down)}")</code></pre>
 
         <!-- Step 5 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Multiple Testing Correction</h2>
@@ -207,9 +207,9 @@ let bonf = mutate(de_results, "bonf_pvalue", |row| min(row.pvalue * n_genes, 1.0
 let n_bh = nrow(filter(bh, |row| row["padj"] &lt; 0.05))
 let n_bonf = nrow(filter(bonf, |row| row["bonf_pvalue"] &lt; 0.05))
 
-print("Significant genes (FDR&lt;0.05):")
-print(f"  Benjamini-Hochberg: {n_bh}")
-print(f"  Bonferroni:         {n_bonf}")
+println("Significant genes (FDR&lt;0.05):")
+println(f"  Benjamini-Hochberg: {n_bh}")
+println(f"  Bonferroni:         {n_bonf}")
 
 # Q-value approach (same as BH FDR)
 let de_with_q = mutate(de_results, "qvalue", |row| row.fdr)
@@ -223,7 +223,7 @@ let vp = volcano(de_results, {
 })
 
 save_svg(vp, "results/volcano.svg")
-print("Volcano plot saved")
+println("Volcano plot saved")
 
 # Volcano plot with custom options
 let vp2 = volcano(de_results, {
@@ -240,7 +240,7 @@ let ma = ma_plot(de_results, {
 })
 
 save_svg(ma, "results/ma_plot.svg")
-print("MA plot saved")</code></pre>
+println("MA plot saved")</code></pre>
 
         <!-- Step 8 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Heatmap of Top Genes</h2>
@@ -267,7 +267,7 @@ let hm = heatmap(z_scored, {
 })
 
 save_svg(hm, "results/heatmap.svg")
-print("Heatmap saved to results/heatmap.svg")</code></pre>
+println("Heatmap saved to results/heatmap.svg")</code></pre>
 
         <!-- Step 9 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Pathway Enrichment</h2>
@@ -284,8 +284,8 @@ let go_hits = map(sig_genes, |g| go_annotations(g))
 # Reactome pathways
 let pathway_hits = map(sig_genes, |g| reactome_pathways(g))
 
-print("\n=== Pathway Results ===")
-print(f"Genes queried: {len(sig_genes)}")
+println("\n=== Pathway Results ===")
+println(f"Genes queried: {len(sig_genes)}")
 
 # Collect results into a summary table
 let kegg_summary = from_records(map(sig_genes, |g| {
@@ -293,7 +293,7 @@ let kegg_summary = from_records(map(sig_genes, |g| {
   kegg: kegg_find("genes", g),
 }))
 
-print(head(kegg_summary, 10))
+println(head(kegg_summary, 10))
 
 # Visualize with a plot
 let p = plot(kegg_summary, {
@@ -303,7 +303,7 @@ save_svg(p, "results/enrichment.svg")</code></pre>
 
         <!-- Step 10 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Complete Pipeline</h2>
-        <pre><code class="language-biolang"># rnaseq_pipeline.bio — full DE analysis pipeline
+        <pre><code class="language-biolang"># rnaseq_pipeline.bl — full DE analysis pipeline
 
 fn run_de_analysis(counts_file, design_file, output_dir) {
   # Load data
@@ -335,14 +335,14 @@ fn run_de_analysis(counts_file, design_file, output_dir) {
   save_svg(ma, f"{output_dir}/ma_plot.svg")
 
   # Summary
-  print("=== DE Analysis Complete ===")
-  print(f"Total genes tested: {nrow(de)}")
-  print(f"Significant (FDR&lt;0.05, |FC|>2): {nrow(sig)}")
+  println("=== DE Analysis Complete ===")
+  println(f"Total genes tested: {nrow(de)}")
+  println(f"Significant (FDR&lt;0.05, |FC|>2): {nrow(sig)}")
   let up_count = nrow(filter(sig, |r| r["log2fc"] > 0))
   let down_count = nrow(filter(sig, |r| r["log2fc"] &lt; 0))
-  print(f"  Up: {up_count}")
-  print(f"  Down: {down_count}")
-  print(f"Results saved to {output_dir}/")
+  println(f"  Up: {up_count}")
+  println(f"  Down: {down_count}")
+  println(f"Results saved to {output_dir}/")
 }
 
 run_de_analysis("data/counts.csv", "data/design.csv", "results")</code></pre>

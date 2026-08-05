@@ -294,7 +294,8 @@ let avg_q = records |> map(|r| mean_phred(r.quality)) |> mean()</code></pre>
           BioLang uses newlines as statement terminators. The lexer automatically suppresses
           newlines after <code>|&gt;</code>, so this works:
         </p>
-        <pre><code class="language-biolang"># Works: newline after |>
+        <pre><code class="language-biolang"># illustrative: the second half of this block is a deliberate syntax error
+# Works: newline after |>
 data
   |> filter(|x| x > 0)
   |> map(|x| x * 2)
@@ -533,7 +534,7 @@ samtools index sorted.bam</code></pre>
 read_fastq("old_data.fastq")
   |> take(100)
   |> map(|r| r.quality)
-  |> map(|q| print(q))
+  |> each(|q| println(q))
 
 # Phred+33 quality chars start at '!' (ASCII 33)
 # Phred+64 quality chars start at '@' (ASCII 64)
@@ -558,7 +559,7 @@ read_fastq("old_data.fastq")
 let variants = read_vcf("data.vcf")
 variants
   |> filter(|v| v.is_multiallelic)
-  |> each(|v| print(f"Multi-allelic: {v.chrom}:{v.pos}"))</code></pre>
+  |> each(|v| println(f"Multi-allelic: {v.chrom}:{v.pos}"))</code></pre>
 
         <h3>INFO field parsing surprises</h3>
         <p>

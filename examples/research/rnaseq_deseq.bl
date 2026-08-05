@@ -15,7 +15,7 @@ let samples = table(
   batch:      ["A", "A", "B", "A", "B", "B"]
 )
 
-println("Samples loaded: {len(samples)} total")
+println(f"Samples loaded: {len(samples)} total")
 
 # ── 2. Raw Count Matrix ─────────────────────────────────────────────────────
 # Rows = genes, Columns = samples (CTL_1..3, TRT_1..3)
@@ -56,7 +56,7 @@ let raw_counts = matrix(
   ]
 )
 
-println("Count matrix: {len(genes)} genes x {len(samples)} samples")
+println(f"Count matrix: {len(genes)} genes x {len(samples)} samples")
 
 # ── 3. CPM Normalization ────────────────────────────────────────────────────
 println("=== 3. CPM Normalization ===")
@@ -67,7 +67,7 @@ let lib_sizes = raw_counts
 let cpm_matrix = raw_counts
   |> map(|col, i| col |> map(|count| count / lib_sizes[i] * 1_000_000))
 
-println("Library sizes (millions): {lib_sizes |> map(|s| s / 1_000_000)}")
+println(f"Library sizes (millions): {lib_sizes |> map(|s| s / 1_000_000)}")
 
 # ── 4. Differential Expression Testing ──────────────────────────────────────
 # Split into control and treated matrices, run statistical test
@@ -81,7 +81,7 @@ let treated_matrix = raw_counts |> map(|col, i| if contains(treated_idx, i) { co
 
 let de_results = diff_expr(control_matrix, treated_matrix)
 
-println("DE test complete: {len(de_results)} genes tested")
+println(f"DE test complete: {len(de_results)} genes tested")
 
 # ── 5. Log2 Fold Change Calculation ─────────────────────────────────────────
 println("=== 5. Log2 Fold Change Calculation ===")
@@ -106,7 +106,7 @@ let de_results = de_results
 
 println("Top hits by adjusted p-value:")
 de_results |> filter(|row| row.padj < 0.05)
-  |> map(|row| println("  {row.gene}\tlog2FC={row.log2fc:.2}\tpadj={row.padj:.2e}"))
+  |> map(|row| println(f"  {row.gene}\tlog2FC={row.log2fc:.2}\tpadj={row.padj:.2e}"))
 
 # ── 7. Filter Significant Genes ─────────────────────────────────────────────
 # Thresholds: padj < 0.05 and |log2FC| > 1
@@ -118,9 +118,9 @@ let sig_genes = de_results
 let up_genes = sig_genes |> filter(|row| row.log2fc > 0) |> map(|row| row.gene)
 let down_genes = sig_genes |> filter(|row| row.log2fc < 0) |> map(|row| row.gene)
 
-println("Significant DE genes: {len(sig_genes)} total")
-println("  Upregulated:   {len(up_genes)}  {up_genes}")
-println("  Downregulated: {len(down_genes)} {down_genes}")
+println(f"Significant DE genes: {len(sig_genes)} total")
+println(f"  Upregulated:   {len(up_genes)}  {up_genes}")
+println(f"  Downregulated: {len(down_genes)} {down_genes}")
 
 # ── 8. Pathway Enrichment Analysis ──────────────────────────────────────────
 println("=== 8. Pathway Enrichment Analysis ===")
@@ -139,7 +139,7 @@ let sig_gene_list = sig_genes |> map(|row| row.gene)
 let ora_results = ora(sig_gene_list, gene_sets, genes)
 
 println("\nORA Results:")
-ora_results |> map(|row| println("  {row.term}\tp={row.pvalue:.4f}\toverlap={row.overlap}"))
+ora_results |> map(|row| println(f"  {row.term}\tp={row.pvalue:.4f}\toverlap={row.overlap}"))
 
 # GSEA on full ranked list (ranked by signed -log10 p-value)
 let ranked_genes = de_results
@@ -149,7 +149,7 @@ let ranked_genes = de_results
 let gsea_results = gsea(ranked_genes |> select("gene", "rank_score"), gene_sets, 1000)
 
 println("\nGSEA Results:")
-gsea_results |> map(|row| println("  {row.term}\tNES={row.nes:.3f}\tpadj={row.padj:.4f}"))
+gsea_results |> map(|row| println(f"  {row.term}\tNES={row.nes:.3f}\tpadj={row.padj:.4f}"))
 println("Result:", len(ora_results), "ORA terms,", len(gsea_results), "GSEA terms")
 
 # ── 9. Visualizations ───────────────────────────────────────────────────────
@@ -205,15 +205,15 @@ println("Result: 4 plots saved to output/")
 println("=== 10. Pathway Database Queries ===")
 
 let tp53_pathways = reactome_pathways("TP53")
-println("\nTP53 Reactome pathways: {len(tp53_pathways)}")
+println(f"\nTP53 Reactome pathways: {len(tp53_pathways)}")
 tp53_pathways
   |> filter(|p| p.species == "Homo sapiens")
   |> sort(|a, b| a.pvalue - b.pvalue)
-  |> map(|p| println("  {p.pathway_id}: {p.name}"))
+  |> map(|p| println(f"  {p.pathway_id}: {p.name}"))
 
 let apoptosis_kegg = kegg_find("pathway", "apoptosis")
 println("\nKEGG apoptosis pathways:")
-apoptosis_kegg |> map(|entry| println("  {entry.id}: {entry.description}"))
+apoptosis_kegg |> map(|entry| println(f"  {entry.id}: {entry.description}"))
 
 # ── 11. Export Results ───────────────────────────────────────────────────────
 println("=== 11. Export Results ===")

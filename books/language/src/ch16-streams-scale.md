@@ -50,7 +50,7 @@ Keep only elements matching a predicate.
 read_bam("aligned.bam")
   |> filter(|r| r.mapping_quality >= 30 and not r.is_duplicate)
   |> count()
-  |> |n| print(str(n) + " high-quality unique alignments")
+  |> |n| println(str(n) + " high-quality unique alignments")
 ```
 
 ### take_while
@@ -63,7 +63,7 @@ let sample = read_fastq("data/reads.fastq")
   |> take_while(|r, i| i < 1000000)
 
 let quals = sample |> map(|r| mean_phred(r.quality))
-print("Sampled stats: " + str(mean(quals)) + " mean Q")
+println("Sampled stats: " + str(mean(quals)) + " mean Q")
 ```
 
 ### each
@@ -77,7 +77,7 @@ read_fastq("data/reads.fastq")
        if mean_phred(r.quality) < 20 then
          bad_count = bad_count + 1
      })
-print(str(bad_count) + " low-quality reads")
+println(str(bad_count) + " low-quality reads")
 ```
 
 ### fold / reduce
@@ -88,7 +88,7 @@ Accumulate a value across the entire stream.
 let total_bases = read_fastq("data/reads.fastq")
   |> map(|r| r.length)
   |> sum()
-print("Total bases: " + str(total_bases))
+println("Total bases: " + str(total_bases))
 ```
 
 ## Chunked Processing
@@ -121,7 +121,7 @@ read_fastq("data/reads.fastq")
        batch |> write_fastq(path)
        file_num = file_num + 1
      })
-print("Wrote " + str(file_num) + " chunk files")
+println("Wrote " + str(file_num) + " chunk files")
 ```
 
 ## Window Operations
@@ -216,13 +216,13 @@ let genome_size = gb(3)          # 3,000,000,000
 
 # Use in calculations
 let coverage = 1800000000 / genome_size  # ~0.6x
-print("Coverage: " + str(coverage) + "x")
+println("Coverage: " + str(coverage) + "x")
 
 # Filter regions by size
 let large_svs = read_vcf("data/variants.vcf")
   |> filter(|v| v.info.SVLEN != nil and abs(v.info.SVLEN) > mb(1))
 
-print(str(large_svs |> count()) + " SVs larger than 1 Mb")
+println(str(large_svs |> count()) + " SVs larger than 1 Mb")
 ```
 
 These helpers are simple multipliers but they prevent off-by-three-zeros bugs
@@ -320,8 +320,8 @@ let chr_len = len(chr_seq)
 let win = kb(1)
 let step = bp(500)
 
-print("Chromosome 22: " + str(chr_len) + " bp")
-print("Computing GC in " + str(win) + " bp windows, step " + str(step))
+println("Chromosome 22: " + str(chr_len) + " bp")
+println("Computing GC in " + str(win) + " bp windows, step " + str(step))
 
 let gc_profile = window(chr_seq, win)
   |> enumerate()
@@ -335,8 +335,8 @@ let gc_profile = window(chr_seq, win)
 let gc_rich = gc_profile |> filter(|w| w.gc > 0.60)
 let gc_poor = gc_profile |> filter(|w| w.gc < 0.35)
 
-print("GC-rich windows (>60%): " + str(len(gc_rich)))
-print("GC-poor windows (<35%): " + str(len(gc_poor)))
+println("GC-rich windows (>60%): " + str(len(gc_rich)))
+println("GC-poor windows (<35%): " + str(len(gc_poor)))
 
 gc_profile |> write_tsv("chr22_gc_profile.tsv")
 ```

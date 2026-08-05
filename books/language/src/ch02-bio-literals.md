@@ -22,7 +22,7 @@ let probe = dna"ATCNNGATCG"
 
 # Case is normalized to uppercase
 let lower = dna"atcgatcg"
-print(lower)   # => dna"ATCGATCG"
+println(lower)   # => dna"ATCGATCG"
 ```
 
 Invalid bases cause a compile-time error:
@@ -69,9 +69,9 @@ Each character maps to a Phred quality score. You can work with them numerically
 
 ```biolang
 let q = qual"IIIIIHHHGG"
-print(mean_phred(q)) # => 39.2
-print(min_phred(q))  # => 38  (G = 38)
-print(max_phred(q))  # => 40  (I = 40)
+println(mean_phred(q)) # => 39.2
+println(min_phred(q))  # => 38  (G = 38)
+println(max_phred(q))  # => 40  (I = 40)
 
 # Filter reads by mean quality
 let reads = read_fastq("data/reads.fastq")
@@ -86,10 +86,10 @@ let hq_reads = reads |> filter(|r| mean_phred(r.quality) >= 30)
 let forward = dna"ATCGATCG"
 
 let comp = forward |> complement()
-print(comp)   # => dna"TAGCTAGC"
+println(comp)   # => dna"TAGCTAGC"
 
 let rc = forward |> reverse_complement()
-print(rc)     # => dna"CGATCGAT"
+println(rc)     # => dna"CGATCGAT"
 ```
 
 Reverse complement is the workhorse of strand-aware bioinformatics:
@@ -102,7 +102,7 @@ let primer = dna"GCTAGC"
 let fwd_match = template |> find_motif(primer)
 let rev_match = template |> find_motif(primer |> reverse_complement())
 
-print(f"Forward hits: {len(fwd_match)}, Reverse hits: {len(rev_match)}")
+println(f"Forward hits: {len(fwd_match)}, Reverse hits: {len(rev_match)}")
 ```
 
 ### Transcription and Translation
@@ -112,14 +112,14 @@ let gene = dna"ATGAAAGCTTTTCGATAG"
 
 # Transcribe DNA to RNA (T -> U)
 let mrna = gene |> transcribe()
-print(mrna)   # => rna"AUGAAAGCUUUUCGAUAG"
+println(mrna)   # => rna"AUGAAAGCUUUUCGAUAG"
 
 # Translate RNA (or DNA) to protein
 let protein_seq = gene |> translate()
-print(protein_seq)   # => protein"MKAFR*"
+println(protein_seq)   # => protein"MKAFR*"
 
 let mito_protein = gene |> translate()
-print(mito_protein)  # standard genetic code (table 1)
+println(mito_protein)  # standard genetic code (table 1)
 ```
 
 ### GC Content
@@ -128,11 +128,11 @@ print(mito_protein)  # standard genetic code (table 1)
 let contig = dna"ATCGATCGGGCCCATATATGCGCGC"
 
 let gc = contig |> gc_content()
-print(f"GC: {gc:.2%}")   # => GC: 56.00%
+println(f"GC: {gc:.2%}")   # => GC: 56.00%
 
 # Sliding window GC content for detecting isochores
 let gc_windows = contig |> window(10) |> map(|w| gc_content(w))
-print(gc_windows)
+println(gc_windows)
 ```
 
 ### Subsequences with `slice` and `len`
@@ -140,8 +140,8 @@ print(gc_windows)
 ```biolang
 let genome_fragment = dna"ATCGATCGATCGATCGATCG"
 
-print(seq_len(genome_fragment))           # => 20
-print(genome_fragment |> slice(0, 6)) # => dna"ATCGAT"
+println(seq_len(genome_fragment))           # => 20
+println(genome_fragment |> slice(0, 6)) # => dna"ATCGAT"
 
 # Extract a coding region by coordinates
 let cds_start = 3
@@ -158,11 +158,11 @@ let seq = dna"ATCGAATTCGATCGAATTCG"
 
 # Find EcoRI recognition site
 let ecori_sites = seq |> find_motif(dna"GAATTC")
-print(ecori_sites)   # => [3, 13]
+println(ecori_sites)   # => [3, 13]
 
 # Regex search on sequences (returns match records)
 let matches = seq |> regex_find("GA[AT]TTC")
-matches |> each(|m| print(f"Match at {m.start}: {m.text}"))
+matches |> each(|m| println(f"Match at {m.start}: {m.text}"))
 ```
 
 ## Example: Find All ORFs in a DNA Sequence
@@ -224,11 +224,11 @@ let all_orfs = sequences |> flat_map(|entry| {
   })
 })
 
-print(f"Found {len(all_orfs)} ORFs (>= 300 bp)")
+println(f"Found {len(all_orfs)} ORFs (>= 300 bp)")
 all_orfs
   |> sort_by(|orf| -orf.length)
   |> take(20)
-  |> each(|orf| print(f"  {orf.seq_id} {orf.strand}:{orf.start}-{orf.end} ({orf.length} bp)"))
+  |> each(|orf| println(f"  {orf.seq_id} {orf.strand}:{orf.start}-{orf.end} ({orf.length} bp)"))
 ```
 
 ## Example: Codon Usage Table
@@ -263,17 +263,17 @@ let usage_table = codon_counts
   })
   |> sort_by(|c| c.amino_acid)
 
-print(f"Codon usage from {len(cds_records)} sequences ({total} codons)\n")
-print("Codon  AA  Count     Freq   /1000")
-print("-----  --  --------  -----  -----")
+println(f"Codon usage from {len(cds_records)} sequences ({total} codons)\n")
+println("Codon  AA  Count     Freq   /1000")
+println("-----  --  --------  -----  -----")
 usage_table |> each(|row|
-  print(f"{row.codon}    {row.amino_acid}   {row.count:>8}  {row.frequency:.4f}  {row.per_thousand:.1f}")
+  println(f"{row.codon}    {row.amino_acid}   {row.count:>8}  {row.frequency:.4f}  {row.per_thousand:.1f}")
 )
 
 # Identify rare codons (< 10 per thousand)
 let rare = usage_table |> filter(|c| c.per_thousand < 10.0)
-print(f"\nRare codons ({len(rare)}):")
-rare |> each(|c| print(f"  {c.codon} ({c.amino_acid}): {c.per_thousand:.1f}/1000"))
+println(f"\nRare codons ({len(rare)}):")
+rare |> each(|c| println(f"  {c.codon} ({c.amino_acid}): {c.per_thousand:.1f}/1000"))
 ```
 
 ## Example: Restriction Enzyme Site Finder
@@ -299,7 +299,7 @@ let enzymes = [
 
 let entry = read_fasta("data/sequences.fasta") |> first()
 let seq = entry.seq
-print(f"Sequence length: {seq_len(seq)} bp\n")
+println(f"Sequence length: {seq_len(seq)} bp\n")
 
 # Find all cut sites for each enzyme
 let results = enzymes |> map(|enzyme| {
@@ -311,9 +311,9 @@ let results = enzymes |> map(|enzyme| {
 # Report
 results |> each(|r| {
   if r.n_cuts > 0 then {
-    print(f"{r.name} ({r.site}): {r.n_cuts} site(s) at {r.positions}")
+    println(f"{r.name} ({r.site}): {r.n_cuts} site(s) at {r.positions}")
   } else {
-    print(f"{r.name} ({r.site}): no sites")
+    println(f"{r.name} ({r.site}): no sites")
   }
 })
 
@@ -336,11 +336,11 @@ let fragments = if len(all_cuts) == 0 then [seq_len(seq)]
     frags ++ [wrap]
   }
 
-print(f"\nEcoRI + BamHI double digest: {len(fragments)} fragments")
+println(f"\nEcoRI + BamHI double digest: {len(fragments)} fragments")
 fragments
   |> sort() |> reverse()
   |> enumerate()
-  |> each(|i, size| print(f"  Fragment {i + 1}: {size} bp"))
+  |> each(|i, size| println(f"  Fragment {i + 1}: {size} bp"))
 ```
 
 ## Summary

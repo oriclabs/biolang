@@ -299,9 +299,9 @@ let i = iqr(quality_scores)          # 5.14
 let sk = skewness(quality_scores)    # -0.01
 let ku = kurtosis(quality_scores)    # 2.99
 
-print("Mean: {avg}, Median: {med}")
-print("SD: {sd}, IQR: {i}")
-print("Skewness: {sk}, Kurtosis: {ku}")
+print(f"Mean: {avg}, Median: {med}")
+print(f"SD: {sd}, IQR: {i}")
+print(f"Skewness: {sk}, Kurtosis: {ku}")
 ```
 
 ### The `summary()` Function
@@ -454,9 +454,9 @@ boxplot(scores, {title: "Quality Score Box Plot"})
 
 # Summary table
 let stats = summary(scores)
-print("QC Decision: {if stats.mean > 30 then 'PASS' else 'FAIL'}")
-print("Mean Q-score: {stats.mean:.1}")
-print("Tiles below Q20: {scores |> filter(|s| s < 20) |> len()}")
+print(f"QC Decision: {if stats.mean > 30 then "PASS" else "FAIL"}")
+print(f"Mean Q-score: {stats.mean:.1}")
+print(f"Tiles below Q20: {scores |> filter(|s| s < 20) |> len()}")
 ```
 
 ## Python and R Equivalents
@@ -541,12 +541,12 @@ let fraction_below_q20 = tiles_below_q20 / len(scores)
 let qc_pass = stats.mean >= pass_threshold and fraction_below_q20 <= fail_fraction_limit
 
 print("=== Sequencing Run QC Report ===")
-print("Total tiles:          {len(scores)}")
-print("Mean quality:         {stats.mean:.2}")
-print("Median quality:       {stats.median:.2}")
-print("Std deviation:        {stats.sd:.2}")
-print("Tiles below Q20:      {tiles_below_q20} ({fraction_below_q20 * 100:.1}%)")
-print("QC Result:            {if qc_pass then 'PASS' else 'FAIL'}")
+print(f"Total tiles:          {len(scores)}")
+print(f"Mean quality:         {stats.mean:.2}")
+print(f"Median quality:       {stats.median:.2}")
+print(f"Std deviation:        {stats.sd:.2}")
+print(f"Tiles below Q20:      {tiles_below_q20} ({fraction_below_q20 * 100:.1}%)")
+print(f"QC Result:            {if qc_pass then "PASS" else "FAIL"}")
 print("================================")
 
 # Step 6: Visualize

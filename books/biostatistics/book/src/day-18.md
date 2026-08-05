@@ -302,8 +302,8 @@ let sample_sizes = [5, 10, 15, 20, 30, 50, 75, 100]
 let n_simulations = 1000
 
 print("=== Power Analysis: Two-Sample t-test ===")
-print("Effect size (Cohen's d): {effect_size}")
-print("Alpha: {alpha}")
+print(f"Effect size (Cohen's d): {effect_size}")
+print(f"Alpha: {alpha}")
 print("")
 print("n per group    Estimated Power")
 
@@ -323,7 +323,7 @@ for n in sample_sizes {
 
     let power = significant / n_simulations
     let marker = if power >= power_target { " <-- sufficient" } else { "" }
-    print("{n}            {power |> round(3)}{marker}")
+    print(f"{n}            {power |> round(3)}{marker}")
 }
 ```
 
@@ -406,7 +406,7 @@ for fc in fold_changes {
         powers = powers + [detected / n_sims]
     }
 
-    print("{fc}     " ++ powers |> map(|p| "{(p * 100) |> round(0)}%") |> join("   "))
+    print(f"{fc}     " ++ powers |> map(|p| f"{(p * 100) |> round(0)}%") |> join("   "))
 }
 
 # Key takeaway: n=3 barely detects 4-fold changes;
@@ -444,10 +444,10 @@ for sim in 0..n_sims {
     }
 }
 
-print("=== Paired vs Unpaired Design (n={n}, d={effect}) ===")
-print("Unpaired power: {(power_unpaired / n_sims * 100) |> round(1)}%")
-print("Paired power:   {(power_paired / n_sims * 100) |> round(1)}%")
-print("Pairing advantage: {((power_paired - power_unpaired) / n_sims * 100) |> round(1)} percentage points")
+print(f"=== Paired vs Unpaired Design (n={n}, d={effect}) ===")
+print(f"Unpaired power: {(power_unpaired * 100.0 / n_sims) |> round(1)}%")
+print(f"Paired power:   {(power_paired * 100.0 / n_sims) |> round(1)}%")
+print(f"Pairing advantage: {((power_paired - power_unpaired) * 100.0 / n_sims) |> round(1)} percentage points")
 ```
 
 ### Multi-Group Design (ANOVA)
@@ -460,7 +460,7 @@ let k = 4  # number of groups
 let group_means = [0, 0.3, 0.6, 0.9]  # increasing effect
 let sample_sizes = [5, 10, 15, 20, 30]
 
-print("=== ANOVA Power (k={k} groups) ===")
+print(f"=== ANOVA Power (k={k} groups) ===")
 for n in sample_sizes {
     let sig = 0
 
@@ -474,7 +474,7 @@ for n in sample_sizes {
         if result.p_value < 0.05 { sig = sig + 1 }
     }
 
-    print("n = {n} per group: power = {(sig / n_sims * 100) |> round(1)}%")
+    print(f"n = {n} per group: power = {(sig * 100.0 / n_sims) |> round(1)}%")
 }
 ```
 
@@ -509,7 +509,7 @@ for s in scenarios {
         }
     }
 
-    print("{s.name}: n = {required_n}/group")
+    print(f"{s.name}: n = {required_n}/group")
 }
 
 print("")

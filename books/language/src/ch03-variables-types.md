@@ -86,16 +86,16 @@ Intervals represent genomic regions with chromosome, start, and end:
 
 ```biolang
 let region = interval("chr1", 1000000, 2000000)
-print(region.chrom)   # => "chr1"
-print(region.start)   # => 1000000
-print(region.end)     # => 2000000
-print(region.length)  # => 1000000
+println(region.chrom)   # => "chr1"
+println(region.start)   # => 1000000
+println(region.end)     # => 2000000
+println(region.length)  # => 1000000
 
 # Interval arithmetic
 let exon1 = interval("chr1", 1000, 1500)
 let exon2 = interval("chr1", 1400, 2000)
-print(exon1.end > exon2.start && exon2.end > exon1.start)  # => true
-print(intersect(exon1, exon2))      # => interval("chr1", 1400, 1500)
+println(exon1.end > exon2.start && exon2.end > exon1.start)  # => true
+println(intersect(exon1, exon2))      # => interval("chr1", 1400, 1500)
 ```
 
 ### Variant Type
@@ -104,16 +104,16 @@ Variants represent sequence changes at specific positions:
 
 ```biolang
 let snv = variant("chr7", 55249071, "C", "T")
-print(snv.chrom)    # => "chr7"
-print(snv.pos)      # => 55249071
-print(snv.ref_allele)  # => "C"
-print(snv.alt_allele)  # => "T"
+println(snv.chrom)    # => "chr7"
+println(snv.pos)      # => 55249071
+println(snv.ref_allele)  # => "C"
+println(snv.alt_allele)  # => "T"
 
 # Classify variant type
-print(variant_type(snv))   # => "SNV"
+println(variant_type(snv))   # => "SNV"
 
 let indel = variant("chr7", 55249071, "CT", "C")
-print(variant_type(indel)) # => "DEL"
+println(variant_type(indel)) # => "DEL"
 ```
 
 ## Records
@@ -131,8 +131,8 @@ let sample = {
   contamination: 0.02
 }
 
-print(sample.sample_id)       # => "S001"
-print(sample.mean_coverage)   # => 32.5
+println(sample.sample_id)       # => "S001"
+println(sample.mean_coverage)   # => 32.5
 ```
 
 ### String Keys
@@ -169,8 +169,8 @@ let sample_config = {
   min_mapq: 20   # override the default
 }
 
-print(sample_config.aligner)   # => "bwa-mem2"
-print(sample_config.min_mapq)  # => 20
+println(sample_config.aligner)   # => "bwa-mem2"
+println(sample_config.min_mapq)  # => 20
 ```
 
 This pattern is essential for bioinformatics pipelines where you have standard
@@ -200,8 +200,8 @@ let variant_annotation = {
   }
 }
 
-print(variant_annotation.gene.consequence)
-print(variant_annotation.prediction.sift.score)
+println(variant_annotation.gene.consequence)
+println(variant_annotation.prediction.sift.score)
 ```
 
 ## Type Checking
@@ -210,14 +210,14 @@ BioLang provides introspection functions for runtime type checking:
 
 ```biolang
 let seq = dna"ATCG"
-print(type(seq))       # => "DNA"
-print(is_dna(seq))     # => true
-print(is_rna(seq))     # => false
+println(type(seq))       # => "DNA"
+println(is_dna(seq))     # => true
+println(is_rna(seq))     # => false
 
 let rec = {name: "BRCA1", chrom: "chr17"}
-print(type(rec))       # => "Record"
-print(is_record(rec))  # => true
-print(is_str(rec))     # => false
+println(type(rec))       # => "Record"
+println(is_record(rec))  # => true
+println(is_str(rec))     # => false
 ```
 
 Available type check functions:
@@ -348,22 +348,22 @@ let registry = raw_sheet |> map(|row| {
 # Validate: every sample must have R1
 let invalid = registry |> filter(|s| is_nil(s.fastq_r1))
 if len(invalid) > 0 then {
-  print(f"ERROR: {len(invalid)} samples missing FASTQ R1:")
-  invalid |> each(|s| print(f"  {s.sample_id}"))
+  println(f"ERROR: {len(invalid)} samples missing FASTQ R1:")
+  invalid |> each(|s| println(f"  {s.sample_id}"))
   exit(1)
 }
 
 # Group by condition for downstream analysis
 let by_condition = registry |> group_by("condition")
 by_condition |> each(|group| {
-  print(f"{group.key}: {len(group.values)} samples")
-  group.values |> each(|s| print(f"  {s.sample_id} ({s.tissue})"))
+  println(f"{group.key}: {len(group.values)} samples")
+  group.values |> each(|s| println(f"  {s.sample_id} ({s.tissue})"))
 })
 
 # Summary
 let tumor_count = registry |> filter(|s| s.condition == "tumor") |> len()
 let normal_count = registry |> filter(|s| s.condition == "normal") |> len()
-print(f"\nRegistry: {len(registry)} samples ({tumor_count} tumor, {normal_count} normal)")
+println(f"\nRegistry: {len(registry)} samples ({tumor_count} tumor, {normal_count} normal)")
 ```
 
 ## Example: Parsing and Validating Variant Records
@@ -411,19 +411,19 @@ let total = len(classified)
 let valid = classified |> filter(|v| v.is_valid) |> len()
 let by_type = classified |> group_by("variant_type")
 
-print(f"Total variants: {total}")
-print(f"Passing filters: {valid} ({valid / total * 100.0:.1f}%)")
-print(f"\nBy type:")
-by_type |> each(|g| print(f"  {g.key}: {len(g.values)}"))
+println(f"Total variants: {total}")
+println(f"Passing filters: {valid} ({valid * 100.0 / total:.1f}%)")
+println(f"\nBy type:")
+by_type |> each(|g| println(f"  {g.key}: {len(g.values)}"))
 
 # Flag high-impact variants
 let high_impact = classified
   |> filter(|v| v.is_valid && v.variant_type != "SNV" && v.size > 50)
   |> sort_by(|v| -v.size)
 
-print(f"\nHigh-impact structural variants (>50bp): {len(high_impact)}")
+println(f"\nHigh-impact structural variants (>50bp): {len(high_impact)}")
 high_impact |> take(10) |> each(|v| {
-  print(f"  {v.var.chrom}:{v.var.pos} {v.variant_type} size={v.size} AF={v.allele_freq:.3f}")
+  println(f"  {v.var.chrom}:{v.var.pos} {v.variant_type} size={v.size} AF={v.allele_freq:.3f}")
 })
 ```
 

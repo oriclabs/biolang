@@ -59,7 +59,7 @@ look up drug targets in KEGG, generate a volcano plot and oncoprint, and compile
 # Simulated VCF output from Mutect2 somatic calling (tumor vs matched normal).
 # These represent real hotspot loci frequently mutated in solid tumors.
 
-print("=== Loading somatic variants ===")
+println("=== Loading somatic variants ===")
 
 let somatic = table([
     {chrom: "chr17", pos: 7578406,  ref: "C",    alt: "T",    qual: 312.0, af: 0.42, dp: 186, gene: "TP53",   aa: "R248W"},
@@ -76,19 +76,19 @@ let somatic = table([
     {chrom: "chr2",  pos: 209113112,ref: "C",    alt: "T",    qual: 275.0, af: 0.35, dp: 190, gene: "IDH1",   aa: "R132H"}
 ])
 
-print("Loaded", len(somatic), "somatic variant calls")
+println("Loaded", len(somatic), "somatic variant calls")
 
-print("\n=== Filtering variants ===")
+println("\n=== Filtering variants ===")
 
 # ── 2. Quality and Allele Frequency Filtering ──────────────────────
 let filtered = somatic
     |> filter(|v| v.qual >= 50.0)
     |> filter(|v| v.af >= 0.05)
 
-print("Variants passing QC (QUAL>=50, AF>=5%):", len(filtered))
+println("Variants passing QC (QUAL>=50, AF>=5%):", len(filtered))
 
 # ── 3. Classify Variant Type ───────────────────────────────────────
-print("\n=== Classifying variant types ===")
+println("\n=== Classifying variant types ===")
 
 let classified = filtered |> mutate("var_type", |row| {
     if len(row.ref) == 1 && len(row.alt) == 1 then "SNV"
@@ -98,58 +98,58 @@ let classified = filtered |> mutate("var_type", |row| {
 
 let snvs = classified |> filter(|v| v.var_type == "SNV")
 let indels = classified |> filter(|v| v.var_type != "SNV")
-print("  SNVs:", len(snvs), " Indels:", len(indels))
+println("  SNVs:", len(snvs), " Indels:", len(indels))
 
 # ── 4. Flag Known Cancer Driver Genes ──────────────────────────────
-print("\n=== Flagging cancer driver genes ===")
+println("\n=== Flagging cancer driver genes ===")
 
 let tier1_drivers = ["TP53", "KRAS", "EGFR", "BRAF", "PIK3CA", "BRCA1", "BRCA2", "PTEN", "IDH1"]
 
 let drivers = classified |> filter(|v| tier1_drivers |> contains(v.gene))
-print("Tier-1 driver mutations:", len(drivers))
+println("Tier-1 driver mutations:", len(drivers))
 drivers |> each(|v| {
-    print("  " + v.gene + " " + v.aa + " (AF=" + str(v.af) + ", " + v.var_type + ")")
+    println("  " + v.gene + " " + v.aa + " (AF=" + str(v.af) + ", " + v.var_type + ")")
 })
 
 # ── 5. COSMIC Mutation Frequency ───────────────────────────────────
-print("\n=== Querying COSMIC ===")
+println("\n=== Querying COSMIC ===")
 let tp53_cosmic = cosmic_gene("TP53")
-print("TP53 COSMIC entries:", len(tp53_cosmic))
+println("TP53 COSMIC entries:", len(tp53_cosmic))
 let top_tp53 = sort(tp53_cosmic, |a, b| b.count - a.count) |> head(3)
 for m in top_tp53 {
-    print("  " + m.aa + " (" + m.primary_site + ") —", m.count, "tumors")
+    println("  " + m.aa + " (" + m.primary_site + ") —", m.count, "tumors")
 }
 
 # ── 6. ClinVar Pathogenicity Check ─────────────────────────────────
-print("\n=== Querying ClinVar ===")
+println("\n=== Querying ClinVar ===")
 let clinvar_tp53 = ncbi_search("clinvar", "TP53[gene] AND pathogenic[clinsig]")
-print("TP53 pathogenic ClinVar records:", len(clinvar_tp53))
+println("TP53 pathogenic ClinVar records:", len(clinvar_tp53))
 
 let clinvar_brca1 = ncbi_search("clinvar", "BRCA1[gene] AND pathogenic[clinsig]")
-print("BRCA1 pathogenic ClinVar records:", len(clinvar_brca1))
+println("BRCA1 pathogenic ClinVar records:", len(clinvar_brca1))
 
 # ── 7. UniProt Protein Domain Annotation ───────────────────────────
-print("\n=== Querying UniProt ===")
+println("\n=== Querying UniProt ===")
 let p53_entry = uniprot_entry("P04637")
-print("Protein:", p53_entry.name, "(" + str(p53_entry.sequence_length) + " aa)")
+println("Protein:", p53_entry.name, "(" + str(p53_entry.sequence_length) + " aa)")
 
 let p53_features = uniprot_features("P04637")
 let domains = filter(p53_features, |f| f.type == "Domain")
-print("Found", len(domains), "domains")
+println("Found", len(domains), "domains")
 for d in domains {
-    print("  Domain: " + d.description + " [" + str(d.start) + "-" + str(d.end) + "]")
+    println("  Domain: " + d.description + " [" + str(d.start) + "-" + str(d.end) + "]")
 }
 
 # ── 8. Drug Target Lookup via KEGG ─────────────────────────────────
-print("\n=== Querying KEGG drug targets ===")
+println("\n=== Querying KEGG drug targets ===")
 let egfr_drugs = kegg_find("drug", "EGFR inhibitor")
-print("EGFR-targeted drugs in KEGG:", len(egfr_drugs))
+println("EGFR-targeted drugs in KEGG:", len(egfr_drugs))
 for d in head(egfr_drugs, 5) {
-    print("  " + d.id + ": " + d.name)
+    println("  " + d.id + ": " + d.name)
 }
 
 let braf_drugs = kegg_find("drug", "BRAF inhibitor")
-print("BRAF-targeted drugs:", len(braf_drugs))
+println("BRAF-targeted drugs:", len(braf_drugs))
 
 # ── 9. Volcano Plot: Tumor vs Normal Expression ────────────────────
 let de_results = table([
@@ -167,7 +167,7 @@ let de_results = table([
     {gene: "BRCA1",  log2fc: -0.8, pvalue: 0.04,    significant: false}
 ])
 
-print("\n=== Generating visualizations ===")
+println("\n=== Generating visualizations ===")
 let volcano_svg = volcano(de_results, {title: "Tumor vs Normal: Differential Expression"})
 save_svg(volcano_svg, "output/volcano_tumor_normal.svg")
 
@@ -194,7 +194,7 @@ let onco_svg = oncoprint(onco_data, {format: "svg"})
 save_svg(onco_svg, "output/oncoprint_cohort.svg")
 
 # ── 11. Summary Report ─────────────────────────────────────────────
-print("\n=== Generating summary report ===")
+println("\n=== Generating summary report ===")
 
 let actionable = drivers |> filter(|v| v.af >= 0.10)
 let actionable_summary = actionable |> map(|v| {
@@ -219,8 +219,8 @@ let report = "# Molecular Tumor Board Report — Patient PT-001\n\n" +
     "IDH1 R132H — Ivosidenib approved for cholangiocarcinoma and AML.\n"
 
 write_text("output/tumor_board_report.md", report)
-print("Report saved to output/tumor_board_report.md")
-print("\n=== Analysis complete ===")</code></pre>
+println("Report saved to output/tumor_board_report.md")
+println("\n=== Analysis complete ===")</code></pre>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <h2 id="rnaseq-de">RNA-seq Differential Expression</h2>
@@ -235,7 +235,7 @@ volcano plot, clustered heatmap, PCA, and Venn diagram.</p>
 # Design: 3 biological replicates per condition (n=6 total)
 
 # ── 1. Sample Metadata ────────────────────────────────────────────
-print("=== 1. Sample Metadata ===")
+println("=== 1. Sample Metadata ===")
 
 let samples = table({
   sample_id:  ["CTL_1", "CTL_2", "CTL_3", "TRT_1", "TRT_2", "TRT_3"],
@@ -245,10 +245,10 @@ let samples = table({
   batch:      ["A", "A", "B", "A", "B", "B"]
 })
 
-print(f"Samples loaded: {len(samples)} total")
+println(f"Samples loaded: {len(samples)} total")
 
 # ── 2. Raw Count Matrix ───────────────────────────────────────────
-print("=== 2. Raw Count Matrix ===")
+println("=== 2. Raw Count Matrix ===")
 
 let genes = ["TP53", "MYC", "BRCA1", "GAPDH", "ACTB",
              "CDK2", "BCL2", "BAX", "EGFR", "VEGFA", "HIF1A", "MDM2"]
@@ -268,58 +268,64 @@ let raw_counts = matrix([
     [  600,   650,   580,  4500,  4200,  4700]   # MDM2
 ])
 
-print(f"Count matrix: {len(genes)} genes x {len(samples)} samples")
+println(f"Count matrix: {len(genes)} genes x {len(samples)} samples")
 
 # ── 3. CPM Normalization ──────────────────────────────────────────
-print("=== 3. CPM Normalization ===")
+println("=== 3. CPM Normalization ===")
 
-let lib_sizes = raw_counts
-  |> map(|col| col |> sum)
+# raw_counts is a Matrix (genes x samples), which map() does not accept and
+# which cannot be indexed with []. Columns come from mat_col().
+let n_samples = len(samples)
+let lib_sizes = range(0, n_samples)
+  |> map(|j| mat_col(raw_counts, j) |> sum)
 
-let cpm_matrix = raw_counts
-  |> map(|col, i| col |> map(|count| count / lib_sizes[i] * 1_000_000))
+let cpm_matrix = range(0, n_samples)
+  |> map(|j| mat_col(raw_counts, j) |> map(|count| count * 1_000_000.0 / lib_sizes[j]))
 
-print(f"Library sizes (millions): {lib_sizes |> map(|s| s / 1_000_000)}")
+println(f"Library sizes (millions): {lib_sizes |> map(|s| s / 1_000_000)}")
 
 # ── 4. Differential Expression Testing ────────────────────────────
-print("=== 4. Differential Expression Testing ===")
+println("=== 4. Differential Expression Testing ===")
 
 let control_idx = [0, 1, 2]
 let treated_idx = [3, 4, 5]
 
-let control_matrix = raw_counts |> map(|col, i| if contains(control_idx, i) { col } else { nil }) |> filter(|col| col != nil)
-let treated_matrix = raw_counts |> map(|col, i| if contains(treated_idx, i) { col } else { nil }) |> filter(|col| col != nil)
+# diff_expr takes the counts matrix plus a group label per sample (0 or 1),
+# not two separate matrices.
+let groups = range(0, n_samples) |> map(|j| if contains(treated_idx, j) { 1 } else { 0 })
 
-let de_results = diff_expr(control_matrix, treated_matrix)
+let de_results = diff_expr(raw_counts, groups)
 
-print(f"DE test complete: {len(de_results)} genes tested")
+println(f"DE test complete: {len(de_results)} genes tested")
 
 # ── 5. Log2 Fold Change Calculation ───────────────────────────────
-print("=== 5. Log2 Fold Change Calculation ===")
+println("=== 5. Log2 Fold Change Calculation ===")
 
 de_results = de_results
   |> mutate("log2fc", |row| log2(row.mean_b / row.mean_a))
 
-print("Result: log2FC computed for", len(de_results), "genes")
+println("Result: log2FC computed for", len(de_results), "genes")
 
 # ── 6. Multiple Testing Correction (Benjamini-Hochberg) ──────────
-print("=== 6. Multiple Testing Correction (BH) ===")
+println("=== 6. Multiple Testing Correction (BH) ===")
 
 let pvalues = de_results |> map(|row| row.pvalue)
 let adjusted = p_adjust(pvalues, "bh")
 
 de_results = de_results
-  |> mutate("padj", |row, i| adjusted[i])
+  |> enumerate()
+  |> map(|pair| merge(pair[1], {padj: adjusted[pair[0]]}))
+  |> to_table()
 
 de_results = de_results
-  |> sort(|a, b| a.padj - b.padj)
+  |> sort_by(|a, b| a.padj - b.padj)
 
-print("Top hits by adjusted p-value:")
+println("Top hits by adjusted p-value:")
 de_results |> filter(|row| row.padj &lt; 0.05)
-  |> map(|row| print(f"  {row.gene}\tlog2FC={row.log2fc:.2}\tpadj={row.padj}"))
+  |> each(|row| println(f"  {row.gene}\tlog2FC={row.log2fc:.2}\tpadj={row.padj}"))
 
 # ── 7. Filter Significant Genes ───────────────────────────────────
-print("=== 7. Filter Significant Genes ===")
+println("=== 7. Filter Significant Genes ===")
 
 let sig_genes = de_results
   |> filter(|row| row.padj &lt; 0.05 && abs(row.log2fc) > 1.0)
@@ -327,12 +333,12 @@ let sig_genes = de_results
 let up_genes = sig_genes |> filter(|row| row.log2fc > 0) |> map(|row| row.gene)
 let down_genes = sig_genes |> filter(|row| row.log2fc &lt; 0) |> map(|row| row.gene)
 
-print(f"Significant DE genes: {len(sig_genes)} total")
-print(f"  Upregulated:   {len(up_genes)}  {up_genes}")
-print(f"  Downregulated: {len(down_genes)} {down_genes}")
+println(f"Significant DE genes: {len(sig_genes)} total")
+println(f"  Upregulated:   {len(up_genes)}  {up_genes}")
+println(f"  Downregulated: {len(down_genes)} {down_genes}")
 
 # ── 8. Pathway Enrichment Analysis ────────────────────────────────
-print("=== 8. Pathway Enrichment Analysis ===")
+println("=== 8. Pathway Enrichment Analysis ===")
 
 let gene_sets = {
   APOPTOSIS:      ["TP53", "BAX", "BCL2", "MDM2", "CASP3", "CASP9", "BID", "BAK1"],
@@ -344,20 +350,20 @@ let gene_sets = {
 let sig_gene_list = sig_genes |> map(|row| row.gene)
 let ora_results = ora(sig_gene_list, gene_sets, genes)
 
-print("\nORA Results:")
-ora_results |> map(|row| print(f"  {row.term}\tp={row.pvalue}\toverlap={row.overlap}"))
+println("\nORA Results:")
+ora_results |> each(|row| println(f"  {row.term}\tp={row.pvalue}\toverlap={row.overlap}"))
 
 let ranked_genes = de_results
   |> mutate("rank_score", |row| -log2(row.pvalue) * (row.log2fc |> sign()))
-  |> sort(|a, b| b.rank_score - a.rank_score)
+  |> sort_by(|a, b| b.rank_score - a.rank_score)
 
 let gsea_results = gsea(ranked_genes |> select("gene", "rank_score"), gene_sets)
 
-print("\nGSEA Results:")
-gsea_results |> map(|row| print(f"  {row.term}\tNES={row.nes}\tpadj={row.padj}"))
+println("\nGSEA Results:")
+gsea_results |> each(|row| println(f"  {row.term}\tNES={row.nes}\tpadj={row.padj}"))
 
 # ── 9. Visualizations ─────────────────────────────────────────────
-print("=== 9. Visualizations ===")
+println("=== 9. Visualizations ===")
 
 let vol = volcano(de_results, {
   x: "log2fc", y: "padj", label: "gene",
@@ -388,17 +394,17 @@ let venn_plot = venn({
 venn_plot |> save_svg("output/venn_up_apoptosis.svg")
 
 # ── 10. Pathway Database Queries ──────────────────────────────────
-print("=== 10. Pathway Database Queries ===")
+println("=== 10. Pathway Database Queries ===")
 
 let tp53_pathways = reactome_pathways("TP53")
-print(f"\nTP53 Reactome pathways: {len(tp53_pathways)}")
+println(f"\nTP53 Reactome pathways: {len(tp53_pathways)}")
 
 let apoptosis_kegg = kegg_find("pathway", "apoptosis")
-print("\nKEGG apoptosis pathways:")
-apoptosis_kegg |> map(|entry| print(f"  {entry.id}: {entry.description}"))
+println("\nKEGG apoptosis pathways:")
+apoptosis_kegg |> each(|entry| println(f"  {entry.id}: {entry.description}"))
 
 # ── 11. Export Results ─────────────────────────────────────────────
-print("=== 11. Export Results ===")
+println("=== 11. Export Results ===")
 
 write_csv(de_results, "output/de_results_all.csv")
 write_csv(sig_genes, "output/de_significant.csv")
@@ -408,7 +414,7 @@ write_csv(gsea_results, "output/gsea_enrichment.csv")
 let report = to_markdown(de_results)
 write_text("output/report.md", report)
 
-print("\n=== Analysis complete ===")</code></pre>
+println("\n=== Analysis complete ===")</code></pre>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <h2 id="gwas">GWAS Analysis</h2>
@@ -422,7 +428,7 @@ of effect sizes, GO enrichment, and clinical report generation.</p>
 # Dataset: simulated summary statistics from a meta-analysis of ~50,000 cases
 
 # ── 1. Load GWAS Summary Statistics ──
-print("=== Load GWAS Summary Statistics ===")
+println("=== Load GWAS Summary Statistics ===")
 
 let gwas_data = table([
   {rsid: "rs7903146",  chrom: "10", pos: 114758349, effect_allele: "T", other_allele: "C", eaf: 0.30, info: 0.97, beta: 0.294, se: 0.018, pvalue: 5.2e-56,  or: 1.342},
@@ -446,16 +452,16 @@ let gwas_data = table([
   {rsid: "rs8050136",  chrom: "16", pos: 53816275,  effect_allele: "A", other_allele: "C", eaf: 0.39, info: 0.98, beta: 0.148, se: 0.019, pvalue: 6.5e-15,  or: 1.160}
 ])
 
-print("Loaded " + str(len(gwas_data)) + " SNPs from T2D GWAS summary statistics")
+println("Loaded " + str(len(gwas_data)) + " SNPs from T2D GWAS summary statistics")
 
 # ── 2. Quality Control Filters ──
-print("=== Quality Control Filters ===")
+println("=== Quality Control Filters ===")
 
 let ambiguous_pairs = [["A","T"], ["T","A"], ["C","G"], ["G","C"]]
 let qc_no_ambig = gwas_data
   |> filter(|row| !contains(ambiguous_pairs, [row.effect_allele, row.other_allele]))
 
-print("After removing ambiguous SNPs: " + str(len(qc_no_ambig)) + " remain")
+println("After removing ambiguous SNPs: " + str(len(qc_no_ambig)) + " remain")
 
 let qc_maf = qc_no_ambig
   |> filter(|row| min(row.eaf, 1.0 - row.eaf) > 0.01)
@@ -463,10 +469,10 @@ let qc_maf = qc_no_ambig
 let qc_pass = qc_maf
   |> filter(|row| row.info > 0.8)
 
-print("After QC (MAF>0.01, INFO>0.8): " + str(len(qc_pass)) + " SNPs pass")
+println("After QC (MAF>0.01, INFO>0.8): " + str(len(qc_pass)) + " SNPs pass")
 
 # ── 3. Manhattan and QQ Plots ──
-print("=== Manhattan and QQ Plots ===")
+println("=== Manhattan and QQ Plots ===")
 
 manhattan(qc_pass, {threshold: 5e-8, format: "svg"})
   |> save_svg("output/t2d_manhattan.svg")
@@ -478,24 +484,24 @@ qq_plot(pvalues, {format: "svg"})
 
 let neg_log_p = pvalues |> map(|p| -log10(p))
 let lambda_gc = median(neg_log_p) / 0.301
-print("Genomic inflation factor (lambda_GC, approx): " + str(round(lambda_gc, 3)))
+println("Genomic inflation factor (lambda_GC, approx): " + str(round(lambda_gc, 3)))
 
 # ── 4. Identify Significant Hits ──
-print("=== Identify Significant Hits ===")
+println("=== Identify Significant Hits ===")
 
 let gw_significant = qc_pass
   |> filter(|row| row.pvalue &lt; 5e-8)
-  |> sort(|a, b| a.pvalue - b.pvalue)
+  |> sort_by(|a, b| a.pvalue - b.pvalue)
 
 let suggestive = qc_pass
   |> filter(|row| row.pvalue >= 5e-8 && row.pvalue &lt; 1e-5)
-  |> sort(|a, b| a.pvalue - b.pvalue)
+  |> sort_by(|a, b| a.pvalue - b.pvalue)
 
-print("Genome-wide significant (p &lt; 5e-8): " + str(len(gw_significant)) + " SNPs")
-print("Suggestive (5e-8 &lt;= p &lt; 1e-5): " + str(len(suggestive)) + " SNPs")
+println("Genome-wide significant (p &lt; 5e-8): " + str(len(gw_significant)) + " SNPs")
+println("Suggestive (5e-8 &lt;= p &lt; 1e-5): " + str(len(suggestive)) + " SNPs")
 
 # ── 5. LD Clumping (proximity-based) ──
-print("=== LD Clumping ===")
+println("=== LD Clumping ===")
 
 let clump_window = 500000
 let sorted_hits = gw_significant |> to_records()
@@ -507,10 +513,10 @@ let lead_snps = reduce(sorted_hits, |leads, snp| {
   }
 }, [])
 
-print("Independent lead SNPs after clumping: " + str(len(lead_snps)))
+println("Independent lead SNPs after clumping: " + str(len(lead_snps)))
 
 # ── 6. Gene Annotation via Genomic Intervals ──
-print("=== Gene Annotation via Genomic Intervals ===")
+println("=== Gene Annotation via Genomic Intervals ===")
 
 let gene_regions = table([
   {name: "TCF7L2",   chrom: "10", start: 114710009, end: 114927437},
@@ -536,9 +542,9 @@ let annotated = lead_snps
         odds_ratio: snp.odds_ratio, beta: snp.beta, se: snp.se, nearest_gene: nearest_gene}
      })
 
-print("\nLead SNPs with gene annotations:")
+println("\nLead SNPs with gene annotations:")
 annotated |> each(|snp|
-  print(snp.rsid + "\t" + snp.chrom + "\t" + str(snp.pos) + "\t" +
+  println(snp.rsid + "\t" + snp.chrom + "\t" + str(snp.pos) + "\t" +
           str(snp.pvalue) + "\t" + str(snp.odds_ratio) + "\t" + snp.nearest_gene))
 
 # ── 7-11. Database queries, forest plot, enrichment, report ──
@@ -566,7 +572,7 @@ let report = "# T2D GWAS Analysis Report\n\n" +
   "## Lead SNPs\n\n" + to_markdown(annotated_table) + "\n"
 write_text("output/t2d_gwas_report.md", report)
 
-print("\n=== Analysis complete ===")</code></pre>
+println("\n=== Analysis complete ===")</code></pre>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <h2 id="metagenomics">Gut Microbiome (16S)</h2>
@@ -579,7 +585,7 @@ KEGG pathway lookups, violin plots and heatmaps.</p>
 # 16S rRNA amplicon sequencing — V3-V4 region, paired-end 2x300bp
 
 # ── 1. Sample Metadata ──────────────────────────────────────────
-print("=== Sample Metadata ===")
+println("=== Sample Metadata ===")
 
 let metadata = table({
   sample_id: ["IBD01", "IBD02", "IBD03", "IBD04", "HC01", "HC02", "HC03", "HC04"],
@@ -590,7 +596,7 @@ let metadata = table({
 })
 
 # ── 2. ASV Abundance Table (raw counts) ────────────────────────
-print("=== ASV Abundance Table ===")
+println("=== ASV Abundance Table ===")
 
 let taxa = ["Bacteroides", "Faecalibacterium", "Prevotella", "Escherichia",
             "Akkermansia", "Ruminococcus", "Bifidobacterium", "Clostridium",
@@ -615,7 +621,7 @@ let n_samples = 8
 let n_taxa = len(taxa)
 
 # ── 3. Relative Abundance Normalization ────────────────────────
-print("=== Relative Abundance Normalization ===")
+println("=== Relative Abundance Normalization ===")
 
 let col_totals = range(0, n_samples) |> map(|j|
   range(0, n_taxa) |> map(|i| counts[i][j]) |> reduce(0, |a, b| a + b)
@@ -626,7 +632,7 @@ let rel_abundance = range(0, n_taxa) |> map(|i|
 )
 
 # ── 4. Alpha Diversity ─────────────────────────────────────────
-print("=== Alpha Diversity ===")
+println("=== Alpha Diversity ===")
 
 let shannon = range(0, n_samples) |> map(|j|
   let props = range(0, n_taxa) |> map(|i| rel_abundance[i][j])
@@ -645,19 +651,19 @@ let diversity = table({
   sample_id: metadata.sample_id, condition: metadata.condition,
   shannon: shannon, simpson: simpson
 })
-print(diversity)
+println(diversity)
 
 # ── 5. Alpha Diversity — Group Comparison ──────────────────────
-print("=== Alpha Diversity Group Comparison ===")
+println("=== Alpha Diversity Group Comparison ===")
 
 let shannon_ibd = diversity |> filter(|r| r.condition == "IBD")     |> select("shannon")
 let shannon_healthy = diversity |> filter(|r| r.condition == "healthy") |> select("shannon")
 
 let shannon_test = ttest(shannon_ibd, shannon_healthy)
-print("Shannon IBD vs Healthy — t=" + shannon_test.t_statistic + " p=" + shannon_test.p_value)
+println("Shannon IBD vs Healthy — t=" + shannon_test.t_statistic + " p=" + shannon_test.p_value)
 
 # ── 6. Beta Diversity — Bray-Curtis ────────────────────────────
-print("=== Beta Diversity ===")
+println("=== Beta Diversity ===")
 
 let bray_curtis = range(0, n_samples) |> map(|j|
   range(0, n_samples) |> map(|k|
@@ -669,7 +675,7 @@ let bray_curtis = range(0, n_samples) |> map(|j|
 )
 
 # ── 7. Differential Abundance ─────────────────────────────────
-print("=== Differential Abundance ===")
+println("=== Differential Abundance ===")
 
 let ibd_cols = [0, 1, 2, 3]
 let healthy_cols = [4, 5, 6, 7]
@@ -685,11 +691,11 @@ let diff_results = range(0, n_taxa) |> map(|i|
 )
 
 let diff_table = diff_results
-  |> sort(|a, b| a.p_value - b.p_value)
+  |> sort_by(|a, b| a.p_value - b.p_value)
   |> filter(|r| r.p_value &lt; 0.05)
 
-print("Differentially abundant taxa (p &lt; 0.05):")
-print(diff_table)
+println("Differentially abundant taxa (p &lt; 0.05):")
+println(diff_table)
 
 # ── 8-10. Database lookups, visualizations, report ─────────────
 let faecal_info = ncbi_search("taxonomy", "Faecalibacterium prausnitzii")
@@ -707,7 +713,7 @@ let report = "# 16S Metagenomics — IBD Gut Microbiome Study\n\n" +
   "IBD depleted: Faecalibacterium, Roseburia, Ruminococcus\n"
 
 write_text("metagenomics_report.md", report)
-print("\n=== Analysis complete ===")</code></pre>
+println("\n=== Analysis complete ===")</code></pre>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <h2 id="pharmacogenomics">Pharmacogenomics</h2>
@@ -723,7 +729,7 @@ lookups, population allele frequencies, and clinical decision support.</p>
 # lowers expression and increases warfarin sensitivity.
 
 # ── 1. Patient cohort ────────────────────────────────────────────
-print("=== Patient Cohort ===")
+println("=== Patient Cohort ===")
 
 let patients = table({
   id:        ["PT-001","PT-002","PT-003","PT-004","PT-005","PT-006","PT-007","PT-008"],
@@ -734,16 +740,16 @@ let patients = table({
 })
 
 # ── 2. Pharmacogene lookups ──────────────────────────────────────
-print("=== Pharmacogene Lookups ===")
+println("=== Pharmacogene Lookups ===")
 
 let cyp2c9_gene = ncbi_gene("CYP2C9")
 let vkorc1_gene = ncbi_gene("VKORC1")
 
-print("CYP2C9 locus: chr" + cyp2c9_gene.chromosome)
-print("VKORC1 locus: chr" + vkorc1_gene.chromosome)
+println("CYP2C9 locus: chr" + cyp2c9_gene.chromosome)
+println("VKORC1 locus: chr" + vkorc1_gene.chromosome)
 
 # ── 3. Genotype to metabolizer phenotype ─────────────────────────
-print("=== Genotype to Metabolizer Phenotype ===")
+println("=== Genotype to Metabolizer Phenotype ===")
 
 let star_score = { "*1": 1.0, "*2": 0.5, "*3": 0.0 }
 
@@ -762,7 +768,7 @@ patients = patients |> mutate("activity_score", |row| {
 patients = patients |> mutate("metabolizer", |row| assign_phenotype(row.activity_score))
 
 # ── 4. Predicted warfarin dose ───────────────────────────────────
-print("=== Predicted Warfarin Dose ===")
+println("=== Predicted Warfarin Dose ===")
 
 let vkorc1_factor = { "GG": 1.0, "GA": 0.75, "AA": 0.5 }
 
@@ -773,16 +779,16 @@ patients = patients |> mutate("predicted_dose_mg", |row| {
   round(base * cyp_adj * vk_adj, 1)
 })
 
-patients |> select("id","cyp2c9","vkorc1","metabolizer","predicted_dose_mg") |> print()
+patients |> select("id","cyp2c9","vkorc1","metabolizer","predicted_dose_mg") |> println()
 
 # ── 5. Drug interaction lookups ──────────────────────────────────
-print("=== Drug Interaction Lookups ===")
+println("=== Drug Interaction Lookups ===")
 
 let warfarin_kegg = kegg_get("D00564")
 let cyp_inhibitors = kegg_find("drug", "CYP2C9 inhibitor")
 let cyp_pathways = reactome_pathways("CYP2C9")
 
-print("Known CYP2C9 inhibitors found: " + len(cyp_inhibitors))
+println("Known CYP2C9 inhibitors found: " + len(cyp_inhibitors))
 
 # ── 6-8. Variant effects, population frequencies, visualizations ─
 let pop_freq = table([
@@ -796,7 +802,7 @@ let pop_freq = table([
 pop_freq = pop_freq |> mutate("risk_index", |row|
   round(row.vkorc1_a * (row.cyp2c9_s2 + row.cyp2c9_s3) * 100, 1))
 
-pop_freq |> arrange("-risk_index") |> print()
+pop_freq |> arrange("-risk_index") |> println()
 
 violin({ data: patients, x: "metabolizer", y: "predicted_dose_mg",
          title: "Warfarin predicted dose by CYP2C9 metabolizer status" })
@@ -812,7 +818,7 @@ lollipop({ data: table([
 # ── 9. Clinical decision support summary ────────────────────────
 let high_risk = patients |> filter(|row| row.predicted_dose_mg &lt;= 1.9)
 let normal = patients |> filter(|row| row.predicted_dose_mg >= 4.0)
-print("High-risk patients (dose &lt;= 1.9 mg/day): " + str(len(high_risk)))
+println("High-risk patients (dose &lt;= 1.9 mg/day): " + str(len(high_risk)))
 
 let report = join([
   "# Warfarin Pharmacogenomic Dosing Report\n\n",
@@ -829,7 +835,7 @@ let report = join([
 ], "")
 write_text("warfarin_pgx_report.md", report)
 
-print("\n=== Analysis complete ===")</code></pre>
+println("\n=== Analysis complete ===")</code></pre>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <h2 id="single-cell">Single-Cell RNA-seq</h2>
@@ -882,8 +888,8 @@ let row_data = range(0, n_cells) |> map(|i| counts.row(i))
 let total_umi = row_data |> map(|row| sum(row))
 let genes_detected = row_data |> map(|row| row |> filter(|x| x > 0.0) |> len)
 
-print("=== QC Summary ===")
-print("Cells passing QC:", len(range(0, n_cells) |> filter(|i| genes_detected[i] >= 2)), "/", n_cells)
+println("=== QC Summary ===")
+println("Cells passing QC:", len(range(0, n_cells) |> filter(|i| genes_detected[i] >= 2)), "/", n_cells)
 
 # ── 3. Normalization (log-CPM) ──
 let norm_rows = range(0, n_cells) |> map(|i|
@@ -934,15 +940,15 @@ let cell_types = range(0, n_cells) |> map(|i|
   else "Unknown"
 )
 
-print("\n=== Cell Type Annotations ===")
+println("\n=== Cell Type Annotations ===")
 range(0, n_cells) |> each(|i|
-  print("  Cell", i, "-> cluster", clusters[i], "-> type:", cell_types[i])
+  println("  Cell", i, "-> cluster", clusters[i], "-> type:", cell_types[i])
 )
 
 # ── 7. Database Validation ──
 let cd3e_info = ncbi_gene("CD3E")
-print("\n=== CD3E (T cell marker) ===")
-print("Description:", cd3e_info.description)
+println("\n=== CD3E (T cell marker) ===")
+println("Description:", cd3e_info.description)
 
 # ── 8. Sparse Matrix Demo ──
 let entries = []
@@ -953,11 +959,11 @@ range(0, n_cells) |> each(|i|
   )
 )
 let sp = sparse_matrix(n_cells, n_genes, entries)
-print("\n=== Sparse Matrix ===")
-print("Shape:", n_cells, "x", n_genes, "  nnz:", nnz(sp))
+println("\n=== Sparse Matrix ===")
+println("Shape:", n_cells, "x", n_genes, "  nnz:", nnz(sp))
 
-print("\n=== Analysis Complete ===")
-print("Identified", len(clusters |> unique), "clusters and", len(cell_types |> unique), "cell types")</code></pre>
+println("\n=== Analysis Complete ===")
+println("Identified", len(clusters |> unique), "clusters and", len(cell_types |> unique), "cell types")</code></pre>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <h2 id="crispr">CRISPR Knockout Screen</h2>
@@ -970,7 +976,7 @@ hit identification, database annotation, and waterfall rank plot.</p>
 # Vemurafenib (BRAF inhibitor) resistance screen in A375 cells.
 
 # ── 1. sgRNA Library Definition ──
-print("=== sgRNA Library Definition ===")
+println("=== sgRNA Library Definition ===")
 
 let sgrna_library = table({
   sgRNA: ["BRAF_g1","BRAF_g2","NRAS_g1","MAP2K1_g1","MAP2K1_g2",
@@ -1011,7 +1017,7 @@ let lfc = norm
   |> mutate("lfc_untreat_vs_plasmid", |r| log2((r.untreated_rpm + 0.5) / (r.plasmid_rpm + 0.5)))
 
 # ── 6. Gene-Level Aggregation ──
-print("=== Gene-Level Aggregation ===")
+println("=== Gene-Level Aggregation ===")
 
 let gene_names = lfc.gene |> unique
 let gene_stats = table(gene_names |> map(|g| {
@@ -1021,7 +1027,7 @@ let gene_stats = table(gene_names |> map(|g| {
    median_lfc: median(guides.lfc_treat_vs_plasmid),
    fitness_lfc: mean(guides.lfc_untreat_vs_plasmid)}
 }))
-gene_stats = gene_stats |> sort(|a, b| b.median_lfc - a.median_lfc)
+gene_stats = gene_stats |> sort_by(|a, b| b.median_lfc - a.median_lfc)
 
 # ── 7. Statistical Testing ──
 let ctrl_lfcs = lfc |> filter(|r| r.gene == "NT_ctrl") |> select("lfc_treat_vs_plasmid")
@@ -1032,20 +1038,23 @@ let gene_pvals = gene_stats
     ttest(guide_lfcs, ctrl_lfcs)
   })
 let adj_pvals = p_adjust(gene_pvals.p_value, "bh")
-let gene_results = gene_pvals |> mutate("p_adj", |r, i| adj_pvals[i])
+let gene_results = gene_pvals
+  |> enumerate()
+  |> map(|pair| merge(pair[1], {p_adj: adj_pvals[pair[0]]}))
+  |> to_table()
 
 # ── 8. Hit Identification ──
-print("=== Hit Identification ===")
+println("=== Hit Identification ===")
 
 let resistance_hits = gene_results
   |> filter(|r| r.median_lfc > 1.0 && r.p_adj &lt; 0.05)
-  |> sort(|a, b| b.median_lfc - a.median_lfc)
+  |> sort_by(|a, b| b.median_lfc - a.median_lfc)
 
 let sensitizer_hits = gene_results
   |> filter(|r| r.median_lfc &lt; -1.0 && r.p_adj &lt; 0.05)
 
-print("Resistance genes:")
-resistance_hits |> select("gene", "median_lfc", "p_adj") |> print()
+println("Resistance genes:")
+resistance_hits |> select("gene", "median_lfc", "p_adj") |> println()
 
 # ── 9-11. Database annotation, visualizations, report ──
 let braf_info = ncbi_gene("BRAF")
@@ -1067,7 +1076,7 @@ let report_text = [
 ] |> join("\n")
 
 write_text("crispr_screen_report.md", report_text)
-print("\n=== Analysis complete ===")</code></pre>
+println("\n=== Analysis complete ===")</code></pre>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <h2 id="epigenomics">Epigenomics / ChIP-seq</h2>
@@ -1080,7 +1089,7 @@ via rank-signal inflection, differential binding, motif scanning, and genome tra
 # AML patient blasts — hg38 coordinates near known leukemia loci.
 
 # ── 1. Define H3K27ac ChIP-seq Peaks ──────────────────────────
-print("=== Define H3K27ac ChIP-seq Peaks ===")
+println("=== Define H3K27ac ChIP-seq Peaks ===")
 
 let peaks = table([
     {id: "pk01", iv: interval("chr8",  127735430, 127742600), signal: 48.2, gene_near: "MYC"},
@@ -1100,7 +1109,7 @@ let peaks = table([
     {id: "pk15", iv: interval("chr17", 76734100,  76741800),  signal: 33.1, gene_near: "CEBPA"}
 ])
 
-print("Total peaks: " + str(peaks |> len))
+println("Total peaks: " + str(peaks |> len))
 
 # ── 2. Gene Annotations (TSS +/- 2kb) ─────────────────────────
 let promoters = table([
@@ -1112,7 +1121,7 @@ let promoters = table([
 ])
 
 # ── 3. Interval Operations ────────────────────────────────────
-print("=== Interval Operations ===")
+println("=== Interval Operations ===")
 
 let peak_ivs = table(peaks |> map(|p| {
     {chrom: p.iv.chrom, start: p.iv.start, end: p.iv.end, id: p.id, signal: p.signal}
@@ -1127,7 +1136,7 @@ let promo_tree = promo_ivs |> interval_tree()
 let promoter_peaks = promoters |> map(|p| {
     query_overlaps(peak_tree, p.iv.chrom, p.iv.start, p.iv.end)
 }) |> flatten()
-print("Peaks at promoters: " + str(promoter_peaks |> len))
+println("Peaks at promoters: " + str(promoter_peaks |> len))
 
 let nearest_genes = peaks |> map(|p| {
     let ng_table = query_nearest(promo_tree, p.iv.chrom, p.iv.start)
@@ -1136,20 +1145,20 @@ let nearest_genes = peaks |> map(|p| {
 })
 
 let total_cov = coverage(peak_tree)
-print("Total H3K27ac coverage: " + str(total_cov) + " bp")
+println("Total H3K27ac coverage: " + str(total_cov) + " bp")
 
 # ── 4. Super-Enhancer Identification ──────────────────────────
-print("=== Super-Enhancer Identification ===")
+println("=== Super-Enhancer Identification ===")
 
-let signals_sorted = peaks |> sort(|a, b| b.signal - a.signal) |> map(|p| p.signal)
+let signals_sorted = peaks |> sort_by(|a, b| b.signal - a.signal) |> map(|p| p.signal)
 let threshold = signals_sorted |> median()
 
 let super_enhancers = peaks |> filter(|p| p.signal >= threshold)
 let typical_enhancers = peaks |> filter(|p| p.signal &lt; threshold)
 
-print("Super-enhancers: " + str(super_enhancers |> len))
+println("Super-enhancers: " + str(super_enhancers |> len))
 super_enhancers |> each(|se| {
-    print("  SE: " + se.gene_near + " — signal " + str(se.signal))
+    println("  SE: " + se.gene_near + " — signal " + str(se.signal))
 })
 
 # ── 5. Differential Binding ──────────────────────────────────
@@ -1157,7 +1166,7 @@ let diff = peaks |> mutate("log2fc", |row| log2(row.signal / 15.0))
 let gained = diff |> filter(|d| d.log2fc > 1.0)
 
 # ── 6. Motif Analysis ────────────────────────────────────────
-print("=== Motif Analysis ===")
+println("=== Motif Analysis ===")
 
 let se_seq = dna"ATCGGTGTGGTCAAGGAATCCTGTGGTAAGGAATAGCCTAACTGATCGTGTGGTCCGGAACCTA"
 
@@ -1165,9 +1174,9 @@ let runx1_hits = find_motif(se_seq, "TGTGGT")
 let ets_hits = find_motif(se_seq, "GGAA")
 let myb_hits = find_motif(se_seq, "TAACTG")
 
-print("RUNX1 (TGTGGT): " + str(len(runx1_hits)) + " sites")
-print("ETS   (GGAA):   " + str(len(ets_hits)) + " sites")
-print("GC content: " + str(gc_content(se_seq)) + "%")
+println("RUNX1 (TGTGGT): " + str(len(runx1_hits)) + " sites")
+println("ETS   (GGAA):   " + str(len(ets_hits)) + " sites")
+println("GC content: " + str(gc_content(se_seq)) + "%")
 
 # ── 7-9. Database queries, visualizations, report ────────────
 let myc_info = ncbi_gene("MYC")
@@ -1183,7 +1192,7 @@ let report = "# Super-Enhancer Analysis — H3K27ac ChIP-seq in AML\n\n" +
     "## Key SE targets: MYC, ETV6, FLT3, RUNX1\n"
 write_text("output/se_report.md", report)
 
-print("\n=== Analysis complete ===")</code></pre>
+println("\n=== Analysis complete ===")</code></pre>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <h2 id="phylogenomics">Phylogenomics</h2>
@@ -1196,7 +1205,7 @@ estimation, sequence logos, and lollipop mutation plots.</p>
 # Phylogenomic analysis of spike protein RBD region across variants of concern.
 
 # ── 1. Define Spike Protein Sequences ──
-print("=== Define Spike Protein Sequences ===")
+println("=== Define Spike Protein Sequences ===")
 
 let wuhan = protein"MFVFLVLLPLVSSQCVNLTTRTQLPPAYTNSFTR"
 let alpha = protein"MFVFLVLLPLVSSQCVNLTTRTQLPPAYTNSFTK"
@@ -1216,7 +1225,7 @@ let names = variants.name
 let seqs = variants.seq
 
 # ── 2. Pairwise Distance Matrix ──
-print("=== Pairwise Alignment and Distance Matrix ===")
+println("=== Pairwise Alignment and Distance Matrix ===")
 
 let dist = names |> map(|a|
   names |> map(|b|
@@ -1225,20 +1234,20 @@ let dist = names |> map(|a|
 )
 
 let dist_matrix = matrix(dist)
-print("Distance matrix:")
-print(dist_matrix)
+println("Distance matrix:")
+println(dist_matrix)
 
 # ── 3. Phylogenetic Tree ──
-print("=== Phylogenetic Tree Construction ===")
+println("=== Phylogenetic Tree Construction ===")
 
 let nj_tree = neighbor_joining(dist_matrix)
-print("Newick tree: " + nj_tree)
+println("Newick tree: " + nj_tree)
 
 phylo_tree({data: nj_tree, title: "SARS-CoV-2 Spike NJ Tree (Hamming)"})
   |> save_svg("spike_nj_tree.svg")
 
 # ── 4. Mutation Analysis ──
-print("=== Sequence Analysis ===")
+println("=== Sequence Analysis ===")
 
 let mutations = seqs |> map(|s|
   range(0, len(wuhan)) |> filter(|i| s[i] != wuhan[i])
@@ -1249,10 +1258,10 @@ let mutation_table = table({
   num_mutations: mutations |> map(|m| len(m)),
   positions: mutations |> map(|m| m |> map(str) |> join(","))
 })
-print(mutation_table)
+println(mutation_table)
 
 # ── 5. MinHash Sketching ──
-print("=== Sequence Similarity via MinHash ===")
+println("=== Sequence Similarity via MinHash ===")
 
 let sketches = seqs |> map(|s| sketch(s))
 let sketch_dists = names |> map(|a|
@@ -1264,13 +1273,13 @@ let sketch_tree = neighbor_joining(matrix(sketch_dists))
 
 # ── 6. Functional Domain + Database Lookups ──
 let spike_uniprot = uniprot_entry("P0DTC2")
-print("UniProt: " + spike_uniprot.name + " (" + spike_uniprot.sequence_length |> str + " aa)")
+println("UniProt: " + spike_uniprot.name + " (" + spike_uniprot.sequence_length |> str + " aa)")
 
 let spike_pdb = pdb_entry("6VXX")
-print("PDB 6VXX: " + spike_pdb.title)
+println("PDB 6VXX: " + spike_pdb.title)
 
 # ── 7. Evolutionary Rate (dN/dS) ──
-print("=== Evolutionary Rate Analysis ===")
+println("=== Evolutionary Rate Analysis ===")
 
 let ref_len = len(wuhan) |> float
 let dn_values = mutations |> map(|m| len(m) |> float / ref_len)
@@ -1282,7 +1291,7 @@ let rate_table = table({
   dN: dn_values |> map(|v| round(v, 4)),
   dN_dS: dnds |> map(|v| round(v, 2))
 })
-print(rate_table)
+println(rate_table)
 
 # ── 8. Visualizations ──
 heatmap({data: dist_matrix, title: "Spike Pairwise Hamming Distances"})
@@ -1308,7 +1317,7 @@ let report = join([
 ], "")
 write_text("spike_phylogenomics_report.md", report)
 
-print("\n=== Analysis complete ===")</code></pre>
+println("\n=== Analysis complete ===")</code></pre>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <h2 id="clinical-wes">Clinical WES (Rare Disease Trio)</h2>
@@ -1323,7 +1332,7 @@ matching, circos and lollipop visualizations, and a clinical diagnostic report.<
 # Trio WES: proband + unaffected parents.
 
 # ── 1. Trio Variant Calls ──────────────────────────────────────
-print("=== Trio Variant Calls ===")
+println("=== Trio Variant Calls ===")
 
 let trio = table([
     {chrom: "chrX", pos: 153296777, ref: "C", alt: "T", gene: "MECP2",  consequence: "nonsense",   gt_child: "0/1", gt_mother: "0/0", gt_father: "0/0", quality: 892.0, allele_freq: 0.0},
@@ -1343,31 +1352,31 @@ let trio = table([
     {chrom: "chrX", pos: 153297200, ref: "G", alt: "C", gene: "MECP2",  consequence: "missense",   gt_child: "0/1", gt_mother: "0/1", gt_father: "0/0", quality: 410.0, allele_freq: 0.0}
 ])
 
-print("=== Clinical Trio WES Analysis ===")
-print("Proband: 3-year-old male | Phenotype: developmental delay, seizures, microcephaly")
-print("Total exonic/splice variants in trio: " + str(trio |> len))
+println("=== Clinical Trio WES Analysis ===")
+println("Proband: 3-year-old male | Phenotype: developmental delay, seizures, microcephaly")
+println("Total exonic/splice variants in trio: " + str(trio |> len))
 
 # ── 2. Inheritance Pattern Filtering ───────────────────────────
-print("=== Inheritance Pattern Filtering ===")
+println("=== Inheritance Pattern Filtering ===")
 
 let de_novo = trio |> filter(|v| v.gt_child == "0/1" && v.gt_mother == "0/0" && v.gt_father == "0/0")
-print("\nDe novo variants: " + str(de_novo |> len))
-de_novo |> each(|v| print("  " + v.gene + " " + v.chrom + ":" + str(v.pos) + " " + v.consequence))
+println("\nDe novo variants: " + str(de_novo |> len))
+de_novo |> each(|v| println("  " + v.gene + " " + v.chrom + ":" + str(v.pos) + " " + v.consequence))
 
 let ar_hom = trio |> filter(|v| v.gt_child == "1/1" && v.gt_mother == "0/1" && v.gt_father == "0/1")
-print("\nAutosomal recessive (homozygous): " + str(ar_hom |> len))
+println("\nAutosomal recessive (homozygous): " + str(ar_hom |> len))
 
 let compound_het = trio |> filter(|v| v.gene == "NF1" && v.gt_child == "0/1")
-print("\nCompound heterozygous candidates (NF1):")
+println("\nCompound heterozygous candidates (NF1):")
 compound_het |> each(|v| {
     let parent = if v.gt_mother == "0/1" then "maternal" else "paternal"
-    print("  " + v.consequence + " at " + str(v.pos) + " (" + parent + ")")
+    println("  " + v.consequence + " at " + str(v.pos) + " (" + parent + ")")
 })
 
 let x_linked = trio |> filter(|v| v.chrom == "chrX" && v.gt_child == "0/1")
 
 # ── 3. Variant Prioritization ─────────────────────────────────
-print("=== Variant Prioritization ===")
+println("=== Variant Prioritization ===")
 
 let rare = trio |> filter(|v| v.allele_freq &lt;= 0.01)
 let protein_altering = ["missense", "nonsense", "frameshift", "splice"]
@@ -1381,25 +1390,25 @@ let scored = functional |> mutate("cadd_score", |v| {
     else 22.0
 })
 
-let ranked = scored |> sort(|a, b| b.cadd_score - a.cadd_score)
+let ranked = scored |> sort_by(|a, b| b.cadd_score - a.cadd_score)
 
 # ── 4. Gene-Disease Association Lookup ─────────────────────────
-print("=== Gene-Disease Association Lookup ===")
+println("=== Gene-Disease Association Lookup ===")
 
 let mecp2_gene = ncbi_gene("MECP2")
-print("MECP2: " + mecp2_gene.description)
+println("MECP2: " + mecp2_gene.description)
 
 let mecp2_clinvar = ncbi_search("clinvar", "MECP2[gene] AND pathogenic[clinsig]")
-print("MECP2 pathogenic ClinVar records: " + str(len(mecp2_clinvar)))
+println("MECP2 pathogenic ClinVar records: " + str(len(mecp2_clinvar)))
 
 let scn1a_gene = ncbi_gene("SCN1A")
-print("SCN1A: " + scn1a_gene.description + " — Dravet syndrome gene")
+println("SCN1A: " + scn1a_gene.description + " — Dravet syndrome gene")
 
 let mecp2_protein = uniprot_entry("P51608")
-print("MECP2 protein: " + mecp2_protein.name + " (" + str(mecp2_protein.sequence_length) + " aa)")
+println("MECP2 protein: " + mecp2_protein.name + " (" + str(mecp2_protein.sequence_length) + " aa)")
 
 # ── 5. ACMG Evidence Classification ───────────────────────────
-print("=== ACMG Evidence Classification ===")
+println("=== ACMG Evidence Classification ===")
 
 let acmg_classified = ranked |> mutate("acmg_codes", |v| {
     let codes = []
@@ -1429,12 +1438,12 @@ let acmg_final = acmg_classified |> mutate("classification", |v| {
 
 acmg_final |> each(|v| {
     let codes_str = v.acmg_codes |> join(", ")
-    print("  " + v.gene + " " + v.consequence + " → " + v.classification + " [" + codes_str + "]")
+    println("  " + v.gene + " " + v.consequence + " → " + v.classification + " [" + codes_str + "]")
 })
 
 # ── 6. Protein Impact + Phenotype Matching ─────────────────────
 let mecp2_network = string_network(["MECP2"], 9606)
-print("MECP2 protein interactors: " + str(len(mecp2_network)))
+println("MECP2 protein interactors: " + str(len(mecp2_network)))
 
 let patient_phenotypes = ["developmental delay", "seizures", "microcephaly"]
 let gene_phenotypes = table([
@@ -1445,7 +1454,7 @@ let gene_phenotypes = table([
 
 gene_phenotypes |> each(|g| {
     let overlap = g.phenotypes |> filter(|p| patient_phenotypes |> contains(p))
-    print("  " + g.gene + " (" + g.disease + "): " + str(len(overlap)) + "/3 match")
+    println("  " + g.gene + " (" + g.disease + "): " + str(len(overlap)) + "/3 match")
 })
 
 # ── 7. Visualizations ─────────────────────────────────────────
@@ -1470,7 +1479,7 @@ let venn_svg = venn({
 save_svg(venn_svg, "output/inheritance_venn.svg")
 
 # ── 8. Clinical Report ────────────────────────────────────────
-print("=== Clinical Report ===")
+println("=== Clinical Report ===")
 
 let pathogenic = acmg_final |> filter(|v| v.classification == "Pathogenic" || v.classification == "Likely Pathogenic")
 
@@ -1486,8 +1495,8 @@ let report = "# Clinical WES Report — Trio Analysis for Developmental Delay\n\
     "3. Consider X-inactivation studies in mother.\n"
 
 write_text("output/clinical_wes_report.md", report)
-print("Report written to output/clinical_wes_report.md")
-print("\n=== Analysis complete ===")</code></pre>
+println("Report written to output/clinical_wes_report.md")
+println("\n=== Analysis complete ===")</code></pre>
 
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

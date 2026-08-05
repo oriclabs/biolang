@@ -96,7 +96,7 @@ keys(freq) |> map(|k| {kmer: k, count: freq[k]}) |> sort_by(|r| -r.count) |> fir
         <pre><code class="language-biolang">read_bed("regions.bed") |> map(|r| r.end - r.start) |> sum |> print</code></pre>
 
         <h3>Merge overlapping intervals</h3>
-        <pre><code class="language-biolang">read_bed("regions.bed") |> sort_by(|a, b| [a.chrom, a.start]) |> write_bed("merged.bed")</code></pre>
+        <pre><code class="language-biolang">read_bed("regions.bed") |> sort_by(|a, b| if a.chrom == b.chrom { a.start - b.start } else { if a.chrom < b.chrom { -1 } else { 1 } }) |> write_bed("merged.bed")</code></pre>
 
         <h2>FASTA Operations</h2>
 

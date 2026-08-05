@@ -118,7 +118,7 @@ let grn = graph(true)</code></pre>
               columns. The weight defaults to <code>1.0</code>.
             </p>
             <pre><code class="language-biolang">let all_edges = edges(g)
-all_edges |> each(|e| print(e.from + " -- " + e.to + " weight=" + str(e.weight)))</code></pre>
+all_edges |> each(|e| println(e.from + " -- " + e.to + " weight=" + str(e.weight)))</code></pre>
           </div>
         </section>
 
@@ -165,7 +165,7 @@ has_edge(g, "MDM2", "BARD1")  # false</code></pre>
             <pre><code class="language-biolang">let tp53_partners = neighbors(g, "TP53")
 # ["MDM2", "BRCA1"]
 
-print(str(len(tp53_partners)) + " interaction partners for TP53")</code></pre>
+println(str(len(tp53_partners)) + " interaction partners for TP53")</code></pre>
           </div>
         </section>
 
@@ -198,9 +198,9 @@ print(str(len(tp53_partners)) + " interaction partners for TP53")</code></pre>
 # ["MDM2", "TP53", "BRCA1", "BARD1"]
 
 if path != nil {
-  print("Path length: " + str(len(path) - 1) + " edges")
+  println("Path length: " + str(len(path) - 1) + " edges")
 } else {
-  print("No path found")
+  println("No path found")
 }</code></pre>
           </div>
         </section>
@@ -228,7 +228,7 @@ let g = graph()
 let components = connected_components(g)
 # [["TP53", "MDM2", "BRCA1"], ["KRAS", "BRAF", "MEK1"]]
 
-print(str(len(components)) + " connected components")</code></pre>
+println(str(len(components)) + " connected components")</code></pre>
           </div>
         </section>
 
@@ -245,8 +245,8 @@ print(str(len(components)) + " connected components")</code></pre>
             <pre><code class="language-biolang"># Extract the p53 neighborhood
 let tp53_subnet = subgraph(g, ["TP53", "MDM2", "BRCA1"])
 
-print(str(len(nodes(tp53_subnet))) + " nodes in subgraph")
-print(str(len(edges(tp53_subnet))) + " edges in subgraph")</code></pre>
+println(str(len(nodes(tp53_subnet))) + " nodes in subgraph")
+println(str(len(edges(tp53_subnet))) + " edges in subgraph")</code></pre>
           </div>
         </section>
 
@@ -265,7 +265,7 @@ print(str(len(edges(tp53_subnet))) + " edges in subgraph")</code></pre>
 let attrs = node_attr(attributed_graph, "TP53")
 # {type: "tumor_suppressor", chrom: "chr17"}
 
-print(attrs.type)   # "tumor_suppressor"</code></pre>
+println(attrs.type)   # "tumor_suppressor"</code></pre>
           </div>
         </section>
 
@@ -354,8 +354,8 @@ interactions |> each(|row| {
   })
 })
 
-print(str(len(nodes(ppi))) + " proteins in network")
-print(str(len(edges(ppi))) + " interactions")
+println(str(len(nodes(ppi))) + " proteins in network")
+println(str(len(edges(ppi))) + " interactions")
 
 # Find hub genes (highest degree)
 let hub_genes = nodes(ppi)
@@ -363,33 +363,32 @@ let hub_genes = nodes(ppi)
   |> sort_by(|x| 0 - x.degree)
   |> take(10)
 
-print("Top 10 hub genes:")
-hub_genes |> each(|h| print("  " + h.gene + ": " + str(h.degree) + " interactions"))
+println("Top 10 hub genes:")
+hub_genes |> each(|h| println("  " + h.gene + ": " + str(h.degree) + " interactions"))
 
 # Check connectivity between two genes
 let path = shortest_path(ppi, "MDM2", "BRCA1")
 if path != nil {
-  print("Path from MDM2 to BRCA1: " + join(path, " -> "))
-  print("Distance: " + str(len(path) - 1) + " edges")
+  println("Path from MDM2 to BRCA1: " + join(path, " -> "))
+  println("Distance: " + str(len(path) - 1) + " edges")
 } else {
-  print("MDM2 and BRCA1 are not connected")
+  println("MDM2 and BRCA1 are not connected")
 }
 
 # Identify network clusters
 let components = connected_components(ppi)
-print(str(len(components)) + " connected components")
+println(str(len(components)) + " connected components")
 components
   |> filter(|c| len(c) >= 3)
-  |> each(|c| print("  Cluster (" + str(len(c)) + " genes): " + join(take(c, 5), ", ")))
+  |> each(|c| println("  Cluster (" + str(len(c)) + " genes): " + join(take(c, 5), ", ")))
 
 # Extract subnetwork of tumor suppressors
-let ts_genes = nodes(ppi)
-  |> filter(|n| {
-    let a = node_attr(ppi, n)
-    a != nil and a.type == "tumor_suppressor"
-  })
+# STRING returns interactions, not gene annotations, so nodes built from it
+# carry no `type` attribute. The classification has to come from elsewhere.
+let known_ts = set(["TP53", "RB1", "PTEN", "BRCA1", "BRCA2", "CDKN2A", "ATM"])
+let ts_genes = nodes(ppi) |> filter(|n| contains(known_ts, n))
 let ts_subnet = subgraph(ppi, ts_genes)
-print(str(len(nodes(ts_subnet))) + " tumor suppressors, " + str(len(edges(ts_subnet))) + " interactions")</code></pre>
+println(str(len(nodes(ts_subnet))) + " tumor suppressors, " + str(len(edges(ts_subnet))) + " interactions")</code></pre>
 
         <!-- Builtin Reference Table -->
         <h2 class="text-2xl font-bold text-white mt-10 mb-6">Builtin Reference</h2>

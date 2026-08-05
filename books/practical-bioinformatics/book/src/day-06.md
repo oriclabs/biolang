@@ -189,7 +189,7 @@ let reads = read_fastq("data/reads.fastq")
 let clean = reads |> filter_reads(min_length: 50, min_quality: 20)
 println(f"Before: {len(reads)} reads")
 println(f"After:  {len(clean)} reads")
-println(f"Kept:   {round(len(clean) / len(reads) * 100, 1)}%")
+println(f"Kept:   {round(len(clean) * 100.0 / len(reads), 1)}%")
 ```
 
 ```
@@ -387,7 +387,7 @@ let clean = reads
     |> filter(|r| mean_phred(r.qual) >= 20)
     |> collect()
 
-let pass_rate = round(len(clean) / len(reads) * 100, 1)
+let pass_rate = round(len(clean) * 100.0 / len(reads), 1)
 println(f"\n2. Filtering results:")
 println(f"   Input:  {len(reads)} reads")
 println(f"   Passed: {len(clean)} reads ({pass_rate}%)")

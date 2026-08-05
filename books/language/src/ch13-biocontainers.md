@@ -30,8 +30,8 @@ let results = biocontainers_search("samtools")
 # ]
 
 results |> each(|tool| {
-  print(tool.name + " (" + str(tool.version_count) + " versions)")
-  print("  Latest: " + tool.latest_version)
+  println(tool.name + " (" + str(tool.version_count) + " versions)")
+  println("  Latest: " + tool.latest_version)
 })
 ```
 
@@ -42,7 +42,7 @@ search.
 # Top 5 matches for short-read aligners
 let aligners = biocontainers_search("bwa", 5)
 
-aligners |> each(|a| print(a.name + " => " + a.latest_image))
+aligners |> each(|a| println(a.name + " => " + a.latest_image))
 ```
 
 Search terms are matched against tool names and descriptions, so broader
@@ -54,7 +54,7 @@ let quant_tools = biocontainers_search("salmon rna-seq")
 
 quant_tools
   |> filter(|t| t.version_count > 5)
-  |> each(|t| print(t.name + ": " + t.description))
+  |> each(|t| println(t.name + ": " + t.description))
 ```
 
 ## Popular Tools
@@ -66,8 +66,8 @@ whether your pipeline uses well-maintained software.
 ```biolang
 let top20 = biocontainers_popular()
 
-print("Top 20 BioContainers tools:")
-top20 |> each(|t| print("  " + t.name + " - " + t.latest_version))
+println("Top 20 BioContainers tools:")
+top20 |> each(|t| println("  " + t.name + " - " + t.latest_version))
 ```
 
 Pass a limit to retrieve more.
@@ -83,9 +83,9 @@ let popular_names = top50 |> map(|t| t.name)
 our_tools |> each(|tool| {
   let found = popular_names |> find(|n| n == tool)
   if found != nil then
-    print(tool + " is in the top 50")
+    println(tool + " is in the top 50")
   else
-    print(tool + " is NOT in the top 50")
+    println(tool + " is NOT in the top 50")
 })
 ```
 
@@ -135,7 +135,7 @@ let dv = biocontainers_info("deepvariant")
 dv.versions |> each(|v| {
   let singularity = v.images |> filter(|img| img.type == "Singularity")
   if len(singularity) > 0 then
-    print(v.version + " has Singularity image")
+    println(v.version + " has Singularity image")
 })
 ```
 
@@ -160,7 +160,7 @@ let gatk44 = versions
   |> filter(|v| starts_with(v.version, "4.4"))
   |> first()
 
-print("Pinning GATK to: " + gatk44.images[0])
+println("Pinning GATK to: " + gatk44.images[0])
 ```
 
 You can use this to check whether a specific version exists before committing
@@ -172,9 +172,9 @@ let bc_versions = biocontainers_versions("bcftools")
 let target = bc_versions |> find(|v| starts_with(v.version, "1.18"))
 
 if target != nil then
-  print("bcftools 1.18 available: " + target.images[0])
+  println("bcftools 1.18 available: " + target.images[0])
 else
-  print("bcftools 1.18 not found in BioContainers")
+  println("bcftools 1.18 not found in BioContainers")
 ```
 
 ## Example: Building a Reproducible Tool Manifest
@@ -200,7 +200,7 @@ let manifest = required |> map(|req| {
     |> filter(|v| starts_with(v.version, req.min_version))
 
   if len(matching) == 0 then {
-    print("WARNING: no " + req.name + " >= " + req.min_version + " found")
+    println("WARNING: no " + req.name + " >= " + req.min_version + " found")
     {tool: req.name, version: "MISSING", image: "MISSING"}
   } else {
     let chosen = matching |> first()
@@ -209,12 +209,12 @@ let manifest = required |> map(|req| {
 })
 
 # Print the resolved manifest
-print("Variant Calling Pipeline - Tool Manifest")
-print("=========================================")
+println("Variant Calling Pipeline - Tool Manifest")
+println("=========================================")
 manifest |> each(|m| {
-  print(m.tool + ":")
-  print("  version: " + m.version)
-  print("  image:   " + m.image)
+  println(m.tool + ":")
+  println("  version: " + m.version)
+  println("  image:   " + m.image)
 })
 
 # Export as structured data

@@ -18,7 +18,7 @@ print(f"\nTP53: {tp53}")
 print(f"  Length: {tp53.end - tp53.start} bp")
 
 # With strand
-let gene = interval("chr17", 43044295, 43125483, strand: "-")
+let gene = interval("chr17", 43044295, 43125483, "-")
 print(f"Strand: {gene.strand}")
 
 # ── 2. Reading BED files ──────────────────────────────────────────────
@@ -183,7 +183,7 @@ let off_target = len(all_variants) - len(on_target)
 print(f"\nVariant classification:")
 print(f"  On-target:  {len(on_target)}")
 print(f"  Off-target: {off_target}")
-print(f"  On-target rate: {round(len(on_target) / len(all_variants) * 100, 1)}%")
+print(f"  On-target rate: {round(len(on_target) * 100.0 / len(all_variants), 1)}%")
 
 let by_chrom = on_target
     |> to_table()

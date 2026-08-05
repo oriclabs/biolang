@@ -60,35 +60,35 @@
         <!-- Step 1 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 1 — Descriptive Statistics</h2>
         <pre><code class="language-biolang"># requires: data/experiment.csv in working directory
-# stats.bio — statistical analysis
+# stats.bl — statistical analysis
 
 let data = read_csv("data/expression.csv")
 
 # Extract a column as a list (table field access returns column)
 let values = col(data, "expression")
 
-print("=== Descriptive Statistics ===")
-print(f"N:        {len(values)}")
-print(f"Mean:     {round(mean(values), 3)}")
-print(f"Median:   {round(median(values), 3)}")
-print(f"Std Dev:  {round(stdev(values), 3)}")
-print(f"Variance: {round(variance(values), 3)}")
-print(f"Min:      {min(values)}")
-print(f"Max:      {max(values)}")
-print(f"Range:    {max(values) - min(values)}")
+println("=== Descriptive Statistics ===")
+println(f"N:        {len(values)}")
+println(f"Mean:     {round(mean(values), 3)}")
+println(f"Median:   {round(median(values), 3)}")
+println(f"Std Dev:  {round(stdev(values), 3)}")
+println(f"Variance: {round(variance(values), 3)}")
+println(f"Min:      {min(values)}")
+println(f"Max:      {max(values)}")
+println(f"Range:    {max(values) - min(values)}")
 
 # Quantiles
 let q25 = quantile(values, 0.25)
 let q50 = quantile(values, 0.50)
 let q75 = quantile(values, 0.75)
-print(f"\n25th percentile: {round(q25, 3)}")
-print(f"50th percentile: {round(q50, 3)}")
-print(f"75th percentile: {round(q75, 3)}")
-print(f"IQR:             {round(q75 - q25, 3)}")
+println(f"\n25th percentile: {round(q25, 3)}")
+println(f"50th percentile: {round(q50, 3)}")
+println(f"75th percentile: {round(q75, 3)}")
+println(f"IQR:             {round(q75 - q25, 3)}")
 
 # Summary for all numeric columns at once
 let summary = describe(data)
-print(summary)</code></pre>
+println(summary)</code></pre>
 
         <!-- Step 2 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Comparing Distributions</h2>
@@ -100,40 +100,40 @@ let treated = col(treat_rows, "expression")
 
 # Kolmogorov-Smirnov test: do two samples come from the same distribution?
 let ks = ks_test(control, treated)
-print("=== KS Test (control vs treated) ===")
-print(f"Statistic: {round(ks.statistic, 4)}")
-print(f"p-value:   {round(ks.pvalue, 4)}")
+println("=== KS Test (control vs treated) ===")
+println(f"Statistic: {round(ks.statistic, 4)}")
+println(f"p-value:   {round(ks.pvalue, 4)}")
 
 if ks.pvalue &lt; 0.05 {
-  print("Distributions differ significantly — consider non-parametric tests")
+  println("Distributions differ significantly — consider non-parametric tests")
 } else {
-  print("No significant difference in distributions — parametric tests are appropriate")
+  println("No significant difference in distributions — parametric tests are appropriate")
 }
 
 # Compare basic distribution properties
-print(f"\nControl — mean: {round(mean(control), 3)}, stdev: {round(stdev(control), 3)}")
-print(f"Treated — mean: {round(mean(treated), 3)}, stdev: {round(stdev(treated), 3)}")</code></pre>
+println(f"\nControl — mean: {round(mean(control), 3)}, stdev: {round(stdev(control), 3)}")
+println(f"Treated — mean: {round(mean(treated), 3)}, stdev: {round(stdev(treated), 3)}")</code></pre>
 
         <!-- Step 3 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — t-Tests and Non-Parametric Alternatives</h2>
         <pre><code class="language-biolang"># Independent two-sample t-test (Welch's by default)
 let t_result = ttest(control, treated)
-print("=== Independent t-Test (Welch's) ===")
-print(f"t-statistic: {round(t_result.t_statistic, 4)}")
-print(f"p-value:     {round(t_result.p_value, 6)}")
-print(f"df:          {round(t_result.df, 1)}")
+println("=== Independent t-Test (Welch's) ===")
+println(f"t-statistic: {round(t_result.t_statistic, 4)}")
+println(f"p-value:     {round(t_result.p_value, 6)}")
+println(f"df:          {round(t_result.df, 1)}")
 
 # Paired t-test (for before/after measurements)
 let before = col(data, "before_treatment")
 let after  = col(data, "after_treatment")
 let paired = ttest_paired(before, after)
-print(f"\nPaired t-test p-value: {round(paired.p_value, 6)}")
+println(f"\nPaired t-test p-value: {round(paired.p_value, 6)}")
 
 # Non-parametric: Wilcoxon rank-sum test (two independent samples)
 let w = wilcoxon(control, treated)
-print("\n=== Wilcoxon Rank-Sum Test ===")
-print(f"U-statistic: {round(w.u_statistic, 1)}")
-print(f"p-value:     {round(w.p_value, 6)}")</code></pre>
+println("\n=== Wilcoxon Rank-Sum Test ===")
+println(f"U-statistic: {round(w.u_statistic, 1)}")
+println(f"p-value:     {round(w.p_value, 6)}")</code></pre>
 
         <!-- Step 4 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — ANOVA</h2>
@@ -151,15 +151,15 @@ let group_lists = treatment_names |> map(|name| {
 })
 
 let anova_result = anova(group_lists)
-print("=== One-Way ANOVA ===")
-print(f"F-statistic: {round(anova_result.f_statistic, 3)}")
-print(f"p-value:     {round(anova_result.p_value, 6)}")
-print(f"df between:  {anova_result.df_between}")
-print(f"df within:   {anova_result.df_within}")
+println("=== One-Way ANOVA ===")
+println(f"F-statistic: {round(anova_result.f_statistic, 3)}")
+println(f"p-value:     {round(anova_result.p_value, 6)}")
+println(f"df between:  {anova_result.df_between}")
+println(f"df within:   {anova_result.df_within}")
 
 # If significant, do pairwise t-tests with p-value adjustment
 if anova_result.p_value &lt; 0.05 {
-  print("\n=== Pairwise Comparisons ===")
+  println("\n=== Pairwise Comparisons ===")
   let pvals = []
   let labels = []
   for i in 0..len(treatment_names) {
@@ -174,7 +174,7 @@ if anova_result.p_value &lt; 0.05 {
   let adjusted = p_adjust(pvals, "bh")
   for k in 0..len(labels) {
     let sig = if adjusted[k] &lt; 0.05 { "*" } else { "ns" }
-    print(f"  {labels[k]}: p={round(adjusted[k], 4)} {sig}")
+    println(f"  {labels[k]}: p={round(adjusted[k], 4)} {sig}")
   }
 }</code></pre>
 
@@ -185,28 +185,28 @@ let x = col(data, "gene_a_expression")
 let y = col(data, "gene_b_expression")
 
 let r = cor(x, y)
-print("=== Pearson Correlation ===")
-print(f"r: {round(r, 4)}")
+println("=== Pearson Correlation ===")
+println(f"r: {round(r, 4)}")
 
 # Spearman rank correlation (returns a Record)
 let rho = spearman(x, y)
-print(f"\nSpearman rho: {round(rho.coefficient, 4)}")
-print(f"Spearman p:   {round(rho.pvalue, 4)}")
+println(f"\nSpearman rho: {round(rho.coefficient, 4)}")
+println(f"Spearman p:   {round(rho.pvalue, 4)}")
 
 # Kendall rank correlation (returns a Record)
 let tau = kendall(x, y)
-print(f"Kendall tau:  {round(tau.coefficient, 4)}")
-print(f"Kendall p:    {round(tau.pvalue, 4)}")
+println(f"Kendall tau:  {round(tau.coefficient, 4)}")
+println(f"Kendall p:    {round(tau.pvalue, 4)}")
 
 # Compute correlations for multiple gene pairs
 let gene_cols = ["gene_a", "gene_b", "gene_c", "gene_d", "gene_e"]
-print("\n=== Pairwise Correlations ===")
+println("\n=== Pairwise Correlations ===")
 for i in 0..len(gene_cols) {
   for j in (i+1)..len(gene_cols) {
     let a = col(data, gene_cols[i])
     let b = col(data, gene_cols[j])
     let r = cor(a, b)
-    print(f"  {gene_cols[i]} ~ {gene_cols[j]}: r={round(r, 3)}")
+    println(f"  {gene_cols[i]} ~ {gene_cols[j]}: r={round(r, 3)}")
   }
 }</code></pre>
 
@@ -217,11 +217,11 @@ let dosage = col(data, "dosage")
 let expression = col(data, "expression")
 let model = lm(dosage, expression)
 
-print("=== Linear Regression ===")
-print(f"Intercept:  {round(model.intercept, 3)}")
-print(f"Slope:      {round(model.slope, 3)}")
-print(f"R-squared:  {round(model.r_squared, 4)}")
-print(f"p-value:    {round(model.p_value, 6)}")
+println("=== Linear Regression ===")
+println(f"Intercept:  {round(model.intercept, 3)}")
+println(f"Slope:      {round(model.slope, 3)}")
+println(f"R-squared:  {round(model.r_squared, 4)}")
+println(f"p-value:    {round(model.p_value, 6)}")
 
 # Visualize the fit
 plot(data, {
@@ -247,7 +247,7 @@ pca_plot(expr, {
   output:   "results/pca.svg",
 })
 
-print("PCA plot saved to results/pca.svg")</code></pre>
+println("PCA plot saved to results/pca.svg")</code></pre>
 
         <!-- Step 8 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Clustering and Heatmaps</h2>
@@ -262,7 +262,7 @@ clustered_heatmap(matrix, {
   output:     "results/clustered_heatmap.svg",
 })
 
-print("Clustered heatmap saved to results/clustered_heatmap.svg")</code></pre>
+println("Clustered heatmap saved to results/clustered_heatmap.svg")</code></pre>
 
         <!-- Step 9 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Multiple Testing and FDR</h2>
@@ -297,7 +297,7 @@ let corrected = results
 # Compare methods
 for method in ["bh_fdr", "bonferroni", "holm"] {
   let n_sig = corrected |> filter(|r| r[method] &lt; 0.05) |> nrow()
-  print(f"{method}: {n_sig} significant genes")
+  println(f"{method}: {n_sig} significant genes")
 }
 
 # Write results
@@ -307,7 +307,7 @@ corrected
 
         <!-- Step 10 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Complete Statistical Workflow</h2>
-        <pre><code class="language-biolang"># stats_pipeline.bio — full statistical analysis
+        <pre><code class="language-biolang"># stats_pipeline.bl — full statistical analysis
 
 fn statistical_analysis(data_file, output_dir) {
   let data = read_csv(data_file)
@@ -321,7 +321,7 @@ fn statistical_analysis(data_file, output_dir) {
   for name in treatment_names {
     let subset = data |> filter(|r| r.treatment == name)
     let vals = col(subset, "expression")
-    print(f"{name}: mean={round(mean(vals), 3)}, stdev={round(stdev(vals), 3)}, n={len(vals)}")
+    println(f"{name}: mean={round(mean(vals), 3)}, stdev={round(stdev(vals), 3)}, n={len(vals)}")
   }
 
   # 3. ANOVA across groups
@@ -330,7 +330,7 @@ fn statistical_analysis(data_file, output_dir) {
     col(subset, "expression")
   })
   let anova_result = anova(group_lists)
-  print(f"\nANOVA: F={round(anova_result.f_statistic, 3)}, p={round(anova_result.p_value, 6)}")
+  println(f"\nANOVA: F={round(anova_result.f_statistic, 3)}, p={round(anova_result.p_value, 6)}")
 
   # 4. PCA visualization
   let all_cols = colnames(data)
@@ -346,7 +346,7 @@ fn statistical_analysis(data_file, output_dir) {
     output: f"{output_dir}/heatmap.svg",
   })
 
-  print(f"\nAnalysis complete. Results in {output_dir}/")
+  println(f"\nAnalysis complete. Results in {output_dir}/")
 }
 
 statistical_analysis("data/experiment.csv", "results")</code></pre>

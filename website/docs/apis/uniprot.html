@@ -38,14 +38,14 @@
         <pre><code class="language-biolang"># Fetch BRCA1 protein
 let entry = uniprot_entry("P38398")
 
-print(entry.accession)        # => "P38398"
-print(entry.name)             # => "BRCA1_HUMAN"
-print(entry.organism)         # => "Homo sapiens"
-print(entry.sequence_length)  # => 1863
-print(entry.gene_names)       # => ["BRCA1"]
+println(entry.accession)        # => "P38398"
+println(entry.name)             # => "BRCA1_HUMAN"
+println(entry.organism)         # => "Homo sapiens"
+println(entry.sequence_length)  # => 1863
+println(entry.gene_names)       # => ["BRCA1"]
 
 # Function annotation
-print(entry.function)
+println(entry.function)
 
 # Features are fetched separately with uniprot_features()
 let features = uniprot_features("P38398")
@@ -53,7 +53,7 @@ features
   |> filter(|f| f.type == "Domain")
   |> map(|f| { type: f.type, location: f.location, description: f.description })
   |> to_table()
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h2>uniprot_search</h2>
         <p>
@@ -62,7 +62,7 @@ features
         </p>
         <pre><code class="language-biolang"># Simple text search (query, [max_results])
 let results = uniprot_search("BRCA1 AND organism_id:9606")
-results |> map(|r| print(r.accession, r.name))
+results |> each(|r| println(r.accession, r.name))
 
 # Structured query with limit
 results = uniprot_search("kinase AND reviewed:true AND organism_id:9606", 50)
@@ -75,11 +75,11 @@ results = uniprot_search("go:0006915 AND organism_id:9606")
 results
   |> map(|r| { accession: r.accession, name: r.name, length: r.sequence_length })
   |> to_table()
-  |> print()
+  |> println()
 
 # Broad kinase search
 results = uniprot_search("kinase AND organism_id:9606 AND reviewed:true", 100)
-results |> to_table() |> print()</code></pre>
+results |> to_table() |> println()</code></pre>
 
         <h2>Features and Annotations</h2>
         <p>
@@ -94,21 +94,21 @@ let features = uniprot_features("P38398")
 
 # Filter by feature type — each feature has: type, location, description
 let domains = features |> filter(|f| f.type == "Domain")
-domains |> map(|d| print(d.description, ":", d.location))
+domains |> each(|d| println(d.description, ":", d.location))
 
 # Variants
 let variants = features |> filter(|f| f.type == "Natural variant")
-variants |> map(|v| print(v.description, "@", v.location))
+variants |> each(|v| println(v.description, "@", v.location))
 
 # Post-translational modifications
 let ptms = features |> filter(|f| f.type == "Modified residue")
-ptms |> map(|p| print(p.type, "@", p.location, ":", p.description))
+ptms |> each(|p| println(p.type, "@", p.location, ":", p.description))
 
 # GO terms are fetched with uniprot_go(accession)
 let go = uniprot_go("P38398")
 go
   |> filter(|g| g.aspect == "biological_process")
-  |> map(|g| print(g.id, g.term))</code></pre>
+  |> each(|g| println(g.id, g.term))</code></pre>
 
         <h2>Practical Example: Protein Comparison</h2>
         <pre><code class="language-biolang"># Compare properties of cancer-related proteins
@@ -127,7 +127,7 @@ let comparison = cancer_genes |> map(|gene| {
   }
 })
 
-comparison |> to_table() |> print()
+comparison |> to_table() |> println()
 comparison |> to_table() |> write_csv("protein_comparison.csv")</code></pre>
 
         <h2>ID Mapping</h2>
@@ -143,7 +143,7 @@ accessions |> map(|acc| {
     genes: entry.gene_names,
     length: entry.sequence_length
   }
-}) |> to_table() |> print()</code></pre>
+}) |> to_table() |> println()</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="ensembl.html" class="text-violet-400 hover:text-violet-300">&larr; Ensembl</a>

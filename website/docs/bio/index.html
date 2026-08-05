@@ -106,7 +106,7 @@ records
   |> filter(|r| len(r.seq) > 1000)
   |> map(|r| { id: r.id, gc: gc_content(r.seq) })
   |> to_table()
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h2>Genomic Intervals</h2>
         <p>

@@ -44,8 +44,8 @@ let residues = to_string(prot) |> split("")
 # Calculate molecular weight
 let mw = residues |> map(|aa| { aa_mass[aa] }) |> sum
 let mw = mw + 18.02  # add water
-print(f"Molecular weight: {mw |> round(2)} Da")
-print(f"Sequence length: {prot |> seq_len} aa")</code></pre>
+println(f"Molecular weight: {mw |> round(2)} Da")
+println(f"Sequence length: {prot |> seq_len} aa")</code></pre>
 
         <h3>Amino acid composition</h3>
         <pre><code class="language-biolang">let prot = protein"MKWVTFISLLFLFSSAYSRGVFRRDAHKSEVAHRFK"
@@ -61,13 +61,13 @@ let composition = residue_counts
 
 for entry in composition {
   let pct = float(entry.value) / float(total) * 100.0
-  print(f"{entry.key}: {entry.value} ({pct |> round(1)}%)")
+  println(f"{entry.key}: {entry.value} ({pct |> round(1)}%)")
 }
 
 # Count hydrophobic residues (A, V, I, L, M, F, W, P)
 let hydrophobic_aa = ["A", "V", "I", "L", "M", "F", "W", "P"]
 let hydrophobic = residues |> filter(|aa| { hydrophobic_aa |> contains(aa) }) |> len
-print(f"\nHydrophobic residues: {hydrophobic}/{total}")</code></pre>
+println(f"\nHydrophobic residues: {hydrophobic}/{total}")</code></pre>
 
         <h3>Extinction coefficient at 280nm</h3>
         <pre><code class="language-biolang"># Extinction coefficient from Trp, Tyr, and Cys counts
@@ -81,8 +81,8 @@ let n_tyr = if has_key(counts, "Y") { counts["Y"] } else { 0 }
 let n_cys = if has_key(counts, "C") { counts["C"] } else { 0 }
 
 let ext_coeff = (n_trp * 5500) + (n_tyr * 1490) + ((n_cys / 2) * 125)
-print(f"Extinction coefficient: {ext_coeff} M^-1 cm^-1")
-print(f"  Trp: {n_trp}, Tyr: {n_tyr}, Cys: {n_cys}")</code></pre>
+println(f"Extinction coefficient: {ext_coeff} M^-1 cm^-1")
+println(f"  Trp: {n_trp}, Tyr: {n_tyr}, Cys: {n_cys}")</code></pre>
 
         <h2>Protein Domain Search</h2>
 
@@ -94,21 +94,21 @@ let prot = records |> first
 # N-glycosylation sites: N-X-S/T (where X is not P)
 let seq_str = to_string(prot.seq)
 let nglyc_sites = seq_str |> regex_find_all("N[^P][ST]")
-print(f"N-glycosylation sites: {nglyc_sites |> len}")
+println(f"N-glycosylation sites: {nglyc_sites |> len}")
 for site in nglyc_sites {
-  print(f"  Match: {site}")
+  println(f"  Match: {site}")
 }
 
 # Phosphorylation sites (simplified: S/T followed by P)
 let phos_sites = seq_str |> regex_find_all("[ST]P")
-print(f"Potential phosphorylation sites: {phos_sites |> len}")
+println(f"Potential phosphorylation sites: {phos_sites |> len}")
 
 # N-terminal hydrophobicity check
 let hydrophobic_aa = ["A", "V", "I", "L", "M", "F", "W", "P"]
 let signal = substr(prot.seq, 0, 30) |> to_string |> split("")
 let n_hydro = signal |> filter(|aa| { hydrophobic_aa |> contains(aa) }) |> len
 let hydro_frac = n_hydro |> float / (signal |> len) |> float
-print(f"N-terminal hydrophobic fraction: {hydro_frac |> round(3)} (>0.5 suggests signal peptide)")</code></pre>
+println(f"N-terminal hydrophobic fraction: {hydro_frac |> round(3)} (>0.5 suggests signal peptide)")</code></pre>
 
         <h3>Domain annotation from Pfam hits</h3>
         <pre><code class="language-biolang"># Parse Pfam domain hits
@@ -116,16 +116,16 @@ let domains = tsv("pfam_results.tsv")
   |> filter(|d| { d["e_value"] |> float &lt; 1e-5 })
   |> sort_by(|a, b| a.start - b.start)
 
-print("Significant domains found:")
+println("Significant domains found:")
 for d in domains {
-  print(f"  {d["domain_name"]} ({d["start"]}-{d["end"]}) E-value: {d["e_value"]}")
+  println(f"  {d["domain_name"]} ({d["start"]}-{d["end"]}) E-value: {d["e_value"]}")
 }
 
 # Check for domain architecture
 let has_kinase = domains |> any(|d| { d["domain_name"] |> contains("Kinase") })
 let has_sh2 = domains |> any(|d| { d["domain_name"] |> contains("SH2") })
 if has_kinase && has_sh2 {
-  print("Receptor tyrosine kinase-like architecture detected")
+  println("Receptor tyrosine kinase-like architecture detected")
 }</code></pre>
 
         <h2>Mass Spectrometry</h2>
@@ -154,11 +154,11 @@ fn peptide_mass(pep) {
   mass + 18.02  # add water
 }
 
-print("Tryptic peptides:")
+println("Tryptic peptides:")
 for pep in peptides |> sort_by(|a, b| len(a) - len(b)) {
   let mass = peptide_mass(pep)
   let mz = mass + 1.00728  # [M+H]+
-  print(f"  {pep} (m/z: {mz |> round(4)}, length: {pep |> len})")
+  println(f"  {pep} (m/z: {mz |> round(4)}, length: {pep |> len})")
 }</code></pre>
 
         <h3>Peptide mass fingerprint</h3>
@@ -189,7 +189,7 @@ let mass_db = proteins
   |> sort_by(|a, b| a.mass - b.mass)
 
 mass_db |> write_tsv("theoretical_masses.tsv")
-print(f"Generated {mass_db |> len} theoretical peptide masses")</code></pre>
+println(f"Generated {mass_db |> len} theoretical peptide masses")</code></pre>
 
         <h3>Matching observed masses to theoretical</h3>
         <pre><code class="language-biolang"># Match observed MS peaks to theoretical peptide masses
@@ -215,7 +215,7 @@ let matches = observed |> flat_map(|obs_mz| {
     }})
 })
 
-print(f"Matched {matches |> len} peptides to {matches |> map(|x| x.protein) |> unique |> len} proteins")
+println(f"Matched {matches |> len} peptides to {matches |> map(|x| x.protein) |> unique |> len} proteins")
 matches |> write_tsv("peptide_matches.tsv")</code></pre>
 
         <h2>Protein Comparison</h2>
@@ -230,7 +230,7 @@ for i in 0..(proteins |> len) {
     let k2 = proteins[j].seq |> kmers(3) |> set
     let shared = intersection(k1, k2)
     let similarity = float(len(shared)) / float(min(len(k1), len(k2)))
-    print(f"{proteins[i].id} vs {proteins[j].id}: {(similarity * 100.0) |> round(1)}% k-mer similarity")
+    println(f"{proteins[i].id} vs {proteins[j].id}: {(similarity * 100.0) |> round(1)}% k-mer similarity")
   }
 }</code></pre>
 
@@ -253,10 +253,10 @@ let conservation = range(0, n_cols) |> map(|col| {
 let n_conserved = conservation |> filter(|c| { c >= 0.9 }) |> len
 let n_variable = conservation |> filter(|c| { c &lt; 0.5 }) |> len
 
-print(f"MSA columns: {n_cols}")
-print(f"Highly conserved (>=90%): {n_conserved}")
-print(f"Variable (&lt;50%): {n_variable}")
-print(f"Overall conservation: {conservation |> mean |> round(3)}")</code></pre>
+println(f"MSA columns: {n_cols}")
+println(f"Highly conserved (>=90%): {n_conserved}")
+println(f"Variable (&lt;50%): {n_variable}")
+println(f"Overall conservation: {conservation |> mean |> round(3)}")</code></pre>
 
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

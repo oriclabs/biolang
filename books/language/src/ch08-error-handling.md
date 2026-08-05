@@ -15,7 +15,7 @@ proceed.
 let records = try {
     read_vcf("data/variants.vcf")
 } catch e {
-    print("Failed to parse VCF: " + e.message)
+    println("Failed to parse VCF: " + e.message)
     []
 }
 ```
@@ -44,15 +44,15 @@ try {
 } catch e {
     match e.kind {
         "network_error" => {
-            print("Network unreachable, using cached data")
+            println("Network unreachable, using cached data")
             load_cache("uniprot", accession)
         }
         "parse_error" => {
-            print("Malformed response for " + accession + ", skipping")
+            println("Malformed response for " + accession + ", skipping")
             nil
         }
         _ => {
-            print("Unexpected error: " + e.message)
+            println("Unexpected error: " + e.message)
             nil
         }
     }
@@ -81,7 +81,7 @@ try {
     let ref_seqs = load_reference("hg38.fa")
     run_alignment(reads, ref_seqs)
 } catch e {
-    print("Pipeline aborted: " + e.message)
+    println("Pipeline aborted: " + e.message)
 }
 ```
 
@@ -129,7 +129,7 @@ let annotation = try {
     }
     result
 } catch e {
-    print("Ensembl unavailable after 5 attempts: " + e.message)
+    println("Ensembl unavailable after 5 attempts: " + e.message)
     {gene_name: "BRCA2", source: "fallback_cache"}
 }
 ```
@@ -245,12 +245,12 @@ fn robust_parse(lines, parser) {
             good = good + [parser(line)]
         } catch e {
             bad = bad + 1
-            print("Skipped line " + str(i + 1) + ": " + e.message)
+            println("Skipped line " + str(i + 1) + ": " + e.message)
         }
     }
 
     if bad > 0 {
-        print("Warning: " + str(bad) + " malformed records skipped")
+        println("Warning: " + str(bad) + " malformed records skipped")
     }
     good
 }
@@ -315,9 +315,9 @@ fn parse_fasta_robust(path) {
         }
     }
 
-    print("Parsed " + str(len(records)) + " records, " + str(len(errors)) + " errors")
+    println("Parsed " + str(len(records)) + " records, " + str(len(errors)) + " errors")
     for err in errors {
-        print("  SKIP: " + err.header + " (" + err.reason + ")")
+        println("  SKIP: " + err.header + " (" + err.reason + ")")
     }
     records
 }

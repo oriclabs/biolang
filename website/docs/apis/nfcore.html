@@ -37,14 +37,14 @@
         </p>
         <pre><code class="language-biolang"># List all pipelines, sorted by stars (default)
 let pipelines = nfcore_list()
-pipelines |> print()
+pipelines |> println()
 
 # Sort by name
-nfcore_list("name") |> print()
+nfcore_list("name") |> println()
 
 # Get top 10 most-starred pipelines
 let top10 = nfcore_list("stars", 10)
-top10 |> print()</code></pre>
+top10 |> println()</code></pre>
         <p>
           Returns a List of Records with fields: <code>{name, description, stars, topics, latest_release}</code>.
         </p>
@@ -55,13 +55,13 @@ top10 |> print()</code></pre>
           The search is case-insensitive:
         </p>
         <pre><code class="language-biolang"># Search for RNA-seq pipelines
-nfcore_search("rnaseq") |> print()
+nfcore_search("rnaseq") |> println()
 
 # Search for variant-related pipelines, limit to 5
-nfcore_search("variant", 5) |> print()
+nfcore_search("variant", 5) |> println()
 
 # Search by topic keyword
-nfcore_search("single-cell") |> print()</code></pre>
+nfcore_search("single-cell") |> println()</code></pre>
 
         <h2>Pipeline Details</h2>
         <p>
@@ -69,7 +69,7 @@ nfcore_search("single-cell") |> print()</code></pre>
         </p>
         <pre><code class="language-biolang"># Get full details for the sarek pipeline
 let info = nfcore_info("sarek")
-print(info)
+println(info)
 # => { name: "sarek", full_name: "nf-core/sarek", description: "...",
 #      stars: 142, url: "https://...", license: "MIT", topics: [...],
 #      open_issues: 23, created: "2018-...", updated: "2024-..." }</code></pre>
@@ -83,12 +83,12 @@ print(info)
         </p>
         <pre><code class="language-biolang"># Get all releases for rnaseq
 let releases = nfcore_releases("rnaseq")
-releases |> print()
+releases |> println()
 # => [{ tag: "3.14.0", published_at: "2024-..." }, ...]
 
 # Get the latest release tag
 let latest = nfcore_releases("rnaseq") |> first()
-print("Latest:", latest.tag)</code></pre>
+println("Latest:", latest.tag)</code></pre>
         <p>
           Returns a List of Records: <code>{tag, published_at}</code>.
         </p>
@@ -100,16 +100,16 @@ print("Latest:", latest.tag)</code></pre>
         </p>
         <pre><code class="language-biolang"># Get parameter schema for rnaseq
 let params = nfcore_params("rnaseq")
-print(params)
+println(params)
 # => { input_output: [{ name: "input", type: "string", description: "...", default: nil }, ...],
 #      reference_genome: [{ name: "genome", type: "string", ... }, ...],
 #      ... }
 
 # List all parameter groups
-params |> keys() |> print()
+params |> keys() |> println()
 
 # Inspect a specific group
-params.input_output |> print()</code></pre>
+params.input_output |> println()</code></pre>
         <p>
           Returns a Record of parameter groups, where each group maps to a List of
           <code>{name, type, description, default}</code>.
@@ -179,7 +179,7 @@ nfcore_search("variant")
   })
   |> sort_by(|pipeline_info| pipeline_info.stars)
   |> reverse()
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h3>Inspect Pipeline Parameters Before Running</h3>
         <pre><code class="language-biolang"># Check what inputs sarek expects
@@ -191,7 +191,7 @@ params
   |> flatten()
   |> filter(|p| p.default == nil)
   |> map(|p| { name: p.name, type: p.type, description: p.description })
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h3>Track Pipeline Releases</h3>
         <pre><code class="language-biolang"># Check release history for multiple pipelines
@@ -204,7 +204,7 @@ pipelines
     { pipeline: name, latest_tag: latest.tag, released: latest.published_at }
   })
   |> to_table()
-  |> print()</code></pre>
+  |> println()</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="others.html" class="text-violet-400 hover:text-violet-300">&larr; Other API Clients</a>

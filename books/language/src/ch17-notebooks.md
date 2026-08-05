@@ -29,7 +29,7 @@ Read the FASTQ file and compute basic stats.
 
 ```biolang
 let reads = read_fastq("data/reads.fastq")
-print(f"Loaded {len(reads)} reads")
+println(f"Loaded {len(reads)} reads")
 ```
 
 ## Filter
@@ -38,7 +38,7 @@ Keep high-quality reads.
 
 ```bl
 let filtered = reads |> filter(|r| mean_phred(r.quality) > 25)
-print(f"Kept {len(filtered)} reads")
+println(f"Kept {len(filtered)} reads")
 ```
 ````
 
@@ -88,7 +88,7 @@ let config = {min_quality: 30, reference: "GRCh38"}
 # @echo
 let reads = read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) >= config.min_quality)
-print(f"Filtered: {len(reads)} reads")
+println(f"Filtered: {len(reads)} reads")
 ```
 ````
 
@@ -158,7 +158,7 @@ let threshold = 2.0
 
 ```biolang
 let seqs = read_fasta("data/sequences.fasta")
-print(f"Loaded {len(seqs)} sequences")
+println(f"Loaded {len(seqs)} sequences")
 ```
 
 ## Statistics
@@ -168,7 +168,7 @@ print(f"Loaded {len(seqs)} sequences")
 let gc_values = seqs |> map(|s| gc_content(s.seq))
 let mu = mean(gc_values)
 let sigma = stdev(gc_values)
-print(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
+println(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
 ```
 
 ## Outliers
@@ -179,7 +179,7 @@ contamination or horizontal gene transfer.
 ```biolang
 let outliers = seqs
   |> filter(|s| abs(gc_content(s.seq) - mu) > threshold * sigma)
-print(f"Found {len(outliers)} outlier contigs")
+println(f"Found {len(outliers)} outlier contigs")
 ```
 ````
 

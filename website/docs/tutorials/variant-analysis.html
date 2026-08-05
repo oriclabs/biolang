@@ -71,26 +71,26 @@
           including INFO, FORMAT, and genotype fields.
         </p>
         <pre><code class="language-biolang"># requires: examples/sample-data/calls.vcf in working directory
-# variants.bio — VCF variant analysis
+# variants.bl — VCF variant analysis
 
 let variants = read_vcf("examples/sample-data/calls.vcf") |> collect()
 
 # Total variant count
-print(f"Total variants: {len(variants)}")
+println(f"Total variants: {len(variants)}")
 
 # Inspect a single variant
 let v = head(variants, 1) |> first()
-print(f"Chrom:  {v.chrom}")
-print(f"Pos:    {v.pos}")
-print(f"ID:     {v.id}")
-print(f"Ref:    {v.ref}")
-print(f"Alt:    {v.alt}")
-print(f"Qual:   {v.quality}")
-print(f"Filter: {v.filter}")
+println(f"Chrom:  {v.chrom}")
+println(f"Pos:    {v.pos}")
+println(f"ID:     {v.id}")
+println(f"Ref:    {v.ref}")
+println(f"Alt:    {v.alt}")
+println(f"Qual:   {v.quality}")
+println(f"Filter: {v.filter}")
 
 # Access INFO fields (info is a Record)
-print(f"DP: {v.info.DP}")
-print(f"AF: {v.info.AF}")</code></pre>
+println(f"DP: {v.info.DP}")
+println(f"AF: {v.info.AF}")</code></pre>
 
         <!-- Step 2 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Filtering Variants</h2>
@@ -101,21 +101,21 @@ print(f"AF: {v.info.AF}")</code></pre>
 let passed = variants
   |> filter(|v| v.filter == "PASS" and v.quality >= 30.0)
 
-print(f"After PASS + QUAL>=30: {len(passed)} variants")
+println(f"After PASS + QUAL>=30: {len(passed)} variants")
 
 # Further filter by depth — use |> into for left-to-right binding
 passed
   |> filter(|v| v.info.DP >= 10)
   |> into depth_filtered
 
-print(f"After DP>=10: {len(depth_filtered)} variants")
+println(f"After DP>=10: {len(depth_filtered)} variants")
 
 # Filter by allele frequency (for population data)
 depth_filtered |> filter(|v| v.info.AF >= 0.01) |> into common
 depth_filtered |> filter(|v| v.info.AF &lt; 0.01) |> into rare
 
-print(f"Common variants (AF>=1%): {len(common)}")
-print(f"Rare variants (AF&lt;1%):    {len(rare)}")</code></pre>
+println(f"Common variants (AF>=1%): {len(common)}")
+println(f"Rare variants (AF&lt;1%):    {len(rare)}")</code></pre>
 
         <!-- Step 3 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Classifying Variant Types</h2>
@@ -129,12 +129,12 @@ passed
   |> into type_table
 
 value_counts(type_table, "vtype") |> into type_counts
-print("\n=== Variant Types ===")
-print(type_counts)
+println("\n=== Variant Types ===")
+println(type_counts)
 
 # Compute transition/transversion ratio directly
 let ti_tv = tstv_ratio(passed)
-print(f"\nTi/Tv ratio: {round(ti_tv, 3)}")</code></pre>
+println(f"\nTi/Tv ratio: {round(ti_tv, 3)}")</code></pre>
 
         <!-- Step 4 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Variants Per Chromosome</h2>
@@ -148,8 +148,8 @@ value_counts(chrom_table, "chromosome")
   |> arrange("count", "desc")
   |> into chrom_counts
 
-print("\n=== Variants Per Chromosome ===")
-print(chrom_counts)
+println("\n=== Variants Per Chromosome ===")
+println(chrom_counts)
 
 # Density: variants per megabase
 let chrom_lengths = {
@@ -162,7 +162,7 @@ let chrom_lengths = {
 let counts_list = col(chrom_counts, "count")
 let chroms_list = col(chrom_counts, "chromosome")
 let density = mutate(chrom_counts, "per_mb", |row| round(row.count / 248.0, 2))
-print(density)</code></pre>
+println(density)</code></pre>
 
         <!-- Step 5 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Annotating with Ensembl VEP</h2>
@@ -178,10 +178,11 @@ let annotated = passed |> map(|v| {
   let vep = ensembl_vep(hgvs)
 
   # Get the most severe consequence
-  let worst = if len(vep) > 0 then vep.most_severe_consequence else "unknown"
+  let worst = if len(vep) > 0 then (vep |> first()).most_severe_consequence else "unknown"
 
   # Get impact level
-  let impact = if len(vep) > 0 then vep.impact else "MODIFIER"
+  let tc = if len(vep) > 0 then (vep |> first()).transcript_consequences else []
+  let impact = if len(tc) > 0 then (tc |> first()).impact else "MODIFIER"
 
   { variant: v, consequence: worst, impact: impact }
 })
@@ -190,7 +191,7 @@ let annotated = passed |> map(|v| {
 let high_impact = annotated |> filter(|a|
   a.impact == "HIGH"
 )
-print(f"High-impact variants: {len(high_impact)}")
+println(f"High-impact variants: {len(high_impact)}")
 
 # Filter for specific consequence types
 let lof_types = ["stop_gained", "frameshift_variant",
@@ -198,7 +199,7 @@ let lof_types = ["stop_gained", "frameshift_variant",
 let lof = annotated |> filter(|a|
   a.consequence in lof_types
 )
-print(f"Loss-of-function variants: {len(lof)}")</code></pre>
+println(f"Loss-of-function variants: {len(lof)}")</code></pre>
 
         <!-- Step 6 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Building a Summary Table</h2>
@@ -217,8 +218,8 @@ let summary = high_impact
   |> to_table()
   |> arrange("quality", "desc")
 
-print("\n=== High-Impact Variants ===")
-print(summary)
+println("\n=== High-Impact Variants ===")
+println(summary)
 
 # Write to CSV for downstream use
 write_csv(summary, "results/high_impact_variants.csv")</code></pre>
@@ -239,15 +240,15 @@ let het_table = passed
 
 # Count heterozygous variants
 let het_only = filter(het_table, |row| row.is_het == true)
-print(f"Heterozygous variants: {nrow(het_only)}")
+println(f"Heterozygous variants: {nrow(het_only)}")
 
 # Compute het/hom ratio using built-in
 let hh_ratio = het_hom_ratio(passed)
-print(f"Het/Hom ratio: {round(hh_ratio, 3)}")
+println(f"Het/Hom ratio: {round(hh_ratio, 3)}")
 
 # Overall variant statistics
 let stats = variant_summary(passed)
-print(f"Variant stats: {stats}")</code></pre>
+println(f"Variant stats: {stats}")</code></pre>
 
         <!-- Step 8 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Visualizing Variants</h2>
@@ -269,44 +270,42 @@ plot(plot_data, {
 })
 
 # Histogram of quality scores
-let qual_table = passed
-  |> map(|v| {quality: v.quality})
-  |> to_table()
-histogram(qual_table)
+let qual_values = passed |> map(|v| v.quality)
+histogram(qual_values)
 
-print("Plots rendered")</code></pre>
+println("Plots rendered")</code></pre>
 
         <!-- Step 9 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — Complete Variant Analysis Pipeline</h2>
-        <pre><code class="language-biolang"># variant_pipeline.bio — end-to-end variant analysis
+        <pre><code class="language-biolang"># variant_pipeline.bl — end-to-end variant analysis
 
 fn analyze_vcf(input, output_dir) {
-  print("=== Variant Analysis Pipeline ===\n")
+  println("=== Variant Analysis Pipeline ===\n")
 
   # 1. Read and filter
   let raw = vcf(input) |> collect()
-  print(f"Raw variants: {len(raw)}")
+  println(f"Raw variants: {len(raw)}")
 
   let filtered = raw
     |> filter(|v| v.filter == "PASS")
     |> filter(|v| v.quality >= 30.0)
     |> filter(|v| v.info.DP >= 10)
-  print(f"After filtering: {len(filtered)}")
+  println(f"After filtering: {len(filtered)}")
 
   # 2. Classify using built-in variant_type
   let type_tbl = filtered
     |> map(|v| {vtype: v.variant_type})
     |> to_table()
   let types = value_counts(type_tbl, "vtype")
-  print(f"\nVariant types:")
-  print(types)
+  println(f"\nVariant types:")
+  println(types)
 
   # 3. Annotate with VEP (for a subset — VEP queries are rate-limited)
   let subset = head(filtered, 50)
   let annotated = subset |> map(|v| {
     let hgvs = f"{v.chrom}:g.{v.pos}{v.ref}>{v.alt}"
     let vep = ensembl_vep(hgvs)
-    let consequence = if len(vep) > 0 then vep.most_severe_consequence else "unknown"
+    let consequence = if len(vep) > 0 then (vep |> first()).most_severe_consequence else "unknown"
     { variant: v, consequence: consequence }
   })
 
@@ -315,8 +314,8 @@ fn analyze_vcf(input, output_dir) {
     |> map(|a| {consequence: a.consequence})
     |> to_table()
   let by_consequence = value_counts(conseq_tbl, "consequence")
-  print(f"\nConsequence types:")
-  print(by_consequence)
+  println(f"\nConsequence types:")
+  println(by_consequence)
 
   # 5. Write filtered variants to CSV
   let summary = filtered |> map(|v| {
@@ -326,7 +325,7 @@ fn analyze_vcf(input, output_dir) {
 
   write_csv(summary, f"{output_dir}/filtered_variants.csv")
 
-  print(f"\nDone. Results in {output_dir}/")
+  println(f"\nDone. Results in {output_dir}/")
 }
 
 analyze_vcf("data/sample.vcf.gz", "results")</code></pre>

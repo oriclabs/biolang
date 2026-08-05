@@ -51,7 +51,7 @@ data |> describe |> print</code></pre>
         <h3>TSV files</h3>
         <pre><code class="language-biolang"># Read a TSV file (e.g., gene expression matrix)
 let expr = tsv("expression_matrix.tsv")
-print(f"Rows: {len(expr)}")
+println(f"Rows: {len(expr)}")
 expr |> describe |> print</code></pre>
 
         <h3>Reading text files</h3>
@@ -104,7 +104,7 @@ let sig = data
   |> filter(|row| { row["padj"] |> float &lt; 0.05 })
   |> filter(|row| { (row["log2FoldChange"] |> float) |> abs > 1.0 })
 
-print(f"Significant DE genes: {sig |> len}")
+println(f"Significant DE genes: {sig |> len}")
 sig |> write_csv("significant_genes.csv")</code></pre>
 
         <h3>Sorting</h3>
@@ -162,7 +162,7 @@ merged |> head(5) |> print
 # Left join to keep all genes (unmatched get nil)
 let full = genes |> left_join(counts, "gene_id")
 let missing = full |> filter(|row| { row["count"] == nil })
-print(f"Genes without counts: {missing |> len}")</code></pre>
+println(f"Genes without counts: {missing |> len}")</code></pre>
 
         <h3>Concatenating tables</h3>
         <pre><code class="language-biolang"># Stack tables vertically
@@ -199,7 +199,7 @@ data
 # Write in multiple formats
 results |> write_csv("output.csv")
 results |> write_tsv("output.tsv")
-print(f"Wrote {results |> len} rows")</code></pre>
+println(f"Wrote {results |> len} rows")</code></pre>
 
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

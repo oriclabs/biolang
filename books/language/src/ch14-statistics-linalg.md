@@ -23,7 +23,7 @@ let summary = {
   iqr: quantile(coverage, 0.75) - quantile(coverage, 0.25),
 }
 
-print("Coverage: mean=" + str(summary.mean) + " median=" + str(summary.median))
+println("Coverage: mean=" + str(summary.mean) + " median=" + str(summary.median))
 ```
 
 These functions handle missing values gracefully: `nil` entries are skipped
@@ -43,7 +43,7 @@ let result = ttest(tumor, normal)
 # result => {statistic: 4.32, pvalue: 0.00018, df: 28, mean_diff: 2.15}
 
 if result.pvalue < 0.05 then
-  print("BRCA1 significantly different (p=" + str(result.pvalue) + ")")
+  println("BRCA1 significantly different (p=" + str(result.pvalue) + ")")
 ```
 
 ### Wilcoxon Rank-Sum
@@ -73,7 +73,7 @@ let result = chi_square(observed, expected)
 # result => {statistic: 3.21, pvalue: 0.073, df: 1}
 
 if result.pvalue > 0.05 then
-  print("Population is in Hardy-Weinberg equilibrium")
+  println("Population is in Hardy-Weinberg equilibrium")
 ```
 
 ### ANOVA
@@ -126,7 +126,7 @@ let significant = range(0, len(adjusted_bh))
   |> filter(|i| adjusted_bh[i] < 0.05)
   |> map(|i| {gene: gene_names[i], p: pvalues[i], q: adjusted_bh[i]})
 
-print(str(len(significant)) + " genes significant at FDR < 0.05")
+println(str(len(significant)) + " genes significant at FDR < 0.05")
 ```
 
 ## Correlation
@@ -185,9 +185,9 @@ let product = mat_mul(transpose(counts), counts)  # 3x3 covariance-like
 let log_counts = mat_map(counts, |x| log2(x + 1))
 
 # Basic properties
-print("Trace: " + str(trace(product)))
-print("Rank: " + str(rank(counts)))
-print("Frobenius norm: " + str(norm(counts)))
+println("Trace: " + str(trace(product)))
+println("Rank: " + str(rank(counts)))
+println("Frobenius norm: " + str(norm(counts)))
 ```
 
 ## Linear Algebra
@@ -202,7 +202,7 @@ let cov = matrix([
 ])
 
 let det = determinant(cov)
-print("Determinant: " + str(det))  # non-zero => invertible
+println("Determinant: " + str(det))  # non-zero => invertible
 
 let precision = inverse(cov)  # precision matrix
 ```
@@ -216,7 +216,7 @@ let eigen = eigenvalues(cov)
 # Proportion of variance explained by each component
 let total = sum(eigen.values)
 let prop = eigen.values |> map(|v| v / total)
-print("PC1 explains " + str(prop[0] * 100) + "% of variance")
+println("PC1 explains " + str(prop[0] * 100) + "% of variance")
 ```
 
 ### Singular Value Decomposition
@@ -275,8 +275,8 @@ let de_genes = range(0, len(results))
   |> filter(|r| r.q_value < 0.05 && abs(r.log2fc) > 1.0)
   |> sort_by(|r| r.q_value)
 
-print(str(len(de_genes)) + " differentially expressed genes")
-de_genes |> take(20) |> each(|g| print(g.gene + " log2FC=" + str(g.log2fc)))
+println(str(len(de_genes)) + " differentially expressed genes")
+de_genes |> take(20) |> each(|g| println(g.gene + " log2FC=" + str(g.log2fc)))
 de_genes |> write_tsv("de_results.tsv")
 ```
 
@@ -323,8 +323,8 @@ let pca_coords = range(0, n_samples)
        pc2: pc2[i],
      })
 
-print("PC1: " + str(eigen.values[0] / total_var * 100) + "% variance")
-print("PC2: " + str(eigen.values[1] / total_var * 100) + "% variance")
+println("PC1: " + str(eigen.values[0] / total_var * 100) + "% variance")
+println("PC2: " + str(eigen.values[1] / total_var * 100) + "% variance")
 pca_coords |> write_tsv("pca_coordinates.tsv")
 ```
 
@@ -354,18 +354,18 @@ let cmax = max(plasma)
 let tmax_idx = index_of(plasma, cmax)
 let tmax = solution.t[tmax_idx]
 
-print("Tmax: " + str(tmax) + " hr")
-print("Cmax: " + str(cmax) + " mg")
+println("Tmax: " + str(tmax) + " hr")
+println("Cmax: " + str(cmax) + " mg")
 
 # Half-life
 let t_half = log(2) / ke
-print("Half-life: " + str(t_half) + " hr")
+println("Half-life: " + str(t_half) + " hr")
 
 # AUC by trapezoidal rule
 let auc = range(0, len(plasma) - 1)
   |> map(|i| (plasma[i] + plasma[i + 1]) / 2.0 * (solution.t[i + 1] - solution.t[i]))
   |> sum()
-print("AUC(0-24h): " + str(auc) + " mg*hr")
+println("AUC(0-24h): " + str(auc) + " mg*hr")
 ```
 
 ## Example: Population Genetics (Hardy-Weinberg)

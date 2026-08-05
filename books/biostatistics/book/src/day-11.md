@@ -255,14 +255,14 @@ let expected = [150.0, 350.0, 150.0, 350.0]
 
 let result = chi_square(observed, expected)
 print("=== Chi-Square Test of Independence ===")
-print("Chi-square statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
-print("Degrees of freedom: {result.df}")
+print(f"Chi-square statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
+print(f"Degrees of freedom: {result.df}")
 
 # Effect size: Cramer's V from chi-square output
 let n_total = 180 + 320 + 120 + 380
 let v = sqrt(result.statistic / (n_total * min(2 - 1, 2 - 1)))
-print("Cramer's V: {v:.4}")
+print(f"Cramer's V: {v:.4}")
 
 # Odds ratio (inline: (a*d) / (b*c))
 let a = 180
@@ -270,11 +270,11 @@ let b = 320
 let c = 120
 let d = 380
 let or_val = (a * d) / (b * c)
-print("\nOdds Ratio: {or_val:.3}")
+print(f"\nOdds Ratio: {or_val:.3}")
 
 # Relative risk (inline)
 let rr = (a / (a + b)) / (c / (c + d))
-print("Relative Risk: {rr:.3}")
+print(f"Relative Risk: {rr:.3}")
 
 if result.p_value < 0.05 {
   print("\nSignificant association between risk allele and Alzheimer's")
@@ -293,15 +293,15 @@ print("Observed: 8/200 cases vs 2/200 controls carry the variant\n")
 
 # Chi-square would be unreliable here
 let chi_result = chi_square(observed, [5.0, 195.0, 5.0, 195.0])
-print("Chi-square p-value: {chi_result.p_value:.4} (unreliable — low expected counts)")
+print(f"Chi-square p-value: {chi_result.p_value:.4} (unreliable — low expected counts)")
 
 # Fisher's exact is the correct choice
 let fisher_result = fisher_exact(8, 192, 2, 198)
-print("Fisher's exact p-value: {fisher_result.p_value:.4}")
+print(f"Fisher's exact p-value: {fisher_result.p_value:.4}")
 
 # Odds ratio (inline)
 let or_val = (8 * 198) / (192 * 2)
-print("Odds Ratio: {or_val:.2}")
+print(f"Odds Ratio: {or_val:.2}")
 
 # Note: CI includes 1.0, so despite the apparent 4x difference,
 # the sample size is too small for significance
@@ -321,7 +321,7 @@ let n = obs_AA + obs_AG + obs_GG
 let p = (2 * obs_AA + obs_AG) / (2 * n)  # freq of A
 let q = 1.0 - p                           # freq of G
 
-print("Allele frequencies: p(A) = {p:.4}, q(G) = {q:.4}")
+print(f"Allele frequencies: p(A) = {p:.4}, q(G) = {q:.4}")
 
 # Expected counts under HWE
 let exp_AA = p * p * n
@@ -330,9 +330,9 @@ let exp_GG = q * q * n
 
 print("\nGenotype     | Observed | Expected (HWE)")
 print("-------------|----------|----------------")
-print("AA           | {obs_AA:>8} | {exp_AA:>14.1}")
-print("AG           | {obs_AG:>8} | {exp_AG:>14.1}")
-print("GG           | {obs_GG:>8} | {exp_GG:>14.1}")
+print(f"AA           | {obs_AA:>8} | {exp_AA:>14.1}")
+print(f"AG           | {obs_AG:>8} | {exp_AG:>14.1}")
+print(f"GG           | {obs_GG:>8} | {exp_GG:>14.1}")
 
 # Chi-square goodness of fit (df=1 for HWE with 2 alleles)
 let chi_sq = (obs_AA - exp_AA)^2 / exp_AA +
@@ -344,8 +344,8 @@ let observed = [obs_AA, obs_AG, obs_GG]
 let expected = [exp_AA, exp_AG, exp_GG]
 let result = chi_square(observed, expected)
 
-print("\nChi-square = {result.statistic:.4}")
-print("p-value = {result.p_value:.4}")
+print(f"\nChi-square = {result.statistic:.4}")
+print(f"p-value = {result.p_value:.4}")
 
 if result.p_value > 0.05 {
   print("Genotype frequencies are consistent with Hardy-Weinberg Equilibrium")
@@ -372,8 +372,8 @@ let mcnemar_p = 1.0 - pnorm(sqrt(mcnemar_chi2), 0, 1) * 2.0  # approximate
 let result = chi_square([b_disc, c_disc], [12.5, 12.5])
 print("=== McNemar's Test: Culture vs PCR ===")
 print("Discordant pairs: A+/B- = 15, A-/B+ = 10")
-print("Chi-square: {result.statistic:.4}")
-print("p-value: {result.p_value:.4}")
+print(f"Chi-square: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.4}")
 
 if result.p_value > 0.05 {
   print("No significant difference between the two diagnostic tests")
@@ -394,8 +394,8 @@ let result = chi_square(observed, [82.5, 217.5, 82.5, 217.5])
 print("=== Two-Proportion Test: EGFR Mutation Frequency ===")
 print("Asian: 120/300 = 40%")
 print("European: 45/300 = 15%")
-print("Chi-square: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
+print(f"Chi-square: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
 print("Difference: 25 percentage points")
 
 # Visualize
@@ -422,14 +422,14 @@ let col_labels = ["AA", "AG", "GG"]
 
 let result = chi_square(observed, expected)
 print("=== Chi-Square: Genotype vs Drug Response ===")
-print("Chi-square: {result.statistic:.4}")
-print("p-value: {result.p_value:.4}")
-print("df: {result.df}")
+print(f"Chi-square: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.4}")
+print(f"df: {result.df}")
 
 # Cramer's V from chi-square output
 let n_total = 45 + 30 + 25 + 35 + 55 + 60 + 20 + 15 + 15
 let v = sqrt(result.statistic / (n_total * min(3 - 1, 3 - 1)))
-print("Cramer's V: {v:.4} (effect size)")
+print(f"Cramer's V: {v:.4} (effect size)")
 
 # Display the contingency table
 print("\n           | AA   | AG   | GG   | Total")
@@ -437,7 +437,7 @@ print("-----------|------|------|------|------")
 for i in 0..3 {
   let offset = i * 3
   let total = observed[offset] + observed[offset + 1] + observed[offset + 2]
-  print("{row_labels[i]:<11}| {observed[offset]:>4} | {observed[offset + 1]:>4} | {observed[offset + 2]:>4} | {total:>4}")
+  print(f"{row_labels[i]:<11}| {observed[offset]:>4} | {observed[offset + 1]:>4} | {observed[offset + 2]:>4} | {total:>4}")
 }
 ```
 

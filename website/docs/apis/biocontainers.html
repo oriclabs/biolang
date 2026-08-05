@@ -38,15 +38,15 @@
         </p>
         <pre><code class="language-biolang"># Search for samtools
 let results = biocontainers_search("samtools")
-results |> print()
+results |> println()
 # => [{ name: "samtools", description: "...", organization: "biocontainers",
 #        version_count: 42, latest_version: "1.19", latest_image: "quay.io/..." }, ...]
 
 # Search with a result limit
-biocontainers_search("bwa", 5) |> print()
+biocontainers_search("bwa", 5) |> println()
 
 # Search for alignment tools
-biocontainers_search("alignment") |> print()</code></pre>
+biocontainers_search("alignment") |> println()</code></pre>
         <p>
           Returns a List of Records: <code>{name, description, organization, version_count, latest_version, latest_image}</code>.
           Default limit is 25.
@@ -58,12 +58,12 @@ biocontainers_search("alignment") |> print()</code></pre>
         </p>
         <pre><code class="language-biolang"># Get top 20 most popular tools (default)
 let popular = biocontainers_popular()
-popular |> print()
+popular |> println()
 
 # Get top 50
 biocontainers_popular(50)
   |> map(|t| { name: t.name, versions: t.version_count })
-  |> print()</code></pre>
+  |> println()</code></pre>
         <p>
           Returns a List of Records with the same fields as <code>biocontainers_search</code>.
           Default limit is 20.
@@ -76,15 +76,15 @@ biocontainers_popular(50)
         </p>
         <pre><code class="language-biolang"># Get full details for samtools
 let info = biocontainers_info("samtools")
-print(info)
+println(info)
 
 # Access nested version data
-print("Latest version:", info.latest_version)
-print("Total versions:", info.version_count)
+println("Latest version:", info.latest_version)
+println("Total versions:", info.version_count)
 
 # List all available images for the latest version
 let latest = info.versions |> first()
-print(latest.images)</code></pre>
+println(latest.images)</code></pre>
         <p>
           Returns a Record with nested versions and images.
         </p>
@@ -96,15 +96,15 @@ print(latest.images)</code></pre>
         </p>
         <pre><code class="language-biolang"># List all versions of gatk4
 let versions = biocontainers_versions("gatk4")
-versions |> print()
+versions |> println()
 # => [{ version: "4.5.0.0", images: ["quay.io/biocontainers/gatk4:4.5.0.0--...", ...] },
 #     { version: "4.4.0.0", images: ["quay.io/biocontainers/gatk4:4.4.0.0--...", ...] },
 #     ...]
 
 # Get the latest version image
 let latest = versions |> first()
-print("Version:", latest.version)
-print("Image:", latest.images |> first())</code></pre>
+println("Version:", latest.version)
+println("Image:", latest.images |> first())</code></pre>
         <p>
           Returns a List of Records: <code>{version, images}</code>, where
           <code>images</code> is a List of URI strings.
@@ -166,7 +166,7 @@ tools
     { tool: name, version: latest.version, image: latest.images |> first() }
   })
   |> to_table()
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h3>Compare Tool Versions</h3>
         <pre><code class="language-biolang"># See how many versions are available for popular tools
@@ -174,7 +174,7 @@ biocontainers_popular(10)
   |> map(|t| { name: t.name, versions: t.version_count, latest: t.latest_version })
   |> sort_by(|tool| tool.versions)
   |> reverse()
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h3>Search and Inspect a Tool</h3>
         <pre><code class="language-biolang"># Find a tool and get its full details
@@ -183,15 +183,15 @@ let tool_name = (results |> first()).name
 
 # Get detailed info
 let info = biocontainers_info(tool_name)
-print("Tool:", info.name)
-print("Description:", info.description)
-print("Versions available:", info.version_count)
+println("Tool:", info.name)
+println("Description:", info.description)
+println("Versions available:", info.version_count)
 
 # List the 5 most recent versions
 biocontainers_versions(tool_name)
   |> take(5)
   |> map(|v| { version: v.version, images: v.images |> len() })
-  |> print()</code></pre>
+  |> println()</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="nfcore.html" class="text-violet-400 hover:text-violet-300">&larr; nf-core</a>

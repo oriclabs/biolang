@@ -76,7 +76,7 @@ let genes = sql(db,
 genes
   |> filter(|g| g.start > 40000000)
   |> sort_by(|g| g.start)
-  |> print()
+  |> println()
 
 # CREATE TABLE
 sql(db, "CREATE TABLE IF NOT EXISTS results (sample TEXT, snps INTEGER, indels INTEGER, ti_tv REAL)")
@@ -88,7 +88,7 @@ sql(db, "INSERT INTO results VALUES (?, ?, ?, ?)",
 # UPDATE — returns rows affected
 let changed = sql(db, "UPDATE results SET snps = ? WHERE sample = ?",
                   [1300, "tumor_01"])
-print(str(changed) + " rows updated")</code></pre>
+println(str(changed) + " rows updated")</code></pre>
           </div>
         </section>
 
@@ -118,7 +118,7 @@ let samples = [
   {id: "S3", depth: 45.1, mapped_pct: 99.0},
 ]
 let inserted = sql_insert(db, "qc_results", samples)
-print(str(inserted) + " rows inserted")</code></pre>
+println(str(inserted) + " rows inserted")</code></pre>
           </div>
         </section>
 
@@ -150,7 +150,7 @@ let tables = sql_tables(db)
               Returns column metadata (name, type, not-null, primary key) as a Table.
             </p>
             <pre><code class="language-biolang">let schema = sql_schema(db, "genes")
-print(schema)
+println(schema)
 #  cid | name   | type    | notnull | pk
 # -----+--------+---------+---------+-----
 #  0   | symbol | TEXT    | false   | false
@@ -227,7 +227,7 @@ samples |> each(|s| fastq_qc(s.id, s.path))
 
 # Query aggregated results
 let summary = sql(db, "SELECT * FROM qc ORDER BY pass_rate DESC")
-print(summary)</code></pre>
+println(summary)</code></pre>
 
         <!-- Summary Table -->
         <h2 class="text-2xl font-bold text-white mt-10 mb-6">Summary</h2>

@@ -49,11 +49,11 @@
             </p>
             <pre><code class="language-biolang"># requires: internet connection (PDB API)
 let hb = pdb_entry("4HHB")
-print(hb.title)         # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN..."
-print(hb.method)        # "X-RAY DIFFRACTION"
-print(hb.resolution)    # 1.74
-print(hb.organism)      # "Homo sapiens"
-print(hb.release_date)  # "1984-07-17"</code></pre>
+println(hb.title)         # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN..."
+println(hb.method)        # "X-RAY DIFFRACTION"
+println(hb.resolution)    # 1.74
+println(hb.organism)      # "Homo sapiens"
+println(hb.release_date)  # "1984-07-17"</code></pre>
           </div>
         </section>
 
@@ -70,13 +70,13 @@ print(hb.release_date)  # "1984-07-17"</code></pre>
             </p>
             <pre><code class="language-biolang"># requires: internet connection (PDB API)
 let ids = pdb_search("insulin receptor")
-print(len(ids))   # number of matching structures
-print(ids[0..5])  # first 5 PDB IDs
+println(len(ids))   # number of matching structures
+println(ids[0..5])  # first 5 PDB IDs
 
 # Fetch details for the top hits
 ids[0..3]
   |> map(|id| pdb_entry(id))
-  |> each(|e| print(e.title + " — " + str(e.resolution) + " A"))</code></pre>
+  |> each(|e| println(e.title + " — " + str(e.resolution) + " A"))</code></pre>
           </div>
         </section>
 
@@ -93,11 +93,9 @@ ids[0..3]
             </p>
             <pre><code class="language-biolang"># requires: internet connection (PDB API)
 let chains = pdb_chains("4HHB")
-chains |> each(|c| print(c.chain_id + ": " + c.description))
-# A: HEMOGLOBIN (DEOXY) (ALPHA CHAIN)
-# B: HEMOGLOBIN (DEOXY) (BETA CHAIN)
-# C: HEMOGLOBIN (DEOXY) (ALPHA CHAIN)
-# D: HEMOGLOBIN (DEOXY) (BETA CHAIN)</code></pre>
+chains |> each(|c| println(str(c.entity_id) + ": " + c.description))
+# 1: Hemoglobin subunit alpha
+# 2: Hemoglobin subunit beta</code></pre>
           </div>
         </section>
 
@@ -115,10 +113,9 @@ chains |> each(|c| print(c.chain_id + ": " + c.description))
             </p>
             <pre><code class="language-biolang"># requires: internet connection (PDB API)
 let alpha = pdb_entity("4HHB", 1)
-print(alpha.description)   # "HEMOGLOBIN ALPHA CHAIN"
-print(alpha.type)          # "polypeptide(L)"
-print(alpha.weight)        # 15126.4
-print(alpha.chains)        # ["A", "C"]</code></pre>
+println(alpha.description)   # "Hemoglobin subunit alpha"
+println(alpha.entity_type)   # "polypeptide(L)"
+println(len(alpha.sequence)) # 141</code></pre>
           </div>
         </section>
 
@@ -135,8 +132,8 @@ print(alpha.chains)        # ["A", "C"]</code></pre>
             </p>
             <pre><code class="language-biolang"># requires: internet connection (PDB API)
 let seq = pdb_sequence("4HHB", 1)
-print(len(seq))       # 141 residues
-print(seq[0..20])     # "VLSPADKTNVKAAWGKVGAH"</code></pre>
+println(len(seq))       # 141 residues
+println(seq[0..20])     # "VLSPADKTNVKAAWGKVGAH"</code></pre>
           </div>
         </section>
 
@@ -165,10 +162,9 @@ let seqs = entities |> map(|eid| {
 # Compare subunits
 seqs |> each(|s| {
   let seq = s.sequence
-  print(s.info.description)
-  print("  Length:   " + str(len(seq)) + " residues")
-  print("  Chains:  " + join(s.info.chains, ", "))
-  print("  His pct: " + str(round(count_if(to_string(seq), |aa| aa == "H") / len(seq) * 100, 1)) + "%")
+  println(s.info.description)
+  println("  Length:   " + str(len(seq)) + " residues")
+  println("  His pct: " + str(round(count_if(chars(to_string(seq)), |aa| aa == "H") / len(seq) * 100, 1)) + "%")
 })
 
 # Output:
@@ -203,8 +199,8 @@ seqs |> each(|s| {
             <pre><code class="language-biolang"># requires: internet connection (NCBI PubMed API)
 let results = pubmed_search("CRISPR Cas9 therapy", 5)
 # pubmed_search returns a list of PMID strings directly
-print(len(results))    # number of IDs returned (up to limit)
-print(results)         # ["39847123", "39841056", "39838901", "39835444", "39831200"]</code></pre>
+println(len(results))    # number of IDs returned (up to limit)
+println(results)         # ["39847123", "39841056", "39838901", "39835444", "39831200"]</code></pre>
           </div>
         </section>
 
@@ -221,11 +217,14 @@ print(results)         # ["39847123", "39841056", "39838901", "39835444", "39831
               <code>journal</code>, <code>year</code>, and <code>doi</code>.
             </p>
             <pre><code class="language-biolang"># requires: internet connection (NCBI PubMed API)
+# pubmed_abstract returns the MEDLINE record as text, not a parsed record.
 let paper = pubmed_abstract("32553272")
-print(paper.title)     # "Search-and-replace genome editing without..."
-print(paper.journal)   # "Nature"
-print(paper.year)      # 2020
-print(paper.authors[0]) # "Anzalone AV"</code></pre>
+println(paper |> lines() |> first())
+# 1. Cell. 2020 Jul 9;182(1):145-161.e23. doi: 10.1016/j.cell.2020.05.021. Epub
+
+# Pull out a field with a plain text search.
+let title_line = paper |> lines() |> find(|l| starts_with(l, "Search-and-replace"))
+println(title_line)</code></pre>
           </div>
         </section>
 
@@ -240,25 +239,22 @@ print(paper.authors[0]) # "Anzalone AV"</code></pre>
         <pre><code class="language-biolang"># requires: internet connection (NCBI PubMed API)
 # Search for recent gene therapy papers
 let hits = pubmed_search("AAV gene therapy retinal dystrophy", 10)
-print("Found " + str(hits.count) + " articles")
+println("Found " + str(hits.count) + " articles")
 
 # Fetch abstracts for each result
 let papers = hits.ids |> map(|pmid| pubmed_abstract(pmid))
 
-# Build a summary table
+# Each abstract is MEDLINE text, so a summary is built by reading lines rather
+# than by field access. The citation line carries the journal, year and DOI.
 let review = papers |> map(|p| {
-  year: p.year,
-  first_author: p.authors[0],
-  journal: p.journal,
-  title: p.title,
-  doi: p.doi,
+  pmid: p |> lines() |> first(),
+  citation: p |> lines() |> take(2) |> join(" "),
 })
 
 # Sort by year descending and display
 review
   |> to_table()
-  |> sort_by(|r| -r.year)
-  |> print()
+  |> println()
 
 # Export for reference management
 review |> to_table() |> write_tsv("literature_review.tsv")</code></pre>
@@ -292,8 +288,8 @@ review |> to_table() |> write_tsv("literature_review.tsv")</code></pre>
 #   GO:0007049  Cell cycle         CDK1 CDK2  CCNB1  CCND1  RB1
 
 let gene_sets = read_gmt("c5.go.bp.v2024.1.symbols.gmt")
-print(len(keys(gene_sets)))  # number of gene sets loaded
-print(gene_sets["GO:0006915"])  # ["BAX", "BCL2", "CASP3", "CASP9", "TP53"]</code></pre>
+println(len(keys(gene_sets)))  # number of gene sets loaded
+println(gene_sets["GO:0006915"])  # ["BAX", "BCL2", "CASP3", "CASP9", "TP53"]</code></pre>
           </div>
         </section>
 
@@ -319,7 +315,7 @@ let background = read_lines("all_expressed_genes.txt")
 let ora = enrich(de_genes, gene_sets, background)
 ora
   |> filter(|r| r.fdr &lt; 0.05)
-  |> print()
+  |> println()
 
 #  term           | overlap | set_size | p_value  | fdr     | genes
 # ----------------+---------+----------+----------+---------+-----------------------
@@ -358,7 +354,7 @@ let gene_sets = read_gmt("h.all.v2024.1.symbols.gmt")
 let gsea_results = gsea(ranked, gene_sets)
 gsea_results
   |> filter(|r| r.fdr &lt; 0.25)
-  |> print()
+  |> println()
 
 #  term                      | es    | nes   | p_value | fdr   | leading_edge
 # ---------------------------+-------+-------+---------+-------+-------------------
@@ -418,8 +414,8 @@ let go_bp = read_gmt("c5.go.bp.v2024.1.symbols.gmt")
 # Run ORA
 let ora_results = enrich(sig_genes, go_bp, background)
 let sig_ora = ora_results |> filter(|r| r.fdr &lt; 0.05)
-print("ORA: " + str(nrow(sig_ora)) + " significant GO terms")
-sig_ora |> head(10) |> print()
+println("ORA: " + str(nrow(sig_ora)) + " significant GO terms")
+sig_ora |> head(10) |> println()
 
 # --- Gene Set Enrichment Analysis ---
 
@@ -435,17 +431,17 @@ let hallmarks = read_gmt("h.all.v2024.1.symbols.gmt")
 # Run GSEA
 let gsea_results = gsea(ranked, hallmarks)
 let sig_gsea = gsea_results |> filter(|r| r.fdr &lt; 0.25)
-print("GSEA: " + str(nrow(sig_gsea)) + " significant hallmark pathways")
+println("GSEA: " + str(nrow(sig_gsea)) + " significant hallmark pathways")
 
 # Separate up- and down-regulated pathways
 let up_paths = sig_gsea |> filter(|r| r.nes > 0) |> sort_by(|r| -r.nes)
 let dn_paths = sig_gsea |> filter(|r| r.nes &lt; 0) |> sort_by(|r| r.nes)
 
-print("Upregulated pathways:")
-up_paths |> each(|r| print("  " + r.term + " (NES=" + str(round(r.nes, 2)) + ")"))
+println("Upregulated pathways:")
+up_paths |> each(|r| println("  " + r.term + " (NES=" + str(round(r.nes, 2)) + ")"))
 
-print("Downregulated pathways:")
-dn_paths |> each(|r| print("  " + r.term + " (NES=" + str(round(r.nes, 2)) + ")"))
+println("Downregulated pathways:")
+dn_paths |> each(|r| println("  " + r.term + " (NES=" + str(round(r.nes, 2)) + ")"))
 
 # Export results
 sig_ora |> write_tsv("ora_significant.tsv")
@@ -465,7 +461,7 @@ sig_gsea |> write_tsv("gsea_significant.tsv")</code></pre>
             <tbody>
               <tr><td><code>pdb_entry(pdb_id)</code></td><td>Record</td><td>Fetch structure metadata (title, method, resolution, organism, release_date)</td></tr>
               <tr><td><code>pdb_search(query)</code></td><td>List</td><td>Search PDB by keyword; returns list of PDB IDs</td></tr>
-              <tr><td><code>pdb_chains(pdb_id)</code></td><td>List</td><td>List polymer chains (chain_id, entity_id, description)</td></tr>
+              <tr><td><code>pdb_chains(pdb_id)</code></td><td>List</td><td>List polymer chains (entity_id, entity_type, description, sequence)</td></tr>
               <tr><td><code>pdb_entity(pdb_id, entity_id)</code></td><td>Record</td><td>Entity detail (description, type, weight, chains)</td></tr>
               <tr><td><code>pdb_sequence(pdb_id, entity_id)</code></td><td>String</td><td>Amino acid sequence for an entity</td></tr>
             </tbody>

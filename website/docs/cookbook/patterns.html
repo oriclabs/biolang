@@ -79,7 +79,7 @@ let variants = read_vcf("data/variants.vcf")
   |> collect
 
 each(variants, |v| { count = count + 1 })
-print(f"Total PASS variants: {count}")
+println(f"Total PASS variants: {count}")
 
 # Filter to SNPs and write
 let snps = filter(variants, |v| len(v.ref) == 1 && len(v.alt) == 1)
@@ -93,7 +93,7 @@ fn safe_vcf(path) {
   try {
     vcf(path)
   } catch e {
-    print(f"Warning: Could not read {path}: {to_string(e)}")
+    println(f"Warning: Could not read {path}: {to_string(e)}")
     []  # Return empty list
   }
 }
@@ -103,7 +103,7 @@ let files = glob("samples/*.vcf.gz")
 let results = flat_map(files, |f| {
   safe_vcf(f"samples/{f}") |> filter(|v| v.filter == "PASS")
 })
-print(f"Total PASS variants across all files: {len(results)}")</code></pre>
+println(f"Total PASS variants across all files: {len(results)}")</code></pre>
 
         <h3>Validation before processing</h3>
         <pre><code class="language-biolang"># Validate inputs before expensive processing
@@ -134,11 +134,11 @@ fn validate_fastq_pair(r1_path, r2_path) {
 let check = validate_fastq_pair("sample_R1.fq.gz", "sample_R2.fq.gz")
 if !check.ok {
   for err in check.errors {
-    print(f"ERROR: {err}")
+    println(f"ERROR: {err}")
   }
   exit(1)
 }
-print(f"Validation passed: {check.r1_count} read pairs")</code></pre>
+println(f"Validation passed: {check.r1_count} read pairs")</code></pre>
 
         <h2>Data Validation</h2>
 
@@ -149,7 +149,8 @@ fn validate_table(data, schema) {
 
   # Check required columns
   let cols = colnames(data)
-  for [col_name, spec] in schema {
+  for col_name in keys(schema) {
+    let spec = schema[col_name]
     if !contains(cols, col_name) {
       push(issues, f"Missing required column: {col_name}")
       continue
@@ -177,8 +178,8 @@ let schema = {
 let data = read_csv("data/sample_sheet.csv")
 let issues = validate_table(data, schema)
 if len(issues) > 0 {
-  print("Sample sheet validation failed:")
-  for issue in issues { print(f"  - {issue}") }
+  println("Sample sheet validation failed:")
+  for issue in issues { println(f"  - {issue}") }
   exit(1)
 }</code></pre>
 
@@ -202,9 +203,9 @@ let config = if file_exists("config.json") {
   defaults
 }
 
-print("Configuration:")
-for [key, value] in config {
-  print(f"  {key}: {value}")
+println("Configuration:")
+for key in keys(config) {
+  println(f"  {key}: {config[key]}")
 }
 
 # Use config values
@@ -215,11 +216,12 @@ read_fastq("data/reads.fastq")
   |> write_fastq(f"{config.output_dir}/filtered.fq.gz")</code></pre>
 
         <h3>Environment variable resolution</h3>
-        <pre><code class="language-biolang"># Required environment variables
+        <pre><code class="language-biolang"># illustrative: exits when DATA_DIR and REF_GENOME are unset, which is the point
+# Required environment variables
 fn require_env(name) {
   let value = env(name)
   if value == nil {
-    print(f"ERROR: Required environment variable {name} is not set")
+    println(f"ERROR: Required environment variable {name} is not set")
     exit(1)
   }
   value
@@ -229,9 +231,9 @@ let data_dir = require_env("DATA_DIR")
 let ref_genome = require_env("REF_GENOME")
 let output_dir = env("OUTPUT_DIR") ?? "results"
 
-print(f"Data:   {data_dir}")
-print(f"Ref:    {ref_genome}")
-print(f"Output: {output_dir}")</code></pre>
+println(f"Data:   {data_dir}")
+println(f"Ref:    {ref_genome}")
+println(f"Output: {output_dir}")</code></pre>
 
         <h2>Builder Pattern</h2>
 
@@ -249,13 +251,13 @@ let analysis = {
 
 # Use the config in processing
 mkdir(analysis.output_dir)
-print(f"Analysis configured for: {analysis.output_dir}")</code></pre>
+println(f"Analysis configured for: {analysis.output_dir}")</code></pre>
 
         <h2>Logging Pattern</h2>
 
         <pre><code class="language-biolang"># Structured logging for pipeline scripts
 fn log(level, msg) {
-  print(f"[{now()}] [{level}] {msg}")
+  println(f"[{now()}] [{level}] {msg}")
 }
 
 fn log_info(msg) { log("INFO", msg) }

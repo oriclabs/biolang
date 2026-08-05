@@ -13,7 +13,7 @@ the `interval()` constructor.
 
 ```biolang
 let promoter = interval("chr1", 11869, 14409)
-let exon = interval("chr1", 11869, 12227, strand: "+")
+let exon = interval("chr1", 11869, 12227, "+")
 ```
 
 ### Interval Fields
@@ -24,13 +24,13 @@ or other annotations to table rows before building an interval tree.
 ```biolang
 let region = interval("chr7", 55181000, 55182000, "+")
 
-print(region.chrom)   # chr7
-print(region.start)   # 55181000
-print(region.end)     # 55182000
-print(region.strand)  # +
+println(region.chrom)   # chr7
+println(region.start)   # 55181000
+println(region.end)     # 55182000
+println(region.strand)  # +
 
 let width = region.end - region.start
-print("Width: " + str(width) + " bp")
+println("Width: " + str(width) + " bp")
 ```
 
 BioLang uses 0-based, half-open coordinates (BED convention) throughout.
@@ -45,16 +45,16 @@ let b = interval("chr1", 150, 250)
 let c = interval("chr1", 300, 400)
 
 # Overlap test
-print(a.start < b.end and b.start < a.end)   # true
-print(a.start < c.end and c.start < a.end)   # false
+println(a.start < b.end and b.start < a.end)   # true
+println(a.start < c.end and c.start < a.end)   # false
 
 # Containment
 let outer = interval("chr1", 100, 500)
-print(contains(outer, c))  # true
+println(contains(outer, c))  # true
 
 # Distance between non-overlapping intervals
 let dist = if a.end <= c.start then c.start - a.end else a.start - c.end
-print(dist)   # 100
+println(dist)   # 100
 
 # Merge overlapping intervals into one
 let merged = merge_intervals([a, b])
@@ -86,7 +86,7 @@ let query = interval("chr17", 43044294, 43044295)  # single position in BRCA1
 let hits = query_overlaps(tree, query.chrom, query.start, query.end)
 
 for hit in hits {
-    print("Overlaps: " + hit.chrom + ":" + str(hit.start) + "-" + str(hit.end))
+    println("Overlaps: " + hit.chrom + ":" + str(hit.start) + "-" + str(hit.end))
 }
 ```
 
@@ -120,8 +120,8 @@ let target = interval("chr17", 43044000, 43045000)
 
 let cov = coverage(tree)
     |> filter(|row| row.chrom == target.chrom && row.start < target.end && row.end > target.start)
-print("Mean segment depth over target: " + str(mean(col(cov, "depth"))))
-print("Segments >= 2x: " + str(cov |> filter(|row| row.depth >= 2) |> len()))
+println("Mean segment depth over target: " + str(mean(col(cov, "depth"))))
+println("Segments >= 2x: " + str(cov |> filter(|row| row.depth >= 2) |> len()))
 ```
 
 ## Variants
@@ -142,11 +142,11 @@ BioLang provides functions to classify variants by their molecular type.
 ```biolang
 let v = variant("chr7", 55181378, "T", "A")
 
-print(is_snp(v))           # true
-print(is_indel(v))         # false
-print(is_transition(v))    # false  (T>A is transversion)
-print(is_transversion(v))  # true
-print(variant_type(v))     # "Snp"
+println(is_snp(v))           # true
+println(is_indel(v))         # false
+println(is_transition(v))    # false  (T>A is transversion)
+println(is_transversion(v))  # true
+println(variant_type(v))     # "Snp"
 ```
 
 The full classification set:
@@ -168,7 +168,7 @@ for v in examples {
         is_indel(v)                     => "indel (" + str(abs(len(v.alt) - len(v.ref))) + "bp)"
         otherwise                       => vtype
     }
-    print(v.chrom + ":" + str(v.pos) + " " + v.ref + ">" + v.alt + " => " + detail)
+    println(v.chrom + ":" + str(v.pos) + " " + v.ref + ">" + v.alt + " => " + detail)
 }
 ```
 
@@ -185,8 +185,8 @@ let het_snps = variants
 let hom_alt = variants
     |> filter(|v| is_hom_alt(v))
 
-print("Heterozygous SNPs: " + str(len(het_snps)))
-print("Homozygous alt calls: " + str(len(hom_alt)))
+println("Heterozygous SNPs: " + str(len(het_snps)))
+println("Homozygous alt calls: " + str(len(hom_alt)))
 
 # Allele balance for heterozygous calls
 let allele_balances = het_snps |> map(|v| {
@@ -196,7 +196,7 @@ let allele_balances = het_snps |> map(|v| {
     if total > 0 { ad[1] / total } else { 0.0 }
 })
 
-print("Median allele balance (het): " + str(round(median(allele_balances), 3)))
+println("Median allele balance (het): " + str(round(median(allele_balances), 3)))
 ```
 
 ### parse_vcf_info
@@ -208,10 +208,10 @@ The VCF INFO column packs key-value pairs into a semicolon-delimited string.
 let info_str = "DP=42;MQ=60.0;AF=0.48;CLNSIG=Pathogenic;GENEINFO=BRCA1:672"
 let info = parse_info(info_str)
 
-print(info.DP)       # 42
-print(info.AF)       # 0.48
-print(info.CLNSIG)   # "Pathogenic"
-print(info.GENEINFO) # "BRCA1:672"
+println(info.DP)       # 42
+println(info.AF)       # 0.48
+println(info.CLNSIG)   # "Pathogenic"
+println(info.GENEINFO) # "BRCA1:672"
 ```
 
 ## Example: Find Genes Overlapping with ChIP-seq Peaks

@@ -83,7 +83,7 @@ println(samples)  # "sample_A,sample_B"</code></pre>
           <pre><code class="language-text">paste(list1, list2, delimiter?) -> string</code></pre>
           <pre><code class="language-biolang">let genes = ["BRCA1", "TP53", "EGFR"]
 let pvalues = ["0.001", "0.023", "0.045"]
-let combined = paste(genes, pvalues, "\t")
+let combined = paste(genes, pvalues, "\t") |> join("\n")
 # "BRCA1\t0.001\nTP53\t0.023\nEGFR\t0.045"
 write_text("gene_pvalues.tsv", combined)</code></pre>
 

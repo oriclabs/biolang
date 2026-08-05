@@ -71,7 +71,7 @@ for read in reads {
     total_bases = total_bases + len(read.seq)
 }
 
-print("Total bases: " + str(total_bases))
+println("Total bases: " + str(total_bases))
 ```
 
 ### Tuple Destructuring
@@ -88,7 +88,7 @@ let fastq_paths = [
 
 for (sample, path) in zip(sample_ids, fastq_paths) {
     let stats = read_fastq(path) |> read_stats()
-    print(sample + ": " + str(stats.total_reads) + " reads")
+    println(sample + ": " + str(stats.total_reads) + " reads")
 }
 ```
 
@@ -98,7 +98,7 @@ Destructuring also works with `enumerate`:
 let exons = read_bed("data/exons.bed")
 
 for (i, exon) in enumerate(exons) {
-    print("Exon " + str(i + 1) + ": " + exon.chrom + ":" + str(exon.start) + "-" + str(exon.end))
+    println("Exon " + str(i + 1) + ": " + exon.chrom + ":" + str(exon.start) + "-" + str(exon.end))
 }
 ```
 
@@ -115,11 +115,11 @@ let promoters = read_bed("data/regions.bed")
 for region in promoters {
     let seq = ucsc_sequence("hg38", region.chrom, region.start, region.end)
     if contains(seq, target) {
-        print("TATA box found in " + region.name)
+        println("TATA box found in " + region.name)
         break
     }
 } else {
-    print("No TATA box found in any promoter region")
+    println("No TATA box found in any promoter region")
 }
 ```
 
@@ -245,12 +245,12 @@ fn process_bam(path) {
     let header = sam_header(path)
 
     unless contains(header.sort_order, "coordinate") {
-        print("WARNING: BAM is not coordinate-sorted, sorting first")
+        println("WARNING: BAM is not coordinate-sorted, sorting first")
         shell("samtools sort -o " + path + " " + path)
     }
 
     unless file_exists(path + ".bai") {
-        print("Indexing BAM")
+        println("Indexing BAM")
         shell("samtools index " + path)
     }
 
@@ -312,11 +312,11 @@ for gene in genes {
     let hits = find_motif(seq, motif)
 
     if len(hits) > 0 {
-        print("E-box found upstream of " + gene.name + " at offset " + str(hits[0].position))
+        println("E-box found upstream of " + gene.name + " at offset " + str(hits[0].position))
         break
     }
 } else {
-    print("No E-box motif found in any upstream region scanned")
+    println("No E-box motif found in any upstream region scanned")
 }
 ```
 
@@ -355,9 +355,9 @@ for sample in samples {
     let result = qc_disposition(stats)
 
     if result.pass {
-        print(sample + ": PASS")
+        println(sample + ": PASS")
     } else {
-        print(sample + ": FAIL (" + result.reason + ")")
+        println(sample + ": FAIL (" + result.reason + ")")
     }
 }
 ```

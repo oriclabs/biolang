@@ -147,11 +147,12 @@ for line in sys.stdin:
     print(json.dumps(result), flush=True)</code></pre>
 
         <h3>Using the Python Plugin in BioLang</h3>
-        <pre><code class="language-biolang"># The plugin functions are available as builtins
+        <pre><code class="language-biolang"># illustrative: welch_ttest comes from a plugin, so this runs once it is installed
+# The plugin functions are available as builtins
 let result = welch_ttest([1.2, 3.4, 5.6], [2.1, 4.3, 6.5])
-print(result.statistic)
-print(result.pvalue)
-print(result.significant)
+println(result.statistic)
+println(result.pvalue)
+println(result.significant)
 
 # In a pipeline
 expr_data
@@ -161,7 +162,7 @@ expr_data
     ttest: welch_ttest(col(rows, "tumor_expr"), col(rows, "normal_expr"))
   })
   |> filter(|r| r.ttest.significant)
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h2>Writing a Deno/TypeScript Plugin</h2>
         <pre><code class="language-json">{

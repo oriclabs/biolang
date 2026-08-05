@@ -74,28 +74,28 @@
           it returns a record with gene details. For multiple matches, it returns a list of IDs.
         </p>
         <pre><code class="language-biolang"># requires: internet connection (optional: NCBI_API_KEY for higher rate limits)
-# databases.bio — querying biological databases
+# databases.bl — querying biological databases
 
 # Search for a gene by symbol
 let gene = ncbi_gene("TP53")
-print(f"Gene ID:     {gene.id}")
-print(f"Symbol:      {gene.symbol}")
-print(f"Name:        {gene.name}")
-print(f"Organism:    {gene.organism}")
-print(f"Chromosome:  {gene.chromosome}")
-print(f"Location:    {gene.location}")
-print(f"Description: {gene.description}")
+println(f"Gene ID:     {gene.id}")
+println(f"Symbol:      {gene.symbol}")
+println(f"Name:        {gene.name}")
+println(f"Organism:    {gene.organism}")
+println(f"Chromosome:  {gene.chromosome}")
+println(f"Location:    {gene.location}")
+println(f"Description: {gene.description}")
 
 # For broader searches, use ncbi_search(db, query)
 # Returns a list of IDs
 let ids = ncbi_search("gene", "BRCA1 human")
-print(f"Found {len(ids)} gene IDs")
-print(f"First ID: {ids[0]}")
+println(f"Found {len(ids)} gene IDs")
+println(f"First ID: {ids[0]}")
 
 # Get summaries for those IDs
 let summaries = ncbi_summary(ids, "gene")
 for s in summaries {
-  print(f"  {s.uid}: {s}"  )
+  println(f"  {s.uid}: {s}"  )
 }</code></pre>
 
         <!-- Step 2 -->
@@ -103,24 +103,24 @@ for s in summaries {
         <pre><code class="language-biolang"># requires: internet connection (optional: NCBI_API_KEY for higher rate limits)
 # Fetch a sequence by accession (returns FASTA text)
 let fasta = ncbi_sequence("NM_000546.6")
-print(f"FASTA (first 200 chars): {fasta[0..200]}...")
+println(f"FASTA (first 200 chars): {fasta[0..200]}...")
 
 # Or use ncbi_fetch for more control — ncbi_fetch(ids, db, [rettype])
 let xml = ncbi_fetch(["7157"], "gene")  # fetch gene XML by ID
-print(f"Gene XML length: {len(xml)} chars")
+println(f"Gene XML length: {len(xml)} chars")
 
 # Fetch nucleotide sequences
 let seq_fasta = ncbi_fetch("NM_000546.6", "nucleotide")  # single ID string works too
-print(seq_fasta[0..100])
+println(seq_fasta[0..100])
 
 # Search PubMed — returns list of PMIDs
 let pmids = ncbi_pubmed("TP53 mutation cancer", 5)
-print(f"Found {len(pmids)} PubMed IDs: {pmids}")
+println(f"Found {len(pmids)} PubMed IDs: {pmids}")
 
 # Get summaries for the publications
 let papers = ncbi_summary(pmids, "pubmed")
 for p in papers {
-  print(f"  PMID {p.uid}: {p}")
+  println(f"  PMID {p.uid}: {p}")
 }</code></pre>
 
         <!-- Step 3 -->
@@ -133,24 +133,24 @@ for p in papers {
         <pre><code class="language-biolang"># requires: internet connection
 # Look up a gene by symbol
 let gene = ensembl_symbol("human", "TP53")
-print(f"Ensembl ID:  {gene.id}")
-print(f"Symbol:      {gene.symbol}")
-print(f"Biotype:     {gene.biotype}")
-print(f"Chromosome:  {gene.chromosome}")
-print(f"Location:    {gene.chromosome}:{gene.start}-{gene.end}")
-print(f"Strand:      {gene.strand}")
-print(f"Description: {gene.description}")
+println(f"Ensembl ID:  {gene.id}")
+println(f"Symbol:      {gene.symbol}")
+println(f"Biotype:     {gene.biotype}")
+println(f"Chromosome:  {gene.chromosome}")
+println(f"Location:    {gene.chromosome}:{gene.start}-{gene.end}")
+println(f"Strand:      {gene.strand}")
+println(f"Description: {gene.description}")
 
 # Look up by Ensembl ID directly
 let gene2 = ensembl_gene("ENSG00000141510")
-print(f"Same gene: {gene2.symbol}")
+println(f"Same gene: {gene2.symbol}")
 
 # Get the coding sequence for a transcript
 let seq = ensembl_sequence("ENST00000269305", "cds")
-print(f"CDS ID:     {seq.id}")
-print(f"Molecule:   {seq.molecule}")
-print(f"CDS length: {len(seq.seq)} nt")
-print(f"Sequence:   {seq.seq[0..60]}...")</code></pre>
+println(f"CDS ID:     {seq.id}")
+println(f"Molecule:   {seq.molecule}")
+println(f"CDS length: {len(seq.seq)} nt")
+println(f"Sequence:   {seq.seq[0..60]}...")</code></pre>
 
         <!-- Step 4 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Ensembl: Variant Effect Predictor</h2>
@@ -164,23 +164,23 @@ print(f"Sequence:   {seq.seq[0..60]}...")</code></pre>
 let results = ensembl_vep("17:g.7675088C>T")
 
 for r in results {
-  print(f"Alleles: {r.allele_string}")
-  print(f"Most severe: {r.most_severe_consequence}")
+  println(f"Alleles: {r.allele_string}")
+  println(f"Most severe: {r.most_severe_consequence}")
 
   # Each result has transcript consequences
   for tc in r.transcript_consequences {
-    print(f"  Gene:        {tc.gene_id}")
-    print(f"  Transcript:  {tc.transcript_id}")
-    print(f"  Impact:      {tc.impact}")
-    print(f"  Consequences: {tc.consequences}")
+    println(f"  Gene:        {tc.gene_id}")
+    println(f"  Transcript:  {tc.transcript_id}")
+    println(f"  Impact:      {tc.impact}")
+    println(f"  Consequences: {tc.consequences}")
   }
 }
 
 # Try another variant — BRCA1 pathogenic variant
 let brca1_vep = ensembl_vep("17:g.43091434C>T")
 for r in brca1_vep {
-  print(f"\nBRCA1 variant: {r.allele_string}")
-  print(f"Consequence: {r.most_severe_consequence}")
+  println(f"\nBRCA1 variant: {r.allele_string}")
+  println(f"Consequence: {r.most_severe_consequence}")
 }</code></pre>
 
         <!-- Step 5 -->
@@ -194,34 +194,34 @@ for r in brca1_vep {
 # Search UniProt for human TP53
 let results = uniprot_search("TP53 AND organism_id:9606", 5)
 for entry in results {
-  print(f"{entry.accession}: {entry.name} — {entry.organism}")
+  println(f"{entry.accession}: {entry.name} — {entry.organism}")
 }
 
 # Fetch full entry for p53
 let p53 = uniprot_entry("P04637")
-print(f"Protein:   {p53.name}")
-print(f"Accession: {p53.accession}")
-print(f"Length:    {p53.sequence_length} aa")
-print(f"Organism:  {p53.organism}")
-print(f"Genes:     {p53.gene_names}")
-print(f"Function:  {p53.function}")
+println(f"Protein:   {p53.name}")
+println(f"Accession: {p53.accession}")
+println(f"Length:    {p53.sequence_length} aa")
+println(f"Organism:  {p53.organism}")
+println(f"Genes:     {p53.gene_names}")
+println(f"Function:  {p53.function}")
 
 # Get the FASTA sequence
 let fasta = uniprot_fasta("P04637")
-print(f"\nFASTA:\n{fasta[0..200]}...")
+println(f"\nFASTA:\n{fasta[0..200]}...")
 
 # Get protein features (domains, modifications, etc.)
 let features = uniprot_features("P04637")
-print(f"\nFeatures: {len(features)}")
+println(f"\nFeatures: {len(features)}")
 for f in take(features, 10) {
-  print(f"  {f.type}: {f.location} — {f.description}")
+  println(f"  {f.type}: {f.location} — {f.description}")
 }
 
 # Get GO annotations
 let go_terms = uniprot_go("P04637")
-print(f"\nGO terms: {len(go_terms)}")
+println(f"\nGO terms: {len(go_terms)}")
 for t in take(go_terms, 10) {
-  print(f"  {t.id} [{t.aspect}]: {t.term}")
+  println(f"  {t.id} [{t.aspect}]: {t.term}")
 }</code></pre>
 
         <!-- Step 6 -->
@@ -235,31 +235,31 @@ for t in take(go_terms, 10) {
 # Search KEGG pathways
 let pathways = kegg_find("pathway", "p53 signaling")
 for p in pathways {
-  print(f"{p.id}: {p.description}")
+  println(f"{p.id}: {p.description}")
 }
 
 # Get full pathway details (returns text record)
 let p53_pathway = kegg_get("hsa04115")
-print(f"Pathway details:\n{p53_pathway[0..500]}...")
+println(f"Pathway details:\n{p53_pathway[0..500]}...")
 
 # Find genes linked to a pathway
 let genes = kegg_link("hsa", "hsa04115")
-print(f"\nGenes in p53 pathway: {len(genes)}")
+println(f"\nGenes in p53 pathway: {len(genes)}")
 for g in take(genes, 10) {
-  print(f"  {g.source} -> {g.target}")
+  println(f"  {g.source} -> {g.target}")
 }
 
 # Find all pathways for a specific gene (TP53 = hsa:7157)
 let tp53_pathways = kegg_link("pathway", "hsa:7157")
-print(f"\nTP53 participates in {len(tp53_pathways)} pathways:")
+println(f"\nTP53 participates in {len(tp53_pathways)} pathways:")
 for p in tp53_pathways {
-  print(f"  {p.target}")
+  println(f"  {p.target}")
 }
 
 # Search KEGG compounds
 let compounds = kegg_find("compound", "ATP")
 for c in compounds {
-  print(f"{c.id}: {c.description}")
+  println(f"{c.id}: {c.description}")
 }</code></pre>
 
         <!-- Step 7 -->
@@ -271,16 +271,16 @@ for c in compounds {
         <pre><code class="language-biolang"># requires: internet connection
 # Search PDB for TP53 structures
 let pdb_ids = pdb_search("TP53")
-print(f"Found {len(pdb_ids)} PDB structures for TP53")
+println(f"Found {len(pdb_ids)} PDB structures for TP53")
 
 # Get details for a specific structure
 let entry = pdb_entry("1TUP")
-print(f"PDB ID:     {entry.id}")
-print(f"Title:      {entry.title}")
-print(f"Method:     {entry.method}")
-print(f"Resolution: {entry.resolution}")
-print(f"Released:   {entry.release_date}")
-print(f"Organism:   {entry.organism}")</code></pre>
+println(f"PDB ID:     {entry.id}")
+println(f"Title:      {entry.title}")
+println(f"Method:     {entry.method}")
+println(f"Resolution: {entry.resolution}")
+println(f"Released:   {entry.release_date}")
+println(f"Organism:   {entry.organism}")</code></pre>
 
         <!-- Step 8 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Cross-Database Queries</h2>
@@ -288,48 +288,48 @@ print(f"Organism:   {entry.organism}")</code></pre>
 # Gather information about a gene from multiple databases
 
 fn gene_report(symbol: String) {
-  print(f"\n=== Report for {symbol} ===\n")
+  println(f"\n=== Report for {symbol} ===\n")
 
   # NCBI: basic gene info
   let ncbi = ncbi_gene(symbol)
-  print(f"NCBI Gene ID: {ncbi.id}")
-  print(f"Name:         {ncbi.name}")
-  print(f"Chromosome:   {ncbi.chromosome}")
-  print(f"Summary:      {ncbi.summary[0..200]}...")
+  println(f"NCBI Gene ID: {ncbi.id}")
+  println(f"Name:         {ncbi.name}")
+  println(f"Chromosome:   {ncbi.chromosome}")
+  println(f"Summary:      {ncbi.summary[0..200]}...")
 
   # Ensembl: genomic coordinates
   let ens = ensembl_symbol("human", symbol)
-  print(f"\nEnsembl ID:   {ens.id}")
-  print(f"Location:     {ens.chromosome}:{ens.start}-{ens.end}")
-  print(f"Biotype:      {ens.biotype}")
+  println(f"\nEnsembl ID:   {ens.id}")
+  println(f"Location:     {ens.chromosome}:{ens.start}-{ens.end}")
+  println(f"Biotype:      {ens.biotype}")
 
   # UniProt: protein info
   let up_results = uniprot_search(f"gene:{symbol} AND organism_id:9606", 1)
   if len(up_results) > 0 {
     let up = uniprot_entry(up_results[0].accession)
-    print(f"\nUniProt:      {up.accession}")
-    print(f"Protein:      {up.name}")
-    print(f"Length:       {up.sequence_length} aa")
+    println(f"\nUniProt:      {up.accession}")
+    println(f"Protein:      {up.name}")
+    println(f"Length:       {up.sequence_length} aa")
 
     # Features
     let feats = uniprot_features(up.accession)
-    print(f"Features:     {len(feats)}")
+    println(f"Features:     {len(feats)}")
 
     # GO terms
     let go = uniprot_go(up.accession)
-    print(f"GO terms:     {len(go)}")
+    println(f"GO terms:     {len(go)}")
   }
 
   # KEGG: pathways
   let kegg_paths = kegg_link("pathway", f"hsa:{ncbi.id}")
-  print(f"\nKEGG pathways: {len(kegg_paths)}")
+  println(f"\nKEGG pathways: {len(kegg_paths)}")
   for p in take(kegg_paths, 5) {
-    print(f"  {p.target}")
+    println(f"  {p.target}")
   }
 
   # PDB: structures
   let structures = pdb_search(symbol)
-  print(f"PDB structures: {len(structures)}")
+  println(f"PDB structures: {len(structures)}")
 }
 
 # Run report for a cancer-related gene
@@ -373,8 +373,8 @@ let annotations = gene_symbols |> map(|symbol| {
   }
 }) |> to_table()
 
-print("\n=== Gene Annotation Summary ===")
-print(annotations)</code></pre>
+println("\n=== Gene Annotation Summary ===")
+println(annotations)</code></pre>
 
         <!-- Step 10 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 10 — Tips and Best Practices</h2>
@@ -407,7 +407,7 @@ print(annotations)</code></pre>
 
 # For large batch queries, use sleep() between requests
 let gene_ids = ncbi_search("gene", "cancer human", 100)
-print(f"Found {len(gene_ids)} genes")
+println(f"Found {len(gene_ids)} genes")
 
 # Process in chunks to be respectful of rate limits
 let chunk_size = 10
@@ -415,7 +415,7 @@ let chunks = chunk(gene_ids, chunk_size)
 
 for [i, batch] in enumerate(chunks) {
   let summaries = ncbi_summary(batch, "gene")
-  print(f"Batch {i + 1}: processed {len(summaries)} genes")
+  println(f"Batch {i + 1}: processed {len(summaries)} genes")
   sleep(500)  # half-second pause between batches
 }</code></pre>
 

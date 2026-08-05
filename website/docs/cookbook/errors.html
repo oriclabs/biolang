@@ -34,9 +34,9 @@
 try {
   let data = read_vcf("data/variants.vcf")
   let cnt = data |> filter(|v| v.filter == "PASS") |> count
-  print(f"PASS variants: {cnt}")
+  println(f"PASS variants: {cnt}")
 } catch e {
-  print(f"Error reading VCF: {to_string(e)}")
+  println(f"Error reading VCF: {to_string(e)}")
   exit(1)
 }</code></pre>
 
@@ -51,7 +51,7 @@ try {
   })
   write_csv(processed, "output.csv")
 } catch e {
-  print(f"Error: {to_string(e)}")
+  println(f"Error: {to_string(e)}")
   exit(1)
 }</code></pre>
 
@@ -71,12 +71,12 @@ try {
 
   copy_file(f"{tmp_dir}/final.bam", "results/output.bam")
 } catch e {
-  print(f"Pipeline failed: {to_string(e)}")
+  println(f"Pipeline failed: {to_string(e)}")
 }
 
 # Clean up temp files
 remove(tmp_dir)
-print("Cleanup complete")</code></pre>
+println("Cleanup complete")</code></pre>
 
         <h2>Result Chaining</h2>
 
@@ -105,9 +105,9 @@ let results = read_csv("data/expression.csv")
 let successes = filter(results, |r| r.ok) |> map(|r| r.value)
 let failures = filter(results, |r| !r.ok) |> map(|r| r.error)
 
-print(f"Parsed: {len(successes)}, Errors: {len(failures)}")
+println(f"Parsed: {len(successes)}, Errors: {len(failures)}")
 if len(failures) > 0 {
-  print(f"First error: {first(failures)}")
+  println(f"First error: {first(failures)}")
 }</code></pre>
 
         <h3>Unwrap with context</h3>
@@ -149,13 +149,13 @@ let threads = config["threads"] ?? 4
 let min_qual = config["min_quality"] ?? 30
 let output = config["output_dir"] ?? "results"
 
-print(f"Using {threads} threads, min quality {min_qual}")
+println(f"Using {threads} threads, min quality {min_qual}")
 
 # Chained fallbacks
 let configured_ref = env("REF_GENOME") ?? config["reference"]
 let ref_path = configured_ref ?? "/refs/default/GRCh38.fa"
 
-print(f"Reference: {ref_path}")</code></pre>
+println(f"Reference: {ref_path}")</code></pre>
 
         <h3>Skipping bad records</h3>
         <pre><code class="language-biolang"># Process what you can, skip what you cannot
@@ -175,7 +175,7 @@ for row in read_csv("data/expression.csv") {
   }
 }
 
-print(f"Processed: {processed}, Skipped: {skipped}")
+println(f"Processed: {processed}, Skipped: {skipped}")
 write_tsv(from_records(results), "clean_results.tsv")</code></pre>
 
         <h3>Retry logic</h3>
@@ -188,7 +188,7 @@ fn with_retries(operation, max_attempts, delay_ms) {
     } catch e {
       last_error = e
       if attempt &lt; max_attempts {
-        print(f"Attempt {attempt} failed: {to_string(e)}. Retrying in {delay_ms}ms...")
+        println(f"Attempt {attempt} failed: {to_string(e)}. Retrying in {delay_ms}ms...")
         sleep(delay_ms)
       }
     }
@@ -210,7 +210,7 @@ let data = with_retries(fetch_gene_data, 3, 2000)</code></pre>
 fn log_msg(level, msg, ctx) {
   let line = f"[{now()}] [{level}] {msg}"
   if ctx != nil { line = f"{line} {to_string(ctx)}" }
-  print(line)
+  println(line)
   write_text(line, "pipeline.log")
 }
 
@@ -280,7 +280,7 @@ fn align_reads(r1, r2, ref, output) {
   let size = file_size(output)
   assert size > 1000, f"Output BAM suspiciously small: {size} bytes"
 
-  print(f"Alignment complete: {output} ({size} bytes)")
+  println(f"Alignment complete: {output} ({size} bytes)")
 }</code></pre>
 
       </article>

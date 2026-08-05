@@ -281,8 +281,8 @@ for i in 0..n {
     }
 }
 
-print("Events: {status |> sum} / {n} ({(status |> sum) / n * 100 |> round(1)}%)")
-print("Censored: {n - (status |> sum)}")
+print(f"Events: {status |> sum} / {n} ({(status |> sum) * 100.0 / n |> round(1)}%)")
+print(f"Censored: {n - (status |> sum)}")
 
 # Fit Kaplan-Meier for each group
 let wt_times = []
@@ -302,8 +302,8 @@ for i in 0..n {
 let km_wt = kaplan_meier(wt_times, wt_status)
 let km_mut = kaplan_meier(mut_times, mut_status)
 
-print("Median survival (TP53 WT): {km_wt.median |> round(1)} months")
-print("Median survival (TP53 mut): {km_mut.median |> round(1)} months")
+print(f"Median survival (TP53 WT): {km_wt.median |> round(1)} months")
+print(f"Median survival (TP53 mut): {km_mut.median |> round(1)} months")
 ```
 
 ### Kaplan-Meier Plot
@@ -332,7 +332,7 @@ let km_all = kaplan_meier(survival_time, status)
 # Use Cox PH as a proxy for log-rank (equivalent for single binary predictor)
 let cox_lr = cox_ph(survival_time, status, [tp53_mut])
 print("=== Log-Rank Test (via Cox) ===")
-print("p-value: {cox_lr.p_value |> round(4)}")
+print(f"p-value: {cox_lr.p_value |> round(4)}")
 
 if cox_lr.p_value < 0.05 {
     print("Significant difference in survival between TP53 groups")
@@ -354,19 +354,19 @@ let stage = rnorm(n, 2.5, 0.8) |> map(|x| max(1, min(4, round(x))))
 let cox_simple = cox_ph(survival_time, status, [tp53_mut])
 
 print("=== Univariate Cox Model ===")
-print("TP53 Mutation HR: {cox_simple.hazard_ratio |> round(2)}")
-print("  p-value: {cox_simple.p_value |> round(4)}")
+print(f"TP53 Mutation HR: {cox_simple.hazard_ratio |> round(2)}")
+print(f"  p-value: {cox_simple.p_value |> round(4)}")
 
 # Multivariable Cox model — adjust for age and stage
 let cox_adjusted = cox_ph(survival_time, status, [tp53_mut, age, stage])
 
 print("\n=== Multivariable Cox Model ===")
-print("Hazard ratios: {cox_adjusted.hazard_ratios}")
-print("p-values: {cox_adjusted.p_values}")
+print(f"Hazard ratios: {cox_adjusted.hazard_ratios}")
+print(f"p-values: {cox_adjusted.p_values}")
 
 # Compare: does TP53 HR change after adjusting for stage?
-print("\nTP53 HR unadjusted: {cox_simple.hazard_ratio |> round(2)}")
-print("TP53 HR adjusted:   {cox_adjusted.hazard_ratios[0] |> round(2)}")
+print(f"\nTP53 HR unadjusted: {cox_simple.hazard_ratio |> round(2)}")
+print(f"TP53 HR adjusted:   {cox_adjusted.hazard_ratios[0] |> round(2)}")
 ```
 
 ### Forest Plot of Hazard Ratios

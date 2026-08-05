@@ -330,8 +330,15 @@ volcano(de, {
         <section class="mb-12" id="save">
           <h2 class="text-2xl font-bold text-white"><span class="text-violet-400 font-mono">save_svg</span></h2>
           <pre><code class="language-text">save_svg(svg, path) -> string</code></pre>
-          <pre><code class="language-biolang">let p = scatter(data, {title: "My Plot"})
-save_svg(p, "plot.svg")</code></pre>
+          <pre><code class="language-biolang"># save_svg takes SVG markup, which plot() produces. scatter() is the ASCII
+# renderer and takes two lists of numbers, so it does not fit here.
+let data = to_table([
+  {x: 1.0, y: 2.0},
+  {x: 2.0, y: 4.1},
+  {x: 3.0, y: 5.8},
+])
+let svg = plot(data, {title: "My Plot"})
+save_svg(svg, "plot.svg")</code></pre>
         </section>
 
         <section class="mb-12" id="more">

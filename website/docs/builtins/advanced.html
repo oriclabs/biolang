@@ -102,6 +102,11 @@ union(de_genes, pathway_genes)          # ["BRCA1", "TP53", "EGFR", "KRAS", "MYC
 difference(de_genes, pathway_genes)     # ["EGFR", "KRAS", "MYC"]
 
 # Venn diagram overlap
+let de = [
+  {gene: "BRCA1", log2fc: 2.4},
+  {gene: "EGFR",  log2fc: 0.3},
+  {gene: "MYC",   log2fc: 1.8},
+]
 let upregulated = filter(de, |r| r.log2fc > 1) |> map(|r| r.gene) |> set()
 let chip_targets = read_lines("chip_peaks_genes.txt") |> set()
 let overlap = intersection(upregulated, chip_targets)

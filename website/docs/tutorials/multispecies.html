@@ -92,13 +92,14 @@ let gene_lookups = [
 # Look up TP53 orthologs in each species
 let orthologs = gene_lookups |> map(|entry| {
   let gene = ensembl_symbol(entry.species, entry.symbol)
-  { species: entry.species, gene_id: gene.id, symbol: gene.symbol,
+  { species: entry.species, gene_id: gene.id,
+    transcript: gene.canonical_transcript, symbol: gene.symbol,
     description: gene.description }
 })
 
-print("=== TP53 Orthologs ===")
+println("=== TP53 Orthologs ===")
 for orth in orthologs {
-  print(f"{orth.species}: {orth.gene_id} ({orth.symbol})")
+  println(f"{orth.species}: {orth.gene_id} ({orth.symbol})")
 }
 # homo_sapiens: ENSG00000141510 (TP53)
 # mus_musculus: ENSMUSG00000059552 (Trp53)
@@ -112,7 +113,7 @@ for orth in orthologs {
         </p>
         <pre><code class="language-biolang"># Fetch protein sequences for each ortholog
 let proteins = orthologs |> map(|o| {
-  let seq_data = ensembl_sequence(o.gene_id, "protein")
+  let seq_data = ensembl_sequence(o.transcript, "protein")
   let seq = protein(seq_data.seq)
   { species: o.species, symbol: o.symbol, sequence: seq }
 })
@@ -127,8 +128,8 @@ let protein_table = proteins |> map(|p| {
   }
 }) |> to_table()
 
-print("\n=== Protein Sequence Lengths ===")
-print(protein_table)
+println("\n=== Protein Sequence Lengths ===")
+println(protein_table)
 # species              symbol  length
 # homo_sapiens         TP53    393
 # mus_musculus         Trp53   387
@@ -145,8 +146,8 @@ print(protein_table)
         </p>
         <pre><code class="language-biolang"># Fetch CDS (coding DNA) sequences
 let cds_data = orthologs |> map(|o| {
-  let seq_data = ensembl_sequence(o.gene_id, "cdna")
-  let seq = seq_data.seq
+  let seq_data = ensembl_sequence(o.transcript, "cdna")
+  let seq = dna(seq_data.seq)
   { species: o.species, symbol: o.symbol, sequence: seq }
 })
 
@@ -164,8 +165,8 @@ let cds_table = cds_data |> map(|c| {
   }
 }) |> to_table()
 
-print("\n=== CDS Properties ===")
-print(cds_table)
+println("\n=== CDS Properties ===")
+println(cds_table)
 
 # Visualize GC content across species
 bar_chart(cds_table, {
@@ -207,8 +208,8 @@ let kmer_similarity = kmer_profiles |> map(|p| {
   }
 }) |> to_table()
 
-print("\n=== K-mer Similarity to Human ===")
-print(kmer_similarity)
+println("\n=== K-mer Similarity to Human ===")
+println(kmer_similarity)
 
 # Visualize k-mer similarity
 bar_chart(kmer_similarity, {
@@ -248,8 +249,8 @@ dotplot(human_protein, proteins[4].sequence, {
   output:  "results/dotplot_human_zebrafish.svg",
 })
 
-print("\nDotplots saved — compare the diagonals to see")
-print("how human-mouse conservation differs from human-zebrafish")</code></pre>
+println("\nDotplots saved — compare the diagonals to see")
+println("how human-mouse conservation differs from human-zebrafish")</code></pre>
 
         <!-- Step 6 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 6 — Gene Family Presence Across Species</h2>
@@ -281,10 +282,10 @@ let family_data = family_queries |> map(|entry| {
   results
 }) |> flatten() |> to_table()
 
-print("\n=== p53 Family Presence ===")
+println("\n=== p53 Family Presence ===")
 let family_wide = family_data
   |> pivot_wider(names_from: "gene", values_from: "present")
-print(family_wide)</code></pre>
+println(family_wide)</code></pre>
 
         <!-- Step 7 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 7 — Comparing Genomic Loci</h2>
@@ -302,14 +303,14 @@ let locus_table = orthologs |> map(|o| {
   }
 }) |> to_table()
 
-print("\n=== TP53 Locus Comparison ===")
-print(locus_table)
+println("\n=== TP53 Locus Comparison ===")
+println(locus_table)
 
 # Which species has the largest/smallest TP53 locus?
 let sorted_by_size = locus_table |> arrange("locus_size", "desc")
-print(f"\nLargest locus:  {sorted_by_size[0].species} ({sorted_by_size[0].locus_size} bp)")
+println(f"\nLargest locus:  {sorted_by_size[0].species} ({sorted_by_size[0].locus_size} bp)")
 let n = len(sorted_by_size) - 1
-print(f"Smallest locus: {sorted_by_size[n].species} ({sorted_by_size[n].locus_size} bp)")
+println(f"Smallest locus: {sorted_by_size[n].species} ({sorted_by_size[n].locus_size} bp)")
 
 # Visualize locus sizes
 bar_chart(locus_table, {
@@ -338,14 +339,14 @@ let motif_results = cds_data |> map(|c| {
     density: round(len(hits) / len(c.sequence) * 1000, 2) }
 }) |> to_table()
 
-print("\n=== CATG Motif Density in TP53 CDS ===")
-print(motif_results)
+println("\n=== CATG Motif Density in TP53 CDS ===")
+println(motif_results)
 
 # Look for start codon context (Kozak-like sequence)
-print("\n=== Start Codon Context ===")
+println("\n=== Start Codon Context ===")
 for c in cds_data {
-  let context = substr(c.sequence, 0, 12)
-  print(f"  {c.species}: {context}")
+  let context = substr(to_string(c.sequence), 0, 12)
+  println(f"  {c.species}: {context}")
 }</code></pre>
 
         <!-- Step 9 -->
@@ -368,7 +369,7 @@ phylo_tree(newick, {
   output:    "results/tp53_phylogeny.svg",
 })
 
-print("\nPhylogenetic tree saved to results/tp53_phylogeny.svg")</code></pre>
+println("\nPhylogenetic tree saved to results/tp53_phylogeny.svg")</code></pre>
 
         <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6 mt-4 mb-8">
           <h3 class="text-white font-semibold mb-2">Note: Phylogenetic inference</h3>
@@ -395,19 +396,19 @@ let fasta_records = proteins |> map(|p| {
   { id: p.species, description: f"TP53 ortholog ({p.symbol})", seq: p.sequence }
 })
 write_fasta(fasta_records, "results/tp53_proteins.fasta")
-print("Protein sequences written to results/tp53_proteins.fasta")
+println("Protein sequences written to results/tp53_proteins.fasta")
 
 # Export CDS sequences for codon-based analysis (dN/dS)
 let cds_records = cds_data |> map(|c| {
   { id: c.species, description: f"TP53 CDS ({c.symbol})", seq: c.sequence }
 })
 write_fasta(cds_records, "results/tp53_cds.fasta")
-print("CDS sequences written to results/tp53_cds.fasta")
+println("CDS sequences written to results/tp53_cds.fasta")
 
 # Export the comparison data as CSV
 write_csv(cds_table, "results/tp53_cds_comparison.csv")
 write_csv(kmer_similarity, "results/tp53_kmer_similarity.csv")
-print("Comparison tables written to results/")
+println("Comparison tables written to results/")
 
 # Export summary as JSON
 let summary = {
@@ -421,7 +422,7 @@ let summary = {
   ],
 }
 write_json(summary, "results/tp53_summary.json")
-print("Summary written to results/tp53_summary.json")</code></pre>
+println("Summary written to results/tp53_summary.json")</code></pre>
 
         <!-- Step 11 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 11 — Complete Multi-Gene Comparison</h2>
@@ -432,26 +433,27 @@ print("Summary written to results/tp53_summary.json")</code></pre>
         <pre><code class="language-biolang"># requires: NCBI_API_KEY (optional, increases rate limit)
 
 fn compare_gene_across_species(gene_symbols, gene_label, output_dir) {
-  print(f"\n=== Comparing {gene_label} ===")
+  println(f"\n=== Comparing {gene_label} ===")
 
   # 1. Look up genes
   let species_list = keys(gene_symbols)
   let genes = species_list |> map(|sp| {
     let info = ensembl_symbol(sp, gene_symbols[sp])
-    { species: sp, gene_id: info.id, symbol: info.symbol }
+    { species: sp, gene_id: info.id, transcript: info.canonical_transcript,
+      symbol: info.symbol }
   })
-  print(f"  Found in {len(genes)} species")
+  println(f"  Found in {len(genes)} species")
 
   # 2. Fetch protein sequences
   let prots = genes |> map(|g| {
-    let seq = ensembl_sequence(g.gene_id, "protein")
+    let seq = ensembl_sequence(g.transcript, "protein")
     { species: g.species, symbol: g.symbol, sequence: protein(seq.seq) }
   })
 
   # 3. Fetch CDS and compute GC content
   let cds = genes |> map(|g| {
-    let seq = ensembl_sequence(g.gene_id, "cdna")
-    let s = seq.seq
+    let seq = ensembl_sequence(g.transcript, "cdna")
+    let s = dna(seq.seq)
     { species: g.species, gc: round(gc_content(s), 3), cds_len: len(s) }
   })
 
@@ -461,7 +463,7 @@ fn compare_gene_across_species(gene_symbols, gene_label, output_dir) {
       protein_len: len(pair[0].sequence), cds_len: pair[1].cds_len,
       gc_content: pair[1].gc }
   }) |> to_table()
-  print(comparison)
+  println(comparison)
 
   # 5. Export sequences for external phylogenetic analysis
   let records = prots |> map(|p| {
@@ -479,7 +481,7 @@ fn compare_gene_across_species(gene_symbols, gene_label, output_dir) {
   })
 
   write_csv(comparison, f"{output_dir}/{gene_label}_comparison.csv")
-  print(f"  Results saved to {output_dir}/")
+  println(f"  Results saved to {output_dir}/")
 }
 
 # Run for multiple tumor suppressor genes
@@ -505,7 +507,7 @@ phylo_tree(species_tree, {
   output:    "results/comparative/species_tree.svg",
 })
 
-print("\n=== All comparisons complete ===")</code></pre>
+println("\n=== All comparisons complete ===")</code></pre>
 
         <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-10">
           <h3 class="text-white font-semibold mb-2">Next Steps</h3>

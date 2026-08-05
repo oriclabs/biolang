@@ -35,42 +35,42 @@ let records = read_fasta("data/sequences.fasta")
 
 # This will NOT crash, but may give unexpected results
 let lengths = records |> map(|r| len(r.seq))
-print(f"Min length: {lengths |> min}")  # Could be 0
+println(f"Min length: {lengths |> min}")  # Could be 0
 
 # Always filter empty sequences before analysis
 let valid = records |> filter(|r| len(r.seq) > 0)
-print(f"Sequences with data: {valid |> len}")
+println(f"Sequences with data: {valid |> len}")
 
 # GC content of an empty sequence is defined as 0.0
 let empty = dna""
-print(empty |> gc_content)  # 0.0</code></pre>
+println(empty |> gc_content)  # 0.0</code></pre>
 
         <h3>Empty FASTQ records</h3>
         <pre><code class="language-biolang"># FASTQ files with zero-length reads (can happen after trimming)
 let reads = read_fastq("data/reads.fastq")
 
 # mean_phred on an empty quality value returns 0.0
-print(mean_phred(qual""))  # 0.0
+println(mean_phred(qual""))  # 0.0
 
 # Filter empty reads when they should not contribute to the analysis
 let safe_reads = reads |> filter(|r| len(r.seq) > 0)
 let avg_qual = safe_reads
   |> map(|r| mean_phred(r.quality))
   |> mean
-print(f"Average quality: {avg_qual |> round(1)}")</code></pre>
+println(f"Average quality: {avg_qual |> round(1)}")</code></pre>
 
         <h2>Nil Handling</h2>
 
         <h3>Nil must be handled explicitly</h3>
         <pre><code class="language-biolang"># nil is a value; functions do not silently propagate it
-print(to_string(nil))       # "nil"
-print(len(to_string(nil)))  # 3
+println(to_string(nil))       # "nil"
+println(len(to_string(nil)))  # 3
 
 # Numeric aggregations reject nil values, so filter them first
 let values = [1.5, nil, 2.5]
 let present = values |> filter(|x| x != nil)
-print(present |> sum)   # 4.0
-print(present |> mean)  # 2.0
+println(present |> sum)   # 4.0
+println(present |> mean)  # 2.0
 
 # Invalid conversions and missing record keys raise errors
 # float("")              # TypeError
@@ -80,17 +80,17 @@ print(present |> mean)  # 2.0
         <pre><code class="language-biolang"># nil is falsy, but not the same as false
 let x = nil
 
-if x { print("truthy") } else { print("falsy") }  # prints "falsy"
-if x == false { print("equal") } else { print("not equal") }  # prints "not equal"
-if x == nil { print("is nil") }  # prints "is nil"
+if x { println("truthy") } else { println("falsy") }  # prints "falsy"
+if x == false { println("equal") } else { println("not equal") }  # prints "not equal"
+if x == nil { println("is nil") }  # prints "is nil"
 
 # Use ?? (nil coalescing) for defaults
 let name = nil
-print(f"Hello, {name ?? "unknown"}")  # "Hello, unknown"
+println(f"Hello, {name ?? "unknown"}")  # "Hello, unknown"
 
 # Use ?. (nil-safe access) for chained lookups
 let record = { info: nil }
-print(record.info?.gene)  # nil, no crash
+println(record.info?.gene)  # nil, no crash
 # record.info.gene        # ERROR: cannot access field on nil</code></pre>
 
         <h2>Large Files</h2>
@@ -104,12 +104,12 @@ let all_reads = read_fastq("data/reads.fastq")
 let passing_count = fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) >= 30.0)
   |> count()
-print(f"Passing reads: {passing_count}")
+println(f"Passing reads: {passing_count}")
 
 # If you need to collect, sample first
 let sample = fastq("data/reads.fastq") |> take(10000) |> collect
 let avg_len = sample |> map(|r| len(r.seq)) |> mean
-print(f"Estimated average read length: {avg_len}")</code></pre>
+println(f"Estimated average read length: {avg_len}")</code></pre>
 
         <h3>Memory-safe aggregation</h3>
         <p><strong>Requires CLI:</strong> this operation reads directly from the local filesystem.</p>
@@ -117,9 +117,9 @@ print(f"Estimated average read length: {avg_len}")</code></pre>
 let stats = read_stats("data/reads.fastq")
 
 # read_stats computes quality and length metrics in constant memory
-print(f"Total reads: {stats.total_reads}")
-print(f"Mean length: {stats.mean_length |> round(1)}")
-print(f"Mean quality: {stats.mean_quality |> round(1)}")</code></pre>
+println(f"Total reads: {stats.total_reads}")
+println(f"Mean length: {stats.mean_length |> round(1)}")
+println(f"Mean quality: {stats.mean_quality |> round(1)}")</code></pre>
 
         <h2>Encoding Issues</h2>
 
@@ -127,7 +127,7 @@ print(f"Mean quality: {stats.mean_quality |> round(1)}")</code></pre>
         <pre><code class="language-biolang"># BioLang reads modern Sanger/Illumina 1.8+ FASTQ as Phred+33
 let reads = read_fastq("data/reads.fastq")
 let first_read = reads |> first
-print(f"Mean Phred: {mean_phred(first_read.quality) |> round(1)}")
+println(f"Mean Phred: {mean_phred(first_read.quality) |> round(1)}")
 
 # Legacy Illumina 1.3-1.7 files may use Phred+64. Convert those files to
 # Phred+33 before reading them; the reader does not auto-detect +64.</code></pre>
@@ -137,17 +137,17 @@ print(f"Mean Phred: {mean_phred(first_read.quality) |> round(1)}")
 let seq = dna"ATCGNNRYSWKM"
 
 # Standard functions handle ambiguity codes
-print(seq |> len)              # 12
-print(seq |> gc_content)       # Counts only definite G/C bases
-print(contains(to_string(seq), "N"))    # true
+println(seq |> len)              # 12
+println(seq |> gc_content)       # Counts only definite G/C bases
+println(contains(to_string(seq), "N"))    # true
 
 # Reverse complement preserves ambiguity codes
-print(seq |> reverse_complement)  # MKWSYRNNCGAT
+println(seq |> reverse_complement)  # MKWSYRNNCGAT
 
 # But k-mer counting may give unexpected results
 let kmer_counts = seq |> kmers(3) |> frequencies
 # K-mers containing N are valid k-mers in BioLang
-print(kmer_counts)  # includes "ATC", "TCG", "CGN", "GNN", etc.
+println(kmer_counts)  # includes "ATC", "TCG", "CGN", "GNN", etc.
 
 # Filter out ambiguous k-mers if needed
 let clean_kmers = seq |> kmers(3) |> filter(|k| !contains(str(k), "N"))</code></pre>
@@ -157,11 +157,11 @@ let clean_kmers = seq |> kmers(3) |> filter(|k| !contains(str(k), "N"))</code></
         <h3>Floating point comparison</h3>
         <pre><code class="language-biolang"># Classic floating point trap
 let a = 0.1 + 0.2
-print(a == 0.3)          # false!
-print(a)                 # 0.30000000000000004
+println(a == 0.3)          # false!
+println(a)                 # 0.30000000000000004
 
 # Use abs() for floating point comparison
-print(abs(a - 0.3) &lt; 1e-10)  # true
+println(abs(a - 0.3) &lt; 1e-10)  # true
 
 # This matters for p-value filtering
 let pval = 0.05
@@ -175,13 +175,13 @@ let pos = 2147483647  # Max 32-bit int
 
 # BioLang uses 64-bit integers by default, so this is fine:
 let big_pos = pos + 1000
-print(big_pos)  # 2147484647
+println(big_pos)  # 2147484647
 
 # But be careful with multiplication
 let genome_size = 3_000_000_000
 let coverage = 30
 let total_bases = genome_size * coverage  # 90 billion -- fits in i64
-print(f"Total bases: {total_bases}")</code></pre>
+println(f"Total bases: {total_bases}")</code></pre>
 
         <h2>File Format Gotchas</h2>
 
@@ -191,10 +191,10 @@ let vcf = read_vcf("variants.vcf")
 
 for v in vcf |> take(5) {
   if v.alt |> contains(",") {
-    print(f"Multi-allelic: {v.chrom}:{v.pos} {v.ref} => {v.alt}")
+    println(f"Multi-allelic: {v.chrom}:{v.pos} {v.ref} => {v.alt}")
     # Split ALT on comma to get individual alleles
     for allele in v.alt |> split(",") {
-      print(f"  Allele: {allele}")
+      println(f"  Allele: {allele}")
     }
   }
 }
@@ -220,7 +220,7 @@ let one_based_end = bed_end          # 200
 let bed_region = interval("chr1", 100, 200)
 let vcf_as_bed = interval("chr1", 100, 200)  # VCF position 101 converted to BED
 let tree = interval_tree([bed_region])
-print(len(query_overlaps(tree, "chr1", 100, 200)) > 0)  # true</code></pre>
+println(len(query_overlaps(tree, "chr1", 100, 200)) > 0)  # true</code></pre>
 
         <h3>Windows line endings</h3>
         <pre><code class="language-biolang"># Files from Windows have \r\n line endings
@@ -229,8 +229,8 @@ print(len(query_overlaps(tree, "chr1", 100, 200)) > 0)  # true</code></pre>
 # But for plain text, trailing \r can cause problems
 let lines = read_lines("windows_file.txt")
 let first = lines |> first
-print(first |> ends_with("gene"))      # might be false!
-print(first |> trim |> ends_with("gene"))  # true
+println(first |> ends_with("gene"))      # might be false!
+println(first |> trim |> ends_with("gene"))  # true
 
 # read_lines automatically strips \r, but read_text does not
 let raw = read_text("windows_file.txt")

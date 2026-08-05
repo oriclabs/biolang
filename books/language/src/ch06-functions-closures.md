@@ -210,7 +210,7 @@ clauses.
 fn timed_align(fastq, ref_genome) {
     let t0 = timestamp()
     let result = align_reads(fastq, ref_genome)
-    print("Alignment took " + str(timestamp() - t0) + "s")
+    println("Alignment took " + str(timestamp() - t0) + "s")
     result
 }
 
@@ -351,7 +351,7 @@ let tree = {
 let fast_evolving = collect_distant_leaves(tree, 0.0, 0.30)
 
 fast_evolving |> each(|taxon|
-    print(taxon.name + " => total branch length " + to_string(taxon.distance))
+    println(taxon.name + " => total branch length " + to_string(taxon.distance))
 )
 # mouse => total branch length 0.55
 # rat => total branch length 0.53

@@ -19,12 +19,12 @@ columns.
 let contigs = read_fasta("data/sequences.fasta")
 
 for c in contigs {
-    print(c.id + ": " + str(c.length) + " bp")
+    println(c.id + ": " + str(c.length) + " bp")
 }
 
 # Find the longest contig
 contigs |> sort_by(|c| -c.length) |> first() |> into longest
-print("Longest: " + longest.id + " (" + str(longest.length) + " bp)")
+println("Longest: " + longest.id + " (" + str(longest.length) + " bp)")
 ```
 
 FASTA records carry the raw sequence as a string. Use bio literals for
@@ -47,10 +47,10 @@ let summary = {
     gc_pct: gc_mean * 100
 }
 
-print("Reads: " + str(summary.total))
-print("Mean length: " + str(round(summary.mean_length, 1)))
-print("Mean quality: " + str(round(summary.mean_qual, 1)))
-print("GC%: " + str(round(summary.gc_pct, 1)))
+println("Reads: " + str(summary.total))
+println("Mean length: " + str(round(summary.mean_length, 1)))
+println("Mean quality: " + str(round(summary.mean_qual, 1)))
+println("GC%: " + str(round(summary.gc_pct, 1)))
 ```
 
 Compressed files (`.gz`) are decompressed transparently.
@@ -67,9 +67,9 @@ let passing = variants |> filter(|v| v.filter == "PASS")
 let snps = passing |> filter(|v| is_snp(v))
 let indels = passing |> filter(|v| is_indel(v))
 
-print("PASS variants: " + str(len(passing)))
-print("  SNPs: " + str(len(snps)))
-print("  Indels: " + str(len(indels)))
+println("PASS variants: " + str(len(passing)))
+println("  SNPs: " + str(len(snps)))
+println("  Indels: " + str(len(indels)))
 ```
 
 ## Reading BED
@@ -81,8 +81,8 @@ optional `name`, `score`, `strand` fields depending on the number of columns.
 let targets = read_bed("data/exons.bed")
 
 let total_bp = targets |> map(|t| t.end - t.start) |> reduce(0, |a, b| a + b)
-print("Total target region: " + str(total_bp) + " bp")
-print("Number of targets: " + str(len(targets)))
+println("Total target region: " + str(total_bp) + " bp")
+println("Number of targets: " + str(len(targets)))
 
 # Group by chromosome
 let by_chrom = targets
@@ -93,7 +93,7 @@ let by_chrom = targets
         bp: regions |> map(|r| r.end - r.start) |> reduce(0, |a, b| a + b)
     })
 by_chrom |> each(|row|
-    print(row.chrom + ": " + str(row.targets) + " targets, " + str(row.bp) + " bp")
+    println(row.chrom + ": " + str(row.targets) + " targets, " + str(row.bp) + " bp")
 )
 ```
 
@@ -109,13 +109,13 @@ let features = read_gff("data/annotations.gff")
 let genes = features |> filter(|f| f.type == "gene")
 let protein_coding = genes |> filter(|g| contains(g.attributes, "protein_coding"))
 
-print("Total genes: " + str(len(genes)))
-print("Protein-coding: " + str(len(protein_coding)))
+println("Total genes: " + str(len(genes)))
+println("Protein-coding: " + str(len(protein_coding)))
 
 # Gene length distribution
 let lengths = protein_coding |> map(|g| g.end - g.start)
-print("Median gene length: " + str(median(lengths)) + " bp")
-print("Mean gene length: " + str(round(mean(lengths), 0)) + " bp")
+println("Median gene length: " + str(median(lengths)) + " bp")
+println("Mean gene length: " + str(round(mean(lengths), 0)) + " bp")
 ```
 
 ## Reading CSV and TSV
@@ -130,13 +130,13 @@ let groups = metadata |> group_by("condition")
 
 for (condition, samples) in groups {
     let ids = samples |> map(|s| s.sample_id) |> join(", ")
-    print(condition + ": " + ids)
+    println(condition + ": " + ids)
 }
 
 # DESeq2-style count matrix
 let counts = tsv("gene_counts.tsv")
 let gene_names = counts |> map(|row| row.gene_id)
-print("Genes in count matrix: " + str(len(gene_names)))
+println("Genes in count matrix: " + str(len(gene_names)))
 ```
 
 ## Writing Files
@@ -181,7 +181,7 @@ let high_qual_count = stream
     |> filter(|r| len(r.seq) >= 100)
     |> len()
 
-print("High-quality long reads: " + str(high_qual_count))
+println("High-quality long reads: " + str(high_qual_count))
 ```
 
 Streams are consumed once. If you need multiple passes, collect into a list
@@ -194,7 +194,7 @@ let passing = read_fastq("data/reads.fastq")
     |> filter(|r| mean_phred(r.quality) >= 20)
     |> len()
 
-print("Pass rate: " + str(round(passing / total * 100, 2)) + "%")
+println("Pass rate: " + str(round(passing / total * 100, 2)) + "%")
 ```
 
 ## Example: Convert FASTQ to FASTA
@@ -211,7 +211,7 @@ let fasta_records = reads |> map(|r| {
 })
 
 write_fasta(fasta_records, "nanopore_reads.fasta")
-print("Converted " + str(len(fasta_records)) + " reads to FASTA")
+println("Converted " + str(len(fasta_records)) + " reads to FASTA")
 ```
 
 For large files, this streams through without holding everything in memory

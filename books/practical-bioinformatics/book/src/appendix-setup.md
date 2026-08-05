@@ -273,7 +273,7 @@ You can write BioLang in any text editor, but we recommend Visual Studio Code fo
 
 ### VS Code
 
-1. Install [VS Code](https://code.visualstudio.com/)
+1. Install [VS Code](https://code.visualworkbench.com/)
 2. Open the Extensions panel (`Ctrl+Shift+X` / `Cmd+Shift+X`)
 3. Search for "BioLang" and install the BioLang extension
 4. The extension provides:

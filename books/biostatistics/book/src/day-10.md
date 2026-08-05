@@ -294,16 +294,16 @@ let dose_100 = [180, 210, 165, 225, 195, 172, 218, 198]
 # One-way ANOVA
 let result = anova([placebo, dose_25, dose_50, dose_100])
 print("=== One-Way ANOVA: Tumor Volume by Dose ===")
-print("F-statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
-print("df between: {result.df_between}, df within: {result.df_within}")
+print(f"F-statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
+print(f"df between: {result.df_between}, df within: {result.df_within}")
 
 # Effect size: eta-squared = SS_between / SS_total (inline from anova output)
 let eta2 = result.ss_between / (result.ss_between + result.ss_within)
-print("Eta-squared: {eta2:.4} ({eta2*100:.1}% of variance explained)")
+print(f"Eta-squared: {eta2:.4} ({eta2*100:.1}% of variance explained)")
 
 # Check assumptions: compare variances per group
-print("\nVariances: placebo={variance(placebo):.1}, 25mg={variance(dose_25):.1}, 50mg={variance(dose_50):.1}, 100mg={variance(dose_100):.1}")
+print(f"\nVariances: placebo={variance(placebo):.1}, 25mg={variance(dose_25):.1}, 50mg={variance(dose_50):.1}, 100mg={variance(dose_100):.1}")
 ```
 
 ### Tukey HSD Post-Hoc
@@ -332,7 +332,7 @@ print("=== Pairwise t-tests (Bonferroni-adjusted) ===")
 print("Comparison          | Diff     | p-adj")
 print("--------------------|----------|--------")
 for k in 0..len(pair_labels) {
-  print("{pair_labels[k]:<20}| {adj_p[k]:.4}")
+  print(f"{pair_labels[k]:<20}| {adj_p[k]:.4}")
 }
 ```
 
@@ -366,8 +366,8 @@ print("Normality violated -> use Kruskal-Wallis (anova on ranks)\n")
 
 let result = anova([stage_I, stage_II, stage_III])
 print("=== Kruskal-Wallis Test ===")
-print("H statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
+print(f"H statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
 
 # Pairwise follow-up with Bonferroni correction
 if result.p_value < 0.05 {
@@ -377,9 +377,9 @@ if result.p_value < 0.05 {
   let adj = p_adjust([p12, p13, p23], "bonferroni")
 
   print("\nPairwise Mann-Whitney (Bonferroni-adjusted):")
-  print("  Stage I vs II:   p = {adj[0]:.4}")
-  print("  Stage I vs III:  p = {adj[1]:.4}")
-  print("  Stage II vs III: p = {adj[2]:.4}")
+  print(f"  Stage I vs II:   p = {adj[0]:.4}")
+  print(f"  Stage I vs III:  p = {adj[1]:.4}")
+  print(f"  Stage II vs III: p = {adj[2]:.4}")
 }
 
 let bp_table = table({"Stage I": stage_I, "Stage II": stage_II, "Stage III": stage_III})
@@ -398,12 +398,12 @@ let drug_c = [3, 2, 4, 3, 1, 3, 2, 3]
 # Friedman test: anova() on ranks for repeated measures
 let result = anova([drug_a, drug_b, drug_c])
 print("=== Friedman Test: Pain Scores Across Analgesics ===")
-print("Chi-squared: {result.statistic:.4}")
-print("p-value: {result.p_value:.6}")
+print(f"Chi-squared: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.6}")
 
 if result.p_value < 0.05 {
   print("At least one analgesic differs in pain reduction")
-  print("Medians: Drug A={median(drug_a)}, Drug B={median(drug_b)}, Drug C={median(drug_c)}")
+  print(f"Medians: Drug A={median(drug_a)}, Drug B={median(drug_b)}, Drug C={median(drug_c)}")
 }
 ```
 
@@ -420,7 +420,7 @@ let nk     = [0.8, 1.1, 0.6, 1.3, 0.9, 1.0, 0.7, 1.2]
 # Step 1: Check assumptions
 print("=== Assumption Checks ===")
 # Compare variances across groups
-print("Variances: T-reg={variance(t_reg):.3}, T-eff={variance(t_eff):.3}, B cell={variance(b_cell):.3}, NK={variance(nk):.3}")
+print(f"Variances: T-reg={variance(t_reg):.3}, T-eff={variance(t_eff):.3}, B cell={variance(b_cell):.3}, NK={variance(nk):.3}")
 # Visual normality check
 for name, data in [["T-reg", t_reg], ["T-eff", t_eff], ["B cell", b_cell], ["NK", nk]] {
   qq_plot(data, {title: "QQ Plot: {name}"})
@@ -429,11 +429,11 @@ for name, data in [["T-reg", t_reg], ["T-eff", t_eff], ["B cell", b_cell], ["NK"
 # Step 2: ANOVA
 let result = anova([t_reg, t_eff, b_cell, nk])
 print("\n=== One-Way ANOVA ===")
-print("F = {result.statistic:.2}, p = {result.p_value:.2e}")
+print(f"F = {result.statistic:.2}, p = {result.p_value:.2e}")
 
 # Step 3: Effect size (eta-squared from anova output)
 let eta2 = result.ss_between / (result.ss_between + result.ss_within)
-print("Eta-squared = {eta2:.3} (cell type explains {eta2*100:.1}% of variance)")
+print(f"Eta-squared = {eta2:.3} (cell type explains {eta2*100:.1}% of variance)")
 
 # Step 4: Post-hoc — pairwise ttest() + p_adjust()
 let cell_groups = [t_reg, t_eff, b_cell, nk]
@@ -451,7 +451,7 @@ let pw_adj = p_adjust(pw_pvals, "bonferroni")
 print("\n=== Pairwise t-tests (Bonferroni) ===")
 for k in 0..len(pw_labels) {
   let sig = if pw_adj[k] < 0.001 then "***" else if pw_adj[k] < 0.01 then "**" else if pw_adj[k] < 0.05 then "*" else "ns"
-  print("{pw_labels[k]:<20} p={pw_adj[k]:.4} {sig}")
+  print(f"{pw_labels[k]:<20} p={pw_adj[k]:.4} {sig}")
 }
 
 # Step 5: Visualize

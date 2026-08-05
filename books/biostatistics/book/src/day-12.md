@@ -31,9 +31,9 @@ let sig_01 = p_values |> filter(|p| p < 0.01) |> len()
 let sig_001 = p_values |> filter(|p| p < 0.001) |> len()
 
 print("=== 20,000 Null Genes (No True Differences) ===")
-print("'Significant' at p < 0.05:  {sig_05} (expected: ~1000)")
-print("'Significant' at p < 0.01:  {sig_01} (expected: ~200)")
-print("'Significant' at p < 0.001: {sig_001} (expected: ~20)")
+print(f"'Significant' at p < 0.05:  {sig_05} (expected: ~1000)")
+print(f"'Significant' at p < 0.01:  {sig_01} (expected: ~200)")
+print(f"'Significant' at p < 0.001: {sig_001} (expected: ~20)")
 print("\nEvery single one is a false positive!")
 
 histogram(p_values, {title: "p-Value Distribution Under Complete Null", x_label: "p-value", bins: 50})
@@ -355,9 +355,9 @@ for i in 1..20000 {
   fold_changes = append(fold_changes, mean(group2) - mean(group1))
 }
 
-print("Total genes: {len(p_values)}")
-print("True DE genes: {is_true |> filter(|x| x == 1) |> len()}")
-print("Null genes: {is_true |> filter(|x| x == 0) |> len()}")
+print(f"Total genes: {len(p_values)}")
+print(f"True DE genes: {is_true |> filter(|x| x == 1) |> len()}")
+print(f"Null genes: {is_true |> filter(|x| x == 0) |> len()}")
 ```
 
 ### Applying All Correction Methods
@@ -398,7 +398,7 @@ for method_name, adj_p in [
   }
   let total = len(discoveries)
   let fdr = if total > 0 then false_pos / total else 0.0
-  print("{method_name} | {total:>17} | {true_pos:>8} | {false_pos:>9} | {fdr:>6.3}")
+  print(f"{method_name} | {total:>17} | {true_pos:>8} | {false_pos:>9} | {fdr:>6.3}")
 }
 ```
 
@@ -431,9 +431,9 @@ for i in 0..len(p_bh) {
   else if p_bh[i] < 0.05 and log2_fc[i] < -1.0 { sig_down = sig_down + 1 }
   else { not_sig = not_sig + 1 }
 }
-print("Significantly upregulated:   {sig_up}")
-print("Significantly downregulated: {sig_down}")
-print("Not significant:             {not_sig}")
+print(f"Significantly upregulated:   {sig_up}")
+print(f"Significantly downregulated: {sig_down}")
+print(f"Not significant:             {not_sig}")
 ```
 
 ### Visualizing the BH Procedure
@@ -463,7 +463,7 @@ scatter(range(1, 101), sorted_p)
 
 let bh_adjusted = p_adjust(p_vals, "BH")
 let n_sig = bh_adjusted |> filter(|p| p < 0.05) |> len()
-print("BH discoveries (FDR < 0.05): {n_sig}")
+print(f"BH discoveries (FDR < 0.05): {n_sig}")
 ```
 
 ### p-Value Histograms: Diagnostic Tool

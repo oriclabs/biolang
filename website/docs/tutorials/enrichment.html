@@ -75,7 +75,7 @@ let de_genes = [
   "CCND1", "CDK4", "RB1", "E2F1", "BRCA1",
   "CHEK2", "ATM", "ATR", "RAD51", "XRCC5"
 ]
-print(f"DE genes: {len(de_genes)}")</code></pre>
+println(f"DE genes: {len(de_genes)}")</code></pre>
 
         <!-- Step 2 -->
         <h2>Step 2: Load gene sets</h2>
@@ -86,12 +86,12 @@ print(f"DE genes: {len(de_genes)}")</code></pre>
         <pre><code class="language-biolang"># requires: hallmark.gmt in working directory
 # Load gene sets from a GMT file
 let gene_sets = read_gmt("hallmark.gmt")
-print(f"Loaded {len(gene_sets)} gene sets")
+println(f"Loaded {len(gene_sets)} gene sets")
 
 # Inspect one gene set
 let first = gene_sets |> first()
-print(f"Name: {first.name}")
-print(f"Genes: {len(first.genes)}")</code></pre>
+println(f"Name: {first.name}")
+println(f"Genes: {len(first.genes)}")</code></pre>
         <p>
           If you don't have a GMT file, you can also define gene sets inline:
         </p>
@@ -116,9 +116,9 @@ let gene_sets = [
 let background_size = 20000
 let ora_results = enrich(de_genes, gene_sets, background_size)
 
-print("ORA results:")
+println("ORA results:")
 ora_results |> each(|r| {
-  print(f"  {r.term}: p={r.pvalue}, overlap={r.overlap}/{r.term_size}")
+  println(f"  {r.term}: p={r.p_value}, overlap={r.overlap}")
 })</code></pre>
         <p>
           The <code>enrich()</code> function returns a list of records, each containing:
@@ -133,10 +133,10 @@ ora_results |> each(|r| {
             </thead>
             <tbody class="divide-y divide-slate-800">
               <tr><td class="py-3 px-4 font-mono">term</td><td class="py-3 px-4">Gene set name</td></tr>
-              <tr><td class="py-3 px-4 font-mono">pvalue</td><td class="py-3 px-4">Hypergeometric p-value</td></tr>
+              <tr><td class="py-3 px-4 font-mono">p_value</td><td class="py-3 px-4">Hypergeometric p-value</td></tr>
               <tr><td class="py-3 px-4 font-mono">fdr</td><td class="py-3 px-4">BH-adjusted p-value</td></tr>
               <tr><td class="py-3 px-4 font-mono">overlap</td><td class="py-3 px-4">Number of DE genes in this set</td></tr>
-              <tr><td class="py-3 px-4 font-mono">term_size</td><td class="py-3 px-4">Total genes in this set</td></tr>
+              
               <tr><td class="py-3 px-4 font-mono">genes</td><td class="py-3 px-4">List of overlapping genes</td></tr>
             </tbody>
           </table>
@@ -149,11 +149,11 @@ let significant = ora_results
   |> filter(|r| r.fdr &lt; 0.05)
   |> sort_by(|r| r.fdr)
 
-print(f"\nSignificant pathways (FDR &lt; 0.05): {len(significant)}")
+println(f"\nSignificant pathways (FDR &lt; 0.05): {len(significant)}")
 significant |> each(|r| {
-  print(f"  {r.term}")
-  print(f"    FDR: {r.fdr}, Overlap: {r.overlap}/{r.term_size}")
-  print(f"    Genes: {r.genes}")
+  println(f"  {r.term}")
+  println(f"    FDR: {r.fdr}, Overlap: {r.overlap}")
+  println(f"    Genes: {r.genes}")
 })</code></pre>
 
         <!-- Step 5 -->
@@ -182,11 +182,11 @@ let ranked_genes = [
 ]
 
 # Run GSEA with permutation testing
-let gsea_results = gsea(ranked_genes, gene_sets)
+let gsea_results = gsea(to_table(ranked_genes), gene_sets)
 
-print("GSEA results:")
+println("GSEA results:")
 gsea_results |> each(|r| {
-  print(f"  {r.term}: NES={r.nes}, p={r.pvalue}, FDR={r.fdr}")
+  println(f"  {r.term}: NES={r.nes}, p={r.p_value}, FDR={r.fdr}")
 })</code></pre>
         <p>
           GSEA results include:
@@ -203,7 +203,7 @@ gsea_results |> each(|r| {
               <tr><td class="py-3 px-4 font-mono">term</td><td class="py-3 px-4">Gene set name</td></tr>
               <tr><td class="py-3 px-4 font-mono">es</td><td class="py-3 px-4">Enrichment score</td></tr>
               <tr><td class="py-3 px-4 font-mono">nes</td><td class="py-3 px-4">Normalized enrichment score</td></tr>
-              <tr><td class="py-3 px-4 font-mono">pvalue</td><td class="py-3 px-4">Permutation p-value</td></tr>
+              <tr><td class="py-3 px-4 font-mono">p_value</td><td class="py-3 px-4">Permutation p-value</td></tr>
               <tr><td class="py-3 px-4 font-mono">fdr</td><td class="py-3 px-4">BH-adjusted p-value</td></tr>
               <tr><td class="py-3 px-4 font-mono">size</td><td class="py-3 px-4">Genes in set found in ranked list</td></tr>
             </tbody>
@@ -219,9 +219,9 @@ gsea_results |> each(|r| {
         <pre><code class="language-biolang"># Manual BH correction
 let raw_pvalues = [0.001, 0.013, 0.039, 0.052, 0.11, 0.23, 0.45]
 let adjusted = p_adjust(raw_pvalues, "bh")
-print("Raw → Adjusted:")
+println("Raw → Adjusted:")
 range(0, len(raw_pvalues)) |> each(|i| {
-  print(f"  {raw_pvalues[i]} → {adjusted[i]}")
+  println(f"  {raw_pvalues[i]} → {adjusted[i]}")
 })</code></pre>
 
         <!-- Step 7 -->
@@ -233,12 +233,12 @@ range(0, len(raw_pvalues)) |> each(|i| {
 let g = graph()
 
 significant |> each(|pathway| {
-  pathway.genes |> each(|gene| {
+  pathway.genes |> split(",") |> each(|gene| {
     let g = add_edge(g, pathway.term, gene, {fdr: pathway.fdr})
   })
 })
 
-print(f"Pathway-gene network: {node_count(g)} nodes, {edge_count(g)} edges")
+println(f"Pathway-gene network: {node_count(g)} nodes, {edge_count(g)} edges")
 
 # Which genes appear in multiple significant pathways?
 nodes(g) |> filter(|n| !starts_with(n, "HALLMARK_")) |> into gene_nodes
@@ -247,8 +247,8 @@ let multi_pathway = gene_nodes
   |> filter(|r| r.pathways > 1)
   |> sort_by(|r| -r.pathways)
 
-print("\nGenes in multiple enriched pathways:")
-multi_pathway |> each(|r| print(f"  {r.gene}: {r.pathways} pathways"))</code></pre>
+println("\nGenes in multiple enriched pathways:")
+multi_pathway |> each(|r| println(f"  {r.gene}: {r.pathways} pathways"))</code></pre>
 
         <!-- Complete example -->
         <h2>Complete example</h2>
@@ -267,15 +267,15 @@ let de_genes = ["TP53", "CDKN1A", "BAX", "GADD45A", "MDM2", "BRCA1", "CHEK2",
                 "ATM", "ATR", "RAD51", "XRCC5", "CCND1", "CDK4", "RB1", "E2F1"]
 
 # ORA
-print("=== Over-Representation Analysis ===")
+println("=== Over-Representation Analysis ===")
 let ora = enrich(de_genes, gene_sets, 20000)
   |> filter(|r| r.fdr &lt; 0.05)
   |> sort_by(|r| r.fdr)
 
-ora |> each(|r| print(f"  {r.term}: FDR={r.fdr}, {r.overlap}/{r.term_size} genes"))
+ora |> each(|r| println(f"  {r.term}: FDR={r.fdr}, {r.overlap} genes"))
 
 # GSEA with ranked list
-print("\n=== Gene Set Enrichment Analysis ===")
+println("\n=== Gene Set Enrichment Analysis ===")
 let ranked = [
   {gene: "BAX", score: 4.2}, {gene: "CDKN1A", score: 3.8},
   {gene: "TP53", score: 3.5}, {gene: "GADD45A", score: 3.1},
@@ -285,18 +285,18 @@ let ranked = [
   {gene: "RB1", score: -0.8}, {gene: "BCL2", score: -2.1},
 ]
 
-let gsea_res = gsea(ranked, gene_sets)
+let gsea_res = gsea(to_table(ranked), gene_sets)
   |> sort_by(|r| r.fdr)
 
-gsea_res |> each(|r| print(f"  {r.term}: NES={r.nes}, FDR={r.fdr}"))
+gsea_res |> each(|r| println(f"  {r.term}: NES={r.nes}, FDR={r.fdr}"))
 
 # Pathway network
-print("\n=== Pathway-Gene Network ===")
+println("\n=== Pathway-Gene Network ===")
 let g = graph()
 ora |> each(|pw| pw.genes |> each(|gene| {
   let g = add_edge(g, pw.term, gene, {fdr: pw.fdr})
 }))
-print(f"Network: {node_count(g)} nodes, {edge_count(g)} edges")</code></pre>
+println(f"Network: {node_count(g)} nodes, {edge_count(g)} edges")</code></pre>
 
         <h2>What's next</h2>
         <ul>

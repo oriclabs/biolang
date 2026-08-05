@@ -265,15 +265,15 @@ let normal = [6.2, 7.1, 6.5, 7.4, 6.8, 7.0, 6.3, 7.2, 6.9, 6.6, 7.3, 6.1]
 # Default: Welch's t-test (unequal variances)
 let result = ttest(tumor, normal)
 print("=== Welch's t-test: BRCA1 Tumor vs Normal ===")
-print("t-statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
-print("Degrees of freedom: {result.df:.1}")
-print("Mean tumor: {mean(tumor):.2}, Mean normal: {mean(normal):.2}")
-print("Difference: {mean(tumor) - mean(normal):.2} log2-CPM")
+print(f"t-statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
+print(f"Degrees of freedom: {result.df:.1}")
+print(f"Mean tumor: {mean(tumor):.2}, Mean normal: {mean(normal):.2}")
+print(f"Difference: {mean(tumor) - mean(normal):.2} log2-CPM")
 
 # Effect size (Cohen's d inline)
 let d = (mean(tumor) - mean(normal)) / sqrt((variance(tumor) + variance(normal)) / 2.0)
-print("Cohen's d: {d:.3}")
+print(f"Cohen's d: {d:.3}")
 
 # Visualize
 let bp_table = table({"Tumor": tumor, "Normal": normal})
@@ -290,12 +290,12 @@ let normal = [6.2, 7.1, 6.5, 7.4, 6.8, 7.0, 6.3, 7.2, 6.9, 6.6, 7.3, 6.1]
 # (no built-in Shapiro-Wilk; use QQ plots + summary stats)
 let s_tumor = summary(tumor)
 let s_normal = summary(normal)
-print("Tumor summary:  {s_tumor}")
-print("Normal summary: {s_normal}")
+print(f"Tumor summary:  {s_tumor}")
+print(f"Normal summary: {s_normal}")
 
 # 2. Equal variance check: compare variances from summary()
 let var_ratio = variance(tumor) / variance(normal)
-print("Variance ratio (tumor/normal): {var_ratio:.3}")
+print(f"Variance ratio (tumor/normal): {var_ratio:.3}")
 if var_ratio > 2.0 or var_ratio < 0.5 {
   print("Variances appear unequal -> use Welch's t-test (the default)")
 } else {
@@ -318,18 +318,18 @@ let after  = [180, 245, 165, 298, 220, 350, 132, 270, 210, 248]
 # Paired t-test: accounts for patient-to-patient variability
 let result = ttest_paired(before, after)
 print("=== Paired t-test: Tumor Volume Before vs After Treatment ===")
-print("t-statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.6}")
+print(f"t-statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.6}")
 
 # Show the paired differences
 let diffs = zip(before, after) |> map(|pair| pair[0] - pair[1])
-print("Mean reduction: {mean(diffs):.1} mm^3")
-print("Individual reductions: {diffs}")
+print(f"Mean reduction: {mean(diffs):.1} mm^3")
+print(f"Individual reductions: {diffs}")
 
 # Compare: what if we wrongly used an independent t-test?
 let wrong_result = ttest(before, after)
-print("\nWrong (independent) t-test p-value: {wrong_result.p_value:.6}")
-print("Correct (paired) t-test p-value: {result.p_value:.6}")
+print(f"\nWrong (independent) t-test p-value: {wrong_result.p_value:.6}")
+print(f"Correct (paired) t-test p-value: {result.p_value:.6}")
 print("Paired test is more powerful because it removes inter-patient variability")
 
 # Visualize paired differences
@@ -345,9 +345,9 @@ let gc_per_contig = [40.2, 41.5, 39.8, 42.1, 40.7, 41.3, 39.5, 42.4,
 
 let result = ttest_one(gc_per_contig, 41.0)
 print("=== One-sample t-test: GC Content vs Expected 41% ===")
-print("Sample mean: {mean(gc_per_contig):.2}%")
-print("t-statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.4}")
+print(f"Sample mean: {mean(gc_per_contig):.2}%")
+print(f"t-statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.4}")
 
 if result.p_value > 0.05 {
   print("No significant deviation from expected GC content")
@@ -383,7 +383,7 @@ for i in 0..len(genes) {
   let result = ttest(tumor_expr[i], normal_expr[i])
   let d = (mean(tumor_expr[i]) - mean(normal_expr[i])) / sqrt((variance(tumor_expr[i]) + variance(normal_expr[i])) / 2.0)
   let interp = if abs(d) > 0.8 then "Large" else if abs(d) > 0.5 then "Medium" else "Small"
-  print("{genes[i]:<10} | {result.statistic:>6.2} | {result.p_value:>10.2e} | {d:>9.3} | {interp}")
+  print(f"{genes[i]:<10} | {result.statistic:>6.2} | {result.p_value:>10.2e} | {d:>9.3} | {interp}")
 }
 ```
 

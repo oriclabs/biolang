@@ -66,7 +66,7 @@ and check if a newer release is available:
 
 ```bash
 bl version
-# BioLang v1.1.0
+# BioLang v1.2.0
 #
 # Checking for updates... up to date.
 ```
@@ -107,7 +107,7 @@ You will see the BioLang prompt:
  |____/|_|\___/|_____\__,_|_| |_|\__, |
                                   |___/
  BioLang — pipe-first bioinformatics DSL
- v1.1.0  •  1018 builtins  •  NCBI[-] LLM[+]  Cache: 0B
+ v1.2.0  •  1018 builtins  •  NCBI[-] LLM[+]  Cache: 0B
 
  Commands:  :help  :builtins  :quit  ?name  Tab for completion  •  Paste DNA/FASTA auto-detected
 
@@ -225,8 +225,8 @@ let min_qual = into(args.min_quality ?? "20", "Int")
 let reads = read_fastq(input_file)
   |> filter(|r| mean_phred(r.quality) >= min_qual)
 
-print(f"Passing reads: {len(reads)}")
-print(f"Mean quality: {reads |> map(|r| mean_phred(r.quality)) |> mean()}")
+println(f"Passing reads: {len(reads)}")
+println(f"Mean quality: {reads |> map(|r| mean_phred(r.quality)) |> mean()}")
 ```
 
 ## Your First Script: FASTA GC Content Analyzer
@@ -260,9 +260,9 @@ let min_gc = min(gc_vals)
 let max_gc = max(gc_vals)
 let n_seqs = len(gc_vals)
 
-print(f"Analyzed {n_seqs} sequences")
-print(f"GC content: {mean_gc:.3f} (range: {min_gc:.3f} - {max_gc:.3f})")
-print(f"Standard deviation: {std_gc:.4f}")
+println(f"Analyzed {n_seqs} sequences")
+println(f"GC content: {mean_gc:.3f} (range: {min_gc:.3f} - {max_gc:.3f})")
+println(f"Standard deviation: {std_gc:.4f}")
 
 # Flag outlier contigs (GC > 2 std devs from mean)
 # |> into binds the pipe result to a variable (like let, but reads left-to-right)
@@ -271,8 +271,8 @@ gc_table
   |> sort_by(|row| -row.gc)
   |> into outliers
 
-print(f"\nOutlier contigs ({len(outliers)}):")
-outliers |> each(|row| print(f"  {row.name}: GC={row.gc:.3f}, length={row.length}"))
+println(f"\nOutlier contigs ({len(outliers)}):")
+outliers |> each(|row| println(f"  {row.name}: GC={row.gc:.3f}, length={row.length}"))
 ```
 
 Run it:
@@ -392,7 +392,7 @@ This is useful for sharing utility modules across projects:
 import "genomics_utils.bl" as gutils
 
 let kmers = dna"ATCGATCGATCG" |> gutils.kmer_frequencies(k: 3)
-print(kmers)
+println(kmers)
 ```
 
 ## What's Next

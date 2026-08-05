@@ -121,7 +121,7 @@ data.frame(
   |> take(5)
   |> map(|r| {
     let mean_q = mean_phred(r.quality)
-    print(f"{r.id}: mean Q={mean_q:.1}, len={r.length}")
+    println(f"{r.id}: mean Q={mean_q:.1}, len={r.length}")
   })</code></pre>
 
         <h2>GC Content Calculation</h2>
@@ -140,7 +140,7 @@ gc &lt;- letterFrequency(seq, letters = c("G", "C"), as.prob = TRUE)
 cat(sprintf("GC content: %.3f\n", sum(gc)))</code></pre>
 
         <h3>BioLang</h3>
-        <pre><code class="language-biolang">dna"ATCGATCGATCGATCG" |> gc_content() |> print()
+        <pre><code class="language-biolang">dna"ATCGATCGATCGATCG" |> gc_content() |> println()
 # 0.500</code></pre>
 
         <h2>Filtering and Transforming Data</h2>
@@ -169,7 +169,7 @@ read.csv("data/sample_sheet.csv") |>
   |> filter(|row| row.tissue == "tumor")
   |> select("sample_id", "condition")
   |> arrange("sample_id")
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h2>Reverse Complement</h2>
         <h3>Python</h3>
@@ -184,7 +184,7 @@ reverseComplement(DNAString("ATCGATCG"))
 # [1] "CGATCGAT"</code></pre>
 
         <h3>BioLang</h3>
-        <pre><code class="language-biolang">dna"ATCGATCG" |> reverse_complement() |> print()
+        <pre><code class="language-biolang">dna"ATCGATCG" |> reverse_complement() |> println()
 # CGATCGAT</code></pre>
 
         <h2>Statistical Summary</h2>
@@ -212,7 +212,7 @@ let summary = {
   max: max(data),
   count: len(data)
 }
-print(summary)</code></pre>
+println(summary)</code></pre>
 
         <h2>K-mer Counting</h2>
         <h3>Python</h3>
@@ -307,7 +307,8 @@ with Pool(4) as pool:
 results &lt;- mclapply(file_list, process_file, mc.cores = 4)</code></pre>
 
         <h3>BioLang</h3>
-        <pre><code class="language-biolang">let results = file_list
+        <pre><code class="language-biolang">let file_list = glob("data/*.fastq")
+let results = file_list
   |> map(|path| {
     read_fastq(path) |> map(|r| analyze(r))
   })</code></pre>

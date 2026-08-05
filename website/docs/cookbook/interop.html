@@ -32,8 +32,8 @@
         <h3>Running a Python script</h3>
         <pre><code class="language-biolang"># Run a Python script and capture output
 let result = shell("python3 analyze.py --input data.csv")
-print(f"Exit code: {result.exit_code}")
-print(f"Output: {result.stdout}")</code></pre>
+println(f"Exit code: {result.exit_code}")
+println(f"Output: {result.stdout}")</code></pre>
 
         <h3>Inline Python with data exchange</h3>
         <pre><code class="language-biolang"># Prepare data in BioLang, process in Python, read results back
@@ -64,7 +64,7 @@ write_text("_temp_deseq.py", py_script)
 let result = shell("python3 _temp_deseq.py")
 
 if result.exit_code != 0 {
-  print(f"Python error: {result.stderr}")
+  println(f"Python error: {result.stderr}")
   exit(1)
 }
 
@@ -74,7 +74,7 @@ let significant = de_results
   |> filter(|r| float(r["padj"]) &lt; 0.05)
   |> filter(|r| abs(float(r["log2FoldChange"])) > 1.0)
 
-print(f"Significant DE genes: {len(significant)}")
+println(f"Significant DE genes: {len(significant)}")
 write_tsv(significant, "significant_genes.tsv")
 
 # Clean up temp files
@@ -97,9 +97,9 @@ let result = shell("python3 normalize.py --params _params.json")
 
 if result.exit_code == 0 {
   let output = read_json("_params_result.json")
-  print(f"Normalized {output.n_genes} genes across {output.n_samples} samples")
+  println(f"Normalized {output.n_genes} genes across {output.n_samples} samples")
 } else {
-  print(f"Normalization failed: {result.stderr}")
+  println(f"Normalization failed: {result.stderr}")
 }</code></pre>
 
         <h2>Calling R</h2>
@@ -109,12 +109,12 @@ if result.exit_code == 0 {
 let result = shell("Rscript analysis.R input.csv output.csv")
 
 if result.exit_code != 0 {
-  print(f"R error: {result.stderr}")
+  println(f"R error: {result.stderr}")
   exit(1)
 }
 
 let output = read_csv("output.csv")
-print(f"R analysis produced {len(output)} results")</code></pre>
+println(f"R analysis produced {len(output)} results")</code></pre>
 
         <h3>Inline R for DESeq2</h3>
         <pre><code class="language-biolang"># Prepare count matrix and run DESeq2 in R
@@ -142,7 +142,7 @@ let result = shell("Rscript _deseq.R")
 if result.exit_code == 0 {
   let de = read_csv("_deseq_output.csv")
   let sig = de |> filter(|r| float(r["padj"]) &lt; 0.05)
-  print(f"DESeq2 found {len(sig)} significant genes")
+  println(f"DESeq2 found {len(sig)} significant genes")
   write_csv(sig, "deseq2_significant.csv")
 }
 
@@ -171,7 +171,7 @@ let r_plot = join([
 
 write_text("_plot.R", r_plot)
 shell("Rscript _plot.R")
-print("PCA plot saved to pca_plot.png")
+println("PCA plot saved to pca_plot.png")
 remove("_plot.R")
 remove("_plot_data.tsv")</code></pre>
 
@@ -181,13 +181,13 @@ remove("_plot_data.tsv")</code></pre>
         <pre><code class="language-biolang"># Write data then process with an external tool
 write_fastq(read_fastq("data/reads.fastq"), "_temp.fq")
 let result = shell("seqkit stats -T _temp.fq")
-print(result.stdout)
+println(result.stdout)
 remove("_temp.fq")</code></pre>
 
         <h3>Using samtools via pipe</h3>
         <pre><code class="language-biolang"># Use samtools for operations BioLang does not natively support
 let flagstat = shell("samtools flagstat aligned.bam")
-print(flagstat.stdout)
+println(flagstat.stdout)
 
 # Filter BED then pass to samtools
 let bed_regions = read_bed("data/regions.bed")
@@ -206,7 +206,7 @@ let obs = read_csv("obs.csv")
 
 # Do something in BioLang
 let cluster_sizes = frequencies(map(obs, |row| row["leiden"]))
-print(f"Cluster sizes: {to_string(cluster_sizes)}")
+println(f"Cluster sizes: {to_string(cluster_sizes)}")
 
 # Compute custom scores
 let scores = map(obs, |cell| {
@@ -227,7 +227,7 @@ write_tsv(data, "data.tsv")
 
 # Read TSV back
 let loaded = tsv("data.tsv")
-print(f"Loaded {len(loaded)} rows from TSV")</code></pre>
+println(f"Loaded {len(loaded)} rows from TSV")</code></pre>
 
         <h2>Best Practices</h2>
 
@@ -246,7 +246,7 @@ try {
   let result = tsv(output_path)
   write_tsv(result, "final_output.tsv")
 } catch e {
-  print(f"Error: {to_string(e)}")
+  println(f"Error: {to_string(e)}")
 }
 
 # Clean up

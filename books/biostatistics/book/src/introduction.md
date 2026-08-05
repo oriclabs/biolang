@@ -223,8 +223,8 @@ And power analysis for planning your next experiment:
 ```bio
 # Power calculation: how many samples per group?
 let result = power_t_test(0.5, 0.05, 0.8)
-println("Required sample size per group: {result.n}")
-println("Effect size: {result.effect_size}, alpha: {result.alpha}, power: {result.power}")
+println(f"Required sample size per group: {result.n}")
+println(f"Effect size: {result.effect_size}, alpha: {result.alpha}, power: {result.power}")
 ```
 
 BioLang's statistical, tabular, and visualization builtins keep the analysis

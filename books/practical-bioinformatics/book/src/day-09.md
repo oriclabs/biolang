@@ -162,12 +162,12 @@ Once you have an Ensembl gene ID, you can retrieve its sequence in different for
 let gene = ensembl_symbol("homo_sapiens", "BRCA1")
 
 # Get the protein sequence
-let protein = ensembl_sequence(gene.id, "protein")
+let protein = ensembl_sequence(gene.canonical_transcript, "protein"))
 println(f"Protein length: {len(protein.seq)} amino acids")
 println(f"First 50 aa: {protein.seq |> take(50)}")
 
 # Get the coding sequence (CDS)
-let cds = ensembl_sequence(gene.id, "cds")
+let cds = ensembl_sequence(gene.canonical_transcript, "cds"))
 println(f"CDS length: {len(cds.seq)} bases")
 ```
 
@@ -605,7 +605,7 @@ fn gene_profile(symbol) {
     println(f"  Position: chr{ens.chromosome}:{ens.start}-{ens.end}")
 
     # Ensembl: protein sequence
-    let protein = ensembl_sequence(ens.id, "protein")
+    let protein = ensembl_sequence(ens.canonical_transcript, "protein"))
     println(f"  Protein: {len(protein.seq)} amino acids")
 
     # UniProt: function
@@ -676,7 +676,7 @@ let rows = []
 for symbol in genes {
     let gene = ncbi_gene(symbol)
     let ens = ensembl_symbol("homo_sapiens", symbol)
-    let protein = ensembl_sequence(ens.id, "protein")
+    let protein = ensembl_sequence(ens.canonical_transcript, "protein"))
     let network = string_network([symbol], 9606)
     let pathways = reactome_pathways(symbol)
 

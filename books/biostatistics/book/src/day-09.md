@@ -296,13 +296,13 @@ print("Both groups are heavily skewed — normality violated!\n")
 # Mann-Whitney U test (non-parametric)
 let result = wilcoxon(ibd, healthy)
 print("=== Mann-Whitney U Test ===")
-print("U statistic: {result.statistic:.1}")
-print("p-value: {result.p_value:.2e}")
+print(f"U statistic: {result.statistic:.1}")
+print(f"p-value: {result.p_value:.2e}")
 
 # Compare to (inappropriate) t-test
 let t_result = ttest(ibd, healthy)
-print("\n(Inappropriate) Welch's t-test p-value: {t_result.p_value:.2e}")
-print("Mann-Whitney p-value: {result.p_value:.2e}")
+print(f"\n(Inappropriate) Welch's t-test p-value: {t_result.p_value:.2e}")
+print(f"Mann-Whitney p-value: {result.p_value:.2e}")
 print("Results may differ substantially with skewed data")
 
 # Visualize the skewed distributions
@@ -326,8 +326,8 @@ print("Differences are non-normal -> use Wilcoxon signed-rank\n")
 # Wilcoxon signed-rank test
 let result = wilcoxon(before, after)
 print("=== Wilcoxon Signed-Rank Test ===")
-print("V statistic: {result.statistic:.1}")
-print("p-value: {result.p_value:.6}")
+print(f"V statistic: {result.statistic:.1}")
+print(f"p-value: {result.p_value:.6}")
 print("All 12 patients showed reduction in IL-6")
 
 # For comparison: the sign test via dbinom (even more robust, less powerful)
@@ -340,7 +340,7 @@ for k in range(n_pos, n_nonzero + 1) {
     sign_p = sign_p + dbinom(k, n_nonzero, 0.5)
 }
 let sign_p = 2.0 * min(sign_p, 1.0 - sign_p)  # two-tailed
-print("\nSign test p-value: {sign_p:.6}")
+print(f"\nSign test p-value: {sign_p:.6}")
 ```
 
 ### Kruskal-Wallis: Multiple Body Sites
@@ -354,9 +354,9 @@ let rectum  = [3.8, 4.2, 3.5, 4.5, 3.9, 4.1, 3.6, 4.3, 3.7, 4.0]
 # Kruskal-Wallis: use anova() on rank-transformed data
 let result = anova([ileum, cecum, rectum])
 print("=== Kruskal-Wallis Test: Diversity Across Body Sites ===")
-print("H statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
-print("Degrees of freedom: {result.df}")
+print(f"H statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
+print(f"Degrees of freedom: {result.df_between}")
 
 if result.p_value < 0.05 {
   print("\nAt least one body site differs. Running pairwise comparisons...")
@@ -367,9 +367,9 @@ if result.p_value < 0.05 {
 
   # Bonferroni correction for 3 comparisons
   let adjusted = p_adjust([p1, p2, p3], "bonferroni")
-  print("Ileum vs Cecum:  p = {adjusted[0]:.4}")
-  print("Ileum vs Rectum: p = {adjusted[1]:.4}")
-  print("Cecum vs Rectum: p = {adjusted[2]:.4}")
+  print(f"Ileum vs Cecum:  p = {adjusted[0]:.4}")
+  print(f"Ileum vs Rectum: p = {adjusted[1]:.4}")
+  print(f"Cecum vs Rectum: p = {adjusted[2]:.4}")
 }
 
 let bp_table = table({"Ileum": ileum, "Cecum": cecum, "Rectum": rectum})
@@ -388,9 +388,9 @@ let oncogenes = [5.2, 8.1, 6.3, 12.4, 7.5, 5.8, 9.2, 6.7, 11.3, 7.0,
 
 let result = ks_test(tumor_suppressors, oncogenes)
 print("=== KS Test: Expression Distributions ===")
-print("D statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
-print("Maximum distance between cumulative distributions: {result.statistic:.4}")
+print(f"D statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
+print(f"Maximum distance between cumulative distributions: {result.statistic:.4}")
 
 histogram([tumor_suppressors, oncogenes], {labels: ["Tumor Suppressors", "Oncogenes"], title: "Expression Distributions by Gene Class", x_label: "Expression (log2-CPM)", bins: 12})
 ```
@@ -407,14 +407,14 @@ let norm_a = rnorm(20, 5.0, 1.0)
 let norm_b = rnorm(20, 6.0, 1.0)
 let t_p = ttest(norm_a, norm_b).p_value
 let w_p = wilcoxon(norm_a, norm_b).p_value
-print("t-test p = {t_p:.4}, Mann-Whitney p = {w_p:.4}")
+print(f"t-test p = {t_p:.4}, Mann-Whitney p = {w_p:.4}")
 
 print("\n=== Skewed Data with Outlier: Tests May Disagree ===")
 let skew_a = [1.2, 1.5, 1.8, 1.1, 1.4, 1.6, 1.3, 1.7, 1.9, 50.0]
 let skew_b = [2.1, 2.3, 2.5, 2.0, 2.4, 2.2, 2.6, 2.1, 2.3, 2.5]
 let t_p2 = ttest(skew_a, skew_b).p_value
 let w_p2 = wilcoxon(skew_a, skew_b).p_value
-print("t-test p = {t_p2:.4}, Mann-Whitney p = {w_p2:.4}")
+print(f"t-test p = {t_p2:.4}, Mann-Whitney p = {w_p2:.4}")
 print("The outlier inflates the t-test mean, masking the real pattern")
 ```
 

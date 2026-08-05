@@ -69,7 +69,7 @@ let g = add_node(g, "ISOLATED_GENE")
 let g = add_edge(g, "CDK2", "CCND1")
 
 let components = connected_components(g)
-print("Number of components: " + str(len(components)))
+println("Number of components: " + str(len(components)))
 # 3: [BRCA1, TP53, BARD1], [ISOLATED_GENE], [CDK2, CCND1]
 ```
 
@@ -99,7 +99,7 @@ let g = add_node(g, "EGFR", {
 })
 
 let attrs = node_attr(g, "EGFR")
-print(attrs.pathway)    # "EGFR signaling"
+println(attrs.pathway)    # "EGFR signaling"
 ```
 
 ## Removing Nodes and Edges
@@ -155,11 +155,11 @@ let gene_degrees = nodes(g) |> map(|n| {gene: n, deg: degree(g, n)})
 gene_degrees
   |> sort_by(|r| -r.deg)
   |> take(10)
-  |> each(|r| print(r.gene + ": " + str(r.deg) + " interactions"))
+  |> each(|r| println(r.gene + ": " + str(r.deg) + " interactions"))
 
 # Check connectivity
 let components = connected_components(g)
-print("Connected components: " + str(len(components)))
+println("Connected components: " + str(len(components)))
 ```
 
 ## Builtin Reference

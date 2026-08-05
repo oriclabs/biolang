@@ -34,11 +34,11 @@
 let bam = read_bam("aligned.bam")
 
 let stats = bam |> flagstat
-print(f"Total reads:    {stats.total}")
-print(f"Mapped reads:   {stats.mapped} ({stats.mapped_pct}%)")
-print(f"Duplicates:     {stats.duplicates}")
-print(f"Mean MAPQ:      {stats.mean_mapq}")
-print(f"Mean insert:    {stats.mean_insert_size}")</code></pre>
+println(f"Total reads:    {stats.total}")
+println(f"Mapped reads:   {stats.mapped} ({stats.mapped_pct}%)")
+println(f"Duplicates:     {stats.duplicates}")
+println(f"Mean MAPQ:      {stats.mean_mapq}")
+println(f"Mean insert:    {stats.mean_insert_size}")</code></pre>
 
         <h3>Per-chromosome read counts</h3>
         <pre><code class="language-biolang">let bam = read_bam("aligned.bam")
@@ -58,7 +58,7 @@ let mapq_dist = bam
   |> histogram(60)
 
 mapq_dist |> write_tsv("mapq_distribution.tsv")
-print(f"Reads with MAPQ >= 30: {bam |> filter(|r| { r.mapq >= 30 }) |> len}")</code></pre>
+println(f"Reads with MAPQ >= 30: {bam |> filter(|r| { r.mapq >= 30 }) |> len}")</code></pre>
 
         <h2>Coverage Analysis</h2>
 
@@ -87,7 +87,7 @@ let coverage = range(0, 249250621, window_size)
 coverage |> write_tsv("coverage_windows.tsv")
 
 let avg = coverage |> map(|c| c.mean_depth) |> mean
-print(f"Average genome-wide depth: {avg |> round(1)}x")</code></pre>
+println(f"Average genome-wide depth: {avg |> round(1)}x")</code></pre>
 
         <h3>Coverage at specific regions</h3>
         <pre><code class="language-biolang"># Check coverage over target regions (e.g., exome capture)
@@ -114,7 +114,7 @@ let region_cov = targets
 
 # Find under-covered regions
 let low_cov = region_cov |> filter(|r| { r.pct_20x &lt; 0.90 })
-print(f"Regions below 90% at 20x: {low_cov |> len}")
+println(f"Regions below 90% at 20x: {low_cov |> len}")
 low_cov |> write_tsv("low_coverage_regions.tsv")</code></pre>
 
         <h2>Variant Analysis</h2>
@@ -156,7 +156,7 @@ let summary = vcf
   |> frequencies
 
 for item in summary {
-  print(f"{item.key}: {item.value}")
+  println(f"{item.key}: {item.value}")
 }</code></pre>
 
         <h3>Heterozygosity rate</h3>
@@ -170,7 +170,7 @@ let het_count = genotypes |> filter(|g| { g == "0/1" || g == "0|1" }) |> len
 let total = genotypes |> len
 let het_rate = het_count |> float / total |> float
 
-print(f"Heterozygosity rate: {het_rate |> round(4)}")</code></pre>
+println(f"Heterozygosity rate: {het_rate |> round(4)}")</code></pre>
 
         <h2>FASTA Analysis</h2>
 
@@ -184,11 +184,11 @@ let total = contigs |> sum
 let longest = contigs |> first
 let n_contigs = contigs |> len
 
-print("Assembly Statistics:")
-print(f"  Contigs:    {n_contigs}")
-print(f"  Total bp:   {total |> str}")
-print(f"  Longest:    {longest |> str}")
-print(f"  GC content: {read_fasta("data/sequences.fasta") |> map(|r| gc_content(r.seq)) |> mean |> round(3)}")</code></pre>
+println("Assembly Statistics:")
+println(f"  Contigs:    {n_contigs}")
+println(f"  Total bp:   {total |> str}")
+println(f"  Longest:    {longest |> str}")
+println(f"  GC content: {read_fasta("data/sequences.fasta") |> map(|r| gc_content(r.seq)) |> mean |> round(3)}")</code></pre>
 
         <h3>Find motifs in a genome</h3>
         <pre><code class="language-biolang"># Search for a restriction enzyme site (EcoRI: GAATTC)
@@ -197,9 +197,9 @@ let genome = read_fasta("data/sequences.fasta")
 for record in genome {
   let sites = find_motif(record.seq, "GAATTC")
   if sites |> len > 0 {
-    print(f"{record.id}: {sites |> len} EcoRI sites")
+    println(f"{record.id}: {sites |> len} EcoRI sites")
     sites |> take(5) |> each(|pos| {
-      print(f"  Position: {pos}")
+      println(f"  Position: {pos}")
     })
   }
 }</code></pre>
@@ -213,7 +213,7 @@ gff
   |> filter(|f| f.type == "gene")
   |> map(|f| f.seqid)
   |> frequencies
-  |> each(|chrom, n| print(f"{chrom}: {n} genes"))</code></pre>
+  |> each(|chrom, n| println(f"{chrom}: {n} genes"))</code></pre>
 
         <h3>Exon size distribution</h3>
         <pre><code class="language-biolang">let gff = read_gff("annotations.gff3")
@@ -222,10 +222,10 @@ let exon_sizes = gff
   |> filter(|f| f.type == "exon")
   |> map(|f| f.end - f.start + 1)
 
-print(f"Exon count:   {exon_sizes |> len}")
-print(f"Mean size:    {exon_sizes |> mean |> round(1)} bp")
-print(f"Median size:  {exon_sizes |> median} bp")
-print(f"Max size:     {exon_sizes |> max} bp")</code></pre>
+println(f"Exon count:   {exon_sizes |> len}")
+println(f"Mean size:    {exon_sizes |> mean |> round(1)} bp")
+println(f"Median size:  {exon_sizes |> median} bp")
+println(f"Max size:     {exon_sizes |> max} bp")</code></pre>
 
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

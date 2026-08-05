@@ -55,8 +55,12 @@
           <svg class="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
           <div class="text-sm text-emerald-300/90">
             <strong>Run this tutorial:</strong> Download
-            <a href="https://github.com/oriclabs/biolang/blob/main/examples/tutorials/notebooks.bl" class="text-emerald-400 hover:underline">notebooks.bl</a>
-            and run it with <code class="text-emerald-300">bl run examples/tutorials/notebooks.bl</code>
+            <a href="https://github.com/oriclabs/biolang/blob/main/examples/tutorials/notebooks.bln" class="text-emerald-400 hover:underline">notebooks.bln</a>
+            and run it with <code class="text-emerald-300">bl notebook examples/tutorials/notebooks.bln</code>
+            &mdash; it is the finished notebook from the end of this page, cell directives and all.
+            There is also a plain-script version,
+            <a href="https://github.com/oriclabs/biolang/blob/main/examples/tutorials/notebooks.bl" class="text-emerald-400 hover:underline">notebooks.bl</a>,
+            which does the same analysis without the notebook format.
           </div>
         </div>
 
@@ -73,7 +77,7 @@ This notebook analyzes per-contig GC content from a FASTA file.
 
 ```biolang
 let seq = dna"ATCGATCGATCG"
-print(f"GC content: {gc_content(seq)}")
+println(f"GC content: {gc_content(seq)}")
 ```</code></pre>
         <p>Run it:</p>
         <pre><code class="language-bash">bl notebook gc_analysis.bln</code></pre>
@@ -98,7 +102,7 @@ Read the sample FASTA file shipped with BioLang.
 
 ```biolang
 let seqs = read_fasta("examples/sample-data/contigs.fa")
-print(f"Loaded {len(seqs)} sequences")
+println(f"Loaded {len(seqs)} sequences")
 ```
 
 ## Compute Statistics
@@ -109,8 +113,8 @@ Calculate GC content for each sequence and summarize.
 let gc_values = seqs |> map(|s| gc_content(s.seq))
 let mu = mean(gc_values)
 let sigma = stdev(gc_values)
-print(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
-print(f"Range: {min(gc_values):.3f} - {max(gc_values):.3f}")
+println(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
+println(f"Range: {min(gc_values):.3f} - {max(gc_values):.3f}")
 ```
 
 ## Find Outliers
@@ -121,8 +125,8 @@ These may indicate contamination or horizontal gene transfer.
 ```biolang
 let outliers = seqs
   |> filter(|s| abs(gc_content(s.seq) - mu) > 2.0 * sigma)
-print(f"Found {len(outliers)} outlier contigs")
-outliers |> each(|s| print(f"  {s.id}: GC={gc_content(s.seq):.3f}"))
+println(f"Found {len(outliers)} outlier contigs")
+outliers |> each(|s| println(f"  {s.id}: GC={gc_content(s.seq):.3f}"))
 ```</code></pre>
         <p>
           Run it again. Each section prints its heading, prose, and code output in
@@ -159,7 +163,7 @@ let min_length = 100
 # @echo
 let gc_values = seqs |> map(|s| gc_content(s.seq))
 let mu = mean(gc_values)
-print(f"Mean GC: {mu:.3f}")
+println(f"Mean GC: {mu:.3f}")
 ```</code></pre>
         <p>
           This prints the code first (dimmed), then executes it and shows the output.
@@ -268,7 +272,7 @@ Read the FASTA file and report basic counts.
 
 ```biolang
 let seqs = read_fasta("examples/sample-data/contigs.fa")
-print(f"Loaded {len(seqs)} sequences")
+println(f"Loaded {len(seqs)} sequences")
 ```
 
 ## Compute GC Statistics
@@ -278,7 +282,7 @@ print(f"Loaded {len(seqs)} sequences")
 let gc_values = seqs |> map(|s| gc_content(s.seq))
 let mu = mean(gc_values)
 let sigma = stdev(gc_values)
-print(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
+println(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
 ```
 
 ## Build Results Table
@@ -300,8 +304,8 @@ let outliers = gc_table
   |> filter(|row| abs(row.gc - mu) > threshold * sigma)
   |> arrange("-gc")
 
-print(f"Found {len(outliers)} outlier contigs:")
-outliers |> each(|row| print(f"  {row.id}: GC={row.gc:.3f}, length={row.length}"))
+println(f"Found {len(outliers)} outlier contigs:")
+outliers |> each(|row| println(f"  {row.id}: GC={row.gc:.3f}, length={row.length}"))
 ```
 
 ## Summary

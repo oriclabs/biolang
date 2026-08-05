@@ -95,10 +95,10 @@ pipeline. The returned record contains:
 ```biolang
 # Inspect the Sarek germline/somatic variant calling pipeline
 let sarek = nfcore_info("sarek")
-print("Pipeline: " + sarek.full_name)
-print("License:  " + sarek.license)
-print("Stars:    " + to_string(sarek.stars))
-print("Topics:   " + join(sarek.topics, ", "))
+println("Pipeline: " + sarek.full_name)
+println("License:  " + sarek.license)
+println("Stars:    " + to_string(sarek.stars))
+println("Topics:   " + join(sarek.topics, ", "))
 ```
 
 You can use the metadata to make decisions in scripts. For example, checking
@@ -108,7 +108,7 @@ whether a pipeline is actively maintained before committing to it:
 # Only proceed if the pipeline has been updated recently
 let info = nfcore_info("taxprofiler")
 if info.open_issues < 50 then
-  print(info.name + " looks actively maintained")
+  println(info.name + " looks actively maintained")
 ```
 
 ## Releases and Versions
@@ -128,7 +128,7 @@ The list is ordered newest-first, so the head element is the latest stable versi
 # Get the latest stable release tag for rnaseq
 let latest = nfcore_releases("rnaseq")
   |> first
-print("Latest release: " + latest.tag + " (" + latest.published_at + ")")
+println("Latest release: " + latest.tag + " (" + latest.published_at + ")")
 ```
 
 You can also search for a specific version range or find how many releases a
@@ -137,7 +137,7 @@ pipeline has had -- a rough proxy for maturity:
 ```biolang
 # Count total releases for sarek
 let release_count = nfcore_releases("sarek") |> len
-print("sarek has " + to_string(release_count) + " releases")
+println("sarek has " + to_string(release_count) + " releases")
 ```
 
 ```biolang
@@ -183,7 +183,7 @@ required parameters before submitting a long-running pipeline:
 # Check whether a specific parameter exists
 let params = nfcore_params("sarek")
 let genome_opts = params.reference_genome_options
-print(keys(genome_opts))
+println(keys(genome_opts))
 ```
 
 ## Example: Finding the Right Pipeline
@@ -204,7 +204,7 @@ candidates
     description: p.description
   }
   |> sort_by |a, b| b.stars - a.stars
-  |>> each |p| print(p.name + " (" + to_string(p.stars) + " stars): " + p.description)
+  |>> each |p| println(p.name + " (" + to_string(p.stars) + " stars): " + p.description)
 
 # Step 3: Get detailed info on the top candidate
 let top = candidates
@@ -212,18 +212,18 @@ let top = candidates
   |> first
 
 let info = nfcore_info(top.name)
-print("Selected: " + info.full_name)
-print("License:  " + info.license)
-print("Topics:   " + join(info.topics, ", "))
+println("Selected: " + info.full_name)
+println("License:  " + info.license)
+println("Topics:   " + join(info.topics, ", "))
 
 # Step 4: Check the latest release
 let latest = nfcore_releases(top.name) |> first
-print("Latest release: " + latest.tag + " published " + latest.published_at)
+println("Latest release: " + latest.tag + " published " + latest.published_at)
 
 # Step 5: Preview the parameter groups
 nfcore_params(top.name)
   |> keys
-  |>> each |group| print("  - " + group)
+  |>> each |group| println("  - " + group)
 ```
 
 This entire exploration runs in a single script -- no switching between a browser,
@@ -303,7 +303,7 @@ keys(topics)
     let pipelines = topics[t]
       |> sort_by |a, b| b.stars - a.stars
       |> each |p| p.name
-    print(t + " (" + to_string(len(pipelines)) + " pipelines): " + join(pipelines, ", "))
+    println(t + " (" + to_string(len(pipelines)) + " pipelines): " + join(pipelines, ", "))
   }
 ```
 
@@ -313,14 +313,14 @@ feed into a lab notebook:
 ```biolang
 # Export the top 20 pipelines as a tab-separated table
 let header = "name\tstars\ttopics\tlatest_release"
-print(header)
+println(header)
 
 nfcore_list(sort_by: "stars", limit: 20)
   |>> each |p| {
     let latest = nfcore_releases(p.name) |> first
     let tag = if latest != nil then latest.tag else "unreleased"
     let topic_str = join(p.topics, ";")
-    print(p.name + "\t" + to_string(p.stars) + "\t" + topic_str + "\t" + tag)
+    println(p.name + "\t" + to_string(p.stars) + "\t" + topic_str + "\t" + tag)
   }
 ```
 
@@ -355,7 +355,7 @@ let parsed = nf_parse("variant_calling.nf")
 
 parsed.processes
   |> each |p| {
-    print(p.name + ": " + if p.container != nil then p.container else "no container")
+    println(p.name + ": " + if p.container != nil then p.container else "no container")
   }
 ```
 
@@ -365,7 +365,7 @@ let parsed = nf_parse("rnaseq.nf")
 
 keys(parsed.params)
   |> sort
-  |>> each |k| print(k + " = " + to_string(parsed.params[k]))
+  |>> each |k| println(k + " = " + to_string(parsed.params[k]))
 ```
 
 ## Generating BioLang Code
@@ -379,7 +379,7 @@ let parsed = nf_parse("rnaseq.nf")
 let bl_code = nf_to_bl(parsed)
 
 # Print the generated code
-print(bl_code)
+println(bl_code)
 
 # Save to a file
 write_text("rnaseq.bl", bl_code)
@@ -400,11 +400,11 @@ features like pipe chains, error handling, and parallel execution.
 let parsed = nf_parse("sarek_main.nf")
 
 # Show what was extracted
-print("Found " + to_string(len(parsed.processes)) + " processes")
-print("Found " + to_string(len(keys(parsed.params))) + " parameters")
+println("Found " + to_string(len(parsed.processes)) + " processes")
+println("Found " + to_string(len(keys(parsed.params))) + " parameters")
 
 # Generate BioLang code
 let bl_code = nf_to_bl(parsed)
 write_text("sarek.bl", bl_code)
-print("Generated sarek.bl")
+println("Generated sarek.bl")
 ```

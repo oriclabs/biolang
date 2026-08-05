@@ -250,15 +250,15 @@ let p_negative = (1.0 - sensitivity) * prevalence + specificity * (1.0 - prevale
 let npv = (specificity * (1.0 - prevalence)) / p_negative
 
 print("=== Diagnostic Test Analysis ===")
-print("Prevalence:    {prevalence}")
-print("Sensitivity:   {sensitivity}")
-print("Specificity:   {specificity}")
-print("P(positive):   {p_positive:.4}")
-print("PPV:           {ppv:.4} ({ppv * 100:.1}%)")
-print("NPV:           {npv:.6} ({npv * 100:.4}%)")
+print(f"Prevalence:    {prevalence}")
+print(f"Sensitivity:   {sensitivity}")
+print(f"Specificity:   {specificity}")
+print(f"P(positive):   {p_positive:.4}")
+print(f"PPV:           {ppv:.4} ({ppv * 100:.1}%)")
+print(f"NPV:           {npv:.6} ({npv * 100:.4}%)")
 print("")
-print("Interpretation: A positive result means only a {ppv * 100:.1}% chance of disease.")
-print("A negative result means a {npv * 100:.4}% chance of being disease-free.")
+print(f"Interpretation: A positive result means only a {ppv * 100:.1}% chance of disease.")
+print(f"A negative result means a {npv * 100:.4}% chance of being disease-free.")
 ```
 
 <div style="text-align: center; margin: 2em 0;">
@@ -320,7 +320,7 @@ for prev in prevalences {
     let fpr = 1.0 - specificity
     let p_pos = sensitivity * prev + fpr * (1.0 - prev)
     let ppv = (sensitivity * prev) / p_pos
-    print("  {prev:.4}   | {ppv * 100:.1}%")
+    print(f"  {prev:.4}   | {ppv * 100:.1}%")
 }
 # At 0.01% prevalence: PPV = 0.2% (nearly all positives are false)
 # At 50% prevalence: PPV = 95.2% (most positives are true)
@@ -345,7 +345,7 @@ let p_inherit = 0.5
 print("Number of children inheriting BRCA1:")
 for k in 0..5 {
     let prob = dbinom(k, n_children, p_inherit)
-    print("  {k} children: {prob:.4} ({prob * 100:.1}%)")
+    print(f"  {k} children: {prob:.4} ({prob * 100:.1}%)")
 }
 # 0: 6.25%, 1: 25.0%, 2: 37.5%, 3: 25.0%, 4: 6.25%
 ```
@@ -357,11 +357,11 @@ The **cumulative distribution function** (CDF) gives P(X &le; k) — the probabi
 ```bio
 # What's the probability that at most 1 of 4 children inherits the mutation?
 let p_at_most_1 = pbinom(1, 4, 0.5)
-print("P(0 or 1 child inherits): {p_at_most_1:.4}")  # 0.3125
+print(f"P(0 or 1 child inherits): {p_at_most_1:.4}")  # 0.3125
 
 # What's the probability at least 1 inherits?
 let p_at_least_1 = 1.0 - pbinom(0, 4, 0.5)
-print("P(at least 1 inherits): {p_at_least_1:.4}")  # 0.9375
+print(f"P(at least 1 inherits): {p_at_least_1:.4}")  # 0.9375
 ```
 
 ### Continuous Distributions
@@ -375,15 +375,15 @@ let sigma = 15.0
 
 # P(BP > 140) — hypertension threshold
 let p_hypertension = 1.0 - pnorm(140, mu, sigma)
-print("P(BP > 140): {p_hypertension:.4}")  # ~0.0912
+print(f"P(BP > 140): {p_hypertension:.4}")  # ~0.0912
 
 # P(100 < BP < 130)
 let p_normal_range = pnorm(130, mu, sigma) - pnorm(100, mu, sigma)
-print("P(100 < BP < 130): {p_normal_range:.4}")
+print(f"P(100 < BP < 130): {p_normal_range:.4}")
 
 # What BP value has only 5% of people above it?
 let bp_95th = qnorm(0.95, mu, sigma)
-print("95th percentile BP: {bp_95th:.1}")  # ~144.7
+print(f"95th percentile BP: {bp_95th:.1}")  # ~144.7
 ```
 
 ## Hardy-Weinberg as a Probability Model
@@ -409,21 +409,21 @@ let total = observed_AA + observed_Aa + observed_aa  # 500
 # Estimate allele frequencies
 let p_A = (2.0 * observed_AA + observed_Aa) / (2.0 * total)
 let p_a = 1.0 - p_A
-print("Estimated allele frequencies: p(A) = {p_A:.3}, p(a) = {p_a:.3}")
+print(f"Estimated allele frequencies: p(A) = {p_A:.3}, p(a) = {p_a:.3}")
 
 # Expected counts under HWE
 let expected_AA = p_A * p_A * total
 let expected_Aa = 2.0 * p_A * p_a * total
 let expected_aa = p_a * p_a * total
-print("Expected: AA={expected_AA:.1}, Aa={expected_Aa:.1}, aa={expected_aa:.1}")
-print("Observed: AA={observed_AA}, Aa={observed_Aa}, aa={observed_aa}")
+print(f"Expected: AA={expected_AA:.1}, Aa={expected_Aa:.1}, aa={expected_aa:.1}")
+print(f"Observed: AA={observed_AA}, Aa={observed_Aa}, aa={observed_aa}")
 
 # Chi-square test for HWE (we'll cover this formally on Day 13)
 let chi2 = (observed_AA - expected_AA) ** 2 / expected_AA +
            (observed_Aa - expected_Aa) ** 2 / expected_Aa +
            (observed_aa - expected_aa) ** 2 / expected_aa
-print("Chi-square statistic: {chi2:.3}")
-print("Deviation from HWE: {if chi2 > 3.84 then 'Significant' else 'Not significant'}")
+print(f"Chi-square statistic: {chi2:.3}")
+print(f"Deviation from HWE: {if chi2 > 3.84 then "Significant" else "Not significant"}")
 ```
 
 ## Carrier Probability Calculations
@@ -447,15 +447,15 @@ print("")
 
 # Probability none of 3 children inherit
 let p_none = dbinom(0, n_children, p_inherit)
-print("P(no children inherit): {p_none:.4} ({p_none * 100:.1}%)")
+print(f"P(no children inherit): {p_none:.4} ({p_none * 100:.1}%)")
 
 # Probability exactly 1 inherits
 let p_one = dbinom(1, n_children, p_inherit)
-print("P(exactly 1 inherits):  {p_one:.4} ({p_one * 100:.1}%)")
+print(f"P(exactly 1 inherits):  {p_one:.4} ({p_one * 100:.1}%)")
 
 # Probability at least 1 inherits
 let p_at_least_one = 1.0 - p_none
-print("P(at least 1 inherits): {p_at_least_one:.4} ({p_at_least_one * 100:.1}%)")
+print(f"P(at least 1 inherits): {p_at_least_one:.4} ({p_at_least_one * 100:.1}%)")
 
 print("")
 print("=== Conditional Cancer Risk ===")
@@ -464,12 +464,12 @@ let p_cancer_given_brca = 0.72
 
 # P(inherits AND develops cancer)
 let p_inherit_and_cancer = p_inherit * p_cancer_given_brca
-print("P(daughter inherits AND gets cancer): {p_inherit_and_cancer:.3} ({p_inherit_and_cancer * 100:.1}%)")
+print(f"P(daughter inherits AND gets cancer): {p_inherit_and_cancer:.3} ({p_inherit_and_cancer * 100:.1}%)")
 
 # P(daughter gets cancer by 70 | she is female)
 # Must account for 50% chance of being female
 let p_affected_daughter = 0.5 * p_inherit * p_cancer_given_brca
-print("P(random child is affected daughter): {p_affected_daughter:.3} ({p_affected_daughter * 100:.1}%)")
+print(f"P(random child is affected daughter): {p_affected_daughter:.3} ({p_affected_daughter * 100:.1}%)")
 ```
 
 ## Python and R Equivalents

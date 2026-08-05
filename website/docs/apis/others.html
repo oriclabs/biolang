@@ -36,27 +36,27 @@
         </p>
         <pre><code class="language-biolang"># Search KEGG for pathways related to apoptosis
 let results = kegg_find("pathway", "apoptosis")
-results |> map(|r| print(r.id, r.description))
+results |> each(|r| println(r.id, r.description))
 
 # Get the raw KEGG entry for a specific pathway
 let entry = kegg_get("hsa04110")    # Cell cycle
-print(entry)                     # raw KEGG flat-file text
+println(entry)                     # raw KEGG flat-file text
 
 # Find all human pathways mentioning BRCA1
 results = kegg_find("genes", "brca1+hsa")
-results |> map(|r| print(r.id, r.description))
+results |> each(|r| println(r.id, r.description))
 
 # Cross-reference: find genes linked to a pathway
 let links = kegg_link("hsa", "pathway:hsa04110")
-links |> map(|l| print(l.source, "->", l.target))
+links |> each(|l| println(l.source, "->", l.target))
 
 # Cross-reference: find pathways for a gene
 let pathways = kegg_link("pathway", "hsa:672")    # BRCA1
-pathways |> map(|p| print(p.target))
+pathways |> each(|p| println(p.target))
 
 # Get compound information
 let compound_text = kegg_get("C00002")    # ATP
-print(compound_text)</code></pre>
+println(compound_text)</code></pre>
 
         <h2>STRING (Protein-Protein Interaction Network)</h2>
         <p>
@@ -68,7 +68,7 @@ print(compound_text)</code></pre>
 let network = string_network(["TP53"], 9606)
 # Returns list of: {protein_a, protein_b, score}
 
-network |> each(|i| print(i.protein_a + " &lt;-> " + i.protein_b + " score: " + str(i.score)))
+network |> each(|i| println(i.protein_a + " &lt;-> " + i.protein_b + " score: " + str(i.score)))
 
 # Get network for multiple proteins
 let proteins = ["BRCA1", "BRCA2", "RAD51", "ATM", "ATR"]
@@ -76,7 +76,7 @@ network = string_network(proteins, 9606)
 
 # Filter by confidence score
 let high_conf = network |> filter(|i| i.score > 0.9)
-print(high_conf |> len(), "high-confidence interactions")
+println(high_conf |> len(), "high-confidence interactions")
 
 # Functional enrichment analysis
 let enrichment = string_enrichment(proteins, 9606)
@@ -84,7 +84,7 @@ enrichment
   |> filter(|e| e.category == "Process")
   |> sort_by(|term| term.fdr)
   |> take(10)
-  |> map(|e| print(e.term, e.description, "FDR:", e.fdr))</code></pre>
+  |> each(|e| println(e.term, e.description, "FDR:", e.fdr))</code></pre>
 
         <h2>PDB (Protein Data Bank)</h2>
         <p>
@@ -93,22 +93,22 @@ enrichment
         </p>
         <pre><code class="language-biolang"># Get a structure entry
 let entry = pdb_entry("4HHB")          # Hemoglobin
-print(entry.title)
-print(entry.resolution)             # => 1.74 Angstroms
-print(entry.method)                 # => "X-RAY DIFFRACTION"
-print(entry.deposition_date)
+println(entry.title)
+println(entry.resolution)             # => 1.74 Angstroms
+println(entry.method)                 # => "X-RAY DIFFRACTION"
+println(entry.deposition_date)
 
 # List entities (chains / molecules)
-entry.entities |> map(|e| print(e.description, e.type))
+entry.entities |> each(|e| println(e.description, e.type))
 
 # Search PDB by keyword
 let ids = pdb_search("CRISPR Cas9")
-print(ids |> len(), "structures found")
+println(ids |> len(), "structures found")
 
 # Look up details for each hit
 ids |> take(5) |> map(|id| {
   let e = pdb_entry(id)
-  print(e.id, e.title, e.resolution)
+  println(e.id, e.title, e.resolution)
 })</code></pre>
 
         <h2>Reactome (Pathway Database)</h2>
@@ -120,17 +120,17 @@ ids |> take(5) |> map(|id| {
 let results = reactome_search("DNA repair")
 results
   |> filter(|r| r.species == "Homo sapiens")
-  |> map(|r| print(r.id, r.name))
+  |> each(|r| println(r.id, r.name))
 
 # Find pathways for a gene
 let pathways = reactome_pathways("TP53")
-pathways |> map(|p| print(p.id, p.name))
+pathways |> each(|p| println(p.id, p.name))
 
 # Find pathways for multiple genes
 let genes = ["BRCA1", "BRCA2", "RAD51"]
 genes |> map(|g| {
   let paths = reactome_pathways(g)
-  print(f"{g}: {paths |> len()} pathways")
+  println(f"{g}: {paths |> len()} pathways")
 })</code></pre>
 
         <h2>Gene Ontology (GO)</h2>
@@ -143,9 +143,9 @@ genes |> map(|g| {
         </p>
         <pre><code class="language-biolang"># Look up a GO term by ID
 let term = go_term("GO:0006915")       # Apoptotic process
-print(term.name)                    # => "apoptotic process"
-print(term.namespace)               # => "biological_process"
-print(term.definition)
+println(term.name)                    # => "apoptotic process"
+println(term.namespace)               # => "biological_process"
+println(term.definition)
 
 # Get annotations for a gene
 let annotations = go_annotations("TP53")
@@ -153,16 +153,16 @@ annotations |> map(|a| {
   go_id: a.go_id,
   name: a.term,
   aspect: a.aspect
-}) |> to_table() |> print()
+}) |> to_table() |> println()
 
 # Get parent terms in the GO hierarchy
 let parents = go_parents("GO:0006915")
-parents |> map(|p| print(p.id, p.name))
+parents |> each(|p| println(p.id, p.name))
 
 # Get child terms in the GO hierarchy
 let children = go_children("GO:0008150")   # biological_process
-print(children |> len(), "child terms")
-children |> map(|c| print(c.id, c.name))</code></pre>
+println(children |> len(), "child terms")
+children |> each(|c| println(c.id, c.name))</code></pre>
 
         <h2>COSMIC (Catalogue of Somatic Mutations in Cancer)</h2>
         <p>
@@ -177,18 +177,18 @@ mutations |> map(|m| {
   aa_change: m.aa_mutation,
   cancer_type: m.primary_site,
   count: m.count
-}) |> to_table() |> print()
+}) |> to_table() |> println()
 
 # Sort by mutation frequency
 mutations
   |> sort_by(|mutation| mutation.count)
   |> reverse()
   |> take(20)
-  |> map(|m| print(m.aa_mutation, "count:", m.count))
+  |> each(|m| println(m.aa_mutation, "count:", m.count))
 
 # Check another gene
 let egfr = cosmic_gene("EGFR")
-print(f"EGFR: {egfr |> len()} mutations found")</code></pre>
+println(f"EGFR: {egfr |> len()} mutations found")</code></pre>
 
         <h2>BioMart (Ensembl BioMart)</h2>
         <p>
@@ -201,7 +201,7 @@ let genes = biomart_query(
   ["ensembl_gene_id", "external_gene_name", "gene_biotype", "start_position", "end_position"],
   {chromosome_name: "17", start: 43044295, end: 43170245}
 )
-genes |> to_table() |> print()
+genes |> to_table() |> println()
 
 # Get GO annotations for a gene list
 let go_annot = biomart_query(
@@ -209,7 +209,7 @@ let go_annot = biomart_query(
   ["hgnc_symbol", "go_id", "name_1006", "namespace_1003"],
   {hgnc_symbol: ["BRCA1", "TP53", "EGFR"]}
 )
-go_annot |> to_table() |> print()
+go_annot |> to_table() |> println()
 
 # Get ortholog mappings
 let orthologs = biomart_query(
@@ -217,7 +217,7 @@ let orthologs = biomart_query(
   ["external_gene_name", "mmusculus_homolog_ensembl_gene", "mmusculus_homolog_orthology_type"],
   {hgnc_symbol: ["BRCA1", "TP53"]}
 )
-orthologs |> to_table() |> print()</code></pre>
+orthologs |> to_table() |> println()</code></pre>
 
         <section id="go-traversal" class="mt-12">
           <h2 class="text-2xl font-bold text-white mb-4">GO Graph Traversal</h2>
@@ -240,19 +240,19 @@ orthologs |> to_table() |> print()</code></pre>
           </table>
           <pre><code class="language-biolang"># Navigate the GO hierarchy
 let children = go_children("GO:0008150")
-print(f"Child terms: {children |> len()}")
-children |> map(|c| print(c.id, c.name))
+println(f"Child terms: {children |> len()}")
+children |> each(|c| println(c.id, c.name))
 
 # Look up a specific term and its children
 let term = go_term("GO:0005634")     # nucleus
 let kids = go_children("GO:0005634")
-print(f"{term.name} has {kids |> len()} children")
+println(f"{term.name} has {kids |> len()} children")
 
 # Get annotations and cross-reference with term details
 let annotations = go_annotations("BRCA1")
 annotations |> map(|a| {
   let detail = go_term(a.go_id)
-  print(a.go_id, detail.name, f"({detail.namespace})")
+  println(a.go_id, detail.name, f"({detail.namespace})")
 })</code></pre>
         </section>
       </article>

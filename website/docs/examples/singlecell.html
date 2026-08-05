@@ -35,7 +35,7 @@
         metadata in <code>var</code>.</p>
         <pre><code class="language-biolang">import "singlecell" as sc
 
-let cells = sc.load("filtered_feature_bc_matrix")
+let cells = sc.load("packages/nsclc_like")   # 10x MEX shipped with the repo
 println(str(cells.n_cells) + " cells x " + str(cells.n_genes) + " genes")
 println(str(nnz(cells.matrix)) + " non-zero counts")</code></pre>
 
@@ -45,8 +45,10 @@ println(str(nnz(cells.matrix)) + " non-zero counts")</code></pre>
         Arbitrary metadata columns and auxiliary layers are not yet copied.
         Direct HDF5 <code>.h5ad</code> access requires Python/anndata or a
         container conversion to Zarr.</p>
-        <pre><code class="language-biolang">let cells = read_anndata("study.zarr")
-write_anndata("study_biolang.zarr", cells)</code></pre>
+        <pre><code class="language-biolang"># An alternative to sc.load() above. Bound to its own name so it does not
+# replace the 10x object the rest of this page builds on.
+let zarr_cells = read_anndata("packages/pbmc_synth.zarr")
+write_anndata("study_biolang.zarr", zarr_cells)</code></pre>
 
         <h2>Quality Control</h2>
         <p>Low-complexity cells may be empty droplets. Very high gene counts may
@@ -59,7 +61,7 @@ println("median mitochondrial %: " + str(median(col(metrics, "pct_mito"))))
 
 let filtered = cells
     |> sc.filter_genes(3)
-    |> sc.filter_cells(200, 5000, 20.0)
+    |> sc.filter_cells(50, 5000, 20.0)
 
 println(str(filtered.n_cells) + " cells retained")</code></pre>
 
@@ -137,13 +139,21 @@ write_text("qc.svg", sc.plot_qc_dashboard(cells, "Cell quality"))</code></pre>
         composition, cluster stability, and enrichment. Split feature plots and
         group heatmaps help distinguish a condition effect from a change in cell
         abundance.</p>
-        <pre><code class="language-biolang"># conditions and cell_types contain one label per cell.
+        <pre><code class="language-biolang"># One label per cell. A real study reads these from its sample sheet; the
+# shipped dataset has none, so they are derived here. Donors alternate with
+# condition so each donor appears in both arms — the paired tests below refuse
+# to run otherwise — and cell types come from the clusters.
+let n_cells = result.n_cells
+let donors     = range(0, n_cells) |> map(|i| "D" + str(i / 2 % 2 + 1))
+let conditions = range(0, n_cells) |> map(|i| if i % 2 == 0 { "control" } else { "treated" })
+let cell_types = result.clusters |> map(|c| if c == 0 { "T cell" } else { "other" })
+
 write_text("condition.svg",
     sc.plot_embedding(result, conditions, "Condition"))
 write_text("ifit1_by_condition.svg",
-    sc.plot_feature_split(result, "IFIT1", conditions, "IFIT1"))
+    sc.plot_feature_split(result, "MARK0_001", conditions, "MARK0_001"))
 write_text("group_means.svg",
-    sc.plot_group_heatmap(result, ["IFIT1", "ISG15", "EPCAM"],
+    sc.plot_group_heatmap(result, ["MARK0_001", "MARK0_002", "MARK0_003"],
                           conditions, "Mean expression"))</code></pre>
 
         <h2>Donor-Aware Advanced Analysis</h2>
@@ -164,7 +174,7 @@ write_text("volcano.svg", sc.plot_volcano(de, "T-cell response"))
 write_text("ma.svg", sc.plot_ma(de, "T-cell mean-abundance"))
 write_text("donors.svg",
     sc.plot_donor_expression(
-        result, "IFIT1", donors, conditions, cell_types, "T cell",
+        result, "MARK0_001", donors, conditions, cell_types, "T cell",
         "control", "treated", 10
     ))
 write_text("pseudobulk_pca.svg",

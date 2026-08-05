@@ -28,7 +28,7 @@ let ids = ncbi_search("pubmed", "CRISPR-Cas9 delivery 2024", 20)
 # Get summaries for the IDs
 let summaries = ncbi_summary(ids, "pubmed")
 summaries |> each(|s| {
-  print(s.uid)
+  println(s.uid)
 })
 ```
 
@@ -44,7 +44,7 @@ let tp53 = ncbi_gene("TP53")
 # If a single gene matches, returns a record:
 # {id, symbol, name, description, organism, chromosome, location, summary}
 
-print(tp53.name + " on chr" + tp53.chromosome + ": " + tp53.location)
+println(tp53.name + " on chr" + tp53.chromosome + ": " + tp53.location)
 ```
 
 ### ncbi_sequence
@@ -56,7 +56,7 @@ Retrieve nucleotide or protein sequences from NCBI.
 # requires: NCBI_API_KEY (optional, increases rate limit)
 # ncbi_sequence(accession) — returns FASTA text
 let fasta = ncbi_sequence("NM_000546.6")
-print("FASTA (first 100 chars): " + fasta[0..100])
+println("FASTA (first 100 chars): " + fasta[0..100])
 ```
 
 Set the `NCBI_API_KEY` environment variable to get 10 requests/second instead
@@ -74,12 +74,12 @@ Look up a gene via the Ensembl REST API.
 let brca1 = ensembl_symbol("human", "BRCA1")
 # Returns: {id, symbol, description, species, biotype, start, end, strand, chromosome}
 
-print("Ensembl ID: " + brca1.id)
-print("Location: " + brca1.chromosome + ":" + str(brca1.start) + "-" + str(brca1.end))
+println("Ensembl ID: " + brca1.id)
+println("Location: " + brca1.chromosome + ":" + str(brca1.start) + "-" + str(brca1.end))
 
 # ensembl_gene(ensembl_id) — lookup by Ensembl ID
 let same = ensembl_gene("ENSG00000012048")
-print("Symbol: " + same.symbol)
+println("Symbol: " + same.symbol)
 ```
 
 ### ensembl_vep
@@ -103,7 +103,7 @@ let predictions = variants |> map(|v| ensembl_vep(v))
 predictions |> each(|pred| {
   if len(pred) > 0 then {
     let r = pred[0]
-    print(r.allele_string + " => " + r.most_severe_consequence)
+    println(r.allele_string + " => " + r.most_severe_consequence)
   }
 })
 ```
@@ -120,8 +120,8 @@ Search the UniProt protein database.
 let kinases = uniprot_search("kinase AND organism_id:9606", 50)
 # Returns list of records: {accession, name, organism, sequence_length, gene_names, function}
 
-print(str(len(kinases)) + " human kinases found")
-kinases |> take(5) |> each(|k| print(k.accession + " " + k.gene_names))
+println(str(len(kinases)) + " human kinases found")
+kinases |> take(5) |> each(|k| println(k.accession + " " + k.gene_names))
 ```
 
 ### uniprot_entry
@@ -133,15 +133,15 @@ Get full details for a single UniProt accession.
 let entry = uniprot_entry("P04637")  # TP53
 # Returns: {accession, name, organism, sequence_length, gene_names, function}
 
-print(entry.name + ": " + str(entry.sequence_length) + " aa")
-print("Genes: " + entry.gene_names)
-print("Function: " + entry.function)
+println(entry.name + ": " + str(entry.sequence_length) + " aa")
+println("Genes: " + entry.gene_names)
+println("Function: " + entry.function)
 
 # Get protein features separately
 let features = uniprot_features("P04637")
 # Returns list of: {type, location, description}
 let domains = features |> filter(|f| f.type == "Domain")
-domains |> each(|d| print("  " + d.description + ": " + d.location))
+domains |> each(|d| println("  " + d.description + ": " + d.location))
 ```
 
 ## UCSC Genome Browser
@@ -157,9 +157,9 @@ Retrieve genomic sequences from the UCSC Genome Browser.
 let promoter = ucsc_sequence("hg38", "chr17", 43170245, 43172245)
 # Returns DNA sequence as a string
 
-print("BRCA1 promoter length: " + str(len(promoter)) + " bp")
+println("BRCA1 promoter length: " + str(len(promoter)) + " bp")
 let gc = gc_content(dna(promoter))
-print("GC content: " + str(gc))
+println("GC content: " + str(gc))
 ```
 
 ## KEGG
@@ -184,7 +184,7 @@ Retrieve a specific KEGG entry.
 # kegg_get(entry_id) — returns raw KEGG text
 let apoptosis = kegg_get("hsa04210")
 # Returns the KEGG flat-file text for the entry
-print("Entry text length: " + str(len(apoptosis)) + " chars")
+println("Entry text length: " + str(len(apoptosis)) + " chars")
 ```
 
 ## STRING
@@ -200,7 +200,7 @@ Query protein-protein interaction networks from the STRING database.
 let network = string_network(["TP53"], 9606)
 # Returns list of: {protein_a, protein_b, score}
 
-network |> each(|i| print(i.protein_a + " <-> " + i.protein_b + " (" + str(i.score) + ")"))
+network |> each(|i| println(i.protein_a + " <-> " + i.protein_b + " (" + str(i.score) + ")"))
 ```
 
 ## PDB
@@ -221,8 +221,8 @@ let structure = pdb_entry("1TUP")  # TP53 DNA-binding domain
 #   ligands: [...],
 # }
 
-print(structure.title)
-print("Resolution: " + str(structure.resolution) + " A")
+println(structure.title)
+println("Resolution: " + str(structure.resolution) + " A")
 ```
 
 ## Reactome
@@ -237,7 +237,7 @@ Find pathways associated with a gene or set of genes.
 let pathways = reactome_pathways("BRCA1")
 # Returns pathway records
 
-pathways |> each(|p| print(p))
+pathways |> each(|p| println(p))
 ```
 
 ## Gene Ontology
@@ -264,7 +264,7 @@ Get GO annotations for a gene.
 let annotations = go_annotations("TP53")
 # Returns list of: {go_id, term, aspect}
 
-annotations |> take(10) |> each(|a| print("  " + a.go_id + " [" + a.aspect + "]: " + a.term))
+annotations |> take(10) |> each(|a| println("  " + a.go_id + " [" + a.aspect + "]: " + a.term))
 ```
 
 ## COSMIC
@@ -280,7 +280,7 @@ Query the Catalogue Of Somatic Mutations In Cancer. Requires `COSMIC_API_KEY`.
 let cosmic = cosmic_gene("BRAF")
 # Returns mutation data for the gene
 
-print(cosmic)
+println(cosmic)
 ```
 
 ## NCBI Datasets
@@ -293,7 +293,7 @@ Use the NCBI Datasets API for gene metadata.
 # requires: internet connection
 # datasets_gene(symbol_or_id)
 let info = datasets_gene("EGFR")
-print(info)
+println(info)
 ```
 
 ## Environment Variables
@@ -336,9 +336,9 @@ let annotated = gene_list |> map(|symbol| {
 })
 
 annotated |> each(|g| {
-  print(g.symbol + " (" + g.name + ") - chr" + g.chromosome)
-  print("  Protein: " + str(g.protein_length) + " aa")
-  print("  Pathways: " + str(g.pathways))
+  println(g.symbol + " (" + g.name + ") - chr" + g.chromosome)
+  println("  Protein: " + str(g.protein_length) + " aa")
+  println("  Pathways: " + str(g.pathways))
 })
 
 annotated |> write_json("gene_annotations.json")
@@ -390,7 +390,7 @@ let flagged = interpreted
   |> filter(|v| v.impact == "HIGH" or v.cosmic_known)
   |> sort_by(|v| -v.cosmic_count)
 
-print(str(len(flagged)) + " variants flagged for review")
+println(str(len(flagged)) + " variants flagged for review")
 flagged |> write_tsv("flagged_variants.tsv")
 ```
 
@@ -410,7 +410,7 @@ let top_genes = de_genes |> take(50)
 let network = string_network(top_genes, 9606)
 # Returns list of: {protein_a, protein_b, score}
 
-print(str(len(network)) + " interactions")
+println(str(len(network)) + " interactions")
 
 # Find hub genes (most connections)
 let all_proteins = network |> map(|i| i.protein_a) + network |> map(|i| i.protein_b)
@@ -421,8 +421,8 @@ let degree = unique_proteins |> map(|p| {
 })
   |> sort(|a, b| b.degree - a.degree)
 
-print("Hub genes:")
-degree |> take(10) |> each(|d| print("  " + d.gene + ": " + str(d.degree) + " interactions"))
+println("Hub genes:")
+degree |> take(10) |> each(|d| println("  " + d.gene + ": " + str(d.degree) + " interactions"))
 
 # Pathway enrichment for hub genes
 let hub_genes = degree |> take(10) |> map(|d| d.gene)
@@ -430,8 +430,8 @@ let pathways = reactome_pathways(hub_genes)
   |> filter(|p| p.p_value < 0.05)
   |> sort_by(|p| p.p_value)
 
-print("Enriched pathways:")
-pathways |> take(10) |> each(|p| print("  " + p.name + " (p=" + str(p.p_value) + ")"))
+println("Enriched pathways:")
+pathways |> take(10) |> each(|p| println("  " + p.name + " (p=" + str(p.p_value) + ")"))
 ```
 
 ## Summary

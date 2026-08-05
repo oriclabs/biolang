@@ -215,7 +215,16 @@ de |> head(5)   # preview first 5 rows</code></pre>
         <section id="where" class="mt-12">
           <h2 class="text-2xl font-bold text-white mb-4">where</h2>
           <p class="text-slate-400 mb-4">Alias for <code class="text-violet-400">filter</code> with a more SQL-like feel. Filters rows where a condition is true.</p>
-          <pre><code class="language-biolang"># Filter rows where score exceeds threshold
+          <pre><code class="language-biolang">let data = to_table([
+  {gene: "BRCA1", score: 42.0},
+  {gene: "TP53",  score: 18.5},
+])
+let variants = to_table([
+  {quality: 55.0, af: 0.004, impact: "HIGH"},
+  {quality: 12.0, af: 0.20,  impact: "LOW"},
+])
+
+# Filter rows where score exceeds threshold
 data |> filter(|r| r.score > 30)
 
 # Equivalent to filter
@@ -231,7 +240,17 @@ variants
         <section id="case-when" class="mt-12">
           <h2 class="text-2xl font-bold text-white mb-4">case_when</h2>
           <p class="text-slate-400 mb-4">Conditional value mapping &mdash; returns the value for the first matching condition. Takes alternating condition/value lambda pairs.</p>
-          <pre><code class="language-biolang"># Classify variants by allele frequency
+          <pre><code class="language-biolang">let data = to_table([
+  {variant: "rs1", af: 0.12},
+  {variant: "rs2", af: 0.02},
+  {variant: "rs3", af: 0.001},
+])
+let patients = to_table([
+  {id: "P1", score: 95.0},
+  {id: "P2", score: 45.0},
+])
+
+# Classify variants by allele frequency
 data |> mutate("impact", |r| case_when(
   |_| r.af > 0.05, "common",
   |_| r.af > 0.01, "low_freq",

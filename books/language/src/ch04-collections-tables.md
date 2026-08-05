@@ -19,9 +19,9 @@ Lists support standard access and manipulation:
 ```biolang
 let genes = ["BRCA1", "TP53", "EGFR", "KRAS", "BRAF"]
 
-print(genes[0])        # => "BRCA1"
-print(genes[-1])       # => "BRAF"
-print(len(genes))      # => 5
+println(genes[0])        # => "BRCA1"
+println(genes[-1])       # => "BRAF"
+println(len(genes))      # => 5
 
 # Concatenation
 let more = genes ++ ["PIK3CA", "PTEN"]
@@ -31,7 +31,7 @@ let pairs = [
   ["sample1_R1.fq.gz", "sample1_R2.fq.gz"],
   ["sample2_R1.fq.gz", "sample2_R2.fq.gz"]
 ]
-print(pairs[0][1])   # => "sample1_R2.fq.gz"
+println(pairs[0][1])   # => "sample1_R2.fq.gz"
 ```
 
 ## Sets
@@ -45,17 +45,17 @@ let mutated_genes = set(["TP53", "KRAS", "APC", "PIK3CA"])
 
 # Set operations
 let overlap = intersection(panel_genes, mutated_genes)
-print(overlap)   # => set(["TP53", "KRAS"])
+println(overlap)   # => set(["TP53", "KRAS"])
 
 let all_genes = union(panel_genes, mutated_genes)
 let panel_only = difference(panel_genes, mutated_genes)
 let mutated_only = difference(mutated_genes, panel_genes)
 
-print(f"On panel and mutated: {len(overlap)}")
-print(f"Mutated, not on panel: {len(mutated_only)}")
+println(f"On panel and mutated: {len(overlap)}")
+println(f"Mutated, not on panel: {len(mutated_only)}")
 
 # Membership
-print(contains(panel_genes, "TP53"))   # => true
+println(contains(panel_genes, "TP53"))   # => true
 ```
 
 A real use case -- finding shared variants between tumor and normal:
@@ -71,7 +71,7 @@ let normal_variants = read_vcf("data/variants.vcf")
 
 let somatic = difference(tumor_variants, normal_variants)
 let germline = intersection(tumor_variants, normal_variants)
-print(f"Somatic: {len(somatic)}, Germline: {len(germline)}")
+println(f"Somatic: {len(somatic)}, Germline: {len(germline)}")
 ```
 
 ## Tables
@@ -92,7 +92,7 @@ let samples = table([
 
 ```biolang
 let coverages = col(samples, "coverage")
-print(coverages)   # => [35.2, 31.4, 42.1, 36.8]
+println(coverages)   # => [35.2, 31.4, 42.1, 36.8]
 
 # Multiple columns
 let subset = samples |> select("sample_id", "coverage")
@@ -102,7 +102,7 @@ let subset = samples |> select("sample_id", "coverage")
 
 ```biolang
 samples |> each(|row| {
-  print(f"{row.sample_id}: {row.coverage}x ({row.tissue})")
+  println(f"{row.sample_id}: {row.coverage}x ({row.tissue})")
 })
 ```
 
@@ -137,7 +137,7 @@ let stats = {
   max_coverage: max(coverages),
 }
 
-print(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
+println(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
 ```
 
 ### `group_by` -- Split-Apply-Combine
@@ -153,7 +153,7 @@ let by_tissue = samples
   })
 
 by_tissue |> each(|row|
-  print(f"{row.tissue}: n={row.n}, cov={row.mean_cov:.1f}x, reads={row.mean_reads:.0f}")
+  println(f"{row.tissue}: n={row.n}, cov={row.mean_cov:.1f}x, reads={row.mean_reads:.0f}")
 )
 ```
 
@@ -213,7 +213,7 @@ let windows = range(0, chrom_length, 1_000_000)
     end: min(start + 1_000_000, chrom_length)
   })
 
-print(f"Generated {len(windows)} windows for chr1")
+println(f"Generated {len(windows)} windows for chr1")
 ```
 
 ## Example: Sample QC Summary Table from FASTQ Stats
@@ -271,16 +271,16 @@ let summary = qc_flagged |> group_by("qc_pass") |> summarize(|pass, group| {
   mean_q: mean(group |> select("mean_quality")),
 })
 
-print("QC Summary:")
-print("=" * 60)
+println("QC Summary:")
+println("=" * 60)
 qc_flagged |> each(|row| {
   let flag = if row.qc_pass then "PASS" else "FAIL"
-  print(f"  [{flag}] {row.sample_id}: {row.total_reads / 1e6:.1f}M reads, Q={row.mean_quality:.1f}, Q30={row.q30_pct:.1f}%")
+  println(f"  [{flag}] {row.sample_id}: {row.total_reads / 1e6:.1f}M reads, Q={row.mean_quality:.1f}, Q30={row.q30_pct:.1f}%")
 })
 
 let pass_count = qc_flagged |> filter(|r| r.qc_pass) |> len()
 let fail_count = qc_flagged |> filter(|r| !r.qc_pass) |> len()
-print(f"\n{pass_count} passed, {fail_count} failed out of {len(qc_flagged)} samples")
+println(f"\n{pass_count} passed, {fail_count} failed out of {len(qc_flagged)} samples")
 
 # Write results
 qc_flagged |> write_tsv("qc_summary.csv")

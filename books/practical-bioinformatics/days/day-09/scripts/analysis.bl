@@ -56,7 +56,7 @@ sleep(0.5)
 print("")
 print("--- 4. Ensembl Protein Sequence ---")
 
-let protein = ensembl_sequence(ens.id, "protein")
+let protein = ensembl_sequence(ens.canonical_transcript, "protein"))
 print(f"Protein length: {len(protein.seq)} amino acids")
 print(f"First 60 aa: {protein.seq |> take(60)}")
 
@@ -198,7 +198,7 @@ fn gene_profile(symbol) {
     print(f"  Description: {gene.description}")
 
     let ens = ensembl_symbol("homo_sapiens", symbol)
-    let protein = ensembl_sequence(ens.id, "protein")
+    let protein = ensembl_sequence(ens.canonical_transcript, "protein"))
     print(f"  Protein: {len(protein.seq)} aa")
 
     let network = string_network([symbol], 9606)

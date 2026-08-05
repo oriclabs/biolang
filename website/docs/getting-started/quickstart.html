@@ -34,7 +34,7 @@
         <p>
           Create a file called <code>hello.bl</code> with the following content:
         </p>
-        <pre><code class="language-biolang">print("Hello, BioLang!")</code></pre>
+        <pre><code class="language-biolang">println("Hello, BioLang!")</code></pre>
         <p>Run it from your terminal:</p>
         <pre><code class="language-bash">bl run hello.bl
 # Hello, BioLang!</code></pre>
@@ -54,11 +54,11 @@
 [1, 2, 3, 4, 5]
   |> map(|x| x * 2)
   |> filter(|x| x > 4)
-  |> print()
+  |> println()
 # [6, 8, 10]</code></pre>
         <p>Without pipes, the equivalent code would nest function calls:</p>
         <pre><code class="language-biolang"># Same logic without pipes — harder to read
-print(filter(map([1, 2, 3, 4, 5], |x| x * 2), |x| x > 4))</code></pre>
+println(filter(map([1, 2, 3, 4, 5], |x| x * 2), |x| x > 4))</code></pre>
         <p>
           Pipes work with any function. The left-hand value becomes the first argument, and any
           additional arguments follow inside the parentheses:
@@ -67,7 +67,7 @@ print(filter(map([1, 2, 3, 4, 5], |x| x * 2), |x| x > 4))</code></pre>
   |> split(" ")
   |> map(|s| upper(s))
   |> join(", ")
-  |> print()
+  |> println()
 # HELLO, WORLD</code></pre>
 
         <h2>DNA Literals</h2>
@@ -80,15 +80,15 @@ print(filter(map([1, 2, 3, 4, 5], |x| x * 2), |x| x > 4))</code></pre>
 let seq = dna"ATCGATCGATCG"
 
 # GC content is a built-in function
-gc_content(seq) |> print()
+gc_content(seq) |> println()
 # 0.5
 
 # Reverse complement
-reverse_complement(seq) |> print()
+reverse_complement(seq) |> println()
 # CGATCGATCGAT
 
 # Sequence length
-len(seq) |> print()
+len(seq) |> println()
 # 12</code></pre>
         <p>
           Sequence literals are validated at parse time. Invalid bases produce a compile error, not a
@@ -123,7 +123,7 @@ let scores = [38.5, 40.2, 35.1, 42.0, 37.8]
 scores
   |> filter(|q| q >= 38.0)
   |> mean()
-  |> print()
+  |> println()
 # 40.233...
 
 # Maps (key-value dictionaries)
@@ -132,7 +132,7 @@ let sample = {
   "reads": 1_500_000,
   "organism": "Homo sapiens"
 }
-print(sample["id"])
+println(sample["id"])
 # SAMPLE_001
 
 # Map over a list of maps
@@ -144,7 +144,7 @@ let samples = [
 samples
   |> filter(|s| s["reads"] >= 1_000_000)
   |> map(|s| s["id"])
-  |> print()
+  |> println()
 # ["S1", "S2"]</code></pre>
 
         <h2>Running from the REPL</h2>

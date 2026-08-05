@@ -30,7 +30,7 @@ Builtins that operate on bio-typed sequences (`dna`, `rna`, `protein`).
 let primer = dna"ATCGATCGATCG"
 let rc     = reverse_complement(primer)
 let temp   = tm(primer)
-print("Primer Tm = " + str(temp) + "C, reverse complement = " + str(rc))
+println("Primer Tm = " + str(temp) + "C, reverse complement = " + str(rc))
 ```
 
 ---
@@ -195,7 +195,7 @@ let promoters = read_bed("data/regions.bed") |> map(|r| interval(r.chrom, r.star
 let peaks     = read_bed("data/exons.bed") |> map(|r| interval(r.chrom, r.start, r.end))
 let tree      = interval_tree(peaks)
 let hits      = promoters |> flat_map(|p| query_overlaps(tree, p.chrom, p.start, p.end))
-print("Found " + str(len(hits)) + " promoter-peak overlaps")
+println("Found " + str(len(hits)) + " promoter-peak overlaps")
 ```
 
 ---
@@ -226,8 +226,8 @@ let vars = vcf_filter(vcf_parse(read_text("data/variants.vcf")), 30)
 let summary = variant_summary(vars)
 let snp_rows = summary |> filter(|row| row.type_ == "SNP")
 let snp_count = if len(snp_rows) > 0 { snp_rows[0].count } else { 0 }
-print(summary)
-print("Ti/Tv = " + str(titv_ratio(vars)) + ", SNPs = " + str(snp_count))
+println(summary)
+println("Ti/Tv = " + str(titv_ratio(vars)) + ", SNPs = " + str(snp_count))
 ```
 
 ---
@@ -263,7 +263,7 @@ hypothesis testing.
 let control   = [5.2, 4.8, 5.1, 4.9]
 let treatment = [8.1, 7.5, 8.3, 7.9]
 let result    = ttest(control, treatment)
-print("p-value = " + str(result.pvalue))
+println("p-value = " + str(result.pvalue))
 ```
 
 ---
@@ -297,7 +297,7 @@ numerical biology.
 let expr = tsv("examples/sample-data/counts.tsv") |> table()
 let m    = matrix(expr |> select("gene_a", "gene_b", "gene_c"))
 let decomp = svd(m)
-print("Top 3 singular values: " + str(head(decomp.s, 3)))
+println("Top 3 singular values: " + str(head(decomp.s, 3)))
 ```
 
 ---
@@ -329,7 +329,7 @@ modeling.
 let control   = 12.5
 let treatment = 50.0
 let lfc = log2(treatment / control)
-print("Log2 fold-change = " + str(lfc))
+println("Log2 fold-change = " + str(lfc))
 ```
 
 ---
@@ -358,7 +358,7 @@ BioLang also supports **f-strings** for inline interpolation:
 let header = ">sp|P12345|MYG_HUMAN Myoglobin OS=Homo sapiens"
 let parts  = split(header, "|")
 let acc    = parts[1]
-print("Accession: " + acc)
+println("Accession: " + acc)
 ```
 
 ---
@@ -390,9 +390,9 @@ pipelines that handle mixed bio types.
 # Example: route processing based on sequence type
 let seq = read_fasta("data/sequences.fasta") |> first() |> |r| r.seq
 if is_dna(seq) then
-  print("DNA, GC = " + str(gc_content(seq)))
+  println("DNA, GC = " + str(gc_content(seq)))
 else if is_protein(seq) then
-  print("Protein, length = " + str(len(seq)))
+  println("Protein, length = " + str(len(seq)))
 ```
 
 ---
@@ -447,7 +447,7 @@ async-aware and return structured records.
 let genes = ["BRCA1", "TP53", "EGFR"]
 genes |> each(|g| {
   let pathways = reactome_pathways(g)
-  print(g + ": " + str(len(pathways)) + " pathways")
+  println(g + ": " + str(len(pathways)) + " pathways")
 })
 ```
 
@@ -479,7 +479,7 @@ serialization.
 let t0 = timestamp()
 let result = read_fasta("data/sequences.fasta")
   |> flat_map(|r| find_orfs(r.seq, 300))
-print("Found " + str(len(result)) + " ORFs in " + str(timestamp() - t0) + "s")
+println("Found " + str(len(result)) + " ORFs in " + str(timestamp() - t0) + "s")
 ```
 
 ---

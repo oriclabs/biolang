@@ -2178,14 +2178,27 @@ fn test_long_shortest_superstring() {
 [Problem statement](https://rosalind.info/problems/kmer/)
 
 ```biolang
-# Rosalind: KMER — k-Mer Composition
+# Rosalind: KMER - k-Mer Composition
 # https://rosalind.info/problems/kmer/
 #
 # Given: A DNA string s.
 # Return: The 4-mer composition of s: the count of every one of the 256
 # possible 4-mers, in lexicographic order.
+#
+# This uses the sample dataset published with the problem, and asserts the
+# published answer. It previously used a different 768-character sequence that
+# shared only its first 25 characters with the official one, so the printed
+# result could not match and the assertions only checked the shape of the
+# output - 256 entries, counts summing to the window count - rather than
+# whether the answer was right.
 
-let s = "CTTCGAAAGTTTGGGCCGAGTCTTATAGTCGAATAGCCTCCATATTGGCCTCTATCTGAGCTCTACGCACGCCAGCTCCCGCCCTGGCACTGCTTGATATTGGGTCCTATCTGACCGGACTTGACGTACCTGGGCTGATATTGCCGATCTGATTTGTCCAAAATTGACCATAGTTAAATGGCGGAATGGGCTTTGCCTCGCACCGTAGGCGATTCCCAAGTGCAGGCAAGGATATTGCGAAATATCTTCCAGAGGGCGGAAATTGCTATTCATCCTATTTGGCTTGCTCTTAAGATCACCGATCTAGCTTCGAATCGCCATGCACAGTTTGGGCTCATCGGAAGTCTCGGGCTGGTTTAATTGTGATTGGGCCTTAGCTCTCGGCTGATCTTCGTCACGATATCGCTAGATCGGCTTGACTTCGCATTGGTCTGATTTTTAAGATCTTAGGCTTGACGGCGATCTCGCTCGATCCTGCCTGATAGGCTAGCTCGATTCTCATTAAGCTCTAGCCTTCGGCCTCTGGCTCTTTAAGCGATGCTGCACGATATCTATCGGACTGCTCTTGCTCGATATCGACTGCTTGACGGCTTGATATCGCTCTTGGCTTGCTTGACTCGCTCTTGATCGCTCTAGCTAGCTCGCTCTGATCTTGCACTTGCTCGGCTCTTGCTCGGCTCTTAGCTCGCTCGATCGCTCTAGCTCGCTCGATCTTGCTCGATCTTGCACTGCTCGATCTGCACTTGCTCGATCTTGCTCGATCTAGCT"
+let s = "CTTCGAAAGTTTGGGCCGAGTCTTACAGTCGGTCTTGAAGCAAAGTAACGAACTCCACGG"
+    ++ "CCCTGACTACCGAACCAGTTGTGAGTACTCAACTGGGTGAGAGTGCAGTCCCTATTGAGT"
+    ++ "TTCCGAGACTCACCGGGATTTTCGATCCAGCCTCAGTCCAGTCTTGTGGCCAACTCACCA"
+    ++ "AATGACGTTGGAATATCCCTGTCTAGCTCACGCAGTACTTAGTAAGAGGTCGCTGCAGCG"
+    ++ "GGGCAAGGAGATCGGAAAATGTGCTCTATATGCGACTAAAGCTCCTAACTTACACGTAGA"
+    ++ "CTTGCCCGTGTTAAAAACTCGGCTCACATGCTGTCTGCGGCTGGCTGTATACAGTATCTA"
+    ++ "CCTAATACCCTTCAGTTCGCCGCACAAAAGCTGGGAGTTACCGCGGAAATCACAG"
 let k = 4
 
 let alphabet = ["A", "C", "G", "T"]
@@ -2201,19 +2214,26 @@ let all_kmers = range(0, k) |> reduce(
 let window_list = range(0, len(s) - k + 1) |> map(|i| substr(s, i, k))
 let counts = all_kmers |> map(|kmer| window_list |> count_if(|w| w == kmer))
 
-println("Result:   " + str(len(counts)) + " counts, first 12: " + (take(counts, 12) |> map(|c| str(c)) |> join(" ")))
-println("Total:    " + str(sum(counts)) + " window_list (expected " + str(len(s) - k + 1) + ")")
+let expected = split("4 1 4 3 0 1 1 5 1 3 1 2 2 1 2 0 1 1 3 1 2 1 3 1 1 1 1 2 2 5 1 3 0 2 "
+    ++ "2 1 1 1 1 3 1 0 0 1 5 5 1 5 0 2 0 2 1 2 1 1 1 2 0 1 0 0 1 1 3 2 1 0 "
+    ++ "3 2 3 0 0 2 0 8 0 0 1 0 2 1 3 0 0 0 1 4 3 2 1 1 3 1 2 1 3 1 2 1 2 1 "
+    ++ "1 1 2 3 2 1 1 0 1 1 3 2 1 2 6 2 1 1 1 2 3 3 3 2 3 0 3 2 1 1 0 0 1 4 "
+    ++ "3 0 1 5 0 2 0 1 2 1 3 0 1 2 2 1 1 0 3 0 0 4 5 0 3 0 2 1 1 3 0 3 2 2 "
+    ++ "1 1 0 2 1 0 2 2 1 2 0 2 2 5 2 2 1 1 2 1 2 2 2 2 1 1 3 4 0 2 1 1 0 1 "
+    ++ "2 2 1 1 1 5 2 0 3 2 1 1 2 2 3 0 3 0 1 3 1 2 3 0 2 1 2 2 1 2 3 0 1 2 "
+    ++ "3 1 1 3 1 0 1 1 3 0 2 1 2 2 0 2 1 1", " ") |> map(|x| int(x))
+
+println("Result:   " + (take(counts, 12) |> map(|c| str(c)) |> join(" ")) + " ...")
+println("Expected: " + (take(expected, 12) |> map(|c| str(c)) |> join(" ")) + " ...")
 
 fn test_kmer_composition() {
     assert len(counts) == 256, "KMER: got " + str(len(counts)) + " entries"
     assert all_kmers[0] == "AAAA", "KMER: order starts at " + all_kmers[0]
     assert all_kmers[255] == "TTTT", "KMER: order ends at " + all_kmers[255]
-    # Every window is counted exactly once, so the counts must total the number
-    # of windows — the check that catches an ordering or lookup mistake.
+    # The published answer, entry by entry.
+    assert counts == expected, "KMER: composition does not match the published answer"
+    # Every window is counted exactly once.
     assert sum(counts) == len(s) - k + 1, "KMER: counts total " + str(sum(counts))
-    # Cross-check one entry by counting it independently.
-    let aaaa = window_list |> count_if(|w| w == "AAAA")
-    assert counts[0] == aaaa, "KMER: AAAA count disagrees"
 }
 ```
 

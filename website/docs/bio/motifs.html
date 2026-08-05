@@ -40,7 +40,7 @@ let seq = dna"ATCGATCGAAATCGATCG"
 let hits = motif_find(seq, "ATCG")
 # Returns a list of match records with start, end positions
 
-print(len(hits), "matches found")
+println(len(hits), "matches found")
 
 # IUPAC degenerate motif
 # R = A|G, Y = C|T, N = any, W = A|T, S = C|G
@@ -48,7 +48,7 @@ hits = motif_find(seq, "RTCG")   # Matches ATCG or GTCG
 
 # Count occurrences of a motif pattern
 let n = motif_count(seq, "ATCG")
-print(n, "occurrences")</code></pre>
+println(n, "occurrences")</code></pre>
 
         <h2>motif_count</h2>
         <p>
@@ -58,11 +58,11 @@ print(n, "occurrences")</code></pre>
 
 # Count exact matches
 let n = motif_count(seq, "ATCG")
-print(n, "occurrences")
+println(n, "occurrences")
 
 # IUPAC degenerate patterns
 n = motif_count(seq, "RTCG")   # R = A or G
-print(n, "degenerate matches")
+println(n, "degenerate matches")
 
 # Scan a FASTA file for a regulatory element
 read_fasta("data/sequences.fasta")
@@ -72,7 +72,7 @@ read_fasta("data/sequences.fasta")
   })
   |> to_table()
   |> filter(|r| r.tata_boxes > 0)
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h2>consensus</h2>
         <p>
@@ -89,7 +89,7 @@ let aligned = [
 ]
 
 let cons = consensus(aligned)
-print(cons)   # => consensus sequence string</code></pre>
+println(cons)   # => consensus sequence string</code></pre>
 
         <h2>pwm (Position Weight Matrix)</h2>
         <p>
@@ -108,7 +108,7 @@ let sites = [
 let matrix = pwm(sites)
 
 # The PWM is a list of per-position frequency records {A, C, G, T}
-matrix |> map(|pos| print(pos))
+matrix |> each(|pos| println(pos))
 # Each entry shows base frequencies at that position</code></pre>
 
         <h2>pwm_scan</h2>
@@ -132,7 +132,7 @@ let hits = pwm_scan(promoter, matrix)
 # With custom threshold (third argument)
 hits = pwm_scan(promoter, matrix, 0.8)
 
-hits |> map(|h| print(h.pos, h.score))
+hits |> each(|h| println(h.pos, h.score))
 
 # Genome-wide scan
 read_fasta("data/sequences.fasta")
@@ -146,7 +146,7 @@ read_fasta("data/sequences.fasta")
   }))
   |> flatten()
   |> to_table()
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h2>Combining Motif Functions</h2>
         <p>
@@ -162,12 +162,12 @@ let sites = [
 
 let matrix = pwm(sites)
 let cons = consensus(sites)
-print("Consensus:", cons)
+println("Consensus:", cons)
 
 # Scan a new sequence
 let target = dna"AAAAATATAAATAGGGGTATAAATACCCC"
 let hits = pwm_scan(target, matrix, 0.7)
-hits |> map(|h| print("Hit at", h.pos, "score:", h.score))</code></pre>
+hits |> each(|h| println("Hit at", h.pos, "score:", h.score))</code></pre>
 
         <h2>Practical Example: Transcription Factor Binding Analysis</h2>
         <pre><code class="language-biolang"># Analyze motif enrichment in sequences
@@ -181,16 +181,16 @@ seqs
   })
   |> to_table()
   |> filter(|r| r.hits > 0)
-  |> print()
+  |> println()
 
 # Build a PWM from the sequences and scan for matches
 let matrix = seqs |> map(|r| r.seq) |> pwm()
-print("PWM built from", len(seqs), "sequences")
+println("PWM built from", len(seqs), "sequences")
 
 # Scan a target sequence
 let target_seq = read_fasta("data/sequences.fasta") |> first()
 let hits = pwm_scan(target_seq.seq, matrix, 0.8)
-print(len(hits), "PWM hits found")</code></pre>
+println(len(hits), "PWM hits found")</code></pre>
 
         <h2>find_pattern</h2>
         <p>
@@ -213,7 +213,7 @@ print(len(hits), "PWM hits found")</code></pre>
 # Exact match on both strands, max_mismatches defaults to 0
 let hits = find_pattern(seq, "ATCG")
 
-hits |> map(|h| print(h.pos, h.strand, h.matched))
+hits |> each(|h| println(h.pos, h.strand, h.matched))
 # 0  +  ATCG
 # 4  -  ATCG   (reverse-complement hit)
 # 8  +  ATCG
@@ -230,7 +230,7 @@ hits |> map(|h| {
   strand:     h.strand,
   matched:    h.matched,
   mismatches: h.mismatches
-}) |> to_table() |> print()</code></pre>
+}) |> to_table() |> println()</code></pre>
 
         <h3>Biological example: transcription factor binding sites with a degenerate consensus</h3>
         <pre><code class="language-biolang"># NF-κB canonical site: GGGRNNTCC
@@ -239,18 +239,18 @@ let promoter = dna"TTAGGGAAATCCAAAGGGCGGTCCTTAG"
 
 # Exact IUPAC match
 let nfkb_hits = find_pattern(promoter, "GGGRNNTCC")
-print(len(nfkb_hits), "canonical NF-κB sites found")
+println(len(nfkb_hits), "canonical NF-κB sites found")
 
 # Relaxed search — tolerate a single mismatch
 let nfkb_fuzzy = find_pattern(promoter, "GGGRNNTCC", 1)
-print(len(nfkb_fuzzy), "sites found with ≤1 mismatch")
+println(len(nfkb_fuzzy), "sites found with ≤1 mismatch")
 
 nfkb_fuzzy |> map(|h| {
   position:   h.pos,
   strand:     h.strand,
   sequence:   h.matched,
   mismatches: h.mismatches
-}) |> to_table() |> print()</code></pre>
+}) |> to_table() |> println()</code></pre>
 
         <h3>Difference from find_motif</h3>
         <p>

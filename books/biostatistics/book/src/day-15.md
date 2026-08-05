@@ -298,8 +298,8 @@ let data = table({
 let model_full = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp + nlr, data)
 
 print("=== Full Model ===")
-print("R²: {model_full.r_squared |> round(3)}")
-print("Adjusted R²: {model_full.adj_r_squared |> round(3)}")
+print(f"R²: {model_full.r_squared |> round(3)}")
+print(f"Adjusted R²: {model_full.adj_r_squared |> round(3)}")
 ```
 
 ### Checking Multicollinearity
@@ -315,7 +315,7 @@ for i in 0..8 {
     for j in (i+1)..8 {
         let r = cor(predictors[i], predictors[j])
         if abs(r) > 0.7 {
-            print("  {pred_names[i]} vs {pred_names[j]}: r = {r |> round(3)} *** HIGH")
+            print(f"  {pred_names[i]} vs {pred_names[j]}: r = {r |> round(3)} *** HIGH")
         }
     }
 }
@@ -336,10 +336,10 @@ let data_reduced = table({
 let model_reduced = lm(~outcome_stage ~ age + tumor_size + ca19_9 + mki67 + albumin, data_reduced)
 
 print("=== Model Comparison ===")
-print("Full model R²:    {model_full.r_squared |> round(3)}")
-print("Full model Adj R²:    {model_full.adj_r_squared |> round(3)}")
-print("Reduced model R²: {model_reduced.r_squared |> round(3)}")
-print("Reduced model Adj R²: {model_reduced.adj_r_squared |> round(3)}")
+print(f"Full model R²:    {model_full.r_squared |> round(3)}")
+print(f"Full model Adj R²:    {model_full.adj_r_squared |> round(3)}")
+print(f"Reduced model R²: {model_reduced.r_squared |> round(3)}")
+print(f"Reduced model Adj R²: {model_reduced.adj_r_squared |> round(3)}")
 print("If Adj R² is similar, the simpler model is preferred")
 ```
 
@@ -359,13 +359,13 @@ let predictors_list = ["age", "tumor_size", "ca19_9", "cea", "mki67", "albumin",
 
 print("=== Variable Importance (drop-one analysis) ===")
 let full_r2 = model_full.r_squared
-print("Full model R²: {full_r2 |> round(4)}")
+print(f"Full model R²: {full_r2 |> round(4)}")
 
 # Compare by dropping noise predictors
 let model_no_crp = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + nlr, data)
 let model_no_nlr = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp, data)
-print("Without CRP: R² = {model_no_crp.r_squared |> round(4)}")
-print("Without NLR: R² = {model_no_nlr.r_squared |> round(4)}")
+print(f"Without CRP: R² = {model_no_crp.r_squared |> round(4)}")
+print(f"Without NLR: R² = {model_no_nlr.r_squared |> round(4)}")
 print("Predictors with minimal R² drop are candidates for removal")
 ```
 
@@ -380,12 +380,12 @@ let risk = zip(bmi, rnorm(100, 0, 2))
 
 # Linear fit — misses the U-shape
 let model_linear = lm(bmi, risk)
-print("Linear R²: {model_linear.r_squared |> round(3)}")
+print(f"Linear R²: {model_linear.r_squared |> round(3)}")
 
 # Polynomial fit — add bmi² term
 let bmi_centered_sq = bmi |> map(|x| (x - 25) ** 2)
 let model_poly = lm(bmi_centered_sq, risk)
-print("Quadratic R²: {model_poly.r_squared |> round(3)}")
+print(f"Quadratic R²: {model_poly.r_squared |> round(3)}")
 
 # Visualize the improvement
 let plot_data = table({"BMI": bmi, "Risk": risk})
@@ -408,7 +408,7 @@ plot(pred_actual, {type: "scatter", x: "Actual", y: "Predicted",
 # Points along the diagonal = good predictions
 # Systematic deviations = model problems
 let r_pred = cor(stage, predicted_stage)
-print("Correlation (actual vs predicted): {r_pred |> round(3)}")
+print(f"Correlation (actual vs predicted): {r_pred |> round(3)}")
 ```
 
 **Python:**

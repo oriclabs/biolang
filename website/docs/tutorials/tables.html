@@ -65,13 +65,13 @@
           Column types are automatically inferred.
         </p>
         <pre><code class="language-biolang"># requires: data/expression.csv in working directory
-# tables.bio — working with tabular data
+# tables.bl — working with tabular data
 
 # Read a gene expression file
 let expr = read_csv("data/expression.csv")
 
 # Preview the table
-print(expr)
+println(expr)
 # ┌──────────┬────────┬────────┬────────┬────────┐
 # │ gene     │ sample1│ sample2│ sample3│ condition │
 # ├──────────┼────────┼────────┼────────┼────────┤
@@ -82,8 +82,8 @@ print(expr)
 # └──────────┴────────┴────────┴────────┴────────┘
 
 # Basic info
-print(f"Rows: {nrow(expr)}, Cols: {ncol(expr)}")
-print(f"Columns: {colnames(expr)}")</code></pre>
+println(f"Rows: {nrow(expr)}, Cols: {ncol(expr)}")
+println(f"Columns: {colnames(expr)}")</code></pre>
         <p>For tab-separated files, use <code>tsv()</code>:</p>
         <pre><code class="language-biolang">let tsv_data = tsv("data/results.tsv")</code></pre>
 
@@ -106,7 +106,7 @@ let renamed = expr
 
 # Add a computed column
 let with_mean = expr |> mutate("mean_expr", |row| (row.sample1 + row.sample2 + row.sample3) / 3.0)
-print(with_mean)</code></pre>
+println(with_mean)</code></pre>
 
         <!-- Step 3 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Filtering Rows</h2>
@@ -115,7 +115,7 @@ print(with_mean)</code></pre>
         </p>
         <pre><code class="language-biolang"># Filter by condition
 let controls = expr |> filter(|row| row.condition == "control")
-print(f"Control genes: {nrow(controls)}")
+println(f"Control genes: {nrow(controls)}")
 
 # Filter by expression level
 let high_expr = expr |> filter(|row| row.sample1 > 100.0)
@@ -128,7 +128,7 @@ expr |> filter(|row|
 # Filter using a list of gene names
 let target_genes = ["TP53", "BRCA1", "EGFR", "KRAS"]
 expr |> filter(|row| row.gene in target_genes) |> into targets
-print(f"Found {nrow(targets)} target genes")</code></pre>
+println(f"Found {nrow(targets)} target genes")</code></pre>
 
         <!-- Step 4 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 4 — Sorting</h2>
@@ -143,8 +143,8 @@ let top5 = expr
   |> arrange("sample1", "desc")
   |> head(5)
 
-print("Top 5 genes by expression:")
-print(top5)</code></pre>
+println("Top 5 genes by expression:")
+println(top5)</code></pre>
 
         <!-- Step 5 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — Group By and Summarize</h2>
@@ -163,7 +163,7 @@ let summary = summarize(groups, |key, g| {
   std_s1:  stdev(col(g, "sample1")),
 })
 
-print(summary)
+println(summary)
 # ┌─────────┬───────┬────────┬────────┬────────┐
 # │ condition │ count │ mean_s1│ max_s1 │ std_s1 │
 # ├─────────┼───────┼────────┼────────┼────────┤
@@ -195,7 +195,7 @@ let annotations = from_records([
 # Inner join: only genes present in both tables
 let annotated = inner_join(expr, annotations, "gene")
 
-print(colnames(annotated))
+println(colnames(annotated))
 # [gene, sample1, sample2, sample3, condition, pvalue, log2fc, chromosome, start, end]
 
 # Left join: keep all expression rows, add annotations where available
@@ -210,7 +210,7 @@ let full = left_join(expr, annotations, "gene")
         <pre><code class="language-biolang"># Pivot from wide to long format
 let long = pivot_longer(expr, ["sample1", "sample2", "sample3"], "sample", "expression")
 
-print(long)
+println(long)
 # ┌──────┬─────────┬─────────┬────────────┐
 # │ gene │ condition │ sample  │ expression │
 # ├──────┼─────────┼─────────┼────────────┤
@@ -227,9 +227,9 @@ let wide = pivot_wider(long, "sample", "expression")</code></pre>
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 8 — Column Operations</h2>
         <pre><code class="language-biolang"># Access a column as a list
 let s1 = col(expr, "sample1")
-print(f"Mean: {mean(s1)}")
-print(f"Median: {median(s1)}")
-print(f"Std: {round(stdev(s1), 2)}")
+println(f"Mean: {mean(s1)}")
+println(f"Median: {median(s1)}")
+println(f"Std: {round(stdev(s1), 2)}")
 
 # Apply a function to each value in a column
 let log_expr = expr |> mutate("log_sample1", |row| log2(row.sample1 + 1.0))
@@ -254,7 +254,7 @@ let data = from_records([
   { gene: "EGFR",  expr: 245.1, pvalue: 0.045 },
 ])
 
-print(data)
+println(data)
 # ┌───────┬───────┬────────┐
 # │ gene  │ expr  │ pvalue │
 # ├───────┼───────┼────────┤
@@ -286,7 +286,7 @@ let result = read_csv("data/expression.csv")
   |> select("gene", "mean", "condition")
 write_csv(result, "results/top_case_genes.csv")
 
-print("Pipeline complete.")</code></pre>
+println("Pipeline complete.")</code></pre>
 
         <div class="rounded-xl border border-violet-500/30 bg-violet-500/5 p-6 mt-10">
           <h3 class="text-white font-semibold mb-2">Next Steps</h3>

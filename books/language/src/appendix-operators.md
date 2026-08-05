@@ -126,7 +126,7 @@ is equivalent to `let name = expr`:
 ```biolang
 read_fastq("data/reads.fastq")
   |> filter(|r| mean_phred(r.quality) > 25)
-  |>> |reads| print("After QC: " + str(len(reads)) + " reads")
+  |>> |reads| println("After QC: " + str(len(reads)) + " reads")
   |> map(|r| {id: r.id, gc: gc_content(r.seq)})
   |> write_tsv("gc_report.csv")
 ```

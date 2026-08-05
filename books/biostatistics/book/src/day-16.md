@@ -294,14 +294,14 @@ let log_odds = range(0, n)
 let prob = log_odds |> map(|x| 1.0 / (1.0 + exp(-x)))
 let response = prob |> map(|p| if rnorm(1, 0, 1)[0] < p { 1 } else { 0 })
 
-print("Response rate: {(response |> sum) / n * 100 |> round(1)}%")
+print(f"Response rate: {(response |> sum) * 100.0 / n |> round(1)}%")
 
 # Fit logistic regression
 let glm_data = table({"response": response, "TMB": tmb, "PDL1": pdl1, "MSI": msi})
 let model = glm(~response ~ TMB + PDL1 + MSI, glm_data, "binomial")
 
 print("=== Logistic Regression Results ===")
-print("Intercept: {model.intercept |> round(3)}")
+print(f"Intercept: {model.intercept |> round(3)}")
 ```
 
 ### Interpreting Odds Ratios
@@ -315,7 +315,7 @@ print("=== Odds Ratios ===")
 for i in 0..3 {
     let beta = coefficients[i]
     let or_val = exp(beta)
-    print("{coef_names[i]}: β = {beta |> round(3)}, OR = {or_val |> round(2)}")
+    print(f"{coef_names[i]}: β = {beta |> round(3)}, OR = {or_val |> round(2)}")
 }
 
 # Interpretation:
@@ -341,7 +341,7 @@ roc_curve(roc_data)
 
 # Compute AUC
 let auc_val = model.auc
-print("AUC: {auc_val |> round(3)}")
+print(f"AUC: {auc_val |> round(3)}")
 
 # Interpretation
 if auc_val >= 0.80 {
@@ -382,7 +382,7 @@ for t in thresholds {
     let ppv = if tp + fp > 0 { tp / (tp + fp) } else { 0 }
     let npv = if tn + fn > 0 { tn / (tn + fn) } else { 0 }
 
-    print("{t}        {sens |> round(3)}       {spec |> round(3)}      {ppv |> round(3)}    {npv |> round(3)}")
+    print(f"{t}        {sens |> round(3)}       {spec |> round(3)}      {ppv |> round(3)}    {npv |> round(3)}")
 }
 
 # Youden's J: optimal balance of sensitivity and specificity
@@ -433,13 +433,13 @@ let pdl1_mean = 30
 let msi_0 = 0
 
 print("=== TMB Effect on Response Probability ===")
-print("(PD-L1 = {pdl1_mean}, MSI = negative)")
+print(f"(PD-L1 = {pdl1_mean}, MSI = negative)")
 
 for t in tmb_range {
     let lp = model.intercept + model.coefficients[0] * t
         + model.coefficients[1] * pdl1_mean + model.coefficients[2] * msi_0
     let p = 1.0 / (1.0 + exp(-lp))
-    print("  TMB = {t}: P(response) = {(p * 100) |> round(1)}%")
+    print(f"  TMB = {t}: P(response) = {(p * 100) |> round(1)}%")
 }
 ```
 

@@ -71,14 +71,14 @@
           literal creates a validated DNA sequence at parse time. Any invalid bases will cause
           a compile error, not a runtime error.
         </p>
-        <pre><code class="language-biolang"># hello.bio — your first BioLang program
+        <pre><code class="language-biolang"># hello.bl — your first BioLang program
 
 let seq = dna"ATGCGATCGATCGATCG"
-print(seq)               # ATGCGATCGATCGATCG
-print(len(seq))          # 17
-print(type(seq))         # DNA</code></pre>
-        <p>Save the file as <code>hello.bio</code> and run it:</p>
-        <pre><code class="language-bash">bl run hello.bio</code></pre>
+println(seq)               # ATGCGATCGATCGATCG
+println(len(seq))          # 17
+println(type(seq))         # DNA</code></pre>
+        <p>Save the file as <code>hello.bl</code> and run it:</p>
+        <pre><code class="language-bash">bl run hello.bl</code></pre>
         <p>
           The <code>dna"..."</code> literal accepts uppercase A, T, G, C and the IUPAC
           ambiguity codes (N, R, Y, etc.). Lowercase letters are automatically uppercased.
@@ -94,17 +94,17 @@ print(type(seq))         # DNA</code></pre>
 
 # Base counts
 let counts = base_counts(seq)
-print(counts)
+println(counts)
 # {A: 4, T: 4, G: 5, C: 4}
 
 # GC content as a fraction 0..1
 let gc = gc_content(seq)
-print(gc)          # 0.5294
-print(gc * 100.0)  # 52.94
+println(gc)          # 0.5294
+println(gc * 100.0)  # 52.94
 
 # AT content is the complement
 let at = 1.0 - gc
-print(f"AT content: {at * 100.0}%")  # AT content: 47.06%</code></pre>
+println(f"AT content: {at * 100.0}%")  # AT content: 47.06%</code></pre>
         <p>
           The <code>gc_content()</code> function returns a <code>Float</code>. BioLang uses
           f-string interpolation with <code>f"...{expr}..."</code> syntax.
@@ -119,8 +119,8 @@ print(f"AT content: {at * 100.0}%")  # AT content: 47.06%</code></pre>
         <pre><code class="language-biolang">let forward = dna"ATGCGATCG"
 let revcomp = reverse_complement(forward)
 
-print(forward)  # ATGCGATCG
-print(revcomp)  # CGATCGCAT
+println(forward)  # ATGCGATCG
+println(revcomp)  # CGATCGCAT
 
 # Verify: reverse complement of reverse complement is the original
 assert reverse_complement(revcomp) == forward</code></pre>
@@ -138,8 +138,8 @@ assert reverse_complement(revcomp) == forward</code></pre>
 
 # Transcribe DNA -> RNA
 let rna_seq = transcribe(dna_seq)
-print(rna_seq)          # AUGCGAUCG
-print(type(rna_seq))    # RNA
+println(rna_seq)          # AUGCGAUCG
+println(type(rna_seq))    # RNA
 
 # You can also create RNA directly
 let direct_rna = rna"AUGCGAUCG"
@@ -165,8 +165,8 @@ let protein = gene
   |> transcribe()
   |> translate()
 
-print(protein)          # MASK*
-print(type(protein))    # Protein</code></pre>
+println(protein)          # MASK*
+println(type(protein))    # Protein</code></pre>
         <p>
           Here we introduced the <strong>pipe operator</strong> <code>|&gt;</code>.
           It takes the result of the left side and passes it as the first argument of the
@@ -221,7 +221,7 @@ println(f"Starts with ATG: {has_start}")  # true</code></pre>
           Let us write a small analysis script that takes a DNA sequence, computes several
           properties, and prints a summary report.
         </p>
-        <pre><code class="language-biolang"># analysis.bio — basic sequence analysis report
+        <pre><code class="language-biolang"># analysis.bl — basic sequence analysis report
 
 let seq = dna"ATGGCTAGCAAATTTCCCGGGATCGATCGATCGATGA"
 
@@ -234,23 +234,23 @@ let protein = seq |> transcribe() |> translate()
 let starts = find_motif(seq, dna"ATG")
 
 # Print report
-print("=== Sequence Analysis Report ===")
-print(f"Length:      {length} bp")
-print(f"GC content:  {round(gc * 100.0, 2)}%")
-print(f"Protein:     {protein}")
-print(f"Protein len: {len(protein)} aa")
-print(f"ATG sites:   {starts}")
-print("")
+println("=== Sequence Analysis Report ===")
+println(f"Length:      {length} bp")
+println(f"GC content:  {round(gc * 100.0, 2)}%")
+println(f"Protein:     {protein}")
+println(f"Protein len: {len(protein)} aa")
+println(f"ATG sites:   {starts}")
+println("")
 
 # Base composition bar chart
 let counts = base_counts(seq)
 for base in ["A", "T", "G", "C"] {
   let count = counts[base]
   let bar = repeat("#", count)
-  print(f"{base}: {bar} ({count})")
+  println(f"{base}: {bar} ({count})")
 }</code></pre>
         <p>Run it:</p>
-        <pre><code class="language-bash">bl run analysis.bio</code></pre>
+        <pre><code class="language-bash">bl run analysis.bl</code></pre>
         <p>Expected output:</p>
         <pre><code class="language-bash">=== Sequence Analysis Report ===
 Length:      37 bp

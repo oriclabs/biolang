@@ -38,7 +38,7 @@ let result = container_run(
   { mount: "./data" }
 )
 
-print(result.stdout)</code></pre>
+println(result.stdout)</code></pre>
 
         <h3>Common bioinformatics tools in containers</h3>
         <pre><code class="language-biolang"># Run samtools in a container
@@ -46,7 +46,7 @@ let stats = container_run(
   "quay.io/biocontainers/samtools:1.19--h50ea8bc_0",
   "samtools flagstat /data/aligned.bam"
 )
-print(stats.stdout)
+println(stats.stdout)
 
 # BWA alignment in a container (redirect stdout to file)
 container_run(
@@ -68,28 +68,28 @@ container_pull("quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0")
 
 # Check if a container runtime is available
 if container_available() {
-  print("Container runtime is ready")
+  println("Container runtime is ready")
 } else {
-  print("No container runtime found (Docker/Podman/Singularity)")
+  println("No container runtime found (Docker/Podman/Singularity)")
 }
 
 # List cached tool images
 let images = tool_list()
 for img in images {
-  print(f"{img}")
+  println(f"{img}")
 }</code></pre>
 
         <h3>Searching BioContainers registry</h3>
         <pre><code class="language-biolang"># Search for tools
 let results = tool_search("samtools")
 for tool in take(results, 5) {
-  print(f"{tool.name} - {tool.description}")
+  println(f"{tool.name} - {tool.description}")
 }
 
 # Get detailed info for a tool
 let info = tool_info("bwa-mem2")
-print(f"{info.name}: {info.description}")
-print(f"Image: {info.image}")</code></pre>
+println(f"{info.name}: {info.description}")
+println(f"Image: {((info.versions |> first()).images |> first()).image}")</code></pre>
 
         <h2>Multi-Tool Pipelines</h2>
 
@@ -104,28 +104,28 @@ let out_dir = f"results/{sample}"
 mkdir(out_dir)
 
 # Step 1: Quality control
-print("Running FastQC...")
+println("Running FastQC...")
 container_run(
   "quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0",
   f"fastqc /data/{r1} /data/{r2} -o /data/{out_dir}"
 )
 
 # Step 2: Trimming
-print("Trimming adapters...")
+println("Trimming adapters...")
 container_run(
   "quay.io/biocontainers/fastp:0.23.4--hadf994f_2",
   f"fastp -i /data/{r1} -I /data/{r2} -o /data/{out_dir}/trimmed_R1.fq.gz -O /data/{out_dir}/trimmed_R2.fq.gz --json /data/{out_dir}/fastp.json --thread 4"
 )
 
 # Step 3: Alignment
-print("Aligning reads...")
+println("Aligning reads...")
 container_run(
   "quay.io/biocontainers/bwa-mem2:2.2.1--he513fc3_0",
   f"bwa-mem2 mem -t 8 /data/{ref} /data/{out_dir}/trimmed_R1.fq.gz /data/{out_dir}/trimmed_R2.fq.gz > /data/{out_dir}/aligned.sam"
 )
 
 # Step 4: SAM to sorted BAM
-print("Sorting BAM...")
+println("Sorting BAM...")
 container_run(
   "quay.io/biocontainers/samtools:1.19--h50ea8bc_0",
   f"samtools sort -@ 4 -o /data/{out_dir}/sorted.bam /data/{out_dir}/aligned.sam"
@@ -137,7 +137,7 @@ container_run(
   f"samtools index /data/{out_dir}/sorted.bam"
 )
 
-print(f"Pipeline complete for {sample}")</code></pre>
+println(f"Pipeline complete for {sample}")</code></pre>
 
         <h2>Custom Containers</h2>
 
@@ -169,7 +169,7 @@ let dockerfile = join([
 write_text("Dockerfile", dockerfile)
 let build = shell("docker build -t my-biotools:latest .")
 if build.exit_code == 0 {
-  print("Custom container built successfully")
+  println("Custom container built successfully")
 }</code></pre>
 
         <h2>Resource Management</h2>
@@ -187,14 +187,14 @@ container_run(
         <h3>Cleaning up</h3>
         <pre><code class="language-biolang"># List cached tool images
 let cached = tool_list()
-print(f"Cached images: {len(cached)}")
+println(f"Cached images: {len(cached)}")
 
 # Remove a specific cached image via shell
 shell("docker rmi quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0")
 
 # Prune unused images
 let result = shell("docker image prune -f")
-print(f"Cleanup: {result.stdout}")</code></pre>
+println(f"Cleanup: {result.stdout}")</code></pre>
 
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">

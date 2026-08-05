@@ -80,15 +80,15 @@
 # Observed: CC=604, CT=319, TT=77
 let hwe = hardy_weinberg(604, 319, 77)
 
-print(hwe.p)               # => 0.7635  (C allele frequency)
-print(hwe.q)               # => 0.2365  (T allele frequency)
-print(hwe.n)               # => 1000
-print(hwe.exp_aa)          # => 582.9
-print(hwe.exp_ab)          # => 360.9
-print(hwe.exp_bb)          # => 55.9 (note: slight excess of homozygotes)
-print(hwe.chi2)            # => 3.18
-print(hwe.p_value)         # => 0.074
-print(hwe.in_equilibrium)  # => true</code></pre>
+println(hwe.p)               # => 0.7635  (C allele frequency)
+println(hwe.q)               # => 0.2365  (T allele frequency)
+println(hwe.n)               # => 1000
+println(hwe.exp_aa)          # => 582.9
+println(hwe.exp_ab)          # => 360.9
+println(hwe.exp_bb)          # => 55.9 (note: slight excess of homozygotes)
+println(hwe.chi2)            # => 3.18
+println(hwe.p_value)         # => 0.074
+println(hwe.in_equilibrium)  # => true</code></pre>
 
           <h4>Batch HWE testing across a VCF</h4>
           <p>
@@ -124,10 +124,10 @@ let hwe_failures = hwe_results
   |> filter(|r| !r.in_equilibrium and r.p_value &lt; 0.001)
   |> sort_by(|r| r.p_value)
 
-print("Total sites tested:", len(variants))
-print("Sites failing HWE (p &lt; 0.001):", len(hwe_failures))
+println("Total sites tested:", len(variants))
+println("Sites failing HWE (p &lt; 0.001):", len(hwe_failures))
 
-hwe_failures |> head(10) |> print()
+hwe_failures |> head(10) |> println()
 # chrom  pos        ref  alt  p       q       chi2   p_value
 # chr22  17054720   G    A    0.312   0.688   18.41  0.00002
 # chr22  18121455   C    T    0.891   0.109   12.77  0.00035
@@ -138,6 +138,7 @@ let hwe_cached = variants
   |> map(|v| merge(v, {hwe: hardy_weinberg(v.aa, v.ab, v.bb)}))
   |> filter(|r| !r.hwe.in_equilibrium)
   |> map(|r| {chrom: r.chrom, pos: r.pos, p_value: r.hwe.p_value})
+  |> to_table()
   |> write_csv("output/hwe_failures.csv")</code></pre>
 
           <h4>Heterozygosity excess detection</h4>
@@ -154,7 +155,7 @@ let excess_het = variants
   |> filter(|r| r.hwe.obs_ab > r.hwe.exp_ab * 1.5 and !r.hwe.in_equilibrium)
   |> collect()
 
-print("Sites with excess heterozygosity:", len(excess_het))
+println("Sites with excess heterozygosity:", len(excess_het))
 # => Sites with excess heterozygosity: 23</code></pre>
         </section>
 
@@ -200,9 +201,9 @@ let ceu_freqs = [0.41, 0.62, 0.53, 0.38, 0.45, 0.21, 0.77, 0.52]
 
 let result = fst(yri_freqs, ceu_freqs)
 
-print(result.fst_mean)         # => 0.187
-print(result.n_loci)           # => 8
-print(result.fst_per_locus)
+println(result.fst_mean)         # => 0.187
+println(result.n_loci)           # => 8
+println(result.fst_per_locus)
 # => [0.214, 0.352, 0.001, 0.538, 0.001, 0.423, 0.389, 0.097]
 
 # High-FST loci are candidates for population-specific selection
@@ -229,7 +230,7 @@ let global = fst(
   per_snp |> map(|r| r.afr_freq) |> collect(),
   per_snp |> map(|r| r.eur_freq) |> collect()
 )
-print("Global AFR-EUR FST (chr1):", global.fst_mean)  # => 0.112
+println("Global AFR-EUR FST (chr1):", global.fst_mean)  # => 0.112
 
 # Find the top 1% of differentiated SNPs (selection candidates)
 let fst_99th = per_snp
@@ -240,8 +241,8 @@ let outliers = per_snp
   |> filter(|r| r.fst_value >= fst_99th)
   |> sort_by(|r| -r.fst_value)
 
-print("FST outlier SNPs:", len(outliers))  # => 142
-outliers |> head(5) |> print()
+println("FST outlier SNPs:", len(outliers))  # => 142
+outliers |> head(5) |> println()
 # chrom  pos        rsid         afr_freq  eur_freq  fst
 # chr1   196811935  rs1426654    0.998     0.299     0.832  # SLC24A5
 # chr1   72879761   rs11804171   0.041     0.891     0.714
@@ -274,7 +275,7 @@ let pairs = range(len(freqs))
   }))
   |> collect()
 
-pairs |> print()
+pairs |> println()
 # pop_a  pop_b  fst
 # AFR    AMR    0.088
 # AFR    EAS    0.160
@@ -330,9 +331,9 @@ let mhc_snps = [
   {pos: 28_577_800, freq: 0.19},
 ]
 
-let decay = ld_decay(mhc_snps, window_bp: 100_000)
+let decay = ld_decay(mhc_snps, 100_000)
 
-decay |> print()
+decay |> println()
 # distance  r2_mean  n_pairs
 # 5000.0    0.742    4
 # 15000.0   0.681    5
@@ -343,9 +344,9 @@ decay |> print()
 # The half-decay point (r2 = 0.5) indicates the effective LD block size
 let half_decay = decay |> filter(|b| b.r2_mean >= 0.5) |> last()
 if half_decay != nil {
-  print("LD half-decay distance:", half_decay.distance, "bp")
+  println("LD half-decay distance:", half_decay.distance, "bp")
 } else {
-  print("LD did not reach r2 >= 0.5 in these bins")
+  println("LD did not reach r2 >= 0.5 in these bins")
 }</code></pre>
 
           <h4>Genome-wide LD decay from a VCF</h4>
@@ -355,12 +356,12 @@ let all_snps = read_vcf("data/hg38_1kg_phased_chr6.vcf.gz")
   |> map(|v| {pos: v.pos, freq: v.info.af})
   |> collect()
 
-print("SNPs loaded:", len(all_snps))  # => 48,312
+println("SNPs loaded:", len(all_snps))  # => 48,312
 
 # LD decay with a 500 kb window
 let decay = ld_decay(all_snps, window_bp: 500_000)
 
-decay |> print()
+decay |> println()
 # distance   r2_mean  n_pairs
 # 25000.0    0.589    182441
 # 75000.0    0.421    153820
@@ -429,14 +430,14 @@ let tpm_vals = tpm(counts, lengths)
 # => [30052.4, 17053.8, 336.7, 81.7, 1518.6]
 
 # All TPM values sum to 1,000,000
-tpm_vals |> sum() |> print()   # => 1000000.0 (within floating-point precision)
+tpm_vals |> sum() |> println()   # => 1000000.0 (within floating-point precision)
 
 # Annotate with gene names
 let expr = zip(gene_names, tpm_vals)
   |> map(|pair| {gene: pair[0], tpm: pair[1]})
   |> sort_by(|r| -r.tpm)
 
-expr |> print()
+expr |> println()
 # gene   tpm
 # GAPDH  30052.4
 # ACTB   17053.8
@@ -485,7 +486,7 @@ let tpm_table = gene_ids
   |> to_table()
 
 tpm_table |> write_csv("output/tpm_normalized.csv")
-print("Genes normalized:", len(gene_ids))  # => 25000</code></pre>
+println("Genes normalized:", len(gene_ids))  # => 25000</code></pre>
 
           <h4>Filtering low-expression genes before downstream analysis</h4>
           <pre><code class="language-biolang"># Remove genes with TPM &lt; 1 in all samples (unexpressed or very lowly expressed)
@@ -502,7 +503,7 @@ let expressed_genes = range(len(gene_names))
   |> map(|i| gene_names[i])
   |> collect()
 
-print("Expressed genes (TPM >= 1 in at least one sample):", len(expressed_genes))
+println("Expressed genes (TPM >= 1 in at least one sample):", len(expressed_genes))
 # => Expressed genes (TPM >= 1 in at least one sample): 16843</code></pre>
         </section>
 
@@ -565,7 +566,7 @@ let comparison = range(len(gene_names))
   |> map(|i| {gene: gene_names[i], rpkm: rpkm_ext[i], tpm: tpm_vals[i]})
   |> sort_by(|r| -r.tpm)
 
-comparison |> print()
+comparison |> println()
 # gene   rpkm    tpm
 # GAPDH  1280.7  30052.4
 # ACTB    726.5  17053.8
@@ -599,7 +600,7 @@ let comparison = range(len(genes))
   })
   |> sort_by(|r| -r.log2_fc)
 
-comparison |> print()
+comparison |> println()
 # gene    tumor_fpkm  normal_fpkm  log2_fc
 # VEGFA   199.4         28.9        2.78    # hypoxia-driven upregulation
 # MDM2    216.6         51.0        2.09    # amplified in this tumor
@@ -614,7 +615,7 @@ let de_genes = comparison
   |> filter(|r| abs(r.log2_fc) > 1.5)
   |> collect()
 
-print("Differentially expressed genes (|log2FC| > 1.5):", len(de_genes))
+println("Differentially expressed genes (|log2FC| > 1.5):", len(de_genes))
 # => Differentially expressed genes (|log2FC| > 1.5): 5</code></pre>
         </section>
 
@@ -668,14 +669,14 @@ let hwe_report = snp_table
   |> collect()
 
 let hwe_pass = hwe_report |> filter(|r| r.afr_hwe_ok and r.eur_hwe_ok) |> collect()
-print("SNPs passing HWE in both cohorts:", len(hwe_pass))  # => 1,847 of 2,000
+println("SNPs passing HWE in both cohorts:", len(hwe_pass))  # => 1,847 of 2,000
 
 # ── Step 3: Population differentiation (FST) ───────────────────────────────
 let afr_freqs = hwe_pass |> map(|r| r.afr_p) |> collect()
 let eur_freqs = hwe_pass |> map(|r| r.eur_p) |> collect()
 
 let pop_diff = fst(afr_freqs, eur_freqs)
-print("Mean FST (AFR vs EUR, HWE-filtered):", pop_diff.fst_mean)  # => 0.098
+println("Mean FST (AFR vs EUR, HWE-filtered):", pop_diff.fst_mean)  # => 0.098
 
 # Tag HWE-passing SNPs with their per-locus FST
 let snps_with_fst = hwe_pass
@@ -685,7 +686,7 @@ let snps_with_fst = hwe_pass
   |> collect()
 
 let high_fst_snps = snps_with_fst |> filter(|r| r.fst_value > 0.3) |> collect()
-print("High-FST SNPs (> 0.3):", len(high_fst_snps))  # => 34
+println("High-FST SNPs (> 0.3):", len(high_fst_snps))  # => 34
 
 # ── Step 4: TPM normalization for each cohort ──────────────────────────────
 # Identify AFR and EUR sample columns
@@ -729,7 +730,7 @@ let final_table = range(len(gene_ids))
   |> to_table()
 
 final_table |> write_csv("output/population_expression_report.csv")
-print("Pipeline complete — output written to output/population_expression_report.csv")</code></pre>
+println("Pipeline complete — output written to output/population_expression_report.csv")</code></pre>
         </section>
 
         <!-- ═══════════════════════════════════════════════════════ -->

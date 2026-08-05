@@ -123,7 +123,7 @@ let heights = rnorm(5000, 170, 8)
 
 histogram(heights, {bins: 50, title: "Adult Heights (cm) — Normal Distribution"})
 let stats = summary(heights)
-print("Mean: {stats.mean:.1}, Median: {stats.median:.1}, Skewness: {stats.skewness:.3}")
+print(f"Mean: {stats.mean:.1}, Median: {stats.median:.1}, Skewness: {stats.skewness:.3}")
 # Mean and median nearly identical; skewness near zero — hallmarks of normality
 ```
 
@@ -150,13 +150,13 @@ let expression = log_expr |> map(|x| 2.0 ** x)  # 2^x to simulate FPKM
 # Raw expression: heavily skewed
 histogram(expression, {bins: 50, title: "Raw FPKM — Right Skewed"})
 let raw_stats = summary(expression)
-print("Raw — Mean: {raw_stats.mean:.1}, Median: {raw_stats.median:.1}, Skew: {raw_stats.skewness:.2}")
+print(f"Raw — Mean: {raw_stats.mean:.1}, Median: {raw_stats.median:.1}, Skew: {raw_stats.skewness:.2}")
 
 # Log2-transformed: approximately normal
 let log2_expr = expression |> map(|x| log2(x + 1))  # +1 to handle zeros
 histogram(log2_expr, {bins: 50, title: "log2(FPKM+1) — Approximately Normal"})
 let log_stats = summary(log2_expr)
-print("Log2 — Mean: {log_stats.mean:.1}, Median: {log_stats.median:.1}, Skew: {log_stats.skewness:.2}")
+print(f"Log2 — Mean: {log_stats.mean:.1}, Median: {log_stats.median:.1}, Skew: {log_stats.skewness:.2}")
 ```
 
 After log-transformation, the mean and median converge, skewness drops toward zero, and the histogram looks bell-shaped. Now parametric tests are appropriate.
@@ -247,13 +247,13 @@ let mutation_counts = rpois(1000, 3.5)
 histogram(mutation_counts, {bins: 15, title: "Mutations per Megabase (Poisson, lambda=3.5)"})
 
 # Verify mean ~ variance (Poisson property)
-print("Mean: {mean(mutation_counts):.2}")
-print("Variance: {variance(mutation_counts):.2}")
+print(f"Mean: {mean(mutation_counts):.2}")
+print(f"Variance: {variance(mutation_counts):.2}")
 # Both should be close to 3.5
 
 # Probability of seeing 10+ mutations in a region (hypermutation?)
 let p_hyper = 1.0 - ppois(9, 3.5)
-print("P(10+ mutations): {p_hyper:.4}")
+print(f"P(10+ mutations): {p_hyper:.4}")
 # Very low — a region with 10+ mutations is genuinely unusual
 ```
 
@@ -296,9 +296,9 @@ let freq_Aa = 2.0 * p * q   # 0.42
 let freq_aa = q * q         # 0.49
 
 print("Expected genotype frequencies:")
-print("  AA: {freq_AA:.3}")
-print("  Aa: {freq_Aa:.3}")
-print("  aa: {freq_aa:.3}")
+print(f"  AA: {freq_AA:.3}")
+print(f"  Aa: {freq_Aa:.3}")
+print(f"  aa: {freq_aa:.3}")
 
 # Simulate genotyping 500 individuals
 let n_individuals = 500
@@ -307,11 +307,11 @@ let AA_count = rbinom(1, n_individuals, freq_AA) |> sum()
 # Probability of observing exactly k heterozygotes
 let k = 200
 let p_exact = dbinom(k, n_individuals, freq_Aa)
-print("P(exactly {k} heterozygotes in {n_individuals}): {p_exact:.6}")
+print(f"P(exactly {k} heterozygotes in {n_individuals}): {p_exact:.6}")
 
 # Probability of 230+ heterozygotes (possible HWE violation?)
 let p_excess = 1.0 - pbinom(229, n_individuals, freq_Aa)
-print("P(230+ heterozygotes): {p_excess:.4}")
+print(f"P(230+ heterozygotes): {p_excess:.4}")
 ```
 
 ## Checking Your Distribution: Diagnostic Tools
@@ -432,13 +432,13 @@ let skewed_data = rnorm(200, 3, 1) |> map(|x| exp(x))
 # For normal data: Q-Q plot should show points on the diagonal
 qq_plot(normal_data, {title: "Q-Q: Normal Data"})
 let stats_normal = summary(normal_data)
-print("Normal data — Skewness: {stats_normal.skewness:.4}")
+print(f"Normal data — Skewness: {stats_normal.skewness:.4}")
 # Skewness near 0: consistent with normality
 
 # For skewed data: Q-Q plot will curve away from the diagonal
 qq_plot(skewed_data, {title: "Q-Q: Skewed Data"})
 let stats_skewed = summary(skewed_data)
-print("Skewed data — Skewness: {stats_skewed.skewness:.4}")
+print(f"Skewed data — Skewness: {stats_skewed.skewness:.4}")
 # High skewness: definitely not normal
 ```
 

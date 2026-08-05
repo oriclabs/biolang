@@ -258,9 +258,9 @@ let se = 1.2 / sqrt(n)
 let z_stat = (x_bar - 2.9) / se
 let p_val = 2.0 * (1.0 - pnorm(abs(z_stat), 0, 1))
 
-print("z-statistic: {z_stat:.4}")
-print("p-value (two-tailed): {p_val:.6}")
-print("Mean observed: {x_bar:.3} pg/mL")
+print(f"z-statistic: {z_stat:.4}")
+print(f"p-value (two-tailed): {p_val:.6}")
+print(f"Mean observed: {x_bar:.3} pg/mL")
 
 if p_val < 0.05 {
   print("Reject H0: Alzheimer's group significantly differs from normal level")
@@ -283,7 +283,7 @@ let y_vals = x_vals |> map(|x| dnorm(x, 0, 1))
 density(x_vals, {title: "Null Distribution (Standard Normal)", x_label: "z-statistic", y_label: "Density", vlines: [z_obs], shade_above: 1.96, shade_below: -1.96})
 
 print("Critical value (two-tailed, alpha=0.05): +/- 1.96")
-print("Our z = {z_obs} falls far in the rejection region")
+print(f"Our z = {z_obs} falls far in the rejection region")
 ```
 
 ### Binomial Test: Is This Mutation Rate Elevated?
@@ -299,7 +299,7 @@ for k in range(18, 101) {
 
 print("Observed proportion: 18/100 = 18%")
 print("Expected under H0: 8%")
-print("p-value (one-sided): {p_val:.6}")
+print(f"p-value (one-sided): {p_val:.6}")
 
 if p_val < 0.05 {
   print("Reject H0: Mutation rate is significantly elevated in this cohort")
@@ -333,9 +333,9 @@ let z = (x_bar - 250) / se
 let p = 1.0 - pnorm(z, 0, 1)
 
 # Step 4: Decision
-print("Sample mean: {x_bar:.1}")
-print("z-statistic: {z:.4}")
-print("p-value (one-tailed): {p:.6}")
+print(f"Sample mean: {x_bar:.1}")
+print(f"z-statistic: {z:.4}")
+print(f"p-value (one-tailed): {p:.6}")
 
 if p < 0.05 {
   print("\nDecision: Reject H0 at alpha = 0.05")
@@ -363,7 +363,7 @@ for i in 1..1000 {
 
 # Count false positives at alpha = 0.05
 let false_pos = p_values |> filter(|p| p < 0.05) |> len()
-print("False positives out of 1000 null tests: {false_pos}")
+print(f"False positives out of 1000 null tests: {false_pos}")
 print("Expected: ~50 (5% of 1000)")
 
 histogram(p_values, {title: "p-Value Distribution Under the Null", x_label: "p-value", bins: 20})
@@ -382,14 +382,14 @@ let x_bar = mean(ad_levels)
 let se = 1.2 / sqrt(n)
 let z_stat = (x_bar - 2.9) / se
 let z_p = 2.0 * (1.0 - pnorm(abs(z_stat), 0, 1))
-print("z-test p-value: {z_p:.6}")
+print(f"z-test p-value: {z_p:.6}")
 
 # 95% CI for the mean (using known sigma)
 let se2 = 1.2 / sqrt(n)
 let ci_lower = x_bar - 1.96 * se2
 let ci_upper = x_bar + 1.96 * se2
-print("95% CI: [{ci_lower:.3}, {ci_upper:.3}]")
-print("Null value (2.9) is {'outside' if ci_lower > 2.9 or ci_upper < 2.9 else 'inside'} the CI")
+print(f"95% CI: [{ci_lower:.3}, {ci_upper:.3}]")
+print(f"Null value (2.9) is {if ci_lower > 2.9 or ci_upper < 2.9 then "outside" else "inside"} the CI")
 print("This matches the hypothesis test: p < 0.05 <=> CI excludes null value")
 ```
 

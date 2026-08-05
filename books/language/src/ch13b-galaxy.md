@@ -23,7 +23,7 @@ records, each describing a matching repository.
 # requires: internet connection (all galaxy_* functions query the Galaxy ToolShed API)
 # Find BWA-related tools in the Galaxy ToolShed
 galaxy_search("bwa")
-  |> each(|t| print(t.name + " by " + t.owner + " (" + str(t.downloads) + " downloads)"))
+  |> each(|t| println(t.name + " by " + t.owner + " (" + str(t.downloads) + " downloads)"))
 ```
 
 Each record in the result contains:
@@ -43,7 +43,7 @@ quick overview.
 ```biolang
 # Top 5 matches for short-read aligners
 galaxy_search("bwa", 5)
-  |> each(|t| print(t.name + " (" + t.owner + "): " + t.description))
+  |> each(|t| println(t.name + " (" + t.owner + "): " + t.description))
 ```
 
 Search terms are matched against repository names and descriptions, so broader
@@ -53,7 +53,7 @@ queries work too.
 # Find tools related to RNA-seq
 galaxy_search("rna-seq", 10)
   |> filter(|t| t.downloads > 1000)
-  |> each(|t| print(t.name + ": " + str(t.downloads) + " downloads"))
+  |> each(|t| println(t.name + ": " + str(t.downloads) + " downloads"))
 ```
 
 ## Popular Tools
@@ -73,7 +73,7 @@ to widen or narrow the list.
 ```biolang
 # Top 25 Galaxy tools by download count
 galaxy_popular(25)
-  |> each(|t| print(t.name + " by " + t.owner + " - " + str(t.downloads) + " downloads"))
+  |> each(|t| println(t.name + " by " + t.owner + " - " + str(t.downloads) + " downloads"))
 ```
 
 ## Categories
@@ -84,7 +84,7 @@ them all as a list of records.
 
 ```biolang
 galaxy_categories()
-  |> each(|c| print(c.name + ": " + c.description))
+  |> each(|c| println(c.name + ": " + c.description))
 ```
 
 You can use this to explore what kinds of tools exist before drilling into
@@ -94,7 +94,7 @@ a specific area.
 # Find categories related to sequencing
 galaxy_categories()
   |> filter(|c| contains(lower(c.name), "sequenc") or contains(lower(c.description), "sequenc"))
-  |> each(|c| print(c.name))
+  |> each(|c| println(c.name))
 ```
 
 ## Repository Details
@@ -104,11 +104,11 @@ by owner and name.
 
 ```biolang
 let tool = galaxy_tool("devteam", "bwa")
-print("Tool: " + tool.name)
-print("Owner: " + tool.owner)
-print("Downloads: " + str(tool.downloads))
-print("Last updated: " + tool.last_updated)
-print("Description: " + tool.description)
+println("Tool: " + tool.name)
+println("Owner: " + tool.owner)
+println("Downloads: " + str(tool.downloads))
+println("Last updated: " + tool.last_updated)
+println("Description: " + tool.description)
 ```
 
 The returned record includes fields beyond what the search results provide,
@@ -118,8 +118,8 @@ a tool is actively maintained before building a workflow around it.
 ```biolang
 # Check maintenance status of a tool before adopting it
 let tool = galaxy_tool("iuc", "samtools_sort")
-print(tool.name + " last updated: " + tool.last_updated)
-print("Downloads: " + str(tool.downloads))
+println(tool.name + " last updated: " + tool.last_updated)
+println("Downloads: " + str(tool.downloads))
 ```
 
 ## Cross-Registry Discovery
@@ -138,10 +138,10 @@ let nf_results = nfcore_search(tool)
 let bc_results = biocontainers_search(tool, 5)
 let gx_results = galaxy_search(tool, 5)
 
-print("=== Cross-registry search for: " + tool + " ===")
-print("nf-core pipelines mentioning " + tool + ": " + str(len(nf_results)))
-print("BioContainers: " + str(len(bc_results)))
-print("Galaxy tools: " + str(len(gx_results)))
+println("=== Cross-registry search for: " + tool + " ===")
+println("nf-core pipelines mentioning " + tool + ": " + str(len(nf_results)))
+println("BioContainers: " + str(len(bc_results)))
+println("Galaxy tools: " + str(len(gx_results)))
 ```
 
 This pattern scales to any tool or keyword. Here is a more thorough version
@@ -200,7 +200,7 @@ let workflow = {
 
 # Generate BioLang pipeline code
 let bl_code = galaxy_to_bl(workflow)
-print(bl_code)
+println(bl_code)
 ```
 
 The generated code maps each Galaxy step to a BioLang function call, preserving
@@ -211,7 +211,7 @@ a starting point for further customization.
 # Save the generated code
 let bl_code = galaxy_to_bl(workflow)
 write_text("rnaseq.bl", bl_code)
-print("Pipeline written to rnaseq.bl")
+println("Pipeline written to rnaseq.bl")
 ```
 
 For more complex workflows with branching and multiple outputs, the generated
@@ -231,7 +231,7 @@ let workflow = {
 }
 
 let bl_code = galaxy_to_bl(workflow)
-print(bl_code)
+println(bl_code)
 ```
 
 ## Configuration
@@ -270,8 +270,8 @@ let keyword = "variant"
 
 # Step 1: Search Galaxy for variant-related tools
 let gx_tools = galaxy_search(keyword, 20)
-print("Found " + str(len(gx_tools)) + " Galaxy tools for: " + keyword)
-print("")
+println("Found " + str(len(gx_tools)) + " Galaxy tools for: " + keyword)
+println("")
 
 # Step 2: For each Galaxy tool, check BioContainers
 let inventory = gx_tools |> map(|t| {
@@ -292,25 +292,25 @@ let inventory = gx_tools |> map(|t| {
 })
 
 # Step 3: Report
-print("Tool Inventory: " + keyword)
-print("========================================")
+println("Tool Inventory: " + keyword)
+println("========================================")
 inventory
   |> sort_by(|a| -a.galaxy_downloads)
   |> each(|t| {
-    print(t.name + " (" + t.owner + ")")
-    print("  Galaxy downloads: " + str(t.galaxy_downloads))
-    print("  BioContainers:    " + t.container)
+    println(t.name + " (" + t.owner + ")")
+    println("  Galaxy downloads: " + str(t.galaxy_downloads))
+    println("  BioContainers:    " + t.container)
   })
 
 # Step 4: Summary statistics
 let with_container = inventory |> filter(|t| not starts_with(t.container, "not"))
 let without_container = inventory |> filter(|t| starts_with(t.container, "not"))
 
-print("")
-print("Summary:")
-print("  Total tools:          " + str(len(inventory)))
-print("  With container image: " + str(len(with_container)))
-print("  Without container:    " + str(len(without_container)))
+println("")
+println("Summary:")
+println("  Total tools:          " + str(len(inventory)))
+println("  With container image: " + str(len(with_container)))
+println("  Without container:    " + str(len(without_container)))
 ```
 
 You can extend this pattern to cover additional registries or to export the
@@ -342,27 +342,27 @@ let workflow = {
 }
 
 # Verify each tool exists in the ToolShed
-print("Verifying tools...")
+println("Verifying tools...")
 workflow.steps |> each(|step| {
   # Extract base tool name from tool_id
   let parts = split(step.tool_id, "/")
   let tool_name = parts[0]
   let results = galaxy_search(tool_name, 1)
   if len(results) > 0 then
-    print("  " + step.name + ": found (" + results[0].owner + ")")
+    println("  " + step.name + ": found (" + results[0].owner + ")")
   else
-    print("  " + step.name + ": WARNING - not found in ToolShed")
+    println("  " + step.name + ": WARNING - not found in ToolShed")
 })
 
 # Generate the BioLang pipeline
-print("")
+println("")
 let bl_code = galaxy_to_bl(workflow)
-print("Generated pipeline:")
-print(bl_code)
+println("Generated pipeline:")
+println(bl_code)
 
 # Save to file
 write_text("wgs_variant_calling.bl", bl_code)
-print("Pipeline saved to wgs_variant_calling.bl")
+println("Pipeline saved to wgs_variant_calling.bl")
 ```
 
 ## Summary

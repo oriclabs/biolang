@@ -348,15 +348,15 @@ let bard1 = add_scaled(proliferation, 0.7, rnorm(n, 4, 2))
 
 # Pearson correlation — assumes linearity
 let r_pearson = cor(brca1, bard1)
-print("Pearson r: {r_pearson}")  # ~0.78
+print(f"Pearson r: {r_pearson}")  # ~0.78
 
 # Spearman rank correlation — monotonic, robust
 let r_spearman = spearman(brca1, bard1)
-print("Spearman ρ: {r_spearman}")  # ~0.76
+print(f"Spearman ρ: {r_spearman}")  # ~0.76
 
 # Kendall tau — concordant/discordant pairs, most robust
 let r_kendall = kendall(brca1, bard1)
-print("Kendall τ: {r_kendall}")  # ~0.57 (typically smaller)
+print(f"Kendall τ: {r_kendall}")  # ~0.57 (typically smaller)
 ```
 
 ### Statistical Testing
@@ -366,11 +366,11 @@ print("Kendall τ: {r_kendall}")  # ~0.57 (typically smaller)
 # cor() returns the coefficient; use a t-test transformation for p-value
 let r = cor(brca1, bard1)
 let t_stat = r * sqrt((n - 2) / (1 - r * r))
-print("r = {r}, t = {t_stat}")
+print(f"r = {r}, t = {t_stat}")
 
 # Spearman returns {coefficient, pvalue}
 let spearman_result = spearman(brca1, bard1)
-print("Spearman ρ = {spearman_result}")
+print(f"Spearman ρ = {spearman_result}")
 ```
 
 ### Partial Correlation: Removing Confounders
@@ -382,18 +382,18 @@ let mki67 = add_scaled(proliferation, 1.0, rnorm(n, 0, 1))
 
 # Raw correlation
 let r_raw = cor(brca1, bard1)
-print("Raw Pearson r: {r_raw}")  # ~0.78
+print(f"Raw Pearson r: {r_raw}")  # ~0.78
 
 # Partial correlation controlling for MKI67
 # Compute manually: regress out confounder from both variables
 let r_xz = cor(brca1, mki67)
 let r_yz = cor(bard1, mki67)
 let r_partial = (r_raw - r_xz * r_yz) / sqrt((1 - r_xz * r_xz) * (1 - r_yz * r_yz))
-print("Partial r (controlling MKI67): {r_partial}")  # lower — confounder removed
+print(f"Partial r (controlling MKI67): {r_partial}")  # lower — confounder removed
 
 # The difference reveals how much of the BRCA1-BARD1
 # association was driven by shared proliferation signal
-print("Reduction: {((r_raw - r_partial) / r_raw * 100) |> round(1)}%")
+print(f"Reduction: {((r_raw - r_partial) * 100.0 / r_raw) |> round(1)}%")
 ```
 
 ### Correlation Matrix and Heatmap
@@ -419,7 +419,7 @@ let gene_names = ["BRCA1", "BARD1", "RAD51", "PALB2", "ATM", "TP53", "MDM2", "GA
 for i in 0..8 {
     for j in (i+1)..8 {
         let r = cor(genes[gene_names[i]], genes[gene_names[j]])
-        print("{gene_names[i]} vs {gene_names[j]}: r = {r |> round(3)}")
+        print(f"{gene_names[i]} vs {gene_names[j]}: r = {r |> round(3)}")
     }
 }
 
@@ -450,10 +450,10 @@ let x_curve = rnorm(100, 10, 5)
 let y_curve = zip(x_curve, rnorm(100, 0, 1))
     |> map(|pair| (pair[0] - 10) ** 2 / 10 + pair[1])
 
-print("Linear: Pearson r = {cor(x_linear, y_linear)}")
-print("Curved: Pearson r = {cor(x_curve, y_curve)}")
-print("Linear: Spearman ρ = {spearman(x_linear, y_linear)}")
-print("Curved: Spearman ρ = {spearman(x_curve, y_curve)}")
+print(f"Linear: Pearson r = {cor(x_linear, y_linear)}")
+print(f"Curved: Pearson r = {cor(x_curve, y_curve)}")
+print(f"Linear: Spearman ρ = {spearman(x_linear, y_linear)}")
+print(f"Curved: Spearman ρ = {spearman(x_curve, y_curve)}")
 
 # Spearman catches the monotonic but non-linear pattern
 # Always plot your data!

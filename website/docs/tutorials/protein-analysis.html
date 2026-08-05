@@ -66,26 +66,26 @@
 # Fetch TP53 (tumor protein p53) from UniProt
 let entry = uniprot_entry("P04637")
 
-print(f"Accession:   {entry.accession}")
-print(f"Name:        {entry.name}")
-print(f"Organism:    {entry.organism}")
-print(f"Length:      {entry.sequence_length} aa")
-print(f"Genes:       {entry.gene_names}")
-print(f"Function:    {entry.function}")
+println(f"Accession:   {entry.accession}")
+println(f"Name:        {entry.name}")
+println(f"Organism:    {entry.organism}")
+println(f"Length:      {entry.sequence_length} aa")
+println(f"Genes:       {entry.gene_names}")
+println(f"Function:    {entry.function}")
 
 # Get the FASTA sequence
 let fasta = uniprot_fasta("P04637")
-print(f"FASTA (first 80 chars): {substr(fasta, 0, 80)}...")
+println(f"FASTA (first 80 chars): {substr(fasta, 0, 80)}...")
 
 # Extract the raw sequence from FASTA (skip header line), wrap as Protein
 let raw_seq = fasta |> split("\n") |> drop(1) |> join("")
 let seq = protein(raw_seq)
-print(f"Sequence type: {typeof(seq)}")    # Protein
-print(f"Length:        {seq_len(seq)} aa")
+println(f"Sequence type: {typeof(seq)}")    # Protein
+println(f"Length:        {seq_len(seq)} aa")
 
 # You can also create protein sequences directly
 let my_peptide = protein("MASKFPGIDRS")
-print(f"Peptide length: {seq_len(my_peptide)}")</code></pre>
+println(f"Peptide length: {seq_len(my_peptide)}")</code></pre>
 
         <!-- Step 2 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 2 — Amino Acid Composition via K-mers</h2>
@@ -97,15 +97,15 @@ let total = len(residues)
 let aa_types = unique(residues)
 let counts = aa_types |> map(|aa| {
   let n = residues |> count_if(|r| r == aa)
-  { amino_acid: aa, count: n, pct: n / total * 100.0 }
+  { amino_acid: aa, count: n, pct: n * 100.0 / total }
 })
 
 # Sort by frequency (descending) and display
 counts |> sort_by(|a, b| b.count - a.count) |> into sorted
 
-print("\n=== Amino Acid Composition ===")
+println("\n=== Amino Acid Composition ===")
 for item in sorted {
-  print(f"  {item.amino_acid}: {item.count} ({round(item.pct, 1)}%)")
+  println(f"  {item.amino_acid}: {item.count} ({round(item.pct, 1)}%)")
 }
 
 # Group into property classes manually
@@ -117,15 +117,15 @@ let charged = residues |> count_if(|r| any(charged_aa, |a| a == r))
 let polar   = residues |> count_if(|r| any(polar_aa, |a| a == r))
 let hydro   = residues |> count_if(|r| any(hydro_aa, |a| a == r))
 
-print(f"\nCharged:     {charged} ({round(charged / total * 100.0, 1)}%)")
-print(f"Polar:       {polar} ({round(polar / total * 100.0, 1)}%)")
-print(f"Hydrophobic: {hydro} ({round(hydro / total * 100.0, 1)}%)")</code></pre>
+println(f"\nCharged:     {charged} ({round(charged * 100.0 / total, 1)}%)")
+println(f"Polar:       {polar} ({round(polar * 100.0 / total, 1)}%)")
+println(f"Hydrophobic: {hydro} ({round(hydro * 100.0 / total, 1)}%)")</code></pre>
 
         <!-- Step 3 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 3 — Amino Acid Composition as a Table</h2>
         <pre><code class="language-biolang"># Build a table of amino acid counts for downstream analysis
 let aa_table = sorted |> to_table()
-print(aa_table)
+println(aa_table)
 
 # Visualize with a histogram
 histogram(col(aa_table, "count"), {
@@ -154,56 +154,56 @@ plot(aa_table, {
 
 # Nuclear localization signals: runs of 4+ basic residues (K or R)
 let nls_hits = find_motif(seq, "[KR]{4,}")
-print(f"\n=== Nuclear Localization Signals ===")
-print(f"Found {len(nls_hits)} NLS-like regions at positions: {nls_hits}")
+println(f"\n=== Nuclear Localization Signals ===")
+println(f"Found {len(nls_hits)} NLS-like regions at positions: {nls_hits}")
 
 # N-glycosylation sites: N-{P}-[ST]-{P}
 let nglyc = find_motif(seq, "N[^P][ST][^P]")
-print(f"\nPotential N-glycosylation sites: {len(nglyc)}")
+println(f"\nPotential N-glycosylation sites: {len(nglyc)}")
 for pos in nglyc {
   # Extract the 4-residue motif at each position
   let motif_seq = substr(seq, pos, 4)
-  print(f"  Position {pos}: {motif_seq}")
+  println(f"  Position {pos}: {motif_seq}")
 }
 
 # Phosphorylation sites: S or T followed by P (minimal CDK motif)
 let phospho = find_motif(seq, "[ST]P")
-print(f"\nPotential phosphorylation sites (SP/TP): {len(phospho)}")
+println(f"\nPotential phosphorylation sites (SP/TP): {len(phospho)}")
 for pos in phospho {
   let motif_seq = substr(seq, pos, 2)
-  print(f"  Position {pos}: {motif_seq}")
+  println(f"  Position {pos}: {motif_seq}")
 }
 
 # Cysteine residues (important for disulfide bonds)
 let cys_positions = find_motif(seq, "C")
-print(f"\nCysteine residues: {len(cys_positions)} at positions {cys_positions}")</code></pre>
+println(f"\nCysteine residues: {len(cys_positions)} at positions {cys_positions}")</code></pre>
 
         <!-- Step 5 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 5 — UniProt Feature Annotations</h2>
         <pre><code class="language-biolang"># requires: internet connection
 # Fetch annotated domains and features from UniProt
 let features = uniprot_features("P04637")
-print(f"Total features: {len(features)}")
+println(f"Total features: {len(features)}")
 
 # Filter for domains
 let domains = features |> filter(|f| f.type == "Domain")
-print("\n=== Annotated Domains ===")
+println("\n=== Annotated Domains ===")
 for d in domains {
-  print(f"  {d.description}: {d.location}")
+  println(f"  {d.description}: {d.location}")
 }
 
 # Filter for active/binding sites
 let sites = features |> filter(|f| {
   f.type == "Binding site" or f.type == "Active site" or f.type == "Metal binding"
 })
-print("\n=== Binding / Active Sites ===")
+println("\n=== Binding / Active Sites ===")
 for s in sites {
-  print(f"  [{s.type}] {s.description}: {s.location}")
+  println(f"  [{s.type}] {s.description}: {s.location}")
 }
 
 # Show all feature types present
 let feature_types = features |> map(|f| f.type) |> unique()
-print(f"\nFeature types: {feature_types}")
+println(f"\nFeature types: {feature_types}")
 
 # Count features by type
 let type_counts = feature_types |> map(|t| {
@@ -211,9 +211,9 @@ let type_counts = feature_types |> map(|t| {
   { type: t, count: n }
 }) |> sort_by(|a, b| b.count - a.count)
 
-print("\n=== Feature Type Summary ===")
+println("\n=== Feature Type Summary ===")
 for tc in type_counts {
-  print(f"  {tc.type}: {tc.count}")
+  println(f"  {tc.type}: {tc.count}")
 }</code></pre>
 
         <!-- Step 6 -->
@@ -221,25 +221,25 @@ for tc in type_counts {
         <pre><code class="language-biolang"># requires: internet connection
 # Fetch GO annotations for TP53
 let go_terms = uniprot_go("P04637")
-print(f"GO terms: {len(go_terms)}")
+println(f"GO terms: {len(go_terms)}")
 
 # Display by ontology category
 for term in go_terms {
-  print(f"  [{term.category}] {term.id}: {term.name}")
+  println(f"  [{term.category}] {term.id}: {term.name}")
 }
 
 # Filter to just molecular function terms
-let mol_func = go_terms |> filter(|t| t.category == "molecular_function")
-print(f"\nMolecular functions ({len(mol_func)}):")
+let mol_func = go_terms |> filter(|t| t.aspect == "F")
+println(f"\nMolecular functions ({len(mol_func)}):")
 for mf in mol_func {
-  print(f"  {mf.id}: {mf.name}")
+  println(f"  {mf.id}: {mf.name}")
 }
 
 # Biological process terms
-let bio_proc = go_terms |> filter(|t| t.category == "biological_process")
-print(f"\nBiological processes ({len(bio_proc)}):")
+let bio_proc = go_terms |> filter(|t| t.aspect == "P")
+println(f"\nBiological processes ({len(bio_proc)}):")
 for bp in bio_proc {
-  print(f"  {bp.id}: {bp.name}")
+  println(f"  {bp.id}: {bp.name}")
 }</code></pre>
 
         <!-- Step 7 -->
@@ -248,29 +248,29 @@ for bp in bio_proc {
 # Look up PDB structure for the TP53 DNA-binding domain
 let pdb = pdb_entry("1TUP")
 
-print(f"\n=== PDB Structure ===")
-print(f"ID:         {pdb.id}")
-print(f"Title:      {pdb.title}")
-print(f"Resolution: {pdb.resolution} A")
-print(f"Method:     {pdb.method}")
+println(f"\n=== PDB Structure ===")
+println(f"ID:         {pdb.id}")
+println(f"Title:      {pdb.title}")
+println(f"Resolution: {pdb.resolution} A")
+println(f"Method:     {pdb.method}")
 
 # List entities (chains / molecules)
-print(f"\nEntities ({len(pdb.entities)}):")
+println(f"\nEntities ({len(pdb.entities)}):")
 for entity in pdb.entities {
-  print(f"  {entity}")
+  println(f"  {entity}")
 }
 
 # List ligands
-print(f"\nLigands ({len(pdb.ligands)}):")
+println(f"\nLigands ({len(pdb.ligands)}):")
 for lig in pdb.ligands {
-  print(f"  {lig}")
+  println(f"  {lig}")
 }
 
 # Search PDB for more TP53 structures
 let tp53_structures = pdb_search("TP53")
-print(f"\nTP53 PDB hits: {len(tp53_structures)}")
+println(f"\nTP53 PDB hits: {len(tp53_structures)}")
 for id in tp53_structures |> take(10) {
-  print(f"  {id}")
+  println(f"  {id}")
 }</code></pre>
 
         <!-- Step 8 -->
@@ -290,7 +290,9 @@ let sequences = accessions |> map(|acc| {
 # Build a comparison table
 let comparison = proteins
   |> enumerate()
-  |> map(|i, p| {
+  |> map(|pair| {
+    let i = pair[0]
+    let p = pair[1]
     let seq = sequences[i]
     let residues = kmers(seq, 1)
     let total = len(residues)
@@ -301,19 +303,21 @@ let comparison = proteins
       gene:        p.gene_names,
       accession:   p.accession,
       length:      seq_len(seq),
-      charged_pct: round(charged / total * 100.0, 1),
+      charged_pct: round(charged * 100.0 / total, 1),
       organism:    p.organism,
     }
   })
   |> to_table()
 
-print("\n=== Protein Family Comparison ===")
-print(comparison)
+println("\n=== Protein Family Comparison ===")
+println(comparison)
 
 # Compare motif counts across the family
 let motif_comparison = proteins
   |> enumerate()
-  |> map(|i, p| {
+  |> map(|pair| {
+    let i = pair[0]
+    let p = pair[1]
     let seq = sequences[i]
     {
       gene:    p.gene_names,
@@ -325,8 +329,8 @@ let motif_comparison = proteins
   })
   |> to_table()
 
-print("\n=== Motif Comparison ===")
-print(motif_comparison)</code></pre>
+println("\n=== Motif Comparison ===")
+println(motif_comparison)</code></pre>
 
         <!-- Step 9 -->
         <h2 class="text-2xl font-semibold text-white mt-10 mb-4">Step 9 — K-mer Analysis</h2>
@@ -339,9 +343,9 @@ let dp_counts = dp_types |> map(|dp| {
   { dipeptide: dp, count: n }
 }) |> sort_by(|a, b| b.count - a.count)
 
-print("\n=== Top 20 Dipeptides ===")
+println("\n=== Top 20 Dipeptides ===")
 for item in dp_counts |> take(20) {
-  print(f"  {item.dipeptide}: {item.count}")
+  println(f"  {item.dipeptide}: {item.count}")
 }
 
 # Tripeptide (3-mer) analysis
@@ -353,10 +357,10 @@ let tp_counts = tp_types |> map(|tp| {
   { tripeptide: tp, count: n }
 }) |> sort_by(|a, b| b.count - a.count)
 
-print(f"\nUnique tripeptides: {len(tp_types)}")
-print("Top 10 tripeptides:")
+println(f"\nUnique tripeptides: {len(tp_types)}")
+println("Top 10 tripeptides:")
 for item in tp_counts |> take(10) {
-  print(f"  {item.tripeptide}: {item.count}")
+  println(f"  {item.tripeptide}: {item.count}")
 }
 
 # Visualize dipeptide frequency distribution
@@ -376,9 +380,9 @@ histogram(col(dp_table, "count"), {
 # protein_report.bl — full protein analysis pipeline
 
 fn analyze_protein(accession) {
-  print("\n" + repeat("=", 60))
-  print(f"Analyzing {accession}")
-  print(repeat("=", 60))
+  println("\n" + repeat("=", 60))
+  println(f"Analyzing {accession}")
+  println(repeat("=", 60))
 
   # Fetch all data from UniProt
   let entry    = uniprot_entry(accession)
@@ -389,9 +393,9 @@ fn analyze_protein(accession) {
   # Build the protein sequence
   let seq = protein(fasta |> split("\n") |> drop(1) |> join(""))
 
-  print(f"Gene:     {entry.gene_names}")
-  print(f"Organism: {entry.organism}")
-  print(f"Length:   {seq_len(seq)} aa")
+  println(f"Gene:     {entry.gene_names}")
+  println(f"Organism: {entry.organism}")
+  println(f"Length:   {seq_len(seq)} aa")
 
   # Amino acid composition
   let residues = kmers(seq, 1)
@@ -399,12 +403,12 @@ fn analyze_protein(accession) {
   let aa_types = unique(residues)
   let composition = aa_types |> map(|aa| {
     let n = residues |> count_if(|r| r == aa)
-    { amino_acid: aa, count: n, pct: round(n / total * 100.0, 1) }
+    { amino_acid: aa, count: n, pct: round(n * 100.0 / total, 1) }
   }) |> sort_by(|a, b| b.count - a.count)
 
-  print(f"\nTop 5 residues:")
+  println(f"\nTop 5 residues:")
   for item in composition |> take(5) {
-    print(f"  {item.amino_acid}: {item.count} ({item.pct}%)")
+    println(f"  {item.amino_acid}: {item.count} ({item.pct}%)")
   }
 
   # Motif analysis
@@ -412,22 +416,22 @@ fn analyze_protein(accession) {
   let phospho = find_motif(seq, "[ST]P")
   let nglyc   = find_motif(seq, "N[^P][ST][^P]")
 
-  print(f"\nMotifs:")
-  print(f"  NLS-like regions:       {len(nls)}")
-  print(f"  Phosphorylation sites:  {len(phospho)}")
-  print(f"  N-glycosylation sites:  {len(nglyc)}")
+  println(f"\nMotifs:")
+  println(f"  NLS-like regions:       {len(nls)}")
+  println(f"  Phosphorylation sites:  {len(phospho)}")
+  println(f"  N-glycosylation sites:  {len(nglyc)}")
 
   # Domain annotations
   let domains = features |> filter(|f| f.type == "Domain")
-  print(f"\nDomains ({len(domains)}):")
+  println(f"\nDomains ({len(domains)}):")
   for d in domains {
-    print(f"  {d.description}: {d.location}")
+    println(f"  {d.description}: {d.location}")
   }
 
   # GO summary
-  let mf = go_terms |> filter(|t| t.category == "molecular_function")
-  let bp = go_terms |> filter(|t| t.category == "biological_process")
-  print(f"\nGO: {len(mf)} molecular functions, {len(bp)} biological processes")
+  let mf = go_terms |> filter(|t| t.aspect == "F")
+  let bp = go_terms |> filter(|t| t.aspect == "P")
+  println(f"\nGO: {len(mf)} molecular functions, {len(bp)} biological processes")
 
   # Save structured report
   let report = {
@@ -447,7 +451,7 @@ fn analyze_protein(accession) {
 
   let filename = f"results/{accession}_report.json"
   write_json(filename, report)
-  print(f"\nReport saved to {filename}")
+  println(f"\nReport saved to {filename}")
   report
 }
 

@@ -87,8 +87,10 @@ if not file_exists("output") {
   mkdir("output")
 }
 
-assert is_file("sample.bam"), "BAM file missing"
-assert is_dir("reference/"), "Reference directory missing"</code></pre>
+# Asserting here would stop the example on any machine without these files,
+# so report instead — the builtins being demonstrated are the same.
+println("BAM present:       " + str(is_file("sample.bam")))
+println("Reference present: " + str(is_dir("reference/")))</code></pre>
         </section>
 
         <section class="mb-12" id="file-ops">

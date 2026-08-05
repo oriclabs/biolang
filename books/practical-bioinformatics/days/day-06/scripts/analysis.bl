@@ -56,7 +56,7 @@ print("--- 4. Standard Filtering ---")
 let clean = reads |> filter_reads(min_length: 50, min_quality: 20)
 print(f"Before: {len(reads)} reads")
 print(f"After:  {len(clean)} reads")
-print(f"Kept:   {round(len(clean) / len(reads) * 100, 1)}%")
+print(f"Kept:   {round(len(clean) * 100.0 / len(reads), 1)}%")
 
 # ============================================================
 # 5. CUSTOM FILTERING WITH PIPES

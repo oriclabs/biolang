@@ -34,11 +34,11 @@
 # Search ClinVar for variants in BRCA1
 let ids = ncbi_search("clinvar", "BRCA1[gene] AND pathogenic[clinsig]")
 
-print(f"Pathogenic BRCA1 variant IDs: {ids |> len}")
+println(f"Pathogenic BRCA1 variant IDs: {ids |> len}")
 # Fetch summaries for the top results
 let summaries = ncbi_summary(ids |> take(10), "clinvar")
 summaries |> each(|s| {
-  print(f"  UID {s.uid}")
+  println(f"  UID {s.uid}")
 })</code></pre>
 
         <h3>Batch ClinVar annotation</h3>
@@ -61,7 +61,7 @@ let annotated = vcf
   })
 
 let with_clinvar = annotated |> filter(|v| { v.clinvar_match })
-print(f"Variants with ClinVar match: {with_clinvar |> len}")
+println(f"Variants with ClinVar match: {with_clinvar |> len}")
 with_clinvar |> write_tsv("clinvar_annotated.tsv")</code></pre>
 
         <h2>Pathogenicity Filtering</h2>
@@ -98,9 +98,9 @@ let tier3 = vcf
   |> filter(|v| { (v.info["gnomAD_AF"] ?? "0") |> float &lt; 0.001 })
   |> filter(|v| { v.info["IMPACT"] == "HIGH" || v.info["IMPACT"] == "MODERATE" })
 
-print(f"Tier 1 (known pathogenic):  {tier1 |> len}")
-print(f"Tier 2 (likely pathogenic): {tier2 |> len}")
-print(f"Tier 3 (rare, high impact): {tier3 |> len}")
+println(f"Tier 1 (known pathogenic):  {tier1 |> len}")
+println(f"Tier 2 (likely pathogenic): {tier2 |> len}")
+println(f"Tier 3 (rare, high impact): {tier3 |> len}")
 
 tier1 |> write_vcf("tier1_pathogenic.vcf")
 tier2 |> write_vcf("tier2_likely_pathogenic.vcf")
@@ -119,8 +119,8 @@ let rare = vcf
     af_all &lt; 0.01 && af_max &lt; 0.01
   })
 
-print(f"Total PASS variants: {vcf |> filter(|v| { v.filter == "PASS" }) |> len}")
-print(f"After frequency filter: {rare |> len}")
+println(f"Total PASS variants: {vcf |> filter(|v| { v.filter == "PASS" }) |> len}")
+println(f"After frequency filter: {rare |> len}")
 rare |> write_vcf("rare_variants.vcf")</code></pre>
 
         <h2>ACMG Classification</h2>
@@ -176,7 +176,7 @@ let classified = variants |> map(classify_variant)
 
 for class in ["Pathogenic", "Likely pathogenic", "VUS", "Likely benign", "Benign"] {
   let n = classified |> filter(|c| { c.classification == class }) |> len
-  print(f"{class}: {n}")
+  println(f"{class}: {n}")
 }
 
 classified |> write_csv("acmg_classifications.csv")</code></pre>
@@ -213,7 +213,7 @@ let report = {
 }
 
 report |> write_csv("clinical_report.csv")
-print(f"Report generated: {report.reportable_findings} reportable findings")</code></pre>
+println(f"Report generated: {report.reportable_findings} reportable findings")</code></pre>
 
         <h3>Pharmacogenomics lookup</h3>
         <pre><code class="language-biolang"># Check pharmacogenomic variants
@@ -235,10 +235,10 @@ let pgx_hits = pgx_variants |> map(|pgx| {
   }
 })
 
-print("Pharmacogenomic Report:")
+println("Pharmacogenomic Report:")
 for hit in pgx_hits |> filter(|h| { h.genotype != "ref/ref" }) {
-  print(f"  {hit.gene} {hit.star_allele}: {hit.genotype}")
-  print(f"    Drug: {hit.drug} - {hit.phenotype}")
+  println(f"  {hit.gene} {hit.star_allele}: {hit.genotype}")
+  println(f"    Drug: {hit.drug} - {hit.phenotype}")
 }</code></pre>
 
       </article>

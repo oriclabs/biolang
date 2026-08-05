@@ -57,13 +57,13 @@ seq = kmer_decode(kmer_encode(dna"AAAA", 4))    # => "AAAA"</code></pre>
 
 # Count all 4-mers — returns a Table sorted by count (descending)
 let counts = kmer_count(seq, 4)
-print(counts)   # Table: kmer | count
+println(counts)   # Table: kmer | count
 
 # Stream mode — constant memory for large FASTQ files
 read_fastq("data/reads.fastq")
   |> kmer_count(21)
   |> head(10)
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 my-6">
           <h4 class="text-amber-400 font-semibold mb-2">Memory Options for Large Datasets</h4>
@@ -102,7 +102,7 @@ read_fastq("data/reads.fastq")
 let spectrum = kmer_spectrum(kmer_count(seq, 4))
 # => Table with frequency and count columns
 
-spectrum |> print()</code></pre>
+spectrum |> println()</code></pre>
 
         <h2>minimizers</h2>
         <p>
@@ -116,11 +116,11 @@ spectrum |> print()</code></pre>
 let mins = minimizers(seq, 7, 11)
 # Returns a list of { kmer, pos } records
 
-mins |> map(|m| print(m.pos, m.kmer))
+mins |> each(|m| println(m.pos, m.kmer))
 
 # Minimizer density (minimizers per base)
 let density = float(len(mins)) / float(seq_len(seq))
-print("Minimizer density:", density)</code></pre>
+println("Minimizer density:", density)</code></pre>
 
         <h2>kmer_encode / kmer_decode</h2>
         <p>
@@ -129,11 +129,11 @@ print("Minimizer density:", density)</code></pre>
         </p>
         <pre><code class="language-biolang"># Encode a k-mer to its 2-bit integer representation
 let code = kmer_encode(dna"ATCG", 4)
-print(code)   # integer encoding
+println(code)   # integer encoding
 
 # Decode back to string
 let seq = kmer_decode(code)
-print(seq)</code></pre>
+println(seq)</code></pre>
 
         <h2>Practical Example: Metagenomic Classification</h2>
         <p>
@@ -142,7 +142,7 @@ print(seq)</code></pre>
         <pre><code class="language-biolang"># Top 21-mers across all reads — streaming, bounded memory
 read_fastq("data/reads.fastq")
   |> kmer_count(21, 50)
-  |> print()
+  |> println()
 
 # Or full k-mer profile (auto-spills to disk for large datasets)
 read_fastq("data/reads.fastq")

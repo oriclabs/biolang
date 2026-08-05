@@ -85,7 +85,7 @@ tool_pull("bwa-mem2", "2.2.1")           # returns image path</code></pre>
           <pre><code class="language-biolang">let info = tool_info("gatk")
 println(info.name, "-", info.description)
 for v in info.versions {
-  println(v.version, "-", v.image)
+  println(v.name, "-", (v.images |> first()).image)
 }
 # 4.5.0.0 - quay.io/biocontainers/gatk4:4.5.0.0--py39...
 # 4.4.0.0 - quay.io/biocontainers/gatk4:4.4.0.0--py39...</code></pre>

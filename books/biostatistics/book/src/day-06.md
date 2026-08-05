@@ -198,10 +198,10 @@ let t_crit = qnorm(0.975)
 let ci_lower = x_bar - t_crit * se
 let ci_upper = x_bar + t_crit * se
 
-print("IC50 mean: {x_bar:.2} nM")
-print("95% CI: [{ci_lower:.2}, {ci_upper:.2}] nM")
-print("Standard error: {se:.3} nM")
-print("Critical value: {t_crit:.3}")
+print(f"IC50 mean: {x_bar:.2} nM")
+print(f"95% CI: [{ci_lower:.2}, {ci_upper:.2}] nM")
+print(f"Standard error: {se:.3} nM")
+print(f"Critical value: {t_crit:.3}")
 ```
 
 ### IC50 Confidence Interval — Bootstrap
@@ -227,7 +227,7 @@ for i in range(0, n_boot) {
 let boot_lower = quantile(boot_means, 0.025)
 let boot_upper = quantile(boot_means, 0.975)
 
-print("Bootstrap 95% CI: [{boot_lower:.2}, {boot_upper:.2}] nM")
+print(f"Bootstrap 95% CI: [{boot_lower:.2}, {boot_upper:.2}] nM")
 
 # Visualize the bootstrap distribution
 histogram(boot_means, {bins: 50, title: "Bootstrap Distribution of IC50 Mean", x_label: "Mean IC50 (nM)"})
@@ -255,8 +255,8 @@ for i in range(0, n_boot) {
 let ci_lower = quantile(boot_medians, 0.025)
 let ci_upper = quantile(boot_medians, 0.975)
 
-print("Observed median: {obs_median:.2} FPKM")
-print("Bootstrap 95% CI for median: [{ci_lower:.2}, {ci_upper:.2}] FPKM")
+print(f"Observed median: {obs_median:.2} FPKM")
+print(f"Bootstrap 95% CI for median: [{ci_lower:.2}, {ci_upper:.2}] FPKM")
 ```
 
 ### Error Bar Plot: Comparing Drug Concentrations
@@ -333,9 +333,9 @@ let ci_a = compute_ci(drug_a)
 let ci_b = compute_ci(drug_b)
 let ci_c = compute_ci(drug_c)
 
-print("Drug A: {means[0]:.1} nM, 95% CI [{ci_a[0]:.1}, {ci_a[1]:.1}]")
-print("Drug B: {means[1]:.1} nM, 95% CI [{ci_b[0]:.1}, {ci_b[1]:.1}]")
-print("Drug C: {means[2]:.1} nM, 95% CI [{ci_c[0]:.1}, {ci_c[1]:.1}]")
+print(f"Drug A: {means[0]:.1} nM, 95% CI [{ci_a[0]:.1}, {ci_a[1]:.1}]")
+print(f"Drug B: {means[1]:.1} nM, 95% CI [{ci_b[0]:.1}, {ci_b[1]:.1}]")
+print(f"Drug C: {means[2]:.1} nM, 95% CI [{ci_c[0]:.1}, {ci_c[1]:.1}]")
 
 # Bar chart with error bars
 let ci_chart = table({"drug": drugs, "mean_ic50": means})
@@ -357,8 +357,8 @@ let t_crit = qnorm(0.975)  # approximate for moderate df
 let ci_lower = diff - t_crit * se_diff
 let ci_upper = diff + t_crit * se_diff
 
-print("Mean difference: {diff:.1} mm^3")
-print("95% CI for difference: [{ci_lower:.1}, {ci_upper:.1}] mm^3")
+print(f"Mean difference: {diff:.1} mm^3")
+print(f"95% CI for difference: [{ci_lower:.1}, {ci_upper:.1}] mm^3")
 
 if ci_upper < 0 {
   print("CI excludes zero: treatment significantly reduces tumor volume")
@@ -376,7 +376,7 @@ let p_vacc = 15 / 200
 let p_plac = 60 / 200
 let efficacy = 1.0 - (p_vacc / p_plac)
 
-print("Vaccine efficacy: {efficacy * 100:.1}%")
+print(f"Vaccine efficacy: {efficacy * 100:.1}%")
 
 # CI for proportion (vaccinated group infection rate)
 let n = 200
@@ -385,8 +385,8 @@ let se_p = sqrt(p_vacc * (1.0 - p_vacc) / n)
 let ci_lower_p = p_vacc - z * se_p
 let ci_upper_p = p_vacc + z * se_p
 
-print("Infection rate (vaccinated): {p_vacc*100:.1}%")
-print("95% CI for infection rate: [{ci_lower_p*100:.1}%, {ci_upper_p*100:.1}%]")
+print(f"Infection rate (vaccinated): {p_vacc*100:.1}%")
+print(f"95% CI for infection rate: [{ci_lower_p*100:.1}%, {ci_upper_p*100:.1}%]")
 
 # Bootstrap CI for vaccine efficacy itself
 let vacc_outcomes = flatten([repeat(1, 15), repeat(0, 185)])
@@ -408,7 +408,7 @@ for i in range(0, n_boot) {
 }
 
 let eff_ci = [quantile(boot_eff, 0.025), quantile(boot_eff, 0.975)]
-print("Bootstrap 95% CI for efficacy: [{eff_ci[0]*100:.1}%, {eff_ci[1]*100:.1}%]")
+print(f"Bootstrap 95% CI for efficacy: [{eff_ci[0]*100:.1}%, {eff_ci[1]*100:.1}%]")
 ```
 
 **Python:**

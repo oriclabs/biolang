@@ -75,7 +75,7 @@ let g = add_node(g, "CDKN1A", {role: "cdk_inhibitor", chr: "6p21.2"})
 let g = add_node(g, "BAX", {role: "pro_apoptotic", chr: "19q13.33"})
 let g = add_node(g, "BCL2", {role: "anti_apoptotic", chr: "18q21.33"})
 
-print(f"Nodes: {node_count(g)}")  # 5</code></pre>
+println(f"Nodes: {node_count(g)}")  # 5</code></pre>
 
         <!-- Step 2 -->
         <h2>Step 2: Add edges</h2>
@@ -93,7 +93,7 @@ let g = add_edge(g, "BAX", "BCL2", {score: 0.976, type: "inhibition"})
 # MDM2 feedback
 let g = add_edge(g, "MDM2", "CDKN1A", {score: 0.871, type: "inhibition"})
 
-print(f"Edges: {edge_count(g)}")  # 5</code></pre>
+println(f"Edges: {edge_count(g)}")  # 5</code></pre>
         <p>
           Nodes are auto-created when you add edges, so you can skip <code>add_node()</code>
           if you don't need attributes. But adding attributes makes the graph more useful
@@ -107,16 +107,16 @@ print(f"Edges: {edge_count(g)}")  # 5</code></pre>
         </p>
         <pre><code class="language-biolang"># Direct neighbors
 let tp53_partners = neighbors(g, "TP53")
-print(f"TP53 interacts with: {tp53_partners}")
+println(f"TP53 interacts with: {tp53_partners}")
 # ["BAX", "CDKN1A", "MDM2"]
 
 # Node degree (number of connections)
-print("TP53 degree: " + str(degree(g, "TP53")))    # 3
-print("BCL2 degree: " + str(degree(g, "BCL2")))    # 1
+println("TP53 degree: " + str(degree(g, "TP53")))    # 3
+println("BCL2 degree: " + str(degree(g, "BCL2")))    # 1
 
 # Check if an edge exists
-print(has_edge(g, "TP53", "BAX"))     # true
-print(has_edge(g, "BCL2", "MDM2"))    # false</code></pre>
+println(has_edge(g, "TP53", "BAX"))     # true
+println(has_edge(g, "BCL2", "MDM2"))    # false</code></pre>
 
         <!-- Step 4 -->
         <h2>Step 4: Shortest paths</h2>
@@ -125,13 +125,13 @@ print(has_edge(g, "BCL2", "MDM2"))    # false</code></pre>
         </p>
         <pre><code class="language-biolang"># How does BCL2 connect to MDM2?
 let path = shortest_path(g, "BCL2", "MDM2")
-print(f"BCL2 → MDM2: {path}")
+println(f"BCL2 → MDM2: {path}")
 # ["BCL2", "BAX", "TP53", "MDM2"]
 
 # No path between disconnected components returns nil
 let g2 = add_node(g, "ISOLATED_GENE", {})
 let path2 = shortest_path(g, "ISOLATED_GENE", "TP53")
-print(path2)  # nil</code></pre>
+println(path2)  # nil</code></pre>
 
         <!-- Step 5 -->
         <h2>Step 5: Network analysis</h2>
@@ -140,15 +140,15 @@ print(path2)  # nil</code></pre>
         </p>
         <pre><code class="language-biolang"># Connected components
 let components = connected_components(g)
-print(f"Components: {len(components)}")
-components |> each(|c| print(f"  {c}"))
+println(f"Components: {len(components)}")
+components |> each(|c| println(f"  {c}"))
 
 # Get all nodes and edges as data
 let all_nodes = nodes(g)
-print(f"All nodes: {all_nodes}")
+println(f"All nodes: {all_nodes}")
 
 let edge_table = edges(g)
-print(edge_table)
+println(edge_table)
 # Table with columns: source, target, and any edge attributes</code></pre>
 
         <!-- Step 6 -->
@@ -160,7 +160,7 @@ print(edge_table)
 let apoptosis_genes = ["TP53", "BAX", "BCL2"]
 let sub = subgraph(g, apoptosis_genes)
 
-print(f"Subgraph: {node_count(sub)} nodes, {edge_count(sub)} edges")
+println(f"Subgraph: {node_count(sub)} nodes, {edge_count(sub)} edges")
 # Subgraph: 3 nodes, 2 edges (TP53-BAX, BAX-BCL2)
 # The MDM2 and CDKN1A edges are excluded</code></pre>
 
@@ -182,7 +182,7 @@ let g = edges_data |> to_records() |> reduce(g, |g, row| {
   add_edge(g, row.gene_a, row.gene_b, {score: row.score})
 })
 
-print(f"Built graph: {node_count(g)} genes, {edge_count(g)} interactions")</code></pre>
+println(f"Built graph: {node_count(g)} genes, {edge_count(g)} interactions")</code></pre>
 
         <!-- Step 8 -->
         <h2>Step 8: Combine with STRING API</h2>
@@ -197,13 +197,11 @@ let network = string_network(["TP53"], 9606)
 let g = graph()
 let g = network |> reduce(g, |g, row| {
   add_edge(g, row.protein_a, row.protein_b, {
-    score: row.score,
-    nscore: row.nscore,
-    escore: row.escore
+    score: row.score
   })
 })
 
-print(f"STRING network: {node_count(g)} proteins, {edge_count(g)} interactions")
+println(f"STRING network: {node_count(g)} proteins, {edge_count(g)} interactions")
 
 # Find hub genes (highest degree)
 let hub_genes = nodes(g)
@@ -211,8 +209,8 @@ let hub_genes = nodes(g)
   |> sort_by(|r| -r.degree)
   |> take(5)
 
-print("Top 5 hub genes:")
-hub_genes |> each(|r| print(f"  {r.gene}: {r.degree} connections"))</code></pre>
+println("Top 5 hub genes:")
+hub_genes |> each(|r| println(f"  {r.gene}: {r.degree} connections"))</code></pre>
 
         <!-- Step 9 -->
         <h2>Step 9: Directed graphs</h2>
@@ -220,7 +218,7 @@ hub_genes |> each(|r| print(f"  {r.gene}: {r.degree} connections"))</code></pre>
           For regulatory networks where direction matters, create a directed graph:
         </p>
         <pre><code class="language-biolang"># Directed graph: edges have a direction
-let dg = graph(directed: true)
+let dg = graph(true)
 
 let dg = add_edge(dg, "TP53", "CDKN1A", {type: "activates"})
 let dg = add_edge(dg, "TP53", "BAX", {type: "activates"})
@@ -229,12 +227,12 @@ let dg = add_edge(dg, "TP53", "MDM2", {type: "activates"})
 
 # In directed graphs, neighbors returns outgoing connections only
 let tp53_targets = neighbors(dg, "TP53")
-print(f"TP53 activates/inhibits: {tp53_targets}")
+println(f"TP53 activates/inhibits: {tp53_targets}")
 # ["BAX", "CDKN1A", "MDM2"]
 
 # MDM2 only has one outgoing edge
 let mdm2_targets = neighbors(dg, "MDM2")
-print(f"MDM2 targets: {mdm2_targets}")
+println(f"MDM2 targets: {mdm2_targets}")
 # ["TP53"]</code></pre>
 
         <!-- Step 10 -->
@@ -244,16 +242,16 @@ print(f"MDM2 targets: {mdm2_targets}")
         </p>
         <pre><code class="language-biolang"># What happens if we knock out TP53?
 let ko = remove_node(g, "TP53")
-print(f"After TP53 knockout: {node_count(ko)} nodes, {edge_count(ko)} edges")
+println(f"After TP53 knockout: {node_count(ko)} nodes, {edge_count(ko)} edges")
 
 # How many components now?
 let ko_components = connected_components(ko)
-print(f"Components after knockout: {len(ko_components)}")
-ko_components |> each(|c| print(f"  {c}"))
+println(f"Components after knockout: {len(ko_components)}")
+ko_components |> each(|c| println(f"  {c}"))
 
 # Remove a specific interaction
 let g_no_feedback = remove_edge(g, "MDM2", "CDKN1A")
-print(f"Removed MDM2-CDKN1A: {edge_count(g_no_feedback)} edges remain")</code></pre>
+println(f"Removed MDM2-CDKN1A: {edge_count(g_no_feedback)} edges remain")</code></pre>
 
         <h2>Complete example</h2>
         <p>Here's the full analysis as a notebook-ready script:</p>
@@ -269,26 +267,26 @@ let g = add_edge(g, "MDM2", "CDKN1A", {score: 0.871, type: "inhibition"})
 let g = add_edge(g, "CDKN1A", "CDK2", {score: 0.945, type: "inhibition"})
 let g = add_edge(g, "CDK2", "RB1", {score: 0.932, type: "phosphorylation"})
 
-print(f"Network: {node_count(g)} genes, {edge_count(g)} interactions")
-print(f"Components: {len(connected_components(g))}")
+println(f"Network: {node_count(g)} genes, {edge_count(g)} interactions")
+println(f"Components: {len(connected_components(g))}")
 
 # Hub analysis
 let hubs = nodes(g)
   |> map(|n| {gene: n, deg: degree(g, n)})
   |> sort_by(|r| -r.deg)
 
-print("\nDegree ranking:")
-hubs |> each(|r| print(f"  {r.gene}: {r.deg}"))
+println("\nDegree ranking:")
+hubs |> each(|r| println(f"  {r.gene}: {r.deg}"))
 
 # Path from cell cycle to apoptosis
 let path = shortest_path(g, "CDK2", "BCL2")
-print(f"\nCell cycle → apoptosis: {path}")
+println(f"\nCell cycle → apoptosis: {path}")
 
 # TP53 knockout simulation
 let ko = remove_node(g, "TP53")
 let ko_comp = connected_components(ko)
-print(f"\nTP53 knockout: {len(ko_comp)} disconnected components")
-ko_comp |> each(|c| print(f"  {c}"))</code></pre>
+println(f"\nTP53 knockout: {len(ko_comp)} disconnected components")
+ko_comp |> each(|c| println(f"  {c}"))</code></pre>
 
         <h2>Builtin reference</h2>
         <div class="not-prose overflow-x-auto mb-8">

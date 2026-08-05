@@ -180,7 +180,7 @@ let results = gene_ids
     uniprot: uniprot_search(f"gene:{id} AND organism_id:9606")
   })
   |> to_table()
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h2>Caching</h2>
         <p>
@@ -205,7 +205,7 @@ let result = ncbi_search("gene", "BRCA1")
 result = try {
   ncbi_search("gene", "BRCA1")
 } catch err {
-  print("API error:", err)
+  println("API error:", err)
   nil
 }
 
@@ -219,23 +219,23 @@ let results = genes |> map(|g| {
         <h2>Quick Examples</h2>
         <pre><code class="language-biolang"># Search a gene from NCBI
 let gene = ncbi_search("gene", "BRCA1")
-print(gene)
+println(gene)
 
 # Get protein info from UniProt
 let protein = uniprot_entry("P38398")
-print(protein.name, protein.length)
+println(protein.name, protein.length)
 
 # Query Ensembl for variant effects
 let vep = ensembl_vep("1:g.230710048A>G")
-vep |> first() |> print()
+vep |> first() |> println()
 
 # Get KEGG pathway (returns raw text)
 let pathway = kegg_get("hsa04110")    # Cell cycle
-print(pathway)
+println(pathway)
 
 # Search protein structures
 let structure = pdb_entry("4HHB")    # Hemoglobin
-print(structure.title, structure.resolution)</code></pre>
+println(structure.title, structure.resolution)</code></pre>
 
         <h2>Explore Each Client</h2>
         <ul>
@@ -269,8 +269,8 @@ print(structure.title, structure.resolution)</code></pre>
         </ul>
         <pre><code class="language-biolang"># Check current API endpoints
 let endpoints = api_endpoints()
-print(endpoints.ncbi)
-print(endpoints.biocontainers)</code></pre>
+println(endpoints.ncbi)
+println(endpoints.biocontainers)</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <div></div>

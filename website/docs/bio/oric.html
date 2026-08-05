@@ -188,7 +188,7 @@ let candidates = oric.predict_oric(genome, 500, 10)
   |> sort_by(|candidate| -candidate.confidence)
 
 println("High-confidence candidates:")
-candidates |> print()
+candidates |> println()
 
 # Step 5 — plot the skew with oriC bands
 oric.plot_skew(skew, candidates) |> save_svg("ecoli_skew.svg")</code></pre>
@@ -215,12 +215,12 @@ let results = fasta("plasmids.fa")
     })
   |> to_table()
 
-results |> print()
+results |> println()
 
 # Flag plasmids with a high-confidence oriC
 results
   |> filter(|r| r.confidence >= 4)
-  |> map(|r| println(r.name, "— strong oriC signal at", r.oric_start))</code></pre>
+  |> each(|r| println(r.name, "— strong oriC signal at", r.oric_start))</code></pre>
 
         <h2>Confidence Score Interpretation</h2>
         <p>

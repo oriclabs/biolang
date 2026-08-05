@@ -43,10 +43,10 @@ let exon = interval("chr1", 1000, 2000, "+")
 let antisense = interval("chr1", 1000, 2000, "-")
 
 # Access fields
-print(region.chrom)    # => "chr1"
-print(region.start)    # => 1000
-print(region.end)      # => 2000
-print(exon.strand)     # => "+"
+println(region.chrom)    # => "chr1"
+println(region.start)    # => 1000
+println(region.end)      # => 2000
+println(exon.strand)     # => "+"
 
 # Width/length
 region |> len()        # => 1000</code></pre>
@@ -62,7 +62,7 @@ let peaks = read_bed("data/regions.bed")
 
 # Find all pairwise intersections
 let shared = intersect(exons, peaks)
-print(nrow(shared), "overlapping regions")</code></pre>
+println(nrow(shared), "overlapping regions")</code></pre>
 
         <h2>Merge</h2>
         <p>
@@ -73,7 +73,7 @@ print(nrow(shared), "overlapping regions")</code></pre>
 # The table must have chrom, start, end columns
 let regions = read_bed("data/regions.bed")
 let merged = merge_intervals(regions)
-print(nrow(merged), "merged regions")</code></pre>
+println(nrow(merged), "merged regions")</code></pre>
 
         <h2>Subtract</h2>
         <p>
@@ -86,7 +86,7 @@ let repeats = read_bed("data/regions.bed")
 
 # Remove repeat-overlapping portions from exons
 let clean_exons = subtract(exons, repeats)
-print(nrow(clean_exons), "clean exon regions")</code></pre>
+println(nrow(clean_exons), "clean exon regions")</code></pre>
 
         <h2>Closest</h2>
         <p>
@@ -99,7 +99,7 @@ let queries = read_bed("data/regions.bed")
 let genes = read_bed("data/regions.bed")
 
 let result = closest(queries, genes)
-print(result)</code></pre>
+println(result)</code></pre>
 
         <h2>Interval Tree</h2>
         <p>
@@ -111,11 +111,11 @@ let tree = read_bed("data/regions.bed") |> interval_tree()
 
 # Query the tree for overlapping intervals
 let hits = query_overlaps(tree, "chr1", 50000, 51000)
-print(nrow(hits), "annotations overlap the query region")
+println(nrow(hits), "annotations overlap the query region")
 
 # Find nearest interval to a region
 let nearest = query_nearest(tree, "chr1", 50000, 51000)
-print(nearest)</code></pre>
+println(nearest)</code></pre>
 
         <h2>Sliding Window Analysis</h2>
         <p>
@@ -130,7 +130,7 @@ windows(seq, 6, 1)
     gc: gc_content(window.seq)
   })
   |> to_table()
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h2>Combining Operations</h2>
         <p>
@@ -181,7 +181,7 @@ let vcf    = read_bed("variants/snps.bed")   # bed3+ export from VCF
 let coding_variants = bed_intersect(cds, vcf)
 
 # coding_variants now has all cds columns plus overlap_start, overlap_end, overlap_length
-print(nrow(coding_variants), "variants fall inside coding sequence")
+println(nrow(coding_variants), "variants fall inside coding sequence")
 
 # Filter to only variants with at least 1 bp overlap (always true for bed_intersect,
 # but useful after a join that may produce zero-length artefacts)
@@ -194,7 +194,7 @@ confirmed
        { gene_id: gene_id, variant_count: len(rows) }
      })
   |> sort_by(|row| -row.variant_count)
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h3>bed_subtract(a, b)</h3>
         <p>
@@ -209,14 +209,14 @@ let repeats = read_bed("annotation/repeatmasker.bed")
 
 let clean_genes = bed_subtract(genes, repeats)
 
-print(nrow(genes),       "input gene intervals")
-print(nrow(clean_genes), "intervals after repeat masking")
+println(nrow(genes),       "input gene intervals")
+println(nrow(clean_genes), "intervals after repeat masking")
 
 # Compare total coverage before and after
 let bp_before = genes       |> map(|r| r.end - r.start) |> sum()
 let bp_after  = clean_genes |> map(|r| r.end - r.start) |> sum()
 
-print("Repeat content removed:", bp_before - bp_after, "bp")
+println("Repeat content removed:", bp_before - bp_after, "bp")
 
 # Write masked annotation for downstream analysis
 write_bed(clean_genes, "annotation/genes_masked.bed")</code></pre>
@@ -236,11 +236,11 @@ let raw_exons = read_bed("rnaseq/assembled_exons.bed")
 
 # Strict merge: only overlapping / book-ended intervals
 let merged_strict = bed_merge(raw_exons)
-print(nrow(merged_strict), "exons after strict merge")
+println(nrow(merged_strict), "exons after strict merge")
 
 # Permissive merge: also join exons separated by &lt;= 50 bp (e.g. small introns)
 let merged_50 = bed_merge(raw_exons, 50)
-print(nrow(merged_50), "exons after 50 bp gap merge")
+println(nrow(merged_50), "exons after 50 bp gap merge")
 
 # Typical ChIP-seq workflow: load peaks, merge, write
 read_bed("chipseq/peaks.bed")
@@ -254,7 +254,7 @@ let with_counts =
     |> summarize(|chrom, rows| {
          { chrom: chrom, source_count: len(rows) }
        })
-print(with_counts)</code></pre>
+println(with_counts)</code></pre>
 
         <h3>bed_closest(a, b)</h3>
         <p>
@@ -273,7 +273,7 @@ let peak_gene = bed_closest(peaks, genes)
 
 # Keep only peaks within 50 kb of a gene
 let proximal = peak_gene |> filter(|r| r.distance &lt;= 50000)
-print(nrow(proximal), "peaks within 50 kb of a gene")
+println(nrow(proximal), "peaks within 50 kb of a gene")
 
 # Summarise: how many peaks per gene, and what is the median distance?
 proximal
@@ -287,7 +287,7 @@ proximal
      })
   |> sort_by(|row| -row.peak_count)
   |> head(20)
-  |> print()
+  |> println()
 
 # Full pipeline: load → merge peaks → assign genes → filter → export
 read_bed("chipseq/peaks.bed")

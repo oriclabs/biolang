@@ -39,15 +39,15 @@
         </p>
         <pre><code class="language-biolang"># Search for bwa repositories
 let results = galaxy_search("bwa")
-results |> print()
+results |> println()
 # => [{ name: "bwa", owner: "devteam", description: "...",
 #        downloads: 48230, url: "https://toolshed.g2.bx.psu.edu/..." }, ...]
 
 # Search with a result limit
-galaxy_search("bwa", 5) |> print()
+galaxy_search("bwa", 5) |> println()
 
 # Search for variant-related tools
-galaxy_search("variant") |> print()</code></pre>
+galaxy_search("variant") |> println()</code></pre>
         <p>
           Returns a List of Records: <code>{name, owner, description, downloads, url}</code>.
           Default limit is 25.
@@ -59,12 +59,12 @@ galaxy_search("variant") |> print()</code></pre>
         </p>
         <pre><code class="language-biolang"># Get top 20 most popular tools (default)
 let popular = galaxy_popular()
-popular |> print()
+popular |> println()
 
 # Get top 10 and extract name + downloads
 galaxy_popular(10)
   |> map(|t| { name: t.name, downloads: t.downloads })
-  |> print()</code></pre>
+  |> println()</code></pre>
         <p>
           Returns a List of Records: <code>{name, owner, description, downloads, url}</code>.
           Default limit is 20.
@@ -76,12 +76,12 @@ galaxy_popular(10)
         </p>
         <pre><code class="language-biolang"># List all categories
 let categories = galaxy_categories()
-categories |> print()
+categories |> println()
 # => [{ name: "Assembly", description: "Tools for genome assembly" },
 #     { name: "Variant Analysis", description: "..." }, ...]
 
 # Count total categories
-categories |> len() |> print()</code></pre>
+categories |> len() |> println()</code></pre>
         <p>
           Returns a List of Records: <code>{name, description}</code>.
         </p>
@@ -93,14 +93,14 @@ categories |> len() |> print()</code></pre>
         </p>
         <pre><code class="language-biolang"># Get full details for devteam's bwa repository
 let info = galaxy_tool("devteam", "bwa")
-print(info)
+println(info)
 
 # Access specific fields
-print("Name:", info.name)
-print("Owner:", info.owner)
-print("Downloads:", info.downloads)
-print("Approved:", info.approved)
-print("Last updated:", info.last_updated)</code></pre>
+println("Name:", info.name)
+println("Owner:", info.owner)
+println("Downloads:", info.downloads)
+println("Approved:", info.approved)
+println("Last updated:", info.last_updated)</code></pre>
         <p>
           Returns a Record: <code>{name, owner, description, downloads, approved, url, created, last_updated}</code>.
         </p>
@@ -157,34 +157,34 @@ galaxy_search("alignment", 50)
   |> reverse()
   |> map(|t| { name: t.name, owner: t.owner, downloads: t.downloads })
   |> take(10)
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h3>Explore Categories</h3>
         <pre><code class="language-biolang"># List all categories
 let categories = galaxy_categories()
-categories |> map(|c| c.name) |> print()
+categories |> map(|c| c.name) |> println()
 
 # Pick a category and search within it
 galaxy_search("Assembly")
   |> map(|t| { name: t.name, owner: t.owner, downloads: t.downloads })
   |> sort_by(|tool| tool.downloads)
   |> reverse()
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h3>Compare Tools Across Registries</h3>
         <pre><code class="language-biolang"># Search for samtools in both Galaxy ToolShed and BioContainers
 let galaxy_results = galaxy_search("samtools", 5)
 let bc_results = biocontainers_search("samtools", 5)
 
-print("Galaxy ToolShed results:")
+println("Galaxy ToolShed results:")
 galaxy_results
   |> map(|t| { name: t.name, owner: t.owner, downloads: t.downloads })
-  |> print()
+  |> println()
 
-print("BioContainers results:")
+println("BioContainers results:")
 bc_results
   |> map(|t| { name: t.name, versions: t.version_count, image: t.latest_image })
-  |> print()</code></pre>
+  |> println()</code></pre>
       </article>
       <nav class="mt-12 flex justify-between border-t border-slate-800 pt-6">
         <a href="biocontainers.html" class="text-violet-400 hover:text-violet-300">&larr; BioContainers</a>

@@ -47,7 +47,7 @@ records |> map(|r| r.id) |> collect()    # works
 
 # Each record has: id, description, seq, length
 read_fasta("data/sequences.fasta")
-  |> map(|r| print(r.id, seq_len(r.seq)))
+  |> each(|r| println(r.id, seq_len(r.seq)))
 
 # Filter and write to a new file
 read_fasta("data/sequences.fasta")
@@ -95,7 +95,7 @@ let regions = read_bed("data/regions.bed")
 regions
   |> filter(|r| r.score > 500)
   |> mutate("width", |r| r.end - r.start)
-  |> print()
+  |> println()
 
 # Convert BED records to intervals for set operations
 let intervals = read_bed("data/regions.bed")
@@ -125,7 +125,7 @@ annotations
     end: r.end
   })
   |> to_table()
-  |> print()
+  |> println()
 
 # Read GTF
 read_gff("data/annotations.gff")
@@ -133,7 +133,7 @@ read_gff("data/annotations.gff")
   |> map(|r| parse_attr(r.attributes, "gene_name"))
   |> unique()
   |> len()
-  |> print()</code></pre>
+  |> println()</code></pre>
 
         <h2>VCF</h2>
         <p>
@@ -147,7 +147,7 @@ let variants = read_vcf("data/variants.vcf")
 # Fields: chrom, pos, id, ref, alt, qual, filter, info
 variants
   |> filter(|v| v.qual > 30 && v.filter == "PASS")
-  |> print()
+  |> println()
 
 # Access variant fields
 read_vcf("data/variants.vcf")
@@ -179,11 +179,11 @@ alignments
   |> filter(|a| a.mapq >= 30)
   |> map(|a| { name: a.qname, chrom: a.rname, pos: a.pos })
   |> to_table()
-  |> print()
+  |> println()
 
 # Read SAM (text format)
 let sam_records = read_sam("alignments.sam")
-print(nrow(sam_records), "alignments")</code></pre>
+println(nrow(sam_records), "alignments")</code></pre>
 
         <h2>MAF (Multiple Alignment Format)</h2>
         <p>
@@ -194,7 +194,7 @@ print(nrow(sam_records), "alignments")</code></pre>
 let records = read_maf("multiz30way.maf")
 
 # MAF records are returned as a table
-records |> print()</code></pre>
+records |> println()</code></pre>
 
         <h2>Format-Specific Readers</h2>
         <p>

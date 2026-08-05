@@ -286,7 +286,7 @@ Read the FASTQ file and compute basic stats.
 ```biolang
 let reads = read_fastq("sample.fq")
 let stats = fastq_stats(reads)
-print(stats)
+println(stats)
 ```
 
 ## Filter Results
@@ -294,7 +294,7 @@ print(stats)
 ```bl
 # @echo
 let filtered = reads |> filter(|r| mean_phred(r.quality) > 25)
-print(f"Kept {len(filtered)} of {len(reads)} reads")
+println(f"Kept {len(filtered)} of {len(reads)} reads")
 ```</code></pre>
           <p class="text-slate-400 mt-4">The interpreter state carries over between code blocks, so variables defined in one block are available in later blocks.</p>
         </section>

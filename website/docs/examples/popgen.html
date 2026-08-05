@@ -55,7 +55,7 @@ let freqs = vcf
   })
 
 freqs |> write_tsv("allele_frequencies.tsv")
-print(f"Computed frequencies for {freqs |> len} variants")</code></pre>
+println(f"Computed frequencies for {freqs |> len} variants")</code></pre>
 
         <h3>Minor allele frequency spectrum</h3>
         <pre><code class="language-biolang"># Generate a site frequency spectrum (SFS)
@@ -71,10 +71,10 @@ let maf = freqs
 let bins = [0.0, 0.01, 0.05, 0.10, 0.20, 0.30, 0.50]
 let sfs = maf |> histogram(edges: bins)
 
-print("Minor Allele Frequency Spectrum:")
+println("Minor Allele Frequency Spectrum:")
 for bin in sfs {
   let bar = "*" |> repeat(bin.count / 100)
-  print(f"  {bin.label}: {bin.count} {bar}")
+  println(f"  {bin.label}: {bin.count} {bar}")
 }</code></pre>
 
         <h2>Hardy-Weinberg Equilibrium</h2>
@@ -114,7 +114,7 @@ let hwe_results = vcf
   })
 
 let out_of_hwe = hwe_results |> filter(|r| { !r.in_hwe }) |> len
-print(f"Variants out of HWE (p &lt; 0.001): {out_of_hwe}")
+println(f"Variants out of HWE (p &lt; 0.001): {out_of_hwe}")
 hwe_results |> write_tsv("hwe_results.tsv")</code></pre>
 
         <h3>Observed vs expected heterozygosity</h3>
@@ -124,9 +124,9 @@ let obs_mean = hwe |> map(|r| { r["obs_het"] |> float }) |> mean
 let exp_mean = hwe |> map(|r| { r["exp_het"] |> float }) |> mean
 let f_is = 1.0 - (obs_mean / exp_mean)
 
-print(f"Mean observed heterozygosity: {obs_mean |> round(4)}")
-print(f"Mean expected heterozygosity: {exp_mean |> round(4)}")
-print(f"Inbreeding coefficient (Fis): {f_is |> round(4)}")</code></pre>
+println(f"Mean observed heterozygosity: {obs_mean |> round(4)}")
+println(f"Mean expected heterozygosity: {exp_mean |> round(4)}")
+println(f"Inbreeding coefficient (Fis): {f_is |> round(4)}")</code></pre>
 
         <h2>Population Differentiation</h2>
 
@@ -174,11 +174,11 @@ let fst_values = vcf
   |> filter(|r| { r.fst != nil })
 
 let genome_fst = fst_values |> map(|x| x.fst) |> mean
-print(f"Genome-wide Fst: {genome_fst |> round(4)}")
+println(f"Genome-wide Fst: {genome_fst |> round(4)}")
 
 # Find high-Fst outlier regions
 let outliers = fst_values |> filter(|r| { r.fst > 0.5 })
-print(f"High-Fst outlier SNPs (>0.5): {outliers |> len}")
+println(f"High-Fst outlier SNPs (>0.5): {outliers |> len}")
 outliers |> write_tsv("fst_outliers.tsv")</code></pre>
 
         <h3>Windowed Fst</h3>
@@ -213,7 +213,7 @@ windowed |> write_tsv("windowed_fst.tsv")
 windowed
   |> sort_by(|a, b| b.mean_fst - a.mean_fst)
   |> take(10)
-  |> each(|w| { print(f"{w.chrom}:{w.mid} Fst={w.mean_fst |> round(3)} (n={w.n_snps})") })</code></pre>
+  |> each(|w| { println(f"{w.chrom}:{w.mid} Fst={w.mean_fst |> round(3)} (n={w.n_snps})") })</code></pre>
 
         <h2>Principal Component Analysis</h2>
 
@@ -251,9 +251,9 @@ let geno_matrix = matrix(geno_rows)
 # Run PCA
 let pca_result = geno_matrix |> pca(10)
 
-print("Variance explained:")
+println("Variance explained:")
 for [i, var_pct] in pca_result.variance_ratio |> enumerate {
-  print(f"  PC{i + 1}: {(var_pct * 100.0) |> round(2)}%")
+  println(f"  PC{i + 1}: {(var_pct * 100.0) |> round(2)}%")
 }
 
 # Export PC coordinates for plotting

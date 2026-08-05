@@ -95,7 +95,7 @@ You can also attach strand information:
 
 ```bio
 # With strand information
-let gene = interval("chr17", 43044295, 43125483, strand: "+")
+let gene = interval("chr17", 43044295, 43125483, "+")
 println(f"Strand: {gene.strand}")
 ```
 
@@ -453,7 +453,7 @@ let off_target = len(variants) - len(on_target)
 println(f"\nVariant classification:")
 println(f"  On-target:  {len(on_target)}")
 println(f"  Off-target: {off_target}")
-println(f"  On-target rate: {round(len(on_target) / len(variants) * 100, 1)}%")
+println(f"  On-target rate: {round(len(on_target) * 100.0 / len(variants), 1)}%")
 
 # Per-chromosome summary
 let by_chrom = on_target

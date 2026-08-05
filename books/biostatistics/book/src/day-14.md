@@ -283,10 +283,10 @@ let model = lm(expression, ic50)
 
 # Print model summary
 print("=== Linear Regression Summary ===")
-print("Intercept: {model.intercept}")
-print("Slope: {model.slope}")
-print("R²: {model.r_squared}")
-print("Slope p-value: {model.p_value}")
+print(f"Intercept: {model.intercept}")
+print(f"Slope: {model.slope}")
+print(f"R²: {model.r_squared}")
+print(f"Slope p-value: {model.p_value}")
 ```
 
 ### Interpreting Coefficients
@@ -294,16 +294,16 @@ print("Slope p-value: {model.p_value}")
 ```bio
 # Detailed coefficient table
 print("=== Coefficients ===")
-print("  Intercept: {model.intercept}")
-print("  Expression β: {model.slope}")
-print("  p-value: {model.p_value}")
+print(f"  Intercept: {model.intercept}")
+print(f"  Expression β: {model.slope}")
+print(f"  p-value: {model.p_value}")
 
 # Interpretation
 let slope = model.slope
 print("\nFor each 1-unit increase in expression,")
-print("IC50 decreases by {slope |> abs |> round(2)} μM")
-print("R² = {model.r_squared |> round(3)}: expression explains")
-print("{(model.r_squared * 100) |> round(1)}% of IC50 variation")
+print(f"IC50 decreases by {slope |> abs |> round(2)} μM")
+print(f"R² = {model.r_squared |> round(3)}: expression explains")
+print(f"{(model.r_squared * 100) |> round(1)}% of IC50 variation")
 ```
 
 ### Prediction with Intervals
@@ -316,7 +316,7 @@ let new_expression = [7.0, 10.0, 13.0]
 print("=== Predictions ===")
 for i in 0..3 {
     let predicted = model.slope * new_expression[i] + model.intercept
-    print("Expression = {new_expression[i]}: Predicted IC50 = {predicted |> round(1)} μM")
+    print(f"Expression = {new_expression[i]}: Predicted IC50 = {predicted |> round(1)} μM")
 }
 ```
 
@@ -362,16 +362,16 @@ let y = zip(x, rnorm(50, 0, 3))
 
 # Fit linear model in observed range
 let model_extrap = lm(x, y)
-print("R² in training range: {model_extrap.r_squared |> round(3)}")
+print(f"R² in training range: {model_extrap.r_squared |> round(3)}")
 
 # Predict within range — reasonable
 let pred_in = model_extrap.slope * 10.0 + model_extrap.intercept
-print("Prediction at x=10 (in range): {pred_in |> round(1)}")
+print(f"Prediction at x=10 (in range): {pred_in |> round(1)}")
 
 # Predict outside range — dangerous!
 let pred_out = model_extrap.slope * 25.0 + model_extrap.intercept
-print("Prediction at x=25 (extrapolation): {pred_out |> round(1)}")
-print("True value at x=25 would be: {(100 - 3*25 + 0.2*25**2) |> round(1)}")
+print(f"Prediction at x=25 (extrapolation): {pred_out |> round(1)}")
+print(f"True value at x=25 would be: {(100 - 3*25 + 0.2*25**2) |> round(1)}")
 print("Extrapolation error demonstrates the danger!")
 ```
 
@@ -386,12 +386,12 @@ let response = zip(dose, rnorm(40, 0, 3))
 
 # Linear model on raw scale — poor fit
 let model_raw = lm(dose, response)
-print("R² (raw scale): {model_raw.r_squared |> round(3)}")
+print(f"R² (raw scale): {model_raw.r_squared |> round(3)}")
 
 # Log-transform dose — much better
 let log_dose = dose |> map(|d| log2(d))
 let model_log = lm(log_dose, response)
-print("R² (log scale): {model_log.r_squared |> round(3)}")
+print(f"R² (log scale): {model_log.r_squared |> round(3)}")
 
 # Compare residual plots to see the difference
 ```

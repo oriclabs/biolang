@@ -1143,9 +1143,14 @@
           The console tab loads parsed data as a BioLang Table variable named <code>data</code>.
           Columns from the file become table columns. Powered by WebAssembly.
         </p>
-        <pre><code class="language-biolang">data |> head(5)
+        <pre><code class="language-biolang">let data = to_table([
+  {name: "seq1", length: 120, gc: 0.62},
+  {name: "seq2", length: 340, gc: 0.41},
+])
 
-mean(column(data, "length"))
+data |> head(5)
+
+mean(col(data, "length"))
 
 data |> filter(|r| r.gc > 0.5)</code></pre>
 

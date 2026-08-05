@@ -142,9 +142,12 @@ tar xzf biolang.tar.gz
 sudo mv bl /usr/local/bin/
 bl --version</code></pre>
         <p>
-          Alternatively, install via Homebrew:
+          There is no Homebrew tap yet, so <code>brew install biolang/tap/biolang</code>
+          does not work &mdash; nor do <code>scoop install</code>, <code>choco install</code> or
+          <code>cargo install biolang</code>, since BioLang is not published to those
+          registries. The one-line installer above, or a build from source, are the
+          routes that exist today.
         </p>
-        <pre><code class="language-bash">brew install biolang/tap/biolang</code></pre>
 
         <h3>Windows</h3>
         <p>
@@ -196,19 +199,16 @@ cargo build --release
         <pre><code class="language-bash">export BIOLANG_NO_UPDATE_CHECK=1</code></pre>
         <h3>Alternative update methods</h3>
         <p>If you installed via Cargo:</p>
-        <pre><code class="language-bash">cargo install bl-cli --force</code></pre>
-        <p>For Homebrew:</p>
-        <pre><code class="language-bash">brew upgrade biolang</code></pre>
+        <pre><code class="language-bash">cargo install --git https://github.com/oriclabs/biolang bl-cli --force</code></pre>
 
         <h2>Uninstalling</h2>
-        <pre><code class="language-bash"># Cargo
+        <pre><code class="language-bash"># Installed with the one-line installer
+rm /usr/local/bin/bl /usr/local/bin/bl-lsp
+
+# Installed with Cargo
 cargo uninstall bl-cli
 
-# Homebrew
-brew uninstall biolang
-
-# Manual — just remove the binary
-rm /usr/local/bin/bl</code></pre>
+# Windows: delete %LOCALAPPDATA%\Programs\BioLangin and remove it from PATH</code></pre>
 
         <h2>Next Steps</h2>
         <p>

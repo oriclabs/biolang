@@ -140,7 +140,7 @@ let peptide = gene
   # => protein"MKLVVF"
 
 # GC content check
-gc_content(gene) |> print()   # => 0.389</code></pre>
+gc_content(gene) |> println()   # => 0.389</code></pre>
 
         <h2>Validation and Error Handling</h2>
         <p>
@@ -152,9 +152,9 @@ gc_content(gene) |> print()   # => 0.389</code></pre>
 
 # Runtime introspection
 let seq = dna"ATCGATCG"
-print(type(seq))              # => "DNA"
-print(seq_len(seq))           # => 8
-print(base_counts(seq))       # => {A: 2, T: 2, C: 2, G: 2}</code></pre>
+println(type(seq))              # => "DNA"
+println(seq_len(seq))           # => 8
+println(base_counts(seq))       # => {A: 2, T: 2, C: 2, G: 2}</code></pre>
 
         <h2>Working with Sequence Collections</h2>
         <p>
@@ -175,7 +175,7 @@ let stats = sequences
     revcomp: reverse_complement(s) |> to_string()
   })
   |> to_table()
-  |> print()
+  |> println()
 
 # Filter sequences by GC content
 let gc_rich = sequences

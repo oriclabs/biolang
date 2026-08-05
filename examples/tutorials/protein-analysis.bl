@@ -32,7 +32,7 @@ let aa_types = unique(residues)
 
 aa_types |> map(|aa| {
   let n = residues |> count_if(|r| r == aa)
-  { amino_acid: aa, count: n, pct: n / total * 100.0 }
+  { amino_acid: aa, count: n, pct: n * 100.0 / total }
 }) |> sort_by(|a, b| b.count - a.count) |> into sorted
 
 print("\n=== Amino Acid Composition ===")
@@ -49,9 +49,9 @@ let charged = residues |> count_if(|r| any(charged_aa, |a| a == r))
 let polar   = residues |> count_if(|r| any(polar_aa, |a| a == r))
 let hydro   = residues |> count_if(|r| any(hydro_aa, |a| a == r))
 
-print(f"\nCharged:     {charged} ({round(charged / total * 100.0, 1)}%)")
-print(f"Polar:       {polar} ({round(polar / total * 100.0, 1)}%)")
-print(f"Hydrophobic: {hydro} ({round(hydro / total * 100.0, 1)}%)")
+print(f"\nCharged:     {charged} ({round(charged * 100.0 / total, 1)}%)")
+print(f"Polar:       {polar} ({round(polar * 100.0 / total, 1)}%)")
+print(f"Hydrophobic: {hydro} ({round(hydro * 100.0 / total, 1)}%)")
 
 # ── 3. Motif Scanning ────────────────────────────────────────
 

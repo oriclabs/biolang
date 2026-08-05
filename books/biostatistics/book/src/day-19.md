@@ -364,26 +364,26 @@ let normal_expr = rnorm(n, 10.0, 2.8)
 let pooled_sd = sqrt((variance(tumor) + variance(normal_expr)) / 2.0)
 let d = (mean(tumor) - mean(normal_expr)) / pooled_sd
 print("=== Cohen's d ===")
-print("d = {d |> round(3)}")
+print(f"d = {d |> round(3)}")
 
 let interpretation = if abs(d) >= 0.8 { "large" }
     else if abs(d) >= 0.5 { "medium" }
     else if abs(d) >= 0.2 { "small" }
     else { "negligible" }
 
-print("Interpretation: {interpretation} effect")
+print(f"Interpretation: {interpretation} effect")
 print("")
 
 # Also report the raw difference
 let mean_diff = mean(tumor) - mean(normal_expr)
-print("Mean difference: {mean_diff |> round(2)} FPKM")
-print("This means tumor expression is ~{(mean_diff / mean(normal_expr) * 100) |> round(0)}% higher")
+print(f"Mean difference: {mean_diff |> round(2)} FPKM")
+print(f"This means tumor expression is ~{(mean_diff * 100.0 / mean(normal_expr)) |> round(0)}% higher")
 
 # Complete report: effect + CI + p + n
 let t = ttest(tumor, normal_expr)
 print("\n=== Complete Report ===")
-print("Cohen's d = {d |> round(2)}")
-print("p = {t.p_value |> round(4)}, n = {n} per group")
+print(f"Cohen's d = {d |> round(2)}")
+print(f"p = {t.p_value |> round(4)}, n = {n} per group")
 ```
 
 ### Odds Ratio and Relative Risk
@@ -404,26 +404,26 @@ let d_val = 30  # PD-L1 low + non-respond
 # Odds ratio — compute inline
 let or_val = (a * d_val) / (b * c)
 print("=== Odds Ratio ===")
-print("OR = {or_val |> round(2)}")
+print(f"OR = {or_val |> round(2)}")
 
 # Relative risk — compute inline
 let risk_high = a / (a + b)
 let risk_low = c / (c + d_val)
 let rr_val = risk_high / risk_low
 print("\n=== Relative Risk ===")
-print("RR = {rr_val |> round(2)}")
+print(f"RR = {rr_val |> round(2)}")
 
 # Absolute risk difference
 let ard = risk_high - risk_low
 print("\n=== Absolute Risk Difference ===")
-print("Risk (PD-L1 high): {(risk_high * 100) |> round(1)}%")
-print("Risk (PD-L1 low):  {(risk_low * 100) |> round(1)}%")
-print("Absolute difference: {(ard * 100) |> round(1)} percentage points")
-print("NNT: {(1 / ard) |> round(1)} (treat this many to get 1 extra responder)")
+print(f"Risk (PD-L1 high): {(risk_high * 100) |> round(1)}%")
+print(f"Risk (PD-L1 low):  {(risk_low * 100) |> round(1)}%")
+print(f"Absolute difference: {(ard * 100) |> round(1)} percentage points")
+print(f"NNT: {(1 / ard) |> round(1)} (treat this many to get 1 extra responder)")
 
 # Fisher's exact test for significance
 let fe = fisher_exact(a, b, c, d_val)
-print("Fisher's exact p-value: {fe.p_value |> round(4)}")
+print(f"Fisher's exact p-value: {fe.p_value |> round(4)}")
 
 # Note: OR overstates the relative risk when the outcome is common
 ```
@@ -452,9 +452,9 @@ let k = 3  # min(rows, cols)
 let v = sqrt(chi2.statistic / (n_obs * (k - 1)))
 
 print("=== Cramer's V ===")
-print("Chi-square: {chi2.statistic |> round(2)}")
-print("p-value: {chi2.p_value |> round(4)}")
-print("Cramer's V: {v |> round(3)}")
+print(f"Chi-square: {chi2.statistic |> round(2)}")
+print(f"p-value: {chi2.p_value |> round(4)}")
+print(f"Cramer's V: {v |> round(3)}")
 print("Interpretation: {if v > 0.3 { "moderate to strong" } else { "weak" }} association")
 ```
 
@@ -475,14 +475,14 @@ let aov = anova([subtype_a, subtype_b, subtype_c, subtype_d])
 let eta2 = aov.ss_between / aov.ss_total
 
 print("=== Eta-squared (ANOVA Effect Size) ===")
-print("F = {aov.f_statistic |> round(2)}, p = {aov.p_value |> round(4)}")
-print("eta2 = {eta2 |> round(3)}")
-print("{(eta2 * 100) |> round(1)}% of expression variance is explained by subtype")
+print(f"F = {aov.f_statistic |> round(2)}, p = {aov.p_value |> round(4)}")
+print(f"eta2 = {eta2 |> round(3)}")
+print(f"{(eta2 * 100) |> round(1)}% of expression variance is explained by subtype")
 
 let eta_interp = if eta2 >= 0.14 { "large" }
     else if eta2 >= 0.06 { "medium" }
     else { "small" }
-print("Interpretation: {eta_interp} effect")
+print(f"Interpretation: {eta_interp} effect")
 ```
 
 ### Forest Plot for Multiple Genes
@@ -541,10 +541,10 @@ let pooled_lg = sqrt((variance(group1_large) + variance(group2_large)) / 2.0)
 let d_large = (mean(group1_large) - mean(group2_large)) / pooled_lg
 
 print("=== Scenario 1: Large n, Tiny Effect ===")
-print("n = {n_large} per group")
-print("Mean difference: {(mean(group1_large) - mean(group2_large)) |> abs |> round(4)}")
-print("Cohen's d: {d_large |> round(4)}")
-print("p-value: {t_large.p_value |> round(6)}")
+print(f"n = {n_large} per group")
+print(f"Mean difference: {(mean(group1_large) - mean(group2_large)) |> abs |> round(4)}")
+print(f"Cohen's d: {d_large |> round(4)}")
+print(f"p-value: {t_large.p_value |> round(6)}")
 print("Significant? {if t_large.p_value < 0.05 { "YES" } else { "NO" }}")
 print("Biologically meaningful? VERY UNLIKELY (d ~ 0.01)")
 
@@ -558,10 +558,10 @@ let pooled_sm = sqrt((variance(group1_small) + variance(group2_small)) / 2.0)
 let d_small = (mean(group1_small) - mean(group2_small)) / pooled_sm
 
 print("\n=== Scenario 2: Small n, Large Effect ===")
-print("n = {n_small} per group")
-print("Mean difference: {(mean(group1_small) - mean(group2_small)) |> abs |> round(2)}")
-print("Cohen's d: {d_small |> round(2)}")
-print("p-value: {t_small.p_value |> round(4)}")
+print(f"n = {n_small} per group")
+print(f"Mean difference: {(mean(group1_small) - mean(group2_small)) |> abs |> round(2)}")
+print(f"Cohen's d: {d_small |> round(2)}")
+print(f"p-value: {t_small.p_value |> round(4)}")
 print("Significant? {if t_small.p_value < 0.05 { "YES" } else { "NO" }}")
 print("Biologically meaningful? LIKELY (d ~ 1.0) — needs more samples")
 
