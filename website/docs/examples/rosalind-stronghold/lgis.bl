@@ -54,7 +54,30 @@ println("Increasing: " + (increasing |> map(|x| str(x)) |> join(" ")))
 println("Decreasing: " + (decreasing |> map(|x| str(x)) |> join(" ")))
 println("Expected:   1 2 3  /  5 4 2")
 
+# Both answers are non-unique - 5 4 2 and 5 4 3 are equally long decreasing
+# runs - so the check is the defining property rather than one published line.
+fn is_subsequence_of(candidate, values) {
+    let at = 0
+    candidate |> each(|want| {
+        while at < len(values) and values[at] != want { at = at + 1 }
+        at = at + 1
+    })
+    at <= len(values)
+}
+
+fn strictly_ordered(values, ascending) {
+    all(range(0, len(values) - 1), |i| {
+        if ascending { values[i] < values[i + 1] } else { values[i] > values[i + 1] }
+    })
+}
+
 fn test_lgis_longest_runs() {
     assert len(increasing) == 3, "LGIS: increasing length " + str(len(increasing))
     assert len(decreasing) == 3, "LGIS: decreasing length " + str(len(decreasing))
+    # Lengths alone would pass for any three numbers. These are the properties
+    # that make an answer correct.
+    assert strictly_ordered(increasing, true), "LGIS: not increasing"
+    assert strictly_ordered(decreasing, false), "LGIS: not decreasing"
+    assert is_subsequence_of(increasing, permutation), "LGIS: not a subsequence"
+    assert is_subsequence_of(decreasing, permutation), "LGIS: not a subsequence"
 }

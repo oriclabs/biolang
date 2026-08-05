@@ -25,7 +25,15 @@ println("Result:   " + str(len(orders)))
 println("Expected: 6")
 orders |> each(|p| println("  " + (p |> map(|x| str(x)) |> join(" "))))
 
+# The published answer. Rosalind accepts any ordering of the six rows, so the
+# check is set equality rather than a line-by-line match.
+let expected = ["1 2 3", "1 3 2", "2 1 3", "2 3 1", "3 1 2", "3 2 1"]
+
 fn test_perm_permutation_count() {
     assert len(orders) == 6, "PERM: got " + str(len(orders))
-    assert len(unique(orders |> map(|p| join(map(p, |x| str(x)), " ")))) == 6, "PERM: duplicates"
+    let rendered = orders |> map(|p| join(map(p, |x| str(x)), " "))
+    assert len(unique(rendered)) == 6, "PERM: duplicates"
+    # Counting six distinct rows would pass for six lists of anything, so
+    # compare against the published set.
+    assert sort(rendered) == sort(expected), "PERM: does not match the published set"
 }

@@ -208,9 +208,17 @@ println(&quot;Result:   &quot; + str(len(orders)))
 println(&quot;Expected: 6&quot;)
 orders |&gt; each(|p| println(&quot;  &quot; + (p |&gt; map(|x| str(x)) |&gt; join(&quot; &quot;))))
 
+# The published answer. Rosalind accepts any ordering of the six rows, so the
+# check is set equality rather than a line-by-line match.
+let expected = [&quot;1 2 3&quot;, &quot;1 3 2&quot;, &quot;2 1 3&quot;, &quot;2 3 1&quot;, &quot;3 1 2&quot;, &quot;3 2 1&quot;]
+
 fn test_perm_permutation_count() {
     assert len(orders) == 6, &quot;PERM: got &quot; + str(len(orders))
-    assert len(unique(orders |&gt; map(|p| join(map(p, |x| str(x)), &quot; &quot;)))) == 6, &quot;PERM: duplicates&quot;
+    let rendered = orders |&gt; map(|p| join(map(p, |x| str(x)), &quot; &quot;))
+    assert len(unique(rendered)) == 6, &quot;PERM: duplicates&quot;
+    # Counting six distinct rows would pass for six lists of anything, so
+    # compare against the published set.
+    assert sort(rendered) == sort(expected), &quot;PERM: does not match the published set&quot;
 }</code></pre>
         </section>
 
@@ -497,10 +505,20 @@ println(&quot;Result:   &quot; + str(len(signed)))
 println(&quot;Expected: 8&quot;)
 signed |&gt; each(|p| println(&quot;  &quot; + (p |&gt; map(|x| str(x)) |&gt; join(&quot; &quot;))))
 
+# The published answer. Rosalind lists these in its own order and accepts any
+# ordering, so the check is set equality rather than a line-by-line match -
+# which is also why the printed output above does not look like the sample.
+let expected = [&quot;-1 -2&quot;, &quot;-1 2&quot;, &quot;1 -2&quot;, &quot;1 2&quot;, &quot;-2 -1&quot;, &quot;-2 1&quot;, &quot;2 -1&quot;, &quot;2 1&quot;]
+
 fn test_sign_signed_permutations() {
     assert len(signed) == 8, &quot;SIGN: got &quot; + str(len(signed))
-    let distinct = signed |&gt; map(|p| p |&gt; map(|x| str(x)) |&gt; join(&quot; &quot;)) |&gt; unique()
+    let rendered = signed |&gt; map(|p| p |&gt; map(|x| str(x)) |&gt; join(&quot; &quot;))
+    let distinct = rendered |&gt; unique()
     assert len(distinct) == 8, &quot;SIGN: duplicates present&quot;
+    # Counting eight distinct rows would pass for eight wrong ones, so compare
+    # against the published set. Sorted, because the order is not part of the
+    # answer.
+    assert sort(distinct) == sort(expected), &quot;SIGN: does not match the published set&quot;
 }</code></pre>
         </section>
 
