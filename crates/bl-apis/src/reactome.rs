@@ -9,6 +9,26 @@ use crate::client::BaseClient;
 use crate::config;
 use crate::error::{ApiError, Result};
 
+/// Strip the highlight markup Reactome wraps around matched search terms.
+///
+/// `/search/query` returns names like
+/// `<span class="highlighting" >Apoptosis</span>`, so anything printing the
+/// name — a table, a report — showed raw HTML. Only the search endpoint does
+/// this; the lookup endpoints return clean names.
+fn strip_highlight(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    let mut in_tag = false;
+    for ch in value.chars() {
+        match ch {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            c if !in_tag => out.push(c),
+            _ => {}
+        }
+    }
+    out.trim().to_string()
+}
+
 fn base_url() -> String {
     config::resolve_url("reactome", "https://reactome.org/ContentService")
 }
@@ -88,7 +108,9 @@ impl ReactomeClient {
                     for item in items {
                         entries.push(ReactomeEntry {
                             id: item["stId"].as_str().unwrap_or_default().to_string(),
-                            name: item["name"].as_str().unwrap_or_default().to_string(),
+                            name: strip_highlight(
+                                item["name"].as_str().unwrap_or_default(),
+                            ),
                             schema_class: item["schemaClass"]
                                 .as_str()
                                 .or_else(|| group["name"].as_str())

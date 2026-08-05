@@ -41,6 +41,14 @@ pub struct Gene {
     pub strand: i8,
     #[serde(default, alias = "seq_region_name")]
     pub chromosome: String,
+    /// Canonical transcript, with the version suffix stripped.
+    ///
+    /// Ensembl reports this as `ENST00000357654.9`, but `/sequence/id` rejects a
+    /// versioned ID with "not found", so the version is removed here. Asking for
+    /// a CDS or protein sequence needs a transcript: a gene has many, and the
+    /// endpoint answers a gene ID with HTTP 400 rather than picking one.
+    #[serde(default)]
+    pub canonical_transcript: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -222,6 +230,13 @@ fn parse_gene(json: &serde_json::Value) -> Result<Gene> {
             .as_str()
             .unwrap_or_default()
             .to_string(),
+        canonical_transcript: json["canonical_transcript"]
+            .as_str()
+            .unwrap_or_default()
+            .split('.')
+            .next()
+            .unwrap_or_default()
+            .to_string(),
     })
 }
 
@@ -258,6 +273,29 @@ fn parse_vep_array(json: &serde_json::Value) -> Result<Vec<VepResult>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn canonical_transcript_drops_the_version_suffix() {
+        // Ensembl reports `ENST00000357654.9`, but /sequence/id answers a
+        // versioned ID with "not found", so the suffix has to go. A gene ID
+        // there is worse: it returns HTTP 400 for cds and protein, because a
+        // gene has many transcripts.
+        let json: serde_json::Value = serde_json::from_str(
+            r#"{"id": "ENSG00000012048", "canonical_transcript": "ENST00000357654.9"}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            parse_gene(&json).unwrap().canonical_transcript,
+            "ENST00000357654"
+        );
+    }
+
+    #[test]
+    fn canonical_transcript_is_empty_when_absent() {
+        let json: serde_json::Value =
+            serde_json::from_str(r#"{"id": "ENSG00000012048"}"#).unwrap();
+        assert_eq!(parse_gene(&json).unwrap().canonical_transcript, "");
+    }
 
     #[test]
     fn test_parse_gene() {

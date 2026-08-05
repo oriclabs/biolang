@@ -76,8 +76,8 @@ impl GnomadClient {
             query Variant($variantId: String!, $datasetId: DatasetId!) {
               variant(variantId: $variantId, dataset: $datasetId) {
                 variantId chrom pos ref alt
-                exome { ac an af n_homozygotes }
-                genome { ac an af n_homozygotes }
+                exome { ac an af homozygote_count }
+                genome { ac an af homozygote_count }
                 consequence lof
               }
             }
@@ -102,11 +102,13 @@ impl GnomadClient {
         let q = r#"
             query GeneVariants($geneSymbol: String!, $datasetId: DatasetId!) {
               gene(gene_symbol: $geneSymbol, reference_genome: GRCh38) {
-                gene_id gene_name
+                # gnomAD renamed this: the Gene type now exposes `symbol`,
+                # and asking for `gene_name` fails the whole query with a 400.
+                gene_id symbol
                 variants(dataset: $datasetId) {
                   variantId chrom pos ref alt
-                  exome { ac an af n_homozygotes }
-                  genome { ac an af n_homozygotes }
+                  exome { ac an af homozygote_count }
+                  genome { ac an af homozygote_count }
                   consequence lof
                 }
               }
@@ -125,7 +127,7 @@ impl GnomadClient {
             });
         }
         let gene_id = gene["gene_id"].as_str().unwrap_or("").to_string();
-        let gene_name = gene["gene_name"]
+        let gene_name = gene["symbol"]
             .as_str()
             .unwrap_or(gene_symbol)
             .to_string();
@@ -152,10 +154,10 @@ impl GnomadClient {
             query VariantPops($variantId: String!, $datasetId: DatasetId!) {
               variant(variantId: $variantId, dataset: $datasetId) {
                 genome {
-                  populations { id ac an af n_homozygotes }
+                  populations { id ac an homozygote_count }
                 }
                 exome {
-                  populations { id ac an af n_homozygotes }
+                  populations { id ac an homozygote_count }
                 }
               }
             }
@@ -179,12 +181,18 @@ impl GnomadClient {
             .as_array()
             .unwrap_or(&vec![])
             .iter()
-            .map(|p| PopulationFreq {
-                population: p["id"].as_str().unwrap_or("").to_string(),
-                af: p["af"].as_f64().unwrap_or(0.0),
-                ac: p["ac"].as_u64().unwrap_or(0),
-                an: p["an"].as_u64().unwrap_or(0),
-                n_homozygotes: p["n_homozygotes"].as_u64().unwrap_or(0),
+            .map(|p| {
+                let ac = p["ac"].as_u64().unwrap_or(0);
+                let an = p["an"].as_u64().unwrap_or(0);
+                PopulationFreq {
+                    population: p["id"].as_str().unwrap_or("").to_string(),
+                    // A population no longer carries `af`, so derive it. Leaving
+                    // the old field in the query failed the whole request.
+                    af: if an > 0 { ac as f64 / an as f64 } else { 0.0 },
+                    ac,
+                    an,
+                    n_homozygotes: p["homozygote_count"].as_u64().unwrap_or(0),
+                }
             })
             .collect();
         Ok(pops)
@@ -215,7 +223,7 @@ fn parse_variant(v: &serde_json::Value, gene: &str, dataset: &str) -> GnomadVari
             src["ac"].as_u64().unwrap_or(0),
             src["an"].as_u64().unwrap_or(0),
             src["af"].as_f64().unwrap_or(0.0),
-            src["n_homozygotes"].as_u64().unwrap_or(0),
+            src["homozygote_count"].as_u64().unwrap_or(0),
         )
     };
     GnomadVariant {
@@ -250,8 +258,8 @@ mod tests {
             "pos": 55516888u64,
             "ref": "G",
             "alt": "GA",
-            "exome": { "ac": 12, "an": 240000, "af": 0.00005, "n_homozygotes": 0 },
-            "genome": { "ac": 3, "an": 60000, "af": 0.00005, "n_homozygotes": 0 },
+            "exome": { "ac": 12, "an": 240000, "af": 0.00005, "homozygote_count": 0 },
+            "genome": { "ac": 3, "an": 60000, "af": 0.00005, "homozygote_count": 0 },
             "consequence": "frameshift_variant",
             "lof": "HC"
         })
@@ -283,7 +291,7 @@ mod tests {
             "ref": "G",
             "alt": "A",
             "exome": serde_json::Value::Null,
-            "genome": { "ac": 45, "an": 125748, "af": 0.000358, "n_homozygotes": 1 },
+            "genome": { "ac": 45, "an": 125748, "af": 0.000358, "homozygote_count": 1 },
             "consequence": "missense_variant",
             "lof": ""
         });
@@ -319,20 +327,26 @@ mod tests {
     #[test]
     fn test_parse_populations() {
         let pops_json = serde_json::json!([
-            { "id": "afr", "ac": 8, "an": 30000, "af": 0.000267, "n_homozygotes": 0 },
-            { "id": "eur", "ac": 4, "an": 90000, "af": 0.0000444, "n_homozygotes": 0 },
-            { "id": "sas", "ac": 0, "an": 15000, "af": 0.0, "n_homozygotes": 0 }
+            { "id": "afr", "ac": 8, "an": 30000, "af": 0.000267, "homozygote_count": 0 },
+            { "id": "eur", "ac": 4, "an": 90000, "af": 0.0000444, "homozygote_count": 0 },
+            { "id": "sas", "ac": 0, "an": 15000, "af": 0.0, "homozygote_count": 0 }
         ]);
         let pops: Vec<PopulationFreq> = pops_json
             .as_array()
             .unwrap()
             .iter()
-            .map(|p| PopulationFreq {
-                population: p["id"].as_str().unwrap_or("").to_string(),
-                af: p["af"].as_f64().unwrap_or(0.0),
-                ac: p["ac"].as_u64().unwrap_or(0),
-                an: p["an"].as_u64().unwrap_or(0),
-                n_homozygotes: p["n_homozygotes"].as_u64().unwrap_or(0),
+            .map(|p| {
+                let ac = p["ac"].as_u64().unwrap_or(0);
+                let an = p["an"].as_u64().unwrap_or(0);
+                PopulationFreq {
+                    population: p["id"].as_str().unwrap_or("").to_string(),
+                    // A population no longer carries `af`, so derive it. Leaving
+                    // the old field in the query failed the whole request.
+                    af: if an > 0 { ac as f64 / an as f64 } else { 0.0 },
+                    ac,
+                    an,
+                    n_homozygotes: p["homozygote_count"].as_u64().unwrap_or(0),
+                }
             })
             .collect();
         assert_eq!(pops.len(), 3);
@@ -354,14 +368,14 @@ mod tests {
                         {
                             "variantId": "1-55516888-G-GA",
                             "chrom": "1", "pos": 55516888u64, "ref": "G", "alt": "GA",
-                            "exome": { "ac": 12, "an": 240000, "af": 0.00005, "n_homozygotes": 0 },
+                            "exome": { "ac": 12, "an": 240000, "af": 0.00005, "homozygote_count": 0 },
                             "genome": serde_json::Value::Null,
                             "consequence": "frameshift_variant", "lof": "HC"
                         },
                         {
                             "variantId": "1-55524276-C-T",
                             "chrom": "1", "pos": 55524276u64, "ref": "C", "alt": "T",
-                            "exome": { "ac": 1, "an": 240000, "af": 0.0000042, "n_homozygotes": 0 },
+                            "exome": { "ac": 1, "an": 240000, "af": 0.0000042, "homozygote_count": 0 },
                             "genome": serde_json::Value::Null,
                             "consequence": "stop_gained", "lof": "HC"
                         }

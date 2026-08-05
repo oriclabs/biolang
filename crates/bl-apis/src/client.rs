@@ -8,6 +8,28 @@ pub struct BaseClient {
     api_keys: HashMap<String, String>,
 }
 
+/// Read a response body, allowing far more than ureq's default.
+///
+/// `Response::into_string()` refuses anything over 10 MB with "response too big
+/// for into_string". Genomic payloads pass that routinely — chromosome 17 as
+/// FASTA is ~83 MB, and UCSC's hg38 track list clears it too — so those calls
+/// failed outright rather than returning data. The cap here exists only so a
+/// runaway response cannot exhaust memory silently.
+const MAX_BODY_BYTES: u64 = 512 * 1024 * 1024;
+
+fn read_body(resp: ureq::Response, url: &str) -> Result<String> {
+    use std::io::Read;
+    let mut body = String::new();
+    resp.into_reader()
+        .take(MAX_BODY_BYTES)
+        .read_to_string(&mut body)
+        .map_err(|e| ApiError::Parse {
+            context: url.to_string(),
+            source: e.to_string(),
+        })?;
+    Ok(body)
+}
+
 impl BaseClient {
     /// Create a new client, auto-reading known API keys from env vars.
     pub fn new() -> Self {
@@ -49,10 +71,7 @@ impl BaseClient {
             .set("Accept-Encoding", "identity")
             .call()
             .map_err(|e| map_ureq_error(e, url))?;
-        resp.into_string().map_err(|e| ApiError::Parse {
-            context: url.to_string(),
-            source: e.to_string(),
-        })
+        read_body(resp, url)
     }
 
     /// HTTP GET returning parsed JSON.
@@ -75,10 +94,7 @@ impl BaseClient {
             req = req.set(k, v);
         }
         let resp = req.call().map_err(|e| map_ureq_error(e, url))?;
-        let text = resp.into_string().map_err(|e| ApiError::Parse {
-            context: url.to_string(),
-            source: e.to_string(),
-        })?;
+        let text = read_body(resp, url)?;
         serde_json::from_str(&text).map_err(|e| ApiError::Parse {
             context: url.to_string(),
             source: e.to_string(),
@@ -92,10 +108,7 @@ impl BaseClient {
             req = req.set(k, v);
         }
         let resp = req.call().map_err(|e| map_ureq_error(e, url))?;
-        resp.into_string().map_err(|e| ApiError::Parse {
-            context: url.to_string(),
-            source: e.to_string(),
-        })
+        read_body(resp, url)
     }
 
     /// HTTP POST with JSON body, returning parsed JSON.
@@ -106,10 +119,7 @@ impl BaseClient {
             .set("Content-Type", "application/json")
             .send_string(&body.to_string())
             .map_err(|e| map_ureq_error(e, url))?;
-        let text = resp.into_string().map_err(|e| ApiError::Parse {
-            context: url.to_string(),
-            source: e.to_string(),
-        })?;
+        let text = read_body(resp, url)?;
         serde_json::from_str(&text).map_err(|e| ApiError::Parse {
             context: url.to_string(),
             source: e.to_string(),
@@ -127,10 +137,7 @@ impl BaseClient {
             .join("&");
         req = req.set("Content-Type", "application/x-www-form-urlencoded");
         let resp = req.send_string(&body).map_err(|e| map_ureq_error(e, url))?;
-        resp.into_string().map_err(|e| ApiError::Parse {
-            context: url.to_string(),
-            source: e.to_string(),
-        })
+        read_body(resp, url)
     }
 }
 

@@ -13,6 +13,24 @@ fn base_url() -> String {
     config::resolve_url("galaxy_toolshed", "https://toolshed.g2.bx.psu.edu")
 }
 
+/// Read a string field that the ToolShed does not type consistently.
+///
+/// `approved` comes back as the string "yes" from some endpoints and as a JSON
+/// bool from search hits, and date fields are sometimes null. Deserializing
+/// straight into String fails the whole response on any of those, so coerce
+/// instead: a bool becomes "true"/"false", null becomes empty.
+fn de_loose_string<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(match serde_json::Value::deserialize(deserializer)? {
+        serde_json::Value::String(s) => s,
+        serde_json::Value::Null => String::new(),
+        serde_json::Value::Bool(b) => b.to_string(),
+        other => other.to_string(),
+    })
+}
+
 /// Galaxy ToolShed API client (read-only).
 pub struct GalaxyToolShedClient {
     base: BaseClient,
@@ -24,27 +42,27 @@ pub struct GalaxyToolShedClient {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Repository {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de_loose_string")]
     pub id: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de_loose_string")]
     pub name: String,
-    #[serde(default)]
+    #[serde(default, alias = "repo_owner_username", deserialize_with = "de_loose_string")]
     pub owner: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de_loose_string")]
     pub description: String,
-    #[serde(rename = "type", default)]
+    #[serde(rename = "type", default, deserialize_with = "de_loose_string")]
     pub type_: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de_loose_string")]
     pub remote_repository_url: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de_loose_string")]
     pub homepage_url: String,
     #[serde(default)]
     pub times_downloaded: u64,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de_loose_string")]
     pub approved: String,
-    #[serde(default)]
+    #[serde(default, alias = "update_time", alias = "full_last_updated", deserialize_with = "de_loose_string")]
     pub last_updated: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de_loose_string")]
     pub create_time: String,
 }
 
@@ -137,8 +155,29 @@ impl Default for GalaxyToolShedClient {
     }
 }
 
+/// Parse a repository list from either shape the ToolShed returns.
+///
+/// `/api/repositories` answers with a bare array, but the same path with `?q=`
+/// answers with a search envelope — `{total_results, page, hits: [{score,
+/// repository}]}` — and the repository inside a hit names the owner
+/// `repo_owner_username` rather than `owner`. Assuming the array shape made
+/// `galaxy_search()` fail outright with "invalid type: map, expected a
+/// sequence".
 fn parse_repos_array(json: &serde_json::Value, url: &str) -> Result<Vec<Repository>> {
-    serde_json::from_value(json.clone()).map_err(|e| ApiError::Parse {
+    let payload = match json.get("hits") {
+        Some(hits) => serde_json::Value::Array(
+            hits.as_array()
+                .map(|items| {
+                    items
+                        .iter()
+                        .map(|hit| hit.get("repository").cloned().unwrap_or_else(|| hit.clone()))
+                        .collect()
+                })
+                .unwrap_or_default(),
+        ),
+        None => json.clone(),
+    };
+    serde_json::from_value(payload).map_err(|e| ApiError::Parse {
         context: url.to_string(),
         source: e.to_string(),
     })

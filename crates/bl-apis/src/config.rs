@@ -12,7 +12,7 @@
 //! nfcore_catalog: "https://nf-co.re/pipelines.json"
 //! nfcore_github: "https://api.github.com"
 //! nfcore_raw: "https://raw.githubusercontent.com"
-//! biocontainers: "https://api.biocontainers.pro/ga4gh/trs/v2"
+//! biocontainers: "https://quay.io/api/v1"
 //! ```
 
 use std::collections::HashMap;

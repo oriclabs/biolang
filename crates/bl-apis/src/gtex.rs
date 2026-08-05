@@ -8,6 +8,20 @@ use crate::client::BaseClient;
 use crate::config;
 use crate::error::Result;
 
+/// Pull the result array out of whichever envelope GTEx returns.
+///
+/// v2 wraps every list in `{data: [...], paging_info: {...}}`, but this client
+/// was written against v1, which keyed the array by endpoint name. Reading the
+/// old key against the live v2 API silently produced an empty list — the
+/// builtin returned nothing rather than failing, so nothing looked wrong.
+fn envelope<'a>(response: &'a serde_json::Value, legacy_key: &str) -> &'a serde_json::Value {
+    if response["data"].is_array() {
+        &response["data"]
+    } else {
+        &response[legacy_key]
+    }
+}
+
 fn base_url() -> String {
     config::resolve_url("gtex", "https://gtexportal.org/api/v2")
 }
@@ -126,7 +140,7 @@ impl GtexClient {
     pub fn tissues(&self) -> Result<Vec<GtexTissue>> {
         let url = format!("{}/dataset/tissueSiteDetail", base_url());
         let resp = self.base.get_json(&url)?;
-        let items = resp["tissueSiteDetail"]
+        let items = envelope(&resp, "tissueSiteDetail")
             .as_array()
             .unwrap_or(&vec![])
             .iter()
@@ -143,7 +157,7 @@ impl GtexClient {
             urlencoded(gene_id)
         );
         let resp = self.base.get_json(&url)?;
-        let items = resp["medianGeneExpression"]
+        let items = envelope(&resp, "medianGeneExpression")
             .as_array()
             .unwrap_or(&vec![])
             .iter()
@@ -177,7 +191,7 @@ impl GtexClient {
             urlencoded(tissue)
         );
         let resp = self.base.get_json(&url)?;
-        let items = resp["singleTissueEqtl"]
+        let items = envelope(&resp, "singleTissueEqtl")
             .as_array()
             .unwrap_or(&vec![])
             .iter()
@@ -195,7 +209,7 @@ impl GtexClient {
             urlencoded(tissue)
         );
         let resp = self.base.get_json(&url)?;
-        let items = resp["independentEqtl"]
+        let items = envelope(&resp, "independentEqtl")
             .as_array()
             .unwrap_or(&vec![])
             .iter()

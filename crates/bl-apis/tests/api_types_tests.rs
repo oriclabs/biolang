@@ -341,12 +341,14 @@ mod serde_roundtrips {
             end: 43170245,
             strand: -1,
             chromosome: "17".into(),
+            canonical_transcript: "ENST00000357654".into(),
         };
         let json = serde_json::to_value(&gene).unwrap();
         let back: Gene = serde_json::from_value(json).unwrap();
         assert_eq!(back.id, "ENSG00000012048");
         assert_eq!(back.strand, -1);
         assert_eq!(back.chromosome, "17");
+        assert_eq!(back.canonical_transcript, "ENST00000357654");
     }
 
     #[test]
