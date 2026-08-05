@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# Catch stale generated files before they reach a tag.
+#
+# Enable with:
+#   git config core.hooksPath .githooks
+#
+# Skip a single push with `git push --no-verify`.
+
+exec node scripts/check-generated.mjs

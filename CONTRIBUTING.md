@@ -28,6 +28,25 @@ cargo test --workspace           # Run all tests
 cargo clippy --workspace         # Lint checks
 ```
 
+### Generated Files
+
+Three committed artifacts are built from sources elsewhere in the tree:
+`website/docs/examples` and `desktop/src/generated` from the example packs,
+and `desktop/public/wasm` as a byte-for-byte copy of `website/wasm`. Editing a
+source without rerunning its generator leaves a stale artifact that `cargo
+test` cannot see — CI regenerates and fails instead.
+
+Enable the pre-push hook once per clone, and it catches all three before
+anything leaves your machine:
+
+```bash
+git config core.hooksPath .githooks
+node scripts/check-generated.mjs   # or run it directly
+```
+
+The hook rewrites the stale files in place, so a failure leaves the corrected
+output ready to commit. `git push --no-verify` skips it.
+
 ### Crate Structure
 
 | Crate | What it does |
