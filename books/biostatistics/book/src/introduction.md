@@ -153,7 +153,7 @@ Full installation instructions are in [Appendix A](appendix-setup.md), but here 
 
 ```bash
 # Install BioLang
-curl -sSf https://biolang.org/install.sh | sh
+curl -fsSL https://lang.bio/install.sh | sh
 
 # Verify it works
 bl --version
@@ -165,7 +165,7 @@ bl repl
 On Windows, use the PowerShell installer:
 
 ```powershell
-irm https://biolang.org/install.ps1 | iex
+iwr -useb https://lang.bio/install.ps1 | iex
 ```
 
 If you want to run the Python comparison scripts (optional but recommended):
