@@ -98,9 +98,15 @@ enum Commands {
     Notebook {
         /// Path to the .bln, .bl.md, or .ipynb file
         file: String,
-        /// Export format: html
+        /// Export format: html, html-wasm, typst, pdf
         #[arg(long)]
         export: Option<String>,
+        /// Where `--export html-wasm` should load the runtime from.
+        ///
+        /// The exported page is a loose file that can be served from anywhere,
+        /// so it cannot assume the site layout the website itself uses.
+        #[arg(long, default_value = "https://lang.bio/wasm")]
+        wasm_base: String,
         /// Convert Jupyter .ipynb to .bln format (prints to stdout)
         #[arg(long)]
         from_ipynb: bool,
@@ -199,6 +205,7 @@ fn main() {
                 Some(Commands::Notebook {
                     file,
                     export,
+                    wasm_base,
                     from_ipynb,
                     to_ipynb,
                 }) => {
@@ -209,11 +216,14 @@ fn main() {
                     } else if let Some(fmt) = export {
                         match fmt.as_str() {
                             "html" => notebook::export_html(&file),
+                            "html-wasm" | "html-live" => {
+                                notebook::export_html_wasm(&file, &wasm_base)
+                            }
                             "typst" | "typ" => notebook::export_typst(&file),
                             "pdf" => notebook::export_pdf(&file),
                             _ => {
                                 eprintln!(
-                                    "Unknown export format '{fmt}'. Supported: html, typst, pdf"
+                                    "Unknown export format '{fmt}'. Supported: html, html-wasm, typst, pdf"
                                 );
                                 process::exit(1);
                             }

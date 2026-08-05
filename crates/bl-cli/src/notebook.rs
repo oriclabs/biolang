@@ -493,6 +493,174 @@ pub fn export_html(path: &str) {
     );
 }
 
+/// Encode a value as a JavaScript string literal.
+///
+/// `</script>` inside embedded data would otherwise close the surrounding tag
+/// and break the page, so the sequence is split as well as JSON-escaped.
+fn js_string(value: &str) -> String {
+    serde_json::Value::String(value.to_string())
+        .to_string()
+        .replace("</", "<\\/")
+}
+
+/// Collect the data files a notebook reads, so the exported page can carry them.
+///
+/// Without this the page renders correctly and every button is dead: the reader
+/// has no `examples/sample-data/contigs.fa` to fetch, and the playground marks
+/// a block unrunnable when it cannot account for a file the code opens. Reading
+/// them at export time makes the artifact self-contained — code, output and
+/// data in one file.
+///
+/// Anything missing or too large to embed is reported on stderr and left out
+/// rather than silently dropped; those blocks stay marked CLI-only, which is
+/// the truthful outcome.
+fn collect_data_files(source: &str, notebook_path: &str) -> Vec<(String, String)> {
+    const MAX_EMBEDDED_BYTES: usize = 4 * 1024 * 1024;
+
+    let readers = [
+        "read_csv", "read_tsv", "read_fasta", "read_fastq", "read_vcf", "read_bed", "read_gff",
+        "csv", "tsv", "fasta", "fastq", "vcf", "bed", "gff",
+    ];
+    let notebook_dir = PathBuf::from(notebook_path)
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_default();
+
+    let mut found: Vec<(String, String)> = Vec::new();
+    let mut total = 0usize;
+
+    for reader in readers {
+        let mut from = 0usize;
+        while let Some(idx) = source[from..].find(reader) {
+            let start = from + idx;
+            from = start + reader.len();
+            // Require a call: `reader` then optional spaces then `("literal"`.
+            let rest = source[from..].trim_start();
+            let Some(rest) = rest.strip_prefix('(') else { continue };
+            let rest = rest.trim_start();
+            let Some(rest) = rest.strip_prefix('"') else { continue };
+            let Some(end) = rest.find('"') else { continue };
+            let literal = &rest[..end];
+            if literal.starts_with("http://") || literal.starts_with("https://") {
+                continue;
+            }
+            let key = literal.replace('\\', "/");
+            if found.iter().any(|(k, _)| k == &key) {
+                continue;
+            }
+            // Try the path as written, then relative to the notebook.
+            let candidates = [PathBuf::from(&key), notebook_dir.join(&key)];
+            let Some(contents) = candidates.iter().find_map(|c| std::fs::read_to_string(c).ok())
+            else {
+                eprintln!("note: {key} not found; blocks reading it stay CLI-only");
+                continue;
+            };
+            if total + contents.len() > MAX_EMBEDDED_BYTES {
+                eprintln!(
+                    "note: {key} skipped, embedding it would exceed {} MB",
+                    MAX_EMBEDDED_BYTES / (1024 * 1024)
+                );
+                continue;
+            }
+            total += contents.len();
+            found.push((key, contents));
+        }
+    }
+    found
+}
+
+/// Export a notebook as a page whose blocks are runnable in the browser.
+///
+/// The difference from `export_html` is what the reader can do, not what the
+/// page says: both bake in the output of a real CLI run, so the page is
+/// complete with JavaScript disabled. This one additionally ships the
+/// playground runtime, so a reader can edit a block and re-run it against
+/// WebAssembly.
+///
+/// The runtime itself is *not* inlined. It is ~5.9 MB (1.9 MB gzipped), and a
+/// reader working through a set of tutorials should download it once and have
+/// it cached, rather than once per page. `--wasm-base` points at wherever it is
+/// served from.
+///
+/// `playground.js` is embedded from the website source at compile time rather
+/// than copied. Which blocks can run in the browser is a genuinely hard
+/// question — the WASM build carries 791 of 1018 builtins, so a notebook using
+/// `ensembl_*` or `write_csv` renders correctly here and still cannot run — and
+/// a second copy of that logic would answer it differently within a release.
+pub fn export_html_wasm(path: &str, wasm_base: &str) {
+    let executed = execute_notebook(path);
+    let filename = PathBuf::from(path)
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "notebook".into());
+
+    let mut body = String::new();
+    for eb in &executed {
+        match &eb.block {
+            Block::Prose(text) => {
+                body.push_str(&markdown_to_html(text));
+            }
+            Block::Code(cb) => {
+                if cb.directives.contains(&CellDirective::Skip) {
+                    continue;
+                }
+                if !cb.directives.contains(&CellDirective::Hide) {
+                    // playground.js looks for `code.language-biolang`, the same
+                    // selector the docs pages use, and attaches the button and
+                    // its own output panel around this element.
+                    body.push_str("<div class=\"cell-code\"><pre><code class=\"language-biolang\">");
+                    body.push_str(&highlight_biolang(&cb.code));
+                    body.push_str("</code></pre></div>
+");
+                }
+                if let Some(output) = &eb.output {
+                    if !cb.directives.contains(&CellDirective::HideOutput) && !output.is_empty() {
+                        body.push_str("<div class=\"cell-output\">");
+                        body.push_str(&html_escape(output));
+                        body.push_str("</div>
+");
+                    }
+                }
+            }
+        }
+    }
+
+    // Everything the notebook reads, inlined, so the page works on its own.
+    let all_code: String = executed
+        .iter()
+        .filter_map(|eb| match &eb.block {
+            Block::Code(cb) => Some(cb.code.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("
+");
+    let mut data = String::from("window.__blFiles = window.__blFiles || {};
+window.__blDataFiles = window.__blDataFiles || {};
+");
+    for (key, contents) in collect_data_files(&all_code, path) {
+        data.push_str(&format!(
+            "window.__blFiles[{}] = {};
+window.__blDataFiles[{}] = true;
+",
+            js_string(&key),
+            js_string(&contents),
+            js_string(&key)
+        ));
+    }
+
+    let runtime = include_str!("../../../website/js/playground.js");
+    println!(
+        "{}",
+        HTML_WASM_TEMPLATE
+            .replace("{title}", &html_escape(&filename))
+            .replace("{wasm_base}", &html_escape(wasm_base.trim_end_matches('/')))
+            .replace("{body}", &body)
+            .replace("{data}", &data)
+            .replace("{runtime}", runtime)
+    );
+}
+
 fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
@@ -1185,6 +1353,56 @@ const HTML_TEMPLATE: &str = r#"<!DOCTYPE html>
   <div class="meta">Generated by BioLang Notebook</div>
 </body>
 </html>"#;
+
+
+/// Template for `--export html-wasm`.
+///
+/// `components-loaded` is set up front on purpose: playground.js waits for the
+/// website's component loader to set it and only falls back after three
+/// seconds. Nothing loads components here, so without it every exported
+/// notebook would sit inert for three seconds before its buttons appeared.
+const HTML_WASM_TEMPLATE: &str = r##"<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="bl-wasm-base" content="{wasm_base}">
+  <title>{title} — BioLang Notebook</title>
+  <style>
+    :root { --bg: #0f172a; --fg: #e2e8f0; --muted: #94a3b8; --accent: #8b5cf6; --code-bg: #1e293b; --output-bg: #1a1a2e; --border: #334155; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--fg); max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; line-height: 1.7; }
+    h1, h2, h3, h4, h5, h6 { color: #f8fafc; margin: 1.5rem 0 0.75rem; font-weight: 700; }
+    h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
+    p { margin: 0.75rem 0; }
+    ul, ol { margin: 0.75rem 0 0.75rem 1.5rem; }
+    a { color: #a78bfa; }
+    code { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; }
+    p code, li code { background: var(--code-bg); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.9em; }
+    .cell-code { position: relative; margin: 1rem 0 0.25rem; }
+    .cell-code pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem 1.1rem; overflow-x: auto; font-size: 0.875rem; line-height: 1.6; }
+    .cell-output { background: var(--output-bg); border-left: 3px solid #f59e0b; padding: 0.75rem 1rem; margin: 0.25rem 0 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; white-space: pre-wrap; border-radius: 0 6px 6px 0; color: #fbbf24; }
+    .kw { color: #c084fc; font-weight: 600; }
+    .str { color: #34d399; }
+    .num { color: #60a5fa; }
+    .cmt { color: #64748b; font-style: italic; }
+    .fn { color: #fbbf24; }
+    .op { color: #818cf8; font-weight: 700; }
+    .note { color: var(--muted); font-size: 0.8rem; margin: 0.25rem 0 1.25rem; }
+    .meta { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.8rem; text-align: center; }
+  </style>
+</head>
+<body class="components-loaded">
+{body}
+  <div class="meta">Generated by BioLang Notebook — outputs below each block are from the run that produced this page; press Run to execute it again in your browser.</div>
+<script>
+{data}
+</script>
+<script>
+{runtime}
+</script>
+</body>
+</html>"##;
 
 // ── Jupyter import/export ────────────────────────────────────────────────────
 

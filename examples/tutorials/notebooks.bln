@@ -1,0 +1,58 @@
+# GC Content Analysis
+
+A reproducible analysis of per-contig GC content.
+Outlier contigs may indicate contamination or HGT events.
+
+## Setup
+
+```biolang
+# @hide
+let threshold = 2.0
+```
+
+## Load Data
+
+Read the FASTA file and report basic counts.
+
+```biolang
+let seqs = read_fasta("examples/sample-data/contigs.fa")
+println(f"Loaded {len(seqs)} sequences")
+```
+
+## Compute GC Statistics
+
+```biolang
+# @echo
+let gc_values = seqs |> map(|s| gc_content(s.seq))
+let mu = mean(gc_values)
+let sigma = stdev(gc_values)
+println(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
+```
+
+## Build Results Table
+
+```biolang
+# @hide-output
+let gc_table = seqs
+  |> map(|s| {id: s.id, length: seq_len(s.seq), gc: gc_content(s.seq)})
+  |> table()
+```
+
+## Identify Outliers
+
+Contigs more than **2 standard deviations** from the mean
+may represent contamination or horizontal gene transfer.
+
+```biolang
+let outliers = gc_table
+  |> filter(|row| abs(row.gc - mu) > threshold * sigma)
+  |> arrange("-gc")
+
+println(f"Found {len(outliers)} outlier contigs:")
+outliers |> each(|row| println(f"  {row.id}: GC={row.gc:.3f}, length={row.length}"))
+```
+
+## Summary
+
+> Review flagged contigs before downstream assembly.
+> Consider BLAST against nt database to confirm contamination.

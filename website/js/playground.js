@@ -55,7 +55,9 @@
   // never work), ask the module what it actually has and name the missing
   // function in the message.
   var __blKnown = null;
-  var __blDataFiles = {};
+  // Seeded by pages that supply their own data — an exported notebook embeds
+  // the files it reads, so they are available before any catalog is fetched.
+  var __blDataFiles = window.__blDataFiles || {};
   var __blAvailablePageLocals = {};
   var __blUnavailablePageLocals = {};
   function __blKnownBuiltins() {
@@ -214,7 +216,17 @@
   var wasmQueue = [];
 
   function getWasmBasePath() {
-    // Use absolute path to /wasm/ from site root
+    // The site serves the runtime from its root, but a notebook exported by
+    // `bl notebook --export html-wasm` is a loose file that can sit anywhere —
+    // a subdirectory, another host, or the local disk — so it declares where
+    // the runtime lives instead of inheriting this default.
+    if (typeof window.__blWasmBase === 'string' && window.__blWasmBase) {
+      return window.__blWasmBase.replace(/\/+$/, '');
+    }
+    var meta = document.querySelector('meta[name="bl-wasm-base"]');
+    if (meta && meta.content) {
+      return meta.content.replace(/\/+$/, '');
+    }
     return '/wasm';
   }
 
@@ -375,7 +387,12 @@
     __blAvailablePageLocals = {};
     __blUnavailablePageLocals = {};
     document.querySelectorAll('pre[data-runnable]').forEach(function (pre) {
-      if (pre.querySelector('.bl-run-btn')) return;
+      // The button is appended to the wrapper around `pre`, not inside it, so
+      // looking for it inside `pre` never matched and every extra call to this
+      // function added a second button and a second `allBlocks` entry — which
+      // also made the cumulative replay run each earlier block twice.
+      if (pre.hasAttribute('data-bl-buttons')) return;
+      pre.setAttribute('data-bl-buttons', '');
 
       // Ensure wrapper has relative positioning for button placement
       var wrapper = pre.parentNode;
@@ -445,6 +462,35 @@
     });
   }
 
+  // ── Busy indicator ──
+  //
+  // Evaluation is synchronous: the WASM call blocks the main thread, so the
+  // panel used to open empty and stay empty until it finished. A spinner built
+  // on `transform` keeps turning anyway, because Chrome and Firefox animate
+  // transforms on the compositor rather than the blocked main thread. Anything
+  // animating a layout property would simply freeze.
+  var __blSpinnerStyled = false;
+  function blEnsureSpinnerStyles() {
+    if (__blSpinnerStyled) return;
+    __blSpinnerStyled = true;
+    var style = document.createElement('style');
+    style.textContent =
+      '@keyframes bl-spin{to{transform:rotate(360deg)}}' +
+      '.bl-spinner{box-sizing:border-box;width:14px;height:14px;border-radius:50%;flex:none;' +
+        'border:2px solid rgba(148,163,184,0.25);border-top-color:#a78bfa;' +
+        'animation:bl-spin 0.7s linear infinite}' +
+      '@media (prefers-reduced-motion:reduce){.bl-spinner{animation-duration:2.4s}}';
+    document.head.appendChild(style);
+  }
+
+  function blBusyHtml(message) {
+    blEnsureSpinnerStyles();
+    return '<span style="display:inline-flex;align-items:center;gap:8px;color:#94a3b8">' +
+             '<span class="bl-spinner"></span>' +
+             '<span>' + escapeHtml(message) + '</span>' +
+           '</span>';
+  }
+
   // ── Execute code via WASM ──
 
   function runCode(code, btn, outputEl, blockIndex) {
@@ -467,7 +513,7 @@
     // Lazy-load WASM
     timingEl.textContent = '';
     outputEl.style.display = 'block';
-    resultEl.innerHTML = '<span style="color:#94a3b8">Downloading BioLang runtime (~4 MB)...</span>';
+    resultEl.innerHTML = blBusyHtml('Downloading BioLang runtime (~4 MB)...');
     var pre = outputEl.previousElementSibling || outputEl.parentNode.querySelector('pre');
     if (pre) pre.style.borderRadius = '8px 8px 0 0';
 
@@ -487,7 +533,7 @@
     outputEl.style.display = 'block';
     var pre = outputEl.previousElementSibling || outputEl.parentNode.querySelector('pre');
     if (pre) pre.style.borderRadius = '8px 8px 0 0';
-    resultEl.innerHTML = hasFileOps ? '<span style="color:#94a3b8">Fetching data files...</span>' : '';
+    resultEl.innerHTML = blBusyHtml(hasFileOps ? 'Fetching data files...' : 'Running...');
 
     // Use setTimeout to let the UI update before blocking on sync XHR
     setTimeout(function() {
@@ -627,7 +673,9 @@
       .then(function(catalog) {
         __blKnown = {};
         (catalog.builtins || []).forEach(function(name) { __blKnown[name] = true; });
-        __blDataFiles = {};
+        // Merge rather than replace: an exported notebook carries its own data
+        // inline and declares it here, and those files exist regardless of what
+        // the host site happens to publish.
         (catalog.dataFiles || []).forEach(function(name) { __blDataFiles[name] = true; });
       })
       .catch(function() {
@@ -637,18 +685,28 @@
   }
 
   // Wait for components to load (main.js sets components-loaded)
+  //
+  // The fallback below has to be cancelled once the observer fires, otherwise
+  // both paths call initPlayground and the page gets two of everything.
+  var __blStarted = false;
+  function startOnce() {
+    if (__blStarted) return;
+    __blStarted = true;
+    initPlayground();
+  }
+
   if (document.body.classList.contains('components-loaded')) {
-    setTimeout(initPlayground, 200);
+    setTimeout(startOnce, 200);
   } else {
+    var fallback = setTimeout(startOnce, 3000);
     var observer = new MutationObserver(function () {
       if (document.body.classList.contains('components-loaded')) {
         observer.disconnect();
-        setTimeout(initPlayground, 200);
+        clearTimeout(fallback);
+        setTimeout(startOnce, 200);
       }
     });
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    // Fallback if components-loaded never fires
-    setTimeout(initPlayground, 3000);
   }
 
   // ── Inline docs — show signature on hover over builtin names ──
