@@ -68,6 +68,23 @@ function pythonSetup(expr) {
   if (/math\./.test(expr)) lines.push("import math");
   if (/Seq\(/.test(expr)) lines.push("from Bio.Seq import Seq");
   if (/gc_fraction\(/.test(expr)) lines.push("from Bio.SeqUtils import gc_fraction");
+  // Python has no Levenshtein in the standard library. The reference is a plain
+  // DP table, and the pane has to carry it or the snippet is uncopyable — these
+  // three cases previously used the expected number as the "reference", which
+  // rendered as print(0) and compared BioLang against a typed-in constant
+  // rather than against another implementation.
+  if (/levenshtein\(/.test(expr)) {
+    lines.push(
+      "def levenshtein(a, b):",
+      "    prev = list(range(len(b) + 1))",
+      "    for i, ca in enumerate(a, 1):",
+      "        cur = [i]",
+      "        for j, cb in enumerate(b, 1):",
+      "            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))",
+      "        prev = cur",
+      "    return prev[-1]",
+      "");
+  }
   return lines;
 }
 

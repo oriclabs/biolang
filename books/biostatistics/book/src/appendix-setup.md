@@ -9,10 +9,10 @@ This appendix walks you through installing BioLang and the optional Python and R
 Open a terminal and run:
 
 ```bash
-curl -sSf https://biolang.org/install.sh | sh
+curl -fsSL https://lang.bio/install.sh | sh
 ```
 
-This installs the `bl` binary to `~/.biolang/bin/` and adds it to your PATH. Restart your terminal or run:
+This installs the `bl` binary to `/usr/local/bin` and adds it to your PATH. Restart your terminal or run:
 
 ```bash
 source ~/.bashrc   # or ~/.zshrc on macOS
@@ -32,10 +32,10 @@ the current 1.x CLI and runtime.
 Open PowerShell and run:
 
 ```powershell
-irm https://biolang.org/install.ps1 | iex
+iwr -useb https://lang.bio/install.ps1 | iex
 ```
 
-This installs `bl.exe` to `%USERPROFILE%\.biolang\bin\` and updates your PATH. Close and reopen PowerShell, then verify:
+This installs `bl.exe` to `%LOCALAPPDATA%\Programs\BioLang\bin` and updates your PATH. Close and reopen PowerShell, then verify:
 
 ```powershell
 bl --version

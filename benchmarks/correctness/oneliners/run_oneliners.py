@@ -27,10 +27,28 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 CASES = os.path.join(HERE, "cases.tsv")
 
-PY_PREAMBLE = """import json, math, statistics
+PY_PREAMBLE = '''import json, math, statistics
 from Bio.Seq import Seq
 from Bio.SeqUtils import gc_fraction
-"""
+
+
+def levenshtein(a, b):
+    """Edit distance by dynamic programming.
+
+    Python has no Levenshtein in the standard library, and three of these cases
+    previously used the expected number as the "reference" - which compares
+    BioLang against a constant somebody typed, not against another
+    implementation. BioLang uses Myers' bit-parallel algorithm, so this plain DP
+    table is a genuinely different route to the same definition.
+    """
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+'''
 
 R_PREAMBLE = """suppressPackageStartupMessages(library(Biostrings))
 suppressPackageStartupMessages(library(jsonlite))

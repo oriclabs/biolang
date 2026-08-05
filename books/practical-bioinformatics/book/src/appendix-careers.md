@@ -190,7 +190,7 @@ For a more granular view, here is how each day maps to career-relevant skills:
 - **Biostars** ([biostars.org](https://www.biostars.org/)) — Q&A forum for bioinformatics
 - **SEQanswers** ([seqanswers.com](http://seqanswers.com/)) — sequencing-focused forum
 - **r/bioinformatics** on Reddit — active community
-- **BioLang community** — forums and chat at [biolang.org](https://biolang.org/)
+- **BioLang community** — forums and chat at [lang.bio](https://lang.bio/)
 
 ### Certifications and Degrees
 

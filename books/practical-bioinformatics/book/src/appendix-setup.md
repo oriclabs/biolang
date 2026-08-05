@@ -9,10 +9,10 @@ This appendix walks you through installing everything you need for this book: Bi
 Open a terminal and run the installer:
 
 ```bash
-curl -sSf https://biolang.org/install.sh | sh
+curl -fsSL https://lang.bio/install.sh | sh
 ```
 
-This downloads the latest release binary and installs it to `~/.biolang/bin/`. The installer adds this directory to your `PATH` automatically. You may need to restart your terminal or run `source ~/.bashrc` (or `source ~/.zshrc` on macOS) for the change to take effect.
+This downloads the latest release binary and installs it to `/usr/local/bin`. The installer adds this directory to your `PATH` automatically. You may need to restart your terminal or run `source ~/.bashrc` (or `source ~/.zshrc` on macOS) for the change to take effect.
 
 To verify the installation:
 
@@ -31,15 +31,17 @@ biolang 0.1.0
 Open PowerShell and run:
 
 ```powershell
-irm https://biolang.org/install.ps1 | iex
+iwr -useb https://lang.bio/install.ps1 | iex
 ```
 
-This installs `bl.exe` to `%USERPROFILE%\.biolang\bin\` and adds it to your user `PATH`. You may need to restart your terminal.
+This installs `bl.exe` to `%LOCALAPPDATA%\Programs\BioLang\bin` and adds it to your user `PATH`. You may need to restart your terminal.
 
-Alternatively, if you have [Scoop](https://scoop.sh/) installed:
+BioLang is not in Scoop, Chocolatey, Homebrew or crates.io yet, so
+`scoop install`, `brew install` and `cargo install biolang` will not work.
+To build from source instead:
 
 ```powershell
-scoop install biolang
+cargo install --git https://github.com/oriclabs/biolang bl-cli
 ```
 
 ### Building from Source
@@ -392,21 +394,23 @@ If BioLang prints "BioLang: OK", you are ready to start Day 1.
 The `bl` binary is not on your `PATH`. Add it:
 
 ```bash
-# macOS/Linux
-export PATH="$HOME/.biolang/bin:$PATH"
+# macOS/Linux - the installer uses /usr/local/bin unless BIOLANG_INSTALL_DIR
+# says otherwise, and that is normally on PATH already. If you set a custom
+# directory, add it:
+export PATH="$BIOLANG_INSTALL_DIR:$PATH"
 
 # Add to your shell profile to make it permanent
-echo 'export PATH="$HOME/.biolang/bin:$PATH"' >> ~/.bashrc
+echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
 ```
 
-On Windows, check that `%USERPROFILE%\.biolang\bin` is in your system `PATH`.
+On Windows, check that `%LOCALAPPDATA%\Programs\BioLang\bin` is in your system `PATH`.
 
 ### Permission Denied (macOS)
 
 macOS may block the binary because it was downloaded from the internet:
 
 ```bash
-xattr -d com.apple.quarantine ~/.biolang/bin/bl
+xattr -d com.apple.quarantine /usr/local/binbl
 ```
 
 ### Python Package Install Fails
@@ -454,6 +458,6 @@ export HTTPS_PROXY="http://proxy.example.com:8080"
 
 If you are stuck:
 
-1. Check the [BioLang documentation](https://biolang.org/docs/)
+1. Check the [BioLang documentation](https://lang.bio/docs/)
 2. Search the [GitHub Issues](https://github.com/oriclabs/biolang/issues)
 3. Ask in the BioLang community forum
