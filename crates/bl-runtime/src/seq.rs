@@ -3194,6 +3194,49 @@ fn builtin_scan_bio(args: &[Value]) -> Result<Value> {
 
 // ── read_pdf(path) — extract text from a PDF file ───────────────────
 
+/// Run `work`, turning a panic inside it into an error the script can catch.
+///
+/// `pdf_extract` unwraps its own parse failures. A PDF it cannot follow - the
+/// first real-world file tried here, a 2015 conference deck, hit
+/// `Parse(InvalidContentStream)` - therefore does not return `Err`, it aborts
+/// the process:
+///
+///   thread 'bl-main' panicked at pdf-extract-0.10.0/src/lib.rs:1578:
+///   called `Result::unwrap()` on an `Err` value: Parse(InvalidContentStream)
+///   main thread panicked: Any { .. }
+///
+/// So `read_pdf` had a careful error path that a malformed file walked straight
+/// past, killing the interpreter and taking any unsaved work in a REPL or
+/// notebook session with it. A library that panics on bad input needs the
+/// boundary drawn here rather than trusted to it.
+///
+/// The panic hook is silenced for the duration, or the default one prints its
+/// own stack notice before the caller ever sees a tidy error. That hook is
+/// process-global, so a panic on another thread during this window loses its
+/// message; the window is one function call over a byte slice, which is a fair
+/// trade for not printing a Rust backtrace at someone who opened the wrong PDF.
+#[cfg(all(not(target_arch = "wasm32"), feature = "native"))]
+fn without_panicking<T>(who: &str, work: impl FnOnce() -> T + std::panic::UnwindSafe) -> Result<T> {
+    let previous = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let outcome = std::panic::catch_unwind(work);
+    std::panic::set_hook(previous);
+
+    outcome.map_err(|payload| {
+        // Panic payloads are almost always one of these two.
+        let detail = payload
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| payload.downcast_ref::<&str>().copied())
+            .unwrap_or("no further detail");
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("{who}(): the file could not be parsed ({detail})"),
+            None,
+        )
+    })
+}
+
 fn builtin_read_pdf(args: &[Value]) -> Result<Value> {
     let _path = require_str(&args[0], "read_pdf")?;
 
@@ -3234,13 +3277,17 @@ fn builtin_read_pdf(args: &[Value]) -> Result<Value> {
             let bytes = std::fs::read(path).map_err(|e| {
                 BioLangError::runtime(ErrorKind::IOError, format!("read_pdf(): {e}"), None)
             })?;
-            let text = pdf_extract::extract_text_from_mem(&bytes).map_err(|e| {
-                BioLangError::runtime(
-                    ErrorKind::IOError,
-                    format!("read_pdf(): failed to extract text: {e}"),
-                    None,
-                )
-            })?;
+            // Two failure modes, because the extractor uses both: an Err it
+            // reports, and a panic it does not.
+            let text =
+                without_panicking("read_pdf", || pdf_extract::extract_text_from_mem(&bytes))?
+                    .map_err(|e| {
+                        BioLangError::runtime(
+                            ErrorKind::IOError,
+                            format!("read_pdf(): failed to extract text: {e}"),
+                            None,
+                        )
+                    })?;
             Ok(Value::Str(text))
         }
 
@@ -5060,5 +5107,64 @@ fn builtin_center_interval(args: Vec<Value>) -> Result<Value> {
             ),
             None,
         )),
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32"), feature = "native"))]
+mod panic_boundary_tests {
+    use super::*;
+
+    // The behaviour under test is the boundary, not pdf_extract's internals:
+    // a library that panics must not be able to end the process. Reproducing
+    // pdf_extract's own InvalidContentStream panic would mean committing a
+    // fixture that provokes one specific version of one dependency; this
+    // asserts the property that has to hold for any of them.
+
+    #[test]
+    fn a_panic_becomes_an_error_rather_than_a_dead_process() {
+        let result = without_panicking("read_pdf", || -> u32 {
+            panic!("called `Result::unwrap()` on an `Err` value: Parse(InvalidContentStream)")
+        });
+        let error = result.expect_err("the panic escaped");
+        let message = format!("{error}");
+        assert!(message.contains("read_pdf()"), "unattributed: {message}");
+        assert!(
+            message.contains("InvalidContentStream"),
+            "the cause was thrown away: {message}"
+        );
+    }
+
+    #[test]
+    fn a_panic_with_a_static_message_is_reported_too() {
+        // &str and String payloads take different downcasts, and only one of
+        // them being handled would silently drop half the causes.
+        let error = without_panicking("read_pdf", || -> u32 { panic!("static reason") })
+            .expect_err("the panic escaped");
+        assert!(format!("{error}").contains("static reason"));
+    }
+
+    #[test]
+    fn work_that_succeeds_passes_its_value_through() {
+        assert_eq!(without_panicking("read_pdf", || 41 + 1).unwrap(), 42);
+    }
+
+    #[test]
+    fn the_panic_hook_is_left_as_it_was_found() {
+        // The hook is process-global and silenced during the call. Leaking that
+        // would mute every later panic in the process, turning a crash anywhere
+        // else into silence.
+        let marker = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let seen = marker.clone();
+        std::panic::set_hook(Box::new(move |_| {
+            seen.store(true, std::sync::atomic::Ordering::SeqCst);
+        }));
+
+        let _ = without_panicking("read_pdf", || -> u32 { panic!("swallowed") });
+
+        // Our hook must be back in place, so this panic reaches it.
+        let _ = std::panic::catch_unwind(|| panic!("after"));
+        let restored = marker.load(std::sync::atomic::Ordering::SeqCst);
+        let _ = std::panic::take_hook();
+        assert!(restored, "the silencing hook was left installed");
     }
 }

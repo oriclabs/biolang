@@ -2750,6 +2750,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("ma_plot", "ma_plot(table, opts?) → Str (SVG)", "plot"),
     ("save_svg", "save_svg(svg, path)", "plot"),
     (
+        "save_png",
+        "save_png(svg, path, opts?) → Str (path)",
+        "plot",
+    ),
+    (
         "genome_track",
         "genome_track(table, opts?) → Str (SVG)",
         "plot",
@@ -2765,6 +2770,34 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     // the whole plot family undocumentable and invisible to the arity checker.
     ("umap_plot", "umap_plot(points, opts?) → Str (SVG)", "plot"),
     ("pca_plot", "pca_plot(points, opts?) → Str (SVG)", "plot"),
+    // The single-cell figures. Each was added without an entry here, so each
+    // was documented as `name(arg1, arg2?)` - which is how the whole plot
+    // family became undocumentable the first time.
+    (
+        "feature_plot",
+        "feature_plot(points, opts?) → Str (SVG)",
+        "plot",
+    ),
+    (
+        "elbow_plot",
+        "elbow_plot(variance_ratios, opts?) → Str (SVG)",
+        "plot",
+    ),
+    (
+        "violin_plot",
+        "violin_plot(data, opts?) → Str (SVG)",
+        "plot",
+    ),
+    (
+        "variable_feature_plot",
+        "variable_feature_plot(matrix, opts?) → Str (SVG)",
+        "plot",
+    ),
+    (
+        "dot_plot",
+        "dot_plot(matrix, clusters, opts?) → Str (SVG)",
+        "plot",
+    ),
     ("violin", "violin(data, opts?) → Str (SVG)", "plot"),
     (
         "clustered_heatmap",
@@ -3390,6 +3423,24 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     (
         "highly_variable_genes",
         "highly_variable_genes(matrix, n?) -> List[Int] (dispersion-ranked columns)",
+        "singlecell",
+    ),
+    (
+        "cca",
+        "cca(matrix1, matrix2, opts?) -> Record{u, v, d} \
+         (shared axes; cells x cells, so small inputs only)",
+        "singlecell",
+    ),
+    (
+        "harmony_integrate",
+        "harmony_integrate(embedding, batches, opts?) -> matrix \
+         (batch-corrected, per-cluster)",
+        "singlecell",
+    ),
+    (
+        "find_all_markers",
+        "find_all_markers(matrix, clusters, opts?) -> List[Record] \
+         (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2)",
         "singlecell",
     ),
     (

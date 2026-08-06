@@ -9,7 +9,7 @@ description = "Tree-walking interpreter with 1000+ builtins for BioLang"
 
 [features]
 default = ["native"]
-native = ["dep:bl-refs", "dep:flate2", "dep:glob", "dep:ureq", "dep:bl-bio", "dep:bl-apis", "dep:suppaftp", "dep:toml", "dep:dirs", "dep:rusqlite", "dep:parquet", "dep:pdf-extract", "dep:lz4_flex", "dep:ruzstd"]
+native = ["dep:bl-refs", "dep:flate2", "dep:glob", "dep:ureq", "dep:bl-bio", "dep:bl-apis", "dep:suppaftp", "dep:toml", "dep:dirs", "dep:rusqlite", "dep:parquet", "dep:pdf-extract", "dep:lz4_flex", "dep:ruzstd", "dep:resvg"]
 bytecode = ["dep:bl-compiler", "dep:bl-jit"]
 jit = ["bytecode", "bl-jit/jit"]
 
@@ -47,6 +47,21 @@ dirs = { version = "5", optional = true }
 rusqlite = { version = "0.31", features = ["bundled"], optional = true }
 parquet = { version = "54", optional = true, default-features = false, features = ["snap"] }
 pdf-extract = { version = "0.10", optional = true }
+# PNG export: rasterises the SVG the plot builtins already produce, rather than
+# introducing a second rendering path that could disagree with the first.
+# Native only - in the browser the page can rasterise an SVG itself, and the
+# font database would be dead weight in the WASM bundle.
+resvg = { version = "0.48", optional = true, default-features = false, features = ["text", "system-fonts", "raster-images"] }
+# Rasterises the point layer of large scatter plots. One <circle> per cell is
+# fine for the 2700 of PBMC3k and ruinous at atlas scale: a million cells is a
+# 65 MB string and a million DOM nodes. Pure Rust and no font or system
+# dependencies, so unlike resvg it compiles for wasm32 and the browser build
+# rasterises exactly as the CLI does.
+tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "png-format", "simd"] }
 
 [dev-dependencies]
 tempfile = "3"
+# Decodes the PNGs the export tests write, so they can assert the figure was
+# drawn rather than that a file appeared.
+resvg = { version = "0.48", default-features = false, features = ["text", "system-fonts", "raster-images"] }
+base64 = "0.22"

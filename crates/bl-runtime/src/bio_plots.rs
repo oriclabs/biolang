@@ -4,8 +4,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::builtins::write_output;
 use crate::plot::{
-    col_range, extract_table_col, get_opt_f64, get_opt_str, parse_options, sequential_color, Scale,
-    SvgCanvas, PALETTE,
+    col_range, extract_table_col, get_opt_f64, get_opt_str, hex_to_rgba, parse_options,
+    sequential_color, Scale, SvgCanvas, PALETTE,
 };
 use crate::viz::{get_opt_usize, nums_from_value, spark_str};
 
@@ -42,6 +42,8 @@ pub fn bio_plots_builtin_list() -> Vec<(&'static str, Arity)> {
         ("feature_plot", Arity::Range(1, 2)),
         ("elbow_plot", Arity::Range(1, 2)),
         ("violin_plot", Arity::Range(1, 2)),
+        ("variable_feature_plot", Arity::Range(1, 2)),
+        ("dot_plot", Arity::Range(2, 3)),
         ("coverage_track", Arity::Range(1, 2)),
     ]
 }
@@ -78,6 +80,8 @@ pub fn is_bio_plots_builtin(name: &str) -> bool {
             | "feature_plot"
             | "elbow_plot"
             | "violin_plot"
+            | "variable_feature_plot"
+            | "dot_plot"
             | "coverage_track"
     )
 }
@@ -135,6 +139,8 @@ pub fn call_bio_plots_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "umap_plot" | "feature_plot" => builtin_umap_plot(args),
         "elbow_plot" => builtin_elbow_plot(args),
         "violin_plot" => builtin_violin_plot(args),
+        "variable_feature_plot" => builtin_variable_feature_plot(args),
+        "dot_plot" => builtin_dot_plot(args),
         "coverage_track" => builtin_coverage_track(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
@@ -4058,6 +4064,468 @@ fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Str(canvas.render()))
 }
 
+/// One point per gene: mean expression against dispersion, with the genes
+/// `highly_variable_genes` keeps drawn on top.
+///
+/// Seurat calls this VariableFeaturePlot and it is normally read as a sanity
+/// check - "did feature selection pick the markers?" - but its real value is
+/// showing *where* on the expression range the selection landed. The dispersion
+/// of a count is mean-dependent, so a selection rule that ignores the trend
+/// picks whatever is rarest. That bug was live in this runtime: ranking by
+/// variance/mean^2 chose lncRNAs seen in two cells out of 2700 and dropped LYZ,
+/// MS4A1 and GNLY entirely. On this figure it is unmistakable - every
+/// highlighted point sits jammed against the left edge.
+///
+/// So the default y-axis is the raw dispersion against a log mean, which shows
+/// the trend and the selection together. `y: "normalised"` gives the
+/// bin-standardised value that is actually ranked, which is the flatter,
+/// Seurat-shaped view.
+fn builtin_variable_feature_plot(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let use_normalised = get_opt_str(&opts, "y", "dispersion").starts_with("norm");
+    let n_selected = get_opt_usize(&opts, "n", 2000);
+    let n_labels = get_opt_usize(&opts, "label", 10);
+
+    // Gene names are optional; without them the points are still positioned
+    // correctly, they just cannot be labelled.
+    let gene_names: Vec<String> = match opts.get("genes") {
+        Some(Value::List(items)) => items
+            .iter()
+            .map(|v| match v {
+                Value::Str(s) => s.clone(),
+                other => format!("{other}"),
+            })
+            .collect(),
+        _ => Vec::new(),
+    };
+
+    // Either the matrix itself - in which case the same code that selects the
+    // genes computes the coordinates - or a table of statistics computed
+    // elsewhere.
+    let is_records =
+        matches!(&args[0], Value::List(items) if matches!(items.first(), Some(Value::Record(_))));
+
+    struct Gene {
+        name: String,
+        mean: f64,
+        dispersion: f64,
+        selected: bool,
+        rank_key: f64,
+    }
+
+    let genes: Vec<Gene> = if matches!(&args[0], Value::Table(_)) || is_records {
+        let mean_col = get_opt_str(&opts, "mean_col", "mean").to_string();
+        let disp_col = get_opt_str(&opts, "dispersion_col", "dispersion").to_string();
+        let name_col = get_opt_str(&opts, "gene_col", "gene").to_string();
+
+        let mut rows: Vec<Gene> = Vec::new();
+        match &args[0] {
+            Value::Table(table) => {
+                let means = extract_table_col(table, &mean_col).unwrap_or_default();
+                let disps = extract_table_col(table, &disp_col)
+                    .or_else(|_| extract_table_col(table, "variance"))
+                    .unwrap_or_default();
+                let names = extract_str_col(table, &name_col)
+                    .unwrap_or_else(|_| vec![String::new(); means.len()]);
+                for i in 0..means.len().min(disps.len()) {
+                    rows.push(Gene {
+                        name: names.get(i).cloned().unwrap_or_default(),
+                        mean: means[i],
+                        dispersion: disps[i],
+                        selected: false,
+                        rank_key: disps[i],
+                    });
+                }
+            }
+            Value::List(items) => {
+                for item in items.iter() {
+                    if let Value::Record(map) = item {
+                        let mean = map.get(&mean_col).and_then(|v| v.as_float());
+                        let disp = map
+                            .get(&disp_col)
+                            .or_else(|| map.get("variance"))
+                            .and_then(|v| v.as_float());
+                        if let (Some(mean), Some(disp)) = (mean, disp) {
+                            rows.push(Gene {
+                                name: map
+                                    .get(&name_col)
+                                    .map(|v| format!("{v}"))
+                                    .unwrap_or_default(),
+                                mean,
+                                dispersion: disp,
+                                selected: map
+                                    .get("variable")
+                                    .map(|v| v.is_truthy())
+                                    .unwrap_or(false),
+                                rank_key: disp,
+                            });
+                        }
+                    }
+                }
+            }
+            _ => unreachable!("guarded by the match above"),
+        }
+
+        // An explicit highlight list wins over a `variable` column, and is how
+        // you draw a selection that was made by something other than
+        // highly_variable_genes.
+        if let Some(Value::List(items)) = opts.get("highlight") {
+            let wanted: HashSet<String> = items
+                .iter()
+                .map(|v| match v {
+                    Value::Str(s) => s.clone(),
+                    other => format!("{other}"),
+                })
+                .collect();
+            for gene in rows.iter_mut() {
+                gene.selected = wanted.contains(&gene.name);
+            }
+        } else if !rows.iter().any(|g| g.selected) && opts.contains_key("n") {
+            // A table with no `variable` column and no highlight list carries no
+            // selection, so only an explicit `n` asks for one. Defaulting to the
+            // top 2000 would have highlighted every row of any smaller table -
+            // a figure claiming that every gene is variable.
+            let mut order: Vec<usize> = (0..rows.len()).collect();
+            order.sort_by(|&a, &b| {
+                rows[b]
+                    .rank_key
+                    .partial_cmp(&rows[a].rank_key)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+            for &i in order.iter().take(n_selected) {
+                rows[i].selected = true;
+            }
+        }
+        rows
+    } else {
+        let stats = crate::singlecell::hvg_statistics(&args[0], "variable_feature_plot")?;
+        let chosen: HashSet<usize> = stats.select(n_selected).into_iter().collect();
+        stats
+            .expressed
+            .iter()
+            .enumerate()
+            .map(|(position, &gene)| Gene {
+                name: gene_names
+                    .get(gene)
+                    .cloned()
+                    .unwrap_or_else(|| format!("gene{gene}")),
+                mean: stats.means[gene],
+                dispersion: if use_normalised {
+                    stats.normalised[position]
+                } else {
+                    stats.dispersions[position]
+                },
+                selected: chosen.contains(&gene),
+                rank_key: stats.normalised[position],
+            })
+            .collect()
+    };
+
+    if genes.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "variable_feature_plot() found no genes with a mean and a dispersion",
+            None,
+        ));
+    }
+
+    let title = get_opt_str(&opts, "title", "Variable features").to_string();
+    let width = get_opt_f64(&opts, "width", 640.0);
+    let height = get_opt_f64(&opts, "height", 460.0);
+    let mut canvas = SvgCanvas::new(width, height);
+
+    // Mean expression spans orders of magnitude, so on a linear axis every gene
+    // collapses onto the left edge and the figure shows nothing.
+    let xs: Vec<f64> = genes.iter().map(|g| g.mean.max(1e-6).log10()).collect();
+    let ys: Vec<f64> = genes.iter().map(|g| g.dispersion).collect();
+    let (x_lo, x_hi) = col_range(&xs);
+    let (y_lo, y_hi) = col_range(&ys);
+    let x_pad = (x_hi - x_lo) * 0.05 + 1e-3;
+    let y_pad = (y_hi - y_lo) * 0.05 + 1e-3;
+
+    let x_scale = Scale {
+        domain: (x_lo - x_pad, x_hi + x_pad),
+        range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
+    };
+    let y_scale = Scale {
+        domain: (y_lo - y_pad, y_hi + y_pad),
+        range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
+    };
+
+    // Unselected first, so the selection is never buried under the cloud.
+    for (i, gene) in genes.iter().enumerate() {
+        if !gene.selected {
+            canvas.add_circle(x_scale.map(xs[i]), y_scale.map(ys[i]), 1.6, "#bbbbbb");
+        }
+    }
+    let mut n_variable = 0;
+    for (i, gene) in genes.iter().enumerate() {
+        if gene.selected {
+            n_variable += 1;
+            // Red on grey, as Seurat draws it - the selection has to read at a
+            // glance against a cloud of tens of thousands of points.
+            canvas.add_circle(x_scale.map(xs[i]), y_scale.map(ys[i]), 2.4, PALETTE[2]);
+        }
+    }
+
+    // Label the strongest few. Any more and the labels cover the cloud they are
+    // meant to explain.
+    let mut ranked: Vec<usize> = (0..genes.len()).filter(|&i| genes[i].selected).collect();
+    ranked.sort_by(|&a, &b| {
+        genes[b]
+            .rank_key
+            .partial_cmp(&genes[a].rank_key)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    for &i in ranked.iter().take(n_labels) {
+        if genes[i].name.is_empty() {
+            continue;
+        }
+        canvas.add_text(
+            x_scale.map(xs[i]) + 4.0,
+            y_scale.map(ys[i]) - 4.0,
+            &genes[i].name,
+            "start",
+            8.0,
+        );
+    }
+
+    canvas.draw_x_axis(&x_scale, "log10 mean expression");
+    canvas.draw_y_axis(
+        &y_scale,
+        if use_normalised {
+            "standardised dispersion"
+        } else {
+            "dispersion (variance / mean)"
+        },
+    );
+    canvas.add_text(width / 2.0, 22.0, &title, "middle", 14.0);
+    canvas.add_text(
+        canvas.margin.left,
+        36.0,
+        &format!("{n_variable} variable of {} genes", genes.len()),
+        "start",
+        10.0,
+    );
+
+    Ok(Value::Str(canvas.render()))
+}
+
+/// Genes against clusters, where a dot's size is how many cells express the
+/// gene and its colour is how strongly.
+///
+/// Seurat's DotPlot, and the figure that actually settles cell-type calls. A
+/// feature plot shows one gene at a time and a heatmap of means hides how many
+/// cells are behind each one - which matters, because a gene blazing in 5% of a
+/// cluster and one steady across 90% give the same mean and mean opposite
+/// things. Encoding both is the whole point, so both are drawn: area for
+/// detection rate, colour for level.
+///
+/// Colour is the mean expression z-scored per gene across clusters, as Seurat
+/// scales it. Without that a housekeeping gene at high absolute expression
+/// washes out every marker on the plot; with it, each row says where that gene
+/// is relatively highest, which is the question being asked.
+fn builtin_dot_plot(args: Vec<Value>) -> Result<Value> {
+    let opts: HashMap<String, Value> = match args.get(2) {
+        Some(Value::Record(map)) => map.as_ref().clone(),
+        _ => HashMap::new(),
+    };
+
+    let (n_cells, n_genes, columns) = crate::singlecell::expression_columns(&args[0], "dot_plot")?;
+
+    let labels: Vec<String> = match &args[1] {
+        Value::List(items) => items.iter().map(|v| format!("{v}")).collect(),
+        _ => {
+            return Err(BioLangError::type_error(
+                "dot_plot() requires a List of cluster labels, one per cell",
+                None,
+            ))
+        }
+    };
+    if labels.len() != n_cells {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "dot_plot(): {} cluster labels for {n_cells} cells",
+                labels.len()
+            ),
+            None,
+        ));
+    }
+
+    let gene_names: Vec<String> = match opts.get("genes") {
+        Some(Value::List(items)) => items.iter().map(|v| format!("{v}")).collect(),
+        _ => (0..n_genes).map(|g| format!("gene{g}")).collect(),
+    };
+
+    // Which genes to draw. Named features keep the caller's order, because a
+    // dot plot is usually read as a story - lineage by lineage.
+    let selected: Vec<usize> = match opts.get("features").or_else(|| opts.get("markers")) {
+        Some(Value::List(items)) => items
+            .iter()
+            .filter_map(|item| match item {
+                Value::Int(i) if (*i as usize) < n_genes => Some(*i as usize),
+                other => {
+                    let wanted = format!("{other}");
+                    gene_names.iter().position(|name| *name == wanted)
+                }
+            })
+            .collect(),
+        _ => (0..n_genes).collect(),
+    };
+    if selected.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "dot_plot() found none of the requested features".to_string(),
+            None,
+        ));
+    }
+
+    let mut cluster_order: Vec<String> = Vec::new();
+    let mut members: HashMap<String, Vec<usize>> = HashMap::new();
+    for (cell, label) in labels.iter().enumerate() {
+        if !members.contains_key(label) {
+            cluster_order.push(label.clone());
+        }
+        members.entry(label.clone()).or_default().push(cell);
+    }
+
+    // mean expression and detection rate, per gene per cluster.
+    let mut means = vec![vec![0.0_f64; cluster_order.len()]; selected.len()];
+    let mut detected = vec![vec![0.0_f64; cluster_order.len()]; selected.len()];
+    for (row, &gene) in selected.iter().enumerate() {
+        let values = &columns[gene];
+        for (column, cluster) in cluster_order.iter().enumerate() {
+            let cells = &members[cluster];
+            if cells.is_empty() {
+                continue;
+            }
+            let mut total = 0.0;
+            let mut expressing = 0usize;
+            for &cell in cells {
+                let value = values[cell];
+                total += value;
+                if value > 0.0 {
+                    expressing += 1;
+                }
+            }
+            means[row][column] = total / cells.len() as f64;
+            detected[row][column] = expressing as f64 / cells.len() as f64;
+        }
+    }
+
+    // z-score each gene across clusters, clipped as Seurat clips it so one
+    // extreme cluster cannot flatten the rest of the row.
+    const CLIP: f64 = 2.5;
+    let scaled: Vec<Vec<f64>> = means
+        .iter()
+        .map(|row| {
+            let n = row.len() as f64;
+            let mean = row.iter().sum::<f64>() / n;
+            let sd = (row.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / n).sqrt();
+            row.iter()
+                .map(|v| {
+                    if sd > 1e-12 {
+                        ((v - mean) / sd).clamp(-CLIP, CLIP)
+                    } else {
+                        0.0
+                    }
+                })
+                .collect()
+        })
+        .collect();
+
+    let title = get_opt_str(&opts, "title", "Marker expression").to_string();
+    let cell = get_opt_f64(&opts, "cell", 26.0);
+    let width = get_opt_f64(&opts, "width", 0.0);
+    let height = get_opt_f64(&opts, "height", 0.0);
+    // Sized to the grid unless told otherwise: a fixed canvas either crushes 30
+    // genes together or strands 3 in a corner.
+    let width = if width > 0.0 {
+        width
+    } else {
+        180.0 + cell * cluster_order.len() as f64 + 120.0
+    };
+    let height = if height > 0.0 {
+        height
+    } else {
+        90.0 + cell * selected.len() as f64
+    };
+    let mut canvas = SvgCanvas::new(width, height);
+
+    let left = 130.0;
+    let top = 60.0;
+    let radius_max = cell * 0.42;
+
+    for (column, cluster) in cluster_order.iter().enumerate() {
+        let x = left + cell * (column as f64 + 0.5);
+        canvas.add_text_rotated(x, top - 10.0, cluster, -45.0, "start", 9.0);
+    }
+
+    for (row, &gene) in selected.iter().enumerate() {
+        let y = top + cell * (row as f64 + 0.5);
+        canvas.add_text(left - 8.0, y + 3.0, &gene_names[gene], "end", 9.0);
+        for column in 0..cluster_order.len() {
+            let x = left + cell * (column as f64 + 0.5);
+            let fraction = detected[row][column];
+            if fraction <= 0.0 {
+                continue;
+            }
+            // Area, not radius, tracks the fraction: a radius-linear dot at 50%
+            // reads as a quarter of the ink, which under-sells every mid-range
+            // gene on the plot.
+            let radius = radius_max * fraction.sqrt();
+            let t = (scaled[row][column] + CLIP) / (2.0 * CLIP);
+            canvas.add_circle(x, y, radius, &sequential_color(t));
+        }
+    }
+
+    // Two legends, because the figure carries two encodings and a reader cannot
+    // guess either.
+    let legend_x = left + cell * cluster_order.len() as f64 + 24.0;
+    canvas.add_text(legend_x, top + 4.0, "% detected", "start", 9.0);
+    for (i, fraction) in [0.25_f64, 0.5, 1.0].iter().enumerate() {
+        let y = top + 20.0 + i as f64 * 18.0;
+        canvas.add_circle(legend_x + 8.0, y, radius_max * fraction.sqrt(), "#888888");
+        canvas.add_text(
+            legend_x + 22.0,
+            y + 3.0,
+            &format!("{:.0}%", fraction * 100.0),
+            "start",
+            8.0,
+        );
+    }
+    let bar_top = top + 90.0;
+    canvas.add_text(legend_x, bar_top - 6.0, "z-score", "start", 9.0);
+    for step in 0..24 {
+        let t = 1.0 - step as f64 / 23.0;
+        canvas.add_rect(
+            legend_x,
+            bar_top + step as f64 * 3.0,
+            10.0,
+            3.4,
+            &sequential_color(t),
+        );
+    }
+    canvas.add_text(
+        legend_x + 14.0,
+        bar_top + 6.0,
+        &format!("{CLIP:.1}"),
+        "start",
+        8.0,
+    );
+    canvas.add_text(
+        legend_x + 14.0,
+        bar_top + 72.0,
+        &format!("{:.1}", -CLIP),
+        "start",
+        8.0,
+    );
+
+    canvas.add_text(width / 2.0, 22.0, &title, "middle", 14.0);
+    Ok(Value::Str(canvas.render()))
+}
+
 fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
     let fmt = get_opt_str(&opts, "format", "svg").to_string();
@@ -4262,11 +4730,22 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
             range: (c.margin.top + c.plot_height(), c.margin.top),
         };
 
-        // Draw points
-        for i in 0..xs.len() {
-            let cx = x_scale.map(xs[i]);
-            let cy = y_scale.map(ys[i]);
-            let color: String = if has_feature {
+        // One <circle> per cell, or one embedded raster for the lot.
+        //
+        // Vector points are better when there are few: they hover, they select,
+        // they scale to any zoom, and they are what every existing figure is
+        // made of. They are ruinous when there are many - a million cells is a
+        // 65 MB string and a million DOM nodes, measured. So the default
+        // switches over at a size where SVG is still comfortable, and `raster`
+        // forces either behaviour for a caller who knows better.
+        const RASTER_ABOVE: usize = 5_000;
+        let raster = match opts.get("raster") {
+            Some(value) => value.is_truthy(),
+            None => xs.len() > RASTER_ABOVE,
+        };
+
+        let point_color = |i: usize| -> String {
+            if has_feature {
                 let (lo, hi) = feature_range;
                 // A column with no spread would divide by zero; paint it mid-scale.
                 let t = if (hi - lo).abs() < 1e-12 {
@@ -4280,10 +4759,49 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
                 PALETTE[ci % PALETTE.len()].to_string()
             } else {
                 "#4e79a7".to_string()
-            };
-            c.add_circle(cx, cy, 3.0, &color);
+            }
+        };
+
+        if raster {
+            // add_circle's own opacity, so a plot does not change appearance
+            // when it crosses the threshold.
+            const POINT_ALPHA: f64 = 0.7;
+            let dots: Vec<(f64, f64, [u8; 4])> = (0..xs.len())
+                .map(|i| {
+                    (
+                        x_scale.map(xs[i]),
+                        y_scale.map(ys[i]),
+                        hex_to_rgba(&point_color(i), POINT_ALPHA),
+                    )
+                })
+                .collect();
+            c.add_point_raster(
+                &dots,
+                3.0,
+                (
+                    c.margin.left,
+                    c.margin.top,
+                    plot_right - c.margin.left,
+                    c.plot_height(),
+                ),
+            );
+        } else {
+            for i in 0..xs.len() {
+                c.add_circle(x_scale.map(xs[i]), y_scale.map(ys[i]), 3.0, &point_color(i));
+            }
+        }
+
+        // Point labels stay vector in both modes - they are text, and there are
+        // never many of them.
+        for i in 0..xs.len() {
             if !point_labels[i].is_empty() {
-                c.add_text(cx + 4.0, cy - 4.0, &point_labels[i], "start", 7.0);
+                c.add_text(
+                    x_scale.map(xs[i]) + 4.0,
+                    y_scale.map(ys[i]) - 4.0,
+                    &point_labels[i],
+                    "start",
+                    7.0,
+                );
             }
         }
 

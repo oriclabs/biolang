@@ -23,6 +23,9 @@ pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
         ("normalize_total", Arity::Range(1, 2)),
         ("log1p_transform", Arity::Exact(1)),
         ("highly_variable_genes", Arity::Range(1, 2)),
+        ("find_all_markers", Arity::Range(2, 3)),
+        ("harmony_integrate", Arity::Range(2, 3)),
+        ("cca", Arity::Range(2, 3)),
         ("cell_qc", Arity::Range(1, 3)),
         ("gene_qc", Arity::Range(1, 2)),
         ("knn_graph", Arity::Range(1, 2)),
@@ -73,6 +76,9 @@ pub fn is_singlecell_builtin(name: &str) -> bool {
         "normalize_total"
             | "log1p_transform"
             | "highly_variable_genes"
+            | "find_all_markers"
+            | "harmony_integrate"
+            | "cca"
             | "cell_qc"
             | "gene_qc"
             | "knn_graph"
@@ -114,6 +120,9 @@ pub fn call_singlecell_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "normalize_total" => builtin_normalize_total(args),
         "log1p_transform" => builtin_log1p_transform(args),
         "highly_variable_genes" => builtin_highly_variable_genes(args),
+        "find_all_markers" => builtin_find_all_markers(args),
+        "harmony_integrate" => builtin_harmony_integrate(args),
+        "cca" => builtin_cca(args),
         "cell_qc" => builtin_cell_qc(args),
         "gene_qc" => builtin_gene_qc(args),
         "knn_graph" => builtin_knn_graph(args),
@@ -1099,6 +1108,42 @@ fn builtin_log1p_transform(args: Vec<Value>) -> Result<Value> {
 
 // ── highly_variable_genes(matrix, n=2000) ────────────────────────────
 
+/// Per-gene mean and bin-normalised dispersion, and the ranking built from them.
+///
+/// Shared with `variable_feature_plot`, which draws these statistics and marks
+/// the genes this selection keeps. Computing them twice would let the figure
+/// drift away from the selection it claims to illustrate - a plot that
+/// highlights a different set than the pipeline used is worse than no plot.
+pub(crate) struct HvgStats {
+    /// Mean expression of every gene, including the never-observed ones.
+    pub means: Vec<f64>,
+    /// Genes with a non-zero mean, in gene order; the other vectors are indexed
+    /// by position within this list.
+    pub expressed: Vec<usize>,
+    /// Raw dispersion (variance / mean) for each expressed gene.
+    pub dispersions: Vec<f64>,
+    /// Dispersion standardised within its mean-expression bin: the ranking key.
+    pub normalised: Vec<f64>,
+}
+
+impl HvgStats {
+    /// The `n` most variable genes, as gene indices, most variable first.
+    pub fn select(&self, n: usize) -> Vec<usize> {
+        let mut ranked: Vec<(usize, f64)> = self
+            .expressed
+            .iter()
+            .enumerate()
+            .map(|(position, &gene)| (gene, self.normalised[position]))
+            .collect();
+        ranked.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        ranked
+            .into_iter()
+            .take(n.min(self.means.len()))
+            .map(|(gene, _)| gene)
+            .collect()
+    }
+}
+
 fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
     let n_hvg = if args.len() > 1 {
         let value = require_int(&args[1], "highly_variable_genes")?;
@@ -1113,7 +1158,18 @@ fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
         2000
     };
 
-    let (n_cells, n_genes, sums, sums_squared) = match &args[0] {
+    let stats = hvg_statistics(&args[0], "highly_variable_genes")?;
+    let indices: Vec<Value> = stats
+        .select(n_hvg)
+        .into_iter()
+        .map(|gene| Value::Int(gene as i64))
+        .collect();
+    Ok(Value::List((indices).into()))
+}
+
+/// Compute [`HvgStats`] from a dense or sparse cells x genes matrix.
+pub(crate) fn hvg_statistics(value: &Value, who: &str) -> Result<HvgStats> {
+    let (n_cells, n_genes, sums, sums_squared) = match value {
         Value::SparseMatrix(matrix) => {
             let mut sums_squared = vec![0.0; matrix.ncol];
             for (&column, &value) in matrix.indices.iter().zip(&matrix.data) {
@@ -1122,7 +1178,7 @@ fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
             (matrix.nrow, matrix.ncol, matrix.col_sums(), sums_squared)
         }
         _ => {
-            let matrix = require_matrix(&args[0], "highly_variable_genes")?;
+            let matrix = require_matrix(value, who)?;
             let n_genes = matrix.first().map(|row| row.len()).unwrap_or(0);
             let mut sums = vec![0.0; n_genes];
             let mut sums_squared = vec![0.0; n_genes];
@@ -1137,7 +1193,12 @@ fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
     };
 
     if n_cells == 0 || n_genes == 0 {
-        return Ok(Value::List((vec![]).into()));
+        return Ok(HvgStats {
+            means: vec![0.0; n_genes],
+            expressed: Vec::new(),
+            dispersions: Vec::new(),
+            normalised: Vec::new(),
+        });
     }
     let n_cells_float = n_cells as f64;
     let means: Vec<f64> = sums.iter().map(|sum| sum / n_cells_float).collect();
@@ -1168,7 +1229,12 @@ fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
     // the lowest bin.
     let expressed: Vec<usize> = (0..n_genes).filter(|&j| means[j] > 0.0).collect();
     if expressed.is_empty() {
-        return Ok(Value::List((vec![]).into()));
+        return Ok(HvgStats {
+            means,
+            expressed,
+            dispersions: Vec::new(),
+            normalised: Vec::new(),
+        });
     }
 
     // dispersion = variance / mean. Unlike cv2 this is flat in the mean for
@@ -1210,22 +1276,729 @@ fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
         }
     }
 
-    let mut gene_cv2: Vec<(usize, f64)> = expressed
+    Ok(HvgStats {
+        means,
+        expressed,
+        dispersions,
+        normalised,
+    })
+}
+
+// ── cca(matrix1, matrix2, opts?) ─────────────────────────────────────
+
+/// Canonical correlation analysis: the shared axes of two datasets.
+///
+/// PCA on one dataset finds the directions it varies in. CCA takes two and
+/// finds the directions along which they vary *together* - which is why Seurat
+/// integration starts here. Sources of variation present in only one dataset,
+/// which is what a batch effect is, score poorly by construction; shared
+/// biology scores well.
+///
+/// Both matrices are cells x genes over the same genes, in the same order. The
+/// cross-product is decomposed, and its singular vectors are the two datasets'
+/// coordinates on a common set of axes: `u` for the first, `v` for the second.
+/// Rows are L2-normalised, as Seurat normalises them, so the result is
+/// comparable across datasets of different depth.
+///
+/// A caution worth stating before it is discovered on real data: the
+/// cross-product is cells x cells, so this is quadratic in cell count. Two
+/// samples of a few thousand cells is comfortable; two atlases of a hundred
+/// thousand each is not, and `harmony_integrate` is the tool for that scale.
+fn builtin_cca(args: Vec<Value>) -> Result<Value> {
+    let opts: HashMap<String, Value> = match args.get(2) {
+        Some(Value::Record(map)) => map.as_ref().clone(),
+        _ => HashMap::new(),
+    };
+    let requested = opts
+        .get("k")
+        .and_then(|v| v.as_float())
+        .map(|v| v as usize)
+        .unwrap_or(20);
+
+    let first = require_matrix(&args[0], "cca")?;
+    let second = require_matrix(&args[1], "cca")?;
+    let genes = first.first().map(|row| row.len()).unwrap_or(0);
+    let genes_second = second.first().map(|row| row.len()).unwrap_or(0);
+    if genes == 0 || genes_second == 0 || first.is_empty() || second.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "cca() needs two non-empty cells x genes matrices".to_string(),
+            None,
+        ));
+    }
+    if genes != genes_second {
+        // Silently intersecting would be worse: the caller would get a result
+        // computed over whichever genes happened to line up by position.
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "cca() requires the same genes in both matrices, in the same order: \
+                 {genes} columns and {genes_second}"
+            ),
+            None,
+        ));
+    }
+
+    // cells1 x cells2, one entry per pair of cells: how alike they are across
+    // the shared genes.
+    let mut cross = vec![0.0_f64; first.len() * second.len()];
+    for (i, row) in first.iter().enumerate() {
+        for (j, other) in second.iter().enumerate() {
+            cross[i * second.len() + j] = row
+                .iter()
+                .zip(other.iter())
+                .map(|(a, b)| a * b)
+                .sum::<f64>();
+        }
+    }
+    let cross = bl_core::matrix::Matrix::new(cross, first.len(), second.len())
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, format!("cca(): {e}"), None))?;
+
+    let (u, d, vt) = cross
+        .svd()
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, format!("cca(): {e}"), None))?;
+
+    let k = requested.min(d.len()).min(u.ncol).min(vt.nrow).max(1);
+
+    // u is cells1 x r; vt is r x cells2, so the second dataset's coordinates are
+    // its rows read down the columns.
+    let left: Vec<Vec<f64>> = (0..u.nrow)
+        .map(|i| (0..k).map(|c| u.get(i, c)).collect())
+        .collect();
+    let right: Vec<Vec<f64>> = (0..vt.ncol)
+        .map(|j| (0..k).map(|c| vt.get(c, j)).collect())
+        .collect();
+
+    let mut result = HashMap::new();
+    result.insert("u".to_string(), matrix_to_value(l2_normalise_rows(&left)));
+    result.insert("v".to_string(), matrix_to_value(l2_normalise_rows(&right)));
+    result.insert(
+        "d".to_string(),
+        Value::List(
+            d.iter()
+                .take(k)
+                .map(|v| Value::Float(*v))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
+    );
+    Ok(Value::Record(result.into()))
+}
+
+// ── harmony_integrate(embedding, batches, opts?) ─────────────────────
+
+/// Remove batch effects from an embedding, the way Harmony does.
+///
+/// The problem this solves is the one that makes multi-sample single-cell work
+/// hard: cluster two donors together without correction and you get two of
+/// every cell type, one per donor, and a UMAP that shows the donor rather than
+/// the biology. `sc_integrate` subtracts a per-batch mean, which only helps
+/// when the batch effect is the same everywhere - and it is not, because a
+/// batch shifts monocytes and T cells by different amounts.
+///
+/// Harmony (Korsunsky et al. 2019) alternates two steps on the PCA embedding:
+///
+/// 1. Soft-assign cells to clusters, penalising clusters that are dominated by
+///    one batch. That diversity penalty is the whole idea - it pushes the
+///    clustering towards groups that *should* contain every batch.
+/// 2. Within each cluster, regress the batch out and subtract it, weighted by
+///    how strongly each cell belongs to that cluster.
+///
+/// Because the correction is per cluster, each cell type gets its own batch
+/// shift, which is what a single global mean cannot express.
+///
+/// The danger is the opposite failure: correcting so hard that genuinely
+/// different cell types are merged into one. `theta` controls that - higher
+/// mixes more aggressively - and the tests hold both ends, checking that
+/// batches mix *and* that distinct populations stay apart.
+fn builtin_harmony_integrate(args: Vec<Value>) -> Result<Value> {
+    let opts: HashMap<String, Value> = match args.get(2) {
+        Some(Value::Record(map)) => map.as_ref().clone(),
+        _ => HashMap::new(),
+    };
+    let number = |key: &str, fallback: f64| -> f64 {
+        opts.get(key).and_then(|v| v.as_float()).unwrap_or(fallback)
+    };
+    let theta = number("theta", 2.0);
+    let sigma = number("sigma", 0.1).max(1e-6);
+    let ridge = number("lambda", 1.0);
+    let max_iter = number("max_iter", 10.0).max(1.0) as usize;
+
+    let embedding = require_matrix(&args[0], "harmony_integrate")?;
+    let n_cells = embedding.len();
+    let n_dims = embedding.first().map(|row| row.len()).unwrap_or(0);
+    if n_cells == 0 || n_dims == 0 {
+        return Ok(matrix_to_value(embedding));
+    }
+
+    let labels: Vec<String> = match &args[1] {
+        Value::List(items) => items.iter().map(|v| format!("{v}")).collect(),
+        _ => {
+            return Err(BioLangError::type_error(
+                "harmony_integrate() requires a List of batch labels, one per cell",
+                None,
+            ))
+        }
+    };
+    if labels.len() != n_cells {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "harmony_integrate(): {} batch labels for {n_cells} cells",
+                labels.len()
+            ),
+            None,
+        ));
+    }
+
+    let mut batch_order: Vec<String> = Vec::new();
+    let batch_of: Vec<usize> = labels
+        .iter()
+        .map(|label| {
+            batch_order
+                .iter()
+                .position(|seen| seen == label)
+                .unwrap_or_else(|| {
+                    batch_order.push(label.clone());
+                    batch_order.len() - 1
+                })
+        })
+        .collect();
+    let n_batches = batch_order.len();
+    if n_batches < 2 {
+        // One batch is nothing to correct, and the regression would be singular.
+        return Ok(matrix_to_value(embedding));
+    }
+    let batch_sizes: Vec<f64> = (0..n_batches)
+        .map(|b| batch_of.iter().filter(|&&x| x == b).count() as f64)
+        .collect();
+
+    // Harmony's own default: enough clusters to separate cell types, capped so
+    // the per-cluster regressions stay cheap.
+    let n_clusters = opts
+        .get("n_clusters")
+        .and_then(|v| v.as_float())
+        .map(|v| v as usize)
+        .unwrap_or_else(|| (n_cells / 30).clamp(1, 100))
+        .clamp(1, n_cells);
+
+    let mut corrected = embedding.clone();
+
+    for _ in 0..max_iter {
+        // Cosine geometry, so the clustering follows direction rather than
+        // magnitude - the same reason Harmony L2-normalises here.
+        let unit = l2_normalise_rows(&corrected);
+        let centroids = kmeans_cosine(&unit, n_clusters);
+        let assignments = soft_assign(&unit, &centroids, sigma, theta, &batch_of, &batch_sizes);
+
+        // Every cluster regresses against the same embedding, and the shifts are
+        // summed and applied once. Correcting in place instead would have each
+        // cluster fitting data the previous ones had already moved - the
+        // clusters overlap, so those corrections compound rather than combine.
+        let snapshot = corrected.clone();
+        let mut shift = vec![vec![0.0_f64; n_dims]; n_cells];
+        for cluster in 0..centroids.len() {
+            correct_one_cluster(
+                &snapshot,
+                &assignments[cluster],
+                &batch_of,
+                n_batches,
+                n_dims,
+                ridge,
+                &mut shift,
+            );
+        }
+        for (row, adjustment) in corrected.iter_mut().zip(&shift) {
+            for (value, delta) in row.iter_mut().zip(adjustment) {
+                *value -= delta;
+            }
+        }
+    }
+
+    Ok(matrix_to_value(corrected))
+}
+
+fn l2_normalise_rows(rows: &[Vec<f64>]) -> Vec<Vec<f64>> {
+    rows.iter()
+        .map(|row| {
+            let norm = row.iter().map(|v| v * v).sum::<f64>().sqrt();
+            if norm > 1e-12 {
+                row.iter().map(|v| v / norm).collect()
+            } else {
+                row.clone()
+            }
+        })
+        .collect()
+}
+
+/// Lloyd's algorithm on cosine distance, seeded deterministically.
+///
+/// Seeded by even spacing rather than at random: Harmony is run inside
+/// pipelines whose figures are compared between runs, and a random start would
+/// move the correction slightly every time for no reason the user can see.
+fn kmeans_cosine(unit: &[Vec<f64>], k: usize) -> Vec<Vec<f64>> {
+    let n = unit.len();
+    let k = k.min(n).max(1);
+    let stride = (n as f64 / k as f64).max(1.0);
+    let mut centroids: Vec<Vec<f64>> = (0..k)
+        .map(|i| unit[((i as f64 * stride) as usize).min(n - 1)].clone())
+        .collect();
+
+    for _ in 0..10 {
+        let mut sums = vec![vec![0.0; unit[0].len()]; k];
+        let mut counts = vec![0.0_f64; k];
+        for row in unit {
+            let best = (0..k)
+                .max_by(|&a, &b| {
+                    dot(row, &centroids[a])
+                        .partial_cmp(&dot(row, &centroids[b]))
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .unwrap_or(0);
+            for (d, value) in row.iter().enumerate() {
+                sums[best][d] += value;
+            }
+            counts[best] += 1.0;
+        }
+        for cluster in 0..k {
+            if counts[cluster] > 0.0 {
+                let mean: Vec<f64> = sums[cluster].iter().map(|v| v / counts[cluster]).collect();
+                let norm = mean.iter().map(|v| v * v).sum::<f64>().sqrt();
+                centroids[cluster] = if norm > 1e-12 {
+                    mean.iter().map(|v| v / norm).collect()
+                } else {
+                    mean
+                };
+            }
+        }
+    }
+    centroids
+}
+
+fn dot(a: &[f64], b: &[f64]) -> f64 {
+    a.iter().zip(b).map(|(x, y)| x * y).sum()
+}
+
+/// Soft cluster membership, penalised for batch imbalance.
+///
+/// Returns one weight vector per cluster. The penalty compares each cluster's
+/// observed batch composition against the composition it would have if batches
+/// were spread evenly, and pulls cells towards clusters where their own batch is
+/// under-represented. `theta` is how hard it pulls.
+fn soft_assign(
+    unit: &[Vec<f64>],
+    centroids: &[Vec<f64>],
+    sigma: f64,
+    theta: f64,
+    batch_of: &[usize],
+    batch_sizes: &[f64],
+) -> Vec<Vec<f64>> {
+    let n = unit.len();
+    let k = centroids.len();
+    let total = n as f64;
+
+    // Unpenalised assignment first, to have an observed composition to penalise.
+    let mut r = vec![vec![0.0; n]; k];
+    for (i, row) in unit.iter().enumerate() {
+        let mut column = vec![0.0; k];
+        let mut sum = 0.0;
+        for (cluster, centroid) in centroids.iter().enumerate() {
+            // Cosine distance on unit vectors.
+            let weight = (-(1.0 - dot(row, centroid)) / sigma).exp();
+            column[cluster] = weight;
+            sum += weight;
+        }
+        for cluster in 0..k {
+            r[cluster][i] = if sum > 0.0 {
+                column[cluster] / sum
+            } else {
+                1.0 / k as f64
+            };
+        }
+    }
+
+    // A few refinements: the penalty depends on the composition, which depends
+    // on the penalty.
+    for _ in 0..3 {
+        let mut observed = vec![vec![0.0; k]; batch_sizes.len()];
+        for (i, &batch) in batch_of.iter().enumerate() {
+            for cluster in 0..k {
+                observed[batch][cluster] += r[cluster][i];
+            }
+        }
+        let cluster_mass: Vec<f64> = (0..k)
+            .map(|cluster| observed.iter().map(|row| row[cluster]).sum())
+            .collect();
+
+        for (i, row) in unit.iter().enumerate() {
+            let batch = batch_of[i];
+            let mut column = vec![0.0; k];
+            let mut sum = 0.0;
+            for (cluster, centroid) in centroids.iter().enumerate() {
+                let expected = batch_sizes[batch] * cluster_mass[cluster] / total;
+                let seen = observed[batch][cluster].max(1e-9);
+                let penalty = (expected.max(1e-9) / seen).powf(theta);
+                let weight = (-(1.0 - dot(row, centroid)) / sigma).exp() * penalty;
+                column[cluster] = weight;
+                sum += weight;
+            }
+            for cluster in 0..k {
+                r[cluster][i] = if sum > 0.0 {
+                    column[cluster] / sum
+                } else {
+                    1.0 / k as f64
+                };
+            }
+        }
+    }
+    r
+}
+
+/// Ridge-regress the batch out of one cluster and subtract it.
+///
+/// The design is an intercept plus one indicator per batch. The intercept's
+/// coefficient is deliberately *not* subtracted: it carries where the cluster
+/// sits in the embedding, which is the biology. Only the batch coefficients are
+/// removed, and the ridge term keeps a batch with few cells in this cluster from
+/// producing an enormous correction.
+fn correct_one_cluster(
+    embedding: &[Vec<f64>],
+    weights: &[f64],
+    batch_of: &[usize],
+    n_batches: usize,
+    n_dims: usize,
+    ridge: f64,
+    shift: &mut [Vec<f64>],
+) {
+    let size = n_batches + 1;
+    let mut normal = vec![vec![0.0_f64; size]; size];
+    let mut rhs = vec![vec![0.0_f64; n_dims]; size];
+
+    for (i, &weight) in weights.iter().enumerate() {
+        if weight <= 0.0 {
+            continue;
+        }
+        let batch = batch_of[i] + 1;
+        normal[0][0] += weight;
+        normal[0][batch] += weight;
+        normal[batch][0] += weight;
+        normal[batch][batch] += weight;
+        for d in 0..n_dims {
+            let value = weight * embedding[i][d];
+            rhs[0][d] += value;
+            rhs[batch][d] += value;
+        }
+    }
+    // Ridge on the batch terms only, so the intercept stays unpenalised.
+    for b in 1..size {
+        normal[b][b] += ridge;
+    }
+
+    let Some(coefficients) = solve_multi(&mut normal, &mut rhs) else {
+        return;
+    };
+    for (i, &weight) in weights.iter().enumerate() {
+        if weight <= 0.0 {
+            continue;
+        }
+        let batch = batch_of[i] + 1;
+        for d in 0..n_dims {
+            shift[i][d] += weight * coefficients[batch][d];
+        }
+    }
+}
+
+/// Gauss-Jordan with partial pivoting, solving for many right-hand sides at
+/// once. The system is (batches + 1) square - single digits - so a direct
+/// solve is both simplest and fastest.
+fn solve_multi(a: &mut [Vec<f64>], b: &mut [Vec<f64>]) -> Option<Vec<Vec<f64>>> {
+    let n = a.len();
+    let width = b.first().map(|row| row.len())?;
+    for column in 0..n {
+        let pivot = (column..n)
+            .max_by(|&x, &y| {
+                a[x][column]
+                    .abs()
+                    .partial_cmp(&a[y][column].abs())
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .unwrap_or(column);
+        if a[pivot][column].abs() < 1e-12 {
+            // Singular: a batch absent from this cluster contributes nothing,
+            // and skipping beats returning a wild correction.
+            return None;
+        }
+        a.swap(column, pivot);
+        b.swap(column, pivot);
+
+        let divisor = a[column][column];
+        for value in a[column].iter_mut() {
+            *value /= divisor;
+        }
+        for value in b[column].iter_mut() {
+            *value /= divisor;
+        }
+        for row in 0..n {
+            if row == column {
+                continue;
+            }
+            let factor = a[row][column];
+            if factor == 0.0 {
+                continue;
+            }
+            for k in 0..n {
+                a[row][k] -= factor * a[column][k];
+            }
+            for k in 0..width {
+                b[row][k] -= factor * b[column][k];
+            }
+        }
+    }
+    Some(b.to_vec())
+}
+
+// ── find_all_markers(matrix, clusters, opts?) ────────────────────────
+
+/// Genes that distinguish each cluster from every other cell.
+///
+/// Seurat's FindAllMarkers, which is the step that turns numbered clusters into
+/// cell types: cluster 3 is monocytes because LYZ, CD14 and S100A9 come out of
+/// this table, not because of where it sits on a UMAP.
+///
+/// Each cluster is tested against all remaining cells with a Mann-Whitney
+/// U test - the same `wilcoxon` builtin exposes, and Seurat's default. Two
+/// pre-filters run first, both because they are the published defaults and
+/// because they remove most of the work: a gene detected in almost no cell of
+/// either group cannot be a marker, and neither can one whose means barely
+/// differ.
+///
+/// Expression is assumed log1p-normalised, as it is after
+/// `normalize_total |> log1p_transform`. The fold change follows Seurat and
+/// undoes that before averaging - log2(mean(expm1(x)) + 1) per group - because
+/// a difference of mean logs is not the log of a mean ratio, and quoting one as
+/// the other overstates small folds.
+fn builtin_find_all_markers(args: Vec<Value>) -> Result<Value> {
+    let opts: HashMap<String, Value> = match args.get(2) {
+        Some(Value::Record(map)) => map.as_ref().clone(),
+        _ => HashMap::new(),
+    };
+    let number = |key: &str, fallback: f64| -> f64 {
+        opts.get(key).and_then(|v| v.as_float()).unwrap_or(fallback)
+    };
+    let min_pct = number("min_pct", 0.1);
+    let logfc_threshold = number("logfc_threshold", 0.25);
+    let only_positive = opts.get("only_pos").map(|v| v.is_truthy()).unwrap_or(false);
+
+    // Cells x genes, as a column per gene: every test wants one gene across all
+    // cells, and both input layouts store cells first.
+    let (n_cells, n_genes, columns) = expression_columns(&args[0], "find_all_markers")?;
+
+    let labels: Vec<String> = match &args[1] {
+        Value::List(items) => items.iter().map(|v| format!("{v}")).collect(),
+        _ => {
+            return Err(BioLangError::type_error(
+                "find_all_markers() requires a List of cluster labels, one per cell",
+                None,
+            ))
+        }
+    };
+    if labels.len() != n_cells {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "find_all_markers(): {} cluster labels for {n_cells} cells",
+                labels.len()
+            ),
+            None,
+        ));
+    }
+
+    let gene_names: Vec<String> = match opts.get("genes") {
+        Some(Value::List(items)) => items.iter().map(|v| format!("{v}")).collect(),
+        _ => Vec::new(),
+    };
+
+    // First-seen order, so the table does not reshuffle between runs.
+    let mut cluster_order: Vec<String> = Vec::new();
+    let mut members: HashMap<String, Vec<usize>> = HashMap::new();
+    for (cell, label) in labels.iter().enumerate() {
+        if !members.contains_key(label) {
+            cluster_order.push(label.clone());
+        }
+        members.entry(label.clone()).or_default().push(cell);
+    }
+
+    struct Marker {
+        gene: String,
+        cluster: String,
+        p_value: f64,
+        avg_log2fc: f64,
+        pct_1: f64,
+        pct_2: f64,
+    }
+    let mut found: Vec<Marker> = Vec::new();
+
+    for cluster in &cluster_order {
+        let inside = &members[cluster];
+        if inside.is_empty() || inside.len() == n_cells {
+            // Nothing to contrast against.
+            continue;
+        }
+        let is_inside = {
+            let mut flags = vec![false; n_cells];
+            for &cell in inside {
+                flags[cell] = true;
+            }
+            flags
+        };
+        let outside_count = n_cells - inside.len();
+
+        for gene in 0..n_genes {
+            let values = &columns[gene];
+            let mut in_group: Vec<f64> = Vec::with_capacity(inside.len());
+            let mut out_group: Vec<f64> = Vec::with_capacity(outside_count);
+            let (mut detected_in, mut detected_out) = (0usize, 0usize);
+            let (mut linear_in, mut linear_out) = (0.0f64, 0.0f64);
+            for (cell, &value) in values.iter().enumerate() {
+                if is_inside[cell] {
+                    in_group.push(value);
+                    if value > 0.0 {
+                        detected_in += 1;
+                    }
+                    linear_in += value.exp_m1();
+                } else {
+                    out_group.push(value);
+                    if value > 0.0 {
+                        detected_out += 1;
+                    }
+                    linear_out += value.exp_m1();
+                }
+            }
+
+            let pct_1 = detected_in as f64 / inside.len() as f64;
+            let pct_2 = detected_out as f64 / outside_count as f64;
+            if pct_1.max(pct_2) < min_pct {
+                continue;
+            }
+
+            let avg_log2fc = (linear_in / inside.len() as f64 + 1.0).log2()
+                - (linear_out / outside_count as f64 + 1.0).log2();
+            if avg_log2fc.abs() < logfc_threshold {
+                continue;
+            }
+            if only_positive && avg_log2fc <= 0.0 {
+                continue;
+            }
+
+            // Only now, on the few genes that survived, is the test worth running.
+            let Ok(test) =
+                bl_core::bio_core::stats_ops::mann_whitney_test(&in_group, &out_group, "two_sided")
+            else {
+                continue;
+            };
+
+            found.push(Marker {
+                gene: gene_names
+                    .get(gene)
+                    .cloned()
+                    .unwrap_or_else(|| format!("gene{gene}")),
+                cluster: cluster.clone(),
+                p_value: test.p_value,
+                avg_log2fc,
+                pct_1,
+                pct_2,
+            });
+        }
+    }
+
+    // One correction across every test performed, not one per cluster: the
+    // family is the whole table, and adjusting per cluster would understate the
+    // rate by however many clusters there are.
+    let raw: Vec<f64> = found.iter().map(|m| m.p_value).collect();
+    let adjusted =
+        bl_core::bio_core::stats_ops::benjamini_hochberg_correction(&raw, 0.05).adjusted_p_values;
+
+    // Most significant first within each cluster, clusters in first-seen order:
+    // the reading order for naming cell types.
+    let mut order: Vec<usize> = (0..found.len()).collect();
+    let rank: HashMap<&String, usize> = cluster_order
         .iter()
         .enumerate()
-        .map(|(position, &gene)| (gene, normalised[position]))
+        .map(|(i, name)| (name, i))
         .collect();
+    order.sort_by(|&a, &b| {
+        rank[&found[a].cluster]
+            .cmp(&rank[&found[b].cluster])
+            .then_with(|| {
+                found[a]
+                    .p_value
+                    .partial_cmp(&found[b].p_value)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .then_with(|| {
+                found[b]
+                    .avg_log2fc
+                    .partial_cmp(&found[a].avg_log2fc)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+    });
 
-    gene_cv2.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-
-    let top_n = n_hvg.min(n_genes);
-    let indices: Vec<Value> = gene_cv2
+    let rows: Vec<Value> = order
         .into_iter()
-        .take(top_n)
-        .map(|(idx, _)| Value::Int(idx as i64))
+        .map(|i| {
+            let marker = &found[i];
+            let mut record = HashMap::new();
+            record.insert("gene".to_string(), Value::Str(marker.gene.clone()));
+            record.insert("cluster".to_string(), Value::Str(marker.cluster.clone()));
+            record.insert("p_value".to_string(), Value::Float(marker.p_value));
+            record.insert(
+                "p_adj".to_string(),
+                Value::Float(adjusted.get(i).copied().unwrap_or(1.0)),
+            );
+            record.insert("avg_log2fc".to_string(), Value::Float(marker.avg_log2fc));
+            record.insert("pct_1".to_string(), Value::Float(marker.pct_1));
+            record.insert("pct_2".to_string(), Value::Float(marker.pct_2));
+            Value::Record(record.into())
+        })
         .collect();
 
-    Ok(Value::List((indices).into()))
+    Ok(Value::List(rows.into()))
+}
+
+/// A cells x genes matrix as one vector per gene.
+///
+/// Both accepted layouts store cells first, and every per-gene test wants the
+/// column; transposing once beats walking every row per gene.
+pub(crate) fn expression_columns(
+    value: &Value,
+    who: &str,
+) -> Result<(usize, usize, Vec<Vec<f64>>)> {
+    match value {
+        Value::SparseMatrix(matrix) => {
+            let mut columns = vec![vec![0.0; matrix.nrow]; matrix.ncol];
+            for row in 0..matrix.nrow {
+                let (from, to) = (matrix.indptr[row], matrix.indptr[row + 1]);
+                for position in from..to {
+                    columns[matrix.indices[position]][row] = matrix.data[position];
+                }
+            }
+            Ok((matrix.nrow, matrix.ncol, columns))
+        }
+        _ => {
+            let rows = require_matrix(value, who)?;
+            let n_cells = rows.len();
+            let n_genes = rows.first().map(|row| row.len()).unwrap_or(0);
+            let mut columns = vec![vec![0.0; n_cells]; n_genes];
+            for (cell, row) in rows.iter().enumerate() {
+                for (gene, &value) in row.iter().enumerate() {
+                    if gene < n_genes {
+                        columns[gene][cell] = value;
+                    }
+                }
+            }
+            Ok((n_cells, n_genes, columns))
+        }
+    }
 }
 
 // ── cell_qc(matrix, gene_names?, mito_prefix="MT-") ─────────────────
