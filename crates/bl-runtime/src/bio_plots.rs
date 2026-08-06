@@ -40,6 +40,7 @@ pub fn bio_plots_builtin_list() -> Vec<(&'static str, Arity)> {
         ("circos_plot", Arity::Range(1, 2)),
         ("umap_plot", Arity::Range(1, 2)),
         ("feature_plot", Arity::Range(1, 2)),
+        ("elbow_plot", Arity::Range(1, 2)),
         ("coverage_track", Arity::Range(1, 2)),
     ]
 }
@@ -74,6 +75,7 @@ pub fn is_bio_plots_builtin(name: &str) -> bool {
             | "circos_plot"
             | "umap_plot"
             | "feature_plot"
+            | "elbow_plot"
             | "coverage_track"
     )
 }
@@ -129,6 +131,7 @@ pub fn call_bio_plots_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         // Same renderer: feature_plot is umap_plot with a continuous colour
         // scale, so they cannot drift apart.
         "umap_plot" | "feature_plot" => builtin_umap_plot(args),
+        "elbow_plot" => builtin_elbow_plot(args),
         "coverage_track" => builtin_coverage_track(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
@@ -3796,6 +3799,82 @@ fn builtin_circos_plot(args: Vec<Value>) -> Result<Value> {
 /// Scatter plot for UMAP/PCA/t-SNE embeddings.
 /// data: Table with columns x, y, and optionally color/label/cluster
 /// options: Record{title?, width?, height?, color_col?, label_col?, format?}
+/// Scree / elbow plot: variance explained by each principal component.
+///
+/// The figure you read to choose how many components to keep - it flattens
+/// where the components stop carrying structure. Accepts either the list of
+/// ratios or the whole record `sc_pca` returns, because passing that record
+/// straight through is what a reader will try first.
+fn builtin_elbow_plot(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+
+    let values: Vec<f64> = match &args[0] {
+        Value::List(items) => items.iter().filter_map(|v| v.as_float()).collect(),
+        Value::Record(map) => map
+            .get("explained_variance_ratio")
+            .or_else(|| map.get("explained_variance"))
+            .map(|v| match v {
+                Value::List(items) => items.iter().filter_map(|x| x.as_float()).collect(),
+                _ => Vec::new(),
+            })
+            .unwrap_or_default(),
+        _ => return Err(BioLangError::type_error(
+            "elbow_plot() requires a List of variance ratios, or the Record returned by sc_pca()",
+            None,
+        )),
+    };
+
+    if values.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "elbow_plot() found no variance values",
+            None,
+        ));
+    }
+
+    let title = get_opt_str(&opts, "title", "Scree plot").to_string();
+    let width = get_opt_f64(&opts, "width", 600.0);
+    let height = get_opt_f64(&opts, "height", 400.0);
+    let mut canvas = SvgCanvas::new(width, height);
+
+    let highest = values.iter().cloned().fold(f64::MIN, f64::max);
+    let x_scale = Scale {
+        domain: (0.5, values.len() as f64 + 0.5),
+        range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
+    };
+    let y_scale = Scale {
+        // Always anchored at zero: a scree plot read on a truncated axis
+        // exaggerates the elbow, which is the one thing it exists to show.
+        domain: (0.0, highest * 1.1 + 1e-9),
+        range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
+    };
+
+    let points: Vec<String> = values
+        .iter()
+        .enumerate()
+        .map(|(i, v)| format!("{:.1},{:.1}", x_scale.map(i as f64 + 1.0), y_scale.map(*v)))
+        .collect();
+    canvas.elements.push(format!(
+        r#"<polyline points="{}" fill="none" stroke="{}" stroke-width="2" />"#,
+        points.join(" "),
+        PALETTE[0]
+    ));
+    for (i, v) in values.iter().enumerate() {
+        canvas.add_circle(
+            x_scale.map(i as f64 + 1.0),
+            y_scale.map(*v),
+            4.0,
+            PALETTE[0],
+        );
+    }
+
+    canvas.draw_x_axis(&x_scale, "component");
+    canvas.draw_y_axis(&y_scale, "variance explained");
+    canvas.add_text(width / 2.0, 22.0, &title, "middle", 14.0);
+
+    Ok(Value::Str(canvas.render()))
+}
+
 fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
     let fmt = get_opt_str(&opts, "format", "svg").to_string();

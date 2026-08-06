@@ -161,3 +161,70 @@ fn feature_plot_is_the_same_renderer_as_umap_plot() {
         "feature_plot and umap_plot(feature:) must not drift apart"
     );
 }
+
+// ── elbow / scree plot ──────────────────────────────────────────────────────
+
+fn elbow(arg: Value) -> String {
+    match call_bio_plots_builtin("elbow_plot", vec![arg]) {
+        Ok(Value::Str(svg)) => svg,
+        other => panic!("elbow_plot returned {other:?}"),
+    }
+}
+
+fn ratios() -> Vec<f64> {
+    vec![0.178, 0.069, 0.049, 0.018, 0.013, 0.009]
+}
+
+fn ratio_list() -> Value {
+    Value::List(
+        ratios()
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    )
+}
+
+#[test]
+fn elbow_plot_draws_one_point_per_component() {
+    let svg = elbow(ratio_list());
+    assert_eq!(
+        svg.matches("<circle").count(),
+        ratios().len(),
+        "expected a marker per component"
+    );
+    assert!(
+        svg.contains("<polyline"),
+        "no line connecting the components"
+    );
+}
+
+#[test]
+fn elbow_plot_accepts_the_record_sc_pca_returns() {
+    // Passing the pca result straight through is what a reader tries first.
+    let mut record = HashMap::new();
+    record.insert("explained_variance_ratio".to_string(), ratio_list());
+    record.insert("components".to_string(), Value::Int(6));
+    let svg = elbow(Value::Record(record.into()));
+    assert_eq!(svg.matches("<circle").count(), ratios().len());
+}
+
+#[test]
+fn elbow_plot_is_anchored_at_zero() {
+    // A scree plot on a truncated axis exaggerates the elbow, which is the one
+    // thing it exists to show. The y axis must reach 0.
+    let svg = elbow(ratio_list());
+    assert!(
+        svg.contains(">0<") || svg.contains(">0.00<") || svg.contains(">0.0<"),
+        "y axis does not reach zero, so the elbow is exaggerated"
+    );
+}
+
+#[test]
+fn elbow_plot_rejects_input_it_cannot_read() {
+    assert!(call_bio_plots_builtin("elbow_plot", vec![Value::Int(3)]).is_err());
+    assert!(
+        call_bio_plots_builtin("elbow_plot", vec![Value::List(Vec::new().into())]).is_err(),
+        "an empty list should error rather than render a blank chart"
+    );
+}

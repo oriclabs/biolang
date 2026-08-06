@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 29,
-    "builtin": 1020,
+    "builtin": 1021,
     "tutorial": 71,
     "example": 392
   },
@@ -3657,6 +3657,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "eigenvalues eigenvalues(arg1) runtime eigenvalues of a square matrix"
+    },
+    {
+      "id": "builtin:elbow_plot",
+      "kind": "builtin",
+      "title": "elbow_plot",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# elbow_plot\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nelbow_plot(arg1, arg2?)\n```\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "elbow_plot(arg1, arg2?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "elbow_plot elbow_plot(arg1, arg2?) runtime registered biolang builtin accepting 1 argument(s)."
     },
     {
       "id": "builtin:email",

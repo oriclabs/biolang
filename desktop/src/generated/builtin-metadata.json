@@ -4226,6 +4226,24 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "elbow_plot",
+      "signature": "elbow_plot(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "email",
       "signature": "email(arg1, arg2, arg3, arg4?)",
       "category": "runtime",
