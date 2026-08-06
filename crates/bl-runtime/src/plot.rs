@@ -71,8 +71,27 @@ pub fn call_plot_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
 
 // ── SVG Infrastructure ──────────────────────────────────────────
 
-pub(crate) const PALETTE: [&str; 8] = [
+/// Categorical colours, in the order they are handed out.
+///
+/// Callers index this modulo its length, so a plot with more groups than
+/// colours silently reuses them. At eight that happened constantly: clustering
+/// 2700 PBMCs gave eleven groups, and clusters 8, 9 and 10 came out the same
+/// colours as 0, 1 and 2 - two different cell types sharing a colour on the one
+/// figure the whole analysis is read from. Single-cell work routinely produces
+/// fifteen to thirty clusters.
+///
+/// The first eight are unchanged, so existing figures keep the colours they
+/// had. The rest extend Tableau's twenty with darker and lighter variants,
+/// ordered so that adjacent entries stay distinguishable - neighbouring indices
+/// are what a reader has to tell apart.
+pub(crate) const PALETTE: [&str; 24] = [
+    // Tableau 10 (the original eight, order preserved)
     "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc948", "#b07aa1", "#ff9da7",
+    // Tableau 10, remaining two
+    "#9c755f", "#bab0ac", // Tableau 20 pairs, picked for contrast against the above
+    "#a0cbe8", "#ffbe7d", "#8cd17d", "#b6992d", "#86bcb6", "#fabfd2", "#d37295", "#d4a6c8",
+    // Deeper tones, so a long legend does not drift pale
+    "#1b4965", "#7a4419", "#8b2e2e", "#2d6a4f", "#5a189a", "#0b525b",
 ];
 
 pub(crate) fn sequential_color(t: f64) -> String {
@@ -1378,4 +1397,57 @@ fn builtin_genome_track(args: Vec<Value>) -> Result<Value> {
     canvas.draw_title(&title);
 
     Ok(Value::Str(canvas.render()))
+}
+
+#[cfg(test)]
+mod palette_tests {
+    use super::PALETTE;
+    use std::collections::HashSet;
+
+    // Callers index PALETTE modulo its length, so a plot with more groups than
+    // colours draws two groups the same. At eight entries that bit constantly:
+    // clustering 2700 PBMCs gave eleven groups and three of them reused colours
+    // already spent, on the one figure the analysis is read from.
+
+    #[test]
+    fn palette_covers_a_realistic_cluster_count() {
+        assert!(
+            PALETTE.len() >= 20,
+            "single-cell work routinely yields 15-30 clusters; palette has {}",
+            PALETTE.len()
+        );
+    }
+
+    #[test]
+    fn palette_entries_are_distinct() {
+        let unique: HashSet<&&str> = PALETTE.iter().collect();
+        assert_eq!(
+            unique.len(),
+            PALETTE.len(),
+            "palette repeats a colour, so two groups share one"
+        );
+    }
+
+    #[test]
+    fn palette_entries_are_well_formed_hex() {
+        for colour in PALETTE {
+            assert!(
+                colour.len() == 7 && colour.starts_with('#'),
+                "malformed colour: {colour}"
+            );
+            assert!(
+                colour[1..].chars().all(|c| c.is_ascii_hexdigit()),
+                "non-hex colour: {colour}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_original_eight_are_unchanged() {
+        // Existing figures keep the colours they had.
+        let original = [
+            "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc948", "#b07aa1", "#ff9da7",
+        ];
+        assert_eq!(&PALETTE[..8], &original[..]);
+    }
 }
