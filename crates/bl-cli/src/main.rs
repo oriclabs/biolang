@@ -168,11 +168,17 @@ enum Commands {
 }
 
 fn main() {
-    // Spawn on a thread with a larger stack (8 MB) to handle deeply nested
-    // scripts (the default 1 MB stack overflows on complex BioLang programs).
+    // Spawn on a thread with a large stack: the interpreter spends several Rust
+    // frames per BioLang call, so recursion is far more stack-hungry than the
+    // source suggests. At 64 MB a plain `fn f(n) { f(n-1) }` aborted the process
+    // somewhere past a hundred levels, which ordinary tree recursion reaches.
+    // 256 MB carries MAX_CALL_DEPTH comfortably; past that the interpreter
+    // raises a BioLang error rather than letting the stack overflow.
+    //
+    // The comment here used to say 8 MB while the code asked for 64.
     let builder = std::thread::Builder::new()
         .name("bl-main".into())
-        .stack_size(64 * 1024 * 1024);
+        .stack_size(256 * 1024 * 1024);
     let handler = builder
         .spawn(|| {
             let cli = Cli::parse();

@@ -50,6 +50,10 @@ pub enum ErrorKind {
     IOError,
     ImportError,
     PluginError,
+    /// Recursion nested deeper than the interpreter's stack can carry. Raised
+    /// deliberately so a runaway recursion reports a span instead of aborting
+    /// the process with "overflowed its stack".
+    RecursionLimit,
 }
 
 impl BioLangError {
@@ -130,19 +134,43 @@ impl BioLangError {
             }
         }
 
-        // Print stack trace if available
+        // Print stack trace if available.
+        //
+        // Deep traces are elided in the middle. A runaway recursion produces
+        // hundreds of identical frames, and printing all of them buries the
+        // error message itself hundreds of lines up the terminal - the one thing
+        // the reader needs. The ends are what carry information: where it
+        // started and where it stopped.
         if !self.call_stack.is_empty() {
+            const HEAD: usize = 5;
+            const TAIL: usize = 5;
             result.push_str("\n\nStack trace (most recent call last):");
-            for (i, frame) in self.call_stack.iter().enumerate() {
+
+            let total = self.call_stack.len();
+            let mut render = |i: usize, frame: &StackFrame, out: &mut String| {
                 let file = frame.file.as_deref().unwrap_or("<repl>");
                 if let Some(span) = frame.span {
                     let (line, _col) = offset_to_line_col(source, span.start);
-                    result.push_str(&format!(
+                    out.push_str(&format!(
                         "\n  #{} {} ({}:{})",
                         i, frame.function_name, file, line
                     ));
                 } else {
-                    result.push_str(&format!("\n  #{} {} ({})", i, frame.function_name, file));
+                    out.push_str(&format!("\n  #{} {} ({})", i, frame.function_name, file));
+                }
+            };
+
+            if total <= HEAD + TAIL + 1 {
+                for (i, frame) in self.call_stack.iter().enumerate() {
+                    render(i, frame, &mut result);
+                }
+            } else {
+                for (i, frame) in self.call_stack.iter().enumerate().take(HEAD) {
+                    render(i, frame, &mut result);
+                }
+                result.push_str(&format!("\n  ... {} more frames ...", total - HEAD - TAIL));
+                for (i, frame) in self.call_stack.iter().enumerate().skip(total - TAIL) {
+                    render(i, frame, &mut result);
                 }
             }
         }
@@ -185,6 +213,7 @@ impl fmt::Display for BioLangError {
             ErrorKind::IOError => "IOError",
             ErrorKind::ImportError => "ImportError",
             ErrorKind::PluginError => "PluginError",
+            ErrorKind::RecursionLimit => "RecursionLimit",
         };
         write!(f, "{kind}: {}", self.message)?;
         for s in &self.suggestions {

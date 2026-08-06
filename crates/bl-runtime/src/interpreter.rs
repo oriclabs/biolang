@@ -10,6 +10,25 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 
+/// How deep BioLang calls may nest before the interpreter refuses.
+///
+/// This is a guard against aborting the process, not a language design choice.
+/// Evaluating one BioLang call costs several Rust frames; measured against the
+/// 256 MB stack `bl-cli` asks for, it is about 342 KB per level, so the real
+/// ceiling is near 780.
+///
+/// That per-level figure was 477 KB until the fattest arms of `eval_expr` and
+/// `exec_stmt` were moved into their own functions - a `match` frame is sized by
+/// the union of every arm it holds, so two 200-line arms were charging every
+/// recursive evaluation for locals it never used. See `eval_field_expr`.
+///
+/// The limit below sits under the ceiling with room to spare, so a runaway
+/// recursion reports a BioLang error naming the span rather than dying with a
+/// bare "overflowed its stack" from the operating system.
+///
+/// Raising this without also raising the stack size reintroduces the crash.
+const MAX_CALL_DEPTH: usize = 600;
+
 /// Iterator adapter that receives values from a generator thread via mpsc channel.
 struct GeneratorIterator {
     rx: std::sync::mpsc::Receiver<Value>,
@@ -343,7 +362,7 @@ impl Interpreter {
                             .define(format!("__vectorize_{name}"), Value::Bool(true));
                         continue;
                     }
-                    if let Ok(decorator) = self.env.get(dec_name, None).cloned() {
+                    if let Some(decorator) = self.env.lookup(dec_name).cloned() {
                         func = self.call_value(&decorator, vec![func], stmt.span)?;
                         self.env.set(name, func.clone(), Some(stmt.span))?;
                     }
@@ -437,81 +456,7 @@ impl Interpreter {
                 Ok(Value::Nil)
             }
             Stmt::IndexAssign { name, index, value } => {
-                let index_value = self.eval_expr(index)?;
-                let new_value = self.eval_expr(value)?;
-                let span = stmt.span;
-                let index_span = index.span;
-
-                // Borrowed mutably rather than read out and stored back: the
-                // binding stays the container's only owner, so make_mut updates
-                // in place. Cloning first gives the Arc a second owner and
-                // copies the whole container on every element write.
-                let target = match self.env.get_mut(name) {
-                    Some(value) => value,
-                    None => {
-                        // Re-run through `get` so an unbound name still reports
-                        // the usual error, suggestion and all.
-                        self.env.get(name, Some(span))?;
-                        unreachable!("get_mut missed a name that get resolved")
-                    }
-                };
-
-                match target {
-                    Value::List(items) => {
-                        let position = match index_value {
-                            Value::Int(n) if n >= 0 => n as usize,
-                            Value::Int(n) => {
-                                return Err(BioLangError::runtime(
-                                    ErrorKind::IndexOutOfBounds,
-                                    format!("index {n} is negative"),
-                                    Some(index_span),
-                                ))
-                            }
-                            other => {
-                                return Err(BioLangError::type_error(
-                                    format!("list index must be Int, got {}", other.type_of()),
-                                    Some(index_span),
-                                ))
-                            }
-                        };
-                        let slots = std::sync::Arc::make_mut(items);
-                        if position >= slots.len() {
-                            return Err(BioLangError::runtime(
-                                ErrorKind::IndexOutOfBounds,
-                                format!(
-                                    "index {position} out of bounds for a list of length {}",
-                                    slots.len()
-                                ),
-                                Some(index_span),
-                            ));
-                        }
-                        slots[position] = new_value;
-                    }
-                    Value::Map(entries) => {
-                        let key = match index_value {
-                            Value::Str(s) => s,
-                            other => format!("{other}"),
-                        };
-                        std::sync::Arc::make_mut(entries).insert(key, new_value);
-                    }
-                    Value::Record(entries) => {
-                        let key = match index_value {
-                            Value::Str(s) => s,
-                            other => format!("{other}"),
-                        };
-                        std::sync::Arc::make_mut(entries).insert(key, new_value);
-                    }
-                    other => {
-                        return Err(BioLangError::type_error(
-                            format!(
-                                "cannot assign into {} — only lists, maps and records support indexed assignment",
-                                other.type_of()
-                            ),
-                            Some(span),
-                        ))
-                    }
-                }
-                Ok(Value::Nil)
+                self.exec_index_assign_stmt(stmt, name, index, value)
             }
             Stmt::Expr(expr) => self.eval_expr(expr),
             Stmt::Return(value) => {
@@ -527,104 +472,7 @@ impl Interpreter {
                 when_guard,
                 body,
                 else_body,
-            } => {
-                let iterable = self.eval_expr(iter)?;
-
-                // Streams are consumed lazily — one item at a time, no materialization
-                if let Value::Stream(ref s) = iterable {
-                    if s.is_exhausted() {
-                        return Err(BioLangError::runtime(
-                            ErrorKind::TypeError,
-                            format!(
-                                "stream already consumed: Stream({}) has been fully iterated.",
-                                s.label
-                            ),
-                            Some(iter.span),
-                        ));
-                    }
-                    let mut last = Value::Nil;
-                    let mut did_break = false;
-                    while let Some(item) = s.next() {
-                        let prev = self.env.push_scope();
-                        self.bind_for_pattern(pattern, item);
-                        if let Some(guard) = when_guard {
-                            let cond = self.eval_expr(guard)?;
-                            if !cond.is_truthy() {
-                                self.env.pop_scope(prev);
-                                continue;
-                            }
-                        }
-                        match self.exec_block(body) {
-                            Ok(val) => last = val,
-                            Err(e) if e.kind == ErrorKind::Break => {
-                                self.env.pop_scope(prev);
-                                did_break = true;
-                                break;
-                            }
-                            Err(e) if e.kind == ErrorKind::Continue => {
-                                self.env.pop_scope(prev);
-                                continue;
-                            }
-                            Err(e) => {
-                                self.env.pop_scope(prev);
-                                return Err(e);
-                            }
-                        }
-                        self.env.pop_scope(prev);
-                    }
-                    if !did_break {
-                        if let Some(eb) = else_body {
-                            last = self.exec_block(eb)?;
-                        }
-                    }
-                    return Ok(last);
-                }
-
-                let items = self.value_to_iter(&iterable, iter.span)?;
-
-                let mut last = Value::Nil;
-                let mut did_break = false;
-                for item in items {
-                    let prev = self.env.push_scope();
-                    self.bind_for_pattern(pattern, item);
-                    // Evaluate `when` guard — skip iteration if false
-                    if let Some(guard) = when_guard {
-                        let cond = self.eval_expr(guard)?;
-                        if !cond.is_truthy() {
-                            self.env.pop_scope(prev);
-                            continue;
-                        }
-                    }
-                    match self.exec_block(body) {
-                        Ok(val) => last = val,
-                        Err(e) if e.kind == ErrorKind::Break => {
-                            self.env.pop_scope(prev);
-                            did_break = true;
-                            break;
-                        }
-                        Err(e) if e.kind == ErrorKind::Continue => {
-                            self.env.pop_scope(prev);
-                            continue;
-                        }
-                        Err(e) if e.kind == ErrorKind::Return => {
-                            self.env.pop_scope(prev);
-                            return Err(e);
-                        }
-                        Err(e) => {
-                            self.env.pop_scope(prev);
-                            return Err(e);
-                        }
-                    }
-                    self.env.pop_scope(prev);
-                }
-                // `else` body runs if loop completed without break
-                if !did_break {
-                    if let Some(eb) = else_body {
-                        last = self.exec_block(eb)?;
-                    }
-                }
-                Ok(last)
-            }
+            } => self.exec_for_stmt(pattern, iter, when_guard, body, else_body),
             Stmt::While { condition, body } => {
                 let mut last = Value::Nil;
                 loop {
@@ -666,86 +514,7 @@ impl Interpreter {
                 "continue",
                 Some(stmt.span),
             )),
-            Stmt::DestructLet { pattern, value } => {
-                let val = self.eval_expr(value)?;
-                match pattern {
-                    DestructPattern::List(names) => {
-                        let items = match &val {
-                            Value::List(items) => items.clone(),
-                            other => {
-                                return Err(BioLangError::type_error(
-                                    format!("cannot destructure {} as list", other.type_of()),
-                                    Some(value.span),
-                                ))
-                            }
-                        };
-                        for (i, name) in names.iter().enumerate() {
-                            let item = items.get(i).cloned().unwrap_or(Value::Nil);
-                            self.env.define(name.clone(), item);
-                        }
-                    }
-                    DestructPattern::ListWithRest {
-                        elements,
-                        rest_name,
-                    } => {
-                        let items = match &val {
-                            Value::List(items) => items.clone(),
-                            other => {
-                                return Err(BioLangError::type_error(
-                                    format!("cannot destructure {} as list", other.type_of()),
-                                    Some(value.span),
-                                ))
-                            }
-                        };
-                        for (i, name) in elements.iter().enumerate() {
-                            let item = items.get(i).cloned().unwrap_or(Value::Nil);
-                            self.env.define(name.clone(), item);
-                        }
-                        let rest: Vec<Value> = items.iter().skip(elements.len()).cloned().collect();
-                        self.env
-                            .define(rest_name.clone(), Value::List((rest).into()));
-                    }
-                    DestructPattern::Record(names) => {
-                        let map = match &val {
-                            Value::Record(m) | Value::Map(m) => m.clone(),
-                            other => {
-                                return Err(BioLangError::type_error(
-                                    format!("cannot destructure {} as record", other.type_of()),
-                                    Some(value.span),
-                                ))
-                            }
-                        };
-                        for name in names {
-                            let item = map.get(name).cloned().unwrap_or(Value::Nil);
-                            self.env.define(name.clone(), item);
-                        }
-                    }
-                    DestructPattern::RecordWithRest { fields, rest_name } => {
-                        let map = match &val {
-                            Value::Record(m) | Value::Map(m) => m.clone(),
-                            other => {
-                                return Err(BioLangError::type_error(
-                                    format!("cannot destructure {} as record", other.type_of()),
-                                    Some(value.span),
-                                ))
-                            }
-                        };
-                        let field_set: HashSet<&String> = fields.iter().collect();
-                        for name in fields {
-                            let item = map.get(name).cloned().unwrap_or(Value::Nil);
-                            self.env.define(name.clone(), item);
-                        }
-                        let rest: HashMap<String, Value> = map
-                            .iter()
-                            .filter(|(k, _)| !field_set.contains(k))
-                            .map(|(k, v)| (k.clone(), v.clone()))
-                            .collect();
-                        self.env
-                            .define(rest_name.clone(), Value::Record((rest).into()));
-                    }
-                }
-                Ok(Value::Nil)
-            }
+            Stmt::DestructLet { pattern, value } => self.exec_destruct_let_stmt(pattern, value),
             Stmt::Assert { condition, message } => {
                 let val = self.eval_expr(condition)?;
                 if !val.is_truthy() {
@@ -1127,7 +896,7 @@ impl Interpreter {
             }
             Stmt::NilAssign { name, value } => {
                 // `name ?= expr` — only assign if name is nil or undefined
-                let current = self.env.get(name, None).cloned().unwrap_or(Value::Nil);
+                let current = self.env.lookup(name).cloned().unwrap_or(Value::Nil);
                 if current == Value::Nil {
                     let val = self.eval_expr(value)?;
                     if self.env.has(name) {
@@ -1594,479 +1363,8 @@ impl Interpreter {
                 object,
                 field,
                 optional,
-            } => {
-                let obj = self.eval_expr(object)?;
-                // Optional chaining: nil?.field → nil
-                if *optional && matches!(obj, Value::Nil) {
-                    return Ok(Value::Nil);
-                }
-                match obj {
-                    Value::Record(ref map) | Value::Map(ref map) => match map.get(field) {
-                        Some(val) => Ok(val.clone()),
-                        None => {
-                            if *optional {
-                                return Ok(Value::Nil);
-                            }
-                            // UFCS: try looking up field as a function
-                            if let Ok(func) = self.env.get(field, None).cloned() {
-                                if matches!(func, Value::Function { .. } | Value::NativeFunction { .. }) {
-                                    return Err(BioLangError::name_error(
-                                        format!("no field '{field}' on record"),
-                                        Some(expr.span),
-                                    ));
-                                }
-                            }
-                            Err(BioLangError::name_error(
-                                format!("no field '{field}' on record"),
-                                Some(expr.span),
-                            ))
-                        }
-                    },
-                    Value::Table(t) => match field.as_str() {
-                        "columns" => Ok(Value::List(
-                            t.columns.iter().map(|c| Value::Str(c.clone())).collect::<Vec<_>>().into(),
-                        )),
-                        "num_rows" => Ok(Value::Int(t.num_rows() as i64)),
-                        "num_cols" => Ok(Value::Int(t.num_cols() as i64)),
-                        col_name => {
-                            // Access column by name → returns column as List
-                            match t.col_index(col_name) {
-                                Some(ci) => Ok(Value::List(
-                                    t.rows.iter().map(|row| row[ci].clone()).collect::<Vec<_>>().into(),
-                                )),
-                                None => Err(BioLangError::name_error(
-                                    format!("no column '{col_name}' on Table"),
-                                    Some(expr.span),
-                                )),
-                            }
-                        }
-                    },
-                    Value::Interval(iv) => match field.as_str() {
-                        "chrom" => Ok(Value::Str(iv.chrom.clone())),
-                        "start" => Ok(Value::Int(iv.start)),
-                        "end" => Ok(Value::Int(iv.end)),
-                        "strand" => Ok(Value::Str(iv.strand.to_string())),
-                        other => Err(BioLangError::name_error(
-                            format!("no field '{other}' on Interval"),
-                            Some(expr.span),
-                        )),
-                    },
-                    Value::Gene { symbol, gene_id, chrom, start, end, strand, biotype, description } => match field.as_str() {
-                        "symbol" => Ok(Value::Str(symbol.clone())),
-                        "gene_id" => Ok(Value::Str(gene_id.clone())),
-                        "chrom" => Ok(Value::Str(chrom.clone())),
-                        "start" => Ok(Value::Int(start)),
-                        "end" => Ok(Value::Int(end)),
-                        "strand" => Ok(Value::Str(strand.clone())),
-                        "biotype" => Ok(Value::Str(biotype.clone())),
-                        "description" => Ok(Value::Str(description.clone())),
-                        other => Err(BioLangError::name_error(
-                            format!("no field '{other}' on Gene"),
-                            Some(expr.span),
-                        )),
-                    },
-                    Value::Variant { ref chrom, pos, ref id, ref ref_allele, ref alt_allele, quality, ref filter, ref info } => match field.as_str() {
-                        "chrom" => Ok(Value::Str(chrom.clone())),
-                        "pos" => Ok(Value::Int(pos)),
-                        "id" => Ok(Value::Str(id.clone())),
-                        "ref_allele" | "ref" => Ok(Value::Str(ref_allele.clone())),
-                        "alt_allele" | "alt" => Ok(Value::Str(alt_allele.clone())),
-                        "quality" | "qual" => Ok(Value::Float(quality)),
-                        "filter" => Ok(Value::Str(filter.clone())),
-                        "info" => {
-                            // Lazy INFO parsing: if _raw key present, parse it now
-                            if info.len() == 1 {
-                                if let Some(Value::Str(raw)) = info.get("_raw") {
-                                    if raw == "." || raw.is_empty() {
-                                        return Ok(Value::Record((HashMap::new()).into()));
-                                    }
-                                    let mut map = HashMap::new();
-                                    for part in raw.split(';') {
-                                        if part.is_empty() { continue; }
-                                        if let Some((key, val)) = part.split_once('=') {
-                                            if val.contains(',') {
-                                                let items: Vec<Value> = val.split(',').map(|v| {
-                                                    if v == "." { Value::Nil }
-                                                    else if let Ok(n) = v.parse::<i64>() { Value::Int(n) }
-                                                    else if let Ok(f) = v.parse::<f64>() { Value::Float(f) }
-                                                    else { Value::Str(v.to_string()) }
-                                                }).collect();
-                                                map.insert(key.to_string(), Value::List((items).into()));
-                                            } else if val == "." {
-                                                map.insert(key.to_string(), Value::Nil);
-                                            } else if let Ok(n) = val.parse::<i64>() {
-                                                map.insert(key.to_string(), Value::Int(n));
-                                            } else if let Ok(f) = val.parse::<f64>() {
-                                                map.insert(key.to_string(), Value::Float(f));
-                                            } else {
-                                                map.insert(key.to_string(), Value::Str(val.to_string()));
-                                            }
-                                        } else {
-                                            map.insert(part.to_string(), Value::Bool(true));
-                                        }
-                                    }
-                                    return Ok(Value::Record((map).into()));
-                                }
-                            }
-                            Ok(Value::Record((info.clone()).into()))
-                        }
-                        // Computed variant classification properties
-                        "is_snp" => {
-                            let first_alt = alt_allele.split(',').next().unwrap_or("");
-                            Ok(Value::Bool(bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt) == bl_core::bio_core::VariantType::Snp))
-                        }
-                        "is_indel" => {
-                            let first_alt = alt_allele.split(',').next().unwrap_or("");
-                            Ok(Value::Bool(bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt) == bl_core::bio_core::VariantType::Indel))
-                        }
-                        "is_transition" => {
-                            let first_alt = alt_allele.split(',').next().unwrap_or("");
-                            let is_snp = bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt) == bl_core::bio_core::VariantType::Snp;
-                            Ok(Value::Bool(is_snp && bl_core::bio_core::vcf_ops::is_transition(ref_allele, first_alt)))
-                        }
-                        "is_transversion" => {
-                            let first_alt = alt_allele.split(',').next().unwrap_or("");
-                            let is_snp = bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt) == bl_core::bio_core::VariantType::Snp;
-                            Ok(Value::Bool(is_snp && !bl_core::bio_core::vcf_ops::is_transition(ref_allele, first_alt)))
-                        }
-                        "variant_type" => {
-                            let first_alt = alt_allele.split(',').next().unwrap_or("");
-                            let vt = bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt);
-                            let name = match vt {
-                                bl_core::bio_core::VariantType::Snp => "Snp",
-                                bl_core::bio_core::VariantType::Indel => "Indel",
-                                bl_core::bio_core::VariantType::Mnp => "Mnp",
-                                bl_core::bio_core::VariantType::Other => "Other",
-                            };
-                            Ok(Value::Str(name.to_string()))
-                        }
-                        "alt_alleles" => {
-                            Ok(Value::List(alt_allele.split(',').map(|s| Value::Str(s.to_string())).collect::<Vec<_>>().into()))
-                        }
-                        "is_multiallelic" => Ok(Value::Bool(alt_allele.contains(','))),
-                        "is_het" | "is_hom_ref" | "is_hom_alt" => {
-                            let gt_str = info.get("GT").or_else(|| info.get("gt"));
-                            let result = match gt_str {
-                                Some(Value::Str(gt)) => {
-                                    let sep = if gt.contains('|') { '|' } else { '/' };
-                                    let alleles: Vec<Option<u8>> = gt.split(sep)
-                                        .map(|a| if a == "." { None } else { a.parse().ok() })
-                                        .collect();
-                                    match field.as_str() {
-                                        "is_het" => {
-                                            let vals: Vec<u8> = alleles.iter().filter_map(|a| *a).collect();
-                                            vals.len() >= 2 && vals.windows(2).any(|w| w[0] != w[1])
-                                        }
-                                        "is_hom_ref" => alleles.iter().all(|a| *a == Some(0)),
-                                        "is_hom_alt" => {
-                                            let vals: Vec<u8> = alleles.iter().filter_map(|a| *a).collect();
-                                            vals.len() >= 2 && vals[0] > 0 && vals.iter().all(|&a| a == vals[0])
-                                        }
-                                        _ => false,
-                                    }
-                                }
-                                _ => false,
-                            };
-                            Ok(Value::Bool(result))
-                        }
-                        other => Err(BioLangError::name_error(
-                            format!("no field '{other}' on Variant"),
-                            Some(expr.span),
-                        )),
-                    },
-                    Value::Genome { name, species, assembly, chromosomes } => match field.as_str() {
-                        "name" => Ok(Value::Str(name.clone())),
-                        "species" => Ok(Value::Str(species.clone())),
-                        "assembly" => Ok(Value::Str(assembly.clone())),
-                        "chromosomes" => {
-                            let chroms = chromosomes.iter().map(|(n, l)| {
-                                let mut rec = HashMap::new();
-                                rec.insert("name".to_string(), Value::Str(n.clone()));
-                                rec.insert("length".to_string(), Value::Int(*l));
-                                Value::Record((rec).into())
-                            }).collect::<Vec<_>>().into();
-                            Ok(Value::List(chroms))
-                        }
-                        other => Err(BioLangError::name_error(
-                            format!("no field '{other}' on Genome"),
-                            Some(expr.span),
-                        )),
-                    },
-                    Value::Quality(ref scores) => match field.as_str() {
-                        "scores" => Ok(Value::List(scores.iter().map(|s| Value::Int(*s as i64)).collect::<Vec<_>>().into())),
-                        "length" => Ok(Value::Int(scores.len() as i64)),
-                        "mean" => {
-                            if scores.is_empty() {
-                                Ok(Value::Float(0.0))
-                            } else {
-                                let sum: f64 = scores.iter().map(|s| *s as f64).sum();
-                                Ok(Value::Float(sum / scores.len() as f64))
-                            }
-                        }
-                        "min" => Ok(Value::Int(scores.iter().copied().min().unwrap_or(0) as i64)),
-                        other => Err(BioLangError::name_error(
-                            format!("no field '{other}' on Quality"),
-                            Some(expr.span),
-                        )),
-                    },
-                    Value::AlignedRead(ref read) => match field.as_str() {
-                        "qname" => Ok(Value::Str(read.qname.clone())),
-                        "flag" => Ok(Value::Int(read.flag as i64)),
-                        "rname" => Ok(Value::Str(read.rname.clone())),
-                        "pos" => Ok(Value::Int(read.pos)),
-                        "mapq" => Ok(Value::Int(read.mapq as i64)),
-                        "cigar" => Ok(Value::Str(read.cigar.clone())),
-                        "rnext" => Ok(Value::Str(read.rnext.clone())),
-                        "pnext" => Ok(Value::Int(read.pnext)),
-                        "tlen" => Ok(Value::Int(read.tlen)),
-                        "seq" => Ok(Value::DNA(BioSequence { data: read.seq.clone() })),
-                        "qual" => Ok(Value::Quality(bl_core::bio_core::QualityOps::from_ascii(&read.qual))),
-                        // Computed properties
-                        "is_paired" => Ok(Value::Bool(read.is_paired())),
-                        "is_proper_pair" => Ok(Value::Bool(read.is_proper_pair())),
-                        "is_unmapped" => Ok(Value::Bool(read.is_unmapped())),
-                        "is_mapped" => Ok(Value::Bool(read.is_mapped())),
-                        "is_reverse" => Ok(Value::Bool(read.is_reverse())),
-                        "is_read1" => Ok(Value::Bool(read.is_read1())),
-                        "is_read2" => Ok(Value::Bool(read.is_read2())),
-                        "is_duplicate" => Ok(Value::Bool(read.is_duplicate())),
-                        "is_secondary" => Ok(Value::Bool(read.is_secondary())),
-                        "is_supplementary" => Ok(Value::Bool(read.is_supplementary())),
-                        "is_primary" => Ok(Value::Bool(read.is_primary())),
-                        "aligned_length" => Ok(Value::Int(read.aligned_length())),
-                        "query_length" => Ok(Value::Int(read.query_length())),
-                        "end_pos" => Ok(Value::Int(read.end_pos())),
-                        "interval" => Ok(Value::Interval(read.to_interval())),
-                        other => Err(BioLangError::name_error(
-                            format!("no field '{other}' on AlignedRead"),
-                            Some(expr.span),
-                        )),
-                    },
-                    Value::Matrix(ref m) => match field.as_str() {
-                        "nrow" => Ok(Value::Int(m.nrow as i64)),
-                        "ncol" => Ok(Value::Int(m.ncol as i64)),
-                        "shape" => Ok(Value::List((vec![Value::Int(m.nrow as i64), Value::Int(m.ncol as i64)]).into())),
-                        "row_names" => Ok(m.row_names.as_ref()
-                            .map(|names| Value::List(names.iter().map(|s| Value::Str(s.clone())).collect::<Vec<_>>().into()))
-                            .unwrap_or(Value::Nil)),
-                        "col_names" => Ok(m.col_names.as_ref()
-                            .map(|names| Value::List(names.iter().map(|s| Value::Str(s.clone())).collect::<Vec<_>>().into()))
-                            .unwrap_or(Value::Nil)),
-                        "data" => Ok(Value::List(m.data.iter().map(|v| Value::Float(*v)).collect::<Vec<_>>().into())),
-                        other => Err(BioLangError::name_error(
-                            format!("no field '{other}' on Matrix (available: nrow, ncol, shape, row_names, col_names, data)"),
-                            Some(expr.span),
-                        )),
-                    },
-                    other => Err(BioLangError::type_error(
-                        format!("cannot access field on {}", other.type_of()),
-                        Some(expr.span),
-                    )),
-                }
-            }
-            Expr::Index { object, index } => {
-                let obj = self.eval_expr(object)?;
-                let idx = self.eval_expr(index)?;
-                match (&obj, &idx) {
-                    (Value::List(list), Value::Int(i)) => {
-                        let i = if *i < 0 {
-                            (list.len() as i64 + i) as usize
-                        } else {
-                            *i as usize
-                        };
-                        list.get(i).cloned().ok_or_else(|| {
-                            BioLangError::runtime(
-                                ErrorKind::IndexOutOfBounds,
-                                format!("index {i} out of bounds (len {})", list.len()),
-                                Some(expr.span),
-                            )
-                        })
-                    }
-                    (Value::Map(map) | Value::Record(map), Value::Str(key)) => {
-                        map.get(key).cloned().ok_or_else(|| {
-                            BioLangError::name_error(
-                                format!("key '{key}' not found"),
-                                Some(expr.span),
-                            )
-                        })
-                    }
-                    (Value::Table(t), Value::Int(i)) => {
-                        let i = if *i < 0 {
-                            (t.num_rows() as i64 + i) as usize
-                        } else {
-                            *i as usize
-                        };
-                        if i < t.num_rows() {
-                            Ok(Value::Record((t.row_to_record(i)).into()))
-                        } else {
-                            Err(BioLangError::runtime(
-                                ErrorKind::IndexOutOfBounds,
-                                format!(
-                                    "index {i} out of bounds (table has {} rows)",
-                                    t.num_rows()
-                                ),
-                                Some(expr.span),
-                            ))
-                        }
-                    }
-                    (Value::Table(t), Value::Str(col_name)) => match t.col_index(col_name) {
-                        Some(ci) => Ok(Value::List(
-                            t.rows
-                                .iter()
-                                .map(|row| row[ci].clone())
-                                .collect::<Vec<_>>()
-                                .into(),
-                        )),
-                        None => Err(BioLangError::name_error(
-                            format!("no column '{col_name}' in table"),
-                            Some(expr.span),
-                        )),
-                    },
-                    (Value::Str(s), Value::Int(i)) => {
-                        let i = if *i < 0 {
-                            (s.len() as i64 + i) as usize
-                        } else {
-                            *i as usize
-                        };
-                        s.chars()
-                            .nth(i)
-                            .map(|c| Value::Str(c.to_string()))
-                            .ok_or_else(|| {
-                                BioLangError::runtime(
-                                    ErrorKind::IndexOutOfBounds,
-                                    format!("index {i} out of bounds"),
-                                    Some(expr.span),
-                                )
-                            })
-                    }
-                    // Tuple indexing
-                    (Value::Tuple(items), Value::Int(i)) => {
-                        let i = if *i < 0 {
-                            (items.len() as i64 + i) as usize
-                        } else {
-                            *i as usize
-                        };
-                        items.get(i).cloned().ok_or_else(|| {
-                            BioLangError::runtime(
-                                ErrorKind::IndexOutOfBounds,
-                                format!("tuple index {i} out of bounds (len {})", items.len()),
-                                Some(expr.span),
-                            )
-                        })
-                    }
-                    // Slicing: list[start..end] or str[start..end]
-                    (
-                        Value::List(list),
-                        Value::Range {
-                            start,
-                            end,
-                            inclusive,
-                        },
-                    ) => {
-                        let end = if *inclusive {
-                            *end as usize + 1
-                        } else {
-                            *end as usize
-                        };
-                        let start = *start as usize;
-                        Ok(Value::List(
-                            (list.get(start..end.min(list.len())).unwrap_or(&[]).to_vec()).into(),
-                        ))
-                    }
-                    (
-                        Value::Str(s),
-                        Value::Range {
-                            start,
-                            end,
-                            inclusive,
-                        },
-                    ) => {
-                        let end = if *inclusive {
-                            *end as usize + 1
-                        } else {
-                            *end as usize
-                        };
-                        let start = *start as usize;
-                        let chars: Vec<char> = s.chars().collect();
-                        let slice: String = chars
-                            .get(start..end.min(chars.len()))
-                            .unwrap_or(&[])
-                            .iter()
-                            .collect();
-                        Ok(Value::Str(slice))
-                    }
-                    (
-                        Value::DNA(seq),
-                        Value::Range {
-                            start,
-                            end,
-                            inclusive,
-                        },
-                    ) => {
-                        let end = if *inclusive {
-                            *end as usize + 1
-                        } else {
-                            *end as usize
-                        };
-                        let start = *start as usize;
-                        let chars: Vec<char> = seq.data.chars().collect();
-                        let slice: String = chars
-                            .get(start..end.min(chars.len()))
-                            .unwrap_or(&[])
-                            .iter()
-                            .collect();
-                        Ok(Value::DNA(BioSequence { data: slice }))
-                    }
-                    (
-                        Value::RNA(seq),
-                        Value::Range {
-                            start,
-                            end,
-                            inclusive,
-                        },
-                    ) => {
-                        let end = if *inclusive {
-                            *end as usize + 1
-                        } else {
-                            *end as usize
-                        };
-                        let start = *start as usize;
-                        let chars: Vec<char> = seq.data.chars().collect();
-                        let slice: String = chars
-                            .get(start..end.min(chars.len()))
-                            .unwrap_or(&[])
-                            .iter()
-                            .collect();
-                        Ok(Value::RNA(BioSequence { data: slice }))
-                    }
-                    (
-                        Value::Protein(seq),
-                        Value::Range {
-                            start,
-                            end,
-                            inclusive,
-                        },
-                    ) => {
-                        let end = if *inclusive {
-                            *end as usize + 1
-                        } else {
-                            *end as usize
-                        };
-                        let start = *start as usize;
-                        let chars: Vec<char> = seq.data.chars().collect();
-                        let slice: String = chars
-                            .get(start..end.min(chars.len()))
-                            .unwrap_or(&[])
-                            .iter()
-                            .collect();
-                        Ok(Value::Protein(BioSequence { data: slice }))
-                    }
-                    _ => Err(BioLangError::type_error(
-                        format!("cannot index {} with {}", obj.type_of(), idx.type_of()),
-                        Some(expr.span),
-                    )),
-                }
-            }
+            } => self.eval_field_expr(expr, object, field, optional),
+            Expr::Index { object, index } => self.eval_index_expr(expr, object, index),
             Expr::Lambda { params, body } => {
                 let closure_env = self.env.current_scope_id();
                 Ok(Value::Function {
@@ -2814,6 +2112,789 @@ impl Interpreter {
         }
     }
 
+    /// Field access, split out of `eval_expr`.
+    ///
+    /// This arm and `eval_index_expr` were 274 and 203 lines inside the main
+    /// expression match. Rust sizes a stack frame from the union of every arm it
+    /// contains, so those two inflated `eval_expr` to 100 KB - paid on every
+    /// recursive evaluation, whether or not a field was involved. That was most
+    /// of the ~477 KB of stack each BioLang call consumed, and the reason
+    /// recursion ran out of stack after a hundred levels.
+    ///
+    /// `#[inline(never)]` is load-bearing: inlining these back would undo it.
+    #[inline(never)]
+    #[allow(clippy::ptr_arg)]
+    fn eval_field_expr(
+        &mut self,
+        expr: &Spanned<Expr>,
+        object: &Spanned<Expr>,
+        field: &String,
+        optional: &bool,
+    ) -> Result<Value> {
+        let obj = self.eval_expr(object)?;
+        // Optional chaining: nil?.field → nil
+        if *optional && matches!(obj, Value::Nil) {
+            return Ok(Value::Nil);
+        }
+        match obj {
+                Value::Record(ref map) | Value::Map(ref map) => match map.get(field) {
+                    Some(val) => Ok(val.clone()),
+                    None => {
+                        if *optional {
+                            return Ok(Value::Nil);
+                        }
+                        // UFCS: try looking up field as a function
+                        if let Some(func) = self.env.lookup(field).cloned() {
+                            if matches!(func, Value::Function { .. } | Value::NativeFunction { .. }) {
+                                return Err(BioLangError::name_error(
+                                    format!("no field '{field}' on record"),
+                                    Some(expr.span),
+                                ));
+                            }
+                        }
+                        Err(BioLangError::name_error(
+                            format!("no field '{field}' on record"),
+                            Some(expr.span),
+                        ))
+                    }
+                },
+                Value::Table(t) => match field.as_str() {
+                    "columns" => Ok(Value::List(
+                        t.columns.iter().map(|c| Value::Str(c.clone())).collect::<Vec<_>>().into(),
+                    )),
+                    "num_rows" => Ok(Value::Int(t.num_rows() as i64)),
+                    "num_cols" => Ok(Value::Int(t.num_cols() as i64)),
+                    col_name => {
+                        // Access column by name → returns column as List
+                        match t.col_index(col_name) {
+                            Some(ci) => Ok(Value::List(
+                                t.rows.iter().map(|row| row[ci].clone()).collect::<Vec<_>>().into(),
+                            )),
+                            None => Err(BioLangError::name_error(
+                                format!("no column '{col_name}' on Table"),
+                                Some(expr.span),
+                            )),
+                        }
+                    }
+                },
+                Value::Interval(iv) => match field.as_str() {
+                    "chrom" => Ok(Value::Str(iv.chrom.clone())),
+                    "start" => Ok(Value::Int(iv.start)),
+                    "end" => Ok(Value::Int(iv.end)),
+                    "strand" => Ok(Value::Str(iv.strand.to_string())),
+                    other => Err(BioLangError::name_error(
+                        format!("no field '{other}' on Interval"),
+                        Some(expr.span),
+                    )),
+                },
+                Value::Gene { symbol, gene_id, chrom, start, end, strand, biotype, description } => match field.as_str() {
+                    "symbol" => Ok(Value::Str(symbol.clone())),
+                    "gene_id" => Ok(Value::Str(gene_id.clone())),
+                    "chrom" => Ok(Value::Str(chrom.clone())),
+                    "start" => Ok(Value::Int(start)),
+                    "end" => Ok(Value::Int(end)),
+                    "strand" => Ok(Value::Str(strand.clone())),
+                    "biotype" => Ok(Value::Str(biotype.clone())),
+                    "description" => Ok(Value::Str(description.clone())),
+                    other => Err(BioLangError::name_error(
+                        format!("no field '{other}' on Gene"),
+                        Some(expr.span),
+                    )),
+                },
+                Value::Variant { ref chrom, pos, ref id, ref ref_allele, ref alt_allele, quality, ref filter, ref info } => match field.as_str() {
+                    "chrom" => Ok(Value::Str(chrom.clone())),
+                    "pos" => Ok(Value::Int(pos)),
+                    "id" => Ok(Value::Str(id.clone())),
+                    "ref_allele" | "ref" => Ok(Value::Str(ref_allele.clone())),
+                    "alt_allele" | "alt" => Ok(Value::Str(alt_allele.clone())),
+                    "quality" | "qual" => Ok(Value::Float(quality)),
+                    "filter" => Ok(Value::Str(filter.clone())),
+                    "info" => {
+                        // Lazy INFO parsing: if _raw key present, parse it now
+                        if info.len() == 1 {
+                            if let Some(Value::Str(raw)) = info.get("_raw") {
+                                if raw == "." || raw.is_empty() {
+                                    return Ok(Value::Record((HashMap::new()).into()));
+                                }
+                                let mut map = HashMap::new();
+                                for part in raw.split(';') {
+                                    if part.is_empty() { continue; }
+                                    if let Some((key, val)) = part.split_once('=') {
+                                        if val.contains(',') {
+                                            let items: Vec<Value> = val.split(',').map(|v| {
+                                                if v == "." { Value::Nil }
+                                                else if let Ok(n) = v.parse::<i64>() { Value::Int(n) }
+                                                else if let Ok(f) = v.parse::<f64>() { Value::Float(f) }
+                                                else { Value::Str(v.to_string()) }
+                                            }).collect();
+                                            map.insert(key.to_string(), Value::List((items).into()));
+                                        } else if val == "." {
+                                            map.insert(key.to_string(), Value::Nil);
+                                        } else if let Ok(n) = val.parse::<i64>() {
+                                            map.insert(key.to_string(), Value::Int(n));
+                                        } else if let Ok(f) = val.parse::<f64>() {
+                                            map.insert(key.to_string(), Value::Float(f));
+                                        } else {
+                                            map.insert(key.to_string(), Value::Str(val.to_string()));
+                                        }
+                                    } else {
+                                        map.insert(part.to_string(), Value::Bool(true));
+                                    }
+                                }
+                                return Ok(Value::Record((map).into()));
+                            }
+                        }
+                        Ok(Value::Record((info.clone()).into()))
+                    }
+                    // Computed variant classification properties
+                    "is_snp" => {
+                        let first_alt = alt_allele.split(',').next().unwrap_or("");
+                        Ok(Value::Bool(bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt) == bl_core::bio_core::VariantType::Snp))
+                    }
+                    "is_indel" => {
+                        let first_alt = alt_allele.split(',').next().unwrap_or("");
+                        Ok(Value::Bool(bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt) == bl_core::bio_core::VariantType::Indel))
+                    }
+                    "is_transition" => {
+                        let first_alt = alt_allele.split(',').next().unwrap_or("");
+                        let is_snp = bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt) == bl_core::bio_core::VariantType::Snp;
+                        Ok(Value::Bool(is_snp && bl_core::bio_core::vcf_ops::is_transition(ref_allele, first_alt)))
+                    }
+                    "is_transversion" => {
+                        let first_alt = alt_allele.split(',').next().unwrap_or("");
+                        let is_snp = bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt) == bl_core::bio_core::VariantType::Snp;
+                        Ok(Value::Bool(is_snp && !bl_core::bio_core::vcf_ops::is_transition(ref_allele, first_alt)))
+                    }
+                    "variant_type" => {
+                        let first_alt = alt_allele.split(',').next().unwrap_or("");
+                        let vt = bl_core::bio_core::vcf_ops::classify_variant(ref_allele, first_alt);
+                        let name = match vt {
+                            bl_core::bio_core::VariantType::Snp => "Snp",
+                            bl_core::bio_core::VariantType::Indel => "Indel",
+                            bl_core::bio_core::VariantType::Mnp => "Mnp",
+                            bl_core::bio_core::VariantType::Other => "Other",
+                        };
+                        Ok(Value::Str(name.to_string()))
+                    }
+                    "alt_alleles" => {
+                        Ok(Value::List(alt_allele.split(',').map(|s| Value::Str(s.to_string())).collect::<Vec<_>>().into()))
+                    }
+                    "is_multiallelic" => Ok(Value::Bool(alt_allele.contains(','))),
+                    "is_het" | "is_hom_ref" | "is_hom_alt" => {
+                        let gt_str = info.get("GT").or_else(|| info.get("gt"));
+                        let result = match gt_str {
+                            Some(Value::Str(gt)) => {
+                                let sep = if gt.contains('|') { '|' } else { '/' };
+                                let alleles: Vec<Option<u8>> = gt.split(sep)
+                                    .map(|a| if a == "." { None } else { a.parse().ok() })
+                                    .collect();
+                                match field.as_str() {
+                                    "is_het" => {
+                                        let vals: Vec<u8> = alleles.iter().filter_map(|a| *a).collect();
+                                        vals.len() >= 2 && vals.windows(2).any(|w| w[0] != w[1])
+                                    }
+                                    "is_hom_ref" => alleles.iter().all(|a| *a == Some(0)),
+                                    "is_hom_alt" => {
+                                        let vals: Vec<u8> = alleles.iter().filter_map(|a| *a).collect();
+                                        vals.len() >= 2 && vals[0] > 0 && vals.iter().all(|&a| a == vals[0])
+                                    }
+                                    _ => false,
+                                }
+                            }
+                            _ => false,
+                        };
+                        Ok(Value::Bool(result))
+                    }
+                    other => Err(BioLangError::name_error(
+                        format!("no field '{other}' on Variant"),
+                        Some(expr.span),
+                    )),
+                },
+                Value::Genome { name, species, assembly, chromosomes } => match field.as_str() {
+                    "name" => Ok(Value::Str(name.clone())),
+                    "species" => Ok(Value::Str(species.clone())),
+                    "assembly" => Ok(Value::Str(assembly.clone())),
+                    "chromosomes" => {
+                        let chroms = chromosomes.iter().map(|(n, l)| {
+                            let mut rec = HashMap::new();
+                            rec.insert("name".to_string(), Value::Str(n.clone()));
+                            rec.insert("length".to_string(), Value::Int(*l));
+                            Value::Record((rec).into())
+                        }).collect::<Vec<_>>().into();
+                        Ok(Value::List(chroms))
+                    }
+                    other => Err(BioLangError::name_error(
+                        format!("no field '{other}' on Genome"),
+                        Some(expr.span),
+                    )),
+                },
+                Value::Quality(ref scores) => match field.as_str() {
+                    "scores" => Ok(Value::List(scores.iter().map(|s| Value::Int(*s as i64)).collect::<Vec<_>>().into())),
+                    "length" => Ok(Value::Int(scores.len() as i64)),
+                    "mean" => {
+                        if scores.is_empty() {
+                            Ok(Value::Float(0.0))
+                        } else {
+                            let sum: f64 = scores.iter().map(|s| *s as f64).sum();
+                            Ok(Value::Float(sum / scores.len() as f64))
+                        }
+                    }
+                    "min" => Ok(Value::Int(scores.iter().copied().min().unwrap_or(0) as i64)),
+                    other => Err(BioLangError::name_error(
+                        format!("no field '{other}' on Quality"),
+                        Some(expr.span),
+                    )),
+                },
+                Value::AlignedRead(ref read) => match field.as_str() {
+                    "qname" => Ok(Value::Str(read.qname.clone())),
+                    "flag" => Ok(Value::Int(read.flag as i64)),
+                    "rname" => Ok(Value::Str(read.rname.clone())),
+                    "pos" => Ok(Value::Int(read.pos)),
+                    "mapq" => Ok(Value::Int(read.mapq as i64)),
+                    "cigar" => Ok(Value::Str(read.cigar.clone())),
+                    "rnext" => Ok(Value::Str(read.rnext.clone())),
+                    "pnext" => Ok(Value::Int(read.pnext)),
+                    "tlen" => Ok(Value::Int(read.tlen)),
+                    "seq" => Ok(Value::DNA(BioSequence { data: read.seq.clone() })),
+                    "qual" => Ok(Value::Quality(bl_core::bio_core::QualityOps::from_ascii(&read.qual))),
+                    // Computed properties
+                    "is_paired" => Ok(Value::Bool(read.is_paired())),
+                    "is_proper_pair" => Ok(Value::Bool(read.is_proper_pair())),
+                    "is_unmapped" => Ok(Value::Bool(read.is_unmapped())),
+                    "is_mapped" => Ok(Value::Bool(read.is_mapped())),
+                    "is_reverse" => Ok(Value::Bool(read.is_reverse())),
+                    "is_read1" => Ok(Value::Bool(read.is_read1())),
+                    "is_read2" => Ok(Value::Bool(read.is_read2())),
+                    "is_duplicate" => Ok(Value::Bool(read.is_duplicate())),
+                    "is_secondary" => Ok(Value::Bool(read.is_secondary())),
+                    "is_supplementary" => Ok(Value::Bool(read.is_supplementary())),
+                    "is_primary" => Ok(Value::Bool(read.is_primary())),
+                    "aligned_length" => Ok(Value::Int(read.aligned_length())),
+                    "query_length" => Ok(Value::Int(read.query_length())),
+                    "end_pos" => Ok(Value::Int(read.end_pos())),
+                    "interval" => Ok(Value::Interval(read.to_interval())),
+                    other => Err(BioLangError::name_error(
+                        format!("no field '{other}' on AlignedRead"),
+                        Some(expr.span),
+                    )),
+                },
+                Value::Matrix(ref m) => match field.as_str() {
+                    "nrow" => Ok(Value::Int(m.nrow as i64)),
+                    "ncol" => Ok(Value::Int(m.ncol as i64)),
+                    "shape" => Ok(Value::List((vec![Value::Int(m.nrow as i64), Value::Int(m.ncol as i64)]).into())),
+                    "row_names" => Ok(m.row_names.as_ref()
+                        .map(|names| Value::List(names.iter().map(|s| Value::Str(s.clone())).collect::<Vec<_>>().into()))
+                        .unwrap_or(Value::Nil)),
+                    "col_names" => Ok(m.col_names.as_ref()
+                        .map(|names| Value::List(names.iter().map(|s| Value::Str(s.clone())).collect::<Vec<_>>().into()))
+                        .unwrap_or(Value::Nil)),
+                    "data" => Ok(Value::List(m.data.iter().map(|v| Value::Float(*v)).collect::<Vec<_>>().into())),
+                    other => Err(BioLangError::name_error(
+                        format!("no field '{other}' on Matrix (available: nrow, ncol, shape, row_names, col_names, data)"),
+                        Some(expr.span),
+                    )),
+                },
+                other => Err(BioLangError::type_error(
+                    format!("cannot access field on {}", other.type_of()),
+                    Some(expr.span),
+                )),
+            }
+    }
+
+    /// Indexing, split out of `eval_expr`. See `eval_field_expr`.
+    #[inline(never)]
+    fn eval_index_expr(
+        &mut self,
+        expr: &Spanned<Expr>,
+        object: &Spanned<Expr>,
+        index: &Spanned<Expr>,
+    ) -> Result<Value> {
+        let obj = self.eval_expr(object)?;
+        let idx = self.eval_expr(index)?;
+        match (&obj, &idx) {
+            (Value::List(list), Value::Int(i)) => {
+                let i = if *i < 0 {
+                    (list.len() as i64 + i) as usize
+                } else {
+                    *i as usize
+                };
+                list.get(i).cloned().ok_or_else(|| {
+                    BioLangError::runtime(
+                        ErrorKind::IndexOutOfBounds,
+                        format!("index {i} out of bounds (len {})", list.len()),
+                        Some(expr.span),
+                    )
+                })
+            }
+            (Value::Map(map) | Value::Record(map), Value::Str(key)) => {
+                map.get(key).cloned().ok_or_else(|| {
+                    BioLangError::name_error(format!("key '{key}' not found"), Some(expr.span))
+                })
+            }
+            (Value::Table(t), Value::Int(i)) => {
+                let i = if *i < 0 {
+                    (t.num_rows() as i64 + i) as usize
+                } else {
+                    *i as usize
+                };
+                if i < t.num_rows() {
+                    Ok(Value::Record((t.row_to_record(i)).into()))
+                } else {
+                    Err(BioLangError::runtime(
+                        ErrorKind::IndexOutOfBounds,
+                        format!("index {i} out of bounds (table has {} rows)", t.num_rows()),
+                        Some(expr.span),
+                    ))
+                }
+            }
+            (Value::Table(t), Value::Str(col_name)) => match t.col_index(col_name) {
+                Some(ci) => Ok(Value::List(
+                    t.rows
+                        .iter()
+                        .map(|row| row[ci].clone())
+                        .collect::<Vec<_>>()
+                        .into(),
+                )),
+                None => Err(BioLangError::name_error(
+                    format!("no column '{col_name}' in table"),
+                    Some(expr.span),
+                )),
+            },
+            (Value::Str(s), Value::Int(i)) => {
+                let i = if *i < 0 {
+                    (s.len() as i64 + i) as usize
+                } else {
+                    *i as usize
+                };
+                s.chars()
+                    .nth(i)
+                    .map(|c| Value::Str(c.to_string()))
+                    .ok_or_else(|| {
+                        BioLangError::runtime(
+                            ErrorKind::IndexOutOfBounds,
+                            format!("index {i} out of bounds"),
+                            Some(expr.span),
+                        )
+                    })
+            }
+            // Tuple indexing
+            (Value::Tuple(items), Value::Int(i)) => {
+                let i = if *i < 0 {
+                    (items.len() as i64 + i) as usize
+                } else {
+                    *i as usize
+                };
+                items.get(i).cloned().ok_or_else(|| {
+                    BioLangError::runtime(
+                        ErrorKind::IndexOutOfBounds,
+                        format!("tuple index {i} out of bounds (len {})", items.len()),
+                        Some(expr.span),
+                    )
+                })
+            }
+            // Slicing: list[start..end] or str[start..end]
+            (
+                Value::List(list),
+                Value::Range {
+                    start,
+                    end,
+                    inclusive,
+                },
+            ) => {
+                let end = if *inclusive {
+                    *end as usize + 1
+                } else {
+                    *end as usize
+                };
+                let start = *start as usize;
+                Ok(Value::List(
+                    (list.get(start..end.min(list.len())).unwrap_or(&[]).to_vec()).into(),
+                ))
+            }
+            (
+                Value::Str(s),
+                Value::Range {
+                    start,
+                    end,
+                    inclusive,
+                },
+            ) => {
+                let end = if *inclusive {
+                    *end as usize + 1
+                } else {
+                    *end as usize
+                };
+                let start = *start as usize;
+                let chars: Vec<char> = s.chars().collect();
+                let slice: String = chars
+                    .get(start..end.min(chars.len()))
+                    .unwrap_or(&[])
+                    .iter()
+                    .collect();
+                Ok(Value::Str(slice))
+            }
+            (
+                Value::DNA(seq),
+                Value::Range {
+                    start,
+                    end,
+                    inclusive,
+                },
+            ) => {
+                let end = if *inclusive {
+                    *end as usize + 1
+                } else {
+                    *end as usize
+                };
+                let start = *start as usize;
+                let chars: Vec<char> = seq.data.chars().collect();
+                let slice: String = chars
+                    .get(start..end.min(chars.len()))
+                    .unwrap_or(&[])
+                    .iter()
+                    .collect();
+                Ok(Value::DNA(BioSequence { data: slice }))
+            }
+            (
+                Value::RNA(seq),
+                Value::Range {
+                    start,
+                    end,
+                    inclusive,
+                },
+            ) => {
+                let end = if *inclusive {
+                    *end as usize + 1
+                } else {
+                    *end as usize
+                };
+                let start = *start as usize;
+                let chars: Vec<char> = seq.data.chars().collect();
+                let slice: String = chars
+                    .get(start..end.min(chars.len()))
+                    .unwrap_or(&[])
+                    .iter()
+                    .collect();
+                Ok(Value::RNA(BioSequence { data: slice }))
+            }
+            (
+                Value::Protein(seq),
+                Value::Range {
+                    start,
+                    end,
+                    inclusive,
+                },
+            ) => {
+                let end = if *inclusive {
+                    *end as usize + 1
+                } else {
+                    *end as usize
+                };
+                let start = *start as usize;
+                let chars: Vec<char> = seq.data.chars().collect();
+                let slice: String = chars
+                    .get(start..end.min(chars.len()))
+                    .unwrap_or(&[])
+                    .iter()
+                    .collect();
+                Ok(Value::Protein(BioSequence { data: slice }))
+            }
+            _ => Err(BioLangError::type_error(
+                format!("cannot index {} with {}", obj.type_of(), idx.type_of()),
+                Some(expr.span),
+            )),
+        }
+    }
+
+    /// Indexed assignment, split out of `exec_stmt`.
+    ///
+    /// Kept out of the main statement match so its locals do not enlarge every
+    /// frame that match occupies. See `eval_field_expr` for the measurement.
+    #[inline(never)]
+    fn exec_index_assign_stmt(
+        &mut self,
+        stmt: &Spanned<Stmt>,
+        name: &str,
+        index: &Spanned<Expr>,
+        value: &Spanned<Expr>,
+    ) -> Result<Value> {
+        let index_value = self.eval_expr(index)?;
+        let new_value = self.eval_expr(value)?;
+        let span = stmt.span;
+        let index_span = index.span;
+
+        // Borrowed mutably rather than read out and stored back: the
+        // binding stays the container's only owner, so make_mut updates
+        // in place. Cloning first gives the Arc a second owner and
+        // copies the whole container on every element write.
+        let target = match self.env.get_mut(name) {
+            Some(value) => value,
+            None => {
+                // Re-run through `get` so an unbound name still reports
+                // the usual error, suggestion and all.
+                self.env.get(name, Some(span))?;
+                unreachable!("get_mut missed a name that get resolved")
+            }
+        };
+
+        match target {
+                Value::List(items) => {
+                    let position = match index_value {
+                        Value::Int(n) if n >= 0 => n as usize,
+                        Value::Int(n) => {
+                            return Err(BioLangError::runtime(
+                                ErrorKind::IndexOutOfBounds,
+                                format!("index {n} is negative"),
+                                Some(index_span),
+                            ))
+                        }
+                        other => {
+                            return Err(BioLangError::type_error(
+                                format!("list index must be Int, got {}", other.type_of()),
+                                Some(index_span),
+                            ))
+                        }
+                    };
+                    let slots = std::sync::Arc::make_mut(items);
+                    if position >= slots.len() {
+                        return Err(BioLangError::runtime(
+                            ErrorKind::IndexOutOfBounds,
+                            format!(
+                                "index {position} out of bounds for a list of length {}",
+                                slots.len()
+                            ),
+                            Some(index_span),
+                        ));
+                    }
+                    slots[position] = new_value;
+                }
+                Value::Map(entries) => {
+                    let key = match index_value {
+                        Value::Str(s) => s,
+                        other => format!("{other}"),
+                    };
+                    std::sync::Arc::make_mut(entries).insert(key, new_value);
+                }
+                Value::Record(entries) => {
+                    let key = match index_value {
+                        Value::Str(s) => s,
+                        other => format!("{other}"),
+                    };
+                    std::sync::Arc::make_mut(entries).insert(key, new_value);
+                }
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "cannot assign into {} — only lists, maps and records support indexed assignment",
+                            other.type_of()
+                        ),
+                        Some(span),
+                    ))
+                }
+            }
+        Ok(Value::Nil)
+    }
+
+    /// The `for` loop, split out of `exec_stmt`.
+    ///
+    /// Kept out of the main statement match so its locals do not enlarge every
+    /// frame that match occupies. See `eval_field_expr` for the measurement.
+    #[inline(never)]
+    fn exec_for_stmt(
+        &mut self,
+        pattern: &ForPattern,
+        iter: &Spanned<Expr>,
+        when_guard: &Option<Spanned<Expr>>,
+        body: &[Spanned<Stmt>],
+        else_body: &Option<Vec<Spanned<Stmt>>>,
+    ) -> Result<Value> {
+        let iterable = self.eval_expr(iter)?;
+
+        // Streams are consumed lazily — one item at a time, no materialization
+        if let Value::Stream(ref s) = iterable {
+            if s.is_exhausted() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!(
+                        "stream already consumed: Stream({}) has been fully iterated.",
+                        s.label
+                    ),
+                    Some(iter.span),
+                ));
+            }
+            let mut last = Value::Nil;
+            let mut did_break = false;
+            while let Some(item) = s.next() {
+                let prev = self.env.push_scope();
+                self.bind_for_pattern(pattern, item);
+                if let Some(guard) = when_guard {
+                    let cond = self.eval_expr(guard)?;
+                    if !cond.is_truthy() {
+                        self.env.pop_scope(prev);
+                        continue;
+                    }
+                }
+                match self.exec_block(body) {
+                    Ok(val) => last = val,
+                    Err(e) if e.kind == ErrorKind::Break => {
+                        self.env.pop_scope(prev);
+                        did_break = true;
+                        break;
+                    }
+                    Err(e) if e.kind == ErrorKind::Continue => {
+                        self.env.pop_scope(prev);
+                        continue;
+                    }
+                    Err(e) => {
+                        self.env.pop_scope(prev);
+                        return Err(e);
+                    }
+                }
+                self.env.pop_scope(prev);
+            }
+            if !did_break {
+                if let Some(eb) = else_body {
+                    last = self.exec_block(eb)?;
+                }
+            }
+            return Ok(last);
+        }
+
+        let items = self.value_to_iter(&iterable, iter.span)?;
+
+        let mut last = Value::Nil;
+        let mut did_break = false;
+        for item in items {
+            let prev = self.env.push_scope();
+            self.bind_for_pattern(pattern, item);
+            // Evaluate `when` guard — skip iteration if false
+            if let Some(guard) = when_guard {
+                let cond = self.eval_expr(guard)?;
+                if !cond.is_truthy() {
+                    self.env.pop_scope(prev);
+                    continue;
+                }
+            }
+            match self.exec_block(body) {
+                Ok(val) => last = val,
+                Err(e) if e.kind == ErrorKind::Break => {
+                    self.env.pop_scope(prev);
+                    did_break = true;
+                    break;
+                }
+                Err(e) if e.kind == ErrorKind::Continue => {
+                    self.env.pop_scope(prev);
+                    continue;
+                }
+                Err(e) if e.kind == ErrorKind::Return => {
+                    self.env.pop_scope(prev);
+                    return Err(e);
+                }
+                Err(e) => {
+                    self.env.pop_scope(prev);
+                    return Err(e);
+                }
+            }
+            self.env.pop_scope(prev);
+        }
+        // `else` body runs if loop completed without break
+        if !did_break {
+            if let Some(eb) = else_body {
+                last = self.exec_block(eb)?;
+            }
+        }
+        Ok(last)
+    }
+
+    /// Destructuring `let`, split out of `exec_stmt`.
+    ///
+    /// Kept out of the main statement match so its locals do not enlarge every
+    /// frame that match occupies. See `eval_field_expr` for the measurement.
+    #[inline(never)]
+    fn exec_destruct_let_stmt(
+        &mut self,
+        pattern: &DestructPattern,
+        value: &Spanned<Expr>,
+    ) -> Result<Value> {
+        let val = self.eval_expr(value)?;
+        match pattern {
+            DestructPattern::List(names) => {
+                let items = match &val {
+                    Value::List(items) => items.clone(),
+                    other => {
+                        return Err(BioLangError::type_error(
+                            format!("cannot destructure {} as list", other.type_of()),
+                            Some(value.span),
+                        ))
+                    }
+                };
+                for (i, name) in names.iter().enumerate() {
+                    let item = items.get(i).cloned().unwrap_or(Value::Nil);
+                    self.env.define(name.clone(), item);
+                }
+            }
+            DestructPattern::ListWithRest {
+                elements,
+                rest_name,
+            } => {
+                let items = match &val {
+                    Value::List(items) => items.clone(),
+                    other => {
+                        return Err(BioLangError::type_error(
+                            format!("cannot destructure {} as list", other.type_of()),
+                            Some(value.span),
+                        ))
+                    }
+                };
+                for (i, name) in elements.iter().enumerate() {
+                    let item = items.get(i).cloned().unwrap_or(Value::Nil);
+                    self.env.define(name.clone(), item);
+                }
+                let rest: Vec<Value> = items.iter().skip(elements.len()).cloned().collect();
+                self.env
+                    .define(rest_name.clone(), Value::List((rest).into()));
+            }
+            DestructPattern::Record(names) => {
+                let map = match &val {
+                    Value::Record(m) | Value::Map(m) => m.clone(),
+                    other => {
+                        return Err(BioLangError::type_error(
+                            format!("cannot destructure {} as record", other.type_of()),
+                            Some(value.span),
+                        ))
+                    }
+                };
+                for name in names {
+                    let item = map.get(name).cloned().unwrap_or(Value::Nil);
+                    self.env.define(name.clone(), item);
+                }
+            }
+            DestructPattern::RecordWithRest { fields, rest_name } => {
+                let map = match &val {
+                    Value::Record(m) | Value::Map(m) => m.clone(),
+                    other => {
+                        return Err(BioLangError::type_error(
+                            format!("cannot destructure {} as record", other.type_of()),
+                            Some(value.span),
+                        ))
+                    }
+                };
+                let field_set: HashSet<&String> = fields.iter().collect();
+                for name in fields {
+                    let item = map.get(name).cloned().unwrap_or(Value::Nil);
+                    self.env.define(name.clone(), item);
+                }
+                let rest: HashMap<String, Value> = map
+                    .iter()
+                    .filter(|(k, _)| !field_set.contains(k))
+                    .map(|(k, v)| (k.clone(), v.clone()))
+                    .collect();
+                self.env
+                    .define(rest_name.clone(), Value::Record((rest).into()));
+            }
+        }
+        Ok(Value::Nil)
+    }
     fn eval_pipe(&mut self, left: &Spanned<Expr>, right: &Spanned<Expr>) -> Result<Value> {
         let lhs = self.eval_expr(left)?;
 
@@ -2903,7 +2984,7 @@ impl Interpreter {
             // Impl dispatch: check __impl_{Type}_{method} BEFORE UFCS global lookup
             let type_name = self.runtime_type_name(&obj);
             let impl_key = format!("__impl_{type_name}_{field}");
-            if let Ok(func) = self.env.get(&impl_key, None).cloned() {
+            if let Some(func) = self.env.lookup(&impl_key).cloned() {
                 if let Value::Function {
                     params,
                     body,
@@ -2924,7 +3005,7 @@ impl Interpreter {
                 }
             }
             // UFCS fallback: look up field as a function, prepend obj as first arg
-            if let Ok(func) = self.env.get(field, None).cloned() {
+            if let Some(func) = self.env.lookup(field).cloned() {
                 if matches!(func, Value::Function { .. } | Value::NativeFunction { .. }) {
                     let mut positional = vec![obj];
                     let mut named = Vec::new();
@@ -3198,7 +3279,7 @@ impl Interpreter {
                     // @memoize decorator: check cache before calling
                     if let Some(ref name) = fn_name {
                         let memo_key = format!("__memoize_{name}");
-                        if let Ok(Value::Record(cache)) = self.env.get(&memo_key, None).cloned() {
+                        if let Some(Value::Record(cache)) = self.env.lookup(&memo_key).cloned() {
                             let args_key = format!("{:?}", args);
                             if let Some(cached) = cache.get(&args_key) {
                                 return Ok(cached.clone());
@@ -3248,10 +3329,15 @@ impl Interpreter {
                         self.call_function(params, body, closure_env, args, vec![], span)?;
                     // Named tuple returns: wrap Tuple/List into Record
                     if let Some(ref name) = fn_name {
-                        if let Ok(Value::List(names)) = self
-                            .env
-                            .get(&format!("__named_returns_{name}"), None)
-                            .cloned()
+                        // lookup, not get: this probe misses on every ordinary
+                        // function, and `get` pays for a "did you mean?" search
+                        // over every name in scope on the way out. With a
+                        // thousand builtins bound that search cost about 9ms,
+                        // once per call, which made `x |> f()` some 1750x slower
+                        // than `f(x)` - the pipe path reaches this through
+                        // call_value while a direct call does not.
+                        if let Some(Value::List(names)) =
+                            self.env.lookup(&format!("__named_returns_{name}")).cloned()
                         {
                             let items: Option<Vec<Value>> = match &result {
                                 Value::Tuple(t) => Some(t.clone()),
@@ -5066,6 +5152,25 @@ impl Interpreter {
         named: Vec<(String, Value)>,
         span: bl_core::span::Span,
     ) -> Result<Value> {
+        // Refuse to recurse past what the stack can carry.
+        //
+        // Without this, a runaway recursion aborts the process: "thread
+        // 'bl-main' has overflowed its stack", no BioLang error, no line number,
+        // nothing catchable. The interpreter spends several Rust frames per
+        // BioLang call, so the 64 MB stack in bl-cli runs out somewhere past a
+        // hundred levels - shallow enough that ordinary tree recursion reaches
+        // it. A limit set below that turns the crash into an ordinary error the
+        // program can report, and points at the function that ran away.
+        if self.call_stack.len() >= MAX_CALL_DEPTH {
+            return Err(BioLangError::runtime(
+                ErrorKind::RecursionLimit,
+                format!(
+                    "maximum recursion depth ({MAX_CALL_DEPTH}) exceeded - a function is probably calling itself without a base case"
+                ),
+                Some(span),
+            ));
+        }
+
         // Check if this is an enum constructor call
         // Enum constructors have names like "EnumName::VariantName" and empty body
         let func_name_for_stack = "anonymous".to_string();
@@ -5664,7 +5769,7 @@ impl Interpreter {
             };
             let type_name = self.runtime_type_name(lhs);
             let impl_key = format!("__impl_{type_name}_{op_name}");
-            if let Ok(func) = self.env.get(&impl_key, None).cloned() {
+            if let Some(func) = self.env.lookup(&impl_key).cloned() {
                 if let Value::Function {
                     params,
                     body,
