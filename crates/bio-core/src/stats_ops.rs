@@ -401,43 +401,83 @@ pub fn regularized_incomplete_beta(x: f64, a: f64, b: f64) -> f64 {
     (front * result).clamp(0.0, 1.0)
 }
 
+/// Regularized lower incomplete gamma, P(a, x).
+///
+/// This is the function every chi-square p-value is built on, so it is worth
+/// stating what the two branches are for. The series converges quickly while
+/// x < a+1 and badly after it; the continued fraction is the mirror image. Using
+/// one of them everywhere is the usual way this goes wrong.
+///
+/// The previous implementation here had two independent faults. For integer
+/// shapes it returned `poisson_cdf(x/scale, shape)`, but the Poisson identity
+/// for a gamma CDF is `1 - poisson_cdf(shape-1, x/scale)` - different argument,
+/// different rate, and missing the complement. Otherwise it summed the right
+/// series but never divided by gamma(a), so results came out a factor of
+/// gamma(a) too large and were then hidden by a clamp to 1.0. Together those
+/// made `chi_square` report p = 0.000000 for chi2 = 2 on 1 df, where the answer
+/// is 0.1573, and p = 0.114 for chi2 = 20 on 3 df, where it is 0.00017 - large
+/// statistics coming back with large p-values, which inverts every conclusion
+/// drawn from them.
+fn regularized_gamma_p(a: f64, x: f64) -> f64 {
+    if a <= 0.0 || x.is_nan() || a.is_nan() {
+        return f64::NAN;
+    }
+    if x <= 0.0 {
+        return 0.0;
+    }
+
+    // ln of the shared prefactor x^a e^-x / gamma(a), kept in logs so that large
+    // a does not overflow before the division.
+    let ln_prefactor = -x + a * x.ln() - ln_gamma(a);
+
+    if x < a + 1.0 {
+        // Series: P(a,x) = prefactor * sum_{n>=0} x^n / (a(a+1)...(a+n))
+        let mut ap = a;
+        let mut del = 1.0 / a;
+        let mut sum = del;
+        for _ in 0..1000 {
+            ap += 1.0;
+            del *= x / ap;
+            sum += del;
+            if del.abs() < sum.abs() * 1e-15 {
+                break;
+            }
+        }
+        (sum * ln_prefactor.exp()).clamp(0.0, 1.0)
+    } else {
+        // Continued fraction for the upper tail Q(a,x), by modified Lentz.
+        let tiny = 1e-300_f64;
+        let mut b = x + 1.0 - a;
+        let mut c = 1.0 / tiny;
+        let mut d = 1.0 / b;
+        let mut h = d;
+        for i in 1..1000 {
+            let an = -(i as f64) * (i as f64 - a);
+            b += 2.0;
+            d = an * d + b;
+            if d.abs() < tiny {
+                d = tiny;
+            }
+            c = b + an / c;
+            if c.abs() < tiny {
+                c = tiny;
+            }
+            d = 1.0 / d;
+            let delta = d * c;
+            h *= delta;
+            if (delta - 1.0).abs() < 1e-15 {
+                break;
+            }
+        }
+        (1.0 - ln_prefactor.exp() * h).clamp(0.0, 1.0)
+    }
+}
+
 fn gamma_cdf(x: f64, shape: f64, scale: f64) -> f64 {
     if x <= 0.0 {
         return 0.0;
     }
-    let scaled_x = x / scale;
-    if (shape - shape.round()).abs() < 1e-10 && shape <= 20.0 {
-        poisson_cdf(scaled_x.floor() as i32, shape)
-    } else {
-        let mut result = 0.0;
-        let mut term = 1.0 / shape;
-        let mut k = 1;
-        while k < 50 {
-            result += term;
-            term *= scaled_x / (shape + k as f64);
-            if term.abs() < 1e-12 {
-                break;
-            }
-            k += 1;
-        }
-        result *= scaled_x.powf(shape) * (-scaled_x).exp();
-        result.min(1.0)
-    }
-}
-
-fn poisson_cdf(k: i32, lambda: f64) -> f64 {
-    if k < 0 {
-        return 0.0;
-    }
-    let mut cdf = 0.0;
-    let mut pmf = (-lambda).exp();
-    for i in 0..=k {
-        if i > 0 {
-            pmf *= lambda / i as f64;
-        }
-        cdf += pmf;
-    }
-    cdf.min(1.0)
+    regularized_gamma_p(shape, x / scale)
 }
 
 // ── Fisher's Exact Test Helpers ──────────────────────────────────────────────
@@ -468,11 +508,14 @@ fn fishers_exact_p_value(a: u64, b: u64, c: u64, d: u64) -> f64 {
     let col1_total = a + c;
     let observed_prob = hypergeometric_prob(a, row1_total, col1_total, n);
 
-    let current_a = if row1_total < col1_total {
-        0
-    } else {
-        row1_total + col1_total - n
-    };
+    // The smallest value cell `a` can take while every cell stays non-negative
+    // is max(0, row1 + col1 - n). The guard used to compare row1 against col1,
+    // which is a different question entirely: for a = 10, b = 5, c = 3, d = 12
+    // it took the subtracting branch with row1 + col1 = 28 and n = 30, and 28 - 30
+    // underflowed the unsigned type. In debug that aborted the process; in
+    // release it wrapped to about 1.8e19 and the loop below then ran over an
+    // essentially unbounded range.
+    let current_a = (row1_total + col1_total).saturating_sub(n);
     let max_a = row1_total.min(col1_total);
 
     let mut p_value = 0.0;

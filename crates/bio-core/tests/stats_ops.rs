@@ -189,3 +189,167 @@ fn test_multiple_regression() {
     assert!((result.coefficients[1] - 2.0).abs() < 0.01);
     assert!((result.r_squared - 1.0).abs() < 0.01);
 }
+
+// ── chi-square tail probabilities ────────────────────────────────────────────
+//
+// test_chi_square above asserts only that the statistic exceeds 3.0. It passed
+// throughout the period when every p-value this module produced was wrong, which
+// is the whole lesson: assert on the number you actually depend on.
+//
+// The values below are the standard published critical points. If gamma_cdf
+// regresses, these fail.
+
+#[test]
+fn chi_square_cdf_matches_published_five_percent_points() {
+    // Upper tail is 0.05 at each of these (df, chi2) pairs.
+    let points = [
+        (1usize, 3.841_f64),
+        (2, 5.991),
+        (3, 7.815),
+        (5, 11.070),
+        (10, 18.307),
+        (30, 43.773),
+    ];
+    for (df, chi2) in points {
+        let tail = 1.0 - chi_square_cdf(chi2, df);
+        assert!(
+            (tail - 0.05).abs() < 5e-4,
+            "df={df} chi2={chi2}: upper tail {tail}, expected 0.05"
+        );
+    }
+}
+
+#[test]
+fn chi_square_cdf_matches_published_one_percent_points() {
+    let points = [(1usize, 6.635_f64), (3, 11.345), (10, 23.209), (30, 50.892)];
+    for (df, chi2) in points {
+        let tail = 1.0 - chi_square_cdf(chi2, df);
+        assert!(
+            (tail - 0.01).abs() < 5e-4,
+            "df={df} chi2={chi2}: upper tail {tail}, expected 0.01"
+        );
+    }
+}
+
+#[test]
+fn chi_square_cdf_small_statistics_are_not_significant() {
+    // The old integer-shape branch returned 0.0 here, which reported a
+    // completely unremarkable statistic as overwhelmingly significant.
+    let tail = 1.0 - chi_square_cdf(2.0, 1);
+    assert!(
+        (tail - 0.157_299).abs() < 1e-5,
+        "chi2=2 on 1 df: upper tail {tail}, expected 0.157299"
+    );
+}
+
+#[test]
+fn chi_square_cdf_large_statistics_are_significant() {
+    // The old series branch returned 0.1139 here - a large statistic coming back
+    // with a large p-value, inverting the conclusion.
+    let tail = 1.0 - chi_square_cdf(20.0, 3);
+    assert!(
+        (tail - 0.000_170).abs() < 1e-5,
+        "chi2=20 on 3 df: upper tail {tail}, expected 0.000170"
+    );
+}
+
+#[test]
+fn chi_square_cdf_is_monotonic_and_bounded() {
+    for df in [1usize, 2, 3, 7, 30] {
+        let mut previous = -1.0;
+        let mut x = 0.0;
+        while x < 80.0 {
+            let p = chi_square_cdf(x, df);
+            assert!(
+                (0.0..=1.0).contains(&p),
+                "df={df} x={x}: cdf {p} out of range"
+            );
+            assert!(p >= previous - 1e-12, "df={df} x={x}: cdf decreased");
+            previous = p;
+            x += 0.25;
+        }
+    }
+}
+
+#[test]
+fn chi_square_test_reports_a_usable_p_value() {
+    // A table with an obvious association must come back significant.
+    let table = vec![vec![10.0, 20.0], vec![20.0, 10.0]];
+    let result = chi_square_test(&table).unwrap();
+    assert!(result.chi_square > 3.0);
+    assert!(
+        result.p_value < 0.05,
+        "clear association reported p = {}",
+        result.p_value
+    );
+
+    // ...and a table with none must not.
+    let flat = vec![vec![25.0, 25.0], vec![25.0, 25.0]];
+    let flat_result = chi_square_test(&flat).unwrap();
+    assert!(
+        flat_result.p_value > 0.9,
+        "no association reported p = {}",
+        flat_result.p_value
+    );
+}
+
+// ── Fisher's exact test ──────────────────────────────────────────────────────
+//
+// The lower bound for cell `a` is max(0, row1 + col1 - n). The guard compared
+// row1 against col1 instead, so a = 10, b = 5, c = 3, d = 12 took the
+// subtracting branch with row1 + col1 = 28 and n = 30: 28 - 30 underflowed the
+// unsigned type, aborting in debug and wrapping to ~1.8e19 in release.
+
+#[test]
+fn fishers_exact_matches_published_values() {
+    // Fisher's tea-tasting table. R: fisher.test(matrix(c(3,1,1,3),2,2)) = 0.4857
+    let p = fishers_exact_test(&[vec![3.0, 1.0], vec![1.0, 3.0]])
+        .unwrap()
+        .p_value;
+    assert!(
+        (p - 0.485_714).abs() < 1e-5,
+        "tea-tasting p = {p}, expected 0.4857"
+    );
+
+    // R: fisher.test(matrix(c(1,11,9,3),2,2)) = 0.002759
+    let p = fishers_exact_test(&[vec![1.0, 9.0], vec![11.0, 3.0]])
+        .unwrap()
+        .p_value;
+    assert!((p - 0.002_759).abs() < 1e-5, "p = {p}, expected 0.002759");
+}
+
+#[test]
+fn fishers_exact_survives_the_table_that_underflowed() {
+    // row1 + col1 = 28, n = 30: the combination that used to abort.
+    let result = fishers_exact_test(&[vec![10.0, 5.0], vec![3.0, 12.0]]).unwrap();
+    assert!(
+        (0.0..=1.0).contains(&result.p_value),
+        "p out of range: {}",
+        result.p_value
+    );
+}
+
+#[test]
+fn fishers_exact_p_values_stay_in_range() {
+    // Sweep tables that straddle the row1 + col1 vs n boundary in both
+    // directions, since that is where the bound was computed wrongly.
+    for a in 0u64..8 {
+        for b in 0u64..8 {
+            for c in 0u64..8 {
+                for d in 0u64..8 {
+                    if a + b + c + d == 0 {
+                        continue;
+                    }
+                    let p =
+                        fishers_exact_test(&[vec![a as f64, b as f64], vec![c as f64, d as f64]])
+                            .unwrap()
+                            .p_value;
+                    assert!(
+                        (0.0..=1.0 + 1e-9).contains(&p) && !p.is_nan(),
+                        "table ({a},{b},{c},{d}) gave p = {p}"
+                    );
+                }
+            }
+        }
+    }
+}

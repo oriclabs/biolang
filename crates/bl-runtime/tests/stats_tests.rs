@@ -1869,3 +1869,135 @@ fn test_round_with_zero_places() {
     let result = call_stats_builtin("round", vec![Value::Float(3.7), Value::Int(0)]).unwrap();
     assert_eq!(result, Value::Float(4.0));
 }
+
+// ── choose() beyond i128 ─────────────────────────────────────────────────────
+//
+// choose(300, 40) is 9.79e49. The implementation accumulated in i128, which tops
+// out near 1.7e38, so the multiply wrapped: debug builds panicked, release
+// builds returned 3.457e36 with no error. Exact answers are still exact; only
+// the values that cannot be represented fall back to floating point.
+
+fn choose(n: i64, k: i64) -> Value {
+    call_stats_builtin("choose", vec![Value::Int(n), Value::Int(k)]).unwrap()
+}
+
+#[test]
+fn choose_is_exact_while_it_fits() {
+    assert_eq!(choose(15, 4), Value::Int(1365));
+    assert_eq!(choose(52, 5), Value::Int(2_598_960));
+    assert_eq!(choose(10, 0), Value::Int(1));
+    assert_eq!(choose(10, 10), Value::Int(1));
+    assert_eq!(choose(3, 5), Value::Int(0));
+    // Largest exact central coefficient that still fits in i64.
+    assert_eq!(choose(62, 31), Value::Int(465_428_353_255_261_088));
+}
+
+#[test]
+fn choose_falls_back_to_float_past_i128() {
+    // The case that used to wrap. Relative error must be float-level, not
+    // thirteen orders of magnitude.
+    let value = match choose(300, 40) {
+        Value::Float(f) => f,
+        other => panic!("expected Float, got {other:?}"),
+    };
+    let expected = 9.793_478_923_217_97e49_f64;
+    assert!(
+        ((value - expected) / expected).abs() < 1e-9,
+        "choose(300,40) = {value}, expected about {expected}"
+    );
+}
+
+#[test]
+fn choose_handles_very_large_arguments() {
+    let value = match choose(1000, 500) {
+        Value::Float(f) => f,
+        other => panic!("expected Float, got {other:?}"),
+    };
+    let expected = 2.702_882_409_454_365e299_f64;
+    assert!(
+        ((value - expected) / expected).abs() < 1e-9,
+        "choose(1000,500) = {value}, expected about {expected}"
+    );
+    assert!(value.is_finite(), "choose(1000,500) overflowed to infinity");
+}
+
+#[test]
+fn choose_is_symmetric() {
+    for (n, k) in [(300i64, 40i64), (100, 7), (52, 5), (1000, 3)] {
+        let a = choose(n, k);
+        let b = choose(n, n - k);
+        match (a, b) {
+            (Value::Int(x), Value::Int(y)) => assert_eq!(x, y, "choose({n},{k}) asymmetric"),
+            (Value::Float(x), Value::Float(y)) => assert!(
+                ((x - y) / x).abs() < 1e-12,
+                "choose({n},{k}) asymmetric: {x} vs {y}"
+            ),
+            (x, y) => panic!("choose({n},{k}) returned mismatched types: {x:?} vs {y:?}"),
+        }
+    }
+}
+
+// ── power_t_test sample size ─────────────────────────────────────────────────
+//
+// n per group for a two-sample comparison is 2*((z_a/2 + z_b)/d)^2. The factor
+// of 2 was missing, so every answer was half the real requirement - a sample
+// size calculator advising experiments at half the size they need. Reference
+// values are R's power.t.test(delta = d, sd = 1, power = p).
+
+fn required_n(effect: f64, alpha: f64, power: f64) -> i64 {
+    let r = call_stats_builtin(
+        "power_t_test",
+        vec![
+            Value::Float(effect),
+            Value::Float(alpha),
+            Value::Float(power),
+        ],
+    )
+    .unwrap();
+    match r {
+        Value::Record(m) => match m.get("n") {
+            Some(Value::Int(n)) => *n,
+            other => panic!("expected Int n, got {other:?}"),
+        },
+        other => panic!("expected Record, got {other:?}"),
+    }
+}
+
+#[test]
+fn power_t_test_matches_r_sample_sizes() {
+    // R: power.t.test(delta=0.5, sd=1, power=0.80)$n  ->  63.77, so 64
+    let n = required_n(0.5, 0.05, 0.80);
+    assert!(
+        (63..=65).contains(&n),
+        "d=0.5 power=0.80 gave n={n}, expected ~64"
+    );
+
+    // R: power.t.test(delta=0.8, sd=1, power=0.80)$n  ->  25.52, so 26
+    let n = required_n(0.8, 0.05, 0.80);
+    assert!(
+        (25..=27).contains(&n),
+        "d=0.8 power=0.80 gave n={n}, expected ~26"
+    );
+
+    // R: power.t.test(delta=1.0, sd=1, power=0.90)$n  ->  22.02, so 23
+    let n = required_n(1.0, 0.05, 0.90);
+    assert!(
+        (21..=24).contains(&n),
+        "d=1.0 power=0.90 gave n={n}, expected ~23"
+    );
+}
+
+#[test]
+fn power_t_test_needs_more_samples_for_smaller_effects() {
+    let small = required_n(0.25, 0.05, 0.80);
+    let large = required_n(1.0, 0.05, 0.80);
+    assert!(
+        small > large * 4,
+        "n should scale as 1/d^2: {small} vs {large}"
+    );
+}
+
+#[test]
+fn power_t_test_needs_more_samples_for_higher_power() {
+    assert!(required_n(0.5, 0.05, 0.95) > required_n(0.5, 0.05, 0.80));
+}

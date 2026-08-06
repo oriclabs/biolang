@@ -2898,11 +2898,21 @@ fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
         ));
     }
 
-    // Use the formula: n = ((z_alpha/2 + z_beta) / d)^2
-    // where z_alpha/2 and z_beta are normal quantiles
+    // Samples needed PER GROUP for a two-sample comparison:
+    //
+    //     n = 2 * ((z_alpha/2 + z_beta) / d)^2
+    //
+    // The factor of 2 is the whole difference between the one-sample and
+    // two-sample cases, and it was missing. Comparing two groups estimates two
+    // means, so the difference carries twice the variance of a single mean.
+    //
+    // Without it this returned 32 per group for d = 0.5 at 80% power, where the
+    // answer is 64 - advice to run an experiment at half the size it needs,
+    // from a function whose only purpose is to stop that happening. R's
+    // power.t.test, which this is named after, is two-sample by default.
     let z_alpha = bl_core::bio_core::stats_ops::normal_quantile(1.0 - alpha / 2.0);
     let z_beta = bl_core::bio_core::stats_ops::normal_quantile(power);
-    let n_raw = ((z_alpha + z_beta) / d).powi(2);
+    let n_raw = 2.0 * ((z_alpha + z_beta) / d).powi(2);
     let n = n_raw.ceil() as i64;
 
     let mut m = std::collections::HashMap::new();
@@ -4345,14 +4355,39 @@ fn builtin_choose(args: Vec<Value>) -> Result<Value> {
     }
     // Multiplied and divided in step, and against the smaller of k and n-k, so
     // the running value stays near the answer instead of building n! first and
-    // overflowing on inputs whose result is small.
+    // overflowing on inputs whose result is small. The division is exact at
+    // every step: a product of j consecutive integers is always divisible by j!.
+    //
+    // Widening to i128 raised the ceiling but did not remove it. i128 tops out
+    // near 1.7e38 and choose(300, 40) is 9.79e49, so the multiply itself
+    // overflowed - panicking in debug builds and, because the workspace sets no
+    // overflow-checks in release, wrapping silently in the shipped binary. It
+    // returned 3.457e36 for that input: wrong by thirteen orders of magnitude,
+    // with no error. Detect the overflow and finish in logs instead.
     let k = k.min(n - k);
     let mut result: i128 = 1;
+    let mut exact = true;
     for i in 0..k {
-        result = result * (n - i) as i128 / (i + 1) as i128;
+        match result.checked_mul((n - i) as i128) {
+            Some(product) => result = product / (i + 1) as i128,
+            None => {
+                exact = false;
+                break;
+            }
+        }
     }
+
+    if !exact {
+        // ln C(n,k) = ln n! - ln k! - ln (n-k)!, summed rather than multiplied
+        // so nothing overflows on the way. Loses the low digits, which is the
+        // best available answer once the value exceeds i128.
+        let ln_factorial = |m: i64| -> f64 { (2..=m).map(|v| (v as f64).ln()).sum() };
+        let ln_choose = ln_factorial(n) - ln_factorial(k) - ln_factorial(n - k);
+        return Ok(Value::Float(ln_choose.exp()));
+    }
+
     match i64::try_from(result) {
-        Ok(exact) => Ok(Value::Int(exact)),
+        Ok(value) => Ok(Value::Int(value)),
         Err(_) => Ok(Value::Float(result as f64)),
     }
 }

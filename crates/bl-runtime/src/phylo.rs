@@ -433,6 +433,10 @@ fn builtin_upgma(args: Vec<Value>) -> Result<Value> {
     let mut clusters: Vec<String> = labels.to_vec();
     let mut sizes: Vec<usize> = vec![1; n];
     let mut active: Vec<usize> = (0..n).collect();
+    // Height of each cluster above the tips. Leaves sit at zero; a merge places
+    // the new node at half the distance between the clusters it joins, which is
+    // what makes UPGMA's tips equidistant from the root.
+    let mut heights: Vec<f64> = vec![0.0; n];
 
     while active.len() > 1 {
         // Find minimum distance pair
@@ -456,7 +460,17 @@ fn builtin_upgma(args: Vec<Value>) -> Result<Value> {
         let half = min_d / 2.0;
 
         // New cluster label
-        let new_label = format!("({},{}):0", clusters[a], clusters[b]);
+        // Branch length is the rise from each child to the new node, not the
+        // node height itself. This used to emit a literal ":0" for every branch
+        // while computing `half` and then discarding it with `let _ = half`, so
+        // every tree came back topologically correct and quantitatively empty -
+        // useless to anything that reads branch lengths.
+        let branch_a = (half - heights[a]).max(0.0);
+        let branch_b = (half - heights[b]).max(0.0);
+        let new_label = format!(
+            "({}:{:.6},{}:{:.6})",
+            clusters[a], branch_a, clusters[b], branch_b
+        );
         let new_size = sizes[a] + sizes[b];
 
         // Update distances for merged cluster using UPGMA average
@@ -472,10 +486,10 @@ fn builtin_upgma(args: Vec<Value>) -> Result<Value> {
 
         clusters[a] = new_label;
         sizes[a] = new_size;
+        heights[a] = half;
 
         // Remove b from active
         active.remove(mj);
-        let _ = half;
     }
 
     let root = active[0];
