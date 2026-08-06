@@ -1,0 +1,76 @@
+# 1.2 One trial, then many: Bernoulli and binomial
+#
+# Adapted from "Modern Statistics for Modern Biology", Holmes & Huber,
+# Chapter 1. See ../../book/src/attribution.md.
+#
+# Run:  bl run 02-bernoulli-binomial.bl
+
+# A Bernoulli trial is the smallest possible experiment: one attempt, two
+# outcomes, one number p for how often the interesting one happens.
+
+println("== 15 fair coin flips ==")
+set_seed(235569515)
+println(rbinom(15, 1, 0.5))
+
+# `size = 1` is what makes each number a single trial. The result is a list of
+# 0s and 1s - fifteen separate experiments.
+
+println("")
+println("== 12 flips of a coin that lands heads 2/3 of the time ==")
+
+# A trap worth hitting once on purpose: `2 / 3` is integer division and gives 0,
+# so this would silently become a coin that never lands heads.
+println(f"2 / 3     = {2 / 3}        <- integer division, wrong here")
+println(f"2.0 / 3.0 = {2.0 / 3.0}")
+
+set_seed(11)
+println(rbinom(12, 1, 2.0 / 3.0))
+
+println("")
+println("== The same 12 trials, reported as one number ==")
+set_seed(11)
+let successes = rbinom(1, 12, 2.0 / 3.0)
+println(successes)
+
+# Nothing changed about the experiment. Only the bookkeeping: instead of
+# remembering the order of twelve trials, keep the count. That count is a
+# binomial random variable, and throwing away the order costs nothing when the
+# trials are independent and share the same p.
+
+println("")
+println("== The distribution of the count: B(15, 0.3) ==")
+println("  k    P(X = k)")
+
+let size = 15
+let p = 0.3
+
+range(0, size + 1) |> each(|k| {
+    let prob = dbinom(k, size, p)
+    let bar = str_repeat("#", round(prob * 200))
+    println(f"{k:>3}  {prob:.4f}  {bar}")
+})
+
+# The peak is at 4, not at 15 * 0.3 = 4.5, because the count has to be a whole
+# number. The distribution is visibly lopsided: it has room to run right toward
+# 15 but is pinned at 0 on the left.
+
+println("")
+println("== Where the formula comes from ==")
+# P(k successes) = (number of orderings) x (probability of one such ordering)
+let orderings = choose(15, 4)
+let one_ordering = pow(0.3, 4) * pow(0.7, 11)
+println(f"orderings with 4 successes: choose(15, 4) = {orderings}")
+println(f"probability of any one of them: {one_ordering:.10f}")
+println(f"product:  {orderings * one_ordering:.10f}")
+println(f"dbinom:   {dbinom(4, 15, 0.3):.10f}")
+
+println("")
+println("== Why set_seed matters ==")
+# Simulation results are only trustworthy if someone else can reproduce them.
+set_seed(99)
+let first = rbinom(5, 10, 0.5)
+set_seed(99)
+let again = rbinom(5, 10, 0.5)
+println(f"first run:  {first}")
+println(f"same seed:  {again}")
+println(f"identical:  {first == again}")

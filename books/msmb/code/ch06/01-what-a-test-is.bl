@@ -1,0 +1,113 @@
+# 6.1 What a test actually does, and the two ways to be wrong
+#
+# Adapted from "Modern Statistics for Modern Biology", Holmes & Huber,
+# Chapter 6. See ../../book/src/attribution.md.
+#
+# Run:  bl run 01-what-a-test-is.bl
+
+# A hypothesis test is a decision rule with a known error rate. That is all it
+# is, and stating it that way makes clear what it cannot do: it does not tell you
+# whether the effect is real, or how big it is, or whether it matters.
+
+set_seed(6)
+
+println("== The t-test, on data where nothing is happening ==")
+
+# Two groups drawn from the SAME distribution. Every rejection is a mistake.
+let trials = 2000
+let rejections = range(0, trials) |> count_if(|_| {
+    let a = rnorm(12, 10.0, 2.0)
+    let b = rnorm(12, 10.0, 2.0)
+    ttest(a, b).p_value < 0.05
+})
+
+println(f"  {trials} comparisons of two identical populations")
+println(f"  p < 0.05 in {rejections} of them ({rejections * 100.0 / trials:.1f}%)")
+println("")
+println("Close to 5%, which is the test working exactly as designed. The 5% is")
+println("not an accident to be minimised - it is the rate you chose when you")
+println("picked the threshold. A test that never rejected a true null would also")
+println("never detect anything.")
+println("")
+
+println("== The distribution of p under the null ==")
+set_seed(7)
+let null_ps = range(0, 3000) |> map(|_| ttest(rnorm(12, 10.0, 2.0), rnorm(12, 10.0, 2.0)).p_value)
+println(hist(null_ps, 10))
+println("Flat. When the null is true, p is uniform on [0,1] - every value is")
+println("equally likely, and that is what makes the threshold interpretable.")
+println("A p-value of 0.5 is not evidence of no effect; it is what you get from")
+println("half of all null experiments.")
+println("")
+
+# --- The other error ------------------------------------------------------
+
+println("== The error nobody reports ==")
+println("")
+# Effect sizes are quoted in standard deviations, which is the only scale on
+# which "how big is this effect" has a portable answer. sd = 2.0 here, so a
+# half-sd effect is a raw difference of 1.0.
+let sd = 2.0
+println("  effect (sd)     n     power")
+[[0.25, 12], [0.25, 30], [0.25, 100], [0.5, 12], [0.5, 30], [1.0, 12], [1.0, 30]] |> each(|c| {
+    let d = c[0]
+    let n = c[1]
+    set_seed(21)
+    let detected = range(0, 600) |> count_if(|_| {
+        ttest(rnorm(n, 10.0, sd), rnorm(n, 10.0 + d * sd, sd)).p_value < 0.05
+    })
+    println(f"  {d:>9.2f}   {n:>5}    {detected * 100.0 / 600.0:>5.1f}%")
+})
+println("")
+println("A real half-standard-deviation effect, with 12 per group, is detected")
+println("less than a quarter of the time. Three experiments in four come back")
+println("negative although the effect is real - and would be written up as")
+println("'no significant difference'.")
+println("")
+println("The 5% false positive rate is fixed by the threshold and reported in")
+println("every paper. The false negative rate depends on the effect size and the")
+println("sample size, is usually far larger, and is almost never mentioned.")
+println("")
+
+# --- Assumptions ----------------------------------------------------------
+
+println("== What happens when the assumptions fail ==")
+println("")
+println("  data                          false positive rate at 5%")
+
+set_seed(11)
+let normal_fp = range(0, 1500) |> count_if(|_| ttest(rnorm(10, 0.0, 1.0), rnorm(10, 0.0, 1.0)).p_value < 0.05)
+println(f"  normal, equal spread                   {normal_fp * 100.0 / 1500.0:>5.1f}%")
+
+set_seed(12)
+let unequal_fp = range(0, 1500) |> count_if(|_| ttest(rnorm(10, 0.0, 1.0), rnorm(10, 0.0, 5.0)).p_value < 0.05)
+println(f"  normal, one group 5x wider             {unequal_fp * 100.0 / 1500.0:>5.1f}%")
+
+set_seed(13)
+let skew_fp = range(0, 1500) |> count_if(|_| {
+    let a = range(0, 10) |> map(|_| pow(10.0, rnorm(1, 0.0, 1.0)[0]))
+    let b = range(0, 10) |> map(|_| pow(10.0, rnorm(1, 0.0, 1.0)[0]))
+    ttest(a, b).p_value < 0.05
+})
+println(f"  heavily skewed (log-normal)            {skew_fp * 100.0 / 1500.0:>5.1f}%")
+
+set_seed(14)
+let log_fp = range(0, 1500) |> count_if(|_| {
+    let a = range(0, 10) |> map(|_| rnorm(1, 0.0, 1.0)[0])
+    let b = range(0, 10) |> map(|_| rnorm(1, 0.0, 1.0)[0])
+    ttest(a, b).p_value < 0.05
+})
+println(f"  the same data, log transformed         {log_fp * 100.0 / 1500.0:>5.1f}%")
+println("")
+println("Unequal spreads barely move it: 6.9% against a nominal 5%, because")
+println("this is Welch's t-test, which does not assume equal variances.")
+println("")
+println("The skewed row is the interesting one, and it fails in the opposite")
+println("direction from the usual warning - 1.5%, far BELOW nominal. The test")
+println("has become conservative, not liberal. It is not producing false alarms;")
+println("it is throwing away power, so real effects go undetected.")
+println("")
+println("Log-transforming the same data restores it to 6.0%. The lesson is not")
+println("'the t-test is fragile' but that a skewed measurement is usually asking")
+println("to be analysed on a different scale, and moving it there fixes the")
+println("test and the interpretation at once.")

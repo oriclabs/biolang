@@ -1,0 +1,126 @@
+# 2.4 Chargaff's rule, and testing a pattern you cannot name a distribution for
+#
+# Adapted from "Modern Statistics for Modern Biology", Holmes & Huber,
+# Chapter 2. See ../../book/src/attribution.md.
+#
+# Run:  bl run 04-chargaff-permutation.bl
+
+# In the late 1940s Erwin Chargaff measured base composition across species,
+# years before the double helix. The numbers are percentages, columns in the
+# order A, T, C, G.
+#
+# Look at them before reading on. The pattern he found is visible by eye, and
+# spotting it yourself is worth more than being told.
+
+let species = ["Human-Thymus", "Mycobac.Tuber", "Chicken-Eryth", "Sheep-liver",
+               "Sea Urchin", "Wheat", "Yeast", "E.coli"]
+
+let chargaff = [
+    [30.9, 29.4, 19.9, 19.8],
+    [15.1, 14.6, 34.9, 35.4],
+    [28.8, 29.2, 20.5, 21.5],
+    [29.3, 29.3, 20.5, 20.7],
+    [32.8, 32.1, 17.7, 17.3],
+    [27.3, 27.1, 22.7, 22.8],
+    [31.3, 32.9, 18.7, 17.1],
+    [24.7, 23.6, 26.0, 25.7],
+]
+
+println("== Chargaff's measurements (percent) ==")
+println("  species             A      T      C      G")
+range(0, len(species)) |> each(|i| {
+    let r = chargaff[i]
+    println(f"  {species[i]:<15}  {r[0]:>5.1f}  {r[1]:>5.1f}  {r[2]:>5.1f}  {r[3]:>5.1f}")
+})
+println("")
+
+println("== The pattern ==")
+println("  species            A - T    C - G")
+range(0, len(species)) |> each(|i| {
+    let r = chargaff[i]
+    println(f"  {species[i]:<15}  {r[0] - r[1]:>6.1f}   {r[2] - r[3]:>6.1f}")
+})
+println("")
+println("A tracks T and C tracks G, in every species, across compositions")
+println("ranging from 15% A to 33% A. Mycobacterium is nothing like sea urchin")
+println("overall - yet within each, the pairs match.")
+println("")
+println("This is Chargaff's rule, and it is the observation that made base")
+println("pairing the obvious explanation.")
+println("")
+
+# --- Turning the pattern into a number ------------------------------------
+
+# One statistic capturing "A matches T and C matches G": small when the pattern
+# holds, large when it does not.
+fn chargaff_stat(table) {
+    table
+        |> map(|r| pow(r[0] - r[1], 2) + pow(r[2] - r[3], 2))
+        |> sum()
+}
+
+let observed = chargaff_stat(chargaff)
+println(f"== The statistic: {observed:.2f} ==")
+println("")
+println("Small - but 'small' compared to what? There is no textbook")
+println("distribution for this quantity. We invented the statistic ten lines")
+println("ago; nobody has tabulated it.")
+println("")
+
+# --- Building the comparison ourselves ------------------------------------
+
+println("== Permutation: destroy the pattern, keep everything else ==")
+println("")
+println("The trick is to ask what the table would look like if the four bases")
+println("within a species carried no particular pairing - by shuffling each")
+println("row's four values among themselves.")
+println("")
+println("Shuffling *within* rows is the important detail. Every species keeps")
+println("its own four numbers, so overall composition, totals and the spread")
+println("across species are all preserved exactly. The only thing destroyed is")
+println("which base sits in which column - which is precisely the claim under")
+println("test.")
+println("")
+
+fn permuted_stat() {
+    chargaff |> map(|r| sample(r, 4)) |> chargaff_stat()
+}
+
+# 100,000, as the book uses. The event is rare enough that fewer runs leave the
+# p-value visibly noisy - at 20,000 it wandered between 0.0002 and 0.0004 across
+# seeds. Takes about ten seconds.
+let runs = 100000
+set_seed(1952)
+let null_stats = range(0, runs) |> map(|_| permuted_stat())
+
+println(f"{runs} shuffled tables")
+println(f"  minimum:  {min(null_stats):>8.2f}")
+println(f"  median:   {quantile(null_stats, 0.5):>8.2f}")
+println(f"  maximum:  {max(null_stats):>8.2f}")
+println(f"  observed: {observed:>8.2f}")
+println("")
+
+let as_small = null_stats |> count_if(|s| s <= observed)
+let p_value = as_small * 1.0 / runs
+
+println(f"shuffled tables scoring at least as low as the real one: {as_small} of {runs}")
+println(f"p-value: {p_value:.5f}")
+println("")
+
+println("== What this does and does not show ==")
+println("The pairing is real: a table this consistent essentially never arises")
+println("from shuffling. Chargaff's rule is not an artefact of a few species or")
+println("of the overall base composition.")
+println("")
+println("It does not explain *why*. The test says the pattern is there; the")
+println("double helix is what says the pattern had to be there. Statistics")
+println("found the regularity, structural biology explained it - and the order")
+println("of those two events is the usual one.")
+
+# --- PUBLISHED FIGURES ------------------------------------------------------
+#
+# The book quotes these numbers. If a change to BioLang moves one, this script
+# fails loudly rather than letting the prose quietly go stale.
+
+assert abs(observed - 11.08) < 0.01, "Chargaff statistic moved"
+assert p_value < 0.001, f"Chargaff p is {p_value}, book publishes 0.00019"

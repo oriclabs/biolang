@@ -1,0 +1,144 @@
+# 10.1 Distances, trees, and what a tree claims
+#
+# Adapted from "Modern Statistics for Modern Biology", Holmes & Huber,
+# Chapter 10. See ../../book/src/attribution.md.
+#
+# Run:  bl run 01-trees.bl
+
+# A phylogeny is a hypothesis about history drawn as a picture. Like a
+# dendrogram it will be produced from any data at all, and like a dendrogram the
+# drawing looks equally confident either way.
+
+let species = ["human", "chimp", "gorilla", "orangutan", "macaque", "mouse"]
+
+# A short aligned region. Differences accumulate with time since divergence.
+let sequences = [
+    dna("ACGTTGCATGCATGGCAATCGATCGGCTAAGCTT"),
+    dna("ACGTTGCATGCATGGCAATCGATCGGCTAAGCTA"),
+    dna("ACGTTGCATGCTTGGCAATCGATCGGCTAAGCTA"),
+    dna("ACGTTGCATCCTTGGCAATCGATCGGATAAGCTA"),
+    dna("ACGTAGCATCCTTGGCAATCGTTCGGATAAGCTA"),
+    dna("TCGTAGCTTCCTTGGCTATCGTTCGGATTAGCTC"),
+]
+
+println("== Pairwise differences ==")
+
+fn hamming(a, b) {
+    let x = str(a)
+    let y = str(b)
+    range(0, len(x)) |> count_if(|i| substr(x, i, 1) != substr(y, i, 1))
+}
+
+println("            " + (species |> map(|s| f"{substr(s, 0, 5):>7}") |> join("")))
+range(0, len(species)) |> each(|i| {
+    let row = range(0, len(species)) |> map(|j| f"{hamming(sequences[i], sequences[j]):>7}") |> join("")
+    println(f"  {species[i]:<10}{row}")
+})
+println("")
+
+# upgma and neighbor_joining take (labels, distance_table) - labels first, and
+# the distances as a Table whose rows are the matrix rows.
+let dist_rows = range(0, len(species)) |> map(|i| {
+    range(0, len(species)) |> map(|j| hamming(sequences[i], sequences[j]) * 1.0)
+})
+
+let distances = table(range(0, len(species)) |> map(|i| {
+    let r = range(0, len(species)) |> map(|j| hamming(sequences[i], sequences[j]) * 1.0)
+    { a: r[0], b: r[1], c: r[2], d: r[3], e: r[4], f: r[5] }
+}))
+
+# --- Building trees ---------------------------------------------------------
+
+println("== Two tree-building methods ==")
+println("")
+
+let upgma_tree = upgma(species, distances)
+println("  UPGMA (assumes a constant molecular clock):")
+println(f"    {upgma_tree}")
+println("")
+
+let nj_tree = neighbor_joining(dist_rows)
+println("  Neighbour-joining (does not):")
+println(f"    {nj_tree}")
+println("")
+
+println("== Why the two can disagree ==")
+println("UPGMA assumes every lineage changes at the same rate, so the distance")
+println("from the root to every tip is equal. When that holds it is efficient;")
+println("when it does not - and for real sequence data it usually does not -")
+println("it will place a fast-evolving lineage too far from the root and can")
+println("group unrelated fast-evolvers together.")
+println("")
+println("Neighbour-joining drops the clock assumption, which is why it is the")
+println("default for sequence data. The price is that its branch lengths are no")
+println("longer times; they are amounts of change.")
+println("")
+
+# --- What the tree does not tell you ---------------------------------------
+
+println("== A tree drawn from noise ==")
+println("")
+set_seed(100)
+let random_seqs = range(0, 6) |> map(|_| {
+    range(0, 34) |> map(|_| ["A", "C", "G", "T"][random_int(0, 4)]) |> join("")
+})
+let random_d = table(range(0, 6) |> map(|i| {
+    let r = range(0, 6) |> map(|j| {
+        range(0, 34) |> count_if(|k| substr(random_seqs[i], k, 1) != substr(random_seqs[j], k, 1)) * 1.0
+    })
+    { a: r[0], b: r[1], c: r[2], d: r[3], e: r[4], f: r[5] }
+}))
+let noise_tree = upgma(["r1", "r2", "r3", "r4", "r5", "r6"], random_d)
+println("  six unrelated random sequences:")
+println(f"    {noise_tree}")
+println("")
+println("A complete, confident, entirely meaningless tree. The method has no way")
+println("to report that the sequences share no history, because it was never")
+println("asked that question - it was asked for the best tree, and it produced")
+println("one.")
+println("")
+
+# --- Bootstrapping the tree -------------------------------------------------
+
+println("== Which branches would survive different data? ==")
+println("")
+println("Resample alignment columns with replacement, rebuild the tree, and")
+println("count how often each grouping reappears. A branch supported by many")
+println("columns keeps showing up; one resting on a single site does not.")
+println("")
+
+fn resampled_distances(seqs, n_sites) {
+    let cols = range(0, n_sites) |> map(|_| random_int(0, n_sites))
+    range(0, len(seqs)) |> map(|i| {
+        range(0, len(seqs)) |> map(|j| {
+            cols |> count_if(|k| substr(str(seqs[i]), k, 1) != substr(str(seqs[j]), k, 1)) * 1.0
+        })
+    })
+}
+
+set_seed(101)
+let replicates = 200
+let human_chimp = range(0, replicates) |> count_if(|_| {
+    let d = resampled_distances(sequences, 34)
+    # Human and chimp group together if they are closer to each other than
+    # either is to anything else.
+    let hc = d[0][1]
+    let others = range(2, 6) |> map(|k| min(d[0][k], d[1][k]))
+    hc < min(others)
+})
+
+let great_apes = range(0, replicates) |> count_if(|_| {
+    let d = resampled_distances(sequences, 34)
+    # Human, chimp, gorilla closer to each other than to mouse.
+    let within = max([d[0][1], d[0][2], d[1][2]])
+    let to_mouse = min([d[0][5], d[1][5], d[2][5]])
+    within < to_mouse
+})
+
+println(f"  human + chimp together:        {human_chimp * 100 / replicates}% of replicates")
+println(f"  great apes apart from mouse:   {great_apes * 100 / replicates}% of replicates")
+println("")
+println("The deep split is rock solid; the recent one is less so, because it")
+println("rests on fewer differing columns. That gradient is the useful output -")
+println("a tree without support values presents its shakiest branch and its")
+println("firmest with identical confidence.")

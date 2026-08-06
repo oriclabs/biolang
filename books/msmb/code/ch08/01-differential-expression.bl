@@ -1,0 +1,150 @@
+# 8.1 Differential expression, end to end
+#
+# Adapted from "Modern Statistics for Modern Biology", Holmes & Huber,
+# Chapter 8. See ../../book/src/attribution.md.
+#
+# Run:  bl run 01-differential-expression.bl
+
+import "msmbstats/src/distributions"
+
+# This chapter is where the previous seven meet. An RNA-seq experiment needs:
+# a count model that admits overdispersion (Chapter 4), a test (Chapter 6),
+# multiple-testing control (Chapter 6), and a plot that does not mislead
+# (Chapter 3). Getting any one wrong invalidates the result.
+
+let n_genes = 4000
+let n_changed = 200
+let per_group = 8
+let dispersion = 8.0
+
+println("== A simulated experiment ==")
+println(f"  {n_genes} genes, {per_group} vs {per_group} samples")
+println(f"  {n_changed} genes genuinely changed, the rest not")
+println(f"  counts drawn from a negative binomial (dispersion size = {dispersion})")
+println("")
+
+set_seed(80)
+
+# Baseline expression spanning several orders of magnitude, as real data does.
+let base = range(0, n_genes) |> map(|_| pow(10.0, rnorm(1, 1.9, 0.65)[0]))
+let fold = range(0, n_genes) |> map(|i| if i < n_changed { if i % 2 == 0 { 3.0 } else { 0.333 } } else { 1.0 })
+
+let counts_a = range(0, n_genes) |> map(|g| rnbinom(per_group, dispersion, base[g]))
+let counts_b = range(0, n_genes) |> map(|g| rnbinom(per_group, dispersion, base[g] * fold[g]))
+
+# --- Library size ----------------------------------------------------------
+
+println("== First: library size ==")
+let lib_a = range(0, per_group) |> map(|s| range(0, n_genes) |> map(|g| counts_a[g][s]) |> sum())
+let lib_b = range(0, per_group) |> map(|s| range(0, n_genes) |> map(|g| counts_b[g][s]) |> sum())
+println(f"  group A totals: {lib_a}")
+println(f"  group B totals: {lib_b}")
+println("")
+println("Totals differ between samples for reasons that have nothing to do with")
+println("biology - how much was loaded, how the run went. Comparing raw counts")
+println("would find 'differences' driven by sequencing depth, so counts are")
+println("scaled to a common total before anything else happens.")
+println("")
+
+let mean_lib = mean(concat(lib_a, lib_b))
+fn normalise(row, libs) {
+    range(0, len(row)) |> map(|s| row[s] * mean_lib / libs[s])
+}
+
+# --- Testing ---------------------------------------------------------------
+
+println("== Testing, on the log scale ==")
+println("")
+println("Counts are multiplicative: a gene going from 100 to 300 is the same")
+println("biological event as 1000 to 3000. Differences are meaningful in logs,")
+println("ratios are not meaningful in raw units, and the variance is far more")
+println("stable there. The +1 keeps zeros finite.")
+println("")
+
+let results = range(0, n_genes) |> map(|g| {
+    let a = normalise(counts_a[g], lib_a) |> map(|v| log2(v + 1.0))
+    let b = normalise(counts_b[g], lib_b) |> map(|v| log2(v + 1.0))
+    { gene: g, log2fc: mean(b) - mean(a), p: ttest(a, b).p_value, base: base[g], changed: g < n_changed }
+})
+
+let raw_p = results |> map(|r| r.p)
+let adjusted = p_adjust(raw_p, "fdr")
+
+fn summarise(label, cutoff_list, cutoff) {
+    let called = range(0, n_genes) |> filter(|i| cutoff_list[i] < cutoff)
+    let hits = called |> count_if(|i| results[i].changed)
+    let misses = len(called) - hits
+    println(f"  {label:<24} called {len(called):>4}   real {hits:>4}   false {misses:>4}   recovered {hits * 100.0 / n_changed:>5.1f}%")
+}
+
+println("== Results ==")
+summarise("uncorrected p < 0.05", raw_p, 0.05)
+summarise("FDR < 0.05", adjusted, 0.05)
+summarise("FDR < 0.10", adjusted, 0.10)
+println("")
+
+# --- Expression level drives power -----------------------------------------
+
+println("== Power depends on expression level ==")
+println("")
+println("  baseline counts      changed genes    detected at FDR 5%")
+[[0.0, 20.0], [20.0, 60.0], [60.0, 200.0], [200.0, 1000000.0]] |> each(|band| {
+    let in_band = range(0, n_changed) |> filter(|i| results[i].base >= band[0] && results[i].base < band[1])
+    let found = in_band |> count_if(|i| adjusted[i] < 0.05)
+    if len(in_band) > 0 {
+        println(f"  {band[0]:>6.0f} - {band[1]:>7.0f}     {len(in_band):>10}       {found * 100.0 / len(in_band):>10.1f}%")
+    }
+})
+println("")
+println("The same three-fold change is caught six times in ten at the lowest")
+println("expression band and essentially always above a hundred counts. The")
+println("biology is identical across those rows; only the measurement precision")
+println("differs.")
+println("Low-expression genes are not absent from the results because nothing")
+println("happened to them - they are absent because the experiment could not")
+println("have seen it. Filtering them out before testing costs nothing and")
+println("improves the FDR correction, because it removes tests that were never")
+println("going to be informative.")
+println("")
+
+# --- The MA plot ------------------------------------------------------------
+
+println("== The MA plot: fold change against expression ==")
+println("")
+let width = 56
+let height = 17
+let xs = results |> map(|r| log2(r.base + 1.0))
+let ys = results |> map(|r| r.log2fc)
+let xlo = min(xs)
+let xhi = max(xs)
+let ylo = -4.0
+let yhi = 4.0
+let marks = range(0, n_genes) |> map(|i| {
+    let c = min(round((xs[i] - xlo) / (xhi - xlo) * (width - 1)), width - 1)
+    let clamped = max(ylo, min(ys[i], yhi))
+    let r = min(round((clamped - ylo) / (yhi - ylo) * (height - 1)), height - 1)
+    f"{r}:{c}"
+})
+let sig = range(0, n_genes) |> filter(|i| adjusted[i] < 0.05) |> map(|i| marks[i])
+
+range(0, height) |> each(|rr| {
+    let row = height - 1 - rr
+    let line = range(0, width) |> map(|c| {
+        let key = f"{row}:{c}"
+        if find_index(sig, |k| k == key) >= 0 { "*" }
+        else if find_index(marks, |k| k == key) >= 0 { "." }
+        else { " " }
+    }) |> join("")
+    let axis = if row == round((0.0 - ylo) / (yhi - ylo) * (height - 1)) { "0" } else { " " }
+    println(f"  {axis}|{line}|")
+})
+println("   +" + str_repeat("-", width) + "+")
+println("    low expression" + str_repeat(" ", width - 30) + "high expression")
+println("")
+println("  . all genes      * significant at FDR 5%")
+println("")
+println("Two things to read off it. The cloud narrows to the right: high-count")
+println("genes have more stable estimates, which is the same fact as the power")
+println("table above. And the significant genes sit at the top and bottom right -")
+println("large changes in well-measured genes. Nothing is called on the left,")
+println("however extreme its apparent fold change, and that is correct.")

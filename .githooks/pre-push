@@ -1,10 +1,22 @@
 #!/bin/sh
 #
-# Catch stale generated files before they reach a tag.
+# Catch two things that CI would otherwise find minutes later:
+#   - generated files that no longer match their sources
+#   - published figures in the MSMB companion that have moved
 #
 # Enable with:
 #   git config core.hooksPath .githooks
 #
 # Skip a single push with `git push --no-verify`.
 
-exec node scripts/check-generated.mjs
+set -e
+
+node scripts/check-generated.mjs
+
+# Only worth running when the interpreter or the companion actually changed;
+# the scripts take a couple of minutes end to end.
+if git diff --quiet HEAD origin/main -- crates books/msmb 2>/dev/null; then
+    echo "MSMB figures: unchanged since origin/main, skipping."
+else
+    node scripts/check-msmb.mjs
+fi

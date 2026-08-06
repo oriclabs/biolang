@@ -1,0 +1,159 @@
+# 2.3 Do ten genes share one nucleotide composition?
+#
+# Adapted from "Modern Statistics for Modern Biology", Holmes & Huber,
+# Chapter 2. See ../../book/src/attribution.md.
+#
+# Run:  bl run 03-staph-nucleotide-bias.bl
+
+import "msmbstats/src/multinomial"
+
+# Base counts of the first ten genes of Staphylococcus aureus strain MW2, in
+# the order A, C, G, T. Taken from the book's staphsequence.ffn.txt; hard-coded
+# so this runs with no download. Recompute from any FASTA with base_counts().
+let genes = [
+    [522, 219, 229, 392],
+    [413, 176, 193, 352],
+    [ 85,  31,  56,  74],
+    [411, 168, 207, 327],
+    [685, 293, 423, 531],
+    [887, 395, 586, 793],
+    [275, 137, 169, 250],
+    [510, 244, 316, 445],
+    [487, 180, 263, 357],
+    [191, 111, 142, 252],
+]
+
+let n_genes = len(genes)
+let lengths = genes |> map(|g| sum(g))
+
+println("== The data ==")
+println("  gene    A     C     G     T    length")
+range(0, n_genes) |> each(|i| {
+    let g = genes[i]
+    println(f"  {i + 1:>4}  {g[0]:>4}  {g[1]:>4}  {g[2]:>4}  {g[3]:>4}   {lengths[i]:>5}")
+})
+println("")
+
+# --- A shared composition, estimated from the data ------------------------
+
+# Each gene gives its own four proportions. Averaging them gives one candidate
+# composition for all ten - the null hypothesis we are about to test.
+fn proportions(counts) {
+    let total = sum(counts)
+    counts |> map(|c| c * 1.0 / total)
+}
+
+let per_gene = genes |> map(|g| proportions(g))
+let p0 = range(0, 4) |> map(|b| (per_gene |> map(|p| p[b]) |> sum()) / n_genes)
+
+println("== Per-gene proportions ==")
+println("  gene     A      C      G      T")
+range(0, n_genes) |> each(|i| {
+    let p = per_gene[i]
+    println(f"  {i + 1:>4}   {p[0]:.3f}  {p[1]:.3f}  {p[2]:.3f}  {p[3]:.3f}")
+})
+println("")
+println(f"average (p0):  {p0[0]:.4f}  {p0[1]:.4f}  {p0[2]:.4f}  {p0[3]:.4f}")
+println("")
+println("Strongly AT-rich, and the ten rows look broadly similar. 'Broadly")
+println("similar' is exactly the kind of judgement that needs a number.")
+println("")
+
+# --- What each gene should look like under that model ---------------------
+
+# Expected counts: each gene keeps its own length, but is assumed to draw its
+# bases from the shared p0.
+let expected = lengths |> map(|len_i| p0 |> map(|p| p * len_i))
+
+println("== Observed vs expected for gene 1 ==")
+println(f"  observed: {genes[0]}")
+println(f"  expected: {expected[0] |> map(|e| round(e))}")
+println("")
+
+# --- One number for the whole table ---------------------------------------
+
+# Sum the chi-square contribution over all 40 cells.
+fn table_stat(observed_table, expected_table) {
+    range(0, len(observed_table))
+        |> map(|i| chi_stat(observed_table[i], expected_table[i]))
+        |> sum()
+}
+
+let s1 = table_stat(genes, expected)
+println(f"== The statistic for the real table: {s1:.2f} ==")
+println("")
+println("Is that big? The number alone cannot say. We need the distribution of")
+println("this statistic when the null model is *true*.")
+println("")
+
+# --- Calibrating by simulation --------------------------------------------
+
+# Manufacture ten fake genes with the real lengths, drawing every base from p0.
+# By construction the null holds. Repeat, and watch how large the statistic gets
+# purely by chance.
+fn simulate_table() {
+    lengths |> map(|len_i| rmultinom_one(len_i, p0))
+}
+
+let runs = 1000
+set_seed(2024)
+let null_stats = range(0, runs) |> map(|_| table_stat(simulate_table(), expected))
+
+println(f"== {runs} tables simulated under the shared-composition model ==")
+println(f"  minimum:  {min(null_stats):.2f}")
+println(f"  median:   {quantile(null_stats, 0.5):.2f}")
+println(f"  95th %:   {quantile(null_stats, 0.95):.2f}")
+println(f"  99th %:   {quantile(null_stats, 0.99):.2f}")
+println(f"  maximum:  {max(null_stats):.2f}")
+println("")
+println(hist(null_stats, 12))
+println("")
+
+let as_extreme = null_stats |> count_if(|s| s >= s1)
+println(f"simulated tables at least as extreme as {s1:.1f}: {as_extreme} of {runs}")
+println("")
+
+if as_extreme == 0 {
+    println(f"None. The p-value is below 1/{runs}; the simulation cannot resolve it")
+    println("further, and saying 'p = 0' would be wrong - it means 'smaller than")
+    println("this experiment can measure'. To go lower, simulate more.")
+} else {
+    println(f"p-value approximately {as_extreme * 1.0 / runs:.4f}")
+}
+println("")
+
+println("== Conclusion ==")
+println("The ten genes do not share a single nucleotide composition. Each has")
+println("its own bias, and the differences are far larger than sampling noise")
+println("at these gene lengths.")
+println("")
+println("Note what carried the argument: no distributional table, no degrees of")
+println("freedom, no assumption that the statistic follows any named curve. Just")
+println("the null model, run a thousand times.")
+println("")
+
+println("== A free check on the simulation ==")
+# Theory says this statistic follows a chi-square distribution whose degrees of
+# freedom are the free cells: 40 cells, minus the 10 gene lengths we held fixed.
+# A chi-square with d degrees of freedom has mean exactly d - so if the
+# simulation is right, its mean should land near 30 without being told to.
+let df = 4 * n_genes - n_genes
+println(f"  degrees of freedom (40 cells - 10 fixed lengths): {df}")
+println(f"  mean of the simulated statistic:                  {mean(null_stats):.2f}")
+println("")
+println("Those agree, and nothing in the code arranged for it. When a simulation")
+println("independently reproduces a number theory predicts, both are probably")
+println("right - a cheap check worth making whenever one is available.")
+
+# --- PUBLISHED FIGURES ------------------------------------------------------
+#
+# The book quotes these numbers. If a change to BioLang moves one, this script
+# fails loudly rather than letting the prose quietly go stale.
+
+assert abs(p0[0] - 0.3470531) < 0.0000001, "p0[A] moved; book publishes 0.3470531"
+assert abs(p0[1] - 0.1518313) < 0.0000001, "p0[C] moved; book publishes 0.1518313"
+assert abs(p0[2] - 0.2011442) < 0.0000001, "p0[G] moved; book publishes 0.2011442"
+assert abs(p0[3] - 0.2999714) < 0.0000001, "p0[T] moved; book publishes 0.2999714"
+assert as_extreme == 0, "book reports 0 of 1000 simulated tables as extreme"
+assert abs(mean(null_stats) - 30.0) < 2.0,
+    "simulated statistic should have mean near its 30 degrees of freedom"

@@ -1,0 +1,105 @@
+# 2.2 The same method on a binomial
+#
+# Adapted from "Modern Statistics for Modern Biology", Holmes & Huber,
+# Chapter 2. See ../../book/src/attribution.md.
+#
+# Run:  bl run 02-likelihood-binomial.bl
+
+# The point of maximum likelihood is that it is one procedure, not one formula.
+# Change the model, keep the method.
+#
+# A study screens 120 men for red-green colour blindness and finds 10 affected.
+# What is the rate?
+
+let n = 120
+let affected = 10
+
+println("== The data ==")
+println(f"{n} screened, {affected} affected")
+println("")
+
+# --- Likelihood over a grid ------------------------------------------------
+
+# The probability of seeing exactly 10 of 120, if the true rate were p.
+fn likelihood(p) {
+    dbinom(affected, n, p)
+}
+
+println("== Likelihood across candidate rates ==")
+println("     p     likelihood")
+
+# The book scans 0 to 0.3 in steps of 0.005; beyond that the likelihood is
+# indistinguishable from zero.
+let grid = range(0, 61) |> map(|i| i * 0.005)
+let curve = grid |> map(|p| likelihood(p))
+
+[0.02, 0.05, 0.08, 0.085, 0.11, 0.15, 0.20] |> each(|p| {
+    let bar = str_repeat("#", round(likelihood(p) * 200))
+    println(f"  {p:>5.3f}   {likelihood(p):.6f}  {bar}")
+})
+println("")
+
+let best = grid[argmax(curve)]
+println(f"grid maximum at p = {best:.3f}")
+println(f"sample proportion  = {affected} / {n} = {affected * 1.0 / n:.6f}")
+println("")
+println("Again the estimate is the obvious summary of the data - here the")
+println("observed proportion. The grid is only fine to 0.005, which is why it")
+println("lands on 0.085 rather than exactly 1/12 = 0.0833.")
+println("")
+
+# --- Doing it properly, in logs -------------------------------------------
+
+println("== The log-likelihood, written out ==")
+
+# For a binomial the log-likelihood is
+#     log C(n, y) + y log p + (n - y) log(1 - p)
+#
+# The first term does not contain p, so it shifts the whole curve up or down
+# without moving its peak. Dropping it costs nothing, and the habit is worth
+# having: anything proportional to the likelihood works, because only
+# differences matter. It also keeps us clear of C(300, 40), which is about
+# 10^50 - larger than any integer type holds, and returned as a float.
+fn loglikelihood(p, size, y) {
+    y * log(p) + (size - y) * log(1.0 - p)
+}
+
+println("A second study: 40 successes out of 300.")
+println("")
+println("     p     log-likelihood")
+
+let grid2 = range(1, 40) |> map(|i| i * 0.01)
+let curve2 = grid2 |> map(|p| loglikelihood(p, 300, 40))
+
+[0.05, 0.10, 0.13, 0.14, 0.20, 0.30] |> each(|p| {
+    println(f"  {p:>5.2f}   {loglikelihood(p, 300, 40):>10.4f}")
+})
+println("")
+
+let best2 = grid2[argmax(curve2)]
+println(f"grid maximum at p = {best2:.2f}")
+println(f"sample proportion  = 40 / 300 = {40.0 / 300.0:.6f}")
+println("")
+
+# --- Why the two studies are not equally informative -----------------------
+
+println("== Sample size shows up as curvature ==")
+println("")
+println("Both studies estimate a rate. Compare how sharply each log-likelihood")
+println("falls away from its peak, in units of the estimate itself:")
+println("")
+
+fn drop_at(size, y, offset) {
+    let phat = y * 1.0 / size
+    loglikelihood(phat, size, y) - loglikelihood(phat + offset, size, y)
+}
+
+println("  study            loglik drop 0.03 above the estimate")
+println(f"  10 of 120        {drop_at(120, 10, 0.03):.3f}")
+println(f"  40 of 300        {drop_at(300, 40, 0.03):.3f}")
+println("")
+println("The larger study's curve is steeper, so the same displacement costs")
+println("more likelihood. A sharp peak means the data exclude nearby values; a")
+println("flat one means they do not. That curvature is precisely what standard")
+println("errors and confidence intervals are built from - the estimate alone")
+println("never tells you which situation you are in.")

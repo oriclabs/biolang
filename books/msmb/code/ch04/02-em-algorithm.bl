@@ -1,0 +1,164 @@
+# 4.2 Recovering what you were not told: the EM algorithm
+#
+# Adapted from "Modern Statistics for Modern Biology", Holmes & Huber,
+# Chapter 4. See ../../book/src/attribution.md.
+#
+# Run:  bl run 02-em-algorithm.bl
+
+# Chapter 2 estimated parameters by maximum likelihood, and it worked because
+# the data was complete. A mixture breaks that: to estimate each component's
+# mean you need to know which observations belong to it, and to work out which
+# observations belong to it you need the means.
+#
+# EM breaks the circle by refusing to choose. Instead of assigning each point to
+# a component, it assigns a *share* - and shares can be computed from a guess.
+
+set_seed(4)
+let n = 600
+let truth_mix = 0.35
+let truth = [{ mu: 4.0, sd: 1.2 }, { mu: 8.0, sd: 1.0 }]
+
+let data = range(0, n) |> map(|_| {
+    if random() < truth_mix { rnorm(1, 8.0, 1.0)[0] } else { rnorm(1, 4.0, 1.2)[0] }
+})
+
+println("== The data ==")
+println(f"  {n} observations from a two-component mixture")
+println(f"  true parameters: mu = 4.0/8.0, sd = 1.2/1.0, weight = {truth_mix}")
+println("  the component labels are not available - that is the whole problem")
+println("")
+
+# --- The two steps --------------------------------------------------------
+
+# E step: given parameters, how much does each observation belong to component 2?
+#
+# Not a yes or no. A weight between 0 and 1, from the relative heights of the
+# two component densities at that point. A value at 6.0, halfway between the
+# means, gets roughly half a vote each; a value at 9.0 goes almost entirely to
+# component 2.
+fn responsibility(x, mix, p) {
+    let a = (1.0 - mix) * dnorm(x, p[0].mu, p[0].sd)
+    let b = mix * dnorm(x, p[1].mu, p[1].sd)
+    if a + b <= 0.0 { 0.5 } else { b / (a + b) }
+}
+
+# M step: given those weights, re-estimate the parameters.
+#
+# The ordinary weighted mean and weighted variance. Every observation
+# contributes to both components, in proportion to its responsibility.
+fn weighted_mean(xs, ws) {
+    let total = sum(ws)
+    range(0, len(xs)) |> map(|i| xs[i] * ws[i]) |> sum() / total
+}
+
+fn weighted_sd(xs, ws, mu) {
+    let total = sum(ws)
+    let var = range(0, len(xs)) |> map(|i| ws[i] * pow(xs[i] - mu, 2)) |> sum() / total
+    sqrt(var)
+}
+
+fn log_likelihood(xs, mix, p) {
+    xs
+        |> map(|x| log((1.0 - mix) * dnorm(x, p[0].mu, p[0].sd) + mix * dnorm(x, p[1].mu, p[1].sd)))
+        |> sum()
+}
+
+# --- Deliberately bad starting values -------------------------------------
+
+let mix = 0.5
+let params = [{ mu: 5.0, sd: 2.0 }, { mu: 6.0, sd: 2.0 }]
+
+println("== Starting from a poor guess ==")
+println(f"  component 1: mu {params[0].mu}, sd {params[0].sd}")
+println(f"  component 2: mu {params[1].mu}, sd {params[1].sd}")
+println(f"  weight: {mix}")
+println(f"  log-likelihood: {log_likelihood(data, mix, params):.3f}")
+println("")
+
+println("== Iterating ==")
+println("  step     mu1     sd1     mu2     sd2   weight   log-likelihood")
+
+let step = 0
+let previous = -1000000.0
+let converged = false
+
+while step < 100 && converged == false {
+    step = step + 1
+
+    # E step
+    let resp = data |> map(|x| responsibility(x, mix, params))
+    let complement = resp |> map(|r| 1.0 - r)
+
+    # M step
+    let mu1 = weighted_mean(data, complement)
+    let mu2 = weighted_mean(data, resp)
+    params = [
+        { mu: mu1, sd: weighted_sd(data, complement, mu1) },
+        { mu: mu2, sd: weighted_sd(data, resp, mu2) },
+    ]
+    mix = mean(resp)
+
+    let ll = log_likelihood(data, mix, params)
+    if step <= 6 || step % 10 == 0 {
+        println(f"  {step:>4}  {params[0].mu:>6.3f}  {params[0].sd:>6.3f}  {params[1].mu:>6.3f}  {params[1].sd:>6.3f}   {mix:>6.3f}   {ll:>12.4f}")
+    }
+    if abs(ll - previous) < 0.000001 { converged = true }
+    previous = ll
+}
+
+println("")
+println(f"converged after {step} steps")
+println("")
+
+println("== What it recovered ==")
+println("              true    estimated")
+println(f"  mu 1        4.00       {params[0].mu:>6.3f}")
+println(f"  sd 1        1.20       {params[0].sd:>6.3f}")
+println(f"  mu 2        8.00       {params[1].mu:>6.3f}")
+println(f"  sd 2        1.00       {params[1].sd:>6.3f}")
+println(f"  weight      {truth_mix:.2f}       {mix:>6.3f}")
+println("")
+println("Five parameters recovered from data carrying no labels at all.")
+println("")
+
+# --- The guarantee, and its limit -----------------------------------------
+
+println("== What EM promises ==")
+println("Every iteration increases the likelihood, or leaves it alone. That is a")
+println("theorem, and it is why the loop above can stop when the change gets")
+println("small - it is not a heuristic.")
+println("")
+println("What it does NOT promise is the global maximum. EM climbs the hill it")
+println("starts on:")
+println("")
+
+[[1.0, 2.0], [5.0, 6.0], [7.0, 7.5], [0.0, 20.0]] |> each(|start| {
+    let m = 0.5
+    let p = [{ mu: start[0], sd: 2.0 }, { mu: start[1], sd: 2.0 }]
+    let s = 0
+    while s < 200 {
+        s = s + 1
+        let r = data |> map(|x| responsibility(x, m, p))
+        let comp = r |> map(|v| 1.0 - v)
+        let m1 = weighted_mean(data, comp)
+        let m2 = weighted_mean(data, r)
+        p = [
+            { mu: m1, sd: weighted_sd(data, comp, m1) },
+            { mu: m2, sd: weighted_sd(data, r, m2) },
+        ]
+        m = mean(r)
+    }
+    println(f"  start mu = {start[0]:>5.1f}, {start[1]:>5.1f}  ->  mu {p[0].mu:>6.3f}, {p[1].mu:>6.3f}   loglik {log_likelihood(data, m, p):>10.3f}")
+})
+println("")
+println("All four starts reach the same answer here, including one that began")
+println("with the components 20 apart. That is what a well-separated two-")
+println("component problem looks like: the likelihood surface has one obvious")
+println("peak and EM finds it from anywhere.")
+println("")
+println("Do not read that as a guarantee. Add components, add dimensions, or")
+println("move the components closer, and the surface grows local maxima that EM")
+println("cannot escape - it only ever walks uphill. That is why serious")
+println("implementations run it from many starts and keep the best likelihood,")
+println("and why an EM fit reported without its starting values is not")
+println("reproducible.")

@@ -70,6 +70,20 @@ Thumbs.db
 !/books/language/
 !/books/practical-bioinformatics/
 !/books/single-cell-rna-seq/
+!/books/msmb/
+
+# The MSMB companion generates its own data, so nothing here needs committing.
+# Readers who want the authors' original bundle download it into this directory;
+# it is theirs to host and would add tens of megabytes here.
+/books/msmb/data/
+
+# SVGs the chapter 3 scripts write when you run them. Regenerated on demand.
+/books/msmb/code/ch03/figures/
+
+# ...and its built HTML, 1.3 MB of generated output. The other books commit
+# theirs because pages.yml publishes them; this one is not wired into the deploy
+# yet, so committing the build would cost repository size for nothing.
+/website/books/msmb/
 
 # Unfinished extensions (local only)
 /website/extension/biotally/

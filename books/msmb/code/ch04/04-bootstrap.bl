@@ -1,0 +1,127 @@
+# 4.4 The bootstrap: a sampling distribution when you cannot derive one
+#
+# Adapted from "Modern Statistics for Modern Biology", Holmes & Huber,
+# Chapter 4. See ../../book/src/attribution.md.
+#
+# Run:  bl run 04-bootstrap.bl
+
+# Chapter 1 built sampling distributions by simulating from a known model.
+# That works when you have a model. Often you do not - you have a sample, a
+# statistic, and no theory for how that statistic varies.
+#
+# The bootstrap's idea is almost impudent: treat the sample as if it were the
+# population, and draw from it.
+
+set_seed(21)
+
+# A skewed, heavy-tailed sample - the situation where the median is preferred
+# over the mean, and where no simple formula for its standard error exists.
+let sample = range(0, 120) |> map(|_| pow(10.0, rnorm(1, 1.0, 0.55)[0]))
+
+println("== The sample ==")
+println(f"  n = {len(sample)}")
+println(f"  mean   {mean(sample):>8.3f}")
+println(f"  median {quantile(sample, 0.5):>8.3f}")
+println(f"  sd     {stdev(sample):>8.3f}")
+println("")
+println(hist(sample, 14))
+
+println("== The question ==")
+println("How precise is that median? For the mean there is a formula -")
+println("sd / sqrt(n). For the median there is no such elementary answer, and")
+println("for most statistics worth computing there is none at all.")
+println("")
+
+# --- Resampling -----------------------------------------------------------
+
+println("== Resampling with replacement ==")
+println("")
+println("Draw n observations from the sample, *with replacement*, and compute")
+println("the median of that. Repeat. The spread of those medians estimates the")
+println("spread of the real one.")
+println("")
+println("With replacement is the essential part: without it every resample")
+println("would be the original sample reordered, and the median would never")
+println("move. Replacement is what lets some observations appear twice and")
+println("others not at all - which is exactly how a fresh sample from the")
+println("population would differ.")
+println("")
+
+let n = len(sample)
+let replicates = 2000
+
+fn resample_median(xs, size) {
+    let picks = range(0, size) |> map(|_| xs[random_int(0, size)])
+    quantile(picks, 0.5)
+}
+
+let medians = range(0, replicates) |> map(|_| resample_median(sample, n))
+
+println(f"{replicates} bootstrap replicates of the median")
+println(f"  observed median:      {quantile(sample, 0.5):>8.3f}")
+println(f"  mean of replicates:   {mean(medians):>8.3f}")
+println(f"  standard error:       {stdev(medians):>8.3f}")
+println("")
+println(hist(medians, 14))
+
+# --- A confidence interval without a formula ------------------------------
+
+let lower = quantile(medians, 0.025)
+let upper = quantile(medians, 0.975)
+println("== A 95% interval, read straight off the replicates ==")
+println(f"  [{lower:.3f}, {upper:.3f}]")
+println("")
+println("Take the 2.5th and 97.5th percentiles of the bootstrap distribution.")
+println("No normality assumed, no formula derived, and the interval is free to")
+println("be asymmetric - which for a skewed sample it should be.")
+println("")
+let centre = quantile(sample, 0.5)
+println(f"  distance below the observed median: {centre - lower:.3f}")
+println(f"  distance above:                     {upper - centre:.3f}")
+println("")
+
+# --- Comparing statistics -------------------------------------------------
+
+println("== The same machinery on any statistic ==")
+println("")
+println("Nothing above was specific to the median. Swap the statistic and the")
+println("procedure is unchanged - which is the point of the bootstrap.")
+println("")
+
+fn boot_se(xs, size, reps, stat_of) {
+    let vals = range(0, reps) |> map(|_| {
+        let picks = range(0, size) |> map(|_| xs[random_int(0, size)])
+        stat_of(picks)
+    })
+    stdev(vals)
+}
+
+println(f"  standard error of the mean:    {boot_se(sample, n, 800, |v| mean(v)):>7.3f}")
+println(f"    ...compared to sd/sqrt(n):   {stdev(sample) / sqrt(n * 1.0):>7.3f}")
+println(f"  standard error of the median:  {boot_se(sample, n, 800, |v| quantile(v, 0.5)):>7.3f}")
+println(f"  standard error of the 90th pct:{boot_se(sample, n, 800, |v| quantile(v, 0.9)):>7.3f}")
+println(f"  standard error of the sd:      {boot_se(sample, n, 800, |v| stdev(v)):>7.3f}")
+println("")
+println("For the mean the bootstrap agrees with the textbook formula, which is")
+println("the check that it is working. For the other three there is no formula")
+println("in most textbooks, and the bootstrap does not care.")
+println("")
+
+println("== Where it fails ==")
+println("The bootstrap assumes your sample resembles the population. It cannot")
+println("invent information the sample never held, so it is unreliable for")
+println("statistics that depend on the extremes - the maximum, say, whose")
+println("bootstrap distribution can never exceed the largest value you happened")
+println("to observe:")
+println("")
+let boot_max = range(0, 800) |> map(|_| {
+    let picks = range(0, n) |> map(|_| sample[random_int(0, n)])
+    max(picks)
+})
+println(f"  observed maximum:                {max(sample):.3f}")
+println(f"  largest bootstrap maximum:       {max(boot_max):.3f}")
+println(f"  distinct bootstrap maxima:       {len(frequencies(boot_max |> map(|v| f\"{v:.3f}\")))}")
+println("")
+println("Every replicate's maximum is one of a handful of the largest observed")
+println("values. The bootstrap distribution of the maximum is discrete, bounded,")
+println("and tells you almost nothing about the true one.")

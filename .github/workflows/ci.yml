@@ -107,6 +107,14 @@ jobs:
       - name: Run every example
         run: node scripts/check-examples-run.mjs
 
+      # The MSMB companion quotes numbers - several checked against the values
+      # Holmes & Huber publish - and those are its main claim to being correct.
+      # The scripts assert their published figures; this runs them, so a change
+      # to gamma_cdf, pca, upgma or the multinomial sampler cannot move a figure
+      # without the prose that quotes it going stale in silence.
+      - name: Check the MSMB companion's published figures
+        run: node scripts/check-msmb.mjs
+
       # The packs are advertised as runnable in the browser. Native passing does
       # not prove that: the WASM build ships a subset of the builtins, so a pack
       # can be green here and dead in the playground. Run the same sources

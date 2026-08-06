@@ -1,0 +1,120 @@
+# 2.1 Where does a parameter come from? Maximum likelihood
+#
+# Adapted from "Modern Statistics for Modern Biology", Holmes & Huber,
+# Chapter 2. See ../../book/src/attribution.md.
+#
+# Run:  bl run 01-likelihood-poisson.bl
+
+# Chapter 1 always handed us the parameter. "Background rate 0.5" arrived from
+# calibration and we took it. Real work almost never does that: you have data
+# and you need the parameter.
+#
+# Maximum likelihood answers it with one question, asked backwards. Instead of
+# "given lambda, how probable is this data?", ask "which lambda makes this data
+# least surprising?" - then keep that one.
+
+# The epitope array from Chapter 1, as its tally. These four numbers are the
+# whole dataset: 58 positions saw nothing, 34 saw one hit, 7 saw two, 1 saw
+# seven. (Matches the book's table(e100).)
+let values = [0, 1, 2, 7]
+let counts = [58, 34, 7, 1]
+let n = sum(counts)
+
+println("== The data ==")
+println(f"counts: 0 -> {counts[0]}, 1 -> {counts[1]}, 2 -> {counts[2]}, 7 -> {counts[3]}   (n = {n})")
+println("")
+
+# --- The likelihood of a guess -------------------------------------------
+
+# The probability of the whole dataset, if lambda were true, is the product of
+# each observation's probability. Written with the tally, that is dpois(v)^count.
+fn likelihood(lambda) {
+    range(0, len(values))
+        |> map(|i| pow(dpois(values[i], lambda), counts[i]))
+        |> reduce(|a, b| a * b, 1.0)
+}
+
+println("== Trying two guesses ==")
+println(f"lambda = 3.0  ->  likelihood = {likelihood(3.0)}")
+println(f"lambda = 0.4  ->  likelihood = {likelihood(0.4)}")
+println("")
+println("Both are vanishingly small - any particular dataset is unlikely. Only")
+println("the *comparison* means anything, and 0.4 beats 3.0 by many orders of")
+println("magnitude.")
+println("")
+
+# --- Why nobody uses the likelihood directly ------------------------------
+
+println("== The practical problem, and the fix ==")
+println(f"likelihood(0.4) = {likelihood(0.4)}")
+println("")
+println("A hundred probabilities multiplied together underflows to zero on any")
+println("computer. Take logs: products become sums, tiny numbers become")
+println("manageable negatives, and the maximum does not move - log is")
+println("monotonic, so whatever maximises one maximises the other.")
+println("")
+
+fn loglikelihood(lambda) {
+    range(0, len(values))
+        |> map(|i| counts[i] * log(dpois(values[i], lambda)))
+        |> sum()
+}
+
+println(f"loglikelihood(3.0) = {loglikelihood(3.0):.4f}")
+println(f"loglikelihood(0.4) = {loglikelihood(0.4):.4f}")
+println("")
+
+# --- Searching for the best lambda ----------------------------------------
+
+println("== Scanning lambda ==")
+println("  lambda   log-likelihood")
+
+# A grid from 0.05 to 0.95, the range the book plots.
+let grid = range(0, 91) |> map(|i| 0.05 + i * 0.01)
+let curve = grid |> map(|l| loglikelihood(l))
+
+[0.05, 0.25, 0.45, 0.55, 0.65, 0.85] |> each(|l| {
+    println(f"  {l:>5.2f}    {loglikelihood(l):>9.4f}")
+})
+println("")
+
+let best = grid[argmax(curve)]
+println(f"grid maximum at lambda = {best:.2f}")
+println("")
+
+# --- The punchline --------------------------------------------------------
+
+println("== The estimate has a name you already know ==")
+
+# Reconstruct the sample mean from the tally.
+let total_hits = range(0, len(values)) |> map(|i| values[i] * counts[i]) |> sum()
+let sample_mean = total_hits * 1.0 / n
+
+println(f"sample mean = {total_hits} hits / {n} positions = {sample_mean}")
+println(f"grid maximum                                = {best:.2f}")
+println("")
+println("For a Poisson, the maximum likelihood estimate of lambda *is* the")
+println("sample mean. That is not a coincidence and not a rule of thumb - it")
+println("falls out of setting the derivative of the log-likelihood to zero.")
+println("")
+println("The lesson is the method, not the answer. For the Poisson the answer")
+println("was already obvious. For models where it is not obvious, the same")
+println("procedure still works, and that is what makes it worth learning.")
+println("")
+
+println("== A caution about the curve's shape ==")
+println(f"  loglik at the maximum      : {loglikelihood(sample_mean):.4f}")
+println(f"  loglik at lambda = 0.45    : {loglikelihood(0.45):.4f}")
+println(f"  loglik at lambda = 0.65    : {loglikelihood(0.65):.4f}")
+println("")
+println("Move 0.1 either side and the log-likelihood barely drops. The data")
+println("pin down lambda to roughly a tenth, no better. A point estimate with")
+println("no sense of its own flatness is half an answer.")
+
+# --- PUBLISHED FIGURES ------------------------------------------------------
+#
+# The book quotes these numbers. If a change to BioLang moves one, this script
+# fails loudly rather than letting the prose quietly go stale.
+
+assert abs(sample_mean - 0.55) < 0.0001, "Poisson MLE moved; book publishes 0.55"
+assert abs(best - 0.55) < 0.011, f"grid maximum is {best}, expected 0.55"

@@ -1,0 +1,7 @@
+[package]
+name = "msmbstats"
+version = "0.1.0"
+description = "Distributions and statistics written out by hand for the MSMB companion, where BioLang has no builtin"
+authors = ["Raj Bandi"]
+license = "MIT"
+keywords = ["statistics", "multinomial", "teaching"]

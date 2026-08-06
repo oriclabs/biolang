@@ -1,0 +1,146 @@
+# 3.2 Two variables: scatterplots, overplotting, and scale
+#
+# Adapted from "Modern Statistics for Modern Biology", Holmes & Huber,
+# Chapter 3. See ../../book/src/attribution.md.
+#
+# Run:  bl run 02-showing-a-relationship.bl
+# Writes SVGs into figures/.
+
+# figures/ is gitignored, so it does not exist in a fresh clone.
+mkdir("figures")
+
+# The scatterplot is the most information-dense plot there is: every
+# observation, both variables, nothing aggregated. It also fails in two
+# specific ways that are easy to miss.
+
+# --- Failure 1: the plot that hides its own data --------------------------
+
+println("== Overplotting ==")
+println("")
+
+set_seed(11)
+let n = 4000
+let a = rnorm(n, 0.0, 1.0)
+let b = range(0, n) |> map(|i| 0.75 * a[i] + rnorm(1, 0.0, 0.7)[0])
+
+println(f"{n} points, genuinely correlated (r = {cor(a, b):.3f})")
+println("")
+
+# How much of the data can you actually see? Round to the resolution a printed
+# figure resolves - roughly 200 x 200 distinguishable positions - and count how
+# many points share a cell.
+fn cell_key(x, y) {
+    f"{round(x * 25.0)}:{round(y * 25.0)}"
+}
+
+let cells = range(0, n) |> map(|i| cell_key(a[i], b[i]))
+let occupied = len(frequencies(cells))
+
+println(f"distinct plotting positions occupied: {occupied}")
+println(f"points drawn on top of an existing point: {n - occupied} ({(n - occupied) * 100.0 / n:.1f}%)")
+println("")
+println("Better than a quarter of the data is invisible - painted over by points")
+println("drawn later, and this is generous: it assumes you can resolve 200 x 200")
+println("distinct positions, which a figure in a paper column cannot.")
+println("The dense centre looks like a solid blob whether it holds 500 points or")
+println("5000, so the eye reads the *outline*, which is set by the rare extreme")
+println("values. Overplotting makes a scatter report its outliers.")
+println("")
+
+# --- The fix: count, do not draw ------------------------------------------
+
+println("== Binning in two dimensions ==")
+println("")
+println("The remedy is to stop drawing points and start drawing counts. Divide")
+println("the plane into cells and shade each by how many points it holds - all")
+println("the data contributes, none of it hidden.")
+println("")
+
+# Assign each point to a cell once and tally, rather than asking every cell
+# which points belong to it. The obvious nested version costs bins^2 x n - here
+# 1.6 million comparisons for a 20x20 grid - and takes forty seconds. This is
+# linear in the number of points and finishes instantly.
+fn bin2d(xs, ys, bins) {
+    let xlo = min(xs)
+    let xhi = max(xs)
+    let ylo = min(ys)
+    let yhi = max(ys)
+    let xw = (xhi - xlo) / bins
+    let yw = (yhi - ylo) / bins
+
+    let keys = range(0, len(xs)) |> map(|i| {
+        let cx = min(round((xs[i] - xlo) / xw - 0.5), bins - 1)
+        let cy = min(round((ys[i] - ylo) / yw - 0.5), bins - 1)
+        f"{cy}:{cx}"
+    })
+    let tally = frequencies(keys)
+
+    # Row 0 printed last so that y increases up the page.
+    range(0, bins) |> map(|r| {
+        let row = bins - 1 - r
+        range(0, bins) |> map(|c| {
+            let key = f"{row}:{c}"
+            if has_key(tally, key) { tally[key] } else { 0 }
+        })
+    })
+}
+
+let grid = bin2d(a, b, 20)
+let shades = [" ", ".", ":", "-", "=", "+", "*", "#", "%", "@"]
+let peak = grid |> map(|row| max(row)) |> max()
+
+println(f"  density (each cell shaded by count, peak = {peak})")
+grid |> each(|row| {
+    let line = row
+        |> map(|count| {
+            let level = if count == 0 { 0 } else { min(1 + round(count * 8.0 / peak), 9) }
+            shades[level]
+        })
+        |> join("")
+    println(f"  |{line}|")
+})
+println("")
+println("Now the shape is legible: a dense correlated ridge, and the outliers")
+println("are correctly demoted to faint single cells rather than defining the")
+println("picture.")
+println("")
+
+# --- Failure 2: the wrong scale -------------------------------------------
+
+println("== Scale ==")
+println("")
+
+# Expression counts, which span orders of magnitude - the usual situation for
+# sequencing data.
+set_seed(5)
+let counts = range(0, 600) |> map(|_| pow(10.0, rnorm(1, 2.0, 0.9)[0]))
+
+println(f"600 expression counts, from {min(counts):.1f} to {max(counts):.0f}")
+println("")
+println("--- raw scale ---")
+println(hist(counts, 12))
+println("Almost every observation lands in the first bin. The plot is mostly")
+println("empty space, describing the handful of largest values.")
+println("")
+
+let logged = counts |> map(|c| log10(c))
+println("--- log10 scale ---")
+println(hist(logged, 12))
+println("The same data, now spread across the axis and visibly symmetric.")
+println("")
+println("The log was not applied to make the picture prettier. Multiplicative")
+println("data - counts, concentrations, fold changes - is symmetric in log space")
+println("and skewed in linear space, so the log scale is the one that matches how")
+println("the quantity actually behaves. On a linear axis, 'twice as much' occupies")
+println("a different distance at every position.")
+println("")
+
+# --- Save figures ----------------------------------------------------------
+
+let pts = table(range(0, n) |> map(|i| { x: a[i], y: b[i] }))
+save_svg(plot(pts, { title: "4000 points: the centre is unreadable", xlabel: "a", ylabel: "b", kind: "scatter" }),
+         "figures/overplotted.svg")
+save_svg(histogram(counts, { title: "counts, raw scale", bins: 30 }), "figures/counts-raw.svg")
+save_svg(histogram(logged, { title: "counts, log10 scale", bins: 30 }), "figures/counts-log.svg")
+
+println("== Wrote figures/overplotted.svg, counts-raw.svg, counts-log.svg ==")
