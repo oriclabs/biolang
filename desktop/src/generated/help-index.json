@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 29,
-    "builtin": 1018,
+    "builtin": 1019,
     "tutorial": 71,
     "example": 392
   },
@@ -571,12 +571,12 @@
       "category": "stats",
       "collection": "Runtime builtins",
       "summary": "One-way ANOVA across groups",
-      "body": "# anova\n\nOne-way ANOVA across groups\n\n## Signature\n\n```biolang\nanova(groups) → Record{f,p,df}\n```\n\n**Returns:** `Record{f,p,df}`\n\n**Arity:** exact, minimum 1, maximum 1",
-      "signature": "anova(groups) → Record{f,p,df}",
+      "body": "# anova\n\nOne-way ANOVA across groups\n\n## Signature\n\n```biolang\nanova(groups) → Record{f_statistic,p_value,df_between,df_within}\n```\n\n**Returns:** `Record{f_statistic,p_value,df_between,df_within}`\n\n**Arity:** exact, minimum 1, maximum 1",
+      "signature": "anova(groups) → Record{f_statistic,p_value,df_between,df_within}",
       "example": null,
-      "returnType": "Record{f,p,df}",
+      "returnType": "Record{f_statistic,p_value,df_between,df_within}",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "anova anova(groups) → record{f,p,df} stats one-way anova across groups"
+      "keywords": "anova anova(groups) → record{f_statistic,p_value,df_between,df_within} stats one-way anova across groups"
     },
     {
       "id": "builtin:anti_join",
@@ -3195,6 +3195,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "diag diag(arg1) runtime diagonal matrix from a list of values"
+    },
+    {
+      "id": "builtin:die",
+      "kind": "builtin",
+      "title": "die",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# die\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\ndie(arg1)\n```\n\n**Arity:** exact, minimum 1, maximum 1",
+      "signature": "die(arg1)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "die die(arg1) runtime registered biolang builtin accepting 1 argument(s)."
     },
     {
       "id": "builtin:diff_expr",
@@ -7347,12 +7361,12 @@
       "category": "stats",
       "collection": "Runtime builtins",
       "summary": "Simple linear regression; returns {slope, intercept, rsquared}",
-      "body": "# lm\n\nSimple linear regression; returns {slope, intercept, rsquared}\n\n## Signature\n\n```biolang\nlm(x, y) → Record{slope,intercept,r2,p}\n```\n\n## Example\n\n```biolang\nlm([1,2,3], [2,4,6])  # → {slope: 2.0, r2: 1.0, ...}\n```\n\n**Returns:** `Record`\n\n**Arity:** exact, minimum 2, maximum 2",
-      "signature": "lm(x, y) → Record{slope,intercept,r2,p}",
+      "body": "# lm\n\nSimple linear regression; returns {slope, intercept, rsquared}\n\n## Signature\n\n```biolang\nlm(x, y) → Record{slope,intercept,r_squared,p_value,std_error}\n```\n\n## Example\n\n```biolang\nlm([1,2,3], [2,4,6])  # → {slope: 2.0, r2: 1.0, ...}\n```\n\n**Returns:** `Record`\n\n**Arity:** exact, minimum 2, maximum 2",
+      "signature": "lm(x, y) → Record{slope,intercept,r_squared,p_value,std_error}",
       "example": "lm([1,2,3], [2,4,6])  # → {slope: 2.0, r2: 1.0, ...}",
       "returnType": "Record",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "lm lm(x, y) → record{slope,intercept,r2,p} stats simple linear regression; returns {slope, intercept, rsquared}"
+      "keywords": "lm lm(x, y) → record{slope,intercept,r_squared,p_value,std_error} stats simple linear regression; returns {slope, intercept, rsquared}"
     },
     {
       "id": "builtin:load_maxquant",
@@ -11547,12 +11561,12 @@
       "category": "plot",
       "collection": "Runtime builtins",
       "summary": "BioLang plot builtin.",
-      "body": "# scatter\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\nscatter(list1, list2) → Str (ASCII)\n```\n\n## Example\n\n```biolang\nscatter([1,2,3], [4,5,6])  # → ASCII scatter plot\n```\n\n**Returns:** `Str`\n\n**Arity:** exact, minimum 2, maximum 2",
-      "signature": "scatter(list1, list2) → Str (ASCII)",
+      "body": "# scatter\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\nscatter(list1, list2) → Str (SVG)\n```\n\n## Example\n\n```biolang\nscatter([1,2,3], [4,5,6])  # → ASCII scatter plot\n```\n\n**Returns:** `Str`\n\n**Arity:** exact, minimum 2, maximum 2",
+      "signature": "scatter(list1, list2) → Str (SVG)",
       "example": "scatter([1,2,3], [4,5,6])  # → ASCII scatter plot",
       "returnType": "Str",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "scatter scatter(list1, list2) → str (ascii) plot biolang plot builtin."
+      "keywords": "scatter scatter(list1, list2) → str (svg) plot biolang plot builtin."
     },
     {
       "id": "builtin:scatter_by",
@@ -13563,12 +13577,12 @@
       "category": "stats",
       "collection": "Runtime builtins",
       "summary": "Two-sample t-test; returns {statistic, pvalue}",
-      "body": "# ttest\n\nTwo-sample t-test; returns {statistic, pvalue}\n\n## Signature\n\n```biolang\nttest(list1, list2) → Record{t,p,df}\n```\n\n## Example\n\n```biolang\nttest([1,2,3], [4,5,6])  # → {t, p, df}\n```\n\n**Returns:** `Record`\n\n**Arity:** exact, minimum 2, maximum 2",
-      "signature": "ttest(list1, list2) → Record{t,p,df}",
+      "body": "# ttest\n\nTwo-sample t-test; returns {statistic, pvalue}\n\n## Signature\n\n```biolang\nttest(list1, list2) → Record{statistic,p_value,df,mean_diff}\n```\n\n## Example\n\n```biolang\nttest([1,2,3], [4,5,6])  # → {t, p, df}\n```\n\n**Returns:** `Record`\n\n**Arity:** exact, minimum 2, maximum 2",
+      "signature": "ttest(list1, list2) → Record{statistic,p_value,df,mean_diff}",
       "example": "ttest([1,2,3], [4,5,6])  # → {t, p, df}",
       "returnType": "Record",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "ttest ttest(list1, list2) → record{t,p,df} stats two-sample t-test; returns {statistic, pvalue}"
+      "keywords": "ttest ttest(list1, list2) → record{statistic,p_value,df,mean_diff} stats two-sample t-test; returns {statistic, pvalue}"
     },
     {
       "id": "builtin:ttest_one",
@@ -13577,12 +13591,12 @@
       "category": "stats",
       "collection": "Runtime builtins",
       "summary": "BioLang stats builtin.",
-      "body": "# ttest_one\n\nBioLang stats builtin.\n\n## Signature\n\n```biolang\nttest_one(list, mu) → Record{t,p,df}\n```\n\n**Returns:** `Record{t,p,df}`\n\n**Arity:** exact, minimum 2, maximum 2",
-      "signature": "ttest_one(list, mu) → Record{t,p,df}",
+      "body": "# ttest_one\n\nBioLang stats builtin.\n\n## Signature\n\n```biolang\nttest_one(list, mu) → Record{statistic,p_value,df}\n```\n\n**Returns:** `Record{statistic,p_value,df}`\n\n**Arity:** exact, minimum 2, maximum 2",
+      "signature": "ttest_one(list, mu) → Record{statistic,p_value,df}",
       "example": null,
-      "returnType": "Record{t,p,df}",
+      "returnType": "Record{statistic,p_value,df}",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "ttest_one ttest_one(list, mu) → record{t,p,df} stats biolang stats builtin."
+      "keywords": "ttest_one ttest_one(list, mu) → record{statistic,p_value,df} stats biolang stats builtin."
     },
     {
       "id": "builtin:ttest_paired",
@@ -13591,12 +13605,12 @@
       "category": "stats",
       "collection": "Runtime builtins",
       "summary": "BioLang stats builtin.",
-      "body": "# ttest_paired\n\nBioLang stats builtin.\n\n## Signature\n\n```biolang\nttest_paired(list1, list2) → Record{t,p}\n```\n\n**Returns:** `Record{t,p}`\n\n**Arity:** exact, minimum 2, maximum 2",
-      "signature": "ttest_paired(list1, list2) → Record{t,p}",
+      "body": "# ttest_paired\n\nBioLang stats builtin.\n\n## Signature\n\n```biolang\nttest_paired(list1, list2) → Record{statistic,p_value,df,mean_diff}\n```\n\n**Returns:** `Record{statistic,p_value,df,mean_diff}`\n\n**Arity:** exact, minimum 2, maximum 2",
+      "signature": "ttest_paired(list1, list2) → Record{statistic,p_value,df,mean_diff}",
       "example": null,
-      "returnType": "Record{t,p}",
+      "returnType": "Record{statistic,p_value,df,mean_diff}",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "ttest_paired ttest_paired(list1, list2) → record{t,p} stats biolang stats builtin."
+      "keywords": "ttest_paired ttest_paired(list1, list2) → record{statistic,p_value,df,mean_diff} stats biolang stats builtin."
     },
     {
       "id": "builtin:tumor_purity",

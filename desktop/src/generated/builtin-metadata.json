@@ -310,13 +310,13 @@
     },
     {
       "name": "anova",
-      "signature": "anova(groups) → Record{f,p,df}",
+      "signature": "anova(groups) → Record{f_statistic,p_value,df_between,df_within}",
       "category": "stats",
       "summary": "BioLang stats builtin.",
       "parameters": [
         "groups"
       ],
-      "returnType": "Record{f,p,df}",
+      "returnType": "Record{f_statistic,p_value,df_between,df_within}",
       "example": null,
       "arity": {
         "kind": "exact",
@@ -3618,6 +3618,23 @@
     {
       "name": "diag",
       "signature": "diag(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "die",
+      "signature": "die(arg1)",
       "category": "runtime",
       "summary": "Registered BioLang builtin accepting 1 argument(s).",
       "parameters": [
@@ -8870,7 +8887,7 @@
     },
     {
       "name": "lm",
-      "signature": "lm(x, y) → Record{slope,intercept,r2,p}",
+      "signature": "lm(x, y) → Record{slope,intercept,r_squared,p_value,std_error}",
       "category": "stats",
       "summary": "BioLang stats builtin.",
       "parameters": [
@@ -14205,7 +14222,7 @@
     },
     {
       "name": "scatter",
-      "signature": "scatter(list1, list2) → Str (ASCII)",
+      "signature": "scatter(list1, list2) → Str (SVG)",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
@@ -16741,7 +16758,7 @@
     },
     {
       "name": "ttest",
-      "signature": "ttest(list1, list2) → Record{t,p,df}",
+      "signature": "ttest(list1, list2) → Record{statistic,p_value,df,mean_diff}",
       "category": "stats",
       "summary": "BioLang stats builtin.",
       "parameters": [
@@ -16759,14 +16776,14 @@
     },
     {
       "name": "ttest_one",
-      "signature": "ttest_one(list, mu) → Record{t,p,df}",
+      "signature": "ttest_one(list, mu) → Record{statistic,p_value,df}",
       "category": "stats",
       "summary": "BioLang stats builtin.",
       "parameters": [
         "list",
         "mu"
       ],
-      "returnType": "Record{t,p,df}",
+      "returnType": "Record{statistic,p_value,df}",
       "example": null,
       "arity": {
         "kind": "exact",
@@ -16777,14 +16794,14 @@
     },
     {
       "name": "ttest_paired",
-      "signature": "ttest_paired(list1, list2) → Record{t,p}",
+      "signature": "ttest_paired(list1, list2) → Record{statistic,p_value,df,mean_diff}",
       "category": "stats",
       "summary": "BioLang stats builtin.",
       "parameters": [
         "list1",
         "list2"
       ],
-      "returnType": "Record{t,p}",
+      "returnType": "Record{statistic,p_value,df,mean_diff}",
       "example": null,
       "arity": {
         "kind": "exact",

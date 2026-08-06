@@ -39,6 +39,7 @@ const REPL_COMMANDS: &[&str] = &[
     ":cls",
     ":env",
     ":exit",
+    ":paste",
     ":fns",
     ":h",
     ":help",
@@ -61,6 +62,7 @@ const REPL_COMMANDS: &[&str] = &[
 const REPL_COMMAND_HINTS: &[(&str, &str)] = &[
     (":help", "Show help"),
     (":h", "Show help"),
+    (":paste", "Paste a multi-line block; end it with a lone '.'"),
     (":quit", "Exit the REPL"),
     (":q", "Exit the REPL"),
     (":exit", "Exit the REPL"),
@@ -755,6 +757,50 @@ impl Repl {
                                     self.cmd_help();
                                 } else {
                                     cmd_fn_help_extended(arg);
+                                }
+                            }
+                            ":paste" => {
+                                // Take lines verbatim until a lone "." and run
+                                // the block as one unit.
+                                //
+                                // The bracket-counting continuation above is a
+                                // heuristic, and heuristics on pasted code have
+                                // to guess: a comment mentioning an unmatched
+                                // brace, a terminal that does not support
+                                // bracketed paste, a block whose first line
+                                // errors and whose remaining lines should then
+                                // not run. Here the reader says where the block
+                                // ends, so there is nothing to infer.
+                                println!(
+                                    "  {}",
+                                    "Paste your code, then a single '.' on its own line to run it (Ctrl-C cancels)."
+                                );
+                                let mut block = String::new();
+                                loop {
+                                    match rl.readline("  | ") {
+                                        Ok(l) => {
+                                            if l.trim() == "." {
+                                                break;
+                                            }
+                                            block.push_str(&l);
+                                            block.push('\n');
+                                        }
+                                        // Ctrl-C or Ctrl-D abandons the block
+                                        // rather than running a partial paste.
+                                        Err(_) => {
+                                            block.clear();
+                                            println!("  (paste cancelled)");
+                                            break;
+                                        }
+                                    }
+                                }
+                                let block = block.trim_end().to_string();
+                                if !block.is_empty() {
+                                    let _ = rl.add_history_entry(block.as_str());
+                                    self.eval_and_print(&block);
+                                    if let Some(helper) = rl.helper_mut() {
+                                        helper.refresh_from(&self.interpreter);
+                                    }
                                 }
                             }
                             ":env" => self.cmd_env(),
@@ -2592,14 +2638,26 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
         "summary(list) → Record{min,q1,median,mean,q3,max}",
         "stats",
     ),
-    ("ttest", "ttest(list1, list2) → Record{t,p,df}", "stats"),
-    ("ttest_one", "ttest_one(list, mu) → Record{t,p,df}", "stats"),
     (
-        "ttest_paired",
-        "ttest_paired(list1, list2) → Record{t,p}",
+        "ttest",
+        "ttest(list1, list2) → Record{statistic,p_value,df,mean_diff}",
         "stats",
     ),
-    ("anova", "anova(groups) → Record{f,p,df}", "stats"),
+    (
+        "ttest_one",
+        "ttest_one(list, mu) → Record{statistic,p_value,df}",
+        "stats",
+    ),
+    (
+        "ttest_paired",
+        "ttest_paired(list1, list2) → Record{statistic,p_value,df,mean_diff}",
+        "stats",
+    ),
+    (
+        "anova",
+        "anova(groups) → Record{f_statistic,p_value,df_between,df_within}",
+        "stats",
+    ),
     (
         "chi_square",
         "chi_square(obs, exp) → Record{chi2,p,df}",
@@ -2613,7 +2671,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("wilcoxon", "wilcoxon(list1, list2) → Record{u,p}", "stats"),
     ("p_adjust", "p_adjust(pvals, method) → List", "stats"),
     ("normalize", "normalize(list, method) → List", "stats"),
-    ("lm", "lm(x, y) → Record{slope,intercept,r2,p}", "stats"),
+    (
+        "lm",
+        "lm(x, y) → Record{slope,intercept,r_squared,p_value,std_error}",
+        "stats",
+    ),
     // Map/Record
     ("keys", "keys(map|record) → List", "map"),
     ("values", "values(map|record) → List", "map"),
@@ -2693,7 +2755,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
         "plot",
     ),
     ("hist", "hist(list, bins?) → Str (ASCII)", "plot"),
-    ("scatter", "scatter(list1, list2) → Str (ASCII)", "plot"),
+    // SVG, not ASCII: scatter builds the same document plot() does. The comment
+    // below claims these were verified against the implementations; this one was
+    // not, and the wrong return type is the sort of thing a reader only
+    // discovers by printing the first forty characters.
+    ("scatter", "scatter(list1, list2) → Str (SVG)", "plot"),
     // Signatures verified against each implementation's argument handling.
     // Without these the metadata falls back to `name(arg1, arg2?)`, which made
     // the whole plot family undocumentable and invisible to the arity checker.
@@ -3737,15 +3803,33 @@ fn needs_continuation(input: &str) -> bool {
     let mut braces = 0i32;
     let mut brackets = 0i32;
     let mut in_string = false;
+    // Brackets inside a `#` comment are prose, not syntax. Counting them meant a
+    // line like
+    //     let a = 1  # TODO: wrap this in a { block
+    // left the REPL waiting for a closing brace that was never coming: it then
+    // swallowed every following line as continuation, including `:quit`, and
+    // eventually failed to parse the lot. Comments run to end of line, so the
+    // flag resets on the newline. String literals were already handled.
+    let mut in_comment = false;
     let mut prev_char = '\0';
 
     for ch in input.chars() {
+        if ch == '\n' {
+            in_comment = false;
+            prev_char = ch;
+            continue;
+        }
+        if in_comment {
+            prev_char = ch;
+            continue;
+        }
         if in_string {
             if ch == '"' && prev_char != '\\' {
                 in_string = false;
             }
         } else {
             match ch {
+                '#' => in_comment = true,
                 '"' => in_string = true,
                 '(' => parens += 1,
                 ')' => parens -= 1,
@@ -4423,5 +4507,55 @@ mod tests {
         assert_eq!(add_chr.arity.minimum, 1);
         assert_eq!(add_chr.arity.maximum, Some(1));
         assert_eq!(add_chr.signature, "add_chr(arg1)");
+    }
+
+    // ── multi-line continuation ─────────────────────────────────────────────
+    //
+    // needs_continuation() decides whether the REPL should keep reading. It
+    // counted brackets while skipping string literals but not comments, so a
+    // line like `let a = 1  # wrap this in a { block` left the REPL waiting
+    // forever - swallowing every later line, including `:quit`, as continuation.
+
+    #[test]
+    fn continuation_ignores_brackets_inside_comments() {
+        assert!(!needs_continuation("let a = 1  # TODO: wrap in a { block"));
+        assert!(!needs_continuation("let a = 1  # see fn(x"));
+        assert!(!needs_continuation("let a = 1  # index [0"));
+    }
+
+    #[test]
+    fn continuation_ignores_brackets_inside_strings() {
+        assert!(!needs_continuation("let s = \"a } b\""));
+        assert!(!needs_continuation("let s = \"unclosed ( paren\""));
+    }
+
+    #[test]
+    fn continuation_still_tracks_real_brackets() {
+        assert!(needs_continuation("fn f(n) {"));
+        assert!(needs_continuation("let xs = ["));
+        assert!(needs_continuation("let y = f("));
+        assert!(!needs_continuation("fn f(n) { n * 2 }"));
+        assert!(!needs_continuation("let a = 1"));
+    }
+
+    #[test]
+    fn continuation_handles_code_and_comment_together() {
+        // A real brace opened on a line whose comment also mentions one.
+        assert!(needs_continuation("fn f(n) {  # opens a { here"));
+        // Comment closes nothing: the brace count must stay balanced.
+        assert!(!needs_continuation("fn f(n) { n }  # closes the } block"));
+    }
+
+    #[test]
+    fn continuation_resets_comment_state_each_line() {
+        // The comment on the first line must not swallow the second.
+        assert!(needs_continuation(
+            "let a = 1  # note {
+fn g() {"
+        ));
+        assert!(!needs_continuation(
+            "let a = 1  # note {
+let b = 2"
+        ));
     }
 }

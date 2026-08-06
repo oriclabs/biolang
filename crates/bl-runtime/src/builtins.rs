@@ -195,6 +195,7 @@ pub fn register_builtins(env: &mut Environment) {
         ("parse_json", Arity::Exact(1)),
         ("compare", Arity::Exact(2)),
         ("exit", Arity::Range(0, 1)),
+        ("die", Arity::Exact(1)),
         // Error handling
         ("try_call", Arity::Exact(1)),
         ("error", Arity::Exact(1)),
@@ -772,6 +773,7 @@ pub fn all_builtin_names() -> Vec<&'static str> {
         "parse_json",
         "compare",
         "exit",
+        "die",
         "try_call",
         "error",
         "help",
@@ -1449,6 +1451,21 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 require_int(&args[0], "exit")? as i32
             };
             std::process::exit(code);
+        }
+        // Stop because something is wrong, and say so.
+        //
+        // `exit(1)` ends the process with a status nobody reads on a terminal,
+        // and `assert` frames a bad input as an internal contract violation and
+        // prints a stack trace. Neither fits "this data is not what I need",
+        // which is the ordinary case in a script. die() writes the reason to
+        // stderr - so it survives a redirected stdout - and exits 1.
+        "die" => {
+            let message = match &args[0] {
+                Value::Str(s) => s.to_string(),
+                other => other.to_string(),
+            };
+            eprintln!("{message}");
+            std::process::exit(1);
         }
         "into" => {
             let target = match &args[1] {
