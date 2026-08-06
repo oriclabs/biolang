@@ -228,3 +228,98 @@ fn elbow_plot_rejects_input_it_cannot_read() {
         "an empty list should error rather than render a blank chart"
     );
 }
+
+// ── violin plot ─────────────────────────────────────────────────────────────
+//
+// A boxplot draws five numbers and cannot show bimodality. A violin draws the
+// density, and the test below is that it actually distinguishes the two shapes
+// rather than drawing a plausible blob.
+
+fn violin(rows: Vec<(&str, f64)>) -> String {
+    let items: Vec<Value> = rows
+        .into_iter()
+        .map(|(group, value)| {
+            let mut record = HashMap::new();
+            record.insert("group".to_string(), Value::Str(group.to_string()));
+            record.insert("value".to_string(), Value::Float(value));
+            Value::Record(record.into())
+        })
+        .collect();
+    match call_bio_plots_builtin("violin_plot", vec![Value::List(items.into())]) {
+        Ok(Value::Str(svg)) => svg,
+        other => panic!("violin_plot returned {other:?}"),
+    }
+}
+
+/// Count bulges down one side of a violin outline: one for a unimodal
+/// distribution, two for a bimodal one.
+fn width_peaks(svg: &str, index: usize) -> usize {
+    let polygon = svg
+        .split("<polygon points=\"")
+        .nth(index + 1)
+        .and_then(|part| part.find('"').map(|end| &part[..end]))
+        .expect("polygon");
+    let xs: Vec<f64> = polygon
+        .split_whitespace()
+        .filter_map(|t| t.split(',').next().and_then(|v| v.parse::<f64>().ok()))
+        .collect();
+    let right = &xs[..xs.len() / 2];
+    let base = right.iter().cloned().fold(f64::MAX, f64::min);
+    let widths: Vec<f64> = right.iter().map(|x| x - base).collect();
+    let tallest = widths.iter().cloned().fold(f64::MIN, f64::max);
+    (1..widths.len().saturating_sub(1))
+        .filter(|&i| {
+            widths[i] > widths[i - 1] && widths[i] >= widths[i + 1] && widths[i] > 0.4 * tallest
+        })
+        .count()
+}
+
+#[test]
+fn a_violin_shows_bimodality_a_boxplot_would_hide() {
+    let mut rows: Vec<(&str, f64)> = Vec::new();
+    // Unimodal: a single tight cluster.
+    for i in 0..200 {
+        rows.push(("uni", 10.0 + ((i % 20) as f64 - 10.0) * 0.15));
+    }
+    // Bimodal: two clusters far apart.
+    for i in 0..100 {
+        rows.push(("bi", 6.0 + ((i % 10) as f64 - 5.0) * 0.1));
+        rows.push(("bi", 13.0 + ((i % 10) as f64 - 5.0) * 0.1));
+    }
+    let svg = violin(rows);
+    assert_eq!(svg.matches("<polygon").count(), 2, "expected two violins");
+    assert_eq!(
+        width_peaks(&svg, 0),
+        1,
+        "unimodal group drew more than one bulge"
+    );
+    assert_eq!(
+        width_peaks(&svg, 1),
+        2,
+        "bimodal group did not draw two bulges"
+    );
+}
+
+#[test]
+fn each_violin_carries_a_median_line() {
+    let rows: Vec<(&str, f64)> = (0..40).map(|i| ("a", i as f64)).collect();
+    let svg = violin(rows);
+    assert!(svg.contains("#333333"), "no median marked");
+}
+
+#[test]
+fn violin_groups_keep_a_stable_order() {
+    // Hash order would reshuffle the axis between runs.
+    let rows: Vec<(&str, f64)> = (0..30)
+        .map(|i| (["z", "a", "m"][i % 3], i as f64))
+        .collect();
+    let svg = violin(rows.clone());
+    let first = svg.find("z").zip(svg.find('a')).zip(svg.find('m'));
+    assert!(first.is_some());
+    assert_eq!(svg, violin(rows), "same input rendered differently twice");
+}
+
+#[test]
+fn violin_plot_rejects_input_it_cannot_read() {
+    assert!(call_bio_plots_builtin("violin_plot", vec![Value::Int(1)]).is_err());
+}

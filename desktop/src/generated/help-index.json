@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 29,
-    "builtin": 1021,
+    "builtin": 1022,
     "tutorial": 71,
     "example": 392
   },
@@ -14185,6 +14185,20 @@
       "returnType": "Str (SVG)",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "violin violin(data, opts?) → str (svg) plot biolang plot builtin."
+    },
+    {
+      "id": "builtin:violin_plot",
+      "kind": "builtin",
+      "title": "violin_plot",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# violin_plot\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nviolin_plot(arg1, arg2?)\n```\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "violin_plot(arg1, arg2?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "violin_plot violin_plot(arg1, arg2?) runtime registered biolang builtin accepting 1 argument(s)."
     },
     {
       "id": "builtin:viterbi",

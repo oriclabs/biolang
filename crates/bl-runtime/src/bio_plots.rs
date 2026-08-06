@@ -41,6 +41,7 @@ pub fn bio_plots_builtin_list() -> Vec<(&'static str, Arity)> {
         ("umap_plot", Arity::Range(1, 2)),
         ("feature_plot", Arity::Range(1, 2)),
         ("elbow_plot", Arity::Range(1, 2)),
+        ("violin_plot", Arity::Range(1, 2)),
         ("coverage_track", Arity::Range(1, 2)),
     ]
 }
@@ -76,6 +77,7 @@ pub fn is_bio_plots_builtin(name: &str) -> bool {
             | "umap_plot"
             | "feature_plot"
             | "elbow_plot"
+            | "violin_plot"
             | "coverage_track"
     )
 }
@@ -132,6 +134,7 @@ pub fn call_bio_plots_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         // scale, so they cannot drift apart.
         "umap_plot" | "feature_plot" => builtin_umap_plot(args),
         "elbow_plot" => builtin_elbow_plot(args),
+        "violin_plot" => builtin_violin_plot(args),
         "coverage_track" => builtin_coverage_track(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
@@ -3872,6 +3875,186 @@ fn builtin_elbow_plot(args: Vec<Value>) -> Result<Value> {
     canvas.draw_y_axis(&y_scale, "variance explained");
     canvas.add_text(width / 2.0, 22.0, &title, "middle", 14.0);
 
+    Ok(Value::Str(canvas.render()))
+}
+
+/// Violin plot: the shape of a distribution, per group.
+///
+/// The figure QC is read from - nFeature, nCount, percent.mt across samples.
+/// A boxplot draws five numbers and so cannot show bimodality (Chapter 5 of the
+/// MSMB companion measures exactly that blind spot); a violin draws the whole
+/// density, which is the point.
+///
+/// Density is estimated by binning and smoothing rather than a kernel: at the
+/// widths a violin is drawn the two are indistinguishable, and this has no
+/// bandwidth parameter to pick wrongly.
+fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let value_col = ["value", "value_col", "y"]
+        .iter()
+        .map(|key| get_opt_str(&opts, key, ""))
+        .find(|v| !v.is_empty())
+        .unwrap_or("value")
+        .to_string();
+    let group_col = ["group", "group_col", "color", "x"]
+        .iter()
+        .map(|key| get_opt_str(&opts, key, ""))
+        .find(|v| !v.is_empty())
+        .unwrap_or("group")
+        .to_string();
+
+    // Collect values per group, preserving first-seen order so the axis is
+    // stable across runs rather than following hash order.
+    let mut order: Vec<String> = Vec::new();
+    let mut groups: HashMap<String, Vec<f64>> = HashMap::new();
+    let mut push = |group: String, value: f64| {
+        if !groups.contains_key(&group) {
+            order.push(group.clone());
+        }
+        groups.entry(group).or_default().push(value);
+    };
+
+    match &args[0] {
+        Value::List(items) => {
+            for item in items.iter() {
+                match item {
+                    Value::Record(map) => {
+                        if let Some(value) = map.get(&value_col).and_then(|v| v.as_float()) {
+                            let group = map
+                                .get(&group_col)
+                                .map(|v| format!("{v}"))
+                                .unwrap_or_else(|| "all".to_string());
+                            push(group, value);
+                        }
+                    }
+                    // A bare list of numbers is one unnamed group.
+                    other => {
+                        if let Some(value) = other.as_float() {
+                            push("all".to_string(), value);
+                        }
+                    }
+                }
+            }
+        }
+        Value::Table(table) => {
+            let values = extract_table_col(table, &value_col).unwrap_or_default();
+            let labels = extract_str_col(table, &group_col)
+                .unwrap_or_else(|_| vec!["all".to_string(); values.len()]);
+            for (i, value) in values.iter().enumerate() {
+                push(
+                    labels.get(i).cloned().unwrap_or_else(|| "all".to_string()),
+                    *value,
+                );
+            }
+        }
+        _ => {
+            return Err(BioLangError::type_error(
+                "violin_plot() requires a Table or List of Records",
+                None,
+            ))
+        }
+    }
+
+    if order.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "violin_plot() found no values",
+            None,
+        ));
+    }
+
+    let title = get_opt_str(&opts, "title", "Distribution").to_string();
+    let width = get_opt_f64(&opts, "width", 640.0);
+    let height = get_opt_f64(&opts, "height", 420.0);
+    let mut canvas = SvgCanvas::new(width, height);
+
+    let all: Vec<f64> = order
+        .iter()
+        .flat_map(|g| groups[g].iter().copied())
+        .collect();
+    let (lo, hi) = col_range(&all);
+    let pad = (hi - lo) * 0.05 + 1e-9;
+
+    let y_scale = Scale {
+        domain: (lo - pad, hi + pad),
+        range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
+    };
+    let slot = canvas.plot_width() / order.len() as f64;
+    const BINS: usize = 24;
+
+    for (gi, name) in order.iter().enumerate() {
+        let values = &groups[name];
+        let centre = canvas.margin.left + slot * (gi as f64 + 0.5);
+
+        // Density by binning, then a three-point smooth so the outline is not
+        // a staircase.
+        let mut counts = vec![0.0_f64; BINS];
+        for v in values {
+            let t = (v - (lo - pad)) / ((hi + pad) - (lo - pad));
+            let bin = ((t * BINS as f64) as usize).min(BINS - 1);
+            counts[bin] += 1.0;
+        }
+        let smoothed: Vec<f64> = (0..BINS)
+            .map(|i| {
+                let left = if i == 0 { counts[0] } else { counts[i - 1] };
+                let right = if i + 1 == BINS {
+                    counts[i]
+                } else {
+                    counts[i + 1]
+                };
+                (left + 2.0 * counts[i] + right) / 4.0
+            })
+            .collect();
+        let peak = smoothed.iter().cloned().fold(f64::MIN, f64::max).max(1e-9);
+        let half = slot * 0.42;
+
+        // Outline up the right edge and back down the left, so one filled
+        // polygon gives the mirrored shape.
+        let mut outline: Vec<String> = Vec::new();
+        for (i, density) in smoothed.iter().enumerate() {
+            let frac = (i as f64 + 0.5) / BINS as f64;
+            let value = (lo - pad) + frac * ((hi + pad) - (lo - pad));
+            let y = y_scale.map(value);
+            outline.push(format!("{:.1},{:.1}", centre + density / peak * half, y));
+        }
+        for (i, density) in smoothed.iter().enumerate().rev() {
+            let frac = (i as f64 + 0.5) / BINS as f64;
+            let value = (lo - pad) + frac * ((hi + pad) - (lo - pad));
+            let y = y_scale.map(value);
+            outline.push(format!("{:.1},{:.1}", centre - density / peak * half, y));
+        }
+        canvas.elements.push(format!(
+            r#"<polygon points="{}" fill="{}" opacity="0.65" stroke="{}" stroke-width="1" />"#,
+            outline.join(" "),
+            PALETTE[gi % PALETTE.len()],
+            PALETTE[gi % PALETTE.len()]
+        ));
+
+        // The median, so the violin still carries the summary a boxplot would.
+        let mut sorted = values.clone();
+        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        let median = sorted[sorted.len() / 2];
+        let my = y_scale.map(median);
+        canvas.add_line(
+            centre - half * 0.5,
+            my,
+            centre + half * 0.5,
+            my,
+            "#333333",
+            2.0,
+        );
+
+        canvas.add_text(
+            centre,
+            canvas.margin.top + canvas.plot_height() + 16.0,
+            name,
+            "middle",
+            10.0,
+        );
+    }
+
+    canvas.draw_y_axis(&y_scale, &value_col);
+    canvas.add_text(width / 2.0, 22.0, &title, "middle", 14.0);
     Ok(Value::Str(canvas.render()))
 }
 
