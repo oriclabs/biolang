@@ -1446,7 +1446,15 @@ fn nn_order(data: &[Vec<f64>]) -> Vec<usize> {
 fn builtin_pca_plot(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
     let fmt = get_opt_str(&opts, "format", "svg").to_string();
-    let group_col = get_opt_str(&opts, "group_col", "").to_string();
+    // umap_plot calls this `color_col`, this one calls it `group_col`, and
+    // everyone types `color`. Accept all three rather than silently colouring
+    // nothing when the caller guesses a sibling function's spelling.
+    let group_col = ["group_col", "color_col", "color"]
+        .iter()
+        .map(|key| get_opt_str(&opts, key, ""))
+        .find(|value| !value.is_empty())
+        .unwrap_or("")
+        .to_string();
     let show_labels = opts
         .get("labels")
         .and_then(|v| match v {
@@ -3788,14 +3796,41 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
     let fmt = get_opt_str(&opts, "format", "svg").to_string();
     let title = get_opt_str(&opts, "title", "UMAP").to_string();
-    let color_col = get_opt_str(&opts, "color_col", "").to_string();
+    // `color` is what everyone reaches for; `color_col` is the documented name.
+    // Accepting only the latter meant `umap_plot(pts, { color: "cluster" })` was
+    // silently ignored and every point came out one colour.
+    let color_col = {
+        let explicit = get_opt_str(&opts, "color_col", "");
+        if explicit.is_empty() {
+            get_opt_str(&opts, "color", "").to_string()
+        } else {
+            explicit.to_string()
+        }
+    };
+
+    const CLUSTER_COLUMNS: [&str; 5] = ["cluster", "group", "label", "color", "cell_type"];
+
     let color_col = if color_col.is_empty() {
-        // Auto-detect common cluster column names
+        // Auto-detect a cluster column. This used to run for Table only, so the
+        // same data passed as a List of Records - which the extraction below
+        // handles perfectly well - rendered every cell in one colour with no
+        // error. On PBMC3k that was 1 colour for 11 clusters, and nothing said
+        // so.
         match &args[0] {
-            Value::Table(t) => ["cluster", "group", "label", "color", "cell_type"]
+            Value::Table(t) => CLUSTER_COLUMNS
                 .iter()
                 .find(|&&c| t.col_index(c).is_some())
                 .map(|&s| s.to_string())
+                .unwrap_or_default(),
+            Value::List(items) => items
+                .iter()
+                .find_map(|item| match item {
+                    Value::Record(map) => CLUSTER_COLUMNS
+                        .iter()
+                        .find(|&&c| map.contains_key(c))
+                        .map(|&s| s.to_string()),
+                    _ => None,
+                })
                 .unwrap_or_default(),
             _ => String::new(),
         }
