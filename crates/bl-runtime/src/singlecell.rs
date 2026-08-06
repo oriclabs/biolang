@@ -1147,12 +1147,73 @@ fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
         .map(|(sum_squared, mean)| (sum_squared / n_cells_float - mean * mean).max(0.0))
         .collect();
 
-    // cv2 = variance / (mean^2 + 1e-10)
-    let mut gene_cv2: Vec<(usize, f64)> = (0..n_genes)
-        .map(|j| {
-            let cv2 = variances[j] / (means[j] * means[j] + 1e-10);
-            (j, cv2)
-        })
+    // Rank genes by dispersion *relative to other genes of similar expression*.
+    //
+    // The previous version ranked cv2 = variance / mean^2, which is maximised by
+    // genes with a near-zero mean: a transcript seen in two cells out of 2700
+    // has an enormous cv2 by chance alone. On PBMC3k that selected MICALCL,
+    // GJC3, AARD and a run of RP11- lncRNAs, while every canonical marker -
+    // LYZ, MS4A1, GNLY, PPBP, CD14, NKG7, CD8A - was absent from the top 2000.
+    // Clustering then ran on noise and split 2700 cells into 17 groups, where
+    // the sample has nine known populations.
+    //
+    // Counts have a mean-variance relationship, so dispersion has to be judged
+    // against that trend rather than in absolute terms. Bin the genes by mean
+    // expression and standardise dispersion within each bin, which is what
+    // Scanpy's `seurat` flavour does; Seurat's `vst` fits a smooth curve and
+    // takes residuals, arriving at the same place by a different route.
+    const N_BINS: usize = 20;
+
+    // Genes never observed carry no information and would otherwise dominate
+    // the lowest bin.
+    let expressed: Vec<usize> = (0..n_genes).filter(|&j| means[j] > 0.0).collect();
+    if expressed.is_empty() {
+        return Ok(Value::List((vec![]).into()));
+    }
+
+    // dispersion = variance / mean. Unlike cv2 this is flat in the mean for
+    // Poisson noise, which is the baseline the binning then removes.
+    let dispersions: Vec<f64> = expressed
+        .iter()
+        .map(|&j| variances[j] / means[j].max(1e-12))
+        .collect();
+
+    // Equal-count bins over mean expression, so every bin has enough genes to
+    // give a meaningful spread.
+    let mut by_mean: Vec<usize> = (0..expressed.len()).collect();
+    by_mean.sort_by(|&a, &b| {
+        means[expressed[a]]
+            .partial_cmp(&means[expressed[b]])
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    let mut normalised = vec![0.0_f64; expressed.len()];
+    let bin_size = by_mean.len().div_ceil(N_BINS).max(1);
+    for chunk in by_mean.chunks(bin_size) {
+        let count = chunk.len() as f64;
+        let mean_dispersion: f64 = chunk.iter().map(|&i| dispersions[i]).sum::<f64>() / count;
+        let variance_dispersion: f64 = chunk
+            .iter()
+            .map(|&i| (dispersions[i] - mean_dispersion).powi(2))
+            .sum::<f64>()
+            / count;
+        let sd = variance_dispersion.sqrt();
+        for &i in chunk {
+            // A bin whose genes all share a dispersion has nothing to rank;
+            // leaving them at zero keeps them out of the selection rather than
+            // dividing by zero.
+            normalised[i] = if sd > 1e-12 {
+                (dispersions[i] - mean_dispersion) / sd
+            } else {
+                0.0
+            };
+        }
+    }
+
+    let mut gene_cv2: Vec<(usize, f64)> = expressed
+        .iter()
+        .enumerate()
+        .map(|(position, &gene)| (gene, normalised[position]))
         .collect();
 
     gene_cv2.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
