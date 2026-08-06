@@ -4790,6 +4790,24 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "feature_plot",
+      "signature": "feature_plot(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "fetch_sra",
       "signature": "fetch_sra(arg1)",
       "category": "runtime",

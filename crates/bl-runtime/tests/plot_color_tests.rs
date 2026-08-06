@@ -85,3 +85,79 @@ fn more_clusters_than_the_old_palette_still_get_distinct_colours() {
         fills.len()
     );
 }
+
+// ── continuous colouring (feature_plot) ─────────────────────────────────────
+//
+// Seurat's FeaturePlot: colour the embedding by one gene's expression. This is
+// how marker-based annotation is taught, and BioLang had no equivalent.
+
+fn points_with_feature(n: i64) -> Value {
+    let mut rows = Vec::new();
+    for i in 0..n {
+        let mut record = HashMap::new();
+        record.insert("x".to_string(), Value::Float(i as f64));
+        record.insert("y".to_string(), Value::Float((i % 5) as f64));
+        record.insert("cluster".to_string(), Value::Int(i % 3));
+        // A gradient, so a continuous scale has something to show.
+        record.insert("LYZ".to_string(), Value::Float(i as f64 / n as f64 * 6.0));
+        rows.push(Value::Record(record.into()));
+    }
+    Value::List(rows.into())
+}
+
+#[test]
+fn a_feature_gets_a_continuous_scale_not_palette_colours() {
+    let svg = render(points_with_feature(60), vec![("feature", "LYZ")]);
+    let fills = distinct_fills(&svg);
+    // A categorical palette tops out at 24; a gradient over 60 points gives far
+    // more, and none of them need be palette entries.
+    assert!(
+        fills.len() > 24,
+        "expected a continuous gradient, got {} colours",
+        fills.len()
+    );
+}
+
+#[test]
+fn the_feature_scale_is_labelled() {
+    let svg = render(points_with_feature(40), vec![("feature", "LYZ")]);
+    assert!(svg.contains("LYZ"), "colour bar carries no feature name");
+    assert!(
+        svg.matches("<rect").count() > 10,
+        "no colour bar drawn: a reader cannot tell high from low"
+    );
+}
+
+#[test]
+fn a_feature_overrides_cluster_colouring() {
+    // Both a cluster column and a feature are present. The feature wins, and
+    // the two legends must not both be drawn.
+    let svg = render(
+        points_with_feature(40),
+        vec![("feature", "LYZ"), ("color", "cluster")],
+    );
+    assert!(
+        distinct_fills(&svg).len() > 24,
+        "cluster colouring took precedence over the requested feature"
+    );
+}
+
+#[test]
+fn feature_plot_is_the_same_renderer_as_umap_plot() {
+    let by_alias = match call_bio_plots_builtin(
+        "feature_plot",
+        vec![points_with_feature(30), {
+            let mut m = HashMap::new();
+            m.insert("feature".to_string(), Value::Str("LYZ".to_string()));
+            Value::Record(m.into())
+        }],
+    ) {
+        Ok(Value::Str(s)) => s,
+        other => panic!("feature_plot returned {other:?}"),
+    };
+    let by_option = render(points_with_feature(30), vec![("feature", "LYZ")]);
+    assert_eq!(
+        by_alias, by_option,
+        "feature_plot and umap_plot(feature:) must not drift apart"
+    );
+}

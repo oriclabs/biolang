@@ -39,6 +39,7 @@ pub fn bio_plots_builtin_list() -> Vec<(&'static str, Arity)> {
         ("alignment_view", Arity::Range(1, 2)),
         ("circos_plot", Arity::Range(1, 2)),
         ("umap_plot", Arity::Range(1, 2)),
+        ("feature_plot", Arity::Range(1, 2)),
         ("coverage_track", Arity::Range(1, 2)),
     ]
 }
@@ -72,6 +73,7 @@ pub fn is_bio_plots_builtin(name: &str) -> bool {
             | "alignment_view"
             | "circos_plot"
             | "umap_plot"
+            | "feature_plot"
             | "coverage_track"
     )
 }
@@ -124,7 +126,9 @@ pub fn call_bio_plots_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "upset_plot" => builtin_upset_plot(args),
         "alignment_view" => builtin_alignment_view(args),
         "circos_plot" => builtin_circos_plot(args),
-        "umap_plot" => builtin_umap_plot(args),
+        // Same renderer: feature_plot is umap_plot with a continuous colour
+        // scale, so they cannot drift apart.
+        "umap_plot" | "feature_plot" => builtin_umap_plot(args),
         "coverage_track" => builtin_coverage_track(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
@@ -3926,6 +3930,37 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
         ));
     }
 
+    // Continuous colouring: one gene's expression across the same points.
+    //
+    // This is Seurat's FeaturePlot, and it is how marker-based annotation is
+    // actually taught - colour the embedding by LYZ and the monocyte island
+    // lights up. Handled here rather than in a separate builtin so it reuses the
+    // extraction, scaling and canvas work above; feature_plot() is an alias.
+    let feature_col = get_opt_str(&opts, "feature", "").to_string();
+    let feature_values: Vec<f64> = if feature_col.is_empty() {
+        Vec::new()
+    } else {
+        match &args[0] {
+            Value::Table(table) => extract_table_col(table, &feature_col).unwrap_or_default(),
+            Value::List(items) => items
+                .iter()
+                .filter_map(|item| match item {
+                    Value::Record(map) => map.get(&feature_col).and_then(|v| v.as_float()),
+                    _ => None,
+                })
+                .collect(),
+            _ => Vec::new(),
+        }
+    };
+    // A partial column would silently mis-colour points, so take it only when
+    // there is a value for every point.
+    let has_feature = !feature_values.is_empty() && feature_values.len() == xs.len();
+    let feature_range = if has_feature {
+        col_range(&feature_values)
+    } else {
+        (0.0, 1.0)
+    };
+
     // Build group -> color index mapping
     let mut group_order: Vec<String> = Vec::new();
     let mut group_map: HashMap<String, usize> = HashMap::new();
@@ -3935,7 +3970,8 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
             group_order.push(cl.clone());
         }
     }
-    let has_groups = !group_order.is_empty();
+    // A feature scale takes over the legend area, so the two never compete.
+    let has_groups = !group_order.is_empty() && !has_feature;
 
     let xr = col_range(&xs);
     let yr = col_range(&ys);
@@ -3949,7 +3985,11 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
         let h = get_opt_f64(&opts, "height", 450.0);
         let mut c = SvgCanvas::new(w, h);
         // Reserve right margin space for legend
-        let legend_w = if has_groups { 120.0 } else { 0.0 };
+        let legend_w = if has_groups || has_feature {
+            120.0
+        } else {
+            0.0
+        };
         let plot_right = c.margin.left + c.plot_width() - legend_w;
         let x_scale = Scale {
             domain: xr,
@@ -3964,16 +4004,56 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
         for i in 0..xs.len() {
             let cx = x_scale.map(xs[i]);
             let cy = y_scale.map(ys[i]);
-            let color = if has_groups {
+            let color: String = if has_feature {
+                let (lo, hi) = feature_range;
+                // A column with no spread would divide by zero; paint it mid-scale.
+                let t = if (hi - lo).abs() < 1e-12 {
+                    0.5
+                } else {
+                    (feature_values[i] - lo) / (hi - lo)
+                };
+                sequential_color(t)
+            } else if has_groups {
                 let ci = group_map.get(&color_labels[i]).copied().unwrap_or(0);
-                PALETTE[ci % PALETTE.len()]
+                PALETTE[ci % PALETTE.len()].to_string()
             } else {
-                "#4e79a7"
+                "#4e79a7".to_string()
             };
-            c.add_circle(cx, cy, 3.0, color);
+            c.add_circle(cx, cy, 3.0, &color);
             if !point_labels[i].is_empty() {
                 c.add_text(cx + 4.0, cy - 4.0, &point_labels[i], "start", 7.0);
             }
+        }
+
+        // Colour bar for a continuous feature: without a scale the reader can
+        // see where expression is high but not how high.
+        if has_feature {
+            let lx = plot_right + 14.0;
+            let bar_top = c.margin.top + 14.0;
+            let bar_height = 120.0_f64;
+            let steps = 40;
+            for step in 0..steps {
+                // Drawn top-down, so the top of the bar is the maximum.
+                let t = 1.0 - (step as f64 / (steps - 1) as f64);
+                let y = bar_top + (step as f64 / steps as f64) * bar_height;
+                c.add_rect(
+                    lx,
+                    y,
+                    12.0,
+                    bar_height / steps as f64 + 0.6,
+                    &sequential_color(t),
+                );
+            }
+            let (lo, hi) = feature_range;
+            c.add_text(lx + 16.0, bar_top + 8.0, &format!("{hi:.2}"), "start", 9.0);
+            c.add_text(
+                lx + 16.0,
+                bar_top + bar_height,
+                &format!("{lo:.2}"),
+                "start",
+                9.0,
+            );
+            c.add_text(lx, bar_top - 6.0, &feature_col, "start", 10.0);
         }
 
         // Legend for groups

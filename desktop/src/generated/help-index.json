@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 29,
-    "builtin": 1019,
+    "builtin": 1020,
     "tutorial": 71,
     "example": 392
   },
@@ -4105,6 +4105,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "feature_group feature_group(arg1, arg2?, arg3?) runtime registered biolang builtin accepting 1 argument(s)."
+    },
+    {
+      "id": "builtin:feature_plot",
+      "kind": "builtin",
+      "title": "feature_plot",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# feature_plot\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nfeature_plot(arg1, arg2?)\n```\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "feature_plot(arg1, arg2?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "feature_plot feature_plot(arg1, arg2?) runtime registered biolang builtin accepting 1 argument(s)."
     },
     {
       "id": "builtin:fetch_sra",
