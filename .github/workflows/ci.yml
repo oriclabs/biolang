@@ -70,6 +70,16 @@ jobs:
         working-directory: website
         run: node tests/write_wasm_builtins.mjs
 
+      # The committed WASM module can lag the Rust sources without any gate
+      # noticing: cargo test, clippy and check-generated all pass, and a stale
+      # module loads and runs exactly like a current one. check-generated
+      # compares the two copies of the module against each other, which two
+      # equally stale copies satisfy. This compares the module against the
+      # source instead. Six builtins had already drifted out of the playground
+      # when it was written.
+      - name: Check the browser runtime matches the source
+        run: node scripts/check-wasm-fresh.mjs
+
       # The pack docs pages are committed so the repository stays browsable, so
       # they have to be regenerated whenever a pack changes. Same contract as the
       # help index below.

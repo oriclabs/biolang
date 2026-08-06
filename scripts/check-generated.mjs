@@ -96,6 +96,11 @@ const failures = [];
 // workbench. Nothing generates the second from the first, so a rebuild that
 // updates only one leaves the workbench on the older runtime - silently, since
 // both still load and run.
+//
+// This checks only that the two copies agree with each other. Two equally stale
+// copies pass it, and that is the common case: nothing rebuilds the module when
+// the runtime changes. scripts/check-wasm-fresh.mjs covers that half, by
+// comparing the module against the Rust source rather than against its own copy.
 {
   const pairs = [
     ["website/wasm/bl_wasm_bg.wasm", "desktop/public/wasm/bl_wasm_bg.wasm"],
