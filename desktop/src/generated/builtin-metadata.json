@@ -1457,6 +1457,25 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "cca",
+      "signature": "cca(matrix1, matrix2, opts?) -> Record{u, v, d} (shared axes; cells x cells, so small inputs only)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "matrix1",
+        "matrix2",
+        "opts?"
+      ],
+      "returnType": "Record{u, v, d} (shared axes; cells x cells, so small inputs only)",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "cdr3_length_dist",
       "signature": "cdr3_length_dist(arg1)",
       "category": "runtime",
@@ -3974,6 +3993,25 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "dot_plot",
+      "signature": "dot_plot(matrix, clusters, opts?) → Str (SVG)",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "matrix",
+        "clusters",
+        "opts?"
+      ],
+      "returnType": "Str (SVG)",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "dotplot",
       "signature": "dotplot(seq1, seq2, opts?) → Str (sequence dot-matrix)",
       "category": "plot",
@@ -4227,21 +4265,21 @@
     },
     {
       "name": "elbow_plot",
-      "signature": "elbow_plot(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "elbow_plot(variance_ratios, opts?) → Str (SVG)",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "variance_ratios",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "Str (SVG)",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "email",
@@ -4809,21 +4847,21 @@
     },
     {
       "name": "feature_plot",
-      "signature": "feature_plot(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "feature_plot(points, opts?) → Str (SVG)",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "points",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "Str (SVG)",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "fetch_sra",
@@ -5002,6 +5040,25 @@
         "kind": "exact",
         "minimum": 2,
         "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "find_all_markers",
+      "signature": "find_all_markers(matrix, clusters, opts?) -> List[Record] (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "matrix",
+        "clusters",
+        "opts?"
+      ],
+      "returnType": "List[Record] (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2)",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
       },
       "metadataQuality": "curated"
     },
@@ -6558,6 +6615,25 @@
         "maximum": 3
       },
       "metadataQuality": "runtime"
+    },
+    {
+      "name": "harmony_integrate",
+      "signature": "harmony_integrate(embedding, batches, opts?) -> matrix (batch-corrected, per-cluster)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "embedding",
+        "batches",
+        "opts?"
+      ],
+      "returnType": "matrix (batch-corrected, per-cluster)",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
     },
     {
       "name": "has_edge",
@@ -14094,6 +14170,25 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "save_png",
+      "signature": "save_png(svg, path, opts?) → Str (path)",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "svg",
+        "path",
+        "opts?"
+      ],
+      "returnType": "Str (path)",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "save_svg",
       "signature": "save_svg(svg, path)",
       "category": "plot",
@@ -17322,6 +17417,24 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "variable_feature_plot",
+      "signature": "variable_feature_plot(matrix, opts?) → Str (SVG)",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "matrix",
+        "opts?"
+      ],
+      "returnType": "Str (SVG)",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "variance",
       "signature": "variance(list) → Float",
       "category": "stats",
@@ -17536,21 +17649,21 @@
     },
     {
       "name": "violin_plot",
-      "signature": "violin_plot(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "violin_plot(data, opts?) → Str (SVG)",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "data",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "Str (SVG)",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "viterbi",

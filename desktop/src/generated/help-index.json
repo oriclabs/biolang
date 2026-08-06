@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 29,
-    "builtin": 1022,
+    "builtin": 1028,
     "tutorial": 71,
     "example": 392
   },
@@ -1473,6 +1473,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "cbs_segment cbs_segment(arg1) runtime 1"
+    },
+    {
+      "id": "builtin:cca",
+      "kind": "builtin",
+      "title": "cca",
+      "category": "singlecell",
+      "collection": "Runtime builtins",
+      "summary": "BioLang singlecell builtin.",
+      "body": "# cca\n\nBioLang singlecell builtin.\n\n## Signature\n\n```biolang\ncca(matrix1, matrix2, opts?) -> Record{u, v, d} (shared axes; cells x cells, so small inputs only)\n```\n\n**Returns:** `Record{u, v, d} (shared axes; cells x cells, so small inputs only)`\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "cca(matrix1, matrix2, opts?) -> Record{u, v, d} (shared axes; cells x cells, so small inputs only)",
+      "example": null,
+      "returnType": "Record{u, v, d} (shared axes; cells x cells, so small inputs only)",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "cca cca(matrix1, matrix2, opts?) -> record{u, v, d} (shared axes; cells x cells, so small inputs only) singlecell biolang singlecell builtin."
     },
     {
       "id": "builtin:cdr3_length_dist",
@@ -3463,6 +3477,20 @@
       "keywords": "dot dot(a, b) → matrix (matmul) matrix biolang matrix builtin."
     },
     {
+      "id": "builtin:dot_plot",
+      "kind": "builtin",
+      "title": "dot_plot",
+      "category": "plot",
+      "collection": "Runtime builtins",
+      "summary": "BioLang plot builtin.",
+      "body": "# dot_plot\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\ndot_plot(matrix, clusters, opts?) → Str (SVG)\n```\n\n**Returns:** `Str (SVG)`\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "dot_plot(matrix, clusters, opts?) → Str (SVG)",
+      "example": null,
+      "returnType": "Str (SVG)",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "dot_plot dot_plot(matrix, clusters, opts?) → str (svg) plot biolang plot builtin."
+    },
+    {
       "id": "builtin:dotplot",
       "kind": "builtin",
       "title": "dotplot",
@@ -3662,15 +3690,15 @@
       "id": "builtin:elbow_plot",
       "kind": "builtin",
       "title": "elbow_plot",
-      "category": "runtime",
+      "category": "plot",
       "collection": "Runtime builtins",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
-      "body": "# elbow_plot\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nelbow_plot(arg1, arg2?)\n```\n\n**Arity:** range, minimum 1, maximum 2",
-      "signature": "elbow_plot(arg1, arg2?)",
+      "summary": "BioLang plot builtin.",
+      "body": "# elbow_plot\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\nelbow_plot(variance_ratios, opts?) → Str (SVG)\n```\n\n**Returns:** `Str (SVG)`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "elbow_plot(variance_ratios, opts?) → Str (SVG)",
       "example": null,
-      "returnType": null,
+      "returnType": "Str (SVG)",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "elbow_plot elbow_plot(arg1, arg2?) runtime registered biolang builtin accepting 1 argument(s)."
+      "keywords": "elbow_plot elbow_plot(variance_ratios, opts?) → str (svg) plot biolang plot builtin."
     },
     {
       "id": "builtin:email",
@@ -4124,15 +4152,15 @@
       "id": "builtin:feature_plot",
       "kind": "builtin",
       "title": "feature_plot",
-      "category": "runtime",
+      "category": "plot",
       "collection": "Runtime builtins",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
-      "body": "# feature_plot\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nfeature_plot(arg1, arg2?)\n```\n\n**Arity:** range, minimum 1, maximum 2",
-      "signature": "feature_plot(arg1, arg2?)",
+      "summary": "BioLang plot builtin.",
+      "body": "# feature_plot\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\nfeature_plot(points, opts?) → Str (SVG)\n```\n\n**Returns:** `Str (SVG)`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "feature_plot(points, opts?) → Str (SVG)",
       "example": null,
-      "returnType": null,
+      "returnType": "Str (SVG)",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "feature_plot feature_plot(arg1, arg2?) runtime registered biolang builtin accepting 1 argument(s)."
+      "keywords": "feature_plot feature_plot(points, opts?) → str (svg) plot biolang plot builtin."
     },
     {
       "id": "builtin:fetch_sra",
@@ -4273,6 +4301,20 @@
       "returnType": "Value|Nil",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "find find(list, fn) → value|nil hof first element satisfying fn"
+    },
+    {
+      "id": "builtin:find_all_markers",
+      "kind": "builtin",
+      "title": "find_all_markers",
+      "category": "singlecell",
+      "collection": "Runtime builtins",
+      "summary": "BioLang singlecell builtin.",
+      "body": "# find_all_markers\n\nBioLang singlecell builtin.\n\n## Signature\n\n```biolang\nfind_all_markers(matrix, clusters, opts?) -> List[Record] (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2)\n```\n\n**Returns:** `List[Record] (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2)`\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "find_all_markers(matrix, clusters, opts?) -> List[Record] (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2)",
+      "example": null,
+      "returnType": "List[Record] (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2)",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "find_all_markers find_all_markers(matrix, clusters, opts?) -> list[record] (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2) singlecell biolang singlecell builtin."
     },
     {
       "id": "builtin:find_index",
@@ -5505,6 +5547,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "hardy_weinberg hardy_weinberg(arg1, arg2, arg3) runtime registered biolang builtin accepting 3 argument(s)."
+    },
+    {
+      "id": "builtin:harmony_integrate",
+      "kind": "builtin",
+      "title": "harmony_integrate",
+      "category": "singlecell",
+      "collection": "Runtime builtins",
+      "summary": "BioLang singlecell builtin.",
+      "body": "# harmony_integrate\n\nBioLang singlecell builtin.\n\n## Signature\n\n```biolang\nharmony_integrate(embedding, batches, opts?) -> matrix (batch-corrected, per-cluster)\n```\n\n**Returns:** `matrix (batch-corrected, per-cluster)`\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "harmony_integrate(embedding, batches, opts?) -> matrix (batch-corrected, per-cluster)",
+      "example": null,
+      "returnType": "matrix (batch-corrected, per-cluster)",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "harmony_integrate harmony_integrate(embedding, batches, opts?) -> matrix (batch-corrected, per-cluster) singlecell biolang singlecell builtin."
     },
     {
       "id": "builtin:has_edge",
@@ -11457,6 +11513,20 @@
       "keywords": "save_plot save_plot(arg1, arg2) runtime registered biolang builtin accepting 2 argument(s)."
     },
     {
+      "id": "builtin:save_png",
+      "kind": "builtin",
+      "title": "save_png",
+      "category": "plot",
+      "collection": "Runtime builtins",
+      "summary": "BioLang plot builtin.",
+      "body": "# save_png\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\nsave_png(svg, path, opts?) → Str (path)\n```\n\n**Returns:** `Str (path)`\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "save_png(svg, path, opts?) → Str (path)",
+      "example": null,
+      "returnType": "Str (path)",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "save_png save_png(svg, path, opts?) → str (path) plot biolang plot builtin."
+    },
+    {
       "id": "builtin:save_svg",
       "kind": "builtin",
       "title": "save_svg",
@@ -14019,6 +14089,20 @@
       "keywords": "values values(map|record) → list map field values of a record"
     },
     {
+      "id": "builtin:variable_feature_plot",
+      "kind": "builtin",
+      "title": "variable_feature_plot",
+      "category": "plot",
+      "collection": "Runtime builtins",
+      "summary": "BioLang plot builtin.",
+      "body": "# variable_feature_plot\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\nvariable_feature_plot(matrix, opts?) → Str (SVG)\n```\n\n**Returns:** `Str (SVG)`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "variable_feature_plot(matrix, opts?) → Str (SVG)",
+      "example": null,
+      "returnType": "Str (SVG)",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "variable_feature_plot variable_feature_plot(matrix, opts?) → str (svg) plot biolang plot builtin."
+    },
+    {
       "id": "builtin:variance",
       "kind": "builtin",
       "title": "variance",
@@ -14190,15 +14274,15 @@
       "id": "builtin:violin_plot",
       "kind": "builtin",
       "title": "violin_plot",
-      "category": "runtime",
+      "category": "plot",
       "collection": "Runtime builtins",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
-      "body": "# violin_plot\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nviolin_plot(arg1, arg2?)\n```\n\n**Arity:** range, minimum 1, maximum 2",
-      "signature": "violin_plot(arg1, arg2?)",
+      "summary": "BioLang plot builtin.",
+      "body": "# violin_plot\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\nviolin_plot(data, opts?) → Str (SVG)\n```\n\n**Returns:** `Str (SVG)`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "violin_plot(data, opts?) → Str (SVG)",
       "example": null,
-      "returnType": null,
+      "returnType": "Str (SVG)",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "violin_plot violin_plot(arg1, arg2?) runtime registered biolang builtin accepting 1 argument(s)."
+      "keywords": "violin_plot violin_plot(data, opts?) → str (svg) plot biolang plot builtin."
     },
     {
       "id": "builtin:viterbi",
