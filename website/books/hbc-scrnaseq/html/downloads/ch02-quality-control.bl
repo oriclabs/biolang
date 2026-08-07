@@ -1,0 +1,69 @@
+# Quality Control
+#
+# From 'The HBC Single-cell Course, in BioLang'.
+# Follows the Harvard Chan Bioinformatics Core course 'Introduction to
+# scRNA-seq' (CC BY 4.0) - https://hbctraining.github.io/Intro-to-scRNAseq/
+#
+# Setup (once):
+#   bl install ./singlecell
+#   python get-data.py
+#
+# Run:
+#   bl run ch02-quality-control.bl
+
+# --------------------------------------------------------------------
+# Block 1 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let raw = sc.load("ctrl_raw")
+let scored = sc.qc(raw)
+
+write_text("qc-raw.svg",
+    sc.plot_qc_scatter(scored, "All droplets, before filtering"))
+
+# --------------------------------------------------------------------
+# Block 2 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let raw = sc.load("ctrl_raw")
+let clean = raw
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(250, 100000, 20.0)
+
+println("before: " + str(raw.n_cells) + " droplets, " + str(raw.n_genes) + " genes")
+println("after:  " + str(clean.n_cells) + " cells, " + str(clean.n_genes) + " genes")
+
+# --------------------------------------------------------------------
+# Block 3 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let raw = sc.load("ctrl_raw")
+let m = cell_qc(raw.matrix, raw.genes)
+let genes = col(m, "n_genes")
+let umis  = col(m, "total_counts")
+let mito  = col(m, "pct_mito")
+
+let keep = range(0, raw.n_cells) |> filter(|i| {
+    umis[i] >= 500.0 and genes[i] >= 250.0 and mito[i] < 20.0 and
+        (log10(genes[i]) / log10(umis[i])) > 0.80
+})
+println("cells: " + str(len(keep)))
+
+# --------------------------------------------------------------------
+# Block 4 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let clean = sc.load("ctrl_raw")
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(250, 100000, 20.0)
+
+write_text("qc-clean.svg", sc.plot_qc_scatter(sc.qc(clean), "After filtering"))
+

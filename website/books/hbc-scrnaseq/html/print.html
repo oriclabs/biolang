@@ -1,0 +1,1602 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>The HBC Single-cell Course, in BioLang</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A BioLang companion to the Harvard Chan Bioinformatics Core course Introduction to single-cell RNA-seq, worked on the course&#x27;s own PBMC dataset">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/print-fd5d073e.css">
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-038f2be7.js";
+        </script>
+
+        <!-- Custom JS scripts for mdbook-pdf PDF generation -->
+        <script type='text/javascript'>
+            let markAllContentHasLoadedForPrinting = () =>
+                window.setTimeout(
+                    () => {
+                        let p = document.createElement('div');
+                        p.setAttribute('id', 'content-has-all-loaded-for-mdbook-pdf-generation');
+                        document.body.appendChild(p);
+                    }, 100
+                );
+
+            window.addEventListener('load', () => {
+                // Expand all the <details> elements for printing.
+                r = document.getElementsByTagName('details');
+                for (let i of r)
+                    i.open = true;
+
+                try {
+                    MathJax.Hub.Register.StartupHook('End', markAllContentHasLoadedForPrinting);
+                } catch (e) {
+                    markAllContentHasLoadedForPrinting();
+                }
+            });
+        </script>
+    <div style="display: none"><a href="#introduction">introduction</a><a href="#attribution">attribution</a><a href="#setup">setup</a><a href="#ch01-biology-and-matrix">ch01-biology-and-matrix</a><a href="#ch02-quality-control">ch02-quality-control</a><a href="#ch03-normalization-pca">ch03-normalization-pca</a><a href="#ch04-integration">ch04-integration</a><a href="#ch05-clustering">ch05-clustering</a><a href="#ch06-markers">ch06-markers</a><a href="#ch07-workflow">ch07-workflow</a><a href="#differences">differences</a><a href="#downloads">downloads</a></div>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-3313f347.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">The HBC Single-cell Course, in BioLang</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="the-hbc-single-cell-course-in-biolang"><a class="header" href="#the-hbc-single-cell-course-in-biolang">The HBC Single-cell Course, in BioLang</a></h1>
+<p>The Harvard Chan Bioinformatics Core teaches a fourteen-lesson introduction to
+single-cell RNA-seq. It is one of the better free curricula in the field, it is
+taught in R with Seurat, and it is released under CC BY 4.0.</p>
+<p>This book walks the same road in BioLang, on the same data.</p>
+<h2 id="why-follow-someone-elses-syllabus"><a class="header" href="#why-follow-someone-elses-syllabus">Why follow someone else’s syllabus</a></h2>
+<p>Because the ordering is the hard part, and theirs is good.</p>
+<p>A tool’s documentation organises itself around the tool: here are the functions,
+here is what each takes. A course organises itself around the learner: here is
+what you cannot understand until you understand this other thing first. HBC puts
+the theory of PCA <em>before</em> normalization, which looks backwards until you notice
+you cannot judge whether a normalization worked without a way to look at the
+result. They give cluster quality control an entire lesson, long after
+clustering, because “are these clusters real?” only becomes answerable once you
+have some.</p>
+<h2 id="why-on-their-data"><a class="header" href="#why-on-their-data">Why on their data</a></h2>
+<p>An earlier version of this material ran on a small synthetic fixture. It was
+fast, it needed no download, and it was wrong in a way that mattered: the genes
+were named <code>MARK0_000</code>, <code>MARK1_000</code>, and so on. Every mechanical step worked, and
+the one thing the annotation lesson exists to teach — looking at <code>LYZ</code>, <code>CD14</code>
+and <code>S100A8</code> together and concluding <em>monocytes</em> — could not be demonstrated at
+all.</p>
+<p>So this book uses the course’s own PBMC dataset. It costs a download and some
+runtime. In exchange, the figures show recognisable immune biology, and every
+number can be compared against what the course reports.</p>
+<p>It also surfaced things a tidy fixture never would. Real clusters range from
+3,128 cells to 32, and that unevenness alone found a latent crash in the violin
+plots. Real raw matrices have 737,280 droplets, which found a plotting path that
+never terminated. Synthetic data tests the code you wrote; real data tests the
+assumptions you did not know you had made.</p>
+<h2 id="what-you-need"><a class="header" href="#what-you-need">What you need</a></h2>
+<p>BioLang, the <code>singlecell</code> package, and about 90 MB of extracted matrices from a
+3.2 GB archive. All three steps are in <a href="#getting-the-data">Getting the Data</a>.</p>
+<h2 id="what-this-is-not"><a class="header" href="#what-this-is-not">What this is not</a></h2>
+<p>It is not a replacement for the course. Read the HBC lessons for the biology and
+the reasoning; read these chapters when you want to run the same steps here. It
+is also not a claim that BioLang reproduces Seurat exactly — it does not, and
+<a href="#what-differs-from-the-course">What Differs from the Course</a> is specific about where and why.</p>
+<p>Credit, licence, and the full list of changes are on
+<a href="#attribution-and-licence">Attribution and Licence</a>. Read that first if you plan to reuse
+any of this.</p>
+<h2 id="a-note-on-the-code"><a class="header" href="#a-note-on-the-code">A note on the code</a></h2>
+<p>None of it runs in the browser. Every example imports a package and most read or
+write files, and package imports and file I/O are CLI-only — so these pages show
+no Run button. Copy the code, or take the scripts and notebook from
+<a href="#downloads">Downloads</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="attribution-and-licence"><a class="header" href="#attribution-and-licence">Attribution and licence</a></h1>
+<h2 id="the-source"><a class="header" href="#the-source">The source</a></h2>
+<p>This book follows the curriculum of:</p>
+<blockquote>
+<p><strong>Introduction to Single-cell RNA-seq</strong>
+Harvard Chan Bioinformatics Core (HBC)
+Mary Piper, Meeta Mistry, Radhika Khetani, Lorena Pantano, Jihe Liu,
+Will Gammerdinger, and Noor Sohail
+<a href="https://hbctraining.github.io/Intro-to-scRNAseq/">https://hbctraining.github.io/Intro-to-scRNAseq/</a></p>
+</blockquote>
+<p><strong>The teaching sequence is theirs</strong>, and it is the most valuable thing here: the
+decision to explain PCA before normalization, to separate the theory of
+integration from the code that runs it, to give cluster quality control a lesson
+of its own rather than a paragraph, and to close with the whole workflow written
+out end to end.</p>
+<p>It runs on <strong>their dataset</strong> as well — the PBMC control/interferon-stimulated
+experiment their course uses — so the numbers on these pages can be compared
+against theirs directly. That is the point of this book: it is a translation,
+not a re-illustration.</p>
+<p>If this companion is useful, the course it follows is more so. It is free to
+read, and it is taught in R with Seurat, which remains the reference
+implementation that any other tool is measured against.</p>
+<h2 id="licence-of-the-source"><a class="header" href="#licence-of-the-source">Licence of the source</a></h2>
+<p>The HBC lessons are released under <strong>Creative Commons Attribution 4.0
+International (CC BY 4.0)</strong>, declared in the front matter of each lesson:</p>
+<pre><code class="language-yaml">license: "CC-BY-4.0"
+</code></pre>
+<p>The licence text is at <a href="https://creativecommons.org/licenses/by/4.0/">https://creativecommons.org/licenses/by/4.0/</a>.</p>
+<p>CC BY 4.0 permits adaptation, including commercially, provided credit is given,
+the licence is linked, and <strong>changes are indicated</strong>. This page is that
+indication.</p>
+<h2 id="what-was-changed"><a class="header" href="#what-was-changed">What was changed</a></h2>
+<ul>
+<li><strong>The language.</strong> The course teaches R with Seurat; this book teaches BioLang.
+No code here is a line-by-line translation of theirs.</li>
+<li><strong>All prose is written from scratch.</strong> No text is copied. Where a passage
+explains the same idea, it explains it in different words.</li>
+<li><strong>No figures are reproduced.</strong> Several of the course’s are credited to third
+parties (Trapnell 2015, Wagner 2016, Hicks 2015) whose licences would each
+need tracing. Every figure here is generated by the code on the page that
+shows it.</li>
+<li><strong>No data is redistributed.</strong> <a href="#getting-the-data">Getting the Data</a> downloads it from
+the authors’ own host, which is what their <code>download.sh</code> does.</li>
+<li><strong>Fourteen lessons are regrouped into seven chapters.</strong> Some course lessons
+are R environment setup that BioLang does not need. The mapping, and the
+places where BioLang cannot follow, are in
+<a href="#what-differs-from-the-course">What Differs from the Course</a>.</li>
+<li><strong>The numbers will not match exactly.</strong> Same data and same thresholds, but
+different implementations of HVG selection, PCA and community detection give
+different cluster counts and boundaries. Where a result should agree, this
+book says so and shows it; where it will not, it says that too.</li>
+</ul>
+<h2 id="licence-of-this-book"><a class="header" href="#licence-of-this-book">Licence of this book</a></h2>
+<p>These chapters are part of the BioLang repository and carry its MIT licence,
+covering the prose and BioLang code written here.</p>
+<p>Because this adapts a CC BY 4.0 work, the attribution requirement travels with
+it: if you reuse these chapters, keep the credit to the HBC training team and
+the link to their course.</p>
+<h2 id="citing"><a class="header" href="#citing">Citing</a></h2>
+<p>Cite the course this follows:</p>
+<pre><code class="language-bibtex">@misc{piper2022scrnaseq,
+  title     = {hbctraining/scRNA-seq_online: scRNA-seq Lessons from HCBC},
+  author    = {Piper, Mary and Mistry, Meeta and Liu, Jihe and
+               Gammerdinger, William and Khetani, Radhika},
+  year      = {2022},
+  month     = {1},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.5826256},
+  url       = {https://doi.org/10.5281/zenodo.5826256}
+}
+</code></pre>
+<p>The HBC team asks for citations directly, and gives the reason: they show the
+community’s needs, earn recognition for the work, and support further funding
+for their teaching. That is a good reason, and it costs you one line.</p>
+<h2 id="the-data"><a class="header" href="#the-data">The data</a></h2>
+<p>The PBMC experiment is from Kang et al., <em>Nature Biotechnology</em> 2018 —
+peripheral blood mononuclear cells from lupus patients, split into a control
+sample and one stimulated with interferon-beta. The HBC course hosts a packaged
+copy; this book downloads that copy and does not redistribute it.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="getting-the-data"><a class="header" href="#getting-the-data">Getting the data</a></h1>
+<p>Everything in this book runs on the HBC course’s own dataset. Three steps, once.</p>
+<h2 id="1-install-biolang"><a class="header" href="#1-install-biolang">1. Install BioLang</a></h2>
+<p><strong>Linux / macOS</strong></p>
+<pre><code class="language-sh">curl -fsSL https://lang.bio/install.sh | sh
+</code></pre>
+<p><strong>Windows (PowerShell)</strong></p>
+<pre><code class="language-powershell">iwr -useb https://lang.bio/install.ps1 | iex
+</code></pre>
+<p>Check it:</p>
+<pre><code class="language-sh">bl --version
+</code></pre>
+<h2 id="2-install-the-singlecell-package"><a class="header" href="#2-install-the-singlecell-package">2. Install the singlecell package</a></h2>
+<p>Download <strong><a href="downloads/singlecell-starter.zip">singlecell-starter.zip</a></strong>, unzip
+it, and from inside:</p>
+<pre><code class="language-sh">bl install ./singlecell
+</code></pre>
+<blockquote>
+<p>There is no package registry yet, and <code>bl install --git &lt;url&gt;</code> clones a whole
+repository into the package slot — which cannot work for a package living in a
+subdirectory of one. Installing from a local path is the supported route, so
+the kit ships the package rather than pointing at it.</p>
+</blockquote>
+<h2 id="3-download-the-matrices"><a class="header" href="#3-download-the-matrices">3. Download the matrices</a></h2>
+<pre><code class="language-sh">python get-data.py
+</code></pre>
+<p><strong>Be warned about the size.</strong> The archive is <strong>3.2 GB</strong>; the two directories
+this book needs total about <strong>90 MB</strong>. Zip keeps its index at the end of the
+file, so there is no way to pull two members out of a remote archive without
+fetching the whole thing — HBC’s own <code>download.sh</code> has the same problem. The
+script downloads once, extracts what is used, and deletes the archive, so the
+3.2 GB is transient rather than resident. Pass <code>--keep</code> to hold on to it.</p>
+<p>The rest of the archive is R objects — a 2.2 GB <code>seurat_integrated.RData.bz2</code>
+among them — that BioLang cannot read and this book does not need.</p>
+<p>When it finishes you have:</p>
+<pre><code class="language-text">ctrl_raw/     barcodes.tsv.gz  features.tsv.gz  matrix.mtx.gz
+stim_raw/     barcodes.tsv.gz  features.tsv.gz  matrix.mtx.gz
+</code></pre>
+<p>Run everything from the directory containing those.</p>
+<h2 id="check-it-worked"><a class="header" href="#check-it-worked">Check it worked</a></h2>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let ctrl = sc.load("ctrl_raw")
+println("droplets: " + str(ctrl.n_cells))
+println("genes:    " + str(ctrl.n_genes))
+</code></pre>
+<p>which prints:</p>
+<pre><code class="language-text">droplets: 737280
+genes:    33538
+</code></pre>
+<p>737,280 is every barcode the chemistry can produce, not every cell — the vast
+majority are empty droplets. Sorting that out is <a href="#quality-control">Quality Control</a>.</p>
+<h2 id="what-the-experiment-is"><a class="header" href="#what-the-experiment-is">What the experiment is</a></h2>
+<p>Peripheral blood mononuclear cells from lupus patients (Kang et al., <em>Nature
+Biotechnology</em> 2018), in two samples:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Sample</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><code>ctrl_raw</code></td><td>untreated control</td></tr>
+<tr><td><code>stim_raw</code></td><td>stimulated with interferon-beta</td></tr>
+</tbody>
+</table>
+</div>
+<p>Two samples of the same cells under different conditions is what makes this
+dataset worth teaching on: it has real biological differences <em>and</em> a real batch
+structure, so <a href="#integration">Integration</a> has something honest to work
+against rather than a planted offset.</p>
+<h2 id="a-note-on-time"><a class="header" href="#a-note-on-time">A note on time</a></h2>
+<p>This is a real dataset and BioLang runs it single-threaded. On a laptop:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Step</th><th>Roughly</th></tr>
+</thead>
+<tbody>
+<tr><td>Load one raw matrix</td><td>2 s</td></tr>
+<tr><td>Filter to cells</td><td>5 s</td></tr>
+<tr><td>Normalize, HVG, PCA, neighbours, cluster</td><td>15 s</td></tr>
+<tr><td>The same on both samples merged</td><td>40 s</td></tr>
+<tr><td>Harmony on 30,000 cells</td><td>minutes</td></tr>
+</tbody>
+</table>
+</div>
+<p>Nothing here needs a cluster, but the two-sample chapters are not instant.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="the-biology-and-the-matrix"><a class="header" href="#the-biology-and-the-matrix">The Biology and the Matrix</a></h1>
+<p><em>Follows HBC lessons 01 (Intro to scRNA-seq) and 02 (Generation of the count matrix).</em></p>
+<h2 id="what-the-experiment-buys-you"><a class="header" href="#what-the-experiment-buys-you">What the experiment buys you</a></h2>
+<p>Bulk RNA-seq measures an average. Grind up a tissue, sequence the RNA, and you
+learn what the average cell was transcribing. The average is a real number, and
+it is often the wrong one.</p>
+<p>The classic failure: suppose genes A and B are positively correlated <em>within</em>
+every cell type, but the cell types sit at different overall levels. Average
+across the mixture and the correlation can invert. You will confidently report
+that A suppresses B when in every actual cell it does the opposite. This is
+Simpson’s paradox with a pipette, and it is not an edge case — it is the default
+hazard whenever a tissue contains more than one kind of cell, which is every
+tissue.</p>
+<p>Single-cell RNA-seq measures cells separately, so the grouping the average
+destroyed is still there to recover. That buys you which cell types are present
+and in what proportion, rare populations a bulk average dilutes away, how
+expression shifts along a differentiation trajectory, and — the one that changes
+conclusions most often — differential expression <strong>within a cell type</strong> between
+conditions. “Gene X is up in disease” is a different claim from “gene X is up in
+the monocytes of treated patients”, and only the second tells you where to look
+next.</p>
+<p>That last distinction is exactly what this dataset is built for: the same
+patients’ cells, control and interferon-stimulated.</p>
+<h2 id="what-it-costs-you"><a class="header" href="#what-it-costs-you">What it costs you</a></h2>
+<p><strong>The data is large.</strong> This one is 33,538 genes by 737,280 droplets per sample.
+Stored densely that is 24 billion entries; stored sparsely it is about 10
+million. <code>sc.load</code> returns a sparse matrix for that reason.</p>
+<p><strong>Sequencing per cell is shallow.</strong> Droplet methods detect perhaps 10–50% of the
+transcriptome in a given cell, so a zero is ambiguous: the gene was off, or it
+was on and you missed it. You cannot tell which from the number.</p>
+<p>This ambiguity is the single most important fact about the data type. The
+vocabulary is worth being careful about: scRNA-seq data is often called
+<em>zero-inflated</em>, meaning more zeros than a count model predicts. Recent analyses
+argue it mostly is not — the zeros are about what sequencing depth would
+predict, and a plain negative binomial handles them. They are real dropouts, not
+evidence of a second process. This matters because “zero-inflated” invites you
+to add machinery for it, and the machinery can do harm.</p>
+<p><strong>Biological variation you did not ask about.</strong> Transcription is bursty. Cells
+cycle. Cells respond to neighbours. Identity is sometimes a gradient rather than
+a category. All real biology, none of it the biology you are studying, all of it
+in the same matrix.</p>
+<p><strong>Technical variation.</strong> Capture efficiency differs per cell, amplification is
+not uniform, libraries differ in quality, and batches differ from each other —
+sometimes more than the conditions do. That is why integration gets two lessons.</p>
+<h2 id="where-the-matrix-comes-from"><a class="header" href="#where-the-matrix-comes-from">Where the matrix comes from</a></h2>
+<p>BioLang starts one step downstream of the sequencer. Worth knowing what that
+step did.</p>
+<p>In a droplet experiment each droplet ideally captures one cell and one bead. The
+bead carries millions of oligos sharing a <strong>cell barcode</strong>, so everything
+sequenced from that droplet is stamped with the same identifier. Each oligo also
+carries a <strong>unique molecular identifier (UMI)</strong>, a short random sequence
+differing between oligos on the same bead.</p>
+<p>The UMI is the clever part. PCR amplifies some molecules more than others, so
+read counts are a distorted measure of how much RNA was there. But two reads
+sharing a UMI <em>and</em> a cell barcode <em>and</em> a gene came from one original molecule.
+Collapse them, count distinct UMIs, and you have counted molecules instead of
+reads. Amplification bias largely disappears.</p>
+<p>Cell Ranger does the demultiplexing, barcode correction, alignment and UMI
+collapsing, and writes three files: <code>barcodes.tsv</code> (the columns), <code>features.tsv</code>
+(the rows) and <code>matrix.mtx</code> (the non-zero counts).</p>
+<p><strong>BioLang does not run Cell Ranger, and neither does Seurat.</strong> That work is
+upstream of both. What BioLang does is read its output:</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let ctrl = sc.load("ctrl_raw")
+
+println("droplets: " + str(ctrl.n_cells))
+println("genes:    " + str(ctrl.n_genes))
+println("first genes: " + str(sc.get_genes(ctrl) |&gt; take(5)))
+</code></pre>
+<pre><code class="language-text">droplets: 737280
+genes:    33538
+first genes: [MIR1302-2HG, FAM138A, OR4F5, AL627309.1, AL627309.3]
+</code></pre>
+<p>Two things to notice. The gene names are real symbols, which is what makes
+annotation possible later. And 737,280 is every barcode the chemistry can
+produce — the overwhelming majority are empty droplets that caught only ambient
+RNA. The matrix as loaded is mostly nothing.</p>
+<p>The object is a plain BioLang record — <code>matrix</code>, <code>genes</code>, <code>barcodes</code>,
+<code>n_cells</code>, <code>n_genes</code>. Later steps add fields rather than replacing it, so
+<code>keys(obj)</code> always tells you what has happened.</p>
+<h2 id="what-a-count-actually-means"><a class="header" href="#what-a-count-actually-means">What a count actually means</a></h2>
+<p>One entry is: <em>the number of distinct mRNA molecules from gene G that were
+captured, reverse transcribed, amplified, sequenced, and successfully assigned
+to barcode C.</em></p>
+<p>Every verb can fail, and each fails at a rate that varies between cells. Holding
+onto that is what stops you over-reading a small number later. A count of zero
+is weak evidence of absence. A count of one is weak evidence of anything.</p>
+<h2 id="next"><a class="header" href="#next">Next</a></h2>
+<p>Separating the cells from the empty droplets is
+<a href="#quality-control">Quality Control</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="quality-control"><a class="header" href="#quality-control">Quality Control</a></h1>
+<p><em>Follows HBC lessons 03 (QC setup), 04 (Cell Ranger QC), and 05 (Quality control).</em></p>
+<h2 id="the-thing-being-filtered-is-not-a-cell"><a class="header" href="#the-thing-being-filtered-is-not-a-cell">The thing being filtered is not a cell</a></h2>
+<p>The matrix has one column per barcode, and the course is careful to say
+<em>barcode</em> rather than <em>cell</em>, because 737,280 of them are not cells:</p>
+<ul>
+<li><strong>Empty droplets</strong> that caught only ambient RNA — transcripts from cells that
+lysed during dissociation. Few genes, low counts, and the vast majority of the
+matrix.</li>
+<li><strong>Dying cells</strong>, which leak cytoplasmic RNA while mitochondria stay intact
+longer, so the mitochondrial fraction climbs as the cytoplasm drains.</li>
+<li><strong>Doublets</strong> — two cells in one droplet, appearing as one barcode with roughly
+twice the content and an impossible hybrid identity.</li>
+</ul>
+<h2 id="look-before-you-cut"><a class="header" href="#look-before-you-cut">Look before you cut</a></h2>
+<p><code>sc.qc</code> computes per-cell and per-gene metrics and attaches them without
+removing anything.</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let raw = sc.load("ctrl_raw")
+let scored = sc.qc(raw)
+
+write_text("qc-raw.svg",
+    sc.plot_qc_scatter(scored, "All droplets, before filtering"))
+</code></pre>
+<p><img src="images/qc-scatter-raw.svg" alt="Counts against genes for all 737,280 droplets, coloured by mitochondrial fraction"></p>
+<p>That is every barcode in the run. Two features carry the whole decision.</p>
+<p>The <strong>dense wedge running up and to the right</strong> is the real cells: as a droplet
+captures more UMIs it detects more distinct genes, and the two rise together.</p>
+<p>The <strong>flat spur along the bottom</strong> is the problem. Those droplets accumulate
+UMIs without accumulating genes — the signature of low-complexity content:
+ambient RNA, dying cells, or a population dominated by a handful of transcripts.
+Neither histogram shows this on its own. A cell with few genes <em>and</em> few UMIs is
+an empty droplet; few genes but many UMIs is a different animal entirely, and
+only the joint view distinguishes them.</p>
+<p>The enormous blob at the origin is the empty droplets, and it is most of the
+737,280.</p>
+<h2 id="the-three-metrics"><a class="header" href="#the-three-metrics">The three metrics</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Metric</th><th>Low means</th><th>High means</th></tr>
+</thead>
+<tbody>
+<tr><td>UMIs per cell</td><td>empty droplet, or a small cell</td><td>doublet, or a large cell</td></tr>
+<tr><td>Genes per cell</td><td>empty droplet, low complexity</td><td>doublet</td></tr>
+<tr><td>% mitochondrial</td><td>usually fine</td><td>dying or stressed cell</td></tr>
+</tbody>
+</table>
+</div>
+<p>Note the second column. <strong>Every one of these has a benign explanation.</strong> A plasma
+cell genuinely has fewer distinct genes because it is devoting itself to
+antibody transcripts. Cardiomyocytes are genuinely full of mitochondria. A
+threshold right for PBMCs will delete a real population in heart tissue. This is
+why the course insists on plotting distributions rather than applying remembered
+numbers.</p>
+<h2 id="applying-the-cuts"><a class="header" href="#applying-the-cuts">Applying the cuts</a></h2>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let raw = sc.load("ctrl_raw")
+let clean = raw
+    |&gt; sc.filter_genes(3)
+    |&gt; sc.filter_cells(250, 100000, 20.0)
+
+println("before: " + str(raw.n_cells) + " droplets, " + str(raw.n_genes) + " genes")
+println("after:  " + str(clean.n_cells) + " cells, " + str(clean.n_genes) + " genes")
+</code></pre>
+<pre><code class="language-text">before: 737280 droplets, 33538 genes
+after:  15049 cells, 15576 genes
+</code></pre>
+<p><strong>737,280 barcodes down to 15,049 cells</strong>, and 33,538 genes to 15,576.</p>
+<p>That is close to the course’s result but <strong>not the same filter</strong>, and the
+difference is worth being exact about. Theirs has four criteria:</p>
+<pre><code class="language-r">nUMI &gt;= 500 &amp; nGene &gt;= 250 &amp; log10GenesPerUMI &gt; 0.80 &amp; mitoRatio &lt; 0.20
+</code></pre>
+<p><code>sc.filter_cells</code> expresses two of them — a gene floor and a mitochondrial cap.
+It has no UMI floor and no complexity term. Applying all four by hand on this
+sample gives <strong>14,847 cells</strong> against this chapter’s <strong>15,049</strong>: a difference of
+202 cells, or 1.3%.</p>
+<p>The 202 are mostly low-complexity droplets — high UMI counts spread over few
+genes, the flat spur along the bottom of the plot above. The complexity term
+<code>log10GenesPerUMI &gt; 0.80</code> is what removes them, and it is the criterion worth
+adding by hand if you are reproducing the course exactly:</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let raw = sc.load("ctrl_raw")
+let m = cell_qc(raw.matrix, raw.genes)
+let genes = col(m, "n_genes")
+let umis  = col(m, "total_counts")
+let mito  = col(m, "pct_mito")
+
+let keep = range(0, raw.n_cells) |&gt; filter(|i| {
+    umis[i] &gt;= 500.0 and genes[i] &gt;= 250.0 and mito[i] &lt; 20.0 and
+        (log10(genes[i]) / log10(umis[i])) &gt; 0.80
+})
+println("cells: " + str(len(keep)))
+</code></pre>
+<pre><code class="language-text">cells: 14847
+</code></pre>
+<p>The chapters that follow use the two-criterion form, because it is the one the
+package exposes and the 1.3% does not change any conclusion here. If you need
+the course’s numbers exactly, use the block above.</p>
+<p>Two filters, in this order and for a reason. <code>filter_genes(3)</code> drops genes seen
+in fewer than three cells — a gene detected once cannot support a statistical
+claim, and carrying eighteen thousand such genes costs memory and inflates the
+multiple-testing burden later. <code>filter_cells(min_genes, max_genes, max_pct_mito)</code>
+drops barcodes: the lower bound removes empty droplets, the upper catches
+doublets, the mitochondrial cap removes dying cells.</p>
+<p>The thresholds here are the course’s: at least 250 genes, mitochondrial fraction
+under 20%. The upper gene bound is deliberately loose because the lower bound and
+the mitochondrial cap are doing the work on this dataset.</p>
+<h2 id="what-survived"><a class="header" href="#what-survived">What survived</a></h2>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let clean = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3)
+    |&gt; sc.filter_cells(250, 100000, 20.0)
+
+write_text("qc-clean.svg", sc.plot_qc_scatter(sc.qc(clean), "After filtering"))
+</code></pre>
+<p><img src="images/qc-scatter-clean.svg" alt="The same plot after filtering — the low-complexity spur and the origin blob are gone"></p>
+<p>The spur along the bottom is gone and the blob at the origin with it. What
+remains is the diagonal band, which is what a clean sample looks like.</p>
+<h2 id="the-mitochondrial-cap-needs-gene-symbols"><a class="header" href="#the-mitochondrial-cap-needs-gene-symbols">The mitochondrial cap needs gene symbols</a></h2>
+<p><code>max_pct_mito</code> finds genes whose symbol starts with <code>MT-</code>. If your features file
+carries Ensembl IDs (<code>ENSG00000198804</code>) rather than symbols, nothing matches, the
+mitochondrial fraction is zero for every cell, and the filter silently does
+nothing.</p>
+<p>It will not warn you. This dataset’s <code>features.tsv</code> has three columns — Ensembl
+ID, symbol, feature type — and <code>sc.load</code> takes the symbol, so the cap works here.
+Check that your gene names look like names.</p>
+<h2 id="what-cell-ranger-knew-that-you-no-longer-do"><a class="header" href="#what-cell-ranger-knew-that-you-no-longer-do">What Cell Ranger knew that you no longer do</a></h2>
+<p>The course spends a lesson on Cell Ranger’s <code>web_summary.html</code>. <strong>BioLang cannot
+read that file</strong>, and most of what it reports can be recomputed from the matrix
+anyway — cell counts, median genes per cell, UMI distributions.</p>
+<p>Two things cannot. <strong>Sequencing saturation</strong> (how much another lane would buy)
+and <strong>fraction of reads mapped to the transcriptome</strong> are properties of the
+reads, and the reads are gone by the time you have a matrix. If those matter —
+and for judging whether an experiment was deep enough, they do — read them in
+Cell Ranger’s viewer before moving on.</p>
+<h2 id="judge-the-filter-by-what-survives"><a class="header" href="#judge-the-filter-by-what-survives">Judge the filter by what survives</a></h2>
+<p>The only real test of a threshold is whether the biology is still there
+afterwards. Filter, cluster, and check you still have the populations you
+expected; if a cell type vanished between raw and filtered, the threshold found
+it, not the noise.</p>
+<p>That check needs clusters, which is
+<a href="#normalization-and-pca">Normalization and PCA</a> and then
+<a href="#clustering">Clustering</a>. QC is not finished until you have been round
+that loop once.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="normalization-and-pca"><a class="header" href="#normalization-and-pca">Normalization and PCA</a></h1>
+<p><em>Follows HBC lessons 06 (Theory of PCA) and 07 (SCTransform normalization).</em></p>
+<h2 id="why-the-course-teaches-pca-first"><a class="header" href="#why-the-course-teaches-pca-first">Why the course teaches PCA first</a></h2>
+<p>This looks wrong the first time. Normalization comes before PCA in the pipeline,
+so why teach PCA first?</p>
+<p>Because you cannot judge a normalization without a way to look at its result.
+“Did this normalization work?” means “are cells now grouped by biology rather
+than by sequencing depth?”, and answering it requires a projection. Teaching the
+tool before the step that needs it is the right way round.</p>
+<h2 id="pca-in-one-paragraph"><a class="header" href="#pca-in-one-paragraph">PCA in one paragraph</a></h2>
+<p>You have a cell described by 15,576 gene measurements — a point in 15,576
+dimensions. Most of those dimensions carry nothing: genes nobody expresses,
+genes everybody expresses equally, genes that are noise. Many move together,
+because genes work in programs.</p>
+<p>PCA finds new axes as weighted combinations of genes, ordered so the first
+captures the most variance, the second the most of what remains. The first ten
+or twenty usually carry the structure; the rest carry noise.</p>
+<p>The intuition to keep: <strong>each PC is a gene program</strong>, and a cell’s coordinate on
+it is how strongly that cell runs the program. PC1 is often “which broad lineage
+is this”, and later PCs get more specific.</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3)
+    |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize()
+    |&gt; sc.variable_genes(2000)
+    |&gt; sc.run_pca(30)
+
+write_text("elbow.svg", sc.plot_elbow(obj, 30))
+</code></pre>
+<p><img src="images/elbow.svg" alt="Variance explained by each of the first 30 principal components"></p>
+<p>Read where it flattens. Components before the bend carry structure; after it,
+noise. The bend is rarely sharp, and that is fine — taking a few too many PCs
+costs much less than cutting into real signal, so err high. The course settles
+on a similar range for this data.</p>
+<h2 id="why-raw-counts-cannot-go-into-pca"><a class="header" href="#why-raw-counts-cannot-go-into-pca">Why raw counts cannot go into PCA</a></h2>
+<p>Two problems, and they compound.</p>
+<p><strong>Depth.</strong> One cell yields 20,000 UMIs, its neighbour 5,000. Every gene in the
+first looks four times higher, and PC1 becomes “how deeply was this cell
+sequenced” — a technical axis dominating the plot.</p>
+<p><strong>Mean–variance coupling.</strong> Count variance grows with the mean, so highly
+expressed genes vary more in absolute terms simply because they are high. PCA
+maximises variance, so without correction it selects for expression level rather
+than information.</p>
+<p>The standard fix handles both — scale each cell to a common total, then <code>log1p</code>:</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3)
+    |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize(10000.0)
+
+println("normalised layer present: " + str(contains(keys(obj), "norm_matrix")))
+</code></pre>
+<p><code>normalize(10000.0)</code> is counts-per-ten-thousand followed by <code>log1p</code>. The 10,000
+is arbitrary and does not matter; the log does the work, compressing the high end
+so a handful of loud genes stop dominating.</p>
+<p>Note it <strong>adds</strong> <code>norm_matrix</code> rather than overwriting <code>matrix</code>. Raw counts stay
+available, which matters because differential expression should use counts, not
+logs.</p>
+<h2 id="variable-genes"><a class="header" href="#variable-genes">Variable genes</a></h2>
+<p>Most genes are uninformative for distinguishing cell types — off everywhere or on
+everywhere. Selecting genes that vary more than expected <em>for their expression
+level</em> focuses PCA on structure.</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3)
+    |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize()
+    |&gt; sc.variable_genes(2000)
+
+println("HVGs: " + str(len(sc.get_hvg_genes(obj))))
+</code></pre>
+<p>“More than expected for their expression level” is the important clause. A raw
+variance ranking returns the highest-expressed genes, which you already knew
+about. The selection bins genes by mean expression and ranks dispersion <em>within</em>
+each bin, so a moderately expressed gene that switches cleanly between cell types
+can outrank a loud constitutive one.</p>
+<p>2,000 is the conventional number and what the course uses.</p>
+<h2 id="sctransform"><a class="header" href="#sctransform">SCTransform</a></h2>
+<p>Log-normalization has a known weakness: it does not fully remove the
+depth–expression relationship, and residual depth structure leaks into the PCs.
+SCTransform fits a regularized negative binomial per gene with sequencing depth
+as a covariate and uses the Pearson residuals as corrected values.</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3)
+    |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.sctransform()
+
+println("sctransform applied to " + str(obj.n_cells) + " cells")
+</code></pre>
+<p>Use it when depth varies a lot across cells, or when integrating samples
+sequenced to different depths. Use plain <code>normalize</code> when you want something
+simple, fast and easy to explain.</p>
+<p>The two produce different downstream clusters. Pick one and keep it for the whole
+analysis rather than switching partway — and say which you used, because a reader
+cannot tell from the figures.</p>
+<h2 id="next-1"><a class="header" href="#next-1">Next</a></h2>
+<p>You now have cells positioned in a space where distance means something. This
+dataset has two samples, and that space is probably still organised partly by
+sample rather than by biology — which is <a href="#integration">Integration</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="integration"><a class="header" href="#integration">Integration</a></h1>
+<p><em>Follows HBC lessons 08 (CCA theory) and 09 (Harmony).</em></p>
+<p>The course splits integration into two lessons — one for the theory, one for the
+code — and the split is worth keeping, because this is the step where a
+plausible-looking result is most likely to be wrong.</p>
+<h2 id="the-problem-on-this-data"><a class="header" href="#the-problem-on-this-data">The problem, on this data</a></h2>
+<p>Merge the two samples and cluster them together:</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+# Cells are filtered per sample; genes must match across the two for the merge,
+# so gene filtering happens after it.
+let ctrl = sc.load("ctrl_raw") |&gt; sc.filter_cells(250, 100000, 20.0)
+let stim = sc.load("stim_raw") |&gt; sc.filter_cells(250, 100000, 20.0)
+
+let merged = sc.merge(ctrl, stim, "ctrl", "stim")
+    |&gt; sc.filter_genes(3)
+    |&gt; sc.normalize()
+    |&gt; sc.variable_genes(2000)
+    |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15)
+    |&gt; sc.cluster_leiden(15, 0.5)
+
+println("merged: " + str(merged.n_cells) + " cells, " +
+        str(sc.get_clusters(merged) |&gt; unique |&gt; len) + " clusters")
+
+let sample = merged.batch_ids |&gt; map(|x| str(x))
+write_text("integration-before.svg",
+    sc.plot_embedding(merged, sample, "Before integration, coloured by sample"))
+</code></pre>
+<pre><code class="language-text">merged: 30043 cells, 14 clusters
+</code></pre>
+<p><img src="images/integration-before.svg" alt="Before integration: many islands contain cells from only one sample"></p>
+<p>Look at the colours. Several islands are <strong>almost entirely one sample</strong> — a blue
+island beside an orange island, repeatedly. The same cell type is appearing
+twice, once per sample, and clustering is dutifully calling them different
+populations.</p>
+<p>That is the problem integration exists to solve.</p>
+<h2 id="what-is-actually-being-corrected-here"><a class="header" href="#what-is-actually-being-corrected-here">What is actually being corrected here</a></h2>
+<p>An honest caveat the mechanics can obscure. These two samples differ in <strong>two</strong>
+ways at once:</p>
+<ol>
+<li>They were prepared and sequenced separately — a technical batch effect.</li>
+<li>One was stimulated with interferon-beta — a real, large biological effect,
+and the entire point of the experiment.</li>
+</ol>
+<p>Integration cannot distinguish them. Aligning the samples removes some of the
+interferon response along with the batch effect. That is a deliberate trade,
+and it is the right one <em>for the purpose of matching cell types across
+conditions</em>: you want the CD14 monocytes of both samples to land in one cluster
+so you can then ask how they differ. It would be exactly wrong to integrate and
+then declare the conditions similar — you removed the difference yourself.</p>
+<p><strong>Integrate to align cell types. Test for condition effects on the uncorrected
+counts, within cell type.</strong></p>
+<p>If your samples were biological replicates processed together and they already
+overlap, do not integrate at all. Cluster first; if the samples already mix,
+stop. Integration is a repair, not a routine step.</p>
+<h2 id="harmony"><a class="header" href="#harmony">Harmony</a></h2>
+<p>Harmony (Korsunsky et al., 2019) works in PCA space rather than gene space,
+which is why it is fast. It alternates two steps:</p>
+<ol>
+<li><strong>Soft cluster</strong> the cells, with a penalty that rewards clusters containing a
+mixture of samples. A cluster that is 100% one sample is penalised, pushing
+toward clusters that represent cell types rather than batches.</li>
+<li><strong>Correct within each cluster</strong> by regressing the batch out, producing a
+per-cell shift.</li>
+</ol>
+<p>The second step is the one that matters, and the reason is easy to miss.
+Subtracting one global per-batch offset assumes the batch effect points the same
+way for every cell type. It usually does not — a batch can shift T cells one way
+and monocytes another. Correcting <em>within</em> clusters lets the correction differ
+per cell type, which one global offset cannot do.</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let ctrl = sc.load("ctrl_raw") |&gt; sc.filter_cells(250, 100000, 20.0)
+let stim = sc.load("stim_raw") |&gt; sc.filter_cells(250, 100000, 20.0)
+let merged = sc.merge(ctrl, stim, "ctrl", "stim")
+    |&gt; sc.filter_genes(3) |&gt; sc.normalize() |&gt; sc.variable_genes(2000)
+    |&gt; sc.run_pca(30) |&gt; sc.neighbors(15) |&gt; sc.cluster_leiden(15, 0.5)
+
+let corrected = sc.harmony(merged, merged.batch_ids)
+
+let sample = merged.batch_ids |&gt; map(|x| str(x))
+write_text("integration-after.svg",
+    sc.plot_embedding(corrected, sample, "After Harmony, coloured by sample"))
+</code></pre>
+<p><img src="images/integration-after.svg" alt="After Harmony: every island now contains both samples, and the islands are still distinct"></p>
+<blockquote>
+<p><strong><code>sc.integrate</code> is not Harmony.</strong> It is a single global per-batch centering —
+a reasonable deterministic baseline, and the thing this book warns about above.
+Use <code>sc.harmony</code> when you mean Harmony. The two are easy to confuse because
+<code>integrate</code> is the more obvious name, and until recently the package exposed
+only the weaker one.</p>
+</blockquote>
+<h2 id="how-to-tell-whether-it-worked"><a class="header" href="#how-to-tell-whether-it-worked">How to tell whether it worked</a></h2>
+<p>This is the part that gets skipped, and it is the part that matters.</p>
+<p>A batch-mixing metric alone is <strong>maximised by collapsing every cell onto a single
+point</strong>. Perfect mixing, zero biology. So mixing is never sufficient evidence.
+Every check must come in a pair:</p>
+<ul>
+<li><strong>Samples mix</strong> — each island now contains cells from both, in roughly the
+proportions the samples contribute.</li>
+<li><strong>Cell types stay apart</strong> — the populations distinguishable before integration
+are still distinguishable after.</li>
+</ul>
+<p>Compare the two figures above on both counts. The sample-specific islands are
+gone, and the islands themselves are still there — perhaps a dozen distinct
+groups rather than one cloud. Both halves hold.</p>
+<p>If you only ever check the first, you cannot detect over-correction, which is
+the characteristic failure of every integration method. A UMAP that looks
+beautifully mixed and has quietly merged your CD4 and CD8 T cells is a worse
+outcome than no integration at all, because it looks like success.</p>
+<p>The BioLang test suite for <code>harmony_integrate</code> asserts both as a pair for exactly
+this reason: a mutation that subtracted the regression intercept made the batches
+mix perfectly and collapsed cell-type separation from 15.91 to 0.00, and a
+mixing-only test still passed.</p>
+<h2 id="cca-and-why-it-is-theory-here"><a class="header" href="#cca-and-why-it-is-theory-here">CCA, and why it is theory here</a></h2>
+<p>Canonical Correlation Analysis is the idea behind Seurat’s original integration,
+and it is worth understanding even though you will not run it at scale in
+BioLang.</p>
+<p>PCA on either dataset alone finds the directions of greatest variance <em>in that
+dataset</em>, and a batch effect is often the largest single source. So PC1 becomes
+the batch. CCA instead looks for directions <strong>correlated between the two
+datasets</strong>. A batch effect present in only one cannot correlate with anything in
+the other, so it scores poorly. Shared biology — T cells behaving like T cells in
+both samples — scores well.</p>
+<p>BioLang has a <code>cca</code> builtin and that property is demonstrable on small inputs.
+But Seurat’s CCA works on a cells × cells cross-product, and BioLang’s
+<code>Matrix::svd</code> is O(n⁴) — it stalls above roughly a hundred cells. Thirty thousand
+is out of the question. <strong>The theory is runnable and the practice is not</strong>; use
+Harmony, which is what lesson 09 does anyway.</p>
+<h2 id="next-2"><a class="header" href="#next-2">Next</a></h2>
+<p>With cell types aligned across samples, the numbered clusters can be named:
+<a href="#clustering">Clustering</a> and then
+<a href="#markers-and-annotation">Markers and Annotation</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="clustering"><a class="header" href="#clustering">Clustering</a></h1>
+<p><em>Follows HBC lessons 10 (Clustering) and 11 (Clustering quality control).</em></p>
+<h2 id="graph-based-clustering"><a class="header" href="#graph-based-clustering">Graph-based clustering</a></h2>
+<p>Three steps, and no distance threshold anywhere — which is why it suits this
+data.</p>
+<ol>
+<li><strong>Build a k-nearest-neighbour graph.</strong> Each cell connects to its k closest
+neighbours in PCA space.</li>
+<li><strong>Weight the edges</strong> by how much two cells’ neighbourhoods overlap. Two cells
+sharing most of their neighbours get a strong edge; a chance proximity gets a
+weak one. This is what makes the result robust in high dimensions, where raw
+distances become nearly uniform.</li>
+<li><strong>Find communities</strong> — groups more densely connected internally than
+externally — with Leiden or Louvain.</li>
+</ol>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3)
+    |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize()
+    |&gt; sc.variable_genes(2000)
+    |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15)
+    |&gt; sc.cluster_leiden(15, 0.5)
+
+let labels = sc.get_clusters(obj)
+println("clusters: " + str(labels |&gt; unique |&gt; len))
+write_text("proportions.svg", sc.plot_proportions(obj))
+</code></pre>
+<pre><code class="language-text">clusters: 11
+</code></pre>
+<p><img src="images/proportions.svg" alt="Cells per cluster"></p>
+<p>Eleven clusters from 15,049 cells, ranging from 3,714 cells down to 32. That
+spread is normal and worth noticing: PBMCs are dominated by a few common
+populations, and the interesting biology is often in the small ones.</p>
+<h2 id="resolution-is-the-knob-and-it-is-not-a-truth-setting"><a class="header" href="#resolution-is-the-knob-and-it-is-not-a-truth-setting">Resolution is the knob, and it is not a truth setting</a></h2>
+<p><code>resolution</code> controls how readily the algorithm splits a community. Low values
+give few large clusters, high values many small ones.</p>
+<p><strong>There is no correct resolution.</strong> There is only one appropriate to the
+question. If you want broad lineages, go low. If you want to separate activation
+states within a lineage, go high and expect to justify each split.</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let base = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3)
+    |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize()
+    |&gt; sc.variable_genes(2000)
+    |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15)
+
+for r in [0.2, 0.5, 1.0] {
+    let c = sc.cluster_leiden(base, 15, r)
+    println("resolution " + str(r) + " -&gt; " +
+            str(sc.get_clusters(c) |&gt; unique |&gt; len) + " clusters")
+}
+</code></pre>
+<p>Report the resolution you used. An analysis that does not state it cannot be
+reproduced, because the cluster count is a function of it. The course lands on a
+similar count to the eleven above; do not expect an exact match, for the reasons
+in <a href="#what-differs-from-the-course">What Differs from the Course</a>.</p>
+<h2 id="looking-at-it"><a class="header" href="#looking-at-it">Looking at it</a></h2>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3) |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize() |&gt; sc.variable_genes(2000) |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15) |&gt; sc.cluster_leiden(15, 0.5)
+
+write_text("umap.svg", sc.plot_umap(obj, "PBMC control, UMAP coloured by Leiden cluster"))
+</code></pre>
+<p><img src="images/umap.svg" alt="UMAP of the control sample coloured by Leiden cluster"></p>
+<p>Read the <strong>topology</strong>, not the distances. Clusters 1 and 9 sit together at the
+bottom; clusters 7 and 8 together on the left; 0, 2, 5 and 6 form the large mass
+in the centre with 4 beside them. The next chapter shows those groupings are the
+monocytes, the B cells, and the T cells with NK adjacent — so the layout
+recovered relationships nobody told it about.</p>
+<h2 id="umap-is-for-looking-not-for-measuring"><a class="header" href="#umap-is-for-looking-not-for-measuring">UMAP is for looking, not for measuring</a></h2>
+<p>UMAP preserves local neighbourhoods. It does <strong>not</strong> preserve distance between
+clusters. Two clusters appearing adjacent are not necessarily more similar than
+two at opposite ends — that spacing is partly an artifact of the layout, and it
+changes with the seed.</p>
+<p>So: never argue from the picture. “These populations are related because they
+are next to each other” is not an argument by itself. The clustering happened in
+PCA space; the UMAP is a rendering of it, and every quantitative claim should
+come from the space, not the rendering.</p>
+<blockquote>
+<p>This deserves more emphasis here than in most tutorials, because BioLang’s
+UMAP was until recently producing a single featureless blob for any input —
+attraction with no reachable repulsion. The clustering was correct the whole
+time and the marker tables were correct the whole time; only the picture was
+wrong. If your embedding and your markers ever disagree, believe the markers.</p>
+</blockquote>
+<h2 id="the-lesson-most-tutorials-skip"><a class="header" href="#the-lesson-most-tutorials-skip">The lesson most tutorials skip</a></h2>
+<p>The algorithm always returns clusters. Run it on pure noise and you get clusters
+— tidy, well-separated, meaningless. So “I have clusters” is not evidence of
+anything, and the course is right to give this its own lesson placed <em>after</em>
+clustering, because the question only becomes answerable once you have something
+to interrogate.</p>
+<p>Four checks, in the order I would run them.</p>
+<p><strong>Is the cluster driven by QC metrics?</strong> If one cluster is just the low-UMI cells
+or the high-mitochondrial cells, it is a quality artifact wearing a cluster’s
+clothing.</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3) |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize() |&gt; sc.variable_genes(2000) |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15) |&gt; sc.cluster_leiden(15, 0.5)
+
+let d = sc.cluster_diagnostics(obj)
+println("mean silhouette: " + str(round(d.mean_score, 3)) +
+        "  (scored " + str(d.n_scored) + " of " + str(d.n_cells) + " cells)")
+</code></pre>
+<pre><code class="language-text">mean silhouette: 0.143  (scored 2150 of 15049 cells)
+</code></pre>
+<p>A silhouette compares every cell against every other, which is quadratic — at
+15,049 cells that is 226 million distance computations, and it does not finish
+in an interpreter. So it scores a deterministic subsample, the way
+scikit-learn’s <code>sample_size</code> does. Even subsampled this takes about three
+minutes; it is a diagnostic you run once, not something to put in a loop.</p>
+<p>0.14 is low, and that is expected here rather than alarming: silhouette rewards
+compact well-separated blobs, and PBMC T-cell subsets genuinely grade into one
+another. Read it as a relative measure across resolutions, not an absolute
+score.</p>
+<p><strong>Is it driven by cell cycle?</strong> Proliferating cells of different types can cluster
+by phase rather than identity. <code>sc.cell_cycle</code> scores cells so you can check.</p>
+<p><strong>Is it one sample?</strong> With both samples merged, a cluster that is 95% one sample
+while the others are mixed is either an uncorrected batch effect or a genuinely
+condition-specific population — the second is a real finding and a much stronger
+claim needing much more evidence.</p>
+<p><strong>Is it stable?</strong> A cluster that dissolves when you nudge the resolution or the
+number of PCs was never robust.</p>
+<p><code>sc.cluster_stability(obj)</code> sweeps a set of resolutions and reports, for each,
+the cluster count, the mean silhouette, and the adjusted Rand index against the
+neighbouring resolution — a cluster set that survives a change in resolution
+scores high, one that dissolves scores low.</p>
+<p>It is not run here, and the reason is worth stating rather than hiding: it
+computes a silhouette per resolution, and one silhouette on this sample takes
+about three minutes. The default five-resolution sweep is therefore a
+quarter-hour job. It is worth running once on a real analysis; it is not worth
+putting in a tutorial you want people to follow along with.</p>
+<p>Cluster 10 above has 32 cells. Treat anything that small with suspicion until
+its markers say otherwise — it may be doublets, or debris, or something real and
+rare, and only the marker table will tell you which.</p>
+<h2 id="next-3"><a class="header" href="#next-3">Next</a></h2>
+<p>Clusters are numbered, not named. Turning numbers into cell types is
+<a href="#markers-and-annotation">Markers and Annotation</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="markers-and-annotation"><a class="header" href="#markers-and-annotation">Markers and Annotation</a></h1>
+<p><em>Follows HBC lessons 12 (Seurat cheatsheet) and 13 (Marker identification).</em></p>
+<p>This is the chapter the whole book exists for. Everything before it is
+mechanical; this is where a numbered cluster becomes a cell type.</p>
+<h2 id="the-panel-view"><a class="header" href="#the-panel-view">The panel view</a></h2>
+<p>The fastest way to annotate PBMCs is to ask a known marker panel where it lands.</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3) |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize() |&gt; sc.variable_genes(2000) |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15) |&gt; sc.cluster_leiden(15, 0.5)
+
+let panel = ["CD3D","IL7R","CD8A","GNLY","NKG7","MS4A1","CD79A",
+             "CD14","LYZ","S100A8","FCGR3A","MS4A7","FCER1A","CST3","PPBP"]
+
+write_text("dotplot.svg",
+    sc.expr_dotplot(obj, panel, "Canonical PBMC markers by cluster"))
+</code></pre>
+<p><img src="images/dotplot.svg" alt="Dot plot of fifteen canonical PBMC markers across eleven clusters"></p>
+<p>Read it and the annotation falls out:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Cluster</th><th>Markers</th><th>Cell type</th></tr>
+</thead>
+<tbody>
+<tr><td>0, 5, 6</td><td>CD3D, IL7R</td><td>CD4 T cells</td></tr>
+<tr><td>2, 10</td><td>CD3D, IL7R (weaker)</td><td>T cells</td></tr>
+<tr><td>4</td><td>CD8A, <strong>GNLY</strong>, <strong>NKG7</strong></td><td>NK / cytotoxic</td></tr>
+<tr><td>7, 8</td><td><strong>MS4A1</strong>, <strong>CD79A</strong></td><td>B cells</td></tr>
+<tr><td>1</td><td><strong>CD14</strong>, <strong>LYZ</strong>, <strong>S100A8</strong></td><td>CD14 monocytes</td></tr>
+<tr><td>9</td><td><strong>FCGR3A</strong>, <strong>MS4A7</strong></td><td>CD16 monocytes</td></tr>
+<tr><td>3</td><td>LYZ, CST3, FCER1A</td><td>dendritic cells</td></tr>
+</tbody>
+</table>
+</div>
+<p>Now go back and look at the <a href="#looking-at-it">UMAP</a>. Clusters 1
+and 9 sit together — both monocytes. Clusters 7 and 8 sit together — both B
+cells. Clusters 0, 2, 5, 6 form the central mass with 4 beside them — T cells
+with NK adjacent. <strong>The layout recovered the lineage relationships without being
+told them</strong>, which is the strongest evidence available that the whole pipeline
+is working.</p>
+<h2 id="why-the-dot-plot-and-not-a-violin"><a class="header" href="#why-the-dot-plot-and-not-a-violin">Why the dot plot and not a violin</a></h2>
+<p>The dot plot encodes two quantities at once — dot <strong>size</strong> is the fraction of
+cells detecting the gene, dot <strong>colour</strong> is mean expression among those cells —
+and that pairing is exactly what separates a real marker from an artifact.</p>
+<p>A large pale dot means “expressed in most cells of this cluster, weakly”. A small
+intense dot means “a few cells, strongly”, and usually means be suspicious.</p>
+<p>A violin hides this. Two clusters with identical violins can differ completely in
+what fraction of their cells express the gene at all:</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3) |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize() |&gt; sc.variable_genes(2000) |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15) |&gt; sc.cluster_leiden(15, 0.5)
+
+write_text("violin-LYZ.svg", sc.plot_violin(obj, "LYZ"))
+write_text("feature-LYZ.svg", sc.plot_feature(obj, "LYZ"))
+</code></pre>
+<p><img src="images/violin-LYZ.svg" alt="LYZ expression per cluster as violins"></p>
+<p><img src="images/feature-LYZ.svg" alt="LYZ expression on the UMAP"></p>
+<p>LYZ is high in clusters 1, 3 and 9 and near zero elsewhere — the monocytes and
+dendritic cells, and nothing else. The feature plot says the same thing spatially.</p>
+<h2 id="finding-markers-you-did-not-know-to-look-for"><a class="header" href="#finding-markers-you-did-not-know-to-look-for">Finding markers you did not know to look for</a></h2>
+<p>The panel above assumes you already know PBMC biology. When you do not:</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3) |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize() |&gt; sc.variable_genes(2000) |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15) |&gt; sc.cluster_leiden(15, 0.5)
+
+let markers = sc.marker_table(obj, 1, 0)
+println(head(markers, 8))
+</code></pre>
+<p><code>marker_table(obj, a, b)</code> compares two clusters. The columns:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Column</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>log2fc</code></td><td>Log2 fold change between the groups</td></tr>
+<tr><td><code>pct_a</code>, <code>pct_b</code></td><td>Fraction of cells in each group detecting the gene</td></tr>
+<tr><td><code>pvalue</code></td><td>Raw test p-value</td></tr>
+<tr><td><code>padj</code></td><td>After multiple-testing correction</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="read-pct-before-you-read-p"><a class="header" href="#read-pct-before-you-read-p">Read pct before you read p</a></h2>
+<p>The p-values here will be tiny — often reported as zero. <strong>Do not take them
+seriously as evidence.</strong></p>
+<p>The test asks “could these two groups have the same expression?”, and you already
+know the answer is no, because you <em>defined</em> the groups by clustering on this
+same expression data. The clustering separated the cells; the test then confirms
+they are separated. That is circular, and it is why marker p-values are best read
+as a ranking device rather than as inference. A published p-value of 10⁻³⁰⁰ from
+a marker table means “this gene ranked high”, not “this finding is certain”.</p>
+<p>The columns carrying real information are <code>pct_a</code> and <code>pct_b</code>. A gene detected in
+95% of cluster cells and 5% of the rest is a usable marker regardless of its
+p-value. A gene with a huge fold change detected in 10% of the cluster is not —
+it is a few cells with high counts, and it will not replicate.</p>
+<p><strong>Rank by fold change, filter by detection rate, use the p-value only to break
+ties.</strong></p>
+<h2 id="markers-against-everything-else"><a class="header" href="#markers-against-everything-else">Markers against everything else</a></h2>
+<p>Comparing one cluster to one other answers a narrow question. Usually you want
+each cluster against all remaining cells:</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3) |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize() |&gt; sc.variable_genes(2000) |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15) |&gt; sc.cluster_leiden(15, 0.5)
+
+write_text("markers.svg", sc.plot_markers(obj, 5))
+</code></pre>
+<p>The underlying <code>find_all_markers</code> builtin runs a Mann-Whitney U test per gene per
+cluster and applies <strong>one</strong> Benjamini-Hochberg correction across the whole table,
+not per cluster. Correcting within each cluster separately would understate the
+multiple-testing burden, since the family is every test you ran.</p>
+<h2 id="from-markers-to-cell-types"><a class="header" href="#from-markers-to-cell-types">From markers to cell types</a></h2>
+<p>This step is manual, and there is no honest way around it. You match marker genes
+against known biology — literature, marker databases, or a reference atlas — and
+assign names.</p>
+<p>Three cautions the course is right to stress:</p>
+<p><strong>A cluster without a clean marker set may not be a cell type.</strong> It may be
+doublets, stressed cells, or an over-split fragment of a real population. Cluster
+10 above has 32 cells; look at its markers before giving it a name.</p>
+<p><strong>Markers are context-dependent.</strong> A gene marking a population in blood may mark
+something else in tumour. Markers from a PBMC atlas do not transfer unexamined to
+solid tissue — and this dataset <em>is</em> the PBMC atlas case, which is why it works
+so cleanly here.</p>
+<p><strong>Record your reasoning.</strong> “Cluster 1 = monocytes” is not reproducible.
+“Cluster 1: CD14+ LYZ+ S100A8+, FCGR3A−, 3714 cells — classical CD14 monocytes”
+is. Six months later you will not remember, and a reviewer cannot check the first
+version at all.</p>
+<h2 id="the-seurat-verbs-translated"><a class="header" href="#the-seurat-verbs-translated">The Seurat verbs, translated</a></h2>
+<p>For readers coming from the course’s R:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Seurat</th><th>BioLang</th></tr>
+</thead>
+<tbody>
+<tr><td><code>CreateSeuratObject</code></td><td><code>sc.load</code> / <code>sc.from_matrix</code></td></tr>
+<tr><td><code>PercentageFeatureSet</code> + <code>subset</code></td><td><code>sc.qc</code> → <code>sc.filter_cells</code></td></tr>
+<tr><td><code>NormalizeData</code></td><td><code>sc.normalize</code></td></tr>
+<tr><td><code>SCTransform</code></td><td><code>sc.sctransform</code></td></tr>
+<tr><td><code>FindVariableFeatures</code></td><td><code>sc.variable_genes</code></td></tr>
+<tr><td><code>RunPCA</code></td><td><code>sc.run_pca</code></td></tr>
+<tr><td><code>ElbowPlot</code></td><td><code>sc.plot_elbow</code></td></tr>
+<tr><td><code>FindNeighbors</code></td><td><code>sc.neighbors</code></td></tr>
+<tr><td><code>FindClusters</code></td><td><code>sc.cluster_leiden</code></td></tr>
+<tr><td><code>RunUMAP</code> + <code>DimPlot</code></td><td><code>sc.plot_umap</code></td></tr>
+<tr><td><code>FindMarkers</code></td><td><code>sc.marker_table</code></td></tr>
+<tr><td><code>FindAllMarkers</code></td><td><code>find_all_markers</code></td></tr>
+<tr><td><code>FeaturePlot</code></td><td><code>sc.plot_feature</code></td></tr>
+<tr><td><code>VlnPlot</code></td><td><code>sc.plot_violin</code></td></tr>
+<tr><td><code>DotPlot</code></td><td><code>sc.expr_dotplot</code></td></tr>
+<tr><td><code>RunHarmony</code></td><td><code>sc.integrate</code></td></tr>
+<tr><td><code>merge</code></td><td><code>sc.merge</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="next-4"><a class="header" href="#next-4">Next</a></h2>
+<p>Everything above in one script: <a href="#the-whole-workflow">The Whole Workflow</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="the-whole-workflow"><a class="header" href="#the-whole-workflow">The Whole Workflow</a></h1>
+<p><em>Follows HBC lesson 14 (scRNA-seq workflow).</em></p>
+<p>The course closes by writing the whole analysis out in one place, and it is the
+most useful lesson in the set. Individual steps make sense in isolation; the
+shape of the thing only becomes visible end to end.</p>
+<h2 id="one-sample-written-out"><a class="header" href="#one-sample-written-out">One sample, written out</a></h2>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3)              # gene kept if seen in &gt;= 3 cells
+    |&gt; sc.filter_cells(250, 100000, 20.0)  # min genes, max genes, max % mito
+    |&gt; sc.normalize(10000.0)           # CP10K then log1p
+    |&gt; sc.variable_genes(2000)         # HVGs, to focus PCA
+    |&gt; sc.run_pca(30)                  # linear dimensionality reduction
+    |&gt; sc.neighbors(15)                # kNN graph, k = 15
+    |&gt; sc.cluster_leiden(15, 0.5)      # communities at resolution 0.5
+
+println("cells:    " + str(obj.n_cells))
+println("clusters: " + str(sc.get_clusters(obj) |&gt; unique |&gt; len))
+write_text("umap.svg", sc.plot_umap(obj, "PBMC control, UMAP by cluster"))
+</code></pre>
+<pre><code class="language-text">cells:    15049
+clusters: 11
+</code></pre>
+<p>Nine lines, and every parameter that shapes the result is visible in them. That
+is the property to preserve — <strong>the numbers are the analysis</strong>, and hiding them
+inside a function makes the analysis unreviewable.</p>
+<h2 id="or-with-the-decisions-printed-for-you"><a class="header" href="#or-with-the-decisions-printed-for-you">Or with the decisions printed for you</a></h2>
+<p><code>sc.standard</code> runs that pipeline and reports what it did:</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.standard(nil, 2000, 15, 250, 100000, 20.0)
+</code></pre>
+<p>It prints the equivalent explicit pipeline, the cells in and out, and a table of
+every parameter marked <code>[set]</code> or <code>[default]</code> with a note on what each does — and
+tells you that resolution is the one to tune first.</p>
+<p>This is <strong>not</strong> a black box. It prints the explicit form, so it teaches the
+pipeline while running it, and every decision stays inspectable in
+<code>obj.decisions</code>. A convenience function that concealed these numbers would
+produce results nobody could review; one that prints them lets you graduate to
+the explicit form the moment you need to deviate.</p>
+<h2 id="both-samples"><a class="header" href="#both-samples">Both samples</a></h2>
+<p>The version this dataset is really for:</p>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+# Cells are filtered per sample; genes must stay identical across the two for
+# the merge, so gene filtering happens after it.
+let ctrl = sc.load("ctrl_raw") |&gt; sc.filter_cells(250, 100000, 20.0)
+let stim = sc.load("stim_raw") |&gt; sc.filter_cells(250, 100000, 20.0)
+
+let merged = sc.merge(ctrl, stim, "ctrl", "stim")
+    |&gt; sc.filter_genes(3)
+    |&gt; sc.normalize()
+    |&gt; sc.variable_genes(2000)
+    |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15)
+    |&gt; sc.cluster_leiden(15, 0.5)
+
+println("merged: " + str(merged.n_cells) + " cells, " +
+        str(sc.get_clusters(merged) |&gt; unique |&gt; len) + " clusters")
+
+let corrected = sc.integrate(merged, merged.batch_ids)
+</code></pre>
+<pre><code class="language-text">merged: 30043 cells, 14 clusters
+</code></pre>
+<blockquote>
+<p><strong>The ordering is not cosmetic.</strong> <code>filter_genes</code> before the merge leaves the
+two samples with different gene sets, and <code>sc.merge</code> refuses:
+<code>sc_merge_objects() requires identical genes in identical order</code>. Refusing is
+the right behaviour — quietly aligning by position would produce a matrix
+where column 400 means one gene in one half and another gene in the other.</p>
+</blockquote>
+<h2 id="checking-it"><a class="header" href="#checking-it">Checking it</a></h2>
+<pre><code class="language-biolang">import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |&gt; sc.filter_genes(3) |&gt; sc.filter_cells(250, 100000, 20.0)
+    |&gt; sc.normalize() |&gt; sc.variable_genes(2000) |&gt; sc.run_pca(30)
+    |&gt; sc.neighbors(15) |&gt; sc.cluster_leiden(15, 0.5)
+
+println(sc.cluster_diagnostics(obj))
+println(sc.cluster_stability(obj))
+</code></pre>
+<p>On real data you have no ground truth, so the diagnostics matter more, not less.
+The checks that carried weight in this book were the ones where two independent
+views had to agree: the marker dot plot and the UMAP topology both say clusters 1
+and 9 are monocytes and 7 and 8 are B cells. Neither was told about the other.</p>
+<h2 id="what-the-workflow-does-not-include"><a class="header" href="#what-the-workflow-does-not-include">What the workflow does not include</a></h2>
+<p>Being explicit about the boundary, because a pipeline that runs to completion
+invites the belief that it is finished.</p>
+<ul>
+<li><strong>Annotation is not in it.</strong> The clusters are numbered. Naming them is manual
+and needs biology the data cannot supply — see
+<a href="#markers-and-annotation">Markers and Annotation</a>.</li>
+<li><strong>Differential expression between conditions is not in it.</strong> With ctrl and
+stim in hand it is the obvious next question, and it needs a pseudobulk design
+with replicates. Testing across cells treats cells from one sample as
+independent replicates, which they are not, and produces confidently wrong
+p-values.</li>
+<li><strong>Doublet detection is not in it.</strong> <code>sc.doublets</code> and <code>sc.flag_doublets</code> exist;
+add them if your loading concentration was high.</li>
+<li><strong>Cell cycle regression is not in it.</strong> <code>sc.cell_cycle</code> scores cells so you can
+check whether it matters before deciding to remove it.</li>
+</ul>
+<h2 id="timings"><a class="header" href="#timings">Timings</a></h2>
+<p>Measured on a laptop, single-threaded, on this dataset:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Step</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td>Load one raw matrix (737,280 × 33,538)</td><td>2 s</td></tr>
+<tr><td>Filter to 15,049 cells</td><td>5 s</td></tr>
+<tr><td>Normalize → HVG → PCA → neighbours → cluster</td><td>15 s</td></tr>
+<tr><td>UMAP and plot</td><td>25 s</td></tr>
+<tr><td>Both samples merged (30,043 cells)</td><td>40 s</td></tr>
+<tr><td>Harmony on 30,043 cells</td><td>minutes</td></tr>
+</tbody>
+</table>
+</div>
+<p>Nothing here needs a cluster, but the two-sample chapters are not instant.</p>
+<h2 id="where-to-go-next"><a class="header" href="#where-to-go-next">Where to go next</a></h2>
+<p>Read the course itself, at <a href="https://hbctraining.github.io/Intro-to-scRNAseq/">https://hbctraining.github.io/Intro-to-scRNAseq/</a>.
+It teaches the same material in R with Seurat, which remains the implementation
+everything else is measured against. Credit and licence are on
+<a href="#attribution-and-licence">Attribution and Licence</a>, and the places BioLang and Seurat
+part company are in <a href="#what-differs-from-the-course">What Differs from the Course</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="what-differs-from-the-course"><a class="header" href="#what-differs-from-the-course">What differs from the course</a></h1>
+<p>A companion that claims to match and then quietly substitutes something weaker
+is worse than one that lists its gaps. Here they are.</p>
+<h2 id="the-lesson-map"><a class="header" href="#the-lesson-map">The lesson map</a></h2>
+<p>Fourteen lessons, seven chapters. Course lessons that exist to set up an R
+environment have no BioLang counterpart and are folded into their neighbours.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>HBC lesson</th><th>Covered in</th><th>Status</th></tr>
+</thead>
+<tbody>
+<tr><td>01 Intro to scRNA-seq</td><td><a href="#the-biology-and-the-matrix">The Biology and the Matrix</a></td><td>Full</td></tr>
+<tr><td>02 Generation of the count matrix</td><td><a href="#the-biology-and-the-matrix">The Biology and the Matrix</a></td><td>Read-only</td></tr>
+<tr><td>03 Quality control setup</td><td><a href="#quality-control">Quality Control</a></td><td>Folded in</td></tr>
+<tr><td>04 Cell Ranger QC</td><td><a href="#quality-control">Quality Control</a></td><td>Partial</td></tr>
+<tr><td>05 Quality control</td><td><a href="#quality-control">Quality Control</a></td><td>Full</td></tr>
+<tr><td>06 Theory of PCA</td><td><a href="#normalization-and-pca">Normalization and PCA</a></td><td>Full</td></tr>
+<tr><td>07 SCTransform</td><td><a href="#normalization-and-pca">Normalization and PCA</a></td><td>Full</td></tr>
+<tr><td>08 Integration: CCA theory</td><td><a href="#integration">Integration</a></td><td>Theory only</td></tr>
+<tr><td>09 Integration: Harmony</td><td><a href="#integration">Integration</a></td><td>Full</td></tr>
+<tr><td>10 Clustering</td><td><a href="#clustering">Clustering</a></td><td>Full</td></tr>
+<tr><td>11 Clustering quality control</td><td><a href="#clustering">Clustering</a></td><td>Full</td></tr>
+<tr><td>12 Seurat cheatsheet</td><td><a href="#markers-and-annotation">Markers and Annotation</a></td><td>Translated</td></tr>
+<tr><td>13 Marker identification</td><td><a href="#markers-and-annotation">Markers and Annotation</a></td><td>Full</td></tr>
+<tr><td>14 The whole workflow</td><td><a href="#the-whole-workflow">The Whole Workflow</a></td><td>Full</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="the-numbers-will-not-match-exactly"><a class="header" href="#the-numbers-will-not-match-exactly">The numbers will not match exactly</a></h2>
+<p>Same data, same thresholds, different implementations. Expect agreement on
+<strong>shape</strong> and disagreement on <strong>digits</strong>.</p>
+<p><strong>The pipelines are not identical</strong>, and the differences are specific:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th>This book</th><th>The course</th></tr>
+</thead>
+<tbody>
+<tr><td>QC filter</td><td>gene floor + mito cap</td><td>+ UMI floor + complexity</td></tr>
+<tr><td>Cells kept (ctrl)</td><td>15,049</td><td><strong>14,847</strong> with their full filter</td></tr>
+<tr><td>Normalization</td><td><code>normalize</code> (CP10K + log1p)</td><td>SCTransform</td></tr>
+<tr><td>PCs</td><td>30</td><td>40</td></tr>
+<tr><td>Clustered on</td><td>one sample at a time</td><td>the integrated object</td></tr>
+</tbody>
+</table>
+</div>
+<p>The QC gap is measurable: applying their four criteria by hand on this sample
+gives 14,847 cells against this book’s 15,049 — 202 cells, or 1.3%. The other
+three differences are choices, not limitations; BioLang has <code>sc.sctransform</code>
+and takes any PC count. They are not aligned here because each would change
+every figure, and the conclusions do not turn on them.</p>
+<p>Where this book and the course agree:</p>
+<ul>
+<li><strong>Cell counts after QC</strong>, to within 1.3% — and exactly, if you apply the
+full filter shown in <a href="#quality-control">Quality Control</a>.</li>
+<li><strong>Cell types present.</strong> CD4 and CD8 T, NK, B, CD14 and CD16 monocytes,
+dendritic cells, platelets — the same populations with the same canonical
+markers.</li>
+<li><strong>Which genes mark which population.</strong> CD14/LYZ/S100A8, MS4A1/CD79A,
+GNLY/NKG7, FCGR3A/MS4A7 all land where the course says they should.</li>
+</ul>
+<p>Where they will not:</p>
+<ul>
+<li><strong>Cluster count.</strong> This book finds 11 in the control sample at resolution 0.5.
+Different HVG selection, different PCA implementation and a different community
+detection tie-breaking all shift where the boundaries fall.</li>
+<li><strong>Cluster numbering.</strong> Arbitrary in both. Cluster 3 here is not cluster 3
+there.</li>
+<li><strong>UMAP coordinates.</strong> Seeded differently, and not meaningful as coordinates
+anyway.</li>
+<li><strong>Exact p-values and fold changes.</strong> Same tests, different implementations.</li>
+</ul>
+<h2 id="the-three-real-gaps"><a class="header" href="#the-three-real-gaps">The three real gaps</a></h2>
+<p><strong>Lesson 02 — generating the count matrix.</strong> This covers Cell Ranger:
+demultiplexing, barcode correction, alignment, UMI collapsing. BioLang does none
+of it, and neither does Seurat — it is upstream of both. BioLang starts where
+Cell Ranger stops. The chapter explains what happened upstream, because you
+cannot interpret a UMI count without knowing what a UMI is, but it does not
+pretend to run it.</p>
+<p><strong>Lesson 04 — Cell Ranger’s own QC report.</strong> The course reads the
+<code>web_summary.html</code> Cell Ranger emits. BioLang has no parser for it. Nearly all
+of the same quantities can be recomputed from the matrix, and the QC chapter
+does — but <strong>sequencing saturation</strong> and <strong>fraction of reads mapped to the
+transcriptome</strong> are properties of the reads, and the reads are gone by the time
+you have a matrix. If you have the file, read it in Cell Ranger’s viewer.</p>
+<p><strong>Lesson 08 — CCA at realistic scale.</strong> BioLang has a <code>cca</code> builtin and the
+theory is runnable on small inputs. But Seurat’s CCA works on a cells × cells
+cross-product, and BioLang’s <code>Matrix::svd</code> is O(n⁴) — it stalls above roughly a
+hundred cells. So the theory is demonstrable and the practice is not. <strong>Use
+Harmony</strong>, which is what lesson 09 does anyway and which BioLang implements at
+full scale.</p>
+<h2 id="things-this-book-found-that-the-course-cannot-tell-you"><a class="header" href="#things-this-book-found-that-the-course-cannot-tell-you">Things this book found that the course cannot tell you</a></h2>
+<p>Running the course’s data through a different implementation is a good way to
+find bugs in the implementation. Several turned up while this book was written,
+and they are worth knowing about because they shape what you should trust:</p>
+<ul>
+<li><strong>UMAP produced a featureless blob for any input.</strong> The layout had attraction
+but no reachable repulsion. Fixed, with tests. If you are running an older
+build and your embedding looks like a single cloud, this is why — and note
+that the clustering and marker tables were correct throughout. <strong>If your
+embedding and your markers disagree, believe the markers.</strong></li>
+<li><strong>Reading one gene across 15,000 cells took seven minutes</strong>, because the
+sparse count matrix was deep-copied on every value clone. Fixed; it is now
+free.</li>
+<li><strong>Plotting the raw droplets never finished</strong>, because the scatter path emitted
+one vector circle per point and accumulated them quadratically. Large scatters
+are now rasterised.</li>
+<li><strong>Violin plots crashed on unevenly sized clusters.</strong> The padding value for
+ragged columns was <code>-inf</code>, which is not valid JSON. An evenly sized synthetic
+fixture never triggered it; real clusters ranging from 3,714 cells to 32 do
+immediately.</li>
+</ul>
+<p>The last one is the general lesson. Synthetic data tests the code you wrote;
+real data tests the assumptions you did not know you had made.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="downloads"><a class="header" href="#downloads">Downloads</a></h1>
+<p>None of the code in this book runs in the browser: every example imports the
+<code>singlecell</code> package and most read or write files, and package imports and file
+I/O are CLI-only. So the pages show no Run button — copy the code, or take one
+of these.</p>
+<h2 id="the-starter-kit"><a class="header" href="#the-starter-kit">The starter kit</a></h2>
+<p><strong><a href="downloads/singlecell-starter.zip">singlecell-starter.zip</a></strong> — the package, the
+data-download script, every chapter script and the notebook.</p>
+<pre><code class="language-sh">unzip singlecell-starter.zip &amp;&amp; cd singlecell-starter
+bl install ./singlecell
+python get-data.py
+bl run ch01-biology-and-matrix.bl
+</code></pre>
+<p>Full setup, including installing BioLang itself, is in
+<a href="#getting-the-data">Getting the Data</a>.</p>
+<h2 id="the-data-script"><a class="header" href="#the-data-script">The data script</a></h2>
+<p><strong><a href="downloads/get-data.py">get-data.py</a></strong> — fetches the two 10x matrices from the
+HBC course’s own host. 3.2 GB down, ~90 MB kept; the archive is deleted unless
+you pass <code>--keep</code>. Also included in the kit.</p>
+<h2 id="chapter-scripts"><a class="header" href="#chapter-scripts">Chapter scripts</a></h2>
+<p>One per chapter, each self-contained.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Chapter</th><th>Script</th><th>Blocks</th></tr>
+</thead>
+<tbody>
+<tr><td>The Biology and the Matrix</td><td><a href="downloads/ch01-biology-and-matrix.bl">ch01-biology-and-matrix.bl</a></td><td>1</td></tr>
+<tr><td>Quality Control</td><td><a href="downloads/ch02-quality-control.bl">ch02-quality-control.bl</a></td><td>3</td></tr>
+<tr><td>Normalization and PCA</td><td><a href="downloads/ch03-normalization-pca.bl">ch03-normalization-pca.bl</a></td><td>4</td></tr>
+<tr><td>Integration</td><td><a href="downloads/ch04-integration.bl">ch04-integration.bl</a></td><td>2</td></tr>
+<tr><td>Clustering</td><td><a href="downloads/ch05-clustering.bl">ch05-clustering.bl</a></td><td>4</td></tr>
+<tr><td>Markers and Annotation</td><td><a href="downloads/ch06-markers.bl">ch06-markers.bl</a></td><td>4</td></tr>
+<tr><td>The Whole Workflow</td><td><a href="downloads/ch07-workflow.bl">ch07-workflow.bl</a></td><td>4</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>These are not quick, and here is what they actually cost.</strong> Measured on a
+laptop, single-threaded:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Script</th><th>Time</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ch01</code></td><td>2 s</td></tr>
+<tr><td><code>ch02</code></td><td>~1 min</td></tr>
+<tr><td><code>ch03</code></td><td>~2 min</td></tr>
+<tr><td><code>ch04</code></td><td>3 min 35 s</td></tr>
+<tr><td><code>ch05</code></td><td>3 min 50 s</td></tr>
+<tr><td><code>ch06</code></td><td><strong>over 9 min</strong></td></tr>
+<tr><td><code>ch07</code></td><td><strong>over 9 min</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>Two things drive this. Each block on a page is written to stand alone, so a
+reader can copy any one without having run the others — which means a
+concatenated chapter rebuilds the pipeline from the raw matrix once per block.
+And two operations are inherently expensive on 15,000 cells: <code>plot_markers</code>
+runs a test per gene per cluster and takes <strong>5 minutes</strong> by itself, and
+<code>cluster_diagnostics</code> computes a silhouette and takes <strong>3</strong>.</p>
+<p><code>ch06</code> and <code>ch07</code> were confirmed to run only in pieces, not as single scripts
+inside a ten-minute budget. Nothing in them is broken — every block produced
+the figure on its page — but if you want to follow along interactively, lift a
+single block rather than running a whole chapter.</p>
+</blockquote>
+<h2 id="the-notebook"><a class="header" href="#the-notebook">The notebook</a></h2>
+<p><strong><a href="downloads/hbc-scrnaseq.bln">hbc-scrnaseq.bln</a></strong> — prose and code together,
+runnable end to end:</p>
+<pre><code class="language-sh">bl notebook hbc-scrnaseq.bln
+</code></pre>
+<p>Several chapters write <code>.svg</code> figures into the current directory. The notebook
+carries the same content as the book, minus the figures, whose paths would not
+resolve beside a downloaded file.</p>
+<h2 id="what-you-cannot-download-here"><a class="header" href="#what-you-cannot-download-here">What you cannot download here</a></h2>
+<p>The dataset itself. It belongs to the study authors and is hosted by the HBC
+training team; <code>get-data.py</code> fetches it from them rather than redistributing a
+copy. See <a href="#attribution-and-licence">Attribution and Licence</a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
+        <script src="theme/book-runner-5ea35f6b.js"></script>
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>

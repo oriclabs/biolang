@@ -2110,7 +2110,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 165
+          "line": 168
         },
         {
           "name": "filter_cells",
@@ -2240,6 +2240,15 @@
           "line": 65
         },
         {
+          "name": "harmony",
+          "signature": "harmony(obj, batch_ids, theta = nil, n_clusters = nil) -> Record",
+          "summary": "BioLang package function harmony.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 139
+        },
+        {
           "name": "integrate",
           "signature": "integrate(obj, batch_ids) -> Record",
           "summary": "BioLang package function integrate.",
@@ -2282,7 +2291,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 139
+          "line": 142
         },
         {
           "name": "n_cells",
@@ -2330,7 +2339,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 146
+          "line": 149
         },
         {
           "name": "paired_composition_test",
@@ -2357,7 +2366,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 231
+          "line": 234
         },
         {
           "name": "plot_composition",
@@ -2366,7 +2375,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 217
+          "line": 220
         },
         {
           "name": "plot_de_overlap",
@@ -2375,7 +2384,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 222
+          "line": 225
         },
         {
           "name": "plot_donor_expression",
@@ -2384,7 +2393,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 202
+          "line": 205
         },
         {
           "name": "plot_elbow",
@@ -2393,7 +2402,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 163
+          "line": 166
         },
         {
           "name": "plot_embedding",
@@ -2402,7 +2411,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 181
+          "line": 184
         },
         {
           "name": "plot_enrichment",
@@ -2411,7 +2420,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 227
+          "line": 230
         },
         {
           "name": "plot_feature",
@@ -2420,7 +2429,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 160
+          "line": 163
         },
         {
           "name": "plot_feature_split",
@@ -2429,7 +2438,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 185
+          "line": 188
         },
         {
           "name": "plot_group_heatmap",
@@ -2438,7 +2447,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 189
+          "line": 192
         },
         {
           "name": "plot_ma",
@@ -2447,7 +2456,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 198
+          "line": 201
         },
         {
           "name": "plot_markers",
@@ -2456,7 +2465,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 162
+          "line": 165
         },
         {
           "name": "plot_pca",
@@ -2465,7 +2474,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 159
+          "line": 162
         },
         {
           "name": "plot_proportions",
@@ -2474,7 +2483,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 164
+          "line": 167
         },
         {
           "name": "plot_pseudobulk_pca",
@@ -2483,7 +2492,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 210
+          "line": 213
         },
         {
           "name": "plot_qc_dashboard",
@@ -2492,7 +2501,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 177
+          "line": 180
         },
         {
           "name": "plot_qc_scatter",
@@ -2501,7 +2510,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 173
+          "line": 176
         },
         {
           "name": "plot_qc_violin",
@@ -2510,7 +2519,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 169
+          "line": 172
         },
         {
           "name": "plot_silhouette",
@@ -2519,7 +2528,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 235
+          "line": 238
         },
         {
           "name": "plot_umap",
@@ -2528,7 +2537,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 158
+          "line": 161
         },
         {
           "name": "plot_violin",
@@ -2537,7 +2546,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 161
+          "line": 164
         },
         {
           "name": "plot_volcano",
@@ -2546,7 +2555,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 193
+          "line": 196
         },
         {
           "name": "pseudobulk",
@@ -2578,7 +2587,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 145
+          "line": 148
         },
         {
           "name": "pseudotime_bins",
@@ -2587,7 +2596,7 @@
           "returnType": "List<Int>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 147
+          "line": 150
         },
         {
           "name": "qc",
@@ -2645,7 +2654,7 @@
           "returnType": "List<Float>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 148
+          "line": 151
         },
         {
           "name": "standard",

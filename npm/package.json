@@ -1,0 +1,65 @@
+{
+  "name": "biolang",
+  "version": "1.1.0",
+  "description": "BioLang's sequence, statistics and alignment core for Node and the browser, compiled to WebAssembly. No toolchain required.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Raj Bandi",
+  "homepage": "https://lang.bio",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oriclabs/biolang.git",
+    "directory": "npm"
+  },
+  "bugs": {
+    "url": "https://github.com/oriclabs/biolang/issues"
+  },
+  "keywords": [
+    "bioinformatics",
+    "genomics",
+    "dna",
+    "fasta",
+    "fastq",
+    "vcf",
+    "sequence-analysis",
+    "wasm",
+    "webassembly",
+    "biolang"
+  ],
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "node": "./index.js",
+      "default": "./browser.js"
+    },
+    "./raw": {
+      "types": "./pkg-bundler/bl_wasm.d.ts",
+      "node": "./pkg-node/bl_wasm.js",
+      "default": "./pkg-bundler/bl_wasm.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "browser.js",
+    "browser.d.ts",
+    "pkg-node/bl_wasm.js",
+    "pkg-node/bl_wasm.d.ts",
+    "pkg-node/bl_wasm_bg.wasm",
+    "pkg-bundler/bl_wasm.js",
+    "pkg-bundler/bl_wasm_bg.js",
+    "pkg-bundler/bl_wasm.d.ts",
+    "pkg-bundler/bl_wasm_bg.wasm",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "sideEffects": [
+    "./pkg-bundler/bl_wasm.js",
+    "./pkg-node/bl_wasm.js"
+  ]
+}
