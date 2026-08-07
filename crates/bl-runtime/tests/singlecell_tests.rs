@@ -577,6 +577,19 @@ fn test_module_score_empty_indices() {
 
 // ─── sc_sctransform ──────────────────────────────────────────────────────────
 
+/// Residuals as rows. `sc_sctransform` returns a Matrix rather than nested
+/// Lists: the result is dense by construction, and boxing every element into a
+/// Value cost roughly three times the flat form, which is what made it run out
+/// of memory on a real integrated object.
+fn sct_rows(result: &Value) -> Vec<Vec<f64>> {
+    match result {
+        Value::Matrix(m) => (0..m.nrow)
+            .map(|i| (0..m.ncol).map(|j| m.data[i * m.ncol + j]).collect())
+            .collect(),
+        other => panic!("expected a Matrix, got {other:?}"),
+    }
+}
+
 #[test]
 fn test_sc_sctransform_shape_preserved() {
     let mat = matrix(vec![
@@ -586,17 +599,10 @@ fn test_sc_sctransform_shape_preserved() {
         vec![2.0, 2.0, 2.0],
     ]);
     let result = call_singlecell_builtin("sc_sctransform", vec![mat]).unwrap();
-    let rows = match result {
-        Value::List(r) => r,
-        other => panic!("{other:?}"),
-    };
+    let rows = sct_rows(&result);
     assert_eq!(rows.len(), 4, "same number of cells");
-    for row in rows.iter() {
-        let cols = match row {
-            Value::List(c) => c,
-            other => panic!("{other:?}"),
-        };
-        assert_eq!(cols.len(), 3, "same number of genes");
+    for row in &rows {
+        assert_eq!(row.len(), 3, "same number of genes");
     }
 }
 
@@ -609,16 +615,10 @@ fn test_sc_sctransform_residuals_clipped() {
     let n_cells = 100;
 
     let result = call_singlecell_builtin("sc_sctransform", vec![mat]).unwrap();
-    let vals = match result {
-        Value::List(r) => r,
-        other => panic!("{other:?}"),
-    };
+    let vals = sct_rows(&result);
     let clip = (n_cells as f64).sqrt();
-    for v in vals.iter() {
-        let f = match v {
-            Value::List(row) => as_float(&row[0]),
-            other => panic!("{other:?}"),
-        };
+    for row in &vals {
+        let f = row[0];
         assert!(
             f <= clip + 1e-6 && f >= -clip - 1e-6,
             "residual {f} outside clip range ±{clip}"
@@ -637,16 +637,9 @@ fn test_sc_sctransform_zero_matrix() {
     // All-zero input → all-zero residuals (mu = 0, residual = 0)
     let mat = matrix(vec![vec![0.0, 0.0], vec![0.0, 0.0]]);
     let result = call_singlecell_builtin("sc_sctransform", vec![mat]).unwrap();
-    let rows = match result {
-        Value::List(r) => r,
-        other => panic!("{other:?}"),
-    };
-    for row in rows.iter() {
-        for v in match row {
-            Value::List(c) => c.iter(),
-            _ => panic!(),
-        } {
-            assert!((as_float(v) - 0.0).abs() < 1e-9);
+    for row in sct_rows(&result) {
+        for v in row {
+            assert!((v - 0.0).abs() < 1e-9);
         }
     }
 }

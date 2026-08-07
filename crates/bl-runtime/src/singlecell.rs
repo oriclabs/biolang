@@ -2837,44 +2837,93 @@ fn builtin_module_score(args: Vec<Value>) -> Result<Value> {
 // ── sc_sctransform(matrix) ────────────────────────────────────────────
 // Computes Pearson residuals under a simplified negative-binomial model.
 
+/// Pearson residuals under a fixed-overdispersion negative binomial.
+///
+/// The residual is non-zero wherever the count is zero — `(0 - mu)/sqrt(var)` —
+/// so the result is genuinely dense and there is no sparse form to return. What
+/// it must not do is pay for that density three times over. It used to:
+/// `to_dense()` on the input, a second full `Vec<Vec<f64>>` for the residuals,
+/// and then `matrix_to_value` boxing every element into a `Value::Float` inside
+/// nested `Vec<Value>`. On the 29,629 x 16,681 matrix this book's integration
+/// chapter builds, that is roughly 4 GB + 4 GB + 12 GB, and it died with an
+/// allocation failure on a 32 GB machine.
+///
+/// Now: read the sparse input in place, write one flat `Vec<f64>`, and return a
+/// `Matrix`. Peak is the 4 GB the output genuinely needs.
 fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
-    let mat = require_dense_matrix(&args[0], "sc_sctransform")?;
-    let n_cells = mat.len();
-    if n_cells == 0 {
+    let (n_cells, n_genes, get_row): (usize, usize, Box<dyn Fn(usize, &mut Vec<f64>)>) =
+        match &args[0] {
+            Value::SparseMatrix(sm) => {
+                let sm = sm.clone();
+                let (rows, cols) = (sm.nrow, sm.ncol);
+                (
+                    rows,
+                    cols,
+                    Box::new(move |i: usize, out: &mut Vec<f64>| {
+                        out.clear();
+                        out.resize(cols, 0.0);
+                        for pos in sm.indptr[i]..sm.indptr[i + 1] {
+                            out[sm.indices[pos]] = sm.data[pos];
+                        }
+                    }),
+                )
+            }
+            other => {
+                let dense = require_matrix(other, "sc_sctransform")?;
+                let rows = dense.len();
+                let cols = if rows > 0 { dense[0].len() } else { 0 };
+                (
+                    rows,
+                    cols,
+                    Box::new(move |i: usize, out: &mut Vec<f64>| {
+                        out.clear();
+                        out.extend_from_slice(&dense[i]);
+                    }),
+                )
+            }
+        };
+
+    if n_cells == 0 || n_genes == 0 {
         return Ok(Value::List((vec![]).into()));
     }
-    let n_genes = mat[0].len();
+
     let clip_val = (n_cells as f64).sqrt();
     let theta = 100.0_f64; // fixed overdispersion parameter
 
-    let lib_sizes: Vec<f64> = mat.iter().map(|row| row.iter().sum::<f64>()).collect();
-
+    // One pass for the margins, so the second pass can write straight out.
+    let mut lib_sizes = vec![0.0f64; n_cells];
     let mut gene_sums = vec![0.0f64; n_genes];
-    for row in &mat {
+    let mut row = Vec::with_capacity(n_genes);
+    for i in 0..n_cells {
+        get_row(i, &mut row);
+        let mut total = 0.0;
         for (j, &v) in row.iter().enumerate() {
-            if j < n_genes {
-                gene_sums[j] += v;
-            }
+            total += v;
+            gene_sums[j] += v;
         }
+        lib_sizes[i] = total;
     }
     let total = gene_sums.iter().sum::<f64>().max(1e-10);
 
-    let mut residuals = vec![vec![0.0f64; n_genes]; n_cells];
-    for (i, row) in mat.iter().enumerate() {
+    let mut flat = vec![0.0f64; n_cells * n_genes];
+    for i in 0..n_cells {
+        get_row(i, &mut row);
+        let base = i * n_genes;
         for j in 0..n_genes {
-            let x = row.get(j).copied().unwrap_or(0.0);
             let mu = lib_sizes[i] * gene_sums[j] / total;
             let variance = mu + mu * mu / theta;
             let residual = if variance > 1e-12 {
-                (x - mu) / variance.sqrt()
+                (row[j] - mu) / variance.sqrt()
             } else {
                 0.0
             };
-            residuals[i][j] = residual.clamp(-clip_val, clip_val);
+            flat[base + j] = residual.clamp(-clip_val, clip_val);
         }
     }
 
-    Ok(matrix_to_value(residuals))
+    let m = bl_core::matrix::Matrix::new(flat, n_cells, n_genes)
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, &e, None))?;
+    Ok(Value::Matrix(m))
 }
 
 // ── sc_integrate(matrix, batch_ids) ──────────────────────────────────
