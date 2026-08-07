@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-038f2be7.js";
+            window.path_to_searchindex_js = "searchindex-f2c658ce.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-3313f347.js"></script>
@@ -245,6 +245,17 @@ inside a ten-minute budget. Nothing in them is broken — every block produced
 the figure on its page — but if you want to follow along interactively, lift a
 single block rather than running a whole chapter.</p>
 </blockquote>
+<h2 id="the-course-aligned-pipeline"><a class="header" href="#the-course-aligned-pipeline">The course-aligned pipeline</a></h2>
+<p><strong><a href="downloads/aligned.bl">aligned.bl</a></strong> — the course’s settings rather than this
+book’s: their four-criterion QC filter, SCTransform, 40 PCs, resolution 0.8. It
+prints both cluster counts side by side so you can see what the parameters cost:</p>
+<pre><code class="language-text">cells: 14847
+SCTransform / 40 PCs / res 0.8 -&gt; 14 clusters
+log1p / 30 PCs / res 0.5      -&gt; 10 clusters
+</code></pre>
+<p>About five minutes, most of it SCTransform. See
+<a href="differences.html">What Differs from the Course</a> for what this does and does not
+settle.</p>
 <h2 id="the-notebook"><a class="header" href="#the-notebook">The notebook</a></h2>
 <p><strong><a href="downloads/hbc-scrnaseq.bln">hbc-scrnaseq.bln</a></strong> — prose and code together,
 runnable end to end:</p>

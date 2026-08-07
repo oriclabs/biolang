@@ -65,6 +65,22 @@ One per chapter, each self-contained.
 > the figure on its page — but if you want to follow along interactively, lift a
 > single block rather than running a whole chapter.
 
+## The course-aligned pipeline
+
+**[aligned.bl](downloads/aligned.bl)** — the course's settings rather than this
+book's: their four-criterion QC filter, SCTransform, 40 PCs, resolution 0.8. It
+prints both cluster counts side by side so you can see what the parameters cost:
+
+```text
+cells: 14847
+SCTransform / 40 PCs / res 0.8 -> 14 clusters
+log1p / 30 PCs / res 0.5      -> 10 clusters
+```
+
+About five minutes, most of it SCTransform. See
+[What Differs from the Course](differences.md) for what this does and does not
+settle.
+
 ## The notebook
 
 **[hbc-scrnaseq.bln](downloads/hbc-scrnaseq.bln)** — prose and code together,

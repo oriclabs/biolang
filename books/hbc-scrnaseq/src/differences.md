@@ -40,11 +40,37 @@ Same data, same thresholds, different implementations. Expect agreement on
 | PCs | 30 | 40 |
 | Clustered on | one sample at a time | the integrated object |
 
-The QC gap is measurable: applying their four criteria by hand on this sample
-gives 14,847 cells against this book's 15,049 — 202 cells, or 1.3%. The other
-three differences are choices, not limitations; BioLang has `sc.sctransform`
-and takes any PC count. They are not aligned here because each would change
-every figure, and the conclusions do not turn on them.
+The course also clusters at **resolution 0.8**, where this book uses 0.5.
+
+## Can you align them? Yes, and here is what it changes
+
+None of those differences are limitations — BioLang has `sc.sctransform`, takes
+any PC count, and the filter can be written by hand. So the question is what
+happens when you match the course exactly. Measured on the control sample:
+
+```text
+cells: 14847
+SCTransform / 40 PCs / res 0.8 -> 14 clusters
+log1p / 30 PCs / res 0.5      -> 10 clusters
+```
+
+Same cells, same code, two parameter sets, and the cluster count moves from 10
+to 14. The aligned run lands in the range the course reports, which is the
+strongest statement available: **the difference was the pipeline, not the
+implementation.**
+
+The script is in [Downloads](downloads.md) as `aligned.bl`. It takes about five
+minutes, most of it SCTransform.
+
+What still will not match exactly, whatever you set: HVG selection bins
+differently, the PCA is a different implementation, and Leiden breaks ties
+differently. Expect the same populations and a similar count, not identical
+boundaries or identical numbering. If you need bit-for-bit agreement with a
+Seurat analysis, run Seurat.
+
+This book keeps the simpler settings in its chapters because log-normalization
+is easier to explain and 15 seconds beats 5 minutes when you are learning the
+shape of the workflow. That is a teaching choice, and now an explicit one.
 
 Where this book and the course agree:
 

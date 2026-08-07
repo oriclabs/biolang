@@ -1,0 +1,22 @@
+import "singlecell" as sc
+let raw = sc.load("ctrl_raw")
+let m = cell_qc(raw.matrix, raw.genes)
+let genes = col(m, "n_genes")
+let umis  = col(m, "total_counts")
+let mito  = col(m, "pct_mito")
+let keep = range(0, raw.n_cells) |> filter(|i| {
+    umis[i] >= 500.0 and genes[i] >= 250.0 and mito[i] < 20.0 and
+        (log10(genes[i]) / log10(umis[i])) > 0.80
+})
+let obj = sc_subset_cells(raw, keep) |> sc.filter_genes(3)
+println("cells: " + str(obj.n_cells))
+
+# Course settings: SCTransform, 40 PCs, resolution 0.8
+let sct = obj |> sc.sctransform() |> sc.variable_genes(2000) |> sc.run_pca(40)
+    |> sc.neighbors(15) |> sc.cluster_leiden(15, 0.8)
+println("SCTransform / 40 PCs / res 0.8 -> " + str(sc.get_clusters(sct) |> unique |> len) + " clusters")
+
+# The book's settings, same cells, for contrast
+let ln = obj |> sc.normalize() |> sc.variable_genes(2000) |> sc.run_pca(30)
+    |> sc.neighbors(15) |> sc.cluster_leiden(15, 0.5)
+println("log1p / 30 PCs / res 0.5      -> " + str(sc.get_clusters(ln) |> unique |> len) + " clusters")

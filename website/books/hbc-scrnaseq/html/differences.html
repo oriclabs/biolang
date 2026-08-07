@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-038f2be7.js";
+            window.path_to_searchindex_js = "searchindex-f2c658ce.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-3313f347.js"></script>
@@ -225,11 +225,29 @@ environment have no BioLang counterpart and are folded into their neighbours.</p
 </tbody>
 </table>
 </div>
-<p>The QC gap is measurable: applying their four criteria by hand on this sample
-gives 14,847 cells against this book’s 15,049 — 202 cells, or 1.3%. The other
-three differences are choices, not limitations; BioLang has <code>sc.sctransform</code>
-and takes any PC count. They are not aligned here because each would change
-every figure, and the conclusions do not turn on them.</p>
+<p>The course also clusters at <strong>resolution 0.8</strong>, where this book uses 0.5.</p>
+<h2 id="can-you-align-them-yes-and-here-is-what-it-changes"><a class="header" href="#can-you-align-them-yes-and-here-is-what-it-changes">Can you align them? Yes, and here is what it changes</a></h2>
+<p>None of those differences are limitations — BioLang has <code>sc.sctransform</code>, takes
+any PC count, and the filter can be written by hand. So the question is what
+happens when you match the course exactly. Measured on the control sample:</p>
+<pre><code class="language-text">cells: 14847
+SCTransform / 40 PCs / res 0.8 -&gt; 14 clusters
+log1p / 30 PCs / res 0.5      -&gt; 10 clusters
+</code></pre>
+<p>Same cells, same code, two parameter sets, and the cluster count moves from 10
+to 14. The aligned run lands in the range the course reports, which is the
+strongest statement available: <strong>the difference was the pipeline, not the
+implementation.</strong></p>
+<p>The script is in <a href="downloads.html">Downloads</a> as <code>aligned.bl</code>. It takes about five
+minutes, most of it SCTransform.</p>
+<p>What still will not match exactly, whatever you set: HVG selection bins
+differently, the PCA is a different implementation, and Leiden breaks ties
+differently. Expect the same populations and a similar count, not identical
+boundaries or identical numbering. If you need bit-for-bit agreement with a
+Seurat analysis, run Seurat.</p>
+<p>This book keeps the simpler settings in its chapters because log-normalization
+is easier to explain and 15 seconds beats 5 minutes when you are learning the
+shape of the workflow. That is a teaching choice, and now an explicit one.</p>
 <p>Where this book and the course agree:</p>
 <ul>
 <li><strong>Cell counts after QC</strong>, to within 1.3% — and exactly, if you apply the
