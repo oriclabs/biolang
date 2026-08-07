@@ -1,0 +1,68 @@
+# Normalization and PCA
+#
+# From 'Single-Cell RNA-seq with BioLang', Part V: The HBC Course in BioLang.
+# Follows the Harvard Chan Bioinformatics Core course 'Introduction to
+# scRNA-seq' (CC BY 4.0) — https://hbctraining.github.io/Intro-to-scRNAseq/
+#
+# Setup (once):
+#   bl install packages/singlecell
+#   python packages/singlecell/examples/make_demo_10x.py --output nsclc_like
+#
+# Run:
+#   bl run hbc-03-normalization-pca.bl
+
+# --------------------------------------------------------------------
+# Block 1 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("nsclc_like")
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.normalize()
+    |> sc.variable_genes(50)
+    |> sc.run_pca(20)
+
+write_text("elbow.svg", sc.plot_elbow(obj, 15))
+
+# --------------------------------------------------------------------
+# Block 2 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("nsclc_like")
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.normalize(10000.0)
+
+println("normalized layer present: " + str("norm_matrix" in keys(obj)))
+
+# --------------------------------------------------------------------
+# Block 3 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("nsclc_like")
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.normalize()
+    |> sc.variable_genes(50)
+
+println("HVGs: " + str(len(sc.get_hvg_genes(obj))))
+
+# --------------------------------------------------------------------
+# Block 4 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("nsclc_like")
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.sctransform()
+
+println("sctransform applied to " + str(obj.n_cells) + " cells")
+

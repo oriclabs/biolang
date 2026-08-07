@@ -1,0 +1,55 @@
+# Markers and Annotation
+#
+# From 'Single-Cell RNA-seq with BioLang', Part V: The HBC Course in BioLang.
+# Follows the Harvard Chan Bioinformatics Core course 'Introduction to
+# scRNA-seq' (CC BY 4.0) — https://hbctraining.github.io/Intro-to-scRNAseq/
+#
+# Setup (once):
+#   bl install packages/singlecell
+#   python packages/singlecell/examples/make_demo_10x.py --output nsclc_like
+#
+# Run:
+#   bl run hbc-06-markers.bl
+
+# --------------------------------------------------------------------
+# Block 1 of 3
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("nsclc_like")
+    |> sc.standard(nil, 50, 15, 20, 2500, 5.0, nil, nil, true)
+
+let markers = sc.marker_table(obj, 0, 1)
+println(head(markers, 6))
+
+# --------------------------------------------------------------------
+# Block 2 of 3
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("nsclc_like")
+    |> sc.standard(nil, 50, 15, 20, 2500, 5.0, nil, nil, true)
+
+write_text("markers.svg", sc.plot_markers(obj, 5))
+
+# --------------------------------------------------------------------
+# Block 3 of 3
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("nsclc_like")
+    |> sc.standard(nil, 50, 15, 20, 2500, 5.0, nil, nil, true)
+
+# Where is it expressed?
+write_text("feature-MARK0_000.svg", sc.plot_feature(obj, "MARK0_000"))
+
+# How much, and in what shape of distribution?
+write_text("violin-MARK0_000.svg", sc.plot_violin(obj, "MARK0_000"))
+
+# Several genes across all clusters at once.
+write_text("dotplot.svg",
+    sc.expr_dotplot(obj, ["MARK0_000", "MARK1_000", "MARK2_000", "MARK3_000"]))
+

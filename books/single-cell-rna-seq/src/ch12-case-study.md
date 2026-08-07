@@ -37,8 +37,8 @@ println("kept: " + str(obj.n_cells) + " cells")
 println("clusters: " + str(obj.clusters |> unique |> len))
 println(sc.summary(obj))
 
-sc.plot_elbow(obj, 15)
-sc.plot_proportions(obj)
+write_text("elbow.svg", sc.plot_elbow(obj, 15))
+write_text("proportions.svg", sc.plot_proportions(obj))
 
 let truth_rows = read_lines("nsclc_like/truth.csv")
     |> drop(1)

@@ -93,6 +93,13 @@ jobs:
       - name: Install mdBook preprocessors
         run: cargo install mdbook-mermaid --no-default-features 2>/dev/null || true
 
+      # Rebuilt rather than committed: the kit bundles the singlecell package
+      # and the book's own scripts, so a committed copy goes stale the first
+      # time either changes. Must run before the book build, which copies
+      # src/downloads/ into the published site.
+      - name: Build the single-cell starter kit
+        run: python scripts/build-starter-kit.py
+
       - name: Build books
         run: |
           mdbook build books/language

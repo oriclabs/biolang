@@ -210,6 +210,21 @@
 
     var cliRequired = isCLIRequired(pre);
 
+    // A block that cannot run gets no run controls at all. It used to get a
+    // disabled "CLI Only" button inside the full dark toolbar, which reads as a
+    // broken feature rather than as a deliberate boundary — and on a page where
+    // every block imports a package, that was the entire page. mdBook's own
+    // copy button is untouched, which is the control a reader actually wants
+    // here. A quiet one-line note carries the reason instead.
+    if (cliRequired) {
+      var note = document.createElement("div");
+      note.className = "bl-cli-note";
+      note.textContent = "Requires the CLI — run with: bl run script.bl";
+      note.style.cssText = "font-size:11px;color:#94a3b8;font-family:system-ui,sans-serif;margin:8px 0 -4px 2px;";
+      pre.parentNode.insertBefore(note, pre);
+      return;
+    }
+
     // Wrapper for button bar
     var bar = document.createElement("div");
     bar.className = "bl-run-bar";
@@ -535,8 +550,12 @@
       }
     });
 
-    // Add a "Reset All" button at the top if there are runnable blocks
-    if (allBlocks.length > 1) {
+    // Add a "Reset All" button at the top if there are runnable blocks.
+    // Counting every block put a sticky "Reset Interpreter" bar on pages where
+    // nothing could run — offering to clear an interpreter the page never
+    // starts. Only runnable blocks justify it.
+    var runnableCount = allBlocks.filter(function(b) { return !b.cliRequired; }).length;
+    if (runnableCount > 1) {
       var content = document.querySelector(".content, main, article, #content");
       if (content) {
         var resetBar = document.createElement("div");
@@ -564,7 +583,7 @@
         });
         var stateLabel = document.createElement("span");
         stateLabel.style.cssText = "font-size:11px;color:#94a3b8;font-family:system-ui,sans-serif;";
-        stateLabel.textContent = allBlocks.length + " code blocks \u2022 state persists between runs \u2022 use \u25B6\u25B6 to auto-run dependencies";
+        stateLabel.textContent = runnableCount + " runnable blocks \u2022 state persists between runs \u2022 use \u25B6\u25B6 to auto-run dependencies";
         resetBar.appendChild(resetBtn);
         resetBar.appendChild(stateLabel);
         var firstChild = content.firstChild;

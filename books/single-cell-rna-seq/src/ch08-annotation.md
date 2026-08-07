@@ -22,7 +22,7 @@ let obj = sc.standard(
 )
 
 write_text("umap.svg", sc.plot_umap(obj, "Teaching populations"))
-sc.plot_proportions(obj)
+write_text("proportions.svg", sc.plot_proportions(obj))
 ```
 
 The SVG is a view of the result, not the result itself. Keep the parameters,

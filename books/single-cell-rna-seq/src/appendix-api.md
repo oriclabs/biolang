@@ -86,8 +86,8 @@ BioLang resolves this name through the package's `[lib].entry` declaration in
 | `sc.plot_violin(obj, gene)` | SVG string |
 | `sc.plot_markers(obj, n)` | SVG string |
 | `sc.expr_dotplot(obj, genes, title)` | SVG string |
-| `sc.plot_elbow(obj, n_pcs)` | Printed ASCII chart |
-| `sc.plot_proportions(obj, groups)` | Printed ASCII chart |
+| `sc.plot_elbow(obj, n_pcs)` | SVG string |
+| `sc.plot_proportions(obj, groups)` | SVG string |
 | `sc.plot_qc_violin(obj, title)` | SVG string |
 | `sc.plot_qc_scatter(obj, title)` | SVG string |
 | `sc.plot_qc_dashboard(obj, title)` | SVG string |

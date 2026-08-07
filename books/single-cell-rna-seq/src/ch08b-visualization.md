@@ -74,7 +74,7 @@ between implementations.
 > Requires CLI: this example imports the package.
 
 ```biolang
-sc.plot_elbow(obj, 15)
+write_text("elbow.svg", sc.plot_elbow(obj, 15))
 ```
 
 The ordered ASCII bars show variance explained by each principal component.
@@ -188,7 +188,7 @@ plot and is unrelated.
 > Requires CLI: this example imports the package.
 
 ```biolang
-sc.plot_proportions(obj)
+write_text("proportions.svg", sc.plot_proportions(obj))
 ```
 
 This ordered ASCII chart counts cells per cluster or supplied group. Raw cell
@@ -197,8 +197,8 @@ sample-level compositional analysis before making population claims.
 
 ## Export all SVG plots
 
-All `plot_*` functions except `plot_elbow` and `plot_proportions` return SVG
-strings. The latter two print ordered ASCII output for terminals and logs. The
+Every `plot_*` function returns an SVG string, with no exceptions — pass the
+result to `write_text` to save it, or to `save_png` to rasterise it. The
 advanced gallery and complete export workflow are in
 [Advanced Analysis and Diagnostic Plots](./ch10b-advanced-analysis.md).
 

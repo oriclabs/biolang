@@ -32,7 +32,7 @@ let obj = sc.load("nsclc_like")
     |> sc.cluster_leiden(15, 0.5)
 
 println("clusters: " + str(obj.clusters |> unique |> len))
-sc.plot_elbow(obj, 15)
+write_text("elbow.svg", sc.plot_elbow(obj, 15))
 ```
 
 BioLang's sparse PCA centers features mathematically without materializing a
