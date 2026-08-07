@@ -31,18 +31,6 @@
 - [Scale, Reproduce, and Report](./ch14-reproducibility.md)
 - [Failure Modes and Review Checklist](./ch15-failure-modes.md)
 
-# Part V: The HBC Course in BioLang
-
-- [Overview and Lesson Map](./hbc-overview.md)
-  - [The Biology and the Matrix](./hbc-01-setup.md)
-  - [Quality Control](./hbc-02-quality-control.md)
-  - [Normalization and PCA](./hbc-03-normalization-pca.md)
-  - [Integration](./hbc-04-integration.md)
-  - [Clustering](./hbc-05-clustering.md)
-  - [Markers and Annotation](./hbc-06-markers.md)
-  - [The Whole Workflow](./hbc-07-workflow.md)
-- [Attribution and Licence](./hbc-attribution.md)
-
 # Appendices
 
 - [BioLang Single-Cell API](./appendix-api.md)
