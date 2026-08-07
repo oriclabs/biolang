@@ -107,6 +107,7 @@ jobs:
           mdbook build books/biostatistics/book
           mdbook build books/single-cell-rna-seq
           mdbook build books/msmb/book
+          mdbook build books/hbc-scrnaseq
 
       - uses: actions/upload-pages-artifact@v3
         with:

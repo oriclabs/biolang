@@ -1,0 +1,71 @@
+# Markers and Annotation
+#
+# From 'The HBC Single-cell Course, in BioLang'.
+# Follows the Harvard Chan Bioinformatics Core course 'Introduction to
+# scRNA-seq' (CC BY 4.0) - https://hbctraining.github.io/Intro-to-scRNAseq/
+#
+# Setup (once):
+#   bl install ./singlecell
+#   python get-data.py
+#
+# Run:
+#   bl run ch06-markers.bl
+
+# --------------------------------------------------------------------
+# Block 1 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |> sc.filter_genes(3) |> sc.filter_cells(250, 100000, 20.0)
+    |> sc.normalize() |> sc.variable_genes(2000) |> sc.run_pca(30)
+    |> sc.neighbors(15) |> sc.cluster_leiden(15, 0.5)
+
+let panel = ["CD3D","IL7R","CD8A","GNLY","NKG7","MS4A1","CD79A",
+             "CD14","LYZ","S100A8","FCGR3A","MS4A7","FCER1A","CST3","PPBP"]
+
+write_text("dotplot.svg",
+    sc.expr_dotplot(obj, panel, "Canonical PBMC markers by cluster"))
+
+# --------------------------------------------------------------------
+# Block 2 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |> sc.filter_genes(3) |> sc.filter_cells(250, 100000, 20.0)
+    |> sc.normalize() |> sc.variable_genes(2000) |> sc.run_pca(30)
+    |> sc.neighbors(15) |> sc.cluster_leiden(15, 0.5)
+
+write_text("violin-LYZ.svg", sc.plot_violin(obj, "LYZ"))
+write_text("feature-LYZ.svg", sc.plot_feature(obj, "LYZ"))
+
+# --------------------------------------------------------------------
+# Block 3 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |> sc.filter_genes(3) |> sc.filter_cells(250, 100000, 20.0)
+    |> sc.normalize() |> sc.variable_genes(2000) |> sc.run_pca(30)
+    |> sc.neighbors(15) |> sc.cluster_leiden(15, 0.5)
+
+let markers = sc.marker_table(obj, 1, 0)
+println(head(markers, 8))
+
+# --------------------------------------------------------------------
+# Block 4 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("ctrl_raw")
+    |> sc.filter_genes(3) |> sc.filter_cells(250, 100000, 20.0)
+    |> sc.normalize() |> sc.variable_genes(2000) |> sc.run_pca(30)
+    |> sc.neighbors(15) |> sc.cluster_leiden(15, 0.5)
+
+write_text("markers.svg", sc.plot_markers(obj, 5))
+

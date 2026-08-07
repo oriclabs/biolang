@@ -27,16 +27,20 @@ import tempfile
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BOOK = os.path.join(ROOT, "books", "single-cell-rna-seq", "src")
+BOOK = os.path.join(ROOT, "books", "hbc-scrnaseq", "src")
 PACKAGE = os.path.join(ROOT, "packages", "singlecell")
 GENERATOR = os.path.join(PACKAGE, "examples", "make_demo_10x.py")
+
+
+def downloads_dir():
+    return os.path.join(BOOK, "downloads")
 OUT = os.path.join(BOOK, "downloads", "singlecell-starter.zip")
 
 KIT = "singlecell-starter"
 
 
 def main():
-    for required in (PACKAGE, GENERATOR, os.path.join(BOOK, "downloads")):
+    for required in (PACKAGE, os.path.join(BOOK, "downloads", "get-data.py")):
         if not os.path.exists(required):
             sys.exit("missing: %s" % required)
 
@@ -51,14 +55,9 @@ def main():
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".git"),
         )
 
-        # The dataset, generated here so the reader needs no Python. The
-        # generator is seeded, so this is reproducible.
-        subprocess.run(
-            [sys.executable, GENERATOR, "--output", os.path.join(stage, "nsclc_like")],
-            check=True,
-            stdout=subprocess.DEVNULL,
-        )
-        shutil.copy2(GENERATOR, stage)
+        # The dataset is not bundled: it belongs to the study authors and is
+        # ~90 MB extracted from a 3.2 GB archive. Ship the fetcher instead.
+        shutil.copy2(os.path.join(downloads_dir(), "get-data.py"), stage)
 
         # The book's own scripts and notebook.
         downloads = os.path.join(BOOK, "downloads")

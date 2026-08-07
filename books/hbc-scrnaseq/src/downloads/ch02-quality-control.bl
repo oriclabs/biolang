@@ -1,0 +1,51 @@
+# Quality Control
+#
+# From 'The HBC Single-cell Course, in BioLang'.
+# Follows the Harvard Chan Bioinformatics Core course 'Introduction to
+# scRNA-seq' (CC BY 4.0) - https://hbctraining.github.io/Intro-to-scRNAseq/
+#
+# Setup (once):
+#   bl install ./singlecell
+#   python get-data.py
+#
+# Run:
+#   bl run ch02-quality-control.bl
+
+# --------------------------------------------------------------------
+# Block 1 of 3
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let raw = sc.load("ctrl_raw")
+let scored = sc.qc(raw)
+
+write_text("qc-raw.svg",
+    sc.plot_qc_scatter(scored, "All droplets, before filtering"))
+
+# --------------------------------------------------------------------
+# Block 2 of 3
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let raw = sc.load("ctrl_raw")
+let clean = raw
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(250, 100000, 20.0)
+
+println("before: " + str(raw.n_cells) + " droplets, " + str(raw.n_genes) + " genes")
+println("after:  " + str(clean.n_cells) + " cells, " + str(clean.n_genes) + " genes")
+
+# --------------------------------------------------------------------
+# Block 3 of 3
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let clean = sc.load("ctrl_raw")
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(250, 100000, 20.0)
+
+write_text("qc-clean.svg", sc.plot_qc_scatter(sc.qc(clean), "After filtering"))
+

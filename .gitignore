@@ -71,6 +71,7 @@ Thumbs.db
 !/books/practical-bioinformatics/
 !/books/single-cell-rna-seq/
 !/books/msmb/
+!/books/hbc-scrnaseq/
 
 # The MSMB companion generates its own data, so nothing here needs committing.
 # Readers who want the authors' original bundle download it into this directory;
