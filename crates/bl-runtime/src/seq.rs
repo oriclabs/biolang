@@ -5114,6 +5114,24 @@ fn builtin_center_interval(args: Vec<Value>) -> Result<Value> {
 mod panic_boundary_tests {
     use super::*;
 
+    /// Serialises these tests against each other.
+    ///
+    /// `without_panicking` swaps the process-global panic hook, and cargo runs
+    /// the tests in one binary on parallel threads. Left alone they race: one
+    /// test installs the silencing hook while another is checking that its own
+    /// hook survived, so `the_panic_hook_is_left_as_it_was_found` fails roughly
+    /// whenever it runs beside its siblings and passes when run alone. The
+    /// property being tested is real; the interference is an artefact of
+    /// sharing one global between concurrent tests.
+    static HOOK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    /// Takes the lock, ignoring poisoning — a failed assertion in one test
+    /// should report that failure, not turn every sibling into a panic about
+    /// the mutex.
+    fn serialised() -> std::sync::MutexGuard<'static, ()> {
+        HOOK.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
     // The behaviour under test is the boundary, not pdf_extract's internals:
     // a library that panics must not be able to end the process. Reproducing
     // pdf_extract's own InvalidContentStream panic would mean committing a
@@ -5122,6 +5140,7 @@ mod panic_boundary_tests {
 
     #[test]
     fn a_panic_becomes_an_error_rather_than_a_dead_process() {
+        let _guard = serialised();
         let result = without_panicking("read_pdf", || -> u32 {
             panic!("called `Result::unwrap()` on an `Err` value: Parse(InvalidContentStream)")
         });
@@ -5136,6 +5155,7 @@ mod panic_boundary_tests {
 
     #[test]
     fn a_panic_with_a_static_message_is_reported_too() {
+        let _guard = serialised();
         // &str and String payloads take different downcasts, and only one of
         // them being handled would silently drop half the causes.
         let error = without_panicking("read_pdf", || -> u32 { panic!("static reason") })
@@ -5145,11 +5165,13 @@ mod panic_boundary_tests {
 
     #[test]
     fn work_that_succeeds_passes_its_value_through() {
+        let _guard = serialised();
         assert_eq!(without_panicking("read_pdf", || 41 + 1).unwrap(), 42);
     }
 
     #[test]
     fn the_panic_hook_is_left_as_it_was_found() {
+        let _guard = serialised();
         // The hook is process-global and silenced during the call. Leaking that
         // would mute every later panic in the process, turning a crash anywhere
         // else into silence.

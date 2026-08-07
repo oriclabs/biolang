@@ -281,33 +281,67 @@ fn _ascii_bars(labels, values, width = 40) {
     }
 }
 
-## plot_elbow(obj, n_pcs) → prints an ordered ASCII bar chart
+## plot_elbow(obj, n_pcs) → Str (SVG)
 ##
 ## Variance explained per principal component, in PC order, for choosing how
-## many components to keep. Prints and returns nil.
+## many components to keep. Read where the curve flattens.
+## `elbow_plot` has no option to limit the components it draws, so the slice
+## happens here — otherwise `n_pcs` would be silently inert whenever the object
+## already carried a PCA with more components than the caller asked to see.
 fn plot_elbow(obj, n_pcs = 15) {
     let p = if contains(keys(obj), "pca") { obj.pca } else { sc_pca(_matrix_of(obj), n_pcs) }
     let r = p.explained_variance_ratio
     let n = if len(r) < n_pcs { len(r) } else { n_pcs }
-    println("variance explained per PC (%):")
-    _ascii_bars(
-        range(0, n) |> map(|i| "PC" + str(i + 1)),
-        range(0, n) |> map(|i| 100.0 * r[i])
-    )
+    elbow_plot(r |> take(n), {title: "variance explained per PC"})
 }
 
-## plot_proportions(obj, groups) → prints an ordered ASCII bar chart
+fn _bar_colour(i) {
+    let colours = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed",
+                   "#0891b2", "#be185d", "#4d7c0f", "#475569", "#9333ea"]
+    colours[i % len(colours)]
+}
+
+## plot_proportions(obj, groups) → Str (SVG)
 ##
 ## Cells per cluster, or per supplied label when `groups` is given. Sorted by
 ## group name so repeated runs are comparable.
-fn plot_proportions(obj, groups = nil) {
+##
+## Written out as SVG rather than delegating to `bar_chart`, which is an ASCII
+## builtin — every other plot_* here returns SVG and the exception was a trap.
+fn plot_proportions(obj, groups = nil, title = "cells per group") {
     let labs = if groups == nil { _labels(obj) } else { groups }
     let ids = labs |> unique |> sort
-    println("cells per group:")
-    _ascii_bars(
-        ids |> map(|g| str(g)),
-        ids |> map(|g| float(labs |> filter(|l| l == g) |> len))
-    )
+    let counts = ids |> map(|g| float(labs |> filter(|l| l == g) |> len))
+    let top = counts |> reduce(|a, b| if a > b { a } else { b }, 0.0)
+
+    let n = len(ids)
+    let bar_h = 26
+    let gap = 8
+    let left = 90
+    let plot_w = 420
+    let h = 60 + n * (bar_h + gap)
+    let w = left + plot_w + 70
+
+    let bars = range(0, n) |> map(|i| {
+        let y = 48 + i * (bar_h + gap)
+        let frac = if top > 0.0 { counts[i] / top } else { 0.0 }
+        let bw = frac * float(plot_w)
+        "<text x=\"" + str(left - 8) + "\" y=\"" + str(y + 17) +
+        "\" font-family=\"sans-serif\" font-size=\"12\" text-anchor=\"end\" " +
+        "fill=\"#334155\">" + str(ids[i]) + "</text>" +
+        "<rect x=\"" + str(left) + "\" y=\"" + str(y) + "\" width=\"" + str(bw) +
+        "\" height=\"" + str(bar_h) + "\" fill=\"" + _bar_colour(i) + "\" rx=\"2\"/>" +
+        "<text x=\"" + str(float(left) + bw + 8.0) + "\" y=\"" + str(y + 17) +
+        "\" font-family=\"sans-serif\" font-size=\"12\" fill=\"#475569\">" +
+        str(int(counts[i])) + "</text>"
+    })
+
+    join(["<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + str(w) +
+          "\" height=\"" + str(h) + "\" viewBox=\"0 0 " + str(w) + " " + str(h) + "\">",
+          "<rect width=\"100%\" height=\"100%\" fill=\"#ffffff\"/>",
+          "<text x=\"" + str(left) + "\" y=\"26\" font-family=\"sans-serif\" " +
+          "font-size=\"15\" font-weight=\"bold\" fill=\"#0f172a\">" + title + "</text>",
+          join(bars, ""), "</svg>"], "")
 }
 
 # ── dot plot ──────────────────────────────────────────────────────────────────
@@ -334,7 +368,9 @@ fn expr_dotplot(obj, genes, title = "expression dot plot") {
     let cell_h = 26
     let left = 110
     let top = 46
-    let w = left + len(ids) * cell_w + 130
+    # +200 reserves room for the legend text at font-size 9; the longest line
+    # ("circle size = fraction expressing") needs ~150px and starts 16px in.
+    let w = left + len(ids) * cell_w + 200
     let h = top + len(present) * cell_h + 40
 
     # Per (gene, cluster): fraction expressing and mean among expressing cells.

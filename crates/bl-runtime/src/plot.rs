@@ -176,6 +176,27 @@ impl Default for Margin {
     }
 }
 
+/// Decimal places that keep every tick label on one axis distinct.
+///
+/// A fixed one-decimal format collides as soon as the tick step falls below
+/// 0.1 — a 0..0.4 axis draws "0.1" twice, which reads as a rendering fault —
+/// and it wastes a decimal on integer axes ("10.0" for a component number).
+/// The cheapest rule that fixes both is to ask for the fewest decimals at
+/// which no two labels are equal, since that is the property a reader needs.
+fn tick_decimals(ticks: &[f64]) -> usize {
+    const MAX_DECIMALS: usize = 4;
+    for decimals in 0..MAX_DECIMALS {
+        let mut labels: Vec<String> =
+            ticks.iter().map(|t| format!("{t:.decimals$}")).collect();
+        labels.sort();
+        labels.dedup();
+        if labels.len() == ticks.len() {
+            return decimals;
+        }
+    }
+    MAX_DECIMALS
+}
+
 impl SvgCanvas {
     pub(crate) fn new(width: f64, height: f64) -> Self {
         Self {
@@ -333,10 +354,12 @@ impl SvgCanvas {
             domain: scale.domain,
             range: (self.margin.left, self.margin.left + self.plot_width()),
         };
-        for tick in scale.nice_ticks(5) {
+        let ticks = scale.nice_ticks(5);
+        let decimals = tick_decimals(&ticks);
+        for tick in ticks {
             let x = x_scale.map(tick);
             self.add_line(x, y, x, y + 5.0, "#333", 1.0);
-            self.add_text(x, y + 18.0, &format!("{tick:.1}"), "middle", 11.0);
+            self.add_text(x, y + 18.0, &format!("{tick:.decimals$}"), "middle", 11.0);
         }
         self.add_text(
             self.margin.left + self.plot_width() / 2.0,
@@ -361,10 +384,12 @@ impl SvgCanvas {
             domain: scale.domain,
             range: (self.margin.top + self.plot_height(), self.margin.top),
         };
-        for tick in scale.nice_ticks(5) {
+        let ticks = scale.nice_ticks(5);
+        let decimals = tick_decimals(&ticks);
+        for tick in ticks {
             let y = y_scale.map(tick);
             self.add_line(x - 5.0, y, x, y, "#333", 1.0);
-            self.add_text(x - 8.0, y + 4.0, &format!("{tick:.1}"), "end", 11.0);
+            self.add_text(x - 8.0, y + 4.0, &format!("{tick:.decimals$}"), "end", 11.0);
         }
         self.add_text_rotated(
             15.0,

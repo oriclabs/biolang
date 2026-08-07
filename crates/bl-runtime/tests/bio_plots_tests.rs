@@ -1843,3 +1843,66 @@ fn test_rainfall_many_variants() {
         "expected Str output, got {result:?}"
     );
 }
+
+// ── Axis tick labels ────────────────────────────────────────────
+//
+// A fixed one-decimal tick format collides whenever the axis range is small.
+// The scree plot is where it showed: variance ratios spanning 0..0.4 drew
+// "0.1" twice, which a reader reads as a broken figure rather than as two
+// distinct gridlines.
+
+/// Every tick label an axis draws must be distinguishable from its neighbours.
+fn tick_labels_of(svg: &str) -> Vec<String> {
+    // Axis labels are the 11px texts; titles and axis names use other sizes.
+    svg.split("font-size=\"11\"")
+        .skip(1)
+        .filter_map(|chunk| {
+            let start = chunk.find('>')? + 1;
+            let end = chunk[start..].find("</text>")? + start;
+            Some(chunk[start..end].to_string())
+        })
+        .collect()
+}
+
+#[test]
+fn small_ranges_do_not_repeat_a_tick_label() {
+    // Variance-explained ratios: the exact shape that produced a duplicate.
+    let values: Vec<Value> = [0.355, 0.299, 0.211, 0.021, 0.018, 0.012, 0.004]
+        .iter()
+        .map(|v| Value::Float(*v))
+        .collect();
+    let svg = match call_bio_plots_builtin("elbow_plot", vec![Value::List(values.into())]) {
+        Ok(Value::Str(s)) => s,
+        other => panic!("elbow_plot returned {other:?}"),
+    };
+
+    let labels = tick_labels_of(&svg);
+    assert!(!labels.is_empty(), "no tick labels found in the figure");
+
+    let mut seen = labels.clone();
+    seen.sort();
+    seen.dedup();
+    assert_eq!(
+        seen.len(),
+        labels.len(),
+        "an axis drew the same label twice: {labels:?}"
+    );
+}
+
+#[test]
+fn whole_number_axes_do_not_carry_a_pointless_decimal() {
+    // The other half of the same rule: asking for the fewest decimals that
+    // separate the ticks means an integer axis gets none at all.
+    let values: Vec<Value> = (0..40)
+        .map(|i| Value::Float(f64::from(i) * 5.0))
+        .collect();
+    let svg = match call_bio_plots_builtin("elbow_plot", vec![Value::List(values.into())]) {
+        Ok(Value::Str(s)) => s,
+        other => panic!("elbow_plot returned {other:?}"),
+    };
+    let labels = tick_labels_of(&svg);
+    assert!(
+        labels.iter().any(|l| !l.contains('.')),
+        "expected undecorated integer ticks, got {labels:?}"
+    );
+}
