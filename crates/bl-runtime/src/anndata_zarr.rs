@@ -376,7 +376,7 @@ fn read_anndata_dir(root: &Path) -> Result<Value> {
         } else {
             sparse_from_csr(data, indices, indptr, n_obs, n_var)?
         };
-        (Value::SparseMatrix(sparse), n_obs, n_var, true)
+        (Value::SparseMatrix(std::sync::Arc::new(sparse)), n_obs, n_var, true)
     } else {
         return Err(io_err(format!(
             "no X array or group under {}",
@@ -387,8 +387,11 @@ fn read_anndata_dir(root: &Path) -> Result<Value> {
     let genes = read_index(&root.join("var"), n_var)?;
     let barcodes = read_index(&root.join("obs"), n_obs)?;
     if let Value::SparseMatrix(sparse) = &mut matrix {
-        sparse.row_names = Some(barcodes.clone());
-        sparse.col_names = Some(genes.clone());
+        // Names arrive after the matrix is built, and the Arc is not shared yet,
+        // so make_mut writes in place rather than cloning the whole matrix.
+        let owned = std::sync::Arc::make_mut(sparse);
+        owned.row_names = Some(barcodes.clone());
+        owned.col_names = Some(genes.clone());
     }
 
     let mut rec = HashMap::new();
@@ -815,7 +818,7 @@ mod tests {
         matrix.row_names = Some(vec!["CELL_1".into(), "CELL_2".into()]);
         matrix.col_names = Some(vec!["GeneA".into(), "GeneB".into(), "GeneC".into()]);
         let mut rec = HashMap::new();
-        rec.insert("matrix".into(), Value::SparseMatrix(matrix));
+        rec.insert("matrix".into(), Value::SparseMatrix(std::sync::Arc::new(matrix)));
         rec.insert(
             "genes".into(),
             Value::List(

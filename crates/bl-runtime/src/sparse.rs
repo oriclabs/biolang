@@ -136,7 +136,7 @@ fn builtin_sparse_matrix(args: Vec<Value>) -> Result<Value> {
             }
         }
         let sm = SparseMatrix::from_triplets(&rows, &cols, &vals, nrow, ncol);
-        return Ok(Value::SparseMatrix(sm));
+        return Ok(Value::SparseMatrix(std::sync::Arc::new(sm)));
     }
 
     match &args[0] {
@@ -148,7 +148,7 @@ fn builtin_sparse_matrix(args: Vec<Value>) -> Result<Value> {
             let nrow = extract_usize(map.get("nrow"), "nrow")?;
             let ncol = extract_usize(map.get("ncol"), "ncol")?;
             let sm = SparseMatrix::from_triplets(&rows, &cols, &vals, nrow, ncol);
-            Ok(Value::SparseMatrix(sm))
+            Ok(Value::SparseMatrix(std::sync::Arc::new(sm)))
         }
         // From nested lists (dense)
         Value::List(outer) => {
@@ -175,7 +175,7 @@ fn builtin_sparse_matrix(args: Vec<Value>) -> Result<Value> {
                 }
             }
             let sm = SparseMatrix::from_dense(&dense);
-            Ok(Value::SparseMatrix(sm))
+            Ok(Value::SparseMatrix(std::sync::Arc::new(sm)))
         }
         other => Err(BioLangError::type_error(
             format!(
@@ -216,7 +216,7 @@ fn builtin_to_sparse(args: Vec<Value>) -> Result<Value> {
             let mut sm = SparseMatrix::from_dense(&dense);
             sm.row_names = m.row_names.clone();
             sm.col_names = m.col_names.clone();
-            Ok(Value::SparseMatrix(sm))
+            Ok(Value::SparseMatrix(std::sync::Arc::new(sm)))
         }
         other => Err(BioLangError::type_error(
             format!("to_sparse() requires Matrix, got {}", other.type_of()),
@@ -353,7 +353,7 @@ fn builtin_normalize_sparse(args: Vec<Value>) -> Result<Value> {
             ))
         }
     };
-    Ok(Value::SparseMatrix(result))
+    Ok(Value::SparseMatrix(std::sync::Arc::new(result)))
 }
 
 // ── Helpers ──────────────────────────────────────────────────────

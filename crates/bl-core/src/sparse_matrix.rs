@@ -9,6 +9,13 @@ pub struct SparseMatrix {
     /// Length = nrow + 1
     pub indptr: Vec<usize>,
     /// Column indices of non-zero entries.
+    ///
+    /// **Ascending within each row.** Every constructor here establishes that:
+    /// `new` sorts entries by `(row, column)`, the row subset copies whole rows
+    /// unchanged, and the column subset re-sorts what it keeps. `get` relies on
+    /// it to binary-search instead of scanning, which is the difference between
+    /// a plot rendering and a plot hanging on a real dataset. Code building this
+    /// struct field-by-field must preserve the order.
     pub indices: Vec<usize>,
     /// Non-zero values.
     pub data: Vec<f64>,
@@ -92,19 +99,23 @@ impl SparseMatrix {
         Self::from_triplets(&rows, &cols, &vals, nrow, ncol)
     }
 
-    /// Get the value at (i, j). Returns 0.0 if not stored.
+    /// Value at `(i, j)`, or zero.
+    ///
+    /// Binary search, which the ascending-`indices` invariant permits. The scan
+    /// this replaces was O(nonzeros in the row): a 10x matrix averages several
+    /// hundred detected genes per cell, so reading fifteen genes across fifteen
+    /// thousand cells — one dot plot — cost around 150 million comparisons and
+    /// did not finish. It is now roughly ten per lookup.
     pub fn get(&self, i: usize, j: usize) -> f64 {
         if i >= self.nrow {
             return 0.0;
         }
         let start = self.indptr[i];
         let end = self.indptr[i + 1];
-        for idx in start..end {
-            if self.indices[idx] == j {
-                return self.data[idx];
-            }
+        match self.indices[start..end].binary_search(&j) {
+            Ok(offset) => self.data[start + offset],
+            Err(_) => 0.0,
         }
-        0.0
     }
 
     /// Number of non-zero entries.
@@ -436,5 +447,93 @@ impl PartialEq for SparseMatrix {
                 .iter()
                 .zip(&other.data)
                 .all(|(a, b)| (a - b).abs() < 1e-10)
+    }
+}
+
+#[cfg(test)]
+mod get_tests {
+    use super::*;
+
+    /// A matrix with irregular row lengths and gaps, built through `new` so the
+    /// entries go in unsorted and the constructor has to order them.
+    fn scattered() -> SparseMatrix {
+        let entries = vec![
+            (0, 7, 7.5),
+            (0, 2, 2.5),
+            (0, 91, 91.5),
+            (2, 40, 40.5),
+            (2, 3, 3.5),
+            (3, 0, 0.5),
+            (3, 99, 99.5),
+            (3, 50, 50.5),
+        ];
+        let rows: Vec<usize> = entries.iter().map(|e| e.0).collect();
+        let cols: Vec<usize> = entries.iter().map(|e| e.1).collect();
+        let vals: Vec<f64> = entries.iter().map(|e| e.2).collect();
+        SparseMatrix::from_triplets(&rows, &cols, &vals, 4, 100)
+    }
+
+    #[test]
+    fn every_cell_matches_an_exhaustive_scan() {
+        // Binary search is only correct while indices stay sorted. Comparing
+        // against a scan over the same storage catches a wrong answer directly,
+        // rather than trusting the invariant.
+        let m = scattered();
+        for i in 0..m.nrow {
+            for j in 0..m.ncol {
+                let scanned = {
+                    let (start, end) = (m.indptr[i], m.indptr[i + 1]);
+                    (start..end)
+                        .find(|&idx| m.indices[idx] == j)
+                        .map_or(0.0, |idx| m.data[idx])
+                };
+                assert!(
+                    (m.get(i, j) - scanned).abs() < 1e-12,
+                    "({i}, {j}): binary search gave {}, scan gave {scanned}",
+                    m.get(i, j)
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn indices_are_ascending_within_every_row() {
+        // The invariant `get` depends on. If a future constructor stops
+        // sorting, this fails here rather than as silent zeros in a plot.
+        let m = scattered();
+        for i in 0..m.nrow {
+            let row = &m.indices[m.indptr[i]..m.indptr[i + 1]];
+            assert!(
+                row.windows(2).all(|w| w[0] < w[1]),
+                "row {i} is not ascending: {row:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_row_with_no_entries_reads_as_zero() {
+        let m = scattered();
+        assert_eq!(m.indptr[1], m.indptr[2], "row 1 should be empty");
+        for j in 0..m.ncol {
+            assert_eq!(m.get(1, j), 0.0);
+        }
+    }
+
+    #[test]
+    fn out_of_range_rows_and_columns_are_zero_not_a_panic() {
+        let m = scattered();
+        assert_eq!(m.get(99, 0), 0.0);
+        assert_eq!(m.get(0, 4242), 0.0);
+    }
+
+    #[test]
+    fn column_subsets_keep_the_order_get_relies_on() {
+        // The subset path re-sorts what it keeps; a remap that emitted columns
+        // in the old order would break the search on the result.
+        let m = scattered().subset_cols(&[91, 2, 7]);
+        for i in 0..m.nrow {
+            let row = &m.indices[m.indptr[i]..m.indptr[i + 1]];
+            assert!(row.windows(2).all(|w| w[0] < w[1]), "row {i}: {row:?}");
+        }
     }
 }

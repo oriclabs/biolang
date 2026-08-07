@@ -114,7 +114,7 @@ fn knn_edge(src: i64, tgt: i64, dist: f64) -> Value {
 // ─── read_10x ────────────────────────────────────────────────────────────────
 
 fn sparse_matrix(rows: Vec<Vec<f64>>) -> Value {
-    Value::SparseMatrix(SparseMatrix::from_dense(&rows))
+    Value::SparseMatrix(std::sync::Arc::new(SparseMatrix::from_dense(&rows)))
 }
 
 fn sparse_single_cell_object(counts: Vec<Vec<f64>>, genes: &[&str], barcodes: &[&str]) -> Value {
@@ -1300,7 +1300,7 @@ fn test_pseudobulk_aggregate_sparse_matches_dense() {
     let from_sparse = call_singlecell_builtin(
         "pseudobulk_aggregate",
         vec![
-            Value::SparseMatrix(SparseMatrix::from_dense(&dense)),
+            Value::SparseMatrix(std::sync::Arc::new(SparseMatrix::from_dense(&dense))),
             cell_labels,
             sample_labels,
         ],

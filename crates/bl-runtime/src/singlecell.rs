@@ -586,7 +586,7 @@ fn builtin_select_rows(args: Vec<Value>) -> Result<Value> {
                     None,
                 ));
             }
-            Ok(Value::SparseMatrix(matrix.subset_rows(&indices)))
+            Ok(Value::SparseMatrix(std::sync::Arc::new(matrix.subset_rows(&indices))))
         }
         _ => {
             let matrix = require_matrix(&args[0], "select_rows")?;
@@ -677,7 +677,7 @@ fn builtin_select_cols(args: Vec<Value>) -> Result<Value> {
                 None,
             ));
         }
-        return Ok(Value::SparseMatrix(matrix.subset_cols(&indices)));
+        return Ok(Value::SparseMatrix(std::sync::Arc::new(matrix.subset_cols(&indices))));
     }
 
     let mat = require_matrix(&args[0], "select_cols")?;
@@ -892,7 +892,7 @@ fn append_matrix_values(left: &Value, right: &Value, func: &str) -> Result<Value
     match (left, right) {
         (Value::SparseMatrix(left), Value::SparseMatrix(right)) => left
             .append_rows(right)
-            .map(Value::SparseMatrix)
+            .map(|m| Value::SparseMatrix(std::sync::Arc::new(m)))
             .map_err(|message| BioLangError::type_error(format!("{func}(): {message}"), None)),
         (Value::List(left), Value::List(right)) => {
             let mut values = left.as_ref().clone();
@@ -1063,7 +1063,7 @@ fn builtin_normalize_total(args: Vec<Value>) -> Result<Value> {
     }
 
     if let Value::SparseMatrix(matrix) = &args[0] {
-        return Ok(Value::SparseMatrix(matrix.normalize_rows(target)));
+        return Ok(Value::SparseMatrix(std::sync::Arc::new(matrix.normalize_rows(target))));
     }
 
     let mat = require_matrix(&args[0], "normalize_total")?;
@@ -1093,9 +1093,9 @@ fn builtin_log1p_transform(args: Vec<Value>) -> Result<Value> {
                 None,
             ));
         }
-        return Ok(Value::SparseMatrix(
+        return Ok(Value::SparseMatrix(std::sync::Arc::new(
             matrix.map_nonzero(|value| (value + 1.0).ln()),
-        ));
+        )));
     }
 
     let mat = require_matrix(&args[0], "log1p_transform")?;
@@ -2673,7 +2673,7 @@ fn read_10x_impl(args: Vec<Value>, sparse: bool) -> Result<Value> {
         let mut matrix = SparseMatrix::from_triplets(&rows, &columns, &values, n_c, n_g);
         matrix.row_names = Some(barcodes.clone());
         matrix.col_names = Some(genes.clone());
-        Value::SparseMatrix(matrix)
+        Value::SparseMatrix(std::sync::Arc::new(matrix))
     } else {
         let mut matrix = vec![vec![0.0f64; n_g]; n_c];
         for (gene_1, cell_1, value) in entries {

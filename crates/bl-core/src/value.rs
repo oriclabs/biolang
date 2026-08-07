@@ -110,7 +110,14 @@ pub enum Value {
     Kmer(Kmer),
 
     /// Compressed sparse row matrix (for single-cell RNA-seq, etc.)
-    SparseMatrix(SparseMatrix),
+    /// Reference-counted, like `List` and unlike `Matrix`.
+    ///
+    /// Held inline, every clone of this Value deep-copied indptr, indices and
+    /// data. Interpreter values are cloned constantly — every argument passed
+    /// to a builtin, every variable read — so reading one gene across fifteen
+    /// thousand cells copied a hundred-megabyte matrix fifteen thousand times
+    /// and took seven minutes. An Arc makes the clone a refcount bump.
+    SparseMatrix(Arc<SparseMatrix>),
 
     /// Compiled bytecode closure (opaque, used by bl-jit VM).
     CompiledClosure(Arc<dyn Any + Send + Sync>),
