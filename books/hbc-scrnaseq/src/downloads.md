@@ -77,9 +77,18 @@ SCTransform / 40 PCs / res 0.8 -> 14 clusters
 log1p / 30 PCs / res 0.5      -> 10 clusters
 ```
 
-About five minutes, most of it SCTransform. See
+**[exact.bl](downloads/exact.bl)** — the full integrated configuration: both
+samples, their filter, SCTransform, Harmony, 40 PCs, resolution 0.8. This is the
+one that reproduces the course's cluster count:
+
+```text
+merged: 29629 cells
+clusters: 17   (HBC reports 17)
+```
+
+Five minutes, and it needs about 4 GB free. See
 [What Differs from the Course](differences.md) for what this does and does not
-settle.
+settle — the count matching is not proof of an identical partition.
 
 ## The notebook
 

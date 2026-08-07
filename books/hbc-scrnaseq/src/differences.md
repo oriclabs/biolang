@@ -42,11 +42,22 @@ Same data, same thresholds, different implementations. Expect agreement on
 
 The course also clusters at **resolution 0.8**, where this book uses 0.5.
 
-## Can you align them? Yes, and here is what it changes
+## Can you align them? Yes — exactly
 
-None of those differences are limitations — BioLang has `sc.sctransform`, takes
-any PC count, and the filter can be written by hand. So the question is what
-happens when you match the course exactly. Measured on the control sample:
+None of those differences are limitations. BioLang has `sc.sctransform`, takes
+any PC count, and the filter can be written by hand. Matching the course's
+configuration on the course's object — both samples, their four-criterion
+filter, SCTransform, Harmony, 40 PCs, resolution 0.8 — gives:
+
+```text
+merged: 29629 cells
+clusters: 17
+```
+
+**The course's marker lesson assigns identities to clusters 0 through 16: 17
+clusters.** Same count, on the same data, from the same settings.
+
+For contrast, on the control sample alone:
 
 ```text
 cells: 14847
@@ -54,44 +65,38 @@ SCTransform / 40 PCs / res 0.8 -> 14 clusters
 log1p / 30 PCs / res 0.5      -> 10 clusters
 ```
 
-Same cells, same code, two parameter sets, and the cluster count moves from 10
-to 14. The aligned run lands in the range the course reports, which is the
-strongest statement available: **the difference was the pipeline, not the
-implementation.**
+Same cells, same code, two parameter sets. The difference was the pipeline, not
+the implementation.
 
-The script is in [Downloads](downloads.md) as `aligned.bl`. It takes about five
-minutes, most of it SCTransform.
+`aligned.bl` in [Downloads](downloads.md) runs the single-sample comparison;
+`exact.bl` runs the full integrated configuration and takes about five minutes.
 
-What still will not match exactly, whatever you set: HVG selection bins
-differently, the PCA is a different implementation, and Leiden breaks ties
-differently. Expect the same populations and a similar count, not identical
-boundaries or identical numbering. If you need bit-for-bit agreement with a
-Seurat analysis, run Seurat.
+### What this cost to make possible
 
-This book keeps the simpler settings in its chapters because log-normalization
-is easier to explain and 15 seconds beats 5 minutes when you are learning the
-shape of the workflow. That is a teaching choice, and now an explicit one.
+The integrated run did not work at first — it died with an out-of-memory error
+on a 32 GB machine. `sc_sctransform` was paying for its output three times: a
+dense copy of the sparse input, a second array for the residuals, and then every
+element boxed into a `Value` inside nested lists, about 4 + 4 + 12 GB. Pearson
+residuals are dense by construction, so 4 GB is real; the other 16 were not. It
+now streams the sparse input into one flat array and returns a matrix.
 
-Where this book and the course agree:
+So the honest sequence is: the numbers did not match, the reason turned out to
+be a memory bug rather than a numerical one, and once that was fixed they
+matched exactly.
 
-- **Cell counts after QC**, to within 1.3% — and exactly, if you apply the
-  full filter shown in [Quality Control](ch02-quality-control.md).
-- **Cell types present.** CD4 and CD8 T, NK, B, CD14 and CD16 monocytes,
-  dendritic cells, platelets — the same populations with the same canonical
-  markers.
-- **Which genes mark which population.** CD14/LYZ/S100A8, MS4A1/CD79A,
-  GNLY/NKG7, FCGR3A/MS4A7 all land where the course says they should.
+### What still will not match
 
-Where they will not:
+Cluster **numbering** is arbitrary in both — cluster 7 here is not cluster 7
+there. Beyond that, HVG selection bins differently, the PCA is a different
+implementation, and Leiden breaks ties differently, so the boundaries between
+adjacent clusters will not be identical cell for cell even when the count is.
+The count agreeing is strong evidence; it is not proof of an identical
+partition.
 
-- **Cluster count.** This book finds 11 in the control sample at resolution 0.5.
-  Different HVG selection, different PCA implementation and a different community
-  detection tie-breaking all shift where the boundaries fall.
-- **Cluster numbering.** Arbitrary in both. Cluster 3 here is not cluster 3
-  there.
-- **UMAP coordinates.** Seeded differently, and not meaningful as coordinates
-  anyway.
-- **Exact p-values and fold changes.** Same tests, different implementations.
+This book's chapters keep the simpler settings, because log-normalization is
+easier to explain and fifteen seconds beats five minutes while you are learning
+the shape of the workflow. That is a teaching choice, and now an explicit one
+with the cost measured.
 
 ## The three real gaps
 

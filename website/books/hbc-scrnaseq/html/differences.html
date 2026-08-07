@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-f2c658ce.js";
+            window.path_to_searchindex_js = "searchindex-b1166a8e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-3313f347.js"></script>
@@ -226,49 +226,46 @@ environment have no BioLang counterpart and are folded into their neighbours.</p
 </table>
 </div>
 <p>The course also clusters at <strong>resolution 0.8</strong>, where this book uses 0.5.</p>
-<h2 id="can-you-align-them-yes-and-here-is-what-it-changes"><a class="header" href="#can-you-align-them-yes-and-here-is-what-it-changes">Can you align them? Yes, and here is what it changes</a></h2>
-<p>None of those differences are limitations — BioLang has <code>sc.sctransform</code>, takes
-any PC count, and the filter can be written by hand. So the question is what
-happens when you match the course exactly. Measured on the control sample:</p>
+<h2 id="can-you-align-them-yes--exactly"><a class="header" href="#can-you-align-them-yes--exactly">Can you align them? Yes — exactly</a></h2>
+<p>None of those differences are limitations. BioLang has <code>sc.sctransform</code>, takes
+any PC count, and the filter can be written by hand. Matching the course’s
+configuration on the course’s object — both samples, their four-criterion
+filter, SCTransform, Harmony, 40 PCs, resolution 0.8 — gives:</p>
+<pre><code class="language-text">merged: 29629 cells
+clusters: 17
+</code></pre>
+<p><strong>The course’s marker lesson assigns identities to clusters 0 through 16: 17
+clusters.</strong> Same count, on the same data, from the same settings.</p>
+<p>For contrast, on the control sample alone:</p>
 <pre><code class="language-text">cells: 14847
 SCTransform / 40 PCs / res 0.8 -&gt; 14 clusters
 log1p / 30 PCs / res 0.5      -&gt; 10 clusters
 </code></pre>
-<p>Same cells, same code, two parameter sets, and the cluster count moves from 10
-to 14. The aligned run lands in the range the course reports, which is the
-strongest statement available: <strong>the difference was the pipeline, not the
-implementation.</strong></p>
-<p>The script is in <a href="downloads.html">Downloads</a> as <code>aligned.bl</code>. It takes about five
-minutes, most of it SCTransform.</p>
-<p>What still will not match exactly, whatever you set: HVG selection bins
-differently, the PCA is a different implementation, and Leiden breaks ties
-differently. Expect the same populations and a similar count, not identical
-boundaries or identical numbering. If you need bit-for-bit agreement with a
-Seurat analysis, run Seurat.</p>
-<p>This book keeps the simpler settings in its chapters because log-normalization
-is easier to explain and 15 seconds beats 5 minutes when you are learning the
-shape of the workflow. That is a teaching choice, and now an explicit one.</p>
-<p>Where this book and the course agree:</p>
-<ul>
-<li><strong>Cell counts after QC</strong>, to within 1.3% — and exactly, if you apply the
-full filter shown in <a href="ch02-quality-control.html">Quality Control</a>.</li>
-<li><strong>Cell types present.</strong> CD4 and CD8 T, NK, B, CD14 and CD16 monocytes,
-dendritic cells, platelets — the same populations with the same canonical
-markers.</li>
-<li><strong>Which genes mark which population.</strong> CD14/LYZ/S100A8, MS4A1/CD79A,
-GNLY/NKG7, FCGR3A/MS4A7 all land where the course says they should.</li>
-</ul>
-<p>Where they will not:</p>
-<ul>
-<li><strong>Cluster count.</strong> This book finds 11 in the control sample at resolution 0.5.
-Different HVG selection, different PCA implementation and a different community
-detection tie-breaking all shift where the boundaries fall.</li>
-<li><strong>Cluster numbering.</strong> Arbitrary in both. Cluster 3 here is not cluster 3
-there.</li>
-<li><strong>UMAP coordinates.</strong> Seeded differently, and not meaningful as coordinates
-anyway.</li>
-<li><strong>Exact p-values and fold changes.</strong> Same tests, different implementations.</li>
-</ul>
+<p>Same cells, same code, two parameter sets. The difference was the pipeline, not
+the implementation.</p>
+<p><code>aligned.bl</code> in <a href="downloads.html">Downloads</a> runs the single-sample comparison;
+<code>exact.bl</code> runs the full integrated configuration and takes about five minutes.</p>
+<h3 id="what-this-cost-to-make-possible"><a class="header" href="#what-this-cost-to-make-possible">What this cost to make possible</a></h3>
+<p>The integrated run did not work at first — it died with an out-of-memory error
+on a 32 GB machine. <code>sc_sctransform</code> was paying for its output three times: a
+dense copy of the sparse input, a second array for the residuals, and then every
+element boxed into a <code>Value</code> inside nested lists, about 4 + 4 + 12 GB. Pearson
+residuals are dense by construction, so 4 GB is real; the other 16 were not. It
+now streams the sparse input into one flat array and returns a matrix.</p>
+<p>So the honest sequence is: the numbers did not match, the reason turned out to
+be a memory bug rather than a numerical one, and once that was fixed they
+matched exactly.</p>
+<h3 id="what-still-will-not-match"><a class="header" href="#what-still-will-not-match">What still will not match</a></h3>
+<p>Cluster <strong>numbering</strong> is arbitrary in both — cluster 7 here is not cluster 7
+there. Beyond that, HVG selection bins differently, the PCA is a different
+implementation, and Leiden breaks ties differently, so the boundaries between
+adjacent clusters will not be identical cell for cell even when the count is.
+The count agreeing is strong evidence; it is not proof of an identical
+partition.</p>
+<p>This book’s chapters keep the simpler settings, because log-normalization is
+easier to explain and fifteen seconds beats five minutes while you are learning
+the shape of the workflow. That is a teaching choice, and now an explicit one
+with the cost measured.</p>
 <h2 id="the-three-real-gaps"><a class="header" href="#the-three-real-gaps">The three real gaps</a></h2>
 <p><strong>Lesson 02 — generating the count matrix.</strong> This covers Cell Ranger:
 demultiplexing, barcode correction, alignment, UMI collapsing. BioLang does none

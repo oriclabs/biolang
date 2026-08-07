@@ -1,0 +1,25 @@
+import "singlecell" as sc
+
+fn hbc_filter(obj) {
+    let m = cell_qc(obj.matrix, obj.genes)
+    let g = col(m, "n_genes")
+    let u = col(m, "total_counts")
+    let mt = col(m, "pct_mito")
+    let keep = range(0, obj.n_cells) |> filter(|i| {
+        u[i] >= 500.0 and g[i] >= 250.0 and mt[i] < 20.0 and
+            (log10(g[i]) / log10(u[i])) > 0.80
+    })
+    sc_subset_cells(obj, keep)
+}
+
+let c = hbc_filter(sc.load("ctrl_raw"))
+let s = hbc_filter(sc.load("stim_raw"))
+let merged = sc.merge(c, s, "ctrl", "stim") |> sc.filter_genes(3)
+println("merged: " + str(merged.n_cells) + " cells")
+
+# Course: SCTransform, integrate, 40 PCs, resolution 0.8
+let obj = merged |> sc.sctransform() |> sc.variable_genes(3000) |> sc.run_pca(40)
+let fixed = sc.harmony(obj, obj.batch_ids)
+let cl = sc.cluster_leiden(sc.neighbors(fixed, 15), 15, 0.8)
+let n = sc.get_clusters(cl) |> unique |> len
+println("clusters: " + str(n) + "   (HBC reports 17)")
