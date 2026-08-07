@@ -12,7 +12,7 @@
 #   bl run ch02-quality-control.bl
 
 # --------------------------------------------------------------------
-# Block 1 of 3
+# Block 1 of 4
 # --------------------------------------------------------------------
 
 import "singlecell" as sc
@@ -24,7 +24,7 @@ write_text("qc-raw.svg",
     sc.plot_qc_scatter(scored, "All droplets, before filtering"))
 
 # --------------------------------------------------------------------
-# Block 2 of 3
+# Block 2 of 4
 # --------------------------------------------------------------------
 
 import "singlecell" as sc
@@ -38,7 +38,25 @@ println("before: " + str(raw.n_cells) + " droplets, " + str(raw.n_genes) + " gen
 println("after:  " + str(clean.n_cells) + " cells, " + str(clean.n_genes) + " genes")
 
 # --------------------------------------------------------------------
-# Block 3 of 3
+# Block 3 of 4
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let raw = sc.load("ctrl_raw")
+let m = cell_qc(raw.matrix, raw.genes)
+let genes = col(m, "n_genes")
+let umis  = col(m, "total_counts")
+let mito  = col(m, "pct_mito")
+
+let keep = range(0, raw.n_cells) |> filter(|i| {
+    umis[i] >= 500.0 and genes[i] >= 250.0 and mito[i] < 20.0 and
+        (log10(genes[i]) / log10(umis[i])) > 0.80
+})
+println("cells: " + str(len(keep)))
+
+# --------------------------------------------------------------------
+# Block 4 of 4
 # --------------------------------------------------------------------
 
 import "singlecell" as sc

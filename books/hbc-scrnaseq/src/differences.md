@@ -30,10 +30,26 @@ environment have no BioLang counterpart and are folded into their neighbours.
 Same data, same thresholds, different implementations. Expect agreement on
 **shape** and disagreement on **digits**.
 
-Where this book and the course should agree, and do:
+**The pipelines are not identical**, and the differences are specific:
 
-- **Cell counts after QC.** 15,049 for the control sample; the course reports
-  about 15,000. The filter is landing in the same place.
+| | This book | The course |
+|---|---|---|
+| QC filter | gene floor + mito cap | + UMI floor + complexity |
+| Cells kept (ctrl) | 15,049 | **14,847** with their full filter |
+| Normalization | `normalize` (CP10K + log1p) | SCTransform |
+| PCs | 30 | 40 |
+| Clustered on | one sample at a time | the integrated object |
+
+The QC gap is measurable: applying their four criteria by hand on this sample
+gives 14,847 cells against this book's 15,049 — 202 cells, or 1.3%. The other
+three differences are choices, not limitations; BioLang has `sc.sctransform`
+and takes any PC count. They are not aligned here because each would change
+every figure, and the conclusions do not turn on them.
+
+Where this book and the course agree:
+
+- **Cell counts after QC**, to within 1.3% — and exactly, if you apply the
+  full filter shown in [Quality Control](ch02-quality-control.md).
 - **Cell types present.** CD4 and CD8 T, NK, B, CD14 and CD16 monocytes,
   dendritic cells, platelets — the same populations with the same canonical
   markers.

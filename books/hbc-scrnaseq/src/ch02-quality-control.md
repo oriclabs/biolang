@@ -81,9 +81,48 @@ before: 737280 droplets, 33538 genes
 after:  15049 cells, 15576 genes
 ```
 
-**737,280 barcodes down to 15,049 cells**, and 33,538 genes to 15,576. The HBC
-course reports about 15,000 cells for this sample, so the filter is landing where
-theirs does.
+**737,280 barcodes down to 15,049 cells**, and 33,538 genes to 15,576.
+
+That is close to the course's result but **not the same filter**, and the
+difference is worth being exact about. Theirs has four criteria:
+
+```r
+nUMI >= 500 & nGene >= 250 & log10GenesPerUMI > 0.80 & mitoRatio < 0.20
+```
+
+`sc.filter_cells` expresses two of them — a gene floor and a mitochondrial cap.
+It has no UMI floor and no complexity term. Applying all four by hand on this
+sample gives **14,847 cells** against this chapter's **15,049**: a difference of
+202 cells, or 1.3%.
+
+The 202 are mostly low-complexity droplets — high UMI counts spread over few
+genes, the flat spur along the bottom of the plot above. The complexity term
+`log10GenesPerUMI > 0.80` is what removes them, and it is the criterion worth
+adding by hand if you are reproducing the course exactly:
+
+```biolang
+import "singlecell" as sc
+
+let raw = sc.load("ctrl_raw")
+let m = cell_qc(raw.matrix, raw.genes)
+let genes = col(m, "n_genes")
+let umis  = col(m, "total_counts")
+let mito  = col(m, "pct_mito")
+
+let keep = range(0, raw.n_cells) |> filter(|i| {
+    umis[i] >= 500.0 and genes[i] >= 250.0 and mito[i] < 20.0 and
+        (log10(genes[i]) / log10(umis[i])) > 0.80
+})
+println("cells: " + str(len(keep)))
+```
+
+```text
+cells: 14847
+```
+
+The chapters that follow use the two-criterion form, because it is the one the
+package exposes and the 1.3% does not change any conclusion here. If you need
+the course's numbers exactly, use the block above.
 
 Two filters, in this order and for a reason. `filter_genes(3)` drops genes seen
 in fewer than three cells — a gene detected once cannot support a statistical
