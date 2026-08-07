@@ -242,57 +242,186 @@ pub fn umap(
             rng_state = rng_state
                 .wrapping_mul(6364136223846793005)
                 .wrapping_add(1442695040888963407);
-            *val = ((rng_state >> 33) as f64 / u32::MAX as f64 - 0.5) * 10.0;
+            // Compact start. Reference UMAP initialises spectrally, which
+            // begins already roughly organised; scattering points across ±5
+            // instead leaves 200 epochs to both organise and separate them,
+            // and they only half-manage. Starting inside ±0.5 lets attraction
+            // form the groups early and repulsion push them apart after.
+            *val = ((rng_state >> 33) as f64 / u32::MAX as f64 - 0.5);
         }
     }
 
-    // Optimize layout
+    // Optimize layout.
+    //
+    // Attraction pulls neighbours together; repulsion pushes everything else
+    // apart. The previous version had only the first: it skipped any pair with
+    // `w <= 0.0` before reaching the repulsion branch, and `w` is non-zero only
+    // for k-nearest neighbours — so the pairs that needed pushing apart were
+    // exactly the ones it never looked at. Every embedding collapsed to one
+    // blob regardless of the input.
+    //
+    // Repulsion over all pairs would be O(n^2) per epoch. Real UMAP samples a
+    // few negative pairs per positive edge instead, which is what this does.
     let a = 1.0 / (1.0 + min_dist.powi(2));
     let b = 1.0;
+    const NEGATIVE_SAMPLES: usize = 5;
+    const INITIAL_ALPHA: f64 = 1.0;
 
+    // Positive edges, once — iterating the dense graph every epoch was most of
+    // the cost and none of the information.
+    let mut edges: Vec<(usize, usize, f64)> = Vec::new();
+    for i in 0..n {
+        for j in (i + 1)..n {
+            if graph[i][j] > 0.0 {
+                edges.push((i, j, graph[i][j]));
+            }
+        }
+    }
+
+    let clamp_to = 4.0_f64;
     for epoch in 0..n_epochs {
-        let alpha = 1.0 - epoch as f64 / n_epochs as f64;
+        let alpha = INITIAL_ALPHA * (1.0 - epoch as f64 / n_epochs as f64);
 
-        for i in 0..n {
-            for j in (i + 1)..n {
-                let w = graph[i][j];
-                if w <= 0.0 {
+        for &(i, j, w) in &edges {
+            // ── attraction, along the edge ──
+            let dist_sq: f64 = embeddings[i]
+                .iter()
+                .zip(&embeddings[j])
+                .map(|(x, y)| (x - y).powi(2))
+                .sum::<f64>()
+                .max(1e-10);
+            // Reference UMAP samples each edge at a rate set by its weight
+            // rather than scaling the gradient by it. Scaling instead makes
+            // attraction systematically weaker than the five unscaled negative
+            // samples that follow, and the layout blows apart. Sampling by
+            // weight keeps the two in balance.
+            rng_state = rng_state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            let draw = ((rng_state >> 33) as f64) / (u32::MAX as f64);
+            if draw > w {
+                continue;
+            }
+            let grad = -2.0 * a * b * dist_sq.powf(b - 1.0) / (1.0 + a * dist_sq.powf(b));
+            let coeff = grad * alpha;
+            for d in 0..n_components {
+                let diff = embeddings[i][d] - embeddings[j][d];
+                let step = (coeff * diff).clamp(-clamp_to, clamp_to);
+                embeddings[i][d] += step;
+                embeddings[j][d] -= step;
+            }
+
+            // ── repulsion, against random non-neighbours ──
+            for _ in 0..NEGATIVE_SAMPLES {
+                rng_state = rng_state
+                    .wrapping_mul(6364136223846793005)
+                    .wrapping_add(1442695040888963407);
+                let k = ((rng_state >> 33) as usize) % n;
+                if k == i {
                     continue;
                 }
-
                 let dist_sq: f64 = embeddings[i]
                     .iter()
-                    .zip(&embeddings[j])
-                    .map(|(a, b)| (a - b).powi(2))
-                    .sum();
-                let dist_sq = dist_sq.max(1e-10);
-
-                // Attractive force
-                let grad_coeff = -2.0 * a * b * dist_sq.powf(b - 1.0) / (1.0 + a * dist_sq.powf(b));
-                let force = w * grad_coeff * alpha;
-
+                    .zip(&embeddings[k])
+                    .map(|(x, y)| (x - y).powi(2))
+                    .sum::<f64>()
+                    .max(1e-10);
+                let grad =
+                    2.0 * b / ((0.001 + dist_sq) * (1.0 + a * dist_sq.powf(b)));
+                let coeff = grad * alpha;
                 for d in 0..n_components {
-                    let diff = embeddings[i][d] - embeddings[j][d];
-                    let f = force * diff;
-                    let f = f.clamp(-4.0, 4.0);
-                    embeddings[i][d] += f;
-                    embeddings[j][d] -= f;
-                }
-
-                // Repulsive force (only for non-neighbors, approximate with negative sampling)
-                if w < 0.01 {
-                    let rep = 2.0 * b / ((0.001 + dist_sq) * (1.0 + a * dist_sq.powf(b)));
-                    let rep = rep * alpha;
-                    for d in 0..n_components {
-                        let diff = embeddings[i][d] - embeddings[j][d];
-                        let f = (rep * diff).clamp(-4.0, 4.0);
-                        embeddings[i][d] += f;
-                        embeddings[j][d] -= f;
-                    }
+                    let diff = embeddings[i][d] - embeddings[k][d];
+                    let step = (coeff * diff).clamp(-clamp_to, clamp_to);
+                    embeddings[i][d] += step;
                 }
             }
         }
     }
 
     embeddings
+}
+
+#[cfg(test)]
+mod umap_layout_tests {
+    use super::*;
+
+    /// Three groups far apart in the input, tight within themselves.
+    /// Any embedding worth the name must keep them apart.
+    fn three_clumps() -> Vec<Vec<f64>> {
+        let mut points = Vec::new();
+        for group in 0..3 {
+            for i in 0..60 {
+                points.push(vec![
+                    f64::from(group) * 100.0 + f64::from(i % 10) * 0.1,
+                    f64::from(i / 10) * 0.1,
+                    0.0,
+                ]);
+            }
+        }
+        points
+    }
+
+    fn centroid(embedding: &[Vec<f64>], group: usize) -> (f64, f64) {
+        let rows = &embedding[group * 60..(group + 1) * 60];
+        let n = rows.len() as f64;
+        (
+            rows.iter().map(|r| r[0]).sum::<f64>() / n,
+            rows.iter().map(|r| r[1]).sum::<f64>() / n,
+        )
+    }
+
+    fn spread(embedding: &[Vec<f64>], group: usize) -> f64 {
+        let (cx, cy) = centroid(embedding, group);
+        let rows = &embedding[group * 60..(group + 1) * 60];
+        rows.iter()
+            .map(|r| ((r[0] - cx).powi(2) + (r[1] - cy).powi(2)).sqrt())
+            .sum::<f64>()
+            / rows.len() as f64
+    }
+
+    fn gap(embedding: &[Vec<f64>], a: usize, b: usize) -> f64 {
+        let (ax, ay) = centroid(embedding, a);
+        let (bx, by) = centroid(embedding, b);
+        ((ax - bx).powi(2) + (ay - by).powi(2)).sqrt()
+    }
+
+    #[test]
+    fn separated_input_stays_separated() {
+        // The property the whole method exists for, and the one that was
+        // missing: the layout had attraction but no reachable repulsion — every
+        // non-neighbour pair hit a `continue` before the repulsive branch — so
+        // any input at all collapsed into a single blob. Nothing tested the
+        // algorithm, only the plot that draws it.
+        let embedding = umap(&three_clumps(), 2, 15, 200, 0.1);
+        assert_eq!(embedding.len(), 180);
+
+        let widest = (0..3)
+            .map(|g| spread(&embedding, g))
+            .fold(f64::MIN, f64::max);
+        for (a, b) in [(0, 1), (0, 2), (1, 2)] {
+            let apart = gap(&embedding, a, b);
+            assert!(
+                apart > widest,
+                "groups {a} and {b} are {apart:.2} apart but groups are {widest:.2} wide \
+                 — the embedding did not separate them"
+            );
+        }
+    }
+
+    #[test]
+    fn the_layout_does_not_collapse_to_a_point() {
+        // The failure mode directly: a blob passes any "did it run" check.
+        let embedding = umap(&three_clumps(), 2, 15, 200, 0.1);
+        let xs: Vec<f64> = embedding.iter().map(|r| r[0]).collect();
+        let extent = xs.iter().fold(f64::MIN, |m, v| m.max(*v))
+            - xs.iter().fold(f64::MAX, |m, v| m.min(*v));
+        assert!(extent > 1.0, "embedding spans only {extent:.3}");
+    }
+
+    #[test]
+    fn the_same_input_gives_the_same_layout() {
+        // Seeded, so published figures do not move between runs.
+        let data = three_clumps();
+        assert_eq!(umap(&data, 2, 15, 200, 0.1), umap(&data, 2, 15, 200, 0.1));
+    }
 }
