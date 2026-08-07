@@ -136,6 +136,9 @@ fn ranked_genes(de_results)              { _advanced.ranked_genes(de_results) }
 
 fn integrate(obj, batch_ids)                    { _int.integrate(obj, batch_ids) }
 fn integrate_from_column(obj, batch_col)        { _int.integrate_from_column(obj, batch_col) }
+fn harmony(obj, batch_ids, theta = nil, n_clusters = nil) {
+    _int.harmony(obj, batch_ids, theta, n_clusters)
+}
 fn merge(obj_a, obj_b, batch_a = 0, batch_b = 1) {
     _int.merge(obj_a, obj_b, batch_a, batch_b)
 }

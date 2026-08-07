@@ -119,12 +119,20 @@ fn plot_embedding(obj, groups, title = "UMAP") {
     if len(groups) != obj.n_cells {
         error("sc.plot_embedding() needs one group label per cell")
     }
-    let base = if contains(keys(obj), "pca_scores") {
-        obj.pca_scores
+    # Batch correction writes integrated_embedding, and this used to read
+    # pca_scores regardless — so a before/after pair came out pixel-identical
+    # and the correction was invisible in every figure. _matrix_of looked for a
+    # third name, integrated_matrix, that nothing ever writes.
+    let base = if contains(keys(obj), "integrated_embedding") {
+        obj.integrated_embedding
     } else {
-        sc_pca(_base._matrix_of(obj), 30).scores
+        if contains(keys(obj), "pca_scores") {
+            obj.pca_scores
+        } else {
+            sc_pca(_base._matrix_of(obj), 30).scores
+        }
     }
-    let emb = if contains(keys(obj), "umap") { obj.umap } else { umap(base, 2) }
+    let emb = umap(base, 2)
     let points = range(0, obj.n_cells) |> map(|i| {
         let r = row(emb, i)
         {x: r[0], y: r[1], cluster: str(groups[i])}

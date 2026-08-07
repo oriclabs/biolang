@@ -271,6 +271,9 @@ fn _distance(a, b) {
     sqrt(sum(range(0, len(a)) |> map(|i| (a[i] - b[i]) ** 2.0)))
 }
 
+# Cells scored for the silhouette before subsampling kicks in.
+let MAX_SILHOUETTE = 2000
+
 fn _silhouette(data, labels) {
     let levels = labels |> unique |> sort
     # A silhouette needs at least two clusters and at least one cluster with
@@ -285,9 +288,18 @@ fn _silhouette(data, labels) {
                     "every cell is its own cluster"
                 }}
     }
+    # A silhouette compares every cell against every other, which is quadratic.
+    # On a real sample — 15,049 cells after QC — that is 226 million distance
+    # computations in the interpreter, and it does not finish. Score a
+    # deterministic subsample instead, which is what scikit-learn's sample_size
+    # is for: the mean coefficient is an estimate either way, and an estimate
+    # you can compute beats an exact answer you cannot.
+    let stride = if len(data) > MAX_SILHOUETTE { len(data) / MAX_SILHOUETTE } else { 1 }
+    let sampled = range(0, len(data)) |> filter(|i| i % stride == 0)
+
     let scores = []
-    for i in range(0, len(data)) {
-        let same = range(0, len(data))
+    for i in sampled {
+        let same = sampled
             |> filter(|j| j != i and labels[j] == labels[i])
         let a = if len(same) > 0 {
             mean(same |> map(|j| _distance(data[i], data[j])))
@@ -295,14 +307,15 @@ fn _silhouette(data, labels) {
             0.0
         }
         let other_means = levels |> filter(|level| level != labels[i]) |> map(|level| {
-            let members = range(0, len(data)) |> filter(|j| labels[j] == level)
+            let members = sampled |> filter(|j| labels[j] == level)
             mean(members |> map(|j| _distance(data[i], data[j])))
         })
         let b = min(other_means)
         let denom = max(a, b)
         scores = push(scores, if denom > 0.0 { (b - a) / denom } else { 0.0 })
     }
-    {mean_score: mean(scores), per_sample: scores}
+    {mean_score: mean(scores), per_sample: scores,
+     n_scored: len(sampled), n_cells: len(data)}
 }
 
 fn cluster_diagnostics(obj) {

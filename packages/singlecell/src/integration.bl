@@ -21,6 +21,34 @@ fn integrate(obj, batch_ids) {
     {... prepared, integrated_embedding: corrected, batch_ids: batch_ids}
 }
 
+## harmony(obj, batch_ids) → Record
+##
+## Harmony (Korsunsky et al. 2019): soft-cluster the cells with a penalty that
+## rewards clusters containing a mixture of batches, then regress the batch out
+## within each cluster. Correcting per cluster is the point — a batch can shift
+## T cells one way and monocytes another, and one global offset cannot remove
+## both.
+##
+## `integrate` above is a single global per-batch centering. It is a reasonable
+## baseline and it is not Harmony; the builtin has existed for a while but the
+## package never surfaced it, so anyone following the docs got the weaker method
+## while believing otherwise.
+##
+## Adds obj.integrated_embedding and obj.batch_ids.
+fn harmony(obj, batch_ids, theta = nil, n_clusters = nil) {
+    let prepared = if contains(keys(obj), "pca_scores") { obj } else { _pre.run_pca(obj) }
+    let opts = {theta: _or(theta, 2.0), n_clusters: _or(n_clusters, 0)}
+    let corrected = if opts.n_clusters > 0 {
+        harmony_integrate(prepared.pca_scores, batch_ids,
+                          {theta: opts.theta, n_clusters: opts.n_clusters})
+    } else {
+        harmony_integrate(prepared.pca_scores, batch_ids, {theta: opts.theta})
+    }
+    {... prepared, integrated_embedding: corrected, batch_ids: batch_ids}
+}
+
+fn _or(v, d) { if v == nil { d } else { v } }
+
 ## integrate_from_column(obj, batch_col) → Record
 ##
 ## Convenience wrapper when batch metadata is stored as a list in the object.
