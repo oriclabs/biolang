@@ -36,19 +36,34 @@ One per chapter, each self-contained.
 | Quality Control | [ch02-quality-control.bl](downloads/ch02-quality-control.bl) | 3 |
 | Normalization and PCA | [ch03-normalization-pca.bl](downloads/ch03-normalization-pca.bl) | 4 |
 | Integration | [ch04-integration.bl](downloads/ch04-integration.bl) | 2 |
-| Clustering | [ch05-clustering.bl](downloads/ch05-clustering.bl) | 5 |
+| Clustering | [ch05-clustering.bl](downloads/ch05-clustering.bl) | 4 |
 | Markers and Annotation | [ch06-markers.bl](downloads/ch06-markers.bl) | 4 |
 | The Whole Workflow | [ch07-workflow.bl](downloads/ch07-workflow.bl) | 4 |
 
-> **These are not quick.** Each block on a page is written to stand alone, so a
-> reader can copy any one of them without having run the others — which means a
-> concatenated chapter script rebuilds the pipeline from the raw matrix once per
-> block. `ch05` does it five times, and adds a resolution sweep and a stability
-> check on top. Expect minutes, not seconds, and expect `ch04` to be the slowest
-> because Harmony runs on 30,043 cells.
+> **These are not quick, and here is what they actually cost.** Measured on a
+> laptop, single-threaded:
 >
-> If you are working interactively, prefer the notebook below, or lift a single
-> block rather than running a whole chapter.
+> | Script | Time |
+> |---|---|
+> | `ch01` | 2 s |
+> | `ch02` | ~1 min |
+> | `ch03` | ~2 min |
+> | `ch04` | 3 min 35 s |
+> | `ch05` | 3 min 50 s |
+> | `ch06` | **over 9 min** |
+> | `ch07` | **over 9 min** |
+>
+> Two things drive this. Each block on a page is written to stand alone, so a
+> reader can copy any one without having run the others — which means a
+> concatenated chapter rebuilds the pipeline from the raw matrix once per block.
+> And two operations are inherently expensive on 15,000 cells: `plot_markers`
+> runs a test per gene per cluster and takes **5 minutes** by itself, and
+> `cluster_diagnostics` computes a silhouette and takes **3**.
+>
+> `ch06` and `ch07` were confirmed to run only in pieces, not as single scripts
+> inside a ten-minute budget. Nothing in them is broken — every block produced
+> the figure on its page — but if you want to follow along interactively, lift a
+> single block rather than running a whole chapter.
 
 ## The notebook
 
