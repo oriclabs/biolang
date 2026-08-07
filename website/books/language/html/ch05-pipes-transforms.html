@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -243,11 +243,11 @@ an intermediate file, printing a progress message – without disrupting the dat
 flow. The tap pipe <code>|&gt;&gt;</code> evaluates the right side for its effect but passes the
 left side through unchanged:</p>
 <pre><code class="language-biolang">read_fastq("data/reads.fastq")
-  |&gt;&gt; |reads| print(f"Raw reads: {len(reads)}")
+  |&gt;&gt; |reads| println(f"Raw reads: {len(reads)}")
   |&gt; filter(|r| mean(r.quality) &gt;= 25)
-  |&gt;&gt; |reads| print(f"After quality filter: {len(reads)}")
+  |&gt;&gt; |reads| println(f"After quality filter: {len(reads)}")
   |&gt; filter(|r| seq_len(r.seq) &gt;= 50)
-  |&gt;&gt; |reads| print(f"After length filter: {len(reads)}")
+  |&gt;&gt; |reads| println(f"After length filter: {len(reads)}")
   |&gt; write_fastq("filtered_R1.fastq.gz")
 </code></pre>
 <p>Output:</p>
@@ -257,13 +257,13 @@ After length filter: 2539847
 </code></pre>
 <p>The tap pipe is invaluable for debugging pipelines:</p>
 <pre><code class="language-biolang">read_vcf("data/variants.vcf")
-  |&gt;&gt; |vs| print(f"Step 0 - Raw: {len(vs)} variants")
+  |&gt;&gt; |vs| println(f"Step 0 - Raw: {len(vs)} variants")
   |&gt; filter(|v| v.filter == "PASS")
-  |&gt;&gt; |vs| print(f"Step 1 - PASS only: {len(vs)}")
+  |&gt;&gt; |vs| println(f"Step 1 - PASS only: {len(vs)}")
   |&gt; filter(|v| v.qual &gt;= 30)
-  |&gt;&gt; |vs| print(f"Step 2 - Qual &gt;= 30: {len(vs)}")
+  |&gt;&gt; |vs| println(f"Step 2 - Qual &gt;= 30: {len(vs)}")
   |&gt; filter(|v| into(v.info?.DP ?? "0", "Int") &gt;= 10)
-  |&gt;&gt; |vs| print(f"Step 3 - Depth &gt;= 10: {len(vs)}")
+  |&gt;&gt; |vs| println(f"Step 3 - Depth &gt;= 10: {len(vs)}")
   |&gt; write_vcf("filtered_calls.vcf.gz")
 </code></pre>
 <p>You can also use tap to write intermediate checkpoints:</p>
@@ -295,7 +295,7 @@ let total_bases = read_fasta("data/sequences.fasta")
   |&gt; map(|s| seq_len(s.seq))
   |&gt; reduce(0, |acc, n| acc + n)
 
-print(f"Reference genome size: {total_bases / 1e9:.2f} Gb")
+println(f"Reference genome size: {total_bases / 1e9:.2f} Gb")
 </code></pre>
 <h3 id="sort--order-elements"><a class="header" href="#sort--order-elements"><code>sort</code> – Order Elements</a></h3>
 <pre><code class="language-biolang"># Rank genes by expression level
@@ -365,7 +365,7 @@ read_fasta("data/sequences.fasta")
   |&gt; enumerate()
   |&gt; map(|pair| {rank: pair[0] + 1, id: pair[1].id, length: seq_len(pair[1].seq)})
   |&gt; take(10)
-  |&gt; each(|row| print(f"#{row.rank}: {row.id} ({row.length} bp)"))
+  |&gt; each(|row| println(f"#{row.rank}: {row.id} ({row.length} bp)"))
 </code></pre>
 <h2 id="pipe-binding-with--into"><a class="header" href="#pipe-binding-with--into">Pipe Binding with <code>|&gt; into</code></a></h2>
 <p>When you want to capture an intermediate result from a pipe chain, the usual
@@ -393,7 +393,7 @@ high_quality
   |&gt; map(|r| {...r, trim_end: trim_quality(r.quality, 20)})
   |&gt; into trimmed
 
-print(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")
+println(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")
 </code></pre>
 <p>Each <code>|&gt; into</code> step saves the result under a name so it can be reused later,
 without wrapping the whole chain in <code>let x = (...)</code>. The pipeline reads
@@ -409,22 +409,22 @@ let input_r2 = "raw_data/sample_R2.fastq.gz"
 # Process R1 and R2 in parallel-style
 let process_reads = |input_path, label| {
   read_fastq(input_path)
-    |&gt;&gt; |reads| print(f"[{label}] Input: {len(reads)} reads")
+    |&gt;&gt; |reads| println(f"[{label}] Input: {len(reads)} reads")
 
     # Step 1: Remove short reads
     |&gt; filter(|r| seq_len(r.seq) &gt;= 50)
-    |&gt;&gt; |reads| print(f"[{label}] After length filter: {len(reads)}")
+    |&gt;&gt; |reads| println(f"[{label}] After length filter: {len(reads)}")
 
     # Step 2: Filter by mean quality
     |&gt; filter(|r| mean(r.quality) &gt;= 25)
-    |&gt;&gt; |reads| print(f"[{label}] After quality filter: {len(reads)}")
+    |&gt;&gt; |reads| println(f"[{label}] After quality filter: {len(reads)}")
 
     # Step 3: Remove low-complexity reads
     |&gt; filter(|r| {
       let gc = gc_content(r.seq)
       gc &gt; 0.1 &amp;&amp; gc &lt; 0.9
     })
-    |&gt;&gt; |reads| print(f"[{label}] After complexity filter: {len(reads)}")
+    |&gt;&gt; |reads| println(f"[{label}] After complexity filter: {len(reads)}")
 }
 
 let filtered_r1 = process_reads(input_r1, "R1")
@@ -438,7 +438,7 @@ let shared_ids = intersection(r1_ids, r2_ids)
 let paired_r1 = filtered_r1 |&gt; filter(|r| contains(shared_ids, r.id))
 let paired_r2 = filtered_r2 |&gt; filter(|r| contains(shared_ids, r.id))
 
-print(f"\nFinal paired reads: {len(paired_r1)} pairs")
+println(f"\nFinal paired reads: {len(paired_r1)} pairs")
 
 paired_r1 |&gt; write_fastq("filtered/sample_R1.fastq.gz")
 paired_r2 |&gt; write_fastq("filtered/sample_R2.fastq.gz")
@@ -447,7 +447,7 @@ paired_r2 |&gt; write_fastq("filtered/sample_R2.fastq.gz")
 let orphan_r1 = filtered_r1 |&gt; filter(|r| !contains(shared_ids, r.id))
 let orphan_r2 = filtered_r2 |&gt; filter(|r| !contains(shared_ids, r.id))
 let orphans = orphan_r1 ++ orphan_r2
-print(f"Orphan reads: {len(orphans)}")
+println(f"Orphan reads: {len(orphans)}")
 orphans |&gt; write_fastq("filtered/sample_orphans.fastq.gz")
 </code></pre>
 <h2 id="example-variant-annotation-pipeline"><a class="header" href="#example-variant-annotation-pipeline">Example: Variant Annotation Pipeline</a></h2>
@@ -468,7 +468,7 @@ read_vcf("data/variants.vcf")
 
   # Step 1: Basic quality filter
   |&gt; filter(|v| v.qual &gt;= 30 &amp;&amp; v.filter == "PASS")
-  |&gt;&gt; |vs| print(f"After quality filter: {len(vs)}")
+  |&gt;&gt; |vs| println(f"After quality filter: {len(vs)}")
 
   # Step 2: Classify variant type
   |&gt; map(|v| {
@@ -499,12 +499,12 @@ read_vcf("data/variants.vcf")
   })
   |&gt;&gt; |vs| {
     let tier_counts = vs |&gt; group_by("tier") |&gt; map(|g| f"{g.key}: {len(g.values)}")
-    print(f"Tier distribution: {tier_counts}")
+    println(f"Tier distribution: {tier_counts}")
   }
 
   # Step 6: Filter to actionable variants
   |&gt; filter(|v| v.tier == "Tier1_Known" || v.tier == "Tier2_RareIndel")
-  |&gt;&gt; |vs| print(f"Actionable variants: {len(vs)}")
+  |&gt;&gt; |vs| println(f"Actionable variants: {len(vs)}")
 
   # Step 7: Sort by priority and position
   |&gt; sort_by(|v| v.pos)
@@ -573,10 +573,10 @@ let summary = table(pair_results |&gt; map(|r| {
   somatic_rate: r.somatic / r.tumor_total * 100.0
 }))
 
-print("Patient Variant Comparison")
-print("=" * 70)
+println("Patient Variant Comparison")
+println("=" * 70)
 summary |&gt; each(|row|
-  print(f"  {row.patient}: tumor={row.tumor_total}, somatic={row.somatic} ({row.somatic_rate:.1f}%), germline={row.germline}")
+  println(f"  {row.patient}: tumor={row.tumor_total}, somatic={row.somatic} ({row.somatic_rate:.1f}%), germline={row.germline}")
 )
 
 # Find recurrent somatic variants (present in 2+ patients)
@@ -591,9 +591,9 @@ let all_somatic = pair_results
   })
   |&gt; sort_by(|row| -row.n_patients)
 
-print(f"\nRecurrent somatic variants (in &gt;= 2 patients): {len(all_somatic)}")
+println(f"\nRecurrent somatic variants (in &gt;= 2 patients): {len(all_somatic)}")
 all_somatic |&gt; take(20) |&gt; each(|v|
-  print(f"  {v.variant} -- found in {v.n_patients} patients: {v.patients}")
+  println(f"  {v.variant} -- found in {v.n_patients} patients: {v.patients}")
 )
 
 # Cross-patient aggregates via reduce
@@ -606,9 +606,9 @@ let totals = pair_results |&gt; reduce(
   }
 )
 
-print(f"\nCohort totals across {totals.patients} patients:")
-print(f"  Mean somatic variants: {totals.total_somatic / totals.patients:.0f}")
-print(f"  Mean germline variants: {totals.total_germline / totals.patients:.0f}")
+println(f"\nCohort totals across {totals.patients} patients:")
+println(f"  Mean somatic variants: {totals.total_somatic / totals.patients:.0f}")
+println(f"  Mean germline variants: {totals.total_germline / totals.patients:.0f}")
 
 # Zip tumor-normal read depths for concordance check
 let p1_tumor_depths = read_vcf(pairs[0].tumor) |&gt; map(|v| into(v.info?.DP ?? "0", "Int"))
@@ -618,7 +618,7 @@ let depth_comparison = zip(p1_tumor_depths, p1_normal_depths)
   |&gt; map(|pair| {tumor_dp: pair[0], normal_dp: pair[1], ratio: pair[0] / (pair[1] + 1.0)})
   |&gt; filter(|d| d.ratio &gt; 3.0)   # flag positions with 3x tumor vs normal depth
 
-print(f"\nPatient 1 depth outliers (tumor/normal &gt; 3x): {len(depth_comparison)}")
+println(f"\nPatient 1 depth outliers (tumor/normal &gt; 3x): {len(depth_comparison)}")
 </code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <p>Pipes and transforms are the backbone of BioLang. The <code>|&gt;</code> operator turns nested

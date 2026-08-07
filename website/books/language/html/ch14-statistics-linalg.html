@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -198,7 +198,7 @@ let summary = {
   iqr: quantile(coverage, 0.75) - quantile(coverage, 0.25),
 }
 
-print("Coverage: mean=" + str(summary.mean) + " median=" + str(summary.median))
+println("Coverage: mean=" + str(summary.mean) + " median=" + str(summary.median))
 </code></pre>
 <p>These functions handle missing values gracefully: <code>nil</code> entries are skipped
 with a warning.</p>
@@ -212,7 +212,7 @@ let result = ttest(tumor, normal)
 # result =&gt; {statistic: 4.32, pvalue: 0.00018, df: 28, mean_diff: 2.15}
 
 if result.pvalue &lt; 0.05 then
-  print("BRCA1 significantly different (p=" + str(result.pvalue) + ")")
+  println("BRCA1 significantly different (p=" + str(result.pvalue) + ")")
 </code></pre>
 <h3 id="wilcoxon-rank-sum"><a class="header" href="#wilcoxon-rank-sum">Wilcoxon Rank-Sum</a></h3>
 <p>For non-normally distributed data such as read counts.</p>
@@ -234,7 +234,7 @@ let result = chi_square(observed, expected)
 # result =&gt; {statistic: 3.21, pvalue: 0.073, df: 1}
 
 if result.pvalue &gt; 0.05 then
-  print("Population is in Hardy-Weinberg equilibrium")
+  println("Population is in Hardy-Weinberg equilibrium")
 </code></pre>
 <h3 id="anova"><a class="header" href="#anova">ANOVA</a></h3>
 <p>Compare expression across multiple tissue types.</p>
@@ -275,7 +275,7 @@ let significant = range(0, len(adjusted_bh))
   |&gt; filter(|i| adjusted_bh[i] &lt; 0.05)
   |&gt; map(|i| {gene: gene_names[i], p: pvalues[i], q: adjusted_bh[i]})
 
-print(str(len(significant)) + " genes significant at FDR &lt; 0.05")
+println(str(len(significant)) + " genes significant at FDR &lt; 0.05")
 </code></pre>
 <h2 id="correlation"><a class="header" href="#correlation">Correlation</a></h2>
 <p>Compute Pearson or Spearman correlation between expression profiles.</p>
@@ -322,9 +322,9 @@ let product = mat_mul(transpose(counts), counts)  # 3x3 covariance-like
 let log_counts = mat_map(counts, |x| log2(x + 1))
 
 # Basic properties
-print("Trace: " + str(trace(product)))
-print("Rank: " + str(rank(counts)))
-print("Frobenius norm: " + str(norm(counts)))
+println("Trace: " + str(trace(product)))
+println("Rank: " + str(rank(counts)))
+println("Frobenius norm: " + str(norm(counts)))
 </code></pre>
 <h2 id="linear-algebra"><a class="header" href="#linear-algebra">Linear Algebra</a></h2>
 <h3 id="determinant-and-inverse"><a class="header" href="#determinant-and-inverse">Determinant and Inverse</a></h3>
@@ -335,7 +335,7 @@ print("Frobenius norm: " + str(norm(counts)))
 ])
 
 let det = determinant(cov)
-print("Determinant: " + str(det))  # non-zero =&gt; invertible
+println("Determinant: " + str(det))  # non-zero =&gt; invertible
 
 let precision = inverse(cov)  # precision matrix
 </code></pre>
@@ -346,7 +346,7 @@ let precision = inverse(cov)  # precision matrix
 # Proportion of variance explained by each component
 let total = sum(eigen.values)
 let prop = eigen.values |&gt; map(|v| v / total)
-print("PC1 explains " + str(prop[0] * 100) + "% of variance")
+println("PC1 explains " + str(prop[0] * 100) + "% of variance")
 </code></pre>
 <h3 id="singular-value-decomposition"><a class="header" href="#singular-value-decomposition">Singular Value Decomposition</a></h3>
 <pre><code class="language-biolang">let result = svd(counts)
@@ -390,8 +390,8 @@ let de_genes = range(0, len(results))
   |&gt; filter(|r| r.q_value &lt; 0.05 &amp;&amp; abs(r.log2fc) &gt; 1.0)
   |&gt; sort_by(|r| r.q_value)
 
-print(str(len(de_genes)) + " differentially expressed genes")
-de_genes |&gt; take(20) |&gt; each(|g| print(g.gene + " log2FC=" + str(g.log2fc)))
+println(str(len(de_genes)) + " differentially expressed genes")
+de_genes |&gt; take(20) |&gt; each(|g| println(g.gene + " log2FC=" + str(g.log2fc)))
 de_genes |&gt; write_tsv("de_results.tsv")
 </code></pre>
 <h2 id="example-pca-on-gene-expression"><a class="header" href="#example-pca-on-gene-expression">Example: PCA on Gene Expression</a></h2>
@@ -434,8 +434,8 @@ let pca_coords = range(0, n_samples)
        pc2: pc2[i],
      })
 
-print("PC1: " + str(eigen.values[0] / total_var * 100) + "% variance")
-print("PC2: " + str(eigen.values[1] / total_var * 100) + "% variance")
+println("PC1: " + str(eigen.values[0] / total_var * 100) + "% variance")
+println("PC2: " + str(eigen.values[1] / total_var * 100) + "% variance")
 pca_coords |&gt; write_tsv("pca_coordinates.tsv")
 </code></pre>
 <h2 id="example-pharmacokinetic-modeling"><a class="header" href="#example-pharmacokinetic-modeling">Example: Pharmacokinetic Modeling</a></h2>
@@ -461,18 +461,18 @@ let cmax = max(plasma)
 let tmax_idx = index_of(plasma, cmax)
 let tmax = solution.t[tmax_idx]
 
-print("Tmax: " + str(tmax) + " hr")
-print("Cmax: " + str(cmax) + " mg")
+println("Tmax: " + str(tmax) + " hr")
+println("Cmax: " + str(cmax) + " mg")
 
 # Half-life
 let t_half = log(2) / ke
-print("Half-life: " + str(t_half) + " hr")
+println("Half-life: " + str(t_half) + " hr")
 
 # AUC by trapezoidal rule
 let auc = range(0, len(plasma) - 1)
   |&gt; map(|i| (plasma[i] + plasma[i + 1]) / 2.0 * (solution.t[i + 1] - solution.t[i]))
   |&gt; sum()
-print("AUC(0-24h): " + str(auc) + " mg*hr")
+println("AUC(0-24h): " + str(auc) + " mg*hr")
 </code></pre>
 <h2 id="example-population-genetics-hardy-weinberg"><a class="header" href="#example-population-genetics-hardy-weinberg">Example: Population Genetics (Hardy-Weinberg)</a></h2>
 <p>Simulate genotype frequencies and test for equilibrium across loci.</p>

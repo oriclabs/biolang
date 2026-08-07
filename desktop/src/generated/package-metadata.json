@@ -2388,9 +2388,9 @@
         },
         {
           "name": "plot_elbow",
-          "signature": "plot_elbow(obj, n_pcs = 15) -> prints an ordered ASCII bar chart",
+          "signature": "plot_elbow(obj, n_pcs = 15) -> Str (SVG)",
           "summary": "BioLang package function plot_elbow.",
-          "returnType": "prints an ordered ASCII bar chart",
+          "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
           "line": 163
@@ -2469,9 +2469,9 @@
         },
         {
           "name": "plot_proportions",
-          "signature": "plot_proportions(obj, groups = nil) -> prints an ordered ASCII bar chart",
+          "signature": "plot_proportions(obj, groups = nil) -> Str (SVG)",
           "summary": "BioLang package function plot_proportions.",
-          "returnType": "prints an ordered ASCII bar chart",
+          "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
           "line": 164

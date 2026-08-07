@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -249,14 +249,18 @@ println(f"Mean GC: {mean(gc_vals)}")
 <li>Extend BioLang with plugins in Python, R, or TypeScript</li>
 </ul>
 <h2 id="running-the-examples"><a class="header" href="#running-the-examples">Running the Examples</a></h2>
-<p>Install BioLang:</p>
-<pre><code class="language-bash">cargo install biolang
+<p>Install BioLang — this needs nothing installed beforehand:</p>
+<pre><code class="language-bash">curl -fsSL https://lang.bio/install.sh | sh
 </code></pre>
-<p>Or build from source:</p>
-<pre><code class="language-bash">git clone https://github.com/oriclabs/biolang
-cd biolang
-cargo build --release
+<p>On Windows:</p>
+<pre><code class="language-powershell">iwr -useb https://lang.bio/install.ps1 | iex
 </code></pre>
+<p>Or, if you already have Rust and would rather build it:</p>
+<pre><code class="language-bash">cargo install --git https://github.com/oriclabs/biolang bl-cli
+</code></pre>
+<p><a href="ch01-getting-started.html">Chapter 1</a> covers the options in more detail. You can
+also skip installing altogether and run every example in the browser at
+<a href="https://lang.bio/workbench/">lang.bio/workbench</a>.</p>
 <p>Run any example from this book:</p>
 <pre><code class="language-bash">bl run example.bl
 </code></pre>

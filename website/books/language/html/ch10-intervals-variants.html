@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -195,13 +195,13 @@ let exon = interval("chr1", 11869, 12227, "+")
 or other annotations to table rows before building an interval tree.</p>
 <pre><code class="language-biolang">let region = interval("chr7", 55181000, 55182000, "+")
 
-print(region.chrom)   # chr7
-print(region.start)   # 55181000
-print(region.end)     # 55182000
-print(region.strand)  # +
+println(region.chrom)   # chr7
+println(region.start)   # 55181000
+println(region.end)     # 55182000
+println(region.strand)  # +
 
 let width = region.end - region.start
-print("Width: " + str(width) + " bp")
+println("Width: " + str(width) + " bp")
 </code></pre>
 <p>BioLang uses 0-based, half-open coordinates (BED convention) throughout.</p>
 <h3 id="interval-arithmetic"><a class="header" href="#interval-arithmetic">Interval Arithmetic</a></h3>
@@ -211,16 +211,16 @@ let b = interval("chr1", 150, 250)
 let c = interval("chr1", 300, 400)
 
 # Overlap test
-print(a.start &lt; b.end and b.start &lt; a.end)   # true
-print(a.start &lt; c.end and c.start &lt; a.end)   # false
+println(a.start &lt; b.end and b.start &lt; a.end)   # true
+println(a.start &lt; c.end and c.start &lt; a.end)   # false
 
 # Containment
 let outer = interval("chr1", 100, 500)
-print(contains(outer, c))  # true
+println(contains(outer, c))  # true
 
 # Distance between non-overlapping intervals
 let dist = if a.end &lt;= c.start then c.start - a.end else a.start - c.end
-print(dist)   # 100
+println(dist)   # 100
 
 # Merge overlapping intervals into one
 let merged = merge_intervals([a, b])
@@ -244,7 +244,7 @@ let tree = interval_tree(exons)
 let hits = query_overlaps(tree, query.chrom, query.start, query.end)
 
 for hit in hits {
-    print("Overlaps: " + hit.chrom + ":" + str(hit.start) + "-" + str(hit.end))
+    println("Overlaps: " + hit.chrom + ":" + str(hit.start) + "-" + str(hit.end))
 }
 </code></pre>
 <h3 id="query_nearest"><a class="header" href="#query_nearest">query_nearest</a></h3>
@@ -270,8 +270,8 @@ let target = interval("chr17", 43044000, 43045000)
 
 let cov = coverage(tree)
     |&gt; filter(|row| row.chrom == target.chrom &amp;&amp; row.start &lt; target.end &amp;&amp; row.end &gt; target.start)
-print("Mean segment depth over target: " + str(mean(col(cov, "depth"))))
-print("Segments &gt;= 2x: " + str(cov |&gt; filter(|row| row.depth &gt;= 2) |&gt; len()))
+println("Mean segment depth over target: " + str(mean(col(cov, "depth"))))
+println("Segments &gt;= 2x: " + str(cov |&gt; filter(|row| row.depth &gt;= 2) |&gt; len()))
 </code></pre>
 <h2 id="variants"><a class="header" href="#variants">Variants</a></h2>
 <p>A variant represents a difference from the reference genome. Create one with
@@ -284,11 +284,11 @@ let ins = variant("chr2", 29416089, "A", "AGCTGCTG")    # ALK insertion
 <p>BioLang provides functions to classify variants by their molecular type.</p>
 <pre><code class="language-biolang">let v = variant("chr7", 55181378, "T", "A")
 
-print(is_snp(v))           # true
-print(is_indel(v))         # false
-print(is_transition(v))    # false  (T&gt;A is transversion)
-print(is_transversion(v))  # true
-print(variant_type(v))     # "Snp"
+println(is_snp(v))           # true
+println(is_indel(v))         # false
+println(is_transition(v))    # false  (T&gt;A is transversion)
+println(is_transversion(v))  # true
+println(variant_type(v))     # "Snp"
 </code></pre>
 <p>The full classification set:</p>
 <pre><code class="language-biolang">let examples = [
@@ -307,7 +307,7 @@ for v in examples {
         is_indel(v)                     =&gt; "indel (" + str(abs(len(v.alt) - len(v.ref))) + "bp)"
         otherwise                       =&gt; vtype
     }
-    print(v.chrom + ":" + str(v.pos) + " " + v.ref + "&gt;" + v.alt + " =&gt; " + detail)
+    println(v.chrom + ":" + str(v.pos) + " " + v.ref + "&gt;" + v.alt + " =&gt; " + detail)
 }
 </code></pre>
 <h3 id="genotype-queries"><a class="header" href="#genotype-queries">Genotype Queries</a></h3>
@@ -320,8 +320,8 @@ let het_snps = variants
 let hom_alt = variants
     |&gt; filter(|v| is_hom_alt(v))
 
-print("Heterozygous SNPs: " + str(len(het_snps)))
-print("Homozygous alt calls: " + str(len(hom_alt)))
+println("Heterozygous SNPs: " + str(len(het_snps)))
+println("Homozygous alt calls: " + str(len(hom_alt)))
 
 # Allele balance for heterozygous calls
 let allele_balances = het_snps |&gt; map(|v| {
@@ -331,7 +331,7 @@ let allele_balances = het_snps |&gt; map(|v| {
     if total &gt; 0 { ad[1] / total } else { 0.0 }
 })
 
-print("Median allele balance (het): " + str(round(median(allele_balances), 3)))
+println("Median allele balance (het): " + str(round(median(allele_balances), 3)))
 </code></pre>
 <h3 id="parse_vcf_info"><a class="header" href="#parse_vcf_info">parse_vcf_info</a></h3>
 <p>The VCF INFO column packs key-value pairs into a semicolon-delimited string.
@@ -339,10 +339,10 @@ print("Median allele balance (het): " + str(round(median(allele_balances), 3)))
 <pre><code class="language-biolang">let info_str = "DP=42;MQ=60.0;AF=0.48;CLNSIG=Pathogenic;GENEINFO=BRCA1:672"
 let info = parse_info(info_str)
 
-print(info.DP)       # 42
-print(info.AF)       # 0.48
-print(info.CLNSIG)   # "Pathogenic"
-print(info.GENEINFO) # "BRCA1:672"
+println(info.DP)       # 42
+println(info.AF)       # 0.48
+println(info.CLNSIG)   # "Pathogenic"
+println(info.GENEINFO) # "BRCA1:672"
 </code></pre>
 <h2 id="example-find-genes-overlapping-with-chip-seq-peaks"><a class="header" href="#example-find-genes-overlapping-with-chip-seq-peaks">Example: Find Genes Overlapping with ChIP-seq Peaks</a></h2>
 <p>Identify which genes have promoter regions that overlap with transcription

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-c0a6b04c.js";
+            window.path_to_searchindex_js = "searchindex-f439e659.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-80d3c337.js"></script>
+        <script src="toc-0a09f913.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -208,7 +208,7 @@ let obj = sc.load("nsclc_like")
     |&gt; sc.cluster_leiden(15, 0.5)
 
 println("clusters: " + str(obj.clusters |&gt; unique |&gt; len))
-sc.plot_elbow(obj, 15)
+write_text("elbow.svg", sc.plot_elbow(obj, 15))
 </code></pre>
 <p>BioLang’s sparse PCA centers features mathematically without materializing a
 dense centered expression matrix. The compact cell-by-component scores are
@@ -228,7 +228,7 @@ let base = sc.load("nsclc_like")
     |&gt; sc.filter_genes(3)
     |&gt; sc.filter_cells(20, 2500, 5.0)
 
-let trials = sc.sweep(base, [0.2, 0.5, 0.8, 1.2], 100, 15)
+let trials = sc.sweep(base, resolutions: [0.2, 0.5, 0.8, 1.2], n_hvg: 100, k: 15)
 println(trials |&gt; map(|x| {resolution: x.resolution, clusters: x.n_clusters}))
 </code></pre>
 <p>The <a href="https://www.nature.com/articles/s41598-019-41695-z">Leiden algorithm</a>
@@ -243,9 +243,25 @@ biological cell type.</p>
 <pre><code class="language-biolang">import "singlecell" as sc
 
 let raw = sc.load("nsclc_like")
-let result = sc.standard(raw, 0.5, 100, 15, 20, 2500, 5.0, 3, 10000.0)
+
+# Pass only what you mean to change; the rest stay at their defaults and are
+# reported as [default] so you can see what you have not thought about.
+let quick = sc.standard(raw, resolution: 0.5, min_genes: 20, max_pct_mito: 5.0)
+
+# Or state every decision explicitly for a final analysis.
+let result = sc.standard(
+    raw,
+    resolution: 0.5, n_hvg: 100, k: 15,
+    min_genes: 20, max_genes: 2500, max_pct_mito: 5.0,
+    min_cells: 3, target: 10000.0
+)
 println(result.decisions)
 </code></pre>
+<p>Name the arguments. <code>sc.standard(raw, 0.5, 100, 15, 20, 2500, 5.0, 3, 10000.0)</code>
+is also valid, but nobody reading it can tell which number is the mitochondrial
+cutoff and which is the neighbourhood size — and swapping two of them silently
+produces a different, plausible-looking answer. Naming them is the same
+discipline the <code>decisions</code> table exists to enforce.</p>
 <p>Use this to begin exploring, then write the explicit pipeline for a final
 analysis.</p>
 <h2 id="what-can-fool-you"><a class="header" href="#what-can-fool-you">What can fool you</a></h2>
@@ -309,7 +325,7 @@ analysis.</p>
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
+        <script src="theme/book-runner-5ea35f6b.js"></script>
 
 
 

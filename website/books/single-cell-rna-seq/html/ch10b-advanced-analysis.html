@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-c0a6b04c.js";
+            window.path_to_searchindex_js = "searchindex-f439e659.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-80d3c337.js"></script>
+        <script src="toc-0a09f913.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,16 +183,23 @@
 biological question at the correct level, showing where the result came from,
 and checking whether reasonable analysis choices change the conclusion.</p>
 <p>The complete runnable example for this chapter is distributed with the package:</p>
-<pre><code class="language-text">bl examples singlecell --copy singlecell-examples
+<pre><code class="language-text">bl install singlecell
+bl examples singlecell --copy singlecell-examples
 cd singlecell-examples
 bl run advanced_analysis.bl
 </code></pre>
+<p>Without the install step the copied directory has no package to import and
+every script fails with <code>module or plugin 'singlecell' not found</code>.</p>
 <p>It creates <code>singlecell-results/</code> with SVG figures, differential-expression
 tables, composition tests, and ranked genes. The fixture has four donors
 measured in control and treated conditions, with T and B cells in every sample.
 The code excerpts below use <code>obj</code>, <code>analysed</code>, <code>donors</code>, <code>conditions</code>, and
 <code>cell_types</code> exactly as they are defined in that complete example.</p>
 <h2 id="inspect-quality-as-a-connected-problem"><a class="header" href="#inspect-quality-as-a-connected-problem">Inspect quality as a connected problem</a></h2>
+<blockquote>
+<p>Requires CLI: an excerpt from <code>advanced_analysis.bl</code>. It continues that
+script’s variables and cannot run on its own — run the complete example.</p>
+</blockquote>
 <pre><code class="language-biolang">write_text(
     "singlecell-results/qc-dashboard.svg",
     sc.plot_qc_dashboard(obj)
@@ -205,6 +212,10 @@ should not be copied blindly from another tissue.</p>
 <h2 id="label-an-embedding-by-the-question"><a class="header" href="#label-an-embedding-by-the-question">Label an embedding by the question</a></h2>
 <p>Clusters are only one way to colour an embedding. Compare condition, donor,
 curated cell type, batch, and cell-cycle phase:</p>
+<blockquote>
+<p>Requires CLI: an excerpt from <code>advanced_analysis.bl</code>. It continues that
+script’s variables and cannot run on its own — run the complete example.</p>
+</blockquote>
 <pre><code class="language-biolang">write_text(
     "singlecell-results/umap-condition.svg",
     sc.plot_embedding(analysed, conditions, "UMAP by treatment")
@@ -221,6 +232,10 @@ write_text(
 plots with independently chosen colour limits can manufacture an apparent
 difference.</p>
 <p>For gene panels grouped by cell type, condition, donor, or phase:</p>
+<blockquote>
+<p>Requires CLI: an excerpt from <code>advanced_analysis.bl</code>. It continues that
+script’s variables and cannot run on its own — run the complete example.</p>
+</blockquote>
 <pre><code class="language-biolang">write_text(
     "singlecell-results/group-heatmap.svg",
     sc.plot_group_heatmap(
@@ -232,8 +247,12 @@ difference.</p>
 )
 </code></pre>
 <h2 id="build-donor-level-profiles"><a class="header" href="#build-donor-level-profiles">Build donor-level profiles</a></h2>
+<blockquote>
+<p>Requires CLI: an excerpt from <code>advanced_analysis.bl</code>. It continues that
+script’s variables and cannot run on its own — run the complete example.</p>
+</blockquote>
 <pre><code class="language-biolang">let profiles = sc.pseudobulk_profiles(
-    obj, donors, conditions, cell_types, 5
+    obj, donors, conditions, cell_types, min_cells: 5
 )
 
 println(profiles.profiles)
@@ -251,15 +270,19 @@ Profiles with fewer than five cells are excluded. The returned record contains:<
 <li><code>genes</code>: row identifiers corresponding to the matrices.</li>
 </ul>
 <h2 id="run-an-explicit-paired-exploratory-test"><a class="header" href="#run-an-explicit-paired-exploratory-test">Run an explicit paired exploratory test</a></h2>
+<blockquote>
+<p>Requires CLI: an excerpt from <code>advanced_analysis.bl</code>. It continues that
+script’s variables and cannot run on its own — run the complete example.</p>
+</blockquote>
 <pre><code class="language-biolang">let de = sc.paired_pseudobulk_de(
     obj,
     donors,
     conditions,
     cell_types,
-    "T",
-    "control",
-    "treated",
-    5
+    target_type: "T",
+    condition_a: "control",
+    condition_b: "treated",
+    min_cells: 5
 )
 
 let top = de
@@ -275,13 +298,18 @@ formal inference, export <code>profiles.counts</code> and use DESeq2, edgeR, or 
 validated count model with an explicit design such as <code>~ donor + condition</code>.
 Include batch and clinical covariates when the study design requires them.</p>
 <h2 id="use-three-complementary-de-plots"><a class="header" href="#use-three-complementary-de-plots">Use three complementary DE plots</a></h2>
+<blockquote>
+<p>Requires CLI: an excerpt from <code>advanced_analysis.bl</code>. It continues that
+script’s variables and cannot run on its own — run the complete example.</p>
+</blockquote>
 <pre><code class="language-biolang">write_text("singlecell-results/volcano.svg", sc.plot_volcano(de))
 write_text("singlecell-results/ma.svg", sc.plot_ma(de))
 write_text(
     "singlecell-results/paired-donors.svg",
     sc.plot_donor_expression(
         obj, "IFIT1", donors, conditions, cell_types,
-        "T", "control", "treated", 5
+        target_type: "T", condition_a: "control", condition_b: "treated",
+        min_cells: 5
     )
 )
 </code></pre>
@@ -294,10 +322,14 @@ driven by one sample.</li>
 <p>A convincing volcano point with inconsistent donor trajectories deserves
 investigation, not a stronger claim.</p>
 <h2 id="check-samples-in-pseudobulk-pca"><a class="header" href="#check-samples-in-pseudobulk-pca">Check samples in pseudobulk PCA</a></h2>
+<blockquote>
+<p>Requires CLI: an excerpt from <code>advanced_analysis.bl</code>. It continues that
+script’s variables and cannot run on its own — run the complete example.</p>
+</blockquote>
 <pre><code class="language-biolang">write_text(
     "singlecell-results/pseudobulk-pca.svg",
     sc.plot_pseudobulk_pca(
-        obj, donors, conditions, cell_types, "T", 5
+        obj, donors, conditions, cell_types, target_type: "T", min_cells: 5
     )
 )
 </code></pre>
@@ -305,12 +337,16 @@ investigation, not a stronger claim.</p>
 labels identify donors. Inspect outliers, pairing, and whether treatment
 separation is larger than donor-to-donor variation.</p>
 <h2 id="test-cell-type-composition-at-sample-level"><a class="header" href="#test-cell-type-composition-at-sample-level">Test cell-type composition at sample level</a></h2>
+<blockquote>
+<p>Requires CLI: an excerpt from <code>advanced_analysis.bl</code>. It continues that
+script’s variables and cannot run on its own — run the complete example.</p>
+</blockquote>
 <pre><code class="language-biolang">let composition = sc.composition_table(
     donors, conditions, cell_types
 )
 let composition_tests = sc.paired_composition_test(
     donors, conditions, cell_types,
-    "control", "treated", 10
+    condition_a: "control", condition_b: "treated", min_cells: 10
 )
 
 write_text(
@@ -324,9 +360,13 @@ disappear from the analysis. The paired test treats donors, rather than cells,
 as replicates. Cell fractions are compositional and affected by capture and QC;
 specialized compositional models remain preferable for complex studies.</p>
 <h2 id="check-clustering-quality-and-sensitivity"><a class="header" href="#check-clustering-quality-and-sensitivity">Check clustering quality and sensitivity</a></h2>
+<blockquote>
+<p>Requires CLI: an excerpt from <code>advanced_analysis.bl</code>. It continues that
+script’s variables and cannot run on its own — run the complete example.</p>
+</blockquote>
 <pre><code class="language-biolang">let diagnostics = sc.cluster_diagnostics(analysed)
 let stability = sc.cluster_stability(
-    analysed, [0.2, 0.4, 0.6, 0.8, 1.0], 8
+    analysed, resolutions: [0.2, 0.4, 0.6, 0.8, 1.0], k: 8
 )
 
 write_text(
@@ -344,12 +384,16 @@ adjusted Rand index against the previous resolution. No single score selects a
 biologically correct resolution: combine diagnostics with marker coherence,
 replication, and the question being asked.</p>
 <h2 id="rank-genes-and-test-pathways"><a class="header" href="#rank-genes-and-test-pathways">Rank genes and test pathways</a></h2>
+<blockquote>
+<p>Requires CLI: an excerpt from <code>advanced_analysis.bl</code>. It continues that
+script’s variables and cannot run on its own — run the complete example.</p>
+</blockquote>
 <pre><code class="language-biolang">let ranked = sc.ranked_genes(de)
-let sets = {
-    interferon_response: ["IFIT1", "ISG15", "MX1", "OAS1"],
-    antigen_presentation: ["HLA-DRA", "HLA-DPA1", "CD74"]
-}
-let enrichment = gsea(ranked, sets)
+
+# gsea() takes a Map, which is what read_gmt() returns. A `{...}` literal is a
+# Record, not a Map, and is rejected.
+let sets = read_gmt("gene-sets.gmt")
+let enrichment = gsea(ranked, sets, seed: 1)
 
 write_text(
     "singlecell-results/enrichment.svg",
@@ -359,11 +403,25 @@ write_text(
 <p><code>ranked_genes()</code> uses the signed effect and p-value to create the <code>gene, score</code>
 table expected by BioLang’s <code>gsea()</code> builtin. Gene identifiers, the tested
 background, and gene-set versions must be recorded.</p>
+<p>GSEA p-values come from a permutation test. <code>gsea()</code> uses a fixed default seed
+so a rerun reproduces the same numbers; pass <code>seed:</code> to vary it deliberately,
+and record the value you used. Repeating the analysis under several seeds is a
+useful check that a pathway result is not an artifact of one permutation draw.</p>
 <h2 id="compare-methods-without-a-venn-diagram"><a class="header" href="#compare-methods-without-a-venn-diagram">Compare methods without a Venn diagram</a></h2>
-<pre><code class="language-biolang">write_text(
+<blockquote>
+<p>Requires CLI: a sketch, not an excerpt. <code>deseq2_results</code> and <code>edger_results</code>
+stand for tables you read back after running those tools externally — see
+the handoff in the previous chapter.</p>
+</blockquote>
+<pre><code class="language-biolang"># Each entry is a DE result list with `gene` and `significant` fields, so
+# anything you read back with read_csv and reshape will do.
+let deseq2_results = read_csv("results/deseq2.csv") |&gt; to_records()
+let edger_results  = read_csv("results/edger.csv")  |&gt; to_records()
+
+write_text(
     "singlecell-results/de-overlap.svg",
     sc.plot_de_overlap(
-        [paired_results, deseq2_results, edger_results],
+        [de, deseq2_results, edger_results],
         ["BioLang paired", "DESeq2", "edgeR"]
     )
 )
@@ -437,7 +495,7 @@ is useful, but inspect effect directions and ranks as well as set membership.</p
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
+        <script src="theme/book-runner-5ea35f6b.js"></script>
 
 
 

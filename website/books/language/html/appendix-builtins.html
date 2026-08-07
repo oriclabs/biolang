@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -210,7 +210,7 @@ imports – they are part of the language runtime.</p>
 let primer = dna"ATCGATCGATCG"
 let rc     = reverse_complement(primer)
 let temp   = tm(primer)
-print("Primer Tm = " + str(temp) + "C, reverse complement = " + str(rc))
+println("Primer Tm = " + str(temp) + "C, reverse complement = " + str(rc))
 </code></pre>
 <hr>
 <h2 id="collection-operations"><a class="header" href="#collection-operations">Collection Operations</a></h2>
@@ -380,7 +380,7 @@ let promoters = read_bed("data/regions.bed") |&gt; map(|r| interval(r.chrom, r.s
 let peaks     = read_bed("data/exons.bed") |&gt; map(|r| interval(r.chrom, r.start, r.end))
 let tree      = interval_tree(peaks)
 let hits      = promoters |&gt; flat_map(|p| query_overlaps(tree, p.chrom, p.start, p.end))
-print("Found " + str(len(hits)) + " promoter-peak overlaps")
+println("Found " + str(len(hits)) + " promoter-peak overlaps")
 </code></pre>
 <hr>
 <h2 id="variants"><a class="header" href="#variants">Variants</a></h2>
@@ -412,8 +412,8 @@ let vars = vcf_filter(vcf_parse(read_text("data/variants.vcf")), 30)
 let summary = variant_summary(vars)
 let snp_rows = summary |&gt; filter(|row| row.type_ == "SNP")
 let snp_count = if len(snp_rows) &gt; 0 { snp_rows[0].count } else { 0 }
-print(summary)
-print("Ti/Tv = " + str(titv_ratio(vars)) + ", SNPs = " + str(snp_count))
+println(summary)
+println("Ti/Tv = " + str(titv_ratio(vars)) + ", SNPs = " + str(snp_count))
 </code></pre>
 <hr>
 <h2 id="statistics"><a class="header" href="#statistics">Statistics</a></h2>
@@ -450,7 +450,7 @@ hypothesis testing.</p>
 let control   = [5.2, 4.8, 5.1, 4.9]
 let treatment = [8.1, 7.5, 8.3, 7.9]
 let result    = ttest(control, treatment)
-print("p-value = " + str(result.pvalue))
+println("p-value = " + str(result.pvalue))
 </code></pre>
 <hr>
 <h2 id="linear-algebra"><a class="header" href="#linear-algebra">Linear Algebra</a></h2>
@@ -485,7 +485,7 @@ numerical biology.</p>
 let expr = tsv("examples/sample-data/counts.tsv") |&gt; table()
 let m    = matrix(expr |&gt; select("gene_a", "gene_b", "gene_c"))
 let decomp = svd(m)
-print("Top 3 singular values: " + str(head(decomp.s, 3)))
+println("Top 3 singular values: " + str(head(decomp.s, 3)))
 </code></pre>
 <hr>
 <h2 id="math"><a class="header" href="#math">Math</a></h2>
@@ -518,7 +518,7 @@ modeling.</p>
 let control   = 12.5
 let treatment = 50.0
 let lfc = log2(treatment / control)
-print("Log2 fold-change = " + str(lfc))
+println("Log2 fold-change = " + str(lfc))
 </code></pre>
 <hr>
 <h2 id="string-operations"><a class="header" href="#string-operations">String Operations</a></h2>
@@ -547,7 +547,7 @@ print("Log2 fold-change = " + str(lfc))
 let header = "&gt;sp|P12345|MYG_HUMAN Myoglobin OS=Homo sapiens"
 let parts  = split(header, "|")
 let acc    = parts[1]
-print("Accession: " + acc)
+println("Accession: " + acc)
 </code></pre>
 <hr>
 <h2 id="type-operations"><a class="header" href="#type-operations">Type Operations</a></h2>
@@ -580,9 +580,9 @@ pipelines that handle mixed bio types.</p>
 <pre><code class="language-biolang"># Example: route processing based on sequence type
 let seq = read_fasta("data/sequences.fasta") |&gt; first() |&gt; |r| r.seq
 if is_dna(seq) then
-  print("DNA, GC = " + str(gc_content(seq)))
+  println("DNA, GC = " + str(gc_content(seq)))
 else if is_protein(seq) then
-  print("Protein, length = " + str(len(seq)))
+  println("Protein, length = " + str(len(seq)))
 </code></pre>
 <hr>
 <h2 id="bio-apis"><a class="header" href="#bio-apis">Bio APIs</a></h2>
@@ -638,7 +638,7 @@ async-aware and return structured records.</p>
 let genes = ["BRCA1", "TP53", "EGFR"]
 genes |&gt; each(|g| {
   let pathways = reactome_pathways(g)
-  print(g + ": " + str(len(pathways)) + " pathways")
+  println(g + ": " + str(len(pathways)) + " pathways")
 })
 </code></pre>
 <hr>
@@ -671,7 +671,7 @@ serialization.</p>
 let t0 = timestamp()
 let result = read_fasta("data/sequences.fasta")
   |&gt; flat_map(|r| find_orfs(r.seq, 300))
-print("Found " + str(len(result)) + " ORFs in " + str(timestamp() - t0) + "s")
+println("Found " + str(len(result)) + " ORFs in " + str(timestamp() - t0) + "s")
 </code></pre>
 <hr>
 <h2 id="single-cell-analysis"><a class="header" href="#single-cell-analysis">Single-Cell Analysis</a></h2>

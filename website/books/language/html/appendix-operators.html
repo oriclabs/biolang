@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -375,7 +375,7 @@ result without breaking left-to-right reading order — <code>expr |&gt; into na
 is equivalent to <code>let name = expr</code>:</p>
 <pre><code class="language-biolang">read_fastq("data/reads.fastq")
   |&gt; filter(|r| mean_phred(r.quality) &gt; 25)
-  |&gt;&gt; |reads| print("After QC: " + str(len(reads)) + " reads")
+  |&gt;&gt; |reads| println("After QC: " + str(len(reads)) + " reads")
   |&gt; map(|r| {id: r.id, gc: gc_content(r.seq)})
   |&gt; write_tsv("gc_report.csv")
 </code></pre>

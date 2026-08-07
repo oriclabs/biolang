@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -343,7 +343,7 @@ clauses.</p>
 fn timed_align(fastq, ref_genome) {
     let t0 = timestamp()
     let result = align_reads(fastq, ref_genome)
-    print("Alignment took " + str(timestamp() - t0) + "s")
+    println("Alignment took " + str(timestamp() - t0) + "s")
     result
 }
 
@@ -465,7 +465,7 @@ let tree = {
 let fast_evolving = collect_distant_leaves(tree, 0.0, 0.30)
 
 fast_evolving |&gt; each(|taxon|
-    print(taxon.name + " =&gt; total branch length " + to_string(taxon.distance))
+    println(taxon.name + " =&gt; total branch length " + to_string(taxon.distance))
 )
 # mouse =&gt; total branch length 0.55
 # rat =&gt; total branch length 0.53

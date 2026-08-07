@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -204,8 +204,8 @@ let results = biocontainers_search("samtools")
 # ]
 
 results |&gt; each(|tool| {
-  print(tool.name + " (" + str(tool.version_count) + " versions)")
-  print("  Latest: " + tool.latest_version)
+  println(tool.name + " (" + str(tool.version_count) + " versions)")
+  println("  Latest: " + tool.latest_version)
 })
 </code></pre>
 <p>The default limit is 25 results. Pass a second argument to narrow or widen the
@@ -213,7 +213,7 @@ search.</p>
 <pre><code class="language-biolang"># Top 5 matches for short-read aligners
 let aligners = biocontainers_search("bwa", 5)
 
-aligners |&gt; each(|a| print(a.name + " =&gt; " + a.latest_image))
+aligners |&gt; each(|a| println(a.name + " =&gt; " + a.latest_image))
 </code></pre>
 <p>Search terms are matched against tool names and descriptions, so broader
 queries work too.</p>
@@ -222,7 +222,7 @@ let quant_tools = biocontainers_search("salmon rna-seq")
 
 quant_tools
   |&gt; filter(|t| t.version_count &gt; 5)
-  |&gt; each(|t| print(t.name + ": " + t.description))
+  |&gt; each(|t| println(t.name + ": " + t.description))
 </code></pre>
 <h2 id="popular-tools"><a class="header" href="#popular-tools">Popular Tools</a></h2>
 <p><code>biocontainers_popular</code> returns the most-pulled tools in the registry. This is
@@ -230,8 +230,8 @@ useful for discovering which tools the community relies on and for auditing
 whether your pipeline uses well-maintained software.</p>
 <pre><code class="language-biolang">let top20 = biocontainers_popular()
 
-print("Top 20 BioContainers tools:")
-top20 |&gt; each(|t| print("  " + t.name + " - " + t.latest_version))
+println("Top 20 BioContainers tools:")
+top20 |&gt; each(|t| println("  " + t.name + " - " + t.latest_version))
 </code></pre>
 <p>Pass a limit to retrieve more.</p>
 <pre><code class="language-biolang"># Top 50 most popular bioinformatics containers
@@ -244,9 +244,9 @@ let popular_names = top50 |&gt; map(|t| t.name)
 our_tools |&gt; each(|tool| {
   let found = popular_names |&gt; find(|n| n == tool)
   if found != nil then
-    print(tool + " is in the top 50")
+    println(tool + " is in the top 50")
   else
-    print(tool + " is NOT in the top 50")
+    println(tool + " is NOT in the top 50")
 })
 </code></pre>
 <h2 id="tool-details"><a class="header" href="#tool-details">Tool Details</a></h2>
@@ -289,7 +289,7 @@ let dv = biocontainers_info("deepvariant")
 dv.versions |&gt; each(|v| {
   let singularity = v.images |&gt; filter(|img| img.type == "Singularity")
   if len(singularity) &gt; 0 then
-    print(v.version + " has Singularity image")
+    println(v.version + " has Singularity image")
 })
 </code></pre>
 <h2 id="version-management"><a class="header" href="#version-management">Version Management</a></h2>
@@ -310,7 +310,7 @@ let gatk44 = versions
   |&gt; filter(|v| starts_with(v.version, "4.4"))
   |&gt; first()
 
-print("Pinning GATK to: " + gatk44.images[0])
+println("Pinning GATK to: " + gatk44.images[0])
 </code></pre>
 <p>You can use this to check whether a specific version exists before committing
 to it in a pipeline definition.</p>
@@ -319,9 +319,9 @@ let bc_versions = biocontainers_versions("bcftools")
 let target = bc_versions |&gt; find(|v| starts_with(v.version, "1.18"))
 
 if target != nil then
-  print("bcftools 1.18 available: " + target.images[0])
+  println("bcftools 1.18 available: " + target.images[0])
 else
-  print("bcftools 1.18 not found in BioContainers")
+  println("bcftools 1.18 not found in BioContainers")
 </code></pre>
 <h2 id="example-building-a-reproducible-tool-manifest"><a class="header" href="#example-building-a-reproducible-tool-manifest">Example: Building a Reproducible Tool Manifest</a></h2>
 <p>A variant calling pipeline needs exact container images for every tool. Use the
@@ -343,7 +343,7 @@ let manifest = required |&gt; map(|req| {
     |&gt; filter(|v| starts_with(v.version, req.min_version))
 
   if len(matching) == 0 then {
-    print("WARNING: no " + req.name + " &gt;= " + req.min_version + " found")
+    println("WARNING: no " + req.name + " &gt;= " + req.min_version + " found")
     {tool: req.name, version: "MISSING", image: "MISSING"}
   } else {
     let chosen = matching |&gt; first()
@@ -352,12 +352,12 @@ let manifest = required |&gt; map(|req| {
 })
 
 # Print the resolved manifest
-print("Variant Calling Pipeline - Tool Manifest")
-print("=========================================")
+println("Variant Calling Pipeline - Tool Manifest")
+println("=========================================")
 manifest |&gt; each(|m| {
-  print(m.tool + ":")
-  print("  version: " + m.version)
-  print("  image:   " + m.image)
+  println(m.tool + ":")
+  println("  version: " + m.version)
+  println("  image:   " + m.image)
 })
 
 # Export as structured data

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -195,12 +195,12 @@ columns.</p>
 <pre><code class="language-biolang">let contigs = read_fasta("data/sequences.fasta")
 
 for c in contigs {
-    print(c.id + ": " + str(c.length) + " bp")
+    println(c.id + ": " + str(c.length) + " bp")
 }
 
 # Find the longest contig
 contigs |&gt; sort_by(|c| -c.length) |&gt; first() |&gt; into longest
-print("Longest: " + longest.id + " (" + str(longest.length) + " bp)")
+println("Longest: " + longest.id + " (" + str(longest.length) + " bp)")
 </code></pre>
 <p>FASTA records carry the raw sequence as a string. Use bio literals for
 compile-time validated sequences, and <code>read_fasta</code> for runtime file data.</p>
@@ -218,10 +218,10 @@ let summary = {
     gc_pct: gc_mean * 100
 }
 
-print("Reads: " + str(summary.total))
-print("Mean length: " + str(round(summary.mean_length, 1)))
-print("Mean quality: " + str(round(summary.mean_qual, 1)))
-print("GC%: " + str(round(summary.gc_pct, 1)))
+println("Reads: " + str(summary.total))
+println("Mean length: " + str(round(summary.mean_length, 1)))
+println("Mean quality: " + str(round(summary.mean_qual, 1)))
+println("GC%: " + str(round(summary.gc_pct, 1)))
 </code></pre>
 <p>Compressed files (<code>.gz</code>) are decompressed transparently.</p>
 <h2 id="reading-vcf"><a class="header" href="#reading-vcf">Reading VCF</a></h2>
@@ -233,9 +233,9 @@ let passing = variants |&gt; filter(|v| v.filter == "PASS")
 let snps = passing |&gt; filter(|v| is_snp(v))
 let indels = passing |&gt; filter(|v| is_indel(v))
 
-print("PASS variants: " + str(len(passing)))
-print("  SNPs: " + str(len(snps)))
-print("  Indels: " + str(len(indels)))
+println("PASS variants: " + str(len(passing)))
+println("  SNPs: " + str(len(snps)))
+println("  Indels: " + str(len(indels)))
 </code></pre>
 <h2 id="reading-bed"><a class="header" href="#reading-bed">Reading BED</a></h2>
 <p><code>read_bed()</code> returns interval records with <code>chrom</code>, <code>start</code>, <code>end</code>, and
@@ -243,8 +243,8 @@ optional <code>name</code>, <code>score</code>, <code>strand</code> fields depen
 <pre><code class="language-biolang">let targets = read_bed("data/exons.bed")
 
 let total_bp = targets |&gt; map(|t| t.end - t.start) |&gt; reduce(0, |a, b| a + b)
-print("Total target region: " + str(total_bp) + " bp")
-print("Number of targets: " + str(len(targets)))
+println("Total target region: " + str(total_bp) + " bp")
+println("Number of targets: " + str(len(targets)))
 
 # Group by chromosome
 let by_chrom = targets
@@ -255,7 +255,7 @@ let by_chrom = targets
         bp: regions |&gt; map(|r| r.end - r.start) |&gt; reduce(0, |a, b| a + b)
     })
 by_chrom |&gt; each(|row|
-    print(row.chrom + ": " + str(row.targets) + " targets, " + str(row.bp) + " bp")
+    println(row.chrom + ": " + str(row.targets) + " targets, " + str(row.bp) + " bp")
 )
 </code></pre>
 <h2 id="reading-gffgtf"><a class="header" href="#reading-gffgtf">Reading GFF/GTF</a></h2>
@@ -267,13 +267,13 @@ by_chrom |&gt; each(|row|
 let genes = features |&gt; filter(|f| f.type == "gene")
 let protein_coding = genes |&gt; filter(|g| contains(g.attributes, "protein_coding"))
 
-print("Total genes: " + str(len(genes)))
-print("Protein-coding: " + str(len(protein_coding)))
+println("Total genes: " + str(len(genes)))
+println("Protein-coding: " + str(len(protein_coding)))
 
 # Gene length distribution
 let lengths = protein_coding |&gt; map(|g| g.end - g.start)
-print("Median gene length: " + str(median(lengths)) + " bp")
-print("Mean gene length: " + str(round(mean(lengths), 0)) + " bp")
+println("Median gene length: " + str(median(lengths)) + " bp")
+println("Mean gene length: " + str(round(mean(lengths), 0)) + " bp")
 </code></pre>
 <h2 id="reading-csv-and-tsv"><a class="header" href="#reading-csv-and-tsv">Reading CSV and TSV</a></h2>
 <p><code>csv()</code> and <code>tsv()</code> return tables where column headers become field names.</p>
@@ -284,13 +284,13 @@ let groups = metadata |&gt; group_by("condition")
 
 for (condition, samples) in groups {
     let ids = samples |&gt; map(|s| s.sample_id) |&gt; join(", ")
-    print(condition + ": " + ids)
+    println(condition + ": " + ids)
 }
 
 # DESeq2-style count matrix
 let counts = tsv("gene_counts.tsv")
 let gene_names = counts |&gt; map(|row| row.gene_id)
-print("Genes in count matrix: " + str(len(gene_names)))
+println("Genes in count matrix: " + str(len(gene_names)))
 </code></pre>
 <h2 id="writing-files"><a class="header" href="#writing-files">Writing Files</a></h2>
 <p>Writer functions take a list of records and an output path. The format is
@@ -326,7 +326,7 @@ let high_qual_count = stream
     |&gt; filter(|r| len(r.seq) &gt;= 100)
     |&gt; len()
 
-print("High-quality long reads: " + str(high_qual_count))
+println("High-quality long reads: " + str(high_qual_count))
 </code></pre>
 <p>Streams are consumed once. If you need multiple passes, collect into a list
 or read the file again:</p>
@@ -336,7 +336,7 @@ let passing = read_fastq("data/reads.fastq")
     |&gt; filter(|r| mean_phred(r.quality) &gt;= 20)
     |&gt; len()
 
-print("Pass rate: " + str(round(passing / total * 100, 2)) + "%")
+println("Pass rate: " + str(round(passing / total * 100, 2)) + "%")
 </code></pre>
 <h2 id="example-convert-fastq-to-fasta"><a class="header" href="#example-convert-fastq-to-fasta">Example: Convert FASTQ to FASTA</a></h2>
 <p>Strip quality scores from a FASTQ file to produce a FASTA for downstream
@@ -349,7 +349,7 @@ let fasta_records = reads |&gt; map(|r| {
 })
 
 write_fasta(fasta_records, "nanopore_reads.fasta")
-print("Converted " + str(len(fasta_records)) + " reads to FASTA")
+println("Converted " + str(len(fasta_records)) + " reads to FASTA")
 </code></pre>
 <p>For large files, this streams through without holding everything in memory
 because <code>map</code> on a stream produces a stream.</p>

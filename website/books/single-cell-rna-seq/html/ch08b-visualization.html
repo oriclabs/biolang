@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-c0a6b04c.js";
+            window.path_to_searchindex_js = "searchindex-f439e659.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-80d3c337.js"></script>
+        <script src="toc-0a09f913.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -193,7 +193,9 @@ behind it, because the figure is a view rather than the complete result.</p>
 
 let obj = sc.standard(
     sc.load("nsclc_like"),
-    0.5, 100, 15, 20, 2500, 5.0, 3, 10000.0, true
+    resolution: 0.5, n_hvg: 100, k: 15,
+    min_genes: 20, max_genes: 2500, max_pct_mito: 5.0,
+    min_cells: 3, target: 10000.0, quiet: true
 )
 </code></pre>
 <h2 id="qc-distributions"><a class="header" href="#qc-distributions">QC distributions</a></h2>
@@ -202,9 +204,6 @@ The current package provides QC tables; BioLang’s general plotting builtins
 render their columns:</p>
 <blockquote>
 <p>Requires CLI: this example imports the package and reads local files.</p>
-</blockquote>
-<blockquote>
-<p>Requires CLI: this example imports the package.</p>
 </blockquote>
 <pre><code class="language-biolang">let with_qc = sc.load("nsclc_like") |&gt; sc.qc()
 
@@ -219,6 +218,9 @@ println(hist(col(with_qc.cell_qc_table, "pct_mito"), 20))
 split metrics by sample rather than hiding differences in one pooled
 distribution.</p>
 <p>For a connected SVG inspection surface:</p>
+<blockquote>
+<p>Requires CLI: this example imports the package and writes a local file.</p>
+</blockquote>
 <pre><code class="language-biolang">write_text("qc-dashboard.svg", sc.plot_qc_dashboard(sc.load("nsclc_like")))
 </code></pre>
 <p><code>plot_qc_violin()</code> and <code>plot_qc_scatter()</code> provide the two component views when
@@ -237,7 +239,7 @@ between implementations.</p>
 <blockquote>
 <p>Requires CLI: this example imports the package.</p>
 </blockquote>
-<pre><code class="language-biolang">sc.plot_elbow(obj, 15)
+<pre><code class="language-biolang">write_text("elbow.svg", sc.plot_elbow(obj, 15))
 </code></pre>
 <p>The ordered ASCII bars show variance explained by each principal component.
 Look for a gradual leveling rather than pretending there is always one exact
@@ -251,8 +253,16 @@ cutoff. Check whether later PCs contain coherent biology or mostly noise.</p>
 <p>Use UMAP to inspect local neighborhoods, mixing, and outliers. Do not interpret
 axis values, island area, or long-range distance as calibrated biology. Label
 the plot with the representation and parameters used.</p>
-<p>Use arbitrary per-cell labels for condition, donor, cell type, batch, or phase:</p>
-<pre><code class="language-biolang">write_text(
+<p>Use arbitrary per-cell labels for condition, donor, cell type, batch, or phase.
+The teaching fixture has one sample, so stand-in labels show the mechanism:</p>
+<blockquote>
+<p>Requires CLI: this example imports the package and writes a local file.</p>
+</blockquote>
+<pre><code class="language-biolang"># In a real analysis these come from your sample sheet, aligned to obj.barcodes.
+let condition_labels = range(0, obj.n_cells)
+    |&gt; map(|i| if i % 2 == 0 { "control" } else { "treated" })
+
+write_text(
     "umap-by-condition.svg",
     sc.plot_embedding(obj, condition_labels, "UMAP by condition")
 )
@@ -270,6 +280,9 @@ the plot with the representation and parameters used.</p>
 positive and negative markers. A few isolated high cells can be ambient RNA,
 doublets, or genuine rare expression.</p>
 <p>When comparing conditions, keep one colour scale across panels:</p>
+<blockquote>
+<p>Requires CLI: this example imports the package and writes a local file.</p>
+</blockquote>
 <pre><code class="language-biolang">write_text(
     "feature-split.svg",
     sc.plot_feature_split(obj, "MARK0_001", condition_labels)
@@ -317,14 +330,14 @@ plot and is unrelated.</p>
 <blockquote>
 <p>Requires CLI: this example imports the package.</p>
 </blockquote>
-<pre><code class="language-biolang">sc.plot_proportions(obj)
+<pre><code class="language-biolang">write_text("proportions.svg", sc.plot_proportions(obj))
 </code></pre>
 <p>This ordered ASCII chart counts cells per cluster or supplied group. Raw cell
 fractions can be affected by capture, filtering, and sampling. Perform
 sample-level compositional analysis before making population claims.</p>
 <h2 id="export-all-svg-plots"><a class="header" href="#export-all-svg-plots">Export all SVG plots</a></h2>
-<p>All <code>plot_*</code> functions except <code>plot_elbow</code> and <code>plot_proportions</code> return SVG
-strings. The latter two print ordered ASCII output for terminals and logs. The
+<p>Every <code>plot_*</code> function returns an SVG string, with no exceptions — pass the
+result to <code>write_text</code> to save it, or to <code>save_png</code> to rasterise it. The
 advanced gallery and complete export workflow are in
 <a href="./ch10b-advanced-analysis.html">Advanced Analysis and Diagnostic Plots</a>.</p>
 <p>Every exported figure should be accompanied by:</p>
@@ -388,7 +401,7 @@ advanced gallery and complete export workflow are in
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
+        <script src="theme/book-runner-5ea35f6b.js"></script>
 
 
 

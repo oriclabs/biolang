@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-c0a6b04c.js";
+            window.path_to_searchindex_js = "searchindex-f439e659.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-80d3c337.js"></script>
+        <script src="toc-0a09f913.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -226,8 +226,8 @@
 <tr><td><code>sc.neighbors(obj, k)</code></td><td>Exact kNN graph on PCA or integrated embedding</td></tr>
 <tr><td><code>sc.cluster(obj, k)</code></td><td>k-means alternative</td></tr>
 <tr><td><code>sc.cluster_leiden(obj, k, resolution)</code></td><td>Leiden clustering on stored graph</td></tr>
-<tr><td><code>sc.standard(...)</code></td><td>Run and report the standard workflow</td></tr>
-<tr><td><code>sc.sweep(obj, resolutions, n_hvg, k)</code></td><td>Compare clustering resolutions</td></tr>
+<tr><td><code>sc.standard(obj, resolution:, n_hvg:, k:, min_genes:, max_genes:, max_pct_mito:, min_cells:, target:, quiet:)</code></td><td>Run and report the standard workflow</td></tr>
+<tr><td><code>sc.sweep(obj, resolutions:, n_hvg:, k:)</code></td><td>Compare clustering resolutions</td></tr>
 </tbody>
 </table>
 </div>
@@ -240,13 +240,13 @@
 <tbody>
 <tr><td><code>sc.marker_table(obj, a, b)</code></td><td>Exploratory markers for cluster A vs B; <code>log2fc &gt; 0</code> means higher in A</td></tr>
 <tr><td><code>sc.pseudobulk(obj, sample_ids)</code></td><td>Sum raw counts per (cluster, sample) for replicate-aware DE</td></tr>
-<tr><td><code>sc.pseudobulk_profiles(obj, donors, conditions, cell_types, min_cells)</code></td><td>Build raw and log-CPM donor-condition-cell-type profiles</td></tr>
-<tr><td><code>sc.paired_pseudobulk_de(...)</code></td><td>Exploratory paired donor-level condition test</td></tr>
-<tr><td><code>sc.donor_gene_table(...)</code></td><td>Return per-donor values for one gene and two conditions</td></tr>
+<tr><td><code>sc.pseudobulk_profiles(obj, donors, conditions, cell_types, min_cells:)</code></td><td>Build raw and log-CPM donor-condition-cell-type profiles</td></tr>
+<tr><td><code>sc.paired_pseudobulk_de(obj, donors, conditions, cell_types, target_type:, condition_a:, condition_b:, min_cells:)</code></td><td>Exploratory paired donor-level condition test; <code>log2fc &gt; 0</code> means higher in <code>condition_b</code></td></tr>
+<tr><td><code>sc.donor_gene_table(obj, gene, donors, conditions, cell_types, target_type:, condition_a:, condition_b:, min_cells:)</code></td><td>Return per-donor values for one gene and two conditions</td></tr>
 <tr><td><code>sc.composition_table(...)</code></td><td>Return donor-condition cell-type fractions, including zeros</td></tr>
-<tr><td><code>sc.paired_composition_test(...)</code></td><td>Test paired donor-level composition changes</td></tr>
-<tr><td><code>sc.cluster_diagnostics(obj)</code></td><td>Calculate per-cell and mean silhouette coefficients</td></tr>
-<tr><td><code>sc.cluster_stability(obj, resolutions, k)</code></td><td>Sweep Leiden resolution with silhouette and ARI</td></tr>
+<tr><td><code>sc.paired_composition_test(donors, conditions, cell_types, condition_a:, condition_b:, min_cells:)</code></td><td>Test paired donor-level composition changes</td></tr>
+<tr><td><code>sc.cluster_diagnostics(obj)</code></td><td>Per-cell and mean silhouette; nil when undefined. <strong>Quadratic in cell count</strong></td></tr>
+<tr><td><code>sc.cluster_stability(obj, resolutions:, k:)</code></td><td>Sweep Leiden resolution with silhouette and ARI; <code>ari_previous</code> is nil on the first row</td></tr>
 <tr><td><code>sc.ranked_genes(de_results)</code></td><td>Prepare signed <code>gene, score</code> input for <code>gsea()</code></td></tr>
 <tr><td><code>sc.cell_cycle(obj, s_genes, g2m_genes)</code></td><td>Score cell-cycle phase</td></tr>
 <tr><td><code>sc.gene_module_score(obj, gene_indices)</code></td><td>Average selected genes per cell</td></tr>
@@ -285,8 +285,8 @@
 <tr><td><code>sc.plot_violin(obj, gene)</code></td><td>SVG string</td></tr>
 <tr><td><code>sc.plot_markers(obj, n)</code></td><td>SVG string</td></tr>
 <tr><td><code>sc.expr_dotplot(obj, genes, title)</code></td><td>SVG string</td></tr>
-<tr><td><code>sc.plot_elbow(obj, n_pcs)</code></td><td>Printed ASCII chart</td></tr>
-<tr><td><code>sc.plot_proportions(obj, groups)</code></td><td>Printed ASCII chart</td></tr>
+<tr><td><code>sc.plot_elbow(obj, n_pcs)</code></td><td>SVG string</td></tr>
+<tr><td><code>sc.plot_proportions(obj, groups)</code></td><td>SVG string</td></tr>
 <tr><td><code>sc.plot_qc_violin(obj, title)</code></td><td>SVG string</td></tr>
 <tr><td><code>sc.plot_qc_scatter(obj, title)</code></td><td>SVG string</td></tr>
 <tr><td><code>sc.plot_qc_dashboard(obj, title)</code></td><td>SVG string</td></tr>
@@ -295,8 +295,8 @@
 <tr><td><code>sc.plot_group_heatmap(obj, genes, groups, title)</code></td><td>SVG string</td></tr>
 <tr><td><code>sc.plot_volcano(results, title, fc, padj)</code></td><td>SVG string</td></tr>
 <tr><td><code>sc.plot_ma(results, title, fc, padj)</code></td><td>SVG string</td></tr>
-<tr><td><code>sc.plot_donor_expression(...)</code></td><td>SVG string</td></tr>
-<tr><td><code>sc.plot_pseudobulk_pca(...)</code></td><td>SVG string</td></tr>
+<tr><td><code>sc.plot_donor_expression(obj, gene, donors, conditions, cell_types, target_type:, condition_a:, condition_b:, min_cells:)</code></td><td>SVG string</td></tr>
+<tr><td><code>sc.plot_pseudobulk_pca(obj, donors, conditions, cell_types, target_type:, min_cells:)</code></td><td>SVG string</td></tr>
 <tr><td><code>sc.plot_composition(...)</code></td><td>SVG string</td></tr>
 <tr><td><code>sc.plot_de_overlap(result_sets, names, title)</code></td><td>SVG string</td></tr>
 <tr><td><code>sc.plot_enrichment(results, title)</code></td><td>SVG string</td></tr>
@@ -305,9 +305,24 @@
 </tbody>
 </table>
 </div>
+<h2 id="calling-convention"><a class="header" href="#calling-convention">Calling convention</a></h2>
+<p>Optional parameters are passed by name: <code>sc.standard(obj, resolution: 1.0)</code>,
+<code>sc.paired_pseudobulk_de(obj, donors, conditions, cell_types, target_type: "T",  condition_a: "control", condition_b: "treated")</code>. Positional calls still work,
+but <code>sc.standard()</code> takes eight numbers and <code>paired_pseudobulk_de()</code> takes three
+consecutive strings — transposing two of them yields a different analysis with
+no error. Name them.</p>
 <h2 id="important-boundaries"><a class="header" href="#important-boundaries">Important boundaries</a></h2>
 <ul>
 <li>Exact kNN is currently quadratic in cell count.</li>
+<li><code>cluster_diagnostics()</code> is also quadratic, and much more expensive in
+practice: roughly 23 seconds for 220 cells, growing as n². <code>cluster_stability()</code>
+runs it once per resolution. Subsample before using either on a real dataset.</li>
+<li><code>cluster_diagnostics()</code> returns <code>mean_score: nil</code> when a silhouette is
+undefined (one cluster, or every cell its own), and <code>cluster_stability()</code>
+returns <code>ari_previous: nil</code> on the first row. Neither substitutes a number
+that would read as a real result.</li>
+<li><code>gsea()</code> p-values come from a permutation test. It uses a fixed default seed
+so runs reproduce; pass <code>seed:</code> to vary it, and record the value.</li>
 <li><code>scale()</code> is dense-only and raises on an object loaded from a 10x directory,
 because centering would materialize every zero. Use <code>run_pca()</code>.</li>
 <li>HVG ranking is global CV² with no binning by mean expression, so it favors
@@ -328,7 +343,7 @@ counts were zero, so there is no sparse result to preserve.</li>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="ch15-failure-modes.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="hbc-attribution.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -342,7 +357,7 @@ counts were zero, so there is no sparse result to preserve.</li>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="ch15-failure-modes.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="hbc-attribution.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
@@ -376,7 +391,7 @@ counts were zero, so there is no sparse result to preserve.</li>
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
+        <script src="theme/book-runner-5ea35f6b.js"></script>
 
 
 

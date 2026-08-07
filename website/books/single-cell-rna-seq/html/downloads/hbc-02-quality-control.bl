@@ -1,0 +1,47 @@
+# Quality Control
+#
+# From 'Single-Cell RNA-seq with BioLang', Part V: The HBC Course in BioLang.
+# Follows the Harvard Chan Bioinformatics Core course 'Introduction to
+# scRNA-seq' (CC BY 4.0) — https://hbctraining.github.io/Intro-to-scRNAseq/
+#
+# Setup (once):
+#   bl install packages/singlecell
+#   python packages/singlecell/examples/make_demo_10x.py --output nsclc_like
+#
+# Run:
+#   bl run hbc-02-quality-control.bl
+
+# --------------------------------------------------------------------
+# Block 1 of 3
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let raw = sc.load("nsclc_like")
+let scored = sc.qc(raw)
+
+println(head(scored.cell_qc_table, 8))
+
+# --------------------------------------------------------------------
+# Block 2 of 3
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let scored = sc.load("nsclc_like") |> sc.qc()
+write_text("qc-scatter.svg", sc.plot_qc_scatter(scored))
+
+# --------------------------------------------------------------------
+# Block 3 of 3
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let raw = sc.load("nsclc_like")
+let clean = raw
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(20, 2500, 5.0)
+
+println("before: " + str(raw.n_cells) + " cells")
+println("after:  " + str(clean.n_cells) + " cells")
+

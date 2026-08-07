@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,11 +183,30 @@
 This chapter walks you through installation, the interactive REPL, running scripts,
 and writing your first real analysis.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
-<h3 id="from-cratesio"><a class="header" href="#from-cratesio">From crates.io</a></h3>
-<pre><code class="language-bash">cargo install biolang
+<p>The quickest route needs nothing installed beforehand — not even Rust.</p>
+<h3 id="linux-and-macos"><a class="header" href="#linux-and-macos">Linux and macOS</a></h3>
+<pre><code class="language-bash">curl -fsSL https://lang.bio/install.sh | sh
 </code></pre>
-<p>This installs the <code>bl</code> binary, which provides both the REPL and the script runner.</p>
-<h3 id="from-source"><a class="header" href="#from-source">From source</a></h3>
+<h3 id="windows"><a class="header" href="#windows">Windows</a></h3>
+<pre><code class="language-powershell">iwr -useb https://lang.bio/install.ps1 | iex
+</code></pre>
+<p>Either one works out your platform and architecture, downloads that build from
+the latest GitHub release, checks it against the <code>checksums.sha256</code> published
+alongside it, and installs two binaries: <code>bl</code>, which is both the REPL and the
+script runner, and <code>bl-lsp</code>, the language server your editor talks to.</p>
+<p>They install to <code>/usr/local/bin</code> on Linux and macOS, and to
+<code>%LOCALAPPDATA%\Programs\BioLang\bin</code> on Windows — the Windows location needs no
+administrator rights and is added to your user <code>PATH</code> for you. Set
+<code>BIOLANG_INSTALL_DIR</code> to put them somewhere else.</p>
+<h3 id="with-cargo"><a class="header" href="#with-cargo">With Cargo</a></h3>
+<p>If you already have Rust 1.75 or newer:</p>
+<pre><code class="language-bash">cargo install --git https://github.com/oriclabs/biolang bl-cli
+</code></pre>
+<p>This builds from source, so it takes a few minutes where the installers take
+seconds. BioLang is not published to crates.io yet, which is why this is a
+<code>--git</code> install rather than <code>cargo install biolang</code>.</p>
+<h3 id="from-a-clone"><a class="header" href="#from-a-clone">From a clone</a></h3>
+<p>What you want if you intend to change anything:</p>
 <pre><code class="language-bash">git clone https://github.com/oriclabs/biolang.git
 cd biolang
 cargo build --release
@@ -200,7 +219,8 @@ cp target/release/bl ~/.local/bin/
 <p>BioLang has built-in update checking. Run <code>bl version</code> to see the current version
 and check if a newer release is available:</p>
 <pre><code class="language-bash">bl version
-# BioLang v0.3.0
+# BioLang v1.2.0
+#
 # Checking for updates... up to date.
 </code></pre>
 <p>To upgrade to the latest release:</p>
@@ -219,10 +239,21 @@ startup. Disable it with:</p>
 <pre><code class="language-bash">bl
 </code></pre>
 <p>You will see the BioLang prompt:</p>
-<pre><code>BioLang v0.3.0
-Type :help for commands, :quit to exit.
+<pre><code>  ____  _       _
+ | __ )(_) ___ | |    __ _ _ __   __ _
+ |  _ \| |/ _ \| |   / _` | '_ \ / _` |
+ | |_) | | (_) | |__| (_| | | | | (_| |
+ |____/|_|\___/|_____\__,_|_| |_|\__, |
+                                  |___/
+ BioLang — pipe-first bioinformatics DSL
+ v1.2.0  •  1018 builtins  •  NCBI[-] LLM[+]  Cache: 0B
+
+ Commands:  :help  :builtins  :quit  ?name  Tab for completion  •  Paste DNA/FASTA auto-detected
+
 bl&gt;
 </code></pre>
+<p><code>NCBI[-]</code> means no <code>NCBI_API_KEY</code> is set, and <code>LLM[+]</code> that an LLM provider is
+configured. Both reflect your environment, so your banner may differ.</p>
 <p>Try evaluating a bio literal directly:</p>
 <pre><code>bl&gt; dna"ATCGATCG" |&gt; gc_content()
 0.5
@@ -292,8 +323,8 @@ let min_qual = into(args.min_quality ?? "20", "Int")
 let reads = read_fastq(input_file)
   |&gt; filter(|r| mean_phred(r.quality) &gt;= min_qual)
 
-print(f"Passing reads: {len(reads)}")
-print(f"Mean quality: {reads |&gt; map(|r| mean_phred(r.quality)) |&gt; mean()}")
+println(f"Passing reads: {len(reads)}")
+println(f"Mean quality: {reads |&gt; map(|r| mean_phred(r.quality)) |&gt; mean()}")
 </code></pre>
 <h2 id="your-first-script-fasta-gc-content-analyzer"><a class="header" href="#your-first-script-fasta-gc-content-analyzer">Your First Script: FASTA GC Content Analyzer</a></h2>
 <p>BioLang includes sample data in <code>examples/sample-data/</code> — see the
@@ -322,9 +353,9 @@ let min_gc = min(gc_vals)
 let max_gc = max(gc_vals)
 let n_seqs = len(gc_vals)
 
-print(f"Analyzed {n_seqs} sequences")
-print(f"GC content: {mean_gc:.3f} (range: {min_gc:.3f} - {max_gc:.3f})")
-print(f"Standard deviation: {std_gc:.4f}")
+println(f"Analyzed {n_seqs} sequences")
+println(f"GC content: {mean_gc:.3f} (range: {min_gc:.3f} - {max_gc:.3f})")
+println(f"Standard deviation: {std_gc:.4f}")
 
 # Flag outlier contigs (GC &gt; 2 std devs from mean)
 # |&gt; into binds the pipe result to a variable (like let, but reads left-to-right)
@@ -333,8 +364,8 @@ gc_table
   |&gt; sort_by(|row| -row.gc)
   |&gt; into outliers
 
-print(f"\nOutlier contigs ({len(outliers)}):")
-outliers |&gt; each(|row| print(f"  {row.name}: GC={row.gc:.3f}, length={row.length}"))
+println(f"\nOutlier contigs ({len(outliers)}):")
+outliers |&gt; each(|row| println(f"  {row.name}: GC={row.gc:.3f}, length={row.length}"))
 </code></pre>
 <p>Run it:</p>
 <pre><code class="language-bash">bl run gc_scan.bl
@@ -421,7 +452,7 @@ directories:</p>
 import "genomics_utils.bl" as gutils
 
 let kmers = dna"ATCGATCGATCG" |&gt; gutils.kmer_frequencies(k: 3)
-print(kmers)
+println(kmers)
 </code></pre>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
 <p>You now have BioLang installed, know how to use the REPL for interactive exploration,
@@ -437,7 +468,7 @@ for bioinformatics work.</p>
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="ch02-bio-literals.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="ch00b-from-r-python.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -451,7 +482,7 @@ for bioinformatics work.</p>
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="ch02-bio-literals.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="ch00b-from-r-python.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

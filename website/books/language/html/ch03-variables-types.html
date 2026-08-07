@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -255,30 +255,30 @@ let brca1_snp = variant("chr17", 43094464, "G", "A")
 <h3 id="interval-type"><a class="header" href="#interval-type">Interval Type</a></h3>
 <p>Intervals represent genomic regions with chromosome, start, and end:</p>
 <pre><code class="language-biolang">let region = interval("chr1", 1000000, 2000000)
-print(region.chrom)   # =&gt; "chr1"
-print(region.start)   # =&gt; 1000000
-print(region.end)     # =&gt; 2000000
-print(region.length)  # =&gt; 1000000
+println(region.chrom)   # =&gt; "chr1"
+println(region.start)   # =&gt; 1000000
+println(region.end)     # =&gt; 2000000
+println(region.length)  # =&gt; 1000000
 
 # Interval arithmetic
 let exon1 = interval("chr1", 1000, 1500)
 let exon2 = interval("chr1", 1400, 2000)
-print(exon1.end &gt; exon2.start &amp;&amp; exon2.end &gt; exon1.start)  # =&gt; true
-print(intersect(exon1, exon2))      # =&gt; interval("chr1", 1400, 1500)
+println(exon1.end &gt; exon2.start &amp;&amp; exon2.end &gt; exon1.start)  # =&gt; true
+println(intersect(exon1, exon2))      # =&gt; interval("chr1", 1400, 1500)
 </code></pre>
 <h3 id="variant-type"><a class="header" href="#variant-type">Variant Type</a></h3>
 <p>Variants represent sequence changes at specific positions:</p>
 <pre><code class="language-biolang">let snv = variant("chr7", 55249071, "C", "T")
-print(snv.chrom)    # =&gt; "chr7"
-print(snv.pos)      # =&gt; 55249071
-print(snv.ref_allele)  # =&gt; "C"
-print(snv.alt_allele)  # =&gt; "T"
+println(snv.chrom)    # =&gt; "chr7"
+println(snv.pos)      # =&gt; 55249071
+println(snv.ref_allele)  # =&gt; "C"
+println(snv.alt_allele)  # =&gt; "T"
 
 # Classify variant type
-print(variant_type(snv))   # =&gt; "SNV"
+println(variant_type(snv))   # =&gt; "SNV"
 
 let indel = variant("chr7", 55249071, "CT", "C")
-print(variant_type(indel)) # =&gt; "DEL"
+println(variant_type(indel)) # =&gt; "DEL"
 </code></pre>
 <h2 id="records"><a class="header" href="#records">Records</a></h2>
 <p>Records are BioLang’s primary structured data type. They map naturally to the
@@ -292,8 +292,8 @@ tabular, metadata-rich world of bioinformatics:</p>
   contamination: 0.02
 }
 
-print(sample.sample_id)       # =&gt; "S001"
-print(sample.mean_coverage)   # =&gt; 32.5
+println(sample.sample_id)       # =&gt; "S001"
+println(sample.mean_coverage)   # =&gt; 32.5
 </code></pre>
 <h3 id="string-keys"><a class="header" href="#string-keys">String Keys</a></h3>
 <p>Record keys can be identifiers or strings:</p>
@@ -322,8 +322,8 @@ let sample_config = {
   min_mapq: 20   # override the default
 }
 
-print(sample_config.aligner)   # =&gt; "bwa-mem2"
-print(sample_config.min_mapq)  # =&gt; 20
+println(sample_config.aligner)   # =&gt; "bwa-mem2"
+println(sample_config.min_mapq)  # =&gt; 20
 </code></pre>
 <p>This pattern is essential for bioinformatics pipelines where you have standard
 parameters with per-sample overrides.</p>
@@ -348,20 +348,20 @@ parameters with per-sample overrides.</p>
   }
 }
 
-print(variant_annotation.gene.consequence)
-print(variant_annotation.prediction.sift.score)
+println(variant_annotation.gene.consequence)
+println(variant_annotation.prediction.sift.score)
 </code></pre>
 <h2 id="type-checking"><a class="header" href="#type-checking">Type Checking</a></h2>
 <p>BioLang provides introspection functions for runtime type checking:</p>
 <pre><code class="language-biolang">let seq = dna"ATCG"
-print(type(seq))       # =&gt; "DNA"
-print(is_dna(seq))     # =&gt; true
-print(is_rna(seq))     # =&gt; false
+println(type(seq))       # =&gt; "DNA"
+println(is_dna(seq))     # =&gt; true
+println(is_rna(seq))     # =&gt; false
 
 let rec = {name: "BRCA1", chrom: "chr17"}
-print(type(rec))       # =&gt; "Record"
-print(is_record(rec))  # =&gt; true
-print(is_str(rec))     # =&gt; false
+println(type(rec))       # =&gt; "Record"
+println(is_record(rec))  # =&gt; true
+println(is_str(rec))     # =&gt; false
 </code></pre>
 <p>Available type check functions:</p>
 <pre><code class="language-biolang">let val = dna"ATCG"
@@ -468,22 +468,22 @@ let registry = raw_sheet |&gt; map(|row| {
 # Validate: every sample must have R1
 let invalid = registry |&gt; filter(|s| is_nil(s.fastq_r1))
 if len(invalid) &gt; 0 then {
-  print(f"ERROR: {len(invalid)} samples missing FASTQ R1:")
-  invalid |&gt; each(|s| print(f"  {s.sample_id}"))
+  println(f"ERROR: {len(invalid)} samples missing FASTQ R1:")
+  invalid |&gt; each(|s| println(f"  {s.sample_id}"))
   exit(1)
 }
 
 # Group by condition for downstream analysis
 let by_condition = registry |&gt; group_by("condition")
 by_condition |&gt; each(|group| {
-  print(f"{group.key}: {len(group.values)} samples")
-  group.values |&gt; each(|s| print(f"  {s.sample_id} ({s.tissue})"))
+  println(f"{group.key}: {len(group.values)} samples")
+  group.values |&gt; each(|s| println(f"  {s.sample_id} ({s.tissue})"))
 })
 
 # Summary
 let tumor_count = registry |&gt; filter(|s| s.condition == "tumor") |&gt; len()
 let normal_count = registry |&gt; filter(|s| s.condition == "normal") |&gt; len()
-print(f"\nRegistry: {len(registry)} samples ({tumor_count} tumor, {normal_count} normal)")
+println(f"\nRegistry: {len(registry)} samples ({tumor_count} tumor, {normal_count} normal)")
 </code></pre>
 <h2 id="example-parsing-and-validating-variant-records"><a class="header" href="#example-parsing-and-validating-variant-records">Example: Parsing and Validating Variant Records</a></h2>
 <pre><code class="language-biolang"># validate_variants.bl
@@ -528,19 +528,19 @@ let total = len(classified)
 let valid = classified |&gt; filter(|v| v.is_valid) |&gt; len()
 let by_type = classified |&gt; group_by("variant_type")
 
-print(f"Total variants: {total}")
-print(f"Passing filters: {valid} ({valid / total * 100.0:.1f}%)")
-print(f"\nBy type:")
-by_type |&gt; each(|g| print(f"  {g.key}: {len(g.values)}"))
+println(f"Total variants: {total}")
+println(f"Passing filters: {valid} ({valid * 100.0 / total:.1f}%)")
+println(f"\nBy type:")
+by_type |&gt; each(|g| println(f"  {g.key}: {len(g.values)}"))
 
 # Flag high-impact variants
 let high_impact = classified
   |&gt; filter(|v| v.is_valid &amp;&amp; v.variant_type != "SNV" &amp;&amp; v.size &gt; 50)
   |&gt; sort_by(|v| -v.size)
 
-print(f"\nHigh-impact structural variants (&gt;50bp): {len(high_impact)}")
+println(f"\nHigh-impact structural variants (&gt;50bp): {len(high_impact)}")
 high_impact |&gt; take(10) |&gt; each(|v| {
-  print(f"  {v.var.chrom}:{v.var.pos} {v.variant_type} size={v.size} AF={v.allele_freq:.3f}")
+  println(f"  {v.var.chrom}:{v.var.pos} {v.variant_type} size={v.size} AF={v.allele_freq:.3f}")
 })
 </code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>

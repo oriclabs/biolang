@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -200,7 +200,7 @@ let ids = ncbi_search("pubmed", "CRISPR-Cas9 delivery 2024", 20)
 # Get summaries for the IDs
 let summaries = ncbi_summary(ids, "pubmed")
 summaries |&gt; each(|s| {
-  print(s.uid)
+  println(s.uid)
 })
 </code></pre>
 <h3 id="ncbi_gene"><a class="header" href="#ncbi_gene">ncbi_gene</a></h3>
@@ -212,7 +212,7 @@ let tp53 = ncbi_gene("TP53")
 # If a single gene matches, returns a record:
 # {id, symbol, name, description, organism, chromosome, location, summary}
 
-print(tp53.name + " on chr" + tp53.chromosome + ": " + tp53.location)
+println(tp53.name + " on chr" + tp53.chromosome + ": " + tp53.location)
 </code></pre>
 <h3 id="ncbi_sequence"><a class="header" href="#ncbi_sequence">ncbi_sequence</a></h3>
 <p>Retrieve nucleotide or protein sequences from NCBI.</p>
@@ -220,7 +220,7 @@ print(tp53.name + " on chr" + tp53.chromosome + ": " + tp53.location)
 # requires: NCBI_API_KEY (optional, increases rate limit)
 # ncbi_sequence(accession) — returns FASTA text
 let fasta = ncbi_sequence("NM_000546.6")
-print("FASTA (first 100 chars): " + fasta[0..100])
+println("FASTA (first 100 chars): " + fasta[0..100])
 </code></pre>
 <p>Set the <code>NCBI_API_KEY</code> environment variable to get 10 requests/second instead
 of the default 3.</p>
@@ -232,12 +232,12 @@ of the default 3.</p>
 let brca1 = ensembl_symbol("human", "BRCA1")
 # Returns: {id, symbol, description, species, biotype, start, end, strand, chromosome}
 
-print("Ensembl ID: " + brca1.id)
-print("Location: " + brca1.chromosome + ":" + str(brca1.start) + "-" + str(brca1.end))
+println("Ensembl ID: " + brca1.id)
+println("Location: " + brca1.chromosome + ":" + str(brca1.start) + "-" + str(brca1.end))
 
 # ensembl_gene(ensembl_id) — lookup by Ensembl ID
 let same = ensembl_gene("ENSG00000012048")
-print("Symbol: " + same.symbol)
+println("Symbol: " + same.symbol)
 </code></pre>
 <h3 id="ensembl_vep"><a class="header" href="#ensembl_vep">ensembl_vep</a></h3>
 <p>Predict the functional consequences of variants using the Variant Effect
@@ -257,7 +257,7 @@ let predictions = variants |&gt; map(|v| ensembl_vep(v))
 predictions |&gt; each(|pred| {
   if len(pred) &gt; 0 then {
     let r = pred[0]
-    print(r.allele_string + " =&gt; " + r.most_severe_consequence)
+    println(r.allele_string + " =&gt; " + r.most_severe_consequence)
   }
 })
 </code></pre>
@@ -269,8 +269,8 @@ predictions |&gt; each(|pred| {
 let kinases = uniprot_search("kinase AND organism_id:9606", 50)
 # Returns list of records: {accession, name, organism, sequence_length, gene_names, function}
 
-print(str(len(kinases)) + " human kinases found")
-kinases |&gt; take(5) |&gt; each(|k| print(k.accession + " " + k.gene_names))
+println(str(len(kinases)) + " human kinases found")
+kinases |&gt; take(5) |&gt; each(|k| println(k.accession + " " + k.gene_names))
 </code></pre>
 <h3 id="uniprot_entry"><a class="header" href="#uniprot_entry">uniprot_entry</a></h3>
 <p>Get full details for a single UniProt accession.</p>
@@ -278,15 +278,15 @@ kinases |&gt; take(5) |&gt; each(|k| print(k.accession + " " + k.gene_names))
 let entry = uniprot_entry("P04637")  # TP53
 # Returns: {accession, name, organism, sequence_length, gene_names, function}
 
-print(entry.name + ": " + str(entry.sequence_length) + " aa")
-print("Genes: " + entry.gene_names)
-print("Function: " + entry.function)
+println(entry.name + ": " + str(entry.sequence_length) + " aa")
+println("Genes: " + entry.gene_names)
+println("Function: " + entry.function)
 
 # Get protein features separately
 let features = uniprot_features("P04637")
 # Returns list of: {type, location, description}
 let domains = features |&gt; filter(|f| f.type == "Domain")
-domains |&gt; each(|d| print("  " + d.description + ": " + d.location))
+domains |&gt; each(|d| println("  " + d.description + ": " + d.location))
 </code></pre>
 <h2 id="ucsc-genome-browser"><a class="header" href="#ucsc-genome-browser">UCSC Genome Browser</a></h2>
 <h3 id="ucsc_sequence"><a class="header" href="#ucsc_sequence">ucsc_sequence</a></h3>
@@ -297,9 +297,9 @@ domains |&gt; each(|d| print("  " + d.description + ": " + d.location))
 let promoter = ucsc_sequence("hg38", "chr17", 43170245, 43172245)
 # Returns DNA sequence as a string
 
-print("BRCA1 promoter length: " + str(len(promoter)) + " bp")
+println("BRCA1 promoter length: " + str(len(promoter)) + " bp")
 let gc = gc_content(dna(promoter))
-print("GC content: " + str(gc))
+println("GC content: " + str(gc))
 </code></pre>
 <h2 id="kegg"><a class="header" href="#kegg">KEGG</a></h2>
 <h3 id="kegg_find"><a class="header" href="#kegg_find">kegg_find</a></h3>
@@ -315,7 +315,7 @@ let pathways = kegg_find("pathway", "apoptosis human")
 # kegg_get(entry_id) — returns raw KEGG text
 let apoptosis = kegg_get("hsa04210")
 # Returns the KEGG flat-file text for the entry
-print("Entry text length: " + str(len(apoptosis)) + " chars")
+println("Entry text length: " + str(len(apoptosis)) + " chars")
 </code></pre>
 <h2 id="string"><a class="header" href="#string">STRING</a></h2>
 <h3 id="string_network"><a class="header" href="#string_network">string_network</a></h3>
@@ -326,7 +326,7 @@ print("Entry text length: " + str(len(apoptosis)) + " chars")
 let network = string_network(["TP53"], 9606)
 # Returns list of: {protein_a, protein_b, score}
 
-network |&gt; each(|i| print(i.protein_a + " &lt;-&gt; " + i.protein_b + " (" + str(i.score) + ")"))
+network |&gt; each(|i| println(i.protein_a + " &lt;-&gt; " + i.protein_b + " (" + str(i.score) + ")"))
 </code></pre>
 <h2 id="pdb"><a class="header" href="#pdb">PDB</a></h2>
 <h3 id="pdb_entry"><a class="header" href="#pdb_entry">pdb_entry</a></h3>
@@ -342,8 +342,8 @@ let structure = pdb_entry("1TUP")  # TP53 DNA-binding domain
 #   ligands: [...],
 # }
 
-print(structure.title)
-print("Resolution: " + str(structure.resolution) + " A")
+println(structure.title)
+println("Resolution: " + str(structure.resolution) + " A")
 </code></pre>
 <h2 id="reactome"><a class="header" href="#reactome">Reactome</a></h2>
 <h3 id="reactome_pathways"><a class="header" href="#reactome_pathways">reactome_pathways</a></h3>
@@ -353,7 +353,7 @@ print("Resolution: " + str(structure.resolution) + " A")
 let pathways = reactome_pathways("BRCA1")
 # Returns pathway records
 
-pathways |&gt; each(|p| print(p))
+pathways |&gt; each(|p| println(p))
 </code></pre>
 <h2 id="gene-ontology"><a class="header" href="#gene-ontology">Gene Ontology</a></h2>
 <h3 id="go_term"><a class="header" href="#go_term">go_term</a></h3>
@@ -371,7 +371,7 @@ let term = go_term("GO:0006915")
 let annotations = go_annotations("TP53")
 # Returns list of: {go_id, term, aspect}
 
-annotations |&gt; take(10) |&gt; each(|a| print("  " + a.go_id + " [" + a.aspect + "]: " + a.term))
+annotations |&gt; take(10) |&gt; each(|a| println("  " + a.go_id + " [" + a.aspect + "]: " + a.term))
 </code></pre>
 <h2 id="cosmic"><a class="header" href="#cosmic">COSMIC</a></h2>
 <h3 id="cosmic_gene"><a class="header" href="#cosmic_gene">cosmic_gene</a></h3>
@@ -382,7 +382,7 @@ annotations |&gt; take(10) |&gt; each(|a| print("  " + a.go_id + " [" + a.aspect
 let cosmic = cosmic_gene("BRAF")
 # Returns mutation data for the gene
 
-print(cosmic)
+println(cosmic)
 </code></pre>
 <h2 id="ncbi-datasets"><a class="header" href="#ncbi-datasets">NCBI Datasets</a></h2>
 <h3 id="datasets_gene"><a class="header" href="#datasets_gene">datasets_gene</a></h3>
@@ -390,7 +390,7 @@ print(cosmic)
 <pre><code class="language-biolang"># requires: internet connection
 # datasets_gene(symbol_or_id)
 let info = datasets_gene("EGFR")
-print(info)
+println(info)
 </code></pre>
 <h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
 <p>Some APIs require or benefit from API keys:</p>
@@ -432,9 +432,9 @@ let annotated = gene_list |&gt; map(|symbol| {
 })
 
 annotated |&gt; each(|g| {
-  print(g.symbol + " (" + g.name + ") - chr" + g.chromosome)
-  print("  Protein: " + str(g.protein_length) + " aa")
-  print("  Pathways: " + str(g.pathways))
+  println(g.symbol + " (" + g.name + ") - chr" + g.chromosome)
+  println("  Protein: " + str(g.protein_length) + " aa")
+  println("  Pathways: " + str(g.pathways))
 })
 
 annotated |&gt; write_json("gene_annotations.json")
@@ -482,7 +482,7 @@ let flagged = interpreted
   |&gt; filter(|v| v.impact == "HIGH" or v.cosmic_known)
   |&gt; sort_by(|v| -v.cosmic_count)
 
-print(str(len(flagged)) + " variants flagged for review")
+println(str(len(flagged)) + " variants flagged for review")
 flagged |&gt; write_tsv("flagged_variants.tsv")
 </code></pre>
 <h2 id="example-protein-interaction-network"><a class="header" href="#example-protein-interaction-network">Example: Protein Interaction Network</a></h2>
@@ -498,7 +498,7 @@ let top_genes = de_genes |&gt; take(50)
 let network = string_network(top_genes, 9606)
 # Returns list of: {protein_a, protein_b, score}
 
-print(str(len(network)) + " interactions")
+println(str(len(network)) + " interactions")
 
 # Find hub genes (most connections)
 let all_proteins = network |&gt; map(|i| i.protein_a) + network |&gt; map(|i| i.protein_b)
@@ -509,8 +509,8 @@ let degree = unique_proteins |&gt; map(|p| {
 })
   |&gt; sort(|a, b| b.degree - a.degree)
 
-print("Hub genes:")
-degree |&gt; take(10) |&gt; each(|d| print("  " + d.gene + ": " + str(d.degree) + " interactions"))
+println("Hub genes:")
+degree |&gt; take(10) |&gt; each(|d| println("  " + d.gene + ": " + str(d.degree) + " interactions"))
 
 # Pathway enrichment for hub genes
 let hub_genes = degree |&gt; take(10) |&gt; map(|d| d.gene)
@@ -518,8 +518,8 @@ let pathways = reactome_pathways(hub_genes)
   |&gt; filter(|p| p.p_value &lt; 0.05)
   |&gt; sort_by(|p| p.p_value)
 
-print("Enriched pathways:")
-pathways |&gt; take(10) |&gt; each(|p| print("  " + p.name + " (p=" + str(p.p_value) + ")"))
+println("Enriched pathways:")
+pathways |&gt; take(10) |&gt; each(|p| println("  " + p.name + " (p=" + str(p.p_value) + ")"))
 </code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <p>BioLang’s built-in bio API functions let you query 12 major biological

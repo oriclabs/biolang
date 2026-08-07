@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -190,7 +190,7 @@ proceed.</p>
 <pre><code class="language-biolang">let records = try {
     read_vcf("data/variants.vcf")
 } catch e {
-    print("Failed to parse VCF: " + e.message)
+    println("Failed to parse VCF: " + e.message)
     []
 }
 </code></pre>
@@ -212,15 +212,15 @@ try {
 } catch e {
     match e.kind {
         "network_error" =&gt; {
-            print("Network unreachable, using cached data")
+            println("Network unreachable, using cached data")
             load_cache("uniprot", accession)
         }
         "parse_error" =&gt; {
-            print("Malformed response for " + accession + ", skipping")
+            println("Malformed response for " + accession + ", skipping")
             nil
         }
         _ =&gt; {
-            print("Unexpected error: " + e.message)
+            println("Unexpected error: " + e.message)
             nil
         }
     }
@@ -245,7 +245,7 @@ try {
     let ref_seqs = load_reference("hg38.fa")
     run_alignment(reads, ref_seqs)
 } catch e {
-    print("Pipeline aborted: " + e.message)
+    println("Pipeline aborted: " + e.message)
 }
 </code></pre>
 <p>The <code>error()</code> function raises an exception that unwinds to the nearest <code>catch</code>.</p>
@@ -285,7 +285,7 @@ let annotation = try {
     }
     result
 } catch e {
-    print("Ensembl unavailable after 5 attempts: " + e.message)
+    println("Ensembl unavailable after 5 attempts: " + e.message)
     {gene_name: "BRCA2", source: "fallback_cache"}
 }
 </code></pre>
@@ -374,12 +374,12 @@ let clnsig = safe_info(v, "CLNSIG", default: "not_reported")
             good = good + [parser(line)]
         } catch e {
             bad = bad + 1
-            print("Skipped line " + str(i + 1) + ": " + e.message)
+            println("Skipped line " + str(i + 1) + ": " + e.message)
         }
     }
 
     if bad &gt; 0 {
-        print("Warning: " + str(bad) + " malformed records skipped")
+        println("Warning: " + str(bad) + " malformed records skipped")
     }
     good
 }
@@ -436,9 +436,9 @@ let mean_qual = if len(qualities) &gt; 0 { mean(qualities) } else { 0.0 }
         }
     }
 
-    print("Parsed " + str(len(records)) + " records, " + str(len(errors)) + " errors")
+    println("Parsed " + str(len(records)) + " records, " + str(len(errors)) + " errors")
     for err in errors {
-        print("  SKIP: " + err.header + " (" + err.reason + ")")
+        println("  SKIP: " + err.header + " (" + err.reason + ")")
     }
     records
 }

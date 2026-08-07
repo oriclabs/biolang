@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,42 +184,42 @@
 <h3 id="fetching-entries"><a class="header" href="#fetching-entries">Fetching Entries</a></h3>
 <pre><code class="language-biolang"># requires: internet connection
 let entry = pdb_entry("4HHB")
-print(entry.title)          # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN"
-print(entry.method)         # "X-RAY DIFFRACTION"
-print(entry.resolution)     # 1.74
-print(entry.organism)       # "Homo sapiens"
-print(entry.release_date)   # "1984-07-17"
+println(entry.title)          # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN"
+println(entry.method)         # "X-RAY DIFFRACTION"
+println(entry.resolution)     # 1.74
+println(entry.organism)       # "Homo sapiens"
+println(entry.release_date)   # "1984-07-17"
 </code></pre>
 <h3 id="searching"><a class="header" href="#searching">Searching</a></h3>
 <pre><code class="language-biolang"># requires: internet connection
 let ids = pdb_search("insulin receptor")
-print("Found " + str(len(ids)) + " structures")
-ids |&gt; take(5) |&gt; each(|id| print(id))
+println("Found " + str(len(ids)) + " structures")
+ids |&gt; take(5) |&gt; each(|id| println(id))
 </code></pre>
 <h3 id="chains-and-entities"><a class="header" href="#chains-and-entities">Chains and Entities</a></h3>
 <pre><code class="language-biolang"># requires: internet connection
 # Get all polymer entities (chains) in a structure
 let chains = pdb_chains("4HHB")
 chains |&gt; each(|c|
-    print(c.description + " (" + c.entity_type + "): " + str(len(c.sequence)) + " residues")
+    println(c.description + " (" + c.entity_type + "): " + str(len(c.sequence)) + " residues")
 )
 
 # Get a specific entity
 let entity = pdb_entity("4HHB", 1)
-print(entity.description)
-print(entity.sequence)
+println(entity.description)
+println(entity.sequence)
 
 # Get sequence as Protein value
 let seq = pdb_sequence("4HHB", 1)
-print(len(seq))             # sequence length
+println(len(seq))             # sequence length
 </code></pre>
 <h3 id="real-world-example-compare-hemoglobin-chains"><a class="header" href="#real-world-example-compare-hemoglobin-chains">Real-World Example: Compare Hemoglobin Chains</a></h3>
 <pre><code class="language-biolang"># requires: internet connection
 let alpha = pdb_entity("4HHB", 1)
 let beta = pdb_entity("4HHB", 2)
-print("Alpha chain: " + str(len(alpha.sequence)) + " residues")
-print("Beta chain: " + str(len(beta.sequence)) + " residues")
-print("Alpha type: " + alpha.entity_type)
+println("Alpha chain: " + str(len(alpha.sequence)) + " residues")
+println("Beta chain: " + str(len(beta.sequence)) + " residues")
+println("Alpha type: " + alpha.entity_type)
 </code></pre>
 <h2 id="pubmed-integration"><a class="header" href="#pubmed-integration">PubMed Integration</a></h2>
 <p>Search PubMed and retrieve abstracts:</p>
@@ -227,11 +227,11 @@ print("Alpha type: " + alpha.entity_type)
 # requires: NCBI_API_KEY (optional, increases rate limit)
 # Search for recent CRISPR papers
 let results = pubmed_search("CRISPR Cas9 therapy", 5)
-print("Total results: " + str(results.count))
+println("Total results: " + str(results.count))
 
 # Fetch abstract for a specific paper
 let abstract = pubmed_abstract(results[0])
-print(abstract)
+println(abstract)
 </code></pre>
 <h3 id="literature-review-pipeline"><a class="header" href="#literature-review-pipeline">Literature Review Pipeline</a></h3>
 <pre><code class="language-biolang"># requires: internet connection
@@ -240,14 +240,14 @@ print(abstract)
 let gene = "BRCA1"
 let results = pubmed_search(gene + " cancer therapy 2024", 20)
 
-print("Found " + str(results.count) + " papers for " + gene)
+println("Found " + str(results.count) + " papers for " + gene)
 results.ids
   |&gt; take(5)
   |&gt; each(|pmid|
     let text = pubmed_abstract(pmid)
-    print("PMID " + pmid + ":")
-    print(text)
-    print("---")
+    println("PMID " + pmid + ":")
+    println(text)
+    println("---")
   )
 </code></pre>
 <h2 id="enrichment-analysis"><a class="header" href="#enrichment-analysis">Enrichment Analysis</a></h2>
@@ -265,7 +265,7 @@ let results = enrich(de_genes, gene_sets, 20000)
 # Filter significant results
 results
   |&gt; filter(|r| r.fdr &lt; 0.05)
-  |&gt; each(|r| print(r.term + ": p=" + str(r.p_value) + " FDR=" + str(r.fdr)))
+  |&gt; each(|r| println(r.term + ": p=" + str(r.p_value) + " FDR=" + str(r.fdr)))
 </code></pre>
 <p>The <code>enrich()</code> function uses the hypergeometric test with Benjamini-Hochberg FDR correction.</p>
 <p>Output columns: <code>term</code>, <code>overlap</code>, <code>p_value</code>, <code>fdr</code>, <code>genes</code></p>
@@ -286,7 +286,7 @@ let results = gsea(ranked, gene_sets)
 # Top enriched pathways
 results
   |&gt; filter(|r| r.fdr &lt; 0.25)
-  |&gt; each(|r| print(r.term + ": NES=" + str(r.nes) + " FDR=" + str(r.fdr)))
+  |&gt; each(|r| println(r.term + ": NES=" + str(r.nes) + " FDR=" + str(r.fdr)))
 </code></pre>
 <p>Output columns: <code>term</code>, <code>es</code> (enrichment score), <code>nes</code> (normalized ES), <code>p_value</code>, <code>fdr</code>, <code>leading_edge</code></p>
 <h3 id="gmt-file-format"><a class="header" href="#gmt-file-format">GMT File Format</a></h3>
@@ -309,7 +309,7 @@ let sig_genes = de
   |&gt; map(|r| r.gene)
   |&gt; collect()
 
-print("Significant DE genes: " + str(len(sig_genes)))
+println("Significant DE genes: " + str(len(sig_genes)))
 
 # 3. Load pathway gene sets
 let hallmark = read_gmt("h.all.v2024.1.Hs.symbols.gmt")
@@ -320,14 +320,14 @@ let h_results = enrich(sig_genes, hallmark, 20000)
 let k_results = enrich(sig_genes, kegg, 20000)
 
 # 5. Report significant pathways
-print("\n=== Hallmark Pathways ===")
+println("\n=== Hallmark Pathways ===")
 h_results |&gt; filter(|r| r.fdr &lt; 0.05) |&gt; each(|r|
-    print(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
+    println(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
 )
 
-print("\n=== KEGG Pathways ===")
+println("\n=== KEGG Pathways ===")
 k_results |&gt; filter(|r| r.fdr &lt; 0.05) |&gt; each(|r|
-    print(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
+    println(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
 )
 </code></pre>
 <h2 id="builtin-reference"><a class="header" href="#builtin-reference">Builtin Reference</a></h2>
@@ -368,7 +368,7 @@ k_results |&gt; filter(|r| r.fdr &lt; 0.05) |&gt; each(|r|
 <tr><td><code>read_gmt(path)</code></td><td>Str</td><td>Map{name -&gt; List[Str]}</td><td>Parse GMT gene set file</td></tr>
 <tr><td><code>enrich(genes, sets, bg)</code></td><td>List, Map, Int</td><td>Table</td><td>ORA with hypergeometric test + BH FDR</td></tr>
 <tr><td><code>ora(genes, sets, bg)</code></td><td>List, Map, Int</td><td>Table</td><td>Alias for <code>enrich()</code></td></tr>
-<tr><td><code>gsea(ranked, sets)</code></td><td>Table, Map</td><td>Table</td><td>GSEA with permutation test + BH FDR</td></tr>
+<tr><td><code>gsea(ranked, sets, seed?)</code></td><td>Table, Map, Int</td><td>Table</td><td>GSEA with permutation test + BH FDR; fixed default seed, pass <code>seed:</code> to vary</td></tr>
 </tbody>
 </table>
 </div>

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-c0a6b04c.js";
+            window.path_to_searchindex_js = "searchindex-f439e659.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-80d3c337.js"></script>
+        <script src="toc-0a09f913.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -193,7 +193,9 @@ clustering.</p>
 
 let obj = sc.standard(
     sc.load("nsclc_like"),
-    0.5, 100, 15, 20, 2500, 5.0, 3, 10000.0, true
+    resolution: 0.5, n_hvg: 100, k: 15,
+    min_genes: 20, max_genes: 2500, max_pct_mito: 5.0,
+    min_cells: 3, target: 10000.0, quiet: true
 )
 let marker_indices = obj.hvg
     |&gt; take(8)
@@ -291,7 +293,7 @@ cell state.</p>
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
+        <script src="theme/book-runner-5ea35f6b.js"></script>
 
 
 

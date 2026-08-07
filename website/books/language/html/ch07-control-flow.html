@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -232,7 +232,7 @@ for read in reads {
     total_bases = total_bases + len(read.seq)
 }
 
-print("Total bases: " + str(total_bases))
+println("Total bases: " + str(total_bases))
 </code></pre>
 <h3 id="tuple-destructuring"><a class="header" href="#tuple-destructuring">Tuple Destructuring</a></h3>
 <p>When iterating over paired data, destructure directly in the loop header.</p>
@@ -245,14 +245,14 @@ let fastq_paths = [
 
 for (sample, path) in zip(sample_ids, fastq_paths) {
     let stats = read_fastq(path) |&gt; read_stats()
-    print(sample + ": " + str(stats.total_reads) + " reads")
+    println(sample + ": " + str(stats.total_reads) + " reads")
 }
 </code></pre>
 <p>Destructuring also works with <code>enumerate</code>:</p>
 <pre><code class="language-biolang">let exons = read_bed("data/exons.bed")
 
 for (i, exon) in enumerate(exons) {
-    print("Exon " + str(i + 1) + ": " + exon.chrom + ":" + str(exon.start) + "-" + str(exon.end))
+    println("Exon " + str(i + 1) + ": " + exon.chrom + ":" + str(exon.start) + "-" + str(exon.end))
 }
 </code></pre>
 <h3 id="forelse"><a class="header" href="#forelse">for/else</a></h3>
@@ -265,11 +265,11 @@ let promoters = read_bed("data/regions.bed")
 for region in promoters {
     let seq = ucsc_sequence("hg38", region.chrom, region.start, region.end)
     if contains(seq, target) {
-        print("TATA box found in " + region.name)
+        println("TATA box found in " + region.name)
         break
     }
 } else {
-    print("No TATA box found in any promoter region")
+    println("No TATA box found in any promoter region")
 }
 </code></pre>
 <h2 id="while-loops"><a class="header" href="#while-loops">while Loops</a></h2>
@@ -371,12 +371,12 @@ negative checks.</p>
     let header = sam_header(path)
 
     unless contains(header.sort_order, "coordinate") {
-        print("WARNING: BAM is not coordinate-sorted, sorting first")
+        println("WARNING: BAM is not coordinate-sorted, sorting first")
         shell("samtools sort -o " + path + " " + path)
     }
 
     unless file_exists(path + ".bai") {
-        print("Indexing BAM")
+        println("Indexing BAM")
         shell("samtools index " + path)
     }
 
@@ -430,11 +430,11 @@ for gene in genes {
     let hits = find_motif(seq, motif)
 
     if len(hits) &gt; 0 {
-        print("E-box found upstream of " + gene.name + " at offset " + str(hits[0].position))
+        println("E-box found upstream of " + gene.name + " at offset " + str(hits[0].position))
         break
     }
 } else {
-    print("No E-box motif found in any upstream region scanned")
+    println("No E-box motif found in any upstream region scanned")
 }
 </code></pre>
 <h2 id="example-multi-criteria-sample-qc-with-givenotherwise"><a class="header" href="#example-multi-criteria-sample-qc-with-givenotherwise">Example: Multi-Criteria Sample QC with given/otherwise</a></h2>
@@ -469,9 +469,9 @@ for sample in samples {
     let result = qc_disposition(stats)
 
     if result.pass {
-        print(sample + ": PASS")
+        println(sample + ": PASS")
     } else {
-        print(sample + ": FAIL (" + result.reason + ")")
+        println(sample + ": FAIL (" + result.reason + ")")
     }
 }
 </code></pre>

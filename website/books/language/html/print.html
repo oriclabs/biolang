@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
 
         <!-- Custom JS scripts for mdbook-pdf PDF generation -->
@@ -64,9 +64,9 @@
                 }
             });
         </script>
-    <div style="display: none"><a href="#introduction">introduction</a><a href="#ch01-getting-started">ch01-getting-started</a><a href="#ch02-bio-literals">ch02-bio-literals</a><a href="#ch03-variables-types">ch03-variables-types</a><a href="#ch04-collections-tables">ch04-collections-tables</a><a href="#ch05-pipes-transforms">ch05-pipes-transforms</a><a href="#ch06-functions-closures">ch06-functions-closures</a><a href="#ch07-control-flow">ch07-control-flow</a><a href="#ch08-error-handling">ch08-error-handling</a><a href="#ch09-file-io">ch09-file-io</a><a href="#ch10-intervals-variants">ch10-intervals-variants</a><a href="#ch11-pipelines">ch11-pipelines</a><a href="#ch12-nfcore">ch12-nfcore</a><a href="#ch13-biocontainers">ch13-biocontainers</a><a href="#ch13b-galaxy">ch13b-galaxy</a><a href="#ch14-statistics-linalg">ch14-statistics-linalg</a><a href="#ch15b-omics-packages">ch15b-omics-packages</a><a href="#ch15-bio-apis">ch15-bio-apis</a><a href="#ch16-streams-scale">ch16-streams-scale</a><a href="#ch16b-sqlite-notifications">ch16b-sqlite-notifications</a><a href="#ch16c-knowledge-graphs">ch16c-knowledge-graphs</a><a href="#ch16d-pdb-enrichment">ch16d-pdb-enrichment</a><a href="#ch17-notebooks">ch17-notebooks</a><a href="#ch18-plugins">ch18-plugins</a><a href="#ch18b-tooling">ch18b-tooling</a><a href="#ch19-benchmarks">ch19-benchmarks</a><a href="#appendix-builtins">appendix-builtins</a><a href="#appendix-operators">appendix-operators</a></div>
+    <div style="display: none"><a href="#introduction">introduction</a><a href="#ch01-getting-started">ch01-getting-started</a><a href="#ch00b-from-r-python">ch00b-from-r-python</a><a href="#ch02-bio-literals">ch02-bio-literals</a><a href="#ch03-variables-types">ch03-variables-types</a><a href="#ch04-collections-tables">ch04-collections-tables</a><a href="#ch05-pipes-transforms">ch05-pipes-transforms</a><a href="#ch06-functions-closures">ch06-functions-closures</a><a href="#ch07-control-flow">ch07-control-flow</a><a href="#ch08-error-handling">ch08-error-handling</a><a href="#ch09-file-io">ch09-file-io</a><a href="#ch10-intervals-variants">ch10-intervals-variants</a><a href="#ch11-pipelines">ch11-pipelines</a><a href="#ch12-nfcore">ch12-nfcore</a><a href="#ch13-biocontainers">ch13-biocontainers</a><a href="#ch13b-galaxy">ch13b-galaxy</a><a href="#ch14-statistics-linalg">ch14-statistics-linalg</a><a href="#ch15b-omics-packages">ch15b-omics-packages</a><a href="#ch15-bio-apis">ch15-bio-apis</a><a href="#ch16-streams-scale">ch16-streams-scale</a><a href="#ch16b-sqlite-notifications">ch16b-sqlite-notifications</a><a href="#ch16c-knowledge-graphs">ch16c-knowledge-graphs</a><a href="#ch16d-pdb-enrichment">ch16d-pdb-enrichment</a><a href="#ch17-notebooks">ch17-notebooks</a><a href="#ch18-plugins">ch18-plugins</a><a href="#ch18b-tooling">ch18b-tooling</a><a href="#ch19-benchmarks">ch19-benchmarks</a><a href="#appendix-builtins">appendix-builtins</a><a href="#appendix-operators">appendix-operators</a></div>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -276,14 +276,18 @@ println(f"Mean GC: {mean(gc_vals)}")
 <li>Extend BioLang with plugins in Python, R, or TypeScript</li>
 </ul>
 <h2 id="running-the-examples"><a class="header" href="#running-the-examples">Running the Examples</a></h2>
-<p>Install BioLang:</p>
-<pre><code class="language-bash">cargo install biolang
+<p>Install BioLang — this needs nothing installed beforehand:</p>
+<pre><code class="language-bash">curl -fsSL https://lang.bio/install.sh | sh
 </code></pre>
-<p>Or build from source:</p>
-<pre><code class="language-bash">git clone https://github.com/oriclabs/biolang
-cd biolang
-cargo build --release
+<p>On Windows:</p>
+<pre><code class="language-powershell">iwr -useb https://lang.bio/install.ps1 | iex
 </code></pre>
+<p>Or, if you already have Rust and would rather build it:</p>
+<pre><code class="language-bash">cargo install --git https://github.com/oriclabs/biolang bl-cli
+</code></pre>
+<p><a href="#chapter-1-getting-started">Chapter 1</a> covers the options in more detail. You can
+also skip installing altogether and run every example in the browser at
+<a href="https://lang.bio/workbench/">lang.bio/workbench</a>.</p>
 <p>Run any example from this book:</p>
 <pre><code class="language-bash">bl run example.bl
 </code></pre>
@@ -322,11 +326,30 @@ you can substitute the sample data path:</p>
 This chapter walks you through installation, the interactive REPL, running scripts,
 and writing your first real analysis.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
-<h3 id="from-cratesio"><a class="header" href="#from-cratesio">From crates.io</a></h3>
-<pre><code class="language-bash">cargo install biolang
+<p>The quickest route needs nothing installed beforehand — not even Rust.</p>
+<h3 id="linux-and-macos"><a class="header" href="#linux-and-macos">Linux and macOS</a></h3>
+<pre><code class="language-bash">curl -fsSL https://lang.bio/install.sh | sh
 </code></pre>
-<p>This installs the <code>bl</code> binary, which provides both the REPL and the script runner.</p>
-<h3 id="from-source"><a class="header" href="#from-source">From source</a></h3>
+<h3 id="windows"><a class="header" href="#windows">Windows</a></h3>
+<pre><code class="language-powershell">iwr -useb https://lang.bio/install.ps1 | iex
+</code></pre>
+<p>Either one works out your platform and architecture, downloads that build from
+the latest GitHub release, checks it against the <code>checksums.sha256</code> published
+alongside it, and installs two binaries: <code>bl</code>, which is both the REPL and the
+script runner, and <code>bl-lsp</code>, the language server your editor talks to.</p>
+<p>They install to <code>/usr/local/bin</code> on Linux and macOS, and to
+<code>%LOCALAPPDATA%\Programs\BioLang\bin</code> on Windows — the Windows location needs no
+administrator rights and is added to your user <code>PATH</code> for you. Set
+<code>BIOLANG_INSTALL_DIR</code> to put them somewhere else.</p>
+<h3 id="with-cargo"><a class="header" href="#with-cargo">With Cargo</a></h3>
+<p>If you already have Rust 1.75 or newer:</p>
+<pre><code class="language-bash">cargo install --git https://github.com/oriclabs/biolang bl-cli
+</code></pre>
+<p>This builds from source, so it takes a few minutes where the installers take
+seconds. BioLang is not published to crates.io yet, which is why this is a
+<code>--git</code> install rather than <code>cargo install biolang</code>.</p>
+<h3 id="from-a-clone"><a class="header" href="#from-a-clone">From a clone</a></h3>
+<p>What you want if you intend to change anything:</p>
 <pre><code class="language-bash">git clone https://github.com/oriclabs/biolang.git
 cd biolang
 cargo build --release
@@ -339,7 +362,8 @@ cp target/release/bl ~/.local/bin/
 <p>BioLang has built-in update checking. Run <code>bl version</code> to see the current version
 and check if a newer release is available:</p>
 <pre><code class="language-bash">bl version
-# BioLang v0.3.0
+# BioLang v1.2.0
+#
 # Checking for updates... up to date.
 </code></pre>
 <p>To upgrade to the latest release:</p>
@@ -358,10 +382,21 @@ startup. Disable it with:</p>
 <pre><code class="language-bash">bl
 </code></pre>
 <p>You will see the BioLang prompt:</p>
-<pre><code>BioLang v0.3.0
-Type :help for commands, :quit to exit.
+<pre><code>  ____  _       _
+ | __ )(_) ___ | |    __ _ _ __   __ _
+ |  _ \| |/ _ \| |   / _` | '_ \ / _` |
+ | |_) | | (_) | |__| (_| | | | | (_| |
+ |____/|_|\___/|_____\__,_|_| |_|\__, |
+                                  |___/
+ BioLang — pipe-first bioinformatics DSL
+ v1.2.0  •  1018 builtins  •  NCBI[-] LLM[+]  Cache: 0B
+
+ Commands:  :help  :builtins  :quit  ?name  Tab for completion  •  Paste DNA/FASTA auto-detected
+
 bl&gt;
 </code></pre>
+<p><code>NCBI[-]</code> means no <code>NCBI_API_KEY</code> is set, and <code>LLM[+]</code> that an LLM provider is
+configured. Both reflect your environment, so your banner may differ.</p>
 <p>Try evaluating a bio literal directly:</p>
 <pre><code>bl&gt; dna"ATCGATCG" |&gt; gc_content()
 0.5
@@ -431,8 +466,8 @@ let min_qual = into(args.min_quality ?? "20", "Int")
 let reads = read_fastq(input_file)
   |&gt; filter(|r| mean_phred(r.quality) &gt;= min_qual)
 
-print(f"Passing reads: {len(reads)}")
-print(f"Mean quality: {reads |&gt; map(|r| mean_phred(r.quality)) |&gt; mean()}")
+println(f"Passing reads: {len(reads)}")
+println(f"Mean quality: {reads |&gt; map(|r| mean_phred(r.quality)) |&gt; mean()}")
 </code></pre>
 <h2 id="your-first-script-fasta-gc-content-analyzer"><a class="header" href="#your-first-script-fasta-gc-content-analyzer">Your First Script: FASTA GC Content Analyzer</a></h2>
 <p>BioLang includes sample data in <code>examples/sample-data/</code> — see the
@@ -461,9 +496,9 @@ let min_gc = min(gc_vals)
 let max_gc = max(gc_vals)
 let n_seqs = len(gc_vals)
 
-print(f"Analyzed {n_seqs} sequences")
-print(f"GC content: {mean_gc:.3f} (range: {min_gc:.3f} - {max_gc:.3f})")
-print(f"Standard deviation: {std_gc:.4f}")
+println(f"Analyzed {n_seqs} sequences")
+println(f"GC content: {mean_gc:.3f} (range: {min_gc:.3f} - {max_gc:.3f})")
+println(f"Standard deviation: {std_gc:.4f}")
 
 # Flag outlier contigs (GC &gt; 2 std devs from mean)
 # |&gt; into binds the pipe result to a variable (like let, but reads left-to-right)
@@ -472,8 +507,8 @@ gc_table
   |&gt; sort_by(|row| -row.gc)
   |&gt; into outliers
 
-print(f"\nOutlier contigs ({len(outliers)}):")
-outliers |&gt; each(|row| print(f"  {row.name}: GC={row.gc:.3f}, length={row.length}"))
+println(f"\nOutlier contigs ({len(outliers)}):")
+outliers |&gt; each(|row| println(f"  {row.name}: GC={row.gc:.3f}, length={row.length}"))
 </code></pre>
 <p>Run it:</p>
 <pre><code class="language-bash">bl run gc_scan.bl
@@ -560,13 +595,134 @@ directories:</p>
 import "genomics_utils.bl" as gutils
 
 let kmers = dna"ATCGATCGATCG" |&gt; gutils.kmer_frequencies(k: 3)
-print(kmers)
+println(kmers)
 </code></pre>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
 <p>You now have BioLang installed, know how to use the REPL for interactive exploration,
 and can write and run scripts. In the next chapter, we will explore bio literals –
 the first-class DNA, RNA, protein, and quality score types that make BioLang unique
 for bioinformatics work.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="coming-from-r-or-python"><a class="header" href="#coming-from-r-or-python">Coming from R or Python</a></h1>
+<p>If you already write dplyr or pandas, you know most of BioLang’s table
+vocabulary. The verbs were chosen to match what you type today, so this chapter
+is a lookup table rather than a tutorial: find the thing you already know, read
+across, keep working.</p>
+<p>The pipe is <code>|&gt;</code>. It does what <code>%&gt;%</code> does in magrittr and what method chaining
+does in pandas: the value on the left becomes the first argument on the right.</p>
+<pre><code class="language-biolang">let summary = read_csv("counts.csv")
+    |&gt; filter(|row| row.padj &lt; 0.05)
+    |&gt; mutate(|row| {gene: row.gene, lfc: row.log2FoldChange})
+    |&gt; arrange("-lfc")
+    |&gt; head(20)
+</code></pre>
+<h2 id="table-verbs"><a class="header" href="#table-verbs">Table verbs</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>dplyr</th><th>pandas</th><th>BioLang</th></tr>
+</thead>
+<tbody>
+<tr><td><code>filter()</code></td><td><code>df[mask]</code> / <code>df.query()</code></td><td><code>filter()</code></td></tr>
+<tr><td><code>select()</code></td><td><code>df[[cols]]</code></td><td><code>select()</code></td></tr>
+<tr><td><code>mutate()</code></td><td><code>df.assign()</code></td><td><code>mutate()</code></td></tr>
+<tr><td><code>rename()</code></td><td><code>df.rename()</code></td><td><code>rename()</code></td></tr>
+<tr><td><code>arrange()</code></td><td><code>df.sort_values()</code></td><td><code>arrange()</code> — prefix <code>-</code> for descending</td></tr>
+<tr><td><code>group_by()</code></td><td><code>df.groupby()</code></td><td><code>group_by()</code></td></tr>
+<tr><td><code>summarise()</code></td><td><code>.agg()</code></td><td><code>summarize()</code></td></tr>
+<tr><td><code>count()</code></td><td><code>.value_counts()</code></td><td><code>count_by()</code> or <code>value_counts()</code></td></tr>
+<tr><td><code>distinct()</code></td><td><code>.drop_duplicates()</code></td><td><code>distinct()</code></td></tr>
+<tr><td><code>slice_head(n)</code></td><td><code>.head(n)</code></td><td><code>head(n)</code></td></tr>
+<tr><td><code>slice_tail(n)</code></td><td><code>.tail(n)</code></td><td><code>tail(n)</code></td></tr>
+<tr><td><code>bind_rows()</code></td><td><code>pd.concat()</code></td><td><code>concat()</code></td></tr>
+<tr><td><code>bind_cols()</code></td><td><code>pd.concat(axis=1)</code></td><td><code>bind_cols()</code></td></tr>
+<tr><td><code>left_join()</code></td><td><code>.merge(how="left")</code></td><td><code>left_join()</code></td></tr>
+<tr><td><code>inner_join()</code></td><td><code>.merge()</code></td><td><code>inner_join()</code></td></tr>
+<tr><td><code>anti_join()</code></td><td>—</td><td><code>anti_join()</code></td></tr>
+<tr><td><code>pivot_longer()</code></td><td><code>.melt()</code></td><td><code>pivot_longer()</code></td></tr>
+<tr><td><code>pivot_wider()</code></td><td><code>.pivot()</code></td><td><code>pivot_wider()</code></td></tr>
+<tr><td><code>across()</code></td><td><code>.apply()</code></td><td><code>map()</code> over columns</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="inspecting-a-table"><a class="header" href="#inspecting-a-table">Inspecting a table</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>R</th><th>Python</th><th>BioLang</th></tr>
+</thead>
+<tbody>
+<tr><td><code>glimpse()</code> / <code>str()</code></td><td><code>df.info()</code></td><td><code>glimpse()</code></td></tr>
+<tr><td><code>summary()</code></td><td><code>df.describe()</code></td><td><code>describe()</code></td></tr>
+<tr><td><code>head()</code></td><td><code>df.head()</code></td><td><code>head()</code></td></tr>
+<tr><td><code>dim()</code></td><td><code>df.shape</code></td><td><code>nrow()</code> and <code>ncol()</code></td></tr>
+<tr><td><code>nrow()</code> / <code>ncol()</code></td><td><code>len(df)</code> / <code>df.shape[1]</code></td><td><code>nrow()</code> / <code>ncol()</code></td></tr>
+<tr><td><code>names()</code></td><td><code>df.columns</code></td><td><code>colnames()</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>glimpse()</code> prints one line per column with its type and first values, the way
+<code>dplyr::glimpse</code> does. <code>describe()</code> gives the per-column dtype, null count, and
+five-number summary that <code>pandas.describe</code> gives. Printing a table shows column
+types under the headers, like a tibble.</p>
+<p>Two names look familiar but mean something else. BioLang’s <code>str()</code> converts a
+value to a string — it is not R’s structure display; use <code>glimpse()</code> for that.
+<code>dim()</code> is for matrices; for tables use <code>nrow()</code> and <code>ncol()</code>.</p>
+<h2 id="reading-and-writing"><a class="header" href="#reading-and-writing">Reading and writing</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>R</th><th>Python</th><th>BioLang</th></tr>
+</thead>
+<tbody>
+<tr><td><code>read.csv()</code></td><td><code>pd.read_csv()</code></td><td><code>read_csv()</code></td></tr>
+<tr><td><code>readr::read_tsv()</code></td><td><code>pd.read_table()</code></td><td><code>read_tsv()</code></td></tr>
+<tr><td><code>write.csv()</code></td><td><code>.to_csv()</code></td><td><code>write_csv()</code></td></tr>
+<tr><td><code>Biostrings::readDNAStringSet()</code></td><td><code>SeqIO.parse()</code></td><td><code>read_fasta()</code></td></tr>
+<tr><td><code>ShortRead::readFastq()</code></td><td><code>SeqIO.parse(..., "fastq")</code></td><td><code>read_fastq()</code></td></tr>
+<tr><td><code>VariantAnnotation::readVcf()</code></td><td><code>pysam.VariantFile()</code></td><td><code>read_vcf()</code></td></tr>
+<tr><td><code>rtracklayer::import()</code></td><td><code>pybedtools.BedTool()</code></td><td><code>bed()</code> / <code>gff()</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="things-that-work-differently"><a class="header" href="#things-that-work-differently">Things that work differently</a></h2>
+<p><strong>Sequences are a type, not a string.</strong> <code>dna"ACGT"</code> is a first-class value with
+<code>gc_content</code>, <code>reverse_complement</code>, and <code>translate</code> defined on it. You do not
+need Biostrings or Biopython to do the obvious things.</p>
+<p><strong>There is no <code>&lt;-</code>.</strong> Bindings use <code>let</code>, and <code>const</code> for values that must not
+change.</p>
+<p><strong>Anonymous functions use <code>|x|</code>.</strong> Where R writes <code>\(x) x + 1</code> or <code>~ .x + 1</code>,
+and Python writes <code>lambda x: x + 1</code>, BioLang writes <code>|x| x + 1</code>.</p>
+<p><strong>Indices start at 0</strong>, as in Python, not at 1 as in R.</p>
+<p><strong>Missing values are <code>nil</code></strong>, not <code>NA</code> or <code>NaN</code>. Comparisons against <code>nil</code> are
+explicit rather than contagious.</p>
+<h2 id="bringing-existing-code"><a class="header" href="#bringing-existing-code">Bringing existing code</a></h2>
+<p><code>bl import</code> converts Python, R, Jupyter notebooks, and R Markdown:</p>
+<pre><code class="language-bash">bl import analysis.R --output analysis.bl
+bl import pipeline.ipynb --output pipeline.bln
+</code></pre>
+<p>Anything the converter cannot translate is left in place with a <code># TODO:</code>
+marker naming what is missing, and the workbench lists those markers as
+problems so you can see exactly how much is left to port.</p>
+<h2 id="keeping-the-parts-that-are-not-ported-yet"><a class="header" href="#keeping-the-parts-that-are-not-ported-yet">Keeping the parts that are not ported yet</a></h2>
+<p>You do not have to move everything at once. <code>py()</code> and <code>r()</code> evaluate a snippet
+in a real Python or R process and bring the result back:</p>
+<pre><code class="language-biolang">let counts = read_csv("counts.csv")
+let shrunk = r("DESeq2::lfcShrink(dds, coef=2, type='apeglm')", {dds: counts})
+let embedding = py("import scanpy as sc; sc.tl.umap(adata)", {adata: cells})
+</code></pre>
+<p>Bindings are a record — <code>{dds: counts}</code> — and each key becomes a variable in the
+other runtime. The value of the last expression comes back, which is what a
+notebook cell does in Python and what <code>eval</code> does in R.</p>
+<p>Values cross the boundary as JSON, so tables, records, lists, numbers, strings,
+and booleans travel in both directions. A BioLang table arrives as a list of
+records in Python and as a data frame in R. Objects that only exist inside the other
+runtime — a Seurat object, an open file handle — do not, and you will get a
+clear error rather than a silent truncation. Keep those calls narrow: pass data
+in, get data out.</p>
+<p>This is meant as a bridge. Delete the escape hatches as BioLang grows the
+equivalents, and call <code>interop_status()</code> to see which interpreters were found.
+<code>r()</code> needs the <code>jsonlite</code> package, and says so if it is missing.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="chapter-2-bio-literals"><a class="header" href="#chapter-2-bio-literals">Chapter 2: Bio Literals</a></h1>
 <p>BioLang has first-class types for biological sequences. These are not strings – they
@@ -584,7 +740,7 @@ let probe = dna"ATCNNGATCG"
 
 # Case is normalized to uppercase
 let lower = dna"atcgatcg"
-print(lower)   # =&gt; dna"ATCGATCG"
+println(lower)   # =&gt; dna"ATCGATCG"
 </code></pre>
 <p>Invalid bases cause a compile-time error:</p>
 <pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
@@ -610,9 +766,9 @@ let bad = dna"AUCG"
 </code></pre>
 <p>Each character maps to a Phred quality score. You can work with them numerically:</p>
 <pre><code class="language-biolang">let q = qual"IIIIIHHHGG"
-print(mean_phred(q)) # =&gt; 39.2
-print(min_phred(q))  # =&gt; 38  (G = 38)
-print(max_phred(q))  # =&gt; 40  (I = 40)
+println(mean_phred(q)) # =&gt; 39.2
+println(min_phred(q))  # =&gt; 38  (G = 38)
+println(max_phred(q))  # =&gt; 40  (I = 40)
 
 # Filter reads by mean quality
 let reads = read_fastq("data/reads.fastq")
@@ -623,10 +779,10 @@ let hq_reads = reads |&gt; filter(|r| mean_phred(r.quality) &gt;= 30)
 <pre><code class="language-biolang">let forward = dna"ATCGATCG"
 
 let comp = forward |&gt; complement()
-print(comp)   # =&gt; dna"TAGCTAGC"
+println(comp)   # =&gt; dna"TAGCTAGC"
 
 let rc = forward |&gt; reverse_complement()
-print(rc)     # =&gt; dna"CGATCGAT"
+println(rc)     # =&gt; dna"CGATCGAT"
 </code></pre>
 <p>Reverse complement is the workhorse of strand-aware bioinformatics:</p>
 <pre><code class="language-biolang"># Check if a primer binds to either strand
@@ -636,37 +792,37 @@ let primer = dna"GCTAGC"
 let fwd_match = template |&gt; find_motif(primer)
 let rev_match = template |&gt; find_motif(primer |&gt; reverse_complement())
 
-print(f"Forward hits: {len(fwd_match)}, Reverse hits: {len(rev_match)}")
+println(f"Forward hits: {len(fwd_match)}, Reverse hits: {len(rev_match)}")
 </code></pre>
 <h3 id="transcription-and-translation"><a class="header" href="#transcription-and-translation">Transcription and Translation</a></h3>
 <pre><code class="language-biolang">let gene = dna"ATGAAAGCTTTTCGATAG"
 
 # Transcribe DNA to RNA (T -&gt; U)
 let mrna = gene |&gt; transcribe()
-print(mrna)   # =&gt; rna"AUGAAAGCUUUUCGAUAG"
+println(mrna)   # =&gt; rna"AUGAAAGCUUUUCGAUAG"
 
 # Translate RNA (or DNA) to protein
 let protein_seq = gene |&gt; translate()
-print(protein_seq)   # =&gt; protein"MKAFR*"
+println(protein_seq)   # =&gt; protein"MKAFR*"
 
 let mito_protein = gene |&gt; translate()
-print(mito_protein)  # standard genetic code (table 1)
+println(mito_protein)  # standard genetic code (table 1)
 </code></pre>
 <h3 id="gc-content"><a class="header" href="#gc-content">GC Content</a></h3>
 <pre><code class="language-biolang">let contig = dna"ATCGATCGGGCCCATATATGCGCGC"
 
 let gc = contig |&gt; gc_content()
-print(f"GC: {gc:.2%}")   # =&gt; GC: 56.00%
+println(f"GC: {gc:.2%}")   # =&gt; GC: 56.00%
 
 # Sliding window GC content for detecting isochores
 let gc_windows = contig |&gt; window(10) |&gt; map(|w| gc_content(w))
-print(gc_windows)
+println(gc_windows)
 </code></pre>
 <h3 id="subsequences-with-slice-and-len"><a class="header" href="#subsequences-with-slice-and-len">Subsequences with <code>slice</code> and <code>len</code></a></h3>
 <pre><code class="language-biolang">let genome_fragment = dna"ATCGATCGATCGATCGATCG"
 
-print(seq_len(genome_fragment))           # =&gt; 20
-print(genome_fragment |&gt; slice(0, 6)) # =&gt; dna"ATCGAT"
+println(seq_len(genome_fragment))           # =&gt; 20
+println(genome_fragment |&gt; slice(0, 6)) # =&gt; dna"ATCGAT"
 
 # Extract a coding region by coordinates
 let cds_start = 3
@@ -679,11 +835,11 @@ let cds = genome_fragment |&gt; slice(cds_start, cds_end)
 
 # Find EcoRI recognition site
 let ecori_sites = seq |&gt; find_motif(dna"GAATTC")
-print(ecori_sites)   # =&gt; [3, 13]
+println(ecori_sites)   # =&gt; [3, 13]
 
 # Regex search on sequences (returns match records)
 let matches = seq |&gt; regex_find("GA[AT]TTC")
-matches |&gt; each(|m| print(f"Match at {m.start}: {m.text}"))
+matches |&gt; each(|m| println(f"Match at {m.start}: {m.text}"))
 </code></pre>
 <h2 id="example-find-all-orfs-in-a-dna-sequence"><a class="header" href="#example-find-all-orfs-in-a-dna-sequence">Example: Find All ORFs in a DNA Sequence</a></h2>
 <p>An open reading frame (ORF) starts with ATG and ends at the first in-frame stop codon
@@ -741,11 +897,11 @@ let all_orfs = sequences |&gt; flat_map(|entry| {
   })
 })
 
-print(f"Found {len(all_orfs)} ORFs (&gt;= 300 bp)")
+println(f"Found {len(all_orfs)} ORFs (&gt;= 300 bp)")
 all_orfs
   |&gt; sort_by(|orf| -orf.length)
   |&gt; take(20)
-  |&gt; each(|orf| print(f"  {orf.seq_id} {orf.strand}:{orf.start}-{orf.end} ({orf.length} bp)"))
+  |&gt; each(|orf| println(f"  {orf.seq_id} {orf.strand}:{orf.start}-{orf.end} ({orf.length} bp)"))
 </code></pre>
 <h2 id="example-codon-usage-table"><a class="header" href="#example-codon-usage-table">Example: Codon Usage Table</a></h2>
 <p>Given a coding sequence, calculate the frequency of each codon and display
@@ -776,17 +932,17 @@ let usage_table = codon_counts
   })
   |&gt; sort_by(|c| c.amino_acid)
 
-print(f"Codon usage from {len(cds_records)} sequences ({total} codons)\n")
-print("Codon  AA  Count     Freq   /1000")
-print("-----  --  --------  -----  -----")
+println(f"Codon usage from {len(cds_records)} sequences ({total} codons)\n")
+println("Codon  AA  Count     Freq   /1000")
+println("-----  --  --------  -----  -----")
 usage_table |&gt; each(|row|
-  print(f"{row.codon}    {row.amino_acid}   {row.count:&gt;8}  {row.frequency:.4f}  {row.per_thousand:.1f}")
+  println(f"{row.codon}    {row.amino_acid}   {row.count:&gt;8}  {row.frequency:.4f}  {row.per_thousand:.1f}")
 )
 
 # Identify rare codons (&lt; 10 per thousand)
 let rare = usage_table |&gt; filter(|c| c.per_thousand &lt; 10.0)
-print(f"\nRare codons ({len(rare)}):")
-rare |&gt; each(|c| print(f"  {c.codon} ({c.amino_acid}): {c.per_thousand:.1f}/1000"))
+println(f"\nRare codons ({len(rare)}):")
+rare |&gt; each(|c| println(f"  {c.codon} ({c.amino_acid}): {c.per_thousand:.1f}/1000"))
 </code></pre>
 <h2 id="example-restriction-enzyme-site-finder"><a class="header" href="#example-restriction-enzyme-site-finder">Example: Restriction Enzyme Site Finder</a></h2>
 <p>Find all restriction enzyme recognition sites in a sequence and predict
@@ -808,7 +964,7 @@ let enzymes = [
 
 let entry = read_fasta("data/sequences.fasta") |&gt; first()
 let seq = entry.seq
-print(f"Sequence length: {seq_len(seq)} bp\n")
+println(f"Sequence length: {seq_len(seq)} bp\n")
 
 # Find all cut sites for each enzyme
 let results = enzymes |&gt; map(|enzyme| {
@@ -820,9 +976,9 @@ let results = enzymes |&gt; map(|enzyme| {
 # Report
 results |&gt; each(|r| {
   if r.n_cuts &gt; 0 then {
-    print(f"{r.name} ({r.site}): {r.n_cuts} site(s) at {r.positions}")
+    println(f"{r.name} ({r.site}): {r.n_cuts} site(s) at {r.positions}")
   } else {
-    print(f"{r.name} ({r.site}): no sites")
+    println(f"{r.name} ({r.site}): no sites")
   }
 })
 
@@ -845,11 +1001,11 @@ let fragments = if len(all_cuts) == 0 then [seq_len(seq)]
     frags ++ [wrap]
   }
 
-print(f"\nEcoRI + BamHI double digest: {len(fragments)} fragments")
+println(f"\nEcoRI + BamHI double digest: {len(fragments)} fragments")
 fragments
   |&gt; sort() |&gt; reverse()
   |&gt; enumerate()
-  |&gt; each(|i, size| print(f"  Fragment {i + 1}: {size} bp"))
+  |&gt; each(|i, size| println(f"  Fragment {i + 1}: {size} bp"))
 </code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <p>Bio literals are the foundation of BioLang. They carry biological meaning, enforce
@@ -937,30 +1093,30 @@ let brca1_snp = variant("chr17", 43094464, "G", "A")
 <h3 id="interval-type"><a class="header" href="#interval-type">Interval Type</a></h3>
 <p>Intervals represent genomic regions with chromosome, start, and end:</p>
 <pre><code class="language-biolang">let region = interval("chr1", 1000000, 2000000)
-print(region.chrom)   # =&gt; "chr1"
-print(region.start)   # =&gt; 1000000
-print(region.end)     # =&gt; 2000000
-print(region.length)  # =&gt; 1000000
+println(region.chrom)   # =&gt; "chr1"
+println(region.start)   # =&gt; 1000000
+println(region.end)     # =&gt; 2000000
+println(region.length)  # =&gt; 1000000
 
 # Interval arithmetic
 let exon1 = interval("chr1", 1000, 1500)
 let exon2 = interval("chr1", 1400, 2000)
-print(exon1.end &gt; exon2.start &amp;&amp; exon2.end &gt; exon1.start)  # =&gt; true
-print(intersect(exon1, exon2))      # =&gt; interval("chr1", 1400, 1500)
+println(exon1.end &gt; exon2.start &amp;&amp; exon2.end &gt; exon1.start)  # =&gt; true
+println(intersect(exon1, exon2))      # =&gt; interval("chr1", 1400, 1500)
 </code></pre>
 <h3 id="variant-type"><a class="header" href="#variant-type">Variant Type</a></h3>
 <p>Variants represent sequence changes at specific positions:</p>
 <pre><code class="language-biolang">let snv = variant("chr7", 55249071, "C", "T")
-print(snv.chrom)    # =&gt; "chr7"
-print(snv.pos)      # =&gt; 55249071
-print(snv.ref_allele)  # =&gt; "C"
-print(snv.alt_allele)  # =&gt; "T"
+println(snv.chrom)    # =&gt; "chr7"
+println(snv.pos)      # =&gt; 55249071
+println(snv.ref_allele)  # =&gt; "C"
+println(snv.alt_allele)  # =&gt; "T"
 
 # Classify variant type
-print(variant_type(snv))   # =&gt; "SNV"
+println(variant_type(snv))   # =&gt; "SNV"
 
 let indel = variant("chr7", 55249071, "CT", "C")
-print(variant_type(indel)) # =&gt; "DEL"
+println(variant_type(indel)) # =&gt; "DEL"
 </code></pre>
 <h2 id="records"><a class="header" href="#records">Records</a></h2>
 <p>Records are BioLang’s primary structured data type. They map naturally to the
@@ -974,8 +1130,8 @@ tabular, metadata-rich world of bioinformatics:</p>
   contamination: 0.02
 }
 
-print(sample.sample_id)       # =&gt; "S001"
-print(sample.mean_coverage)   # =&gt; 32.5
+println(sample.sample_id)       # =&gt; "S001"
+println(sample.mean_coverage)   # =&gt; 32.5
 </code></pre>
 <h3 id="string-keys"><a class="header" href="#string-keys">String Keys</a></h3>
 <p>Record keys can be identifiers or strings:</p>
@@ -1004,8 +1160,8 @@ let sample_config = {
   min_mapq: 20   # override the default
 }
 
-print(sample_config.aligner)   # =&gt; "bwa-mem2"
-print(sample_config.min_mapq)  # =&gt; 20
+println(sample_config.aligner)   # =&gt; "bwa-mem2"
+println(sample_config.min_mapq)  # =&gt; 20
 </code></pre>
 <p>This pattern is essential for bioinformatics pipelines where you have standard
 parameters with per-sample overrides.</p>
@@ -1030,20 +1186,20 @@ parameters with per-sample overrides.</p>
   }
 }
 
-print(variant_annotation.gene.consequence)
-print(variant_annotation.prediction.sift.score)
+println(variant_annotation.gene.consequence)
+println(variant_annotation.prediction.sift.score)
 </code></pre>
 <h2 id="type-checking"><a class="header" href="#type-checking">Type Checking</a></h2>
 <p>BioLang provides introspection functions for runtime type checking:</p>
 <pre><code class="language-biolang">let seq = dna"ATCG"
-print(type(seq))       # =&gt; "DNA"
-print(is_dna(seq))     # =&gt; true
-print(is_rna(seq))     # =&gt; false
+println(type(seq))       # =&gt; "DNA"
+println(is_dna(seq))     # =&gt; true
+println(is_rna(seq))     # =&gt; false
 
 let rec = {name: "BRCA1", chrom: "chr17"}
-print(type(rec))       # =&gt; "Record"
-print(is_record(rec))  # =&gt; true
-print(is_str(rec))     # =&gt; false
+println(type(rec))       # =&gt; "Record"
+println(is_record(rec))  # =&gt; true
+println(is_str(rec))     # =&gt; false
 </code></pre>
 <p>Available type check functions:</p>
 <pre><code class="language-biolang">let val = dna"ATCG"
@@ -1150,22 +1306,22 @@ let registry = raw_sheet |&gt; map(|row| {
 # Validate: every sample must have R1
 let invalid = registry |&gt; filter(|s| is_nil(s.fastq_r1))
 if len(invalid) &gt; 0 then {
-  print(f"ERROR: {len(invalid)} samples missing FASTQ R1:")
-  invalid |&gt; each(|s| print(f"  {s.sample_id}"))
+  println(f"ERROR: {len(invalid)} samples missing FASTQ R1:")
+  invalid |&gt; each(|s| println(f"  {s.sample_id}"))
   exit(1)
 }
 
 # Group by condition for downstream analysis
 let by_condition = registry |&gt; group_by("condition")
 by_condition |&gt; each(|group| {
-  print(f"{group.key}: {len(group.values)} samples")
-  group.values |&gt; each(|s| print(f"  {s.sample_id} ({s.tissue})"))
+  println(f"{group.key}: {len(group.values)} samples")
+  group.values |&gt; each(|s| println(f"  {s.sample_id} ({s.tissue})"))
 })
 
 # Summary
 let tumor_count = registry |&gt; filter(|s| s.condition == "tumor") |&gt; len()
 let normal_count = registry |&gt; filter(|s| s.condition == "normal") |&gt; len()
-print(f"\nRegistry: {len(registry)} samples ({tumor_count} tumor, {normal_count} normal)")
+println(f"\nRegistry: {len(registry)} samples ({tumor_count} tumor, {normal_count} normal)")
 </code></pre>
 <h2 id="example-parsing-and-validating-variant-records"><a class="header" href="#example-parsing-and-validating-variant-records">Example: Parsing and Validating Variant Records</a></h2>
 <pre><code class="language-biolang"># validate_variants.bl
@@ -1210,19 +1366,19 @@ let total = len(classified)
 let valid = classified |&gt; filter(|v| v.is_valid) |&gt; len()
 let by_type = classified |&gt; group_by("variant_type")
 
-print(f"Total variants: {total}")
-print(f"Passing filters: {valid} ({valid / total * 100.0:.1f}%)")
-print(f"\nBy type:")
-by_type |&gt; each(|g| print(f"  {g.key}: {len(g.values)}"))
+println(f"Total variants: {total}")
+println(f"Passing filters: {valid} ({valid * 100.0 / total:.1f}%)")
+println(f"\nBy type:")
+by_type |&gt; each(|g| println(f"  {g.key}: {len(g.values)}"))
 
 # Flag high-impact variants
 let high_impact = classified
   |&gt; filter(|v| v.is_valid &amp;&amp; v.variant_type != "SNV" &amp;&amp; v.size &gt; 50)
   |&gt; sort_by(|v| -v.size)
 
-print(f"\nHigh-impact structural variants (&gt;50bp): {len(high_impact)}")
+println(f"\nHigh-impact structural variants (&gt;50bp): {len(high_impact)}")
 high_impact |&gt; take(10) |&gt; each(|v| {
-  print(f"  {v.var.chrom}:{v.var.pos} {v.variant_type} size={v.size} AF={v.allele_freq:.3f}")
+  println(f"  {v.var.chrom}:{v.var.pos} {v.variant_type} size={v.size} AF={v.allele_freq:.3f}")
 })
 </code></pre>
 <h2 id="summary-1"><a class="header" href="#summary-1">Summary</a></h2>
@@ -1246,9 +1402,9 @@ let mixed = ["TP53", 42, true, dna"ATCG"]
 <p>Lists support standard access and manipulation:</p>
 <pre><code class="language-biolang">let genes = ["BRCA1", "TP53", "EGFR", "KRAS", "BRAF"]
 
-print(genes[0])        # =&gt; "BRCA1"
-print(genes[-1])       # =&gt; "BRAF"
-print(len(genes))      # =&gt; 5
+println(genes[0])        # =&gt; "BRCA1"
+println(genes[-1])       # =&gt; "BRAF"
+println(len(genes))      # =&gt; 5
 
 # Concatenation
 let more = genes ++ ["PIK3CA", "PTEN"]
@@ -1258,7 +1414,7 @@ let pairs = [
   ["sample1_R1.fq.gz", "sample1_R2.fq.gz"],
   ["sample2_R1.fq.gz", "sample2_R2.fq.gz"]
 ]
-print(pairs[0][1])   # =&gt; "sample1_R2.fq.gz"
+println(pairs[0][1])   # =&gt; "sample1_R2.fq.gz"
 </code></pre>
 <h2 id="sets"><a class="header" href="#sets">Sets</a></h2>
 <p>Sets are unordered collections of unique elements. They are the right tool for
@@ -1268,17 +1424,17 @@ let mutated_genes = set(["TP53", "KRAS", "APC", "PIK3CA"])
 
 # Set operations
 let overlap = intersection(panel_genes, mutated_genes)
-print(overlap)   # =&gt; set(["TP53", "KRAS"])
+println(overlap)   # =&gt; set(["TP53", "KRAS"])
 
 let all_genes = union(panel_genes, mutated_genes)
 let panel_only = difference(panel_genes, mutated_genes)
 let mutated_only = difference(mutated_genes, panel_genes)
 
-print(f"On panel and mutated: {len(overlap)}")
-print(f"Mutated, not on panel: {len(mutated_only)}")
+println(f"On panel and mutated: {len(overlap)}")
+println(f"Mutated, not on panel: {len(mutated_only)}")
 
 # Membership
-print(contains(panel_genes, "TP53"))   # =&gt; true
+println(contains(panel_genes, "TP53"))   # =&gt; true
 </code></pre>
 <p>A real use case – finding shared variants between tumor and normal:</p>
 <pre><code class="language-biolang">let tumor_variants = read_vcf("data/variants.vcf")
@@ -1291,7 +1447,7 @@ let normal_variants = read_vcf("data/variants.vcf")
 
 let somatic = difference(tumor_variants, normal_variants)
 let germline = intersection(tumor_variants, normal_variants)
-print(f"Somatic: {len(somatic)}, Germline: {len(germline)}")
+println(f"Somatic: {len(somatic)}, Germline: {len(germline)}")
 </code></pre>
 <h2 id="tables"><a class="header" href="#tables">Tables</a></h2>
 <p>Tables are the central data structure for tabular bioinformatics data. They are
@@ -1305,14 +1461,14 @@ created from lists of records:</p>
 </code></pre>
 <h3 id="column-access"><a class="header" href="#column-access">Column Access</a></h3>
 <pre><code class="language-biolang">let coverages = col(samples, "coverage")
-print(coverages)   # =&gt; [35.2, 31.4, 42.1, 36.8]
+println(coverages)   # =&gt; [35.2, 31.4, 42.1, 36.8]
 
 # Multiple columns
 let subset = samples |&gt; select("sample_id", "coverage")
 </code></pre>
 <h3 id="row-iteration"><a class="header" href="#row-iteration">Row Iteration</a></h3>
 <pre><code class="language-biolang">samples |&gt; each(|row| {
-  print(f"{row.sample_id}: {row.coverage}x ({row.tissue})")
+  println(f"{row.sample_id}: {row.coverage}x ({row.tissue})")
 })
 </code></pre>
 <h2 id="table-operations"><a class="header" href="#table-operations">Table Operations</a></h2>
@@ -1337,7 +1493,7 @@ let stats = {
   max_coverage: max(coverages),
 }
 
-print(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
+println(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
 </code></pre>
 <h3 id="group_by--split-apply-combine"><a class="header" href="#group_by--split-apply-combine"><code>group_by</code> – Split-Apply-Combine</a></h3>
 <pre><code class="language-biolang">let by_tissue = samples
@@ -1350,7 +1506,7 @@ print(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
   })
 
 by_tissue |&gt; each(|row|
-  print(f"{row.tissue}: n={row.n}, cov={row.mean_cov:.1f}x, reads={row.mean_reads:.0f}")
+  println(f"{row.tissue}: n={row.n}, cov={row.mean_cov:.1f}x, reads={row.mean_reads:.0f}")
 )
 </code></pre>
 <h3 id="sort--order-rows"><a class="header" href="#sort--order-rows"><code>sort</code> – Order Rows</a></h3>
@@ -1396,7 +1552,7 @@ let windows = range(0, chrom_length, 1_000_000)
     end: min(start + 1_000_000, chrom_length)
   })
 
-print(f"Generated {len(windows)} windows for chr1")
+println(f"Generated {len(windows)} windows for chr1")
 </code></pre>
 <h2 id="example-sample-qc-summary-table-from-fastq-stats"><a class="header" href="#example-sample-qc-summary-table-from-fastq-stats">Example: Sample QC Summary Table from FASTQ Stats</a></h2>
 <p>Read multiple FASTQ files, compute QC metrics, and build a summary table.</p>
@@ -1450,16 +1606,16 @@ let summary = qc_flagged |&gt; group_by("qc_pass") |&gt; summarize(|pass, group|
   mean_q: mean(group |&gt; select("mean_quality")),
 })
 
-print("QC Summary:")
-print("=" * 60)
+println("QC Summary:")
+println("=" * 60)
 qc_flagged |&gt; each(|row| {
   let flag = if row.qc_pass then "PASS" else "FAIL"
-  print(f"  [{flag}] {row.sample_id}: {row.total_reads / 1e6:.1f}M reads, Q={row.mean_quality:.1f}, Q30={row.q30_pct:.1f}%")
+  println(f"  [{flag}] {row.sample_id}: {row.total_reads / 1e6:.1f}M reads, Q={row.mean_quality:.1f}, Q30={row.q30_pct:.1f}%")
 })
 
 let pass_count = qc_flagged |&gt; filter(|r| r.qc_pass) |&gt; len()
 let fail_count = qc_flagged |&gt; filter(|r| !r.qc_pass) |&gt; len()
-print(f"\n{pass_count} passed, {fail_count} failed out of {len(qc_flagged)} samples")
+println(f"\n{pass_count} passed, {fail_count} failed out of {len(qc_flagged)} samples")
 
 # Write results
 qc_flagged |&gt; write_tsv("qc_summary.csv")
@@ -1693,11 +1849,11 @@ an intermediate file, printing a progress message – without disrupting the dat
 flow. The tap pipe <code>|&gt;&gt;</code> evaluates the right side for its effect but passes the
 left side through unchanged:</p>
 <pre><code class="language-biolang">read_fastq("data/reads.fastq")
-  |&gt;&gt; |reads| print(f"Raw reads: {len(reads)}")
+  |&gt;&gt; |reads| println(f"Raw reads: {len(reads)}")
   |&gt; filter(|r| mean(r.quality) &gt;= 25)
-  |&gt;&gt; |reads| print(f"After quality filter: {len(reads)}")
+  |&gt;&gt; |reads| println(f"After quality filter: {len(reads)}")
   |&gt; filter(|r| seq_len(r.seq) &gt;= 50)
-  |&gt;&gt; |reads| print(f"After length filter: {len(reads)}")
+  |&gt;&gt; |reads| println(f"After length filter: {len(reads)}")
   |&gt; write_fastq("filtered_R1.fastq.gz")
 </code></pre>
 <p>Output:</p>
@@ -1707,13 +1863,13 @@ After length filter: 2539847
 </code></pre>
 <p>The tap pipe is invaluable for debugging pipelines:</p>
 <pre><code class="language-biolang">read_vcf("data/variants.vcf")
-  |&gt;&gt; |vs| print(f"Step 0 - Raw: {len(vs)} variants")
+  |&gt;&gt; |vs| println(f"Step 0 - Raw: {len(vs)} variants")
   |&gt; filter(|v| v.filter == "PASS")
-  |&gt;&gt; |vs| print(f"Step 1 - PASS only: {len(vs)}")
+  |&gt;&gt; |vs| println(f"Step 1 - PASS only: {len(vs)}")
   |&gt; filter(|v| v.qual &gt;= 30)
-  |&gt;&gt; |vs| print(f"Step 2 - Qual &gt;= 30: {len(vs)}")
+  |&gt;&gt; |vs| println(f"Step 2 - Qual &gt;= 30: {len(vs)}")
   |&gt; filter(|v| into(v.info?.DP ?? "0", "Int") &gt;= 10)
-  |&gt;&gt; |vs| print(f"Step 3 - Depth &gt;= 10: {len(vs)}")
+  |&gt;&gt; |vs| println(f"Step 3 - Depth &gt;= 10: {len(vs)}")
   |&gt; write_vcf("filtered_calls.vcf.gz")
 </code></pre>
 <p>You can also use tap to write intermediate checkpoints:</p>
@@ -1745,7 +1901,7 @@ let total_bases = read_fasta("data/sequences.fasta")
   |&gt; map(|s| seq_len(s.seq))
   |&gt; reduce(0, |acc, n| acc + n)
 
-print(f"Reference genome size: {total_bases / 1e9:.2f} Gb")
+println(f"Reference genome size: {total_bases / 1e9:.2f} Gb")
 </code></pre>
 <h3 id="sort--order-elements"><a class="header" href="#sort--order-elements"><code>sort</code> – Order Elements</a></h3>
 <pre><code class="language-biolang"># Rank genes by expression level
@@ -1815,7 +1971,7 @@ read_fasta("data/sequences.fasta")
   |&gt; enumerate()
   |&gt; map(|pair| {rank: pair[0] + 1, id: pair[1].id, length: seq_len(pair[1].seq)})
   |&gt; take(10)
-  |&gt; each(|row| print(f"#{row.rank}: {row.id} ({row.length} bp)"))
+  |&gt; each(|row| println(f"#{row.rank}: {row.id} ({row.length} bp)"))
 </code></pre>
 <h2 id="pipe-binding-with--into"><a class="header" href="#pipe-binding-with--into">Pipe Binding with <code>|&gt; into</code></a></h2>
 <p>When you want to capture an intermediate result from a pipe chain, the usual
@@ -1843,7 +1999,7 @@ high_quality
   |&gt; map(|r| {...r, trim_end: trim_quality(r.quality, 20)})
   |&gt; into trimmed
 
-print(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")
+println(f"Kept {len(high_quality)} reads, trimmed to {len(trimmed)}")
 </code></pre>
 <p>Each <code>|&gt; into</code> step saves the result under a name so it can be reused later,
 without wrapping the whole chain in <code>let x = (...)</code>. The pipeline reads
@@ -1859,22 +2015,22 @@ let input_r2 = "raw_data/sample_R2.fastq.gz"
 # Process R1 and R2 in parallel-style
 let process_reads = |input_path, label| {
   read_fastq(input_path)
-    |&gt;&gt; |reads| print(f"[{label}] Input: {len(reads)} reads")
+    |&gt;&gt; |reads| println(f"[{label}] Input: {len(reads)} reads")
 
     # Step 1: Remove short reads
     |&gt; filter(|r| seq_len(r.seq) &gt;= 50)
-    |&gt;&gt; |reads| print(f"[{label}] After length filter: {len(reads)}")
+    |&gt;&gt; |reads| println(f"[{label}] After length filter: {len(reads)}")
 
     # Step 2: Filter by mean quality
     |&gt; filter(|r| mean(r.quality) &gt;= 25)
-    |&gt;&gt; |reads| print(f"[{label}] After quality filter: {len(reads)}")
+    |&gt;&gt; |reads| println(f"[{label}] After quality filter: {len(reads)}")
 
     # Step 3: Remove low-complexity reads
     |&gt; filter(|r| {
       let gc = gc_content(r.seq)
       gc &gt; 0.1 &amp;&amp; gc &lt; 0.9
     })
-    |&gt;&gt; |reads| print(f"[{label}] After complexity filter: {len(reads)}")
+    |&gt;&gt; |reads| println(f"[{label}] After complexity filter: {len(reads)}")
 }
 
 let filtered_r1 = process_reads(input_r1, "R1")
@@ -1888,7 +2044,7 @@ let shared_ids = intersection(r1_ids, r2_ids)
 let paired_r1 = filtered_r1 |&gt; filter(|r| contains(shared_ids, r.id))
 let paired_r2 = filtered_r2 |&gt; filter(|r| contains(shared_ids, r.id))
 
-print(f"\nFinal paired reads: {len(paired_r1)} pairs")
+println(f"\nFinal paired reads: {len(paired_r1)} pairs")
 
 paired_r1 |&gt; write_fastq("filtered/sample_R1.fastq.gz")
 paired_r2 |&gt; write_fastq("filtered/sample_R2.fastq.gz")
@@ -1897,7 +2053,7 @@ paired_r2 |&gt; write_fastq("filtered/sample_R2.fastq.gz")
 let orphan_r1 = filtered_r1 |&gt; filter(|r| !contains(shared_ids, r.id))
 let orphan_r2 = filtered_r2 |&gt; filter(|r| !contains(shared_ids, r.id))
 let orphans = orphan_r1 ++ orphan_r2
-print(f"Orphan reads: {len(orphans)}")
+println(f"Orphan reads: {len(orphans)}")
 orphans |&gt; write_fastq("filtered/sample_orphans.fastq.gz")
 </code></pre>
 <h2 id="example-variant-annotation-pipeline"><a class="header" href="#example-variant-annotation-pipeline">Example: Variant Annotation Pipeline</a></h2>
@@ -1918,7 +2074,7 @@ read_vcf("data/variants.vcf")
 
   # Step 1: Basic quality filter
   |&gt; filter(|v| v.qual &gt;= 30 &amp;&amp; v.filter == "PASS")
-  |&gt;&gt; |vs| print(f"After quality filter: {len(vs)}")
+  |&gt;&gt; |vs| println(f"After quality filter: {len(vs)}")
 
   # Step 2: Classify variant type
   |&gt; map(|v| {
@@ -1949,12 +2105,12 @@ read_vcf("data/variants.vcf")
   })
   |&gt;&gt; |vs| {
     let tier_counts = vs |&gt; group_by("tier") |&gt; map(|g| f"{g.key}: {len(g.values)}")
-    print(f"Tier distribution: {tier_counts}")
+    println(f"Tier distribution: {tier_counts}")
   }
 
   # Step 6: Filter to actionable variants
   |&gt; filter(|v| v.tier == "Tier1_Known" || v.tier == "Tier2_RareIndel")
-  |&gt;&gt; |vs| print(f"Actionable variants: {len(vs)}")
+  |&gt;&gt; |vs| println(f"Actionable variants: {len(vs)}")
 
   # Step 7: Sort by priority and position
   |&gt; sort_by(|v| v.pos)
@@ -2023,10 +2179,10 @@ let summary = table(pair_results |&gt; map(|r| {
   somatic_rate: r.somatic / r.tumor_total * 100.0
 }))
 
-print("Patient Variant Comparison")
-print("=" * 70)
+println("Patient Variant Comparison")
+println("=" * 70)
 summary |&gt; each(|row|
-  print(f"  {row.patient}: tumor={row.tumor_total}, somatic={row.somatic} ({row.somatic_rate:.1f}%), germline={row.germline}")
+  println(f"  {row.patient}: tumor={row.tumor_total}, somatic={row.somatic} ({row.somatic_rate:.1f}%), germline={row.germline}")
 )
 
 # Find recurrent somatic variants (present in 2+ patients)
@@ -2041,9 +2197,9 @@ let all_somatic = pair_results
   })
   |&gt; sort_by(|row| -row.n_patients)
 
-print(f"\nRecurrent somatic variants (in &gt;= 2 patients): {len(all_somatic)}")
+println(f"\nRecurrent somatic variants (in &gt;= 2 patients): {len(all_somatic)}")
 all_somatic |&gt; take(20) |&gt; each(|v|
-  print(f"  {v.variant} -- found in {v.n_patients} patients: {v.patients}")
+  println(f"  {v.variant} -- found in {v.n_patients} patients: {v.patients}")
 )
 
 # Cross-patient aggregates via reduce
@@ -2056,9 +2212,9 @@ let totals = pair_results |&gt; reduce(
   }
 )
 
-print(f"\nCohort totals across {totals.patients} patients:")
-print(f"  Mean somatic variants: {totals.total_somatic / totals.patients:.0f}")
-print(f"  Mean germline variants: {totals.total_germline / totals.patients:.0f}")
+println(f"\nCohort totals across {totals.patients} patients:")
+println(f"  Mean somatic variants: {totals.total_somatic / totals.patients:.0f}")
+println(f"  Mean germline variants: {totals.total_germline / totals.patients:.0f}")
 
 # Zip tumor-normal read depths for concordance check
 let p1_tumor_depths = read_vcf(pairs[0].tumor) |&gt; map(|v| into(v.info?.DP ?? "0", "Int"))
@@ -2068,7 +2224,7 @@ let depth_comparison = zip(p1_tumor_depths, p1_normal_depths)
   |&gt; map(|pair| {tumor_dp: pair[0], normal_dp: pair[1], ratio: pair[0] / (pair[1] + 1.0)})
   |&gt; filter(|d| d.ratio &gt; 3.0)   # flag positions with 3x tumor vs normal depth
 
-print(f"\nPatient 1 depth outliers (tumor/normal &gt; 3x): {len(depth_comparison)}")
+println(f"\nPatient 1 depth outliers (tumor/normal &gt; 3x): {len(depth_comparison)}")
 </code></pre>
 <h2 id="summary-3"><a class="header" href="#summary-3">Summary</a></h2>
 <p>Pipes and transforms are the backbone of BioLang. The <code>|&gt;</code> operator turns nested
@@ -2247,7 +2403,7 @@ clauses.</p>
 fn timed_align(fastq, ref_genome) {
     let t0 = timestamp()
     let result = align_reads(fastq, ref_genome)
-    print("Alignment took " + str(timestamp() - t0) + "s")
+    println("Alignment took " + str(timestamp() - t0) + "s")
     result
 }
 
@@ -2369,7 +2525,7 @@ let tree = {
 let fast_evolving = collect_distant_leaves(tree, 0.0, 0.30)
 
 fast_evolving |&gt; each(|taxon|
-    print(taxon.name + " =&gt; total branch length " + to_string(taxon.distance))
+    println(taxon.name + " =&gt; total branch length " + to_string(taxon.distance))
 )
 # mouse =&gt; total branch length 0.55
 # rat =&gt; total branch length 0.53
@@ -2449,7 +2605,7 @@ for read in reads {
     total_bases = total_bases + len(read.seq)
 }
 
-print("Total bases: " + str(total_bases))
+println("Total bases: " + str(total_bases))
 </code></pre>
 <h3 id="tuple-destructuring"><a class="header" href="#tuple-destructuring">Tuple Destructuring</a></h3>
 <p>When iterating over paired data, destructure directly in the loop header.</p>
@@ -2462,14 +2618,14 @@ let fastq_paths = [
 
 for (sample, path) in zip(sample_ids, fastq_paths) {
     let stats = read_fastq(path) |&gt; read_stats()
-    print(sample + ": " + str(stats.total_reads) + " reads")
+    println(sample + ": " + str(stats.total_reads) + " reads")
 }
 </code></pre>
 <p>Destructuring also works with <code>enumerate</code>:</p>
 <pre><code class="language-biolang">let exons = read_bed("data/exons.bed")
 
 for (i, exon) in enumerate(exons) {
-    print("Exon " + str(i + 1) + ": " + exon.chrom + ":" + str(exon.start) + "-" + str(exon.end))
+    println("Exon " + str(i + 1) + ": " + exon.chrom + ":" + str(exon.start) + "-" + str(exon.end))
 }
 </code></pre>
 <h3 id="forelse"><a class="header" href="#forelse">for/else</a></h3>
@@ -2482,11 +2638,11 @@ let promoters = read_bed("data/regions.bed")
 for region in promoters {
     let seq = ucsc_sequence("hg38", region.chrom, region.start, region.end)
     if contains(seq, target) {
-        print("TATA box found in " + region.name)
+        println("TATA box found in " + region.name)
         break
     }
 } else {
-    print("No TATA box found in any promoter region")
+    println("No TATA box found in any promoter region")
 }
 </code></pre>
 <h2 id="while-loops"><a class="header" href="#while-loops">while Loops</a></h2>
@@ -2588,12 +2744,12 @@ negative checks.</p>
     let header = sam_header(path)
 
     unless contains(header.sort_order, "coordinate") {
-        print("WARNING: BAM is not coordinate-sorted, sorting first")
+        println("WARNING: BAM is not coordinate-sorted, sorting first")
         shell("samtools sort -o " + path + " " + path)
     }
 
     unless file_exists(path + ".bai") {
-        print("Indexing BAM")
+        println("Indexing BAM")
         shell("samtools index " + path)
     }
 
@@ -2647,11 +2803,11 @@ for gene in genes {
     let hits = find_motif(seq, motif)
 
     if len(hits) &gt; 0 {
-        print("E-box found upstream of " + gene.name + " at offset " + str(hits[0].position))
+        println("E-box found upstream of " + gene.name + " at offset " + str(hits[0].position))
         break
     }
 } else {
-    print("No E-box motif found in any upstream region scanned")
+    println("No E-box motif found in any upstream region scanned")
 }
 </code></pre>
 <h2 id="example-multi-criteria-sample-qc-with-givenotherwise"><a class="header" href="#example-multi-criteria-sample-qc-with-givenotherwise">Example: Multi-Criteria Sample QC with given/otherwise</a></h2>
@@ -2686,9 +2842,9 @@ for sample in samples {
     let result = qc_disposition(stats)
 
     if result.pass {
-        print(sample + ": PASS")
+        println(sample + ": PASS")
     } else {
-        print(sample + ": FAIL (" + result.reason + ")")
+        println(sample + ": FAIL (" + result.reason + ")")
     }
 }
 </code></pre>
@@ -2766,7 +2922,7 @@ proceed.</p>
 <pre><code class="language-biolang">let records = try {
     read_vcf("data/variants.vcf")
 } catch e {
-    print("Failed to parse VCF: " + e.message)
+    println("Failed to parse VCF: " + e.message)
     []
 }
 </code></pre>
@@ -2788,15 +2944,15 @@ try {
 } catch e {
     match e.kind {
         "network_error" =&gt; {
-            print("Network unreachable, using cached data")
+            println("Network unreachable, using cached data")
             load_cache("uniprot", accession)
         }
         "parse_error" =&gt; {
-            print("Malformed response for " + accession + ", skipping")
+            println("Malformed response for " + accession + ", skipping")
             nil
         }
         _ =&gt; {
-            print("Unexpected error: " + e.message)
+            println("Unexpected error: " + e.message)
             nil
         }
     }
@@ -2821,7 +2977,7 @@ try {
     let ref_seqs = load_reference("hg38.fa")
     run_alignment(reads, ref_seqs)
 } catch e {
-    print("Pipeline aborted: " + e.message)
+    println("Pipeline aborted: " + e.message)
 }
 </code></pre>
 <p>The <code>error()</code> function raises an exception that unwinds to the nearest <code>catch</code>.</p>
@@ -2861,7 +3017,7 @@ let annotation = try {
     }
     result
 } catch e {
-    print("Ensembl unavailable after 5 attempts: " + e.message)
+    println("Ensembl unavailable after 5 attempts: " + e.message)
     {gene_name: "BRCA2", source: "fallback_cache"}
 }
 </code></pre>
@@ -2950,12 +3106,12 @@ let clnsig = safe_info(v, "CLNSIG", default: "not_reported")
             good = good + [parser(line)]
         } catch e {
             bad = bad + 1
-            print("Skipped line " + str(i + 1) + ": " + e.message)
+            println("Skipped line " + str(i + 1) + ": " + e.message)
         }
     }
 
     if bad &gt; 0 {
-        print("Warning: " + str(bad) + " malformed records skipped")
+        println("Warning: " + str(bad) + " malformed records skipped")
     }
     good
 }
@@ -3012,9 +3168,9 @@ let mean_qual = if len(qualities) &gt; 0 { mean(qualities) } else { 0.0 }
         }
     }
 
-    print("Parsed " + str(len(records)) + " records, " + str(len(errors)) + " errors")
+    println("Parsed " + str(len(records)) + " records, " + str(len(errors)) + " errors")
     for err in errors {
-        print("  SKIP: " + err.header + " (" + err.reason + ")")
+        println("  SKIP: " + err.header + " (" + err.reason + ")")
     }
     records
 }
@@ -3156,12 +3312,12 @@ columns.</p>
 <pre><code class="language-biolang">let contigs = read_fasta("data/sequences.fasta")
 
 for c in contigs {
-    print(c.id + ": " + str(c.length) + " bp")
+    println(c.id + ": " + str(c.length) + " bp")
 }
 
 # Find the longest contig
 contigs |&gt; sort_by(|c| -c.length) |&gt; first() |&gt; into longest
-print("Longest: " + longest.id + " (" + str(longest.length) + " bp)")
+println("Longest: " + longest.id + " (" + str(longest.length) + " bp)")
 </code></pre>
 <p>FASTA records carry the raw sequence as a string. Use bio literals for
 compile-time validated sequences, and <code>read_fasta</code> for runtime file data.</p>
@@ -3179,10 +3335,10 @@ let summary = {
     gc_pct: gc_mean * 100
 }
 
-print("Reads: " + str(summary.total))
-print("Mean length: " + str(round(summary.mean_length, 1)))
-print("Mean quality: " + str(round(summary.mean_qual, 1)))
-print("GC%: " + str(round(summary.gc_pct, 1)))
+println("Reads: " + str(summary.total))
+println("Mean length: " + str(round(summary.mean_length, 1)))
+println("Mean quality: " + str(round(summary.mean_qual, 1)))
+println("GC%: " + str(round(summary.gc_pct, 1)))
 </code></pre>
 <p>Compressed files (<code>.gz</code>) are decompressed transparently.</p>
 <h2 id="reading-vcf"><a class="header" href="#reading-vcf">Reading VCF</a></h2>
@@ -3194,9 +3350,9 @@ let passing = variants |&gt; filter(|v| v.filter == "PASS")
 let snps = passing |&gt; filter(|v| is_snp(v))
 let indels = passing |&gt; filter(|v| is_indel(v))
 
-print("PASS variants: " + str(len(passing)))
-print("  SNPs: " + str(len(snps)))
-print("  Indels: " + str(len(indels)))
+println("PASS variants: " + str(len(passing)))
+println("  SNPs: " + str(len(snps)))
+println("  Indels: " + str(len(indels)))
 </code></pre>
 <h2 id="reading-bed"><a class="header" href="#reading-bed">Reading BED</a></h2>
 <p><code>read_bed()</code> returns interval records with <code>chrom</code>, <code>start</code>, <code>end</code>, and
@@ -3204,8 +3360,8 @@ optional <code>name</code>, <code>score</code>, <code>strand</code> fields depen
 <pre><code class="language-biolang">let targets = read_bed("data/exons.bed")
 
 let total_bp = targets |&gt; map(|t| t.end - t.start) |&gt; reduce(0, |a, b| a + b)
-print("Total target region: " + str(total_bp) + " bp")
-print("Number of targets: " + str(len(targets)))
+println("Total target region: " + str(total_bp) + " bp")
+println("Number of targets: " + str(len(targets)))
 
 # Group by chromosome
 let by_chrom = targets
@@ -3216,7 +3372,7 @@ let by_chrom = targets
         bp: regions |&gt; map(|r| r.end - r.start) |&gt; reduce(0, |a, b| a + b)
     })
 by_chrom |&gt; each(|row|
-    print(row.chrom + ": " + str(row.targets) + " targets, " + str(row.bp) + " bp")
+    println(row.chrom + ": " + str(row.targets) + " targets, " + str(row.bp) + " bp")
 )
 </code></pre>
 <h2 id="reading-gffgtf"><a class="header" href="#reading-gffgtf">Reading GFF/GTF</a></h2>
@@ -3228,13 +3384,13 @@ by_chrom |&gt; each(|row|
 let genes = features |&gt; filter(|f| f.type == "gene")
 let protein_coding = genes |&gt; filter(|g| contains(g.attributes, "protein_coding"))
 
-print("Total genes: " + str(len(genes)))
-print("Protein-coding: " + str(len(protein_coding)))
+println("Total genes: " + str(len(genes)))
+println("Protein-coding: " + str(len(protein_coding)))
 
 # Gene length distribution
 let lengths = protein_coding |&gt; map(|g| g.end - g.start)
-print("Median gene length: " + str(median(lengths)) + " bp")
-print("Mean gene length: " + str(round(mean(lengths), 0)) + " bp")
+println("Median gene length: " + str(median(lengths)) + " bp")
+println("Mean gene length: " + str(round(mean(lengths), 0)) + " bp")
 </code></pre>
 <h2 id="reading-csv-and-tsv"><a class="header" href="#reading-csv-and-tsv">Reading CSV and TSV</a></h2>
 <p><code>csv()</code> and <code>tsv()</code> return tables where column headers become field names.</p>
@@ -3245,13 +3401,13 @@ let groups = metadata |&gt; group_by("condition")
 
 for (condition, samples) in groups {
     let ids = samples |&gt; map(|s| s.sample_id) |&gt; join(", ")
-    print(condition + ": " + ids)
+    println(condition + ": " + ids)
 }
 
 # DESeq2-style count matrix
 let counts = tsv("gene_counts.tsv")
 let gene_names = counts |&gt; map(|row| row.gene_id)
-print("Genes in count matrix: " + str(len(gene_names)))
+println("Genes in count matrix: " + str(len(gene_names)))
 </code></pre>
 <h2 id="writing-files"><a class="header" href="#writing-files">Writing Files</a></h2>
 <p>Writer functions take a list of records and an output path. The format is
@@ -3287,7 +3443,7 @@ let high_qual_count = stream
     |&gt; filter(|r| len(r.seq) &gt;= 100)
     |&gt; len()
 
-print("High-quality long reads: " + str(high_qual_count))
+println("High-quality long reads: " + str(high_qual_count))
 </code></pre>
 <p>Streams are consumed once. If you need multiple passes, collect into a list
 or read the file again:</p>
@@ -3297,7 +3453,7 @@ let passing = read_fastq("data/reads.fastq")
     |&gt; filter(|r| mean_phred(r.quality) &gt;= 20)
     |&gt; len()
 
-print("Pass rate: " + str(round(passing / total * 100, 2)) + "%")
+println("Pass rate: " + str(round(passing / total * 100, 2)) + "%")
 </code></pre>
 <h2 id="example-convert-fastq-to-fasta"><a class="header" href="#example-convert-fastq-to-fasta">Example: Convert FASTQ to FASTA</a></h2>
 <p>Strip quality scores from a FASTQ file to produce a FASTA for downstream
@@ -3310,7 +3466,7 @@ let fasta_records = reads |&gt; map(|r| {
 })
 
 write_fasta(fasta_records, "nanopore_reads.fasta")
-print("Converted " + str(len(fasta_records)) + " reads to FASTA")
+println("Converted " + str(len(fasta_records)) + " reads to FASTA")
 </code></pre>
 <p>For large files, this streams through without holding everything in memory
 because <code>map</code> on a stream produces a stream.</p>
@@ -3505,13 +3661,13 @@ let exon = interval("chr1", 11869, 12227, "+")
 or other annotations to table rows before building an interval tree.</p>
 <pre><code class="language-biolang">let region = interval("chr7", 55181000, 55182000, "+")
 
-print(region.chrom)   # chr7
-print(region.start)   # 55181000
-print(region.end)     # 55182000
-print(region.strand)  # +
+println(region.chrom)   # chr7
+println(region.start)   # 55181000
+println(region.end)     # 55182000
+println(region.strand)  # +
 
 let width = region.end - region.start
-print("Width: " + str(width) + " bp")
+println("Width: " + str(width) + " bp")
 </code></pre>
 <p>BioLang uses 0-based, half-open coordinates (BED convention) throughout.</p>
 <h3 id="interval-arithmetic"><a class="header" href="#interval-arithmetic">Interval Arithmetic</a></h3>
@@ -3521,16 +3677,16 @@ let b = interval("chr1", 150, 250)
 let c = interval("chr1", 300, 400)
 
 # Overlap test
-print(a.start &lt; b.end and b.start &lt; a.end)   # true
-print(a.start &lt; c.end and c.start &lt; a.end)   # false
+println(a.start &lt; b.end and b.start &lt; a.end)   # true
+println(a.start &lt; c.end and c.start &lt; a.end)   # false
 
 # Containment
 let outer = interval("chr1", 100, 500)
-print(contains(outer, c))  # true
+println(contains(outer, c))  # true
 
 # Distance between non-overlapping intervals
 let dist = if a.end &lt;= c.start then c.start - a.end else a.start - c.end
-print(dist)   # 100
+println(dist)   # 100
 
 # Merge overlapping intervals into one
 let merged = merge_intervals([a, b])
@@ -3554,7 +3710,7 @@ let tree = interval_tree(exons)
 let hits = query_overlaps(tree, query.chrom, query.start, query.end)
 
 for hit in hits {
-    print("Overlaps: " + hit.chrom + ":" + str(hit.start) + "-" + str(hit.end))
+    println("Overlaps: " + hit.chrom + ":" + str(hit.start) + "-" + str(hit.end))
 }
 </code></pre>
 <h3 id="query_nearest"><a class="header" href="#query_nearest">query_nearest</a></h3>
@@ -3580,8 +3736,8 @@ let target = interval("chr17", 43044000, 43045000)
 
 let cov = coverage(tree)
     |&gt; filter(|row| row.chrom == target.chrom &amp;&amp; row.start &lt; target.end &amp;&amp; row.end &gt; target.start)
-print("Mean segment depth over target: " + str(mean(col(cov, "depth"))))
-print("Segments &gt;= 2x: " + str(cov |&gt; filter(|row| row.depth &gt;= 2) |&gt; len()))
+println("Mean segment depth over target: " + str(mean(col(cov, "depth"))))
+println("Segments &gt;= 2x: " + str(cov |&gt; filter(|row| row.depth &gt;= 2) |&gt; len()))
 </code></pre>
 <h2 id="variants"><a class="header" href="#variants">Variants</a></h2>
 <p>A variant represents a difference from the reference genome. Create one with
@@ -3594,11 +3750,11 @@ let ins = variant("chr2", 29416089, "A", "AGCTGCTG")    # ALK insertion
 <p>BioLang provides functions to classify variants by their molecular type.</p>
 <pre><code class="language-biolang">let v = variant("chr7", 55181378, "T", "A")
 
-print(is_snp(v))           # true
-print(is_indel(v))         # false
-print(is_transition(v))    # false  (T&gt;A is transversion)
-print(is_transversion(v))  # true
-print(variant_type(v))     # "Snp"
+println(is_snp(v))           # true
+println(is_indel(v))         # false
+println(is_transition(v))    # false  (T&gt;A is transversion)
+println(is_transversion(v))  # true
+println(variant_type(v))     # "Snp"
 </code></pre>
 <p>The full classification set:</p>
 <pre><code class="language-biolang">let examples = [
@@ -3617,7 +3773,7 @@ for v in examples {
         is_indel(v)                     =&gt; "indel (" + str(abs(len(v.alt) - len(v.ref))) + "bp)"
         otherwise                       =&gt; vtype
     }
-    print(v.chrom + ":" + str(v.pos) + " " + v.ref + "&gt;" + v.alt + " =&gt; " + detail)
+    println(v.chrom + ":" + str(v.pos) + " " + v.ref + "&gt;" + v.alt + " =&gt; " + detail)
 }
 </code></pre>
 <h3 id="genotype-queries"><a class="header" href="#genotype-queries">Genotype Queries</a></h3>
@@ -3630,8 +3786,8 @@ let het_snps = variants
 let hom_alt = variants
     |&gt; filter(|v| is_hom_alt(v))
 
-print("Heterozygous SNPs: " + str(len(het_snps)))
-print("Homozygous alt calls: " + str(len(hom_alt)))
+println("Heterozygous SNPs: " + str(len(het_snps)))
+println("Homozygous alt calls: " + str(len(hom_alt)))
 
 # Allele balance for heterozygous calls
 let allele_balances = het_snps |&gt; map(|v| {
@@ -3641,7 +3797,7 @@ let allele_balances = het_snps |&gt; map(|v| {
     if total &gt; 0 { ad[1] / total } else { 0.0 }
 })
 
-print("Median allele balance (het): " + str(round(median(allele_balances), 3)))
+println("Median allele balance (het): " + str(round(median(allele_balances), 3)))
 </code></pre>
 <h3 id="parse_vcf_info"><a class="header" href="#parse_vcf_info">parse_vcf_info</a></h3>
 <p>The VCF INFO column packs key-value pairs into a semicolon-delimited string.
@@ -3649,10 +3805,10 @@ print("Median allele balance (het): " + str(round(median(allele_balances), 3)))
 <pre><code class="language-biolang">let info_str = "DP=42;MQ=60.0;AF=0.48;CLNSIG=Pathogenic;GENEINFO=BRCA1:672"
 let info = parse_info(info_str)
 
-print(info.DP)       # 42
-print(info.AF)       # 0.48
-print(info.CLNSIG)   # "Pathogenic"
-print(info.GENEINFO) # "BRCA1:672"
+println(info.DP)       # 42
+println(info.AF)       # 0.48
+println(info.CLNSIG)   # "Pathogenic"
+println(info.GENEINFO) # "BRCA1:672"
 </code></pre>
 <h2 id="example-find-genes-overlapping-with-chip-seq-peaks"><a class="header" href="#example-find-genes-overlapping-with-chip-seq-peaks">Example: Find Genes Overlapping with ChIP-seq Peaks</a></h2>
 <p>Identify which genes have promoter regions that overlap with transcription
@@ -4388,17 +4544,17 @@ pipeline. The returned record contains:</p>
 </div>
 <pre><code class="language-biolang"># Inspect the Sarek germline/somatic variant calling pipeline
 let sarek = nfcore_info("sarek")
-print("Pipeline: " + sarek.full_name)
-print("License:  " + sarek.license)
-print("Stars:    " + to_string(sarek.stars))
-print("Topics:   " + join(sarek.topics, ", "))
+println("Pipeline: " + sarek.full_name)
+println("License:  " + sarek.license)
+println("Stars:    " + to_string(sarek.stars))
+println("Topics:   " + join(sarek.topics, ", "))
 </code></pre>
 <p>You can use the metadata to make decisions in scripts. For example, checking
 whether a pipeline is actively maintained before committing to it:</p>
 <pre><code class="language-biolang"># Only proceed if the pipeline has been updated recently
 let info = nfcore_info("taxprofiler")
 if info.open_issues &lt; 50 then
-  print(info.name + " looks actively maintained")
+  println(info.name + " looks actively maintained")
 </code></pre>
 <h2 id="releases-and-versions"><a class="header" href="#releases-and-versions">Releases and Versions</a></h2>
 <p>Production workflows should pin to a specific release rather than tracking the
@@ -4411,13 +4567,13 @@ nfcore_releases("rnaseq")
 <pre><code class="language-biolang"># Get the latest stable release tag for rnaseq
 let latest = nfcore_releases("rnaseq")
   |&gt; first
-print("Latest release: " + latest.tag + " (" + latest.published_at + ")")
+println("Latest release: " + latest.tag + " (" + latest.published_at + ")")
 </code></pre>
 <p>You can also search for a specific version range or find how many releases a
 pipeline has had – a rough proxy for maturity:</p>
 <pre><code class="language-biolang"># Count total releases for sarek
 let release_count = nfcore_releases("sarek") |&gt; len
-print("sarek has " + to_string(release_count) + " releases")
+println("sarek has " + to_string(release_count) + " releases")
 </code></pre>
 <pre><code class="language-biolang"># Find all 3.x releases of rnaseq
 nfcore_releases("rnaseq")
@@ -4449,7 +4605,7 @@ required parameters before submitting a long-running pipeline:</p>
 <pre><code class="language-biolang"># Check whether a specific parameter exists
 let params = nfcore_params("sarek")
 let genome_opts = params.reference_genome_options
-print(keys(genome_opts))
+println(keys(genome_opts))
 </code></pre>
 <h2 id="example-finding-the-right-pipeline"><a class="header" href="#example-finding-the-right-pipeline">Example: Finding the Right Pipeline</a></h2>
 <p>A common task: you need to process single-cell RNA-seq data but are unsure which
@@ -4466,7 +4622,7 @@ candidates
     description: p.description
   }
   |&gt; sort_by |a, b| b.stars - a.stars
-  |&gt;&gt; each |p| print(p.name + " (" + to_string(p.stars) + " stars): " + p.description)
+  |&gt;&gt; each |p| println(p.name + " (" + to_string(p.stars) + " stars): " + p.description)
 
 # Step 3: Get detailed info on the top candidate
 let top = candidates
@@ -4474,18 +4630,18 @@ let top = candidates
   |&gt; first
 
 let info = nfcore_info(top.name)
-print("Selected: " + info.full_name)
-print("License:  " + info.license)
-print("Topics:   " + join(info.topics, ", "))
+println("Selected: " + info.full_name)
+println("License:  " + info.license)
+println("Topics:   " + join(info.topics, ", "))
 
 # Step 4: Check the latest release
 let latest = nfcore_releases(top.name) |&gt; first
-print("Latest release: " + latest.tag + " published " + latest.published_at)
+println("Latest release: " + latest.tag + " published " + latest.published_at)
 
 # Step 5: Preview the parameter groups
 nfcore_params(top.name)
   |&gt; keys
-  |&gt;&gt; each |group| print("  - " + group)
+  |&gt;&gt; each |group| println("  - " + group)
 </code></pre>
 <p>This entire exploration runs in a single script – no switching between a browser,
 the nf-core CLI tool, and your pipeline configuration files.</p>
@@ -4555,21 +4711,21 @@ keys(topics)
     let pipelines = topics[t]
       |&gt; sort_by |a, b| b.stars - a.stars
       |&gt; each |p| p.name
-    print(t + " (" + to_string(len(pipelines)) + " pipelines): " + join(pipelines, ", "))
+    println(t + " (" + to_string(len(pipelines)) + " pipelines): " + join(pipelines, ", "))
   }
 </code></pre>
 <p>You can extend this to generate a Markdown report, push to a shared wiki, or
 feed into a lab notebook:</p>
 <pre><code class="language-biolang"># Export the top 20 pipelines as a tab-separated table
 let header = "name\tstars\ttopics\tlatest_release"
-print(header)
+println(header)
 
 nfcore_list(sort_by: "stars", limit: 20)
   |&gt;&gt; each |p| {
     let latest = nfcore_releases(p.name) |&gt; first
     let tag = if latest != nil then latest.tag else "unreleased"
     let topic_str = join(p.topics, ";")
-    print(p.name + "\t" + to_string(p.stars) + "\t" + topic_str + "\t" + tag)
+    println(p.name + "\t" + to_string(p.stars) + "\t" + topic_str + "\t" + tag)
   }
 </code></pre>
 <p>Redirect stdout to a file and you have a pipeline inventory that updates every
@@ -4601,7 +4757,7 @@ let parsed = nf_parse("variant_calling.nf")
 
 parsed.processes
   |&gt; each |p| {
-    print(p.name + ": " + if p.container != nil then p.container else "no container")
+    println(p.name + ": " + if p.container != nil then p.container else "no container")
   }
 </code></pre>
 <pre><code class="language-biolang"># Extract all parameters with their default values
@@ -4609,7 +4765,7 @@ let parsed = nf_parse("rnaseq.nf")
 
 keys(parsed.params)
   |&gt; sort
-  |&gt;&gt; each |k| print(k + " = " + to_string(parsed.params[k]))
+  |&gt;&gt; each |k| println(k + " = " + to_string(parsed.params[k]))
 </code></pre>
 <h2 id="generating-biolang-code"><a class="header" href="#generating-biolang-code">Generating BioLang Code</a></h2>
 <p>The <code>nf_to_bl</code> function takes a parsed Nextflow record and generates BioLang
@@ -4619,10 +4775,10 @@ let parsed = nf_parse("rnaseq.nf")
 let bl_code = nf_to_bl(parsed)
 
 # Print the generated code
-print(bl_code)
+println(bl_code)
 
 # Save to a file
-write_file("rnaseq.bl", bl_code)
+write_text("rnaseq.bl", bl_code)
 </code></pre>
 <p>The generated code maps Nextflow constructs to BioLang equivalents:</p>
 <ul>
@@ -4637,13 +4793,13 @@ features like pipe chains, error handling, and parallel execution.</p>
 let parsed = nf_parse("sarek_main.nf")
 
 # Show what was extracted
-print("Found " + to_string(len(parsed.processes)) + " processes")
-print("Found " + to_string(len(keys(parsed.params))) + " parameters")
+println("Found " + to_string(len(parsed.processes)) + " processes")
+println("Found " + to_string(len(keys(parsed.params))) + " parameters")
 
 # Generate BioLang code
 let bl_code = nf_to_bl(parsed)
-write_file("sarek.bl", bl_code)
-print("Generated sarek.bl")
+write_text("sarek.bl", bl_code)
+println("Generated sarek.bl")
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="chapter-13-biocontainers-integration"><a class="header" href="#chapter-13-biocontainers-integration">Chapter 13: BioContainers Integration</a></h1>
@@ -4672,8 +4828,8 @@ let results = biocontainers_search("samtools")
 # ]
 
 results |&gt; each(|tool| {
-  print(tool.name + " (" + str(tool.version_count) + " versions)")
-  print("  Latest: " + tool.latest_version)
+  println(tool.name + " (" + str(tool.version_count) + " versions)")
+  println("  Latest: " + tool.latest_version)
 })
 </code></pre>
 <p>The default limit is 25 results. Pass a second argument to narrow or widen the
@@ -4681,7 +4837,7 @@ search.</p>
 <pre><code class="language-biolang"># Top 5 matches for short-read aligners
 let aligners = biocontainers_search("bwa", 5)
 
-aligners |&gt; each(|a| print(a.name + " =&gt; " + a.latest_image))
+aligners |&gt; each(|a| println(a.name + " =&gt; " + a.latest_image))
 </code></pre>
 <p>Search terms are matched against tool names and descriptions, so broader
 queries work too.</p>
@@ -4690,7 +4846,7 @@ let quant_tools = biocontainers_search("salmon rna-seq")
 
 quant_tools
   |&gt; filter(|t| t.version_count &gt; 5)
-  |&gt; each(|t| print(t.name + ": " + t.description))
+  |&gt; each(|t| println(t.name + ": " + t.description))
 </code></pre>
 <h2 id="popular-tools"><a class="header" href="#popular-tools">Popular Tools</a></h2>
 <p><code>biocontainers_popular</code> returns the most-pulled tools in the registry. This is
@@ -4698,8 +4854,8 @@ useful for discovering which tools the community relies on and for auditing
 whether your pipeline uses well-maintained software.</p>
 <pre><code class="language-biolang">let top20 = biocontainers_popular()
 
-print("Top 20 BioContainers tools:")
-top20 |&gt; each(|t| print("  " + t.name + " - " + t.latest_version))
+println("Top 20 BioContainers tools:")
+top20 |&gt; each(|t| println("  " + t.name + " - " + t.latest_version))
 </code></pre>
 <p>Pass a limit to retrieve more.</p>
 <pre><code class="language-biolang"># Top 50 most popular bioinformatics containers
@@ -4712,9 +4868,9 @@ let popular_names = top50 |&gt; map(|t| t.name)
 our_tools |&gt; each(|tool| {
   let found = popular_names |&gt; find(|n| n == tool)
   if found != nil then
-    print(tool + " is in the top 50")
+    println(tool + " is in the top 50")
   else
-    print(tool + " is NOT in the top 50")
+    println(tool + " is NOT in the top 50")
 })
 </code></pre>
 <h2 id="tool-details"><a class="header" href="#tool-details">Tool Details</a></h2>
@@ -4757,7 +4913,7 @@ let dv = biocontainers_info("deepvariant")
 dv.versions |&gt; each(|v| {
   let singularity = v.images |&gt; filter(|img| img.type == "Singularity")
   if len(singularity) &gt; 0 then
-    print(v.version + " has Singularity image")
+    println(v.version + " has Singularity image")
 })
 </code></pre>
 <h2 id="version-management"><a class="header" href="#version-management">Version Management</a></h2>
@@ -4778,7 +4934,7 @@ let gatk44 = versions
   |&gt; filter(|v| starts_with(v.version, "4.4"))
   |&gt; first()
 
-print("Pinning GATK to: " + gatk44.images[0])
+println("Pinning GATK to: " + gatk44.images[0])
 </code></pre>
 <p>You can use this to check whether a specific version exists before committing
 to it in a pipeline definition.</p>
@@ -4787,9 +4943,9 @@ let bc_versions = biocontainers_versions("bcftools")
 let target = bc_versions |&gt; find(|v| starts_with(v.version, "1.18"))
 
 if target != nil then
-  print("bcftools 1.18 available: " + target.images[0])
+  println("bcftools 1.18 available: " + target.images[0])
 else
-  print("bcftools 1.18 not found in BioContainers")
+  println("bcftools 1.18 not found in BioContainers")
 </code></pre>
 <h2 id="example-building-a-reproducible-tool-manifest"><a class="header" href="#example-building-a-reproducible-tool-manifest">Example: Building a Reproducible Tool Manifest</a></h2>
 <p>A variant calling pipeline needs exact container images for every tool. Use the
@@ -4811,7 +4967,7 @@ let manifest = required |&gt; map(|req| {
     |&gt; filter(|v| starts_with(v.version, req.min_version))
 
   if len(matching) == 0 then {
-    print("WARNING: no " + req.name + " &gt;= " + req.min_version + " found")
+    println("WARNING: no " + req.name + " &gt;= " + req.min_version + " found")
     {tool: req.name, version: "MISSING", image: "MISSING"}
   } else {
     let chosen = matching |&gt; first()
@@ -4820,12 +4976,12 @@ let manifest = required |&gt; map(|req| {
 })
 
 # Print the resolved manifest
-print("Variant Calling Pipeline - Tool Manifest")
-print("=========================================")
+println("Variant Calling Pipeline - Tool Manifest")
+println("=========================================")
 manifest |&gt; each(|m| {
-  print(m.tool + ":")
-  print("  version: " + m.version)
-  print("  image:   " + m.image)
+  println(m.tool + ":")
+  println("  version: " + m.version)
+  println("  image:   " + m.image)
 })
 
 # Export as structured data
@@ -4988,7 +5144,7 @@ records, each describing a matching repository.</p>
 <pre><code class="language-biolang"># requires: internet connection (all galaxy_* functions query the Galaxy ToolShed API)
 # Find BWA-related tools in the Galaxy ToolShed
 galaxy_search("bwa")
-  |&gt; each(|t| print(t.name + " by " + t.owner + " (" + str(t.downloads) + " downloads)"))
+  |&gt; each(|t| println(t.name + " by " + t.owner + " (" + str(t.downloads) + " downloads)"))
 </code></pre>
 <p>Each record in the result contains:</p>
 <div class="table-wrapper">
@@ -5010,14 +5166,14 @@ number of results, which is useful in exploratory sessions where you want a
 quick overview.</p>
 <pre><code class="language-biolang"># Top 5 matches for short-read aligners
 galaxy_search("bwa", 5)
-  |&gt; each(|t| print(t.name + " (" + t.owner + "): " + t.description))
+  |&gt; each(|t| println(t.name + " (" + t.owner + "): " + t.description))
 </code></pre>
 <p>Search terms are matched against repository names and descriptions, so broader
 queries work too.</p>
 <pre><code class="language-biolang"># Find tools related to RNA-seq
 galaxy_search("rna-seq", 10)
   |&gt; filter(|t| t.downloads &gt; 1000)
-  |&gt; each(|t| print(t.name + ": " + str(t.downloads) + " downloads"))
+  |&gt; each(|t| println(t.name + ": " + str(t.downloads) + " downloads"))
 </code></pre>
 <h2 id="popular-tools-1"><a class="header" href="#popular-tools-1">Popular Tools</a></h2>
 <p><code>galaxy_popular</code> returns the most-downloaded repositories in the ToolShed,
@@ -5030,39 +5186,39 @@ tools the Galaxy community relies on most heavily.</p>
 to widen or narrow the list.</p>
 <pre><code class="language-biolang"># Top 25 Galaxy tools by download count
 galaxy_popular(25)
-  |&gt; each(|t| print(t.name + " by " + t.owner + " - " + str(t.downloads) + " downloads"))
+  |&gt; each(|t| println(t.name + " by " + t.owner + " - " + str(t.downloads) + " downloads"))
 </code></pre>
 <h2 id="categories"><a class="header" href="#categories">Categories</a></h2>
 <p>The ToolShed organizes repositories into categories such as “Assembly”,
 “Variant Analysis”, “RNA”, and “Visualization”. <code>galaxy_categories</code> returns
 them all as a list of records.</p>
 <pre><code class="language-biolang">galaxy_categories()
-  |&gt; each(|c| print(c.name + ": " + c.description))
+  |&gt; each(|c| println(c.name + ": " + c.description))
 </code></pre>
 <p>You can use this to explore what kinds of tools exist before drilling into
 a specific area.</p>
 <pre><code class="language-biolang"># Find categories related to sequencing
 galaxy_categories()
   |&gt; filter(|c| contains(lower(c.name), "sequenc") or contains(lower(c.description), "sequenc"))
-  |&gt; each(|c| print(c.name))
+  |&gt; each(|c| println(c.name))
 </code></pre>
 <h2 id="repository-details"><a class="header" href="#repository-details">Repository Details</a></h2>
 <p><code>galaxy_tool</code> returns a detailed record for a single repository, identified
 by owner and name.</p>
 <pre><code class="language-biolang">let tool = galaxy_tool("devteam", "bwa")
-print("Tool: " + tool.name)
-print("Owner: " + tool.owner)
-print("Downloads: " + str(tool.downloads))
-print("Last updated: " + tool.last_updated)
-print("Description: " + tool.description)
+println("Tool: " + tool.name)
+println("Owner: " + tool.owner)
+println("Downloads: " + str(tool.downloads))
+println("Last updated: " + tool.last_updated)
+println("Description: " + tool.description)
 </code></pre>
 <p>The returned record includes fields beyond what the search results provide,
 such as <code>last_updated</code> and the full repository URL. Use this to verify that
 a tool is actively maintained before building a workflow around it.</p>
 <pre><code class="language-biolang"># Check maintenance status of a tool before adopting it
 let tool = galaxy_tool("iuc", "samtools_sort")
-print(tool.name + " last updated: " + tool.last_updated)
-print("Downloads: " + str(tool.downloads))
+println(tool.name + " last updated: " + tool.last_updated)
+println("Downloads: " + str(tool.downloads))
 </code></pre>
 <h2 id="cross-registry-discovery"><a class="header" href="#cross-registry-discovery">Cross-Registry Discovery</a></h2>
 <p>One of BioLang’s strengths is that nf-core, BioContainers, and Galaxy ToolShed
@@ -5077,10 +5233,10 @@ let nf_results = nfcore_search(tool)
 let bc_results = biocontainers_search(tool, 5)
 let gx_results = galaxy_search(tool, 5)
 
-print("=== Cross-registry search for: " + tool + " ===")
-print("nf-core pipelines mentioning " + tool + ": " + str(len(nf_results)))
-print("BioContainers: " + str(len(bc_results)))
-print("Galaxy tools: " + str(len(gx_results)))
+println("=== Cross-registry search for: " + tool + " ===")
+println("nf-core pipelines mentioning " + tool + ": " + str(len(nf_results)))
+println("BioContainers: " + str(len(bc_results)))
+println("Galaxy tools: " + str(len(gx_results)))
 </code></pre>
 <p>This pattern scales to any tool or keyword. Here is a more thorough version
 that prints details from each registry side by side.</p>
@@ -5131,15 +5287,15 @@ let workflow = {
 
 # Generate BioLang pipeline code
 let bl_code = galaxy_to_bl(workflow)
-print(bl_code)
+println(bl_code)
 </code></pre>
 <p>The generated code maps each Galaxy step to a BioLang function call, preserving
 the data flow between steps. You can write it directly to a file and use it as
 a starting point for further customization.</p>
 <pre><code class="language-biolang"># Save the generated code
 let bl_code = galaxy_to_bl(workflow)
-write_file("rnaseq.bl", bl_code)
-print("Pipeline written to rnaseq.bl")
+write_text("rnaseq.bl", bl_code)
+println("Pipeline written to rnaseq.bl")
 </code></pre>
 <p>For more complex workflows with branching and multiple outputs, the generated
 code includes comments marking each step and its connections.</p>
@@ -5156,7 +5312,7 @@ let workflow = {
 }
 
 let bl_code = galaxy_to_bl(workflow)
-print(bl_code)
+println(bl_code)
 </code></pre>
 <h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
 <p>The Galaxy ToolShed URL defaults to the main public instance at
@@ -5182,8 +5338,8 @@ let keyword = "variant"
 
 # Step 1: Search Galaxy for variant-related tools
 let gx_tools = galaxy_search(keyword, 20)
-print("Found " + str(len(gx_tools)) + " Galaxy tools for: " + keyword)
-print("")
+println("Found " + str(len(gx_tools)) + " Galaxy tools for: " + keyword)
+println("")
 
 # Step 2: For each Galaxy tool, check BioContainers
 let inventory = gx_tools |&gt; map(|t| {
@@ -5204,25 +5360,25 @@ let inventory = gx_tools |&gt; map(|t| {
 })
 
 # Step 3: Report
-print("Tool Inventory: " + keyword)
-print("========================================")
+println("Tool Inventory: " + keyword)
+println("========================================")
 inventory
   |&gt; sort_by(|a| -a.galaxy_downloads)
   |&gt; each(|t| {
-    print(t.name + " (" + t.owner + ")")
-    print("  Galaxy downloads: " + str(t.galaxy_downloads))
-    print("  BioContainers:    " + t.container)
+    println(t.name + " (" + t.owner + ")")
+    println("  Galaxy downloads: " + str(t.galaxy_downloads))
+    println("  BioContainers:    " + t.container)
   })
 
 # Step 4: Summary statistics
 let with_container = inventory |&gt; filter(|t| not starts_with(t.container, "not"))
 let without_container = inventory |&gt; filter(|t| starts_with(t.container, "not"))
 
-print("")
-print("Summary:")
-print("  Total tools:          " + str(len(inventory)))
-print("  With container image: " + str(len(with_container)))
-print("  Without container:    " + str(len(without_container)))
+println("")
+println("Summary:")
+println("  Total tools:          " + str(len(inventory)))
+println("  With container image: " + str(len(with_container)))
+println("  Without container:    " + str(len(without_container)))
 </code></pre>
 <p>You can extend this pattern to cover additional registries or to export the
 inventory as a structured file.</p>
@@ -5247,27 +5403,27 @@ let workflow = {
 }
 
 # Verify each tool exists in the ToolShed
-print("Verifying tools...")
+println("Verifying tools...")
 workflow.steps |&gt; each(|step| {
   # Extract base tool name from tool_id
   let parts = split(step.tool_id, "/")
   let tool_name = parts[0]
   let results = galaxy_search(tool_name, 1)
   if len(results) &gt; 0 then
-    print("  " + step.name + ": found (" + results[0].owner + ")")
+    println("  " + step.name + ": found (" + results[0].owner + ")")
   else
-    print("  " + step.name + ": WARNING - not found in ToolShed")
+    println("  " + step.name + ": WARNING - not found in ToolShed")
 })
 
 # Generate the BioLang pipeline
-print("")
+println("")
 let bl_code = galaxy_to_bl(workflow)
-print("Generated pipeline:")
-print(bl_code)
+println("Generated pipeline:")
+println(bl_code)
 
 # Save to file
-write_file("wgs_variant_calling.bl", bl_code)
-print("Pipeline saved to wgs_variant_calling.bl")
+write_text("wgs_variant_calling.bl", bl_code)
+println("Pipeline saved to wgs_variant_calling.bl")
 </code></pre>
 <h2 id="summary-10"><a class="header" href="#summary-10">Summary</a></h2>
 <p>BioLang’s Galaxy ToolShed builtins – <code>galaxy_search</code>, <code>galaxy_popular</code>,
@@ -5299,7 +5455,7 @@ let summary = {
   iqr: quantile(coverage, 0.75) - quantile(coverage, 0.25),
 }
 
-print("Coverage: mean=" + str(summary.mean) + " median=" + str(summary.median))
+println("Coverage: mean=" + str(summary.mean) + " median=" + str(summary.median))
 </code></pre>
 <p>These functions handle missing values gracefully: <code>nil</code> entries are skipped
 with a warning.</p>
@@ -5313,7 +5469,7 @@ let result = ttest(tumor, normal)
 # result =&gt; {statistic: 4.32, pvalue: 0.00018, df: 28, mean_diff: 2.15}
 
 if result.pvalue &lt; 0.05 then
-  print("BRCA1 significantly different (p=" + str(result.pvalue) + ")")
+  println("BRCA1 significantly different (p=" + str(result.pvalue) + ")")
 </code></pre>
 <h3 id="wilcoxon-rank-sum"><a class="header" href="#wilcoxon-rank-sum">Wilcoxon Rank-Sum</a></h3>
 <p>For non-normally distributed data such as read counts.</p>
@@ -5335,7 +5491,7 @@ let result = chi_square(observed, expected)
 # result =&gt; {statistic: 3.21, pvalue: 0.073, df: 1}
 
 if result.pvalue &gt; 0.05 then
-  print("Population is in Hardy-Weinberg equilibrium")
+  println("Population is in Hardy-Weinberg equilibrium")
 </code></pre>
 <h3 id="anova"><a class="header" href="#anova">ANOVA</a></h3>
 <p>Compare expression across multiple tissue types.</p>
@@ -5376,7 +5532,7 @@ let significant = range(0, len(adjusted_bh))
   |&gt; filter(|i| adjusted_bh[i] &lt; 0.05)
   |&gt; map(|i| {gene: gene_names[i], p: pvalues[i], q: adjusted_bh[i]})
 
-print(str(len(significant)) + " genes significant at FDR &lt; 0.05")
+println(str(len(significant)) + " genes significant at FDR &lt; 0.05")
 </code></pre>
 <h2 id="correlation"><a class="header" href="#correlation">Correlation</a></h2>
 <p>Compute Pearson or Spearman correlation between expression profiles.</p>
@@ -5423,9 +5579,9 @@ let product = mat_mul(transpose(counts), counts)  # 3x3 covariance-like
 let log_counts = mat_map(counts, |x| log2(x + 1))
 
 # Basic properties
-print("Trace: " + str(trace(product)))
-print("Rank: " + str(rank(counts)))
-print("Frobenius norm: " + str(norm(counts)))
+println("Trace: " + str(trace(product)))
+println("Rank: " + str(rank(counts)))
+println("Frobenius norm: " + str(norm(counts)))
 </code></pre>
 <h2 id="linear-algebra"><a class="header" href="#linear-algebra">Linear Algebra</a></h2>
 <h3 id="determinant-and-inverse"><a class="header" href="#determinant-and-inverse">Determinant and Inverse</a></h3>
@@ -5436,7 +5592,7 @@ print("Frobenius norm: " + str(norm(counts)))
 ])
 
 let det = determinant(cov)
-print("Determinant: " + str(det))  # non-zero =&gt; invertible
+println("Determinant: " + str(det))  # non-zero =&gt; invertible
 
 let precision = inverse(cov)  # precision matrix
 </code></pre>
@@ -5447,7 +5603,7 @@ let precision = inverse(cov)  # precision matrix
 # Proportion of variance explained by each component
 let total = sum(eigen.values)
 let prop = eigen.values |&gt; map(|v| v / total)
-print("PC1 explains " + str(prop[0] * 100) + "% of variance")
+println("PC1 explains " + str(prop[0] * 100) + "% of variance")
 </code></pre>
 <h3 id="singular-value-decomposition"><a class="header" href="#singular-value-decomposition">Singular Value Decomposition</a></h3>
 <pre><code class="language-biolang">let result = svd(counts)
@@ -5491,8 +5647,8 @@ let de_genes = range(0, len(results))
   |&gt; filter(|r| r.q_value &lt; 0.05 &amp;&amp; abs(r.log2fc) &gt; 1.0)
   |&gt; sort_by(|r| r.q_value)
 
-print(str(len(de_genes)) + " differentially expressed genes")
-de_genes |&gt; take(20) |&gt; each(|g| print(g.gene + " log2FC=" + str(g.log2fc)))
+println(str(len(de_genes)) + " differentially expressed genes")
+de_genes |&gt; take(20) |&gt; each(|g| println(g.gene + " log2FC=" + str(g.log2fc)))
 de_genes |&gt; write_tsv("de_results.tsv")
 </code></pre>
 <h2 id="example-pca-on-gene-expression"><a class="header" href="#example-pca-on-gene-expression">Example: PCA on Gene Expression</a></h2>
@@ -5535,8 +5691,8 @@ let pca_coords = range(0, n_samples)
        pc2: pc2[i],
      })
 
-print("PC1: " + str(eigen.values[0] / total_var * 100) + "% variance")
-print("PC2: " + str(eigen.values[1] / total_var * 100) + "% variance")
+println("PC1: " + str(eigen.values[0] / total_var * 100) + "% variance")
+println("PC2: " + str(eigen.values[1] / total_var * 100) + "% variance")
 pca_coords |&gt; write_tsv("pca_coordinates.tsv")
 </code></pre>
 <h2 id="example-pharmacokinetic-modeling"><a class="header" href="#example-pharmacokinetic-modeling">Example: Pharmacokinetic Modeling</a></h2>
@@ -5562,18 +5718,18 @@ let cmax = max(plasma)
 let tmax_idx = index_of(plasma, cmax)
 let tmax = solution.t[tmax_idx]
 
-print("Tmax: " + str(tmax) + " hr")
-print("Cmax: " + str(cmax) + " mg")
+println("Tmax: " + str(tmax) + " hr")
+println("Cmax: " + str(cmax) + " mg")
 
 # Half-life
 let t_half = log(2) / ke
-print("Half-life: " + str(t_half) + " hr")
+println("Half-life: " + str(t_half) + " hr")
 
 # AUC by trapezoidal rule
 let auc = range(0, len(plasma) - 1)
   |&gt; map(|i| (plasma[i] + plasma[i + 1]) / 2.0 * (solution.t[i + 1] - solution.t[i]))
   |&gt; sum()
-print("AUC(0-24h): " + str(auc) + " mg*hr")
+println("AUC(0-24h): " + str(auc) + " mg*hr")
 </code></pre>
 <h2 id="example-population-genetics-hardy-weinberg"><a class="header" href="#example-population-genetics-hardy-weinberg">Example: Population Genetics (Hardy-Weinberg)</a></h2>
 <p>Simulate genotype frequencies and test for equilibrium across loci.</p>
@@ -6111,7 +6267,7 @@ let ids = ncbi_search("pubmed", "CRISPR-Cas9 delivery 2024", 20)
 # Get summaries for the IDs
 let summaries = ncbi_summary(ids, "pubmed")
 summaries |&gt; each(|s| {
-  print(s.uid)
+  println(s.uid)
 })
 </code></pre>
 <h3 id="ncbi_gene"><a class="header" href="#ncbi_gene">ncbi_gene</a></h3>
@@ -6123,7 +6279,7 @@ let tp53 = ncbi_gene("TP53")
 # If a single gene matches, returns a record:
 # {id, symbol, name, description, organism, chromosome, location, summary}
 
-print(tp53.name + " on chr" + tp53.chromosome + ": " + tp53.location)
+println(tp53.name + " on chr" + tp53.chromosome + ": " + tp53.location)
 </code></pre>
 <h3 id="ncbi_sequence"><a class="header" href="#ncbi_sequence">ncbi_sequence</a></h3>
 <p>Retrieve nucleotide or protein sequences from NCBI.</p>
@@ -6131,7 +6287,7 @@ print(tp53.name + " on chr" + tp53.chromosome + ": " + tp53.location)
 # requires: NCBI_API_KEY (optional, increases rate limit)
 # ncbi_sequence(accession) — returns FASTA text
 let fasta = ncbi_sequence("NM_000546.6")
-print("FASTA (first 100 chars): " + fasta[0..100])
+println("FASTA (first 100 chars): " + fasta[0..100])
 </code></pre>
 <p>Set the <code>NCBI_API_KEY</code> environment variable to get 10 requests/second instead
 of the default 3.</p>
@@ -6143,12 +6299,12 @@ of the default 3.</p>
 let brca1 = ensembl_symbol("human", "BRCA1")
 # Returns: {id, symbol, description, species, biotype, start, end, strand, chromosome}
 
-print("Ensembl ID: " + brca1.id)
-print("Location: " + brca1.chromosome + ":" + str(brca1.start) + "-" + str(brca1.end))
+println("Ensembl ID: " + brca1.id)
+println("Location: " + brca1.chromosome + ":" + str(brca1.start) + "-" + str(brca1.end))
 
 # ensembl_gene(ensembl_id) — lookup by Ensembl ID
 let same = ensembl_gene("ENSG00000012048")
-print("Symbol: " + same.symbol)
+println("Symbol: " + same.symbol)
 </code></pre>
 <h3 id="ensembl_vep"><a class="header" href="#ensembl_vep">ensembl_vep</a></h3>
 <p>Predict the functional consequences of variants using the Variant Effect
@@ -6168,7 +6324,7 @@ let predictions = variants |&gt; map(|v| ensembl_vep(v))
 predictions |&gt; each(|pred| {
   if len(pred) &gt; 0 then {
     let r = pred[0]
-    print(r.allele_string + " =&gt; " + r.most_severe_consequence)
+    println(r.allele_string + " =&gt; " + r.most_severe_consequence)
   }
 })
 </code></pre>
@@ -6180,8 +6336,8 @@ predictions |&gt; each(|pred| {
 let kinases = uniprot_search("kinase AND organism_id:9606", 50)
 # Returns list of records: {accession, name, organism, sequence_length, gene_names, function}
 
-print(str(len(kinases)) + " human kinases found")
-kinases |&gt; take(5) |&gt; each(|k| print(k.accession + " " + k.gene_names))
+println(str(len(kinases)) + " human kinases found")
+kinases |&gt; take(5) |&gt; each(|k| println(k.accession + " " + k.gene_names))
 </code></pre>
 <h3 id="uniprot_entry"><a class="header" href="#uniprot_entry">uniprot_entry</a></h3>
 <p>Get full details for a single UniProt accession.</p>
@@ -6189,15 +6345,15 @@ kinases |&gt; take(5) |&gt; each(|k| print(k.accession + " " + k.gene_names))
 let entry = uniprot_entry("P04637")  # TP53
 # Returns: {accession, name, organism, sequence_length, gene_names, function}
 
-print(entry.name + ": " + str(entry.sequence_length) + " aa")
-print("Genes: " + entry.gene_names)
-print("Function: " + entry.function)
+println(entry.name + ": " + str(entry.sequence_length) + " aa")
+println("Genes: " + entry.gene_names)
+println("Function: " + entry.function)
 
 # Get protein features separately
 let features = uniprot_features("P04637")
 # Returns list of: {type, location, description}
 let domains = features |&gt; filter(|f| f.type == "Domain")
-domains |&gt; each(|d| print("  " + d.description + ": " + d.location))
+domains |&gt; each(|d| println("  " + d.description + ": " + d.location))
 </code></pre>
 <h2 id="ucsc-genome-browser"><a class="header" href="#ucsc-genome-browser">UCSC Genome Browser</a></h2>
 <h3 id="ucsc_sequence"><a class="header" href="#ucsc_sequence">ucsc_sequence</a></h3>
@@ -6208,9 +6364,9 @@ domains |&gt; each(|d| print("  " + d.description + ": " + d.location))
 let promoter = ucsc_sequence("hg38", "chr17", 43170245, 43172245)
 # Returns DNA sequence as a string
 
-print("BRCA1 promoter length: " + str(len(promoter)) + " bp")
+println("BRCA1 promoter length: " + str(len(promoter)) + " bp")
 let gc = gc_content(dna(promoter))
-print("GC content: " + str(gc))
+println("GC content: " + str(gc))
 </code></pre>
 <h2 id="kegg"><a class="header" href="#kegg">KEGG</a></h2>
 <h3 id="kegg_find"><a class="header" href="#kegg_find">kegg_find</a></h3>
@@ -6226,7 +6382,7 @@ let pathways = kegg_find("pathway", "apoptosis human")
 # kegg_get(entry_id) — returns raw KEGG text
 let apoptosis = kegg_get("hsa04210")
 # Returns the KEGG flat-file text for the entry
-print("Entry text length: " + str(len(apoptosis)) + " chars")
+println("Entry text length: " + str(len(apoptosis)) + " chars")
 </code></pre>
 <h2 id="string"><a class="header" href="#string">STRING</a></h2>
 <h3 id="string_network"><a class="header" href="#string_network">string_network</a></h3>
@@ -6237,7 +6393,7 @@ print("Entry text length: " + str(len(apoptosis)) + " chars")
 let network = string_network(["TP53"], 9606)
 # Returns list of: {protein_a, protein_b, score}
 
-network |&gt; each(|i| print(i.protein_a + " &lt;-&gt; " + i.protein_b + " (" + str(i.score) + ")"))
+network |&gt; each(|i| println(i.protein_a + " &lt;-&gt; " + i.protein_b + " (" + str(i.score) + ")"))
 </code></pre>
 <h2 id="pdb"><a class="header" href="#pdb">PDB</a></h2>
 <h3 id="pdb_entry"><a class="header" href="#pdb_entry">pdb_entry</a></h3>
@@ -6253,8 +6409,8 @@ let structure = pdb_entry("1TUP")  # TP53 DNA-binding domain
 #   ligands: [...],
 # }
 
-print(structure.title)
-print("Resolution: " + str(structure.resolution) + " A")
+println(structure.title)
+println("Resolution: " + str(structure.resolution) + " A")
 </code></pre>
 <h2 id="reactome"><a class="header" href="#reactome">Reactome</a></h2>
 <h3 id="reactome_pathways"><a class="header" href="#reactome_pathways">reactome_pathways</a></h3>
@@ -6264,7 +6420,7 @@ print("Resolution: " + str(structure.resolution) + " A")
 let pathways = reactome_pathways("BRCA1")
 # Returns pathway records
 
-pathways |&gt; each(|p| print(p))
+pathways |&gt; each(|p| println(p))
 </code></pre>
 <h2 id="gene-ontology"><a class="header" href="#gene-ontology">Gene Ontology</a></h2>
 <h3 id="go_term"><a class="header" href="#go_term">go_term</a></h3>
@@ -6282,7 +6438,7 @@ let term = go_term("GO:0006915")
 let annotations = go_annotations("TP53")
 # Returns list of: {go_id, term, aspect}
 
-annotations |&gt; take(10) |&gt; each(|a| print("  " + a.go_id + " [" + a.aspect + "]: " + a.term))
+annotations |&gt; take(10) |&gt; each(|a| println("  " + a.go_id + " [" + a.aspect + "]: " + a.term))
 </code></pre>
 <h2 id="cosmic"><a class="header" href="#cosmic">COSMIC</a></h2>
 <h3 id="cosmic_gene"><a class="header" href="#cosmic_gene">cosmic_gene</a></h3>
@@ -6293,7 +6449,7 @@ annotations |&gt; take(10) |&gt; each(|a| print("  " + a.go_id + " [" + a.aspect
 let cosmic = cosmic_gene("BRAF")
 # Returns mutation data for the gene
 
-print(cosmic)
+println(cosmic)
 </code></pre>
 <h2 id="ncbi-datasets"><a class="header" href="#ncbi-datasets">NCBI Datasets</a></h2>
 <h3 id="datasets_gene"><a class="header" href="#datasets_gene">datasets_gene</a></h3>
@@ -6301,7 +6457,7 @@ print(cosmic)
 <pre><code class="language-biolang"># requires: internet connection
 # datasets_gene(symbol_or_id)
 let info = datasets_gene("EGFR")
-print(info)
+println(info)
 </code></pre>
 <h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
 <p>Some APIs require or benefit from API keys:</p>
@@ -6343,9 +6499,9 @@ let annotated = gene_list |&gt; map(|symbol| {
 })
 
 annotated |&gt; each(|g| {
-  print(g.symbol + " (" + g.name + ") - chr" + g.chromosome)
-  print("  Protein: " + str(g.protein_length) + " aa")
-  print("  Pathways: " + str(g.pathways))
+  println(g.symbol + " (" + g.name + ") - chr" + g.chromosome)
+  println("  Protein: " + str(g.protein_length) + " aa")
+  println("  Pathways: " + str(g.pathways))
 })
 
 annotated |&gt; write_json("gene_annotations.json")
@@ -6393,7 +6549,7 @@ let flagged = interpreted
   |&gt; filter(|v| v.impact == "HIGH" or v.cosmic_known)
   |&gt; sort_by(|v| -v.cosmic_count)
 
-print(str(len(flagged)) + " variants flagged for review")
+println(str(len(flagged)) + " variants flagged for review")
 flagged |&gt; write_tsv("flagged_variants.tsv")
 </code></pre>
 <h2 id="example-protein-interaction-network"><a class="header" href="#example-protein-interaction-network">Example: Protein Interaction Network</a></h2>
@@ -6409,7 +6565,7 @@ let top_genes = de_genes |&gt; take(50)
 let network = string_network(top_genes, 9606)
 # Returns list of: {protein_a, protein_b, score}
 
-print(str(len(network)) + " interactions")
+println(str(len(network)) + " interactions")
 
 # Find hub genes (most connections)
 let all_proteins = network |&gt; map(|i| i.protein_a) + network |&gt; map(|i| i.protein_b)
@@ -6420,8 +6576,8 @@ let degree = unique_proteins |&gt; map(|p| {
 })
   |&gt; sort(|a, b| b.degree - a.degree)
 
-print("Hub genes:")
-degree |&gt; take(10) |&gt; each(|d| print("  " + d.gene + ": " + str(d.degree) + " interactions"))
+println("Hub genes:")
+degree |&gt; take(10) |&gt; each(|d| println("  " + d.gene + ": " + str(d.degree) + " interactions"))
 
 # Pathway enrichment for hub genes
 let hub_genes = degree |&gt; take(10) |&gt; map(|d| d.gene)
@@ -6429,8 +6585,8 @@ let pathways = reactome_pathways(hub_genes)
   |&gt; filter(|p| p.p_value &lt; 0.05)
   |&gt; sort_by(|p| p.p_value)
 
-print("Enriched pathways:")
-pathways |&gt; take(10) |&gt; each(|p| print("  " + p.name + " (p=" + str(p.p_value) + ")"))
+println("Enriched pathways:")
+pathways |&gt; take(10) |&gt; each(|p| println("  " + p.name + " (p=" + str(p.p_value) + ")"))
 </code></pre>
 <h2 id="summary-12"><a class="header" href="#summary-12">Summary</a></h2>
 <p>BioLang’s built-in bio API functions let you query 12 major biological
@@ -6475,7 +6631,7 @@ lazily.</p>
 <pre><code class="language-biolang">read_bam("aligned.bam")
   |&gt; filter(|r| r.mapping_quality &gt;= 30 and not r.is_duplicate)
   |&gt; count()
-  |&gt; |n| print(str(n) + " high-quality unique alignments")
+  |&gt; |n| println(str(n) + " high-quality unique alignments")
 </code></pre>
 <h3 id="take_while"><a class="header" href="#take_while">take_while</a></h3>
 <p>Consume from a stream while a condition holds, then stop.</p>
@@ -6484,7 +6640,7 @@ let sample = read_fastq("data/reads.fastq")
   |&gt; take_while(|r, i| i &lt; 1000000)
 
 let quals = sample |&gt; map(|r| mean_phred(r.quality))
-print("Sampled stats: " + str(mean(quals)) + " mean Q")
+println("Sampled stats: " + str(mean(quals)) + " mean Q")
 </code></pre>
 <h3 id="each"><a class="header" href="#each">each</a></h3>
 <p>Execute a side effect for every element (the stream analogue of a for loop).</p>
@@ -6494,14 +6650,14 @@ read_fastq("data/reads.fastq")
        if mean_phred(r.quality) &lt; 20 then
          bad_count = bad_count + 1
      })
-print(str(bad_count) + " low-quality reads")
+println(str(bad_count) + " low-quality reads")
 </code></pre>
 <h3 id="fold--reduce"><a class="header" href="#fold--reduce">fold / reduce</a></h3>
 <p>Accumulate a value across the entire stream.</p>
 <pre><code class="language-biolang">let total_bases = read_fastq("data/reads.fastq")
   |&gt; map(|r| r.length)
   |&gt; sum()
-print("Total bases: " + str(total_bases))
+println("Total bases: " + str(total_bases))
 </code></pre>
 <h2 id="chunked-processing"><a class="header" href="#chunked-processing">Chunked Processing</a></h2>
 <p>When you need batch operations on a stream, <code>chunk</code> groups elements into
@@ -6527,7 +6683,7 @@ read_fastq("data/reads.fastq")
        batch |&gt; write_fastq(path)
        file_num = file_num + 1
      })
-print("Wrote " + str(file_num) + " chunk files")
+println("Wrote " + str(file_num) + " chunk files")
 </code></pre>
 <h2 id="window-operations"><a class="header" href="#window-operations">Window Operations</a></h2>
 <p><code>window</code> creates a sliding window over a list (or materialized portion of a
@@ -6602,13 +6758,13 @@ let genome_size = gb(3)          # 3,000,000,000
 
 # Use in calculations
 let coverage = 1800000000 / genome_size  # ~0.6x
-print("Coverage: " + str(coverage) + "x")
+println("Coverage: " + str(coverage) + "x")
 
 # Filter regions by size
 let large_svs = read_vcf("data/variants.vcf")
   |&gt; filter(|v| v.info.SVLEN != nil and abs(v.info.SVLEN) &gt; mb(1))
 
-print(str(large_svs |&gt; count()) + " SVs larger than 1 Mb")
+println(str(large_svs |&gt; count()) + " SVs larger than 1 Mb")
 </code></pre>
 <p>These helpers are simple multipliers but they prevent off-by-three-zeros bugs
 that plague genomics scripts.</p>
@@ -6692,8 +6848,8 @@ let chr_len = len(chr_seq)
 let win = kb(1)
 let step = bp(500)
 
-print("Chromosome 22: " + str(chr_len) + " bp")
-print("Computing GC in " + str(win) + " bp windows, step " + str(step))
+println("Chromosome 22: " + str(chr_len) + " bp")
+println("Computing GC in " + str(win) + " bp windows, step " + str(step))
 
 let gc_profile = window(chr_seq, win)
   |&gt; enumerate()
@@ -6707,8 +6863,8 @@ let gc_profile = window(chr_seq, win)
 let gc_rich = gc_profile |&gt; filter(|w| w.gc &gt; 0.60)
 let gc_poor = gc_profile |&gt; filter(|w| w.gc &lt; 0.35)
 
-print("GC-rich windows (&gt;60%): " + str(len(gc_rich)))
-print("GC-poor windows (&lt;35%): " + str(len(gc_poor)))
+println("GC-rich windows (&gt;60%): " + str(len(gc_rich)))
+println("GC-poor windows (&lt;35%): " + str(len(gc_poor)))
 
 gc_profile |&gt; write_tsv("chr22_gc_profile.tsv")
 </code></pre>
@@ -6832,7 +6988,7 @@ print(results)
 <pre><code class="language-biolang">sql(db, "SELECT symbol, chrom, start, end FROM genes WHERE chrom = ?", ["chr17"])
   |&gt; filter(|g| g.start &gt; 40000000)
   |&gt; sort_by(|g| g.start)
-  |&gt; print()
+  |&gt; println()
 </code></pre>
 <h3 id="bulk-insert"><a class="header" href="#bulk-insert">Bulk Insert</a></h3>
 <p><code>sql_insert()</code> inserts an entire Table or list of records in a single
@@ -6847,7 +7003,7 @@ let samples = [
   {id: "S2", depth: 38.7, mapped_pct: 97.5},
 ]
 let inserted = sql_insert(db, "qc_results", samples)
-print(str(inserted) + " rows inserted")
+println(str(inserted) + " rows inserted")
 </code></pre>
 <h3 id="metadata"><a class="header" href="#metadata">Metadata</a></h3>
 <pre><code class="language-biolang"># List all tables
@@ -7071,7 +7227,7 @@ let g = add_node(g, "ISOLATED_GENE")
 let g = add_edge(g, "CDK2", "CCND1")
 
 let components = connected_components(g)
-print("Number of components: " + str(len(components)))
+println("Number of components: " + str(len(components)))
 # 3: [BRCA1, TP53, BARD1], [ISOLATED_GENE], [CDK2, CCND1]
 </code></pre>
 <h3 id="induced-subgraph"><a class="header" href="#induced-subgraph">Induced Subgraph</a></h3>
@@ -7094,7 +7250,7 @@ let g = add_node(g, "EGFR", {
 })
 
 let attrs = node_attr(g, "EGFR")
-print(attrs.pathway)    # "EGFR signaling"
+println(attrs.pathway)    # "EGFR signaling"
 </code></pre>
 <h2 id="removing-nodes-and-edges"><a class="header" href="#removing-nodes-and-edges">Removing Nodes and Edges</a></h2>
 <pre><code class="language-biolang">let g = graph()
@@ -7137,11 +7293,11 @@ let gene_degrees = nodes(g) |&gt; map(|n| {gene: n, deg: degree(g, n)})
 gene_degrees
   |&gt; sort_by(|r| -r.deg)
   |&gt; take(10)
-  |&gt; each(|r| print(r.gene + ": " + str(r.deg) + " interactions"))
+  |&gt; each(|r| println(r.gene + ": " + str(r.deg) + " interactions"))
 
 # Check connectivity
 let components = connected_components(g)
-print("Connected components: " + str(len(components)))
+println("Connected components: " + str(len(components)))
 </code></pre>
 <h2 id="builtin-reference"><a class="header" href="#builtin-reference">Builtin Reference</a></h2>
 <div class="table-wrapper">
@@ -7175,42 +7331,42 @@ print("Connected components: " + str(len(components)))
 <h3 id="fetching-entries"><a class="header" href="#fetching-entries">Fetching Entries</a></h3>
 <pre><code class="language-biolang"># requires: internet connection
 let entry = pdb_entry("4HHB")
-print(entry.title)          # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN"
-print(entry.method)         # "X-RAY DIFFRACTION"
-print(entry.resolution)     # 1.74
-print(entry.organism)       # "Homo sapiens"
-print(entry.release_date)   # "1984-07-17"
+println(entry.title)          # "THE CRYSTAL STRUCTURE OF HUMAN DEOXYHAEMOGLOBIN"
+println(entry.method)         # "X-RAY DIFFRACTION"
+println(entry.resolution)     # 1.74
+println(entry.organism)       # "Homo sapiens"
+println(entry.release_date)   # "1984-07-17"
 </code></pre>
 <h3 id="searching"><a class="header" href="#searching">Searching</a></h3>
 <pre><code class="language-biolang"># requires: internet connection
 let ids = pdb_search("insulin receptor")
-print("Found " + str(len(ids)) + " structures")
-ids |&gt; take(5) |&gt; each(|id| print(id))
+println("Found " + str(len(ids)) + " structures")
+ids |&gt; take(5) |&gt; each(|id| println(id))
 </code></pre>
 <h3 id="chains-and-entities"><a class="header" href="#chains-and-entities">Chains and Entities</a></h3>
 <pre><code class="language-biolang"># requires: internet connection
 # Get all polymer entities (chains) in a structure
 let chains = pdb_chains("4HHB")
 chains |&gt; each(|c|
-    print(c.description + " (" + c.entity_type + "): " + str(len(c.sequence)) + " residues")
+    println(c.description + " (" + c.entity_type + "): " + str(len(c.sequence)) + " residues")
 )
 
 # Get a specific entity
 let entity = pdb_entity("4HHB", 1)
-print(entity.description)
-print(entity.sequence)
+println(entity.description)
+println(entity.sequence)
 
 # Get sequence as Protein value
 let seq = pdb_sequence("4HHB", 1)
-print(len(seq))             # sequence length
+println(len(seq))             # sequence length
 </code></pre>
 <h3 id="real-world-example-compare-hemoglobin-chains"><a class="header" href="#real-world-example-compare-hemoglobin-chains">Real-World Example: Compare Hemoglobin Chains</a></h3>
 <pre><code class="language-biolang"># requires: internet connection
 let alpha = pdb_entity("4HHB", 1)
 let beta = pdb_entity("4HHB", 2)
-print("Alpha chain: " + str(len(alpha.sequence)) + " residues")
-print("Beta chain: " + str(len(beta.sequence)) + " residues")
-print("Alpha type: " + alpha.entity_type)
+println("Alpha chain: " + str(len(alpha.sequence)) + " residues")
+println("Beta chain: " + str(len(beta.sequence)) + " residues")
+println("Alpha type: " + alpha.entity_type)
 </code></pre>
 <h2 id="pubmed-integration"><a class="header" href="#pubmed-integration">PubMed Integration</a></h2>
 <p>Search PubMed and retrieve abstracts:</p>
@@ -7218,11 +7374,11 @@ print("Alpha type: " + alpha.entity_type)
 # requires: NCBI_API_KEY (optional, increases rate limit)
 # Search for recent CRISPR papers
 let results = pubmed_search("CRISPR Cas9 therapy", 5)
-print("Total results: " + str(results.count))
+println("Total results: " + str(results.count))
 
 # Fetch abstract for a specific paper
 let abstract = pubmed_abstract(results[0])
-print(abstract)
+println(abstract)
 </code></pre>
 <h3 id="literature-review-pipeline"><a class="header" href="#literature-review-pipeline">Literature Review Pipeline</a></h3>
 <pre><code class="language-biolang"># requires: internet connection
@@ -7231,14 +7387,14 @@ print(abstract)
 let gene = "BRCA1"
 let results = pubmed_search(gene + " cancer therapy 2024", 20)
 
-print("Found " + str(results.count) + " papers for " + gene)
+println("Found " + str(results.count) + " papers for " + gene)
 results.ids
   |&gt; take(5)
   |&gt; each(|pmid|
     let text = pubmed_abstract(pmid)
-    print("PMID " + pmid + ":")
-    print(text)
-    print("---")
+    println("PMID " + pmid + ":")
+    println(text)
+    println("---")
   )
 </code></pre>
 <h2 id="enrichment-analysis"><a class="header" href="#enrichment-analysis">Enrichment Analysis</a></h2>
@@ -7256,7 +7412,7 @@ let results = enrich(de_genes, gene_sets, 20000)
 # Filter significant results
 results
   |&gt; filter(|r| r.fdr &lt; 0.05)
-  |&gt; each(|r| print(r.term + ": p=" + str(r.p_value) + " FDR=" + str(r.fdr)))
+  |&gt; each(|r| println(r.term + ": p=" + str(r.p_value) + " FDR=" + str(r.fdr)))
 </code></pre>
 <p>The <code>enrich()</code> function uses the hypergeometric test with Benjamini-Hochberg FDR correction.</p>
 <p>Output columns: <code>term</code>, <code>overlap</code>, <code>p_value</code>, <code>fdr</code>, <code>genes</code></p>
@@ -7277,7 +7433,7 @@ let results = gsea(ranked, gene_sets)
 # Top enriched pathways
 results
   |&gt; filter(|r| r.fdr &lt; 0.25)
-  |&gt; each(|r| print(r.term + ": NES=" + str(r.nes) + " FDR=" + str(r.fdr)))
+  |&gt; each(|r| println(r.term + ": NES=" + str(r.nes) + " FDR=" + str(r.fdr)))
 </code></pre>
 <p>Output columns: <code>term</code>, <code>es</code> (enrichment score), <code>nes</code> (normalized ES), <code>p_value</code>, <code>fdr</code>, <code>leading_edge</code></p>
 <h3 id="gmt-file-format"><a class="header" href="#gmt-file-format">GMT File Format</a></h3>
@@ -7300,7 +7456,7 @@ let sig_genes = de
   |&gt; map(|r| r.gene)
   |&gt; collect()
 
-print("Significant DE genes: " + str(len(sig_genes)))
+println("Significant DE genes: " + str(len(sig_genes)))
 
 # 3. Load pathway gene sets
 let hallmark = read_gmt("h.all.v2024.1.Hs.symbols.gmt")
@@ -7311,14 +7467,14 @@ let h_results = enrich(sig_genes, hallmark, 20000)
 let k_results = enrich(sig_genes, kegg, 20000)
 
 # 5. Report significant pathways
-print("\n=== Hallmark Pathways ===")
+println("\n=== Hallmark Pathways ===")
 h_results |&gt; filter(|r| r.fdr &lt; 0.05) |&gt; each(|r|
-    print(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
+    println(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
 )
 
-print("\n=== KEGG Pathways ===")
+println("\n=== KEGG Pathways ===")
 k_results |&gt; filter(|r| r.fdr &lt; 0.05) |&gt; each(|r|
-    print(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
+    println(r.term + " (overlap=" + str(r.overlap) + ", FDR=" + str(r.fdr) + ")")
 )
 </code></pre>
 <h2 id="builtin-reference-1"><a class="header" href="#builtin-reference-1">Builtin Reference</a></h2>
@@ -7359,7 +7515,7 @@ k_results |&gt; filter(|r| r.fdr &lt; 0.05) |&gt; each(|r|
 <tr><td><code>read_gmt(path)</code></td><td>Str</td><td>Map{name -&gt; List[Str]}</td><td>Parse GMT gene set file</td></tr>
 <tr><td><code>enrich(genes, sets, bg)</code></td><td>List, Map, Int</td><td>Table</td><td>ORA with hypergeometric test + BH FDR</td></tr>
 <tr><td><code>ora(genes, sets, bg)</code></td><td>List, Map, Int</td><td>Table</td><td>Alias for <code>enrich()</code></td></tr>
-<tr><td><code>gsea(ranked, sets)</code></td><td>Table, Map</td><td>Table</td><td>GSEA with permutation test + BH FDR</td></tr>
+<tr><td><code>gsea(ranked, sets, seed?)</code></td><td>Table, Map, Int</td><td>Table</td><td>GSEA with permutation test + BH FDR; fixed default seed, pass <code>seed:</code> to vary</td></tr>
 </tbody>
 </table>
 </div>
@@ -7384,7 +7540,7 @@ Read the FASTQ file and compute basic stats.
 
 ```biolang
 let reads = read_fastq("data/reads.fastq")
-print(f"Loaded {len(reads)} reads")
+println(f"Loaded {len(reads)} reads")
 ```
 
 ## Filter
@@ -7393,7 +7549,7 @@ Keep high-quality reads.
 
 ```bl
 let filtered = reads |&gt; filter(|r| mean_phred(r.quality) &gt; 25)
-print(f"Kept {len(filtered)} reads")
+println(f"Kept {len(filtered)} reads")
 ```
 </code></pre>
 <h3 id="dash-delimiters"><a class="header" href="#dash-delimiters">Dash Delimiters</a></h3>
@@ -7437,7 +7593,7 @@ let config = {min_quality: 30, reference: "GRCh38"}
 # @echo
 let reads = read_fastq("data/reads.fastq")
   |&gt; filter(|r| mean_phred(r.quality) &gt;= config.min_quality)
-print(f"Filtered: {len(reads)} reads")
+println(f"Filtered: {len(reads)} reads")
 ```
 </code></pre>
 <p>With <code># @hide</code>, the config block runs silently. With <code># @echo</code>, readers see both
@@ -7491,7 +7647,7 @@ let threshold = 2.0
 
 ```biolang
 let seqs = read_fasta("data/sequences.fasta")
-print(f"Loaded {len(seqs)} sequences")
+println(f"Loaded {len(seqs)} sequences")
 ```
 
 ## Statistics
@@ -7501,7 +7657,7 @@ print(f"Loaded {len(seqs)} sequences")
 let gc_values = seqs |&gt; map(|s| gc_content(s.seq))
 let mu = mean(gc_values)
 let sigma = stdev(gc_values)
-print(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
+println(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
 ```
 
 ## Outliers
@@ -7512,7 +7668,7 @@ contamination or horizontal gene transfer.
 ```biolang
 let outliers = seqs
   |&gt; filter(|s| abs(gc_content(s.seq) - mu) &gt; threshold * sigma)
-print(f"Found {len(outliers)} outlier contigs")
+println(f"Found {len(outliers)} outlier contigs")
 ```
 </code></pre>
 <p>Run it:</p>
@@ -8284,55 +8440,92 @@ signature, and builtin documentation can consume the same structured metadata:</
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="benchmarks--correctness"><a class="header" href="#benchmarks--correctness">Benchmarks &amp; Correctness</a></h1>
-<p>BioLang is benchmarked against Python (BioPython) and R (Bioconductor) on 30 bioinformatics tasks spanning sequence I/O, k-mer analysis, interval overlaps, variant processing, and multi-step pipelines. All results are reproducible from the <code>benchmarks/</code> directory.</p>
+<p>BioLang is benchmarked against Python (BioPython) and R (Bioconductor) on 32 bioinformatics tasks spanning sequence I/O, k-mer analysis, interval overlaps, variant processing, and multi-step pipelines. All results are reproducible from the <code>benchmarks/</code> directory.</p>
+<p>Every number below comes from <code>benchmarks/results/latest/linux/scores.yaml</code>, which the benchmark runner writes. If a figure here disagrees with that file, the file is right.</p>
 <h2 id="test-environment"><a class="header" href="#test-environment">Test Environment</a></h2>
 <h3 id="linux-wsl2"><a class="header" href="#linux-wsl2">Linux (WSL2)</a></h3>
 <ul>
-<li>Intel Core i9-12900K, 16 GB RAM</li>
-<li>BioLang 0.3.0, Python 3.12.3, R 4.3.3</li>
+<li>Intel Core i9-12900K, 15 GB RAM, Linux 6.6.87</li>
+<li>BioLang 1.1.0, Python 3.12.3, R 4.4.2</li>
+<li>Measured 2026-08-04</li>
 </ul>
 <h3 id="windows-11"><a class="header" href="#windows-11">Windows 11</a></h3>
 <ul>
 <li>Intel Core i9-12900K, 32 GB RAM</li>
-<li>BioLang 0.3.0, Python 3.12.4</li>
+<li>BioLang 1.1.0, Python 3.13.14, R 4.6.1</li>
+<li>Measured 2026-08-04</li>
 </ul>
+<h2 id="read-the-times-before-the-ratios"><a class="header" href="#read-the-times-before-the-ratios">Read the times before the ratios</a></h2>
+<p>These are <strong>whole-script</strong> times: interpreter startup and library imports included, because that is what a one-off analysis actually costs. <code>import Bio</code> alone takes 400 ms or more, and BioLang starts in single-digit milliseconds.</p>
+<p>That framing flatters BioLang on small inputs, and the effect is large enough to change which numbers mean anything:</p>
+<ul>
+<li>Tasks under a second improved about 5.5x between 0.2.1 and 1.1.0</li>
+<li>Tasks over a second improved about 2.4x</li>
+<li>The two heaviest — 6.1 s and 10.0 s of k-mer counting — moved about 2%</li>
+</ul>
+<p>So a 76x on a 30 KB FASTA is mostly a measurement of Python’s import time. The k-mer and GC-content rows, where real work dominates the launch, are the ones worth comparing.</p>
 <h2 id="results-summary"><a class="header" href="#results-summary">Results Summary</a></h2>
+<p>BioLang is faster on 21 of the 32 tasks.</p>
 <h3 id="where-biolang-wins"><a class="header" href="#where-biolang-wins">Where BioLang Wins</a></h3>
-<p>BioLang’s Rust I/O engine (noodles) and native 2-bit DNA encoding deliver the biggest gains on:</p>
+<p>The Rust I/O engine (noodles) and native 2-bit DNA encoding deliver the biggest gains on:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Task</th><th>BioLang</th><th>Python</th><th>Speedup</th></tr>
 </thead>
 <tbody>
-<tr><td>ENCODE Peak Overlap</td><td>0.363s</td><td>2.574s</td><td><strong>7.1x</strong></td></tr>
-<tr><td>Protein K-mers</td><td>0.191s</td><td>1.331s</td><td><strong>7.0x</strong></td></tr>
-<tr><td>FASTA Parse (30 KB)</td><td>0.138s</td><td>0.926s</td><td><strong>6.7x</strong></td></tr>
-<tr><td>FASTA gzipped</td><td>0.141s</td><td>0.930s</td><td><strong>6.6x</strong></td></tr>
-<tr><td>E. coli Genome</td><td>0.176s</td><td>1.081s</td><td><strong>6.1x</strong></td></tr>
-<tr><td>GC Content (51 MB)</td><td>0.830s</td><td>2.771s</td><td><strong>3.3x</strong></td></tr>
-<tr><td>K-mer Counting (21-mers)</td><td>6.551s</td><td>21.01s</td><td><strong>3.2x</strong></td></tr>
-<tr><td>FASTQ QC Pipeline</td><td>2.349s</td><td>5.059s</td><td><strong>2.2x</strong></td></tr>
+<tr><td>ENCODE Peak Overlap</td><td>0.154s</td><td>2.614s</td><td><strong>17.0x</strong></td></tr>
+<tr><td>E. coli Genome Stats</td><td>0.010s</td><td>0.164s</td><td><strong>16.4x</strong></td></tr>
+<tr><td>Protein K-mers</td><td>0.011s</td><td>0.154s</td><td><strong>14.0x</strong></td></tr>
+<tr><td>FASTA Statistics</td><td>0.036s</td><td>0.372s</td><td><strong>10.3x</strong></td></tr>
+<tr><td>FASTA gzipped (1.3 MB)</td><td>0.018s</td><td>0.168s</td><td><strong>9.3x</strong></td></tr>
+<tr><td>GC Content (51 MB)</td><td>0.125s</td><td>0.721s</td><td><strong>5.8x</strong></td></tr>
+<tr><td>FASTQ QC Pipeline</td><td>1.024s</td><td>3.630s</td><td><strong>3.5x</strong></td></tr>
+<tr><td>K-mer Counting (21-mers)</td><td>6.119s</td><td>19.908s</td><td><strong>3.3x</strong></td></tr>
+<tr><td>Chr22 21-mer Count</td><td>9.960s</td><td>28.262s</td><td><strong>2.8x</strong></td></tr>
 </tbody>
 </table>
 </div>
+<p>The last two are the load-bearing rows. They run long enough that startup is a rounding error, and they are the ones to cite.</p>
 <h3 id="where-python-wins"><a class="header" href="#where-python-wins">Where Python Wins</a></h3>
-<p>Python’s <code>csv</code>, <code>re</code>, and <code>dict</code> modules are highly optimized C extensions. On text-heavy parsing tasks:</p>
+<p>Python’s <code>csv</code>, <code>re</code> and <code>dict</code> are heavily optimised C extensions, and on text-heavy parsing they win outright:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Task</th><th>BioLang</th><th>Python</th><th>Result</th></tr>
 </thead>
 <tbody>
-<tr><td>VCF Filtering</td><td>0.349s</td><td>0.166s</td><td>Py 2.1x faster</td></tr>
-<tr><td>ClinVar Variants</td><td>0.661s</td><td>0.265s</td><td>Py 2.5x faster</td></tr>
-<tr><td>CSV Join + Group-by</td><td>0.281s</td><td>0.156s</td><td>Py 1.8x faster</td></tr>
-<tr><td>GFF3 Ensembl chr22</td><td>0.453s</td><td>0.171s</td><td>Py 2.6x faster</td></tr>
+<tr><td>GFF3 Ensembl chr22</td><td>0.295s</td><td>0.036s</td><td>Py 8.2x faster</td></tr>
+<tr><td>GFF3 (1.7 MB)</td><td>0.087s</td><td>0.016s</td><td>Py 5.4x faster</td></tr>
+<tr><td>ClinVar + Ensembl Annotation</td><td>0.095s</td><td>0.034s</td><td>Py 2.8x faster</td></tr>
+<tr><td>ClinVar Variants</td><td>0.135s</td><td>0.064s</td><td>Py 2.1x faster</td></tr>
+<tr><td>BED Interval Overlap</td><td>0.049s</td><td>0.028s</td><td>Py 1.8x faster</td></tr>
+<tr><td>CSV Join + Group-by</td><td>0.052s</td><td>0.033s</td><td>Py 1.6x faster</td></tr>
+<tr><td>VCF (2.3 MB)</td><td>0.019s</td><td>0.014s</td><td>Py 1.4x faster</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="windows-notes"><a class="header" href="#windows-notes">Windows Notes</a></h3>
-<p>Windows process creation adds ~1s overhead per invocation, compressing speedup ratios for sub-second tasks. For accurate algorithmic comparison, refer to Linux results. CPU-bound tasks that exceed this floor (k-mer counting 3.0x, ENCODE overlap 2.9x, QC pipeline 2.5x) still show clear wins.</p>
+<p>GFF3 parsing is the clearest gap and worth naming: on Ensembl chr22, BioLang is eight times slower than Python. That is a real weakness in the GFF path, not a measurement artefact.</p>
+<h3 id="windows-1"><a class="header" href="#windows-1">Windows</a></h3>
+<p>BioLang is faster on <strong>26 of the 32</strong> tasks on Windows, against 21 on Linux. That is not because Windows suits it better; it is because Python’s interpreter startup costs more there (0.300s against 0.153s for the same small parse), so several tasks Python narrowly won on Linux go the other way. It is the same startup effect as above, pointing the other direction.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Task</th><th>BioLang</th><th>Python</th><th>R</th><th>Speedup</th></tr>
+</thead>
+<tbody>
+<tr><td>ENCODE Peak Overlap</td><td>0.193s</td><td>3.133s</td><td>–</td><td><strong>16.2x</strong></td></tr>
+<tr><td>E. coli Genome Stats</td><td>0.034s</td><td>0.344s</td><td>1.40s</td><td><strong>10.1x</strong></td></tr>
+<tr><td>GC Content (51 MB)</td><td>0.133s</td><td>0.940s</td><td>1.72s</td><td><strong>7.1x</strong></td></tr>
+<tr><td>FASTQ QC Pipeline</td><td>1.035s</td><td>5.039s</td><td>–</td><td><strong>4.9x</strong></td></tr>
+<tr><td>K-mer Counting</td><td>8.390s</td><td>28.768s</td><td>–</td><td><strong>3.4x</strong></td></tr>
+<tr><td>Chr22 21-mer Count</td><td>13.849s</td><td>27.594s</td><td>–</td><td><strong>2.0x</strong></td></tr>
+<tr><td>GFF3 Ensembl chr22</td><td>0.348s</td><td>0.072s</td><td>–</td><td>Py 4.8x faster</td></tr>
+</tbody>
+</table>
+</div>
+<p>The GFF3 weakness reproduces on both platforms, which is the useful thing about running the suite twice.</p>
+<p>Earlier editions of this chapter said Windows adds roughly a second of process-creation overhead per invocation. That was wrong, and it was a statement about the benchmark runner rather than about Windows. <code>run_all.ps1</code> launched every command through PowerShell’s <code>Start-Process -Wait</code>, which costs about 987 ms: <code>bl --version</code> measures 1.012s through it and 0.025s through <code>System.Diagnostics.Process</code>. The cost applied to BioLang and Python equally, so it favoured neither — it buried both, which is why every sub-second task used to report <code>~1.0x</code>. The runner now starts processes directly. Windows process creation is genuinely dearer than Linux, by tens of milliseconds: BioLang’s own startup goes from about 2 ms to 23 ms, which is why the 30 KB FASTA parse reads 13x here and 76x on Linux.</p>
 <h2 id="code-conciseness"><a class="header" href="#code-conciseness">Code Conciseness</a></h2>
 <p>BioLang scripts average 50-70% fewer lines of code than equivalent Python for the same analysis task. This comes from pipe-first syntax, built-in bio types, and higher-order functions on streams.</p>
 <h2 id="correctness-validation"><a class="header" href="#correctness-validation">Correctness Validation</a></h2>
@@ -8459,7 +8652,7 @@ imports – they are part of the language runtime.</p>
 let primer = dna"ATCGATCGATCG"
 let rc     = reverse_complement(primer)
 let temp   = tm(primer)
-print("Primer Tm = " + str(temp) + "C, reverse complement = " + str(rc))
+println("Primer Tm = " + str(temp) + "C, reverse complement = " + str(rc))
 </code></pre>
 <hr>
 <h2 id="collection-operations"><a class="header" href="#collection-operations">Collection Operations</a></h2>
@@ -8629,7 +8822,7 @@ let promoters = read_bed("data/regions.bed") |&gt; map(|r| interval(r.chrom, r.s
 let peaks     = read_bed("data/exons.bed") |&gt; map(|r| interval(r.chrom, r.start, r.end))
 let tree      = interval_tree(peaks)
 let hits      = promoters |&gt; flat_map(|p| query_overlaps(tree, p.chrom, p.start, p.end))
-print("Found " + str(len(hits)) + " promoter-peak overlaps")
+println("Found " + str(len(hits)) + " promoter-peak overlaps")
 </code></pre>
 <hr>
 <h2 id="variants-1"><a class="header" href="#variants-1">Variants</a></h2>
@@ -8661,8 +8854,8 @@ let vars = vcf_filter(vcf_parse(read_text("data/variants.vcf")), 30)
 let summary = variant_summary(vars)
 let snp_rows = summary |&gt; filter(|row| row.type_ == "SNP")
 let snp_count = if len(snp_rows) &gt; 0 { snp_rows[0].count } else { 0 }
-print(summary)
-print("Ti/Tv = " + str(titv_ratio(vars)) + ", SNPs = " + str(snp_count))
+println(summary)
+println("Ti/Tv = " + str(titv_ratio(vars)) + ", SNPs = " + str(snp_count))
 </code></pre>
 <hr>
 <h2 id="statistics"><a class="header" href="#statistics">Statistics</a></h2>
@@ -8699,7 +8892,7 @@ hypothesis testing.</p>
 let control   = [5.2, 4.8, 5.1, 4.9]
 let treatment = [8.1, 7.5, 8.3, 7.9]
 let result    = ttest(control, treatment)
-print("p-value = " + str(result.pvalue))
+println("p-value = " + str(result.pvalue))
 </code></pre>
 <hr>
 <h2 id="linear-algebra-1"><a class="header" href="#linear-algebra-1">Linear Algebra</a></h2>
@@ -8734,7 +8927,7 @@ numerical biology.</p>
 let expr = tsv("examples/sample-data/counts.tsv") |&gt; table()
 let m    = matrix(expr |&gt; select("gene_a", "gene_b", "gene_c"))
 let decomp = svd(m)
-print("Top 3 singular values: " + str(head(decomp.s, 3)))
+println("Top 3 singular values: " + str(head(decomp.s, 3)))
 </code></pre>
 <hr>
 <h2 id="math"><a class="header" href="#math">Math</a></h2>
@@ -8767,7 +8960,7 @@ modeling.</p>
 let control   = 12.5
 let treatment = 50.0
 let lfc = log2(treatment / control)
-print("Log2 fold-change = " + str(lfc))
+println("Log2 fold-change = " + str(lfc))
 </code></pre>
 <hr>
 <h2 id="string-operations"><a class="header" href="#string-operations">String Operations</a></h2>
@@ -8796,7 +8989,7 @@ print("Log2 fold-change = " + str(lfc))
 let header = "&gt;sp|P12345|MYG_HUMAN Myoglobin OS=Homo sapiens"
 let parts  = split(header, "|")
 let acc    = parts[1]
-print("Accession: " + acc)
+println("Accession: " + acc)
 </code></pre>
 <hr>
 <h2 id="type-operations"><a class="header" href="#type-operations">Type Operations</a></h2>
@@ -8829,9 +9022,9 @@ pipelines that handle mixed bio types.</p>
 <pre><code class="language-biolang"># Example: route processing based on sequence type
 let seq = read_fasta("data/sequences.fasta") |&gt; first() |&gt; |r| r.seq
 if is_dna(seq) then
-  print("DNA, GC = " + str(gc_content(seq)))
+  println("DNA, GC = " + str(gc_content(seq)))
 else if is_protein(seq) then
-  print("Protein, length = " + str(len(seq)))
+  println("Protein, length = " + str(len(seq)))
 </code></pre>
 <hr>
 <h2 id="bio-apis"><a class="header" href="#bio-apis">Bio APIs</a></h2>
@@ -8887,7 +9080,7 @@ async-aware and return structured records.</p>
 let genes = ["BRCA1", "TP53", "EGFR"]
 genes |&gt; each(|g| {
   let pathways = reactome_pathways(g)
-  print(g + ": " + str(len(pathways)) + " pathways")
+  println(g + ": " + str(len(pathways)) + " pathways")
 })
 </code></pre>
 <hr>
@@ -8920,7 +9113,7 @@ serialization.</p>
 let t0 = timestamp()
 let result = read_fasta("data/sequences.fasta")
   |&gt; flat_map(|r| find_orfs(r.seq, 300))
-print("Found " + str(len(result)) + " ORFs in " + str(timestamp() - t0) + "s")
+println("Found " + str(len(result)) + " ORFs in " + str(timestamp() - t0) + "s")
 </code></pre>
 <hr>
 <h2 id="single-cell-analysis"><a class="header" href="#single-cell-analysis">Single-Cell Analysis</a></h2>
@@ -9649,7 +9842,7 @@ result without breaking left-to-right reading order — <code>expr |&gt; into na
 is equivalent to <code>let name = expr</code>:</p>
 <pre><code class="language-biolang">read_fastq("data/reads.fastq")
   |&gt; filter(|r| mean_phred(r.quality) &gt; 25)
-  |&gt;&gt; |reads| print("After QC: " + str(len(reads)) + " reads")
+  |&gt;&gt; |reads| println("After QC: " + str(len(reads)) + " reads")
   |&gt; map(|r| {id: r.id, gc: gc_content(r.seq)})
   |&gt; write_tsv("gc_report.csv")
 </code></pre>

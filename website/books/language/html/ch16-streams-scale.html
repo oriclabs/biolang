@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -214,7 +214,7 @@ lazily.</p>
 <pre><code class="language-biolang">read_bam("aligned.bam")
   |&gt; filter(|r| r.mapping_quality &gt;= 30 and not r.is_duplicate)
   |&gt; count()
-  |&gt; |n| print(str(n) + " high-quality unique alignments")
+  |&gt; |n| println(str(n) + " high-quality unique alignments")
 </code></pre>
 <h3 id="take_while"><a class="header" href="#take_while">take_while</a></h3>
 <p>Consume from a stream while a condition holds, then stop.</p>
@@ -223,7 +223,7 @@ let sample = read_fastq("data/reads.fastq")
   |&gt; take_while(|r, i| i &lt; 1000000)
 
 let quals = sample |&gt; map(|r| mean_phred(r.quality))
-print("Sampled stats: " + str(mean(quals)) + " mean Q")
+println("Sampled stats: " + str(mean(quals)) + " mean Q")
 </code></pre>
 <h3 id="each"><a class="header" href="#each">each</a></h3>
 <p>Execute a side effect for every element (the stream analogue of a for loop).</p>
@@ -233,14 +233,14 @@ read_fastq("data/reads.fastq")
        if mean_phred(r.quality) &lt; 20 then
          bad_count = bad_count + 1
      })
-print(str(bad_count) + " low-quality reads")
+println(str(bad_count) + " low-quality reads")
 </code></pre>
 <h3 id="fold--reduce"><a class="header" href="#fold--reduce">fold / reduce</a></h3>
 <p>Accumulate a value across the entire stream.</p>
 <pre><code class="language-biolang">let total_bases = read_fastq("data/reads.fastq")
   |&gt; map(|r| r.length)
   |&gt; sum()
-print("Total bases: " + str(total_bases))
+println("Total bases: " + str(total_bases))
 </code></pre>
 <h2 id="chunked-processing"><a class="header" href="#chunked-processing">Chunked Processing</a></h2>
 <p>When you need batch operations on a stream, <code>chunk</code> groups elements into
@@ -266,7 +266,7 @@ read_fastq("data/reads.fastq")
        batch |&gt; write_fastq(path)
        file_num = file_num + 1
      })
-print("Wrote " + str(file_num) + " chunk files")
+println("Wrote " + str(file_num) + " chunk files")
 </code></pre>
 <h2 id="window-operations"><a class="header" href="#window-operations">Window Operations</a></h2>
 <p><code>window</code> creates a sliding window over a list (or materialized portion of a
@@ -341,13 +341,13 @@ let genome_size = gb(3)          # 3,000,000,000
 
 # Use in calculations
 let coverage = 1800000000 / genome_size  # ~0.6x
-print("Coverage: " + str(coverage) + "x")
+println("Coverage: " + str(coverage) + "x")
 
 # Filter regions by size
 let large_svs = read_vcf("data/variants.vcf")
   |&gt; filter(|v| v.info.SVLEN != nil and abs(v.info.SVLEN) &gt; mb(1))
 
-print(str(large_svs |&gt; count()) + " SVs larger than 1 Mb")
+println(str(large_svs |&gt; count()) + " SVs larger than 1 Mb")
 </code></pre>
 <p>These helpers are simple multipliers but they prevent off-by-three-zeros bugs
 that plague genomics scripts.</p>
@@ -431,8 +431,8 @@ let chr_len = len(chr_seq)
 let win = kb(1)
 let step = bp(500)
 
-print("Chromosome 22: " + str(chr_len) + " bp")
-print("Computing GC in " + str(win) + " bp windows, step " + str(step))
+println("Chromosome 22: " + str(chr_len) + " bp")
+println("Computing GC in " + str(win) + " bp windows, step " + str(step))
 
 let gc_profile = window(chr_seq, win)
   |&gt; enumerate()
@@ -446,8 +446,8 @@ let gc_profile = window(chr_seq, win)
 let gc_rich = gc_profile |&gt; filter(|w| w.gc &gt; 0.60)
 let gc_poor = gc_profile |&gt; filter(|w| w.gc &lt; 0.35)
 
-print("GC-rich windows (&gt;60%): " + str(len(gc_rich)))
-print("GC-poor windows (&lt;35%): " + str(len(gc_poor)))
+println("GC-rich windows (&gt;60%): " + str(len(gc_rich)))
+println("GC-poor windows (&lt;35%): " + str(len(gc_poor)))
 
 gc_profile |&gt; write_tsv("chr22_gc_profile.tsv")
 </code></pre>

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -198,7 +198,7 @@ Read the FASTQ file and compute basic stats.
 
 ```biolang
 let reads = read_fastq("data/reads.fastq")
-print(f"Loaded {len(reads)} reads")
+println(f"Loaded {len(reads)} reads")
 ```
 
 ## Filter
@@ -207,7 +207,7 @@ Keep high-quality reads.
 
 ```bl
 let filtered = reads |&gt; filter(|r| mean_phred(r.quality) &gt; 25)
-print(f"Kept {len(filtered)} reads")
+println(f"Kept {len(filtered)} reads")
 ```
 </code></pre>
 <h3 id="dash-delimiters"><a class="header" href="#dash-delimiters">Dash Delimiters</a></h3>
@@ -251,7 +251,7 @@ let config = {min_quality: 30, reference: "GRCh38"}
 # @echo
 let reads = read_fastq("data/reads.fastq")
   |&gt; filter(|r| mean_phred(r.quality) &gt;= config.min_quality)
-print(f"Filtered: {len(reads)} reads")
+println(f"Filtered: {len(reads)} reads")
 ```
 </code></pre>
 <p>With <code># @hide</code>, the config block runs silently. With <code># @echo</code>, readers see both
@@ -305,7 +305,7 @@ let threshold = 2.0
 
 ```biolang
 let seqs = read_fasta("data/sequences.fasta")
-print(f"Loaded {len(seqs)} sequences")
+println(f"Loaded {len(seqs)} sequences")
 ```
 
 ## Statistics
@@ -315,7 +315,7 @@ print(f"Loaded {len(seqs)} sequences")
 let gc_values = seqs |&gt; map(|s| gc_content(s.seq))
 let mu = mean(gc_values)
 let sigma = stdev(gc_values)
-print(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
+println(f"Mean GC: {mu:.3f} +/- {sigma:.4f}")
 ```
 
 ## Outliers
@@ -326,7 +326,7 @@ contamination or horizontal gene transfer.
 ```biolang
 let outliers = seqs
   |&gt; filter(|s| abs(gc_content(s.seq) - mu) &gt; threshold * sigma)
-print(f"Found {len(outliers)} outlier contigs")
+println(f"Found {len(outliers)} outlier contigs")
 ```
 </code></pre>
 <p>Run it:</p>

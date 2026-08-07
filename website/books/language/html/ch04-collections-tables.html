@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -191,9 +191,9 @@ let mixed = ["TP53", 42, true, dna"ATCG"]
 <p>Lists support standard access and manipulation:</p>
 <pre><code class="language-biolang">let genes = ["BRCA1", "TP53", "EGFR", "KRAS", "BRAF"]
 
-print(genes[0])        # =&gt; "BRCA1"
-print(genes[-1])       # =&gt; "BRAF"
-print(len(genes))      # =&gt; 5
+println(genes[0])        # =&gt; "BRCA1"
+println(genes[-1])       # =&gt; "BRAF"
+println(len(genes))      # =&gt; 5
 
 # Concatenation
 let more = genes ++ ["PIK3CA", "PTEN"]
@@ -203,7 +203,7 @@ let pairs = [
   ["sample1_R1.fq.gz", "sample1_R2.fq.gz"],
   ["sample2_R1.fq.gz", "sample2_R2.fq.gz"]
 ]
-print(pairs[0][1])   # =&gt; "sample1_R2.fq.gz"
+println(pairs[0][1])   # =&gt; "sample1_R2.fq.gz"
 </code></pre>
 <h2 id="sets"><a class="header" href="#sets">Sets</a></h2>
 <p>Sets are unordered collections of unique elements. They are the right tool for
@@ -213,17 +213,17 @@ let mutated_genes = set(["TP53", "KRAS", "APC", "PIK3CA"])
 
 # Set operations
 let overlap = intersection(panel_genes, mutated_genes)
-print(overlap)   # =&gt; set(["TP53", "KRAS"])
+println(overlap)   # =&gt; set(["TP53", "KRAS"])
 
 let all_genes = union(panel_genes, mutated_genes)
 let panel_only = difference(panel_genes, mutated_genes)
 let mutated_only = difference(mutated_genes, panel_genes)
 
-print(f"On panel and mutated: {len(overlap)}")
-print(f"Mutated, not on panel: {len(mutated_only)}")
+println(f"On panel and mutated: {len(overlap)}")
+println(f"Mutated, not on panel: {len(mutated_only)}")
 
 # Membership
-print(contains(panel_genes, "TP53"))   # =&gt; true
+println(contains(panel_genes, "TP53"))   # =&gt; true
 </code></pre>
 <p>A real use case – finding shared variants between tumor and normal:</p>
 <pre><code class="language-biolang">let tumor_variants = read_vcf("data/variants.vcf")
@@ -236,7 +236,7 @@ let normal_variants = read_vcf("data/variants.vcf")
 
 let somatic = difference(tumor_variants, normal_variants)
 let germline = intersection(tumor_variants, normal_variants)
-print(f"Somatic: {len(somatic)}, Germline: {len(germline)}")
+println(f"Somatic: {len(somatic)}, Germline: {len(germline)}")
 </code></pre>
 <h2 id="tables"><a class="header" href="#tables">Tables</a></h2>
 <p>Tables are the central data structure for tabular bioinformatics data. They are
@@ -250,14 +250,14 @@ created from lists of records:</p>
 </code></pre>
 <h3 id="column-access"><a class="header" href="#column-access">Column Access</a></h3>
 <pre><code class="language-biolang">let coverages = col(samples, "coverage")
-print(coverages)   # =&gt; [35.2, 31.4, 42.1, 36.8]
+println(coverages)   # =&gt; [35.2, 31.4, 42.1, 36.8]
 
 # Multiple columns
 let subset = samples |&gt; select("sample_id", "coverage")
 </code></pre>
 <h3 id="row-iteration"><a class="header" href="#row-iteration">Row Iteration</a></h3>
 <pre><code class="language-biolang">samples |&gt; each(|row| {
-  print(f"{row.sample_id}: {row.coverage}x ({row.tissue})")
+  println(f"{row.sample_id}: {row.coverage}x ({row.tissue})")
 })
 </code></pre>
 <h2 id="table-operations"><a class="header" href="#table-operations">Table Operations</a></h2>
@@ -282,7 +282,7 @@ let stats = {
   max_coverage: max(coverages),
 }
 
-print(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
+println(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
 </code></pre>
 <h3 id="group_by--split-apply-combine"><a class="header" href="#group_by--split-apply-combine"><code>group_by</code> – Split-Apply-Combine</a></h3>
 <pre><code class="language-biolang">let by_tissue = samples
@@ -295,7 +295,7 @@ print(f"Samples: {stats.n_samples}, Mean coverage: {stats.mean_coverage:.1f}x")
   })
 
 by_tissue |&gt; each(|row|
-  print(f"{row.tissue}: n={row.n}, cov={row.mean_cov:.1f}x, reads={row.mean_reads:.0f}")
+  println(f"{row.tissue}: n={row.n}, cov={row.mean_cov:.1f}x, reads={row.mean_reads:.0f}")
 )
 </code></pre>
 <h3 id="sort--order-rows"><a class="header" href="#sort--order-rows"><code>sort</code> – Order Rows</a></h3>
@@ -341,7 +341,7 @@ let windows = range(0, chrom_length, 1_000_000)
     end: min(start + 1_000_000, chrom_length)
   })
 
-print(f"Generated {len(windows)} windows for chr1")
+println(f"Generated {len(windows)} windows for chr1")
 </code></pre>
 <h2 id="example-sample-qc-summary-table-from-fastq-stats"><a class="header" href="#example-sample-qc-summary-table-from-fastq-stats">Example: Sample QC Summary Table from FASTQ Stats</a></h2>
 <p>Read multiple FASTQ files, compute QC metrics, and build a summary table.</p>
@@ -395,16 +395,16 @@ let summary = qc_flagged |&gt; group_by("qc_pass") |&gt; summarize(|pass, group|
   mean_q: mean(group |&gt; select("mean_quality")),
 })
 
-print("QC Summary:")
-print("=" * 60)
+println("QC Summary:")
+println("=" * 60)
 qc_flagged |&gt; each(|row| {
   let flag = if row.qc_pass then "PASS" else "FAIL"
-  print(f"  [{flag}] {row.sample_id}: {row.total_reads / 1e6:.1f}M reads, Q={row.mean_quality:.1f}, Q30={row.q30_pct:.1f}%")
+  println(f"  [{flag}] {row.sample_id}: {row.total_reads / 1e6:.1f}M reads, Q={row.mean_quality:.1f}, Q30={row.q30_pct:.1f}%")
 })
 
 let pass_count = qc_flagged |&gt; filter(|r| r.qc_pass) |&gt; len()
 let fail_count = qc_flagged |&gt; filter(|r| !r.qc_pass) |&gt; len()
-print(f"\n{pass_count} passed, {fail_count} failed out of {len(qc_flagged)} samples")
+println(f"\n{pass_count} passed, {fail_count} failed out of {len(qc_flagged)} samples")
 
 # Write results
 qc_flagged |&gt; write_tsv("qc_summary.csv")

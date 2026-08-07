@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b17c52bc.js";
+            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0d7bde73.js"></script>
+        <script src="toc-f7fad49e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -218,7 +218,7 @@ print(results)
 <pre><code class="language-biolang">sql(db, "SELECT symbol, chrom, start, end FROM genes WHERE chrom = ?", ["chr17"])
   |&gt; filter(|g| g.start &gt; 40000000)
   |&gt; sort_by(|g| g.start)
-  |&gt; print()
+  |&gt; println()
 </code></pre>
 <h3 id="bulk-insert"><a class="header" href="#bulk-insert">Bulk Insert</a></h3>
 <p><code>sql_insert()</code> inserts an entire Table or list of records in a single
@@ -233,7 +233,7 @@ let samples = [
   {id: "S2", depth: 38.7, mapped_pct: 97.5},
 ]
 let inserted = sql_insert(db, "qc_results", samples)
-print(str(inserted) + " rows inserted")
+println(str(inserted) + " rows inserted")
 </code></pre>
 <h3 id="metadata"><a class="header" href="#metadata">Metadata</a></h3>
 <pre><code class="language-biolang"># List all tables

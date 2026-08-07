@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-c0a6b04c.js";
+            window.path_to_searchindex_js = "searchindex-f439e659.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-80d3c337.js"></script>
+        <script src="toc-0a09f913.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -187,15 +187,27 @@ bl doctor
 <p>From the BioLang repository, build the development binary with:</p>
 <pre><code class="language-text">cargo build -p bl-cli
 </code></pre>
-<p>Copy the examples from an installed package into a standalone working
+<p>Install the package, then copy its examples into a standalone working
 directory:</p>
-<pre><code class="language-text">bl examples singlecell --copy singlecell-examples
+<pre><code class="language-text">bl install singlecell
+bl examples singlecell --copy singlecell-examples
 cd singlecell-examples
 </code></pre>
-<p>Package authors working from a BioLang source checkout can use
-<code>bl examples packages/singlecell --copy singlecell-examples</code> instead. The copied
-directory includes the BioLang, notebook, Python, and validation example files;
-it does not require the full BioLang repository.</p>
+<p>The install step is what makes <code>import "singlecell" as sc</code> resolve. Imports are
+searched in the current directory first and <code>~/.biolang/packages/</code> last, so a
+copied example directory has nothing to import until the package is installed —
+without it every script here fails with
+<code>module or plugin 'singlecell' not found</code>.</p>
+<p>Working from a BioLang source checkout, install and copy from the local path
+instead:</p>
+<pre><code class="language-text">bl install packages/singlecell
+bl examples packages/singlecell --copy singlecell-examples
+</code></pre>
+<p>The copied directory includes the BioLang, notebook, Python, and validation
+example files; it does not require the full BioLang repository. Because the
+current directory wins, a checkout still overrides the installed copy when you
+run from <code>packages/</code> — reinstall after editing the package if you want the
+change visible elsewhere.</p>
 <h2 id="generate-the-teaching-matrix"><a class="header" href="#generate-the-teaching-matrix">Generate the teaching matrix</a></h2>
 <p>The fixture contains four populations with distinct marker blocks, shared
 background genes, mitochondrial genes, and low-information droplets. It is
@@ -333,7 +345,7 @@ checksum the input, and provide a deterministic download or generation step.</p>
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-c0bcc71b.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
+        <script src="theme/book-runner-5ea35f6b.js"></script>
 
 
 

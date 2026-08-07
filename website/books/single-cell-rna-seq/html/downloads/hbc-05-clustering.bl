@@ -1,0 +1,86 @@
+# Clustering
+#
+# From 'Single-Cell RNA-seq with BioLang', Part V: The HBC Course in BioLang.
+# Follows the Harvard Chan Bioinformatics Core course 'Introduction to
+# scRNA-seq' (CC BY 4.0) — https://hbctraining.github.io/Intro-to-scRNAseq/
+#
+# Setup (once):
+#   bl install packages/singlecell
+#   python packages/singlecell/examples/make_demo_10x.py --output nsclc_like
+#
+# Run:
+#   bl run hbc-05-clustering.bl
+
+# --------------------------------------------------------------------
+# Block 1 of 5
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("nsclc_like")
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.normalize()
+    |> sc.variable_genes(50)
+    |> sc.run_pca(20)
+    |> sc.neighbors(15)
+    |> sc.cluster_leiden(15, 0.5)
+
+let labels = sc.get_clusters(obj)
+println("clusters: " + str(labels |> unique |> len))
+for c in (labels |> unique |> sort) {
+    println("  cluster " + str(c) + ": " + str(labels |> filter(|x| x == c) |> len) + " cells")
+}
+
+# --------------------------------------------------------------------
+# Block 2 of 5
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let base = sc.load("nsclc_like")
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.normalize()
+    |> sc.variable_genes(50)
+    |> sc.run_pca(20)
+    |> sc.neighbors(15)
+
+for r in [0.2, 0.5, 1.0] {
+    let c = sc.cluster_leiden(base, 15, r)
+    println("resolution " + str(r) + " -> " + str(sc.get_clusters(c) |> unique |> len) + " clusters")
+}
+
+# --------------------------------------------------------------------
+# Block 3 of 5
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("nsclc_like")
+    |> sc.standard(nil, 50, 15, 20, 2500, 5.0, nil, nil, true)
+
+println(sc.cluster_diagnostics(obj))
+
+# --------------------------------------------------------------------
+# Block 4 of 5
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("nsclc_like")
+    |> sc.standard(nil, 50, 15, 20, 2500, 5.0, nil, nil, true)
+
+println(sc.cluster_stability(obj))
+
+# --------------------------------------------------------------------
+# Block 5 of 5
+# --------------------------------------------------------------------
+
+import "singlecell" as sc
+
+let obj = sc.load("nsclc_like")
+    |> sc.standard(nil, 50, 15, 20, 2500, 5.0, nil, nil, true)
+
+write_text("umap.svg", sc.plot_umap(obj, "Leiden clusters, resolution 0.5"))
+
