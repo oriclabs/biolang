@@ -476,9 +476,7 @@ pub fn export_html(path: &str) {
                 }
                 if let Some(output) = &eb.output {
                     if !cb.directives.contains(&CellDirective::HideOutput) && !output.is_empty() {
-                        body.push_str("<div class=\"cell-output\">");
-                        body.push_str(&html_escape(output));
-                        body.push_str("</div>\n");
+                        emit_output(&mut body, output);
                     }
                 }
             }
@@ -637,12 +635,7 @@ pub fn export_html_wasm(path: &str, wasm_base: &str) {
                 }
                 if let Some(output) = &eb.output {
                     if !cb.directives.contains(&CellDirective::HideOutput) && !output.is_empty() {
-                        body.push_str("<div class=\"cell-output\">");
-                        body.push_str(&html_escape(output));
-                        body.push_str(
-                            "</div>
-",
-                        );
+                        emit_output(&mut body, output);
                     }
                 }
             }
@@ -687,6 +680,30 @@ window.__blDataFiles[{}] = true;
             .replace("{data}", &data)
             .replace("{runtime}", runtime)
     );
+}
+
+/// Write one cell's output, rendering an SVG figure instead of escaping it.
+///
+/// Escaping everything meant a notebook that plots showed the markup of its
+/// figures as text, when seeing the plots is the main reason to export one.
+/// Anything that is not a whole SVG document is escaped exactly as before.
+///
+/// The SVG is emitted as markup, which crosses no trust boundary the execution
+/// did not already cross: it is the output of code the reader just ran locally,
+/// on a page generated for them.
+fn emit_output(body: &mut String, output: &str) {
+    let trimmed = output.trim();
+    if trimmed.starts_with("<svg") && trimmed.ends_with("</svg>") {
+        body.push_str("<figure class=\"cell-figure\">");
+        body.push_str(trimmed);
+        body.push_str("</figure>
+");
+        return;
+    }
+    body.push_str("<div class=\"cell-output\">");
+    body.push_str(&html_escape(output));
+    body.push_str("</div>
+");
 }
 
 fn html_escape(s: &str) -> String {
@@ -1366,6 +1383,8 @@ const HTML_TEMPLATE: &str = r#"<!DOCTYPE html>
     blockquote { border-left: 3px solid var(--accent); padding: 0.5rem 1rem; margin: 0.75rem 0; color: var(--muted); background: rgba(139, 92, 246, 0.05); border-radius: 0 6px 6px 0; }
     .cell-code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; margin: 0.75rem 0 0.25rem; overflow-x: auto; }
     .cell-code pre { margin: 0; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 0.875rem; line-height: 1.6; white-space: pre; }
+    .cell-figure { margin: 0.25rem 0 1rem; padding: 0.5rem; background: #fff; border-radius: 6px; overflow-x: auto; }
+    .cell-figure svg { max-width: 100%; height: auto; display: block; }
     .cell-output { background: var(--output-bg); border-left: 3px solid #f59e0b; padding: 0.75rem 1rem; margin: 0.25rem 0 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; white-space: pre-wrap; border-radius: 0 6px 6px 0; color: #fbbf24; }
     .kw { color: #c084fc; font-weight: 600; }
     .str { color: #34d399; }
@@ -1408,6 +1427,8 @@ const HTML_WASM_TEMPLATE: &str = r##"<!DOCTYPE html>
     p code, li code { background: var(--code-bg); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.9em; }
     .cell-code { position: relative; margin: 1rem 0 0.25rem; }
     .cell-code pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem 1.1rem; overflow-x: auto; font-size: 0.875rem; line-height: 1.6; }
+    .cell-figure { margin: 0.25rem 0 1rem; padding: 0.5rem; background: #fff; border-radius: 6px; overflow-x: auto; }
+    .cell-figure svg { max-width: 100%; height: auto; display: block; }
     .cell-output { background: var(--output-bg); border-left: 3px solid #f59e0b; padding: 0.75rem 1rem; margin: 0.25rem 0 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; white-space: pre-wrap; border-radius: 0 6px 6px 0; color: #fbbf24; }
     .kw { color: #c084fc; font-weight: 600; }
     .str { color: #34d399; }
@@ -1566,6 +1587,39 @@ fn split_source_lines(text: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    // ── HTML export: figures ────────────────────────────────────────
+    //
+    // A notebook that plots used to export the markup of its figures as
+    // escaped text, which is the opposite of what exporting one is for.
+
+    #[test]
+    fn svg_output_is_rendered_as_a_figure() {
+        let mut body = String::new();
+        emit_output(&mut body, "<svg xmlns=\"http://www.w3.org/2000/svg\"><rect/></svg>");
+        assert!(body.contains("cell-figure"), "not wrapped as a figure: {body}");
+        assert!(body.contains("<svg"), "the SVG was not emitted as markup: {body}");
+        assert!(!body.contains("&lt;svg"), "the SVG was escaped: {body}");
+    }
+
+    #[test]
+    fn ordinary_output_is_still_escaped() {
+        // The whole point of escaping: text that merely looks like markup must
+        // not become markup.
+        let mut body = String::new();
+        emit_output(&mut body, "cells: 15049 <not a tag>");
+        assert!(body.contains("cell-output"), "{body}");
+        assert!(body.contains("&lt;not a tag&gt;"), "output was not escaped: {body}");
+    }
+
+    #[test]
+    fn text_that_merely_mentions_svg_is_not_treated_as_one() {
+        // A partial or quoted SVG is not a document and must not be injected.
+        let mut body = String::new();
+        emit_output(&mut body, "wrote <svg> to disk");
+        assert!(body.contains("cell-output"), "{body}");
+        assert!(body.contains("&lt;svg&gt;"), "a fragment was emitted as markup: {body}");
+    }
+
     use super::*;
 
     #[test]
