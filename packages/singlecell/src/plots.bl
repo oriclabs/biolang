@@ -137,47 +137,21 @@ fn plot_feature(obj, gene, title = nil) {
     )
 }
 
-## Scatter with a continuous colour ramp (grey -> blue -> red), used by
-## plot_feature. Kept separate so any per-cell numeric vector can be shown this
-## way — pseudotime, doublet score, QC metrics.
-fn _scatter_svg(xs, ys, vals, title, legend) {
-    let w = 560
-    let h = 460
-    let pad = 52
-    let xlo = min(xs)
-    let xhi = max(xs)
-    let ylo = min(ys)
-    let yhi = max(ys)
-    let xspan = if xhi > xlo { xhi - xlo } else { 1.0 }
-    let yspan = if yhi > ylo { yhi - ylo } else { 1.0 }
-    let vlo = min(vals)
-    let vhi = max(vals)
-    let vspan = if vhi > vlo { vhi - vlo } else { 1.0 }
-
-    let parts = ["<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + str(w) +
-                 "\" height=\"" + str(h) + "\" viewBox=\"0 0 " + str(w) + " " + str(h) + "\">",
-                 "<rect width=\"100%\" height=\"100%\" fill=\"#ffffff\"/>",
-                 "<text x=\"" + str(pad) + "\" y=\"26\" font-family=\"sans-serif\" " +
-                 "font-size=\"14\" font-weight=\"bold\" fill=\"#0f172a\">" + title + "</text>"]
-
-    for i in range(0, len(xs)) {
-        let px = pad + int(float(w - 2 * pad) * (xs[i] - xlo) / xspan)
-        let py = h - pad - int(float(h - 2 * pad - 20) * (ys[i] - ylo) / yspan)
-        parts = parts + ["<circle cx=\"" + str(px) + "\" cy=\"" + str(py) +
-            "\" r=\"2.6\" fill=\"" + _ramp((vals[i] - vlo) / vspan) +
-            "\" fill-opacity=\"0.85\"/>"]
-    }
-
-    # colour key
-    let key_x = w - pad - 96
-    for s2 in range(0, 24) {
-        parts = parts + ["<rect x=\"" + str(key_x + s2 * 4) + "\" y=\"" + str(h - 30) +
-            "\" width=\"4\" height=\"9\" fill=\"" + _ramp(float(s2) / 23.0) + "\"/>"]
-    }
-    parts = parts + ["<text x=\"" + str(key_x) + "\" y=\"" + str(h - 34) +
-        "\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#475569\">" +
-        legend + " " + str(round(vlo, 2)) + " to " + str(round(vhi, 2)) + "</text>", "</svg>"]
-    join(parts, "\n")
+## Scatter with a continuous colour ramp, used by plot_feature and the QC
+## plots. Any per-cell numeric vector can be shown this way — pseudotime,
+## doublet score, mitochondrial fraction.
+##
+## Delegates to the `umap_plot` builtin rather than emitting SVG here. The old
+## hand-rolled loop wrote one <circle> per cell and grew the parts list with
+## `parts = parts + [...]`, which copies the whole list each time — quadratic.
+## On a raw 10x matrix (737,280 droplets) that did not finish, and the SVG it
+## was building would have been tens of megabytes of vector shapes no reader
+## can interact with anyway. The builtin rasterises the point layer above five
+## thousand points and keeps axes, labels and the colour key as vector text.
+fn _scatter_svg(xs, ys, vals, title, legend, xlab = "", ylab = "") {
+    let points = range(0, len(xs)) |> map(|i| {x: xs[i], y: ys[i], value: vals[i]})
+    umap_plot(points, {title: title, feature: "value", feature_label: legend,
+                       xlab: xlab, ylab: ylab})
 }
 
 ## Continuous colour ramp over 0..1: light grey -> blue -> red.
@@ -215,15 +189,24 @@ fn plot_violin(obj, gene) {
             if r < len(groups[k]) { groups[k][r] } else { _pad() })
         _record_of(ids |> map(|c| _cluster_label(c)), cells)
     })
-    violin(table(rows), {title: gene})
+    violin(table(rows), {title: gene, ylab: "log-normalised expression"})
 }
 
 ## Build a Record from parallel key/value lists. Record literals cannot have
 ## computed keys and there is no set-key builtin, so this round-trips through
 ## JSON — the only way to name a field at runtime.
 fn _record_of(names, values) {
-    let parts = range(0, len(names)) |> map(|i|
-        "\"" + replace(str(names[i]), "\"", "'") + "\": " + str(values[i]))
+    let parts = range(0, len(names)) |> map(|i| {
+        # JSON has no infinity or NaN, and str(log(0.0)) is "-inf", which
+        # json_parse rejects. The ragged-column padding below is exactly such a
+        # value. It only shows up when groups differ in length, so an evenly
+        # sized test fixture never triggered it and real clusters — 3128 cells
+        # against 32 — do immediately. null round-trips and is still non-finite
+        # to the consumers that drop padding.
+        let v = values[i]
+        let text = if typeof(v) == "Float" and not is_finite(v) { "null" } else { str(v) }
+        "\"" + replace(str(names[i]), "\"", "'") + "\": " + text
+    })
     json_parse("{" + join(parts, ", ") + "}")
 }
 
@@ -373,11 +356,17 @@ fn expr_dotplot(obj, genes, title = "expression dot plot") {
     let w = left + len(ids) * cell_w + 200
     let h = top + len(present) * cell_h + 40
 
+    # Cluster membership, computed once. It used to be recomputed inside the
+    # gene loop, so a 15-gene panel scanned every cell fifteen times per
+    # cluster — on 15k cells that is 2.5M redundant comparisons before a single
+    # value is read.
+    let members = ids |> map(|c| _cells_in(obj, c))
+
     # Per (gene, cluster): fraction expressing and mean among expressing cells.
     let stats = present |> map(|g| {
         let gi = find_index(names, |x| x == g)
-        ids |> map(|c| {
-            let cells = _cells_in(obj, c)
+        range(0, len(ids)) |> map(|ci| {
+            let cells = members[ci]
             let vals = cells |> map(|i| matrix_at(m, i, gi))
             let expressing = vals |> filter(|v| v > 0.0)
             {frac: if len(vals) > 0 { float(len(expressing)) / float(len(vals)) } else { 0.0 },

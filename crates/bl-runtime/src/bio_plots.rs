@@ -863,8 +863,11 @@ fn builtin_violin(args: Vec<Value>) -> Result<Value> {
             domain: (global_min, global_max),
             range: (global_min, global_max),
         };
-        c.draw_y_axis(&dy, "Value");
-        c.draw_title("Violin Plot");
+        // Both were hardcoded, so a caller passing {title: gene} got a figure
+        // headed "Violin Plot" — the option was accepted and discarded, which
+        // is worse than not offering it.
+        c.draw_y_axis(&dy, get_opt_str(&opts, "ylab", "Value"));
+        c.draw_title(get_opt_str(&opts, "title", "Violin Plot"));
         return Ok(Value::Str(c.render()));
     }
 
@@ -4667,6 +4670,14 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
     // lights up. Handled here rather than in a separate builtin so it reuses the
     // extraction, scaling and canvas work above; feature_plot() is an alias.
     let feature_col = get_opt_str(&opts, "feature", "").to_string();
+    // The colour key is labelled with the column name by default. `feature_label`
+    // separates the two so a caller need not rename its data field just to get a
+    // readable legend — building 737k records with a computed key to do that
+    // cost more than drawing the plot.
+    let feature_label = {
+        let explicit = get_opt_str(&opts, "feature_label", "").to_string();
+        if explicit.is_empty() { feature_col.clone() } else { explicit }
+    };
     let feature_values: Vec<f64> = if feature_col.is_empty() {
         Vec::new()
     } else {
@@ -4833,7 +4844,7 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
                 "start",
                 9.0,
             );
-            c.add_text(lx, bar_top - 6.0, &feature_col, "start", 10.0);
+            c.add_text(lx, bar_top - 6.0, &feature_label, "start", 10.0);
         }
 
         // Legend for groups
@@ -4857,6 +4868,11 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
             domain: yr,
             range: yr,
         };
+        // Explicit labels win; otherwise infer from the title. Inference alone
+        // labelled a counts-vs-genes QC scatter "Dim 1"/"Dim 2", because this
+        // builtin now draws any continuous-valued scatter, not just embeddings.
+        let x_override = get_opt_str(&opts, "xlab", "").to_string();
+        let y_override = get_opt_str(&opts, "ylab", "").to_string();
         let title_lc = title.to_lowercase();
         let x_label = if title_lc.contains("umap") {
             "UMAP 1"
@@ -4876,6 +4892,8 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
         } else {
             "Dim 2"
         };
+        let x_label = if x_override.is_empty() { x_label } else { x_override.as_str() };
+        let y_label = if y_override.is_empty() { y_label } else { y_override.as_str() };
         c.draw_x_axis(&dx, x_label);
         c.draw_y_axis(&dy, y_label);
         c.draw_title(&title);

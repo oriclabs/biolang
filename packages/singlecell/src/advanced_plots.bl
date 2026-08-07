@@ -35,7 +35,9 @@ fn plot_qc_scatter(obj, title = "Counts, genes, and mitochondrial fraction") {
         col(metrics, "n_genes"),
         col(metrics, "pct_mito"),
         title,
-        "% mitochondrial"
+        "% mitochondrial",
+        "total UMI counts",
+        "genes detected"
     )
 }
 
