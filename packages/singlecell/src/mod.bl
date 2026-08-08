@@ -81,6 +81,7 @@ fn run_pca(obj, n_pcs = 50)              { _pre.run_pca(obj, n_pcs) }
 fn neighbors(obj, k = 15)               { _pre.neighbors(obj, k) }
 fn cluster(obj, k = 0)                   { _pre.cluster(obj, k) }
 fn cluster_leiden(obj, k = 15, resolution = 1.0) { _pre.cluster_leiden(obj, k, resolution) }
+fn cluster_louvain(obj, k = 15, resolution = 1.0) { _pre.cluster_louvain(obj, k, resolution) }
 
 # ─── Cell annotation and scoring ──────────────────────────────────────────────
 

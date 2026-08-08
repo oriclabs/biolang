@@ -168,25 +168,45 @@ version at all.
 
 For readers coming from the course's R:
 
-| Seurat | BioLang |
-|---|---|
-| `CreateSeuratObject` | `sc.load` / `sc.from_matrix` |
-| `PercentageFeatureSet` + `subset` | `sc.qc` → `sc.filter_cells` |
-| `NormalizeData` | `sc.normalize` |
-| `SCTransform` | `sc.sctransform` |
-| `FindVariableFeatures` | `sc.variable_genes` |
-| `RunPCA` | `sc.run_pca` |
-| `ElbowPlot` | `sc.plot_elbow` |
-| `FindNeighbors` | `sc.neighbors` |
-| `FindClusters` | `sc.cluster_leiden` |
-| `RunUMAP` + `DimPlot` | `sc.plot_umap` |
-| `FindMarkers` | `sc.marker_table` |
-| `FindAllMarkers` | `find_all_markers` |
-| `FeaturePlot` | `sc.plot_feature` |
-| `VlnPlot` | `sc.plot_violin` |
-| `DotPlot` | `sc.expr_dotplot` |
-| `RunHarmony` | `sc.integrate` |
-| `merge` | `sc.merge` |
+**Read this as "the step that occupies the same slot", not "the same
+computation".** Several of these are approximations, and the ones that are
+carry a note. A table of bare equivalences would be easier to read and would
+mislead you about exactly the things that make numbers differ.
+
+| Seurat | BioLang | |
+|---|---|---|
+| `CreateSeuratObject` | `sc.load` / `sc.from_matrix` | |
+| `PercentageFeatureSet` + `subset` | `sc.qc` → `sc.filter_cells` | `filter_cells` has no UMI floor or complexity term — see [Quality Control](ch02-quality-control.md) |
+| `NormalizeData` | `sc.normalize` | equivalent |
+| `SCTransform` | `sc.sctransform` | **approximation** — see below |
+| `FindVariableFeatures` | `sc.variable_genes` | dispersion, unbinned; Seurat's `vst` bins by mean first |
+| `RunPCA` | `sc.run_pca` | independent implementation |
+| `ElbowPlot` | `sc.plot_elbow` | |
+| `FindNeighbors` | `sc.neighbors` | exact kNN; Seurat uses approximate (Annoy) |
+| `FindClusters` | `sc.cluster_louvain` | Seurat defaults to `algorithm = 1`, Louvain. `sc.cluster_leiden` is the better algorithm but not the one the course ran |
+| `RunUMAP` + `DimPlot` | `sc.plot_umap` | |
+| `FindMarkers` | `sc.marker_table` | |
+| `FindAllMarkers` | `find_all_markers` | |
+| `FeaturePlot` | `sc.plot_feature` | |
+| `VlnPlot` | `sc.plot_violin` | |
+| `DotPlot` | `sc.expr_dotplot` | |
+| `RunHarmony` | `sc.harmony` | **not `sc.integrate`**, which only centres each batch per gene |
+| `merge` | `sc.merge` | |
+
+### Why `sc.sctransform` is an approximation
+
+Real `SCTransform` fits a negative binomial per gene, estimates each gene's
+overdispersion, then *regularizes* those estimates by smoothing them across
+genes of similar mean — the regularization is the point of the method and what
+the paper's title refers to.
+
+`sc.sctransform` uses a **fixed** overdispersion of 100 for every gene. It also
+clips residuals at `sqrt(n_cells)` where sctransform clips at `sqrt(n_cells/30)`
+— on the 29,629-cell object that is ±172 against ±31, about five times looser.
+
+The residuals are therefore in the right family and not the same numbers. That
+is enough to produce sensible clusters and not enough to reproduce Seurat's,
+and it is the largest single reason the counts on this page differ.
 
 ## Next
 

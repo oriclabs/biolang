@@ -262,3 +262,19 @@ fn cluster_leiden(obj, k = 15, resolution = 1.0) {
     let clusters = leiden_graph(prepared.knn, prepared.n_cells, resolution)
     {... prepared, clusters: clusters, resolution: resolution}
 }
+
+## cluster_louvain(obj, k, resolution) → Record
+##
+## Community detection with Louvain — local moving and aggregation, without
+## Leiden's refinement pass. Adds obj.clusters (List<Int>).
+##
+## This is what you want when comparing against Seurat, whose `FindClusters`
+## defaults to `algorithm = 1`, which is Louvain. `cluster_leiden` is the better
+## algorithm — refinement is what guarantees every community is internally
+## connected, which Louvain does not — but "better" and "what the reference ran"
+## are different questions, and reproducing a published number needs the second.
+fn cluster_louvain(obj, k = 15, resolution = 1.0) {
+    let prepared = if contains(keys(obj), "pca_scores") { obj } else { run_pca(obj) }
+    let clusters = louvain_cluster(embedding_of(prepared), k, resolution)
+    {... prepared, clusters: clusters, resolution: resolution}
+}
