@@ -84,7 +84,18 @@ println(sc.summary(transformed))
 
 Note that the result is dense. Pearson residuals are nonzero where counts were
 zero, so unlike `normalize()` this does not preserve sparsity — check the cell
-and gene counts before running it on a large matrix.
+and gene counts before running it on a large matrix. `sc.sctransform(obj, n)`
+computes residuals for only the top `n` genes by residual variance, which is
+what Seurat's `variable.features.n` does and is the difference between 16 GB
+and 6 GB on a thirty-thousand-cell object.
+
+**Do not follow this with `sc.variable_genes()`.** That ranks by dispersion —
+variance over squared mean — and residuals are centred by construction, so every
+gene's mean sits near zero and the denominator is noise rather than a scale. The
+call now warns, but the warning is easy to scroll past: use the `n` argument
+above instead, which selects on residual variance. The
+[HBC companion](https://lang.bio/books/hbc-scrnaseq/) has the full account of
+what this cost.
 
 Do not mix normalization strategies without a reason. Record which matrix each
 later method used.

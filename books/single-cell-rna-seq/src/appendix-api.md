@@ -35,9 +35,9 @@ BioLang resolves this name through the package's `[lib].entry` declaration in
 | `sc.filter_cells(obj, min_genes, max_genes, max_pct_mito)` | Subset cells |
 | `sc.filter_genes(obj, min_cells)` | Subset genes |
 | `sc.normalize(obj, target)` | Total-count normalization plus log1p |
-| `sc.sctransform(obj)` | Regularized negative-binomial residual transform |
-| `sc.variable_genes(obj, n)` | Select genes by dispersion |
-| `sc.scale(obj)` | Dense mean-center and standardize; raises on sparse objects |
+| `sc.sctransform(obj, n_features)` | Regularized negative-binomial residual transform; `n_features` caps it at the top genes by residual variance |
+| `sc.variable_genes(obj, n)` | Select genes by dispersion — log-normalized values only, **not** SCTransform residuals |
+| `sc.scale(obj, clip)` | Dense mean-center and standardize, clipping z-scores at `clip` (default 10); raises on sparse objects |
 | `sc.run_pca(obj, n_pcs)` | Sparse-aware PCA |
 | `sc.neighbors(obj, k)` | Exact kNN graph on PCA or integrated embedding |
 | `sc.cluster(obj, k)` | k-means alternative |
@@ -137,5 +137,10 @@ no error. Name them.
   pseudobulk profiles with a validated negative-binomial model and explicit
   study design.
 - `sctransform()` returns a dense matrix; Pearson residuals are nonzero where
-  counts were zero, so there is no sparse result to preserve.
+  counts were zero, so there is no sparse result to preserve. Pass `n_features`
+  to compute only the genes that survive selection — the memory difference is
+  large enough to decide whether a run completes.
+- `variable_genes()` is for log-normalized values. Ranking centred residuals by
+  variance over squared mean is not meaningful, and doing it silently produced a
+  published cluster count that turned out to be a coincidence.
 - AnnData Zarr metadata interchange is currently limited.
