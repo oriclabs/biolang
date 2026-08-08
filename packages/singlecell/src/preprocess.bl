@@ -53,6 +53,7 @@ fn normalize(obj, target = 10000.0) {
     let base = if contains(keys(obj), "layers") { obj.layers } else { {counts: obj.matrix} }
     {... obj,
         norm_matrix: norm,
+        norm_method: "lognorm",
         layers: {... base, lognorm: norm}
     }
 }
@@ -77,16 +78,19 @@ fn normalize(obj, target = 10000.0) {
 ## normalization — there is no separate `variable_genes` step to run afterwards.
 fn sctransform(obj, n_features = 0) {
     if n_features <= 0 {
-        return {... obj, norm_matrix: sc_sctransform(obj.matrix)}
+        return {... obj,
+            norm_matrix: sc_sctransform(obj.matrix),
+            norm_method: "sctransform"}
     }
     let out = sc_sctransform(obj.matrix, n_features)
     # Asking for more features than the object has genes is not subsetting, and
     # the builtin returns a bare matrix in that case.
     if not is_record(out) {
-        return {... obj, norm_matrix: out}
+        return {... obj, norm_matrix: out, norm_method: "sctransform"}
     }
     {... obj,
         norm_matrix: out.matrix,
+        norm_method: "sctransform",
         hvg: out.genes,
         hvg_matrix: out.matrix,
         hvg_genes: out.genes |> map(|j| obj.genes[j])
@@ -103,7 +107,20 @@ fn sctransform(obj, n_features = 0) {
 ##
 ## Adds obj.hvg (List<Int>), obj.hvg_matrix (cells × HVGs),
 ## and obj.hvg_genes (List<Str>).
+##
+## **Do not call this on SCTransform output.** Dispersion divides by the square
+## of the mean, and Pearson residuals are centred by construction — every gene's
+## mean sits near zero, so the denominator is arithmetic noise rather than a
+## scale. Ranking that way does not measure variability. It looks like it works,
+## which is the problem: it produced a plausible gene list and a cluster count
+## that appeared to reproduce a published result, and the agreement was a
+## coincidence. Use `sctransform(obj, n)`, which ranks on residual variance.
 fn variable_genes(obj, n = 2000) {
+    if contains(keys(obj), "norm_method") and obj.norm_method == "sctransform" {
+        println("sc.variable_genes: warning — ranking SCTransform residuals by " +
+                "dispersion is not meaningful (residuals are centred, so the " +
+                "variance/mean^2 denominator is noise). Use sc.sctransform(obj, n).")
+    }
     let mat = obj.norm_matrix
     let hvg_idx  = highly_variable_genes(mat, n)
     let hvg_mat  = select_cols(mat, hvg_idx)

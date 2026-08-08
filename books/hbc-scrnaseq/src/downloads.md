@@ -73,9 +73,11 @@ prints both cluster counts side by side so you can see what the parameters cost:
 
 ```text
 cells: 14847
-SCTransform / 40 PCs / res 0.8 -> 14 clusters
+SCTransform / 40 PCs / res 0.8 -> 12 clusters
 log1p / 30 PCs / res 0.5      -> 10 clusters
 ```
+
+About 75 seconds.
 
 **[exact.bl](downloads/exact.bl)** — the full integrated configuration: both
 samples, their filter, SCTransform, Harmony, 40 PCs, resolution 0.8:

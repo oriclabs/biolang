@@ -11,8 +11,12 @@ let keep = range(0, raw.n_cells) |> filter(|i| {
 let obj = sc_subset_cells(raw, keep) |> sc.filter_genes(3)
 println("cells: " + str(obj.n_cells))
 
-# Course settings: SCTransform, 40 PCs, resolution 0.8
-let sct = obj |> sc.sctransform() |> sc.variable_genes(2000) |> sc.run_pca(40)
+# Course settings: SCTransform, 40 PCs, resolution 0.8.
+#
+# sctransform(2000) selects on residual variance and fills obj.hvg itself.
+# Do not follow it with variable_genes: that ranks by variance / mean^2, and
+# residuals are centred, so the denominator is noise. See differences.md.
+let sct = obj |> sc.sctransform(2000) |> sc.run_pca(40)
     |> sc.neighbors(15) |> sc.cluster_leiden(15, 0.8)
 println("SCTransform / 40 PCs / res 0.8 -> " + str(sc.get_clusters(sct) |> unique |> len) + " clusters")
 

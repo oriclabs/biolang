@@ -102,12 +102,13 @@ For contrast, on the control sample alone:
 
 ```text
 cells: 14847
-SCTransform / 40 PCs / res 0.8 -> 14 clusters
+SCTransform / 40 PCs / res 0.8 -> 12 clusters
 log1p / 30 PCs / res 0.5      -> 10 clusters
 ```
 
 Same cells, same code, two parameter sets. The difference was the pipeline, not
-the implementation.
+the implementation. (This block read 14 before the gene-selection fix above —
+the same correction moves it, for the same reason.)
 
 `aligned.bl` in [Downloads](downloads.md) runs the single-sample comparison;
 `exact.bl` runs the full integrated configuration in about three and a half
