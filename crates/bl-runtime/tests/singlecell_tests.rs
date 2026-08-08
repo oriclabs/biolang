@@ -626,6 +626,112 @@ fn test_sc_sctransform_residuals_clipped() {
     }
 }
 
+/// A capped run returns `{matrix, genes}` rather than a bare Matrix, because a
+/// subset of columns cannot be interpreted without the indices it kept.
+fn sct_capped(result: &Value) -> (Vec<Vec<f64>>, Vec<usize>) {
+    let rec = match result {
+        Value::Record(r) => r,
+        other => panic!("expected a Record, got {other:?}"),
+    };
+    let rows = sct_rows(rec.get("matrix").expect("matrix field"));
+    let genes = match rec.get("genes").expect("genes field") {
+        Value::List(l) => l
+            .iter()
+            .map(|v| match v {
+                Value::Int(n) => *n as usize,
+                other => panic!("expected Int, got {other:?}"),
+            })
+            .collect(),
+        other => panic!("expected a List, got {other:?}"),
+    };
+    (rows, genes)
+}
+
+/// Four genes with deliberately different amounts of structure. Gene 0 and gene
+/// 3 vary across cells; genes 1 and 2 are flat, so their residuals barely move
+/// and they are what a variance ranking should drop.
+fn sct_ranking_fixture() -> Vec<Vec<f64>> {
+    vec![
+        vec![100.0, 5.0, 5.0, 0.0],
+        vec![0.0, 5.0, 5.0, 100.0],
+        vec![90.0, 5.0, 5.0, 2.0],
+        vec![1.0, 5.0, 5.0, 90.0],
+        vec![80.0, 5.0, 5.0, 1.0],
+    ]
+}
+
+#[test]
+fn test_sc_sctransform_cap_returns_requested_width() {
+    let result = call_singlecell_builtin(
+        "sc_sctransform",
+        vec![matrix(sct_ranking_fixture()), Value::Int(2)],
+    )
+    .unwrap();
+    let (rows, genes) = sct_capped(&result);
+    assert_eq!(rows.len(), 5, "every cell survives the cap");
+    for row in &rows {
+        assert_eq!(row.len(), 2, "only the requested number of genes");
+    }
+    assert_eq!(genes.len(), 2, "one index per retained column");
+    assert!(genes.windows(2).all(|w| w[0] < w[1]), "indices ascend: {genes:?}");
+}
+
+#[test]
+fn test_sc_sctransform_cap_keeps_the_most_variable_genes() {
+    let result = call_singlecell_builtin(
+        "sc_sctransform",
+        vec![matrix(sct_ranking_fixture()), Value::Int(2)],
+    )
+    .unwrap();
+    let (_, genes) = sct_capped(&result);
+    assert_eq!(
+        genes,
+        vec![0, 3],
+        "genes 1 and 2 are flat across cells and should rank last"
+    );
+}
+
+/// The cap must change *which* columns come back and nothing else. If capping
+/// altered the values it would be a different normalization, not a cheaper one —
+/// and the whole point is that the exact-reproduction script gets the same
+/// numbers for a fifth of the memory.
+#[test]
+fn test_sc_sctransform_cap_does_not_change_the_residuals() {
+    let rows = sct_ranking_fixture();
+    let full = sct_rows(&call_singlecell_builtin("sc_sctransform", vec![matrix(rows.clone())]).unwrap());
+    let (capped, genes) =
+        sct_capped(&call_singlecell_builtin("sc_sctransform", vec![matrix(rows), Value::Int(2)]).unwrap());
+
+    for (i, row) in capped.iter().enumerate() {
+        for (out_j, &j) in genes.iter().enumerate() {
+            assert!(
+                (row[out_j] - full[i][j]).abs() < 1e-12,
+                "cell {i} gene {j}: capped {} vs full {}",
+                row[out_j],
+                full[i][j]
+            );
+        }
+    }
+}
+
+#[test]
+fn test_sc_sctransform_cap_wider_than_input_returns_a_plain_matrix() {
+    // Asking for more genes than exist is not an error and not a subset, so
+    // there is nothing for the index list to say — it stays the Matrix form.
+    for n in [4, 99] {
+        let result = call_singlecell_builtin(
+            "sc_sctransform",
+            vec![matrix(sct_ranking_fixture()), Value::Int(n)],
+        )
+        .unwrap();
+        assert!(
+            matches!(result, Value::Matrix(_)),
+            "n = {n} covers every gene, so no subsetting happened"
+        );
+        assert_eq!(sct_rows(&result)[0].len(), 4);
+    }
+}
+
 #[test]
 fn test_sc_sctransform_empty() {
     let result = call_singlecell_builtin("sc_sctransform", vec![matrix(vec![])]).unwrap();

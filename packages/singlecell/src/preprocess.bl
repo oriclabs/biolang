@@ -57,13 +57,40 @@ fn normalize(obj, target = 10000.0) {
     }
 }
 
-## sctransform(obj) → Record
+## sctransform(obj, n_features) → Record
 ##
 ## Regularised negative-binomial regression (Pearson residuals),
 ## clipped at ±sqrt(n_cells). Adds obj.norm_matrix.
-fn sctransform(obj) {
-    let residuals = sc_sctransform(obj.matrix)
-    {... obj, norm_matrix: residuals}
+##
+## Pearson residuals are dense by construction — `(0 - mu)/sqrt(var)` is not
+## zero — so the result costs `n_cells * n_genes * 8` bytes whatever the input
+## sparsity. At 29,629 cells and 16,681 genes that is 4 GB, and the next step
+## throws most of it away.
+##
+## Pass `n_features` to keep only that many genes, ranked by the variance of
+## their residuals. This is `SCTransform(variable.features.n = ...)`: the same
+## residual values, fewer columns, and the cap applies to the peak rather than
+## just the return value. 3000 features on that object is 711 MB.
+##
+## A capped call also fills obj.hvg, obj.hvg_matrix and obj.hvg_genes, because
+## ranking by residual variance *is* variable-gene selection under this
+## normalization — there is no separate `variable_genes` step to run afterwards.
+fn sctransform(obj, n_features = 0) {
+    if n_features <= 0 {
+        return {... obj, norm_matrix: sc_sctransform(obj.matrix)}
+    }
+    let out = sc_sctransform(obj.matrix, n_features)
+    # Asking for more features than the object has genes is not subsetting, and
+    # the builtin returns a bare matrix in that case.
+    if not is_record(out) {
+        return {... obj, norm_matrix: out}
+    }
+    {... obj,
+        norm_matrix: out.matrix,
+        hvg: out.genes,
+        hvg_matrix: out.matrix,
+        hvg_genes: out.genes |> map(|j| obj.genes[j])
+    }
 }
 
 ## variable_genes(obj, n) → Record
@@ -120,7 +147,7 @@ fn run_pca(obj, n_pcs = 50) {
 ## n_cells × n_genes array — so this raises rather than quietly densifying an
 ## object loaded from a 10x directory. run_pca centers mathematically without
 ## materializing that array and is what production workflows should use.
-fn scale(obj) {
+fn scale(obj, clip = 10.0) {
     if not contains(keys(obj), "norm_matrix") {
         error("sc.scale() needs normalized values — call sc.normalize() first")
     }
@@ -143,8 +170,16 @@ fn scale(obj) {
         sqrt(mean(sq) + 1e-8)
     })
 
+    # Clip after z-scoring, as Seurat's ScaleData does at its default of 10.
+    # Without it a handful of extreme cells dominate the principal components:
+    # a z of 40 contributes 1600 to the variance a component is fitted to, so
+    # PC1 can end up describing four cells rather than a cell type. The cap is
+    # a choice, not a law, which is why it is a parameter.
     let scaled = mat |> map(|row|
-        range(0, n_g) |> map(|j| (row[j] - gene_means[j]) / gene_stds[j])
+        range(0, n_g) |> map(|j| {
+            let z = (row[j] - gene_means[j]) / gene_stds[j]
+            if z > clip { clip } else { if z < 0.0 - clip { 0.0 - clip } else { z } }
+        })
     )
     {... obj, scaled_matrix: scaled}
 }

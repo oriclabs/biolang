@@ -45,7 +45,7 @@ pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
         ("read_10x_sparse", Arity::Range(1, 2)),
         ("cell_cycle_score", Arity::Exact(3)),
         ("module_score", Arity::Exact(2)),
-        ("sc_sctransform", Arity::Exact(1)),
+        ("sc_sctransform", Arity::Range(1, 2)),
         ("sc_integrate", Arity::Exact(2)),
         ("diffusion_pseudotime", Arity::Exact(3)),
         // Cell-cell communication
@@ -3166,7 +3166,7 @@ fn builtin_module_score(args: Vec<Value>) -> Result<Value> {
     Ok(Value::List((scores).into()))
 }
 
-// ── sc_sctransform(matrix) ────────────────────────────────────────────
+// ── sc_sctransform(matrix, n_variable_features?) ──────────────────────
 // Computes Pearson residuals under a simplified negative-binomial model.
 
 /// Pearson residuals under a fixed-overdispersion negative binomial.
@@ -3181,7 +3181,21 @@ fn builtin_module_score(args: Vec<Value>) -> Result<Value> {
 /// allocation failure on a 32 GB machine.
 ///
 /// Now: read the sparse input in place, write one flat `Vec<f64>`, and return a
-/// `Matrix`. Peak is the 4 GB the output genuinely needs.
+/// `Matrix`. Peak is the density the output genuinely needs.
+///
+/// That is still 4 GB for every gene, and the pipeline discards most of it at
+/// the next step — variable-gene selection keeps a couple of thousand columns
+/// and drops the rest. The optional second argument caps the output the way
+/// `SCTransform(variable.features.n = ...)` does: rank genes by the variance of
+/// their residuals, then materialise only the top `n`. Ranking needs two
+/// accumulators per gene rather than a stored column, so the cap applies to the
+/// peak and not just the return value — 16,681 genes down to 3,000 is 4 GB down
+/// to 711 MB. The residual values themselves are unchanged; only which columns
+/// survive.
+///
+/// With one argument the result is a `Matrix`, as before. With two it is a
+/// `Record { matrix, genes }`, because a subset of columns is meaningless
+/// without the indices it kept.
 fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
     let (n_cells, n_genes, get_row): (usize, usize, Box<dyn Fn(usize, &mut Vec<f64>)>) =
         match &args[0] {
@@ -3215,6 +3229,16 @@ fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
             }
         };
 
+    // `n_variable_features`. Absent, non-positive, or wider than the input all
+    // mean "every gene", which is also the shape the one-argument form returns.
+    let want = match args.get(1) {
+        None => None,
+        Some(v) => match require_int(v, "sc_sctransform")? {
+            n if n > 0 && (n as usize) < n_genes => Some(n as usize),
+            _ => None,
+        },
+    };
+
     if n_cells == 0 || n_genes == 0 {
         return Ok(Value::List((vec![]).into()));
     }
@@ -3222,7 +3246,8 @@ fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
     let clip_val = (n_cells as f64).sqrt();
     let theta = 100.0_f64; // fixed overdispersion parameter
 
-    // One pass for the margins, so the second pass can write straight out.
+    // One pass for the margins, so the passes after it can compute a residual
+    // from `(i, j)` alone.
     let mut lib_sizes = vec![0.0f64; n_cells];
     let mut gene_sums = vec![0.0f64; n_genes];
     let mut row = Vec::with_capacity(n_genes);
@@ -3237,25 +3262,77 @@ fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
     }
     let total = gene_sums.iter().sum::<f64>().max(1e-10);
 
-    let mut flat = vec![0.0f64; n_cells * n_genes];
+    let residual = |i: usize, j: usize, count: f64| -> f64 {
+        let mu = lib_sizes[i] * gene_sums[j] / total;
+        let variance = mu + mu * mu / theta;
+        let r = if variance > 1e-12 {
+            (count - mu) / variance.sqrt()
+        } else {
+            0.0
+        };
+        r.clamp(-clip_val, clip_val)
+    };
+
+    // Which columns to keep. Ranking by residual variance costs one extra pass
+    // over the input and two f64 per gene; storing every column to rank them
+    // would cost the whole dense matrix, which is the thing being avoided.
+    let keep: Vec<usize> = match want {
+        None => (0..n_genes).collect(),
+        Some(n) => {
+            let mut sum = vec![0.0f64; n_genes];
+            let mut sum_sq = vec![0.0f64; n_genes];
+            for i in 0..n_cells {
+                get_row(i, &mut row);
+                for j in 0..n_genes {
+                    let r = residual(i, j, row[j]);
+                    sum[j] += r;
+                    sum_sq[j] += r * r;
+                }
+            }
+            let denom = n_cells as f64;
+            let mut ranked: Vec<(usize, f64)> = (0..n_genes)
+                .map(|j| {
+                    let mean = sum[j] / denom;
+                    (j, (sum_sq[j] / denom - mean * mean).max(0.0))
+                })
+                .collect();
+            // Descending by variance, then by index, so ties resolve the same
+            // way on every run rather than however the sort happens to land.
+            ranked.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(&b.0)));
+            ranked.truncate(n);
+            let mut kept: Vec<usize> = ranked.into_iter().map(|(j, _)| j).collect();
+            kept.sort_unstable();
+            kept
+        }
+    };
+
+    let n_out = keep.len();
+    let mut flat = vec![0.0f64; n_cells * n_out];
     for i in 0..n_cells {
         get_row(i, &mut row);
-        let base = i * n_genes;
-        for j in 0..n_genes {
-            let mu = lib_sizes[i] * gene_sums[j] / total;
-            let variance = mu + mu * mu / theta;
-            let residual = if variance > 1e-12 {
-                (row[j] - mu) / variance.sqrt()
-            } else {
-                0.0
-            };
-            flat[base + j] = residual.clamp(-clip_val, clip_val);
+        let base = i * n_out;
+        for (out_j, &j) in keep.iter().enumerate() {
+            flat[base + out_j] = residual(i, j, row[j]);
         }
     }
 
-    let m = bl_core::matrix::Matrix::new(flat, n_cells, n_genes)
+    let m = bl_core::matrix::Matrix::new(flat, n_cells, n_out)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, &e, None))?;
-    Ok(Value::Matrix(m))
+    if want.is_none() {
+        return Ok(Value::Matrix(m));
+    }
+    let mut result = HashMap::new();
+    result.insert("matrix".to_string(), Value::Matrix(m));
+    result.insert(
+        "genes".to_string(),
+        Value::List(
+            keep.into_iter()
+                .map(|j| Value::Int(j as i64))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
+    );
+    Ok(Value::Record(result.into()))
 }
 
 // ── sc_integrate(matrix, batch_ids) ──────────────────────────────────

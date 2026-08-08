@@ -74,9 +74,9 @@ fn filter_cells(obj, min_genes = 200, max_genes = 5000, max_pct_mito = 25.0) {
 }
 fn filter_genes(obj, min_cells = 3)      { _pre.filter_genes(obj, min_cells) }
 fn normalize(obj, target = 10000.0)      { _pre.normalize(obj, target) }
-fn sctransform(obj)                      { _pre.sctransform(obj) }
+fn sctransform(obj, n_features = 0)      { _pre.sctransform(obj, n_features) }
 fn variable_genes(obj, n = 2000)         { _pre.variable_genes(obj, n) }
-fn scale(obj)                            { _pre.scale(obj) }
+fn scale(obj, clip = 10.0)                            { _pre.scale(obj, clip) }
 fn run_pca(obj, n_pcs = 50)              { _pre.run_pca(obj, n_pcs) }
 fn neighbors(obj, k = 15)               { _pre.neighbors(obj, k) }
 fn cluster(obj, k = 0)                   { _pre.cluster(obj, k) }
