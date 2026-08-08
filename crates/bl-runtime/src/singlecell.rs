@@ -30,6 +30,7 @@ pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
         ("gene_qc", Arity::Range(1, 2)),
         ("knn_graph", Arity::Range(1, 2)),
         ("leiden_cluster", Arity::Range(2, 3)),
+        ("louvain_cluster", Arity::Range(2, 3)),
         ("leiden_graph", Arity::Exact(3)),
         ("select_rows", Arity::Exact(2)),
         ("select_cols", Arity::Exact(2)),
@@ -83,6 +84,7 @@ pub fn is_singlecell_builtin(name: &str) -> bool {
             | "gene_qc"
             | "knn_graph"
             | "leiden_cluster"
+            | "louvain_cluster"
             | "leiden_graph"
             | "select_rows"
             | "select_cols"
@@ -127,6 +129,7 @@ pub fn call_singlecell_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "gene_qc" => builtin_gene_qc(args),
         "knn_graph" => builtin_knn_graph(args),
         "leiden_cluster" => builtin_leiden_cluster(args),
+        "louvain_cluster" => builtin_louvain_cluster(args),
         "leiden_graph" => builtin_leiden_graph(args),
         "select_rows" => builtin_select_rows(args),
         "select_cols" => builtin_select_cols(args),
@@ -2240,6 +2243,133 @@ fn builtin_leiden_cluster(args: Vec<Value>) -> Result<Value> {
 }
 
 // ── doublet_score(matrix, n_simulated=500) ───────────────────────────
+
+/// Louvain on a kNN graph built from an embedding.
+///
+/// The counterpart to `leiden_cluster`, for reproducing analyses done with
+/// Seurat, whose `FindClusters` defaults to `algorithm = 1` — Louvain — in
+/// v5.5.1 as in every earlier version. See `louvain_sparse` in bio-core for why
+/// the difference matters and why it is not "fixed" here.
+///
+/// Resolution defaults to 0.8, Seurat's default, rather than the 1.0 that
+/// Leiden convention uses.
+fn builtin_louvain_cluster(args: Vec<Value>) -> Result<Value> {
+    let embeddings = require_matrix(&args[0], "louvain_cluster")?;
+    let k = require_int(&args[1], "louvain_cluster")? as usize;
+    let resolution = if args.len() > 2 {
+        to_f64(&args[2]).unwrap_or(0.8)
+    } else {
+        0.8
+    };
+
+    let n = embeddings.len();
+    if n == 0 {
+        return Ok(Value::List((vec![]).into()));
+    }
+    let edges = builtin_knn_graph(vec![matrix_to_value(embeddings), Value::Int(k as i64)])?;
+    let adjacency = leiden_adjacency(&edges, n, "louvain_cluster")?;
+    let labels = bl_core::bio_core::cluster_ops::louvain_sparse(&adjacency, resolution);
+    Ok(Value::List(
+        labels
+            .into_iter()
+            .map(|label| Value::Int(label as i64))
+            .collect::<Vec<_>>()
+            .into(),
+    ))
+}
+
+/// Turn an edge list into a sorted sparse adjacency.
+///
+/// Shared by `leiden_graph` and `louvain_cluster` so the two cannot drift:
+/// they differ only in which community-detection call consumes the result.
+fn leiden_adjacency(edges: &Value, n_nodes: usize, who: &str) -> Result<Vec<Vec<(usize, f64)>>> {
+    let edges = match edges {
+        Value::List(edges) => edges,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("{who}() edges must be List<Record>, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+    let mut undirected: HashMap<(usize, usize), f64> = HashMap::new();
+    for edge in edges.iter() {
+        let record = match edge {
+            Value::Record(record) => record,
+            other => {
+                return Err(BioLangError::type_error(
+                    format!(
+                        "leiden_graph() edges must be Records, got {}",
+                        other.type_of()
+                    ),
+                    None,
+                ))
+            }
+        };
+        let source = record
+            .get("source")
+            .and_then(|value| match value {
+                Value::Int(index) if *index >= 0 => Some(*index as usize),
+                _ => None,
+            })
+            .ok_or_else(|| {
+                BioLangError::type_error(
+                    "leiden_graph() each edge requires a non-negative Int source",
+                    None,
+                )
+            })?;
+        let target = record
+            .get("target")
+            .and_then(|value| match value {
+                Value::Int(index) if *index >= 0 => Some(*index as usize),
+                _ => None,
+            })
+            .ok_or_else(|| {
+                BioLangError::type_error(
+                    "leiden_graph() each edge requires a non-negative Int target",
+                    None,
+                )
+            })?;
+        if source >= n_nodes || target >= n_nodes {
+            return Err(BioLangError::runtime(
+                ErrorKind::IndexOutOfBounds,
+                format!("leiden_graph() edge ({source}, {target}) is outside {n_nodes} nodes"),
+                None,
+            ));
+        }
+        if source == target {
+            continue;
+        }
+        let weight = if let Some(weight) = record.get("weight").and_then(to_f64) {
+            weight
+        } else {
+            let distance = record.get("distance").and_then(to_f64).unwrap_or(0.0);
+            1.0 / (1.0 + distance.max(0.0))
+        };
+        if !weight.is_finite() || weight <= 0.0 {
+            continue;
+        }
+        let pair = if source < target {
+            (source, target)
+        } else {
+            (target, source)
+        };
+        undirected
+            .entry(pair)
+            .and_modify(|stored| *stored = stored.max(weight))
+            .or_insert(weight);
+    }
+
+    let mut adjacency = vec![Vec::new(); n_nodes];
+    for ((source, target), weight) in undirected {
+        adjacency[source].push((target, weight));
+        adjacency[target].push((source, weight));
+    }
+    for neighbors in &mut adjacency {
+        neighbors.sort_by_key(|(neighbor, _)| *neighbor);
+    }
+    Ok(adjacency)
+}
 
 fn builtin_leiden_graph(args: Vec<Value>) -> Result<Value> {
     let edges = match &args[0] {

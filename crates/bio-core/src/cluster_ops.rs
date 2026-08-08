@@ -231,6 +231,66 @@ fn relabel(labels: &[usize]) -> Vec<usize> {
 ///
 /// This follows the same local-move, refinement, and aggregation phases as
 /// [`leiden`] without materializing an n-by-n adjacency matrix.
+/// Louvain community detection on a sparse graph (Blondel et al. 2008).
+///
+/// `leiden_sparse` minus the refinement pass: local moving, then aggregate,
+/// until the graph stops shrinking. That single omission is the whole
+/// difference between the two, and it is why they disagree on real data —
+/// Leiden's refinement guarantees each returned community is internally
+/// connected, and Louvain's does not.
+///
+/// This is exposed because Seurat's `FindClusters` defaults to
+/// `algorithm = 1`, which is Louvain, in v5.5.1 as in every version before it.
+/// A great deal of published single-cell work therefore used Louvain, and
+/// comparing against those results means running the same algorithm rather
+/// than a better one.
+///
+/// Prefer `leiden_sparse` for new work: Louvain can return a community made of
+/// two pieces with no edge between them, which is the defect Leiden was written
+/// to fix. That behaviour is preserved here deliberately — a "fixed" Louvain
+/// would not reproduce what it is being used to reproduce.
+///
+/// Deterministic: nodes are visited in index order. Seurat's Louvain takes
+/// `n.start = 10` random restarts and keeps the best, so it explores more of
+/// the space; this will land on a similar but not always identical partition.
+pub fn louvain_sparse(adjacency: &[Vec<(usize, f64)>], resolution: f64) -> Vec<usize> {
+    let n = adjacency.len();
+    if n == 0 {
+        return vec![];
+    }
+    let degrees: Vec<f64> = adjacency
+        .iter()
+        .map(|neighbors| neighbors.iter().map(|(_, weight)| weight).sum())
+        .collect();
+    let m = degrees.iter().sum::<f64>() / 2.0;
+    if m == 0.0 {
+        return (0..n).collect();
+    }
+
+    let mut graph = adjacency.to_vec();
+    let mut graph_degrees = degrees;
+    let mut original_nodes: Vec<Vec<usize>> = (0..n).map(|node| vec![node]).collect();
+
+    loop {
+        let partition = sparse_local_move(&graph, &graph_degrees, resolution, m);
+        let n_new = partition.iter().copied().max().unwrap_or(0) + 1;
+        if n_new == graph.len() {
+            let mut label = vec![0usize; n];
+            for (super_node, members) in original_nodes.iter().enumerate() {
+                for &node in members {
+                    label[node] = partition[super_node];
+                }
+            }
+            return relabel(&label);
+        }
+        let (next_graph, next_degrees, next_original) =
+            sparse_aggregate(&graph, &graph_degrees, &original_nodes, &partition, n_new);
+        graph = next_graph;
+        graph_degrees = next_degrees;
+        original_nodes = next_original;
+    }
+}
+
 pub fn leiden_sparse(adjacency: &[Vec<(usize, f64)>], resolution: f64) -> Vec<usize> {
     let n = adjacency.len();
     if n == 0 {
