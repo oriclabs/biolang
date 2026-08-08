@@ -77,17 +77,10 @@ fn normalize(obj, target = 10000.0) {
 ## ranking by residual variance *is* variable-gene selection under this
 ## normalization — there is no separate `variable_genes` step to run afterwards.
 fn sctransform(obj, n_features = 0) {
-    if n_features <= 0 {
-        return {... obj,
-            norm_matrix: sc_sctransform(obj.matrix),
-            norm_method: "sctransform"}
-    }
+    # Always returns {matrix, genes}. Genes detected in too few cells cannot
+    # support an overdispersion estimate and are dropped whether or not a
+    # feature cap was requested, so the surviving indices are never optional.
     let out = sc_sctransform(obj.matrix, n_features)
-    # Asking for more features than the object has genes is not subsetting, and
-    # the builtin returns a bare matrix in that case.
-    if not is_record(out) {
-        return {... obj, norm_matrix: out, norm_method: "sctransform"}
-    }
     {... obj,
         norm_matrix: out.matrix,
         norm_method: "sctransform",

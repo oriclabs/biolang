@@ -1,4 +1,4 @@
-use bl_core::sparse_matrix::SparseMatrix;
+﻿use bl_core::sparse_matrix::SparseMatrix;
 use bl_core::value::{Table, Value};
 use bl_runtime::singlecell::call_singlecell_builtin;
 use std::collections::HashMap;
@@ -782,67 +782,27 @@ fn test_module_score_empty_indices() {
     assert!((as_float(&scores[0]) - 0.0).abs() < 1e-9);
 }
 
-// ─── sc_sctransform ──────────────────────────────────────────────────────────
 
-/// Residuals as rows. `sc_sctransform` returns a Matrix rather than nested
-/// Lists: the result is dense by construction, and boxing every element into a
-/// Value cost roughly three times the flat form, which is what made it run out
-/// of memory on a real integrated object.
-fn sct_rows(result: &Value) -> Vec<Vec<f64>> {
-    match result {
+// ─── sc_sctransform ──────────────────────────────────────────────────────────
+//
+// The builtin always returns `{matrix, genes}`. Genes detected in too few cells
+// cannot support an overdispersion estimate and are dropped, so which columns
+// survived is never optional information — the previous shape, a bare Matrix
+// assumed to line up with the input gene axis, could not express that.
+
+fn sct_result(value: &Value) -> (Vec<Vec<f64>>, Vec<usize>) {
+    let record = match value {
+        Value::Record(record) => record,
+        other => panic!("expected a Record, got {other:?}"),
+    };
+    let rows = match record.get("matrix").expect("matrix field") {
         Value::Matrix(m) => (0..m.nrow)
             .map(|i| (0..m.ncol).map(|j| m.data[i * m.ncol + j]).collect())
             .collect(),
         other => panic!("expected a Matrix, got {other:?}"),
-    }
-}
-
-#[test]
-fn test_sc_sctransform_shape_preserved() {
-    let mat = matrix(vec![
-        vec![10.0, 0.0, 5.0],
-        vec![0.0, 20.0, 3.0],
-        vec![8.0, 8.0, 8.0],
-        vec![2.0, 2.0, 2.0],
-    ]);
-    let result = call_singlecell_builtin("sc_sctransform", vec![mat]).unwrap();
-    let rows = sct_rows(&result);
-    assert_eq!(rows.len(), 4, "same number of cells");
-    for row in &rows {
-        assert_eq!(row.len(), 3, "same number of genes");
-    }
-}
-
-#[test]
-fn test_sc_sctransform_residuals_clipped() {
-    // 100 cells, 1 gene — one cell has enormous count
-    let mut rows: Vec<Vec<f64>> = vec![vec![1.0]; 99];
-    rows.push(vec![100_000.0]); // last cell huge
-    let mat = matrix(rows);
-    let n_cells = 100;
-
-    let result = call_singlecell_builtin("sc_sctransform", vec![mat]).unwrap();
-    let vals = sct_rows(&result);
-    let clip = (n_cells as f64).sqrt();
-    for row in &vals {
-        let f = row[0];
-        assert!(
-            f <= clip + 1e-6 && f >= -clip - 1e-6,
-            "residual {f} outside clip range ±{clip}"
-        );
-    }
-}
-
-/// A capped run returns `{matrix, genes}` rather than a bare Matrix, because a
-/// subset of columns cannot be interpreted without the indices it kept.
-fn sct_capped(result: &Value) -> (Vec<Vec<f64>>, Vec<usize>) {
-    let rec = match result {
-        Value::Record(r) => r,
-        other => panic!("expected a Record, got {other:?}"),
     };
-    let rows = sct_rows(rec.get("matrix").expect("matrix field"));
-    let genes = match rec.get("genes").expect("genes field") {
-        Value::List(l) => l
+    let genes = match record.get("genes").expect("genes field") {
+        Value::List(values) => values
             .iter()
             .map(|v| match v {
                 Value::Int(n) => *n as usize,
@@ -854,89 +814,111 @@ fn sct_capped(result: &Value) -> (Vec<Vec<f64>>, Vec<usize>) {
     (rows, genes)
 }
 
-/// Four genes with deliberately different amounts of structure. Gene 0 and gene
-/// 3 vary across cells; genes 1 and 2 are flat, so their residuals barely move
-/// and they are what a variance ranking should drop.
-fn sct_ranking_fixture() -> Vec<Vec<f64>> {
-    vec![
-        vec![100.0, 5.0, 5.0, 0.0],
-        vec![0.0, 5.0, 5.0, 100.0],
-        vec![90.0, 5.0, 5.0, 2.0],
-        vec![1.0, 5.0, 5.0, 90.0],
-        vec![80.0, 5.0, 5.0, 1.0],
-    ]
+/// Enough cells to actually fit an overdispersion — the method needs a gene
+/// detected in at least a handful of cells before it will model it at all, so
+/// four-cell fixtures return nothing and test nothing.
+///
+/// Genes 0 and 1 are switched on in the first half of the cells only. Genes 2
+/// to 7 track sequencing depth, which is what the model expects of a gene with
+/// no biology in it.
+fn sct_fixture() -> Vec<Vec<f64>> {
+    let n_cells = 120;
+    (0..n_cells)
+        .map(|cell| {
+            // Depth varies threefold across cells, so "scales with depth" and
+            // "is constant" are genuinely different behaviours here.
+            let depth = 1.0 + 2.0 * (cell as f64 / n_cells as f64);
+            (0..8)
+                .map(|gene| {
+                    let base = if gene < 2 && cell < n_cells / 2 { 30.0 } else { 4.0 };
+                    ((base * depth) + ((cell * (gene + 1)) % 3) as f64).round()
+                })
+                .collect()
+        })
+        .collect()
 }
 
 #[test]
-fn test_sc_sctransform_cap_returns_requested_width() {
-    let result = call_singlecell_builtin(
-        "sc_sctransform",
-        vec![matrix(sct_ranking_fixture()), Value::Int(2)],
-    )
-    .unwrap();
-    let (rows, genes) = sct_capped(&result);
-    assert_eq!(rows.len(), 5, "every cell survives the cap");
+fn test_sc_sctransform_returns_a_residual_per_cell_per_surviving_gene() {
+    let result =
+        call_singlecell_builtin("sc_sctransform", vec![matrix(sct_fixture())]).unwrap();
+    let (rows, genes) = sct_result(&result);
+    assert_eq!(rows.len(), 120, "one row per cell");
+    assert!(!genes.is_empty(), "every gene was filtered out");
     for row in &rows {
-        assert_eq!(row.len(), 2, "only the requested number of genes");
+        assert_eq!(row.len(), genes.len(), "row width must match the gene list");
     }
-    assert_eq!(genes.len(), 2, "one index per retained column");
     assert!(genes.windows(2).all(|w| w[0] < w[1]), "indices ascend: {genes:?}");
-}
-
-#[test]
-fn test_sc_sctransform_cap_keeps_the_most_variable_genes() {
-    let result = call_singlecell_builtin(
-        "sc_sctransform",
-        vec![matrix(sct_ranking_fixture()), Value::Int(2)],
-    )
-    .unwrap();
-    let (_, genes) = sct_capped(&result);
-    assert_eq!(
-        genes,
-        vec![0, 3],
-        "genes 1 and 2 are flat across cells and should rank last"
+    assert!(
+        rows.iter().flatten().any(|&r| r != 0.0),
+        "every residual was zero"
     );
 }
 
-/// The cap must change *which* columns come back and nothing else. If capping
-/// altered the values it would be a different normalization, not a cheaper one —
-/// and the whole point is that the exact-reproduction script gets the same
-/// numbers for a fifth of the memory.
+/// Residuals are clipped at sqrt(n_cells / 30), which is the published default
+/// and five times tighter than the sqrt(n_cells) this used to apply.
 #[test]
-fn test_sc_sctransform_cap_does_not_change_the_residuals() {
-    let rows = sct_ranking_fixture();
-    let full = sct_rows(&call_singlecell_builtin("sc_sctransform", vec![matrix(rows.clone())]).unwrap());
-    let (capped, genes) =
-        sct_capped(&call_singlecell_builtin("sc_sctransform", vec![matrix(rows), Value::Int(2)]).unwrap());
+fn test_sc_sctransform_residuals_are_clipped_at_the_published_default() {
+    let mut rows = sct_fixture();
+    // One cell with an absurd count, to push against the ceiling.
+    rows[0][0] = 500_000.0;
+    let n_cells = rows.len();
+    let result = call_singlecell_builtin("sc_sctransform", vec![matrix(rows)]).unwrap();
+    let (residuals, _) = sct_result(&result);
 
-    for (i, row) in capped.iter().enumerate() {
-        for (out_j, &j) in genes.iter().enumerate() {
+    let clip = (n_cells as f64 / 30.0).sqrt();
+    for row in &residuals {
+        for &value in row {
             assert!(
-                (row[out_j] - full[i][j]).abs() < 1e-12,
-                "cell {i} gene {j}: capped {} vs full {}",
-                row[out_j],
-                full[i][j]
+                value.abs() <= clip + 1e-9,
+                "residual {value} escaped the clip of {clip}"
+            );
+        }
+    }
+    assert!(
+        residuals.iter().flatten().any(|&r| r.abs() > clip - 1e-6),
+        "nothing reached the clip, so this proves nothing"
+    );
+}
+
+/// Capping picks by residual variance and must not disturb the values.
+#[test]
+fn test_sc_sctransform_cap_selects_without_changing_residuals() {
+    let rows = sct_fixture();
+    let (full, full_genes) =
+        sct_result(&call_singlecell_builtin("sc_sctransform", vec![matrix(rows.clone())]).unwrap());
+    let (capped, capped_genes) = sct_result(
+        &call_singlecell_builtin("sc_sctransform", vec![matrix(rows), Value::Int(3)]).unwrap(),
+    );
+
+    assert_eq!(capped_genes.len(), 3, "asked for three genes");
+    for (out, gene) in capped_genes.iter().enumerate() {
+        let source = full_genes
+            .iter()
+            .position(|g| g == gene)
+            .expect("a capped gene that the full run did not return");
+        for cell in 0..capped.len() {
+            assert!(
+                (capped[cell][out] - full[cell][source]).abs() < 1e-12,
+                "cell {cell} gene {gene}: capped {} vs full {}",
+                capped[cell][out],
+                full[cell][source]
             );
         }
     }
 }
 
+/// Asking for more features than survive filtering is not an error, and must
+/// not silently return fewer than the unrestricted run.
 #[test]
-fn test_sc_sctransform_cap_wider_than_input_returns_a_plain_matrix() {
-    // Asking for more genes than exist is not an error and not a subset, so
-    // there is nothing for the index list to say — it stays the Matrix form.
-    for n in [4, 99] {
-        let result = call_singlecell_builtin(
-            "sc_sctransform",
-            vec![matrix(sct_ranking_fixture()), Value::Int(n)],
-        )
-        .unwrap();
-        assert!(
-            matches!(result, Value::Matrix(_)),
-            "n = {n} covers every gene, so no subsetting happened"
-        );
-        assert_eq!(sct_rows(&result)[0].len(), 4);
-    }
+fn test_sc_sctransform_cap_wider_than_the_data_keeps_everything() {
+    let rows = sct_fixture();
+    let (_, all) =
+        sct_result(&call_singlecell_builtin("sc_sctransform", vec![matrix(rows.clone())]).unwrap());
+    let (_, asked) = sct_result(
+        &call_singlecell_builtin("sc_sctransform", vec![matrix(rows), Value::Int(999)]).unwrap(),
+    );
+    assert_eq!(all, asked);
 }
 
 #[test]
@@ -945,16 +927,14 @@ fn test_sc_sctransform_empty() {
     assert_eq!(result, Value::List((vec![]).into()));
 }
 
+/// An all-zero matrix has no gene worth modelling, so the answer is an empty
+/// gene list rather than a wall of NaN from dividing by a zero variance.
 #[test]
-fn test_sc_sctransform_zero_matrix() {
-    // All-zero input → all-zero residuals (mu = 0, residual = 0)
+fn test_sc_sctransform_zero_matrix_returns_no_genes() {
     let mat = matrix(vec![vec![0.0, 0.0], vec![0.0, 0.0]]);
     let result = call_singlecell_builtin("sc_sctransform", vec![mat]).unwrap();
-    for row in sct_rows(&result) {
-        for v in row {
-            assert!((v - 0.0).abs() < 1e-9);
-        }
-    }
+    let (_, genes) = sct_result(&result);
+    assert!(genes.is_empty(), "modelled a gene that is zero everywhere");
 }
 
 // ─── sc_integrate ─────────────────────────────────────────────────────────────

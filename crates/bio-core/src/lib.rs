@@ -1,4 +1,4 @@
-pub mod aligned_read;
+﻿pub mod aligned_read;
 pub mod alignment;
 pub mod cluster_ops;
 pub mod coord;
@@ -15,6 +15,7 @@ pub mod interval_ops;
 pub mod kmer;
 pub mod phylo_ops;
 pub mod reversal;
+pub mod sctransform;
 pub mod seq_ops;
 pub mod sequence;
 pub mod spectrum;

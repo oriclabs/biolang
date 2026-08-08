@@ -3570,96 +3570,51 @@ fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
         return Ok(Value::List((vec![]).into()));
     }
 
-    let clip_val = (n_cells as f64).sqrt();
-    let theta = 100.0_f64; // fixed overdispersion parameter
-
-    // One pass for the margins, so the passes after it can compute a residual
-    // from `(i, j)` alone.
-    let mut lib_sizes = vec![0.0f64; n_cells];
-    let mut gene_sums = vec![0.0f64; n_genes];
-    let mut row = Vec::with_capacity(n_genes);
-    for i in 0..n_cells {
-        get_row(i, &mut row);
-        let mut total = 0.0;
-        for (j, &v) in row.iter().enumerate() {
-            total += v;
-            gene_sums[j] += v;
-        }
-        lib_sizes[i] = total;
-    }
-    let total = gene_sums.iter().sum::<f64>().max(1e-10);
-
-    let residual = |i: usize, j: usize, count: f64| -> f64 {
-        let mu = lib_sizes[i] * gene_sums[j] / total;
-        let variance = mu + mu * mu / theta;
-        let r = if variance > 1e-12 {
-            (count - mu) / variance.sqrt()
-        } else {
-            0.0
-        };
-        r.clamp(-clip_val, clip_val)
-    };
-
-    // Which columns to keep. Ranking by residual variance costs one extra pass
-    // over the input and two f64 per gene; storing every column to rank them
-    // would cost the whole dense matrix, which is the thing being avoided.
-    let keep: Vec<usize> = match want {
-        None => (0..n_genes).collect(),
-        Some(n) => {
-            let mut sum = vec![0.0f64; n_genes];
-            let mut sum_sq = vec![0.0f64; n_genes];
-            for i in 0..n_cells {
-                get_row(i, &mut row);
-                for j in 0..n_genes {
-                    let r = residual(i, j, row[j]);
-                    sum[j] += r;
-                    sum_sq[j] += r * r;
+    // The regularized model, which is the method as published. Genes get an
+    // overdispersion estimated from their own counts and then smoothed against
+    // expression, rather than one number asserted for all of them.
+    {
+        use bl_core::bio_core::sctransform::{sctransform, GeneColumns, SctOptions};
+        let mut columns: Vec<Vec<(usize, f64)>> = vec![Vec::new(); n_genes];
+        let mut row = Vec::with_capacity(n_genes);
+        for cell in 0..n_cells {
+            get_row(cell, &mut row);
+            for (gene, &count) in row.iter().enumerate() {
+                if count != 0.0 {
+                    columns[gene].push((cell, count));
                 }
             }
-            let denom = n_cells as f64;
-            let mut ranked: Vec<(usize, f64)> = (0..n_genes)
-                .map(|j| {
-                    let mean = sum[j] / denom;
-                    (j, (sum_sq[j] / denom - mean * mean).max(0.0))
-                })
-                .collect();
-            // Descending by variance, then by index, so ties resolve the same
-            // way on every run rather than however the sort happens to land.
-            ranked.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(&b.0)));
-            ranked.truncate(n);
-            let mut kept: Vec<usize> = ranked.into_iter().map(|(j, _)| j).collect();
-            kept.sort_unstable();
-            kept
         }
-    };
-
-    let n_out = keep.len();
-    let mut flat = vec![0.0f64; n_cells * n_out];
-    for i in 0..n_cells {
-        get_row(i, &mut row);
-        let base = i * n_out;
-        for (out_j, &j) in keep.iter().enumerate() {
-            flat[base + out_j] = residual(i, j, row[j]);
-        }
-    }
-
-    let m = bl_core::matrix::Matrix::new(flat, n_cells, n_out)
-        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, &e, None))?;
-    if want.is_none() {
-        return Ok(Value::Matrix(m.into()));
-    }
-    let mut result = HashMap::new();
-    result.insert("matrix".to_string(), Value::Matrix(m.into()));
-    result.insert(
-        "genes".to_string(),
-        Value::List(
-            keep.into_iter()
-                .map(|j| Value::Int(j as i64))
-                .collect::<Vec<_>>()
-                .into(),
-        ),
-    );
-    Ok(Value::Record(result.into()))
+        let data = GeneColumns { n_cells, columns };
+        let options = SctOptions {
+            n_variable_features: want,
+            ..Default::default()
+        };
+        let result = sctransform(&data, &options);
+        let width = result.kept_genes.len();
+        let matrix = bl_core::matrix::Matrix::new(result.residuals, n_cells, width)
+            .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, &e, None))?;
+        // Always paired with the gene indices, even uncapped. The model needs a
+        // handful of observations per gene to estimate an overdispersion at all,
+        // so genes detected in fewer than `min_cells` cells are dropped whether
+        // or not a feature cap was asked for. Returning a narrower matrix with
+        // no way to tell which columns survived would be the kind of quiet
+        // mismatch that shows up three steps later as a wrong gene name.
+        let mut record = HashMap::new();
+        record.insert("matrix".to_string(), Value::Matrix(matrix.into()));
+        record.insert(
+            "genes".to_string(),
+            Value::List(
+                result
+                    .kept_genes
+                    .into_iter()
+                    .map(|gene| Value::Int(gene as i64))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        );
+        return Ok(Value::Record(record.into()));
+}
 }
 
 // â”€â”€ sc_integrate(matrix, batch_ids) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
