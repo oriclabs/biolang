@@ -29,6 +29,8 @@ pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
         ("cell_qc", Arity::Range(1, 3)),
         ("gene_qc", Arity::Range(1, 2)),
         ("knn_graph", Arity::Range(1, 2)),
+        ("snn_graph", Arity::Range(1, 3)),
+        ("louvain_graph", Arity::Range(3, 4)),
         ("leiden_cluster", Arity::Range(2, 3)),
         ("louvain_cluster", Arity::Range(2, 3)),
         ("leiden_graph", Arity::Exact(3)),
@@ -83,6 +85,8 @@ pub fn is_singlecell_builtin(name: &str) -> bool {
             | "cell_qc"
             | "gene_qc"
             | "knn_graph"
+            | "snn_graph"
+            | "louvain_graph"
             | "leiden_cluster"
             | "louvain_cluster"
             | "leiden_graph"
@@ -128,6 +132,8 @@ pub fn call_singlecell_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "cell_qc" => builtin_cell_qc(args),
         "gene_qc" => builtin_gene_qc(args),
         "knn_graph" => builtin_knn_graph(args),
+        "snn_graph" => builtin_snn_graph(args),
+        "louvain_graph" => builtin_louvain_graph(args),
         "leiden_cluster" => builtin_leiden_cluster(args),
         "louvain_cluster" => builtin_louvain_cluster(args),
         "leiden_graph" => builtin_leiden_graph(args),
@@ -2590,6 +2596,110 @@ fn builtin_knn_graph(args: Vec<Value>) -> Result<Value> {
     Ok(Value::List((edges).into()))
 }
 
+// ── snn_graph(embeddings, k=15, prune=1/15) ──────────────────────────
+
+/// Shared-nearest-neighbour graph with Jaccard weights.
+///
+/// The graph community detection actually wants. A kNN edge says "these two
+/// cells are close"; an SNN edge says "these two cells sit in the same
+/// neighbourhood", which is a far stronger statement and the one that survives
+/// high dimensions. As dimensionality grows the distances from a point to its
+/// nearest and its furthest neighbour converge, so proximity alone stops
+/// discriminating exactly where single-cell data lives. Neighbourhood overlap
+/// does not degrade that way: two cells of the same type keep sharing
+/// neighbours however many dimensions you measure them in.
+///
+/// For each pair, the weight is `|N(i) ∩ N(j)| / |N(i) ∪ N(j)|` over the
+/// neighbour sets, each of which includes the cell itself — a cell is in its
+/// own neighbourhood, and leaving it out makes two cells that are each other's
+/// sole neighbour score zero. Edges at or below `prune` are dropped entirely,
+/// which is where most of the graph goes: chance adjacencies score low and
+/// removing them is what stops communities bleeding into each other.
+///
+/// `prune` defaults to 1/15, matching `FindNeighbors(prune.SNN = 1/15)`.
+fn builtin_snn_graph(args: Vec<Value>) -> Result<Value> {
+    let embeddings = require_matrix(&args[0], "snn_graph")?;
+    let k = if args.len() > 1 {
+        require_int(&args[1], "snn_graph")? as usize
+    } else {
+        15
+    };
+    let prune = if args.len() > 2 {
+        to_f64(&args[2]).unwrap_or(1.0 / 15.0)
+    } else {
+        1.0 / 15.0
+    };
+
+    let n = embeddings.len();
+    if n == 0 {
+        return Ok(Value::List((vec![]).into()));
+    }
+    let k_actual = k.min(n.saturating_sub(1));
+
+    let dist = |a: &[f64], b: &[f64]| -> f64 {
+        a.iter()
+            .zip(b.iter())
+            .map(|(x, y)| (x - y) * (x - y))
+            .sum::<f64>()
+    };
+
+    // Neighbour sets, each including the cell itself.
+    let mut neighbours: Vec<Vec<usize>> = Vec::with_capacity(n);
+    for i in 0..n {
+        let mut dists: Vec<(usize, f64)> = (0..n)
+            .filter(|&j| j != i)
+            .map(|j| (j, dist(&embeddings[i], &embeddings[j])))
+            .collect();
+        dists.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
+        let mut set: Vec<usize> = std::iter::once(i)
+            .chain(dists.into_iter().take(k_actual).map(|(j, _)| j))
+            .collect();
+        set.sort_unstable();
+        neighbours.push(set);
+    }
+
+    // Inverted index: which cells count `v` among their neighbours. Without it
+    // finding the pairs that share anything means comparing every cell to every
+    // other, which is the cost this whole structure exists to avoid.
+    let mut listed_by: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (cell, set) in neighbours.iter().enumerate() {
+        for &member in set {
+            listed_by[member].push(cell);
+        }
+    }
+
+    let mut edges: Vec<Value> = Vec::new();
+    let mut shared: HashMap<usize, usize> = HashMap::new();
+    for i in 0..n {
+        shared.clear();
+        for &member in &neighbours[i] {
+            for &other in &listed_by[member] {
+                // Each undirected pair once.
+                if other > i {
+                    *shared.entry(other).or_insert(0) += 1;
+                }
+            }
+        }
+        for (&j, &count) in shared.iter() {
+            let union = neighbours[i].len() + neighbours[j].len() - count;
+            if union == 0 {
+                continue;
+            }
+            let jaccard = count as f64 / union as f64;
+            if jaccard <= prune {
+                continue;
+            }
+            let mut rec = HashMap::new();
+            rec.insert("source".to_string(), Value::Int(i as i64));
+            rec.insert("target".to_string(), Value::Int(j as i64));
+            rec.insert("weight".to_string(), Value::Float(jaccard));
+            edges.push(Value::Record((rec).into()));
+        }
+    }
+
+    Ok(Value::List((edges).into()))
+}
+
 // â”€â”€ leiden_cluster(matrix, k, resolution=1.0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Build a symmetric kNN graph on the embedding, then run real Leiden
 // (local moving + refinement + aggregation, connected communities).
@@ -2747,6 +2857,43 @@ fn leiden_adjacency(edges: &Value, n_nodes: usize, who: &str) -> Result<Vec<Vec<
         neighbors.sort_by_key(|(neighbor, _)| *neighbor);
     }
     Ok(adjacency)
+}
+
+/// Louvain on a graph that was built elsewhere.
+///
+/// The counterpart to `leiden_graph`, and the one to reach for when the graph
+/// is an SNN rather than a plain kNN — `louvain_cluster` builds its own kNN
+/// internally, which throws away the neighbourhood-overlap weighting that makes
+/// the graph worth having.
+fn builtin_louvain_graph(args: Vec<Value>) -> Result<Value> {
+    let n_nodes = require_int(&args[1], "louvain_graph")?;
+    if n_nodes < 0 {
+        return Err(BioLangError::type_error(
+            "louvain_graph() n_nodes must be non-negative",
+            None,
+        ));
+    }
+    let resolution = to_f64(&args[2]).ok_or_else(|| {
+        BioLangError::type_error("louvain_graph() resolution must be numeric", None)
+    })?;
+    let n_start = match args.get(3) {
+        Some(value) => require_int(value, "louvain_graph")?.max(1) as usize,
+        None => 10,
+    };
+    let adjacency = leiden_adjacency(&args[0], n_nodes as usize, "louvain_graph")?;
+    let labels = bl_core::bio_core::cluster_ops::louvain_sparse_restarts(
+        &adjacency,
+        resolution,
+        n_start,
+        0,
+    );
+    Ok(Value::List(
+        labels
+            .into_iter()
+            .map(|label| Value::Int(label as i64))
+            .collect::<Vec<_>>()
+            .into(),
+    ))
 }
 
 fn builtin_leiden_graph(args: Vec<Value>) -> Result<Value> {

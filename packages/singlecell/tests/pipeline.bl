@@ -31,9 +31,25 @@ let result = filtered
 
 assert len(result.pca_scores) == 12, "PCA score row count is wrong"
 assert len(result.pca_scores[0]) == 3, "PCA component count is wrong"
-assert len(result.knn) == 36, "kNN edge count is wrong"
 assert len(result.clusters) == 12, "cluster label count is wrong"
 assert len(unique(result.clusters)) == 2, "expected two synthetic populations"
+
+# The graph is an SNN: undirected, so at most one edge per pair, and pruned, so
+# fewer than that. The old assertion pinned 36 directed kNN edges (12 cells x 3)
+# and had to change when the graph did. Pinning the shape rather than the count
+# says the same thing without breaking every time the pruning threshold moves.
+assert len(result.knn) <= 12 * 11 / 2, "SNN graph has more edges than there are pairs"
+assert len(result.knn) > 0, "SNN graph is empty"
+let seen_pairs = result.knn |> map(|e| str(e.source) + "-" + str(e.target))
+assert len(unique(seen_pairs)) == len(result.knn), "SNN graph repeats a pair"
+assert result.knn |> all(|e| e.weight > 0.0 and e.weight <= 1.0),
+    "Jaccard weights must lie in (0, 1]"
+
+# A plain kNN graph is still available, and is still directed.
+let knn_obj = filtered
+    |> sc.normalize(10000.0) |> sc.variable_genes(6) |> sc.run_pca(3)
+    |> sc.neighbors(3, false)
+assert len(knn_obj.knn) == 36, "kNN edge count is wrong"
 
 # Named-gene plots must read the full normalized matrix even when a gene was
 # not selected as an HVG.

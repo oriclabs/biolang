@@ -212,20 +212,32 @@ fn embedding_of(obj) {
     obj.pca_scores
 }
 
-## neighbors(obj, k) → Record
+## neighbors(obj, k, snn) → Record
 ##
-## Build a k-nearest-neighbour graph on the PCA scores, or on the integrated
-## embedding when `integrate` has run. Runs run_pca first if needed.
-## Adds obj.knn (List<Record{source, target, distance}>).
+## Build the neighbour graph on the PCA scores, or on the integrated embedding
+## when `integrate` has run. Runs run_pca first if needed.
+## Adds obj.knn (List<Record{source, target, weight}>).
+##
+## By default this is a **shared** nearest-neighbour graph: cells are joined by
+## the Jaccard index of their neighbour sets rather than by how close they are,
+## and edges at or below 1/15 are pruned. This is what `FindNeighbors` builds
+## and what community detection should run on. Proximity alone is a poor signal
+## in high dimensions — the distance to the nearest and to the furthest
+## neighbour converge as dimensions grow — while neighbourhood overlap holds up.
+##
+## Pass `snn = false` for the older plain kNN graph weighted by 1/(1+distance).
+## It is faster and worse, and it is kept so that results produced before the
+## SNN graph existed can still be reproduced.
 ##
 ## Exact search, so cost is quadratic in n_cells.
-fn neighbors(obj, k = 15) {
+fn neighbors(obj, k = 15, snn = true) {
     let prepared = if contains(keys(obj), "pca_scores") {
         obj
     } else {
         run_pca(obj)
     }
-    let graph = knn_graph(embedding_of(prepared), k)
+    let embed = embedding_of(prepared)
+    let graph = if snn { snn_graph(embed, k) } else { knn_graph(embed, k) }
     {... prepared, knn: graph, n_neighbors: k}
 }
 
@@ -273,8 +285,13 @@ fn cluster_leiden(obj, k = 15, resolution = 1.0) {
 ## algorithm — refinement is what guarantees every community is internally
 ## connected, which Louvain does not — but "better" and "what the reference ran"
 ## are different questions, and reproducing a published number needs the second.
+##
+## Runs from 10 randomised node orders and keeps the highest modularity, which
+## is `FindClusters(n.start = 10)`. A single greedy pass lands in whichever
+## local optimum the node order leads to; running it longer does not help,
+## running it again from a different order does.
 fn cluster_louvain(obj, k = 15, resolution = 1.0) {
-    let prepared = if contains(keys(obj), "pca_scores") { obj } else { run_pca(obj) }
-    let clusters = louvain_cluster(embedding_of(prepared), k, resolution)
+    let prepared = if contains(keys(obj), "knn") { obj } else { neighbors(obj, k) }
+    let clusters = louvain_graph(prepared.knn, prepared.n_cells, resolution)
     {... prepared, clusters: clusters, resolution: resolution}
 }

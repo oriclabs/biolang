@@ -1,4 +1,4 @@
-# singlecell — Single-cell RNA-seq analysis for BioLang
+﻿# singlecell â€” Single-cell RNA-seq analysis for BioLang
 #
 # Provides a Seurat-compatible workflow for 10x Genomics and other scRNA-seq data.
 #
@@ -26,7 +26,7 @@ import "singlecell/src/plots"       as _plots
 import "singlecell/src/advanced"    as _advanced
 import "singlecell/src/advanced_plots" as _advanced_plots
 
-# ─── One-call workflow ─────────────────────────────────────────────────────────
+# â”€â”€â”€ One-call workflow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 #
 # standard() runs the usual pipeline and prints the explicit version it ran,
 # marking every parameter [default] or [set]. Start here, then paste the printed
@@ -50,7 +50,7 @@ fn sweep(obj, resolutions = [0.1, 0.3, 0.5, 0.7, 1.0], n_hvg = nil, k = nil) {
     _std.sweep(obj, resolutions, n_hvg, k)
 }
 
-# ─── Core / object creation ────────────────────────────────────────────────────
+# â”€â”€â”€ Core / object creation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn load(path)                            { _core.load(path) }
 fn from_matrix(matrix, genes, barcodes) { _core.from_matrix(matrix, genes, barcodes) }
@@ -66,7 +66,7 @@ fn get_pseudotime(obj)                   { _core.get_pseudotime(obj) }
 fn get_doublet_scores(obj)               { _core.get_doublet_scores(obj) }
 fn summary(obj)                          { _core.summary(obj) }
 
-# ─── QC and preprocessing ──────────────────────────────────────────────────────
+# â”€â”€â”€ QC and preprocessing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn qc(obj)                               { _pre.qc(obj) }
 fn filter_cells(obj, min_genes = 200, max_genes = 5000, max_pct_mito = 25.0) {
@@ -78,12 +78,12 @@ fn sctransform(obj, n_features = 0)      { _pre.sctransform(obj, n_features) }
 fn variable_genes(obj, n = 2000)         { _pre.variable_genes(obj, n) }
 fn scale(obj, clip = 10.0)                            { _pre.scale(obj, clip) }
 fn run_pca(obj, n_pcs = 50)              { _pre.run_pca(obj, n_pcs) }
-fn neighbors(obj, k = 15)               { _pre.neighbors(obj, k) }
+fn neighbors(obj, k = 15, snn = true)    { _pre.neighbors(obj, k, snn) }
 fn cluster(obj, k = 0)                   { _pre.cluster(obj, k) }
 fn cluster_leiden(obj, k = 15, resolution = 1.0) { _pre.cluster_leiden(obj, k, resolution) }
 fn cluster_louvain(obj, k = 15, resolution = 1.0) { _pre.cluster_louvain(obj, k, resolution) }
 
-# ─── Cell annotation and scoring ──────────────────────────────────────────────
+# â”€â”€â”€ Cell annotation and scoring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn cell_cycle(obj, s_genes, g2m_genes)   { _mark.cell_cycle(obj, s_genes, g2m_genes) }
 fn gene_module_score(obj, gene_indices)  { _mark.gene_module_score(obj, gene_indices) }
@@ -133,7 +133,7 @@ fn cluster_stability(obj, resolutions = [0.2, 0.5, 0.8, 1.0, 1.5], k = 15) {
 ## Prepare a signed gene-ranking table for the core gsea() function.
 fn ranked_genes(de_results)              { _advanced.ranked_genes(de_results) }
 
-# ─── Integration ──────────────────────────────────────────────────────────────
+# â”€â”€â”€ Integration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn integrate(obj, batch_ids)                    { _int.integrate(obj, batch_ids) }
 fn integrate_from_column(obj, batch_col)        { _int.integrate_from_column(obj, batch_col) }
@@ -144,7 +144,7 @@ fn merge(obj_a, obj_b, batch_a = 0, batch_b = 1) {
     _int.merge(obj_a, obj_b, batch_a, batch_b)
 }
 
-# ─── Trajectory / pseudotime ──────────────────────────────────────────────────
+# â”€â”€â”€ Trajectory / pseudotime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn pseudotime(obj, start_cell)                  { _traj.pseudotime(obj, start_cell) }
 fn order_by_pseudotime(obj)                     { _traj.order_by_pseudotime(obj) }
@@ -153,7 +153,7 @@ fn smooth_along_pseudotime(obj, gene_idx, n_bins = 20) {
     _traj.smooth_along_pseudotime(obj, gene_idx, n_bins)
 }
 
-# ─── Plots ─────────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Plots â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 #
 # These take the sc object directly and do the Matrix -> List<Record> conversion
 # the plotting builtins require. SVG-returning functions give back a Str; the two
