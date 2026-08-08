@@ -107,3 +107,85 @@ fn louvain_is_reproducible() {
         bio_core::cluster_ops::louvain(&g, 1.0)
     );
 }
+
+// ── Modularity and restarts ─────────────────────────────────────────
+//
+// Seurat's FindClusters defaults to n.start = 10: ten runs from different node
+// orders, keeping the highest modularity. Matching that needs a modularity
+// function, because without one there is no basis for "keeping the best".
+
+fn sparse_barbell() -> Vec<Vec<(usize, f64)>> {
+    barbell()
+        .iter()
+        .map(|row| {
+            row.iter()
+                .enumerate()
+                .filter(|(_, w)| **w != 0.0)
+                .map(|(j, w)| (j, *w))
+                .collect()
+        })
+        .collect()
+}
+
+/// The correct partition of a barbell must score above the obvious wrong ones.
+/// A modularity that does not rank these correctly cannot be used to choose
+/// between restarts, which is the only thing it exists for here.
+#[test]
+fn modularity_prefers_the_partition_that_is_actually_there() {
+    let g = sparse_barbell();
+    let correct = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1];
+    let everything_together = [0; 10];
+    let everything_apart: Vec<usize> = (0..10).collect();
+    let split_wrong = [0, 0, 1, 1, 0, 1, 0, 1, 1, 0];
+
+    let q = |labels: &[usize]| bio_core::cluster_ops::modularity(&g, labels, 1.0);
+    assert!(
+        q(&correct) > q(&everything_together),
+        "one big community scored {} against the true partition's {}",
+        q(&everything_together),
+        q(&correct)
+    );
+    assert!(q(&correct) > q(&everything_apart));
+    assert!(q(&correct) > q(&split_wrong));
+    // A single community has zero modularity by definition: e/2m = 1, (d/2m)^2 = 1.
+    assert!(q(&everything_together).abs() < 1e-12);
+}
+
+/// Restarts must never do worse than the single deterministic pass, because the
+/// first restart *is* that pass and the rest can only displace it by scoring
+/// higher.
+#[test]
+fn louvain_restarts_never_score_below_a_single_pass() {
+    let g = sparse_barbell();
+    for resolution in [0.5, 1.0, 2.0] {
+        let single = bio_core::cluster_ops::louvain_sparse(&g, resolution);
+        let restarted = bio_core::cluster_ops::louvain_sparse_restarts(&g, resolution, 10, 0);
+        let q_single = bio_core::cluster_ops::modularity(&g, &single, resolution);
+        let q_restarted = bio_core::cluster_ops::modularity(&g, &restarted, resolution);
+        assert!(
+            q_restarted >= q_single - 1e-12,
+            "resolution {resolution}: restarts scored {q_restarted}, single pass {q_single}"
+        );
+    }
+}
+
+/// One restart has to be byte-identical to the plain call, so the new default
+/// is an addition rather than a silent change of algorithm.
+#[test]
+fn one_restart_is_the_old_deterministic_pass() {
+    let g = sparse_barbell();
+    assert_eq!(
+        bio_core::cluster_ops::louvain_sparse_restarts(&g, 1.0, 1, 0),
+        bio_core::cluster_ops::louvain_sparse(&g, 1.0)
+    );
+}
+
+/// Restarts are seeded, so the result is still reproducible run to run.
+#[test]
+fn louvain_restarts_are_reproducible() {
+    let g = sparse_barbell();
+    assert_eq!(
+        bio_core::cluster_ops::louvain_sparse_restarts(&g, 1.0, 10, 0),
+        bio_core::cluster_ops::louvain_sparse_restarts(&g, 1.0, 10, 0)
+    );
+}

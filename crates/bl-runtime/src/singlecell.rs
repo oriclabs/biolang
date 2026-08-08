@@ -1,4 +1,4 @@
-//! Single-cell RNA-seq (Section 6) and CNV / tumour-purity (Section 7) builtins.
+﻿//! Single-cell RNA-seq (Section 6) and CNV / tumour-purity (Section 7) builtins.
 //!
 //! Functions: normalize_total, log1p_transform, highly_variable_genes, cell_qc,
 //! gene_qc, knn_graph, doublet_score, cnv_segment, loh_detect, tumor_purity,
@@ -15,7 +15,7 @@ use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 use std::io::{BufRead, BufReader};
 
-// ── Registry ─────────────────────────────────────────────────────────
+// â”€â”€ Registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
@@ -167,7 +167,7 @@ pub fn call_singlecell_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
     }
 }
 
-// ── Helper functions ─────────────────────────────────────────────────
+// â”€â”€ Helper functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn to_f64(v: &Value) -> Option<f64> {
     match v {
@@ -218,7 +218,7 @@ fn require_matrix(val: &Value, func: &str) -> Result<Vec<Vec<f64>>> {
 }
 
 /// Like `require_matrix`, but also densifies a CSR input. Only for functions
-/// whose output is dense no matter what the input was — Pearson residuals are
+/// whose output is dense no matter what the input was â€” Pearson residuals are
 /// nonzero for observed zeros, so there is no sparse result to preserve.
 fn require_dense_matrix(val: &Value, func: &str) -> Result<Vec<Vec<f64>>> {
     match val {
@@ -246,7 +246,7 @@ fn matrix_to_value(mat: Vec<Vec<f64>>) -> Value {
     )
 }
 
-// ── select_cols(matrix, indices) ─────────────────────────────────────
+// â”€â”€ select_cols(matrix, indices) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Subset a matrix to the given column indices, in Rust. Replaces the
 // interpreted `mat |> map(|row| idx |> map(|j| row[j]))` double-loop that
 // dominates HVG selection on real-sized data (hundreds of thousands of
@@ -384,6 +384,99 @@ fn orthogonalize(vector: &mut [f64], basis: &[Vec<f64>]) {
     }
 }
 
+/// Orthonormalise a block in place by modified Gram-Schmidt, twice.
+///
+/// Twice is not belt-and-braces. Classical Gram-Schmidt loses orthogonality in
+/// proportion to the condition number, and a single modified pass still drifts
+/// once the vectors are nearly dependent â€” which is precisely the state of a
+/// subspace iterate as it converges. Two passes restores orthogonality to
+/// machine precision ("twice is enough", Kahan). The previous PCA orthogonalised
+/// once and returned components whose explained variance was not monotone.
+///
+/// Columns that collapse to nothing are dropped, so the block can shrink.
+fn orthonormalise_block(block: &mut Vec<Vec<f64>>) {
+    let mut kept: Vec<Vec<f64>> = Vec::with_capacity(block.len());
+    for mut vector in block.drain(..) {
+        for _ in 0..2 {
+            for basis in &kept {
+                let projection: f64 = vector
+                    .iter()
+                    .zip(basis)
+                    .map(|(value, other)| value * other)
+                    .sum();
+                for (value, other) in vector.iter_mut().zip(basis) {
+                    *value -= projection * other;
+                }
+            }
+        }
+        let norm = vector.iter().map(|v| v * v).sum::<f64>().sqrt();
+        if norm > 1e-10 {
+            for value in &mut vector {
+                *value /= norm;
+            }
+            kept.push(vector);
+        }
+    }
+    *block = kept;
+}
+
+/// Eigendecomposition of a small symmetric matrix by cyclic Jacobi rotations.
+///
+/// Returns `(eigenvectors_as_rows, eigenvalues)` sorted by descending
+/// eigenvalue. Jacobi is slower than the tridiagonal-QL route for large
+/// matrices and unconditionally accurate for small ones; the input here is
+/// `k x k` for `k` around fifty, so accuracy is the only axis that matters.
+fn jacobi_eigen_symmetric(input: &[Vec<f64>]) -> (Vec<Vec<f64>>, Vec<f64>) {
+    let n = input.len();
+    let mut a: Vec<Vec<f64>> = input.to_vec();
+    // Vectors accumulate as rows, so v[i] is the eigenvector for value[i].
+    let mut v: Vec<Vec<f64>> = (0..n)
+        .map(|i| (0..n).map(|j| if i == j { 1.0 } else { 0.0 }).collect())
+        .collect();
+
+    for _ in 0..100 {
+        let off_diagonal: f64 = (0..n)
+            .flat_map(|i| ((i + 1)..n).map(move |j| (i, j)))
+            .map(|(i, j)| a[i][j] * a[i][j])
+            .sum();
+        if off_diagonal.sqrt() < 1e-14 {
+            break;
+        }
+        for p in 0..n {
+            for q in (p + 1)..n {
+                if a[p][q].abs() < 1e-18 {
+                    continue;
+                }
+                let theta = (a[q][q] - a[p][p]) / (2.0 * a[p][q]);
+                let t = theta.signum() / (theta.abs() + (theta * theta + 1.0).sqrt());
+                let c = 1.0 / (t * t + 1.0).sqrt();
+                let s = t * c;
+                for k in 0..n {
+                    let (akp, akq) = (a[k][p], a[k][q]);
+                    a[k][p] = c * akp - s * akq;
+                    a[k][q] = s * akp + c * akq;
+                }
+                for k in 0..n {
+                    let (apk, aqk) = (a[p][k], a[q][k]);
+                    a[p][k] = c * apk - s * aqk;
+                    a[q][k] = s * apk + c * aqk;
+                }
+                for k in 0..n {
+                    let (vpk, vqk) = (v[p][k], v[q][k]);
+                    v[p][k] = c * vpk - s * vqk;
+                    v[q][k] = s * vpk + c * vqk;
+                }
+            }
+        }
+    }
+
+    let mut order: Vec<usize> = (0..n).collect();
+    order.sort_by(|&i, &j| a[j][j].total_cmp(&a[i][i]));
+    let values = order.iter().map(|&i| a[i][i]).collect();
+    let vectors = order.iter().map(|&i| v[i].clone()).collect();
+    (vectors, values)
+}
+
 fn builtin_sc_pca(args: Vec<Value>) -> Result<Value> {
     let matrix = singlecell_matrix(&args[0], "sc_pca")?;
     let requested = if args.len() > 1 {
@@ -418,46 +511,123 @@ fn builtin_sc_pca(args: Vec<Value>) -> Result<Value> {
         0.0
     };
 
+    // Subspace iteration with a Rayleigh-Ritz projection, replacing deflated
+    // power iteration.
+    //
+    // The old routine solved for one component at a time: power-iterate, keep
+    // it, orthogonalise the next against it. That fails in two ways here. Power
+    // iteration separates two eigenvectors at a rate set by the ratio of their
+    // eigenvalues, and past the first handful of PCs a single-cell spectrum is
+    // nearly flat - PC9 and PC10 differ by a few percent, so forty iterations
+    // moved almost nothing. And deflation compounds: whatever error survives in
+    // one component is injected into every component after it. Measured on the
+    // course data, 8 of 40 components came back with explained variance *higher*
+    // than their predecessor, which is not a rounding artefact but a statement
+    // that they were not principal components at all.
+    //
+    // Iterating the whole block at once fixes both. The rate that governs a
+    // block is lambda_{k+p} / lambda_k rather than the gap between neighbours,
+    // so oversampling by `p` extra vectors buys convergence that no amount of
+    // per-vector iteration can. The closing Rayleigh-Ritz step diagonalises the
+    // problem *within* the converged subspace, which is what makes the result
+    // ordered and mutually orthogonal by construction rather than by hope.
+    const MAX_SWEEPS: usize = 300;
+    const OVERSAMPLE: usize = 10;
+
+    let block_width = (n_components + OVERSAMPLE).min(n_genes).min(n_cells);
+    // A deterministic start, so two runs of the same script agree. The spiral
+    // is arbitrary; all it has to do is avoid being orthogonal to the leading
+    // eigenvectors, which a low-discrepancy pattern does more reliably than a
+    // pseudo-random one.
+    let mut block: Vec<Vec<f64>> = (0..block_width)
+        .map(|column| {
+            (0..n_genes)
+                .map(|gene| (((gene + 1) * (column + 1)) as f64 * 1.618_033_988_75).sin())
+                .collect()
+        })
+        .collect();
+    orthonormalise_block(&mut block);
+
+    let apply_covariance = |vector: &[f64]| -> Vec<f64> {
+        let scores = matrix.multiply_centered(&means, vector);
+        matrix.transpose_multiply_centered(&means, &scores)
+    };
+
+    let mut previous: Vec<f64> = vec![0.0; block.len()];
+    let mut converged = false;
+    for _ in 0..MAX_SWEEPS {
+        let mut next: Vec<Vec<f64>> = block.iter().map(|v| apply_covariance(v)).collect();
+        // Rayleigh quotients before renormalising: v . Cv with v unit-norm.
+        let quotients: Vec<f64> = block
+            .iter()
+            .zip(&next)
+            .map(|(v, cv)| v.iter().zip(cv).map(|(a, b)| a * b).sum())
+            .collect();
+        orthonormalise_block(&mut next);
+        if next.is_empty() {
+            break;
+        }
+        block = next;
+
+        // Converged when every Rayleigh quotient has stopped moving. Comparing
+        // the quotients rather than the vectors matters: within a near-degenerate
+        // group the individual vectors keep rotating freely forever, while the
+        // subspace they span - the only thing the scores depend on - is settled.
+        let shift = previous
+            .iter()
+            .zip(&quotients)
+            .map(|(old, new)| (old - new).abs() / new.abs().max(1e-12))
+            .fold(0.0, f64::max);
+        previous = quotients;
+        if previous.len() == block.len() && shift < 1e-10 {
+            converged = true;
+            break;
+        }
+        previous.resize(block.len(), 0.0);
+    }
+
+    // Rayleigh-Ritz: project the covariance onto the converged subspace and
+    // diagonalise the small dense problem exactly.
+    let width = block.len();
+    let projected: Vec<Vec<f64>> = block.iter().map(|v| apply_covariance(v)).collect();
+    let mut small = vec![vec![0.0f64; width]; width];
+    for i in 0..width {
+        for j in i..width {
+            let entry: f64 = block[i].iter().zip(&projected[j]).map(|(a, b)| a * b).sum();
+            small[i][j] = entry;
+            small[j][i] = entry;
+        }
+    }
+    let (rotations, _) = jacobi_eigen_symmetric(&small);
+
     let mut components: Vec<Vec<f64>> = Vec::with_capacity(n_components);
     let mut score_columns: Vec<Vec<f64>> = Vec::with_capacity(n_components);
     let mut explained_variance = Vec::with_capacity(n_components);
-
-    for component_index in 0..n_components {
-        let mut loading: Vec<f64> = (0..n_genes)
-            .map(|gene| (((gene + 1) * (component_index + 1)) as f64 * 1.618_033_988_75).sin())
-            .collect();
-        orthogonalize(&mut loading, &components);
-        let initial_norm = loading
-            .iter()
-            .map(|value| value * value)
-            .sum::<f64>()
-            .sqrt();
-        if initial_norm <= 1e-12 {
+    for rotation in rotations.iter().take(n_components) {
+        let mut loading = vec![0.0f64; n_genes];
+        for (weight, basis) in rotation.iter().zip(&block) {
+            for (value, component) in loading.iter_mut().zip(basis) {
+                *value += weight * component;
+            }
+        }
+        let norm = loading.iter().map(|v| v * v).sum::<f64>().sqrt();
+        if norm <= 1e-12 {
             break;
         }
         for value in &mut loading {
-            *value /= initial_norm;
+            *value /= norm;
         }
-
-        for _ in 0..40 {
-            let scores = matrix.multiply_centered(&means, &loading);
-            let mut next = matrix.transpose_multiply_centered(&means, &scores);
-            orthogonalize(&mut next, &components);
-            let norm = next.iter().map(|value| value * value).sum::<f64>().sqrt();
-            if norm <= 1e-12 {
-                break;
-            }
-            for value in &mut next {
-                *value /= norm;
-            }
-            let change = next
-                .iter()
-                .zip(&loading)
-                .map(|(next_value, old_value)| (next_value - old_value).abs())
-                .fold(0.0, f64::max);
-            loading = next;
-            if change < 1e-8 {
-                break;
+        // Sign is arbitrary in any eigendecomposition, so fix it by a rule
+        // rather than leaving it to the arithmetic: the heaviest loading is
+        // positive. Without this, an unrelated change upstream can flip a
+        // component and make two identical analyses look different.
+        let pivot = loading
+            .iter()
+            .copied()
+            .fold(0.0f64, |acc, v| if v.abs() > acc.abs() { v } else { acc });
+        if pivot < 0.0 {
+            for value in &mut loading {
+                *value = -*value;
             }
         }
 
@@ -474,6 +644,7 @@ fn builtin_sc_pca(args: Vec<Value>) -> Result<Value> {
         score_columns.push(scores);
         explained_variance.push(variance);
     }
+    let _ = converged;
 
     let actual_components = components.len();
     let scores: Vec<Vec<f64>> = (0..n_cells)
@@ -699,9 +870,9 @@ fn builtin_select_cols(args: Vec<Value>) -> Result<Value> {
     Ok(matrix_to_value(out))
 }
 
-// ── Section 6: Single-cell QC / normalisation ────────────────────────
+// â”€â”€ Section 6: Single-cell QC / normalisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ── normalize_total(matrix, target=10000) ────────────────────────────
+// â”€â”€ normalize_total(matrix, target=10000) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn subset_list(value: &Value, indices: &[usize], func: &str) -> Result<Value> {
     let values = match value {
@@ -1085,7 +1256,7 @@ fn builtin_normalize_total(args: Vec<Value>) -> Result<Value> {
     Ok(matrix_to_value(normalized))
 }
 
-// ── log1p_transform(matrix) ──────────────────────────────────────────
+// â”€â”€ log1p_transform(matrix) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn builtin_log1p_transform(args: Vec<Value>) -> Result<Value> {
     if let Value::SparseMatrix(matrix) = &args[0] {
@@ -1109,7 +1280,7 @@ fn builtin_log1p_transform(args: Vec<Value>) -> Result<Value> {
     Ok(matrix_to_value(transformed))
 }
 
-// ── highly_variable_genes(matrix, n=2000) ────────────────────────────
+// â”€â”€ highly_variable_genes(matrix, n=2000) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Per-gene mean and bin-normalised dispersion, and the ranking built from them.
 ///
@@ -1163,8 +1334,8 @@ impl HvgStats {
 /// genes that vary more than their abundance explains. The clip stops a
 /// handful of extreme cells carrying a gene into the list.
 ///
-/// The regression is a tricube-weighted local quadratic — the standard loess
-/// construction — with span 0.3, Seurat's default. R's `loess` interpolates
+/// The regression is a tricube-weighted local quadratic â€” the standard loess
+/// construction â€” with span 0.3, Seurat's default. R's `loess` interpolates
 /// over a kd-tree for speed rather than fitting at every point; this fits
 /// directly, so the two agree in method and can differ in the last digits.
 fn vst_standardised_variance(
@@ -1489,7 +1660,7 @@ pub(crate) fn hvg_statistics(value: &Value, who: &str) -> Result<HvgStats> {
     })
 }
 
-// ── cca(matrix1, matrix2, opts?) ─────────────────────────────────────
+// â”€â”€ cca(matrix1, matrix2, opts?) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Canonical correlation analysis: the shared axes of two datasets.
 ///
@@ -1590,7 +1761,7 @@ fn builtin_cca(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Record(result.into()))
 }
 
-// ── harmony_integrate(embedding, batches, opts?) ─────────────────────
+// â”€â”€ harmony_integrate(embedding, batches, opts?) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Remove batch effects from an embedding, the way Harmony does.
 ///
@@ -1962,7 +2133,7 @@ fn solve_multi(a: &mut [Vec<f64>], b: &mut [Vec<f64>]) -> Option<Vec<Vec<f64>>> 
     Some(b.to_vec())
 }
 
-// ── find_all_markers(matrix, clusters, opts?) ────────────────────────
+// â”€â”€ find_all_markers(matrix, clusters, opts?) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Genes that distinguish each cluster from every other cell.
 ///
@@ -2206,7 +2377,7 @@ pub(crate) fn expression_columns(
     }
 }
 
-// ── cell_qc(matrix, gene_names?, mito_prefix="MT-") ─────────────────
+// â”€â”€ cell_qc(matrix, gene_names?, mito_prefix="MT-") â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn builtin_cell_qc(args: Vec<Value>) -> Result<Value> {
     let gene_names: Option<Vec<String>> = if args.len() > 1 {
@@ -2317,7 +2488,7 @@ fn builtin_cell_qc(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Table(Table::new(columns, rows)))
 }
 
-// ── gene_qc(matrix, gene_names?) ─────────────────────────────────────
+// â”€â”€ gene_qc(matrix, gene_names?) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn builtin_gene_qc(args: Vec<Value>) -> Result<Value> {
     let columns = vec![
@@ -2372,7 +2543,7 @@ fn builtin_gene_qc(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Table(Table::new(columns, rows)))
 }
 
-// ── knn_graph(embeddings, k=15) ──────────────────────────────────────
+// â”€â”€ knn_graph(embeddings, k=15) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn builtin_knn_graph(args: Vec<Value>) -> Result<Value> {
     let embeddings = require_matrix(&args[0], "knn_graph")?;
@@ -2419,7 +2590,7 @@ fn builtin_knn_graph(args: Vec<Value>) -> Result<Value> {
     Ok(Value::List((edges).into()))
 }
 
-// ── leiden_cluster(matrix, k, resolution=1.0) ────────────────────────
+// â”€â”€ leiden_cluster(matrix, k, resolution=1.0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Build a symmetric kNN graph on the embedding, then run real Leiden
 // (local moving + refinement + aggregation, connected communities).
 
@@ -2444,12 +2615,12 @@ fn builtin_leiden_cluster(args: Vec<Value>) -> Result<Value> {
     builtin_leiden_graph(vec![edges, Value::Int(n as i64), Value::Float(resolution)])
 }
 
-// ── doublet_score(matrix, n_simulated=500) ───────────────────────────
+// â”€â”€ doublet_score(matrix, n_simulated=500) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Louvain on a kNN graph built from an embedding.
 ///
 /// The counterpart to `leiden_cluster`, for reproducing analyses done with
-/// Seurat, whose `FindClusters` defaults to `algorithm = 1` — Louvain — in
+/// Seurat, whose `FindClusters` defaults to `algorithm = 1` â€” Louvain â€” in
 /// v5.5.1 as in every earlier version. See `louvain_sparse` in bio-core for why
 /// the difference matters and why it is not "fixed" here.
 ///
@@ -2470,7 +2641,12 @@ fn builtin_louvain_cluster(args: Vec<Value>) -> Result<Value> {
     }
     let edges = builtin_knn_graph(vec![matrix_to_value(embeddings), Value::Int(k as i64)])?;
     let adjacency = leiden_adjacency(&edges, n, "louvain_cluster")?;
-    let labels = bl_core::bio_core::cluster_ops::louvain_sparse(&adjacency, resolution);
+    // Ten restarts, which is `FindClusters(n.start = 10)`. A single greedy pass
+    // lands in whichever local optimum the node order leads to, and running it
+    // longer does not help; running it again from a different order does.
+    const N_START: usize = 10;
+    let labels =
+        bl_core::bio_core::cluster_ops::louvain_sparse_restarts(&adjacency, resolution, N_START, 0);
     Ok(Value::List(
         labels
             .into_iter()
@@ -2782,7 +2958,7 @@ fn builtin_doublet_score(args: Vec<Value>) -> Result<Value> {
     ))
 }
 
-// ── Section 6 extensions: Seurat-compatible single-cell ops ─────────
+// â”€â”€ Section 6 extensions: Seurat-compatible single-cell ops â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn read_lines_from_path(path: &std::path::Path) -> Result<Vec<String>> {
     let file = std::fs::File::open(path).map_err(|e| {
@@ -2868,7 +3044,7 @@ fn parse_mtx_lines(lines: Vec<String>) -> Result<(usize, usize, Vec<(usize, usiz
     Ok((n_rows, n_cols, entries))
 }
 
-// ── read_10x(path) ───────────────────────────────────────────────────
+// â”€â”€ read_10x(path) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn builtin_read_10x(args: Vec<Value>) -> Result<Value> {
     read_10x_impl(args, false)
@@ -2938,7 +3114,7 @@ fn read_10x_impl(args: Vec<Value>, sparse: bool) -> Result<Value> {
     // features.tsv is `gene_id \t gene_symbol \t feature_type`. Default to the
     // symbol, matching Seurat's Read10X(gene.column = 2) and scanpy's
     // read_10x_mtx(var_names="gene_symbols"). Downstream steps match on symbols
-    // — the "MT-" prefix for percent-mito, marker panels, DE output — so
+    // â€” the "MT-" prefix for percent-mito, marker panels, DE output â€” so
     // reading the Ensembl ID here makes percent-mito silently zero.
     // Pass gene_column = 1 to get Ensembl IDs instead.
     let gene_column = if args.len() > 1 {
@@ -3081,7 +3257,7 @@ fn gene_indices_from_value(val: &Value, func: &str) -> Result<Vec<usize>> {
     }
 }
 
-// ── cell_cycle_score(matrix, s_gene_indices, g2m_gene_indices) ────────
+// â”€â”€ cell_cycle_score(matrix, s_gene_indices, g2m_gene_indices) â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn builtin_cell_cycle_score(args: Vec<Value>) -> Result<Value> {
     let matrix = singlecell_matrix(&args[0], "cell_cycle_score")?;
@@ -3134,7 +3310,7 @@ fn builtin_cell_cycle_score(args: Vec<Value>) -> Result<Value> {
     Ok(Value::List((scores).into()))
 }
 
-// ── module_score(matrix, gene_indices) ───────────────────────────────
+// â”€â”€ module_score(matrix, gene_indices) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn builtin_module_score(args: Vec<Value>) -> Result<Value> {
     let matrix = singlecell_matrix(&args[0], "module_score")?;
@@ -3166,12 +3342,12 @@ fn builtin_module_score(args: Vec<Value>) -> Result<Value> {
     Ok(Value::List((scores).into()))
 }
 
-// ── sc_sctransform(matrix, n_variable_features?) ──────────────────────
+// â”€â”€ sc_sctransform(matrix, n_variable_features?) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Computes Pearson residuals under a simplified negative-binomial model.
 
 /// Pearson residuals under a fixed-overdispersion negative binomial.
 ///
-/// The residual is non-zero wherever the count is zero — `(0 - mu)/sqrt(var)` —
+/// The residual is non-zero wherever the count is zero â€” `(0 - mu)/sqrt(var)` â€”
 /// so the result is genuinely dense and there is no sparse form to return. What
 /// it must not do is pay for that density three times over. It used to:
 /// `to_dense()` on the input, a second full `Vec<Vec<f64>>` for the residuals,
@@ -3184,12 +3360,12 @@ fn builtin_module_score(args: Vec<Value>) -> Result<Value> {
 /// `Matrix`. Peak is the density the output genuinely needs.
 ///
 /// That is still 4 GB for every gene, and the pipeline discards most of it at
-/// the next step — variable-gene selection keeps a couple of thousand columns
+/// the next step â€” variable-gene selection keeps a couple of thousand columns
 /// and drops the rest. The optional second argument caps the output the way
 /// `SCTransform(variable.features.n = ...)` does: rank genes by the variance of
 /// their residuals, then materialise only the top `n`. Ranking needs two
 /// accumulators per gene rather than a stored column, so the cap applies to the
-/// peak and not just the return value — 16,681 genes down to 3,000 is 4 GB down
+/// peak and not just the return value â€” 16,681 genes down to 3,000 is 4 GB down
 /// to 711 MB. The residual values themselves are unchanged; only which columns
 /// survive.
 ///
@@ -3335,7 +3511,7 @@ fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Record(result.into()))
 }
 
-// ── sc_integrate(matrix, batch_ids) ──────────────────────────────────
+// â”€â”€ sc_integrate(matrix, batch_ids) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Simplified batch correction: subtract per-batch per-gene mean.
 
 fn builtin_sc_integrate(args: Vec<Value>) -> Result<Value> {
@@ -3418,7 +3594,7 @@ fn builtin_sc_integrate(args: Vec<Value>) -> Result<Value> {
     Ok(matrix_to_value(corrected))
 }
 
-// ── diffusion_pseudotime(embeddings, knn_edges, start_cell) ──────────
+// â”€â”€ diffusion_pseudotime(embeddings, knn_edges, start_cell) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Dijkstra shortest path on the KNN graph from start_cell.
 
 fn builtin_diffusion_pseudotime(args: Vec<Value>) -> Result<Value> {
@@ -3502,10 +3678,10 @@ fn builtin_diffusion_pseudotime(args: Vec<Value>) -> Result<Value> {
     ))
 }
 
-// ── Cell-cell communication ──────────────────────────────────────────
+// â”€â”€ Cell-cell communication â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ── lr_score(matrix, cell_labels, lr_pairs) ──────────────────────────
-// matrix: cells × genes (consistent with other builtins)
+// â”€â”€ lr_score(matrix, cell_labels, lr_pairs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// matrix: cells Ã— genes (consistent with other builtins)
 // cell_labels: one cluster label string per cell
 // lr_pairs: List<[ligand_gene_idx, receptor_gene_idx]>
 // Returns Table: sender, receiver, ligand_idx, receptor_idx, score (sorted descending)
@@ -3623,7 +3799,7 @@ fn builtin_lr_score(args: Vec<Value>) -> Result<Value> {
     let mut clusters: Vec<String> = cluster_means.keys().cloned().collect();
     clusters.sort();
 
-    // Score every sender × receiver × LR pair with score > 0
+    // Score every sender Ã— receiver Ã— LR pair with score > 0
     let mut scored: Vec<(f64, Vec<Value>)> = Vec::new();
     for sender in &clusters {
         for receiver in &clusters {
@@ -3654,9 +3830,9 @@ fn builtin_lr_score(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Table(Table::new(columns, rows)))
 }
 
-// ── lr_aggregate(lr_scores, pathway_map) ─────────────────────────────
-// lr_scores: Table from lr_score() — sender, receiver, ligand_idx, receptor_idx, score
-// pathway_map: Table — ligand_idx, receptor_idx, pathway
+// â”€â”€ lr_aggregate(lr_scores, pathway_map) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// lr_scores: Table from lr_score() â€” sender, receiver, ligand_idx, receptor_idx, score
+// pathway_map: Table â€” ligand_idx, receptor_idx, pathway
 // Returns Table: sender, receiver, pathway, total_score, n_pairs (sorted descending)
 
 fn builtin_lr_aggregate(args: Vec<Value>) -> Result<Value> {
@@ -3708,7 +3884,7 @@ fn builtin_lr_aggregate(args: Vec<Value>) -> Result<Value> {
         }
     };
 
-    // Build (ligand_idx, receptor_idx) → pathway lookup
+    // Build (ligand_idx, receptor_idx) â†’ pathway lookup
     let mut pathway_lookup: HashMap<(i64, i64), String> = HashMap::new();
     for row in &pm_rows {
         let li = match row.get(pm_li) {
@@ -3728,7 +3904,7 @@ fn builtin_lr_aggregate(args: Vec<Value>) -> Result<Value> {
         pathway_lookup.insert((li, ri), pathway);
     }
 
-    // Aggregate (sender, receiver, pathway) → (total_score, n_pairs)
+    // Aggregate (sender, receiver, pathway) â†’ (total_score, n_pairs)
     let mut agg: HashMap<(String, String, String), (f64, usize)> = HashMap::new();
     for row in &score_rows {
         let sender = match row.get(s_col) {
@@ -3785,9 +3961,9 @@ fn builtin_lr_aggregate(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Table(Table::new(out_columns, rows)))
 }
 
-// ── Spatial transcriptomics ──────────────────────────────────────────
+// â”€â”€ Spatial transcriptomics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ── spatial_neighbors(coords, k=6) ───────────────────────────────────
+// â”€â”€ spatial_neighbors(coords, k=6) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // coords: Table with columns x, y (one row per spot)
 // Returns Table: cell, neighbor, distance (Euclidean), sorted by cell then distance
 
@@ -3860,8 +4036,8 @@ fn builtin_spatial_neighbors(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Table(Table::new(columns, rows)))
 }
 
-// ── spatial_moransi(expr_vec, spatial_adj) ───────────────────────────
-// expr_vec: List<Float> — gene expression across spots
+// â”€â”€ spatial_moransi(expr_vec, spatial_adj) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// expr_vec: List<Float> â€” gene expression across spots
 // spatial_adj: Table with columns cell, neighbor (from spatial_neighbors)
 // Returns Float in [-1, 1]: Moran's I spatial autocorrelation
 
@@ -3941,10 +4117,10 @@ fn builtin_spatial_moransi(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Float(i_moran.clamp(-1.0, 1.0)))
 }
 
-// ── Cell type annotation ─────────────────────────────────────────────
+// â”€â”€ Cell type annotation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ── reference_classify(query_matrix, ref_matrix, ref_labels) ─────────
-// query_matrix: Table genes × query_cells; ref_matrix: genes × ref_cells
+// â”€â”€ reference_classify(query_matrix, ref_matrix, ref_labels) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// query_matrix: Table genes Ã— query_cells; ref_matrix: genes Ã— ref_cells
 // Returns Table: cell, label (majority-vote over top-5 cosine neighbours), confidence
 
 fn builtin_reference_classify(args: Vec<Value>) -> Result<Value> {
@@ -4048,10 +4224,10 @@ fn builtin_reference_classify(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Table(Table::new(columns, rows)))
 }
 
-// ── Pseudobulk aggregation ───────────────────────────────────────────
+// â”€â”€ Pseudobulk aggregation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ── pseudobulk_aggregate(matrix, cell_labels, sample_labels) ─────────
-// matrix: cells × genes — the orientation every single-cell object uses, so
+// â”€â”€ pseudobulk_aggregate(matrix, cell_labels, sample_labels) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// matrix: cells Ã— genes â€” the orientation every single-cell object uses, so
 // obj.matrix can be passed straight in. CSR input is summed without densifying.
 // Sums counts per (cluster, sample) group.
 // Returns Table: columns = "cluster__sample", rows = genes
@@ -4125,12 +4301,12 @@ fn builtin_pseudobulk_aggregate(args: Vec<Value>) -> Result<Value> {
         .map(|(i, k)| (k.clone(), i))
         .collect();
 
-    // Cell → group column
+    // Cell â†’ group column
     let cell_group: Vec<usize> = (0..n_cells)
         .map(|c| group_to_col[&format!("{}__{}", cell_labels[c], sample_labels[c])])
         .collect();
 
-    // Accumulate into a genes × groups panel, one pass over the cells.
+    // Accumulate into a genes Ã— groups panel, one pass over the cells.
     let mut sums = vec![vec![0.0f64; n_groups]; n_genes];
     match sparse {
         Some(sm) => {
@@ -4161,11 +4337,11 @@ fn builtin_pseudobulk_aggregate(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Table(Table::new(group_keys, rows)))
 }
 
-// ── Multimodal integration ───────────────────────────────────────────
+// â”€â”€ Multimodal integration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ── wnn_graph(matrix_a, matrix_b, k) ─────────────────────────────────
-// matrix_a, matrix_b: Table cells × dims (rows=cells) for two modalities
-// Returns Table: cell, neighbor, weight (α weighted by modality quality)
+// â”€â”€ wnn_graph(matrix_a, matrix_b, k) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// matrix_a, matrix_b: Table cells Ã— dims (rows=cells) for two modalities
+// Returns Table: cell, neighbor, weight (Î± weighted by modality quality)
 
 fn builtin_wnn_graph(args: Vec<Value>) -> Result<Value> {
     let mat_a = require_matrix(&args[0], "wnn_graph")?; // mat[cell][dim]
@@ -4217,7 +4393,7 @@ fn builtin_wnn_graph(args: Vec<Value>) -> Result<Value> {
     let knn_a = knn(&mat_a);
     let knn_b = knn(&mat_b);
 
-    // Per-cell modality weight α_i
+    // Per-cell modality weight Î±_i
     let alpha: Vec<f64> = (0..n)
         .map(|i| {
             let mean_a = if knn_a[i].is_empty() {
@@ -4266,12 +4442,12 @@ fn builtin_wnn_graph(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Table(Table::new(columns, rows)))
 }
 
-// ── RNA velocity ─────────────────────────────────────────────────────
+// â”€â”€ RNA velocity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ── velocity_estimate(spliced, unspliced) ────────────────────────────
-// Deterministic model: β_g = mean_spliced_g / (mean_unspliced_g + ε)
-// velocity[g][c] = unspliced[g][c] * β_g - spliced[g][c]
-// Returns Table same shape as inputs (genes × cells)
+// â”€â”€ velocity_estimate(spliced, unspliced) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Deterministic model: Î²_g = mean_spliced_g / (mean_unspliced_g + Îµ)
+// velocity[g][c] = unspliced[g][c] * Î²_g - spliced[g][c]
+// Returns Table same shape as inputs (genes Ã— cells)
 
 fn builtin_velocity_estimate(args: Vec<Value>) -> Result<Value> {
     let spliced = require_matrix(&args[0], "velocity_estimate")?; // mat[gene][cell]
@@ -4323,9 +4499,9 @@ fn builtin_velocity_estimate(args: Vec<Value>) -> Result<Value> {
     Ok(matrix_to_value(result))
 }
 
-// ── Section 7: CNV / tumour purity ───────────────────────────────────
+// â”€â”€ Section 7: CNV / tumour purity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ── cnv_segment(log_ratios, min_segment=5) ───────────────────────────
+// â”€â”€ cnv_segment(log_ratios, min_segment=5) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn builtin_cnv_segment(args: Vec<Value>) -> Result<Value> {
     let log_ratios: Vec<f64> = match &args[0] {
@@ -4373,7 +4549,7 @@ fn builtin_cnv_segment(args: Vec<Value>) -> Result<Value> {
             let pooled_se = ((var_l + var_r) / window as f64).sqrt() + 1e-10;
             let t = (mean_r - mean_l).abs() / pooled_se;
 
-            // t ≈ 2.0 ~ p < 0.05 for moderate degrees of freedom
+            // t â‰ˆ 2.0 ~ p < 0.05 for moderate degrees of freedom
             if t > 2.0 && i - *change_points.last().unwrap() >= min_segment {
                 change_points.push(i);
             }
@@ -4449,7 +4625,7 @@ fn builtin_cnv_segment(args: Vec<Value>) -> Result<Value> {
     Ok(Value::List((result).into()))
 }
 
-// ── loh_detect(het_snp_vafs) ─────────────────────────────────────────
+// â”€â”€ loh_detect(het_snp_vafs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn builtin_loh_detect(args: Vec<Value>) -> Result<Value> {
     let vafs: Vec<f64> = match &args[0] {
@@ -4505,7 +4681,7 @@ fn builtin_loh_detect(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Record((rec).into()))
 }
 
-// ── tumor_purity(vafs) ───────────────────────────────────────────────
+// â”€â”€ tumor_purity(vafs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn builtin_tumor_purity(args: Vec<Value>) -> Result<Value> {
     let vafs: Vec<f64> = match &args[0] {
@@ -4543,7 +4719,7 @@ fn builtin_tumor_purity(args: Vec<Value>) -> Result<Value> {
         .unwrap_or((0, &0));
 
     let dominant_peak_vaf = (mode_bin as f64 + 0.5) * bin_width;
-    // purity ≈ 2 * modal_vaf (diploid, clonal heterozygous variants)
+    // purity â‰ˆ 2 * modal_vaf (diploid, clonal heterozygous variants)
     let estimated_purity = (2.0 * dominant_peak_vaf).clamp(0.0, 1.0);
 
     let mut rec = HashMap::new();
@@ -4559,7 +4735,7 @@ fn builtin_tumor_purity(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Record((rec).into()))
 }
 
-// ── vaf_to_ccf(vaf, purity, cn_total=2, cn_minor=0) ─────────────────
+// â”€â”€ vaf_to_ccf(vaf, purity, cn_total=2, cn_minor=0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn builtin_vaf_to_ccf(args: Vec<Value>) -> Result<Value> {
     let vaf = to_f64(&args[0])
@@ -4571,7 +4747,7 @@ fn builtin_vaf_to_ccf(args: Vec<Value>) -> Result<Value> {
     } else {
         2.0
     };
-    // cn_minor_of_variant — included for API completeness
+    // cn_minor_of_variant â€” included for API completeness
     let _cn_minor = if args.len() > 3 {
         to_f64(&args[3]).unwrap_or(0.0)
     } else {
@@ -4587,9 +4763,9 @@ fn builtin_vaf_to_ccf(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Float(ccf.clamp(0.0, 1.0)))
 }
 
-// ── mutational_signature(mut_counts_96) ──────────────────────────────
+// â”€â”€ mutational_signature(mut_counts_96) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
-// Simplified 10-signature × 96-context COSMIC SBS matrix.
+// Simplified 10-signature Ã— 96-context COSMIC SBS matrix.
 // NOTE: Values below are APPROXIMATE placeholders for structural correctness.
 // Replace columns with official values from cosmic-signatures.cancer.sanger.ac.uk
 // (COSMIC v3.3 SBS reference signatures TSV).
@@ -4979,7 +5155,7 @@ fn builtin_mutational_signature(args: Vec<Value>) -> Result<Value> {
         }
     }
 
-    // Compute R²
+    // Compute RÂ²
     let mut fitted_final = vec![0.0f64; 96];
     for (j, &w) in weights.iter().enumerate() {
         for i in 0..96 {

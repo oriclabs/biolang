@@ -253,11 +253,115 @@ fn relabel(labels: &[usize]) -> Vec<usize> {
 /// Deterministic: nodes are visited in index order. Seurat's Louvain takes
 /// `n.start = 10` random restarts and keeps the best, so it explores more of
 /// the space; this will land on a similar but not always identical partition.
-pub fn louvain_sparse(adjacency: &[Vec<(usize, f64)>], resolution: f64) -> Vec<usize> {
+/// Modularity of a partition, with a resolution parameter.
+///
+/// `Q = sum_c [ e_c / m - gamma * (d_c / 2m)^2 ]`, where `e_c` is the weight
+/// inside community `c` counted once per edge, `d_c` the summed degree of its
+/// members, and `m` the total edge weight. This is the quantity Louvain climbs;
+/// without it there is no way to say which of several runs did better, which is
+/// why restarts need it.
+pub fn modularity(adjacency: &[Vec<(usize, f64)>], labels: &[usize], resolution: f64) -> f64 {
+    let n = adjacency.len();
+    if n == 0 || labels.len() != n {
+        return 0.0;
+    }
+    let degrees: Vec<f64> = adjacency
+        .iter()
+        .map(|neighbors| neighbors.iter().map(|(_, weight)| weight).sum())
+        .collect();
+    let m = degrees.iter().sum::<f64>() / 2.0;
+    if m <= 0.0 {
+        return 0.0;
+    }
+    let n_communities = labels.iter().copied().max().unwrap_or(0) + 1;
+    let mut internal = vec![0.0f64; n_communities];
+    let mut total = vec![0.0f64; n_communities];
+    for node in 0..n {
+        total[labels[node]] += degrees[node];
+        for &(neighbor, weight) in &adjacency[node] {
+            if labels[neighbor] == labels[node] {
+                internal[labels[node]] += weight;
+            }
+        }
+    }
+    // `internal` counted every intra-community edge from both endpoints.
+    (0..n_communities)
+        .map(|c| {
+            let fraction = total[c] / (2.0 * m);
+            internal[c] / (2.0 * m) - resolution * fraction * fraction
+        })
+        .sum()
+}
+
+/// Louvain repeated from several randomised node orders, keeping the best.
+///
+/// Seurat's `FindClusters` defaults to `n.start = 10`: ten runs, each visiting
+/// nodes in a different order, and the partition with the highest modularity
+/// wins. A single pass in a fixed order is not equivalent no matter how long it
+/// runs — local moving is greedy, so the order decides which local optimum it
+/// falls into, and iterating longer from the same start converges to the same
+/// place. Best-of-ten reliably finds finer partitions, which is why a single
+/// pass tends to report *fewer* clusters than the reference does.
+pub fn louvain_sparse_restarts(
+    adjacency: &[Vec<(usize, f64)>],
+    resolution: f64,
+    n_start: usize,
+    seed: u64,
+) -> Vec<usize> {
     let n = adjacency.len();
     if n == 0 {
         return vec![];
     }
+    let mut best: Option<(f64, Vec<usize>)> = None;
+    for start in 0..n_start.max(1) {
+        // Start 0 keeps the natural order, so `n_start = 1` reproduces exactly
+        // the deterministic behaviour that came before this.
+        let labels = louvain_sparse_seeded(
+            adjacency,
+            resolution,
+            seed.wrapping_add(start as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15),
+            start > 0,
+        );
+        let quality = modularity(adjacency, &labels, resolution);
+        let better = match &best {
+            None => true,
+            Some((best_quality, _)) => quality > *best_quality + 1e-12,
+        };
+        if better {
+            best = Some((quality, labels));
+        }
+    }
+    best.map(|(_, labels)| labels).unwrap_or_default()
+}
+
+/// A permutation of `0..n` from an LCG, advancing the state in place.
+fn shuffled_order(n: usize, rng: &mut u64) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..n).collect();
+    for i in (1..n).rev() {
+        *rng = rng
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        let j = (*rng >> 33) as usize % (i + 1);
+        order.swap(i, j);
+    }
+    order
+}
+
+pub fn louvain_sparse(adjacency: &[Vec<(usize, f64)>], resolution: f64) -> Vec<usize> {
+    louvain_sparse_seeded(adjacency, resolution, 0, false)
+}
+
+fn louvain_sparse_seeded(
+    adjacency: &[Vec<(usize, f64)>],
+    resolution: f64,
+    seed: u64,
+    shuffle: bool,
+) -> Vec<usize> {
+    let n = adjacency.len();
+    if n == 0 {
+        return vec![];
+    }
+    let mut rng = seed;
     let degrees: Vec<f64> = adjacency
         .iter()
         .map(|neighbors| neighbors.iter().map(|(_, weight)| weight).sum())
@@ -272,7 +376,16 @@ pub fn louvain_sparse(adjacency: &[Vec<(usize, f64)>], resolution: f64) -> Vec<u
     let mut original_nodes: Vec<Vec<usize>> = (0..n).map(|node| vec![node]).collect();
 
     loop {
-        let partition = sparse_local_move(&graph, &graph_degrees, resolution, m);
+        // A fresh order at every level, not just the first. Aggregation changes
+        // both the node count and which merges are on offer, so a level visited
+        // in the same order every time re-makes the same greedy choice however
+        // the level below it came out.
+        let order = if shuffle {
+            shuffled_order(graph.len(), &mut rng)
+        } else {
+            (0..graph.len()).collect()
+        };
+        let partition = sparse_local_move_ordered(&graph, &graph_degrees, resolution, m, &order);
         let n_new = partition.iter().copied().max().unwrap_or(0) + 1;
         if n_new == graph.len() {
             let mut label = vec![0usize; n];
@@ -332,13 +445,24 @@ fn sparse_local_move(
     resolution: f64,
     m: f64,
 ) -> Vec<usize> {
+    let order: Vec<usize> = (0..adjacency.len()).collect();
+    sparse_local_move_ordered(adjacency, degrees, resolution, m, &order)
+}
+
+fn sparse_local_move_ordered(
+    adjacency: &[Vec<(usize, f64)>],
+    degrees: &[f64],
+    resolution: f64,
+    m: f64,
+    order: &[usize],
+) -> Vec<usize> {
     let n = adjacency.len();
     let mut communities: Vec<usize> = (0..n).collect();
     let mut totals = degrees.to_vec();
 
     for _ in 0..100 {
         let mut improved = false;
-        for node in 0..n {
+        for &node in order {
             let current = communities[node];
             totals[current] -= degrees[node];
             let mut weights_by_community = HashMap::new();
