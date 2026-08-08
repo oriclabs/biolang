@@ -17,8 +17,14 @@ let s = hbc_filter(sc.load("stim_raw"))
 let merged = sc.merge(c, s, "ctrl", "stim") |> sc.filter_genes(3)
 println("merged: " + str(merged.n_cells) + " cells")
 
-# Course: SCTransform, integrate, 40 PCs, resolution 0.8
-let obj = merged |> sc.sctransform() |> sc.variable_genes(3000) |> sc.run_pca(40)
+# Course: SCTransform, integrate, 40 PCs, resolution 0.8.
+#
+# The 3000 is SCTransform's `variable.features.n`. Residuals are dense, so
+# computing them for all 16,681 genes needs 4 GB and the next step discards
+# five sixths of it; capping here ranks genes by residual variance and
+# materialises only those, which is both what Seurat returns and 711 MB.
+# A capped sctransform fills obj.hvg itself, so there is no variable_genes step.
+let obj = merged |> sc.sctransform(3000) |> sc.run_pca(40)
 let fixed = sc.harmony(obj, obj.batch_ids)
 let cl = sc.cluster_leiden(sc.neighbors(fixed, 15), 15, 0.8)
 let n = sc.get_clusters(cl) |> unique |> len

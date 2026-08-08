@@ -78,17 +78,16 @@ log1p / 30 PCs / res 0.5      -> 10 clusters
 ```
 
 **[exact.bl](downloads/exact.bl)** — the full integrated configuration: both
-samples, their filter, SCTransform, Harmony, 40 PCs, resolution 0.8. This is the
-one that reproduces the course's cluster count:
+samples, their filter, SCTransform, Harmony, 40 PCs, resolution 0.8:
 
 ```text
 merged: 29629 cells
-clusters: 17   (HBC reports 17)
+clusters: 16   (HBC reports 17)
 ```
 
-Five minutes, and it needs about 4 GB free. See
-[What Differs from the Course](differences.md) for what this does and does not
-settle — the count matching is not proof of an identical partition.
+Three and a half minutes, and it peaks at about 6.3 GB. **One cluster short of
+the course**, and [What Differs from the Course](differences.md) explains what
+changed and why the earlier claim of an exact match did not survive scrutiny.
 
 ## The notebook
 

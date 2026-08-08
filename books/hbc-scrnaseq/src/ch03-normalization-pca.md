@@ -129,6 +129,31 @@ Use it when depth varies a lot across cells, or when integrating samples
 sequenced to different depths. Use plain `normalize` when you want something
 simple, fast and easy to explain.
 
+### It costs memory that log-normalization does not
+
+A Pearson residual is `(count - mu) / sqrt(var)`, and when the count is zero that
+is `-mu/sqrt(var)`, which is not zero. **So the output is dense no matter how
+sparse the input was.** A 15,000 × 15,576 matrix that occupies a few hundred
+megabytes as counts becomes 1.9 GB as residuals; the integrated object in
+[Integration](ch04-integration.md) becomes 4 GB. This is the step that runs
+people out of memory, and it is not a bug — it is what the method returns.
+
+The next step throws most of it away. Pass a feature count and only the genes
+that survive selection are computed:
+
+```biolang
+let obj = merged |> sc.sctransform(3000)
+```
+
+Genes are ranked by the variance of their residuals and the top 3,000 kept,
+which is `SCTransform(variable.features.n = 3000)` in Seurat and drops that 4 GB
+to 711 MB. The residual values are identical either way — the argument changes
+which columns you get back, not what is in them.
+
+A capped call also fills `obj.hvg`, because ranking by residual variance *is*
+variable-gene selection under this normalization. Do not follow it with
+`sc.variable_genes`.
+
 The two produce different downstream clusters. Pick one and keep it for the whole
 analysis rather than switching partway — and say which you used, because a reader
 cannot tell from the figures.
