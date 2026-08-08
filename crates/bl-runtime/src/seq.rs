@@ -4037,7 +4037,7 @@ fn builtin_score_matrix(args: Vec<Value>) -> Result<Value> {
     m.row_names = Some(residues.clone());
     m.col_names = Some(residues);
 
-    Ok(Value::Matrix(m))
+    Ok(Value::Matrix(m.into()))
 }
 
 // ── align(a, b, mode="global", match_score=2, mismatch=-1, gap=-2) ───

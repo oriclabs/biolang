@@ -647,7 +647,7 @@ fn test_clustered_heatmap_ascii() {
         ncol: 3,
         row_names: Some(vec!["r1".into(), "r2".into()]),
         col_names: Some(vec!["c1".into(), "c2".into(), "c3".into()]),
-    });
+    }.into());
     let r = call_bio_plots_builtin("clustered_heatmap", vec![m]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
@@ -660,7 +660,7 @@ fn test_clustered_heatmap_svg() {
         ncol: 3,
         row_names: Some(vec!["r1".into(), "r2".into()]),
         col_names: Some(vec!["c1".into(), "c2".into(), "c3".into()]),
-    });
+    }.into());
     let r = call_bio_plots_builtin("clustered_heatmap", vec![m, svg_opts()]).unwrap();
     assert_svg(&r);
 }
@@ -1084,7 +1084,7 @@ fn test_hic_map_ascii() {
         ncol: 3,
         row_names: Some(vec!["bin1".into(), "bin2".into(), "bin3".into()]),
         col_names: Some(vec!["bin1".into(), "bin2".into(), "bin3".into()]),
-    });
+    }.into());
     let r = call_bio_plots_builtin("hic_map", vec![m]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
@@ -1097,7 +1097,7 @@ fn test_hic_map_svg() {
         ncol: 2,
         row_names: None,
         col_names: None,
-    });
+    }.into());
     let r = call_bio_plots_builtin("hic_map", vec![m, svg_opts()]).unwrap();
     assert_svg(&r);
 }
@@ -1718,7 +1718,7 @@ fn test_hic_map_large_matrix() {
         })
         .collect();
     let mat = Matrix::new(data, 10, 10).unwrap();
-    let result = call_bio_plots_builtin("hic_map", vec![Value::Matrix(mat)]).unwrap();
+    let result = call_bio_plots_builtin("hic_map", vec![Value::Matrix(mat.into())]).unwrap();
     assert!(
         matches!(result, Value::Str(_)),
         "expected Str output, got {result:?}"
@@ -1777,7 +1777,7 @@ fn test_ideogram_multiple_bands() {
 fn test_clustered_heatmap_large() {
     let data: Vec<f64> = (0..64).map(|i| (i as f64 * 0.5).sin()).collect();
     let mat = Matrix::new(data, 8, 8).unwrap();
-    let result = call_bio_plots_builtin("clustered_heatmap", vec![Value::Matrix(mat)]).unwrap();
+    let result = call_bio_plots_builtin("clustered_heatmap", vec![Value::Matrix(mat.into())]).unwrap();
     assert!(
         matches!(result, Value::Str(_)),
         "expected Str output, got {result:?}"

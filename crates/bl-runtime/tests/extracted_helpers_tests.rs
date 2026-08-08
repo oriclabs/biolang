@@ -26,7 +26,7 @@ fn blosum_fragment() -> Value {
         ncol: 3,
         row_names: Some(vec!["A".into(), "W".into(), "P".into()]),
         col_names: Some(vec!["A".into(), "W".into(), "P".into()]),
-    })
+    }.into())
 }
 
 fn ints(vals: &[i64]) -> Value {

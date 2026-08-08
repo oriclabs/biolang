@@ -66,7 +66,14 @@ pub enum Value {
     Interval(GenomicInterval),
 
     /// Dense numeric matrix.
-    Matrix(crate::matrix::Matrix),
+    /// Behind an `Arc` for the same reason `SparseMatrix` is: `Value` is cloned
+    /// constantly — every record spread, every argument pass, every pipeline
+    /// stage — and a dense matrix is the largest thing the interpreter carries.
+    /// Inline, a 29,629 x 3,000 residual matrix cost 711 MB *per clone*, which
+    /// is how a single-cell pipeline whose largest genuine allocation is 711 MB
+    /// peaked at 9 GB. Reads go through `Deref`, so `m.data` and `m.nrow` are
+    /// unchanged; only construction sites had to learn `.into()`.
+    Matrix(Arc<crate::matrix::Matrix>),
 
     /// Range value: `1..10` or `1..=10`
     Range {

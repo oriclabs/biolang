@@ -3319,10 +3319,10 @@ fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
     let m = bl_core::matrix::Matrix::new(flat, n_cells, n_out)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, &e, None))?;
     if want.is_none() {
-        return Ok(Value::Matrix(m));
+        return Ok(Value::Matrix(m.into()));
     }
     let mut result = HashMap::new();
-    result.insert("matrix".to_string(), Value::Matrix(m));
+    result.insert("matrix".to_string(), Value::Matrix(m.into()));
     result.insert(
         "genes".to_string(),
         Value::List(

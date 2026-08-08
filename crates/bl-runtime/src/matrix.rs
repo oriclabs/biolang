@@ -205,7 +205,7 @@ fn builtin_matrix(args: Vec<Value>) -> Result<Value> {
             let nrow = rows.len();
             let m = Matrix::new(data, nrow, ncol)
                 .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-            Ok(Value::Matrix(m))
+            Ok(Value::Matrix(m.into()))
         }
         _ => Err(BioLangError::type_error(
             "matrix() requires List of Lists",
@@ -276,7 +276,7 @@ fn builtin_matrix_from_table(args: Vec<Value>) -> Result<Value> {
     let mut m = Matrix::new(data, nrow, ncol)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     m.col_names = Some(col_names);
-    Ok(Value::Matrix(m))
+    Ok(Value::Matrix(m.into()))
 }
 
 fn builtin_matrix_to_table(args: Vec<Value>) -> Result<Value> {
@@ -297,12 +297,12 @@ fn builtin_matrix_to_table(args: Vec<Value>) -> Result<Value> {
 fn builtin_zeros(args: Vec<Value>) -> Result<Value> {
     let nrow = require_int(&args[0], "zeros")? as usize;
     let ncol = require_int(&args[1], "zeros")? as usize;
-    Ok(Value::Matrix(Matrix::zeros(nrow, ncol)))
+    Ok(Value::Matrix(Matrix::zeros(nrow, ncol).into()))
 }
 
 fn builtin_eye(args: Vec<Value>) -> Result<Value> {
     let n = require_int(&args[0], "eye")? as usize;
-    Ok(Value::Matrix(Matrix::identity(n)))
+    Ok(Value::Matrix(Matrix::identity(n).into()))
 }
 
 fn builtin_dim(args: Vec<Value>) -> Result<Value> {
@@ -314,7 +314,7 @@ fn builtin_dim(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_transpose(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "transpose")?;
-    Ok(Value::Matrix(m.transpose()))
+    Ok(Value::Matrix(m.transpose().into()))
 }
 
 fn builtin_mat_add(args: Vec<Value>) -> Result<Value> {
@@ -323,7 +323,7 @@ fn builtin_mat_add(args: Vec<Value>) -> Result<Value> {
     let result = a
         .add(b)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::Matrix(result))
+    Ok(Value::Matrix(result.into()))
 }
 
 fn builtin_mat_sub(args: Vec<Value>) -> Result<Value> {
@@ -332,7 +332,7 @@ fn builtin_mat_sub(args: Vec<Value>) -> Result<Value> {
     let result = a
         .sub(b)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::Matrix(result))
+    Ok(Value::Matrix(result.into()))
 }
 
 fn builtin_mat_mul(args: Vec<Value>) -> Result<Value> {
@@ -341,13 +341,13 @@ fn builtin_mat_mul(args: Vec<Value>) -> Result<Value> {
     let result = a
         .dot(b)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::Matrix(result))
+    Ok(Value::Matrix(result.into()))
 }
 
 fn builtin_mat_scale(args: Vec<Value>) -> Result<Value> {
     let m = require_matrix(&args[0], "mat_scale")?;
     let s = require_num(&args[1], "mat_scale")?;
-    Ok(Value::Matrix(m.scale(s)))
+    Ok(Value::Matrix(m.scale(s).into()))
 }
 
 fn builtin_dot(args: Vec<Value>) -> Result<Value> {
@@ -356,7 +356,7 @@ fn builtin_dot(args: Vec<Value>) -> Result<Value> {
     let result = a
         .dot(b)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::Matrix(result))
+    Ok(Value::Matrix(result.into()))
 }
 
 fn builtin_row_sums(args: Vec<Value>) -> Result<Value> {
@@ -448,7 +448,7 @@ fn builtin_pca(args: Vec<Value>) -> Result<Value> {
         let comp_ncol = res.components[0].len();
         let comp_data: Vec<f64> = res.components.into_iter().flatten().collect();
         if let Ok(comp_mat) = Matrix::new(comp_data, comp_nrow, comp_ncol) {
-            result.insert("components".to_string(), Value::Matrix(comp_mat));
+            result.insert("components".to_string(), Value::Matrix(comp_mat.into()));
         }
     }
 
@@ -458,7 +458,7 @@ fn builtin_pca(args: Vec<Value>) -> Result<Value> {
         let td_ncol = res.transformed_data[0].len();
         let td_data: Vec<f64> = res.transformed_data.into_iter().flatten().collect();
         if let Ok(td_mat) = Matrix::new(td_data, td_nrow, td_ncol) {
-            result.insert("transformed".to_string(), Value::Matrix(td_mat));
+            result.insert("transformed".to_string(), Value::Matrix(td_mat.into()));
         }
     }
 
@@ -478,7 +478,7 @@ fn builtin_cor_matrix(args: Vec<Value>) -> Result<Value> {
     }
     let result = Matrix::new(data, ncol, ncol)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::Matrix(result))
+    Ok(Value::Matrix(result.into()))
 }
 
 fn builtin_cov_matrix(args: Vec<Value>) -> Result<Value> {
@@ -502,7 +502,7 @@ fn builtin_cov_matrix(args: Vec<Value>) -> Result<Value> {
     }
     let result = Matrix::new(data, ncol, ncol)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::Matrix(result))
+    Ok(Value::Matrix(result.into()))
 }
 
 fn builtin_dist_matrix(args: Vec<Value>) -> Result<Value> {
@@ -545,7 +545,7 @@ fn builtin_dist_matrix(args: Vec<Value>) -> Result<Value> {
     }
     let result = Matrix::new(data, nrow, nrow)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::Matrix(result))
+    Ok(Value::Matrix(result.into()))
 }
 
 fn builtin_row(args: Vec<Value>) -> Result<Value> {
@@ -634,7 +634,7 @@ fn builtin_inverse(args: Vec<Value>) -> Result<Value> {
     let inv = m
         .inverse()
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::Matrix(inv))
+    Ok(Value::Matrix(inv.into()))
 }
 
 fn builtin_solve(args: Vec<Value>) -> Result<Value> {
@@ -682,7 +682,7 @@ fn builtin_eigenvalues(args: Vec<Value>) -> Result<Value> {
                 .into(),
         ),
     );
-    result.insert("vectors".to_string(), Value::Matrix(vecs));
+    result.insert("vectors".to_string(), Value::Matrix(vecs.into()));
     Ok(Value::Record((result).into()))
 }
 
@@ -692,12 +692,12 @@ fn builtin_svd(args: Vec<Value>) -> Result<Value> {
         .svd()
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     let mut result = HashMap::new();
-    result.insert("u".to_string(), Value::Matrix(u));
+    result.insert("u".to_string(), Value::Matrix(u.into()));
     result.insert(
         "d".to_string(),
         Value::List(s.into_iter().map(Value::Float).collect::<Vec<_>>().into()),
     );
-    result.insert("vt".to_string(), Value::Matrix(vt));
+    result.insert("vt".to_string(), Value::Matrix(vt.into()));
     Ok(Value::Record((result).into()))
 }
 
@@ -715,7 +715,7 @@ fn builtin_ones(args: Vec<Value>) -> Result<Value> {
     let data = vec![1.0; nrow * ncol];
     let m = Matrix::new(data, nrow, ncol)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::Matrix(m))
+    Ok(Value::Matrix(m.into()))
 }
 
 fn builtin_diag(args: Vec<Value>) -> Result<Value> {
@@ -750,5 +750,5 @@ fn builtin_diag(args: Vec<Value>) -> Result<Value> {
     }
     let m = Matrix::new(data, n, n)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
-    Ok(Value::Matrix(m))
+    Ok(Value::Matrix(m.into()))
 }

@@ -274,7 +274,7 @@ fn builtin_umap(args: Vec<Value>) -> Result<Value> {
     let flat: Vec<f64> = embeddings.into_iter().flatten().collect();
     let m = Matrix::new(flat, nrow, ncol)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, &e, None))?;
-    Ok(Value::Matrix(m))
+    Ok(Value::Matrix(m.into()))
 }
 
 fn builtin_tsne(args: Vec<Value>) -> Result<Value> {
@@ -305,7 +305,7 @@ fn builtin_tsne(args: Vec<Value>) -> Result<Value> {
     let flat: Vec<f64> = embeddings.into_iter().flatten().collect();
     let m = Matrix::new(flat, nrow, ncol)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, &e, None))?;
-    Ok(Value::Matrix(m))
+    Ok(Value::Matrix(m.into()))
 }
 
 fn builtin_leiden(args: Vec<Value>) -> Result<Value> {
