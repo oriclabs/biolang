@@ -74,13 +74,24 @@ them by how close their mean landed to zero, which is arithmetic noise.
 
 `sc.sctransform(3000)` now selects on **residual variance**, which is what
 [the sctransform paper](https://doi.org/10.1186/s13059-019-1874-1) proposes and
-what Seurat's `SCTransform` returns. On the same data, same settings, that gives
-16.
+what Seurat's `SCTransform` returns.
+
+Both were run against the same binary, on the same cells, with everything
+downstream held fixed — same PCA, same Harmony, same Leiden, same resolution.
+Only the ranking differs:
+
+| Gene selection on the residuals | Clusters | Time | Peak memory |
+|---|---|---|---|
+| Dispersion — variance ÷ mean² | **17** | 247 s | 16.8 GB |
+| Residual variance — the paper's | **16** | 206 s | 6.3 GB |
 
 So the honest position is: a defensible method gives 16, and an indefensible one
-gave 17. **Getting the reference's number out of a method the reference does not
+gives 17. **Getting the reference's number out of a method the reference does not
 use is not agreement — it is a coincidence that looked like agreement**, and
 this page reported it as a match for longer than it should have.
+
+Note that the wrong method is the slower and hungrier one too. Nothing about the
+17 was cheap.
 
 The remaining gap of one cluster is real and unexplained. Candidates are the
 HVG overlap, the PCA implementation, and Leiden's tie-breaking, all of which
@@ -117,7 +128,7 @@ returns a matrix.
 for all 16,681 genes when the next step keeps 3,000 and discards the rest.
 `sc.sctransform(3000)` ranks genes by residual variance and materialises only
 those, which is what `SCTransform(variable.features.n = ...)` does. Measured on
-this pipeline: **16.4 GB peak uncapped, 6.3 GB capped.**
+this pipeline: **16.8 GB peak uncapped, 6.3 GB capped**, and 247 s down to 206 s.
 
 **And the 6.3 GB was still too much.** `Value::Matrix` held its matrix inline
 while `Value::SparseMatrix` had already been moved behind an `Arc`, so every
