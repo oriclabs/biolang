@@ -2686,7 +2686,11 @@ fn builtin_snn_graph(args: Vec<Value>) -> Result<Value> {
                 continue;
             }
             let jaccard = count as f64 / union as f64;
-            if jaccard <= prune {
+            // Strictly less than, which is what Seurat's ComputeSNN does:
+            //   if (it.value() < prune) { it.valueRef() = 0; }
+            // Its documentation says "less than or equal to" and its code says
+            // less than. An edge sitting exactly on the threshold is kept.
+            if jaccard < prune {
                 continue;
             }
             let mut rec = HashMap::new();
