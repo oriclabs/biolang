@@ -22,7 +22,7 @@ pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
         // Section 6: Single-cell QC / normalisation
         ("normalize_total", Arity::Range(1, 2)),
         ("log1p_transform", Arity::Exact(1)),
-        ("highly_variable_genes", Arity::Range(1, 2)),
+        ("highly_variable_genes", Arity::Range(1, 3)),
         ("find_all_markers", Arity::Range(2, 3)),
         ("harmony_integrate", Arity::Range(2, 3)),
         ("cca", Arity::Range(2, 3)),
@@ -1147,6 +1147,160 @@ impl HvgStats {
     }
 }
 
+/// Variance-stabilising HVG selection, the `vst` method of Stuart et al. 2019.
+///
+/// Implemented from the published description, not from Seurat's source:
+///
+///   1. per-gene mean and variance of the raw counts,
+///   2. a local regression of log10(variance) on log10(mean),
+///   3. an expected standard deviation per gene, sqrt(10^fitted),
+///   4. counts standardised by that expectation and clipped at sqrt(n_cells),
+///   5. genes ranked by the variance of those standardised values.
+///
+/// Step 3 is the point of the method. Ranking on raw variance returns the
+/// highest-expressed genes, which you already knew about; dividing by what a
+/// gene of that expression level is *expected* to vary by leaves only the
+/// genes that vary more than their abundance explains. The clip stops a
+/// handful of extreme cells carrying a gene into the list.
+///
+/// The regression is a tricube-weighted local quadratic — the standard loess
+/// construction — with span 0.3, Seurat's default. R's `loess` interpolates
+/// over a kd-tree for speed rather than fitting at every point; this fits
+/// directly, so the two agree in method and can differ in the last digits.
+fn vst_standardised_variance(
+    means: &[f64],
+    variances: &[f64],
+    columns: &[Vec<f64>],
+    n_cells: usize,
+) -> Vec<f64> {
+    const SPAN: f64 = 0.3;
+    let n_genes = means.len();
+
+    // Fit only where both are positive; log of zero is not a data point.
+    let fit_points: Vec<(f64, f64)> = (0..n_genes)
+        .filter(|&g| means[g] > 0.0 && variances[g] > 0.0)
+        .map(|g| (means[g].log10(), variances[g].log10()))
+        .collect();
+    if fit_points.len() < 3 {
+        return variances.to_vec();
+    }
+
+    let clip = (n_cells as f64).sqrt();
+    let mut out = vec![0.0; n_genes];
+    for gene in 0..n_genes {
+        if means[gene] <= 0.0 || variances[gene] <= 0.0 {
+            continue;
+        }
+        let x = means[gene].log10();
+        let fitted = loess_at(&fit_points, x, SPAN);
+        let expected_sd = (10.0_f64.powf(fitted)).sqrt();
+        if !expected_sd.is_finite() || expected_sd <= 0.0 {
+            continue;
+        }
+        // Variance of the clipped standardised counts. Cells not stored in a
+        // sparse column are zeros, and a zero standardises to -mean/sd, so the
+        // absent entries contribute and cannot be skipped.
+        let mu = means[gene];
+        let stored = &columns[gene];
+        let mut total = 0.0;
+        let mut total_sq = 0.0;
+        for &value in stored {
+            let z = ((value - mu) / expected_sd).clamp(-clip, clip);
+            total += z;
+            total_sq += z * z;
+        }
+        let zero_z = ((0.0 - mu) / expected_sd).clamp(-clip, clip);
+        let n_zero = n_cells.saturating_sub(stored.len()) as f64;
+        total += zero_z * n_zero;
+        total_sq += zero_z * zero_z * n_zero;
+
+        let n = n_cells as f64;
+        let mean_z = total / n;
+        out[gene] = (total_sq / n - mean_z * mean_z).max(0.0);
+    }
+    out
+}
+
+/// One tricube-weighted local quadratic fit evaluated at `x`.
+fn loess_at(points: &[(f64, f64)], x: f64, span: f64) -> f64 {
+    let n = points.len();
+    let window = ((span * n as f64).ceil() as usize).clamp(3, n);
+
+    // The `window` nearest points by distance in x set the bandwidth.
+    let mut distances: Vec<(f64, usize)> = points
+        .iter()
+        .enumerate()
+        .map(|(i, (px, _))| ((px - x).abs(), i))
+        .collect();
+    distances.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+    let bandwidth = distances[window - 1].0.max(1e-12);
+
+    // Weighted least squares on [1, dx, dx^2] via normal equations.
+    let mut ata = [[0.0f64; 3]; 3];
+    let mut atb = [0.0f64; 3];
+    for &(distance, index) in distances.iter().take(window) {
+        let u = (distance / bandwidth).min(1.0);
+        let w = (1.0 - u * u * u).powi(3);
+        if w <= 0.0 {
+            continue;
+        }
+        let (px, py) = points[index];
+        let dx = px - x;
+        let basis = [1.0, dx, dx * dx];
+        for r in 0..3 {
+            for c in 0..3 {
+                ata[r][c] += w * basis[r] * basis[c];
+            }
+            atb[r] += w * basis[r] * py;
+        }
+    }
+    // Solve; fall back to the weighted mean if the system is degenerate.
+    solve3(&mut ata, &mut atb).unwrap_or_else(|| {
+        let (mut sw, mut sy) = (0.0, 0.0);
+        for &(_, index) in distances.iter().take(window) {
+            sw += 1.0;
+            sy += points[index].1;
+        }
+        if sw > 0.0 {
+            sy / sw
+        } else {
+            0.0
+        }
+    })
+}
+
+/// Gauss-Jordan on a 3x3 system, returning the intercept (the fit at dx = 0).
+fn solve3(a: &mut [[f64; 3]; 3], b: &mut [f64; 3]) -> Option<f64> {
+    for col in 0..3 {
+        let pivot = (col..3).max_by(|&r1, &r2| {
+            a[r1][col]
+                .abs()
+                .partial_cmp(&a[r2][col].abs())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })?;
+        if a[pivot][col].abs() < 1e-12 {
+            return None;
+        }
+        a.swap(col, pivot);
+        b.swap(col, pivot);
+        let d = a[col][col];
+        for c in col..3 {
+            a[col][c] /= d;
+        }
+        b[col] /= d;
+        for r in 0..3 {
+            if r != col && a[r][col] != 0.0 {
+                let factor = a[r][col];
+                for c in col..3 {
+                    a[r][c] -= factor * a[col][c];
+                }
+                b[r] -= factor * b[col];
+            }
+        }
+    }
+    b[0].is_finite().then(|| b[0])
+}
+
 fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
     let n_hvg = if args.len() > 1 {
         let value = require_int(&args[1], "highly_variable_genes")?;
@@ -1160,6 +1314,54 @@ fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
     } else {
         2000
     };
+
+    // method: "dispersion" (default, scanpy's seurat flavour) or "vst"
+    // (Stuart et al. 2019, Seurat's default since v3). They rank genes
+    // differently and neither is wrong; "vst" is what you want when comparing
+    // against a Seurat analysis.
+    let method = if args.len() > 2 {
+        match &args[2] {
+            Value::Str(s) => s.clone(),
+            other => {
+                return Err(BioLangError::type_error(
+                    format!(
+                        "highly_variable_genes() method must be Str, got {}",
+                        other.type_of()
+                    ),
+                    None,
+                ))
+            }
+        }
+    } else {
+        "dispersion".to_string()
+    };
+
+    if method == "vst" {
+        let (n_cells, _n_genes, columns) =
+            expression_columns(&args[0], "highly_variable_genes")?;
+        let means: Vec<f64> = columns
+            .iter()
+            .map(|c| c.iter().sum::<f64>() / n_cells as f64)
+            .collect();
+        let variances: Vec<f64> = columns
+            .iter()
+            .zip(&means)
+            .map(|(c, &mu)| {
+                let stored: f64 = c.iter().map(|v| (v - mu) * (v - mu)).sum();
+                let zeros = (n_cells - c.len()) as f64;
+                (stored + zeros * mu * mu) / n_cells as f64
+            })
+            .collect();
+        let scores = vst_standardised_variance(&means, &variances, &columns, n_cells);
+        let mut ranked: Vec<(usize, f64)> = scores.iter().copied().enumerate().collect();
+        ranked.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        let indices: Vec<Value> = ranked
+            .into_iter()
+            .take(n_hvg.min(scores.len()))
+            .map(|(gene, _)| Value::Int(gene as i64))
+            .collect();
+        return Ok(Value::List((indices).into()));
+    }
 
     let stats = hvg_statistics(&args[0], "highly_variable_genes")?;
     let indices: Vec<Value> = stats
