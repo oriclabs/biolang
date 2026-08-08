@@ -22,11 +22,11 @@ the UMAP.
 ```biolang
 import "singlecell" as sc
 
-let obj = sc.load("nsclc_like")
+let obj = sc.load("ctrl_raw")
     |> sc.filter_genes(3)
-    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.filter_cells(250, 100000, 20.0)
     |> sc.normalize()
-    |> sc.variable_genes(100)
+    |> sc.variable_genes(2000)
     |> sc.run_pca(20)
     |> sc.neighbors(15)
     |> sc.cluster_leiden(15, 0.5)
@@ -53,9 +53,9 @@ Compare several resolutions:
 ```biolang
 import "singlecell" as sc
 
-let base = sc.load("nsclc_like")
+let base = sc.load("ctrl_raw")
     |> sc.filter_genes(3)
-    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.filter_cells(250, 100000, 20.0)
 
 let trials = sc.sweep(base, resolutions: [0.2, 0.5, 0.8, 1.2], n_hvg: 100, k: 15)
 println(trials |> map(|x| {resolution: x.resolution, clusters: x.n_clusters}))
@@ -75,7 +75,7 @@ biological cell type.
 ```biolang
 import "singlecell" as sc
 
-let raw = sc.load("nsclc_like")
+let raw = sc.load("ctrl_raw")
 
 # Pass only what you mean to change; the rest stay at their defaults and are
 # reported as [default] so you can see what you have not thought about.

@@ -19,10 +19,17 @@ Install the package, then copy its examples into a standalone working
 directory:
 
 ```text
-bl install singlecell
-bl examples singlecell --copy singlecell-examples
+bl install ./singlecell
+bl examples ./singlecell --copy singlecell-examples
 cd singlecell-examples
 ```
+
+`bl install` takes a **path**, not a name. There is no package registry yet, and
+`bl install --git <url>` clones a whole repository into the package slot, which
+cannot work for a package living in a subdirectory of one. If you do not have a
+checkout, the
+[starter kit](../../hbc-scrnaseq/html/downloads/singlecell-starter.zip) ships
+the package ready to install.
 
 The install step is what makes `import "singlecell" as sc` resolve. Imports are
 searched in the current directory first and `~/.biolang/packages/` last, so a
@@ -44,36 +51,45 @@ current directory wins, a checkout still overrides the installed copy when you
 run from `packages/` — reinstall after editing the package if you want the
 change visible elsewhere.
 
-## Generate the teaching matrix
+## Get the data
 
-The fixture contains four populations with distinct marker blocks, shared
-background genes, mitochondrial genes, and low-information droplets. It is
-synthetic: no person or patient data is involved.
-
-```text
-python make_demo_10x.py --output nsclc_like
-```
-
-`--output` is relative to the current directory. With the commands above, the
-fixture is created at:
+This book runs on a real experiment: peripheral blood mononuclear cells from
+lupus patients (Kang et al., *Nature Biotechnology* 2018), in two samples — an
+untreated control and one stimulated with interferon-beta. It is the dataset the
+Harvard Chan Bioinformatics Core teaches on, and they host a packaged copy.
 
 ```text
-<your working directory>/nsclc_like/
+python get-data.py
 ```
 
-It contains `matrix.mtx.gz`, `features.tsv.gz`, `barcodes.tsv.gz`, and
-`truth.csv`. The later `sc.load("nsclc_like")` calls resolve that same directory
-because the examples are run from the copied working directory.
+`get-data.py` is in the
+[starter kit](../../hbc-scrnaseq/html/downloads/singlecell-starter.zip), or on
+its own at
+[get-data.py](../../hbc-scrnaseq/html/downloads/get-data.py).
 
-Expected summary:
+**Be warned about the size.** The archive is 3.2 GB and the two directories this
+book needs total about 90 MB. Zip stores its index at the end of the file, so
+there is no way to fetch two members from a remote archive without pulling the
+whole thing. The script downloads once, extracts what is used, and deletes the
+archive, so the 3.2 GB is transient rather than resident.
+
+Afterwards you have:
 
 ```text
-168 genes x 265 barcodes (25 junk)
-output: <your working directory>/nsclc_like
+ctrl_raw/     barcodes.tsv.gz  features.tsv.gz  matrix.mtx.gz
+stim_raw/     barcodes.tsv.gz  features.tsv.gz  matrix.mtx.gz
 ```
 
-The generator uses a fixed seed. Re-running it produces the same logical
-dataset, making it suitable for tests and comparisons.
+Run everything from the directory containing those.
+
+> **Why not a synthetic fixture?** An earlier edition of this book generated one,
+> and it was faster and needed no download. It was also wrong in a way that
+> mattered: its genes were named `MARK0_000`, `MARK1_000`, and so on. Every
+> mechanical step worked, and the one thing the annotation chapter exists to
+> teach — reading `LYZ`, `CD14` and `S100A8` together and concluding *monocytes*
+> — could not be shown at all. Real data also exercises the code differently:
+> uneven cluster sizes, 737,280 droplets, and genuinely sparse matrices found
+> four separate bugs that evenly sized toy data never touched.
 
 ## Load it
 
@@ -83,9 +99,21 @@ dataset, making it suitable for tests and comparisons.
 ```biolang
 import "singlecell" as sc
 
-let cells = sc.load("nsclc_like")
-println(sc.summary(cells))
+let cells = sc.load("ctrl_raw")
+println("droplets: " + str(cells.n_cells))
+println("genes:    " + str(cells.n_genes))
+println("first genes: " + str(sc.get_genes(cells) |> take(5)))
 ```
+
+```text
+droplets: 737280
+genes:    33538
+first genes: [MIR1302-2HG, FAM138A, OR4F5, AL627309.1, AL627309.3]
+```
+
+737,280 is every barcode the chemistry can produce, not every cell — the
+overwhelming majority are empty droplets. Sorting that out is
+[Quality Control](ch05-quality-control.md).
 
 The object is a BioLang record. Important fields are:
 

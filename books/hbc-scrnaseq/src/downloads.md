@@ -14,7 +14,7 @@ data-download script, every chapter script and the notebook.
 unzip singlecell-starter.zip && cd singlecell-starter
 bl install ./singlecell
 python get-data.py
-bl run ch01-biology-and-matrix.bl
+bl run ch01.bl
 ```
 
 Full setup, including installing BioLang itself, is in
@@ -32,13 +32,13 @@ One per chapter, each self-contained.
 
 | Chapter | Script | Blocks |
 |---|---|---|
-| The Biology and the Matrix | [ch01-biology-and-matrix.bl](downloads/ch01-biology-and-matrix.bl) | 1 |
-| Quality Control | [ch02-quality-control.bl](downloads/ch02-quality-control.bl) | 3 |
-| Normalization and PCA | [ch03-normalization-pca.bl](downloads/ch03-normalization-pca.bl) | 4 |
-| Integration | [ch04-integration.bl](downloads/ch04-integration.bl) | 2 |
-| Clustering | [ch05-clustering.bl](downloads/ch05-clustering.bl) | 4 |
-| Markers and Annotation | [ch06-markers.bl](downloads/ch06-markers.bl) | 4 |
-| The Whole Workflow | [ch07-workflow.bl](downloads/ch07-workflow.bl) | 4 |
+| The Biology and the Matrix | [ch01.bl](downloads/ch01.bl) | 1 |
+| Quality Control | [ch02.bl](downloads/ch02.bl) | 3 |
+| Normalization and PCA | [ch03.bl](downloads/ch03.bl) | 4 |
+| Integration | [ch04.bl](downloads/ch04.bl) | 2 |
+| Clustering | [ch05.bl](downloads/ch05.bl) | 4 |
+| Markers and Annotation | [ch06.bl](downloads/ch06.bl) | 4 |
+| The Whole Workflow | [ch07.bl](downloads/ch07.bl) | 4 |
 
 > **These are not quick, and here is what they actually cost.** Measured on a
 > laptop, single-threaded:

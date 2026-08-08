@@ -155,6 +155,20 @@ enum Commands {
     },
     /// Check the environment and per-capability readiness (native vs container)
     Doctor,
+    /// Print a shell completion script
+    ///
+    /// Shells already complete file paths for native commands, so the value
+    /// here is the part they cannot guess — subcommands and flags — and
+    /// narrowing `bl run` to the files it can actually run.
+    ///
+    ///   bash:       bl completions bash       >> ~/.bashrc
+    ///   zsh:        bl completions zsh        > ~/.zfunc/_bl
+    ///   fish:       bl completions fish       > ~/.config/fish/completions/bl.fish
+    ///   powershell: bl completions powershell >> $PROFILE
+    Completions {
+        /// Shell to generate for
+        shell: clap_complete::Shell,
+    },
     /// Show version and check for updates
     Version,
     /// Upgrade to the latest release
@@ -267,6 +281,11 @@ fn main() {
                     json,
                 ),
                 Some(Commands::Doctor) => print!("{}", bl_runtime::capabilities::doctor_report()),
+                Some(Commands::Completions { shell }) => {
+                    let mut cmd = <Cli as clap::CommandFactory>::command();
+                    let name = cmd.get_name().to_string();
+                    clap_complete::generate(shell, &mut cmd, name, &mut std::io::stdout());
+                }
                 Some(Commands::Version) => update::cmd_version(),
                 Some(Commands::Upgrade) => update::cmd_upgrade(),
                 Some(Commands::Metadata { format }) => cmd_metadata(&format),
@@ -325,12 +344,96 @@ const MAX_DISPLAYED_RESULTS: usize = 32;
 /// over a million reads cannot flood the event stream.
 const MAX_TRACE_EVENTS: usize = 500;
 
+/// A "did you mean" for a script path that could not be read.
+///
+/// The language already does this for identifiers — see `suggest_builtin` — so
+/// a mistyped file name gets the same treatment. It only ever runs after a read
+/// has already failed, so it cannot change what a working command does; a name
+/// that resolves is never second-guessed.
+///
+/// Deliberately not prefix resolution. Having `bl run ch03` silently pick
+/// `ch03-normalization-pca.bl` would make a script's meaning depend on what
+/// else is sitting in the directory, so a working command could start running a
+/// different file the day someone adds a similarly named one.
+fn nearby_script_hint(path: &str) -> String {
+    let wanted = PathBuf::from(path);
+    let dir = match wanted.parent() {
+        Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
+        _ => PathBuf::from("."),
+    };
+    let stem = wanted
+        .file_name()
+        .map(|s| s.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    if stem.is_empty() {
+        return String::new();
+    }
+
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return String::new();
+    };
+    let mut candidates: Vec<String> = entries
+        .filter_map(std::result::Result::ok)
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .filter(|n| {
+            let lower = n.to_lowercase();
+            lower.ends_with(".bl") || lower.ends_with(".bln") || lower.ends_with(".bl.md")
+        })
+        .collect();
+    if candidates.is_empty() {
+        return String::new();
+    }
+
+    // A shared prefix is the common case with numbered chapter scripts;
+    // otherwise fall back to the closest name by edit distance.
+    let bare = stem.trim_end_matches(".bl").trim_end_matches(".bln");
+    let mut by_prefix: Vec<&String> = candidates
+        .iter()
+        .filter(|n| n.to_lowercase().starts_with(bare) && !bare.is_empty())
+        .collect();
+    by_prefix.sort();
+    if !by_prefix.is_empty() {
+        let list = by_prefix
+            .iter()
+            .take(3)
+            .map(|n| n.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        return format!("
+  did you mean {list}?");
+    }
+
+    candidates.sort_by_key(|n| edit_distance(&stem, &n.to_lowercase()));
+    let best = &candidates[0];
+    if edit_distance(&stem, &best.to_lowercase()) <= (stem.len() / 2).max(3) {
+        return format!("
+  did you mean {best}?");
+    }
+    String::new()
+}
+
+/// Levenshtein distance, for the suggestion above.
+fn edit_distance(a: &str, b: &str) -> usize {
+    let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    let mut cur = vec![0usize; b.len() + 1];
+    for i in 1..=a.len() {
+        cur[0] = i;
+        for j in 1..=b.len() {
+            let cost = usize::from(a[i - 1] != b[j - 1]);
+            cur[j] = (prev[j] + 1).min(cur[j - 1] + 1).min(prev[j - 1] + cost);
+        }
+        std::mem::swap(&mut prev, &mut cur);
+    }
+    prev[b.len()]
+}
+
 fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bool) {
     let start = Instant::now();
     let source = match std::fs::read_to_string(path) {
         Ok(s) => s,
         Err(error) => fail_run(
-            format!("Error reading '{path}': {error}"),
+            format!("Error reading '{path}': {error}{}", nearby_script_hint(path)),
             structured_events,
             &start,
         ),

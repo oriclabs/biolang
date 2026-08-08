@@ -15,7 +15,7 @@ types.
 import "singlecell" as sc
 
 let obj = sc.standard(
-    sc.load("nsclc_like"),
+    sc.load("ctrl_raw"),
     resolution: 0.5, n_hvg: 100, k: 15,
     min_genes: 20, max_genes: 2500, max_pct_mito: 5.0,
     min_cells: 3, target: 10000.0, quiet: true
@@ -38,7 +38,7 @@ object summary, and cell-level assignments.
 import "singlecell" as sc
 
 let obj = sc.standard(
-    sc.load("nsclc_like"),
+    sc.load("ctrl_raw"),
     resolution: 0.5, n_hvg: 100, k: 15,
     min_genes: 20, max_genes: 2500, max_pct_mito: 5.0,
     min_cells: 3, target: 10000.0, quiet: true
@@ -94,7 +94,7 @@ that are not well represented in the reference
 write_text("top_markers.svg", sc.plot_markers(obj, 5))
 write_text(
     "marker_dotplot.svg",
-    sc.expr_dotplot(obj, ["MARK0_001", "MARK1_001", "MARK2_001", "MARK3_001"])
+    sc.expr_dotplot(obj, ["LYZ", "MS4A1", "CD3D", "GNLY"])
 )
 ```
 

@@ -15,7 +15,7 @@ The examples in this chapter use one clustered object:
 import "singlecell" as sc
 
 let obj = sc.standard(
-    sc.load("nsclc_like"),
+    sc.load("ctrl_raw"),
     resolution: 0.5, n_hvg: 100, k: 15,
     min_genes: 20, max_genes: 2500, max_pct_mito: 5.0,
     min_cells: 3, target: 10000.0, quiet: true
@@ -31,7 +31,7 @@ render their columns:
 > Requires CLI: this example imports the package and reads local files.
 
 ```biolang
-let with_qc = sc.load("nsclc_like") |> sc.qc()
+let with_qc = sc.load("ctrl_raw") |> sc.qc()
 
 println("Total counts")
 println(hist(col(with_qc.cell_qc_table, "total_counts"), 20))
@@ -50,7 +50,7 @@ For a connected SVG inspection surface:
 > Requires CLI: this example imports the package and writes a local file.
 
 ```biolang
-write_text("qc-dashboard.svg", sc.plot_qc_dashboard(sc.load("nsclc_like")))
+write_text("qc-dashboard.svg", sc.plot_qc_dashboard(sc.load("ctrl_raw")))
 ```
 
 `plot_qc_violin()` and `plot_qc_scatter()` provide the two component views when
@@ -115,8 +115,8 @@ write_text(
 
 ```biolang
 write_text(
-    "feature-MARK0_001.svg",
-    sc.plot_feature(obj, "MARK0_001", "MARK0_001 normalized expression")
+    "feature-LYZ.svg",
+    sc.plot_feature(obj, "LYZ", "LYZ normalized expression")
 )
 ```
 
@@ -131,7 +131,7 @@ When comparing conditions, keep one colour scale across panels:
 ```biolang
 write_text(
     "feature-split.svg",
-    sc.plot_feature_split(obj, "MARK0_001", condition_labels)
+    sc.plot_feature_split(obj, "LYZ", condition_labels)
 )
 ```
 
@@ -140,7 +140,7 @@ write_text(
 > Requires CLI: this example imports the package and writes a local file.
 
 ```biolang
-write_text("violin-MARK0_001.svg", sc.plot_violin(obj, "MARK0_001"))
+write_text("violin-LYZ.svg", sc.plot_violin(obj, "LYZ"))
 ```
 
 The violin compares a gene's normalized expression distribution across
@@ -172,7 +172,7 @@ write_text(
     "marker-dotplot.svg",
     sc.expr_dotplot(
         obj,
-        ["MARK0_001", "MARK1_001", "MARK2_001", "MARK3_001"],
+        ["LYZ", "MS4A1", "CD3D", "GNLY"],
         "Candidate population markers"
     )
 )

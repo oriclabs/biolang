@@ -12,9 +12,9 @@ target such as 10,000, and applies `log(1 + x)`.
 ```biolang
 import "singlecell" as sc
 
-let obj = sc.load("nsclc_like")
+let obj = sc.load("ctrl_raw")
     |> sc.filter_genes(3)
-    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.filter_cells(250, 100000, 20.0)
     |> sc.normalize(10000.0)
 
 println(sc.summary(obj))
@@ -47,11 +47,11 @@ structure:
 ```biolang
 import "singlecell" as sc
 
-let obj = sc.load("nsclc_like")
+let obj = sc.load("ctrl_raw")
     |> sc.filter_genes(3)
-    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.filter_cells(250, 100000, 20.0)
     |> sc.normalize()
-    |> sc.variable_genes(100)
+    |> sc.variable_genes(2000)
 
 println(take(obj.hvg_genes, 12))
 ```
@@ -74,9 +74,9 @@ alternative transformation:
 ```biolang
 import "singlecell" as sc
 
-let transformed = sc.load("nsclc_like")
+let transformed = sc.load("ctrl_raw")
     |> sc.filter_genes(3)
-    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.filter_cells(250, 100000, 20.0)
     |> sc.sctransform()
 
 println(sc.summary(transformed))

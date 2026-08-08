@@ -247,7 +247,7 @@ pub fn umap(
             // instead leaves 200 epochs to both organise and separate them,
             // and they only half-manage. Starting inside ±0.5 lets attraction
             // form the groups early and repulsion push them apart after.
-            *val = ((rng_state >> 33) as f64 / u32::MAX as f64 - 0.5);
+            *val = (rng_state >> 33) as f64 / u32::MAX as f64 - 0.5;
         }
     }
 

@@ -24,7 +24,7 @@ some tissues.
 ```biolang
 import "singlecell" as sc
 
-let raw = sc.load("nsclc_like") |> sc.qc()
+let raw = sc.load("ctrl_raw") |> sc.qc()
 println(head(raw.cell_qc_table, 8))
 println(head(raw.gene_qc_table, 8))
 ```
@@ -42,10 +42,10 @@ lower than a real whole-transcriptome matrix:
 ```biolang
 import "singlecell" as sc
 
-let raw = sc.load("nsclc_like")
+let raw = sc.load("ctrl_raw")
 let clean = raw
     |> sc.filter_genes(3)
-    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.filter_cells(250, 100000, 20.0)
 
 println("before: " + str(raw.n_cells))
 println("after:  " + str(clean.n_cells))
@@ -78,7 +78,7 @@ applies a threshold:
 ```biolang
 import "singlecell" as sc
 
-let scored = clean |> sc.normalize() |> sc.variable_genes(100) |> sc.doublets(500)
+let scored = clean |> sc.normalize() |> sc.variable_genes(2000) |> sc.doublets(500)
 let flagged = scored |> sc.flag_doublets(0.5)
 println(flagged.is_doublet |> filter(|x| x) |> len)
 ```

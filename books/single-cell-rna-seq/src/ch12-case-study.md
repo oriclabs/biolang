@@ -12,8 +12,8 @@ claim.
 
 ## Complete script
 
-Save this as `singlecell_book_case_study.bl` in the `packages` directory after
-generating `nsclc_like`.
+Save this as `singlecell_book_case_study.bl` and run it from the directory
+containing `ctrl_raw/` — see [Set Up BioLang and the Data](ch04-setup-and-data.md).
 
 > Requires CLI: this complete example imports the package and reads/writes local
 > files.
@@ -21,14 +21,14 @@ generating `nsclc_like`.
 ```biolang
 import "singlecell" as sc
 
-let raw = sc.load("nsclc_like")
+let raw = sc.load("ctrl_raw")
 println("raw: " + str(raw.n_cells) + " cells x " + str(raw.n_genes) + " genes")
 
 let obj = raw
     |> sc.filter_genes(3)
-    |> sc.filter_cells(20, 2500, 5.0)
+    |> sc.filter_cells(250, 100000, 20.0)
     |> sc.normalize(10000.0)
-    |> sc.variable_genes(100)
+    |> sc.variable_genes(2000)
     |> sc.run_pca(20)
     |> sc.neighbors(15)
     |> sc.cluster_leiden(15, 0.5)
@@ -40,7 +40,7 @@ println(sc.summary(obj))
 write_text("elbow.svg", sc.plot_elbow(obj, 15))
 write_text("proportions.svg", sc.plot_proportions(obj))
 
-let truth_rows = read_lines("nsclc_like/truth.csv")
+let truth_rows = read_lines("ctrl_raw/truth.csv")
     |> drop(1)
     |> filter(|line| len(line) > 0)
     |> map(|line| split(line, ","))

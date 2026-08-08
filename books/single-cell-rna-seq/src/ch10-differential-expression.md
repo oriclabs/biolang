@@ -43,7 +43,7 @@ so assign synthetic ones to see the shape:
 import "singlecell" as sc
 
 let obj = sc.standard(
-    sc.load("nsclc_like"),
+    sc.load("ctrl_raw"),
     resolution: 0.5, n_hvg: 100, k: 15,
     min_genes: 20, max_genes: 2500, max_pct_mito: 5.0,
     min_cells: 3, target: 10000.0, quiet: true
