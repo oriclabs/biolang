@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b1166a8e.js";
+            window.path_to_searchindex_js = "searchindex-c2b4dd1e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-3313f347.js"></script>
@@ -189,7 +189,7 @@ data-download script, every chapter script and the notebook.</p>
 <pre><code class="language-sh">unzip singlecell-starter.zip &amp;&amp; cd singlecell-starter
 bl install ./singlecell
 python get-data.py
-bl run ch01-biology-and-matrix.bl
+bl run ch01.bl
 </code></pre>
 <p>Full setup, including installing BioLang itself, is in
 <a href="setup.html">Getting the Data</a>.</p>
@@ -205,13 +205,13 @@ you pass <code>--keep</code>. Also included in the kit.</p>
 <tr><th>Chapter</th><th>Script</th><th>Blocks</th></tr>
 </thead>
 <tbody>
-<tr><td>The Biology and the Matrix</td><td><a href="downloads/ch01-biology-and-matrix.bl">ch01-biology-and-matrix.bl</a></td><td>1</td></tr>
-<tr><td>Quality Control</td><td><a href="downloads/ch02-quality-control.bl">ch02-quality-control.bl</a></td><td>3</td></tr>
-<tr><td>Normalization and PCA</td><td><a href="downloads/ch03-normalization-pca.bl">ch03-normalization-pca.bl</a></td><td>4</td></tr>
-<tr><td>Integration</td><td><a href="downloads/ch04-integration.bl">ch04-integration.bl</a></td><td>2</td></tr>
-<tr><td>Clustering</td><td><a href="downloads/ch05-clustering.bl">ch05-clustering.bl</a></td><td>4</td></tr>
-<tr><td>Markers and Annotation</td><td><a href="downloads/ch06-markers.bl">ch06-markers.bl</a></td><td>4</td></tr>
-<tr><td>The Whole Workflow</td><td><a href="downloads/ch07-workflow.bl">ch07-workflow.bl</a></td><td>4</td></tr>
+<tr><td>The Biology and the Matrix</td><td><a href="downloads/ch01.bl">ch01.bl</a></td><td>1</td></tr>
+<tr><td>Quality Control</td><td><a href="downloads/ch02.bl">ch02.bl</a></td><td>3</td></tr>
+<tr><td>Normalization and PCA</td><td><a href="downloads/ch03.bl">ch03.bl</a></td><td>4</td></tr>
+<tr><td>Integration</td><td><a href="downloads/ch04.bl">ch04.bl</a></td><td>2</td></tr>
+<tr><td>Clustering</td><td><a href="downloads/ch05.bl">ch05.bl</a></td><td>4</td></tr>
+<tr><td>Markers and Annotation</td><td><a href="downloads/ch06.bl">ch06.bl</a></td><td>4</td></tr>
+<tr><td>The Whole Workflow</td><td><a href="downloads/ch07.bl">ch07.bl</a></td><td>4</td></tr>
 </tbody>
 </table>
 </div>
@@ -250,18 +250,21 @@ single block rather than running a whole chapter.</p>
 book’s: their four-criterion QC filter, SCTransform, 40 PCs, resolution 0.8. It
 prints both cluster counts side by side so you can see what the parameters cost:</p>
 <pre><code class="language-text">cells: 14847
-SCTransform / 40 PCs / res 0.8 -&gt; 14 clusters
+SCTransform / 40 PCs / res 0.8 -&gt; 12 clusters
 log1p / 30 PCs / res 0.5      -&gt; 10 clusters
 </code></pre>
+<p>About 75 seconds.</p>
 <p><strong><a href="downloads/exact.bl">exact.bl</a></strong> — the full integrated configuration: both
-samples, their filter, SCTransform, Harmony, 40 PCs, resolution 0.8. This is the
-one that reproduces the course’s cluster count:</p>
+samples, their filter, SCTransform, Harmony, 40 PCs, resolution 0.8:</p>
 <pre><code class="language-text">merged: 29629 cells
-clusters: 17   (HBC reports 17)
+clusters: 21   (HBC reports 17)
 </code></pre>
-<p>Five minutes, and it needs about 4 GB free. See
-<a href="differences.html">What Differs from the Course</a> for what this does and does not
-settle — the count matching is not proof of an identical partition.</p>
+<p>It peaks around 6 GB and is slow — the neighbour search is exact rather than
+approximate, which on 29,629 cells is the dominant cost.</p>
+<p><a href="differences.html">What Differs from the Course</a> has the full account: what was
+rewritten to match Seurat’s published methods, why the count moved <em>away</em> from
+17 as those fixes landed, and why one cluster count was a poor target to aim at
+in the first place.</p>
 <h2 id="the-notebook"><a class="header" href="#the-notebook">The notebook</a></h2>
 <p><strong><a href="downloads/hbc-scrnaseq.bln">hbc-scrnaseq.bln</a></strong> — prose and code together,
 runnable end to end:</p>

@@ -1,4 +1,4 @@
-# Clustering
+# Normalization and PCA
 #
 # From 'The HBC Single-cell Course, in BioLang'.
 # Follows the Harvard Chan Bioinformatics Core course 'Introduction to
@@ -9,7 +9,7 @@
 #   python get-data.py
 #
 # Run:
-#   bl run ch05-clustering.bl
+#   bl run ch03.bl
 
 # --------------------------------------------------------------------
 # Block 1 of 4
@@ -23,12 +23,8 @@ let obj = sc.load("ctrl_raw")
     |> sc.normalize()
     |> sc.variable_genes(2000)
     |> sc.run_pca(30)
-    |> sc.neighbors(15)
-    |> sc.cluster_leiden(15, 0.5)
 
-let labels = sc.get_clusters(obj)
-println("clusters: " + str(labels |> unique |> len))
-write_text("proportions.svg", sc.plot_proportions(obj))
+write_text("elbow.svg", sc.plot_elbow(obj, 30))
 
 # --------------------------------------------------------------------
 # Block 2 of 4
@@ -36,19 +32,12 @@ write_text("proportions.svg", sc.plot_proportions(obj))
 
 import "singlecell" as sc
 
-let base = sc.load("ctrl_raw")
+let obj = sc.load("ctrl_raw")
     |> sc.filter_genes(3)
     |> sc.filter_cells(250, 100000, 20.0)
-    |> sc.normalize()
-    |> sc.variable_genes(2000)
-    |> sc.run_pca(30)
-    |> sc.neighbors(15)
+    |> sc.normalize(10000.0)
 
-for r in [0.2, 0.5, 1.0] {
-    let c = sc.cluster_leiden(base, 15, r)
-    println("resolution " + str(r) + " -> " +
-            str(sc.get_clusters(c) |> unique |> len) + " clusters")
-}
+println("normalised layer present: " + str(contains(keys(obj), "norm_matrix")))
 
 # --------------------------------------------------------------------
 # Block 3 of 4
@@ -57,11 +46,12 @@ for r in [0.2, 0.5, 1.0] {
 import "singlecell" as sc
 
 let obj = sc.load("ctrl_raw")
-    |> sc.filter_genes(3) |> sc.filter_cells(250, 100000, 20.0)
-    |> sc.normalize() |> sc.variable_genes(2000) |> sc.run_pca(30)
-    |> sc.neighbors(15) |> sc.cluster_leiden(15, 0.5)
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(250, 100000, 20.0)
+    |> sc.normalize()
+    |> sc.variable_genes(2000)
 
-write_text("umap.svg", sc.plot_umap(obj, "PBMC control, UMAP coloured by Leiden cluster"))
+println("HVGs: " + str(len(sc.get_hvg_genes(obj))))
 
 # --------------------------------------------------------------------
 # Block 4 of 4
@@ -70,11 +60,9 @@ write_text("umap.svg", sc.plot_umap(obj, "PBMC control, UMAP coloured by Leiden 
 import "singlecell" as sc
 
 let obj = sc.load("ctrl_raw")
-    |> sc.filter_genes(3) |> sc.filter_cells(250, 100000, 20.0)
-    |> sc.normalize() |> sc.variable_genes(2000) |> sc.run_pca(30)
-    |> sc.neighbors(15) |> sc.cluster_leiden(15, 0.5)
+    |> sc.filter_genes(3)
+    |> sc.filter_cells(250, 100000, 20.0)
+    |> sc.sctransform()
 
-let d = sc.cluster_diagnostics(obj)
-println("mean silhouette: " + str(round(d.mean_score, 3)) +
-        "  (scored " + str(d.n_scored) + " of " + str(d.n_cells) + " cells)")
+println("sctransform applied to " + str(obj.n_cells) + " cells")
 

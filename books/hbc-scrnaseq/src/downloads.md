@@ -84,12 +84,16 @@ samples, their filter, SCTransform, Harmony, 40 PCs, resolution 0.8:
 
 ```text
 merged: 29629 cells
-clusters: 16   (HBC reports 17)
+clusters: 21   (HBC reports 17)
 ```
 
-Three and a half minutes, and it peaks at about 6.3 GB. **One cluster short of
-the course**, and [What Differs from the Course](differences.md) explains what
-changed and why the earlier claim of an exact match did not survive scrutiny.
+It peaks around 6 GB and is slow — the neighbour search is exact rather than
+approximate, which on 29,629 cells is the dominant cost.
+
+[What Differs from the Course](differences.md) has the full account: what was
+rewritten to match Seurat's published methods, why the count moved *away* from
+17 as those fixes landed, and why one cluster count was a poor target to aim at
+in the first place.
 
 ## The notebook
 

@@ -3,6 +3,28 @@
 A companion that claims to match and then quietly substitutes something weaker
 is worse than one that lists its gaps. Here they are.
 
+> **Current state, stated plainly.** BioLang's single-cell pipeline was
+> substantially rewritten to match the published Seurat methods: the PCA (which
+> was returning components out of order — a real defect), the neighbour graph
+> (now SNN with Jaccard weights), Louvain (now with the reference's ten
+> restarts), and normalization (now genuinely regularized negative binomial
+> rather than a fixed overdispersion).
+>
+> On the course's data with the course's settings, that pipeline reports **21
+> clusters** against the course's 17.
+>
+> The numbers quoted further down this page — 17, then 16 — come from earlier
+> stages of that work and are kept because the *reasoning* about them is still
+> the point. But do not read them as current output.
+>
+> The honest summary: each component now matches a documented Seurat behaviour,
+> and the cluster count did not converge on the reference as those fixes landed.
+> It went 17, 16, 25, 20, 21. That is evidence a single cluster count was never
+> a sound target — it is one high-variance integer read off a webpage, and the
+> pipeline that produced it cannot be inspected from here. **Nobody has run
+> Seurat on this data to compare against.** Until someone does, treat every
+> claim of agreement or disagreement on this page as provisional.
+
 ## The lesson map
 
 Fourteen lessons, seven chapters. Course lessons that exist to set up an R

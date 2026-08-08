@@ -9,31 +9,33 @@ data.
 
 1. **Build a k-nearest-neighbour graph.** Each cell connects to its k closest
    neighbours in PCA space.
-2. **Weight the edges.** BioLang uses `1 / (1 + distance)` — closer cells get
-   stronger edges.
+2. **Weight the edges** by how much two cells' neighbourhoods overlap — the
+   Jaccard index of their neighbour sets, `shared / (2k − shared)` — and drop
+   any edge below `1/15`. This is a **shared** nearest-neighbour graph.
 3. **Find communities** — groups more densely connected internally than
    externally — with Leiden or Louvain.
 
-> **Step 2 is not what Seurat does, and Seurat's version is better.**
->
-> Seurat builds a **shared** nearest-neighbour graph: the weight between two
-> cells is the Jaccard index of their neighbour *sets* — how many neighbours
-> they have in common over how many they have between them — and edges below
-> `1/15` are pruned away entirely. Two cells that merely happen to be close get
-> a weak edge; two cells embedded in the same neighbourhood get a strong one.
->
-> That matters because in high-dimensional space raw distances become nearly
-> uniform — the gap between the nearest and the furthest neighbour shrinks as
-> dimensions grow — so distance alone is a poor discriminator exactly where
-> single-cell data lives. Neighbourhood overlap is robust to that; inverse
-> distance is not.
->
-> **BioLang has no SNN implementation.** `sc.neighbors` returns the kNN graph
-> and the weighting above is what community detection sees. An earlier version
-> of this page described the SNN behaviour as though BioLang had it, which was
-> wrong. This is the largest remaining algorithmic difference from Seurat and a
-> plausible cause of the cluster-count gap in
-> [What Differs from the Course](differences.md).
+Step 2 is worth dwelling on. A kNN edge says "these two cells are close"; an
+SNN edge says "these two cells sit in the same neighbourhood", which is a much
+stronger claim. It matters because in high-dimensional space the distance from
+a point to its nearest neighbour and to its furthest converge — so proximity
+alone stops discriminating exactly where single-cell data lives. Neighbourhood
+overlap does not degrade that way: two cells of the same type keep sharing
+neighbours however many dimensions you measure them in. The pruning does real
+work too, since chance adjacencies score low and removing them is what stops
+communities bleeding into each other.
+
+`sc.neighbors` builds this by default, matching `FindNeighbors`. Pass
+`snn = false` for a plain kNN graph weighted by `1 / (1 + distance)`, which is
+faster and worse; it exists so that results produced before the SNN graph
+existed can still be reproduced.
+
+> **This page previously claimed BioLang weighted edges by neighbourhood
+> overlap when it did not** — the code used inverse distance, while the text
+> described Seurat's behaviour and then argued, correctly, that raw distance is
+> unreliable in high dimensions. The argument was against what the code
+> actually did. The SNN graph was implemented afterwards, and this section now
+> describes what runs.
 
 ```biolang
 import "singlecell" as sc

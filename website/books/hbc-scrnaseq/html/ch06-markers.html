@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b1166a8e.js";
+            window.path_to_searchindex_js = "searchindex-c2b4dd1e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-3313f347.js"></script>
@@ -318,32 +318,53 @@ is. Six months later you will not remember, and a reviewer cannot check the firs
 version at all.</p>
 <h2 id="the-seurat-verbs-translated"><a class="header" href="#the-seurat-verbs-translated">The Seurat verbs, translated</a></h2>
 <p>For readers coming from the course’s R:</p>
+<p><strong>Read this as “the step that occupies the same slot”, not “the same
+computation”.</strong> Several of these are approximations, and the ones that are
+carry a note. A table of bare equivalences would be easier to read and would
+mislead you about exactly the things that make numbers differ.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Seurat</th><th>BioLang</th></tr>
+<tr><th>Seurat</th><th>BioLang</th><th></th></tr>
 </thead>
 <tbody>
-<tr><td><code>CreateSeuratObject</code></td><td><code>sc.load</code> / <code>sc.from_matrix</code></td></tr>
-<tr><td><code>PercentageFeatureSet</code> + <code>subset</code></td><td><code>sc.qc</code> → <code>sc.filter_cells</code></td></tr>
-<tr><td><code>NormalizeData</code></td><td><code>sc.normalize</code></td></tr>
-<tr><td><code>SCTransform</code></td><td><code>sc.sctransform</code></td></tr>
-<tr><td><code>FindVariableFeatures</code></td><td><code>sc.variable_genes</code></td></tr>
-<tr><td><code>RunPCA</code></td><td><code>sc.run_pca</code></td></tr>
-<tr><td><code>ElbowPlot</code></td><td><code>sc.plot_elbow</code></td></tr>
-<tr><td><code>FindNeighbors</code></td><td><code>sc.neighbors</code></td></tr>
-<tr><td><code>FindClusters</code></td><td><code>sc.cluster_leiden</code></td></tr>
-<tr><td><code>RunUMAP</code> + <code>DimPlot</code></td><td><code>sc.plot_umap</code></td></tr>
-<tr><td><code>FindMarkers</code></td><td><code>sc.marker_table</code></td></tr>
-<tr><td><code>FindAllMarkers</code></td><td><code>find_all_markers</code></td></tr>
-<tr><td><code>FeaturePlot</code></td><td><code>sc.plot_feature</code></td></tr>
-<tr><td><code>VlnPlot</code></td><td><code>sc.plot_violin</code></td></tr>
-<tr><td><code>DotPlot</code></td><td><code>sc.expr_dotplot</code></td></tr>
-<tr><td><code>RunHarmony</code></td><td><code>sc.integrate</code></td></tr>
-<tr><td><code>merge</code></td><td><code>sc.merge</code></td></tr>
+<tr><td><code>CreateSeuratObject</code></td><td><code>sc.load</code> / <code>sc.from_matrix</code></td><td></td></tr>
+<tr><td><code>PercentageFeatureSet</code> + <code>subset</code></td><td><code>sc.qc</code> → <code>sc.filter_cells</code></td><td><code>filter_cells</code> has no UMI floor or complexity term — see <a href="ch02-quality-control.html">Quality Control</a></td></tr>
+<tr><td><code>NormalizeData</code></td><td><code>sc.normalize</code></td><td>equivalent</td></tr>
+<tr><td><code>SCTransform</code></td><td><code>sc.sctransform</code></td><td>independent implementation of the same method — see below</td></tr>
+<tr><td><code>FindVariableFeatures</code></td><td><code>sc.variable_genes</code></td><td>dispersion, unbinned; Seurat’s <code>vst</code> bins by mean first. Under SCTransform, use <code>sc.sctransform(obj, n)</code> instead</td></tr>
+<tr><td><code>RunPCA</code></td><td><code>sc.run_pca</code></td><td>subspace iteration; Seurat uses irlba</td></tr>
+<tr><td><code>ElbowPlot</code></td><td><code>sc.plot_elbow</code></td><td></td></tr>
+<tr><td><code>FindNeighbors</code></td><td><code>sc.neighbors</code></td><td>SNN with Jaccard weights, same as Seurat. Neighbour search is exact here, approximate (Annoy) there</td></tr>
+<tr><td><code>FindClusters</code></td><td><code>sc.cluster_louvain</code></td><td>Louvain with 10 restarts, matching <code>algorithm = 1, n.start = 10</code>. <code>sc.cluster_leiden</code> is the better algorithm but not the one the course ran</td></tr>
+<tr><td><code>RunUMAP</code> + <code>DimPlot</code></td><td><code>sc.plot_umap</code></td><td></td></tr>
+<tr><td><code>FindMarkers</code></td><td><code>sc.marker_table</code></td><td></td></tr>
+<tr><td><code>FindAllMarkers</code></td><td><code>find_all_markers</code></td><td></td></tr>
+<tr><td><code>FeaturePlot</code></td><td><code>sc.plot_feature</code></td><td></td></tr>
+<tr><td><code>VlnPlot</code></td><td><code>sc.plot_violin</code></td><td></td></tr>
+<tr><td><code>DotPlot</code></td><td><code>sc.expr_dotplot</code></td><td></td></tr>
+<tr><td><code>RunHarmony</code></td><td><code>sc.harmony</code></td><td><strong>not <code>sc.integrate</code></strong>, which only centres each batch per gene</td></tr>
+<tr><td><code>merge</code></td><td><code>sc.merge</code></td><td></td></tr>
 </tbody>
 </table>
 </div>
+<h3 id="how-close-scsctransform-is"><a class="header" href="#how-close-scsctransform-is">How close <code>sc.sctransform</code> is</a></h3>
+<p>It implements the same method: a negative binomial per gene, overdispersion
+estimated by maximum likelihood, then <em>regularized</em> by smoothing those estimates
+across genes of similar expression. The regularization is the point of the
+method and what the paper’s title refers to. Residuals are clipped at
+<code>sqrt(n_cells/30)</code>, the published default.</p>
+<p>It is an independent implementation written from
+<a href="https://doi.org/10.1186/s13059-019-1874-1">Hafemeister &amp; Satija 2019</a> and
+<a href="https://doi.org/10.1186/s13059-021-02584-9">Choudhary &amp; Satija 2022</a>, not a
+translation — the reference is GPL-3 and BioLang is MIT.</p>
+<p><strong>An earlier version of this page said <code>sc.sctransform</code> used a fixed
+overdispersion of 100 for every gene. That was true when written.</strong> It shared
+the residual formula with the method and none of the regularization, which is
+most of it.</p>
+<p>One known divergence remains: bandwidth for the smoothing uses Silverman’s rule
+where the reference uses the Sheather-Jones plug-in, so the smoothed
+overdispersion curve differs slightly.</p>
 <h2 id="next"><a class="header" href="#next">Next</a></h2>
 <p>Everything above in one script: <a href="ch07-workflow.html">The Whole Workflow</a>.</p>
 

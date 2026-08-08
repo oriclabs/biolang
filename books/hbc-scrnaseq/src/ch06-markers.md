@@ -178,12 +178,12 @@ mislead you about exactly the things that make numbers differ.
 | `CreateSeuratObject` | `sc.load` / `sc.from_matrix` | |
 | `PercentageFeatureSet` + `subset` | `sc.qc` → `sc.filter_cells` | `filter_cells` has no UMI floor or complexity term — see [Quality Control](ch02-quality-control.md) |
 | `NormalizeData` | `sc.normalize` | equivalent |
-| `SCTransform` | `sc.sctransform` | **approximation** — see below |
-| `FindVariableFeatures` | `sc.variable_genes` | dispersion, unbinned; Seurat's `vst` bins by mean first |
-| `RunPCA` | `sc.run_pca` | independent implementation |
+| `SCTransform` | `sc.sctransform` | independent implementation of the same method — see below |
+| `FindVariableFeatures` | `sc.variable_genes` | dispersion, unbinned; Seurat's `vst` bins by mean first. Under SCTransform, use `sc.sctransform(obj, n)` instead |
+| `RunPCA` | `sc.run_pca` | subspace iteration; Seurat uses irlba |
 | `ElbowPlot` | `sc.plot_elbow` | |
-| `FindNeighbors` | `sc.neighbors` | exact kNN; Seurat uses approximate (Annoy) |
-| `FindClusters` | `sc.cluster_louvain` | Seurat defaults to `algorithm = 1`, Louvain. `sc.cluster_leiden` is the better algorithm but not the one the course ran |
+| `FindNeighbors` | `sc.neighbors` | SNN with Jaccard weights, same as Seurat. Neighbour search is exact here, approximate (Annoy) there |
+| `FindClusters` | `sc.cluster_louvain` | Louvain with 10 restarts, matching `algorithm = 1, n.start = 10`. `sc.cluster_leiden` is the better algorithm but not the one the course ran |
 | `RunUMAP` + `DimPlot` | `sc.plot_umap` | |
 | `FindMarkers` | `sc.marker_table` | |
 | `FindAllMarkers` | `find_all_markers` | |
@@ -193,20 +193,27 @@ mislead you about exactly the things that make numbers differ.
 | `RunHarmony` | `sc.harmony` | **not `sc.integrate`**, which only centres each batch per gene |
 | `merge` | `sc.merge` | |
 
-### Why `sc.sctransform` is an approximation
+### How close `sc.sctransform` is
 
-Real `SCTransform` fits a negative binomial per gene, estimates each gene's
-overdispersion, then *regularizes* those estimates by smoothing them across
-genes of similar mean — the regularization is the point of the method and what
-the paper's title refers to.
+It implements the same method: a negative binomial per gene, overdispersion
+estimated by maximum likelihood, then *regularized* by smoothing those estimates
+across genes of similar expression. The regularization is the point of the
+method and what the paper's title refers to. Residuals are clipped at
+`sqrt(n_cells/30)`, the published default.
 
-`sc.sctransform` uses a **fixed** overdispersion of 100 for every gene. It also
-clips residuals at `sqrt(n_cells)` where sctransform clips at `sqrt(n_cells/30)`
-— on the 29,629-cell object that is ±172 against ±31, about five times looser.
+It is an independent implementation written from
+[Hafemeister & Satija 2019](https://doi.org/10.1186/s13059-019-1874-1) and
+[Choudhary & Satija 2022](https://doi.org/10.1186/s13059-021-02584-9), not a
+translation — the reference is GPL-3 and BioLang is MIT.
 
-The residuals are therefore in the right family and not the same numbers. That
-is enough to produce sensible clusters and not enough to reproduce Seurat's,
-and it is the largest single reason the counts on this page differ.
+**An earlier version of this page said `sc.sctransform` used a fixed
+overdispersion of 100 for every gene. That was true when written.** It shared
+the residual formula with the method and none of the regularization, which is
+most of it.
+
+One known divergence remains: bandwidth for the smoothing uses Silverman's rule
+where the reference uses the Sheather-Jones plug-in, so the smoothed
+overdispersion curve differs slightly.
 
 ## Next
 

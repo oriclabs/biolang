@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-b1166a8e.js";
+            window.path_to_searchindex_js = "searchindex-c2b4dd1e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-3313f347.js"></script>
@@ -186,13 +186,33 @@ data.</p>
 <ol>
 <li><strong>Build a k-nearest-neighbour graph.</strong> Each cell connects to its k closest
 neighbours in PCA space.</li>
-<li><strong>Weight the edges</strong> by how much two cells’ neighbourhoods overlap. Two cells
-sharing most of their neighbours get a strong edge; a chance proximity gets a
-weak one. This is what makes the result robust in high dimensions, where raw
-distances become nearly uniform.</li>
+<li><strong>Weight the edges</strong> by how much two cells’ neighbourhoods overlap — the
+Jaccard index of their neighbour sets, <code>shared / (2k − shared)</code> — and drop
+any edge below <code>1/15</code>. This is a <strong>shared</strong> nearest-neighbour graph.</li>
 <li><strong>Find communities</strong> — groups more densely connected internally than
 externally — with Leiden or Louvain.</li>
 </ol>
+<p>Step 2 is worth dwelling on. A kNN edge says “these two cells are close”; an
+SNN edge says “these two cells sit in the same neighbourhood”, which is a much
+stronger claim. It matters because in high-dimensional space the distance from
+a point to its nearest neighbour and to its furthest converge — so proximity
+alone stops discriminating exactly where single-cell data lives. Neighbourhood
+overlap does not degrade that way: two cells of the same type keep sharing
+neighbours however many dimensions you measure them in. The pruning does real
+work too, since chance adjacencies score low and removing them is what stops
+communities bleeding into each other.</p>
+<p><code>sc.neighbors</code> builds this by default, matching <code>FindNeighbors</code>. Pass
+<code>snn = false</code> for a plain kNN graph weighted by <code>1 / (1 + distance)</code>, which is
+faster and worse; it exists so that results produced before the SNN graph
+existed can still be reproduced.</p>
+<blockquote>
+<p><strong>This page previously claimed BioLang weighted edges by neighbourhood
+overlap when it did not</strong> — the code used inverse distance, while the text
+described Seurat’s behaviour and then argued, correctly, that raw distance is
+unreliable in high dimensions. The argument was against what the code
+actually did. The SNN graph was implemented afterwards, and this section now
+describes what runs.</p>
+</blockquote>
 <pre><code class="language-biolang">import "singlecell" as sc
 
 let obj = sc.load("ctrl_raw")

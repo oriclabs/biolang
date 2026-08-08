@@ -236,7 +236,7 @@ function __wbg_get_imports() {
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
         },
-        __wbg_sync_4efcc36bcafb655b: function(arg0, arg1) {
+        __wbg_sync_1d20babbd74eb08e: function(arg0, arg1) {
             const ret = window.__blFetch.sync(getStringFromWasm0(arg0, arg1));
             return ret;
         },
