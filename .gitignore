@@ -143,6 +143,14 @@ node_modules/
 # Benchmark inputs are generated from a seed by bench/harness.py.
 /bench/data/
 
+# The HBC course data, fetched by books/hbc-scrnaseq/src/downloads/get-data.py.
+# It belongs to the study authors and the training team hosts it; a copy here
+# would be a redistribution as well as 90 MB (3.2 GB mid-download).
+/single_cell_rnaseq.zip
+/single_cell_rnaseq.zip.part
+/ctrl_raw/
+/stim_raw/
+
 # Scratch output. Three of these had been committed — an empty file named after
 # a fragment of a JS snippet, a dump of every builtin name, and the .bln output
 # of an .Rmd conversion. Nothing referenced any of them.

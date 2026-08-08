@@ -14,6 +14,9 @@ the 3.2 GB is transient rather than resident.
 The rest of the archive is R objects (a 2.2 GB seurat_integrated.RData.bz2 among
 them) that BioLang cannot read and this book does not need.
 
+The download resumes. If it dies partway — and over 3.2 GB it may — run the
+script again and it continues from the partial file rather than starting over.
+
 Usage:
     python get-data.py            # download, extract, clean up
     python get-data.py --keep     # leave the archive in place
@@ -23,6 +26,7 @@ import argparse
 import os
 import shutil
 import sys
+import urllib.error
 import urllib.request
 import zipfile
 
@@ -31,6 +35,7 @@ URL = (
     "single_cell_rnaseq.zip?rlkey=cfay7tqm3ta5qlh2gph7h2wko&dl=1"
 )
 ARCHIVE = "single_cell_rnaseq.zip"
+MAX_ATTEMPTS = 6
 
 # (member prefix inside the archive, directory we extract it to)
 WANTED = [
@@ -51,16 +56,29 @@ def report(done, total):
     sys.stdout.flush()
 
 
-def download():
-    if os.path.exists(ARCHIVE):
-        print("Archive already here, skipping the download.")
-        return
-    print("Downloading 3.2 GB. This is the slow part; it happens once.")
-    request = urllib.request.Request(URL, headers={"User-Agent": "biolang-book"})
+def fetch(have):
+    """One attempt, resuming from byte `have`. Returns bytes on disk afterwards.
+
+    A 3.2 GB transfer over a connection that drops is the normal case, not the
+    unlucky one — this download died at 687 MB with a connection reset while the
+    book was being written. So the partial file is kept and continued with a
+    Range request rather than restarted. If the server ignores the Range (no 206)
+    we start over, because appending a full body to a partial file would produce
+    a corrupt archive that only fails much later, at unzip time.
+    """
+    headers = {"User-Agent": "biolang-book"}
+    if have:
+        headers["Range"] = "bytes=%d-" % have
+    request = urllib.request.Request(URL, headers=headers)
     with urllib.request.urlopen(request) as response:
-        total = int(response.headers.get("Content-Length", 0))
-        done = 0
-        with open(ARCHIVE + ".part", "wb") as out:
+        resumed = response.status == 206
+        if have and not resumed:
+            print("\n  server ignored the resume request; starting over")
+            have = 0
+        total = int(response.headers.get("Content-Length", 0)) + have
+        mode = "ab" if have else "wb"
+        done = have
+        with open(ARCHIVE + ".part", mode) as out:
             while True:
                 chunk = response.read(1 << 20)
                 if not chunk:
@@ -68,8 +86,37 @@ def download():
                 out.write(chunk)
                 done += len(chunk)
                 report(done, total)
+    return done, total
+
+
+def download():
+    if os.path.exists(ARCHIVE):
+        print("Archive already here, skipping the download.")
+        return
+    part = ARCHIVE + ".part"
+    have = os.path.getsize(part) if os.path.exists(part) else 0
+    if have:
+        print("Resuming from %d MB." % (have // (1 << 20)))
+    else:
+        print("Downloading 3.2 GB. This is the slow part; it happens once.")
+
+    for attempt in range(MAX_ATTEMPTS):
+        try:
+            done, total = fetch(have)
+            if total and done < total:
+                raise OSError("connection closed at %d of %d bytes" % (done, total))
+            break
+        except (OSError, urllib.error.URLError) as exc:
+            have = os.path.getsize(part) if os.path.exists(part) else 0
+            if attempt == MAX_ATTEMPTS - 1:
+                sys.exit(
+                    "\nDownload failed after %d attempts: %s\n"
+                    "The %d MB already fetched is kept in %s — run this again to "
+                    "resume." % (MAX_ATTEMPTS, exc, have // (1 << 20), part)
+                )
+            print("\n  %s — retrying from %d MB" % (exc, have // (1 << 20)))
     print()
-    os.replace(ARCHIVE + ".part", ARCHIVE)
+    os.replace(part, ARCHIVE)
 
 
 def extract():
