@@ -181,6 +181,35 @@ def main() -> int:
         if correlation is not None:
             per_gene_correlations.append(correlation)
 
+    # Compare the quantity SCTransform v2 actually regularizes.
+    #
+    # v2 smooths the overdispersion factor od = log10(1 + gmean/theta), not
+    # theta, and recovers theta = gmean / (10^od - 1). That inversion has
+    # d ln(theta)/d od = -(10^od * ln10)/(10^od - 1), which is about -25 at the
+    # od values a UMI matrix produces, so a 0.003 difference in the smoothed od
+    # arrives as a 7% difference in theta. Gating on theta therefore measures
+    # the amplification rather than the fit. Both sides use the same abscissa -
+    # the log10 geometric mean, verified identical between implementations to
+    # 1e-13 - so od can be recomputed here and compared directly.
+    od_differences: list[float] = []
+    for gene in joined:
+        try:
+            log_gmean = float(biolang_genes[gene]["log_geometric_mean"])
+            oracle_theta = float(oracle_genes[gene]["theta"])
+            biolang_theta = float(biolang_genes[gene]["theta"])
+        except (KeyError, ValueError):
+            continue
+        if not all(math.isfinite(v) for v in (log_gmean, oracle_theta, biolang_theta)):
+            continue
+        if oracle_theta <= 0 or biolang_theta <= 0:
+            continue
+        gmean = 10.0**log_gmean
+        od_differences.append(
+            math.log10(1.0 + gmean / biolang_theta)
+            - math.log10(1.0 + gmean / oracle_theta)
+        )
+    od_absolute = [abs(value) for value in od_differences]
+
     # How much of the theta discrepancy survives into the residuals.
     #
     # Theta enters the residual only through the variance, r = (y - mu) /
@@ -301,6 +330,10 @@ def main() -> int:
         "large_residual_relative_error_p90": percentile(
             large_residual_relative_error, 0.9
         ),
+        "od_factor_compared_genes": len(od_differences),
+        "od_factor_difference_median": percentile(od_differences, 0.5),
+        "od_factor_absolute_difference_median": percentile(od_absolute, 0.5),
+        "od_factor_absolute_difference_p90": percentile(od_absolute, 0.9),
         "theta_attenuation_probe_genes": len(theta_attenuation_pairs),
         "theta_relative_error_median_on_probe": theta_error_median,
         "per_gene_residual_relative_error_median": gene_residual_median,
@@ -410,6 +443,14 @@ def main() -> int:
         # A theta bias is tolerable only if it is demonstrably damped before it
         # reaches the residuals. Requiring attenuation below 0.25 keeps that a
         # measured claim rather than an assumption.
+        # The smoothed quantity itself, on its own scale. sctransform's two
+        # official backends differ from each other by 9.6% in regularized theta
+        # on this same fixture, so a tighter theta gate than that would demand
+        # more agreement than the reference has with itself.
+        "od_factor_median_absolute_difference_at_most_0_01": (
+            metrics["od_factor_absolute_difference_median"] is not None
+            and metrics["od_factor_absolute_difference_median"] <= 0.01
+        ),
         "theta_bias_attenuated_below_0_25": (
             metrics["theta_to_residual_attenuation"] is not None
             and metrics["theta_to_residual_attenuation"] <= 0.25

@@ -24,7 +24,8 @@ let parameter_rows = range(0, len(transformed.genes)) |> map(|slot| {
         gene_index: gene_index,
         theta: transformed.theta[slot],
         intercept: transformed.intercept[slot],
-        residual_variance: transformed.residual_variance[slot]
+        residual_variance: transformed.residual_variance[slot],
+        log_geometric_mean: transformed.log_geometric_mean[slot]
     }
 })
 write_csv(table(parameter_rows), output_dir + "/genes.csv")
@@ -35,9 +36,17 @@ let ranking_rows = range(0, len(transformed.ranked_genes)) |> map(|rank| {
 })
 write_csv(table(ranking_rows), output_dir + "/ranking.csv")
 
+# Raw, pre-regularization estimates travel with the fit genes so the per-gene
+# estimator can be compared against the oracle separately from the smoothing.
+# Read only from the regularized theta the two are indistinguishable.
 let fit_rows = range(0, len(transformed.fit_genes)) |> map(|slot| {
     let gene_index = transformed.fit_genes[slot]
-    {gene: raw.genes[gene_index], gene_index: gene_index}
+    {
+        gene: raw.genes[gene_index],
+        gene_index: gene_index,
+        raw_theta: transformed.raw_theta[slot],
+        raw_intercept: transformed.raw_intercept[slot]
+    }
 })
 write_csv(table(fit_rows), output_dir + "/fit-genes.csv")
 

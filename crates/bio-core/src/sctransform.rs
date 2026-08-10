@@ -204,6 +204,29 @@ pub struct SctResult {
     pub fit_genes: Vec<usize>,
     /// Original cell indices used for the raw v2 parameter fit.
     pub fit_cells: Vec<usize>,
+    /// Unregularized theta per entry of `fit_genes`, as estimated before any
+    /// smoothing. `f64::INFINITY` where the gene showed no overdispersion,
+    /// matching the convention `theta` uses for Poisson genes.
+    ///
+    /// Exported because the per-gene estimator and the regularizer are
+    /// otherwise confounded: a systematic offset in the returned `theta` could
+    /// come from either, and there is no way to tell them apart from the
+    /// smoothed values alone.
+    pub raw_theta: Vec<f64>,
+    /// Unregularized log-scale intercept per entry of `fit_genes`.
+    pub raw_intercept: Vec<f64>,
+    /// log10 geometric mean per kept gene, the abscissa the regularizer is
+    /// fitted against.
+    ///
+    /// Exported because `theta` is a badly conditioned way to compare two
+    /// implementations at low overdispersion. What v2 actually smooths is the
+    /// overdispersion factor `od = log10(1 + gmean/theta)`, and inverting it
+    /// gives `d ln(theta)/d od = -(10^od * ln10)/(10^od - 1)`, which is about
+    /// -25 at the od values a UMI matrix produces. A 0.003 difference in the
+    /// smoothed od - negligible in the model - therefore shows up as a 7%
+    /// difference in theta. Comparing od directly measures the fit; comparing
+    /// theta measures the amplification.
+    pub log_geometric_mean: Vec<f64>,
 }
 
 /// Center residual columns and optionally regress cell-level covariates out.
@@ -995,6 +1018,9 @@ pub fn sctransform(data: &GeneColumns, options: &SctOptions) -> SctResult {
             intercept: vec![],
             ranked_genes: vec![],
             fit_genes: vec![],
+            raw_theta: vec![],
+            raw_intercept: vec![],
+            log_geometric_mean: vec![],
             fit_cells: vec![],
         };
     }
@@ -1067,6 +1093,9 @@ pub fn sctransform(data: &GeneColumns, options: &SctOptions) -> SctResult {
             intercept: vec![],
             ranked_genes: vec![],
             fit_genes: vec![],
+            raw_theta: vec![],
+            raw_intercept: vec![],
+            log_geometric_mean: vec![],
             fit_cells: vec![],
         };
     }
@@ -1364,6 +1393,12 @@ pub fn sctransform(data: &GeneColumns, options: &SctOptions) -> SctResult {
             .map(|&slot| regularized_intercept[slot])
             .collect(),
         ranked_genes,
+        raw_theta: fitted
+            .iter()
+            .map(|&(theta, _)| theta.unwrap_or(f64::INFINITY))
+            .collect(),
+        raw_intercept: fitted.iter().map(|&(_, intercept)| intercept).collect(),
+        log_geometric_mean: selected.iter().map(|&slot| log_means[modelled[slot]]).collect(),
         fit_genes,
         fit_cells,
     }

@@ -5790,6 +5790,44 @@ fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
                     .into(),
             ),
         );
+        // Raw, pre-regularization estimates, aligned with `fit_genes`. The
+        // returned `theta` is the smoothed curve read back per gene, so a
+        // systematic difference against another implementation could come from
+        // the per-gene estimator or from the smoothing, and the smoothed values
+        // alone cannot tell you which.
+        record.insert(
+            "log_geometric_mean".to_string(),
+            Value::List(
+                result
+                    .log_geometric_mean
+                    .into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        );
+        record.insert(
+            "raw_theta".to_string(),
+            Value::List(
+                result
+                    .raw_theta
+                    .into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        );
+        record.insert(
+            "raw_intercept".to_string(),
+            Value::List(
+                result
+                    .raw_intercept
+                    .into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        );
         record.insert(
             "fit_genes".to_string(),
             Value::List(
