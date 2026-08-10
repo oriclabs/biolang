@@ -7,19 +7,22 @@
 <span class="badge">Best Practices</span>
 </div>
 
-## The Problem
+## Practical question
 
-It is 11 PM on a Thursday. Your collaborator emails: "The sequencing core re-processed 3 samples with updated base-calling. Can you re-run the entire analysis with the updated data? The manuscript revision is due Monday."
+Three input samples change. Can the complete analysis be rerun in the correct
+order with recorded software versions and seeds, producing traceable outputs
+without editing paths by hand?
 
-You open your analysis folder. There are 14 scripts with names like `analysis_v2_final_FINAL.bl`, `test_new.bl`, and `run_this_one.bl`. You cannot remember which scripts to run in which order. One script hardcodes a file path that no longer exists. Another uses a random seed that you never recorded, so bootstrap confidence intervals will not match the figures in the manuscript. A third script produces slightly different p-values depending on whether you run it before or after another script, because they share a global variable.
-
-This is not a hypothetical scenario. It is the daily reality of computational biology. And it is entirely preventable. Reproducible analysis is not about perfection — it is about structure, documentation, and discipline. Today, you will learn the practices that make "re-run everything" a one-command operation instead of a week of panic.
+Reproducibility is practical maintenance: explicit inputs, one documented
+entry point, deterministic steps where possible, versioned code, checks, and a
+record of the environment.
 
 ## Why Reproducibility Matters
 
-On Day 1, we discussed the reproducibility crisis: 89% of landmark cancer biology studies could not be replicated. Computational analyses are theoretically easier to reproduce than wet-lab experiments — you have all the inputs and instructions. Yet in practice, computational reproducibility is shockingly rare.
-
-A 2019 study attempted to reproduce analyses from 204 published bioinformatics papers. Only 14% could be reproduced from the provided code and data. The failures were rarely due to errors in logic — they were due to missing files, undocumented dependencies, hardcoded paths, unrecorded random seeds, and ambiguous analysis steps.
+Computational analyses can still be difficult to reproduce when inputs,
+dependencies, parameters, random seeds, or execution order are missing. The
+remedy is to make those details part of the analysis rather than relying on
+memory.
 
 Journals increasingly require:
 - **Code availability**: deposit analysis scripts in a public repository

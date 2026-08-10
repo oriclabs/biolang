@@ -1,10 +1,16 @@
 # Day 11: Categorical Data — Chi-Square and Fisher's Exact
 
-## The Problem
+## Practical question
 
-Dr. Elena Vasquez is an epidemiologist studying the genetics of Alzheimer's disease. She genotypes a SNP near the APOE gene in 1,000 participants: 500 with Alzheimer's and 500 age-matched controls. Among Alzheimer's patients, 180 carry at least one copy of the risk allele. Among controls, 120 carry it. The numbers look different — 36% versus 24% — but these are proportions, not measurements on a continuous scale. She cannot compute a mean or standard deviation. She cannot run a t-test.
+**Synthetic teaching data:** in 500 cases, 180 carry an allele; in 500 controls,
+120 carry it. These are counts in categories. Is allele status associated with
+case-control status, how large is the association, and are expected counts
+large enough for a chi-square approximation?
 
-When your data are counts in categories — disease yes/no, genotype AA/AG/GG, response/non-response — you need tests designed for categorical data. The chi-square test and Fisher's exact test are the workhorses. They also underpin some of the most important calculations in genetics: Hardy-Weinberg equilibrium, odds ratios for case-control studies, and allelic association tests.
+When data are counts in categories — disease yes/no, genotype AA/AG/GG, or
+response/non-response — use methods designed for categorical data. The
+chi-square test and Fisher's exact test answer related questions under
+different conditions; an odds ratio or risk difference describes magnitude.
 
 This chapter covers the full toolkit for analyzing categorical data, from contingency tables to effect size measures like odds ratios and Cramer's V.
 
@@ -91,10 +97,12 @@ The chi-square statistic measures how far the observed counts deviate from what 
 ### Assumptions
 
 - Observations are independent
-- Expected count in each cell is at least 5 (if not, use Fisher's exact test)
+- Expected counts are adequate for the chosen chi-square approximation
 - Sample is reasonably large
 
-> **Common pitfall:** The chi-square test requires *expected* counts of at least 5 in each cell, not *observed* counts. Check expected counts before interpreting results. When they are too small, Fisher's exact test is the safe alternative.
+> **Common pitfall:** Rules such as "every expected count must be at least 5"
+> are rough diagnostics, not universal laws. Inspect expected counts and table
+> structure; for a small 2x2 table, Fisher's exact test is one available method.
 
 ## Chi-Square Goodness of Fit: Hardy-Weinberg
 
@@ -146,11 +154,15 @@ If observed genotype counts deviate significantly from HWE expectations, it may 
 
 ## Fisher's Exact Test
 
-When sample sizes are small or expected counts fall below 5, the chi-square approximation is unreliable. Fisher's exact test computes the exact probability using the hypergeometric distribution.
+For a 2x2 table with small counts, Fisher's exact test computes a conditional
+probability using the hypergeometric distribution and avoids relying on the
+large-sample chi-square approximation.
 
 Fisher's exact test is computationally expensive for large tables but is the gold standard for 2x2 tables with small counts — common in rare variant studies and pilot experiments.
 
-> **Clinical relevance:** Regulatory agencies (FDA, EMA) often prefer Fisher's exact test for safety analyses where adverse events are rare and sample sizes are modest.
+> **Practical relevance:** Fisher's exact test is useful for small 2x2 tables
+> when a chi-square approximation is doubtful. The full analysis plan may also
+> need effect estimates, intervals, repeated-event handling, and multiplicity.
 
 ## McNemar's Test: Paired Categorical Data
 
@@ -566,4 +578,7 @@ let populations = ["East Asian", "European", "African"]
 
 ## What's Next
 
-You now have a powerful toolkit for individual tests. But in genomics, we never run just one test — we run thousands or millions simultaneously. Testing 20,000 genes means 1,000 false positives at alpha = 0.05. Tomorrow we confront the multiple testing crisis head-on and learn the corrections that make genome-scale analysis possible, culminating in the volcano plot that has become the icon of differential expression analysis.
+In high-throughput work, many hypotheses are tested together. Under a complete
+null with calibrated p-values, 20,000 tests at 0.05 would yield 1,000 rejections
+on average before correction. Day 12 introduces procedures for controlling an
+error rate across the family.

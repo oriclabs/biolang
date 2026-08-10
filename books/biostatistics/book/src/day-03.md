@@ -7,13 +7,20 @@
 <span class="badge">Hands-on</span>
 </div>
 
-## The Problem
+> **Fast review:** The [runnable normal-distribution
+> lab](downloads/normal-distribution-lab.bln) turns this chapter's bell curve
+> into an executable visual lesson using `dnorm`, `pnorm`, and `qnorm`.
 
-Dr. James Park has RNA-seq data from 12 tumor samples. He needs to identify genes that are differentially expressed between treatment and control groups. He knows the standard approach: run a t-test on each gene. The t-test assumes data is normally distributed, so he checks his data.
+## Practical question
 
-Gene FPKM values range from 0 to 50,000. Most genes sit near zero, with a handful expressed at astronomical levels. The histogram looks nothing like a bell curve — it is a massive spike at zero with a long right tail stretching to infinity. He runs the t-test anyway. Out of 20,000 genes, 4,700 come back "significant" at p < 0.05. That is 23.5% of all genes, far more than seems biologically plausible for this modest treatment.
+RNA-seq counts are non-negative, often include many zeros, and usually have
+variance that changes with the mean. A bell curve is therefore a poor model for
+raw counts. What distribution describes the measurement, and at which level
+(raw observations, differences, or model residuals) does an assumption apply?
 
-Something is deeply wrong. The t-test assumed his data was symmetric and bell-shaped. It was neither. The test produced garbage because the assumption was violated. If Dr. Park had understood distributions — the subject of today's chapter — he would have known to transform his data or use a different test entirely.
+This chapter uses synthetic examples to compare common distribution shapes.
+For real differential-expression analysis, use a count-aware model and inspect
+its diagnostics; do not choose a method from a histogram alone.
 
 ## What Is a Distribution?
 
@@ -21,9 +28,13 @@ A distribution is a recipe that tells you how likely each possible value is. Thi
 
 Every dataset has an underlying distribution — the theoretical shape that generated the data you observe. When you draw a histogram of your data, you are estimating this shape from a finite sample. With 10 data points, the histogram is choppy and unreliable. With 10,000, it smooths out and begins to reveal the true underlying curve.
 
-Why does this matter? Because **every statistical test makes assumptions about the distribution of your data.** The t-test assumes normality. The chi-square test assumes expected counts are large enough. The Poisson regression assumes counts follow a Poisson process. Violate the assumption, and the test's guarantees evaporate.
+Why does this matter? Statistical methods make assumptions at different levels.
+A t procedure concerns the sampling behaviour of a mean or paired differences;
+a chi-square approximation depends on expected counts; a Poisson model describes
+conditional counts. Check the assumption relevant to the method and design.
 
-> **Key insight:** A statistical test is a contract. It says: "If your data follows distribution X, then I guarantee my conclusions are reliable with probability Y." Break the contract, and you get no guarantees.
+> **Key insight:** Ask what part of the analysis is being modelled: raw values,
+> within-pair differences, counts conditional on predictors, or residuals.
 
 ## The Normal Distribution
 
@@ -533,7 +544,9 @@ Here is the critical connection between today's material and the rest of the boo
 | Non-normal, unknown | Mann-Whitney, Kruskal-Wallis | t-test, ANOVA |
 | Bounded (0,1) | Beta regression, logit transform | Linear regression |
 
-Choosing the wrong test because you assumed the wrong distribution is one of the most common errors in computational biology. Dr. Park's mistake from our opening scenario — running a t-test on raw FPKM values — is committed daily in bioinformatics labs around the world.
+Choosing a model without checking how the data were generated can produce
+misleading uncertainty. For RNA-seq, raw counts, normalized expression, and
+model residuals are different quantities and need not have the same shape.
 
 > **Key insight:** The distribution is not a detail. It is the foundation. Get it right, and your downstream analysis is trustworthy. Get it wrong, and no amount of sophisticated testing can rescue your conclusions.
 

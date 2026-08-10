@@ -7,13 +7,21 @@
 <span class="badge">Hands-on</span>
 </div>
 
-## The Problem
+> **Fast review:** The [runnable normal-distribution
+> lab](downloads/normal-distribution-lab.bln) demonstrates probability as area
+> and checks cumulative and inverse-cumulative calculations in BioLang.
 
-Maria and David sit in a genetic counselor's office. The air is still. Maria has just learned she carries a pathogenic BRCA1 mutation — a variant that dramatically increases lifetime risk of breast and ovarian cancer. They are planning to start a family and they need answers.
+## Practical question
 
-What is the probability their child inherits the mutation? If the child inherits it, what is the probability she develops breast cancer by age 70? They are considering preimplantation genetic testing — if the test says the embryo is mutation-free, how confident can they be? The counselor pulls out a notepad and begins writing probabilities.
+**Synthetic teaching example:** for an autosomal-dominant variant carried by
+one parent, what is the probability that a child inherits the variant? How does
+that inheritance probability differ from disease risk, and how does a test
+result update a probability?
 
-This is not an abstract exercise. These numbers will determine whether Maria and David proceed with natural conception, pursue IVF with genetic screening, or consider adoption. The difference between a 50% risk and a 5% risk changes lives. Understanding how to compute, combine, and interpret probabilities is not just statistics — in genetics, it is clinical care.
+The calculations illustrate conditional probability. Real genetic counselling
+also depends on the exact variant, penetrance evidence, family history, test
+performance, and professional guidance; the teaching numbers here are not
+clinical advice.
 
 ## What Is Probability?
 
@@ -115,8 +123,8 @@ This is where most people's intuition breaks down, because **P(A|B) is not the s
 
 ### The Critical Distinction
 
-- P(cancer | BRCA1 mutation) &asymp; 0.72 — If you carry BRCA1, your lifetime breast cancer risk is about 72%.
-- P(BRCA1 mutation | cancer) &asymp; 0.05 — If you have breast cancer, the probability it is due to BRCA1 is only about 5%.
+- P(positive test | condition present) is the test's sensitivity.
+- P(condition present | positive test) is the positive predictive value.
 
 These are completely different numbers answering completely different questions. Confusing them is called the **inverse probability fallacy**, and it has real consequences in medicine, law, and genetics.
 
@@ -124,7 +132,10 @@ These are completely different numbers answering completely different questions.
 
 In forensic genetics, the prosecutor's fallacy works like this: "The probability of this DNA match occurring by chance is 1 in 10 million. Therefore, the probability the defendant is innocent is 1 in 10 million."
 
-This is logically wrong. P(match | innocent) is not P(innocent | match). In a city of 8 million people, you would expect roughly one other person to match by chance. If the only evidence is the DNA match, the probability of innocence might be closer to 50%, not 1 in 10 million.
+This is logically wrong. P(match | innocent) is not P(innocent | match). The
+latter also depends on the relevant population, how the person was selected,
+other evidence, and the possibility of laboratory or identification error. A
+match probability alone cannot provide a probability of guilt or innocence.
 
 The same fallacy appears in genetic testing: "The test is 99% accurate" does not mean a positive result is 99% likely to be correct. The answer depends on how common the condition is — which brings us to Bayes' theorem.
 
@@ -195,7 +206,8 @@ In words: the probability of A given B equals the probability of B given A, time
 </svg>
 </div>
 
-This is the single most important application of Bayes' theorem in biomedical science. Work through it carefully.
+This synthetic diagnostic-test calculation is a useful application of Bayes'
+theorem. Work through the counts as well as the formula.
 
 **Setup:**
 - A genetic disease has a prevalence of 1 in 1,000 (P(disease) = 0.001)
@@ -228,7 +240,9 @@ How can a "99% accurate" test give such a low positive predictive value? Because
 
 PPV = 99 / 5,094 = 1.94%. The false positives overwhelm the true positives.
 
-> **Clinical relevance:** This is why population-wide genetic screening for rare conditions produces mostly false positives. It is also why a confirmatory test with a different methodology is always required. Understanding PPV is essential for anyone interpreting genetic test results.
+> **Practical relevance:** Positive predictive value depends on prevalence and
+> test performance. Screening and confirmation policies are test- and
+> programme-specific; the synthetic values here do not define a clinical rule.
 
 ### Bayes in BioLang
 
@@ -428,7 +442,7 @@ print(f"Deviation from HWE: {if chi2 > 3.84 then "Significant" else "Not signifi
 
 ## Carrier Probability Calculations
 
-Returning to Maria and David's consultation:
+Return to the synthetic inheritance example:
 
 ```bio
 # Genetic counseling probability calculator
@@ -594,4 +608,7 @@ let error_rate = 0.01
 
 ## What's Next
 
-Today you learned to compute probabilities for individual events. But in real experiments, you do not observe single events — you observe samples drawn from populations. Tomorrow, on Day 5, we tackle the crucial question of sampling: Why does sample size matter so much? You will see the Central Limit Theorem in action — watching the distribution of sample means magically approach normality even when the underlying data is wildly skewed. You will understand what "statistical power" means and why a study with 20 patients per arm is almost guaranteed to fail. Day 5 is the bridge between probability theory and the practical reality of experimental design.
+Today you learned to compute probabilities for individual events. Day 5 asks
+how estimates change across samples and why sample size must be planned from
+the effect, variability, design, and intended analysis rather than copied from
+a rule of thumb.

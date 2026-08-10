@@ -7,20 +7,16 @@
 <span class="badge">Bayesian Inference</span>
 </div>
 
-## The Problem
+## Practical question
 
-A clinical sequencing lab has found a missense variant in a patient's BRCA2 gene. The patient has a family history of breast cancer. ClinVar classifies the variant as "Uncertain Significance" — VUS. The clinician needs to make a decision: recommend risk-reducing surgery, or watchful waiting?
+**Synthetic teaching example:** start with a prior distribution for an unknown
+response probability, then observe a number of responses out of a fixed number
+of trials. How should the probability distribution change after seeing the
+data, and what does it predict for a future sample?
 
-You have several pieces of evidence:
-
-1. **Population frequency**: The variant appears in 0.02% of a population database (gnomAD). Pathogenic BRCA2 variants are typically rare, but many rare variants are benign.
-2. **Computational prediction**: Three algorithms (SIFT, PolyPhen, CADD) predict the variant is "likely damaging."
-3. **Functional assay**: A cell-based splicing assay shows mild disruption.
-4. **Family data**: Two of three affected relatives carry the variant (one does not, but that could be a phenocopy).
-
-No single piece of evidence is conclusive. Each is uncertain. But together, they should shift your belief about pathogenicity. How do you combine them?
-
-The frequentist framework has no natural mechanism for combining prior knowledge with new data. The Bayesian framework does — it is literally designed for this. Today, you will learn how to think like a Bayesian, and you will see why this way of reasoning is becoming standard practice in clinical variant classification.
+This chapter uses the beta-binomial model because every step is visible. It
+teaches Bayesian updating; it does not implement clinical variant
+classification and must not be used to recommend patient management.
 
 ## What Is Bayesian Statistics?
 
@@ -49,7 +45,10 @@ Where:
 
 The posterior from one analysis becomes the prior for the next — evidence accumulates naturally.
 
-> **Key insight:** Bayesian inference is sequential updating. Each new piece of evidence shifts your belief. This is exactly how clinical variant classification works: you start with a prior (population frequency suggests most variants are benign), then update with each line of evidence (computational predictions, functional assays, segregation data).
+> **Key insight:** Bayesian inference updates a prior distribution with a
+> likelihood to obtain a posterior distribution. Combining heterogeneous
+> clinical evidence requires a justified domain model; the beta-binomial lesson
+> here is not such a model.
 
 ## Frequentist vs Bayesian: The Practical Difference
 
@@ -424,7 +423,9 @@ print("Data mean:         " + str(round(data_mean, 3)))
 
 With only 8 observations, the informative priors pull the posterior toward them. With 800 observations, even a badly wrong prior would be overwhelmed by the data.
 
-> **Common pitfall:** Using a highly informative prior with little data is dangerous — the prior dominates. Use weakly informative priors (centered on a reasonable value but with wide spread) unless you have strong external evidence to justify a tight prior. A flat prior is always safe but may be less efficient.
+> **Common pitfall:** With little data, the prior can strongly affect the
+> posterior. A flat prior is not automatically neutral or safe; justify the
+> prior on the model's scale and examine sensitivity to reasonable alternatives.
 
 ## Posterior Predictive Distribution
 
@@ -536,7 +537,10 @@ print("Final classification: " +
 )
 ```
 
-> **Clinical relevance:** The ACMG/AMP variant classification framework (Richards et al., 2015) is implicitly Bayesian. It combines evidence from population data, computational predictions, functional studies, segregation data, and de novo status to classify variants into five tiers (Pathogenic, Likely Pathogenic, VUS, Likely Benign, Benign). Tavtigian et al. (2018) formalized this as an explicit Bayesian framework using likelihood ratios — exactly the approach shown above.
+> **Scope note:** Clinical variant-classification frameworks combine several
+> evidence types using detailed criteria and expert review. That task is much
+> more complex than the beta-binomial teaching model in this chapter; do not
+> transfer the example's priors or likelihood directly to variant decisions.
 
 ## When Bayesian Is Better — and When It Is Overkill
 
@@ -552,7 +556,7 @@ print("Final classification: " +
 
 - **No meaningful prior** exists (purely exploratory analysis)
 - **Sample is large** (prior is overwhelmed anyway, results converge)
-- **Regulatory requirements** demand frequentist analysis (FDA still primarily uses p-values)
+- A prespecified framework is required by the study or decision context
 - **Simplicity matters** (t-test is faster to explain than posterior distributions)
 
 ## Bayesian Thinking in BioLang

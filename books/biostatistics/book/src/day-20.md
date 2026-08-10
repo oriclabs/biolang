@@ -1,12 +1,15 @@
 # Day 20: Batch Effects and Confounders
 
-## The Problem
+## Practical question
 
-Dr. David Liu is leading a multi-center study comparing gene expression in 200 breast tumors versus 100 normal breast tissues. Three hospitals contributed samples: Memorial (80 tumors, 40 normals), Hopkins (70 tumors, 30 normals), and Mayo (50 tumors, 30 normals). He runs PCA on the full expression matrix, expecting to see tumor and normal separate.
+**Synthetic teaching data:** tumour and normal samples were processed at three
+centres, labelled A, B, and C. A PCA plot separates samples mainly by centre,
+not tissue type. Is this a removable technical batch, a confounded design, or a
+mixture of technical and biological differences?
 
-Instead, the PCA plot shows **three tight clusters — one per hospital**. The first principal component explains 35% of variance and perfectly separates the centers. Tumor vs. normal? It's buried in PC4 at 4% of variance.
-
-The dominant signal in his data is **which hospital processed the sample**, not the biology he's studying. These are **batch effects**, and they're one of the most insidious problems in genomics.
+Batch effects are systematic differences associated with processing. Diagnose
+them using metadata, design information, plots, and sensitivity analyses;
+never infer their cause from PCA alone.
 
 ## What Are Batch Effects?
 
@@ -49,23 +52,23 @@ The most powerful diagnostic. Color samples by batch variable and biological var
     <line x1="60" y1="290" x2="60" y2="30" stroke="#6b7280" stroke-width="1.5"/>
     <text x="310" y="320" text-anchor="middle" font-size="12" fill="#6b7280">PC1 (35% variance) — Dominated by batch!</text>
     <text x="15" y="160" text-anchor="middle" font-size="12" fill="#6b7280" transform="rotate(-90, 15, 160)">PC2 (18% variance)</text>
-    <!-- Memorial cluster (blue) — left -->
+    <!-- Center A cluster (blue) — left -->
     <circle cx="130" cy="130" r="30" fill="#2563eb" opacity="0.07" stroke="#2563eb" stroke-width="1" stroke-dasharray="3,2"/>
     <circle cx="120" cy="120" r="5" fill="#2563eb" opacity="0.7"/><circle cx="140" cy="115" r="5" fill="#2563eb" opacity="0.7"/>
     <circle cx="135" cy="135" r="5" fill="#2563eb" opacity="0.7"/><circle cx="115" cy="140" r="5" fill="#2563eb" opacity="0.7"/>
     <circle cx="145" cy="128" r="5" fill="#2563eb" opacity="0.7"/><circle cx="125" cy="110" r="5" fill="#2563eb" opacity="0.7"/>
-    <!-- Shapes for condition within Memorial: circles=tumor, triangles=normal -->
+    <!-- Shapes for condition within Center A: circles=tumor, triangles=normal -->
     <polygon points="118,150 122,142 114,142" fill="#2563eb" opacity="0.7"/>
     <polygon points="138,145 142,137 134,137" fill="#2563eb" opacity="0.7"/>
     <polygon points="128,155 132,147 124,147" fill="#2563eb" opacity="0.7"/>
-    <!-- Hopkins cluster (red) — middle -->
+    <!-- Center B cluster (red) — middle -->
     <circle cx="310" cy="180" r="30" fill="#dc2626" opacity="0.07" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2"/>
     <circle cx="300" cy="170" r="5" fill="#dc2626" opacity="0.7"/><circle cx="320" cy="175" r="5" fill="#dc2626" opacity="0.7"/>
     <circle cx="315" cy="190" r="5" fill="#dc2626" opacity="0.7"/><circle cx="295" cy="185" r="5" fill="#dc2626" opacity="0.7"/>
     <circle cx="325" cy="165" r="5" fill="#dc2626" opacity="0.7"/><circle cx="305" cy="195" r="5" fill="#dc2626" opacity="0.7"/>
     <polygon points="298,200 302,192 294,192" fill="#dc2626" opacity="0.7"/>
     <polygon points="318,200 322,192 314,192" fill="#dc2626" opacity="0.7"/>
-    <!-- Mayo cluster (green) — right -->
+    <!-- Center C cluster (green) — right -->
     <circle cx="470" cy="100" r="30" fill="#16a34a" opacity="0.07" stroke="#16a34a" stroke-width="1" stroke-dasharray="3,2"/>
     <circle cx="460" cy="90" r="5" fill="#16a34a" opacity="0.7"/><circle cx="480" cy="95" r="5" fill="#16a34a" opacity="0.7"/>
     <circle cx="475" cy="110" r="5" fill="#16a34a" opacity="0.7"/><circle cx="455" cy="105" r="5" fill="#16a34a" opacity="0.7"/>
@@ -73,9 +76,9 @@ The most powerful diagnostic. Color samples by batch variable and biological var
     <polygon points="478,118 482,110 474,110" fill="#16a34a" opacity="0.7"/>
     <polygon points="458,120 462,112 454,112" fill="#16a34a" opacity="0.7"/>
     <!-- Cluster labels -->
-    <text x="130" y="88" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">Memorial</text>
-    <text x="310" y="145" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="bold">Hopkins</text>
-    <text x="470" y="63" text-anchor="middle" font-size="11" fill="#16a34a" font-weight="bold">Mayo</text>
+    <text x="130" y="88" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="bold">Center A</text>
+    <text x="310" y="145" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="bold">Center B</text>
+    <text x="470" y="63" text-anchor="middle" font-size="11" fill="#16a34a" font-weight="bold">Center C</text>
     <!-- Legend -->
     <rect x="350" y="240" width="210" height="48" rx="4" fill="white" stroke="#e5e7eb" stroke-width="1"/>
     <text x="360" y="256" font-size="10" fill="#6b7280" font-weight="bold">Shape = Biology:</text>
@@ -270,7 +273,7 @@ let n_genes = 10
 
 # Assign samples to centers and conditions
 let center = range(0, n_samples) |> map(|i|
-    if i < 10 { "Memorial" } else if i < 20 { "Hopkins" } else { "Mayo" }
+    if i < 10 { "Center A" } else if i < 20 { "Center B" } else { "Center C" }
 )
 let condition = range(0, n_samples) |> map(|i|
     if i % 2 == 0 { "Tumor" } else { "Normal" }
@@ -280,15 +283,15 @@ let condition = range(0, n_samples) |> map(|i|
 let expr_matrix = range(0, n_samples) |> map(|i| {
     range(0, n_genes) |> map(|g| {
         let base = 10 + rnorm(1, 0, 1)[0]
-        let batch = if center[i] == "Memorial" { 2.0 }
-            else if center[i] == "Hopkins" { -1.5 } else { 0.5 }
+        let batch = if center[i] == "Center A" { 2.0 }
+            else if center[i] == "Center B" { -1.5 } else { 0.5 }
         let bio = if condition[i] == "Tumor" && g < 3 { 1.5 } else { 0.0 }
         base + batch + bio
     })
 })
 
 print(f"Expression matrix: {n_samples} samples x {n_genes} genes")
-print("Centers: Memorial=10, Hopkins=10, Mayo=10")
+print("Centers: A=10, B=10, C=10")
 ```
 
 ### Detecting Batch Effects with PCA
@@ -333,8 +336,8 @@ for g in 0..10 {
     let hopkins_expr = []
     let mayo_expr = []
     for i in 0..n_samples {
-        if center[i] == "Memorial" { memorial_expr = memorial_expr + [gene_expr[i]] }
-        else if center[i] == "Hopkins" { hopkins_expr = hopkins_expr + [gene_expr[i]] }
+        if center[i] == "Center A" { memorial_expr = memorial_expr + [gene_expr[i]] }
+        else if center[i] == "Center B" { hopkins_expr = hopkins_expr + [gene_expr[i]] }
         else { mayo_expr = mayo_expr + [gene_expr[i]] }
     }
     let batch_test = anova([memorial_expr, hopkins_expr, mayo_expr])
@@ -363,13 +366,13 @@ print(f"Genes with significant biological effect: {bio_significant} / 10")
 ```bio
 # Sample-to-sample correlation: compute a few representative pairs
 # Full matrix would be 300x300; spot-check a few
-let s1 = expr_matrix[0]   # Memorial, Tumor
-let s2 = expr_matrix[5]   # Memorial, Normal
-let s3 = expr_matrix[10]  # Hopkins, Tumor
+let s1 = expr_matrix[0]   # Center A, Tumor
+let s2 = expr_matrix[5]   # Center A, Normal
+let s3 = expr_matrix[10]  # Center B, Tumor
 
 print("=== Sample Correlations ===")
-print(f"Memorial Tumor vs Memorial Normal: {cor(s1, s2) |> round(3)}")
-print(f"Memorial Tumor vs Hopkins Tumor:   {cor(s1, s3) |> round(3)}")
+print(f"Center A Tumor vs Center A Normal: {cor(s1, s2) |> round(3)}")
+print(f"Center A Tumor vs Center B Tumor:  {cor(s1, s3) |> round(3)}")
 print("If same-center pairs are more correlated than same-condition pairs,")
 print("batch effects dominate")
 ```
@@ -384,12 +387,12 @@ let memorial_g1 = []
 let hopkins_g1 = []
 let mayo_g1 = []
 for i in 0..n_samples {
-    if center[i] == "Memorial" { memorial_g1 = memorial_g1 + [gene_1_expr[i]] }
-    else if center[i] == "Hopkins" { hopkins_g1 = hopkins_g1 + [gene_1_expr[i]] }
+    if center[i] == "Center A" { memorial_g1 = memorial_g1 + [gene_1_expr[i]] }
+    else if center[i] == "Center B" { hopkins_g1 = hopkins_g1 + [gene_1_expr[i]] }
     else { mayo_g1 = mayo_g1 + [gene_1_expr[i]] }
 }
 
-let bp_table = table({"Memorial": memorial_g1, "Hopkins": hopkins_g1, "Mayo": mayo_g1})
+let bp_table = table({"Center A": memorial_g1, "Center B": hopkins_g1, "Center C": mayo_g1})
 boxplot(bp_table, {title: "Gene 1 Expression by Center"})
 
 # Systematic shifts between centers = batch effect
@@ -409,8 +412,8 @@ for g in 0..5 {
     let cond_numeric = condition |> map(|c| if c == "Tumor" { 1.0 } else { 0.0 })
 
     # Encode center: dummy variables
-    let is_hopkins = center |> map(|c| if c == "Hopkins" { 1.0 } else { 0.0 })
-    let is_mayo = center |> map(|c| if c == "Mayo" { 1.0 } else { 0.0 })
+    let is_hopkins = center |> map(|c| if c == "Center B" { 1.0 } else { 0.0 })
+    let is_mayo = center |> map(|c| if c == "Center C" { 1.0 } else { 0.0 })
 
     # Model WITHOUT batch correction
     let model_naive = lm(cond_numeric, gene_expr)
@@ -446,24 +449,24 @@ for g in 0..5 {
     <line x1="40" y1="260" x2="40" y2="50" stroke="#9ca3af" stroke-width="0.5"/>
     <text x="160" y="278" text-anchor="middle" font-size="9" fill="#6b7280">PC1 (35% batch)</text>
     <text x="28" y="155" text-anchor="middle" font-size="9" fill="#6b7280" transform="rotate(-90, 28, 155)">PC2</text>
-    <!-- Cluster: Memorial (blue circles + triangles) -->
+    <!-- Cluster: Center A (blue circles + triangles) -->
     <circle cx="80" cy="100" r="4" fill="#2563eb"/><circle cx="90" cy="110" r="4" fill="#2563eb"/>
     <circle cx="75" cy="120" r="4" fill="#2563eb"/><circle cx="95" cy="95" r="4" fill="#2563eb"/>
     <polygon points="85,88 89,80 81,80" fill="#2563eb"/><polygon points="100,115 104,107 96,107" fill="#2563eb"/>
     <polygon points="70,108 74,100 66,100" fill="#2563eb"/>
-    <!-- Cluster: Hopkins (red) -->
+    <!-- Cluster: Center B (red) -->
     <circle cx="170" cy="180" r="4" fill="#dc2626"/><circle cx="180" cy="170" r="4" fill="#dc2626"/>
     <circle cx="165" cy="195" r="4" fill="#dc2626"/><circle cx="185" cy="185" r="4" fill="#dc2626"/>
     <polygon points="175,200 179,192 171,192" fill="#dc2626"/><polygon points="190,175 194,167 186,167" fill="#dc2626"/>
     <polygon points="160,185 164,177 156,177" fill="#dc2626"/>
-    <!-- Cluster: Mayo (green) -->
+    <!-- Cluster: Center C (green) -->
     <circle cx="245" cy="80" r="4" fill="#16a34a"/><circle cx="255" cy="90" r="4" fill="#16a34a"/>
     <circle cx="240" cy="95" r="4" fill="#16a34a"/><circle cx="260" cy="75" r="4" fill="#16a34a"/>
     <polygon points="250,100 254,92 246,92" fill="#16a34a"/><polygon points="235,82 239,74 231,74" fill="#16a34a"/>
     <!-- Labels -->
-    <text x="85" y="75" text-anchor="middle" font-size="8" fill="#2563eb">Memorial</text>
-    <text x="175" y="155" text-anchor="middle" font-size="8" fill="#dc2626">Hopkins</text>
-    <text x="250" y="62" text-anchor="middle" font-size="8" fill="#16a34a">Mayo</text>
+    <text x="85" y="75" text-anchor="middle" font-size="8" fill="#2563eb">Center A</text>
+    <text x="175" y="155" text-anchor="middle" font-size="8" fill="#dc2626">Center B</text>
+    <text x="250" y="62" text-anchor="middle" font-size="8" fill="#16a34a">Center C</text>
     <!-- Legend inside -->
     <circle cx="55" cy="240" r="3" fill="#6b7280"/>
     <text x="62" y="243" font-size="8" fill="#6b7280">Tumor</text>
@@ -502,7 +505,7 @@ for g in 0..5 {
     <circle cx="105" cy="240" r="3" fill="#dc2626"/>
     <text x="112" y="243" font-size="8" fill="#dc2626">Hop</text>
     <circle cx="145" cy="240" r="3" fill="#16a34a"/>
-    <text x="152" y="243" font-size="8" fill="#16a34a">Mayo</text>
+    <text x="152" y="243" font-size="8" fill="#16a34a">Center C</text>
     <text x="200" y="243" font-size="8" fill="#6b7280">(centers now intermixed)</text>
   </g>
 </svg>
@@ -517,8 +520,8 @@ print("=== Before Correction ===")
 print(f"PC1 variance: {(pca_before.variance_explained[0] * 100) |> round(1)}% (likely batch)")
 
 # Step 2: Regress out batch effect from each gene
-let is_hopkins = center |> map(|c| if c == "Hopkins" { 1.0 } else { 0.0 })
-let is_mayo = center |> map(|c| if c == "Mayo" { 1.0 } else { 0.0 })
+let is_hopkins = center |> map(|c| if c == "Center B" { 1.0 } else { 0.0 })
+let is_mayo = center |> map(|c| if c == "Center C" { 1.0 } else { 0.0 })
 
 let corrected_matrix = []
 for i in 0..n_samples {
@@ -556,7 +559,7 @@ pca_plot(pca_corrected)
 print("=== Balance Check ===")
 print("Center       Tumor    Normal   % Tumor")
 
-let centers = ["Memorial", "Hopkins", "Mayo"]
+let centers = ["Center A", "Center B", "Center C"]
 for c in centers {
     let n_tumor = 0
     let n_normal = 0

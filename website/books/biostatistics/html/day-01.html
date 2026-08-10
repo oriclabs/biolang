@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -178,7 +178,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="day-1-why-statistics-the-story-your-data-is-trying-to-tell"><a class="header" href="#day-1-why-statistics-the-story-your-data-is-trying-to-tell">Day 1: Why Statistics? The Story Your Data Is Trying to Tell</a></h1>
+                        <h1 id="day-1-learning-from-variable-data"><a class="header" href="#day-1-learning-from-variable-data">Day 1: Learning from Variable Data</a></h1>
 <div class="day-meta">
 <span class="badge">Day 1 of 30</span>
 <span class="badge">No Prerequisites</span>
@@ -186,22 +186,26 @@
 <span class="badge">Motivation &amp; Context</span>
 </div>
 
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>In 2006, a pharmaceutical company invested over $800 million developing a promising cancer therapy. Phase II clinical trials had shown a statistically significant survival benefit in 87 patients with advanced colorectal cancer. The data looked compelling: a 38% improvement in median progression-free survival. Investors were jubilant. The company fast-tracked Phase III.</p>
-<p>Then came the reckoning. The Phase III trial enrolled 1,200 patients across 120 medical centers. The drug performed no better than placebo. The stock price collapsed overnight. Nearly a billion dollars and eight years of research, gone — not because the science was wrong, but because the statistics were misunderstood. The Phase II “signal” was noise, amplified by a sample too small to tell the difference.</p>
-<p>This story is not unusual. It plays out every year in laboratories, hospitals, and boardrooms around the world. Similar scenarios have unfolded with Alzheimer’s drugs, cardiovascular therapies, and anti-inflammatory agents. The difference between a breakthrough and a blunder often comes down to a few fundamental statistical concepts — concepts that any biologist, clinician, or bioinformatician can learn.</p>
-<p>That is what this book is about. In 30 days, you will build the statistical intuition and practical skills to avoid these mistakes — whether you are designing a clinical trial, analyzing RNA-seq data, or evaluating a paper over morning coffee.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p>Two groups can have different averages even when the treatment has no effect.
+Biological measurements vary between samples, and technical measurements add
+more variation. How can we decide whether a pattern is strong enough to follow
+up, while being honest about uncertainty?</p>
+<p>Statistics gives us a repeatable way to describe the data, compare plausible
+explanations, and state how uncertain a result is. It does not replace biology
+or experimental design; it helps us reason with both.</p>
 <h2 id="what-is-statistics"><a class="header" href="#what-is-statistics">What Is Statistics?</a></h2>
-<p>Statistics is the science of learning from data in the presence of uncertainty. Think of it as a translator between the messy, noisy world of observations and the clean, confident conclusions you want to draw.</p>
-<p>Imagine you are standing in a dark room, trying to understand the shape of an object by touching it with gloves on. You can feel something — ridges, curves, a rough texture — but every touch is imprecise. You might mistake a bump for an edge, or miss a hole entirely. Statistics gives you a flashlight. Not a perfect one — the beam flickers and the lens is smudged — but it is incomparably better than groping in the dark.</p>
-<p>In biology, the “dark room” is enormous. A single human genome contains 3.2 billion base pairs. A transcriptomics experiment measures expression levels for 20,000 genes simultaneously. A clinical trial tracks hundreds of variables across thousands of patients over years. No human can intuit patterns in data this vast. Statistics provides the framework to ask precise questions and get defensible answers.</p>
-<h2 id="the-reproducibility-crisis"><a class="header" href="#the-reproducibility-crisis">The Reproducibility Crisis</a></h2>
-<p>In 2012, a team at Amgen, one of the world’s largest biotechnology companies, attempted to reproduce 53 landmark studies in cancer biology — papers published in top-tier journals by respected labs. These were not obscure findings; they were studies that had shaped drug development programs and clinical practice.</p>
-<p>They could reproduce only 6. That is an 89% failure rate.</p>
-<p>Around the same time, Bayer HealthCare reported a similar effort. Of 67 preclinical studies they attempted to validate, roughly two-thirds could not be reproduced. The results that had guided millions of dollars in investment simply vanished when subjected to rigorous replication.</p>
-<p>How does published, peer-reviewed science fail at this rate? The reasons are many, but they share a common root: <strong>insufficient statistical reasoning</strong>.</p>
-<h3 id="p-hacking-torturing-data-until-it-confesses"><a class="header" href="#p-hacking-torturing-data-until-it-confesses">P-Hacking: Torturing Data Until It Confesses</a></h3>
-<p>One of the most insidious contributors is “p-hacking” — the practice of trying multiple analyses until one produces a statistically significant result. A researcher might:</p>
+<p>Statistics is the science of learning from data in the presence of uncertainty.
+It turns broad questions into quantities we can inspect: a difference, a range,
+a rate, or the strength of a relationship.</p>
+<p>Biological datasets can be large and varied. A transcriptomics experiment may
+measure thousands of genes at once, while a longitudinal study may record many
+variables over time. Statistics provides a framework for asking focused
+questions without pretending that a complex dataset speaks for itself.</p>
+<h2 id="how-an-analysis-can-mislead"><a class="header" href="#how-an-analysis-can-mislead">How an analysis can mislead</a></h2>
+<p>A result becomes less trustworthy when the analysis choices depend on which
+choice gives the most favourable answer. This is often called <strong>p-hacking</strong> or
+selective analysis. Examples include:</p>
 <ul>
 <li>Test 15 different subgroups and report only the one with p &lt; 0.05</li>
 <li>Remove outliers selectively until the result becomes significant</li>
@@ -209,15 +213,19 @@
 <li>Add or remove covariates until the “right” answer appears</li>
 <li>Decide when to stop collecting data based on whether the current result is significant</li>
 </ul>
-<p>None of these practices involves fabricating data. Each individual decision might even seem reasonable in isolation. But collectively, they dramatically inflate the false positive rate. If you flip through enough combinations, you will find “significance” by pure chance — it is a mathematical certainty.</p>
+<p>These choices do not require fabricated data. When they are tried after looking
+at the result and only the successful path is reported, they increase the chance
+of a false positive and make the stated p-value hard to interpret.</p>
 <h3 id="underpowered-studies"><a class="header" href="#underpowered-studies">Underpowered Studies</a></h3>
-<p>Many published studies use sample sizes far too small to reliably detect the effects they claim to find. A study with only 12 mice per group has roughly a 20% chance of detecting a moderate treatment effect. That means 80% of real effects go undetected. But the 20% that are detected appear larger than they truly are (because only the noisiest, most extreme results cross the significance threshold), creating a distorted picture of biology.</p>
+<p>Small samples produce imprecise estimates. Their power cannot be read from the
+sample size alone; it also depends on effect size, variability, design, and the
+planned analysis. Among results selected for passing a threshold, estimates can
+also be exaggerated.</p>
 <h3 id="the-garden-of-forking-paths"><a class="header" href="#the-garden-of-forking-paths">The Garden of Forking Paths</a></h3>
 <p>Researchers make dozens of analytical decisions: how to clean the data, which variables to include, how to handle missing values, which test to use, whether to transform the data, how to define the outcome. Each decision is a fork in the path, and different choices lead to different results. When these choices are made after seeing the data (rather than pre-specified in an analysis plan), the researcher unconsciously navigates toward significance.</p>
-<p>This is not an indictment of individual scientists. Most researchers receive minimal formal training in statistics. A typical biology PhD might include one semester-long course, crammed between lab rotations and qualifying exams. The result is a generation of brilliant experimentalists who treat statistical tests as black boxes — input data, output significance. Reviewers, equally uncertain about statistics, wave the paper through. The system rewards novelty over rigor.</p>
-<blockquote>
-<p><strong>Key insight:</strong> The reproducibility crisis is not primarily a crisis of fraud or incompetence. It is a crisis of statistical literacy. Understanding the concepts in this book is one of the most impactful things you can do for the quality of your science.</p>
-</blockquote>
+<p>Pre-specifying the main question, preserving all analysis paths, reporting
+effect sizes and uncertainty, and making code and data provenance explicit make
+these choices visible and reviewable.</p>
 <h2 id="signal-vs-noise"><a class="header" href="#signal-vs-noise">Signal vs. Noise</a></h2>
 <p>Here is the most fundamental question in statistics: <strong>Is the pattern I see real, or could it have happened by chance?</strong></p>
 <div style="text-align: center; margin: 2em 0;">
@@ -280,9 +288,10 @@
 </div>
 
 <p>Consider a simple experiment. You flip a coin 10 times and get 8 heads. Is the coin biased? Your intuition says maybe — 8 out of 10 is a lot of heads. But if you do the math, a fair coin produces 8 or more heads about 5.5% of the time. That is unlikely, but not astronomically so. You might just be unlucky.</p>
-<p>Now flip the coin 100 times and get 80 heads. Is the coin biased? Almost certainly yes. A fair coin producing 80 or more heads in 100 flips has a probability of about 0.000000000000006. You would need to flip coins continuously for the age of the universe to expect this by chance.</p>
+<p>Now flip the coin 100 times and get 80 heads. The same proportion is much
+harder to explain as chance variation from a fair coin because it is supported
+by more observations.</p>
 <p>The pattern (80% heads) is the same in both cases. What changed is the <strong>sample size</strong>. With 10 flips, 80% heads is plausible noise. With 100 flips, 80% heads is an unmistakable signal.</p>
-<p>This is exactly what happened with the cancer drug. In 87 patients, a 38% improvement could easily arise from random variation — which patients happened to be enrolled, how they responded to the placebo, what comorbidities they had. In 1,200 patients, the noise averages out, and the true effect (or lack thereof) becomes visible.</p>
 <blockquote>
 <p><strong>Common pitfall:</strong> Small studies frequently produce dramatic-looking results. This is not because small studies discover larger effects — it is because small samples are inherently noisy, and noise occasionally looks like a big signal. This phenomenon is called the “winner’s curse” and it haunts biomedical research.</p>
 </blockquote>
@@ -290,23 +299,26 @@
 <p>In statistics, there are exactly two ways to be wrong, and they have very different consequences.</p>
 <h3 id="type-i-error-the-false-alarm"><a class="header" href="#type-i-error-the-false-alarm">Type I Error: The False Alarm</a></h3>
 <p>A Type I error occurs when you conclude there is an effect when there is none. You declare the coin biased when it is actually fair. You approve a drug that does not work.</p>
-<p>The most devastating Type I error in pharmaceutical history may be thalidomide in the 1950s. Marketed as a safe sedative for pregnant women, the drug was approved based on inadequate evidence. It caused severe birth defects in over 10,000 children worldwide. While this tragedy involved failures far beyond statistics — regulatory, ethical, and scientific — the core issue was concluding safety from data that could not support that conclusion.</p>
-<p>A more modern example: in 2004, Merck withdrew Vioxx (rofecoxib), a blockbuster anti-inflammatory drug, after it became clear that it significantly increased heart attack risk. The drug had been on the market for five years. Post-withdrawal analysis suggested that the cardiovascular risk had been detectable in the original trial data, but was either missed or downplayed. The cost: an estimated 88,000-140,000 excess cases of heart disease in the United States alone.</p>
+<p>For a teaching example, suppose two untreated groups are generated from the
+same population but one comparison happens to give p &lt; 0.05. Treating that
+single result as a confirmed biological effect would be a Type I error.</p>
 <h3 id="type-ii-error-the-missed-discovery"><a class="header" href="#type-ii-error-the-missed-discovery">Type II Error: The Missed Discovery</a></h3>
 <p>A Type II error occurs when you fail to detect a real effect. You declare the coin fair when it is actually biased. You reject a drug that actually works.</p>
-<p>The canonical example is Helicobacter pylori. In 1982, Barry Marshall and Robin Warren proposed that stomach ulcers were caused by a bacterium, not by stress or spicy food as the medical establishment believed. Their initial data was compelling but their sample sizes were small. The medical community dismissed their findings for over a decade, costing millions of patients effective treatment. Marshall eventually infected himself with H. pylori, developed gastritis, and cured it with antibiotics to prove his point. He and Warren won the Nobel Prize in 2005.</p>
-<p>Every year, real treatments are abandoned because clinical trials were too small to detect their effect. Every year, genuine biological mechanisms are dismissed because the experiment lacked statistical power. Type II errors are the silent killers of science — you never know what you missed, because the missed discovery never makes it into a journal.</p>
-<p>How many effective cancer therapies have been shelved because the Phase II trial enrolled 40 patients instead of 400? We will never know. But the statistical tools to prevent this — power analysis and sample size calculation — are straightforward. You will learn them on Day 26.</p>
+<p>For another teaching example, suppose a treatment truly changes a measurement
+by a modest amount, but the study has too few independent samples to separate
+that change from ordinary variation. Reporting “no effect” would be a Type II
+error. Power and sample-size planning reduce this risk; Day 18 develops those
+ideas.</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Error Type</th><th>What Happens</th><th>Consequence</th><th>Biology Example</th></tr>
 </thead>
 <tbody>
-<tr><td>Type I (False Positive)</td><td>Conclude effect exists when it does not</td><td>Wasted resources, patient harm</td><td>Approving ineffective drug</td></tr>
-<tr><td>Type II (False Negative)</td><td>Miss a real effect</td><td>Lost discoveries, delayed treatments</td><td>Rejecting H. pylori hypothesis</td></tr>
-<tr><td>Correct rejection</td><td>Correctly conclude no effect</td><td>Good science</td><td>Debunking a false supplement claim</td></tr>
-<tr><td>Correct detection</td><td>Correctly detect real effect</td><td>Discovery!</td><td>Identifying BRCA1 as cancer gene</td></tr>
+<tr><td>Type I (False Positive)</td><td>Conclude effect exists when it does not</td><td>Unnecessary follow-up</td><td>Calling an unchanged gene differentially expressed</td></tr>
+<tr><td>Type II (False Negative)</td><td>Miss a real effect</td><td>A useful signal is overlooked</td><td>Missing a modest treatment response</td></tr>
+<tr><td>Correct rejection</td><td>Correctly conclude evidence is insufficient</td><td>Avoid an unsupported claim</td><td>Do not call noise a biomarker</td></tr>
+<tr><td>Correct detection</td><td>Detect an effect that is present</td><td>A result worth validating</td><td>Find a reproducible expression change</td></tr>
 </tbody>
 </table>
 </div>
@@ -549,7 +561,7 @@
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="labs.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -563,7 +575,7 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="labs.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
@@ -597,7 +609,6 @@
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

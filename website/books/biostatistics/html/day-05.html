@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,11 +186,14 @@
 <span class="badge">Hands-on</span>
 </div>
 
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Dr. Elena Vasquez is the lead biostatistician for a pharmaceutical company. A new immunotherapy drug has shown promising results in cell lines and mouse models. Now the clinical team is designing the Phase II trial and they want her sign-off on the sample size.</p>
-<p>The clinical lead proposes 20 patients per arm — treatment and placebo. “It’s faster, cheaper, and we can get to Phase III sooner,” he argues. Elena runs the numbers and shakes her head. With 20 patients per arm and the expected effect size, the trial has only a 23% chance of detecting the drug’s benefit even if it truly works. That means a 77% chance of concluding the drug is ineffective when it actually saves lives.</p>
-<p>She recommends 200 patients per arm. The clinical lead winces at the cost — $12 million more and 18 extra months of enrollment. But Elena is firm: “Would you rather spend $12 million now and know the answer, or spend $50 million on a Phase III that was doomed from the start because Phase II was too small to see the signal?”</p>
-<p>This tension — between the cost of collecting more data and the cost of drawing wrong conclusions from too little — is the central drama of experimental design. Today you will understand why sample size is not a bureaucratic detail but the most consequential decision in any study.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching example:</strong> a two-group experiment is being planned. A
+small sample is quicker, but its estimate will vary more from one repetition to
+the next and may miss a modest effect. How do sampling, bias, and sample size
+change what the study can support?</p>
+<p>There is no universal good sample size. It depends on the effect that matters,
+expected variation, study design, error rates, missingness, and available
+resources. Day 18 shows the corresponding power calculation.</p>
 <h2 id="what-are-populations-and-samples"><a class="header" href="#what-are-populations-and-samples">What Are Populations and Samples?</a></h2>
 <h3 id="the-population"><a class="header" href="#the-population">The Population</a></h3>
 <p>The <strong>population</strong> is the complete set of items you want to understand. It is usually too large, too expensive, or physically impossible to measure in its entirety.</p>
@@ -278,7 +281,9 @@
 <li><strong>How large the sample is</strong> (precision)</li>
 </ol>
 <blockquote>
-<p><strong>Key insight:</strong> A large biased sample is worse than a small unbiased one. The 1936 Literary Digest poll surveyed 2.4 million people and predicted Alf Landon would win the presidential election in a landslide. George Gallup surveyed 50,000 and correctly predicted Roosevelt. The Literary Digest sample was drawn from telephone directories and automobile registrations — overrepresenting wealthy voters. Size could not compensate for bias.</p>
+<p><strong>Key insight:</strong> More observations reduce random sampling variation, but they
+do not remove systematic selection bias. A very large convenience sample can
+estimate the wrong target precisely.</p>
 </blockquote>
 <h2 id="the-sampling-distribution"><a class="header" href="#the-sampling-distribution">The Sampling Distribution</a></h2>
 <p>This is one of the most important concepts in all of statistics, and it is the one that most students find counterintuitive at first.</p>
@@ -307,9 +312,9 @@ for i in 0..1000 {
 }
 
 # Compare the distributions
-print("Population:         mean = {mean(population):.1}, SD = {stdev(population):.1}")
-print("Sample means (n=30):  mean = {mean(sample_means_30):.1}, SD = {stdev(sample_means_30):.1}")
-print("Sample means (n=200): mean = {mean(sample_means_200):.1}, SD = {stdev(sample_means_200):.1}")
+print(f"Population:         mean = {mean(population):.1}, SD = {stdev(population):.1}")
+print(f"Sample means (n=30):  mean = {mean(sample_means_30):.1}, SD = {stdev(sample_means_30):.1}")
+print(f"Sample means (n=200): mean = {mean(sample_means_200):.1}, SD = {stdev(sample_means_200):.1}")
 
 histogram(sample_means_30, {bins: 40, title: "Sampling Distribution (n=30)"})
 histogram(sample_means_200, {bins: 40, title: "Sampling Distribution (n=200)"})
@@ -388,7 +393,7 @@ let skewed_pop = rnorm(100000, 2, 1) |&gt; map(|x| exp(x))
 # The population is extremely skewed
 histogram(skewed_pop, {bins: 50, title: "Population: Exponential (Very Skewed)"})
 let pop_stats = summary(skewed_pop)
-print("Population skewness: {pop_stats.skewness:.2}")
+print(f"Population skewness: {pop_stats.skewness:.2}")
 
 # Sample means with n=5 (still somewhat skewed)
 let means_n5 = []
@@ -397,7 +402,7 @@ for i in 0..2000 {
     means_n5 = means_n5 + [mean(s)]
 }
 histogram(means_n5, {bins: 50, title: "Sample Means, n=5"})
-print("n=5 skewness: {skewness(means_n5):.2}")
+print(f"n=5 skewness: {skewness(means_n5):.2}")
 
 # Sample means with n=30 (approaching normal)
 let means_n30 = []
@@ -406,7 +411,7 @@ for i in 0..2000 {
     means_n30 = means_n30 + [mean(s)]
 }
 histogram(means_n30, {bins: 50, title: "Sample Means, n=30"})
-print("n=30 skewness: {skewness(means_n30):.2}")
+print(f"n=30 skewness: {skewness(means_n30):.2}")
 
 # Sample means with n=100 (very close to normal)
 let means_n100 = []
@@ -415,7 +420,7 @@ for i in 0..2000 {
     means_n100 = means_n100 + [mean(s)]
 }
 histogram(means_n100, {bins: 50, title: "Sample Means, n=100"})
-print("n=100 skewness: {skewness(means_n100):.2}")
+print(f"n=100 skewness: {skewness(means_n100):.2}")
 
 # Verify normality visually with Q-Q plot
 qq_plot(means_n100, {title: "Q-Q Plot: Sample Means n=100"})
@@ -533,7 +538,7 @@ for n in sample_sizes {
     }
     let observed_se = stdev(means)
 
-    print("  {n:&gt;6}    |     {theoretical_se:&gt;6.2}     |    {observed_se:.2}")
+    print(f"  {n:&gt;6}    |     {theoretical_se:&gt;6.2}     |    {observed_se:.2}")
 }
 </code></pre>
 <div class="table-wrapper">
@@ -631,7 +636,7 @@ for n in sizes {
         detections = detections + run_trial(n)
     }
     let power = detections / 1000.0
-    print("  {n:&gt;5}   |     {power * 100:.1}%")
+    print(f"  {n:&gt;5}   |     {power * 100:.1}%")
 }
 </code></pre>
 <p>Typical results:</p>
@@ -649,7 +654,9 @@ for n in sizes {
 </tbody>
 </table>
 </div>
-<p>This is Dr. Vasquez’s argument in numbers. With 20 patients per arm, the trial has a 77% chance of producing a false negative — concluding the drug does not work when it does. That is not an experiment; it is a waste of money.</p>
+<p>In this simulation, the smaller design misses the chosen effect more often.
+Change the effect size or variability and the power changes, so use values
+justified for the study rather than copying this sample size.</p>
 <h2 id="the-bootstrap-estimation-without-formulas"><a class="header" href="#the-bootstrap-estimation-without-formulas">The Bootstrap: Estimation Without Formulas</a></h2>
 <p>The <strong>bootstrap</strong> is a resampling method that estimates the sampling distribution empirically. Instead of relying on mathematical formulas, you resample your data with replacement thousands of times and compute your statistic each time.</p>
 <p>The bootstrap is invaluable when:</p>
@@ -665,7 +672,7 @@ for n in sizes {
 let expression = rnorm(50, 3.0, 1.5) |&gt; map(|x| exp(x))
 
 let observed_median = median(expression)
-print("Observed median: {observed_median:.2}")
+print(f"Observed median: {observed_median:.2}")
 
 # Bootstrap: resample with replacement 5000 times
 let boot_medians = []
@@ -676,12 +683,12 @@ for i in 0..5000 {
 
 # Bootstrap SE
 let boot_se = stdev(boot_medians)
-print("Bootstrap SE of median: {boot_se:.2}")
+print(f"Bootstrap SE of median: {boot_se:.2}")
 
 # Bootstrap 95% confidence interval (percentile method)
 let ci_lower = quantile(boot_medians, 0.025)
 let ci_upper = quantile(boot_medians, 0.975)
-print("95% Bootstrap CI: [{ci_lower:.2}, {ci_upper:.2}]")
+print(f"95% Bootstrap CI: [{ci_lower:.2}, {ci_upper:.2}]")
 
 histogram(boot_medians, {bins: 50, title: "Bootstrap Distribution of the Median"})
 </code></pre>
@@ -713,7 +720,7 @@ for n in sample_sizes {
     let se = stdev(estimated_afs)
     let theoretical_se = sqrt(true_af * (1.0 - true_af) / (2.0 * n))
 
-    print("n={n}: SE={se:.4} (theoretical: {theoretical_se:.4})")
+    print(f"n={n}: SE={se:.4} (theoretical: {theoretical_se:.4})")
     histogram(estimated_afs, {bins: 40, title: "Allele Frequency Estimates (n={n})"})
 }
 
@@ -803,10 +810,10 @@ set_seed(42)
 let n = 40
 let gene_expr = rnorm(n, 5.0, 2.0)
 let noise = rnorm(n, 0, 1.5)
-let protein = gene_expr |&gt; map(|x| 0.7 * x) |&gt; zip(noise) |&gt; map(|pair| pair.0 + pair.1)
+let protein_abundance = gene_expr |&gt; map(|x| 0.7 * x) |&gt; zip(noise) |&gt; map(|pair| pair.0 + pair.1)
 
-let observed_r = cor(gene_expr, protein)
-print("Observed correlation: {observed_r:.3}")
+let observed_r = cor(gene_expr, protein_abundance)
+print(f"Observed correlation: {observed_r:.3}")
 
 # TODO: Bootstrap the correlation 5000 times
 # TODO: Compute the 95% bootstrap CI
@@ -887,7 +894,6 @@ print("Observed correlation: {observed_r:.3}")
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

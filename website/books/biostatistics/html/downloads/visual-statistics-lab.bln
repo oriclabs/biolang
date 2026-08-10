@@ -1,0 +1,741 @@
+---
+title: Learn Statistics by Looking
+authors: BioLang contributors
+date: 2026-08-09
+abstract: A gentle visual BioLang notebook for recognising centre, spread, distribution shape, outliers, transformations, z-scores, t-tests, and p-values.
+---
+
+# Learn statistics by looking
+
+Statistics is not a collection of formulas to memorise. It is a way to answer
+three ordinary questions:
+
+1. **What does this dataset look like?**
+2. **How much does it vary?**
+3. **Is the pattern larger than we would reasonably expect from noise?**
+
+This notebook answers those questions with small biological examples and
+pictures. Read a short section, make a prediction, run the cell, and look again.
+Change a value whenever you are curious.
+
+You do not need a separate statistics package. Functions such as `mean()`,
+`median()`, `stdev()`, `quantile()`, `dnorm()`, and `ttest()` are built into
+BioLang. The final section gives a compact map of the functions used here.
+
+All datasets in this notebook are synthetic teaching examples. They are shaped
+like measurements a biologist might encounter, but they are not experimental
+evidence.
+
+## How to read any statistical picture
+
+Before naming a distribution or running a test, look for four things:
+
+- **Centre:** Where do most observations sit?
+- **Spread:** Are observations tightly packed or widely scattered?
+- **Shape:** Is the pattern symmetric, skewed, flat, or multi-peaked?
+- **Surprises:** Are there gaps, isolated values, or values that may be errors?
+
+A picture can suggest these features. It cannot prove why they occurred.
+
+## Visual helpers
+
+This hidden cell contains the drawing helpers used by the lesson. They return
+ordinary SVG strings produced by BioLang. The exported notebook also keeps a
+canvas copy as a fallback.
+
+```biolang
+# @hide
+fn _vs_x(value, lo, hi, left, width) {
+    let span = if hi > lo { hi - lo } else { 1.0 }
+    round(left + (value - lo) * width / span, 2)
+}
+
+fn _vs_number_line(values, title, markers) {
+    let lo0 = min(values)
+    let hi0 = max(values)
+    let padding = if hi0 > lo0 { (hi0 - lo0) * 0.08 } else { 1.0 }
+    let lo = lo0 - padding
+    let hi = hi0 + padding
+    let dots = range(0, len(values)) |> map(|i| {
+        let x = _vs_x(float(values[i]), lo, hi, 65.0, 650.0)
+        let y = 122.0 + float(i % 3) * 18.0
+        "<circle cx=\"" + str(x) + "\" cy=\"" + str(y) +
+            "\" r=\"6\" fill=\"#2563eb\" opacity=\"0.78\"/>"
+    }) |> join("")
+    let lines = markers |> map(|m| {
+        let x = _vs_x(float(m.value), lo, hi, 65.0, 650.0)
+        "<line x1=\"" + str(x) + "\" y1=\"55\" x2=\"" + str(x) +
+            "\" y2=\"180\" stroke=\"" + m.color + "\" stroke-width=\"3\"/>" +
+        "<text x=\"" + str(x) + "\" y=\"45\" text-anchor=\"middle\" " +
+            "font-family=\"sans-serif\" font-size=\"13\" fill=\"" + m.color + "\">" +
+            m.label + "</text>"
+    }) |> join("")
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"780\" height=\"235\" " +
+        "viewBox=\"0 0 780 235\" role=\"img\" aria-label=\"" + title + "\">" +
+        "<rect width=\"780\" height=\"235\" rx=\"12\" fill=\"#f8fafc\"/>" +
+        "<text x=\"390\" y=\"25\" text-anchor=\"middle\" font-family=\"sans-serif\" " +
+            "font-size=\"17\" font-weight=\"bold\" fill=\"#0f172a\">" + title + "</text>" +
+        "<line x1=\"65\" y1=\"180\" x2=\"715\" y2=\"180\" stroke=\"#475569\" stroke-width=\"2\"/>" +
+        dots + lines +
+        "<text x=\"65\" y=\"207\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12\" fill=\"#475569\">" + str(round(lo0, 2)) + "</text>" +
+        "<text x=\"715\" y=\"207\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12\" fill=\"#475569\">" + str(round(hi0, 2)) + "</text>" +
+        "</svg>"
+}
+
+fn _vs_shape_y(t, shape) {
+    if shape == "normal" { return dnorm((t - 0.5) * 6.0) }
+    if shape == "right" { return exp(-5.0 * t) * 0.42 }
+    if shape == "left" { return exp(-5.0 * (1.0 - t)) * 0.42 }
+    if shape == "uniform" { return 0.24 }
+    dnorm((t - 0.30) * 12.0) * 0.55 + dnorm((t - 0.72) * 13.0) * 0.48
+}
+
+fn _vs_shape_card(label, shape) {
+    let ts = range(0, 161) |> map(|i| float(i) / 160.0)
+    let ys = ts |> map(|t| _vs_shape_y(t, shape))
+    let peak = max(ys)
+    let points = range(0, len(ts)) |> map(|i| {
+        let x = round(38.0 + ts[i] * 244.0, 2)
+        let y = round(150.0 - ys[i] / peak * 105.0, 2)
+        str(x) + "," + str(y)
+    }) |> join(" ")
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"195\" " +
+        "viewBox=\"0 0 320 195\" role=\"img\" aria-label=\"Distribution shape " + label + "\">" +
+        "<rect width=\"320\" height=\"195\" rx=\"12\" fill=\"#f8fafc\"/>" +
+        "<text x=\"160\" y=\"27\" text-anchor=\"middle\" font-family=\"sans-serif\" " +
+            "font-size=\"18\" font-weight=\"bold\" fill=\"#0f172a\">Shape " + label + "</text>" +
+        "<line x1=\"38\" y1=\"150\" x2=\"282\" y2=\"150\" stroke=\"#64748b\"/>" +
+        "<polygon points=\"38,150 " + points + " 282,150\" fill=\"#93c5fd\" opacity=\"0.65\"/>" +
+        "<polyline points=\"" + points + "\" fill=\"none\" stroke=\"#1d4ed8\" stroke-width=\"3\"/>" +
+        "</svg>"
+}
+
+fn _vs_normal_x(z) { round(60.0 + (z + 4.0) * 660.0 / 8.0, 2) }
+fn _vs_normal_y(z) { round(285.0 - dnorm(z) * 560.0, 2) }
+
+fn _vs_normal_area(title, left_z, right_z, marker_z, marker_label) {
+    let xs = range(0, 321) |> map(|i| -4.0 + float(i) * 8.0 / 320.0)
+    let curve = xs |> map(|z| str(_vs_normal_x(z)) + "," + str(_vs_normal_y(z))) |> join(" ")
+    let inside = xs |> filter(|z| z >= left_z and z <= right_z)
+    let shade = if len(inside) > 0 {
+        let shade_points = inside |> map(|z| str(_vs_normal_x(z)) + "," + str(_vs_normal_y(z))) |> join(" ")
+        "<polygon points=\"" + str(_vs_normal_x(inside[0])) + ",285 " + shade_points + " " +
+            str(_vs_normal_x(inside[len(inside) - 1])) + ",285\" fill=\"#60a5fa\" opacity=\"0.62\"/>"
+    } else { "" }
+    let marker = if marker_z >= -4.0 and marker_z <= 4.0 {
+        let mx = _vs_normal_x(marker_z)
+        "<line x1=\"" + str(mx) + "\" y1=\"52\" x2=\"" + str(mx) +
+            "\" y2=\"285\" stroke=\"#dc2626\" stroke-width=\"3\" stroke-dasharray=\"6 4\"/>" +
+        "<text x=\"" + str(mx) + "\" y=\"43\" text-anchor=\"middle\" font-family=\"sans-serif\" " +
+            "font-size=\"13\" fill=\"#991b1b\">" + marker_label + "</text>"
+    } else { "" }
+    let ticks = [-3, -2, -1, 0, 1, 2, 3] |> map(|z| {
+        let x = _vs_normal_x(float(z))
+        "<line x1=\"" + str(x) + "\" y1=\"285\" x2=\"" + str(x) + "\" y2=\"291\" stroke=\"#475569\"/>" +
+        "<text x=\"" + str(x) + "\" y=\"309\" text-anchor=\"middle\" font-family=\"sans-serif\" " +
+            "font-size=\"12\" fill=\"#475569\">" + str(z) + "</text>"
+    }) |> join("")
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"780\" height=\"345\" " +
+        "viewBox=\"0 0 780 345\" role=\"img\" aria-label=\"" + title + "\">" +
+        "<rect width=\"780\" height=\"345\" rx=\"12\" fill=\"#f8fafc\"/>" +
+        "<text x=\"390\" y=\"25\" text-anchor=\"middle\" font-family=\"sans-serif\" " +
+            "font-size=\"17\" font-weight=\"bold\" fill=\"#0f172a\">" + title + "</text>" +
+        "<line x1=\"60\" y1=\"285\" x2=\"720\" y2=\"285\" stroke=\"#475569\"/>" +
+        shade + "<polyline points=\"" + curve + "\" fill=\"none\" stroke=\"#0f172a\" stroke-width=\"3\"/>" +
+        marker + ticks +
+        "<text x=\"390\" y=\"334\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"13\" fill=\"#334155\">z-score</text>" +
+        "</svg>"
+}
+
+fn _vs_boxplot(values, title) {
+    let q1 = quantile(values, 0.25)
+    let med = median(values)
+    let q3 = quantile(values, 0.75)
+    let spread = q3 - q1
+    let low_fence = q1 - 1.5 * spread
+    let high_fence = q3 + 1.5 * spread
+    let regular = values |> filter(|x| x >= low_fence and x <= high_fence)
+    let unusual = values |> filter(|x| x < low_fence or x > high_fence)
+    let lo0 = min(values)
+    let hi0 = max(values)
+    let padding = if hi0 > lo0 { (hi0 - lo0) * 0.08 } else { 1.0 }
+    let lo = lo0 - padding
+    let hi = hi0 + padding
+    let xq1 = _vs_x(q1, lo, hi, 65.0, 650.0)
+    let xmed = _vs_x(med, lo, hi, 65.0, 650.0)
+    let xq3 = _vs_x(q3, lo, hi, 65.0, 650.0)
+    let xlow = _vs_x(min(regular), lo, hi, 65.0, 650.0)
+    let xhigh = _vs_x(max(regular), lo, hi, 65.0, 650.0)
+    let outlier_dots = unusual |> map(|x| {
+        "<circle cx=\"" + str(_vs_x(float(x), lo, hi, 65.0, 650.0)) +
+            "\" cy=\"120\" r=\"7\" fill=\"#dc2626\"/>"
+    }) |> join("")
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"780\" height=\"225\" viewBox=\"0 0 780 225\" " +
+        "role=\"img\" aria-label=\"" + title + "\">" +
+        "<rect width=\"780\" height=\"225\" rx=\"12\" fill=\"#f8fafc\"/>" +
+        "<text x=\"390\" y=\"27\" text-anchor=\"middle\" font-family=\"sans-serif\" " +
+            "font-size=\"17\" font-weight=\"bold\" fill=\"#0f172a\">" + title + "</text>" +
+        "<line x1=\"" + str(xlow) + "\" y1=\"120\" x2=\"" + str(xhigh) + "\" y2=\"120\" stroke=\"#334155\" stroke-width=\"3\"/>" +
+        "<line x1=\"" + str(xlow) + "\" y1=\"95\" x2=\"" + str(xlow) + "\" y2=\"145\" stroke=\"#334155\" stroke-width=\"3\"/>" +
+        "<line x1=\"" + str(xhigh) + "\" y1=\"95\" x2=\"" + str(xhigh) + "\" y2=\"145\" stroke=\"#334155\" stroke-width=\"3\"/>" +
+        "<rect x=\"" + str(xq1) + "\" y=\"80\" width=\"" + str(xq3 - xq1) +
+            "\" height=\"80\" fill=\"#93c5fd\" stroke=\"#1d4ed8\" stroke-width=\"2\"/>" +
+        "<line x1=\"" + str(xmed) + "\" y1=\"80\" x2=\"" + str(xmed) + "\" y2=\"160\" stroke=\"#1e3a8a\" stroke-width=\"4\"/>" +
+        outlier_dots +
+        "<text x=\"" + str(xq1) + "\" y=\"180\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12\" fill=\"#334155\">Q1</text>" +
+        "<text x=\"" + str(xmed) + "\" y=\"180\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12\" fill=\"#334155\">median</text>" +
+        "<text x=\"" + str(xq3) + "\" y=\"180\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12\" fill=\"#334155\">Q3</text>" +
+        "</svg>"
+}
+
+fn _vs_two_groups(a, b, label_a, label_b, title) {
+    let all_values = a + b
+    let lo0 = min(all_values)
+    let hi0 = max(all_values)
+    let padding = if hi0 > lo0 { (hi0 - lo0) * 0.10 } else { 1.0 }
+    let lo = lo0 - padding
+    let hi = hi0 + padding
+    let dots_a = range(0, len(a)) |> map(|i| {
+        "<circle cx=\"" + str(_vs_x(float(a[i]), lo, hi, 145.0, 570.0)) +
+            "\" cy=\"" + str(92 + (i % 2) * 15) + "\" r=\"7\" fill=\"#2563eb\" opacity=\"0.8\"/>"
+    }) |> join("")
+    let dots_b = range(0, len(b)) |> map(|i| {
+        "<circle cx=\"" + str(_vs_x(float(b[i]), lo, hi, 145.0, 570.0)) +
+            "\" cy=\"" + str(172 + (i % 2) * 15) + "\" r=\"7\" fill=\"#ea580c\" opacity=\"0.8\"/>"
+    }) |> join("")
+    let mean_a_x = _vs_x(mean(a), lo, hi, 145.0, 570.0)
+    let mean_b_x = _vs_x(mean(b), lo, hi, 145.0, 570.0)
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"780\" height=\"250\" viewBox=\"0 0 780 250\" " +
+        "role=\"img\" aria-label=\"" + title + "\">" +
+        "<rect width=\"780\" height=\"250\" rx=\"12\" fill=\"#f8fafc\"/>" +
+        "<text x=\"390\" y=\"27\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"17\" font-weight=\"bold\" fill=\"#0f172a\">" + title + "</text>" +
+        "<text x=\"128\" y=\"103\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"13\" fill=\"#1e3a8a\">" + label_a + "</text>" +
+        "<text x=\"128\" y=\"183\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"13\" fill=\"#9a3412\">" + label_b + "</text>" +
+        "<line x1=\"145\" y1=\"117\" x2=\"715\" y2=\"117\" stroke=\"#cbd5e1\"/>" +
+        "<line x1=\"145\" y1=\"197\" x2=\"715\" y2=\"197\" stroke=\"#cbd5e1\"/>" +
+        dots_a + dots_b +
+        "<path d=\"M " + str(mean_a_x - 9.0) + " 69 L " + str(mean_a_x + 9.0) +
+            " 69 M " + str(mean_a_x) + " 60 L " + str(mean_a_x) + " 78\" stroke=\"#1e3a8a\" stroke-width=\"4\"/>" +
+        "<path d=\"M " + str(mean_b_x - 9.0) + " 149 L " + str(mean_b_x + 9.0) +
+            " 149 M " + str(mean_b_x) + " 140 L " + str(mean_b_x) + " 158\" stroke=\"#9a3412\" stroke-width=\"4\"/>" +
+        "<text x=\"430\" y=\"232\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12\" fill=\"#475569\">cross marks show group means</text>" +
+        "</svg>"
+}
+
+fn _vs_p_gauge(p, alpha) {
+    let px = 75.0 + clamp(p, 0.0, 0.10) / 0.10 * 620.0
+    let ax = 75.0 + alpha / 0.10 * 620.0
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"780\" height=\"190\" viewBox=\"0 0 780 190\" " +
+        "role=\"img\" aria-label=\"p-value compared with alpha\">" +
+        "<rect width=\"780\" height=\"190\" rx=\"12\" fill=\"#f8fafc\"/>" +
+        "<text x=\"390\" y=\"28\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"17\" font-weight=\"bold\" fill=\"#0f172a\">Compare the p-value with the pre-chosen alpha</text>" +
+        "<rect x=\"75\" y=\"82\" width=\"" + str(ax - 75.0) + "\" height=\"24\" fill=\"#fecaca\"/>" +
+        "<rect x=\"" + str(ax) + "\" y=\"82\" width=\"" + str(695.0 - ax) + "\" height=\"24\" fill=\"#dbeafe\"/>" +
+        "<line x1=\"75\" y1=\"106\" x2=\"695\" y2=\"106\" stroke=\"#334155\"/>" +
+        "<line x1=\"" + str(ax) + "\" y1=\"67\" x2=\"" + str(ax) + "\" y2=\"120\" stroke=\"#dc2626\" stroke-width=\"2\"/>" +
+        "<text x=\"" + str(ax) + "\" y=\"58\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12\" fill=\"#991b1b\">alpha = " + str(round(alpha, 3)) + "</text>" +
+        "<circle cx=\"" + str(px) + "\" cy=\"94\" r=\"8\" fill=\"#111827\"/>" +
+        "<text x=\"" + str(px) + "\" y=\"142\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"13\" fill=\"#111827\">p = " + str(round(p, 4)) + "</text>" +
+        "<text x=\"75\" y=\"124\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"11\" fill=\"#475569\">0</text>" +
+        "<text x=\"695\" y=\"124\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"11\" fill=\"#475569\">0.10</text>" +
+        "</svg>"
+}
+
+fn _vs_simple_skew(values) {
+    let centre = mean(values)
+    let sd = stdev(values)
+    if sd == 0.0 { return 0.0 }
+    mean(values |> map(|x| pow((x - centre) / sd, 3.0)))
+}
+```
+
+## 1. Start with a summary, then look at the observations
+
+These are ten synthetic protein concentrations in arbitrary assay units.
+
+```biolang
+let protein_levels = [4, 5, 5, 5, 6, 6, 7, 7, 8, 30]
+let protein_summary = summary(protein_levels)
+
+println("count:  " + str(protein_summary.count))
+println("min:    " + str(protein_summary.min))
+println("max:    " + str(protein_summary.max))
+println("mean:   " + str(round(protein_summary.mean, 2)))
+println("median: " + str(round(protein_summary.median, 2)))
+println("SD:     " + str(round(protein_summary.sd, 2)))
+```
+
+`summary()` is a first look, not a diagnosis. It tells us the range, centre and
+spread, but it cannot show that one value sits far away from the rest.
+
+## 2. Mean, median and mode answer different questions
+
+- **Mean:** If the total were shared equally, how much would each observation
+  receive?
+- **Median:** After sorting, where is the halfway point?
+- **Mode:** Which value occurs most often?
+
+```biolang
+let protein_mean = mean(protein_levels)
+let protein_median = median(protein_levels)
+let protein_mode = mode(protein_levels)
+
+println(_vs_number_line(protein_levels, "The same observations, three ideas of centre", [
+    {value: protein_mean, label: "mean " + str(round(protein_mean, 1)), color: "#dc2626"},
+    {value: protein_median, label: "median " + str(round(protein_median, 1)), color: "#16a34a"},
+    {value: protein_mode, label: "mode " + str(protein_mode), color: "#7c3aed"}
+]))
+```
+
+The value 30 pulls the mean to the right. The median barely moves because it
+depends on order, not distance. That makes the median useful for skewed data,
+but it does not make the mean "wrong." The correct choice depends on the
+question and the data-generating process.
+
+Think of the three centres this way:
+
+- **Mean:** the balance point. Use it with SD for roughly symmetric, one-group
+  measurements when every distance matters.
+- **Median:** the halfway observation. Use it with IQR for skewed measurements
+  or data with influential extremes.
+- **Mode:** the most common value or category. It can be useful for discrete
+  counts and categories, but a continuous sample may have no useful exact mode.
+
+For a symmetric, single-peaked distribution, mean, median, and mode are often
+close. With a long tail, they separate. With two peaks, one number may not be a
+meaningful centre at all: investigate the possible groups first.
+
+Try changing `30` to `300` and rerun the two cells. Which summaries move?
+
+### A mode caution
+
+Mode is most natural for categories or discrete counts. BioLang's `mode()`
+rounds numeric values to the nearest integer and returns the smallest value if
+several values tie. For continuous measurements, a histogram peak is often
+more informative than one exact mode.
+
+## 3. Spread: same mean, very different data
+
+The next two datasets both have mean 10. One is tightly packed; the other is
+widely spread.
+
+```biolang
+let tight = [8, 9, 9, 10, 10, 10, 11, 11, 12]
+let wide = [2, 5, 8, 10, 10, 10, 12, 15, 18]
+
+println(_vs_number_line(tight, "Tightly packed around mean 10", [
+    {value: mean(tight), label: "mean 10", color: "#dc2626"}
+]))
+println(_vs_number_line(wide, "Same mean, much wider spread", [
+    {value: mean(wide), label: "mean 10", color: "#dc2626"}
+]))
+
+println("tight variance: " + str(round(variance(tight), 2)))
+println("wide variance:  " + str(round(variance(wide), 2)))
+println("tight SD:       " + str(round(stdev(tight), 2)))
+println("wide SD:        " + str(round(stdev(wide), 2)))
+```
+
+Variance averages squared distances from the mean, using `n - 1` for these
+sample data. Squaring prevents positive and negative distances from cancelling,
+but it also produces squared units. Standard deviation is the square root of
+variance, so it returns to the original measurement unit.
+
+Variance and SD describe the same spread in different units:
+
+- `variance = SD * SD`
+- SD is one distance scale measured from the mean.
+- `mean - SD` and `mean + SD` mark one such distance on the left and right.
+- Variance is not the whole width, and SD is not two separate quantities.
+
+Adding the same constant to every observation moves the mean but leaves SD and
+variance unchanged. Pulling one observation far away can move the mean and
+increase both SD and variance. That sensitivity is why **mean + SD** is a
+natural pair, while **median + IQR** is often the safer pair for skewed data.
+
+Use variance in calculations and models. Use standard deviation when you want
+to describe a typical scale of variation in familiar units.
+
+## 4. Learn to recognise distribution shapes
+
+Do not read the answers yet. Look at each picture and ask:
+
+- Is it roughly symmetric?
+- How many peaks can I see?
+- Is one tail longer than the other?
+- Is the height nearly constant?
+
+```biolang
+println(_vs_shape_card("A", "normal"))
+println(_vs_shape_card("B", "right"))
+println(_vs_shape_card("C", "uniform"))
+println(_vs_shape_card("D", "bimodal"))
+println(_vs_shape_card("E", "left"))
+```
+
+### Answers
+
+- **A: normal-shaped.** Symmetric, one peak, similar tails. A picture can look
+  normal without proving that a normal model is appropriate.
+- **B: right-skewed.** Most values are low, with a long tail toward high values.
+  Read counts and concentrations often look like this.
+- **C: uniform-shaped.** Similar density across the range. There is no strong
+  central peak.
+- **D: bimodal.** Two peaks may indicate two biological populations, batches,
+  or another mixture. Do not average them away before investigating.
+- **E: left-skewed.** Most values are high, with a tail toward low values.
+
+Names describe visible features; they do not explain their cause.
+
+## 5. Histograms depend on bins
+
+A histogram groups observations into intervals. It is useful, but the number of
+bins can change what the eye notices.
+
+```biolang
+let expression = [0, 1, 1, 2, 2, 2, 3, 3, 4, 5, 5, 6, 8, 10, 13, 21, 34]
+
+println(histogram(expression, {bins: 5, title: "Expression: 5 wide bins", width: 720, height: 390}))
+println(histogram(expression, {bins: 12, title: "The same values: 12 narrow bins", width: 720, height: 390}))
+```
+
+If an apparent peak vanishes when the bins change slightly, treat it cautiously.
+A density curve is another view, not an objective truth: it also depends on a
+smoothing bandwidth.
+
+```biolang
+println(density(expression, {width: 720, height: 360}))
+```
+
+## 6. Skewness: a direction, not a quality score
+
+For a right-skewed distribution, high values stretch the right tail and often
+produce `mean > median`. For a left-skewed distribution, the opposite often
+happens.
+
+```biolang
+let symmetric_values = [4, 5, 6, 7, 8, 9, 10]
+let right_skewed_values = [1, 1, 2, 2, 3, 4, 5, 9, 20]
+
+println("symmetric mean / median: " + str(mean(symmetric_values)) + " / " + str(median(symmetric_values)))
+println("right-skew mean / median: " + str(round(mean(right_skewed_values), 2)) + " / " + str(median(right_skewed_values)))
+println("simple skew score, symmetric: " + str(round(_vs_simple_skew(symmetric_values), 3)))
+println("simple skew score, right:     " + str(round(_vs_simple_skew(right_skewed_values), 3)))
+```
+
+BioLang does not currently provide a dedicated `skewness()` builtin. The helper
+above computes an intuitive standardized third moment for learning. It is not a
+bias-corrected small-sample estimator. In real analysis, inspect the plot and
+report which estimator you use rather than treating one cutoff as universal.
+
+## 7. Outliers: flag first, investigate second
+
+The common box-plot rule defines:
+
+- `IQR = Q3 - Q1`
+- lower fence: `Q1 - 1.5 × IQR`
+- upper fence: `Q3 + 1.5 × IQR`
+
+Values outside the fences are **flagged**, not automatically deleted.
+
+```biolang
+let qc_values = [18, 19, 19, 20, 20, 21, 21, 22, 23, 45]
+let qc_q1 = quantile(qc_values, 0.25)
+let qc_q3 = quantile(qc_values, 0.75)
+let qc_iqr = qc_q3 - qc_q1
+let qc_low_fence = qc_q1 - 1.5 * qc_iqr
+let qc_high_fence = qc_q3 + 1.5 * qc_iqr
+let qc_flagged = qc_values |> filter(|x| x < qc_low_fence or x > qc_high_fence)
+let qc_mean = mean(qc_values)
+let qc_sd = stdev(qc_values)
+let qc_three_sd_flagged = qc_values |> filter(|x| abs(x - qc_mean) > 3.0 * qc_sd)
+
+println(_vs_boxplot(qc_values, "The red point is flagged by the 1.5 × IQR rule"))
+println("Q1 / median / Q3: " + str(qc_q1) + " / " + str(median(qc_values)) + " / " + str(qc_q3))
+println("fences: " + str(round(qc_low_fence, 2)) + " to " + str(round(qc_high_fence, 2)))
+println("flagged values: " + str(qc_flagged))
+println("outside mean +/- 3 SD: " + str(qc_three_sd_flagged))
+```
+
+Here the IQR rule flags 45, but the mean +/- 3 SD rule may not: the extreme value
+pulls the mean upward and inflates the SD used to judge itself. This is called
+masking. A 3-SD rule is a useful screening convention only when a roughly
+normal model is credible; it is not a universal definition of an outlier.
+
+Ask what 45 represents:
+
+- a recording or unit error;
+- contamination or instrument failure;
+- a rare but valid specimen;
+- a second biological population; or
+- an expected value from a skewed distribution.
+
+Keep both the original and cleaned analyses when removal could change the
+conclusion.
+
+## 8. Log transformations make ratios easier to see
+
+Counts can span orders of magnitude. On the raw scale, the largest values can
+compress everything else against the axis. `log10(x + 1)` preserves order while
+compressing large ratios. The `+1` permits zeros, but it is a modelling choice,
+not a magic repair.
+
+```biolang
+let molecule_counts = [0, 1, 2, 3, 5, 8, 13, 21, 55, 144, 610]
+let log_counts = molecule_counts |> map(|x| log10(float(x) + 1.0))
+
+println(histogram(molecule_counts, {bins: 8, title: "Raw molecule counts", width: 720, height: 380}))
+println(histogram(log_counts, {bins: 8, title: "The same observations after log10(count + 1)", width: 720, height: 380}))
+println("raw maximum: " + str(max(molecule_counts)))
+println("log maximum: " + str(round(max(log_counts), 3)))
+```
+
+Logs are helpful for positive, multiplicative measurements. Do not use them
+merely to make a test significant, and do not silently add a pseudocount.
+
+Useful BioLang functions are `log()` for natural log, `log2()`, `log10()`, and
+`exp()` to reverse a natural log.
+
+## 9. Probability is area, not curve height
+
+For a standard normal model, `dnorm(z)` returns the curve's height and
+`pnorm(z)` returns the area to the left. They are different quantities.
+
+```biolang
+let density_at_zero = dnorm(0.0)
+let area_left_of_zero = pnorm(0.0)
+let central_area = pnorm(1.0) - pnorm(-1.0)
+let central_area_2 = pnorm(2.0) - pnorm(-2.0)
+let central_area_3 = pnorm(3.0) - pnorm(-3.0)
+
+println("curve height at z = 0: " + str(round(density_at_zero, 4)))
+println("area left of z = 0:   " + str(round(area_left_of_zero, 4)))
+println("area from -1 to +1:   " + str(round(central_area, 4)))
+println("area from -2 to +2:   " + str(round(central_area_2, 4)))
+println("area from -3 to +3:   " + str(round(central_area_3, 4)))
+println(_vs_normal_area("Mean +/- 1 SD: about 68%", -1.0, 1.0, 9.0, ""))
+println(_vs_normal_area("Mean +/- 2 SD: about 95%", -2.0, 2.0, 9.0, ""))
+println(_vs_normal_area("Mean +/- 3 SD: about 99.7%", -3.0, 3.0, 9.0, ""))
+```
+
+About 68% of a standard normal distribution lies within one standard deviation
+of its mean. This is a property of that model, not a rule that every biological
+dataset must follow.
+
+For a normal model, the familiar bands are approximately:
+
+- mean +/- 1 SD: 68% of the model area;
+- mean +/- 2 SD: 95%; and
+- mean +/- 3 SD: 99.7%.
+
+The mean is the middle of these bands and SD controls their width. Moving the
+mean shifts the whole bell left or right. Increasing SD makes it wider and
+lower while the total area remains 100%. These percentages should not be
+applied blindly to a skewed, bounded, bimodal, or very small dataset.
+
+The three normal helpers form a useful family:
+
+- `dnorm(x)` gives density height;
+- `pnorm(x)` gives cumulative area to the left;
+- `qnorm(p)` gives the x-value with area `p` to its left.
+
+## 10. A z-score is a translated measurement
+
+A z-score answers: **How many reference standard deviations is this value from
+the reference mean?**
+
+`z = (observed - reference mean) / reference SD`
+
+Suppose a reference assay has mean 100 and standard deviation 15. A specimen
+measures 130.
+
+```biolang
+let reference_mean = 100.0
+let reference_sd = 15.0
+let observed = 130.0
+let observed_z = (observed - reference_mean) / reference_sd
+let proportion_below = pnorm(observed_z)
+
+println("z-score: " + str(round(observed_z, 3)))
+println("normal-model area below: " + str(round(proportion_below, 4)))
+println("normal-model area above: " + str(round(1.0 - proportion_below, 4)))
+println(_vs_normal_area("The specimen is 2 reference SDs above the mean", -4.0, observed_z, observed_z, "observed z = 2"))
+```
+
+The z-score is 2. It is not automatically "abnormal." Interpretation depends
+on whether the reference population, measurement method, and normal model are
+appropriate for this specimen.
+
+For a complete guided normal-area lesson, continue with
+`normal-distribution-lab.bln` beside this notebook.
+
+## 11. A t-test compares a difference with its uncertainty
+
+Here are independent measurements from control and treated cultures. First look
+at the overlap. Then calculate.
+
+```biolang
+let control = [8, 9, 10, 10, 11, 12]
+let treated = [10, 11, 12, 12, 13, 14]
+
+println(_vs_two_groups(control, treated, "control", "treated", "Synthetic fluorescence measurements"))
+println("control mean: " + str(round(mean(control), 2)))
+println("treated mean: " + str(round(mean(treated), 2)))
+println("observed difference: " + str(round(mean(treated) - mean(control), 2)))
+```
+
+`ttest(a, b)` performs BioLang's two-sided pooled two-sample t-test and returns
+the test statistic, degrees of freedom, p-value and mean difference. It assumes
+independent observations and a common population variance. Do not silently use
+it as a Welch unequal-variance test; that is not what the current builtin
+implements.
+
+```biolang
+let test_result = ttest(control, treated)
+
+println("t statistic: " + str(round(test_result.t_statistic, 3)))
+println("degrees of freedom: " + str(round(test_result.df, 2)))
+println("two-sided p-value: " + str(round(test_result.p_value, 5)))
+println("BioLang mean difference (control - treated): " + str(round(test_result.mean_diff, 2)))
+println(_vs_p_gauge(test_result.p_value, 0.05))
+```
+
+The test asks whether a difference at least this extreme would be surprising
+under a no-difference model, given the assumptions. It does not ask whether the
+difference matters biologically.
+
+### Choose the design before choosing the function
+
+- Independent groups: `ttest(group_a, group_b)`
+- The same specimens before and after: `ttest_paired(before, after)`
+- One sample compared with a reference value: `ttest_one(values, reference)`
+
+Pairing is about study design, not whether two lists happen to have equal
+length.
+
+## 12. Read a p-value without saying something false
+
+For the test and model used, a p-value is the probability—assuming the null
+hypothesis—of obtaining a test statistic at least as extreme as the observed
+one.
+
+It is **not**:
+
+- the probability that the null hypothesis is true;
+- the probability that the finding is a false positive;
+- the size or importance of the biological effect; or
+- a guarantee that the result will replicate.
+
+We compare the p-value with an `alpha` chosen before seeing the result. If
+`p < alpha`, the data cross that decision threshold. Always report the observed
+effect and uncertainty as well.
+
+```biolang
+let alpha = 0.05
+let decision = if test_result.p_value < alpha {
+    "crosses the pre-chosen threshold"
+} else {
+    "does not cross the pre-chosen threshold"
+}
+
+println("p = " + str(round(test_result.p_value, 5)) + "; the result " + decision)
+println("effect estimate, treated - control = " + str(round(mean(treated) - mean(control), 2)))
+```
+
+Try adding noisier measurements to both groups while keeping their means about
+the same. The effect can remain similar while the p-value changes because the
+uncertainty changed.
+
+## 13. A practical visual checklist
+
+When you receive a new numeric dataset:
+
+1. Confirm what one row and one value represent.
+2. Check units, impossible values, and missing values.
+3. Print `summary(values)`.
+4. Plot the individual observations when the sample is small.
+5. Use a histogram or density view for larger samples.
+6. Look for centre, spread, skew, multiple peaks, gaps, and flagged values.
+7. Decide whether a transformation has a scientific interpretation.
+8. Choose a test from the experimental design, not from the desired result.
+9. Report an effect size and uncertainty alongside any p-value.
+10. Save the data and code that produced the conclusion.
+
+## BioLang statistics map used in this notebook
+
+| Question | BioLang function | What it returns |
+|---|---|---|
+| Quick overview | `summary(values)` | count, min, max, mean, median, SD |
+| Equal-share centre | `mean(values)` | arithmetic mean |
+| Halfway centre | `median(values)` | middle value after sorting |
+| Most frequent rounded value | `mode(values)` | integer mode |
+| Squared spread | `variance(values)` | sample variance |
+| Spread in original units | `stdev(values)` | sample standard deviation |
+| Percentile boundary | `quantile(values, p)` | interpolated quantile |
+| Rescale to z-scores | `normalize(values, "zscore")` | transformed list |
+| Normal density | `dnorm(z)` | curve height |
+| Normal area to the left | `pnorm(z)` | cumulative probability |
+| Normal cutoff | `qnorm(p)` | quantile |
+| Two independent groups | `ttest(a, b)` | test-result record |
+| Paired measurements | `ttest_paired(a, b)` | paired test-result record |
+| One sample vs reference | `ttest_one(values, mu)` | one-sample result |
+| Histogram | `histogram(values, options)` | SVG plot string |
+| Smoothed shape | `density(values, options)` | SVG plot string |
+
+Notice the exact name `variance()`, not `var()`. These functions are built into
+BioLang and need no import.
+
+The following quiet cell protects the lesson's key numerical claims. If a
+statistical implementation changes, the notebook should fail here rather than
+continue displaying stale explanations.
+
+```biolang
+# @hide-output
+if abs(mean(tight) - 10.0) > 0.000001 or abs(mean(wide) - 10.0) > 0.000001 {
+    error("the equal-mean spread example changed")
+}
+if abs(variance(tight) - pow(stdev(tight), 2.0)) > 0.000001 {
+    error("variance and squared SD disagree")
+}
+if abs(central_area - 0.682689) > 0.0001 {
+    error("the central normal-area example changed")
+}
+if abs(central_area_2 - 0.9545) > 0.0002 or abs(central_area_3 - 0.9973) > 0.0002 {
+    error("the two- or three-SD normal-area example changed")
+}
+if abs(observed_z - 2.0) > 0.000001 {
+    error("the z-score example changed")
+}
+if len(qc_flagged) != 1 or qc_flagged[0] != 45 {
+    error("the outlier example changed")
+}
+if test_result.p_value < 0.034 or test_result.p_value > 0.035 {
+    error("the t-test example changed")
+}
+println("all lesson checks passed")
+```
+
+## Retrieval practice: identify before calculating
+
+Answer in words first, then run the checks.
+
+1. Mean much larger than median: which direction of skew is plausible?
+2. Two peaks: what should you investigate before reporting one average?
+3. A box-plot flag appears: should you delete the value immediately?
+4. `dnorm(0)` and `pnorm(0)` differ: which one is an area?
+5. `p = 0.03`: is there a 3% probability that the null hypothesis is true?
+
+```biolang
+println("1. Plausible right skew or influential high values.")
+println("2. Possible populations, batches, conditions, or measurement artefacts.")
+println("3. No. Verify and investigate it first.")
+println("4. pnorm(0) is cumulative area; dnorm(0) is curve height.")
+println("5. No. A p-value is conditional on the null model; it is not P(null is true).")
+```
+
+## Takeaway
+
+You do not need to recognise every named distribution on sight. You do need to
+notice centre, spread, tails, peaks and surprises—and know which BioLang tool
+helps you examine each one. Look first. Calculate second. Interpret in the
+context of how the data were produced.

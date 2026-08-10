@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-c2b4dd1e.js";
+            window.path_to_searchindex_js = "searchindex-970e72af.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-3313f347.js"></script>
@@ -250,17 +250,27 @@ single block rather than running a whole chapter.</p>
 book’s: their four-criterion QC filter, SCTransform, 40 PCs, resolution 0.8. It
 prints both cluster counts side by side so you can see what the parameters cost:</p>
 <pre><code class="language-text">cells: 14847
-SCTransform / 40 PCs / res 0.8 -&gt; 12 clusters
-log1p / 30 PCs / res 0.5      -&gt; 10 clusters
+                                     GPU auto   --no-gpu
+SCTransform / 40 PCs / res 0.8          15         16
+log1p / 30 PCs / res 0.5                 8          8
 </code></pre>
-<p>About 75 seconds.</p>
+<p>Measured after the SNN-default change on 9 August 2026: 34.9 seconds with GPU
+auto-detection enabled (NVIDIA RTX 3080), and 33.0 seconds with <code>--no-gpu</code>.</p>
 <p><strong><a href="downloads/exact.bl">exact.bl</a></strong> — the full integrated configuration: both
 samples, their filter, SCTransform, Harmony, 40 PCs, resolution 0.8:</p>
-<pre><code class="language-text">merged: 29629 cells
-clusters: 21   (HBC reports 17)
+<pre><code class="language-text">mode          cells   clusters   wall time
+GPU auto      29629      18        71.9 s
+--no-gpu      29629      16        72.5 s
+Historical HBC HTML       17
 </code></pre>
-<p>It peaks around 6 GB and is slow — the neighbour search is exact rather than
-approximate, which on 29,629 cells is the dominant cost.</p>
+<p>Both modes were measured on the same release build. Large-data neighbour
+ranking uses different numerical/search backends on GPU and CPU, so cells near
+a graph boundary can move and the Leiden count is not guaranteed to match.
+An independent current HBC CCA run with Seurat 5.5.1 gives 19 clusters; the
+cell-level comparison is recorded in <a href="differences.html">What Differs from the Course</a>.
+Harmony was the largest timed stage, not PCA or neighbour search; the measured
+breakdown is recorded in <a href="differences.html#runtime-regression-recheck">What Differs from the
+Course</a>.</p>
 <p><a href="differences.html">What Differs from the Course</a> has the full account: what was
 rewritten to match Seurat’s published methods, why the count moved <em>away</em> from
 17 as those fixes landed, and why one cluster count was a poor target to aim at

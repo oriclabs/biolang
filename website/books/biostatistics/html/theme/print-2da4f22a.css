@@ -169,12 +169,6 @@ figcaption {
         margin-top: 8px !important;
         border-top: 1px solid #334155 !important;
     }
-    h1 {
-        page-break-before: always;
-    }
-    h1:first-of-type {
-        page-break-before: avoid;
-    }
     h2, h3 {
         page-break-after: avoid;
     }

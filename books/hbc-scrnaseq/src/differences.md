@@ -10,10 +10,11 @@ is worse than one that lists its gaps. Here they are.
 > restarts), and normalization (now genuinely regularized negative binomial
 > rather than a fixed overdispersion).
 >
-> On the course data, the current Harmony example reports **18 clusters with
-> GPU auto-detection and 16 with `--no-gpu`**. The corrected CCA validation
-> notebook reports 15 on the measured GPU backend. Its CPU backend has not been
-> rerun since anchor and downstream PCA dimensions were separated.
+> On the course data, the historical Harmony example reports **18 clusters with
+> GPU auto-detection and 16 with `--no-gpu`**. The final corrected CCA
+> validation notebook now reports **21 on the measured CPU backend**. A current
+> GPU CCA run has not been measured after the latest SCTransform conformance
+> changes.
 > The historical rendered HBC object has 17 clusters; an independent current
 > Seurat CCA run described below has 19.
 >
@@ -22,10 +23,12 @@ is worse than one that lists its gaps. Here they are.
 > the point. But do not read them as current output.
 >
 > The honest implementation trajectory was 17, 16, 25, 20, 21, then **18 on
-> GPU / 16 on CPU** after the current backend work. That is evidence a single
+> GPU / 16 on CPU**, followed by 18 and now **21 for the final CPU CCA
+> workflow**. That is
+> evidence a single
 > cluster count was never a sound target. The independent Seurat run now gives
 > a real comparison: all 29,629 cells join exactly, but the corrected BioLang
-> GPU CCA run versus Seurat has ARI 0.5276 and 65.66% optimally mapped-cell
+> CPU CCA run versus Seurat has ARI 0.5750 and 69.92% optimally mapped-cell
 > accuracy. Agreement claims below are based on those cell-level measurements,
 > not on matching an integer.
 
@@ -43,7 +46,7 @@ environment have no BioLang counterpart and are folded into their neighbours.
 | 05 Quality control | [Quality Control](ch02-quality-control.md) | Full |
 | 06 Theory of PCA | [Normalization and PCA](ch03-normalization-pca.md) | Full |
 | 07 SCTransform | [Normalization and PCA](ch03-normalization-pca.md) | Full |
-| 08 Integration: CCA theory | [Integration](ch04-integration.md) | Theory only |
+| 08 Integration: CCA theory | [Integration](ch04-integration.md) | Full workflow, approximate numerics |
 | 09 Integration: Harmony | [Integration](ch04-integration.md) | Full |
 | 10 Clustering | [Clustering](ch05-clustering.md) | Full |
 | 11 Clustering quality control | [Clustering](ch05-clustering.md) | Full |
@@ -91,13 +94,45 @@ different BioLang GPU and CPU backends, so cells near a graph boundary can
 move; the run header now prints the selected backend before analysis.
 
 The executable CCA validation notebook is the direct ground-truth comparison.
-The corrected GPU run produced 15 clusters versus Seurat's 19. Against Seurat
-it has ARI 0.5276, adjusted mutual information 0.6924, and 65.66% one-to-one
-mapped accuracy. The shared variable-feature set is 2,596 of 3,000 genes
-(86.53%). Its approximate integrated-PC 15-neighbor Jaccard is only 0.0648.
-Those measurements establish partial agreement, not numerical parity. The CPU
-backend was not rerun after the 30-anchor/50-PCA correction, so earlier CPU
-figures are historical rather than current comparison results.
+The final CPU run produced 21 clusters versus Seurat's 19. Against Seurat it
+has ARI 0.5750, adjusted mutual information 0.7269, and 69.92% one-to-one
+mapped accuracy. The shared variable-feature set is 2,716 of 3,000 genes
+(90.53%). Its approximate integrated-PC 15-neighbor Jaccard is 0.2278.
+Those measurements establish partial agreement, not numerical parity. The GPU
+CCA backend was not rerun after the latest SCTransform conformance changes, so
+its earlier figures remain historical rather than current comparison results.
+
+The standalone transform has the same important distinction. On the HBC
+control, `log10(theta)` Pearson correlation is 0.999216, but raw theta has slope
+0.9389 and median relative error 7.26%. A top-feature residual probe spanning
+the 3,000 highest-variance genes is much stronger: residual correlation is
+0.999824, slope is 0.9953, and RMSE is 1.92% of the oracle residual SD. The
+scale-sensitive validation therefore passes for these residuals but not for
+theta; this book does not call that 99% SCTransform parity.
+
+Marker agreement is lower: 2,993 mapped cluster/gene pairs overlap, 191 of the
+mapped top-50 pairs overlap, and 7 of 15 canonical marker genes peak in the
+same mapped cluster. These are useful diagnostics, but none is evidence for a
+95% equivalence claim.
+
+### Current Seurat/BioLang resource benchmark
+
+Both programs were run independently on the same Windows host and the same HBC
+inputs. Peak memory is the process `PeakWorkingSet64` counter; it is not R's
+internal garbage-collector estimate and it does not add dedicated GPU memory.
+
+| Program | Wall time | Peak working set | Result |
+|---|---:|---:|---|
+| BioLang release, CPU | 481.2 s | 16.06 GiB | 21 clusters |
+| Seurat 5.5.1 / R 4.5.2 | 1548.3 s | 12.50 GiB | 19 clusters |
+
+On this measured pair BioLang is 3.22 times faster, but uses 1.28 times as much
+peak host memory. Before stage-local notebook lifetimes and native compact-matrix
+integration, the BioLang workflow peaked at 20.25 GiB. Earlier runs took 394.0 seconds for
+BioLang and 909.3 seconds
+for Seurat, so runtime varies substantially; the direction did not change. The
+requested state is faster **and** lower-memory than Seurat. Only the first half
+is currently demonstrated.
 
 ### Why older versions of this page said 17, then 16
 
@@ -257,12 +292,12 @@ does — but **sequencing saturation** and **fraction of reads mapped to the
 transcriptome** are properties of the reads, and the reads are gone by the time
 you have a matrix. If you have the file, read it in Cell Ranger's viewer.
 
-**Lesson 08 — CCA at realistic scale.** BioLang has a `cca` builtin and the
-theory is runnable on small inputs. But Seurat's CCA works on a cells × cells
-cross-product, and BioLang's `Matrix::svd` is O(n⁴) — it stalls above roughly a
-hundred cells. So the theory is demonstrable and the practice is not. **Use
-Harmony**, which is what lesson 09 does anyway and which BioLang implements at
-full scale.
+**Lesson 08 — exact CCA parity at realistic scale.** BioLang now runs the full
+29,629-cell CCA workflow with a bounded CountSketch subspace method and does not
+materialise the cells-by-cells cross-product. That makes the practice runnable,
+but it is a numerical approximation rather than Seurat's IRLBA/Annoy dependency
+path. The measured ARI and neighbourhood overlap above show that scalability is
+implemented while 95% result parity is not.
 
 ## Things this book found that the course cannot tell you
 

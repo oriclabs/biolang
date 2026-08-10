@@ -1,12 +1,19 @@
-# Day 7: Hypothesis Testing — Asking Precise Questions
+# Day 7: Hypothesis Testing — Comparing Data with a Null Model
 
-## The Problem
+> **Fast review:** Run the [normal-distribution, alpha, and critical-values
+> lab](downloads/normal-distribution-lab.bln) for shaded one- and two-tailed
+> curves, the three standard Z-table examples, and a false-positive simulation.
 
-Dr. Kenji Nakamura has spent three years developing a blood-based biomarker panel for early Alzheimer's detection. His team measures plasma levels of phosphorylated tau (p-tau217) in 40 cognitively normal individuals and 40 patients with confirmed early-stage Alzheimer's. The mean p-tau217 level in the Alzheimer's group is 3.8 pg/mL, compared to 2.9 pg/mL in controls. The difference looks promising — nearly 30% higher.
+## Practical question
 
-But when Dr. Nakamura submits to the FDA for breakthrough device designation, the reviewer's response is blunt: "Your biomarker shows a numerical difference. Can you demonstrate this isn't just sampling noise? What is the probability of seeing a difference this large if the biomarker has no real diagnostic value?" This is the fundamental question that hypothesis testing answers.
+**Synthetic teaching data:** a biomarker has different sample means in two
+groups. Is the observed difference unusual under a clearly stated no-difference
+model, and how large is the difference?
 
-The stakes are enormous. If the biomarker works, millions of patients could be diagnosed years earlier, when interventions are most effective. If it doesn't — if the observed difference is just statistical noise — pursuing it wastes hundreds of millions in development costs and, worse, could lead to false diagnoses.
+Hypothesis testing addresses the first question. An effect size, confidence
+interval, diagnostic performance, and independent validation address other
+parts of the biological question. A p-value alone does not establish that a
+biomarker is useful.
 
 ## What Is Hypothesis Testing?
 
@@ -16,7 +23,9 @@ Think of hypothesis testing as a courtroom trial for your scientific claim.
 - The **prosecution's evidence** is your data. You are trying to show the evidence is so overwhelming that the "innocence" explanation is implausible.
 - The **verdict** is either "guilty" (reject H0) or "not proven" (fail to reject H0). Notice: the jury never declares the defendant "innocent" — just that the evidence was insufficient.
 
-> **Key insight:** Hypothesis testing never proves your theory is true. It only tells you whether the data are inconsistent enough with "no effect" that you can reject that explanation with a specified level of confidence.
+> **Key insight:** A hypothesis test does not prove a scientific theory. Its
+> p-value summarizes how incompatible the chosen statistic is with a specified
+> null model, under the method's assumptions.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="340" viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -490,4 +499,6 @@ let ad_levels = [3.2, 4.1, 3.8, 2.7, 4.5, 3.3, 3.9, 4.2, 3.1, 3.6,
 
 ## What's Next
 
-Tomorrow we move from the z-test (which requires known sigma) to the workhorse of biological research: the t-test. You will learn independent, paired, and Welch's versions, check assumptions with Shapiro-Wilk and Levene's tests, and quantify effect sizes with Cohen's d. If hypothesis testing is the question, the t-test is the answer for two-group comparisons.
+Day 8 introduces one family of two-group methods: one-sample, independent,
+Welch, and paired t procedures. The design and target quantity determine whether
+one of them is suitable; two groups do not automatically imply a t-test.

@@ -7,13 +7,17 @@
 <span class="badge">Transcriptomics</span>
 </div>
 
-## The Problem
+## Practical question
 
-You receive an email from a gastroenterology collaborator: "We have RNA-seq data from 12 colon biopsies — 6 from colorectal tumors and 6 from matched normal tissue. We need to identify genes that are differentially expressed between tumor and normal, find pathways that are altered, and generate figures for a manuscript. Can you run the analysis?"
+**Synthetic teaching project:** a paired 15,000-gene by 12-sample count matrix
+represents six tumour/normal pairs. How do we inspect library size and sample
+structure, preserve the pairing, account for multiple testing, and report
+effect sizes with diagnostic plots?
 
-The raw data has already been aligned and quantified. You have a gene-by-sample count matrix: 15,000 genes (rows) by 12 samples (columns). Each entry is the number of sequencing reads mapped to that gene in that sample. The values range from 0 to several hundred thousand.
-
-This is the bread and butter of computational genomics. Every RNA-seq experiment, every cancer study, every drug treatment analysis begins with some version of this pipeline. Today, you will build the complete analysis from scratch, applying methods from nearly every chapter of this book.
+The chapter is a compact statistical teaching workflow, not a production
+RNA-seq protocol. Real analyses require count-aware modelling, appropriate
+normalisation and design matrices, quality control, annotation provenance, and
+independent validation.
 
 ## The Complete DE Pipeline
 

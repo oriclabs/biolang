@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,16 +186,29 @@
 <span class="badge">Hands-on</span>
 </div>
 
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Dr. James Park has RNA-seq data from 12 tumor samples. He needs to identify genes that are differentially expressed between treatment and control groups. He knows the standard approach: run a t-test on each gene. The t-test assumes data is normally distributed, so he checks his data.</p>
-<p>Gene FPKM values range from 0 to 50,000. Most genes sit near zero, with a handful expressed at astronomical levels. The histogram looks nothing like a bell curve — it is a massive spike at zero with a long right tail stretching to infinity. He runs the t-test anyway. Out of 20,000 genes, 4,700 come back “significant” at p &lt; 0.05. That is 23.5% of all genes, far more than seems biologically plausible for this modest treatment.</p>
-<p>Something is deeply wrong. The t-test assumed his data was symmetric and bell-shaped. It was neither. The test produced garbage because the assumption was violated. If Dr. Park had understood distributions — the subject of today’s chapter — he would have known to transform his data or use a different test entirely.</p>
+<blockquote>
+<p><strong>Fast review:</strong> The <a href="downloads/normal-distribution-lab.bln">runnable normal-distribution
+lab</a> turns this chapter’s bell curve
+into an executable visual lesson using <code>dnorm</code>, <code>pnorm</code>, and <code>qnorm</code>.</p>
+</blockquote>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p>RNA-seq counts are non-negative, often include many zeros, and usually have
+variance that changes with the mean. A bell curve is therefore a poor model for
+raw counts. What distribution describes the measurement, and at which level
+(raw observations, differences, or model residuals) does an assumption apply?</p>
+<p>This chapter uses synthetic examples to compare common distribution shapes.
+For real differential-expression analysis, use a count-aware model and inspect
+its diagnostics; do not choose a method from a histogram alone.</p>
 <h2 id="what-is-a-distribution"><a class="header" href="#what-is-a-distribution">What Is a Distribution?</a></h2>
 <p>A distribution is a recipe that tells you how likely each possible value is. Think of it as a map of a city, where the height at each point represents how many people live there. Downtown is a tall spike (many people). The suburbs are a gentle slope. The surrounding farmland is nearly flat.</p>
 <p>Every dataset has an underlying distribution — the theoretical shape that generated the data you observe. When you draw a histogram of your data, you are estimating this shape from a finite sample. With 10 data points, the histogram is choppy and unreliable. With 10,000, it smooths out and begins to reveal the true underlying curve.</p>
-<p>Why does this matter? Because <strong>every statistical test makes assumptions about the distribution of your data.</strong> The t-test assumes normality. The chi-square test assumes expected counts are large enough. The Poisson regression assumes counts follow a Poisson process. Violate the assumption, and the test’s guarantees evaporate.</p>
+<p>Why does this matter? Statistical methods make assumptions at different levels.
+A t procedure concerns the sampling behaviour of a mean or paired differences;
+a chi-square approximation depends on expected counts; a Poisson model describes
+conditional counts. Check the assumption relevant to the method and design.</p>
 <blockquote>
-<p><strong>Key insight:</strong> A statistical test is a contract. It says: “If your data follows distribution X, then I guarantee my conclusions are reliable with probability Y.” Break the contract, and you get no guarantees.</p>
+<p><strong>Key insight:</strong> Ask what part of the analysis is being modelled: raw values,
+within-pair differences, counts conditional on predictors, or residuals.</p>
 </blockquote>
 <h2 id="the-normal-distribution"><a class="header" href="#the-normal-distribution">The Normal Distribution</a></h2>
 <p>The normal distribution — the bell curve — is the most famous distribution in statistics, and for good reason. It arises naturally whenever many small, independent effects add together.</p>
@@ -295,7 +308,7 @@ let heights = rnorm(5000, 170, 8)
 
 histogram(heights, {bins: 50, title: "Adult Heights (cm) — Normal Distribution"})
 let stats = summary(heights)
-print("Mean: {stats.mean:.1}, Median: {stats.median:.1}, Skewness: {stats.skewness:.3}")
+print(f"Mean: {stats.mean:.1}, Median: {stats.median:.1}, Skewness: {stats.skewness:.3}")
 # Mean and median nearly identical; skewness near zero — hallmarks of normality
 </code></pre>
 <h2 id="the-log-normal-distribution"><a class="header" href="#the-log-normal-distribution">The Log-Normal Distribution</a></h2>
@@ -313,13 +326,13 @@ let expression = log_expr |&gt; map(|x| 2.0 ** x)  # 2^x to simulate FPKM
 # Raw expression: heavily skewed
 histogram(expression, {bins: 50, title: "Raw FPKM — Right Skewed"})
 let raw_stats = summary(expression)
-print("Raw — Mean: {raw_stats.mean:.1}, Median: {raw_stats.median:.1}, Skew: {raw_stats.skewness:.2}")
+print(f"Raw — Mean: {raw_stats.mean:.1}, Median: {raw_stats.median:.1}, Skew: {raw_stats.skewness:.2}")
 
 # Log2-transformed: approximately normal
 let log2_expr = expression |&gt; map(|x| log2(x + 1))  # +1 to handle zeros
 histogram(log2_expr, {bins: 50, title: "log2(FPKM+1) — Approximately Normal"})
 let log_stats = summary(log2_expr)
-print("Log2 — Mean: {log_stats.mean:.1}, Median: {log_stats.median:.1}, Skew: {log_stats.skewness:.2}")
+print(f"Log2 — Mean: {log_stats.mean:.1}, Median: {log_stats.median:.1}, Skew: {log_stats.skewness:.2}")
 </code></pre>
 <p>After log-transformation, the mean and median converge, skewness drops toward zero, and the histogram looks bell-shaped. Now parametric tests are appropriate.</p>
 <blockquote>
@@ -408,13 +421,13 @@ let mutation_counts = rpois(1000, 3.5)
 histogram(mutation_counts, {bins: 15, title: "Mutations per Megabase (Poisson, lambda=3.5)"})
 
 # Verify mean ~ variance (Poisson property)
-print("Mean: {mean(mutation_counts):.2}")
-print("Variance: {variance(mutation_counts):.2}")
+print(f"Mean: {mean(mutation_counts):.2}")
+print(f"Variance: {variance(mutation_counts):.2}")
 # Both should be close to 3.5
 
 # Probability of seeing 10+ mutations in a region (hypermutation?)
 let p_hyper = 1.0 - ppois(9, 3.5)
-print("P(10+ mutations): {p_hyper:.4}")
+print(f"P(10+ mutations): {p_hyper:.4}")
 # Very low — a region with 10+ mutations is genuinely unusual
 </code></pre>
 <h2 id="the-binomial-distribution"><a class="header" href="#the-binomial-distribution">The Binomial Distribution</a></h2>
@@ -457,9 +470,9 @@ let freq_Aa = 2.0 * p * q   # 0.42
 let freq_aa = q * q         # 0.49
 
 print("Expected genotype frequencies:")
-print("  AA: {freq_AA:.3}")
-print("  Aa: {freq_Aa:.3}")
-print("  aa: {freq_aa:.3}")
+print(f"  AA: {freq_AA:.3}")
+print(f"  Aa: {freq_Aa:.3}")
+print(f"  aa: {freq_aa:.3}")
 
 # Simulate genotyping 500 individuals
 let n_individuals = 500
@@ -468,11 +481,11 @@ let AA_count = rbinom(1, n_individuals, freq_AA) |&gt; sum()
 # Probability of observing exactly k heterozygotes
 let k = 200
 let p_exact = dbinom(k, n_individuals, freq_Aa)
-print("P(exactly {k} heterozygotes in {n_individuals}): {p_exact:.6}")
+print(f"P(exactly {k} heterozygotes in {n_individuals}): {p_exact:.6}")
 
 # Probability of 230+ heterozygotes (possible HWE violation?)
 let p_excess = 1.0 - pbinom(229, n_individuals, freq_Aa)
-print("P(230+ heterozygotes): {p_excess:.4}")
+print(f"P(230+ heterozygotes): {p_excess:.4}")
 </code></pre>
 <h2 id="checking-your-distribution-diagnostic-tools"><a class="header" href="#checking-your-distribution-diagnostic-tools">Checking Your Distribution: Diagnostic Tools</a></h2>
 <p>Before running any parametric test, verify that your data matches its assumptions. Here are the essential tools.</p>
@@ -584,13 +597,13 @@ let skewed_data = rnorm(200, 3, 1) |&gt; map(|x| exp(x))
 # For normal data: Q-Q plot should show points on the diagonal
 qq_plot(normal_data, {title: "Q-Q: Normal Data"})
 let stats_normal = summary(normal_data)
-print("Normal data — Skewness: {stats_normal.skewness:.4}")
+print(f"Normal data — Skewness: {stats_normal.skewness:.4}")
 # Skewness near 0: consistent with normality
 
 # For skewed data: Q-Q plot will curve away from the diagonal
 qq_plot(skewed_data, {title: "Q-Q: Skewed Data"})
 let stats_skewed = summary(skewed_data)
-print("Skewed data — Skewness: {stats_skewed.skewness:.4}")
+print(f"Skewed data — Skewness: {stats_skewed.skewness:.4}")
 # High skewness: definitely not normal
 </code></pre>
 <blockquote>
@@ -685,7 +698,9 @@ curve(dnorm(x, mean(data), sd(data)), add = TRUE, col = "red")
 </tbody>
 </table>
 </div>
-<p>Choosing the wrong test because you assumed the wrong distribution is one of the most common errors in computational biology. Dr. Park’s mistake from our opening scenario — running a t-test on raw FPKM values — is committed daily in bioinformatics labs around the world.</p>
+<p>Choosing a model without checking how the data were generated can produce
+misleading uncertainty. For RNA-seq, raw counts, normalized expression, and
+model residuals are different quantities and need not have the same shape.</p>
 <blockquote>
 <p><strong>Key insight:</strong> The distribution is not a detail. It is the foundation. Get it right, and your downstream analysis is trustworthy. Get it wrong, and no amount of sophisticated testing can rescue your conclusions.</p>
 </blockquote>
@@ -812,7 +827,6 @@ let mystery = rbinom(1000, 50, 0.15)
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

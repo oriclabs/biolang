@@ -211,6 +211,17 @@ let gc_table = seqs
           The HTML is a single file &mdash; share it via email, put it on a web server,
           or include it in a lab notebook. No BioLang installation needed to view it.
         </p>
+        <p>
+          To make the code cells editable and runnable in the browser, export the live form:
+        </p>
+        <pre><code class="language-bash">bl notebook gc_analysis.bln --export html-wasm > gc_analysis_live.html</code></pre>
+        <p>
+          On a static web host this needs no Jupyter server: BioLang runs in WebAssembly and
+          keeps one shared session as you work down the page. Press <code>Shift+Enter</code> to
+          run a cell and move forward. Native libraries, GPU analyses, unrestricted local
+          files, and very large jobs still belong in the <code>bl</code> CLI. Saved SVG plots
+          remain vector graphics and include a canvas fallback.
+        </p>
 
         <!-- Step 5 -->
         <h2>Step 5: Jupyter interop</h2>

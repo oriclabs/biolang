@@ -7,13 +7,15 @@
 <span class="badge">Data Visualization</span>
 </div>
 
-## The Problem
+## Practical question
 
-You have spent weeks analyzing a clinical dataset. The results are solid: a survival benefit, a clear dose-response relationship, differentially expressed genes with strong effect sizes. You write up the manuscript, generate figures, and submit.
+Two plots can use the same data and lead the eye to different conclusions. Does
+the figure show individual observations, uncertainty, scale, missingness, and
+the comparison actually made? Can readers with common forms of colour-vision
+deficiency distinguish the groups?
 
-Three weeks later, the reviewer's comments arrive. "Figure 2: bar charts with error bars hide the data distribution. Replace with violin plots or beeswarm plots showing individual data points. Figure 4: the y-axis does not start at zero, exaggerating the effect. Figure 6: red-green color scheme is inaccessible to the 8% of males with color vision deficiency. Major revision."
-
-The statistics were correct. The visualization was not. And in modern publishing, visualization is not decoration — it is evidence. A misleading plot can sink an otherwise excellent paper. A well-designed figure can convey complex results in seconds.
+Visualization is part of the analysis. A plot should reveal the distribution
+and limits of the evidence, not decorate or amplify a preferred conclusion.
 
 Today is your visualization reference guide. We will cover every major plot type you have encountered in this book, when to use each, how to read them, common mistakes, and how to produce publication-ready versions in BioLang.
 

@@ -7,13 +7,15 @@
 <span class="badge">Hands-on</span>
 </div>
 
-## The Problem
+## Practical question
 
-Dr. Sarah Chen stares at her screen. The Illumina NovaSeq 6000 finished its run overnight, and now she has 10,247 quality scores — one for each tile on the flow cell. Her PI needs a decision by the morning meeting: is this data usable, or do they need to re-run the library, burning another $4,000 and two days?
+**Synthetic teaching data:** a sequencing run produces 10,247 quality scores.
+Reading them one by one is not useful. We need to answer three questions: what
+is typical, how much do values vary, and are there unusual values or shapes that
+need inspection?
 
-She cannot read 10,247 numbers. She cannot scroll through them and develop an intuition. She has five minutes before the meeting starts. What she needs is a way to compress 10,247 numbers into a handful of meaningful summaries that answer three questions: What is the typical quality? How much does it vary? Are there any red flags?
-
-This is the job of descriptive statistics. They are the first thing you compute, every time, before you run a single test. Get them wrong — or skip them — and everything downstream is built on sand.
+Descriptive statistics provide compact summaries, but a plot should accompany
+them because different datasets can share the same mean and spread.
 
 ## What Are Descriptive Statistics?
 
@@ -30,9 +32,15 @@ There are three things you need to know about any dataset:
 
 **Spread tells you how much you can trust the center.** Two experiments might both report a mean IC50 of 12 nM, but one has values ranging from 11 to 13 (tight, reproducible) while the other ranges from 2 to 45 (noisy, unreliable). The center is the same — the spread tells you completely different stories. High spread means your next measurement could land anywhere; low spread means you can make confident predictions. In RNA-seq, high within-group variance buries real differential expression in noise.
 
-**Shape tells you which statistical tools are safe to use.** Almost every standard statistical test (t-test, ANOVA, linear regression) assumes the data is approximately bell-shaped (normally distributed). If your data is heavily right-skewed — which gene expression nearly always is — those tests give wrong answers. Shape also reveals hidden structure: a bimodal distribution might mean you have two distinct populations mixed together (e.g., responders and non-responders to a drug). Ignoring shape is the single most common reason published biomedical results fail to replicate.
+**Shape helps you choose summaries and diagnose models.** Many methods make an
+assumption about errors, residuals, differences, or a sampling distribution—not
+necessarily about the raw measurements themselves. Skew, outliers, or two peaks
+are reasons to inspect the design and model more closely, not automatic proof
+that a named test is invalid.
 
-> **Key insight:** Center without spread is meaningless ("the average temperature is 72°F" tells you nothing if the range is -20 to 160). Spread without shape is dangerous (a standard deviation assumes symmetry, but skewed data violates this). You always need all three.
+> **Key insight:** Report center and spread together, and show a plot when
+> possible. Standard deviation can be computed for skewed data, but it may not
+> be the most interpretable description of that distribution.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="280" viewBox="0 0 680 280" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -100,7 +108,9 @@ The mean uses every data point, which is both its strength and its weakness. It 
 
 Now add one highly expressed gene: 12, 15, 14, 13, 16, 5000. Mean = 845.0. The mean has been dragged from 14 to 845 by a single outlier. It no longer represents "typical" expression.
 
-> **Common pitfall:** In genomics, gene expression distributions are heavily right-skewed. Reporting mean FPKM/TPM values without acknowledging this skew is misleading. The median is almost always a better summary for expression data.
+> **Common pitfall:** Expression summaries depend on whether values represent
+> genes within one sample or one gene across samples, and on the scale used.
+> Inspect the distribution before choosing a mean, median, or transformation.
 
 ### Median (Middle Value)
 
@@ -252,7 +262,7 @@ In genomics, variant allele frequency distributions often have high kurtosis, re
 
 ## Descriptive Statistics in BioLang
 
-Let us return to Dr. Chen's problem. She has 10,247 quality scores and five minutes.
+Return to the synthetic sequencing-quality example.
 
 ### Loading and Summarizing Data
 
@@ -278,7 +288,9 @@ print(stats)
 #   kurtosis: 2.99
 ```
 
-That single call answers Dr. Chen's three questions immediately. Mean quality is 32.5 (good — above the Phred 30 threshold). The SD is 3.8 (moderate spread). Skewness is near zero (symmetric). No red flags. The run is usable.
+That call summarizes center, spread, and shape. It does not by itself decide
+whether a real run is usable; that decision also depends on the platform,
+quality-control protocol, and visual checks.
 
 ### Computing Individual Statistics
 
@@ -519,7 +531,7 @@ boxplot(scores, main = "Quality Box Plot")
 
 ## Worked Example: The QC Decision
 
-Let us walk through Dr. Chen's complete analysis.
+Now walk through the complete synthetic example.
 
 ```bio
 set_seed(42)
@@ -553,7 +565,7 @@ print("================================")
 histogram(scores, {bins: 50, title: "Run QC: Quality Score Distribution"})
 ```
 
-This takes about 10 seconds to run. Dr. Chen has her answer well before the meeting.
+The result is a compact report that can be reviewed alongside the plot.
 
 ## Exercises
 
@@ -593,8 +605,8 @@ Identify outliers using the IQR method (values below Q1 - 1.5*IQR or above Q3 + 
 
 ```bio
 # Protein abundance measurements with some suspicious values
-let protein = [45.2, 48.1, 50.3, 47.8, 49.5, 46.7, 51.2, 48.9,
-               150.0, 47.3, 49.8, 46.1, 50.5, 48.4, 3.0, 49.1]
+let protein_abundance = [45.2, 48.1, 50.3, 47.8, 49.5, 46.7, 51.2, 48.9,
+                         150.0, 47.3, 49.8, 46.1, 50.5, 48.4, 3.0, 49.1]
 
 # TODO: Compute Q1, Q3, IQR
 # TODO: Calculate lower and upper fences

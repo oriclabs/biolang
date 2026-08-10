@@ -7,15 +7,17 @@
 <span class="badge">Non-Parametric Inference</span>
 </div>
 
-## The Problem
+## Practical question
 
-Your collaborator is studying a rare metabolic disorder. She has tissue samples from 6 affected mice and 6 controls, measuring enzyme activity in each. The treatment group shows higher median enzyme activity, and she wants to know if the difference is real.
+**Synthetic teaching data:** enzyme activity is measured in six independent
+experimental units per group. With so little data, distribution diagnostics
+are weak. Can resampling estimate uncertainty or test a label-exchangeability
+hypothesis without relying on a normal-theory formula?
 
-You reach for a t-test, but hesitate. With only 6 observations per group, you cannot meaningfully assess whether the data is normally distributed. A Shapiro-Wilk test on 6 points has almost no power. The Wilcoxon rank-sum test is an option, but with only 6 per group, it can only detect very large effects.
-
-What if you could test the hypothesis without assuming any distribution at all? What if you could build a confidence interval for any statistic — not just the mean, but the median, the trimmed mean, the ratio of two variances, the 90th percentile — without knowing the population distribution?
-
-You can. Resampling methods let the data speak for itself, replacing theoretical assumptions with raw computational power. They are among the most broadly applicable tools in statistics, and after today, you will wonder how you ever lived without them.
+Resampling is useful, but it is not assumption-free. A bootstrap relies on the
+observed sample representing the target population. A permutation test relies
+on exchangeability under the null. With six observations, neither method can
+create information that the experiment did not collect.
 
 ## What Are Resampling Methods?
 
@@ -23,7 +25,10 @@ Resampling methods draw repeated samples from your data to estimate the sampling
 
 Think of it like this. You have a bag containing 12 marbles (your data). You want to know how variable the "average marble weight" is. The classical approach derives a formula based on the normal distribution. The resampling approach says: shake the bag, pull out 12 marbles (with replacement), weigh them, compute the average. Put them back. Repeat 10,000 times. The distribution of those 10,000 averages tells you everything you need to know — no formula, no assumptions.
 
-> **Key insight:** Resampling methods trade mathematical assumptions for computational effort. With modern computers, 10,000 resamples takes milliseconds. The only assumption is that your sample is representative of the population — the same assumption underlying all of statistics.
+> **Key insight:** Resampling replaces some analytic formulas with repeated
+> computation. Its validity still depends on the sampling design,
+> independence or exchangeability, and whether the observed sample represents
+> the target population.
 
 ## The Bootstrap
 

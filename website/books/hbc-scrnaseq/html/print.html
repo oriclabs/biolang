@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-c2b4dd1e.js";
+            window.path_to_searchindex_js = "searchindex-970e72af.js";
         </script>
 
         <!-- Custom JS scripts for mdbook-pdf PDF generation -->
@@ -1421,18 +1421,20 @@ was returning components out of order — a real defect), the neighbour graph
 (now SNN with Jaccard weights), Louvain (now with the reference’s ten
 restarts), and normalization (now genuinely regularized negative binomial
 rather than a fixed overdispersion).</p>
-<p>On the course’s data with the course’s settings, that pipeline reports <strong>21
-clusters</strong> against the course’s 17.</p>
+<p>On the course data, the current Harmony example reports <strong>18 clusters with
+GPU auto-detection and 16 with <code>--no-gpu</code></strong>. The CCA validation notebook
+reports 15 on both backends, although the two 15-cluster partitions differ.
+The historical rendered HBC object has 17 clusters; an independent current
+Seurat CCA run described below has 19.</p>
 <p>The numbers quoted further down this page — 17, then 16 — come from earlier
 stages of that work and are kept because the <em>reasoning</em> about them is still
 the point. But do not read them as current output.</p>
-<p>The honest summary: each component now matches a documented Seurat behaviour,
-and the cluster count did not converge on the reference as those fixes landed.
-It went 17, 16, 25, 20, 21. That is evidence a single cluster count was never
-a sound target — it is one high-variance integer read off a webpage, and the
-pipeline that produced it cannot be inspected from here. <strong>Nobody has run
-Seurat on this data to compare against.</strong> Until someone does, treat every
-claim of agreement or disagreement on this page as provisional.</p>
+<p>The honest implementation trajectory was 17, 16, 25, 20, 21, then <strong>18 on
+GPU / 16 on CPU</strong> after the current backend work. That is evidence a single
+cluster count was never a sound target. The independent Seurat run now gives
+a real comparison: all 29,629 cells join exactly, but BioLang CCA versus
+Seurat has ARI 0.5376 on GPU and 0.5215 on CPU. Agreement claims below are
+based on those cell-level measurements, not on matching an integer.</p>
 </blockquote>
 <h2 id="the-lesson-map"><a class="header" href="#the-lesson-map">The lesson map</a></h2>
 <p>Fourteen lessons, seven chapters. Course lessons that exist to set up an R
@@ -1482,14 +1484,27 @@ environment have no BioLang counterpart and are folded into their neighbours.</p
 <h2 id="can-you-align-them-close--and-this-is-where-an-earlier-claim-broke"><a class="header" href="#can-you-align-them-close--and-this-is-where-an-earlier-claim-broke">Can you align them? Close — and this is where an earlier claim broke</a></h2>
 <p>None of those differences are limitations. BioLang has <code>sc.sctransform</code>, takes
 any PC count, and the filter can be written by hand. Matching the course’s
-configuration on the course’s object — both samples, their four-criterion
-filter, SCTransform, Harmony, 40 PCs, resolution 0.8 — gives:</p>
-<pre><code class="language-text">merged: 29629 cells
-clusters: 16
+dimensions and filters while using its documented Harmony alternative — both
+samples, their four-criterion filter, SCTransform, 40 PCs, resolution 0.8 —
+gives:</p>
+<pre><code class="language-text">mode          cells   clusters   wall time
+GPU auto      29629      18        71.9 s
+--no-gpu      29629      16        72.5 s
+HBC HTML                  17
 </code></pre>
 <p><strong>The course’s marker lesson assigns identities to clusters 0 through 16: 17
-clusters.</strong> So this lands one short.</p>
-<h3 id="an-earlier-version-of-this-page-claimed-17-and-that-claim-was-wrong"><a class="header" href="#an-earlier-version-of-this-page-claimed-17-and-that-claim-was-wrong">An earlier version of this page claimed 17, and that claim was wrong</a></h3>
+clusters.</strong> That is a historical output, not a timeless Seurat truth. The
+independent HBC CCA workflow run with Seurat 5.5.1 produced 19 clusters at the
+same selected resolution. Large-data neighbour ranking deliberately uses
+different BioLang GPU and CPU backends, so cells near a graph boundary can
+move; the run header now prints the selected backend before analysis.</p>
+<p>The executable CCA validation notebook is the direct ground-truth comparison.
+It produced 15 clusters on both BioLang backends versus Seurat’s 19, but the
+partitions are not identical: GPU-versus-CPU ARI is 0.7757. Against Seurat, the
+GPU run has ARI 0.5376 and 66.39% one-to-one mapped accuracy; CPU has ARI 0.5215
+and 65.28%. The shared variable-feature set is 2,596 of 3,000 genes (86.53%).
+Those measurements establish useful partial agreement, not numerical parity.</p>
+<h3 id="why-older-versions-of-this-page-said-17-then-16"><a class="header" href="#why-older-versions-of-this-page-said-17-then-16">Why older versions of this page said 17, then 16</a></h3>
 <p>Not wrong in the sense of a mistyped number — the run really did print 17. It
 was wrong in the sense that mattered: <strong>the 17 depended on selecting variable
 genes with a method that does not belong on these values</strong>, and it stopped being
@@ -1504,9 +1519,10 @@ them by how close their mean landed to zero, which is arithmetic noise.</p>
 <p><code>sc.sctransform(3000)</code> now selects on <strong>residual variance</strong>, which is what
 <a href="https://doi.org/10.1186/s13059-019-1874-1">the sctransform paper</a> proposes and
 what Seurat’s <code>SCTransform</code> returns.</p>
-<p>Both were run against the same binary, on the same cells, with everything
-downstream held fixed — same PCA, same Harmony, same Leiden, same resolution.
-Only the ranking differs:</p>
+<p>The following is a historical controlled comparison. Both rows were run against
+the same earlier binary, on the same cells, with everything downstream held
+fixed — same PCA, same Harmony, same Leiden, same resolution. Only the ranking
+differed:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1518,27 +1534,66 @@ Only the ranking differs:</p>
 </tbody>
 </table>
 </div>
-<p>So the honest position is: a defensible method gives 16, and an indefensible one
-gives 17. <strong>Getting the reference’s number out of a method the reference does not
-use is not agreement — it is a coincidence that looked like agreement</strong>, and
-this page reported it as a match for longer than it should have.</p>
+<p>That experiment established why the 17 was not valid evidence of agreement:
+the defensible method gave 16 on that binary, while the wrong method happened
+to give 17. <strong>Getting the reference’s number out of a method the reference does
+not use is not agreement.</strong> Later PCA, SNN, and SCTransform changes moved the
+current measured result to 18; the historical table is retained as evidence for
+the one-variable experiment, not presented as today’s GPU output. Its 16 is
+also not the current CPU result by provenance, even though the number happens
+to be the same.</p>
 <p>Note that the wrong method is the slower and hungrier one too. Nothing about the
 17 was cheap.</p>
-<p>The remaining gap of one cluster is real and unexplained. Candidates are the
-HVG overlap, the PCA implementation, and Leiden’s tie-breaking, all of which
-differ; which of them accounts for it is not something the cluster count alone
-can say.</p>
+<p>The current mismatch is real. Candidates are the HVG overlap, the integration
+approximation, PCA, neighbour-search backend, SNN details, and optimizer
+tie-breaking, all of which differ; which accounts for it is not something the
+cluster count alone can say.</p>
 <p>For contrast, on the control sample alone:</p>
 <pre><code class="language-text">cells: 14847
-SCTransform / 40 PCs / res 0.8 -&gt; 12 clusters
-log1p / 30 PCs / res 0.5      -&gt; 10 clusters
+                                     GPU auto   --no-gpu
+SCTransform / 40 PCs / res 0.8          15         16
+log1p / 30 PCs / res 0.5                 8          8
 </code></pre>
 <p>Same cells, same code, two parameter sets. The difference was the pipeline, not
-the implementation. (This block read 14 before the gene-selection fix above —
-the same correction moves it, for the same reason.)</p>
+the implementation. These values were rerun after SNN became the default; the
+older 12/10 values were pre-SNN and are no longer presented as current output.</p>
 <p><code>aligned.bl</code> in <a href="#downloads">Downloads</a> runs the single-sample comparison;
-<code>exact.bl</code> runs the full integrated configuration in about three and a half
-minutes, peaking around 6.3 GB.</p>
+<code>exact.bl</code> runs the full integrated configuration. On the measured release
+build, GPU-auto runs took 34.9 and 71.9 seconds respectively; CPU-only runs took
+33.0 and 72.5 seconds.</p>
+<h3 id="runtime-regression-recheck"><a class="header" href="#runtime-regression-recheck">Runtime regression recheck</a></h3>
+<p>An earlier integrated run regressed from 23 to 69 minutes, with the PCA’s
+300-sweep ceiling and a near-degenerate spectrum suspected but not measured.
+That concern was rerun rather than silently retired. On 9 August 2026,
+<code>exact.bl</code> completed in 71.9 seconds wall time and reproduced 18 clusters. An
+instrumented second run completed in 70.4 seconds with this breakdown:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Stage</th><th style="text-align: right">Time</th></tr>
+</thead>
+<tbody>
+<tr><td>Load and QC</td><td style="text-align: right">12.1 s</td></tr>
+<tr><td>Merge and gene filter</td><td style="text-align: right">0.9 s</td></tr>
+<tr><td>SCTransform</td><td style="text-align: right">12.3 s</td></tr>
+<tr><td>PCA</td><td style="text-align: right">13.3 s</td></tr>
+<tr><td>Harmony</td><td style="text-align: right"><strong>27.4 s</strong></td></tr>
+<tr><td>Neighbours</td><td style="text-align: right">2.4 s</td></tr>
+<tr><td>Leiden</td><td style="text-align: right">2.0 s</td></tr>
+</tbody>
+</table>
+</div>
+<p>This was the release build with GPU auto-detection selecting an NVIDIA RTX
+3080. PCA is not the dominant stage on this dataset. For inputs above 5,000
+cells, its current implementation fits on 5,000 deterministic rows and uses at
+most six subspace sweeps; the <code>MAX_SWEEPS = 300</code> path applies only to smaller
+inputs. Its convergence check follows Rayleigh quotients, so free rotation of
+basis vectors inside a near-degenerate subspace does not itself prevent
+convergence. The old 69-minute regression therefore does not reproduce in the
+current pipeline, while the explicit record here keeps it from disappearing as
+an unexamined assumption. A separate <code>--no-gpu</code> run completed in 72.5 seconds
+and produced 16 clusters; this backend-sensitive result is documented rather
+than folded into a single inferred number.</p>
 <h3 id="what-this-cost-to-make-possible"><a class="header" href="#what-this-cost-to-make-possible">What this cost to make possible</a></h3>
 <p>Three memory problems, in the order they surfaced.</p>
 <p><strong>The integrated run died outright.</strong> <code>sc_sctransform</code> was paying for its output
@@ -1558,9 +1613,10 @@ record spread and every pipeline stage deep-copied the whole thing. Peak was
 9.0 GB before that fix and 6.3 GB after, with the result unchanged. It was the
 same bug, in the same file, as the one that had made reading a single gene take
 seven minutes — just on the other matrix type.</p>
-<p>So the honest sequence is: the numbers did not match; three separate memory
-bugs were in the way; fixing them let the comparison actually run; and the
-comparison then said 16, not the 17 this page had been claiming.</p>
+<p>So the honest historical sequence is: the numbers did not match; three separate
+memory bugs were in the way; fixing them let the controlled comparison run; and
+that comparison said 16, not the 17 the page had been claiming. The separately
+rerun current pipeline now says 18, as recorded above.</p>
 <h3 id="what-still-will-not-match"><a class="header" href="#what-still-will-not-match">What still will not match</a></h3>
 <p>Cluster <strong>numbering</strong> is arbitrary in both — cluster 7 here is not cluster 7
 there. Beyond that, HVG selection differs, the PCA is a different
@@ -1704,17 +1760,27 @@ single block rather than running a whole chapter.</p>
 book’s: their four-criterion QC filter, SCTransform, 40 PCs, resolution 0.8. It
 prints both cluster counts side by side so you can see what the parameters cost:</p>
 <pre><code class="language-text">cells: 14847
-SCTransform / 40 PCs / res 0.8 -&gt; 12 clusters
-log1p / 30 PCs / res 0.5      -&gt; 10 clusters
+                                     GPU auto   --no-gpu
+SCTransform / 40 PCs / res 0.8          15         16
+log1p / 30 PCs / res 0.5                 8          8
 </code></pre>
-<p>About 75 seconds.</p>
+<p>Measured after the SNN-default change on 9 August 2026: 34.9 seconds with GPU
+auto-detection enabled (NVIDIA RTX 3080), and 33.0 seconds with <code>--no-gpu</code>.</p>
 <p><strong><a href="downloads/exact.bl">exact.bl</a></strong> — the full integrated configuration: both
 samples, their filter, SCTransform, Harmony, 40 PCs, resolution 0.8:</p>
-<pre><code class="language-text">merged: 29629 cells
-clusters: 21   (HBC reports 17)
+<pre><code class="language-text">mode          cells   clusters   wall time
+GPU auto      29629      18        71.9 s
+--no-gpu      29629      16        72.5 s
+Historical HBC HTML       17
 </code></pre>
-<p>It peaks around 6 GB and is slow — the neighbour search is exact rather than
-approximate, which on 29,629 cells is the dominant cost.</p>
+<p>Both modes were measured on the same release build. Large-data neighbour
+ranking uses different numerical/search backends on GPU and CPU, so cells near
+a graph boundary can move and the Leiden count is not guaranteed to match.
+An independent current HBC CCA run with Seurat 5.5.1 gives 19 clusters; the
+cell-level comparison is recorded in <a href="#what-differs-from-the-course">What Differs from the Course</a>.
+Harmony was the largest timed stage, not PCA or neighbour search; the measured
+breakdown is recorded in <a href="#runtime-regression-recheck">What Differs from the
+Course</a>.</p>
 <p><a href="#what-differs-from-the-course">What Differs from the Course</a> has the full account: what was
 rewritten to match Seurat’s published methods, why the count moved <em>away</em> from
 17 as those fixes landed, and why one cluster count was a poor target to aim at

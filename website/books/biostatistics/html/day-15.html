@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,10 +179,14 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-15-multiple-regression-and-model-selection"><a class="header" href="#day-15-multiple-regression-and-model-selection">Day 15: Multiple Regression and Model Selection</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Dr. Maria Chen is a clinical researcher studying pancreatic cancer. She has tumor samples from 120 patients, each profiled with 10 biomarkers: CA19-9, CEA, MKI67, TP53 status, tumor size, age, albumin, CRP, neutrophil-lymphocyte ratio (NLR), and platelet count. She wants to predict <strong>tumor stage</strong> (a continuous composite score from 1.0 to 4.0) from these biomarkers.</p>
-<p>But there’s a problem. CA19-9 and CEA are highly correlated (r = 0.88) — they measure overlapping biology. Including both inflates standard errors and makes coefficients uninterpretable. And with 10 potential predictors, how does she find the <strong>best subset</strong> without overfitting?</p>
-<p>She needs multiple regression with careful <strong>model selection</strong>.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching data:</strong> a continuous outcome and ten candidate predictors
+are measured in 120 samples. Two predictors are strongly correlated. Which
+variables add distinct information, how stable are their coefficients, and how
+well does the model work on data not used for fitting?</p>
+<p>Multiple regression can adjust for several predictors at once. Variable choice
+should follow the scientific goal and a prespecified or validated strategy;
+searching for the subset with the smallest p-values invites overfitting.</p>
 <h2 id="what-is-multiple-regression"><a class="header" href="#what-is-multiple-regression">What Is Multiple Regression?</a></h2>
 <p>Multiple regression extends simple regression to multiple predictors:</p>
 <p>$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_p X_p + \varepsilon$$</p>
@@ -484,8 +488,8 @@ let data = table({
 let model_full = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp + nlr, data)
 
 print("=== Full Model ===")
-print("R²: {model_full.r_squared |&gt; round(3)}")
-print("Adjusted R²: {model_full.adj_r_squared |&gt; round(3)}")
+print(f"R²: {model_full.r_squared |&gt; round(3)}")
+print(f"Adjusted R²: {model_full.adj_r_squared |&gt; round(3)}")
 </code></pre>
 <h3 id="checking-multicollinearity"><a class="header" href="#checking-multicollinearity">Checking Multicollinearity</a></h3>
 <pre><code class="language-bio"># Check multicollinearity via pairwise correlations
@@ -498,7 +502,7 @@ for i in 0..8 {
     for j in (i+1)..8 {
         let r = cor(predictors[i], predictors[j])
         if abs(r) &gt; 0.7 {
-            print("  {pred_names[i]} vs {pred_names[j]}: r = {r |&gt; round(3)} *** HIGH")
+            print(f"  {pred_names[i]} vs {pred_names[j]}: r = {r |&gt; round(3)} *** HIGH")
         }
     }
 }
@@ -516,10 +520,10 @@ let data_reduced = table({
 let model_reduced = lm(~outcome_stage ~ age + tumor_size + ca19_9 + mki67 + albumin, data_reduced)
 
 print("=== Model Comparison ===")
-print("Full model R²:    {model_full.r_squared |&gt; round(3)}")
-print("Full model Adj R²:    {model_full.adj_r_squared |&gt; round(3)}")
-print("Reduced model R²: {model_reduced.r_squared |&gt; round(3)}")
-print("Reduced model Adj R²: {model_reduced.adj_r_squared |&gt; round(3)}")
+print(f"Full model R²:    {model_full.r_squared |&gt; round(3)}")
+print(f"Full model Adj R²:    {model_full.adj_r_squared |&gt; round(3)}")
+print(f"Reduced model R²: {model_reduced.r_squared |&gt; round(3)}")
+print(f"Reduced model Adj R²: {model_reduced.adj_r_squared |&gt; round(3)}")
 print("If Adj R² is similar, the simpler model is preferred")
 </code></pre>
 <h3 id="regularized-regression"><a class="header" href="#regularized-regression">Regularized Regression</a></h3>
@@ -536,13 +540,13 @@ let predictors_list = ["age", "tumor_size", "ca19_9", "cea", "mki67", "albumin",
 
 print("=== Variable Importance (drop-one analysis) ===")
 let full_r2 = model_full.r_squared
-print("Full model R²: {full_r2 |&gt; round(4)}")
+print(f"Full model R²: {full_r2 |&gt; round(4)}")
 
 # Compare by dropping noise predictors
 let model_no_crp = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + nlr, data)
 let model_no_nlr = lm(~outcome_stage ~ age + tumor_size + ca19_9 + cea + mki67 + albumin + crp, data)
-print("Without CRP: R² = {model_no_crp.r_squared |&gt; round(4)}")
-print("Without NLR: R² = {model_no_nlr.r_squared |&gt; round(4)}")
+print(f"Without CRP: R² = {model_no_crp.r_squared |&gt; round(4)}")
+print(f"Without NLR: R² = {model_no_nlr.r_squared |&gt; round(4)}")
 print("Predictors with minimal R² drop are candidates for removal")
 </code></pre>
 <h3 id="polynomial-regression-1"><a class="header" href="#polynomial-regression-1">Polynomial Regression</a></h3>
@@ -554,12 +558,12 @@ let risk = zip(bmi, rnorm(100, 0, 2))
 
 # Linear fit — misses the U-shape
 let model_linear = lm(bmi, risk)
-print("Linear R²: {model_linear.r_squared |&gt; round(3)}")
+print(f"Linear R²: {model_linear.r_squared |&gt; round(3)}")
 
 # Polynomial fit — add bmi² term
 let bmi_centered_sq = bmi |&gt; map(|x| (x - 25) ** 2)
 let model_poly = lm(bmi_centered_sq, risk)
-print("Quadratic R²: {model_poly.r_squared |&gt; round(3)}")
+print(f"Quadratic R²: {model_poly.r_squared |&gt; round(3)}")
 
 # Visualize the improvement
 let plot_data = table({"BMI": bmi, "Risk": risk})
@@ -579,7 +583,7 @@ plot(pred_actual, {type: "scatter", x: "Actual", y: "Predicted",
 # Points along the diagonal = good predictions
 # Systematic deviations = model problems
 let r_pred = cor(stage, predicted_stage)
-print("Correlation (actual vs predicted): {r_pred |&gt; round(3)}")
+print(f"Correlation (actual vs predicted): {r_pred |&gt; round(3)}")
 </code></pre>
 <p><strong>Python:</strong></p>
 <pre><code class="language-python">import statsmodels.api as sm
@@ -746,7 +750,6 @@ let n = 200
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

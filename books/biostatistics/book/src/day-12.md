@@ -1,12 +1,19 @@
-# Day 12: The Multiple Testing Crisis — FDR and Correction
+# Day 12: Many Tests — Controlling False Discoveries
 
-## The Problem
+## Practical question
 
-Dr. Rachel Kim is a genomicist analyzing differential gene expression between tumor and normal tissue. She runs a Welch's t-test on each of 20,000 genes and finds 1,200 with p < 0.05. Exciting — until she does the arithmetic: 20,000 genes multiplied by a 5% false positive rate equals 1,000 genes that would appear "significant" purely by chance, even if not a single gene were truly differentially expressed.
+Suppose 20,000 gene-level hypotheses are tested at 0.05. If every null
+hypothesis were true and the p-values were calibrated, the expected number
+below 0.05 would be 1,000. We cannot use that expectation to declare how many
+of an observed set are false, because some genes may truly differ.
 
-Her 1,200 "hits" likely contain about 1,000 false positives and perhaps 200 true findings. That is a false discovery rate of over 80%. If she publishes this list and a validation lab tries to confirm the top 50 genes, roughly 40 will fail to replicate. Her scientific reputation — and the lab's funding — depends on solving this problem.
+How can we control an error rate across the full set of tests and report the
+chosen procedure clearly?
 
-This is the **multiple testing crisis**, and it is the single most important statistical concept in genomics. Every differential expression study, every GWAS, every proteomics screen must address it. The solutions — Bonferroni correction, Benjamini-Hochberg FDR, and their relatives — are what make genome-scale analysis possible.
+Multiple-testing procedures address this problem. Bonferroni controls the
+chance of at least one false rejection under its stated conditions;
+Benjamini-Hochberg controls the expected false-discovery proportion under its
+stated conditions. The appropriate choice depends on the goal of the analysis.
 
 ## Making It Visceral: A Simulation
 
@@ -150,7 +157,9 @@ In 1995, Benjamini and Hochberg introduced a paradigm shift. Instead of controll
 
 Where V = number of false positives and R = total rejections.
 
-If you set FDR = 0.05, you accept that about 5% of your "discoveries" may be false — a much more practical threshold for genomics than guaranteeing zero false positives.
+An FDR target of 0.05 controls an expected false-discovery proportion under the
+procedure's assumptions. It does not guarantee that exactly 5% of one observed
+list is false, and it does not guarantee zero false positives.
 
 ### Benjamini-Hochberg (BH) Procedure
 
@@ -172,7 +181,9 @@ Equivalently, the BH-adjusted p-value (q-value) is:
 | Holm | FWER | Similar to Bonferroni | Slightly higher |
 | **BH (FDR)** | **FDR** | **q < 0.05** | **Much higher** |
 
-> **Key insight:** BH-FDR is the standard for differential expression, GWAS, proteomics, and almost all high-throughput biology. When a paper reports "genes with FDR < 0.05," they almost always mean Benjamini-Hochberg adjusted p-values.
+> **Key insight:** Benjamini-Hochberg is common in high-throughput biology, but
+> the correction must be named. "FDR < 0.05" is incomplete if the procedure,
+> test family, and filtering choices are not reported.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="360" viewBox="0 0 680 360" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">

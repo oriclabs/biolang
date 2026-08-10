@@ -1,16 +1,16 @@
 # Day 19: Effect Sizes — Beyond p-Values
 
-## The Problem
+## Practical question
 
-Two papers land on Dr. Rachel Nguyen's desk the same morning.
+**Synthetic teaching comparisons:** one large dataset has a very small estimated
+difference and a small p-value. Another small dataset has a larger estimated
+difference and a wide interval that includes the null. Which result matters
+biologically?
 
-**Paper A:** "GENE_X is significantly differentially expressed between tumor and normal tissue (p = 0.00001, n = 5,000)." She looks at the supplementary data: the mean difference is **0.02 FPKM** on a scale where genes range from 0 to 50,000 FPKM. The fold change is 1.001.
-
-**Paper B:** "DRUG_Y showed a non-significant trend toward tumor reduction (p = 0.08, n = 24)." She looks at the data: the median tumor volume shrank by **40%** in the treatment arm.
-
-Paper A is "highly significant" but biologically meaningless — the difference is lost in measurement noise. Paper B fails the significance threshold but describes a potentially life-changing clinical effect that just needs more patients.
-
-**The p-value alone tells you almost nothing.** You need **effect sizes**.
+The p-value does not answer that question. Report the effect in meaningful
+units, its uncertainty, the study design, and the context-specific threshold
+for practical importance. A large estimate with weak evidence is not proof
+that collecting more data will confirm it.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="660" height="360" viewBox="0 0 660 360" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -75,7 +75,7 @@ Paper A is "highly significant" but biologically meaningless — the difference 
 
 ## The Tyranny of p-Values
 
-In 2016, the American Statistical Association took the extraordinary step of issuing a formal statement on p-values — the first time in its 177-year history. Key points:
+Widely used guidance on p-values emphasizes these points:
 
 1. P-values do NOT measure the probability that the hypothesis is true
 2. P-values do NOT measure the size or importance of an effect

@@ -7,15 +7,16 @@
 <span class="badge">Hands-on</span>
 </div>
 
-## The Problem
+## Practical question
 
-Dr. Elena Vasquez is the lead biostatistician for a pharmaceutical company. A new immunotherapy drug has shown promising results in cell lines and mouse models. Now the clinical team is designing the Phase II trial and they want her sign-off on the sample size.
+**Synthetic teaching example:** a two-group experiment is being planned. A
+small sample is quicker, but its estimate will vary more from one repetition to
+the next and may miss a modest effect. How do sampling, bias, and sample size
+change what the study can support?
 
-The clinical lead proposes 20 patients per arm — treatment and placebo. "It's faster, cheaper, and we can get to Phase III sooner," he argues. Elena runs the numbers and shakes her head. With 20 patients per arm and the expected effect size, the trial has only a 23% chance of detecting the drug's benefit even if it truly works. That means a 77% chance of concluding the drug is ineffective when it actually saves lives.
-
-She recommends 200 patients per arm. The clinical lead winces at the cost — $12 million more and 18 extra months of enrollment. But Elena is firm: "Would you rather spend $12 million now and know the answer, or spend $50 million on a Phase III that was doomed from the start because Phase II was too small to see the signal?"
-
-This tension — between the cost of collecting more data and the cost of drawing wrong conclusions from too little — is the central drama of experimental design. Today you will understand why sample size is not a bureaucratic detail but the most consequential decision in any study.
+There is no universal good sample size. It depends on the effect that matters,
+expected variation, study design, error rates, missingness, and available
+resources. Day 18 shows the corresponding power calculation.
 
 ## What Are Populations and Samples?
 
@@ -101,7 +102,9 @@ The quality of the bridge depends entirely on two factors:
 1. **How the sample was selected** (bias)
 2. **How large the sample is** (precision)
 
-> **Key insight:** A large biased sample is worse than a small unbiased one. The 1936 Literary Digest poll surveyed 2.4 million people and predicted Alf Landon would win the presidential election in a landslide. George Gallup surveyed 50,000 and correctly predicted Roosevelt. The Literary Digest sample was drawn from telephone directories and automobile registrations — overrepresenting wealthy voters. Size could not compensate for bias.
+> **Key insight:** More observations reduce random sampling variation, but they
+> do not remove systematic selection bias. A very large convenience sample can
+> estimate the wrong target precisely.
 
 ## The Sampling Distribution
 
@@ -494,7 +497,9 @@ Typical results:
 | 200 | ~94% | Excellent — high confidence in detecting the effect |
 | 500 | ~99.9% | Virtually certain to detect even subtle effects |
 
-This is Dr. Vasquez's argument in numbers. With 20 patients per arm, the trial has a 77% chance of producing a false negative — concluding the drug does not work when it does. That is not an experiment; it is a waste of money.
+In this simulation, the smaller design misses the chosen effect more often.
+Change the effect size or variability and the power changes, so use values
+justified for the study rather than copying this sample size.
 
 ## The Bootstrap: Estimation Without Formulas
 
@@ -674,9 +679,9 @@ set_seed(42)
 let n = 40
 let gene_expr = rnorm(n, 5.0, 2.0)
 let noise = rnorm(n, 0, 1.5)
-let protein = gene_expr |> map(|x| 0.7 * x) |> zip(noise) |> map(|pair| pair.0 + pair.1)
+let protein_abundance = gene_expr |> map(|x| 0.7 * x) |> zip(noise) |> map(|pair| pair.0 + pair.1)
 
-let observed_r = cor(gene_expr, protein)
+let observed_r = cor(gene_expr, protein_abundance)
 print(f"Observed correlation: {observed_r:.3}")
 
 # TODO: Bootstrap the correlation 5000 times

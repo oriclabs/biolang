@@ -1,6 +1,7 @@
 # Summary
 
 [Introduction](introduction.md)
+- [Fast Review Labs](labs.md)
 
 ---
 

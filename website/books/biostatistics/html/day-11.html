@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,9 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-11-categorical-data--chi-square-and-fishers-exact"><a class="header" href="#day-11-categorical-data--chi-square-and-fishers-exact">Day 11: Categorical Data — Chi-Square and Fisher’s Exact</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Dr. Elena Vasquez is an epidemiologist studying the genetics of Alzheimer’s disease. She genotypes a SNP near the APOE gene in 1,000 participants: 500 with Alzheimer’s and 500 age-matched controls. Among Alzheimer’s patients, 180 carry at least one copy of the risk allele. Among controls, 120 carry it. The numbers look different — 36% versus 24% — but these are proportions, not measurements on a continuous scale. She cannot compute a mean or standard deviation. She cannot run a t-test.</p>
-<p>When your data are counts in categories — disease yes/no, genotype AA/AG/GG, response/non-response — you need tests designed for categorical data. The chi-square test and Fisher’s exact test are the workhorses. They also underpin some of the most important calculations in genetics: Hardy-Weinberg equilibrium, odds ratios for case-control studies, and allelic association tests.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching data:</strong> in 500 cases, 180 carry an allele; in 500 controls,
+120 carry it. These are counts in categories. Is allele status associated with
+case-control status, how large is the association, and are expected counts
+large enough for a chi-square approximation?</p>
+<p>When data are counts in categories — disease yes/no, genotype AA/AG/GG, or
+response/non-response — use methods designed for categorical data. The
+chi-square test and Fisher’s exact test answer related questions under
+different conditions; an odds ratio or risk difference describes magnitude.</p>
 <p>This chapter covers the full toolkit for analyzing categorical data, from contingency tables to effect size measures like odds ratios and Cramer’s V.</p>
 <h2 id="what-are-categorical-data"><a class="header" href="#what-are-categorical-data">What Are Categorical Data?</a></h2>
 <p>Categorical variables place observations into discrete groups rather than measuring them on a continuous scale.</p>
@@ -277,11 +283,13 @@
 <h3 id="assumptions"><a class="header" href="#assumptions">Assumptions</a></h3>
 <ul>
 <li>Observations are independent</li>
-<li>Expected count in each cell is at least 5 (if not, use Fisher’s exact test)</li>
+<li>Expected counts are adequate for the chosen chi-square approximation</li>
 <li>Sample is reasonably large</li>
 </ul>
 <blockquote>
-<p><strong>Common pitfall:</strong> The chi-square test requires <em>expected</em> counts of at least 5 in each cell, not <em>observed</em> counts. Check expected counts before interpreting results. When they are too small, Fisher’s exact test is the safe alternative.</p>
+<p><strong>Common pitfall:</strong> Rules such as “every expected count must be at least 5”
+are rough diagnostics, not universal laws. Inspect expected counts and table
+structure; for a small 2x2 table, Fisher’s exact test is one available method.</p>
 </blockquote>
 <h2 id="chi-square-goodness-of-fit-hardy-weinberg"><a class="header" href="#chi-square-goodness-of-fit-hardy-weinberg">Chi-Square Goodness of Fit: Hardy-Weinberg</a></h2>
 <p>The chi-square test can also compare observed frequencies to a theoretical distribution. A critical application in genetics is testing <strong>Hardy-Weinberg Equilibrium</strong> (HWE).</p>
@@ -330,10 +338,14 @@
 </div>
 
 <h2 id="fishers-exact-test"><a class="header" href="#fishers-exact-test">Fisher’s Exact Test</a></h2>
-<p>When sample sizes are small or expected counts fall below 5, the chi-square approximation is unreliable. Fisher’s exact test computes the exact probability using the hypergeometric distribution.</p>
+<p>For a 2x2 table with small counts, Fisher’s exact test computes a conditional
+probability using the hypergeometric distribution and avoids relying on the
+large-sample chi-square approximation.</p>
 <p>Fisher’s exact test is computationally expensive for large tables but is the gold standard for 2x2 tables with small counts — common in rare variant studies and pilot experiments.</p>
 <blockquote>
-<p><strong>Clinical relevance:</strong> Regulatory agencies (FDA, EMA) often prefer Fisher’s exact test for safety analyses where adverse events are rare and sample sizes are modest.</p>
+<p><strong>Practical relevance:</strong> Fisher’s exact test is useful for small 2x2 tables
+when a chi-square approximation is doubtful. The full analysis plan may also
+need effect estimates, intervals, repeated-event handling, and multiplicity.</p>
 </blockquote>
 <h2 id="mcnemars-test-paired-categorical-data"><a class="header" href="#mcnemars-test-paired-categorical-data">McNemar’s Test: Paired Categorical Data</a></h2>
 <p>When observations are paired — the same patients tested before and after treatment, or the same samples tested with two diagnostic methods — McNemar’s test is the correct choice.</p>
@@ -437,14 +449,14 @@ let expected = [150.0, 350.0, 150.0, 350.0]
 
 let result = chi_square(observed, expected)
 print("=== Chi-Square Test of Independence ===")
-print("Chi-square statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
-print("Degrees of freedom: {result.df}")
+print(f"Chi-square statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
+print(f"Degrees of freedom: {result.df}")
 
 # Effect size: Cramer's V from chi-square output
 let n_total = 180 + 320 + 120 + 380
 let v = sqrt(result.statistic / (n_total * min(2 - 1, 2 - 1)))
-print("Cramer's V: {v:.4}")
+print(f"Cramer's V: {v:.4}")
 
 # Odds ratio (inline: (a*d) / (b*c))
 let a = 180
@@ -452,11 +464,11 @@ let b = 320
 let c = 120
 let d = 380
 let or_val = (a * d) / (b * c)
-print("\nOdds Ratio: {or_val:.3}")
+print(f"\nOdds Ratio: {or_val:.3}")
 
 # Relative risk (inline)
 let rr = (a / (a + b)) / (c / (c + d))
-print("Relative Risk: {rr:.3}")
+print(f"Relative Risk: {rr:.3}")
 
 if result.p_value &lt; 0.05 {
   print("\nSignificant association between risk allele and Alzheimer's")
@@ -472,15 +484,15 @@ print("Observed: 8/200 cases vs 2/200 controls carry the variant\n")
 
 # Chi-square would be unreliable here
 let chi_result = chi_square(observed, [5.0, 195.0, 5.0, 195.0])
-print("Chi-square p-value: {chi_result.p_value:.4} (unreliable — low expected counts)")
+print(f"Chi-square p-value: {chi_result.p_value:.4} (unreliable — low expected counts)")
 
 # Fisher's exact is the correct choice
 let fisher_result = fisher_exact(8, 192, 2, 198)
-print("Fisher's exact p-value: {fisher_result.p_value:.4}")
+print(f"Fisher's exact p-value: {fisher_result.p_value:.4}")
 
 # Odds ratio (inline)
 let or_val = (8 * 198) / (192 * 2)
-print("Odds Ratio: {or_val:.2}")
+print(f"Odds Ratio: {or_val:.2}")
 
 # Note: CI includes 1.0, so despite the apparent 4x difference,
 # the sample size is too small for significance
@@ -497,7 +509,7 @@ let n = obs_AA + obs_AG + obs_GG
 let p = (2 * obs_AA + obs_AG) / (2 * n)  # freq of A
 let q = 1.0 - p                           # freq of G
 
-print("Allele frequencies: p(A) = {p:.4}, q(G) = {q:.4}")
+print(f"Allele frequencies: p(A) = {p:.4}, q(G) = {q:.4}")
 
 # Expected counts under HWE
 let exp_AA = p * p * n
@@ -506,9 +518,9 @@ let exp_GG = q * q * n
 
 print("\nGenotype     | Observed | Expected (HWE)")
 print("-------------|----------|----------------")
-print("AA           | {obs_AA:&gt;8} | {exp_AA:&gt;14.1}")
-print("AG           | {obs_AG:&gt;8} | {exp_AG:&gt;14.1}")
-print("GG           | {obs_GG:&gt;8} | {exp_GG:&gt;14.1}")
+print(f"AA           | {obs_AA:&gt;8} | {exp_AA:&gt;14.1}")
+print(f"AG           | {obs_AG:&gt;8} | {exp_AG:&gt;14.1}")
+print(f"GG           | {obs_GG:&gt;8} | {exp_GG:&gt;14.1}")
 
 # Chi-square goodness of fit (df=1 for HWE with 2 alleles)
 let chi_sq = (obs_AA - exp_AA)^2 / exp_AA +
@@ -520,8 +532,8 @@ let observed = [obs_AA, obs_AG, obs_GG]
 let expected = [exp_AA, exp_AG, exp_GG]
 let result = chi_square(observed, expected)
 
-print("\nChi-square = {result.statistic:.4}")
-print("p-value = {result.p_value:.4}")
+print(f"\nChi-square = {result.statistic:.4}")
+print(f"p-value = {result.p_value:.4}")
 
 if result.p_value &gt; 0.05 {
   print("Genotype frequencies are consistent with Hardy-Weinberg Equilibrium")
@@ -545,8 +557,8 @@ let mcnemar_p = 1.0 - pnorm(sqrt(mcnemar_chi2), 0, 1) * 2.0  # approximate
 let result = chi_square([b_disc, c_disc], [12.5, 12.5])
 print("=== McNemar's Test: Culture vs PCR ===")
 print("Discordant pairs: A+/B- = 15, A-/B+ = 10")
-print("Chi-square: {result.statistic:.4}")
-print("p-value: {result.p_value:.4}")
+print(f"Chi-square: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.4}")
 
 if result.p_value &gt; 0.05 {
   print("No significant difference between the two diagnostic tests")
@@ -564,8 +576,8 @@ let result = chi_square(observed, [82.5, 217.5, 82.5, 217.5])
 print("=== Two-Proportion Test: EGFR Mutation Frequency ===")
 print("Asian: 120/300 = 40%")
 print("European: 45/300 = 15%")
-print("Chi-square: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
+print(f"Chi-square: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
 print("Difference: 25 percentage points")
 
 # Visualize
@@ -589,14 +601,14 @@ let col_labels = ["AA", "AG", "GG"]
 
 let result = chi_square(observed, expected)
 print("=== Chi-Square: Genotype vs Drug Response ===")
-print("Chi-square: {result.statistic:.4}")
-print("p-value: {result.p_value:.4}")
-print("df: {result.df}")
+print(f"Chi-square: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.4}")
+print(f"df: {result.df}")
 
 # Cramer's V from chi-square output
 let n_total = 45 + 30 + 25 + 35 + 55 + 60 + 20 + 15 + 15
 let v = sqrt(result.statistic / (n_total * min(3 - 1, 3 - 1)))
-print("Cramer's V: {v:.4} (effect size)")
+print(f"Cramer's V: {v:.4} (effect size)")
 
 # Display the contingency table
 print("\n           | AA   | AG   | GG   | Total")
@@ -604,7 +616,7 @@ print("-----------|------|------|------|------")
 for i in 0..3 {
   let offset = i * 3
   let total = observed[offset] + observed[offset + 1] + observed[offset + 2]
-  print("{row_labels[i]:&lt;11}| {observed[offset]:&gt;4} | {observed[offset + 1]:&gt;4} | {observed[offset + 2]:&gt;4} | {total:&gt;4}")
+  print(f"{row_labels[i]:&lt;11}| {observed[offset]:&gt;4} | {observed[offset + 1]:&gt;4} | {observed[offset + 2]:&gt;4} | {total:&gt;4}")
 }
 </code></pre>
 <p><strong>Python:</strong></p>
@@ -720,7 +732,10 @@ let populations = ["East Asian", "European", "African"]
 <li>Always check expected cell counts before using chi-square — use Fisher’s exact when they are small</li>
 </ul>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
-<p>You now have a powerful toolkit for individual tests. But in genomics, we never run just one test — we run thousands or millions simultaneously. Testing 20,000 genes means 1,000 false positives at alpha = 0.05. Tomorrow we confront the multiple testing crisis head-on and learn the corrections that make genome-scale analysis possible, culminating in the volcano plot that has become the icon of differential expression analysis.</p>
+<p>In high-throughput work, many hypotheses are tested together. Under a complete
+null with calibrated p-values, 20,000 tests at 0.05 would yield 1,000 rejections
+on average before correction. Day 12 introduces procedures for controlling an
+error rate across the family.</p>
 
                     </main>
 
@@ -774,7 +789,6 @@ let populations = ["East Asian", "European", "African"]
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

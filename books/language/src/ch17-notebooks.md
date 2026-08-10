@@ -13,6 +13,38 @@ bl notebook analysis.bln
 Prose sections are rendered with ANSI formatting in the terminal. Code blocks
 are executed in order, with output interleaved between prose.
 
+## Native Local Notebook
+
+Start the lightweight, Jupyter-like browser editor with a native BioLang kernel:
+
+```bash
+bl notebook serve analysis.bln
+```
+
+`bl` opens a page served from a random loopback port. Each notebook session owns
+one interpreter, so a variable created by one cell is available to later cells.
+Unlike the WebAssembly export, the local kernel can use native packages, local
+files, larger memory, and the configured CPU or GPU backend. The page can edit
+and save the original `.bln`, run through one selected cell, or run all cells in
+a fresh session. Selecting a later cell automatically runs any missing earlier
+cells, so its setup variables exist. Editing or rerunning an earlier cell starts
+a clean session before rebuilding that context.
+
+Useful launch options:
+
+```bash
+bl notebook serve analysis.bln --no-open
+bl notebook serve analysis.bln --port 8765
+bl --no-gpu notebook serve analysis.bln
+bl notebook serve analysis.bln --root ./study
+```
+
+The server accepts loopback addresses only and generates a new bearer token for
+each launch. It implements the common SOMER job routes for compatible stateless
+clients, plus `/v1/notebook-sessions` for contextual cell execution. It is a
+single-user local kernel, not a scheduler or remote SOMER replacement. Native
+notebook code runs with the permissions of the user who started `bl`.
+
 ## The .bln Format
 
 A `.bln` file is plain text. Everything outside a code block is Markdown prose.
@@ -202,5 +234,7 @@ bl notebook gc_analysis.bln --export html > gc_report.html
 - **Use `# @echo` for key steps** -- shows both code and output for the important
   analysis logic
 - **Use `# @skip` during development** -- temporarily disable expensive cells
+- **Use `bl notebook serve` for native interactive work** -- cell state, saving,
+  native packages, and large local analyses without a remote service
 - **The HTML export is self-contained** -- share the `.html` file directly
 - **Convert existing Jupyter notebooks** with `--from-ipynb` to migrate analyses

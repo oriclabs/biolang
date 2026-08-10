@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,320 +179,124 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="practical-biostatistics-in-30-days"><a class="header" href="#practical-biostatistics-in-30-days">Practical Biostatistics in 30 Days</a></h1>
-<blockquote>
-<p><em>From p-values to pipelines — a structured journey through the statistics every biologist actually needs.</em></p>
-</blockquote>
-<p>You have the data. Thousands of gene expression measurements. Hundreds of patient outcomes. Millions of variants. You know the biology. You understand the experiment. But when it comes time to choose a statistical test, set a significance threshold, or interpret a confidence interval, the ground shifts under your feet.</p>
-<p>This book fixes that. In 30 days, you will go from statistical anxiety to statistical fluency — not by memorizing formulas, but by solving real biological problems with real data. Every test you learn has a reason. Every formula has a story. Every p-value has a context.</p>
-<p>And you will do it all in BioLang, whose current runtime provides hundreds of
-builtins across statistics, data handling, biological formats, and
-visualization. That lets you express an analysis — from data loading to
-hypothesis testing to publication-quality visualization — in readable,
-pipe-chained steps.</p>
-<h2 id="who-this-book-is-for"><a class="header" href="#who-this-book-is-for">Who This Book Is For</a></h2>
-<p>This book is for anyone who works with biological data and needs to make sound statistical decisions. You might be:</p>
+<p>Biostatistics helps you answer ordinary biological questions:</p>
 <ul>
-<li>
-<p><strong>A biologist who dreads the statistics section.</strong> You can design elegant experiments, but when the reviewer asks why you used a t-test instead of a Mann-Whitney U, you panic. You have tried statistics textbooks, but they are full of coin flips and card games when you need differential expression and survival curves. This book teaches statistics through biology, using datasets and questions you actually care about.</p>
-</li>
-<li>
-<p><strong>A developer entering biotech.</strong> You can write production code and build data pipelines, but you do not know the difference between a parametric and a non-parametric test. You have heard that bioinformatics requires “statistical thinking,” but nobody has explained what that means in practice. This book gives you the statistical intuition alongside the implementation, so you understand <em>why</em> you are computing a fold change, not just <em>how</em>.</p>
-</li>
-<li>
-<p><strong>A graduate student facing qualifying exams.</strong> Your program expects fluency in biostatistics, but your coursework is a blur of Greek letters and proof sketches. You need a practical guide that connects the math to the biology and shows you how to actually run these tests on real data. This book builds that bridge in 30 structured days.</p>
-</li>
-<li>
-<p><strong>A clinical researcher designing or analyzing studies.</strong> You work with patient cohorts, treatment outcomes, and survival data. You need to choose the right test, compute adequate sample sizes, and report results that satisfy both statisticians and regulatory reviewers. This book covers clinical biostatistics end to end — from power analysis through Cox proportional hazards.</p>
-</li>
+<li>What does this dataset look like?</li>
+<li>Is the difference between two groups larger than the usual variation?</li>
+<li>How uncertain is the estimate?</li>
+<li>Could a technical batch explain the pattern?</li>
+<li>Is an effect large enough to matter biologically?</li>
 </ul>
-<p>No matter which category you fall into, you share one thing: you want statistical skills that solve real problems, not abstract exercises. Every day in this book produces an analysis you can adapt to your own data.</p>
-<h3 id="your-path-through-the-book"><a class="header" href="#your-path-through-the-book">Your Path Through the Book</a></h3>
-<p>The first week builds foundations for every reader, but your starting point may differ. Here is which days to prioritize based on your background:</p>
+<p>You do not need to memorize a wall of formulas before you begin. This book
+starts with a question and the data, explains one idea in plain language, and
+then shows how to apply it in BioLang.</p>
+<h2 id="the-easiest-way-to-use-this-book"><a class="header" href="#the-easiest-way-to-use-this-book">The easiest way to use this book</a></h2>
+<p>If you want a fast refresher, begin with the <a href="labs.html">Fast Review Labs</a>. The
+first notebook joins four ideas that are often taught separately: the normal
+curve, probability, confidence intervals, and false positives.</p>
+<p>For the full course, read one chapter at a time. On a first pass:</p>
+<ol>
+<li>Read the <strong>Practical question</strong>.</li>
+<li>Look at the values or plot before choosing a method.</li>
+<li>Read <strong>What to remember</strong>.</li>
+<li>Copy and run the BioLang example locally if you want hands-on practice.</li>
+<li>Leave derivations and language comparisons for a later pass.</li>
+</ol>
+<p>There is no requirement to finish a chapter in one sitting. The day numbers
+give the topics an order; they are not a deadline.</p>
+<h2 id="a-simple-pattern-for-every-analysis"><a class="header" href="#a-simple-pattern-for-every-analysis">A simple pattern for every analysis</a></h2>
+<p>Use the same five questions throughout the book:</p>
+<ol>
+<li><strong>What is the biological question?</strong> State the comparison or relationship
+before naming a statistical test.</li>
+<li><strong>What do the data look like?</strong> Plot the individual values, check missing
+data, and note unusual observations.</li>
+<li><strong>Is the method suitable?</strong> Check the study design and the assumptions that
+matter for that method.</li>
+<li><strong>How large and how uncertain is the result?</strong> Report an effect size and an
+interval, not only a p-value.</li>
+<li><strong>What could provide another explanation?</strong> Consider batch, confounding,
+selection bias, and multiple testing.</li>
+</ol>
+<p>This pattern matters more than remembering the name of every test.</p>
+<h2 id="about-the-examples"><a class="header" href="#about-the-examples">About the examples</a></h2>
+<p>Examples in this book use three labels:</p>
+<ul>
+<li><strong>Synthetic teaching data</strong> are generated for learning. They do not describe
+a real patient, laboratory, institution, trial, or regulatory decision.</li>
+<li><strong>Adapted example</strong> means the question or data structure comes from a named
+source, but values may have been simplified. The source must be cited.</li>
+<li><strong>Real dataset</strong> means the data source and accession or publication are
+identified.</li>
+</ul>
+<p>Unless a chapter explicitly identifies a source, treat its numbers as
+<strong>synthetic teaching data</strong>. They are useful for learning a method, not for
+making clinical or biological claims. Clinical examples are educational only
+and must not be used for patient care.</p>
+<h2 id="what-you-will-learn"><a class="header" href="#what-you-will-learn">What you will learn</a></h2>
+<p>The chapters build in a practical order:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Your background</th><th>Focus on</th><th>Skim or review</th></tr>
+<tr><th>Part</th><th style="text-align: right">Days</th><th>Main question</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Biologist, limited stats training</strong></td><td>Days 1-3 (distributions, central tendency, variability)</td><td>Day 4 if you already know probability basics</td></tr>
-<tr><td><strong>Statistician, new to biology</strong></td><td>Days 5-7 (biological context for common tests)</td><td>Days 1-3 (you know the math already)</td></tr>
-<tr><td><strong>New to both stats and biology</strong></td><td>Every day — they are written for you</td><td>Nothing — read it all</td></tr>
-<tr><td><strong>Some stats background</strong></td><td>Skim Week 1 for BioLang syntax, start deeply at Week 2</td><td>Days 1-4 for review only</td></tr>
+<tr><td>Foundations</td><td style="text-align: right">1-5</td><td>What do the data look like, and where did they come from?</td></tr>
+<tr><td>Comparing groups</td><td style="text-align: right">6-12</td><td>Is a difference credible, and how many tests were run?</td></tr>
+<tr><td>Relationships and models</td><td style="text-align: right">13-20</td><td>Which variables move together, and what else could explain it?</td></tr>
+<tr><td>Larger datasets and workflows</td><td style="text-align: right">21-27</td><td>How do we explore many variables and keep an analysis reproducible?</td></tr>
+<tr><td>Guided projects</td><td style="text-align: right">28-30</td><td>How do the ideas fit into a complete analysis?</td></tr>
 </tbody>
 </table>
 </div>
-<blockquote>
-<p><strong>Complete beginner?</strong> That is completely fine. Day 1 starts with a single concept — what is a distribution? — and builds from there. No calculus. No linear algebra. No prior programming experience beyond basic BioLang familiarity. If you can type <code>bl run script.bl</code>, you are ready.</p>
-</blockquote>
-<h2 id="what-you-will-learn"><a class="header" href="#what-you-will-learn">What You Will Learn</a></h2>
-<p>Over 30 days, you will go from statistical uncertainty to being able to:</p>
-<ul>
-<li>Describe and summarize any biological dataset (distributions, central tendency, spread, outliers)</li>
-<li>Choose the correct statistical test for any experimental design</li>
-<li>Perform and interpret t-tests, ANOVA, chi-square tests, and their non-parametric alternatives</li>
-<li>Run linear and logistic regression on biological data</li>
-<li>Analyze time-to-event data with Kaplan-Meier curves and Cox proportional hazards models</li>
-<li>Reduce high-dimensional data with PCA and interpret biplots</li>
-<li>Cluster samples and genes using hierarchical and k-means methods</li>
-<li>Correct for multiple testing with Bonferroni, Benjamini-Hochberg, and permutation approaches</li>
-<li>Compute effect sizes, confidence intervals, and statistical power</li>
-<li>Design experiments with proper sample size calculations</li>
-<li>Build volcano plots, Manhattan plots, Q-Q plots, and forest plots</li>
-<li>Apply Bayesian reasoning to biological problems</li>
-<li>Complete three capstone analyses that mirror real research publications</li>
-</ul>
-<p>You will learn all of this in BioLang, which provides dedicated builtins for every test and method. But you will not be locked in. Every day includes comparison examples in Python (scipy/statsmodels) and R (base stats/survival/ggplot2), so you can translate your skills to any environment.</p>
-<h2 id="how-this-book-is-structured"><a class="header" href="#how-this-book-is-structured">How This Book Is Structured</a></h2>
-<p>The book is organized into four weeks plus capstone projects:</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Week</th><th>Days</th><th>Theme</th><th>What You Build</th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Week 1</strong></td><td>1-5</td><td>Foundations</td><td>Understand distributions, probability, and descriptive statistics</td></tr>
-<tr><td><strong>Week 2</strong></td><td>6-12</td><td>Core Methods</td><td>Master hypothesis testing, t-tests, ANOVA, chi-square, non-parametric tests</td></tr>
-<tr><td><strong>Week 3</strong></td><td>13-20</td><td>Modeling</td><td>Correlation, regression, survival, design, effect size, and batch effects</td></tr>
-<tr><td><strong>Week 4</strong></td><td>21-27</td><td>Advanced Topics</td><td>PCA, clustering, resampling, Bayesian methods, visualization, and reproducibility</td></tr>
-<tr><td><strong>Capstone</strong></td><td>28-30</td><td>Projects</td><td>Clinical trial, differential expression, and GWAS analyses</td></tr>
-</tbody>
-</table>
-</div>
-<p>Each day follows the same structure:</p>
-<ol>
-<li><strong>The Problem</strong> — a vivid scenario that shows <em>why</em> you need today’s method. A researcher staring at ambiguous results. A clinician choosing between treatments. A graduate student defending a finding.</li>
-<li><strong>What Is [Topic]?</strong> — a plain-language explanation of the statistical concept, free of jargon. If your collaborator asked “what is a p-value?” at a coffee shop, this is how you would explain it.</li>
-<li><strong>Core Concepts</strong> — the ideas, assumptions, and mechanics, presented with tables, diagrams, and worked examples. Formulas appear when they clarify; they are never the point.</li>
-<li><strong>[Topic] in BioLang</strong> — working code that applies the concept to biological data. Pipe-chained, readable, annotated.</li>
-<li><strong>Python and R Comparison</strong> — the same analysis in scipy/statsmodels and R, so you can see how the languages compare.</li>
-<li><strong>Exercises</strong> — practice problems at three difficulty levels (Foundations, Applied, Challenge).</li>
-<li><strong>Key Takeaways</strong> — the essential points to remember, in bold-and-explanation format.</li>
-</ol>
-<p>Days are designed to take 1-3 hours each. Concept-heavy days (like Day 1 on distributions) are shorter. Method-heavy days (like Day 14 on logistic regression) are longer. Work at your own pace — there is no penalty for spending two days on one topic.</p>
-<h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
-<p>You need:</p>
-<ul>
-<li><strong>A computer</strong> running Windows, macOS, or Linux</li>
-<li><strong>BioLang installed</strong> — see the setup section below or <a href="appendix-setup.html">Appendix A</a></li>
-<li><strong>Basic BioLang familiarity</strong> — you can write variables, use pipes, and call functions. If you have completed <em>Practical Bioinformatics in 30 Days</em> or the BioLang tutorials, you are ready.</li>
-<li><strong>High school math</strong> — you understand addition, multiplication, fractions, and basic algebra. That is all.</li>
-</ul>
-<p>You do <em>not</em> need:</p>
-<ul>
-<li>A statistics course (this book <em>is</em> the course)</li>
-<li>Calculus or linear algebra (we explain everything from scratch)</li>
-<li>Prior experience with R, Python, or any statistics software</li>
-<li>A powerful machine (a laptop with 4 GB of RAM handles every exercise)</li>
-</ul>
-<p>If you can run <code>bl --version</code> and get a version number, you are ready.</p>
-<h2 id="the-companion-files"><a class="header" href="#the-companion-files">The Companion Files</a></h2>
-<p>Every day has a companion directory with a BioLang setup script and Python and
-R comparison scripts. The runnable BioLang analyses are the code blocks in the
-chapter itself. The current companion structure is:</p>
-<pre><code>biostatistics/
-  days/
-    day-01/
-      init.bl             # Setup script — run this first
-      scripts/
-        analysis.py       # Python equivalent
-        analysis.R        # R equivalent
-      expected/
-        .gitkeep          # Reserved for chapter-specific baselines
-    day-02/
-      ...
-</code></pre>
-<p>To use the companion files:</p>
-<ol>
-<li>
-<p><strong>Run <code>init.bl</code> first.</strong> Each day’s init script generates sample datasets, downloads reference data, or creates whatever that day’s exercises need. Run it with <code>bl run init.bl</code>.</p>
-</li>
-<li>
-<p><strong>Run the BioLang blocks in the chapter.</strong> Blocks on the same page may build
-on variables defined earlier. File-backed and network examples are marked as
-CLI-only.</p>
-</li>
-<li>
-<p><strong>Validate your script.</strong> Run <code>bl check analysis.bl</code>, then compare important
-estimates with the Python and R scripts. Statistical results should agree
-within the stated rounding tolerance and method assumptions.</p>
-</li>
-<li>
-<p><strong>Use <code>scripts/analysis.py</code> and <code>scripts/analysis.R</code> for independent
-validation.</strong> Check test variants, missing-value behavior, correction
-methods, and model families before treating small numerical differences as
-errors.</p>
-</li>
-</ol>
-<p>To get the companion files:</p>
-<pre><code class="language-bash">git clone https://github.com/oriclabs/biolang.git
-cd biolang/books/biostatistics
-</code></pre>
-<p>Or download the ZIP from the book’s website and extract it.</p>
-<h2 id="setting-up-your-environment"><a class="header" href="#setting-up-your-environment">Setting Up Your Environment</a></h2>
-<p>Full installation instructions are in <a href="appendix-setup.html">Appendix A</a>, but here is the short version:</p>
-<pre><code class="language-bash"># Install BioLang
-curl -sSf https://biolang.org/install.sh | sh
+<p>The later chapters cover regression, survival analysis, PCA, clustering,
+resampling, Bayesian reasoning, visualization, and meta-analysis. These names
+may look technical now. Each chapter introduces them only when a practical
+question needs them.</p>
+<h2 id="what-you-need"><a class="header" href="#what-you-need">What you need</a></h2>
+<p>You need BioLang and basic familiarity with variables, lists, function calls,
+and the pipe operator. Setup instructions are in <a href="appendix-setup.html">Appendix A</a>.
+High-school arithmetic is enough for the first pass. Calculus and formal proofs
+are not prerequisites.</p>
+<p>Code blocks have a <strong>Copy</strong> button. They are intentionally not executed inside
+the book: some examples depend on earlier code, local files, or native BioLang
+features. Copy a complete example into a <code>.bl</code> file or use the downloadable
+<code>.bln</code> notebook, where the order is explicit.</p>
+<h2 id="your-first-biolang-example"><a class="header" href="#your-first-biolang-example">Your first BioLang example</a></h2>
+<p>Start with five measurements. Look at them before doing anything complicated:</p>
+<pre><code class="language-bio">let values = [11.2, 13.1, 12.8, 10.9, 14.2]
 
-# Verify it works
-bl --version
-
-# Launch the REPL to test
-bl repl
+println("values: " + str(values))
+println("mean: " + str(mean(values)))
+println("median: " + str(median(values)))
+println("standard deviation: " + str(stdev(values)))
 </code></pre>
-<p>On Windows, use the PowerShell installer:</p>
-<pre><code class="language-powershell">irm https://biolang.org/install.ps1 | iex
-</code></pre>
-<p>If you want to run the Python comparison scripts (optional but recommended):</p>
-<pre><code class="language-bash">pip install scipy numpy pandas matplotlib statsmodels lifelines scikit-learn
-</code></pre>
-<p>If you want to run the R comparison scripts (optional but recommended):</p>
-<pre><code class="language-r">install.packages(c("stats", "survival", "ggplot2", "dplyr", "pwr", "lme4", "boot"))
-</code></pre>
-<h2 id="a-quick-taste"><a class="header" href="#a-quick-taste">A Quick Taste</a></h2>
-<p>Here is what statistical analysis looks like in BioLang. This script loads a
-differential-expression result table, adjusts p-values, filters significant
-genes, and generates a volcano plot:</p>
-<pre><code class="language-bio"># Load a compact differential-expression result table
-let expression = read_csv("data/expression.csv")
-let adjusted = p_adjust(col(expression, "pvalue"), "BH")
-let results = zip(to_records(expression), adjusted)
-  |&gt; map(|pair| {...pair[0], padj: pair[1]})
-  |&gt; to_table()
-
-# How many genes are differentially expressed?
-let significant = results
-  |&gt; filter(|row| row.padj &lt; 0.05 &amp;&amp; abs(row.log2fc) &gt; 1.0)
-println("Differentially expressed genes: " + str(len(significant)))
-
-# Volcano plot
-volcano(results, {fc: "log2fc", p: "padj"})
-</code></pre>
-<p>The pipe operator makes the analytical logic visible: load, correct, combine,
-filter, and plot. You will understand every line by the end of Week 2.</p>
-<p>Here is another example — survival analysis in three lines:</p>
-<pre><code class="language-bio">let patients = read_csv("data/clinical.csv")
-let survival = patients |&gt; map(|row| {
-  time: row.survival_months,
-  event: if row.status == "deceased" { 1 } else { 0 },
-  group: row.treatment
-}) |&gt; to_table()
-kaplan_meier(survival, {title: "Overall Survival by Treatment"})
-</code></pre>
-<p>And power analysis for planning your next experiment:</p>
-<pre><code class="language-bio"># Power calculation: how many samples per group?
-let result = power_t_test(0.5, 0.05, 0.8)
-println("Required sample size per group: {result.n}")
-println("Effect size: {result.effect_size}, alpha: {result.alpha}, power: {result.power}")
-</code></pre>
-<p>BioLang’s statistical, tabular, and visualization builtins keep the analysis
-close to the biological question.</p>
-<h2 id="week-by-week-overview"><a class="header" href="#week-by-week-overview">Week-by-Week Overview</a></h2>
-<h3 id="week-1-foundations-days-1-5"><a class="header" href="#week-1-foundations-days-1-5">Week 1: Foundations (Days 1-5)</a></h3>
-<p>You start where every statistical analysis starts — with the data itself. Day
-1 explains why statistics matters; Day 2 covers descriptive statistics; Day 3
-examines distributions; Day 4 introduces probability; and Day 5 covers
-sampling, bias, and sample size.</p>
-<h3 id="week-2-core-methods-days-6-12"><a class="header" href="#week-2-core-methods-days-6-12">Week 2: Core Methods (Days 6-12)</a></h3>
-<p>Day 6 introduces confidence intervals. Day 7 covers hypothesis tests and
-p-values; Day 8 covers t-tests; Day 9 handles non-parametric alternatives; Day
-10 covers ANOVA; Day 11 tackles categorical tests; and Day 12 addresses
-multiple-testing correction.</p>
-<h3 id="week-3-modeling-days-13-20"><a class="header" href="#week-3-modeling-days-13-20">Week 3: Modeling (Days 13-20)</a></h3>
-<p>You move from association to modeling. Day 13 covers correlation; Day 14
-introduces linear regression; Day 15 extends it to multiple predictors; Day 16
-covers logistic regression; Day 17 covers survival analysis; Day 18 covers
-experimental design and power; Day 19 focuses on effect sizes; and Day 20
-handles batch effects and confounding.</p>
-<h3 id="week-4-advanced-topics-and-capstones-days-21-27"><a class="header" href="#week-4-advanced-topics-and-capstones-days-21-27">Week 4: Advanced Topics and Capstones (Days 21-27)</a></h3>
-<p>Day 21 covers PCA and dimensionality reduction. Day 22 covers clustering. Day
-23 introduces bootstrap and permutation methods; Day 24 introduces Bayesian
-thinking; Day 25 develops statistical visualization; Day 26 covers
-meta-analysis; and Day 27 turns the methods into a reproducible workflow.</p>
-<h3 id="capstone-projects-days-28-30"><a class="header" href="#capstone-projects-days-28-30">Capstone Projects (Days 28-30)</a></h3>
-<p>Three full projects integrate the book. Day 28 analyzes a clinical trial with
-survival and subgroup outcomes. Day 29 conducts a differential-expression
-study. Day 30 analyzes a genome-wide association study with Manhattan and Q-Q
-plots and genomic-inflation checks.</p>
-<h2 id="conventions-used-in-this-book"><a class="header" href="#conventions-used-in-this-book">Conventions Used in This Book</a></h2>
-<p>Throughout this book, you will see several recurring elements:</p>
-<h3 id="code-blocks"><a class="header" href="#code-blocks">Code Blocks</a></h3>
-<p>BioLang code appears in fenced code blocks:</p>
-<pre><code class="language-bio">let data = [2.3, 4.1, 3.7, 5.2, 4.8]
-mean(data)         # 4.02
-stdev(data)        # 1.082
-</code></pre>
-<p>When a code block shows REPL interaction, lines starting with <code>bl&gt;</code> are what you type:</p>
-<pre><code>bl&gt; ttest([23.1, 25.4, 22.8], [19.2, 20.1, 18.7])
-TTestResult { t: 4.12, df: 4, p: 0.0146 }
-</code></pre>
-<p>Shell commands use <code>bash</code> syntax:</p>
-<pre><code class="language-bash">bl run day07_ttest.bl
-</code></pre>
-<h3 id="python-and-r-comparisons"><a class="header" href="#python-and-r-comparisons">Python and R Comparisons</a></h3>
-<p>Multi-language comparisons appear with labeled blocks:</p>
-<p><strong>BioLang:</strong></p>
-<pre><code class="language-bio">let data = read_csv("data/expression.csv")
-let control = data |&gt; filter(|row| row.condition == "control") |&gt; map(|row| row.sample1)
-let treated = data |&gt; filter(|row| row.condition == "treatment") |&gt; map(|row| row.sample1)
-println(ttest(control, treated))
-</code></pre>
-<p><strong>Python:</strong></p>
-<pre><code class="language-python">import pandas as pd
-from scipy.stats import ttest_ind
-data = pd.read_csv("expression.csv")
-stat, p = ttest_ind(data["ctrl"], data["treated"])
-print(f"t={stat:.4f}, p={p:.4f}")
-</code></pre>
-<p><strong>R:</strong></p>
-<pre><code class="language-r">data &lt;- read.csv("expression.csv")
-t.test(data$ctrl, data$treated)
-</code></pre>
-<h3 id="callout-boxes"><a class="header" href="#callout-boxes">Callout Boxes</a></h3>
-<p>Important notes, insights, and warnings appear as blockquotes throughout:</p>
-<blockquote>
-<p><strong>Key insight:</strong> A statistically significant result is not necessarily biologically meaningful. Always report effect sizes alongside p-values.</p>
-</blockquote>
-<blockquote>
-<p><strong>Clinical relevance:</strong> In oncology trials, a hazard ratio below 0.7 is typically considered clinically meaningful, regardless of the p-value.</p>
-</blockquote>
-<blockquote>
-<p><strong>Common pitfall:</strong> Running 20 t-tests on the same dataset without multiple testing correction gives you a 64% chance of at least one false positive at alpha = 0.05.</p>
-</blockquote>
-<h3 id="exercises"><a class="header" href="#exercises">Exercises</a></h3>
-<p>Each day ends with exercises labeled by difficulty:</p>
+<p>The purpose is not to collect four numbers. It is to answer three plain
+questions: where is the center, how much do observations vary, and is any value
+surprising? Day 2 develops that habit.</p>
+<h2 id="optional-comparisons"><a class="header" href="#optional-comparisons">Optional comparisons</a></h2>
+<p>Some companion folders include Python and R versions. Use them when you want to
+translate a method or independently check a result. They are optional for
+learning the concept; BioLang remains the main language of the book.</p>
+<p>When two tools disagree, compare the test variant, treatment of missing values,
+tails, variance assumption, correction method, and rounding before concluding
+that one implementation is wrong.</p>
+<h2 id="where-to-begin"><a class="header" href="#where-to-begin">Where to begin</a></h2>
 <ul>
-<li><strong>Foundations</strong> — reinforce the core concept with guided problems</li>
-<li><strong>Applied</strong> — use the method on a new biological dataset</li>
-<li><strong>Challenge</strong> — extend the method or combine it with previous days</li>
+<li>New to statistics: start with <a href="day-01.html">Day 1</a>, then continue in order.</li>
+<li>Revisiting familiar ideas: start with the <a href="labs.html">Fast Review Labs</a>.</li>
+<li>Solving a current problem: use the <a href="appendix-flowchart.html">test-selection flowchart</a>
+and then read the linked chapter.</li>
 </ul>
-<h3 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h3>
-<p>Each day concludes with a bulleted list of the most important points:</p>
-<ul>
-<li><strong>The p-value is not the probability that your hypothesis is wrong.</strong> It is the probability of observing data this extreme if the null hypothesis were true. This distinction matters enormously.</li>
-</ul>
-<h2 id="a-note-on-the-multi-language-approach"><a class="header" href="#a-note-on-the-multi-language-approach">A Note on the Multi-Language Approach</a></h2>
-<p>This book uses BioLang as its primary language because its statistical builtins let you focus on the concepts rather than the plumbing. A t-test is one function call, not a chain of imports and data manipulations. A volcano plot is one line, not thirty.</p>
-<p>But the real world uses Python and R for most biostatistics. We include comparisons for two reasons:</p>
-<ol>
-<li>
-<p><strong>Translation.</strong> If you already know scipy or R’s stats package, seeing the BioLang equivalent helps you learn faster. If you learn BioLang first, seeing the Python and R equivalents prepares you for collaborative work.</p>
-</li>
-<li>
-<p><strong>Verification.</strong> Running the same analysis in three languages and getting the same answer builds confidence. When your BioLang t-test gives p = 0.014 and your R t-test gives p = 0.014, you know you have done it right.</p>
-</li>
-</ol>
-<p>The <code>compare.md</code> file in each day’s companion directory provides a detailed side-by-side comparison. The <code>analysis.py</code> and <code>analysis.R</code> scripts are runnable equivalents you can execute and compare.</p>
-<h2 id="lets-begin"><a class="header" href="#lets-begin">Let’s Begin</a></h2>
-<p>You have everything you need. The next 30 days will transform how you think about biological data — not just how to analyze it, but how to reason about uncertainty, variability, and evidence.</p>
-<p>Day 1 starts with the most fundamental question in statistics: what does your data look like?</p>
-<p>Turn the page. Your journey starts now.</p>
+<p>The goal is modest and useful: understand what the data can support, what it
+cannot support, and how to communicate the difference clearly.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
 
-                            <a rel="next prefetch" href="day-01.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="labs.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -503,7 +307,7 @@ t.test(data$ctrl, data$treated)
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
 
-                    <a rel="next prefetch" href="day-01.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="labs.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -533,7 +337,6 @@ t.test(data$ctrl, data$treated)
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,9 +179,13 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-14-linear-regression--prediction-from-data"><a class="header" href="#day-14-linear-regression--prediction-from-data">Day 14: Linear Regression — Prediction from Data</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Dr. James Park is a pharmacogenomicist working with the NCI-60 cell line panel — 60 cancer cell lines spanning 9 tissue types. He has gene expression data and drug sensitivity measurements (IC50 values) for each line. His question: <strong>Can we predict how sensitive a cell line will be to a new kinase inhibitor based on its expression of the drug’s target gene?</strong></p>
-<p>He knows the target gene and IC50 seem correlated (Day 13 confirmed r = -0.72). But correlation just says “they move together.” James needs to go further: given a <strong>new cell line</strong> with a known expression level, what IC50 should he <strong>predict</strong>? And how confident should he be?</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching data shaped like a cell-line screen:</strong> target-gene
+expression and drug IC50 are measured for 60 cell lines. Given a new cell line
+within the observed expression range, what IC50 does a straight-line model
+predict, and how uncertain is that prediction?</p>
+<p>Correlation summarizes co-variation. Regression adds an explicit prediction
+model whose residuals, range of use, and validation must be checked.</p>
 <p>This is the leap from <strong>association</strong> to <strong>prediction</strong> — the domain of linear regression.</p>
 <h2 id="what-is-linear-regression"><a class="header" href="#what-is-linear-regression">What Is Linear Regression?</a></h2>
 <p>Linear regression fits a straight line through data points to model the relationship between a <strong>predictor</strong> (X) and a <strong>response</strong> (Y):</p>
@@ -463,24 +467,24 @@ let model = lm(expression, ic50)
 
 # Print model summary
 print("=== Linear Regression Summary ===")
-print("Intercept: {model.intercept}")
-print("Slope: {model.slope}")
-print("R²: {model.r_squared}")
-print("Slope p-value: {model.p_value}")
+print(f"Intercept: {model.intercept}")
+print(f"Slope: {model.slope}")
+print(f"R²: {model.r_squared}")
+print(f"Slope p-value: {model.p_value}")
 </code></pre>
 <h3 id="interpreting-coefficients"><a class="header" href="#interpreting-coefficients">Interpreting Coefficients</a></h3>
 <pre><code class="language-bio"># Detailed coefficient table
 print("=== Coefficients ===")
-print("  Intercept: {model.intercept}")
-print("  Expression β: {model.slope}")
-print("  p-value: {model.p_value}")
+print(f"  Intercept: {model.intercept}")
+print(f"  Expression β: {model.slope}")
+print(f"  p-value: {model.p_value}")
 
 # Interpretation
 let slope = model.slope
 print("\nFor each 1-unit increase in expression,")
-print("IC50 decreases by {slope |&gt; abs |&gt; round(2)} μM")
-print("R² = {model.r_squared |&gt; round(3)}: expression explains")
-print("{(model.r_squared * 100) |&gt; round(1)}% of IC50 variation")
+print(f"IC50 decreases by {slope |&gt; abs |&gt; round(2)} μM")
+print(f"R² = {model.r_squared |&gt; round(3)}: expression explains")
+print(f"{(model.r_squared * 100) |&gt; round(1)}% of IC50 variation")
 </code></pre>
 <h3 id="prediction-with-intervals"><a class="header" href="#prediction-with-intervals">Prediction with Intervals</a></h3>
 <pre><code class="language-bio"># Predict IC50 for new cell lines
@@ -490,7 +494,7 @@ let new_expression = [7.0, 10.0, 13.0]
 print("=== Predictions ===")
 for i in 0..3 {
     let predicted = model.slope * new_expression[i] + model.intercept
-    print("Expression = {new_expression[i]}: Predicted IC50 = {predicted |&gt; round(1)} μM")
+    print(f"Expression = {new_expression[i]}: Predicted IC50 = {predicted |&gt; round(1)} μM")
 }
 </code></pre>
 <h3 id="residual-analysis"><a class="header" href="#residual-analysis">Residual Analysis</a></h3>
@@ -527,16 +531,16 @@ let y = zip(x, rnorm(50, 0, 3))
 
 # Fit linear model in observed range
 let model_extrap = lm(x, y)
-print("R² in training range: {model_extrap.r_squared |&gt; round(3)}")
+print(f"R² in training range: {model_extrap.r_squared |&gt; round(3)}")
 
 # Predict within range — reasonable
 let pred_in = model_extrap.slope * 10.0 + model_extrap.intercept
-print("Prediction at x=10 (in range): {pred_in |&gt; round(1)}")
+print(f"Prediction at x=10 (in range): {pred_in |&gt; round(1)}")
 
 # Predict outside range — dangerous!
 let pred_out = model_extrap.slope * 25.0 + model_extrap.intercept
-print("Prediction at x=25 (extrapolation): {pred_out |&gt; round(1)}")
-print("True value at x=25 would be: {(100 - 3*25 + 0.2*25**2) |&gt; round(1)}")
+print(f"Prediction at x=25 (extrapolation): {pred_out |&gt; round(1)}")
+print(f"True value at x=25 would be: {(100 - 3*25 + 0.2*25**2) |&gt; round(1)}")
 print("Extrapolation error demonstrates the danger!")
 </code></pre>
 <h3 id="working-with-log-transformed-data"><a class="header" href="#working-with-log-transformed-data">Working with Log-Transformed Data</a></h3>
@@ -548,12 +552,12 @@ let response = zip(dose, rnorm(40, 0, 3))
 
 # Linear model on raw scale — poor fit
 let model_raw = lm(dose, response)
-print("R² (raw scale): {model_raw.r_squared |&gt; round(3)}")
+print(f"R² (raw scale): {model_raw.r_squared |&gt; round(3)}")
 
 # Log-transform dose — much better
 let log_dose = dose |&gt; map(|d| log2(d))
 let model_log = lm(log_dose, response)
-print("R² (log scale): {model_log.r_squared |&gt; round(3)}")
+print(f"R² (log scale): {model_log.r_squared |&gt; round(3)}")
 
 # Compare residual plots to see the difference
 </code></pre>
@@ -706,7 +710,6 @@ let y_clean = linear_noise(x_clean, 5, 1.5, rnorm(49, 0, 2))
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

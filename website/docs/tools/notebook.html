@@ -33,8 +33,14 @@
         <pre><code class="language-bash"># Run a notebook in the terminal
 bl notebook analysis.bln
 
+# Open the browser editor with a native local kernel
+bl notebook serve analysis.bln
+
 # Export to standalone HTML
 bl notebook analysis.bln --export html
+
+# Export an editable browser notebook (HTML + WebAssembly)
+bl notebook analysis.bln --export html-wasm > analysis-live.html
 
 # Convert from Jupyter
 bl notebook experiment.ipynb --from-ipynb > experiment.bln
@@ -47,6 +53,31 @@ bl notebook experiment.bln --to-ipynb > experiment.ipynb</code></pre>
           A <code>.bln</code> file is plain text. Markdown prose is rendered, and code blocks
           are evaluated. Interpreter state carries over between blocks &mdash; variables defined
           in one block are available in all later blocks.
+        </p>
+
+        <h2>Native Local Notebook</h2>
+        <pre><code class="language-bash">bl notebook serve analysis.bln
+
+# Useful options
+bl notebook serve analysis.bln --no-open
+bl notebook serve analysis.bln --port 8765
+bl --no-gpu notebook serve analysis.bln</code></pre>
+        <p>
+          This starts a lightweight server on a random loopback port and opens a
+          notebook editor. Cells share one native BioLang interpreter, so variables
+          remain available as the analysis progresses. Running a later cell first
+          evaluates any missing earlier cells in order; editing or rerunning an
+          earlier cell rebuilds a clean context. The editor can save the original
+          <code>.bln</code>, display typed tables and plots, and use native packages,
+          local files, larger memory, and the configured CPU or GPU backend.
+        </p>
+        <p>
+          Every launch receives a new bearer token. The server accepts loopback
+          addresses only, validates the browser origin, and does not provide a shell
+          endpoint. It implements the common SOMER job routes for compatible stateless
+          clients and adds <code>/v1/notebook-sessions</code> for contextual cell runs.
+          It is a single-user local kernel rather than a remote scheduler. Notebook
+          code itself runs with the permissions of the user who started <code>bl</code>.
         </p>
 
         <h3>Fenced Code Blocks</h3>
@@ -142,6 +173,31 @@ let reference = "GRCh38"
           The HTML output includes inline CSS styling, BioLang syntax highlighting with
           color-coded keywords, strings, comments, and pipe operators. It's a single file
           with no external dependencies &mdash; perfect for sharing via email or publishing.
+        </p>
+
+        <h3>Editable HTML + WebAssembly</h3>
+        <pre><code class="language-bash">bl notebook analysis.bln --export html-wasm > analysis-live.html</code></pre>
+        <p>
+          The live export turns every visible BioLang cell into a plain HTML editor. Cells
+          share one in-browser interpreter: use <code>Shift+Enter</code> to run and move to the
+          next cell, <code>Ctrl+Enter</code> (or <code>Cmd+Enter</code>) to run in place, or
+          <strong>Run all</strong>. No Jupyter server or language installation is involved.
+          The small JavaScript controller is embedded; the browser loads the BioLang
+          WebAssembly runtime from <code>https://lang.bio/wasm</code> by default.
+          Browser edits last for the open page; edit the original <code>.bln</code> file to
+          make them part of the reproducible notebook.
+        </p>
+        <p>
+          Serve the file from any static website for live execution. Opening it directly as
+          <code>file://</code> still shows all saved output, but browsers commonly block local
+          WebAssembly module loading. Use <code>--wasm-base</code> when hosting your own copy of
+          <code>bl_wasm.js</code> and <code>bl_wasm_bg.wasm</code>.
+        </p>
+        <p>
+          Browser cells are sandboxed. Native libraries, GPU work, unrestricted local files,
+          and very large analyses remain <code>bl</code> CLI tasks. Plots keep their original
+          SVG and also prepare a selectable canvas fallback for hosts that render inline SVG
+          poorly.
         </p>
 
         <h2>Jupyter Interop</h2>

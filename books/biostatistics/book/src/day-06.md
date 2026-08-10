@@ -1,10 +1,18 @@
-# Day 6: Confidence Intervals — The Range of Truth
+# Day 6: Confidence Intervals — Showing Uncertainty
 
-## The Problem
+> **Fast review:** The [runnable normal-distribution
+> lab](downloads/normal-distribution-lab.bln) derives the 1.96 boundary and
+> connects a 95% interval to its corresponding two-sided test.
 
-Dr. Amara Chen's pharmacology team has spent six months developing a novel kinase inhibitor for triple-negative breast cancer. After extensive optimization, they measure the half-maximal inhibitory concentration (IC50) across eight independent replicates: 11.2, 13.1, 12.8, 10.9, 14.2, 12.0, 11.7, and 12.5 nanomolar. The mean is 12.3 nM — an excellent result that would place their compound among the most potent in its class.
+## Practical question
 
-But when Dr. Chen presents these results to the medicinal chemistry team, the lead chemist asks the uncomfortable question: "If you ran the experiment again tomorrow, would you get 12.3 nM? Or could it be 15? Or 9?" The point estimate of 12.3 nM tells them where the center of their data is, but it says nothing about how *confident* they should be in that number. They need a range — a confidence interval — that captures the uncertainty inherent in measuring anything biological.
+**Synthetic teaching data:** eight independent IC50 measurements are 11.2,
+13.1, 12.8, 10.9, 14.2, 12.0, 11.7, and 12.5 nM. Their mean is one estimate.
+How much might that estimate change if the experiment were repeated?
+
+A confidence interval adds a range that reflects sampling uncertainty under a
+specified method and its assumptions. It does not guarantee where a fixed true
+value lies, and it does not include every source of experimental bias.
 
 This chapter introduces the confidence interval: a range of plausible values for a population parameter, built from sample data. It is one of the most important and most misunderstood tools in all of biostatistics.
 
@@ -87,7 +95,9 @@ When n is large (say, n > 30), the t-distribution closely resembles the normal d
 | 100 | 1.984 | 1.960 | ~1% wider |
 | 1000 | 1.962 | 1.960 | Negligible |
 
-> **Key insight:** For biological experiments with n < 30, always use the t-distribution. Using z would give falsely narrow intervals that overstate your precision.
+> **Key insight:** For a mean with unknown population standard deviation, a
+> t-based interval is a common choice when its assumptions are reasonable. The
+> decision is not determined by an `n < 30` cutoff alone.
 
 ## CI for a Proportion
 
@@ -105,7 +115,9 @@ The Wilson score interval adjusts the center and width, and is recommended for m
 
 **CI = (p-hat + z²/2n +/- z x sqrt(p-hat(1-p-hat)/n + z²/4n²)) / (1 + z²/n)**
 
-> **Clinical relevance:** When reporting mutation carrier frequencies, drug response rates, or diagnostic sensitivity/specificity, always use Wilson intervals. Regulatory agencies expect intervals that behave properly even at extreme proportions.
+> **Practical relevance:** Wilson intervals often behave better than the simple
+> Wald interval for proportions, especially with small samples or proportions
+> near zero or one. Exact and model-based intervals may also be appropriate.
 
 ## CI for the Difference Between Two Means
 
@@ -493,7 +505,8 @@ let ic50 = [11.2, 13.1, 12.8, 10.9, 14.2, 12.0, 11.7, 12.5]
 
 - A **confidence interval** gives a range of plausible values for a population parameter, not just a point estimate
 - The 95% in "95% CI" refers to the long-run coverage rate of the procedure, not the probability for a specific interval
-- For small samples (n < 30), always use the **t-distribution** — it accounts for extra uncertainty
+- For a mean with unknown population SD, consider a **t-based interval** and
+  check whether its assumptions fit the design
 - **Bootstrap CIs** work for any statistic (median, ratio, fold change) without distributional assumptions
 - CI width shrinks with larger n, lower variability, and lower confidence level
 - A CI for the difference that **includes zero** means the data are consistent with no difference

@@ -1,12 +1,13 @@
 # Day 13: Correlation — Finding Relationships
 
-## The Problem
+## Practical question
 
-Dr. Sarah Kim is studying breast cancer transcriptomics across 200 tumor samples. She notices that **BRCA1** and **BARD1** expression seem to rise and fall together — when one is high, the other tends to be high too. Exciting! These genes encode proteins that form a heterodimer critical for DNA repair.
+**Synthetic teaching data:** expression of two DNA-repair genes rises and falls
+together across samples. Does that pattern persist after accounting for a
+proliferation score, and does a plot suggest a linear relationship or an
+outlier-driven result?
 
-But her collaborator raises a concern: "Both genes are upregulated in rapidly dividing cells. Couldn't **cell proliferation** be driving both signals independently? You might be seeing a spurious association."
-
-Sarah needs to:
+The analysis needs to:
 1. **Quantify** how strongly BRCA1 and BARD1 co-vary
 2. **Determine** whether the relationship is statistically significant
 3. **Control** for the confounding effect of proliferation

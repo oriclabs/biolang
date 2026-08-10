@@ -73,22 +73,32 @@ prints both cluster counts side by side so you can see what the parameters cost:
 
 ```text
 cells: 14847
-SCTransform / 40 PCs / res 0.8 -> 12 clusters
-log1p / 30 PCs / res 0.5      -> 10 clusters
+                                     GPU auto   --no-gpu
+SCTransform / 40 PCs / res 0.8          15         16
+log1p / 30 PCs / res 0.5                 8          8
 ```
 
-About 75 seconds.
+Measured after the SNN-default change on 9 August 2026: 34.9 seconds with GPU
+auto-detection enabled (NVIDIA RTX 3080), and 33.0 seconds with `--no-gpu`.
 
 **[exact.bl](downloads/exact.bl)** — the full integrated configuration: both
 samples, their filter, SCTransform, Harmony, 40 PCs, resolution 0.8:
 
 ```text
-merged: 29629 cells
-clusters: 21   (HBC reports 17)
+mode          cells   clusters   wall time
+GPU auto      29629      18        71.9 s
+--no-gpu      29629      16        72.5 s
+Historical HBC HTML       17
 ```
 
-It peaks around 6 GB and is slow — the neighbour search is exact rather than
-approximate, which on 29,629 cells is the dominant cost.
+Both modes were measured on the same release build. Large-data neighbour
+ranking uses different numerical/search backends on GPU and CPU, so cells near
+a graph boundary can move and the Leiden count is not guaranteed to match.
+An independent current HBC CCA run with Seurat 5.5.1 gives 19 clusters; the
+cell-level comparison is recorded in [What Differs from the Course](differences.md).
+Harmony was the largest timed stage, not PCA or neighbour search; the measured
+breakdown is recorded in [What Differs from the
+Course](differences.md#runtime-regression-recheck).
 
 [What Differs from the Course](differences.md) has the full account: what was
 rewritten to match Seurat's published methods, why the count moved *away* from

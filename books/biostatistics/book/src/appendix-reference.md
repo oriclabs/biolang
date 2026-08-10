@@ -11,13 +11,13 @@ This appendix lists BioLang's statistical builtins by category. For each functio
 | `mean(x)` | Arithmetic mean | `mean([2, 4, 6])` → `4.0` |
 | `median(x)` | Middle value | `median([1, 3, 7])` → `3.0` |
 | `stdev(x)` | Sample standard deviation | `stdev([2, 4, 6])` → `2.0` |
-| `var(x)` | Sample variance | `var([2, 4, 6])` → `4.0` |
+| `variance(x)` | Sample variance | `variance([2, 4, 6])` → `4.0` |
 | `min(x)` | Minimum value | `min([3, 1, 4])` → `1` |
 | `max(x)` | Maximum value | `max([3, 1, 4])` → `4` |
 | `sum(x)` | Sum of all values | `sum([1, 2, 3])` → `6` |
 | `len(x)` | Number of elements | `len([1, 2, 3])` → `3` |
 | `quantile(x, p)` | p-th quantile | `quantile([1,2,3,4,5], 0.75)` → `4.0` |
-| `summary(x)` | Summary statistics | `summary(data)` → record with min, Q1, median, Q3, max, mean |
+| `summary(x)` | Numeric summary | `summary(data)` → record with count, min, max, mean, median, sd |
 | `round(x, digits)` | Round to n decimal places | `round(3.14159, 2)` → `3.14` |
 | `abs(x)` | Absolute value | `abs(-3.5)` → `3.5` |
 | `sqrt(x)` | Square root | `sqrt(16)` → `4.0` |
@@ -26,7 +26,7 @@ This appendix lists BioLang's statistical builtins by category. For each functio
 
 ## Probability Distributions
 
-Each distribution has four functions following the `d/p/q/r` convention: `d` (density/mass), `p` (cumulative probability), `q` (quantile/inverse CDF), `r` (random samples). All parameters are positional.
+BioLang currently provides the functions listed below. Their prefixes follow the familiar convention: `d` means density or probability mass, `p` means cumulative probability, `q` means quantile, and `r` means random samples. Not every distribution has all four forms yet.
 
 ### Continuous
 
@@ -37,82 +37,30 @@ pnorm(1.96, 0, 1)     # P(X <= 1.96) ≈ 0.975
 qnorm(0.975, 0, 1)    # Quantile at p=0.975 ≈ 1.96
 rnorm(100, 0, 1)      # Generate 100 standard normal values
 
-# Student's t: dt(x, df), pt(x, df), qt(p, df), rt(n, df)
-dt(0, 10)
-pt(2.228, 10)
-qt(0.975, 10)
-rt(100, 10)
-
-# F: df(x, df1, df2), pf(x, df1, df2), qf(p, df1, df2), rf(n, df1, df2)
-df(1.5, 5, 20)
-pf(3.0, 5, 20)
-qf(0.95, 5, 20)
-rf(100, 5, 20)
-
-# Chi-square: dchisq(x, df), pchisq(x, df), qchisq(p, df), rchisq(n, df)
-dchisq(5.0, 5)
-pchisq(11.07, 5)
-qchisq(0.95, 5)
-rchisq(100, 5)
-
-# Beta: dbeta(x, alpha, beta), pbeta(x, alpha, beta), qbeta(p, alpha, beta), rbeta(n, alpha, beta)
-dbeta(0.3, 2, 5)
-pbeta(0.5, 2, 5)
-qbeta(0.95, 2, 5)
-rbeta(100, 2, 5)
-
-# Gamma: dgamma(x, shape, rate), pgamma(x, shape, rate), qgamma(p, shape, rate), rgamma(n, shape, rate)
-dgamma(1.0, 2, 1)
-pgamma(3.0, 2, 1)
-qgamma(0.95, 2, 1)
-rgamma(100, 2, 1)
-
-# Exponential: dexp(x, rate), pexp(x, rate), qexp(p, rate), rexp(n, rate)
+# Exponential: dexp(x, rate), pexp(x, rate)
 dexp(1.0, 0.5)
 pexp(2.0, 0.5)
-qexp(0.95, 0.5)
-rexp(100, 0.5)
 
-# Log-Normal: dlnorm(x, mu, sigma), plnorm(x, mu, sigma), qlnorm(p, mu, sigma), rlnorm(n, mu, sigma)
-dlnorm(1.0, 0, 1)
-plnorm(2.0, 0, 1)
-qlnorm(0.95, 0, 1)
-rlnorm(100, 0, 1)
-
-# Uniform: dunif(x, min, max), punif(x, min, max), qunif(p, min, max), runif(n, min, max)
+# Uniform: dunif(x, min, max), punif(x, min, max)
 dunif(0.5, 0, 1)
 punif(0.7, 0, 1)
-qunif(0.5, 0, 1)
-runif(100, 0, 1)
 ```
 
 ### Discrete
 
 ```bio
-# Binomial: dbinom(k, n, p), pbinom(k, n, p), qbinom(q, n, p), rbinom(size, n, p)
+# Binomial: dbinom(k, trials, p), pbinom(k, trials, p), rbinom(size, trials, p)
 dbinom(10, 20, 0.5)       # P(X = 10)
 pbinom(10, 20, 0.5)       # P(X <= 10)
-qbinom(0.5, 20, 0.5)      # Smallest k with P(X <= k) >= 0.5
 rbinom(100, 20, 0.5)      # Generate 100 random values
 
-# Poisson: dpois(k, lambda), ppois(k, lambda), qpois(q, lambda), rpois(n, lambda)
+# Poisson: dpois(k, lambda), ppois(k, lambda), rpois(size, lambda)
 dpois(5, 5.0)
 ppois(7, 5.0)
-qpois(0.95, 5.0)
 rpois(100, 5.0)
-
-# Negative Binomial: dnbinom(k, mu, size), pnbinom(k, mu, size), qnbinom(q, mu, size), rnbinom(n, mu, size)
-dnbinom(8, 10, 5)
-pnbinom(15, 10, 5)
-qnbinom(0.95, 10, 5)
-rnbinom(100, 10, 5)
-
-# Hypergeometric: dhyper(k, K, N_minus_K, n), phyper(k, K, N_minus_K, n), qhyper(q, K, N_minus_K, n), rhyper(size, K, N_minus_K, n)
-dhyper(5, 200, 19800, 500)
-phyper(5, 200, 19800, 500)
-qhyper(0.95, 200, 19800, 500)
-rhyper(100, 200, 19800, 500)
 ```
+
+> Functions for Student's t, F, chi-square, beta, gamma, log-normal, negative-binomial, and hypergeometric distributions are not currently BioLang builtins. Use the corresponding hypothesis-test functions where available.
 
 ## Hypothesis Tests
 
@@ -120,7 +68,7 @@ rhyper(100, 200, 19800, 500)
 
 | Function | Description | Example |
 |---|---|---|
-| `ttest(a, b)` | Welch's two-sample t-test | `ttest(ctrl, treat)` |
+| `ttest(a, b)` | Pooled, equal-variance two-sample t-test | `ttest(ctrl, treat)` |
 | `ttest_paired(a, b)` | Paired t-test | `ttest_paired(before, after)` |
 | `ttest_one(x, mu)` | One-sample t-test | `ttest_one(diffs, 0)` |
 | `wilcoxon(a, b)` | Wilcoxon rank-sum / signed-rank test | `wilcoxon(ctrl, treat)` |
@@ -129,7 +77,7 @@ rhyper(100, 200, 19800, 500)
 
 | Function | Description | Example |
 |---|---|---|
-| `anova(groups)` | One-way ANOVA (auto-detects Welch/Kruskal-Wallis) | `anova([g1, g2, g3])` |
+| `anova(groups)` | Classical one-way ANOVA | `anova([g1, g2, g3])` |
 
 > **Post-hoc comparisons:** Follow a significant ANOVA with pairwise tests and p-value correction:
 >
@@ -246,7 +194,7 @@ let clusters = kmeans(expr_matrix, 2)
 | `heatmap(table, options)` | Heatmap with optional clustering | `heatmap(matrix, {cluster_rows: true, title: "Expression"})` |
 | `volcano(table, options)` | Volcano plot for DE results | `volcano(de_results, {fc_threshold: 1.0, title: "DE"})` |
 | `manhattan(table, options)` | Manhattan plot for GWAS | `manhattan(gwas_results, {significance_line: 5e-8, title: "GWAS"})` |
-| `qq_plot(data, options)` | Q-Q plot (normality check) | `qq_plot(residuals, {title: "Normality Check"})` |
+| `qq_plot(pvalues, options)` | Observed versus expected −log10 p-values | `qq_plot(pvalues, {title: "P-value calibration"})` |
 | `forest_plot(table, options)` | Forest plot for meta-analysis | `forest_plot(meta_tbl, {null_value: 0, title: "Meta-analysis"})` |
 | `roc_curve(table, options)` | ROC curve | `roc_curve(roc_tbl, {title: "Classifier ROC"})` |
 | `pca_plot(result, options)` | PCA scatter plot | `pca_plot(result, {title: "PCA"})` |
@@ -322,7 +270,7 @@ let n_per_group = round(2 * ((z_alpha + z_beta) / effect_size) ** 2, 0)
 print("Required n per group: " + str(n_per_group))
 
 # Cohen's d (inline)
-let d = abs(mean(a) - mean(b)) / sqrt(((len(a) - 1) * var(a) + (len(b) - 1) * var(b)) / (len(a) + len(b) - 2))
+let d = abs(mean(a) - mean(b)) / sqrt(((len(a) - 1) * variance(a) + (len(b) - 1) * variance(b)) / (len(a) + len(b) - 2))
 ```
 
 ## Bayesian Methods

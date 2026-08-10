@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,10 +186,14 @@
 <span class="badge">Unsupervised Learning</span>
 </div>
 
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>You are part of a cancer genomics consortium. Five hundred tumor samples have been profiled with RNA-seq, measuring the expression of 18,000 genes in each. The pathologist has classified these tumors into three histological subtypes based on what she sees under the microscope. But molecular data often reveals finer distinctions invisible to the eye.</p>
-<p>Your task: find natural groupings in the gene expression data — without peeking at the pathologist’s labels. If the molecular subtypes align with the histological ones, confidence in the classification increases. If the data reveals additional subtypes, you may have discovered clinically distinct groups that respond differently to treatment. In breast cancer, this is exactly how the PAM50 molecular subtypes were discovered — and they now guide treatment decisions for millions of patients worldwide.</p>
-<p>But there is a danger lurking. Clustering algorithms always find clusters, even in random noise. The critical question is not “can I find groups?” but “are the groups real?”</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching data:</strong> 500 samples have expression measurements for many
+genes. Can clustering reveal stable groups, and do those groups correspond to
+independent information that was not used to create them?</p>
+<p>An algorithm can partition data even when no biologically meaningful groups
+exist. Treat clusters as hypotheses. Check stability across preprocessing and
+parameters, then validate with held-out samples, known markers, outcomes, or
+other independent evidence.</p>
 <h2 id="what-is-clustering"><a class="header" href="#what-is-clustering">What Is Clustering?</a></h2>
 <p>Clustering is unsupervised grouping: divide observations into sets such that observations within a set are more similar to each other than to observations in other sets.</p>
 <p>Unlike classification (supervised learning), clustering has no labels to learn from. You are not training the algorithm to distinguish “tumor” from “normal.” You are asking the algorithm to discover structure on its own.</p>
@@ -775,7 +779,6 @@ for (k in 2:7) {
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

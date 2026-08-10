@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,10 +179,12 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-16-logistic-regression--binary-outcomes"><a class="header" href="#day-16-logistic-regression--binary-outcomes">Day 16: Logistic Regression — Binary Outcomes</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Dr. Priya Sharma is an immuno-oncologist analyzing data from 180 melanoma patients who received anti-PD-1 immunotherapy. For each patient, she has three biomarkers — <strong>tumor mutational burden (TMB)</strong>, <strong>PD-L1 expression</strong>, and <strong>microsatellite instability (MSI) status</strong> — and one outcome: <strong>response</strong> (tumor shrank ≥30%) or <strong>non-response</strong>.</p>
-<p>Her first instinct is to use linear regression, predicting response (coded 1/0) from the biomarkers. But the predictions come out as 1.3 for one patient and -0.2 for another. Probabilities can’t be greater than 1 or less than 0.</p>
-<p>She needs a method designed for <strong>binary outcomes</strong> — logistic regression.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching data:</strong> three biomarkers and a binary response are recorded
+for 180 observations. A straight-line model can predict values below zero or
+above one. How can we model a response probability while keeping predictions
+between zero and one?</p>
+<p>Logistic regression is designed for this type of outcome.</p>
 <h2 id="why-linear-regression-fails-for-binary-outcomes"><a class="header" href="#why-linear-regression-fails-for-binary-outcomes">Why Linear Regression Fails for Binary Outcomes</a></h2>
 <p>When Y is binary (0 or 1), linear regression has fundamental problems:</p>
 <div class="table-wrapper">
@@ -493,14 +495,14 @@ let log_odds = range(0, n)
 let prob = log_odds |&gt; map(|x| 1.0 / (1.0 + exp(-x)))
 let response = prob |&gt; map(|p| if rnorm(1, 0, 1)[0] &lt; p { 1 } else { 0 })
 
-print("Response rate: {(response |&gt; sum) / n * 100 |&gt; round(1)}%")
+print(f"Response rate: {(response |&gt; sum) * 100.0 / n |&gt; round(1)}%")
 
 # Fit logistic regression
 let glm_data = table({"response": response, "TMB": tmb, "PDL1": pdl1, "MSI": msi})
 let model = glm(~response ~ TMB + PDL1 + MSI, glm_data, "binomial")
 
 print("=== Logistic Regression Results ===")
-print("Intercept: {model.intercept |&gt; round(3)}")
+print(f"Intercept: {model.intercept |&gt; round(3)}")
 </code></pre>
 <h3 id="interpreting-odds-ratios"><a class="header" href="#interpreting-odds-ratios">Interpreting Odds Ratios</a></h3>
 <pre><code class="language-bio"># Convert coefficients to odds ratios
@@ -511,7 +513,7 @@ print("=== Odds Ratios ===")
 for i in 0..3 {
     let beta = coefficients[i]
     let or_val = exp(beta)
-    print("{coef_names[i]}: β = {beta |&gt; round(3)}, OR = {or_val |&gt; round(2)}")
+    print(f"{coef_names[i]}: β = {beta |&gt; round(3)}, OR = {or_val |&gt; round(2)}")
 }
 
 # Interpretation:
@@ -534,7 +536,7 @@ roc_curve(roc_data)
 
 # Compute AUC
 let auc_val = model.auc
-print("AUC: {auc_val |&gt; round(3)}")
+print(f"AUC: {auc_val |&gt; round(3)}")
 
 # Interpretation
 if auc_val &gt;= 0.80 {
@@ -572,7 +574,7 @@ for t in thresholds {
     let ppv = if tp + fp &gt; 0 { tp / (tp + fp) } else { 0 }
     let npv = if tn + fn &gt; 0 { tn / (tn + fn) } else { 0 }
 
-    print("{t}        {sens |&gt; round(3)}       {spec |&gt; round(3)}      {ppv |&gt; round(3)}    {npv |&gt; round(3)}")
+    print(f"{t}        {sens |&gt; round(3)}       {spec |&gt; round(3)}      {ppv |&gt; round(3)}    {npv |&gt; round(3)}")
 }
 
 # Youden's J: optimal balance of sensitivity and specificity
@@ -614,13 +616,13 @@ let pdl1_mean = 30
 let msi_0 = 0
 
 print("=== TMB Effect on Response Probability ===")
-print("(PD-L1 = {pdl1_mean}, MSI = negative)")
+print(f"(PD-L1 = {pdl1_mean}, MSI = negative)")
 
 for t in tmb_range {
     let lp = model.intercept + model.coefficients[0] * t
         + model.coefficients[1] * pdl1_mean + model.coefficients[2] * msi_0
     let p = 1.0 / (1.0 + exp(-lp))
-    print("  TMB = {t}: P(response) = {(p * 100) |&gt; round(1)}%")
+    print(f"  TMB = {t}: P(response) = {(p * 100) |&gt; round(1)}%")
 }
 </code></pre>
 <p><strong>Python:</strong></p>
@@ -781,7 +783,6 @@ let response = msi  # perfect separation!
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

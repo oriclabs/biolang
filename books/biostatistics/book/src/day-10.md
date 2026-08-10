@@ -1,10 +1,14 @@
 # Day 10: Comparing Many Groups — ANOVA and Beyond
 
-## The Problem
+## Practical question
 
-Dr. James Park's oncology team is testing a new targeted therapy at four dose levels: 0 mg (placebo), 25 mg, 50 mg, and 100 mg. Each group has 8 mice, and after 4 weeks they measure tumor volume in cubic millimeters. The team lead suggests: "Just do t-tests between all pairs of doses — that's 6 comparisons, no big deal."
+**Synthetic teaching data:** tumour volume is measured after four dose levels,
+with independent experimental units in each group. Do any group means differ?
 
-But Dr. Park knows this is a trap. With 6 independent tests at alpha = 0.05, the probability of at least one false positive is not 5% — it is 1 - (0.95)^6 = 26.5%. Run 10 comparisons and it climbs to 40%. With 20,000 genes, the problem becomes catastrophic (we will tackle that on Day 12). The solution for comparing several groups at once is **Analysis of Variance** — ANOVA — which tests all groups simultaneously in a single, principled framework.
+Running every pairwise t-test without adjustment increases the chance of a
+false positive across the family of comparisons. ANOVA first tests a single
+overall question. If that test supports differences, a planned contrast or an
+adjusted post-hoc comparison identifies where they occur.
 
 ANOVA has been the workhorse of experimental biology for nearly a century. Every drug dose-response study, every multi-tissue gene expression comparison, and every agricultural field trial relies on it. Today you will learn why it works, when it fails, and what to do after you get a significant result.
 

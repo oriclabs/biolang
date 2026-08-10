@@ -1,12 +1,13 @@
 # Day 16: Logistic Regression — Binary Outcomes
 
-## The Problem
+## Practical question
 
-Dr. Priya Sharma is an immuno-oncologist analyzing data from 180 melanoma patients who received anti-PD-1 immunotherapy. For each patient, she has three biomarkers — **tumor mutational burden (TMB)**, **PD-L1 expression**, and **microsatellite instability (MSI) status** — and one outcome: **response** (tumor shrank ≥30%) or **non-response**.
+**Synthetic teaching data:** three biomarkers and a binary response are recorded
+for 180 observations. A straight-line model can predict values below zero or
+above one. How can we model a response probability while keeping predictions
+between zero and one?
 
-Her first instinct is to use linear regression, predicting response (coded 1/0) from the biomarkers. But the predictions come out as 1.3 for one patient and -0.2 for another. Probabilities can't be greater than 1 or less than 0.
-
-She needs a method designed for **binary outcomes** — logistic regression.
+Logistic regression is designed for this type of outcome.
 
 ## Why Linear Regression Fails for Binary Outcomes
 

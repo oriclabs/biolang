@@ -7,15 +7,16 @@
 <span class="badge">Unsupervised Learning</span>
 </div>
 
-## The Problem
+## Practical question
 
-A single-cell RNA sequencing experiment has just finished. Your collaborator drops a matrix on your desk: expression levels for 20,000 genes measured across 5,000 individual cells. She wants to know whether the cells form distinct populations — immune subtypes, perhaps, or tumor cells versus stroma.
+**Synthetic teaching data shaped like a single-cell matrix:** thousands of
+cells are measured across many genes. We cannot inspect one axis per gene. Can
+we make a smaller set of summaries that preserves major variation and helps us
+see samples, outliers, or broad structure?
 
-You stare at the matrix. Twenty thousand dimensions. You cannot visualize it. You cannot eyeball it. You cannot plot 20,000 axes on a screen. If you pick two genes at random and make a scatter plot, you might miss the structure entirely — those two genes might be irrelevant. Pick different genes and you get a completely different picture.
-
-What you need is a camera angle. A way to look at 20,000-dimensional data from the direction that reveals the most structure. A method that compresses the information into a handful of dimensions you can actually see and reason about — without throwing away the patterns that matter.
-
-That method is Principal Component Analysis. It is the single most widely used technique in genomics for exploring high-dimensional data, and by the end of today, you will understand exactly how it works, when it fails, and how to use it effectively.
+Principal Component Analysis (PCA) finds linear combinations with decreasing
+variance. It is an exploratory view, not proof of cell identity, and its result
+depends on preprocessing, feature choice, scaling, and technical effects.
 
 ## What Is Dimensionality Reduction?
 

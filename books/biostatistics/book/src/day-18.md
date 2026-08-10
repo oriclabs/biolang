@@ -1,16 +1,15 @@
 # Day 18: Experimental Design and Statistical Power
 
-## The Problem
+## Practical question
 
-Dr. Ana Reyes is a junior PI writing her first R01 grant. She proposes a study comparing gene expression between psoriatic skin and normal skin using RNA-seq, planning **3 samples per group** because "that's what the lab down the hall used."
+An RNA-seq comparison needs enough independent biological replicates to detect
+an effect that matters. Copying the sample size from another study ignores
+differences in variability, design, sequencing depth, effect size, and analysis
+method. How should the sample size be justified before data collection?
 
-The grant comes back with this reviewer comment:
-
-> *"The proposed sample size of n=3 per group is inadequate. The applicant provides no power analysis to justify this number. With 3 replicates, the study is severely underpowered to detect anything less than a 4-fold change, which is biologically unrealistic for most genes. We recommend at least 8-10 biological replicates per condition based on published power analyses for RNA-seq DE studies."*
-
-Grant rejected. Six months of proposal writing, wasted — because she didn't plan the sample size.
-
-**Statistical power** determines whether your study can actually detect the effect you're looking for. Getting it wrong wastes time, money, animals, and patient samples.
+**Statistical power** is the probability that a specified procedure detects a
+specified effect under explicit assumptions. It is a planning tool, not a
+guarantee and not a universal threshold for every gene.
 
 ## What Is Statistical Power?
 
@@ -282,7 +281,9 @@ An underpowered study is not just a failed study — it's actively harmful:
 3. **False negatives:** Real treatments or biomarkers get abandoned
 4. **Ethical cost:** Patients enrolled in clinical trials with no realistic chance of detecting a benefit
 
-> **Clinical relevance:** The FDA and EMA require power analyses for all clinical trial protocols. Journal reviewers increasingly require them for observational studies too. "How many samples do you need?" is the first question of good experimental design.
+> **Practical relevance:** Many protocols and funders require a justified sample
+> size. Requirements depend on the study type and jurisdiction; document the
+> assumptions, target effect, error rates, attrition, and analysis method.
 
 ## Experimental Design in BioLang
 

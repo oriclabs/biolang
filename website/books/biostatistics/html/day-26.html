@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,22 +186,28 @@
 <span class="badge">Evidence Synthesis</span>
 </div>
 
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Three independent clinical trials have tested PCSK9 inhibitors for lowering LDL cholesterol in patients with familial hypercholesterolemia:</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching data:</strong> three studies estimate the same type of continuous
+outcome on a common scale:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Study</th><th>N</th><th>Mean LDL Reduction (mg/dL)</th><th>SE</th></tr>
 </thead>
 <tbody>
-<tr><td>Trial A (Europe, 2019)</td><td>250</td><td>-52.3</td><td>4.1</td></tr>
-<tr><td>Trial B (USA, 2020)</td><td>180</td><td>-48.7</td><td>5.3</td></tr>
-<tr><td>Trial C (Asia, 2021)</td><td>320</td><td>-55.1</td><td>3.8</td></tr>
+<tr><td>Study A</td><td>250</td><td>-52.3</td><td>4.1</td></tr>
+<tr><td>Study B</td><td>180</td><td>-48.7</td><td>5.3</td></tr>
+<tr><td>Study C</td><td>320</td><td>-55.1</td><td>3.8</td></tr>
 </tbody>
 </table>
 </div>
-<p>Each study alone has a confidence interval that overlaps with the others. None is definitive. But together, the evidence is overwhelming. The question is: how do you formally combine them? You cannot just average the means — the studies have different sample sizes, different precisions, and were conducted in different populations. You need a method that respects these differences.</p>
-<p>Meta-analysis is that method. It provides a rigorous framework for pooling results across studies, weighting each by its precision, quantifying heterogeneity, and assessing whether the pooled estimate is trustworthy. It sits at the top of the evidence hierarchy — above individual RCTs — because it synthesizes all available evidence.</p>
+<p>The studies have different precisions and may differ in population or design.
+How can their estimates be combined while showing uncertainty and
+heterogeneity? A plain arithmetic mean ignores those differences.</p>
+<p>Meta-analysis provides a framework for pooling compatible effect estimates,
+weighting them by precision, and describing heterogeneity. Its conclusion is
+only as credible as the included studies, their comparability, and the search
+and selection process.</p>
 <h2 id="what-is-meta-analysis"><a class="header" href="#what-is-meta-analysis">What Is Meta-Analysis?</a></h2>
 <p>Meta-analysis is the statistical combination of results from two or more separate studies to produce a single, more precise estimate of an effect. It is not simply “averaging” — it is a weighted combination that accounts for each study’s precision.</p>
 <p>Think of it as a vote among experts. If three experts estimate a quantity, you would give more weight to the expert who measured most precisely (smallest uncertainty), and less weight to the expert whose estimate is vague. Meta-analysis formalizes this intuition.</p>
@@ -248,7 +254,11 @@ print("95% CI: [" +
 <h2 id="random-effects-model"><a class="header" href="#random-effects-model">Random-Effects Model</a></h2>
 <p>The random-effects model assumes that studies estimate <strong>different but related true effects</strong>. Each study’s true effect is drawn from a distribution of effects. The between-study variance (tau-squared) captures how much the true effects vary.</p>
 <h3 id="when-to-use-random-effects"><a class="header" href="#when-to-use-random-effects">When to Use Random Effects</a></h3>
-<p>Use random effects when studies differ in population, dosing, protocol, or outcome definition — which is almost always in biomedical research. Random effects produces wider CIs than fixed effects, reflecting the additional uncertainty from between-study variability.</p>
+<p>Use a random-effects model when the scientific model allows related but
+different underlying effects. It does not repair incompatible outcomes or
+biased studies, and with few studies its heterogeneity estimate can be
+uncertain. Choose the model from the estimand and study designs, not from which
+one gives the preferred result.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -368,32 +378,32 @@ print("I-squared: " + str(round(I_squared, 1)) + "%")
   <text x="60" y="55" font-size="11" font-weight="bold" fill="#374151">Study</text>
   <text x="540" y="55" font-size="11" font-weight="bold" fill="#374151">Weight</text>
   <text x="610" y="55" font-size="11" font-weight="bold" fill="#374151">Effect</text>
-  <!-- Study 1: Hoffmann 2019 -->
-  <text x="10" y="90" font-size="11" fill="#374151">Hoffmann 2019</text>
+  <!-- Synthetic Study A -->
+  <text x="10" y="90" font-size="11" fill="#374151">Study A</text>
   <line x1="198" y1="87" x2="245" y2="87" stroke="#2563eb" stroke-width="2" />
   <rect x="215" y="81" width="12" height="12" fill="#2563eb" rx="1" />
   <text x="548" y="91" font-size="11" fill="#6b7280">24%</text>
   <text x="605" y="91" font-size="11" fill="#374151">-52.3</text>
-  <!-- Study 2: Martinez 2020 -->
-  <text x="10" y="130" font-size="11" fill="#374151">Martinez 2020</text>
+  <!-- Synthetic Study B -->
+  <text x="10" y="130" font-size="11" fill="#374151">Study B</text>
   <line x1="182" y1="127" x2="260" y2="127" stroke="#2563eb" stroke-width="2" />
   <rect x="218" y="122" width="9" height="9" fill="#2563eb" rx="1" />
   <text x="548" y="131" font-size="11" fill="#6b7280">14%</text>
   <text x="605" y="131" font-size="11" fill="#374151">-48.7</text>
-  <!-- Study 3: Chen 2020 -->
-  <text x="10" y="170" font-size="11" fill="#374151">Chen 2020</text>
+  <!-- Synthetic Study C -->
+  <text x="10" y="170" font-size="11" fill="#374151">Study C</text>
   <line x1="190" y1="167" x2="238" y2="167" stroke="#2563eb" stroke-width="2" />
   <rect x="206" y="160" width="14" height="14" fill="#2563eb" rx="1" />
   <text x="548" y="171" font-size="11" fill="#6b7280">28%</text>
   <text x="605" y="171" font-size="11" fill="#374151">-55.1</text>
-  <!-- Study 4: Kumar 2021 -->
-  <text x="10" y="210" font-size="11" fill="#374151">Kumar 2021</text>
+  <!-- Synthetic Study D -->
+  <text x="10" y="210" font-size="11" fill="#374151">Study D</text>
   <line x1="196" y1="207" x2="250" y2="207" stroke="#2563eb" stroke-width="2" />
   <rect x="217" y="201" width="11" height="11" fill="#2563eb" rx="1" />
   <text x="548" y="211" font-size="11" fill="#6b7280">18%</text>
   <text x="605" y="211" font-size="11" fill="#374151">-50.2</text>
-  <!-- Study 5: Larsson 2021 -->
-  <text x="10" y="250" font-size="11" fill="#374151">Larsson 2021</text>
+  <!-- Synthetic Study E -->
+  <text x="10" y="250" font-size="11" fill="#374151">Study E</text>
   <line x1="192" y1="247" x2="244" y2="247" stroke="#2563eb" stroke-width="2" />
   <rect x="212" y="241" width="10" height="10" fill="#2563eb" rx="1" />
   <text x="548" y="251" font-size="11" fill="#6b7280">16%</text>
@@ -416,8 +426,8 @@ print("I-squared: " + str(round(I_squared, 1)) + "%")
 </svg>
 </div>
 
-<pre><code class="language-bio">let studies = ["Trial A (2019)", "Trial B (2020)", "Trial C (2021)",
-               "Chen (2020)", "Kumar (2021)", "Pooled"]
+<pre><code class="language-bio">let studies = ["Study A", "Study B", "Study C",
+               "Study D", "Study E", "Pooled"]
 let effects = [-52.3, -48.7, -55.1, -50.2, -53.8, -52.5]
 let ci_lower = [-60.3, -59.1, -62.5, -57.4, -61.2, -55.8]
 let ci_upper = [-44.3, -38.3, -47.7, -43.0, -46.4, -49.2]
@@ -524,7 +534,10 @@ let standard_errors = [4.1, 5.3, 3.8, 3.7, 3.9]
 scatter(effect_sizes, standard_errors)
 </code></pre>
 <blockquote>
-<p><strong>Clinical relevance:</strong> Publication bias is a serious concern in pharmaceutical research. A meta-analysis of published antidepressant trials found a pooled effect size of 0.37 (moderate). When unpublished trials obtained through FDA records were included, the effect dropped to 0.15 (small). Publication bias had inflated the apparent efficacy by more than double.</p>
+<p><strong>Practical relevance:</strong> Selective publication can make a pooled estimate look
+larger or more precise than the full evidence would support. Search broadly,
+record inclusion decisions, and treat funnel-plot asymmetry as a diagnostic,
+not proof of publication bias.</p>
 </blockquote>
 <h2 id="when-meta-analysis-is-inappropriate"><a class="header" href="#when-meta-analysis-is-inappropriate">When Meta-Analysis Is Inappropriate</a></h2>
 <p>Meta-analysis is not appropriate when:</p>
@@ -544,8 +557,7 @@ scatter(effect_sizes, standard_errors)
 # Five studies of PCSK9 inhibitor effect on LDL
 # ============================================
 
-let studies = ["Hoffmann 2019", "Martinez 2020", "Chen 2020",
-               "Kumar 2021", "Larsson 2021"]
+let studies = ["Study A", "Study B", "Study C", "Study D", "Study E"]
 let effects = [-52.3, -48.7, -55.1, -50.2, -53.8]
 let se = [4.1, 5.3, 3.8, 3.7, 3.9]
 let n_patients = [250, 180, 320, 290, 260]
@@ -701,7 +713,10 @@ funnel(res)
 <pre><code class="language-bio"># Your code: both models, compare, interpret I-squared
 </code></pre>
 <ol start="2">
-<li><strong>Adding a contradictory study.</strong> A sixth study (Nakamura 2022, N=150) finds a much smaller effect: -30.5 mg/dL, SE=6.2. Add it to the meta-analysis. How do the pooled estimate, CI width, and I-squared change? Create the updated forest plot.</li>
+<li><strong>Adding a contradictory study.</strong> Synthetic Study F (N=150) has a much
+smaller effect: -30.5 mg/dL, SE=6.2. Add it to the meta-analysis. How do the
+pooled estimate, CI width, and I-squared change? Create the updated forest
+plot.</li>
 </ol>
 <pre><code class="language-bio"># Your code: add study, re-run meta-analysis, compare
 </code></pre>
@@ -725,7 +740,9 @@ let se_log_hr = [0.12, 0.15, 0.10, 0.11, 0.13]
 <h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
 <ul>
 <li>Meta-analysis formally combines results across studies to produce a more precise pooled estimate, weighted by each study’s precision.</li>
-<li>Fixed-effects models assume one true effect across studies; random-effects models allow the true effect to vary. Random effects is almost always more appropriate in biomedical research.</li>
+<li>Fixed-effect models target one common effect under their assumptions;
+random-effects models target a distribution of related effects. Choose from
+the scientific estimand and study designs.</li>
 <li>Cochran’s Q tests for heterogeneity; I-squared quantifies its magnitude. I-squared above 50% warrants investigation before pooling.</li>
 <li>The forest plot is the standard meta-analysis visualization: study estimates with CIs arranged vertically, pooled estimate as a diamond.</li>
 <li>The funnel plot assesses publication bias: asymmetry suggests that small negative studies are missing from the literature.</li>
@@ -787,7 +804,6 @@ let se_log_hr = [0.12, 0.15, 0.10, 0.11, 0.13]
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

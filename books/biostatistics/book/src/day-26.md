@@ -7,19 +7,25 @@
 <span class="badge">Evidence Synthesis</span>
 </div>
 
-## The Problem
+## Practical question
 
-Three independent clinical trials have tested PCSK9 inhibitors for lowering LDL cholesterol in patients with familial hypercholesterolemia:
+**Synthetic teaching data:** three studies estimate the same type of continuous
+outcome on a common scale:
 
 | Study | N | Mean LDL Reduction (mg/dL) | SE |
 |---|---|---|---|
-| Trial A (Europe, 2019) | 250 | -52.3 | 4.1 |
-| Trial B (USA, 2020) | 180 | -48.7 | 5.3 |
-| Trial C (Asia, 2021) | 320 | -55.1 | 3.8 |
+| Study A | 250 | -52.3 | 4.1 |
+| Study B | 180 | -48.7 | 5.3 |
+| Study C | 320 | -55.1 | 3.8 |
 
-Each study alone has a confidence interval that overlaps with the others. None is definitive. But together, the evidence is overwhelming. The question is: how do you formally combine them? You cannot just average the means — the studies have different sample sizes, different precisions, and were conducted in different populations. You need a method that respects these differences.
+The studies have different precisions and may differ in population or design.
+How can their estimates be combined while showing uncertainty and
+heterogeneity? A plain arithmetic mean ignores those differences.
 
-Meta-analysis is that method. It provides a rigorous framework for pooling results across studies, weighting each by its precision, quantifying heterogeneity, and assessing whether the pooled estimate is trustworthy. It sits at the top of the evidence hierarchy — above individual RCTs — because it synthesizes all available evidence.
+Meta-analysis provides a framework for pooling compatible effect estimates,
+weighting them by precision, and describing heterogeneity. Its conclusion is
+only as credible as the included studies, their comparability, and the search
+and selection process.
 
 ## What Is Meta-Analysis?
 
@@ -85,7 +91,11 @@ The random-effects model assumes that studies estimate **different but related t
 
 ### When to Use Random Effects
 
-Use random effects when studies differ in population, dosing, protocol, or outcome definition — which is almost always in biomedical research. Random effects produces wider CIs than fixed effects, reflecting the additional uncertainty from between-study variability.
+Use a random-effects model when the scientific model allows related but
+different underlying effects. It does not repair incompatible outcomes or
+biased studies, and with few studies its heterogeneity estimate can be
+uncertain. Choose the model from the estimand and study designs, not from which
+one gives the preferred result.
 
 | Model | Assumption | CIs | When to use |
 |---|---|---|---|
@@ -205,32 +215,32 @@ The forest plot is the signature visualization of meta-analysis. Each study is a
   <text x="60" y="55" font-size="11" font-weight="bold" fill="#374151">Study</text>
   <text x="540" y="55" font-size="11" font-weight="bold" fill="#374151">Weight</text>
   <text x="610" y="55" font-size="11" font-weight="bold" fill="#374151">Effect</text>
-  <!-- Study 1: Hoffmann 2019 -->
-  <text x="10" y="90" font-size="11" fill="#374151">Hoffmann 2019</text>
+  <!-- Synthetic Study A -->
+  <text x="10" y="90" font-size="11" fill="#374151">Study A</text>
   <line x1="198" y1="87" x2="245" y2="87" stroke="#2563eb" stroke-width="2"/>
   <rect x="215" y="81" width="12" height="12" fill="#2563eb" rx="1"/>
   <text x="548" y="91" font-size="11" fill="#6b7280">24%</text>
   <text x="605" y="91" font-size="11" fill="#374151">-52.3</text>
-  <!-- Study 2: Martinez 2020 -->
-  <text x="10" y="130" font-size="11" fill="#374151">Martinez 2020</text>
+  <!-- Synthetic Study B -->
+  <text x="10" y="130" font-size="11" fill="#374151">Study B</text>
   <line x1="182" y1="127" x2="260" y2="127" stroke="#2563eb" stroke-width="2"/>
   <rect x="218" y="122" width="9" height="9" fill="#2563eb" rx="1"/>
   <text x="548" y="131" font-size="11" fill="#6b7280">14%</text>
   <text x="605" y="131" font-size="11" fill="#374151">-48.7</text>
-  <!-- Study 3: Chen 2020 -->
-  <text x="10" y="170" font-size="11" fill="#374151">Chen 2020</text>
+  <!-- Synthetic Study C -->
+  <text x="10" y="170" font-size="11" fill="#374151">Study C</text>
   <line x1="190" y1="167" x2="238" y2="167" stroke="#2563eb" stroke-width="2"/>
   <rect x="206" y="160" width="14" height="14" fill="#2563eb" rx="1"/>
   <text x="548" y="171" font-size="11" fill="#6b7280">28%</text>
   <text x="605" y="171" font-size="11" fill="#374151">-55.1</text>
-  <!-- Study 4: Kumar 2021 -->
-  <text x="10" y="210" font-size="11" fill="#374151">Kumar 2021</text>
+  <!-- Synthetic Study D -->
+  <text x="10" y="210" font-size="11" fill="#374151">Study D</text>
   <line x1="196" y1="207" x2="250" y2="207" stroke="#2563eb" stroke-width="2"/>
   <rect x="217" y="201" width="11" height="11" fill="#2563eb" rx="1"/>
   <text x="548" y="211" font-size="11" fill="#6b7280">18%</text>
   <text x="605" y="211" font-size="11" fill="#374151">-50.2</text>
-  <!-- Study 5: Larsson 2021 -->
-  <text x="10" y="250" font-size="11" fill="#374151">Larsson 2021</text>
+  <!-- Synthetic Study E -->
+  <text x="10" y="250" font-size="11" fill="#374151">Study E</text>
   <line x1="192" y1="247" x2="244" y2="247" stroke="#2563eb" stroke-width="2"/>
   <rect x="212" y="241" width="10" height="10" fill="#2563eb" rx="1"/>
   <text x="548" y="251" font-size="11" fill="#6b7280">16%</text>
@@ -254,8 +264,8 @@ The forest plot is the signature visualization of meta-analysis. Each study is a
 </div>
 
 ```bio
-let studies = ["Trial A (2019)", "Trial B (2020)", "Trial C (2021)",
-               "Chen (2020)", "Kumar (2021)", "Pooled"]
+let studies = ["Study A", "Study B", "Study C",
+               "Study D", "Study E", "Pooled"]
 let effects = [-52.3, -48.7, -55.1, -50.2, -53.8, -52.5]
 let ci_lower = [-60.3, -59.1, -62.5, -57.4, -61.2, -55.8]
 let ci_upper = [-44.3, -38.3, -47.7, -43.0, -46.4, -49.2]
@@ -367,7 +377,10 @@ let standard_errors = [4.1, 5.3, 3.8, 3.7, 3.9]
 scatter(effect_sizes, standard_errors)
 ```
 
-> **Clinical relevance:** Publication bias is a serious concern in pharmaceutical research. A meta-analysis of published antidepressant trials found a pooled effect size of 0.37 (moderate). When unpublished trials obtained through FDA records were included, the effect dropped to 0.15 (small). Publication bias had inflated the apparent efficacy by more than double.
+> **Practical relevance:** Selective publication can make a pooled estimate look
+> larger or more precise than the full evidence would support. Search broadly,
+> record inclusion decisions, and treat funnel-plot asymmetry as a diagnostic,
+> not proof of publication bias.
 
 ## When Meta-Analysis Is Inappropriate
 
@@ -389,8 +402,7 @@ Meta-analysis is not appropriate when:
 # Five studies of PCSK9 inhibitor effect on LDL
 # ============================================
 
-let studies = ["Hoffmann 2019", "Martinez 2020", "Chen 2020",
-               "Kumar 2021", "Larsson 2021"]
+let studies = ["Study A", "Study B", "Study C", "Study D", "Study E"]
 let effects = [-52.3, -48.7, -55.1, -50.2, -53.8]
 let se = [4.1, 5.3, 3.8, 3.7, 3.9]
 let n_patients = [250, 180, 320, 290, 260]
@@ -554,7 +566,10 @@ funnel(res)
 # Your code: both models, compare, interpret I-squared
 ```
 
-2. **Adding a contradictory study.** A sixth study (Nakamura 2022, N=150) finds a much smaller effect: -30.5 mg/dL, SE=6.2. Add it to the meta-analysis. How do the pooled estimate, CI width, and I-squared change? Create the updated forest plot.
+2. **Adding a contradictory study.** Synthetic Study F (N=150) has a much
+   smaller effect: -30.5 mg/dL, SE=6.2. Add it to the meta-analysis. How do the
+   pooled estimate, CI width, and I-squared change? Create the updated forest
+   plot.
 
 ```bio
 # Your code: add study, re-run meta-analysis, compare
@@ -583,7 +598,9 @@ let se_log_hr = [0.12, 0.15, 0.10, 0.11, 0.13]
 ## Key Takeaways
 
 - Meta-analysis formally combines results across studies to produce a more precise pooled estimate, weighted by each study's precision.
-- Fixed-effects models assume one true effect across studies; random-effects models allow the true effect to vary. Random effects is almost always more appropriate in biomedical research.
+- Fixed-effect models target one common effect under their assumptions;
+  random-effects models target a distribution of related effects. Choose from
+  the scientific estimand and study designs.
 - Cochran's Q tests for heterogeneity; I-squared quantifies its magnitude. I-squared above 50% warrants investigation before pooling.
 - The forest plot is the standard meta-analysis visualization: study estimates with CIs arranged vertically, pooled estimate as a diamond.
 - The funnel plot assesses publication bias: asymmetry suggests that small negative studies are missing from the literature.

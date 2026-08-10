@@ -2,7 +2,7 @@
 title = "Practical Biostatistics in 30 Days"
 authors = ["Bioras"]
 language = "en"
-description = "From zero to biostatistician — statistics for genomics with BioLang, Python, and R"
+description = "A calm, practical introduction to statistics for biological data with BioLang"
 src = "src"
 
 [build]
@@ -13,7 +13,7 @@ default-theme = "light"
 preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/oriclabs/biolang"
 additional-css = ["theme/print.css"]
-additional-js = ["theme/toolbar-buttons.js", "theme/book-runner.js"]
+additional-js = ["theme/toolbar-buttons.js"]
 
 [output.html.search]
 enable = true

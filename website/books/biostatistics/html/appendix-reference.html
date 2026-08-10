@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -193,13 +193,13 @@
 <tr><td><code>mean(x)</code></td><td>Arithmetic mean</td><td><code>mean([2, 4, 6])</code> → <code>4.0</code></td></tr>
 <tr><td><code>median(x)</code></td><td>Middle value</td><td><code>median([1, 3, 7])</code> → <code>3.0</code></td></tr>
 <tr><td><code>stdev(x)</code></td><td>Sample standard deviation</td><td><code>stdev([2, 4, 6])</code> → <code>2.0</code></td></tr>
-<tr><td><code>var(x)</code></td><td>Sample variance</td><td><code>var([2, 4, 6])</code> → <code>4.0</code></td></tr>
+<tr><td><code>variance(x)</code></td><td>Sample variance</td><td><code>variance([2, 4, 6])</code> → <code>4.0</code></td></tr>
 <tr><td><code>min(x)</code></td><td>Minimum value</td><td><code>min([3, 1, 4])</code> → <code>1</code></td></tr>
 <tr><td><code>max(x)</code></td><td>Maximum value</td><td><code>max([3, 1, 4])</code> → <code>4</code></td></tr>
 <tr><td><code>sum(x)</code></td><td>Sum of all values</td><td><code>sum([1, 2, 3])</code> → <code>6</code></td></tr>
 <tr><td><code>len(x)</code></td><td>Number of elements</td><td><code>len([1, 2, 3])</code> → <code>3</code></td></tr>
 <tr><td><code>quantile(x, p)</code></td><td>p-th quantile</td><td><code>quantile([1,2,3,4,5], 0.75)</code> → <code>4.0</code></td></tr>
-<tr><td><code>summary(x)</code></td><td>Summary statistics</td><td><code>summary(data)</code> → record with min, Q1, median, Q3, max, mean</td></tr>
+<tr><td><code>summary(x)</code></td><td>Numeric summary</td><td><code>summary(data)</code> → record with count, min, max, mean, median, sd</td></tr>
 <tr><td><code>round(x, digits)</code></td><td>Round to n decimal places</td><td><code>round(3.14159, 2)</code> → <code>3.14</code></td></tr>
 <tr><td><code>abs(x)</code></td><td>Absolute value</td><td><code>abs(-3.5)</code> → <code>3.5</code></td></tr>
 <tr><td><code>sqrt(x)</code></td><td>Square root</td><td><code>sqrt(16)</code> → <code>4.0</code></td></tr>
@@ -209,7 +209,7 @@
 </table>
 </div>
 <h2 id="probability-distributions"><a class="header" href="#probability-distributions">Probability Distributions</a></h2>
-<p>Each distribution has four functions following the <code>d/p/q/r</code> convention: <code>d</code> (density/mass), <code>p</code> (cumulative probability), <code>q</code> (quantile/inverse CDF), <code>r</code> (random samples). All parameters are positional.</p>
+<p>BioLang currently provides the functions listed below. Their prefixes follow the familiar convention: <code>d</code> means density or probability mass, <code>p</code> means cumulative probability, <code>q</code> means quantile, and <code>r</code> means random samples. Not every distribution has all four forms yet.</p>
 <h3 id="continuous"><a class="header" href="#continuous">Continuous</a></h3>
 <pre><code class="language-bio"># Normal: dnorm(x, mu, sigma), pnorm(x, mu, sigma), qnorm(p, mu, sigma), rnorm(n, mu, sigma)
 dnorm(0, 0, 1)        # Density at x=0 for standard normal
@@ -217,79 +217,28 @@ pnorm(1.96, 0, 1)     # P(X &lt;= 1.96) ≈ 0.975
 qnorm(0.975, 0, 1)    # Quantile at p=0.975 ≈ 1.96
 rnorm(100, 0, 1)      # Generate 100 standard normal values
 
-# Student's t: dt(x, df), pt(x, df), qt(p, df), rt(n, df)
-dt(0, 10)
-pt(2.228, 10)
-qt(0.975, 10)
-rt(100, 10)
-
-# F: df(x, df1, df2), pf(x, df1, df2), qf(p, df1, df2), rf(n, df1, df2)
-df(1.5, 5, 20)
-pf(3.0, 5, 20)
-qf(0.95, 5, 20)
-rf(100, 5, 20)
-
-# Chi-square: dchisq(x, df), pchisq(x, df), qchisq(p, df), rchisq(n, df)
-dchisq(5.0, 5)
-pchisq(11.07, 5)
-qchisq(0.95, 5)
-rchisq(100, 5)
-
-# Beta: dbeta(x, alpha, beta), pbeta(x, alpha, beta), qbeta(p, alpha, beta), rbeta(n, alpha, beta)
-dbeta(0.3, 2, 5)
-pbeta(0.5, 2, 5)
-qbeta(0.95, 2, 5)
-rbeta(100, 2, 5)
-
-# Gamma: dgamma(x, shape, rate), pgamma(x, shape, rate), qgamma(p, shape, rate), rgamma(n, shape, rate)
-dgamma(1.0, 2, 1)
-pgamma(3.0, 2, 1)
-qgamma(0.95, 2, 1)
-rgamma(100, 2, 1)
-
-# Exponential: dexp(x, rate), pexp(x, rate), qexp(p, rate), rexp(n, rate)
+# Exponential: dexp(x, rate), pexp(x, rate)
 dexp(1.0, 0.5)
 pexp(2.0, 0.5)
-qexp(0.95, 0.5)
-rexp(100, 0.5)
 
-# Log-Normal: dlnorm(x, mu, sigma), plnorm(x, mu, sigma), qlnorm(p, mu, sigma), rlnorm(n, mu, sigma)
-dlnorm(1.0, 0, 1)
-plnorm(2.0, 0, 1)
-qlnorm(0.95, 0, 1)
-rlnorm(100, 0, 1)
-
-# Uniform: dunif(x, min, max), punif(x, min, max), qunif(p, min, max), runif(n, min, max)
+# Uniform: dunif(x, min, max), punif(x, min, max)
 dunif(0.5, 0, 1)
 punif(0.7, 0, 1)
-qunif(0.5, 0, 1)
-runif(100, 0, 1)
 </code></pre>
 <h3 id="discrete"><a class="header" href="#discrete">Discrete</a></h3>
-<pre><code class="language-bio"># Binomial: dbinom(k, n, p), pbinom(k, n, p), qbinom(q, n, p), rbinom(size, n, p)
+<pre><code class="language-bio"># Binomial: dbinom(k, trials, p), pbinom(k, trials, p), rbinom(size, trials, p)
 dbinom(10, 20, 0.5)       # P(X = 10)
 pbinom(10, 20, 0.5)       # P(X &lt;= 10)
-qbinom(0.5, 20, 0.5)      # Smallest k with P(X &lt;= k) &gt;= 0.5
 rbinom(100, 20, 0.5)      # Generate 100 random values
 
-# Poisson: dpois(k, lambda), ppois(k, lambda), qpois(q, lambda), rpois(n, lambda)
+# Poisson: dpois(k, lambda), ppois(k, lambda), rpois(size, lambda)
 dpois(5, 5.0)
 ppois(7, 5.0)
-qpois(0.95, 5.0)
 rpois(100, 5.0)
-
-# Negative Binomial: dnbinom(k, mu, size), pnbinom(k, mu, size), qnbinom(q, mu, size), rnbinom(n, mu, size)
-dnbinom(8, 10, 5)
-pnbinom(15, 10, 5)
-qnbinom(0.95, 10, 5)
-rnbinom(100, 10, 5)
-
-# Hypergeometric: dhyper(k, K, N_minus_K, n), phyper(k, K, N_minus_K, n), qhyper(q, K, N_minus_K, n), rhyper(size, K, N_minus_K, n)
-dhyper(5, 200, 19800, 500)
-phyper(5, 200, 19800, 500)
-qhyper(0.95, 200, 19800, 500)
-rhyper(100, 200, 19800, 500)
 </code></pre>
+<blockquote>
+<p>Functions for Student’s t, F, chi-square, beta, gamma, log-normal, negative-binomial, and hypergeometric distributions are not currently BioLang builtins. Use the corresponding hypothesis-test functions where available.</p>
+</blockquote>
 <h2 id="hypothesis-tests"><a class="header" href="#hypothesis-tests">Hypothesis Tests</a></h2>
 <h3 id="comparing-two-groups"><a class="header" href="#comparing-two-groups">Comparing Two Groups</a></h3>
 <div class="table-wrapper">
@@ -298,7 +247,7 @@ rhyper(100, 200, 19800, 500)
 <tr><th>Function</th><th>Description</th><th>Example</th></tr>
 </thead>
 <tbody>
-<tr><td><code>ttest(a, b)</code></td><td>Welch’s two-sample t-test</td><td><code>ttest(ctrl, treat)</code></td></tr>
+<tr><td><code>ttest(a, b)</code></td><td>Pooled, equal-variance two-sample t-test</td><td><code>ttest(ctrl, treat)</code></td></tr>
 <tr><td><code>ttest_paired(a, b)</code></td><td>Paired t-test</td><td><code>ttest_paired(before, after)</code></td></tr>
 <tr><td><code>ttest_one(x, mu)</code></td><td>One-sample t-test</td><td><code>ttest_one(diffs, 0)</code></td></tr>
 <tr><td><code>wilcoxon(a, b)</code></td><td>Wilcoxon rank-sum / signed-rank test</td><td><code>wilcoxon(ctrl, treat)</code></td></tr>
@@ -312,7 +261,7 @@ rhyper(100, 200, 19800, 500)
 <tr><th>Function</th><th>Description</th><th>Example</th></tr>
 </thead>
 <tbody>
-<tr><td><code>anova(groups)</code></td><td>One-way ANOVA (auto-detects Welch/Kruskal-Wallis)</td><td><code>anova([g1, g2, g3])</code></td></tr>
+<tr><td><code>anova(groups)</code></td><td>Classical one-way ANOVA</td><td><code>anova([g1, g2, g3])</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -452,7 +401,7 @@ let clusters = kmeans(expr_matrix, 2)
 <tr><td><code>heatmap(table, options)</code></td><td>Heatmap with optional clustering</td><td><code>heatmap(matrix, {cluster_rows: true, title: "Expression"})</code></td></tr>
 <tr><td><code>volcano(table, options)</code></td><td>Volcano plot for DE results</td><td><code>volcano(de_results, {fc_threshold: 1.0, title: "DE"})</code></td></tr>
 <tr><td><code>manhattan(table, options)</code></td><td>Manhattan plot for GWAS</td><td><code>manhattan(gwas_results, {significance_line: 5e-8, title: "GWAS"})</code></td></tr>
-<tr><td><code>qq_plot(data, options)</code></td><td>Q-Q plot (normality check)</td><td><code>qq_plot(residuals, {title: "Normality Check"})</code></td></tr>
+<tr><td><code>qq_plot(pvalues, options)</code></td><td>Observed versus expected −log10 p-values</td><td><code>qq_plot(pvalues, {title: "P-value calibration"})</code></td></tr>
 <tr><td><code>forest_plot(table, options)</code></td><td>Forest plot for meta-analysis</td><td><code>forest_plot(meta_tbl, {null_value: 0, title: "Meta-analysis"})</code></td></tr>
 <tr><td><code>roc_curve(table, options)</code></td><td>ROC curve</td><td><code>roc_curve(roc_tbl, {title: "Classifier ROC"})</code></td></tr>
 <tr><td><code>pca_plot(result, options)</code></td><td>PCA scatter plot</td><td><code>pca_plot(result, {title: "PCA"})</code></td></tr>
@@ -534,7 +483,7 @@ let n_per_group = round(2 * ((z_alpha + z_beta) / effect_size) ** 2, 0)
 print("Required n per group: " + str(n_per_group))
 
 # Cohen's d (inline)
-let d = abs(mean(a) - mean(b)) / sqrt(((len(a) - 1) * var(a) + (len(b) - 1) * var(b)) / (len(a) + len(b) - 2))
+let d = abs(mean(a) - mean(b)) / sqrt(((len(a) - 1) * variance(a) + (len(b) - 1) * variance(b)) / (len(a) + len(b) - 2))
 </code></pre>
 <h2 id="bayesian-methods"><a class="header" href="#bayesian-methods">Bayesian Methods</a></h2>
 <p>BioLang supports Bayesian analysis through conjugate update formulas computed inline:</p>
@@ -629,7 +578,6 @@ let model = lm(~survival_time ~ age + stage + treatment, patient_data)
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

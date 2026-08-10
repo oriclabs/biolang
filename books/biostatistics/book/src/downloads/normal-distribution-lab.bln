@@ -1,0 +1,444 @@
+---
+title: Seeing Probability and False Positives
+authors: BioLang contributors
+date: 2026-08-09
+abstract: A gentle BioLang lab that uses plots and a small simulation to connect the normal curve, probability, cutoffs, p-values, intervals, and false positives.
+---
+
+# Seeing probability and false positives
+
+This lab makes an abstract topic visible. Read one short section, guess what the
+next result or picture will show, and then run the code. It is fine if the words
+`alpha`, `z-score`, or `critical value` are unfamiliar; each is introduced only
+when the picture needs it.
+
+All measurements are **synthetic teaching data**. BioLang calculates every
+number and shaded curve, so you can change a value and see the result update.
+
+Run the whole notebook from the repository root:
+
+`target/release/bl notebook books/biostatistics/book/src/downloads/normal-distribution-lab.bln`
+
+Or export an executed HTML page:
+
+`target/release/bl notebook books/biostatistics/book/src/downloads/normal-distribution-lab.bln --export html`
+
+The lesson follows the normal-distribution topic sequence in `BioStats.pdf`,
+but explains it independently in executable BioLang code. Expressions are
+written explicitly and checked in code.
+
+## Learning goals
+
+By the end, you should be able to explain in your own words:
+
+- why probability is an area, not the height of a curve at one point;
+- how far a measurement is from a reference mean;
+- how BioLang finds an area or the cutoff that gives a chosen area;
+- why a one-sided question and a two-sided question use different cutoffs;
+- why a p-value is calculated from the observed result; and
+- why a 5% false-positive rate does not make each conclusion "95% certain."
+
+## Module 1: the total probability space
+
+A standard normal random variable has mean 0 and standard deviation 1. Its
+curve is a **density**: the height at one point is not a probability. Probability
+is represented by an **area over an interval**, and the complete area is 1.
+
+BioLang provides three complementary normal-distribution functions:
+
+- `dnorm(z)`: How high is the density curve at `z`?
+- `pnorm(z)`: What probability lies to the left of `z`?
+- `qnorm(p)`: Which `z` has probability `p` to its left?
+
+```biolang
+let density_at_zero = dnorm(0.0)
+let area_left_of_zero = pnorm(0.0)
+let median_z = qnorm(0.5)
+
+println("density at z = 0:       " + str(round(density_at_zero, 4)))
+println("area left of z = 0:     " + str(round(area_left_of_zero, 4)))
+println("z with 50% to its left: " + str(round(median_z, 4)))
+
+if abs(area_left_of_zero - 0.5) > 0.000001 {
+    error("standard-normal symmetry check failed")
+}
+```
+
+Expected insight: `dnorm(0)` is about 0.3989, but `pnorm(0)` is 0.5. A density
+height can exceed 1 for sufficiently narrow distributions; an area probability
+cannot.
+
+The next hidden helper builds the lesson's SVG figures. It uses `dnorm` for the
+curve and `qnorm` for every boundary, so the picture and the reported numbers
+cannot quietly disagree.
+
+```biolang
+# @hide-code
+fn _lab_x(z) { round(55.0 + (z + 4.0) * 650.0 / 8.0, 2) }
+fn _lab_y(z) { round(280.0 - dnorm(z) * 555.0, 2) }
+
+fn _lab_point(z) {
+    str(_lab_x(z)) + "," + str(_lab_y(z))
+}
+
+fn _lab_curve_points(xs) {
+    xs |> map(|z| _lab_point(z)) |> join(" ")
+}
+
+fn _lab_polygon(xs, colour) {
+    if len(xs) == 0 { return "" }
+    let first_x = _lab_x(xs[0])
+    let last_x = _lab_x(xs[len(xs) - 1])
+    "<polygon points=\"" + str(first_x) + ",280 " +
+        _lab_curve_points(xs) + " " + str(last_x) +
+        ",280\" fill=\"" + colour + "\" opacity=\"0.65\"/>"
+}
+
+fn _lab_cut_line(z, label) {
+    let x = _lab_x(z)
+    let box_x = round(x - 50.0, 2)
+    "<line x1=\"" + str(x) + "\" y1=\"45\" x2=\"" + str(x) +
+        "\" y2=\"280\" stroke=\"#b91c1c\" stroke-width=\"2\" " +
+        "stroke-dasharray=\"6 4\"/>" +
+        "<rect x=\"" + str(box_x) + "\" y=\"48\" width=\"100\" height=\"24\" " +
+        "rx=\"4\" fill=\"#fff7ed\" stroke=\"#fecaca\"/>" +
+        "<text x=\"" + str(x) + "\" y=\"65\" text-anchor=\"middle\" " +
+        "font-family=\"sans-serif\" font-size=\"14\" fill=\"#991b1b\">" +
+        label + "</text>"
+}
+
+fn _lab_normal_svg(title, alpha, tail) {
+    let xs = range(0, 321) |> map(|i| -4.0 + float(i) * 8.0 / 320.0)
+    let curve = _lab_curve_points(xs)
+    let left_cut = if tail == "left" { qnorm(alpha) } else {
+        if tail == "two" { qnorm(alpha / 2.0) } else { -9.0 }
+    }
+    let right_cut = if tail == "right" { qnorm(1.0 - alpha) } else {
+        if tail == "two" { qnorm(1.0 - alpha / 2.0) } else { 9.0 }
+    }
+    let left_xs = xs |> filter(|z| z <= left_cut)
+    let right_xs = xs |> filter(|z| z >= right_cut)
+    let left_fill = _lab_polygon(left_xs, "#f87171")
+    let right_fill = _lab_polygon(right_xs, "#f87171")
+    let left_line = if left_cut > -8.0 {
+        _lab_cut_line(left_cut, "z = " + str(round(left_cut, 3)))
+    } else { "" }
+    let right_line = if right_cut < 8.0 {
+        _lab_cut_line(right_cut, "z = " + str(round(right_cut, 3)))
+    } else { "" }
+    let ticks = [-3, -2, -1, 0, 1, 2, 3] |> map(|z| {
+        let x = _lab_x(float(z))
+        "<line x1=\"" + str(x) + "\" y1=\"280\" x2=\"" + str(x) +
+            "\" y2=\"286\" stroke=\"#475569\"/>" +
+            "<text x=\"" + str(x) + "\" y=\"302\" text-anchor=\"middle\" " +
+            "font-family=\"sans-serif\" font-size=\"12\" fill=\"#475569\">" +
+            str(z) + "</text>"
+    }) |> join("")
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"760\" height=\"350\" " +
+        "viewBox=\"0 0 760 350\" role=\"img\" aria-label=\"" + title + "\">" +
+        "<rect width=\"760\" height=\"350\" rx=\"10\" fill=\"#f8fafc\"/>" +
+        "<text x=\"380\" y=\"28\" text-anchor=\"middle\" font-family=\"sans-serif\" " +
+        "font-size=\"18\" font-weight=\"bold\" fill=\"#0f172a\">" + title + "</text>" +
+        "<line x1=\"55\" y1=\"280\" x2=\"705\" y2=\"280\" stroke=\"#475569\"/>" +
+        left_fill + right_fill +
+        "<polyline points=\"" + curve + "\" fill=\"none\" stroke=\"#0f172a\" stroke-width=\"3\"/>" +
+        left_line + right_line + ticks +
+        "<text x=\"380\" y=\"340\" text-anchor=\"middle\" font-family=\"sans-serif\" " +
+        "font-size=\"13\" fill=\"#334155\">standard-normal z-score</text></svg>"
+}
+```
+
+```biolang
+println(_lab_normal_svg("The complete standard-normal probability space", 0.05, "none"))
+```
+
+### A visual symmetry check
+
+The probability between `-1` and `1` is the cumulative area to the left of 1
+minus the cumulative area to the left of -1.
+
+```biolang
+let within_one_sd = pnorm(1.0) - pnorm(-1.0)
+let within_two_sd = pnorm(2.0) - pnorm(-2.0)
+let within_three_sd = pnorm(3.0) - pnorm(-3.0)
+
+println("P(-1 <= Z <= 1) = " + str(round(within_one_sd, 4)))
+println("P(-2 <= Z <= 2) = " + str(round(within_two_sd, 4)))
+println("P(-3 <= Z <= 3) = " + str(round(within_three_sd, 4)))
+```
+
+These are the familiar 68%, 95%, and 99.7% landmarks. They are descriptive
+properties of the normal distribution, not automatic thresholds for every
+scientific decision.
+
+## Bridge: turn a biological measurement into a z-score
+
+A z-score tells you how many standard deviations a value lies from a reference
+mean:
+
+`z = (observed - reference mean) / reference standard deviation`
+
+Suppose a healthy reference assay has mean 100 units and standard deviation 15.
+A specimen measures 130 units.
+
+Before running the cell, predict whether the z-score is 1, 2, or 3.
+
+```biolang
+let reference_mean = 100.0
+let reference_sd = 15.0
+let observed_value = 130.0
+let observed_z = (observed_value - reference_mean) / reference_sd
+let percentile = pnorm(observed_z)
+
+println("z-score:                  " + str(round(observed_z, 3)))
+println("proportion below specimen: " + str(round(percentile, 4)))
+println("proportion above specimen: " + str(round(1.0 - percentile, 4)))
+```
+
+The observation is 2 standard deviations above the reference mean. Under this
+reference model, only about 2.3% of observations lie above it.
+
+## Module 2: choose alpha and place the risk
+
+The significance level `alpha` is chosen **before looking at the result**. It is
+the long-run probability of rejecting the null hypothesis when the null is
+true, assuming the model and testing procedure are valid.
+
+It is not:
+
+- the probability that the null hypothesis is true;
+- the probability that this particular result is a false positive; or
+- a measure of biological importance.
+
+### Direction determines where alpha goes
+
+- A **right-tailed** alternative places all alpha in the upper tail.
+- A **left-tailed** alternative places all alpha in the lower tail.
+- A **two-tailed** alternative divides alpha equally between both tails.
+
+```biolang
+let alpha = 0.05
+let right_critical = qnorm(1.0 - alpha)
+let left_critical = qnorm(alpha)
+let two_critical = qnorm(1.0 - alpha / 2.0)
+
+println("right-tailed alpha 0.05: z >= " + str(round(right_critical, 4)))
+println("left-tailed alpha 0.05:  z <= " + str(round(left_critical, 4)))
+println("two-tailed alpha 0.05:   |z| >= " + str(round(two_critical, 4)))
+
+if abs(right_critical + left_critical) > 0.000001 {
+    error("symmetric critical values did not mirror each other")
+}
+```
+
+```biolang
+println(_lab_normal_svg("Right-tailed test: alpha = 0.05", 0.05, "right"))
+```
+
+```biolang
+println(_lab_normal_svg("Two-tailed test: alpha = 0.05", 0.05, "two"))
+```
+
+## Module 3: understand a cumulative Z-table
+
+A traditional cumulative Z-table is a printed approximation to `pnorm(z)`. Its
+body answers: **what area lies to the left of this z-score?** The row normally
+gives the first decimal place and the column gives the second.
+
+```biolang
+let z_table_demo = [1.64, 1.65, 1.96, -2.33] |> map(|z| {
+    {z: z, cumulative_left_area: round(pnorm(z), 4)}
+})
+
+println(table(z_table_demo))
+```
+
+For a right-tailed test with `alpha = 0.05`, the target left area is `0.95`.
+The table values at 1.64 and 1.65 straddle it, so printed tables report a cutoff
+near 1.645. `qnorm(0.95)` performs the inverse lookup directly.
+
+```biolang
+let target_left_area = 0.95
+let exact_lookup = qnorm(target_left_area)
+println("qnorm(0.95) = " + str(round(exact_lookup, 6)))
+println("pnorm(answer) = " + str(round(pnorm(exact_lookup), 6)))
+```
+
+The inverse check should return 0.95. Keep the table skill for reading papers
+and exams; use `qnorm` in analysis so arbitrary alpha values do not require
+rounding by eye.
+
+## Module 4: work the three critical-value examples
+
+### Example A: right-tailed test
+
+In this synthetic teaching question, only a **higher** value matches the
+pre-chosen direction. The direction was set before looking at the result, and
+`alpha = 0.05`.
+
+```biolang
+let example_a_alpha = 0.05
+let example_a_cutoff = qnorm(1.0 - example_a_alpha)
+println("target cumulative left area: " + str(1.0 - example_a_alpha))
+println("reject H0 when z >= " + str(round(example_a_cutoff, 3)))
+```
+
+Answer: the cutoff is approximately `+1.645`.
+
+### Example B: two-tailed test
+
+An assay may drift either high or low. With `alpha = 0.05`, each tail receives
+`0.025`, leaving 0.95 in the center.
+
+```biolang
+let example_b_alpha = 0.05
+let area_per_tail = example_b_alpha / 2.0
+let example_b_upper = qnorm(1.0 - area_per_tail)
+let example_b_lower = qnorm(area_per_tail)
+
+println("area per tail: " + str(area_per_tail))
+println("lower cutoff: " + str(round(example_b_lower, 3)))
+println("upper cutoff: " + str(round(example_b_upper, 3)))
+```
+
+Answer: reject beyond approximately `-1.96` or `+1.96`.
+
+### Example C: left-tailed test
+
+In another synthetic question, success means a value **lower** than a reference
+level. For `alpha = 0.01`, the cumulative left area is alpha itself.
+
+```biolang
+let example_c_alpha = 0.01
+let example_c_cutoff = qnorm(example_c_alpha)
+println("reject H0 when z <= " + str(round(example_c_cutoff, 3)))
+```
+
+```biolang
+println(_lab_normal_svg("Left-tailed test: alpha = 0.01", 0.01, "left"))
+```
+
+Answer: the cutoff is approximately `-2.326`, commonly rounded to `-2.33` in a
+Z-table.
+
+## Critical value versus p-value
+
+The critical value is fixed by the design before observing the data. The
+p-value is calculated afterward from the observed test statistic.
+
+For an observed `z = 2.4`:
+
+```biolang
+let result_z = 2.4
+let right_p = 1.0 - pnorm(result_z)
+let two_sided_p = 2.0 * (1.0 - pnorm(abs(result_z)))
+
+println("right-tailed p-value: " + str(round(right_p, 6)))
+println("two-sided p-value:    " + str(round(two_sided_p, 6)))
+println("right-tailed decision at alpha 0.05: " +
+    if right_p < 0.05 { "reject H0" } else { "fail to reject H0" })
+```
+
+Do not say “accept the null.” A non-significant test can mean no important
+effect, noisy measurements, too few replicates, or a poor design. It says the
+data did not cross the chosen evidential threshold under the stated model.
+
+## See alpha happen: a false-positive simulation
+
+If the null hypothesis is true and we repeat a valid two-sided test many times
+at `alpha = 0.05`, about 5% of results should fall outside `±1.96` merely through
+sampling variation.
+
+Before running the cell, predict whether the count will be exactly 500.
+
+```biolang
+set_seed(20260809)
+let repetitions = 10000
+let null_z_scores = rnorm(repetitions, 0.0, 1.0)
+let null_cutoff = qnorm(0.975)
+let false_positives = null_z_scores
+    |> filter(|z| abs(z) >= null_cutoff)
+    |> len()
+let false_positive_rate = float(false_positives) / float(repetitions)
+
+println("false positives: " + str(false_positives) + " / " + str(repetitions))
+println("observed rate:   " + str(round(false_positive_rate, 4)))
+
+if false_positive_rate < 0.035 or false_positive_rate > 0.065 {
+    error("simulation landed implausibly far from alpha; inspect the RNG or test")
+}
+```
+
+It should be near 5%, but not exactly 5%. Alpha describes repeated procedures;
+it does not label any individual rejected result as 95% certain.
+
+## Confidence intervals use the same boundary
+
+For a two-sided test at alpha 0.05, the central probability is 0.95 and the
+normal critical value is `qnorm(0.975)`. That same multiplier appears in a 95%
+normal confidence interval:
+
+`estimate ± critical value × standard error`
+
+```biolang
+let estimate = 4.2
+let standard_error = 1.5
+let ci_z = qnorm(0.975)
+let ci_lower = estimate - ci_z * standard_error
+let ci_upper = estimate + ci_z * standard_error
+
+println("estimate: " + str(estimate))
+println("95% normal CI: [" + str(round(ci_lower, 3)) + ", " +
+    str(round(ci_upper, 3)) + "]")
+println("does the interval exclude zero? " + str(ci_lower > 0.0 or ci_upper < 0.0))
+```
+
+The interval and corresponding two-sided test agree about whether zero is
+excluded, provided they use the same model and assumptions. In small samples,
+use an appropriate t critical value rather than automatically using 1.96.
+
+## Retrieval practice
+
+Try answering each question before revealing the executable check.
+
+- **1.** What cumulative left area gives a right-tailed alpha of 0.02?
+- **2.** What cumulative left area gives the upper boundary of a two-tailed
+  alpha of 0.02?
+- **3.** If `z = -2.1`, what is the left-tailed p-value?
+- **4.** If the question was “different” rather than “lower,” what is the
+  two-sided p-value?
+
+```biolang
+let review_alpha = 0.02
+let review_right_area = 1.0 - review_alpha
+let review_two_upper_area = 1.0 - review_alpha / 2.0
+let review_z = -2.1
+let review_left_p = pnorm(review_z)
+let review_two_p = 2.0 * pnorm(-abs(review_z))
+
+println("1. right-tail target area: " + str(review_right_area))
+println("2. two-tail upper area:    " + str(review_two_upper_area))
+println("3. left-tailed p-value:    " + str(round(review_left_p, 6)))
+println("4. two-sided p-value:      " + str(round(review_two_p, 6)))
+
+if abs(pnorm(qnorm(review_right_area)) - review_right_area) > 0.000001 {
+    error("inverse-CDF review check failed")
+}
+```
+
+## Decision recipe
+
+When facing a new problem:
+
+- **1.** State the null and alternative in biological language.
+- **2.** Decide the direction before seeing the data.
+- **3.** Choose alpha and justify its consequences.
+- **4.** Verify that the test model and assumptions fit the design.
+- **5.** Compute the statistic and p-value.
+- **6.** Report the estimate, uncertainty, effect size, and decision together.
+- **7.** Never use a matching threshold as a substitute for biological
+  importance.
+
+Continue with Days 3, 4, 6, and 7 of *Practical Biostatistics in 30 Days* for
+distributions, probability, confidence intervals, and complete hypothesis
+testing.

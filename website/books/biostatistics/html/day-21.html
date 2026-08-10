@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,11 +186,14 @@
 <span class="badge">Unsupervised Learning</span>
 </div>
 
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>A single-cell RNA sequencing experiment has just finished. Your collaborator drops a matrix on your desk: expression levels for 20,000 genes measured across 5,000 individual cells. She wants to know whether the cells form distinct populations — immune subtypes, perhaps, or tumor cells versus stroma.</p>
-<p>You stare at the matrix. Twenty thousand dimensions. You cannot visualize it. You cannot eyeball it. You cannot plot 20,000 axes on a screen. If you pick two genes at random and make a scatter plot, you might miss the structure entirely — those two genes might be irrelevant. Pick different genes and you get a completely different picture.</p>
-<p>What you need is a camera angle. A way to look at 20,000-dimensional data from the direction that reveals the most structure. A method that compresses the information into a handful of dimensions you can actually see and reason about — without throwing away the patterns that matter.</p>
-<p>That method is Principal Component Analysis. It is the single most widely used technique in genomics for exploring high-dimensional data, and by the end of today, you will understand exactly how it works, when it fails, and how to use it effectively.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching data shaped like a single-cell matrix:</strong> thousands of
+cells are measured across many genes. We cannot inspect one axis per gene. Can
+we make a smaller set of summaries that preserves major variation and helps us
+see samples, outliers, or broad structure?</p>
+<p>Principal Component Analysis (PCA) finds linear combinations with decreasing
+variance. It is an exploratory view, not proof of cell identity, and its result
+depends on preprocessing, feature choice, scaling, and technical effects.</p>
 <h2 id="what-is-dimensionality-reduction"><a class="header" href="#what-is-dimensionality-reduction">What Is Dimensionality Reduction?</a></h2>
 <p>Dimensionality reduction takes data with many variables (dimensions) and represents it using fewer variables, while preserving as much of the important structure as possible.</p>
 <p>Think of it this way. You are standing on a hilltop overlooking a city. The city exists in three dimensions, but you are looking at it from one particular angle. Your view — a photograph — is a two-dimensional representation of a three-dimensional scene. A good photograph, taken from the right angle, captures the layout of the streets, the relative positions of buildings, and the overall structure. A bad photograph, taken facing a blank wall, tells you nothing.</p>
@@ -733,7 +736,6 @@ sort(abs(pca_result$rotation[,1]), decreasing = TRUE)[1:10]
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

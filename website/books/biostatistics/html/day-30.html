@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,10 +186,14 @@
 <span class="badge">Genomics</span>
 </div>
 
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>A large consortium has genotyped 10,000 individuals — 5,000 with type 2 diabetes (T2D) and 5,000 controls — at 500,000 single nucleotide polymorphisms (SNPs) spread across the genome. The goal is to identify genetic variants associated with T2D risk.</p>
-<p>This is a genome-wide association study (GWAS) — the workhorse of modern human genetics. Since the first GWAS in 2005, thousands of studies have identified genetic associations for hundreds of diseases and traits. The method is conceptually simple: for each SNP, ask “is this variant more common in cases than controls?” But the execution requires careful statistical reasoning, because testing 500,000 hypotheses simultaneously creates an extreme multiple testing problem, and subtle confounders (especially population structure) can generate thousands of false positives.</p>
-<p>By the end of today, you will have built a complete GWAS pipeline: quality control, population structure analysis, genome-wide association testing, multiple testing correction, visualization (Manhattan plot, Q-Q plot), and effect size interpretation. This capstone integrates methods from nearly every chapter of the book.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching project:</strong> genotype-like data contain 500,000 marker tests
+and a binary case-control outcome. How do multiple testing, population
+structure, quality control, effect sizes, and diagnostic plots fit together?</p>
+<p>This chapter demonstrates the logic with simplified generated data. It is not
+a production GWAS pipeline: real studies require specialised genotype formats,
+sample and variant QC, relatedness handling, ancestry-aware modelling,
+imputation checks, carefully specified covariates, and replication.</p>
 <h2 id="the-gwas-pipeline"><a class="header" href="#the-gwas-pipeline">The GWAS Pipeline</a></h2>
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="110" viewbox="0 0 680 110" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -487,7 +491,10 @@ print("Covariates: PC1, PC2, PC3, PC4 (top 4 principal components)")
 print("Model: disease ~ SNP + PC1 + PC2 + PC3 + PC4")
 </code></pre>
 <h2 id="section-5-multiple-testing-correction"><a class="header" href="#section-5-multiple-testing-correction">Section 5: Multiple Testing Correction</a></h2>
-<p>With 500,000 tests, even a tiny false positive rate generates thousands of false hits. The genome-wide significance threshold of p &lt; 5 x 10^-8 is the standard Bonferroni correction for approximately 1 million independent tests (accounting for linkage disequilibrium).</p>
+<p>With 500,000 tests, a per-test threshold such as 0.05 would generate many false
+hits under a complete null. The conventional GWAS threshold <code>5e-8</code> is a widely
+used historical standard motivated by testing roughly one million common
+variants; it is not simply <code>0.05 / 500,000</code> for every dataset.</p>
 <pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
 # --- Multiple Testing ---
 print("\n=== Multiple Testing Correction ===")
@@ -544,7 +551,9 @@ for hit in all_hits |&gt; take(20) {
 }
 </code></pre>
 <blockquote>
-<p><strong>Key insight:</strong> The genome-wide significance threshold of 5 x 10^-8 is extremely stringent — it corresponds to a Bonferroni correction for roughly 1 million independent tests. This means we need very large sample sizes (thousands to hundreds of thousands) to detect the small effects typical of common variant associations (OR 1.05-1.30). This is why modern GWAS consortia combine data from dozens of cohorts.</p>
+<p><strong>Key insight:</strong> A stringent genome-wide threshold and modest genetic effects
+often require large samples. Required size depends on allele frequency,
+effect, phenotype, design, imputation quality, model, and replication plan.</p>
 </blockquote>
 <h2 id="section-6-manhattan-plot"><a class="header" href="#section-6-manhattan-plot">Section 6: Manhattan Plot</a></h2>
 <pre><code class="language-bio"># --- Manhattan Plot ---
@@ -1078,7 +1087,8 @@ let fdr_adjusted = p_adjust(adjusted_pvalues, "BH")
 <li>A GWAS tests hundreds of thousands of SNPs for association with a phenotype, requiring rigorous QC (HWE, MAF, call rate), population structure control (PCA), and extreme multiple testing correction (p &lt; 5 x 10^-8).</li>
 <li>Hardy-Weinberg equilibrium testing in controls identifies genotyping errors; MAF filtering removes uninformative rare variants; both are standard QC steps.</li>
 <li>Population structure is the primary confounder in GWAS. PCA on genotype data reveals ancestry, and including top PCs as covariates in logistic regression removes confounding.</li>
-<li>The genome-wide significance threshold (5 x 10^-8) is a Bonferroni correction for approximately 1 million independent tests, accounting for linkage disequilibrium.</li>
+<li><code>5e-8</code> is a conventional genome-wide threshold for common-variant GWAS; state
+and justify the threshold used for the actual study and variant set.</li>
 <li>The Manhattan plot displays -log10(p-values) by genomic position; the Q-Q plot assesses whether the test statistics are well-calibrated (lambda near 1.0).</li>
 <li>Most GWAS hits have modest effect sizes (OR 1.05-1.30), reflecting the polygenic architecture of complex traits. Individual variants are not clinically useful predictors, but combined into polygenic risk scores, they have growing clinical applications.</li>
 <li>Power in GWAS depends on sample size, allele frequency, and effect size. Large international consortia (&gt;100,000 individuals) are needed to detect the small effects typical of common diseases.</li>
@@ -1151,7 +1161,6 @@ let fdr_adjusted = p_adjust(adjusted_pvalues, "BH")
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

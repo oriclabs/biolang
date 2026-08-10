@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-244ec3ac.js";
+            window.path_to_searchindex_js = "searchindex-b31b71e1.js";
         </script>
 
         <!-- Custom JS scripts for mdbook-pdf PDF generation -->
@@ -7529,6 +7529,29 @@ methods with collaborators.</p>
 </code></pre>
 <p>Prose sections are rendered with ANSI formatting in the terminal. Code blocks
 are executed in order, with output interleaved between prose.</p>
+<h2 id="native-local-notebook"><a class="header" href="#native-local-notebook">Native Local Notebook</a></h2>
+<p>Start the lightweight, Jupyter-like browser editor with a native BioLang kernel:</p>
+<pre><code class="language-bash">bl notebook serve analysis.bln
+</code></pre>
+<p><code>bl</code> opens a page served from a random loopback port. Each notebook session owns
+one interpreter, so a variable created by one cell is available to later cells.
+Unlike the WebAssembly export, the local kernel can use native packages, local
+files, larger memory, and the configured CPU or GPU backend. The page can edit
+and save the original <code>.bln</code>, run through one selected cell, or run all cells in
+a fresh session. Selecting a later cell automatically runs any missing earlier
+cells, so its setup variables exist. Editing or rerunning an earlier cell starts
+a clean session before rebuilding that context.</p>
+<p>Useful launch options:</p>
+<pre><code class="language-bash">bl notebook serve analysis.bln --no-open
+bl notebook serve analysis.bln --port 8765
+bl --no-gpu notebook serve analysis.bln
+bl notebook serve analysis.bln --root ./study
+</code></pre>
+<p>The server accepts loopback addresses only and generates a new bearer token for
+each launch. It implements the common SOMER job routes for compatible stateless
+clients, plus <code>/v1/notebook-sessions</code> for contextual cell execution. It is a
+single-user local kernel, not a scheduler or remote SOMER replacement. Native
+notebook code runs with the permissions of the user who started <code>bl</code>.</p>
 <h2 id="the-bln-format"><a class="header" href="#the-bln-format">The .bln Format</a></h2>
 <p>A <code>.bln</code> file is plain text. Everything outside a code block is Markdown prose.
 Code blocks can use either fenced syntax or dash delimiters.</p>
@@ -7684,6 +7707,8 @@ that readers don’t need to see</li>
 <li><strong>Use <code># @echo</code> for key steps</strong> – shows both code and output for the important
 analysis logic</li>
 <li><strong>Use <code># @skip</code> during development</strong> – temporarily disable expensive cells</li>
+<li><strong>Use <code>bl notebook serve</code> for native interactive work</strong> – cell state, saving,
+native packages, and large local analyses without a remote service</li>
 <li><strong>The HTML export is self-contained</strong> – share the <code>.html</code> file directly</li>
 <li><strong>Convert existing Jupyter notebooks</strong> with <code>--from-ipynb</code> to migrate analyses</li>
 </ul>

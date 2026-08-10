@@ -7,13 +7,16 @@
 <span class="badge">Unsupervised Learning</span>
 </div>
 
-## The Problem
+## Practical question
 
-You are part of a cancer genomics consortium. Five hundred tumor samples have been profiled with RNA-seq, measuring the expression of 18,000 genes in each. The pathologist has classified these tumors into three histological subtypes based on what she sees under the microscope. But molecular data often reveals finer distinctions invisible to the eye.
+**Synthetic teaching data:** 500 samples have expression measurements for many
+genes. Can clustering reveal stable groups, and do those groups correspond to
+independent information that was not used to create them?
 
-Your task: find natural groupings in the gene expression data — without peeking at the pathologist's labels. If the molecular subtypes align with the histological ones, confidence in the classification increases. If the data reveals additional subtypes, you may have discovered clinically distinct groups that respond differently to treatment. In breast cancer, this is exactly how the PAM50 molecular subtypes were discovered — and they now guide treatment decisions for millions of patients worldwide.
-
-But there is a danger lurking. Clustering algorithms always find clusters, even in random noise. The critical question is not "can I find groups?" but "are the groups real?"
+An algorithm can partition data even when no biologically meaningful groups
+exist. Treat clusters as hypotheses. Check stability across preprocessing and
+parameters, then validate with held-out samples, known markers, outcomes, or
+other independent evidence.
 
 ## What Is Clustering?
 

@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,17 +186,14 @@
 <span class="badge">Bayesian Inference</span>
 </div>
 
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>A clinical sequencing lab has found a missense variant in a patient’s BRCA2 gene. The patient has a family history of breast cancer. ClinVar classifies the variant as “Uncertain Significance” — VUS. The clinician needs to make a decision: recommend risk-reducing surgery, or watchful waiting?</p>
-<p>You have several pieces of evidence:</p>
-<ol>
-<li><strong>Population frequency</strong>: The variant appears in 0.02% of a population database (gnomAD). Pathogenic BRCA2 variants are typically rare, but many rare variants are benign.</li>
-<li><strong>Computational prediction</strong>: Three algorithms (SIFT, PolyPhen, CADD) predict the variant is “likely damaging.”</li>
-<li><strong>Functional assay</strong>: A cell-based splicing assay shows mild disruption.</li>
-<li><strong>Family data</strong>: Two of three affected relatives carry the variant (one does not, but that could be a phenocopy).</li>
-</ol>
-<p>No single piece of evidence is conclusive. Each is uncertain. But together, they should shift your belief about pathogenicity. How do you combine them?</p>
-<p>The frequentist framework has no natural mechanism for combining prior knowledge with new data. The Bayesian framework does — it is literally designed for this. Today, you will learn how to think like a Bayesian, and you will see why this way of reasoning is becoming standard practice in clinical variant classification.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching example:</strong> start with a prior distribution for an unknown
+response probability, then observe a number of responses out of a fixed number
+of trials. How should the probability distribution change after seeing the
+data, and what does it predict for a future sample?</p>
+<p>This chapter uses the beta-binomial model because every step is visible. It
+teaches Bayesian updating; it does not implement clinical variant
+classification and must not be used to recommend patient management.</p>
 <h2 id="what-is-bayesian-statistics"><a class="header" href="#what-is-bayesian-statistics">What Is Bayesian Statistics?</a></h2>
 <p>Bayesian statistics treats probability as a measure of belief, not a long-run frequency. Instead of asking “what would happen if I repeated this experiment infinitely many times?” it asks “given what I know, how confident should I be?”</p>
 <p>The fundamental equation is Bayes’ theorem:</p>
@@ -219,7 +216,10 @@
 </ol>
 <p>The posterior from one analysis becomes the prior for the next — evidence accumulates naturally.</p>
 <blockquote>
-<p><strong>Key insight:</strong> Bayesian inference is sequential updating. Each new piece of evidence shifts your belief. This is exactly how clinical variant classification works: you start with a prior (population frequency suggests most variants are benign), then update with each line of evidence (computational predictions, functional assays, segregation data).</p>
+<p><strong>Key insight:</strong> Bayesian inference updates a prior distribution with a
+likelihood to obtain a posterior distribution. Combining heterogeneous
+clinical evidence requires a justified domain model; the beta-binomial lesson
+here is not such a model.</p>
 </blockquote>
 <h2 id="frequentist-vs-bayesian-the-practical-difference"><a class="header" href="#frequentist-vs-bayesian-the-practical-difference">Frequentist vs Bayesian: The Practical Difference</a></h2>
 <p>Consider testing whether a new drug reduces blood pressure.</p>
@@ -564,7 +564,9 @@ print("Data mean:         " + str(round(data_mean, 3)))
 </code></pre>
 <p>With only 8 observations, the informative priors pull the posterior toward them. With 800 observations, even a badly wrong prior would be overwhelmed by the data.</p>
 <blockquote>
-<p><strong>Common pitfall:</strong> Using a highly informative prior with little data is dangerous — the prior dominates. Use weakly informative priors (centered on a reasonable value but with wide spread) unless you have strong external evidence to justify a tight prior. A flat prior is always safe but may be less efficient.</p>
+<p><strong>Common pitfall:</strong> With little data, the prior can strongly affect the
+posterior. A flat prior is not automatically neutral or safe; justify the
+prior on the model’s scale and examine sensitivity to reasonable alternatives.</p>
 </blockquote>
 <h2 id="posterior-predictive-distribution"><a class="header" href="#posterior-predictive-distribution">Posterior Predictive Distribution</a></h2>
 <p>The posterior predictive distribution answers: “Given what I have learned from the data, what do I expect to see in future observations?”</p>
@@ -668,7 +670,10 @@ print("Final classification: " +
 )
 </code></pre>
 <blockquote>
-<p><strong>Clinical relevance:</strong> The ACMG/AMP variant classification framework (Richards et al., 2015) is implicitly Bayesian. It combines evidence from population data, computational predictions, functional studies, segregation data, and de novo status to classify variants into five tiers (Pathogenic, Likely Pathogenic, VUS, Likely Benign, Benign). Tavtigian et al. (2018) formalized this as an explicit Bayesian framework using likelihood ratios — exactly the approach shown above.</p>
+<p><strong>Scope note:</strong> Clinical variant-classification frameworks combine several
+evidence types using detailed criteria and expert review. That task is much
+more complex than the beta-binomial teaching model in this chapter; do not
+transfer the example’s priors or likelihood directly to variant decisions.</p>
 </blockquote>
 <h2 id="when-bayesian-is-better--and-when-it-is-overkill"><a class="header" href="#when-bayesian-is-better--and-when-it-is-overkill">When Bayesian Is Better — and When It Is Overkill</a></h2>
 <h3 id="bayesian-excels-when"><a class="header" href="#bayesian-excels-when">Bayesian excels when:</a></h3>
@@ -683,7 +688,7 @@ print("Final classification: " +
 <ul>
 <li><strong>No meaningful prior</strong> exists (purely exploratory analysis)</li>
 <li><strong>Sample is large</strong> (prior is overwhelmed anyway, results converge)</li>
-<li><strong>Regulatory requirements</strong> demand frequentist analysis (FDA still primarily uses p-values)</li>
+<li>A prespecified framework is required by the study or decision context</li>
 <li><strong>Simplicity matters</strong> (t-test is faster to explain than posterior distributions)</li>
 </ul>
 <h2 id="bayesian-thinking-in-biolang"><a class="header" href="#bayesian-thinking-in-biolang">Bayesian Thinking in BioLang</a></h2>
@@ -896,7 +901,6 @@ qbeta(c(0.025, 0.975), post_a, post_b)
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

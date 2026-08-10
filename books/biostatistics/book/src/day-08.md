@@ -1,10 +1,14 @@
 # Day 8: Comparing Two Groups — The t-Test
 
-## The Problem
+## Practical question
 
-Dr. Sofia Reyes is a cancer biologist studying BRCA1 expression in breast tissue. She has RNA-seq data from 12 tumor samples and 12 matched normal samples from the same patients. The mean BRCA1 expression in tumors is 4.2 log2-CPM versus 6.8 log2-CPM in normals — a 2.6-fold reduction. But with only 12 samples per group and considerable biological variability, can she confidently claim BRCA1 is downregulated in tumors?
+**Synthetic teaching data:** expression is measured in paired tumour and nearby
+normal samples from the same 12 individuals. Is the average within-person
+difference distinguishable from ordinary variation, and how large is it?
 
-She cannot use a z-test because the population standard deviation is unknown — she must estimate it from the data itself. She needs the **t-test**, the most widely used statistical test in biomedical research. But which version? Her samples are paired (tumor and normal from the same patient), which adds another consideration. And before running any test, she should verify that the data meet the test's assumptions.
+The pairing is part of the design, not a software option to choose afterward.
+A paired t-test works with the 12 within-person differences. Independent data,
+unequal variances, or strongly problematic differences require other choices.
 
 This chapter covers the t-test in all its forms: independent, Welch's, paired, and one-sample. You will learn when each is appropriate, how to check assumptions, and how to quantify the magnitude of differences with Cohen's d.
 
@@ -251,7 +255,10 @@ A p-value tells you *whether* a difference exists. Cohen's d tells you *how larg
 | 0.8 | Large | Strong phenotypic difference |
 | > 1.2 | Very large | Knockout vs wild-type |
 
-> **Key insight:** A large p-value with a large Cohen's d suggests you are underpowered — you may have a real effect but too few samples to detect it. A small p-value with a tiny Cohen's d suggests the effect, while real, may not be biologically meaningful.
+> **Key insight:** A large estimated effect with a wide interval is uncertain;
+> it may shrink, persist, or change direction in new data. A small p-value with
+> a tiny estimated effect may have little biological importance. Interpret the
+> estimate and interval together.
 
 ## The t-Test in BioLang
 
@@ -494,7 +501,9 @@ let control   = [0.8, 0.5, 0.9, 0.3, 1.1, 0.7, 0.4, 0.6, 1.0, 0.2]
 - Always **check assumptions**: Shapiro-Wilk for normality, Levene's for equal variances, QQ plots for visual inspection
 - **Cohen's d** quantifies effect size independently of sample size: 0.2 = small, 0.5 = medium, 0.8 = large
 - A significant t-test with a small Cohen's d may not be biologically meaningful
-- A non-significant t-test with a large Cohen's d suggests you need more samples
+- A non-significant test with a large estimated effect calls for checking the
+  interval, design, data quality, and plausibility—not an automatic decision to
+  collect more samples
 
 ## What's Next
 

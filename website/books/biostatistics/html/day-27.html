@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,13 +186,18 @@
 <span class="badge">Best Practices</span>
 </div>
 
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>It is 11 PM on a Thursday. Your collaborator emails: “The sequencing core re-processed 3 samples with updated base-calling. Can you re-run the entire analysis with the updated data? The manuscript revision is due Monday.”</p>
-<p>You open your analysis folder. There are 14 scripts with names like <code>analysis_v2_final_FINAL.bl</code>, <code>test_new.bl</code>, and <code>run_this_one.bl</code>. You cannot remember which scripts to run in which order. One script hardcodes a file path that no longer exists. Another uses a random seed that you never recorded, so bootstrap confidence intervals will not match the figures in the manuscript. A third script produces slightly different p-values depending on whether you run it before or after another script, because they share a global variable.</p>
-<p>This is not a hypothetical scenario. It is the daily reality of computational biology. And it is entirely preventable. Reproducible analysis is not about perfection — it is about structure, documentation, and discipline. Today, you will learn the practices that make “re-run everything” a one-command operation instead of a week of panic.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p>Three input samples change. Can the complete analysis be rerun in the correct
+order with recorded software versions and seeds, producing traceable outputs
+without editing paths by hand?</p>
+<p>Reproducibility is practical maintenance: explicit inputs, one documented
+entry point, deterministic steps where possible, versioned code, checks, and a
+record of the environment.</p>
 <h2 id="why-reproducibility-matters"><a class="header" href="#why-reproducibility-matters">Why Reproducibility Matters</a></h2>
-<p>On Day 1, we discussed the reproducibility crisis: 89% of landmark cancer biology studies could not be replicated. Computational analyses are theoretically easier to reproduce than wet-lab experiments — you have all the inputs and instructions. Yet in practice, computational reproducibility is shockingly rare.</p>
-<p>A 2019 study attempted to reproduce analyses from 204 published bioinformatics papers. Only 14% could be reproduced from the provided code and data. The failures were rarely due to errors in logic — they were due to missing files, undocumented dependencies, hardcoded paths, unrecorded random seeds, and ambiguous analysis steps.</p>
+<p>Computational analyses can still be difficult to reproduce when inputs,
+dependencies, parameters, random seeds, or execution order are missing. The
+remedy is to make those details part of the analysis rather than relying on
+memory.</p>
 <p>Journals increasingly require:</p>
 <ul>
 <li><strong>Code availability</strong>: deposit analysis scripts in a public repository</li>
@@ -900,7 +905,6 @@ renv::snapshot() # Lock package versions with renv
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

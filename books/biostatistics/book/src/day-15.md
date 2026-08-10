@@ -1,12 +1,15 @@
 # Day 15: Multiple Regression and Model Selection
 
-## The Problem
+## Practical question
 
-Dr. Maria Chen is a clinical researcher studying pancreatic cancer. She has tumor samples from 120 patients, each profiled with 10 biomarkers: CA19-9, CEA, MKI67, TP53 status, tumor size, age, albumin, CRP, neutrophil-lymphocyte ratio (NLR), and platelet count. She wants to predict **tumor stage** (a continuous composite score from 1.0 to 4.0) from these biomarkers.
+**Synthetic teaching data:** a continuous outcome and ten candidate predictors
+are measured in 120 samples. Two predictors are strongly correlated. Which
+variables add distinct information, how stable are their coefficients, and how
+well does the model work on data not used for fitting?
 
-But there's a problem. CA19-9 and CEA are highly correlated (r = 0.88) — they measure overlapping biology. Including both inflates standard errors and makes coefficients uninterpretable. And with 10 potential predictors, how does she find the **best subset** without overfitting?
-
-She needs multiple regression with careful **model selection**.
+Multiple regression can adjust for several predictors at once. Variable choice
+should follow the scientific goal and a prespecified or validated strategy;
+searching for the subset with the smallest p-values invites overfitting.
 
 ## What Is Multiple Regression?
 

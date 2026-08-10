@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,14 +179,14 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-18-experimental-design-and-statistical-power"><a class="header" href="#day-18-experimental-design-and-statistical-power">Day 18: Experimental Design and Statistical Power</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Dr. Ana Reyes is a junior PI writing her first R01 grant. She proposes a study comparing gene expression between psoriatic skin and normal skin using RNA-seq, planning <strong>3 samples per group</strong> because “that’s what the lab down the hall used.”</p>
-<p>The grant comes back with this reviewer comment:</p>
-<blockquote>
-<p><em>“The proposed sample size of n=3 per group is inadequate. The applicant provides no power analysis to justify this number. With 3 replicates, the study is severely underpowered to detect anything less than a 4-fold change, which is biologically unrealistic for most genes. We recommend at least 8-10 biological replicates per condition based on published power analyses for RNA-seq DE studies.”</em></p>
-</blockquote>
-<p>Grant rejected. Six months of proposal writing, wasted — because she didn’t plan the sample size.</p>
-<p><strong>Statistical power</strong> determines whether your study can actually detect the effect you’re looking for. Getting it wrong wastes time, money, animals, and patient samples.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p>An RNA-seq comparison needs enough independent biological replicates to detect
+an effect that matters. Copying the sample size from another study ignores
+differences in variability, design, sequencing depth, effect size, and analysis
+method. How should the sample size be justified before data collection?</p>
+<p><strong>Statistical power</strong> is the probability that a specified procedure detects a
+specified effect under explicit assumptions. It is a planning tool, not a
+guarantee and not a universal threshold for every gene.</p>
 <h2 id="what-is-statistical-power"><a class="header" href="#what-is-statistical-power">What Is Statistical Power?</a></h2>
 <p>Power analysis sits at the intersection of four interconnected quantities:</p>
 <div class="table-wrapper">
@@ -495,7 +495,9 @@
 <li><strong>Ethical cost:</strong> Patients enrolled in clinical trials with no realistic chance of detecting a benefit</li>
 </ol>
 <blockquote>
-<p><strong>Clinical relevance:</strong> The FDA and EMA require power analyses for all clinical trial protocols. Journal reviewers increasingly require them for observational studies too. “How many samples do you need?” is the first question of good experimental design.</p>
+<p><strong>Practical relevance:</strong> Many protocols and funders require a justified sample
+size. Requirements depend on the study type and jurisdiction; document the
+assumptions, target effect, error rates, attrition, and analysis method.</p>
 </blockquote>
 <h2 id="experimental-design-in-biolang"><a class="header" href="#experimental-design-in-biolang">Experimental Design in BioLang</a></h2>
 <h3 id="basic-power-analysis-for-t-test"><a class="header" href="#basic-power-analysis-for-t-test">Basic Power Analysis for t-test</a></h3>
@@ -512,8 +514,8 @@ let sample_sizes = [5, 10, 15, 20, 30, 50, 75, 100]
 let n_simulations = 1000
 
 print("=== Power Analysis: Two-Sample t-test ===")
-print("Effect size (Cohen's d): {effect_size}")
-print("Alpha: {alpha}")
+print(f"Effect size (Cohen's d): {effect_size}")
+print(f"Alpha: {alpha}")
 print("")
 print("n per group    Estimated Power")
 
@@ -533,7 +535,7 @@ for n in sample_sizes {
 
     let power = significant / n_simulations
     let marker = if power &gt;= power_target { " &lt;-- sufficient" } else { "" }
-    print("{n}            {power |&gt; round(3)}{marker}")
+    print(f"{n}            {power |&gt; round(3)}{marker}")
 }
 </code></pre>
 <h3 id="power-curves-for-different-effect-sizes"><a class="header" href="#power-curves-for-different-effect-sizes">Power Curves for Different Effect Sizes</a></h3>
@@ -610,7 +612,7 @@ for fc in fold_changes {
         powers = powers + [detected / n_sims]
     }
 
-    print("{fc}     " ++ powers |&gt; map(|p| "{(p * 100) |&gt; round(0)}%") |&gt; join("   "))
+    print(f"{fc}     " ++ powers |&gt; map(|p| f"{(p * 100) |&gt; round(0)}%") |&gt; join("   "))
 }
 
 # Key takeaway: n=3 barely detects 4-fold changes;
@@ -645,10 +647,10 @@ for sim in 0..n_sims {
     }
 }
 
-print("=== Paired vs Unpaired Design (n={n}, d={effect}) ===")
-print("Unpaired power: {(power_unpaired / n_sims * 100) |&gt; round(1)}%")
-print("Paired power:   {(power_paired / n_sims * 100) |&gt; round(1)}%")
-print("Pairing advantage: {((power_paired - power_unpaired) / n_sims * 100) |&gt; round(1)} percentage points")
+print(f"=== Paired vs Unpaired Design (n={n}, d={effect}) ===")
+print(f"Unpaired power: {(power_unpaired * 100.0 / n_sims) |&gt; round(1)}%")
+print(f"Paired power:   {(power_paired * 100.0 / n_sims) |&gt; round(1)}%")
+print(f"Pairing advantage: {((power_paired - power_unpaired) * 100.0 / n_sims) |&gt; round(1)} percentage points")
 </code></pre>
 <h3 id="multi-group-design-anova"><a class="header" href="#multi-group-design-anova">Multi-Group Design (ANOVA)</a></h3>
 <pre><code class="language-bio">set_seed(42)
@@ -658,7 +660,7 @@ let k = 4  # number of groups
 let group_means = [0, 0.3, 0.6, 0.9]  # increasing effect
 let sample_sizes = [5, 10, 15, 20, 30]
 
-print("=== ANOVA Power (k={k} groups) ===")
+print(f"=== ANOVA Power (k={k} groups) ===")
 for n in sample_sizes {
     let sig = 0
 
@@ -672,7 +674,7 @@ for n in sample_sizes {
         if result.p_value &lt; 0.05 { sig = sig + 1 }
     }
 
-    print("n = {n} per group: power = {(sig / n_sims * 100) |&gt; round(1)}%")
+    print(f"n = {n} per group: power = {(sig * 100.0 / n_sims) |&gt; round(1)}%")
 }
 </code></pre>
 <h3 id="sample-size-recommendation-report"><a class="header" href="#sample-size-recommendation-report">Sample Size Recommendation Report</a></h3>
@@ -704,7 +706,7 @@ for s in scenarios {
         }
     }
 
-    print("{s.name}: n = {required_n}/group")
+    print(f"{s.name}: n = {required_n}/group")
 }
 
 print("")
@@ -861,7 +863,6 @@ library(simr)
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

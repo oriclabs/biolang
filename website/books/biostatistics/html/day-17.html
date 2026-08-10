@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,10 +179,13 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-17-survival-analysis--time-to-event-data"><a class="header" href="#day-17-survival-analysis--time-to-event-data">Day 17: Survival Analysis — Time-to-Event Data</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Dr. Elena Volkov is a cancer genomicist analyzing overall survival in 250 lung adenocarcinoma patients. She has tumor sequencing data and wants to answer: <strong>Do TP53-mutant patients survive longer than TP53 wild-type patients?</strong></p>
-<p>Her first attempt: compute the mean survival time for each group and run a t-test. But she immediately hits a wall. 40% of patients are <strong>still alive</strong> at the end of the study. Their survival time is <strong>at least</strong> 36 months — but she doesn’t know their actual survival time. Dropping these patients biases the analysis (the longest survivors are removed). Using 36 months as their survival time underestimates it.</p>
-<p>This is the problem of <strong>censoring</strong>, and it requires survival analysis.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching data:</strong> follow-up times are available for two groups, but
+40% of observations have not experienced the event by the end of follow-up.
+Their event times are not known; only a lower bound is known. How can we compare
+time-to-event patterns without discarding that information?</p>
+<p>This is <strong>right-censoring</strong>, the reason ordinary averages and t-tests are not
+appropriate for this question.</p>
 <h2 id="what-is-censoring"><a class="header" href="#what-is-censoring">What Is Censoring?</a></h2>
 <p><strong>Right-censoring</strong> occurs when the event of interest (death, relapse, progression) has not yet happened at the time of observation. The patient is lost to follow-up, the study ends, or they die of an unrelated cause.</p>
 <div class="table-wrapper">
@@ -301,7 +304,9 @@ At each event time tⱼ:</p>
 <h3 id="median-survival"><a class="header" href="#median-survival">Median Survival</a></h3>
 <p>The <strong>median survival</strong> is the time at which the KM curve crosses 0.50 — the point where half the patients have experienced the event. It is more robust than the mean because it is less affected by a few extreme values.</p>
 <blockquote>
-<p><strong>Clinical relevance:</strong> “Median overall survival was 18 months in the treatment arm versus 12 months in the control arm” is the standard way clinical trials report survival data. It’s the single most important number in oncology clinical trials.</p>
+<p><strong>Practical relevance:</strong> Median survival is useful when the Kaplan-Meier curve
+crosses 0.5 and follow-up supports the estimate. Also report uncertainty and
+consider the full curve, censoring pattern, and prespecified effect measure.</p>
 </blockquote>
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="380" viewbox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -460,8 +465,8 @@ for i in 0..n {
     }
 }
 
-print("Events: {status |&gt; sum} / {n} ({(status |&gt; sum) / n * 100 |&gt; round(1)}%)")
-print("Censored: {n - (status |&gt; sum)}")
+print(f"Events: {status |&gt; sum} / {n} ({(status |&gt; sum) * 100.0 / n |&gt; round(1)}%)")
+print(f"Censored: {n - (status |&gt; sum)}")
 
 # Fit Kaplan-Meier for each group
 let wt_times = []
@@ -481,8 +486,8 @@ for i in 0..n {
 let km_wt = kaplan_meier(wt_times, wt_status)
 let km_mut = kaplan_meier(mut_times, mut_status)
 
-print("Median survival (TP53 WT): {km_wt.median |&gt; round(1)} months")
-print("Median survival (TP53 mut): {km_mut.median |&gt; round(1)} months")
+print(f"Median survival (TP53 WT): {km_wt.median |&gt; round(1)} months")
+print(f"Median survival (TP53 mut): {km_mut.median |&gt; round(1)} months")
 </code></pre>
 <h3 id="kaplan-meier-plot"><a class="header" href="#kaplan-meier-plot">Kaplan-Meier Plot</a></h3>
 <pre><code class="language-bio"># Publication-quality survival curves
@@ -505,7 +510,7 @@ let km_all = kaplan_meier(survival_time, status)
 # Use Cox PH as a proxy for log-rank (equivalent for single binary predictor)
 let cox_lr = cox_ph(survival_time, status, [tp53_mut])
 print("=== Log-Rank Test (via Cox) ===")
-print("p-value: {cox_lr.p_value |&gt; round(4)}")
+print(f"p-value: {cox_lr.p_value |&gt; round(4)}")
 
 if cox_lr.p_value &lt; 0.05 {
     print("Significant difference in survival between TP53 groups")
@@ -524,19 +529,19 @@ let stage = rnorm(n, 2.5, 0.8) |&gt; map(|x| max(1, min(4, round(x))))
 let cox_simple = cox_ph(survival_time, status, [tp53_mut])
 
 print("=== Univariate Cox Model ===")
-print("TP53 Mutation HR: {cox_simple.hazard_ratio |&gt; round(2)}")
-print("  p-value: {cox_simple.p_value |&gt; round(4)}")
+print(f"TP53 Mutation HR: {cox_simple.hazard_ratio |&gt; round(2)}")
+print(f"  p-value: {cox_simple.p_value |&gt; round(4)}")
 
 # Multivariable Cox model — adjust for age and stage
 let cox_adjusted = cox_ph(survival_time, status, [tp53_mut, age, stage])
 
 print("\n=== Multivariable Cox Model ===")
-print("Hazard ratios: {cox_adjusted.hazard_ratios}")
-print("p-values: {cox_adjusted.p_values}")
+print(f"Hazard ratios: {cox_adjusted.hazard_ratios}")
+print(f"p-values: {cox_adjusted.p_values}")
 
 # Compare: does TP53 HR change after adjusting for stage?
-print("\nTP53 HR unadjusted: {cox_simple.hazard_ratio |&gt; round(2)}")
-print("TP53 HR adjusted:   {cox_adjusted.hazard_ratios[0] |&gt; round(2)}")
+print(f"\nTP53 HR unadjusted: {cox_simple.hazard_ratio |&gt; round(2)}")
+print(f"TP53 HR adjusted:   {cox_adjusted.hazard_ratios[0] |&gt; round(2)}")
 </code></pre>
 <h3 id="forest-plot-of-hazard-ratios"><a class="header" href="#forest-plot-of-hazard-ratios">Forest Plot of Hazard Ratios</a></h3>
 <pre><code class="language-bio"># Visualize all HRs from the multivariable model
@@ -819,7 +824,6 @@ let subtype = rnorm(n, 0, 1) |&gt; map(|x|
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

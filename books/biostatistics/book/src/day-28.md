@@ -7,9 +7,17 @@
 <span class="badge">Clinical Trial</span>
 </div>
 
-## The Problem
+## Practical question
 
-You are the lead biostatistician on ONCO-301, a Phase III randomized clinical trial of Drug X versus standard chemotherapy in patients with advanced non-small-cell lung cancer (NSCLC). Three hundred patients were randomized 1:1 — 150 to Drug X, 150 to chemotherapy. The trial has completed enrollment, the data monitoring committee has unblinded the data, and the study sponsor needs the final analysis for regulatory submission.
+**Synthetic teaching project:** a fictional two-arm time-to-event dataset has
+300 observations. The task is to assemble descriptive summaries, survival
+estimates, effect sizes, uncertainty, safety counts, and clearly labelled
+exploratory subgroup analyses.
+
+This is not a real trial, protocol, statistical analysis plan, or regulatory
+analysis. The simplified data are designed to connect methods from earlier
+chapters; real clinical-trial work requires a prespecified protocol, specialist
+review, validated software, and applicable guidance.
 
 You have four data tables:
 
@@ -25,11 +33,12 @@ The primary endpoint is PFS. Secondary endpoints are OS, overall response rate (
 - Subgroup analysis by PD-L1 expression, ECOG status, and smoking history
 - FDR correction for multiple adverse event comparisons
 
-This capstone integrates methods from across the book into a complete, publication-ready clinical trial report.
+This capstone integrates methods from across the book into a compact teaching
+report.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="140" viewBox="0 0 680 140" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
-  <text x="340" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">ONCO-301 Clinical Trial Flow</text>
+  <text x="340" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">Synthetic Trial Analysis Flow</text>
   <!-- Enrollment -->
   <rect x="15" y="50" width="88" height="44" rx="6" fill="#2563eb"/>
   <text x="59" y="68" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Enrollment</text>
@@ -65,7 +74,7 @@ This capstone integrates methods from across the book into a complete, publicati
   <path d="M 594 72 L 609 72" stroke="#6b7280" stroke-width="1.5" marker-end="url(#arrowCT28)"/>
   <!-- Report -->
   <rect x="611" y="56" width="56" height="32" rx="6" fill="#16a34a"/>
-  <text x="639" y="76" text-anchor="middle" font-size="10" fill="white" font-weight="bold">FDA</text>
+  <text x="639" y="76" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Review</text>
   <!-- Screening exclusion -->
   <text x="59" y="110" text-anchor="middle" font-size="9" fill="#6b7280" font-style="italic">150 excluded</text>
   <path d="M 59 94 L 59 103" stroke="#9ca3af" stroke-width="1" stroke-dasharray="2,2"/>
@@ -82,7 +91,7 @@ This capstone integrates methods from across the book into a complete, publicati
 ```bio
 set_seed(42)
 # ============================================
-# ONCO-301 Phase III Clinical Trial — Final Analysis
+# Synthetic two-arm trial — teaching analysis
 # Protocol: Drug X vs Standard Chemotherapy in Advanced NSCLC
 # Primary endpoint: Progression-Free Survival
 # ============================================
@@ -255,7 +264,10 @@ plot(km_rows, {type: "line", x: "time", y: "event",
   ylabel: "Survival Probability"})
 ```
 
-> **Clinical relevance:** The hazard ratio is the primary metric regulators examine. HR < 1 means the experimental arm has a lower rate of progression. HR = 0.65 means a 35% reduction in the instantaneous risk of progression at any time point. Both the HR point estimate and its confidence interval must exclude 1.0 for regulatory significance.
+> **Teaching interpretation:** Under a proportional-hazards model, HR = 0.65
+> compares the fitted instantaneous event rates between arms. It is not a 35%
+> reduction in an individual's probability of progression, and a confidence
+> interval crossing 1 is not the sole measure of clinical importance.
 
 ## Section 3: Secondary Endpoint — Tumor Response
 
@@ -627,7 +639,7 @@ print("R-squared: " + str(round(model.r_squared, 3)))
 ```bio
 # --- Compile report ---
 print("\n" + "=" * 65)
-print("ONCO-301 FINAL ANALYSIS — EXECUTIVE SUMMARY")
+print("SYNTHETIC TRIAL — TEACHING SUMMARY")
 print("=" * 65)
 
 print("\nPrimary Endpoint (PFS):")
@@ -736,12 +748,16 @@ fisher.test(matrix(c(orr_drug, 150-orr_drug, orr_chemo, 150-orr_chemo), nrow=2))
 ## Key Takeaways
 
 - A complete clinical trial analysis follows a structured pipeline: Table 1 (demographics), primary endpoint (survival), secondary endpoints (response, OS), safety, subgroup analysis, and multivariate modeling.
-- Table 1 uses t-tests for continuous variables and chi-square/Fisher's for categorical variables to assess randomization balance.
+- Table 1 describes baseline variables by arm. In a randomized trial, routine
+  significance tests of baseline balance are generally not informative because
+  any imbalance arose after a known randomization process.
 - Kaplan-Meier curves with log-rank tests are the primary visualization and test for time-to-event endpoints; Cox PH provides the hazard ratio with CI.
 - Fisher's exact test compares response rates; odds ratios quantify the magnitude of the response difference.
 - Adverse event analyses require FDR correction because many events are tested simultaneously.
 - Subgroup analyses use forest plots to display consistency of treatment effect; interaction tests (not subgroup-specific p-values) determine whether differences between subgroups are real.
-- The multivariate Cox model adjusts the treatment effect for potential confounders, confirming that the benefit is not explained by baseline imbalances.
+- An adjusted Cox model estimates a conditional association under its model;
+  it does not by itself confirm causality or prove that no baseline factor
+  explains the result.
 - Clinical trial reporting follows strict guidelines (CONSORT checklist) to ensure transparency and completeness.
 
 ## What's Next

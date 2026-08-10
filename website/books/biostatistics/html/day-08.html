@@ -8,7 +8,7 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="From zero to biostatistician — statistics for genomics with BioLang, Python, and R">
+        <meta name="description" content="A calm, practical introduction to statistics for biological data with BioLang">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -28,7 +28,7 @@
         <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
-        <link rel="stylesheet" href="theme/print-1b969532.css">
+        <link rel="stylesheet" href="theme/print-2da4f22a.css">
 
 
         <!-- Provide site root and default themes to javascript -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-7983529b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-f297d325.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,9 +179,13 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-8-comparing-two-groups--the-t-test"><a class="header" href="#day-8-comparing-two-groups--the-t-test">Day 8: Comparing Two Groups — The t-Test</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Dr. Sofia Reyes is a cancer biologist studying BRCA1 expression in breast tissue. She has RNA-seq data from 12 tumor samples and 12 matched normal samples from the same patients. The mean BRCA1 expression in tumors is 4.2 log2-CPM versus 6.8 log2-CPM in normals — a 2.6-fold reduction. But with only 12 samples per group and considerable biological variability, can she confidently claim BRCA1 is downregulated in tumors?</p>
-<p>She cannot use a z-test because the population standard deviation is unknown — she must estimate it from the data itself. She needs the <strong>t-test</strong>, the most widely used statistical test in biomedical research. But which version? Her samples are paired (tumor and normal from the same patient), which adds another consideration. And before running any test, she should verify that the data meet the test’s assumptions.</p>
+<h2 id="practical-question"><a class="header" href="#practical-question">Practical question</a></h2>
+<p><strong>Synthetic teaching data:</strong> expression is measured in paired tumour and nearby
+normal samples from the same 12 individuals. Is the average within-person
+difference distinguishable from ordinary variation, and how large is it?</p>
+<p>The pairing is part of the design, not a software option to choose afterward.
+A paired t-test works with the 12 within-person differences. Independent data,
+unequal variances, or strongly problematic differences require other choices.</p>
 <p>This chapter covers the t-test in all its forms: independent, Welch’s, paired, and one-sample. You will learn when each is appropriate, how to check assumptions, and how to quantify the magnitude of differences with Cohen’s d.</p>
 <h2 id="what-is-the-t-test"><a class="header" href="#what-is-the-t-test">What Is the t-Test?</a></h2>
 <p>The t-test asks: “Is the difference between two group means larger than what we would expect from random sampling variation alone?”</p>
@@ -422,7 +426,10 @@
 </table>
 </div>
 <blockquote>
-<p><strong>Key insight:</strong> A large p-value with a large Cohen’s d suggests you are underpowered — you may have a real effect but too few samples to detect it. A small p-value with a tiny Cohen’s d suggests the effect, while real, may not be biologically meaningful.</p>
+<p><strong>Key insight:</strong> A large estimated effect with a wide interval is uncertain;
+it may shrink, persist, or change direction in new data. A small p-value with
+a tiny estimated effect may have little biological importance. Interpret the
+estimate and interval together.</p>
 </blockquote>
 <h2 id="the-t-test-in-biolang"><a class="header" href="#the-t-test-in-biolang">The t-Test in BioLang</a></h2>
 <h3 id="independent-two-sample-t-test-gene-expression"><a class="header" href="#independent-two-sample-t-test-gene-expression">Independent Two-Sample t-Test: Gene Expression</a></h3>
@@ -433,15 +440,15 @@ let normal = [6.2, 7.1, 6.5, 7.4, 6.8, 7.0, 6.3, 7.2, 6.9, 6.6, 7.3, 6.1]
 # Default: Welch's t-test (unequal variances)
 let result = ttest(tumor, normal)
 print("=== Welch's t-test: BRCA1 Tumor vs Normal ===")
-print("t-statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
-print("Degrees of freedom: {result.df:.1}")
-print("Mean tumor: {mean(tumor):.2}, Mean normal: {mean(normal):.2}")
-print("Difference: {mean(tumor) - mean(normal):.2} log2-CPM")
+print(f"t-statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
+print(f"Degrees of freedom: {result.df:.1}")
+print(f"Mean tumor: {mean(tumor):.2}, Mean normal: {mean(normal):.2}")
+print(f"Difference: {mean(tumor) - mean(normal):.2} log2-CPM")
 
 # Effect size (Cohen's d inline)
 let d = (mean(tumor) - mean(normal)) / sqrt((variance(tumor) + variance(normal)) / 2.0)
-print("Cohen's d: {d:.3}")
+print(f"Cohen's d: {d:.3}")
 
 # Visualize
 let bp_table = table({"Tumor": tumor, "Normal": normal})
@@ -455,12 +462,12 @@ let normal = [6.2, 7.1, 6.5, 7.4, 6.8, 7.0, 6.3, 7.2, 6.9, 6.6, 7.3, 6.1]
 # (no built-in Shapiro-Wilk; use QQ plots + summary stats)
 let s_tumor = summary(tumor)
 let s_normal = summary(normal)
-print("Tumor summary:  {s_tumor}")
-print("Normal summary: {s_normal}")
+print(f"Tumor summary:  {s_tumor}")
+print(f"Normal summary: {s_normal}")
 
 # 2. Equal variance check: compare variances from summary()
 let var_ratio = variance(tumor) / variance(normal)
-print("Variance ratio (tumor/normal): {var_ratio:.3}")
+print(f"Variance ratio (tumor/normal): {var_ratio:.3}")
 if var_ratio &gt; 2.0 or var_ratio &lt; 0.5 {
   print("Variances appear unequal -&gt; use Welch's t-test (the default)")
 } else {
@@ -480,18 +487,18 @@ let after  = [180, 245, 165, 298, 220, 350, 132, 270, 210, 248]
 # Paired t-test: accounts for patient-to-patient variability
 let result = ttest_paired(before, after)
 print("=== Paired t-test: Tumor Volume Before vs After Treatment ===")
-print("t-statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.6}")
+print(f"t-statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.6}")
 
 # Show the paired differences
 let diffs = zip(before, after) |&gt; map(|pair| pair[0] - pair[1])
-print("Mean reduction: {mean(diffs):.1} mm^3")
-print("Individual reductions: {diffs}")
+print(f"Mean reduction: {mean(diffs):.1} mm^3")
+print(f"Individual reductions: {diffs}")
 
 # Compare: what if we wrongly used an independent t-test?
 let wrong_result = ttest(before, after)
-print("\nWrong (independent) t-test p-value: {wrong_result.p_value:.6}")
-print("Correct (paired) t-test p-value: {result.p_value:.6}")
+print(f"\nWrong (independent) t-test p-value: {wrong_result.p_value:.6}")
+print(f"Correct (paired) t-test p-value: {result.p_value:.6}")
 print("Paired test is more powerful because it removes inter-patient variability")
 
 # Visualize paired differences
@@ -504,9 +511,9 @@ let gc_per_contig = [40.2, 41.5, 39.8, 42.1, 40.7, 41.3, 39.5, 42.4,
 
 let result = ttest_one(gc_per_contig, 41.0)
 print("=== One-sample t-test: GC Content vs Expected 41% ===")
-print("Sample mean: {mean(gc_per_contig):.2}%")
-print("t-statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.4}")
+print(f"Sample mean: {mean(gc_per_contig):.2}%")
+print(f"t-statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.4}")
 
 if result.p_value &gt; 0.05 {
   print("No significant deviation from expected GC content")
@@ -539,7 +546,7 @@ for i in 0..len(genes) {
   let result = ttest(tumor_expr[i], normal_expr[i])
   let d = (mean(tumor_expr[i]) - mean(normal_expr[i])) / sqrt((variance(tumor_expr[i]) + variance(normal_expr[i])) / 2.0)
   let interp = if abs(d) &gt; 0.8 then "Large" else if abs(d) &gt; 0.5 then "Medium" else "Small"
-  print("{genes[i]:&lt;10} | {result.statistic:&gt;6.2} | {result.p_value:&gt;10.2e} | {d:&gt;9.3} | {interp}")
+  print(f"{genes[i]:&lt;10} | {result.statistic:&gt;6.2} | {result.p_value:&gt;10.2e} | {d:&gt;9.3} | {interp}")
 }
 </code></pre>
 <p><strong>Python:</strong></p>
@@ -629,7 +636,9 @@ let control   = [0.8, 0.5, 0.9, 0.3, 1.1, 0.7, 0.4, 0.6, 1.0, 0.2]
 <li>Always <strong>check assumptions</strong>: Shapiro-Wilk for normality, Levene’s for equal variances, QQ plots for visual inspection</li>
 <li><strong>Cohen’s d</strong> quantifies effect size independently of sample size: 0.2 = small, 0.5 = medium, 0.8 = large</li>
 <li>A significant t-test with a small Cohen’s d may not be biologically meaningful</li>
-<li>A non-significant t-test with a large Cohen’s d suggests you need more samples</li>
+<li>A non-significant test with a large estimated effect calls for checking the
+interval, design, data quality, and plausibility—not an automatic decision to
+collect more samples</li>
 </ul>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
 <p>What happens when your data violate the normality assumption? Cytokine levels, bacterial abundances, and many other biological measurements are wildly skewed. Tomorrow we introduce non-parametric tests — rank-based alternatives to the t-test that make no assumptions about the shape of your data distribution.</p>
@@ -686,7 +695,6 @@ let control   = [0.8, 0.5, 0.9, 0.3, 1.1, 0.7, 0.4, 0.6, 1.0, 0.2]
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 

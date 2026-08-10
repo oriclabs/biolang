@@ -1,10 +1,14 @@
 # Day 14: Linear Regression — Prediction from Data
 
-## The Problem
+## Practical question
 
-Dr. James Park is a pharmacogenomicist working with the NCI-60 cell line panel — 60 cancer cell lines spanning 9 tissue types. He has gene expression data and drug sensitivity measurements (IC50 values) for each line. His question: **Can we predict how sensitive a cell line will be to a new kinase inhibitor based on its expression of the drug's target gene?**
+**Synthetic teaching data shaped like a cell-line screen:** target-gene
+expression and drug IC50 are measured for 60 cell lines. Given a new cell line
+within the observed expression range, what IC50 does a straight-line model
+predict, and how uncertain is that prediction?
 
-He knows the target gene and IC50 seem correlated (Day 13 confirmed r = -0.72). But correlation just says "they move together." James needs to go further: given a **new cell line** with a known expression level, what IC50 should he **predict**? And how confident should he be?
+Correlation summarizes co-variation. Regression adds an explicit prediction
+model whose residuals, range of use, and validation must be checked.
 
 This is the leap from **association** to **prediction** — the domain of linear regression.
 

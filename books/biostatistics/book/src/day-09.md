@@ -1,12 +1,16 @@
-# Day 9: When Normality Fails — Non-Parametric Tests
+# Day 9: Rank-Based Comparisons
 
-## The Problem
+## Practical question
 
-Dr. Maria Gonzalez studies the gut microbiome in inflammatory bowel disease (IBD). She has 16S rRNA sequencing data from 15 IBD patients and 15 healthy controls, measuring the relative abundance of *Faecalibacterium prausnitzii*, a key anti-inflammatory bacterium. Looking at the data, she sees a mess: most values cluster near zero, a few patients have moderate levels, and one healthy individual has an enormous abundance of 45%. The histogram looks nothing like a bell curve — it is right-skewed with a long tail.
+**Synthetic teaching data:** relative-abundance measurements are concentrated
+near zero with a long right tail. A mean may not describe the typical sample
+well. Can a rank-based comparison answer a useful group question without
+requiring a normal model for the raw values?
 
-She runs a Shapiro-Wilk test on each group: both return p < 0.001, firmly rejecting normality. The t-test assumes normally distributed data. With data this skewed, the t-test's p-value could be wildly inaccurate — too liberal or too conservative, depending on the specific pattern. She needs tests that work without any assumptions about the shape of the distribution.
-
-These are **non-parametric tests**: methods that operate on the *ranks* of data rather than the raw values, making them robust to skewness, outliers, and any distributional shape.
+Rank-based methods reduce sensitivity to extreme magnitudes, but they are not
+assumption-free and do not automatically test a difference in medians. The
+study design, independence, distribution shapes, ties, and the scientific
+question still matter.
 
 ## What Are Non-Parametric Tests?
 
@@ -16,11 +20,11 @@ Non-parametric tests replace raw data values with their **ranks** (1st smallest,
 
 | Property | Parametric (t-test) | Non-parametric (rank-based) |
 |---|---|---|
-| Assumes normality | Yes | No |
-| Sensitive to outliers | Very | Resistant |
+| Uses a normal-model assumption | Often | No normal model for raw values |
+| Sensitive to extreme magnitudes | More | Less |
 | Uses raw values | Yes | Uses ranks |
 | Power (normal data) | Highest | Slightly lower (~95%) |
-| Power (non-normal data) | Unreliable | Reliable |
+| Performance on non-normal data | Depends on design and sample size | Often useful, but still assumption-dependent |
 | Handles ordinal data | No | Yes |
 
 > **Key insight:** Non-parametric tests are not "worse" versions of parametric tests. They are the correct choice when distributional assumptions are violated. Using a t-test on heavily skewed data is like measuring temperature with a ruler — you might get a number, but it doesn't mean anything.

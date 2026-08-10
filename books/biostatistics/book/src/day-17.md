@@ -1,12 +1,14 @@
 # Day 17: Survival Analysis — Time-to-Event Data
 
-## The Problem
+## Practical question
 
-Dr. Elena Volkov is a cancer genomicist analyzing overall survival in 250 lung adenocarcinoma patients. She has tumor sequencing data and wants to answer: **Do TP53-mutant patients survive longer than TP53 wild-type patients?**
+**Synthetic teaching data:** follow-up times are available for two groups, but
+40% of observations have not experienced the event by the end of follow-up.
+Their event times are not known; only a lower bound is known. How can we compare
+time-to-event patterns without discarding that information?
 
-Her first attempt: compute the mean survival time for each group and run a t-test. But she immediately hits a wall. 40% of patients are **still alive** at the end of the study. Their survival time is **at least** 36 months — but she doesn't know their actual survival time. Dropping these patients biases the analysis (the longest survivors are removed). Using 36 months as their survival time underestimates it.
-
-This is the problem of **censoring**, and it requires survival analysis.
+This is **right-censoring**, the reason ordinary averages and t-tests are not
+appropriate for this question.
 
 ## What Is Censoring?
 
@@ -120,7 +122,9 @@ Where:
 
 The **median survival** is the time at which the KM curve crosses 0.50 — the point where half the patients have experienced the event. It is more robust than the mean because it is less affected by a few extreme values.
 
-> **Clinical relevance:** "Median overall survival was 18 months in the treatment arm versus 12 months in the control arm" is the standard way clinical trials report survival data. It's the single most important number in oncology clinical trials.
+> **Practical relevance:** Median survival is useful when the Kaplan-Meier curve
+> crosses 0.5 and follow-up supports the estimate. Also report uncertainty and
+> consider the full curve, censoring pattern, and prespecified effect measure.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="380" viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
