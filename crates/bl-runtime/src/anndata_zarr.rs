@@ -376,7 +376,12 @@ fn read_anndata_dir(root: &Path) -> Result<Value> {
         } else {
             sparse_from_csr(data, indices, indptr, n_obs, n_var)?
         };
-        (Value::SparseMatrix(std::sync::Arc::new(sparse)), n_obs, n_var, true)
+        (
+            Value::SparseMatrix(std::sync::Arc::new(sparse)),
+            n_obs,
+            n_var,
+            true,
+        )
     } else {
         return Err(io_err(format!(
             "no X array or group under {}",
@@ -818,7 +823,10 @@ mod tests {
         matrix.row_names = Some(vec!["CELL_1".into(), "CELL_2".into()]);
         matrix.col_names = Some(vec!["GeneA".into(), "GeneB".into(), "GeneC".into()]);
         let mut rec = HashMap::new();
-        rec.insert("matrix".into(), Value::SparseMatrix(std::sync::Arc::new(matrix)));
+        rec.insert(
+            "matrix".into(),
+            Value::SparseMatrix(std::sync::Arc::new(matrix)),
+        );
         rec.insert(
             "genes".into(),
             Value::List(

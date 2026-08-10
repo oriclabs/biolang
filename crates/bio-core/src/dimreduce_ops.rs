@@ -159,9 +159,9 @@ pub fn tsne(
     embeddings
 }
 
-/// Simplified UMAP implementation.
+/// UMAP with the paper's fuzzy-neighbour graph and cross-entropy optimiser.
 ///
-/// Uses k-nearest neighbors graph + force-directed layout.
+/// This compatibility wrapper preserves the original public Rust API.
 pub fn umap(
     data: &[Vec<f64>],
     n_components: usize,
@@ -169,9 +169,37 @@ pub fn umap(
     n_epochs: usize,
     min_dist: f64,
 ) -> Vec<Vec<f64>> {
+    umap_configured(
+        data,
+        n_components,
+        n_neighbors,
+        n_epochs,
+        min_dist,
+        1.0,
+        "euclidean",
+        42,
+        5,
+    )
+}
+
+/// Paper-derived UMAP implementation with explicit reproducibility options.
+pub fn umap_configured(
+    data: &[Vec<f64>],
+    n_components: usize,
+    n_neighbors: usize,
+    n_epochs: usize,
+    min_dist: f64,
+    spread: f64,
+    metric: &str,
+    seed: u64,
+    negative_sample_rate: usize,
+) -> Vec<Vec<f64>> {
     let n = data.len();
     if n == 0 {
         return vec![];
+    }
+    if n == 1 {
+        return vec![vec![0.0; n_components]];
     }
     let k = n_neighbors.min(n - 1).max(1);
 
@@ -179,12 +207,7 @@ pub fn umap(
     let mut dists = vec![vec![0.0f64; n]; n];
     for i in 0..n {
         for j in (i + 1)..n {
-            let d: f64 = data[i]
-                .iter()
-                .zip(&data[j])
-                .map(|(a, b)| (a - b).powi(2))
-                .sum::<f64>()
-                .sqrt();
+            let d = input_distance(&data[i], &data[j], metric);
             dists[i][j] = d;
             dists[j][i] = d;
         }
@@ -203,7 +226,7 @@ pub fn umap(
         let rho = neighbors.first().map(|n| n.1).unwrap_or(0.0);
         // Binary search for sigma
         let mut sigma = 1.0f64;
-        let target = (k as f64).ln();
+        let target = (k as f64).log2();
         let mut lo = 1e-10f64;
         let mut hi = 1e4f64;
         for _ in 0..64 {
@@ -234,22 +257,8 @@ pub fn umap(
         }
     }
 
-    // Initialize embeddings with spectral-like initialization (simple: scaled random)
-    let mut rng_state = 42u64;
-    let mut embeddings = vec![vec![0.0f64; n_components]; n];
-    for row in &mut embeddings {
-        for val in row.iter_mut() {
-            rng_state = rng_state
-                .wrapping_mul(6364136223846793005)
-                .wrapping_add(1442695040888963407);
-            // Compact start. Reference UMAP initialises spectrally, which
-            // begins already roughly organised; scattering points across ±5
-            // instead leaves 200 epochs to both organise and separate them,
-            // and they only half-manage. Starting inside ±0.5 lets attraction
-            // form the groups early and repulsion push them apart after.
-            *val = (rng_state >> 33) as f64 / u32::MAX as f64 - 0.5;
-        }
-    }
+    let mut rng_state = seed.max(1);
+    let mut embeddings = spectral_initialisation(&graph, n_components, &mut rng_state);
 
     // Optimize layout.
     //
@@ -262,9 +271,7 @@ pub fn umap(
     //
     // Repulsion over all pairs would be O(n^2) per epoch. Real UMAP samples a
     // few negative pairs per positive edge instead, which is what this does.
-    let a = 1.0 / (1.0 + min_dist.powi(2));
-    let b = 1.0;
-    const NEGATIVE_SAMPLES: usize = 5;
+    let (a, b) = fit_ab(spread.max(1e-6), min_dist.max(0.0));
     const INITIAL_ALPHA: f64 = 1.0;
 
     // Positive edges, once — iterating the dense graph every epoch was most of
@@ -298,7 +305,10 @@ pub fn umap(
             rng_state = rng_state
                 .wrapping_mul(6364136223846793005)
                 .wrapping_add(1442695040888963407);
-            let draw = ((rng_state >> 33) as f64) / (u32::MAX as f64);
+            // Use all 32 high bits. Shifting by 33 but dividing by u32::MAX
+            // restricted draws to [0, 0.5], roughly doubling every edge's
+            // sampling probability and distorting the UMAP objective.
+            let draw = ((rng_state >> 32) as f64) / (u32::MAX as f64);
             if draw > w {
                 continue;
             }
@@ -312,11 +322,11 @@ pub fn umap(
             }
 
             // ── repulsion, against random non-neighbours ──
-            for _ in 0..NEGATIVE_SAMPLES {
+            for _ in 0..negative_sample_rate {
                 rng_state = rng_state
                     .wrapping_mul(6364136223846793005)
                     .wrapping_add(1442695040888963407);
-                let k = ((rng_state >> 33) as usize) % n;
+                let k = ((rng_state >> 32) as usize) % n;
                 if k == i {
                     continue;
                 }
@@ -326,8 +336,7 @@ pub fn umap(
                     .map(|(x, y)| (x - y).powi(2))
                     .sum::<f64>()
                     .max(1e-10);
-                let grad =
-                    2.0 * b / ((0.001 + dist_sq) * (1.0 + a * dist_sq.powf(b)));
+                let grad = 2.0 * b / ((0.001 + dist_sq) * (1.0 + a * dist_sq.powf(b)));
                 let coeff = grad * alpha;
                 for d in 0..n_components {
                     let diff = embeddings[i][d] - embeddings[k][d];
@@ -339,6 +348,351 @@ pub fn umap(
     }
 
     embeddings
+}
+
+/// UMAP from a directed k-nearest-neighbour list.
+///
+/// Rows contain `(cell_index, distance)` pairs. Keeping approximate indexing
+/// outside the optimiser makes the fuzzy-set and cross-entropy implementation
+/// reusable without ever allocating an n-by-n matrix.
+pub fn umap_from_knn(
+    neighbours: &[Vec<(usize, f64)>],
+    n_components: usize,
+    n_epochs: usize,
+    min_dist: f64,
+    spread: f64,
+    seed: u64,
+    negative_sample_rate: usize,
+) -> Vec<Vec<f64>> {
+    use std::collections::{BTreeMap, BTreeSet};
+
+    let n = neighbours.len();
+    if n == 0 {
+        return vec![];
+    }
+    if n == 1 {
+        return vec![vec![0.0; n_components]];
+    }
+
+    let mut directed: BTreeMap<(usize, usize), f64> = BTreeMap::new();
+    for (i, row) in neighbours.iter().enumerate() {
+        let valid: Vec<(usize, f64)> = row
+            .iter()
+            .copied()
+            .filter(|(j, distance)| *j < n && *j != i && distance.is_finite())
+            .collect();
+        if valid.is_empty() {
+            continue;
+        }
+        let rho = valid
+            .iter()
+            .map(|(_, distance)| *distance)
+            .fold(f64::INFINITY, f64::min);
+        let target = (valid.len() as f64).log2();
+        let mut lo = 1e-10_f64;
+        let mut hi = 1e4_f64;
+        let mut sigma = 1.0_f64;
+        for _ in 0..64 {
+            sigma = (lo + hi) / 2.0;
+            let sum: f64 = valid
+                .iter()
+                .map(|(_, distance)| (-((distance - rho).max(0.0)) / sigma).exp())
+                .sum();
+            if sum > target {
+                hi = sigma;
+            } else {
+                lo = sigma;
+            }
+        }
+        for &(j, distance) in &valid {
+            let weight = (-((distance - rho).max(0.0)) / sigma).exp();
+            directed.insert((i, j), weight);
+        }
+    }
+
+    // Fuzzy union: a + b - ab. BTree containers make edge order and therefore
+    // stochastic optimisation deterministic for a fixed seed.
+    let mut pairs = BTreeSet::new();
+    for &(i, j) in directed.keys() {
+        pairs.insert((i.min(j), i.max(j)));
+    }
+    let edges: Vec<(usize, usize, f64)> = pairs
+        .into_iter()
+        .filter_map(|(i, j)| {
+            let forward = directed.get(&(i, j)).copied().unwrap_or(0.0);
+            let reverse = directed.get(&(j, i)).copied().unwrap_or(0.0);
+            let union = forward + reverse - forward * reverse;
+            (union > 0.0).then_some((i, j, union))
+        })
+        .collect();
+
+    let mut rng_state = seed.max(1);
+    let mut embeddings = spectral_initialisation_sparse(n, &edges, n_components, &mut rng_state);
+    let (a, b) = fit_ab(spread.max(1e-6), min_dist.max(0.0));
+    let clamp_to = 4.0_f64;
+
+    for epoch in 0..n_epochs {
+        let alpha = 1.0 - epoch as f64 / n_epochs.max(1) as f64;
+        for &(i, j, weight) in &edges {
+            rng_state = rng_state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            let draw = ((rng_state >> 32) as f64) / u32::MAX as f64;
+            if draw > weight {
+                continue;
+            }
+
+            let distance_squared = embeddings[i]
+                .iter()
+                .zip(&embeddings[j])
+                .map(|(x, y)| (x - y).powi(2))
+                .sum::<f64>()
+                .max(1e-10);
+            let gradient = -2.0 * a * b * distance_squared.powf(b - 1.0)
+                / (1.0 + a * distance_squared.powf(b));
+            for dimension in 0..n_components {
+                let difference = embeddings[i][dimension] - embeddings[j][dimension];
+                let step = (gradient * alpha * difference).clamp(-clamp_to, clamp_to);
+                embeddings[i][dimension] += step;
+                embeddings[j][dimension] -= step;
+            }
+
+            for _ in 0..negative_sample_rate {
+                rng_state = rng_state
+                    .wrapping_mul(6364136223846793005)
+                    .wrapping_add(1442695040888963407);
+                let negative = ((rng_state >> 32) as usize) % n;
+                if negative == i {
+                    continue;
+                }
+                let distance_squared = embeddings[i]
+                    .iter()
+                    .zip(&embeddings[negative])
+                    .map(|(x, y)| (x - y).powi(2))
+                    .sum::<f64>()
+                    .max(1e-10);
+                let gradient =
+                    2.0 * b / ((0.001 + distance_squared) * (1.0 + a * distance_squared.powf(b)));
+                for dimension in 0..n_components {
+                    let difference = embeddings[i][dimension] - embeddings[negative][dimension];
+                    let step = (gradient * alpha * difference).clamp(-clamp_to, clamp_to);
+                    embeddings[i][dimension] += step;
+                }
+            }
+        }
+    }
+    embeddings
+}
+
+fn input_distance(a: &[f64], b: &[f64], metric: &str) -> f64 {
+    if metric.eq_ignore_ascii_case("cosine") {
+        let dot: f64 = a.iter().zip(b).map(|(x, y)| x * y).sum();
+        let na: f64 = a.iter().map(|x| x * x).sum::<f64>().sqrt();
+        let nb: f64 = b.iter().map(|x| x * x).sum::<f64>().sqrt();
+        if na <= 1e-15 || nb <= 1e-15 {
+            return if na <= 1e-15 && nb <= 1e-15 { 0.0 } else { 1.0 };
+        }
+        return (1.0 - dot / (na * nb)).clamp(0.0, 2.0);
+    }
+    a.iter()
+        .zip(b)
+        .map(|(x, y)| (x - y) * (x - y))
+        .sum::<f64>()
+        .sqrt()
+}
+
+/// Fit UMAP's differentiable distance curve to the target defined by spread
+/// and min_dist. Gradient descent is over log(a), log(b), keeping both positive.
+fn fit_ab(spread: f64, min_dist: f64) -> (f64, f64) {
+    let mut log_a = 0.0_f64;
+    let mut log_b = 0.0_f64;
+    const SAMPLES: usize = 300;
+    for iteration in 0..2000 {
+        let a = log_a.exp();
+        let b = log_b.exp();
+        let mut grad_a = 0.0;
+        let mut grad_b = 0.0;
+        for index in 1..=SAMPLES {
+            let x = spread * 3.0 * index as f64 / SAMPLES as f64;
+            let target = if x <= min_dist {
+                1.0
+            } else {
+                (-(x - min_dist) / spread).exp()
+            };
+            let power = x.powf(2.0 * b);
+            let denominator = 1.0 + a * power;
+            let predicted = 1.0 / denominator;
+            let error = predicted - target;
+            let d_da = -a * power / (denominator * denominator);
+            let d_db = if x > 0.0 {
+                -a * power * 2.0 * b * x.ln() / (denominator * denominator)
+            } else {
+                0.0
+            };
+            grad_a += 2.0 * error * d_da;
+            grad_b += 2.0 * error * d_db;
+        }
+        let rate = 0.5 / (SAMPLES as f64 * (1.0 + iteration as f64 / 500.0));
+        log_a = (log_a - rate * grad_a).clamp(-8.0, 8.0);
+        log_b = (log_b - rate * grad_b).clamp(-4.0, 4.0);
+    }
+    (log_a.exp(), log_b.exp())
+}
+
+/// Leading non-trivial eigenvectors of the normalised fuzzy adjacency.
+fn spectral_initialisation_sparse(
+    n: usize,
+    edges: &[(usize, usize, f64)],
+    n_components: usize,
+    rng_state: &mut u64,
+) -> Vec<Vec<f64>> {
+    let mut degree = vec![0.0_f64; n];
+    for &(i, j, weight) in edges {
+        degree[i] += weight;
+        degree[j] += weight;
+    }
+    for value in &mut degree {
+        *value = value.max(1e-12);
+    }
+    let trivial: Vec<f64> = {
+        let mut vector: Vec<f64> = degree.iter().map(|value| value.sqrt()).collect();
+        normalise(&mut vector);
+        vector
+    };
+    let mut vectors: Vec<Vec<f64>> = (0..n_components)
+        .map(|component| {
+            (0..n)
+                .map(|cell| (((cell + 1) * (component + 1)) as f64 * 1.618_033_988_75).sin())
+                .collect()
+        })
+        .collect();
+    orthogonalise_vectors(&mut vectors, &trivial);
+    for _ in 0..100 {
+        let mut next = Vec::with_capacity(vectors.len());
+        for vector in &vectors {
+            let mut out = vec![0.0; n];
+            for &(i, j, weight) in edges {
+                let normalised = weight / (degree[i] * degree[j]).sqrt();
+                out[i] += normalised * vector[j];
+                out[j] += normalised * vector[i];
+            }
+            next.push(out);
+        }
+        orthogonalise_vectors(&mut next, &trivial);
+        vectors = next;
+    }
+
+    let largest = vectors
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max)
+        .max(1e-12);
+    (0..n)
+        .map(|cell| {
+            vectors
+                .iter()
+                .map(|vector| {
+                    *rng_state = rng_state
+                        .wrapping_mul(6364136223846793005)
+                        .wrapping_add(1442695040888963407);
+                    let jitter = ((*rng_state >> 33) as f64 / u32::MAX as f64 - 0.5) * 1e-4;
+                    vector[cell] / largest * 10.0 + jitter
+                })
+                .collect()
+        })
+        .collect()
+}
+
+fn spectral_initialisation(
+    graph: &[Vec<f64>],
+    n_components: usize,
+    rng_state: &mut u64,
+) -> Vec<Vec<f64>> {
+    let n = graph.len();
+    let degree: Vec<f64> = graph
+        .iter()
+        .map(|row| row.iter().sum::<f64>().max(1e-12))
+        .collect();
+    let trivial: Vec<f64> = {
+        let mut vector: Vec<f64> = degree.iter().map(|d| d.sqrt()).collect();
+        normalise(&mut vector);
+        vector
+    };
+    let mut vectors: Vec<Vec<f64>> = (0..n_components)
+        .map(|component| {
+            (0..n)
+                .map(|cell| (((cell + 1) * (component + 1)) as f64 * 1.618_033_988_75).sin())
+                .collect()
+        })
+        .collect();
+    orthogonalise_vectors(&mut vectors, &trivial);
+    for _ in 0..100 {
+        let mut next = Vec::with_capacity(vectors.len());
+        for vector in &vectors {
+            let mut out = vec![0.0; n];
+            for i in 0..n {
+                for j in 0..n {
+                    let weight = graph[i][j];
+                    if weight > 0.0 {
+                        out[i] += weight * vector[j] / (degree[i] * degree[j]).sqrt();
+                    }
+                }
+            }
+            next.push(out);
+        }
+        orthogonalise_vectors(&mut next, &trivial);
+        vectors = next;
+    }
+
+    let largest = vectors
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max)
+        .max(1e-12);
+    (0..n)
+        .map(|cell| {
+            vectors
+                .iter()
+                .map(|vector| {
+                    *rng_state = rng_state
+                        .wrapping_mul(6364136223846793005)
+                        .wrapping_add(1442695040888963407);
+                    let jitter = ((*rng_state >> 33) as f64 / u32::MAX as f64 - 0.5) * 1e-4;
+                    vector[cell] / largest * 10.0 + jitter
+                })
+                .collect()
+        })
+        .collect()
+}
+
+fn orthogonalise_vectors(vectors: &mut [Vec<f64>], trivial: &[f64]) {
+    for i in 0..vectors.len() {
+        subtract_projection(&mut vectors[i], trivial);
+        let (before, after) = vectors.split_at_mut(i);
+        let current = &mut after[0];
+        for basis in before.iter() {
+            subtract_projection(current, basis);
+        }
+        normalise(current);
+    }
+}
+
+fn subtract_projection(vector: &mut [f64], basis: &[f64]) {
+    let coefficient: f64 = vector.iter().zip(basis).map(|(a, b)| a * b).sum();
+    for (value, direction) in vector.iter_mut().zip(basis) {
+        *value -= coefficient * direction;
+    }
+}
+
+fn normalise(vector: &mut [f64]) {
+    let norm = vector.iter().map(|value| value * value).sum::<f64>().sqrt();
+    if norm > 1e-15 {
+        for value in vector {
+            *value /= norm;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -413,9 +767,32 @@ mod umap_layout_tests {
         // The failure mode directly: a blob passes any "did it run" check.
         let embedding = umap(&three_clumps(), 2, 15, 200, 0.1);
         let xs: Vec<f64> = embedding.iter().map(|r| r[0]).collect();
-        let extent = xs.iter().fold(f64::MIN, |m, v| m.max(*v))
-            - xs.iter().fold(f64::MAX, |m, v| m.min(*v));
+        let extent =
+            xs.iter().fold(f64::MIN, |m, v| m.max(*v)) - xs.iter().fold(f64::MAX, |m, v| m.min(*v));
         assert!(extent > 1.0, "embedding spans only {extent:.3}");
+    }
+
+    #[test]
+    fn sparse_knn_entry_point_preserves_separated_groups() {
+        let data = three_clumps();
+        let neighbours: Vec<Vec<(usize, f64)>> = (0..data.len())
+            .map(|i| {
+                let mut row: Vec<(usize, f64)> = (0..data.len())
+                    .filter(|&j| j != i)
+                    .map(|j| (j, input_distance(&data[i], &data[j], "euclidean")))
+                    .collect();
+                row.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
+                row.truncate(15);
+                row
+            })
+            .collect();
+        let embedding = umap_from_knn(&neighbours, 2, 200, 0.1, 1.0, 42, 5);
+        assert_eq!(embedding.len(), data.len());
+        assert!(embedding.iter().flatten().all(|value| value.is_finite()));
+        let widest = (0..3)
+            .map(|group| spread(&embedding, group))
+            .fold(f64::MIN, f64::max);
+        assert!(gap(&embedding, 0, 2) > widest);
     }
 
     #[test]

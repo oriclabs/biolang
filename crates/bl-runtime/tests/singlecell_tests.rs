@@ -1,4 +1,4 @@
-﻿use bl_core::sparse_matrix::SparseMatrix;
+use bl_core::sparse_matrix::SparseMatrix;
 use bl_core::value::{Table, Value};
 use bl_runtime::singlecell::call_singlecell_builtin;
 use std::collections::HashMap;
@@ -457,10 +457,13 @@ fn pca_with_every_component_accounts_for_all_the_variance() {
 #[test]
 fn pca_subspace_iteration_finds_the_true_leading_components() {
     let rows = clustered_spectrum_matrix();
-    let exact: Vec<f64> = get_list(&pca_of(rows.clone(), SPECTRUM_GENES as i64), "explained_variance")
-        .iter()
-        .map(as_float)
-        .collect();
+    let exact: Vec<f64> = get_list(
+        &pca_of(rows.clone(), SPECTRUM_GENES as i64),
+        "explained_variance",
+    )
+    .iter()
+    .map(as_float)
+    .collect();
     let partial: Vec<f64> = get_list(&pca_of(rows, 12), "explained_variance")
         .iter()
         .map(as_float)
@@ -782,13 +785,12 @@ fn test_module_score_empty_indices() {
     assert!((as_float(&scores[0]) - 0.0).abs() < 1e-9);
 }
 
-
 // ─── sc_sctransform ──────────────────────────────────────────────────────────
 //
-// The builtin always returns `{matrix, genes}`. Genes detected in too few cells
-// cannot support an overdispersion estimate and are dropped, so which columns
-// survived is never optional information — the previous shape, a bare Matrix
-// assumed to line up with the input gene axis, could not express that.
+// The builtin always returns `{matrix, genes}`. Genes detected in fewer than
+// five cells are dropped, so which original-axis columns survived is never
+// optional information — the previous shape, a bare Matrix assumed to line up
+// with the input gene axis, could not express that.
 
 fn sct_result(value: &Value) -> (Vec<Vec<f64>>, Vec<usize>) {
     let record = match value {
@@ -830,7 +832,11 @@ fn sct_fixture() -> Vec<Vec<f64>> {
             let depth = 1.0 + 2.0 * (cell as f64 / n_cells as f64);
             (0..8)
                 .map(|gene| {
-                    let base = if gene < 2 && cell < n_cells / 2 { 30.0 } else { 4.0 };
+                    let base = if gene < 2 && cell < n_cells / 2 {
+                        30.0
+                    } else {
+                        4.0
+                    };
                     ((base * depth) + ((cell * (gene + 1)) % 3) as f64).round()
                 })
                 .collect()
@@ -840,25 +846,70 @@ fn sct_fixture() -> Vec<Vec<f64>> {
 
 #[test]
 fn test_sc_sctransform_returns_a_residual_per_cell_per_surviving_gene() {
-    let result =
-        call_singlecell_builtin("sc_sctransform", vec![matrix(sct_fixture())]).unwrap();
+    let result = call_singlecell_builtin("sc_sctransform", vec![matrix(sct_fixture())]).unwrap();
+    let stage = match &result {
+        Value::Record(record) => record.get("residual_variance_stage"),
+        _ => None,
+    };
+    assert_eq!(
+        stage,
+        Some(&Value::Str(
+            "pearson_before_centering_and_covariate_regression".into()
+        ))
+    );
     let (rows, genes) = sct_result(&result);
     assert_eq!(rows.len(), 120, "one row per cell");
     assert!(!genes.is_empty(), "every gene was filtered out");
     for row in &rows {
         assert_eq!(row.len(), genes.len(), "row width must match the gene list");
     }
-    assert!(genes.windows(2).all(|w| w[0] < w[1]), "indices ascend: {genes:?}");
+    assert!(
+        genes.windows(2).all(|w| w[0] < w[1]),
+        "indices ascend: {genes:?}"
+    );
     assert!(
         rows.iter().flatten().any(|&r| r != 0.0),
         "every residual was zero"
     );
 }
 
-/// Residuals are clipped at sqrt(n_cells / 30), which is the published default
-/// and five times tighter than the sqrt(n_cells) this used to apply.
 #[test]
-fn test_sc_sctransform_residuals_are_clipped_at_the_published_default() {
+fn test_sc_sctransform_sparse_and_dense_paths_match() {
+    let rows = sct_fixture();
+    let dense =
+        call_singlecell_builtin("sc_sctransform", vec![matrix(rows.clone()), Value::Int(5)])
+            .unwrap();
+    let sparse =
+        call_singlecell_builtin("sc_sctransform", vec![sparse_matrix(rows), Value::Int(5)])
+            .unwrap();
+    let (dense_residuals, dense_genes) = sct_result(&dense);
+    let (sparse_residuals, sparse_genes) = sct_result(&sparse);
+    assert_eq!(sparse_genes, dense_genes);
+    assert_eq!(sparse_residuals, dense_residuals);
+}
+
+#[test]
+fn test_sc_sctransform_drops_genes_below_min_cells_and_keeps_boundary() {
+    let rows: Vec<Vec<f64>> = (0..120)
+        .map(|cell| {
+            vec![
+                if cell < 4 { 7.0 } else { 0.0 },
+                if cell < 5 { 2.0 } else { 0.0 },
+                3.0 + (cell % 3) as f64,
+            ]
+        })
+        .collect();
+    let result = call_singlecell_builtin("sc_sctransform", vec![matrix(rows)]).unwrap();
+    let (_, genes) = sct_result(&result);
+    assert_eq!(genes, vec![1, 2]);
+}
+
+/// Pearson residuals are first clipped at sqrt(n_cells / 30), the published
+/// default, and then centered just as Seurat's SCTransform calls ScaleData.
+/// Centering a clipped column can move a value just outside the raw clip; it
+/// cannot move it outside twice that bound.
+#[test]
+fn test_sc_sctransform_residuals_follow_seurats_clip_then_center_order() {
     let mut rows = sct_fixture();
     // One cell with an absurd count, to push against the ceiling.
     rows[0][0] = 500_000.0;
@@ -867,17 +918,20 @@ fn test_sc_sctransform_residuals_are_clipped_at_the_published_default() {
     let (residuals, _) = sct_result(&result);
 
     let clip = (n_cells as f64 / 30.0).sqrt();
-    for row in &residuals {
-        for &value in row {
+    for gene in 0..residuals[0].len() {
+        let mean = residuals.iter().map(|row| row[gene]).sum::<f64>() / n_cells as f64;
+        assert!(mean.abs() < 1e-10, "gene {gene} mean was {mean}");
+        for row in &residuals {
+            let value = row[gene];
             assert!(
-                value.abs() <= clip + 1e-9,
-                "residual {value} escaped the clip of {clip}"
+                value.abs() <= 2.0 * clip + 1e-9,
+                "centered residual {value} escaped twice the raw clip of {clip}"
             );
         }
     }
     assert!(
         residuals.iter().flatten().any(|&r| r.abs() > clip - 1e-6),
-        "nothing reached the clip, so this proves nothing"
+        "the outlier never approached the raw clip, so this proves nothing"
     );
 }
 

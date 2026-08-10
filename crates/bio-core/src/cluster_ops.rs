@@ -319,7 +319,8 @@ pub fn louvain_sparse_restarts(
         let labels = louvain_sparse_seeded(
             adjacency,
             resolution,
-            seed.wrapping_add(start as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15),
+            seed.wrapping_add(start as u64)
+                .wrapping_mul(0x9E37_79B9_7F4A_7C15),
             start > 0,
         );
         let quality = modularity(adjacency, &labels, resolution);

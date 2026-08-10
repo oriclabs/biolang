@@ -15,18 +15,21 @@ fn call(name: &str, args: Vec<Value>) -> Value {
 /// A three-residue corner of BLOSUM62, enough to check the lookup arithmetic.
 /// The full matrix comes from `score_matrix()`, which lives in another module.
 fn blosum_fragment() -> Value {
-    Value::Matrix(bl_core::matrix::Matrix {
-        //      A     W     P
-        data: vec![
-            4.0, -3.0, -1.0, // A
-            -3.0, 11.0, -4.0, // W
-            -1.0, -4.0, 7.0, // P
-        ],
-        nrow: 3,
-        ncol: 3,
-        row_names: Some(vec!["A".into(), "W".into(), "P".into()]),
-        col_names: Some(vec!["A".into(), "W".into(), "P".into()]),
-    }.into())
+    Value::Matrix(
+        bl_core::matrix::Matrix {
+            //      A     W     P
+            data: vec![
+                4.0, -3.0, -1.0, // A
+                -3.0, 11.0, -4.0, // W
+                -1.0, -4.0, 7.0, // P
+            ],
+            nrow: 3,
+            ncol: 3,
+            row_names: Some(vec!["A".into(), "W".into(), "P".into()]),
+            col_names: Some(vec!["A".into(), "W".into(), "P".into()]),
+        }
+        .into(),
+    )
 }
 
 fn ints(vals: &[i64]) -> Value {

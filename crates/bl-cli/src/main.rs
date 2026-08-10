@@ -1,5 +1,7 @@
 mod events;
 mod notebook;
+#[cfg(feature = "notebook-server")]
+mod notebook_server;
 mod testing;
 mod update;
 
@@ -16,6 +18,12 @@ use std::time::Instant;
     about = "BioLang — pipe-first bioinformatics DSL"
 )]
 struct Cli {
+    /// Disable GPU acceleration and use the deterministic f64 CPU backend
+    #[arg(long, global = true, conflicts_with = "gpu")]
+    no_gpu: bool,
+    /// Enable GPU auto-detection explicitly (this is the default)
+    #[arg(long, global = true, conflicts_with = "no_gpu")]
+    gpu: bool,
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -96,8 +104,11 @@ enum Commands {
     },
     /// Run a literate notebook (.bln or .bl.md file)
     Notebook {
-        /// Path to the .bln, .bl.md, or .ipynb file
+        /// Path to a notebook, or `serve` followed by a notebook path
         file: String,
+        /// Notebook path when using `bl notebook serve NOTEBOOK`
+        #[arg(value_name = "NOTEBOOK")]
+        serve_file: Option<String>,
         /// Export format: html, html-wasm, typst, pdf
         #[arg(long)]
         export: Option<String>,
@@ -113,6 +124,18 @@ enum Commands {
         /// Convert .bln to Jupyter .ipynb format (prints to stdout)
         #[arg(long)]
         to_ipynb: bool,
+        /// Loopback address for `notebook serve`
+        #[arg(long, default_value = "127.0.0.1")]
+        bind: String,
+        /// Port for `notebook serve`; 0 asks the operating system for a free port
+        #[arg(long, default_value_t = 0)]
+        port: u16,
+        /// Filesystem root disclosed to the notebook server (defaults to the notebook directory)
+        #[arg(long)]
+        root: Option<String>,
+        /// Do not open the local notebook page in the default browser
+        #[arg(long)]
+        no_open: bool,
     },
     /// Install package dependencies
     Install {
@@ -197,6 +220,15 @@ fn main() {
         .spawn(|| {
             let cli = Cli::parse();
 
+            // Set the policy before either `doctor` or an analysis can cause
+            // the lazy adapter probe to be cached. The environment variable is
+            // also the stable interface for notebooks, services, and workers.
+            if cli.no_gpu {
+                std::env::set_var("BIOLANG_GPU", "off");
+            } else if cli.gpu {
+                std::env::set_var("BIOLANG_GPU", "on");
+            }
+
             // Background update check for interactive commands
             match &cli.command {
                 Some(Commands::Run { events: false, .. })
@@ -224,12 +256,45 @@ fn main() {
                 }) => format_files(&files, check, stdout, indent),
                 Some(Commands::Notebook {
                     file,
+                    serve_file,
                     export,
                     wasm_base,
                     from_ipynb,
                     to_ipynb,
+                    bind,
+                    port,
+                    root,
+                    no_open,
                 }) => {
-                    if from_ipynb {
+                    if file == "serve" {
+                        let Some(notebook_path) = serve_file else {
+                            eprintln!("Usage: bl notebook serve <NOTEBOOK> [--port PORT] [--no-open]");
+                            process::exit(2);
+                        };
+                        if export.is_some() || from_ipynb || to_ipynb {
+                            eprintln!("Error: export and conversion flags cannot be used with notebook serve");
+                            process::exit(2);
+                        }
+                        #[cfg(feature = "notebook-server")]
+                        notebook_server::serve(
+                            &notebook_path,
+                            &bind,
+                            port,
+                            root.as_deref(),
+                            !no_open,
+                        );
+                        #[cfg(not(feature = "notebook-server"))]
+                        {
+                            let _ = (notebook_path, bind, port, root, no_open);
+                            eprintln!(
+                                "Error: this bl binary was built without the `notebook-server` feature"
+                            );
+                            process::exit(2);
+                        }
+                    } else if serve_file.is_some() {
+                        eprintln!("Error: unexpected second notebook path; use `bl notebook serve <NOTEBOOK>`");
+                        process::exit(2);
+                    } else if from_ipynb {
                         notebook::ipynb_to_bln(&file);
                     } else if to_ipynb {
                         notebook::bln_to_ipynb(&file);
@@ -399,15 +464,19 @@ fn nearby_script_hint(path: &str) -> String {
             .map(|n| n.as_str())
             .collect::<Vec<_>>()
             .join(", ");
-        return format!("
-  did you mean {list}?");
+        return format!(
+            "
+  did you mean {list}?"
+        );
     }
 
     candidates.sort_by_key(|n| edit_distance(&stem, &n.to_lowercase()));
     let best = &candidates[0];
     if edit_distance(&stem, &best.to_lowercase()) <= (stem.len() / 2).max(3) {
-        return format!("
-  did you mean {best}?");
+        return format!(
+            "
+  did you mean {best}?"
+        );
     }
     String::new()
 }
@@ -433,7 +502,10 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
     let source = match std::fs::read_to_string(path) {
         Ok(s) => s,
         Err(error) => fail_run(
-            format!("Error reading '{path}': {error}{}", nearby_script_hint(path)),
+            format!(
+                "Error reading '{path}': {error}{}",
+                nearby_script_hint(path)
+            ),
             structured_events,
             &start,
         ),
@@ -446,14 +518,20 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
         .map(|f| f.to_string_lossy().to_string())
         .unwrap_or_else(|| path.to_string());
     if structured_events {
+        let compute_backend = bl_runtime::gpu::execution_summary();
         events::emit(serde_json::json!({
             "protocol": "biolang.events/v1",
             "event": "started",
             "path": path,
             "file": filename,
+            "computeBackend": compute_backend,
         }));
     } else {
         eprintln!("\x1b[2m▶ running {filename}\x1b[0m");
+        eprintln!(
+            "\x1b[2m  compute backend: {}\x1b[0m",
+            bl_runtime::gpu::execution_summary()
+        );
     }
 
     let tokens = match bl_lexer::Lexer::new(&source).tokenize() {

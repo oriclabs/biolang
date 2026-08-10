@@ -156,6 +156,7 @@ pub(crate) struct SvgCanvas {
     pub(crate) height: f64,
     pub(crate) margin: Margin,
     pub(crate) elements: Vec<String>,
+    accessible_label: Option<String>,
 }
 
 pub(crate) struct Margin {
@@ -186,8 +187,7 @@ impl Default for Margin {
 fn tick_decimals(ticks: &[f64]) -> usize {
     const MAX_DECIMALS: usize = 4;
     for decimals in 0..MAX_DECIMALS {
-        let mut labels: Vec<String> =
-            ticks.iter().map(|t| format!("{t:.decimals$}")).collect();
+        let mut labels: Vec<String> = ticks.iter().map(|t| format!("{t:.decimals$}")).collect();
         labels.sort();
         labels.dedup();
         if labels.len() == ticks.len() {
@@ -204,6 +204,7 @@ impl SvgCanvas {
             height,
             margin: Margin::default(),
             elements: Vec::new(),
+            accessible_label: None,
         }
     }
 
@@ -402,13 +403,22 @@ impl SvgCanvas {
     }
 
     pub(crate) fn draw_title(&mut self, title: &str) {
+        self.accessible_label = Some(title.to_string());
         self.add_text(self.width / 2.0, 25.0, title, "middle", 16.0);
     }
 
     pub(crate) fn render(&self) -> String {
+        let label = self
+            .accessible_label
+            .as_deref()
+            .unwrap_or("BioLang plot")
+            .replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;")
+            .replace('"', "&quot;");
         let mut svg = format!(
-            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="{}" viewBox="0 0 {} {}">"#,
-            self.width, self.height, self.width, self.height
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="{}" viewBox="0 0 {} {}" role="img" aria-label="{}">"#,
+            self.width, self.height, self.width, self.height, label
         );
         svg.push_str(&format!(
             r#"<rect width="{}" height="{}" fill="white" />"#,
@@ -1636,7 +1646,7 @@ fn builtin_genome_track(args: Vec<Value>) -> Result<Value> {
 
 #[cfg(test)]
 mod palette_tests {
-    use super::PALETTE;
+    use super::{SvgCanvas, PALETTE};
     use std::collections::HashSet;
 
     // Callers index PALETTE modulo its length, so a plot with more groups than
@@ -1684,5 +1694,21 @@ mod palette_tests {
             "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc948", "#b07aa1", "#ff9da7",
         ];
         assert_eq!(&PALETTE[..8], &original[..]);
+    }
+
+    #[test]
+    fn rendered_svg_uses_the_title_as_its_accessible_label() {
+        let mut canvas = SvgCanvas::new(320.0, 180.0);
+        canvas.draw_title("A & B");
+
+        let svg = canvas.render();
+        assert!(svg.contains("role=\"img\""));
+        assert!(svg.contains("aria-label=\"A &amp; B\""));
+    }
+
+    #[test]
+    fn rendered_svg_has_a_default_accessible_label() {
+        let canvas = SvgCanvas::new(320.0, 180.0);
+        assert!(canvas.render().contains("aria-label=\"BioLang plot\""));
     }
 }

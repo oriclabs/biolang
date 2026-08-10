@@ -184,3 +184,6 @@ node_modules/
 # evidence snapshots are copied into the validated book explicitly.
 /validation-results/
 /.validation-r-library/
+
+# Scratch logs and caches written by validation and notebook-server runs.
+/tmp/

@@ -1,4 +1,4 @@
-﻿//! Single-cell RNA-seq (Section 6) and CNV / tumour-purity (Section 7) builtins.
+//! Single-cell RNA-seq (Section 6) and CNV / tumour-purity (Section 7) builtins.
 //!
 //! Functions: normalize_total, log1p_transform, highly_variable_genes, cell_qc,
 //! gene_qc, knn_graph, doublet_score, cnv_segment, loh_detect, tumor_purity,
@@ -12,7 +12,7 @@ use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::sparse_matrix::SparseMatrix;
 use bl_core::value::{Arity, Table, Value};
 use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::io::{BufRead, BufReader};
 
 // â”€â”€ Registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -24,12 +24,16 @@ pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
         ("log1p_transform", Arity::Exact(1)),
         ("highly_variable_genes", Arity::Range(1, 3)),
         ("find_all_markers", Arity::Range(2, 3)),
+        ("sc_find_all_markers", Arity::Range(2, 3)),
         ("harmony_integrate", Arity::Range(2, 3)),
         ("cca", Arity::Range(2, 3)),
+        ("sc_find_anchors", Arity::Range(2, 3)),
+        ("sc_integrate_anchors", Arity::Range(3, 4)),
         ("cell_qc", Arity::Range(1, 3)),
         ("gene_qc", Arity::Range(1, 2)),
         ("knn_graph", Arity::Range(1, 2)),
         ("snn_graph", Arity::Range(1, 3)),
+        ("sc_umap", Arity::Range(1, 2)),
         ("louvain_graph", Arity::Range(3, 4)),
         ("leiden_cluster", Arity::Range(2, 3)),
         ("louvain_cluster", Arity::Range(2, 3)),
@@ -41,13 +45,14 @@ pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
         ("sc_subset_genes", Arity::Exact(2)),
         ("sc_merge_objects", Arity::Exact(4)),
         ("sc_pca", Arity::Range(1, 2)),
+        ("sc_scale", Arity::Range(1, 2)),
         ("doublet_score", Arity::Range(1, 2)),
         // Section 6 extensions: Seurat-compatible single-cell ops
         ("read_10x", Arity::Range(1, 2)),
         ("read_10x_sparse", Arity::Range(1, 2)),
         ("cell_cycle_score", Arity::Exact(3)),
         ("module_score", Arity::Exact(2)),
-        ("sc_sctransform", Arity::Range(1, 2)),
+        ("sc_sctransform", Arity::Range(1, 3)),
         ("sc_integrate", Arity::Exact(2)),
         ("diffusion_pseudotime", Arity::Exact(3)),
         // Cell-cell communication
@@ -80,12 +85,16 @@ pub fn is_singlecell_builtin(name: &str) -> bool {
             | "log1p_transform"
             | "highly_variable_genes"
             | "find_all_markers"
+            | "sc_find_all_markers"
             | "harmony_integrate"
             | "cca"
+            | "sc_find_anchors"
+            | "sc_integrate_anchors"
             | "cell_qc"
             | "gene_qc"
             | "knn_graph"
             | "snn_graph"
+            | "sc_umap"
             | "louvain_graph"
             | "leiden_cluster"
             | "louvain_cluster"
@@ -97,6 +106,7 @@ pub fn is_singlecell_builtin(name: &str) -> bool {
             | "sc_subset_genes"
             | "sc_merge_objects"
             | "sc_pca"
+            | "sc_scale"
             | "doublet_score"
             | "read_10x"
             | "read_10x_sparse"
@@ -127,12 +137,16 @@ pub fn call_singlecell_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "log1p_transform" => builtin_log1p_transform(args),
         "highly_variable_genes" => builtin_highly_variable_genes(args),
         "find_all_markers" => builtin_find_all_markers(args),
+        "sc_find_all_markers" => builtin_find_all_markers(args),
         "harmony_integrate" => builtin_harmony_integrate(args),
         "cca" => builtin_cca(args),
+        "sc_find_anchors" => builtin_sc_find_anchors(args),
+        "sc_integrate_anchors" => builtin_sc_integrate_anchors(args),
         "cell_qc" => builtin_cell_qc(args),
         "gene_qc" => builtin_gene_qc(args),
         "knn_graph" => builtin_knn_graph(args),
         "snn_graph" => builtin_snn_graph(args),
+        "sc_umap" => builtin_sc_umap(args),
         "louvain_graph" => builtin_louvain_graph(args),
         "leiden_cluster" => builtin_leiden_cluster(args),
         "louvain_cluster" => builtin_louvain_cluster(args),
@@ -144,6 +158,7 @@ pub fn call_singlecell_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "sc_subset_genes" => builtin_sc_subset_genes(args),
         "sc_merge_objects" => builtin_sc_merge_objects(args),
         "sc_pca" => builtin_sc_pca(args),
+        "sc_scale" => builtin_sc_scale(args),
         "doublet_score" => builtin_doublet_score(args),
         "read_10x" => builtin_read_10x(args),
         "read_10x_sparse" => builtin_read_10x_sparse(args),
@@ -223,12 +238,11 @@ fn require_matrix(val: &Value, func: &str) -> Result<Vec<Vec<f64>>> {
     }
 }
 
-/// Like `require_matrix`, but also densifies a CSR input. Only for functions
-/// whose output is dense no matter what the input was â€” Pearson residuals are
-/// nonzero for observed zeros, so there is no sparse result to preserve.
+/// Like `require_matrix`, but also densifies a CSR input for algorithms whose
+/// mathematical working representation is dense.
 fn require_dense_matrix(val: &Value, func: &str) -> Result<Vec<Vec<f64>>> {
     match val {
-        Value::SparseMatrix(sm) => Ok(sm.to_dense()),
+        Value::SparseMatrix(matrix) => Ok(matrix.to_dense()),
         other => require_matrix(other, func),
     }
 }
@@ -259,16 +273,57 @@ fn matrix_to_value(mat: Vec<Vec<f64>>) -> Value {
 // interpreted closure calls).
 enum SingleCellMatrix<'a> {
     Dense(Vec<Vec<f64>>),
+    /// Dense rows borrowed by an internal caller. This avoids converting a
+    /// native analysis matrix to millions of boxed `Value::Float` objects just
+    /// to feed it back into another Rust builtin.
+    BorrowedDense(&'a [Vec<f64>]),
+    /// Two compact runtime matrices exposed as one logical matrix. Integration
+    /// PCA needs the merged reference/query population, but not an additional
+    /// physical copy of all residuals.
+    JoinedFlat(&'a bl_core::matrix::Matrix, &'a bl_core::matrix::Matrix),
+    /// A `Value::Matrix` read where it already lies. `Value::Matrix` is
+    /// row-major behind an `Arc`, which is exactly the layout every method here
+    /// wants, so copying it into a vector-per-row costs a duplicate of the whole
+    /// matrix plus an allocation per cell and gives nothing back. On the
+    /// SCTransform residuals feeding PCA that duplicate is hundreds of
+    /// megabytes, and the copy's rows are scattered where the original's are
+    /// contiguous.
+    Flat(&'a bl_core::matrix::Matrix),
     Sparse(&'a SparseMatrix),
 }
 
 impl SingleCellMatrix<'_> {
+    /// Row `index` of a dense input, whichever way it is stored.
+    #[inline]
+    fn dense_row(&self, index: usize) -> &[f64] {
+        match self {
+            Self::Dense(matrix) => &matrix[index],
+            Self::BorrowedDense(matrix) => &matrix[index],
+            Self::JoinedFlat(left, right) => {
+                if index < left.nrow {
+                    &left.data[index * left.ncol..(index + 1) * left.ncol]
+                } else {
+                    let index = index - left.nrow;
+                    &right.data[index * right.ncol..(index + 1) * right.ncol]
+                }
+            }
+            Self::Flat(matrix) => &matrix.data[index * matrix.ncol..(index + 1) * matrix.ncol],
+            Self::Sparse(_) => &[],
+        }
+    }
+
     fn dimensions(&self) -> (usize, usize) {
         match self {
             Self::Dense(matrix) => (
                 matrix.len(),
                 matrix.first().map(|row| row.len()).unwrap_or(0),
             ),
+            Self::BorrowedDense(matrix) => (
+                matrix.len(),
+                matrix.first().map(|row| row.len()).unwrap_or(0),
+            ),
+            Self::JoinedFlat(left, right) => (left.nrow + right.nrow, left.ncol),
+            Self::Flat(matrix) => (matrix.nrow, matrix.ncol),
             Self::Sparse(matrix) => (matrix.nrow, matrix.ncol),
         }
     }
@@ -278,9 +333,9 @@ impl SingleCellMatrix<'_> {
         let mut sums = vec![0.0; n_columns];
         let mut sums_squared = vec![0.0; n_columns];
         match self {
-            Self::Dense(matrix) => {
-                for row in matrix {
-                    for (column, value) in row.iter().copied().enumerate() {
+            Self::Dense(_) | Self::BorrowedDense(_) | Self::JoinedFlat(_, _) | Self::Flat(_) => {
+                for index in 0..n_rows {
+                    for (column, value) in self.dense_row(index).iter().copied().enumerate() {
                         sums[column] += value;
                         sums_squared[column] += value * value;
                     }
@@ -301,8 +356,8 @@ impl SingleCellMatrix<'_> {
 
     fn value_at(&self, row: usize, column: usize) -> f64 {
         match self {
-            Self::Dense(matrix) => matrix[row][column],
             Self::Sparse(matrix) => matrix.get(row, column),
+            _ => self.dense_row(row)[column],
         }
     }
 
@@ -314,10 +369,11 @@ impl SingleCellMatrix<'_> {
             .map(|(mean, weight)| mean * weight)
             .sum();
         match self {
-            Self::Dense(matrix) => matrix
-                .iter()
-                .map(|row| {
-                    row.iter()
+            Self::Dense(_) | Self::BorrowedDense(_) | Self::JoinedFlat(_, _) | Self::Flat(_) => (0
+                ..n_rows)
+                .map(|index| {
+                    self.dense_row(index)
+                        .iter()
                         .zip(vector)
                         .map(|(value, weight)| value * weight)
                         .sum::<f64>()
@@ -339,9 +395,9 @@ impl SingleCellMatrix<'_> {
         let (_, n_columns) = self.dimensions();
         let mut result = vec![0.0; n_columns];
         match self {
-            Self::Dense(matrix) => {
-                for (row, weight) in matrix.iter().zip(vector) {
-                    for (column, value) in row.iter().copied().enumerate() {
+            Self::Dense(_) | Self::BorrowedDense(_) | Self::JoinedFlat(_, _) | Self::Flat(_) => {
+                for (index, weight) in vector.iter().enumerate() {
+                    for (column, value) in self.dense_row(index).iter().copied().enumerate() {
                         result[column] += value * weight;
                     }
                 }
@@ -360,11 +416,217 @@ impl SingleCellMatrix<'_> {
         }
         result
     }
+
+    fn multiply_centered_rows(&self, means: &[f64], vector: &[f64], rows: &[usize]) -> Vec<f64> {
+        let center: f64 = means
+            .iter()
+            .zip(vector)
+            .map(|(mean, weight)| mean * weight)
+            .sum();
+        match self {
+            Self::Dense(_) | Self::BorrowedDense(_) | Self::JoinedFlat(_, _) | Self::Flat(_) => {
+                rows.iter()
+                    .map(|&row| {
+                        self.dense_row(row)
+                            .iter()
+                            .zip(vector)
+                            .map(|(value, weight)| value * weight)
+                            .sum::<f64>()
+                            - center
+                    })
+                    .collect()
+            }
+            Self::Sparse(matrix) => rows
+                .iter()
+                .map(|&row| {
+                    let value = (matrix.indptr[row]..matrix.indptr[row + 1])
+                        .map(|position| matrix.data[position] * vector[matrix.indices[position]])
+                        .sum::<f64>();
+                    value - center
+                })
+                .collect(),
+        }
+    }
+
+    /// `(X - 1 mean^T) B` for a whole block at once.
+    ///
+    /// `block` is gene-major, `n_genes * width`, so the innermost loop walks a
+    /// gene's `width` coefficients contiguously. Applying the covariance one
+    /// vector at a time — which is what the per-vector methods above force —
+    /// costs a separate pass over the entire matrix per vector: fifty passes
+    /// over a 711 MB residual matrix per sweep, where one pass would do. The
+    /// arithmetic is identical; only the traffic changes, and on this shape the
+    /// traffic is the whole cost.
+    fn multiply_centered_block(&self, means: &[f64], block: &[f64], width: usize) -> Vec<f64> {
+        let (n_rows, n_columns) = self.dimensions();
+        let mut center = vec![0.0f64; width];
+        for gene in 0..n_columns {
+            let mean = means[gene];
+            if mean == 0.0 {
+                continue;
+            }
+            let row = &block[gene * width..(gene + 1) * width];
+            for (accumulator, weight) in center.iter_mut().zip(row) {
+                *accumulator += mean * weight;
+            }
+        }
+
+        let mut scores = vec![0.0f64; n_rows * width];
+        // One cell per output row, so the split is disjoint and the sums inside
+        // a row are unaffected by how many threads run.
+        par_rows_mut(&mut scores, width, |first_cell, out| {
+            for (offset, target) in out.chunks_mut(width).enumerate() {
+                let cell = first_cell + offset;
+                for (value, shift) in target.iter_mut().zip(&center) {
+                    *value = -*shift;
+                }
+                match self {
+                    Self::Sparse(matrix) => {
+                        for position in matrix.indptr[cell]..matrix.indptr[cell + 1] {
+                            let gene = matrix.indices[position];
+                            let count = matrix.data[position];
+                            let row = &block[gene * width..(gene + 1) * width];
+                            for (value, weight) in target.iter_mut().zip(row) {
+                                *value += count * weight;
+                            }
+                        }
+                    }
+                    _ => {
+                        for (gene, &count) in self.dense_row(cell).iter().enumerate() {
+                            if count == 0.0 {
+                                continue;
+                            }
+                            let row = &block[gene * width..(gene + 1) * width];
+                            for (value, weight) in target.iter_mut().zip(row) {
+                                *value += count * weight;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        scores
+    }
+
+    /// `(X - 1 mean^T)^T S`, the other half of one covariance application.
+    ///
+    /// This one accumulates across cells, so it cannot simply be split by row.
+    /// The cell range is divided into a fixed number of chunks — fixed as a
+    /// function of the data's shape and nothing else — each chunk summed into
+    /// its own slab and the slabs reduced in chunk order. Two machines with
+    /// different core counts therefore add the same numbers in the same order.
+    fn transpose_multiply_centered_block(
+        &self,
+        means: &[f64],
+        scores: &[f64],
+        width: usize,
+    ) -> Vec<f64> {
+        let (n_rows, n_columns) = self.dimensions();
+        let slab = n_columns * width;
+        let chunks = if slab > 4_000_000 { 4 } else { 16 }.min(n_rows.max(1));
+        let span = n_rows.div_ceil(chunks).max(1);
+
+        let mut partials = vec![0.0f64; chunks * slab];
+        par_rows_mut(&mut partials, slab, |first_chunk, block| {
+            for (offset, target) in block.chunks_mut(slab).enumerate() {
+                let start = (first_chunk + offset) * span;
+                let end = (start + span).min(n_rows);
+                for cell in start..end {
+                    let weights = &scores[cell * width..(cell + 1) * width];
+                    match self {
+                        Self::Sparse(matrix) => {
+                            for position in matrix.indptr[cell]..matrix.indptr[cell + 1] {
+                                let gene = matrix.indices[position];
+                                let count = matrix.data[position];
+                                let row = &mut target[gene * width..(gene + 1) * width];
+                                for (value, weight) in row.iter_mut().zip(weights) {
+                                    *value += count * weight;
+                                }
+                            }
+                        }
+                        _ => {
+                            for (gene, &count) in self.dense_row(cell).iter().enumerate() {
+                                if count == 0.0 {
+                                    continue;
+                                }
+                                let row = &mut target[gene * width..(gene + 1) * width];
+                                for (value, weight) in row.iter_mut().zip(weights) {
+                                    *value += count * weight;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        let mut result = vec![0.0f64; slab];
+        for chunk in 0..chunks {
+            let source = &partials[chunk * slab..(chunk + 1) * slab];
+            for (value, partial) in result.iter_mut().zip(source) {
+                *value += *partial;
+            }
+        }
+        drop(partials);
+
+        let mut score_sums = vec![0.0f64; width];
+        for cell in 0..n_rows {
+            let weights = &scores[cell * width..(cell + 1) * width];
+            for (accumulator, weight) in score_sums.iter_mut().zip(weights) {
+                *accumulator += *weight;
+            }
+        }
+        for gene in 0..n_columns {
+            let mean = means[gene];
+            if mean == 0.0 {
+                continue;
+            }
+            let row = &mut result[gene * width..(gene + 1) * width];
+            for (value, total) in row.iter_mut().zip(&score_sums) {
+                *value -= mean * *total;
+            }
+        }
+        result
+    }
+
+    fn transpose_multiply_centered_rows(
+        &self,
+        means: &[f64],
+        vector: &[f64],
+        rows: &[usize],
+    ) -> Vec<f64> {
+        let (_, n_columns) = self.dimensions();
+        let mut result = vec![0.0; n_columns];
+        match self {
+            Self::Dense(_) | Self::BorrowedDense(_) | Self::JoinedFlat(_, _) | Self::Flat(_) => {
+                for (&row, &weight) in rows.iter().zip(vector) {
+                    for (column, value) in self.dense_row(row).iter().copied().enumerate() {
+                        result[column] += value * weight;
+                    }
+                }
+            }
+            Self::Sparse(matrix) => {
+                for (&row, &weight) in rows.iter().zip(vector) {
+                    for position in matrix.indptr[row]..matrix.indptr[row + 1] {
+                        result[matrix.indices[position]] += matrix.data[position] * weight;
+                    }
+                }
+            }
+        }
+        let vector_sum: f64 = vector.iter().sum();
+        for (value, mean) in result.iter_mut().zip(means) {
+            *value -= mean * vector_sum;
+        }
+        result
+    }
 }
 
 fn singlecell_matrix<'a>(value: &'a Value, func: &str) -> Result<SingleCellMatrix<'a>> {
     if let Value::SparseMatrix(matrix) = value {
         return Ok(SingleCellMatrix::Sparse(matrix));
+    }
+    if let Value::Matrix(matrix) = value {
+        return Ok(SingleCellMatrix::Flat(matrix));
     }
     let matrix = require_matrix(value, func)?;
     let n_columns = matrix.first().map(|row| row.len()).unwrap_or(0);
@@ -483,6 +745,44 @@ fn jacobi_eigen_symmetric(input: &[Vec<f64>]) -> (Vec<Vec<f64>>, Vec<f64>) {
     (vectors, values)
 }
 
+/// Column-center, sample-standardize, and clip a matrix without boxing every
+/// element through interpreted nested maps.
+fn builtin_sc_scale(args: Vec<Value>) -> Result<Value> {
+    let matrix = singlecell_matrix(&args[0], "sc_scale")?;
+    let clip = args.get(1).and_then(to_f64).unwrap_or(10.0).abs();
+    let (rows, columns) = matrix.dimensions();
+    if rows == 0 || columns == 0 {
+        return Ok(Value::Matrix(
+            bl_core::matrix::Matrix::new(Vec::new(), rows, columns)
+                .map_err(|error| BioLangError::type_error(format!("sc_scale(): {error}"), None))?
+                .into(),
+        ));
+    }
+    let (sums, sums_squared) = matrix.column_moments();
+    let means: Vec<f64> = sums.iter().map(|sum| sum / rows as f64).collect();
+    let divisor = rows.saturating_sub(1).max(1) as f64;
+    let deviations: Vec<f64> = (0..columns)
+        .map(|column| {
+            ((sums_squared[column] - rows as f64 * means[column] * means[column]) / divisor)
+                .max(0.0)
+                .sqrt()
+                .max(1e-6)
+        })
+        .collect();
+    let mut scaled = Vec::with_capacity(rows * columns);
+    for row in 0..rows {
+        for column in 0..columns {
+            scaled.push(
+                ((matrix.value_at(row, column) - means[column]) / deviations[column])
+                    .clamp(-clip, clip),
+            );
+        }
+    }
+    let output = bl_core::matrix::Matrix::new(scaled, rows, columns)
+        .map_err(|error| BioLangError::type_error(format!("sc_scale(): {error}"), None))?;
+    Ok(Value::Matrix(output.into()))
+}
+
 fn builtin_sc_pca(args: Vec<Value>) -> Result<Value> {
     let matrix = singlecell_matrix(&args[0], "sc_pca")?;
     let requested = if args.len() > 1 {
@@ -497,6 +797,14 @@ fn builtin_sc_pca(args: Vec<Value>) -> Result<Value> {
     } else {
         50
     };
+    builtin_sc_pca_matrix(&matrix, requested)
+}
+
+/// PCA implementation shared by the public builtin and native single-cell
+/// stages. Keeping the matrix in `SingleCellMatrix` form is important for
+/// large integration objects: a language `List<List<Float>>` representation
+/// costs several times the raw f64 storage and used to dominate peak memory.
+fn builtin_sc_pca_matrix(matrix: &SingleCellMatrix<'_>, requested: usize) -> Result<Value> {
     let (n_cells, n_genes) = matrix.dimensions();
     let n_components = requested.min(n_genes).min(n_cells.saturating_sub(1));
     let (sums, sums_squared) = matrix.column_moments();
@@ -537,7 +845,12 @@ fn builtin_sc_pca(args: Vec<Value>) -> Result<Value> {
     // per-vector iteration can. The closing Rayleigh-Ritz step diagonalises the
     // problem *within* the converged subspace, which is what makes the result
     // ordered and mutually orthogonal by construction rather than by hope.
-    const MAX_SWEEPS: usize = 300;
+    // A ceiling, not a schedule: the loop below stops when the returned
+    // components stop moving, which on real data happens far sooner.
+    let max_sweeps: usize = std::env::var("BIOLANG_PCA_MAX_SWEEPS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(300);
     const OVERSAMPLE: usize = 10;
 
     let block_width = (n_components + OVERSAMPLE).min(n_genes).min(n_cells);
@@ -554,48 +867,146 @@ fn builtin_sc_pca(args: Vec<Value>) -> Result<Value> {
         .collect();
     orthonormalise_block(&mut block);
 
-    let apply_covariance = |vector: &[f64]| -> Vec<f64> {
-        let scores = matrix.multiply_centered(&means, vector);
-        matrix.transpose_multiply_centered(&means, &scores)
+    // Every cell, every sweep.
+    //
+    // This previously fitted the loadings on 5,000 evenly spaced cells and
+    // stopped after six sweeps, on the reasoning that a subset is
+    // representative. Two things were wrong with that. Six sweeps of subspace
+    // iteration does not converge a single-cell spectrum, which is nearly flat
+    // past the leading handful — measured on the course data, PCs 14, 17, 26,
+    // 28 and 30 came back with *more* variance than the component before them,
+    // which a principal component cannot do and which is the same symptom the
+    // comment above records as already fixed. And a 17% subsample estimates a
+    // different subspace, not a noisier version of the same one: against an
+    // independent Seurat run the leading principal angles agreed to cos 0.99
+    // while the last few collapsed to 0.57, 0.40, 0.27, 0.04. Those unconverged
+    // trailing components go straight into the 40-PC neighbour graph.
+    //
+    // Doing it properly is also cheaper here, because the loop below now
+    // applies the covariance to the whole block in one pass rather than
+    // re-reading the matrix once per vector.
+    let apply_covariance_block = |columns: &[Vec<f64>]| -> Vec<Vec<f64>> {
+        let width = columns.len();
+        let mut packed = vec![0.0f64; n_genes * width];
+        for (column, values) in columns.iter().enumerate() {
+            for (gene, &value) in values.iter().enumerate() {
+                packed[gene * width + column] = value;
+            }
+        }
+        let scores = matrix.multiply_centered_block(&means, &packed, width);
+        drop(packed);
+        let applied = matrix.transpose_multiply_centered_block(&means, &scores, width);
+        (0..width)
+            .map(|column| {
+                (0..n_genes)
+                    .map(|gene| applied[gene * width + column])
+                    .collect()
+            })
+            .collect()
     };
 
-    let mut previous: Vec<f64> = vec![0.0; block.len()];
+    // Iterate until the subspace that will actually be *returned* stops moving.
+    //
+    // Two earlier criteria both failed to fire, so every run spent the full
+    // ceiling of 300 sweeps. Watching Rayleigh quotients fails because on this
+    // spectrum they never settle: measured on the course data the largest
+    // relative quotient change falls to 2e-3 by sweep 33 and then climbs back to
+    // 4e-3, as near-degenerate Ritz values trade places indefinitely. Watching
+    // the whole block's span fails for a different reason: the block carries ten
+    // oversampling vectors whose only job is to accelerate the ones in front of
+    // them, and they keep swinging long after the leading forty have stopped.
+    //
+    // So do the Rayleigh-Ritz step every sweep — it costs a `width` x `width`
+    // eigenproblem, nothing against a sweep of many billion operations — and
+    // compare the top `n_components` Ritz vectors with the previous sweep's.
+    // Both sets are orthonormal, so ||V_old^T v_new|| is the length of the new
+    // vector's projection into the old span and sqrt(1 - that^2) is how far it
+    // has stepped outside; the worst vector gives the largest principal angle
+    // between the two subspaces. That is precisely "has the answer settled", and
+    // it is blind to rotation within the subspace, which is the thing that never
+    // settles and never mattered.
+    //
+    // Directly measured against a 300-sweep run on the course data: the span is
+    // already identical at sweep 30 (minimum principal-angle cosine 1.0000) and
+    // agrees to 0.9985 by sweep 15.
+    let trace_sweeps = std::env::var_os("BIOLANG_PCA_TRACE_SHIFT").is_some();
+    let mut previous_ritz: Vec<Vec<f64>> = Vec::new();
     let mut converged = false;
-    for _ in 0..MAX_SWEEPS {
-        let mut next: Vec<Vec<f64>> = block.iter().map(|v| apply_covariance(v)).collect();
-        // Rayleigh quotients before renormalising: v . Cv with v unit-norm.
-        let quotients: Vec<f64> = block
+    let mut sweeps_used = 0usize;
+    for _ in 0..max_sweeps {
+        let applied = apply_covariance_block(&block);
+
+        let span = block.len();
+        let mut small = vec![vec![0.0f64; span]; span];
+        for row in 0..span {
+            for column in row..span {
+                let entry: f64 = block[row]
+                    .iter()
+                    .zip(&applied[column])
+                    .map(|(a, b)| a * b)
+                    .sum();
+                small[row][column] = entry;
+                small[column][row] = entry;
+            }
+        }
+        let (rotations, _) = jacobi_eigen_symmetric(&small);
+        let ritz: Vec<Vec<f64>> = rotations
             .iter()
-            .zip(&next)
-            .map(|(v, cv)| v.iter().zip(cv).map(|(a, b)| a * b).sum())
+            .take(n_components)
+            .map(|rotation| {
+                let mut vector = vec![0.0f64; n_genes];
+                for (weight, basis) in rotation.iter().zip(&block) {
+                    for (value, component) in vector.iter_mut().zip(basis) {
+                        *value += weight * component;
+                    }
+                }
+                vector
+            })
             .collect();
+
+        let drift = if previous_ritz.len() == ritz.len() && !ritz.is_empty() {
+            ritz.iter()
+                .map(|fresh| {
+                    let projected: f64 = previous_ritz
+                        .iter()
+                        .map(|old| {
+                            let dot: f64 = old.iter().zip(fresh).map(|(a, b)| a * b).sum();
+                            dot * dot
+                        })
+                        .sum();
+                    (1.0 - projected.min(1.0)).max(0.0).sqrt()
+                })
+                .fold(0.0, f64::max)
+        } else {
+            f64::INFINITY
+        };
+        previous_ritz = ritz;
+
+        let mut next = applied;
         orthonormalise_block(&mut next);
         if next.is_empty() {
             break;
         }
         block = next;
-
-        // Converged when every Rayleigh quotient has stopped moving. Comparing
-        // the quotients rather than the vectors matters: within a near-degenerate
-        // group the individual vectors keep rotating freely forever, while the
-        // subspace they span - the only thing the scores depend on - is settled.
-        let shift = previous
-            .iter()
-            .zip(&quotients)
-            .map(|(old, new)| (old - new).abs() / new.abs().max(1e-12))
-            .fold(0.0, f64::max);
-        previous = quotients;
-        if previous.len() == block.len() && shift < 1e-10 {
+        sweeps_used += 1;
+        if trace_sweeps {
+            eprintln!("    sweep {sweeps_used}: returned-subspace drift {drift:.3e}");
+        }
+        if drift < 1e-6 {
             converged = true;
             break;
         }
-        previous.resize(block.len(), 0.0);
+    }
+    if std::env::var_os("BIOLANG_PCA_TRACE").is_some() {
+        eprintln!(
+            "  sc_pca: {sweeps_used} sweeps, converged={converged}, {n_cells} cells x {n_genes} genes"
+        );
     }
 
     // Rayleigh-Ritz: project the covariance onto the converged subspace and
     // diagonalise the small dense problem exactly.
     let width = block.len();
-    let projected: Vec<Vec<f64>> = block.iter().map(|v| apply_covariance(v)).collect();
+    let projected: Vec<Vec<f64>> = apply_covariance_block(&block);
     let mut small = vec![vec![0.0f64; width]; width];
     for i in 0..width {
         for j in i..width {
@@ -766,7 +1177,9 @@ fn builtin_select_rows(args: Vec<Value>) -> Result<Value> {
                     None,
                 ));
             }
-            Ok(Value::SparseMatrix(std::sync::Arc::new(matrix.subset_rows(&indices))))
+            Ok(Value::SparseMatrix(std::sync::Arc::new(
+                matrix.subset_rows(&indices),
+            )))
         }
         _ => {
             let matrix = require_matrix(&args[0], "select_rows")?;
@@ -857,7 +1270,39 @@ fn builtin_select_cols(args: Vec<Value>) -> Result<Value> {
                 None,
             ));
         }
-        return Ok(Value::SparseMatrix(std::sync::Arc::new(matrix.subset_cols(&indices))));
+        return Ok(Value::SparseMatrix(std::sync::Arc::new(
+            matrix.subset_cols(&indices),
+        )));
+    }
+
+    // Preserve the compact representation of a native dense Matrix. Going
+    // through `require_matrix` and `matrix_to_value` used to copy the source
+    // into `Vec<Vec<f64>>` and then box every selected number as a `Value`.
+    // Selecting 3,000 SCT features for the HBC object therefore turned a
+    // roughly 711 MB numeric matrix into several gigabytes of interpreter
+    // values before anchor finding had even started.
+    if let Value::Matrix(matrix) = &args[0] {
+        if let Some(index) = indices.iter().find(|&&index| index >= matrix.ncol) {
+            return Err(BioLangError::runtime(
+                ErrorKind::IndexOutOfBounds,
+                format!(
+                    "select_cols() column index {index} is outside a matrix with {} columns",
+                    matrix.ncol
+                ),
+                None,
+            ));
+        }
+        let mut data = Vec::with_capacity(matrix.nrow.saturating_mul(indices.len()));
+        for row in 0..matrix.nrow {
+            data.extend(
+                indices
+                    .iter()
+                    .map(|&column| matrix.data[row * matrix.ncol + column]),
+            );
+        }
+        let selected = bl_core::matrix::Matrix::new(data, matrix.nrow, indices.len())
+            .map_err(|error| BioLangError::type_error(format!("select_cols(): {error}"), None))?;
+        return Ok(Value::Matrix(selected.into()));
     }
 
     let mat = require_matrix(&args[0], "select_cols")?;
@@ -983,7 +1428,56 @@ fn builtin_sc_subset_cells(args: Vec<Value>) -> Result<Value> {
         }
         result.insert("layers".to_string(), Value::Record(selected_layers.into()));
     }
+    if let Some(Value::Record(assays)) = object.get("assays") {
+        let mut selected_assays = assays.as_ref().clone();
+        for (assay_name, assay_value) in assays.iter() {
+            if let Value::Record(assay) = assay_value {
+                let mut selected_assay = assay.as_ref().clone();
+                if let Some(Value::Record(layers)) = assay.get("layers") {
+                    let mut selected_layers = layers.as_ref().clone();
+                    for (layer_name, value) in layers.iter() {
+                        selected_layers.insert(
+                            layer_name.clone(),
+                            builtin_select_rows(vec![value.clone(), index_value.clone()])?,
+                        );
+                    }
+                    selected_assay
+                        .insert("layers".to_string(), Value::Record(selected_layers.into()));
+                }
+                selected_assays.insert(assay_name.clone(), Value::Record(selected_assay.into()));
+            }
+        }
+        result.insert("assays".to_string(), Value::Record(selected_assays.into()));
+    }
+    if let Some(Value::Record(reductions)) = object.get("reductions") {
+        let mut selected_reductions = reductions.as_ref().clone();
+        for (name, reduction_value) in reductions.iter() {
+            if let Value::Record(reduction) = reduction_value {
+                let mut selected = reduction.as_ref().clone();
+                if let Some(embedding) = reduction.get("embeddings") {
+                    selected.insert(
+                        "embeddings".to_string(),
+                        builtin_select_rows(vec![embedding.clone(), index_value.clone()])?,
+                    );
+                }
+                selected_reductions.insert(name.clone(), Value::Record(selected.into()));
+            }
+        }
+        result.insert(
+            "reductions".to_string(),
+            Value::Record(selected_reductions.into()),
+        );
+    }
+    if let Some(value) = object.get("idents") {
+        if !matches!(value, Value::List(values) if values.is_empty()) {
+            result.insert(
+                "idents".to_string(),
+                subset_list(value, &indices, "sc_subset_cells")?,
+            );
+        }
+    }
     result.remove("knn");
+    result.insert("graphs".to_string(), Value::Record(HashMap::new().into()));
     result.remove("cell_qc_table");
     result.insert("n_cells".to_string(), Value::Int(indices.len() as i64));
     Ok(Value::Record(result.into()))
@@ -1012,12 +1506,7 @@ fn builtin_sc_subset_genes(args: Vec<Value>) -> Result<Value> {
     );
     let mut result = object.as_ref().clone();
 
-    for field in [
-        "matrix",
-        "norm_matrix",
-        "scaled_matrix",
-        "integrated_matrix",
-    ] {
+    for field in ["matrix", "norm_matrix"] {
         if let Some(value) = object.get(field) {
             result.insert(
                 field.to_string(),
@@ -1051,6 +1540,11 @@ fn builtin_sc_subset_genes(args: Vec<Value>) -> Result<Value> {
         "hvg",
         "hvg_matrix",
         "hvg_genes",
+        "scaled_matrix",
+        "integrated_matrix",
+        "integrated_features",
+        "integrated_embedding",
+        "integration_method",
         "pca",
         "pca_scores",
         "pca_loadings",
@@ -1064,6 +1558,33 @@ fn builtin_sc_subset_genes(args: Vec<Value>) -> Result<Value> {
     ] {
         result.remove(field);
     }
+    let layers = result.get("layers").cloned().unwrap_or_else(|| {
+        Value::Record(
+            HashMap::from([(
+                "counts".to_string(),
+                result.get("matrix").cloned().unwrap_or(Value::Nil),
+            )])
+            .into(),
+        )
+    });
+    let rna = HashMap::from([
+        ("layers".to_string(), layers),
+        (
+            "variable_features".to_string(),
+            Value::List(Vec::new().into()),
+        ),
+    ]);
+    result.insert(
+        "assays".to_string(),
+        Value::Record(HashMap::from([("RNA".to_string(), Value::Record(rna.into()))]).into()),
+    );
+    result.insert("active_assay".to_string(), Value::Str("RNA".to_string()));
+    result.insert(
+        "reductions".to_string(),
+        Value::Record(HashMap::new().into()),
+    );
+    result.insert("graphs".to_string(), Value::Record(HashMap::new().into()));
+    result.insert("idents".to_string(), Value::List(Vec::new().into()));
     result.insert("n_genes".to_string(), Value::Int(indices.len() as i64));
     Ok(Value::Record(result.into()))
 }
@@ -1215,6 +1736,33 @@ fn builtin_sc_merge_objects(args: Vec<Value>) -> Result<Value> {
     ] {
         result.remove(field);
     }
+    let layers = result.get("layers").cloned().unwrap_or_else(|| {
+        Value::Record(
+            HashMap::from([(
+                "counts".to_string(),
+                result.get("matrix").cloned().unwrap_or(Value::Nil),
+            )])
+            .into(),
+        )
+    });
+    let rna = HashMap::from([
+        ("layers".to_string(), layers),
+        (
+            "variable_features".to_string(),
+            Value::List(Vec::new().into()),
+        ),
+    ]);
+    result.insert(
+        "assays".to_string(),
+        Value::Record(HashMap::from([("RNA".to_string(), Value::Record(rna.into()))]).into()),
+    );
+    result.insert("active_assay".to_string(), Value::Str("RNA".to_string()));
+    result.insert(
+        "reductions".to_string(),
+        Value::Record(HashMap::new().into()),
+    );
+    result.insert("graphs".to_string(), Value::Record(HashMap::new().into()));
+    result.insert("idents".to_string(), Value::List(Vec::new().into()));
     Ok(Value::Record(result.into()))
 }
 
@@ -1243,7 +1791,9 @@ fn builtin_normalize_total(args: Vec<Value>) -> Result<Value> {
     }
 
     if let Value::SparseMatrix(matrix) = &args[0] {
-        return Ok(Value::SparseMatrix(std::sync::Arc::new(matrix.normalize_rows(target))));
+        return Ok(Value::SparseMatrix(std::sync::Arc::new(
+            matrix.normalize_rows(target),
+        )));
     }
 
     let mat = require_matrix(&args[0], "normalize_total")?;
@@ -1514,8 +2064,7 @@ fn builtin_highly_variable_genes(args: Vec<Value>) -> Result<Value> {
     };
 
     if method == "vst" {
-        let (n_cells, _n_genes, columns) =
-            expression_columns(&args[0], "highly_variable_genes")?;
+        let (n_cells, _n_genes, columns) = expression_columns(&args[0], "highly_variable_genes")?;
         let means: Vec<f64> = columns
             .iter()
             .map(|c| c.iter().sum::<f64>() / n_cells as f64)
@@ -1686,19 +2235,165 @@ pub(crate) fn hvg_statistics(value: &Value, who: &str) -> Result<HvgStats> {
 /// cross-product is cells x cells, so this is quadratic in cell count. Two
 /// samples of a few thousand cells is comfortable; two atlases of a hundred
 /// thousand each is not, and `harmony_integrate` is the tool for that scale.
-fn builtin_cca(args: Vec<Value>) -> Result<Value> {
-    let opts: HashMap<String, Value> = match args.get(2) {
-        Some(Value::Record(map)) => map.as_ref().clone(),
-        _ => HashMap::new(),
-    };
-    let requested = opts
-        .get("k")
-        .and_then(|v| v.as_float())
-        .map(|v| v as usize)
-        .unwrap_or(20);
+fn count_sketch_rows(matrix: &[Vec<f64>], width: usize) -> Vec<Vec<f64>> {
+    matrix
+        .iter()
+        .map(|row| {
+            let mut sketch = vec![0.0; width];
+            for (feature, &value) in row.iter().enumerate() {
+                let hash = (feature as u64)
+                    .wrapping_mul(0x9e3779b97f4a7c15)
+                    .rotate_left(17);
+                let bucket = (hash as usize) % width;
+                let sign = if hash & (1_u64 << 63) == 0 { 1.0 } else { -1.0 };
+                sketch[bucket] += sign * value;
+            }
+            sketch
+        })
+        .collect()
+}
 
-    let first = require_matrix(&args[0], "cca")?;
-    let second = require_matrix(&args[1], "cca")?;
+fn cross_apply(left: &[Vec<f64>], right: &[Vec<f64>], vector: &[f64]) -> Vec<f64> {
+    let width = left.first().map(Vec::len).unwrap_or(0);
+    let mut feature = vec![0.0; width];
+    for (row, &weight) in right.iter().zip(vector) {
+        for (slot, &value) in feature.iter_mut().zip(row) {
+            *slot += value * weight;
+        }
+    }
+    left.iter()
+        .map(|row| row.iter().zip(&feature).map(|(a, b)| a * b).sum())
+        .collect()
+}
+
+fn cross_apply_block_cpu(
+    left: &[Vec<f64>],
+    right: &[Vec<f64>],
+    basis: &[Vec<f64>],
+) -> Vec<Vec<f64>> {
+    basis
+        .iter()
+        .map(|vector| cross_apply(left, right, vector))
+        .collect()
+}
+
+fn cross_apply_block(
+    left: &[Vec<f64>],
+    right: &[Vec<f64>],
+    basis: &[Vec<f64>],
+) -> (Vec<Vec<f64>>, bool) {
+    match crate::gpu::cross_apply_block(left, right, basis) {
+        Ok(Some(result)) => (result, true),
+        // A runtime driver failure must not make analysis unavailable. The
+        // f64 implementation is also the reproducibility reference path.
+        Ok(None) | Err(_) => (cross_apply_block_cpu(left, right, basis), false),
+    }
+}
+
+/// Truncated SVD of X Y' without constructing the quadratic cell matrix.
+fn scalable_cross_svd(
+    first: &[Vec<f64>],
+    second: &[Vec<f64>],
+    requested: usize,
+) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>, bool)> {
+    let source_width = first.first().map(Vec::len).unwrap_or(0);
+    let sketch_width = source_width.min(512).max(1);
+    let left = count_sketch_rows(first, sketch_width);
+    let right = count_sketch_rows(second, sketch_width);
+    let block_width = (requested + 8).min(first.len()).min(second.len()).max(1);
+    let mut right_basis: Vec<Vec<f64>> = (0..block_width)
+        .map(|component| {
+            (0..right.len())
+                .map(|row| {
+                    let phase = (row + 1) as f64 * (component + 1) as f64;
+                    (phase * 0.618_033_988_749_894_9).sin()
+                        + (phase * 0.414_213_562_373_095_0).cos()
+                })
+                .collect()
+        })
+        .collect();
+    orthonormalise_block(&mut right_basis);
+    let mut left_basis = Vec::new();
+    let mut used_gpu = false;
+    for _ in 0..2 {
+        let (next_left, accelerated) = cross_apply_block(&left, &right, &right_basis);
+        left_basis = next_left;
+        used_gpu |= accelerated;
+        orthonormalise_block(&mut left_basis);
+        let (next_right, accelerated) = cross_apply_block(&right, &left, &left_basis);
+        right_basis = next_right;
+        used_gpu |= accelerated;
+        orthonormalise_block(&mut right_basis);
+    }
+    let (next_left, accelerated) = cross_apply_block(&left, &right, &right_basis);
+    left_basis = next_left;
+    used_gpu |= accelerated;
+    orthonormalise_block(&mut left_basis);
+    let rank = left_basis.len().min(right_basis.len());
+    left_basis.truncate(rank);
+    right_basis.truncate(rank);
+
+    let (applied_right, accelerated) = cross_apply_block(&left, &right, &right_basis);
+    used_gpu |= accelerated;
+    let small: Vec<f64> = left_basis
+        .iter()
+        .flat_map(|left_vector| {
+            applied_right.iter().map(move |right_vector| {
+                left_vector
+                    .iter()
+                    .zip(right_vector)
+                    .map(|(a, b)| a * b)
+                    .sum::<f64>()
+            })
+        })
+        .collect();
+    let small = bl_core::matrix::Matrix::new(small, rank, rank).map_err(|error| {
+        BioLangError::runtime(ErrorKind::TypeError, format!("cca(): {error}"), None)
+    })?;
+    let (u_small, singular, vt_small) = small.svd().map_err(|error| {
+        BioLangError::runtime(ErrorKind::TypeError, format!("cca(): {error}"), None)
+    })?;
+    let k = requested.min(rank).min(singular.len()).max(1);
+    let left_embedding: Vec<Vec<f64>> = (0..first.len())
+        .map(|cell| {
+            (0..k)
+                .map(|component| {
+                    (0..rank)
+                        .map(|basis| left_basis[basis][cell] * u_small.get(basis, component))
+                        .sum()
+                })
+                .collect()
+        })
+        .collect();
+    let right_embedding: Vec<Vec<f64>> = (0..second.len())
+        .map(|cell| {
+            (0..k)
+                .map(|component| {
+                    (0..rank)
+                        .map(|basis| right_basis[basis][cell] * vt_small.get(component, basis))
+                        .sum()
+                })
+                .collect()
+        })
+        .collect();
+    Ok((
+        left_embedding,
+        right_embedding,
+        singular.into_iter().take(k).collect(),
+        used_gpu,
+    ))
+}
+
+type CcaParts = (
+    Vec<Vec<f64>>,
+    Vec<Vec<f64>>,
+    Vec<Vec<f64>>,
+    Vec<Vec<f64>>,
+    Vec<f64>,
+    String,
+);
+
+fn cca_dense(first: &[Vec<f64>], second: &[Vec<f64>], requested: usize) -> Result<CcaParts> {
     let genes = first.first().map(|row| row.len()).unwrap_or(0);
     let genes_second = second.first().map(|row| row.len()).unwrap_or(0);
     if genes == 0 || genes_second == 0 || first.is_empty() || second.is_empty() {
@@ -1718,6 +2413,25 @@ fn builtin_cca(args: Vec<Value>) -> Result<Value> {
                  {genes} columns and {genes_second}"
             ),
             None,
+        ));
+    }
+
+    if first.len().saturating_mul(second.len()) > 4_000_000 {
+        let (left_raw, right_raw, singular, used_gpu) =
+            scalable_cross_svd(first, second, requested)?;
+        let left = l2_normalise_rows(&left_raw);
+        let right = l2_normalise_rows(&right_raw);
+        return Ok((
+            left,
+            right,
+            left_raw,
+            right_raw,
+            singular,
+            if used_gpu {
+                "countsketch_subspace_gpu".to_string()
+            } else {
+                "countsketch_subspace_cpu".to_string()
+            },
         ));
     }
 
@@ -1751,20 +2465,51 @@ fn builtin_cca(args: Vec<Value>) -> Result<Value> {
         .map(|j| (0..k).map(|c| vt.get(c, j)).collect())
         .collect();
 
-    let mut result = HashMap::new();
-    result.insert("u".to_string(), matrix_to_value(l2_normalise_rows(&left)));
-    result.insert("v".to_string(), matrix_to_value(l2_normalise_rows(&right)));
-    result.insert(
-        "d".to_string(),
-        Value::List(
-            d.iter()
-                .take(k)
-                .map(|v| Value::Float(*v))
-                .collect::<Vec<_>>()
-                .into(),
-        ),
-    );
-    Ok(Value::Record(result.into()))
+    let singular = d.iter().take(k).copied().collect();
+    Ok((
+        l2_normalise_rows(&left),
+        l2_normalise_rows(&right),
+        left,
+        right,
+        singular,
+        "exact_cross_svd_cpu".to_string(),
+    ))
+}
+
+fn builtin_cca(args: Vec<Value>) -> Result<Value> {
+    let opts: HashMap<String, Value> = match args.get(2) {
+        Some(Value::Record(map)) => map.as_ref().clone(),
+        _ => HashMap::new(),
+    };
+    let requested = opts
+        .get("k")
+        .and_then(|v| v.as_float())
+        .map(|v| v as usize)
+        .unwrap_or(20);
+    let first = require_matrix(&args[0], "cca")?;
+    let second = require_matrix(&args[1], "cca")?;
+    let (left, right, left_raw, right_raw, singular, method) =
+        cca_dense(&first, &second, requested)?;
+    Ok(Value::Record(
+        HashMap::from([
+            ("u".to_string(), matrix_to_value(left)),
+            ("v".to_string(), matrix_to_value(right)),
+            ("u_raw".to_string(), matrix_to_value(left_raw)),
+            ("v_raw".to_string(), matrix_to_value(right_raw)),
+            (
+                "d".to_string(),
+                Value::List(
+                    singular
+                        .into_iter()
+                        .map(Value::Float)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ),
+            ("method".to_string(), Value::Str(method)),
+        ])
+        .into(),
+    ))
 }
 
 // â”€â”€ harmony_integrate(embedding, batches, opts?) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1793,6 +2538,767 @@ fn builtin_cca(args: Vec<Value>) -> Result<Value> {
 /// different cell types are merged into one. `theta` controls that - higher
 /// mixes more aggressively - and the tests hold both ends, checking that
 /// batches mix *and* that distinct populations stay apart.
+fn record_matrix(record: &Value, field: &str, func: &str) -> Result<Vec<Vec<f64>>> {
+    match record {
+        Value::Record(fields) => fields
+            .get(field)
+            .ok_or_else(|| BioLangError::type_error(format!("{func}() missing '{field}'"), None))
+            .and_then(|value| require_matrix(value, func)),
+        other => Err(BioLangError::type_error(
+            format!("{func}() expected Record, got {}", other.type_of()),
+            None,
+        )),
+    }
+}
+
+fn record_number(record: &HashMap<String, Value>, field: &str, fallback: f64) -> f64 {
+    record
+        .get(field)
+        .and_then(Value::as_float)
+        .unwrap_or(fallback)
+}
+
+fn squared_euclidean(left: &[f64], right: &[f64]) -> f64 {
+    left.iter().zip(right).map(|(a, b)| (a - b) * (a - b)).sum()
+}
+
+/// Match Seurat's `Standardize`: center and sample-standardize every cell
+/// across integration features before taking the cross-product CCA.
+fn standardize_cells(rows: &[Vec<f64>]) -> Vec<Vec<f64>> {
+    rows.iter()
+        .map(|row| {
+            if row.len() < 2 {
+                return vec![0.0; row.len()];
+            }
+            let mean = row.iter().sum::<f64>() / row.len() as f64;
+            let deviation = (row
+                .iter()
+                .map(|value| (value - mean) * (value - mean))
+                .sum::<f64>()
+                / row.len().saturating_sub(1) as f64)
+                .sqrt();
+            if !deviation.is_finite() || deviation <= 1e-15 {
+                vec![0.0; row.len()]
+            } else {
+                row.iter().map(|value| (value - mean) / deviation).collect()
+            }
+        })
+        .collect()
+}
+
+/// Cross-dataset kNN. Small fixtures use an exact search. Large inputs reuse
+/// the deterministic/GPU neighbour backend with an expanded candidate set,
+/// analogous to Seurat's approximate Annoy search but without linking Annoy.
+fn cross_neighbour_rows(
+    query: &[Vec<f64>],
+    reference: &[Vec<f64>],
+    k: usize,
+) -> Vec<Vec<(usize, f64)>> {
+    let wanted = k.min(reference.len());
+    if wanted == 0 {
+        return vec![Vec::new(); query.len()];
+    }
+    if query.len().saturating_mul(reference.len()) <= 4_000_000 {
+        return query
+            .iter()
+            .map(|row| {
+                let mut distances: Vec<(usize, f64)> = reference
+                    .iter()
+                    .enumerate()
+                    .map(|(index, other)| (index, squared_euclidean(row, other).sqrt()))
+                    .collect();
+                distances.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
+                distances.truncate(wanted);
+                distances
+            })
+            .collect();
+    }
+
+    let mut combined = reference.to_vec();
+    let query_offset = combined.len();
+    combined.extend(query.iter().cloned());
+    // Small anchor/scoring searches can use the GPU's bounded top-k kernel and
+    // cheaply over-fetch. For Seurat's k.filter=200, an 8x mixed search asked
+    // the CPU fallback to retain 1,600 neighbours even though only 200
+    // cross-dataset hits survive. Three times k is a conservative allowance
+    // for the approximately half same-dataset candidates in a balanced merge
+    // without materialising an oversized result.
+    let expansion = if wanted <= 64 { 8 } else { 3 };
+    let search_k = wanted
+        .saturating_mul(expansion)
+        .max(64)
+        .min(combined.len().saturating_sub(1));
+    neighbour_rows_metric(&combined, search_k, "euclidean")
+        .into_iter()
+        .skip(query_offset)
+        .map(|row| {
+            row.into_iter()
+                .filter(|(index, _)| *index < query_offset)
+                .take(wanted)
+                .collect()
+        })
+        .collect()
+}
+
+fn projected_feature_loadings(
+    left: &[Vec<f64>],
+    right: &[Vec<f64>],
+    left_embedding: &[Vec<f64>],
+    right_embedding: &[Vec<f64>],
+) -> Vec<Vec<f64>> {
+    let features = left.first().map(Vec::len).unwrap_or(0);
+    let dimensions = left_embedding.first().map(Vec::len).unwrap_or(0);
+    let mut loadings = vec![vec![0.0; dimensions]; features];
+    for (matrix, embedding) in [(left, left_embedding), (right, right_embedding)] {
+        for (cell, row) in matrix.iter().enumerate() {
+            for (feature, value) in row.iter().copied().enumerate() {
+                for dimension in 0..dimensions {
+                    loadings[feature][dimension] += value * embedding[cell][dimension];
+                }
+            }
+        }
+    }
+    loadings
+}
+
+fn balanced_top_features(loadings: &[Vec<f64>], dimension: usize, number: usize) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..loadings.len()).collect();
+    order.sort_by(|&a, &b| {
+        loadings[b][dimension]
+            .total_cmp(&loadings[a][dimension])
+            .then(a.cmp(&b))
+    });
+    if number <= 1 {
+        return order.into_iter().take(number).collect();
+    }
+    let half = ((number as f64) / 2.0).round() as usize;
+    let mut selected: Vec<usize> = order.iter().copied().take(half).collect();
+    selected.extend(order.iter().rev().copied().take(half));
+    selected.sort_unstable();
+    selected.dedup();
+    selected
+}
+
+/// Seurat's TopDimFeatures grows a balanced positive/negative set per CCA
+/// dimension until the union approaches `max.features`.
+fn top_dim_features(loadings: &[Vec<f64>], requested_max: usize) -> Vec<usize> {
+    let dimensions = loadings.first().map(Vec::len).unwrap_or(0);
+    if dimensions == 0 || loadings.is_empty() {
+        return Vec::new();
+    }
+    let limit = requested_max.max(dimensions.saturating_mul(2));
+    let mut per_dimension = 1;
+    for number in 1..=100.min(loadings.len()) {
+        let mut union = HashSet::new();
+        for dimension in 0..dimensions {
+            union.extend(balanced_top_features(loadings, dimension, number));
+        }
+        if union.len() < limit {
+            per_dimension = number;
+        } else {
+            break;
+        }
+    }
+    let mut selected = Vec::new();
+    let mut seen = HashSet::new();
+    for dimension in 0..dimensions {
+        for feature in balanced_top_features(loadings, dimension, per_dimension) {
+            if seen.insert(feature) {
+                selected.push(feature);
+            }
+        }
+    }
+    selected
+}
+
+fn pca_projection_parts(
+    matrix: &[Vec<f64>],
+    dimensions: usize,
+    func: &str,
+) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>)> {
+    let matrix = SingleCellMatrix::BorrowedDense(matrix);
+    pca_projection_parts_from_matrix(&matrix, dimensions, func)
+}
+
+fn pca_projection_parts_from_matrix(
+    matrix: &SingleCellMatrix<'_>,
+    dimensions: usize,
+    func: &str,
+) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>)> {
+    let pca = builtin_sc_pca_matrix(matrix, dimensions)?;
+    let scores = record_matrix(&pca, "scores", func)?;
+    let loadings = record_matrix(&pca, "loadings", func)?;
+    let means = match &pca {
+        Value::Record(fields) => match fields.get("mean") {
+            Some(Value::List(values)) => values
+                .iter()
+                .map(|value| {
+                    value.as_float().ok_or_else(|| {
+                        BioLangError::type_error(format!("{func}() invalid PCA mean"), None)
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?,
+            _ => {
+                return Err(BioLangError::type_error(
+                    format!("{func}() missing PCA mean"),
+                    None,
+                ))
+            }
+        },
+        _ => unreachable!(),
+    };
+    Ok((scores, loadings, means))
+}
+
+fn project_pca(matrix: &[Vec<f64>], loadings: &[Vec<f64>], means: &[f64]) -> Vec<Vec<f64>> {
+    let dimensions = loadings.first().map(Vec::len).unwrap_or(0);
+    matrix
+        .iter()
+        .map(|row| {
+            (0..dimensions)
+                .map(|component| {
+                    row.iter()
+                        .zip(means)
+                        .zip(loadings)
+                        .map(|((value, mean), gene_loadings)| {
+                            (value - mean) * gene_loadings[component]
+                        })
+                        .sum()
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// Seurat 5.5.1-compatible integration anchors: shared CCA or reciprocal-PCA
+/// space, mutual cross-dataset neighbours, high-dimensional filtering, then
+/// four-neighbour shared-neighbour scoring.
+///
+/// Ported and adapted from Seurat's MIT-licensed `R/integration.R` and
+/// `src/integration.cpp`; see `packages/singlecell/SEURAT_MIT_NOTICE.md`.
+fn builtin_sc_find_anchors(args: Vec<Value>) -> Result<Value> {
+    let left = require_dense_matrix(&args[0], "sc_find_anchors")?;
+    let right = require_dense_matrix(&args[1], "sc_find_anchors")?;
+    let opts = match args.get(2) {
+        Some(Value::Record(fields)) => fields.as_ref().clone(),
+        _ => HashMap::new(),
+    };
+    if left.is_empty() || right.is_empty() {
+        return Err(BioLangError::type_error(
+            "sc_find_anchors() requires two non-empty matrices",
+            None,
+        ));
+    }
+    let genes = left[0].len();
+    if genes == 0
+        || right[0].len() != genes
+        || left.iter().any(|row| row.len() != genes)
+        || right.iter().any(|row| row.len() != genes)
+    {
+        return Err(BioLangError::type_error(
+            "sc_find_anchors() requires rectangular matrices with identical feature columns",
+            None,
+        ));
+    }
+    let requested_dims = record_number(&opts, "dims", 30.0).max(1.0) as usize;
+    let k_anchor = record_number(&opts, "k_anchor", 5.0).max(1.0) as usize;
+    let k_filter = record_number(&opts, "k_filter", 200.0).max(0.0) as usize;
+    let k_score = record_number(&opts, "k_score", 30.0).max(1.0) as usize;
+    let max_features = record_number(&opts, "max_features", 200.0).max(1.0) as usize;
+    let reduction = match opts.get("reduction") {
+        Some(Value::Str(name)) => name.to_ascii_lowercase(),
+        _ => "cca".to_string(),
+    };
+
+    let (left_embedding, right_embedding, left_projection, right_projection, compute_method) =
+        match reduction.as_str() {
+            "cca" => {
+                let left_standardized = standardize_cells(&left);
+                let right_standardized = standardize_cells(&right);
+                let (left_embedding, right_embedding, left_projection, right_projection, _, method) =
+                    cca_dense(&left_standardized, &right_standardized, requested_dims)?;
+                (
+                    left_embedding,
+                    right_embedding,
+                    left_projection,
+                    right_projection,
+                    method,
+                )
+            }
+            "rpca" => {
+                let (left_scores, left_loadings, left_means) =
+                    pca_projection_parts(&left, requested_dims, "sc_find_anchors")?;
+                let (right_scores, right_loadings, right_means) =
+                    pca_projection_parts(&right, requested_dims, "sc_find_anchors")?;
+                let right_in_left =
+                    l2_normalise_rows(&project_pca(&right, &left_loadings, &left_means));
+                let left_in_right =
+                    l2_normalise_rows(&project_pca(&left, &right_loadings, &right_means));
+                let left_unit = l2_normalise_rows(&left_scores);
+                let right_unit = l2_normalise_rows(&right_scores);
+                let dimensions = left_unit
+                    .first()
+                    .map(Vec::len)
+                    .unwrap_or(0)
+                    .min(right_unit.first().map(Vec::len).unwrap_or(0));
+                let left_common: Vec<Vec<f64>> = left_unit
+                    .iter()
+                    .zip(&left_in_right)
+                    .map(|(own, reciprocal)| {
+                        own.iter()
+                            .take(dimensions)
+                            .chain(reciprocal.iter().take(dimensions))
+                            .copied()
+                            .collect()
+                    })
+                    .collect();
+                let right_common: Vec<Vec<f64>> = right_in_left
+                    .iter()
+                    .zip(&right_unit)
+                    .map(|(reciprocal, own)| {
+                        reciprocal
+                            .iter()
+                            .take(dimensions)
+                            .chain(own.iter().take(dimensions))
+                            .copied()
+                            .collect()
+                    })
+                    .collect();
+                (
+                    left_common.clone(),
+                    right_common.clone(),
+                    left_common,
+                    right_common,
+                    "reciprocal_pca_cpu".to_string(),
+                )
+            }
+            other => {
+                return Err(BioLangError::type_error(
+                    format!("sc_find_anchors() reduction must be 'cca' or 'rpca', got '{other}'"),
+                    None,
+                ))
+            }
+        };
+
+    let neighbour_k = k_anchor.max(k_score);
+    let left_to_right = cross_neighbour_rows(&left_embedding, &right_embedding, neighbour_k);
+    let right_to_left = cross_neighbour_rows(&right_embedding, &left_embedding, neighbour_k);
+    // Seurat asks its self-search for k+1 neighbours, so the first k scoring
+    // entries include the cell itself and k-1 other cells.
+    let left_within: Vec<Vec<usize>> = neighbour_rows_metric(
+        &left_embedding,
+        k_score
+            .saturating_sub(1)
+            .min(left_embedding.len().saturating_sub(1)),
+        "euclidean",
+    )
+    .into_iter()
+    .enumerate()
+    .map(|(cell, row)| {
+        std::iter::once(cell)
+            .chain(row.into_iter().map(|(index, _)| index))
+            .take(k_score)
+            .collect()
+    })
+    .collect();
+    let right_within: Vec<Vec<usize>> = neighbour_rows_metric(
+        &right_embedding,
+        k_score
+            .saturating_sub(1)
+            .min(right_embedding.len().saturating_sub(1)),
+        "euclidean",
+    )
+    .into_iter()
+    .enumerate()
+    .map(|(cell, row)| {
+        std::iter::once(cell)
+            .chain(row.into_iter().map(|(index, _)| index))
+            .take(k_score)
+            .collect()
+    })
+    .collect();
+
+    let mut anchor_pairs = Vec::new();
+    for (left_index, candidates) in left_to_right.iter().enumerate() {
+        for &(right_index, _) in candidates.iter().take(k_anchor) {
+            if !right_to_left[right_index]
+                .iter()
+                .take(k_anchor)
+                .any(|&(candidate, _)| candidate == left_index)
+            {
+                continue;
+            }
+            anchor_pairs.push((left_index, right_index));
+        }
+    }
+    if anchor_pairs.is_empty() {
+        return Err(BioLangError::runtime(ErrorKind::TypeError,
+            "sc_find_anchors() found no mutual nearest neighbours; increase k_anchor or check that the datasets share biology".to_string(), None));
+    }
+
+    let effective_filter = if reduction == "cca" { k_filter } else { 0 };
+    let anchors_before_filter = anchor_pairs.len();
+    if effective_filter > 0
+        && left.len().min(right.len()) >= effective_filter
+        && !left_projection.is_empty()
+    {
+        let loadings =
+            projected_feature_loadings(&left, &right, &left_projection, &right_projection);
+        let filter_features = top_dim_features(&loadings, max_features);
+        if !filter_features.is_empty() {
+            let left_filter = l2_normalise_rows(
+                &left
+                    .iter()
+                    .map(|row| {
+                        filter_features
+                            .iter()
+                            .map(|&feature| row[feature])
+                            .collect()
+                    })
+                    .collect::<Vec<Vec<f64>>>(),
+            );
+            let right_filter = l2_normalise_rows(
+                &right
+                    .iter()
+                    .map(|row| {
+                        filter_features
+                            .iter()
+                            .map(|&feature| row[feature])
+                            .collect()
+                    })
+                    .collect::<Vec<Vec<f64>>>(),
+            );
+            let filter_neighbours =
+                cross_neighbour_rows(&left_filter, &right_filter, effective_filter);
+            anchor_pairs.retain(|&(left_index, right_index)| {
+                filter_neighbours[left_index]
+                    .iter()
+                    .any(|&(candidate, _)| candidate == right_index)
+            });
+        }
+    }
+    if anchor_pairs.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "sc_find_anchors() retained no anchors after high-dimensional filtering".to_string(),
+            None,
+        ));
+    }
+
+    let offset = left_embedding.len();
+    let left_neighbour_sets: Vec<HashSet<usize>> = (0..left_embedding.len())
+        .map(|cell| {
+            left_within[cell]
+                .iter()
+                .copied()
+                .chain(
+                    left_to_right[cell]
+                        .iter()
+                        .take(k_score)
+                        .map(|(index, _)| offset + *index),
+                )
+                .collect()
+        })
+        .collect();
+    let right_neighbour_sets: Vec<HashSet<usize>> = (0..right_embedding.len())
+        .map(|cell| {
+            right_to_left[cell]
+                .iter()
+                .take(k_score)
+                .map(|(index, _)| *index)
+                .chain(right_within[cell].iter().map(|index| offset + *index))
+                .collect()
+        })
+        .collect();
+    let anchor_raw: Vec<(usize, usize, f64)> = anchor_pairs
+        .into_iter()
+        .map(|(left_index, right_index)| {
+            let shared = left_neighbour_sets[left_index]
+                .intersection(&right_neighbour_sets[right_index])
+                .count();
+            (left_index, right_index, shared as f64)
+        })
+        .collect();
+    let mut raw_scores: Vec<f64> = anchor_raw.iter().map(|anchor| anchor.2).collect();
+    raw_scores.sort_by(f64::total_cmp);
+    let quantile = |probability: f64| {
+        let position = probability * raw_scores.len().saturating_sub(1) as f64;
+        let low = position.floor() as usize;
+        let high = position.ceil() as usize;
+        let fraction = position - low as f64;
+        raw_scores[low] * (1.0 - fraction) + raw_scores[high] * fraction
+    };
+    let low_score = quantile(0.01);
+    let high_score = quantile(0.90);
+    let span = (high_score - low_score).max(1e-12);
+    let anchors: Vec<Value> = anchor_raw
+        .into_iter()
+        .map(|(left_index, right_index, raw_score)| {
+            let score = ((raw_score - low_score) / span).clamp(0.0, 1.0);
+            Value::Record(
+                HashMap::from([
+                    ("left".to_string(), Value::Int(left_index as i64)),
+                    ("right".to_string(), Value::Int(right_index as i64)),
+                    ("score".to_string(), Value::Float(score)),
+                    ("raw_score".to_string(), Value::Float(raw_score)),
+                ])
+                .into(),
+            )
+        })
+        .collect();
+    let dimensions = left_embedding.first().map(Vec::len).unwrap_or(0);
+    Ok(Value::Record(
+        HashMap::from([
+            ("anchors".to_string(), Value::List(anchors.into())),
+            (
+                "left_embedding".to_string(),
+                matrix_to_value(left_embedding),
+            ),
+            (
+                "right_embedding".to_string(),
+                matrix_to_value(right_embedding),
+            ),
+            ("reduction".to_string(), Value::Str(reduction)),
+            ("compute_method".to_string(), Value::Str(compute_method)),
+            ("dims".to_string(), Value::Int(dimensions as i64)),
+            ("k_anchor".to_string(), Value::Int(k_anchor as i64)),
+            ("k_filter".to_string(), Value::Int(effective_filter as i64)),
+            ("k_score".to_string(), Value::Int(k_score as i64)),
+            ("max_features".to_string(), Value::Int(max_features as i64)),
+            (
+                "anchors_before_filter".to_string(),
+                Value::Int(anchors_before_filter as i64),
+            ),
+        ])
+        .into(),
+    ))
+}
+
+/// Locally weighted anchor correction. The kernel and integration-vector
+/// direction follow Seurat 5.5.1 FindWeightsC/IntegrateDataC. Returns reference
+/// rows followed by corrected query rows in the same order as
+/// `sc_merge_objects`.
+fn builtin_sc_integrate_anchors(args: Vec<Value>) -> Result<Value> {
+    let left = singlecell_matrix(&args[0], "sc_integrate_anchors")?;
+    let right = singlecell_matrix(&args[1], "sc_integrate_anchors")?;
+    let anchor_set = match &args[2] {
+        Value::Record(fields) => fields,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "sc_integrate_anchors() expected AnchorSet Record, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    let opts = match args.get(3) {
+        Some(Value::Record(fields)) => fields.as_ref().clone(),
+        _ => HashMap::new(),
+    };
+    let (left_cells, features) = left.dimensions();
+    let (right_cells, right_features) = right.dimensions();
+    if left_cells == 0 || right_cells == 0 || features == 0 || right_features != features {
+        return Err(BioLangError::type_error(
+            "sc_integrate_anchors() requires non-empty matrices with identical feature columns",
+            None,
+        ));
+    }
+    let anchor_values = match anchor_set.get("anchors") {
+        Some(Value::List(values)) => values,
+        _ => {
+            return Err(BioLangError::type_error(
+                "sc_integrate_anchors() AnchorSet has no anchors",
+                None,
+            ))
+        }
+    };
+    let mut anchors = Vec::with_capacity(anchor_values.len());
+    for value in anchor_values.iter() {
+        let fields = match value {
+            Value::Record(fields) => fields,
+            _ => {
+                return Err(BioLangError::type_error(
+                    "sc_integrate_anchors() invalid anchor entry",
+                    None,
+                ))
+            }
+        };
+        let index = |name: &str| -> Result<usize> {
+            match fields.get(name) {
+                Some(Value::Int(value)) if *value >= 0 => Ok(*value as usize),
+                _ => Err(BioLangError::type_error(
+                    format!("sc_integrate_anchors() anchor has invalid {name} index"),
+                    None,
+                )),
+            }
+        };
+        let left_index = index("left")?;
+        let right_index = index("right")?;
+        if left_index >= left_cells || right_index >= right_cells {
+            return Err(BioLangError::type_error(
+                "sc_integrate_anchors() anchor index is outside its matrix",
+                None,
+            ));
+        }
+        let score = fields.get("score").and_then(Value::as_float).unwrap_or(1.0);
+        anchors.push((left_index, right_index, score.max(0.0)));
+    }
+    if anchors.is_empty() {
+        return Err(BioLangError::type_error(
+            "sc_integrate_anchors() requires at least one anchor",
+            None,
+        ));
+    }
+    let k_weight = record_number(&opts, "k_weight", 100.0).max(1.0) as usize;
+    let sd_weight = record_number(&opts, "sd_weight", 1.0).max(1e-8);
+    let right_embedding = if let Some(reduction) = opts.get("weight_reduction") {
+        let reduction = require_matrix(reduction, "sc_integrate_anchors")?;
+        if reduction.len() != right_cells {
+            return Err(BioLangError::type_error(
+                "sc_integrate_anchors() weight_reduction must have one row per query cell",
+                None,
+            ));
+        }
+        reduction
+    } else {
+        // Seurat 5.5.1 RunIntegration defaults to a fresh PCA over the merged,
+        // feature-centered SCT residuals when no weight.reduction is supplied.
+        // `pca_projection_parts` performs that centering internally. Reusing
+        // the CCA embedding here was numerically convenient but changed which
+        // anchors were local to each query cell and propagated into every
+        // integrated PC, graph edge, cluster, and marker table.
+        let dimensions = anchor_set
+            .get("dims")
+            .and_then(Value::as_float)
+            .map(|value| value.max(1.0) as usize)
+            .unwrap_or(30);
+        let scores = if let (SingleCellMatrix::Flat(left), SingleCellMatrix::Flat(right)) =
+            (&left, &right)
+        {
+            let joined = SingleCellMatrix::JoinedFlat(left, right);
+            pca_projection_parts_from_matrix(
+                &joined,
+                dimensions,
+                "sc_integrate_anchors weight reduction",
+            )?
+            .0
+        } else {
+            // Compatibility path for interpreted nested lists and sparse test
+            // inputs. Package SCT data arrives as compact `Matrix`, so the HBC
+            // path above does not allocate this merged representation.
+            let merged: Vec<Vec<f64>> = (0..left_cells + right_cells)
+                .map(|cell| {
+                    let (matrix, row) = if cell < left_cells {
+                        (&left, cell)
+                    } else {
+                        (&right, cell - left_cells)
+                    };
+                    (0..features)
+                        .map(|feature| matrix.value_at(row, feature))
+                        .collect()
+                })
+                .collect();
+            pca_projection_parts(&merged, dimensions, "sc_integrate_anchors weight reduction")?.0
+        };
+        scores.into_iter().skip(left_cells).collect()
+    };
+    let mut anchors_by_query_cell = vec![Vec::new(); right_cells];
+    for (anchor_index, &(_, query_cell, _)) in anchors.iter().enumerate() {
+        anchors_by_query_cell[query_cell].push(anchor_index);
+    }
+    let mut seen_anchor_cells = HashSet::new();
+    let unique_anchor_cells: Vec<usize> = anchors
+        .iter()
+        .filter_map(|anchor| seen_anchor_cells.insert(anchor.1).then_some(anchor.1))
+        .collect();
+    let effective_k = k_weight
+        .min(anchors.len())
+        .min(unique_anchor_cells.len())
+        .max(1);
+    let anchor_cell_embedding: Vec<Vec<f64>> = unique_anchor_cells
+        .iter()
+        .map(|&cell| right_embedding[cell].clone())
+        .collect();
+    let query_neighbours =
+        cross_neighbour_rows(&right_embedding, &anchor_cell_embedding, effective_k);
+    let mut corrected = Vec::with_capacity(right_cells.saturating_mul(features));
+    for cell in 0..right_cells {
+        for feature in 0..features {
+            corrected.push(right.value_at(cell, feature));
+        }
+    }
+    for query_index in 0..right_embedding.len() {
+        let neighbours = &query_neighbours[query_index];
+        if neighbours.is_empty() {
+            continue;
+        }
+        let distance_scale = neighbours
+            .last()
+            .map(|(_, distance)| *distance)
+            .unwrap_or(1.0);
+        let mut order = Vec::with_capacity(effective_k);
+        let mut weights = Vec::with_capacity(effective_k);
+        for &(anchor_cell_position, distance) in neighbours {
+            let anchor_cell = unique_anchor_cells[anchor_cell_position];
+            let similarity = if distance_scale <= 1e-15 {
+                1.0
+            } else {
+                (1.0 - distance / distance_scale).max(0.0)
+            };
+            for &anchor_index in &anchors_by_query_cell[anchor_cell] {
+                if order.len() >= effective_k {
+                    break;
+                }
+                let score = anchors[anchor_index].2;
+                // Seurat 5.5.1 FindWeightsC:
+                // 1 - exp(-distance_similarity * anchor_score / (2 / sd)^2)
+                let weight = 1.0 - (-similarity * score / (2.0 / sd_weight).powi(2)).exp();
+                order.push(anchor_index);
+                weights.push(weight);
+            }
+            if order.len() >= effective_k {
+                break;
+            }
+        }
+        let total_weight: f64 = weights.iter().sum();
+        if total_weight <= 1e-15 {
+            continue;
+        }
+        for feature in 0..features {
+            let adjustment: f64 = order
+                .iter()
+                .zip(&weights)
+                .map(|(&anchor_index, weight)| {
+                    let (left_index, right_index, _) = anchors[anchor_index];
+                    weight
+                        * (left.value_at(left_index, feature)
+                            - right.value_at(right_index, feature))
+                })
+                .sum::<f64>()
+                / total_weight;
+            corrected[query_index * features + feature] += adjustment;
+        }
+    }
+    // The integrated assay is dense but it does not need interpreter boxing.
+    // Keep it in the native flat Matrix representation so the following PCA
+    // reads one compact allocation instead of retaining tens of millions of
+    // `Value::Float` elements alongside another numeric copy.
+    let rows = left_cells + right_cells;
+    let mut data = Vec::with_capacity(rows.saturating_mul(features));
+    for cell in 0..left_cells {
+        for feature in 0..features {
+            data.push(left.value_at(cell, feature));
+        }
+    }
+    data.extend(corrected);
+    let matrix = bl_core::matrix::Matrix::new(data, rows, features).map_err(|error| {
+        BioLangError::type_error(format!("sc_integrate_anchors(): {error}"), None)
+    })?;
+    Ok(Value::Matrix(matrix.into()))
+}
+
 fn builtin_harmony_integrate(args: Vec<Value>) -> Result<Value> {
     let opts: HashMap<String, Value> = match args.get(2) {
         Some(Value::Record(map)) => map.as_ref().clone(),
@@ -1864,40 +3370,75 @@ fn builtin_harmony_integrate(args: Vec<Value>) -> Result<Value> {
         .unwrap_or_else(|| (n_cells / 30).clamp(1, 100))
         .clamp(1, n_cells);
 
-    let mut corrected = embedding.clone();
+    // Flatten. Every inner loop below is a length-`n_dims` dot product, and a
+    // separate allocation per cell means a pointer chase before each one and
+    // 30,000 allocations per iteration for the three working copies. One array
+    // with a fixed stride makes those loops contiguous and the copies memcpys.
+    let mut corrected: Vec<f64> = embedding.iter().flatten().copied().collect();
+    drop(embedding);
+    let mut unit = vec![0.0f64; n_cells * n_dims];
+    let mut snapshot = vec![0.0f64; n_cells * n_dims];
+    let mut shift = vec![0.0f64; n_cells * n_dims];
 
     for _ in 0..max_iter {
         // Cosine geometry, so the clustering follows direction rather than
         // magnitude - the same reason Harmony L2-normalises here.
-        let unit = l2_normalise_rows(&corrected);
-        let centroids = kmeans_cosine(&unit, n_clusters);
-        let assignments = soft_assign(&unit, &centroids, sigma, theta, &batch_of, &batch_sizes);
+        l2_normalise_into(&corrected, n_dims, &mut unit);
+        let centroids = kmeans_cosine(&unit, n_dims, n_clusters);
+        let n_clusters_found = centroids.len() / n_dims.max(1);
+        let assignments = soft_assign(
+            &unit,
+            n_dims,
+            &centroids,
+            sigma,
+            theta,
+            &batch_of,
+            &batch_sizes,
+        );
 
         // Every cluster regresses against the same embedding, and the shifts are
         // summed and applied once. Correcting in place instead would have each
         // cluster fitting data the previous ones had already moved - the
         // clusters overlap, so those corrections compound rather than combine.
-        let snapshot = corrected.clone();
-        let mut shift = vec![vec![0.0_f64; n_dims]; n_cells];
-        for cluster in 0..centroids.len() {
-            correct_one_cluster(
-                &snapshot,
-                &assignments[cluster],
-                &batch_of,
-                n_batches,
-                n_dims,
-                ridge,
-                &mut shift,
-            );
-        }
-        for (row, adjustment) in corrected.iter_mut().zip(&shift) {
-            for (value, delta) in row.iter_mut().zip(adjustment) {
-                *value -= delta;
-            }
+        snapshot.copy_from_slice(&corrected);
+        shift.fill(0.0);
+        correct_all_clusters(
+            &snapshot,
+            n_dims,
+            &assignments,
+            n_clusters_found,
+            &batch_of,
+            n_batches,
+            ridge,
+            &mut shift,
+        );
+        for (value, delta) in corrected.iter_mut().zip(&shift) {
+            *value -= delta;
         }
     }
 
-    Ok(matrix_to_value(corrected))
+    Ok(flat_matrix_to_value(&corrected, n_dims))
+}
+
+/// A row-major flat matrix as the nested-list `Value` the language expects.
+fn flat_matrix_to_value(data: &[f64], n_dims: usize) -> Value {
+    if n_dims == 0 {
+        return Value::List(Vec::new().into());
+    }
+    Value::List(
+        data.chunks(n_dims)
+            .map(|row| {
+                Value::List(
+                    row.iter()
+                        .copied()
+                        .map(Value::Float)
+                        .collect::<Vec<_>>()
+                        .into(),
+                )
+            })
+            .collect::<Vec<_>>()
+            .into(),
+    )
 }
 
 fn l2_normalise_rows(rows: &[Vec<f64>]) -> Vec<Vec<f64>> {
@@ -1913,44 +3454,135 @@ fn l2_normalise_rows(rows: &[Vec<f64>]) -> Vec<Vec<f64>> {
         .collect()
 }
 
+fn l2_normalise_into(rows: &[f64], n_dims: usize, out: &mut [f64]) {
+    for (row, target) in rows.chunks(n_dims).zip(out.chunks_mut(n_dims)) {
+        let norm = row.iter().map(|v| v * v).sum::<f64>().sqrt();
+        if norm > 1e-12 {
+            for (value, source) in target.iter_mut().zip(row) {
+                *value = source / norm;
+            }
+        } else {
+            target.copy_from_slice(row);
+        }
+    }
+}
+
+/// Split `output` into per-thread runs of whole rows and fill them in parallel.
+///
+/// `body` receives the index of the first row in its slice and the slice
+/// itself. Nothing is summed across slices, so the answer does not depend on how
+/// many threads ran — anything that *does* accumulate stays on a serial path, so
+/// that two machines with different core counts still produce the same
+/// embedding.
+fn par_rows_mut<T, F>(output: &mut [T], stride: usize, body: F)
+where
+    T: Send,
+    F: Fn(usize, &mut [T]) + Sync,
+{
+    let rows = if stride == 0 {
+        0
+    } else {
+        output.len() / stride
+    };
+    let workers = std::thread::available_parallelism()
+        .map(|value| value.get())
+        .unwrap_or(1)
+        .min(rows.max(1));
+    if workers <= 1 || rows == 0 {
+        body(0, output);
+        return;
+    }
+    let span = rows.div_ceil(workers);
+    std::thread::scope(|scope| {
+        let mut first = 0;
+        let mut rest = output;
+        while !rest.is_empty() {
+            let take = (span * stride).min(rest.len());
+            let (head, tail) = rest.split_at_mut(take);
+            let body = &body;
+            scope.spawn(move || body(first, head));
+            first += take / stride;
+            rest = tail;
+        }
+    });
+}
+
 /// Lloyd's algorithm on cosine distance, seeded deterministically.
 ///
 /// Seeded by even spacing rather than at random: Harmony is run inside
 /// pipelines whose figures are compared between runs, and a random start would
 /// move the correction slightly every time for no reason the user can see.
-fn kmeans_cosine(unit: &[Vec<f64>], k: usize) -> Vec<Vec<f64>> {
-    let n = unit.len();
+fn kmeans_cosine(unit: &[f64], n_dims: usize, k: usize) -> Vec<f64> {
+    let n = if n_dims == 0 { 0 } else { unit.len() / n_dims };
+    if n == 0 || n_dims == 0 {
+        return Vec::new();
+    }
     let k = k.min(n).max(1);
     let stride = (n as f64 / k as f64).max(1.0);
-    let mut centroids: Vec<Vec<f64>> = (0..k)
-        .map(|i| unit[((i as f64 * stride) as usize).min(n - 1)].clone())
-        .collect();
+    let mut centroids = vec![0.0f64; k * n_dims];
+    for cluster in 0..k {
+        let source = ((cluster as f64 * stride) as usize).min(n - 1);
+        centroids[cluster * n_dims..(cluster + 1) * n_dims]
+            .copy_from_slice(&unit[source * n_dims..(source + 1) * n_dims]);
+    }
 
+    let mut nearest = vec![0u32; n];
     for _ in 0..10 {
-        let mut sums = vec![vec![0.0; unit[0].len()]; k];
-        let mut counts = vec![0.0_f64; k];
-        for row in unit {
-            let best = (0..k)
-                .max_by(|&a, &b| {
-                    dot(row, &centroids[a])
-                        .partial_cmp(&dot(row, &centroids[b]))
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
-                .unwrap_or(0);
-            for (d, value) in row.iter().enumerate() {
-                sums[best][d] += value;
+        // Assignment is per cell and writes only that cell's slot, so it splits
+        // across threads without changing a single sum.
+        //
+        // One dot product per centroid, not two. `max_by` over an index range
+        // re-evaluates its comparator's operands on every comparison, so the
+        // running best's dot product was being recomputed k-1 times: exactly
+        // twice the arithmetic of the loop below, in the hottest loop of the
+        // slowest stage. `>=` reproduces `max_by`'s last-one-wins tie-break.
+        let centroids_ref = &centroids;
+        par_rows_mut(&mut nearest, 1, |first_cell, slot| {
+            for (offset, target) in slot.iter_mut().enumerate() {
+                let cell = first_cell + offset;
+                let row = &unit[cell * n_dims..(cell + 1) * n_dims];
+                let mut best = 0usize;
+                let mut best_score = f64::NEG_INFINITY;
+                for cluster in 0..k {
+                    let score = dot(
+                        row,
+                        &centroids_ref[cluster * n_dims..(cluster + 1) * n_dims],
+                    );
+                    if score >= best_score {
+                        best_score = score;
+                        best = cluster;
+                    }
+                }
+                *target = best as u32;
             }
-            counts[best] += 1.0;
+        });
+
+        // The accumulation stays serial and in cell order, so the centroids are
+        // the same floating-point sum whatever the machine's core count.
+        let mut sums = vec![0.0f64; k * n_dims];
+        let mut counts = vec![0.0f64; k];
+        for (cell, &best) in nearest.iter().enumerate() {
+            let row = &unit[cell * n_dims..(cell + 1) * n_dims];
+            let target = &mut sums[best as usize * n_dims..(best as usize + 1) * n_dims];
+            for (accumulator, value) in target.iter_mut().zip(row) {
+                *accumulator += *value;
+            }
+            counts[best as usize] += 1.0;
         }
         for cluster in 0..k {
-            if counts[cluster] > 0.0 {
-                let mean: Vec<f64> = sums[cluster].iter().map(|v| v / counts[cluster]).collect();
-                let norm = mean.iter().map(|v| v * v).sum::<f64>().sqrt();
-                centroids[cluster] = if norm > 1e-12 {
-                    mean.iter().map(|v| v / norm).collect()
-                } else {
-                    mean
-                };
+            if counts[cluster] <= 0.0 {
+                continue;
+            }
+            let centroid = &mut centroids[cluster * n_dims..(cluster + 1) * n_dims];
+            centroid.copy_from_slice(&sums[cluster * n_dims..(cluster + 1) * n_dims]);
+            for value in centroid.iter_mut() {
+                *value /= counts[cluster];
+            }
+            let norm = centroid.iter().map(|v| v * v).sum::<f64>().sqrt();
+            if norm > 1e-12 {
+                for value in centroid.iter_mut() {
+                    *value /= norm;
+                }
             }
         }
     }
@@ -1967,71 +3599,115 @@ fn dot(a: &[f64], b: &[f64]) -> f64 {
 /// observed batch composition against the composition it would have if batches
 /// were spread evenly, and pulls cells towards clusters where their own batch is
 /// under-represented. `theta` is how hard it pulls.
+/// Returns membership cell-major: cell `i`'s `k` weights are `r[i * k..][..k]`.
+///
+/// Cell-major rather than cluster-major. Every consumer — the composition
+/// reduction here, and the regression that follows — reads all of one cell's
+/// clusters together, which cluster-major storage spreads across `k` separate
+/// arrays a full cell-count apart. On 30,000 cells and 100 clusters that is a
+/// cache miss per cluster per cell; contiguously it is a few lines.
 fn soft_assign(
-    unit: &[Vec<f64>],
-    centroids: &[Vec<f64>],
+    unit: &[f64],
+    n_dims: usize,
+    centroids: &[f64],
     sigma: f64,
     theta: f64,
     batch_of: &[usize],
     batch_sizes: &[f64],
-) -> Vec<Vec<f64>> {
-    let n = unit.len();
-    let k = centroids.len();
+) -> Vec<f64> {
+    let n = if n_dims == 0 { 0 } else { unit.len() / n_dims };
+    let k = if n_dims == 0 {
+        0
+    } else {
+        centroids.len() / n_dims
+    };
     let total = n as f64;
-
-    // Unpenalised assignment first, to have an observed composition to penalise.
-    let mut r = vec![vec![0.0; n]; k];
-    for (i, row) in unit.iter().enumerate() {
-        let mut column = vec![0.0; k];
-        let mut sum = 0.0;
-        for (cluster, centroid) in centroids.iter().enumerate() {
-            // Cosine distance on unit vectors.
-            let weight = (-(1.0 - dot(row, centroid)) / sigma).exp();
-            column[cluster] = weight;
-            sum += weight;
-        }
-        for cluster in 0..k {
-            r[cluster][i] = if sum > 0.0 {
-                column[cluster] / sum
-            } else {
-                1.0 / k as f64
-            };
-        }
+    let mut r = vec![0.0f64; n * k];
+    if n == 0 || k == 0 {
+        return r;
     }
 
-    // A few refinements: the penalty depends on the composition, which depends
-    // on the penalty.
-    for _ in 0..3 {
-        let mut observed = vec![vec![0.0; k]; batch_sizes.len()];
-        for (i, &batch) in batch_of.iter().enumerate() {
-            for cluster in 0..k {
-                observed[batch][cluster] += r[cluster][i];
-            }
-        }
-        let cluster_mass: Vec<f64> = (0..k)
-            .map(|cluster| observed.iter().map(|row| row[cluster]).sum())
-            .collect();
-
-        for (i, row) in unit.iter().enumerate() {
-            let batch = batch_of[i];
-            let mut column = vec![0.0; k];
+    // Unpenalised assignment first, to have an observed composition to penalise.
+    par_rows_mut(&mut r, k, |first_cell, block| {
+        for (offset, weights) in block.chunks_mut(k).enumerate() {
+            let cell = first_cell + offset;
+            let row = &unit[cell * n_dims..(cell + 1) * n_dims];
             let mut sum = 0.0;
-            for (cluster, centroid) in centroids.iter().enumerate() {
-                let expected = batch_sizes[batch] * cluster_mass[cluster] / total;
-                let seen = observed[batch][cluster].max(1e-9);
-                let penalty = (expected.max(1e-9) / seen).powf(theta);
-                let weight = (-(1.0 - dot(row, centroid)) / sigma).exp() * penalty;
-                column[cluster] = weight;
-                sum += weight;
+            for (cluster, weight) in weights.iter_mut().enumerate() {
+                // Cosine distance on unit vectors.
+                let value = (-(1.0
+                    - dot(row, &centroids[cluster * n_dims..(cluster + 1) * n_dims]))
+                    / sigma)
+                    .exp();
+                *weight = value;
+                sum += value;
             }
-            for cluster in 0..k {
-                r[cluster][i] = if sum > 0.0 {
-                    column[cluster] / sum
+            for weight in weights.iter_mut() {
+                *weight = if sum > 0.0 {
+                    *weight / sum
                 } else {
                     1.0 / k as f64
                 };
             }
         }
+    });
+
+    // A few refinements: the penalty depends on the composition, which depends
+    // on the penalty.
+    let n_batches = batch_sizes.len();
+    for _ in 0..3 {
+        let mut observed = vec![0.0f64; n_batches * k];
+        for (cell, &batch) in batch_of.iter().enumerate() {
+            let weights = &r[cell * k..(cell + 1) * k];
+            let target = &mut observed[batch * k..(batch + 1) * k];
+            for (accumulator, weight) in target.iter_mut().zip(weights) {
+                *accumulator += *weight;
+            }
+        }
+        let cluster_mass: Vec<f64> = (0..k)
+            .map(|cluster| {
+                (0..n_batches)
+                    .map(|batch| observed[batch * k + cluster])
+                    .sum()
+            })
+            .collect();
+
+        // The penalty depends only on (batch, cluster), so it is the same for
+        // every cell in a batch. Computing it once per batch instead of once per
+        // cell removes an `exp`, a `powf` and two divisions from the inner loop.
+        let mut penalty = vec![0.0f64; n_batches * k];
+        for batch in 0..n_batches {
+            for cluster in 0..k {
+                let expected = batch_sizes[batch] * cluster_mass[cluster] / total;
+                let seen = observed[batch * k + cluster].max(1e-9);
+                penalty[batch * k + cluster] = (expected.max(1e-9) / seen).powf(theta);
+            }
+        }
+
+        par_rows_mut(&mut r, k, |first_cell, block| {
+            for (offset, weights) in block.chunks_mut(k).enumerate() {
+                let cell = first_cell + offset;
+                let row = &unit[cell * n_dims..(cell + 1) * n_dims];
+                let batch = &penalty[batch_of[cell] * k..(batch_of[cell] + 1) * k];
+                let mut sum = 0.0;
+                for (cluster, weight) in weights.iter_mut().enumerate() {
+                    let value = (-(1.0
+                        - dot(row, &centroids[cluster * n_dims..(cluster + 1) * n_dims]))
+                        / sigma)
+                        .exp()
+                        * batch[cluster];
+                    *weight = value;
+                    sum += value;
+                }
+                for weight in weights.iter_mut() {
+                    *weight = if sum > 0.0 {
+                        *weight / sum
+                    } else {
+                        1.0 / k as f64
+                    };
+                }
+            }
+        });
     }
     r
 }
@@ -2043,49 +3719,95 @@ fn soft_assign(
 /// sits in the embedding, which is the biology. Only the batch coefficients are
 /// removed, and the ridge term keeps a batch with few cells in this cluster from
 /// producing an enormous correction.
-fn correct_one_cluster(
-    embedding: &[Vec<f64>],
+/// All clusters at once, in two sweeps over the embedding instead of two per
+/// cluster.
+///
+/// The per-cluster formulation reads the whole embedding and the whole shift
+/// array once for every cluster: on 30,000 cells, 40 dimensions and 100
+/// clusters that is 200 passes over ~19 MB per Harmony iteration, and the
+/// arithmetic inside is a handful of adds per element. It is bandwidth, not
+/// flops. Every cluster's accumulators together are `k * (size^2 + size *
+/// n_dims)` — about 100 KB here, comfortably cache-resident — so hoisting the
+/// cell loop outside the cluster loop turns those 200 passes into two.
+///
+/// Each accumulator still sees cells in ascending order and each shift still
+/// sums clusters in ascending order, so this is the same floating-point
+/// arithmetic in the same sequence, not merely the same value.
+#[allow(clippy::too_many_arguments)]
+fn correct_all_clusters(
+    embedding: &[f64],
+    n_dims: usize,
     weights: &[f64],
+    n_clusters: usize,
     batch_of: &[usize],
     n_batches: usize,
-    n_dims: usize,
     ridge: f64,
-    shift: &mut [Vec<f64>],
+    shift: &mut [f64],
 ) {
-    let size = n_batches + 1;
-    let mut normal = vec![vec![0.0_f64; size]; size];
-    let mut rhs = vec![vec![0.0_f64; n_dims]; size];
-
-    for (i, &weight) in weights.iter().enumerate() {
-        if weight <= 0.0 {
-            continue;
-        }
-        let batch = batch_of[i] + 1;
-        normal[0][0] += weight;
-        normal[0][batch] += weight;
-        normal[batch][0] += weight;
-        normal[batch][batch] += weight;
-        for d in 0..n_dims {
-            let value = weight * embedding[i][d];
-            rhs[0][d] += value;
-            rhs[batch][d] += value;
-        }
-    }
-    // Ridge on the batch terms only, so the intercept stays unpenalised.
-    for b in 1..size {
-        normal[b][b] += ridge;
-    }
-
-    let Some(coefficients) = solve_multi(&mut normal, &mut rhs) else {
+    if n_clusters == 0 || n_dims == 0 {
         return;
-    };
-    for (i, &weight) in weights.iter().enumerate() {
-        if weight <= 0.0 {
-            continue;
+    }
+    let size = n_batches + 1;
+    let n_cells = batch_of.len();
+    let mut normal = vec![0.0f64; n_clusters * size * size];
+    let mut rhs = vec![0.0f64; n_clusters * size * n_dims];
+
+    for cell in 0..n_cells {
+        let row = &embedding[cell * n_dims..(cell + 1) * n_dims];
+        let batch = batch_of[cell] + 1;
+        let memberships = &weights[cell * n_clusters..(cell + 1) * n_clusters];
+        for (cluster, &weight) in memberships.iter().enumerate() {
+            if weight <= 0.0 {
+                continue;
+            }
+            let block = &mut normal[cluster * size * size..(cluster + 1) * size * size];
+            block[0] += weight;
+            block[batch] += weight;
+            block[batch * size] += weight;
+            block[batch * size + batch] += weight;
+
+            let base = cluster * size * n_dims;
+            let (intercept, indicator) = (base, base + batch * n_dims);
+            for d in 0..n_dims {
+                let value = weight * row[d];
+                rhs[intercept + d] += value;
+                rhs[indicator + d] += value;
+            }
         }
-        let batch = batch_of[i] + 1;
-        for d in 0..n_dims {
-            shift[i][d] += weight * coefficients[batch][d];
+    }
+
+    // The systems are (batches + 1) square — single digits — so a direct solve
+    // per cluster costs nothing next to the sweeps around it.
+    let solved: Vec<Option<Vec<Vec<f64>>>> = (0..n_clusters)
+        .map(|cluster| {
+            let mut a: Vec<Vec<f64>> = (0..size)
+                .map(|row| normal[cluster * size * size + row * size..][..size].to_vec())
+                .collect();
+            // Ridge on the batch terms only, so the intercept stays unpenalised.
+            for batch in 1..size {
+                a[batch][batch] += ridge;
+            }
+            let mut b: Vec<Vec<f64>> = (0..size)
+                .map(|row| rhs[cluster * size * n_dims + row * n_dims..][..n_dims].to_vec())
+                .collect();
+            solve_multi(&mut a, &mut b)
+        })
+        .collect();
+
+    for cell in 0..n_cells {
+        let batch = batch_of[cell] + 1;
+        let out = &mut shift[cell * n_dims..(cell + 1) * n_dims];
+        let memberships = &weights[cell * n_clusters..(cell + 1) * n_clusters];
+        for (cluster, &weight) in memberships.iter().enumerate() {
+            if weight <= 0.0 {
+                continue;
+            }
+            let Some(coefficients) = &solved[cluster] else {
+                continue;
+            };
+            for (value, coefficient) in out.iter_mut().zip(&coefficients[batch]) {
+                *value += weight * *coefficient;
+            }
         }
     }
 }
@@ -2167,8 +3889,8 @@ fn builtin_find_all_markers(args: Vec<Value>) -> Result<Value> {
     let number = |key: &str, fallback: f64| -> f64 {
         opts.get(key).and_then(|v| v.as_float()).unwrap_or(fallback)
     };
-    let min_pct = number("min_pct", 0.1);
-    let logfc_threshold = number("logfc_threshold", 0.25);
+    let min_pct = number("min_pct", 0.01);
+    let logfc_threshold = number("logfc_threshold", 0.1);
     let only_positive = opts.get("only_pos").map(|v| v.is_truthy()).unwrap_or(false);
 
     // Cells x genes, as a column per gene: every test wants one gene across all
@@ -2293,12 +4015,28 @@ fn builtin_find_all_markers(args: Vec<Value>) -> Result<Value> {
         }
     }
 
-    // One correction across every test performed, not one per cluster: the
-    // family is the whole table, and adjusting per cluster would understate the
-    // rate by however many clusters there are.
-    let raw: Vec<f64> = found.iter().map(|m| m.p_value).collect();
-    let adjusted =
-        bl_core::bio_core::stats_ops::benjamini_hochberg_correction(&raw, 0.05).adjusted_p_values;
+    // FindAllMarkers is a sequence of one-vs-rest FindMarkers contrasts. Each
+    // contrast is corrected separately, with the number of genes in the assay
+    // as the hypothesis count even when pre-filtering avoided computing some
+    // tests. This is the public Seurat contract and prevents filtering from
+    // making adjusted p-values artificially optimistic.
+    let mut adjusted = vec![1.0_f64; found.len()];
+    for cluster in &cluster_order {
+        let mut indices: Vec<usize> = found
+            .iter()
+            .enumerate()
+            .filter(|(_, marker)| &marker.cluster == cluster)
+            .map(|(index, _)| index)
+            .collect();
+        indices.sort_by(|&a, &b| found[a].p_value.total_cmp(&found[b].p_value));
+        let mut running = 1.0_f64;
+        for rank_index in (0..indices.len()).rev() {
+            let index = indices[rank_index];
+            let rank = rank_index + 1;
+            running = running.min((found[index].p_value * n_genes as f64 / rank as f64).min(1.0));
+            adjusted[index] = running;
+        }
+    }
 
     // Most significant first within each cluster, clusters in first-seen order:
     // the reading order for naming cell types.
@@ -2551,6 +4289,247 @@ fn builtin_gene_qc(args: Vec<Value>) -> Result<Value> {
 
 // â”€â”€ knn_graph(embeddings, k=15) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+fn neighbour_distance(a: &[f64], b: &[f64], metric: &str) -> f64 {
+    if metric.eq_ignore_ascii_case("cosine") {
+        let dot: f64 = a.iter().zip(b).map(|(x, y)| x * y).sum();
+        let left_norm = a.iter().map(|value| value * value).sum::<f64>().sqrt();
+        let right_norm = b.iter().map(|value| value * value).sum::<f64>().sqrt();
+        if left_norm <= 1e-15 || right_norm <= 1e-15 {
+            return if left_norm <= 1e-15 && right_norm <= 1e-15 {
+                0.0
+            } else {
+                1.0
+            };
+        }
+        return (1.0 - dot / (left_norm * right_norm)).clamp(0.0, 2.0);
+    }
+    a.iter()
+        .zip(b.iter())
+        .map(|(x, y)| (x - y) * (x - y))
+        .sum::<f64>()
+        .sqrt()
+}
+
+fn exact_neighbour_rows(embeddings: &[Vec<f64>], k: usize, metric: &str) -> Vec<Vec<(usize, f64)>> {
+    (0..embeddings.len())
+        .map(|i| {
+            let mut distances: Vec<(usize, f64)> = (0..embeddings.len())
+                .filter(|&j| j != i)
+                .map(|j| {
+                    (
+                        j,
+                        neighbour_distance(&embeddings[i], &embeddings[j], metric),
+                    )
+                })
+                .collect();
+            distances.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
+            distances.truncate(k);
+            distances
+        })
+        .collect()
+}
+
+fn rp_tree_candidates(
+    embeddings: &[Vec<f64>],
+    indices: Vec<usize>,
+    leaf_size: usize,
+    state: &mut u64,
+    candidates: &mut [Vec<usize>],
+) {
+    if indices.len() <= leaf_size {
+        for &cell in &indices {
+            candidates[cell].extend(indices.iter().copied().filter(|&other| other != cell));
+        }
+        return;
+    }
+
+    // Random-projection-tree split (Dasgupta & Freund): project on the line
+    // through two sampled observations and split at the median. Repeated trees
+    // give close observations several independent chances to share a leaf.
+    *state = state
+        .wrapping_mul(6364136223846793005)
+        .wrapping_add(1442695040888963407);
+    let first_position = (*state as usize) % indices.len();
+    let first = indices[first_position];
+    *state = state
+        .wrapping_mul(6364136223846793005)
+        .wrapping_add(1442695040888963407);
+    let mut second_position = (*state as usize) % indices.len();
+    if second_position == first_position {
+        second_position = (second_position + 1) % indices.len();
+    }
+    let second = indices[second_position];
+
+    let direction: Vec<f64> = embeddings[first]
+        .iter()
+        .zip(&embeddings[second])
+        .map(|(a, b)| a - b)
+        .collect();
+    let usable = direction.iter().any(|value| value.abs() > 1e-12);
+    let dimensions = embeddings.first().map(|row| row.len()).unwrap_or(0);
+    let fallback_dimension = if dimensions == 0 {
+        0
+    } else {
+        ((*state >> 32) as usize) % dimensions
+    };
+    let mut projected: Vec<(usize, f64)> = indices
+        .into_iter()
+        .map(|index| {
+            let projection = if usable {
+                embeddings[index]
+                    .iter()
+                    .zip(&direction)
+                    .map(|(value, axis)| value * axis)
+                    .sum()
+            } else {
+                embeddings[index]
+                    .get(fallback_dimension)
+                    .copied()
+                    .unwrap_or(0.0)
+            };
+            (index, projection)
+        })
+        .collect();
+    projected.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
+    let right_projected = projected.split_off(projected.len() / 2);
+    let left: Vec<usize> = projected.into_iter().map(|(index, _)| index).collect();
+    let right: Vec<usize> = right_projected
+        .into_iter()
+        .map(|(index, _)| index)
+        .collect();
+    rp_tree_candidates(embeddings, left, leaf_size, state, candidates);
+    rp_tree_candidates(embeddings, right, leaf_size, state, candidates);
+}
+
+/// Deterministic random-projection-forest search for HBC-scale datasets.
+/// Candidate distances are evaluated exactly. Small inputs retain all-pairs
+/// search so existing fixtures and small analyses do not change.
+fn neighbour_rows_metric(
+    embeddings: &[Vec<f64>],
+    k: usize,
+    metric: &str,
+) -> Vec<Vec<(usize, f64)>> {
+    const EXACT_LIMIT: usize = 4096;
+    if embeddings.len() <= EXACT_LIMIT {
+        return exact_neighbour_rows(embeddings, k, metric);
+    }
+
+    // Portable GPU top-k search avoids the approximation gap for the graph
+    // and UMAP range (normally 15-30 neighbors). Any unsupported shape or
+    // driver failure transparently continues into the projection forest.
+    if let Ok(Some(neighbours)) = crate::gpu::nearest_rows(embeddings, k, metric) {
+        return neighbours;
+    }
+
+    let n = embeddings.len();
+    // `k` can be much larger than the graph/UMAP range here. Seurat-style
+    // anchor filtering asks for 200 cross-dataset neighbours and the mixed
+    // search deliberately over-fetches candidates. The old unbounded formula
+    // made k=1600 use 3,200-point leaves across 24 trees: 76,800 preallocated
+    // indices per cell, or about 18.2 GB for the 29,629-cell HBC object before
+    // duplicates. Large-k searches need broader leaves, not an unbounded
+    // number of retained candidates per cell.
+    let leaf_size = (k.saturating_mul(2)).clamp(32, 256);
+    let tree_count = if k > 256 { 8_usize } else { 24_usize };
+    let mut candidates: Vec<Vec<usize>> = (0..n)
+        .map(|_| Vec::with_capacity(leaf_size * tree_count))
+        .collect();
+    for tree in 0..tree_count {
+        let mut state = 0x9e3779b97f4a7c15_u64 ^ (tree as u64 + 1).wrapping_mul(0x517cc1b727220a95);
+        rp_tree_candidates(
+            embeddings,
+            (0..n).collect(),
+            leaf_size,
+            &mut state,
+            &mut candidates,
+        );
+    }
+
+    candidates
+        .into_iter()
+        .enumerate()
+        .map(|(cell, mut row)| {
+            row.sort_unstable();
+            row.dedup();
+            let mut distances: Vec<(usize, f64)> = row
+                .into_iter()
+                .filter(|&other| other != cell)
+                .map(|other| {
+                    (
+                        other,
+                        neighbour_distance(&embeddings[cell], &embeddings[other], metric),
+                    )
+                })
+                .collect();
+            distances.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
+            distances.truncate(k);
+            distances
+        })
+        .collect()
+}
+
+fn neighbour_rows(embeddings: &[Vec<f64>], k: usize) -> Vec<Vec<(usize, f64)>> {
+    neighbour_rows_metric(embeddings, k, "euclidean")
+}
+
+fn builtin_sc_umap(args: Vec<Value>) -> Result<Value> {
+    let embeddings = require_matrix(&args[0], "sc_umap")?;
+    let options: HashMap<String, Value> = match args.get(1) {
+        Some(Value::Record(record)) => record.as_ref().clone(),
+        Some(_) => {
+            return Err(BioLangError::type_error(
+                "sc_umap() options must be a Record",
+                None,
+            ));
+        }
+        None => HashMap::new(),
+    };
+    let integer = |name: &str, default: usize| {
+        options
+            .get(name)
+            .and_then(|value| match value {
+                Value::Int(number) => Some((*number).max(1) as usize),
+                _ => None,
+            })
+            .unwrap_or(default)
+    };
+    let number = |name: &str, default: f64| options.get(name).and_then(to_f64).unwrap_or(default);
+    let metric = options
+        .get("metric")
+        .and_then(|value| match value {
+            Value::Str(text) => Some(text.as_str()),
+            _ => None,
+        })
+        .unwrap_or("cosine");
+    if !metric.eq_ignore_ascii_case("cosine") && !metric.eq_ignore_ascii_case("euclidean") {
+        return Err(BioLangError::type_error(
+            format!("sc_umap() metric must be 'cosine' or 'euclidean', got '{metric}'"),
+            None,
+        ));
+    }
+    let n_components = integer("n_components", 2);
+    let n_neighbors = integer("n_neighbors", 30)
+        .min(embeddings.len().saturating_sub(1))
+        .max(1);
+    let n_epochs = integer(
+        "n_epochs",
+        if embeddings.len() <= 10_000 { 500 } else { 200 },
+    );
+    let seed = integer("seed", 42) as u64;
+    let negative_sample_rate = integer("negative_sample_rate", 5);
+    let neighbours = neighbour_rows_metric(&embeddings, n_neighbors, metric);
+    let result = bl_core::bio_core::dimreduce_ops::umap_from_knn(
+        &neighbours,
+        n_components,
+        n_epochs,
+        number("min_dist", 0.3),
+        number("spread", 1.0),
+        seed,
+        negative_sample_rate,
+    );
+    Ok(matrix_to_value(result))
+}
+
 fn builtin_knn_graph(args: Vec<Value>) -> Result<Value> {
     let embeddings = require_matrix(&args[0], "knn_graph")?;
     let k = if args.len() > 1 {
@@ -2565,30 +4544,16 @@ fn builtin_knn_graph(args: Vec<Value>) -> Result<Value> {
     }
     let k_actual = k.min(n.saturating_sub(1));
 
-    // Euclidean distance
-    let dist = |a: &[f64], b: &[f64]| -> f64 {
-        a.iter()
-            .zip(b.iter())
-            .map(|(x, y)| (x - y) * (x - y))
-            .sum::<f64>()
-            .sqrt()
-    };
-
     let mut edges: Vec<Value> = Vec::new();
-
-    for i in 0..n {
-        let mut dists: Vec<(usize, f64)> = (0..n)
-            .filter(|&j| j != i)
-            .map(|j| (j, dist(&embeddings[i], &embeddings[j])))
-            .collect();
-
-        dists.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
-
-        for (j, d) in dists.into_iter().take(k_actual) {
+    for (i, neighbours) in neighbour_rows(&embeddings, k_actual)
+        .into_iter()
+        .enumerate()
+    {
+        for (j, distance) in neighbours {
             let mut rec = HashMap::new();
             rec.insert("source".to_string(), Value::Int(i as i64));
             rec.insert("target".to_string(), Value::Int(j as i64));
-            rec.insert("distance".to_string(), Value::Float(d));
+            rec.insert("distance".to_string(), Value::Float(distance));
             edges.push(Value::Record((rec).into()));
         }
     }
@@ -2634,29 +4599,22 @@ fn builtin_snn_graph(args: Vec<Value>) -> Result<Value> {
     if n == 0 {
         return Ok(Value::List((vec![]).into()));
     }
-    let k_actual = k.min(n.saturating_sub(1));
-
-    let dist = |a: &[f64], b: &[f64]| -> f64 {
-        a.iter()
-            .zip(b.iter())
-            .map(|(x, y)| (x - y) * (x - y))
-            .sum::<f64>()
-    };
+    // Seurat's ranked-neighbour matrix contains the query cell itself among
+    // its k columns. Keep k-1 other cells so the Jaccard denominator is k.
+    let k_actual = k.saturating_sub(1).min(n.saturating_sub(1));
 
     // Neighbour sets, each including the cell itself.
-    let mut neighbours: Vec<Vec<usize>> = Vec::with_capacity(n);
-    for i in 0..n {
-        let mut dists: Vec<(usize, f64)> = (0..n)
-            .filter(|&j| j != i)
-            .map(|j| (j, dist(&embeddings[i], &embeddings[j])))
-            .collect();
-        dists.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
-        let mut set: Vec<usize> = std::iter::once(i)
-            .chain(dists.into_iter().take(k_actual).map(|(j, _)| j))
-            .collect();
-        set.sort_unstable();
-        neighbours.push(set);
-    }
+    let neighbours: Vec<Vec<usize>> = neighbour_rows(&embeddings, k_actual)
+        .into_iter()
+        .enumerate()
+        .map(|(i, row)| {
+            let mut set: Vec<usize> = std::iter::once(i)
+                .chain(row.into_iter().map(|(j, _)| j))
+                .collect();
+            set.sort_unstable();
+            set
+        })
+        .collect();
 
     // Inverted index: which cells count `v` among their neighbours. Without it
     // finding the pairs that share anything means comparing every cell to every
@@ -2779,7 +4737,10 @@ fn leiden_adjacency(edges: &Value, n_nodes: usize, who: &str) -> Result<Vec<Vec<
         Value::List(edges) => edges,
         other => {
             return Err(BioLangError::type_error(
-                format!("{who}() edges must be List<Record>, got {}", other.type_of()),
+                format!(
+                    "{who}() edges must be List<Record>, got {}",
+                    other.type_of()
+                ),
                 None,
             ))
         }
@@ -2885,12 +4846,8 @@ fn builtin_louvain_graph(args: Vec<Value>) -> Result<Value> {
         None => 10,
     };
     let adjacency = leiden_adjacency(&args[0], n_nodes as usize, "louvain_graph")?;
-    let labels = bl_core::bio_core::cluster_ops::louvain_sparse_restarts(
-        &adjacency,
-        resolution,
-        n_start,
-        0,
-    );
+    let labels =
+        bl_core::bio_core::cluster_ops::louvain_sparse_restarts(&adjacency, resolution, n_start, 0);
     Ok(Value::List(
         labels
             .into_iter()
@@ -3159,40 +5116,189 @@ fn read_lines_from_path(path: &std::path::Path) -> Result<Vec<String>> {
     }
 }
 
-fn parse_mtx_lines(lines: Vec<String>) -> Result<(usize, usize, Vec<(usize, usize, f64)>)> {
-    let mut iter = lines.into_iter();
-    iter.next(); // skip %%MatrixMarket header
-    let size_line = loop {
-        match iter.next() {
-            None => {
-                return Err(BioLangError::runtime(
-                    ErrorKind::IOError,
-                    "read_10x(): malformed matrix.mtx (no size line)",
-                    None,
-                ))
-            }
-            Some(l) if l.starts_with('%') => continue,
-            Some(l) => break l,
+/// Open a text file for reading, transparently decompressing `.gz`.
+fn open_text_reader(path: &std::path::Path) -> Result<Box<dyn BufRead>> {
+    let file = std::fs::File::open(path).map_err(|e| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("read_10x(): cannot open {}: {e}", path.display()),
+            None,
+        )
+    })?;
+    if path.extension().is_some_and(|e| e == "gz") {
+        #[cfg(feature = "native")]
+        {
+            return Ok(Box::new(BufReader::new(flate2::read::GzDecoder::new(file))));
         }
-    };
-    let parts: Vec<&str> = size_line.split_whitespace().collect();
-    let n_rows: usize = parts.first().and_then(|s| s.parse().ok()).unwrap_or(0);
-    let n_cols: usize = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
-    let mut entries = Vec::new();
-    for line in iter {
-        let t = line.trim();
-        if t.is_empty() || t.starts_with('%') {
-            continue;
-        }
-        let p: Vec<&str> = t.split_whitespace().collect();
-        if p.len() >= 3 {
-            let row: usize = p[0].parse().unwrap_or(0);
-            let col: usize = p[1].parse().unwrap_or(0);
-            let val: f64 = p[2].parse().unwrap_or(0.0);
-            entries.push((row, col, val));
+        #[cfg(not(feature = "native"))]
+        {
+            return Err(BioLangError::runtime(
+                ErrorKind::IOError,
+                "read_10x(): .gz support requires native feature",
+                None,
+            ));
         }
     }
+    Ok(Box::new(BufReader::new(file)))
+}
+
+/// One entry of a Matrix Market file: `(row, column, value)`, still 1-based.
+///
+/// `u32` for the indices. Matrix Market's own dimensions are unbounded, so the
+/// parser checks them, but ten million entries at 24 bytes is 240 MB against
+/// 160 MB at 16 — and this vector exists only to be transposed into CSR.
+type MtxEntry = (u32, u32, f64);
+
+/// Stream a Matrix Market file into a compact entry list.
+///
+/// The route this replaces collected every line into a `Vec<String>` first. On
+/// a raw 10x matrix that is ten million separately heap-allocated strings —
+/// roughly half a gigabyte and ten million allocator round trips — held whole
+/// while a second, equally large entry list was built beside it. Nothing needs
+/// two lines at once, and the header states the entry count, so the one buffer
+/// that is genuinely required can be sized exactly instead of doubled into
+/// place.
+fn parse_mtx_streaming(path: &std::path::Path) -> Result<(usize, usize, Vec<MtxEntry>)> {
+    let mut reader = open_text_reader(path)?;
+    let mut line = String::new();
+    let read = |reader: &mut Box<dyn BufRead>, line: &mut String| -> Result<usize> {
+        line.clear();
+        reader.read_line(line).map_err(|e| {
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("read_10x(): read error: {e}"),
+                None,
+            )
+        })
+    };
+
+    // The banner and any comments come first; the first bare line is the size
+    // line, `rows columns entries`.
+    let (n_rows, n_cols, declared) = loop {
+        if read(&mut reader, &mut line)? == 0 {
+            return Err(BioLangError::runtime(
+                ErrorKind::IOError,
+                "read_10x(): malformed matrix.mtx (no size line)",
+                None,
+            ));
+        }
+        let text = line.trim();
+        if text.is_empty() || text.starts_with('%') {
+            continue;
+        }
+        let mut parts = text.split_ascii_whitespace();
+        let rows = parts
+            .next()
+            .and_then(|s| s.parse::<usize>().ok())
+            .unwrap_or(0);
+        let columns = parts
+            .next()
+            .and_then(|s| s.parse::<usize>().ok())
+            .unwrap_or(0);
+        let declared = parts
+            .next()
+            .and_then(|s| s.parse::<usize>().ok())
+            .unwrap_or(0);
+        break (rows, columns, declared);
+    };
+    if n_rows > u32::MAX as usize || n_cols > u32::MAX as usize {
+        return Err(BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("read_10x(): matrix is {n_rows} x {n_cols}, beyond this reader's range"),
+            None,
+        ));
+    }
+
+    let mut entries: Vec<MtxEntry> = Vec::with_capacity(declared);
+    loop {
+        if read(&mut reader, &mut line)? == 0 {
+            break;
+        }
+        let text = line.trim();
+        if text.is_empty() || text.starts_with('%') {
+            continue;
+        }
+        let mut parts = text.split_ascii_whitespace();
+        let (Some(row), Some(column), Some(value)) = (parts.next(), parts.next(), parts.next())
+        else {
+            continue;
+        };
+        entries.push((
+            row.parse().unwrap_or(0),
+            column.parse().unwrap_or(0),
+            value.parse().unwrap_or(0.0),
+        ));
+    }
     Ok((n_rows, n_cols, entries))
+}
+
+/// Transpose gene-major Matrix Market entries into a cell-major CSR matrix.
+///
+/// A counting sort, not a comparison sort. `SparseMatrix::from_triplets` takes
+/// three parallel slices, rebuilds them into a third copy of every entry, and
+/// sorts that by `(row, column)` — three ten-million-element allocations and an
+/// n log n sort where the row is already a small dense integer. Counting gives
+/// the same layout in two linear passes, and because Matrix Market promises no
+/// ordering while this type's `get` binary-searches on it, each row is checked
+/// and only sorted if the file did not already arrive in order — which, from
+/// CellRanger, it does.
+fn csr_from_mtx_entries(entries: &[MtxEntry], n_cells: usize, n_genes: usize) -> SparseMatrix {
+    let keep = |&(gene_1, cell_1, value): &MtxEntry| -> Option<(usize, usize, f64)> {
+        let gene = (gene_1 as usize).checked_sub(1)?;
+        let cell = (cell_1 as usize).checked_sub(1)?;
+        (gene < n_genes && cell < n_cells && value != 0.0).then_some((gene, cell, value))
+    };
+
+    let mut indptr = vec![0usize; n_cells + 1];
+    for entry in entries {
+        if let Some((_, cell, _)) = keep(entry) {
+            indptr[cell + 1] += 1;
+        }
+    }
+    for cell in 0..n_cells {
+        indptr[cell + 1] += indptr[cell];
+    }
+
+    let nnz = indptr[n_cells];
+    let mut indices = vec![0usize; nnz];
+    let mut data = vec![0.0f64; nnz];
+    let mut cursor = indptr.clone();
+    for entry in entries {
+        if let Some((gene, cell, value)) = keep(entry) {
+            let position = cursor[cell];
+            indices[position] = gene;
+            data[position] = value;
+            cursor[cell] = position + 1;
+        }
+    }
+    drop(cursor);
+
+    for cell in 0..n_cells {
+        let (from, to) = (indptr[cell], indptr[cell + 1]);
+        if indices[from..to].windows(2).all(|pair| pair[0] < pair[1]) {
+            continue;
+        }
+        let mut row: Vec<(usize, f64)> = indices[from..to]
+            .iter()
+            .copied()
+            .zip(data[from..to].iter().copied())
+            .collect();
+        row.sort_by_key(|&(gene, _)| gene);
+        for (offset, (gene, value)) in row.into_iter().enumerate() {
+            indices[from + offset] = gene;
+            data[from + offset] = value;
+        }
+    }
+
+    SparseMatrix {
+        indptr,
+        indices,
+        data,
+        nrow: n_cells,
+        ncol: n_genes,
+        row_names: None,
+        col_names: None,
+    }
 }
 
 // â”€â”€ read_10x(path) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -3304,7 +5410,7 @@ fn read_10x_impl(args: Vec<Value>, sparse: bool) -> Result<Value> {
         })
         .collect();
 
-    let (n_genes_mtx, n_cells_mtx, entries) = parse_mtx_lines(read_lines_from_path(&matrix_path)?)?;
+    let (n_genes_mtx, n_cells_mtx, entries) = parse_mtx_streaming(&matrix_path)?;
 
     let n_g = genes.len().max(n_genes_mtx);
     let n_c = barcodes.len().max(n_cells_mtx);
@@ -3317,27 +5423,16 @@ fn read_10x_impl(args: Vec<Value>, sparse: bool) -> Result<Value> {
     }
 
     let matrix_value = if sparse {
-        let mut rows = Vec::with_capacity(entries.len());
-        let mut columns = Vec::with_capacity(entries.len());
-        let mut values = Vec::with_capacity(entries.len());
-        for (gene_1, cell_1, value) in entries {
-            let gene = gene_1.saturating_sub(1);
-            let cell = cell_1.saturating_sub(1);
-            if gene < n_g && cell < n_c && value != 0.0 {
-                rows.push(cell);
-                columns.push(gene);
-                values.push(value);
-            }
-        }
-        let mut matrix = SparseMatrix::from_triplets(&rows, &columns, &values, n_c, n_g);
+        let mut matrix = csr_from_mtx_entries(&entries, n_c, n_g);
+        drop(entries);
         matrix.row_names = Some(barcodes.clone());
         matrix.col_names = Some(genes.clone());
         Value::SparseMatrix(std::sync::Arc::new(matrix))
     } else {
         let mut matrix = vec![vec![0.0f64; n_g]; n_c];
         for (gene_1, cell_1, value) in entries {
-            let gene = gene_1.saturating_sub(1);
-            let cell = cell_1.saturating_sub(1);
+            let gene = (gene_1 as usize).saturating_sub(1);
+            let cell = (cell_1 as usize).saturating_sub(1);
             if gene < n_g && cell < n_c {
                 matrix[cell][gene] += value;
             }
@@ -3520,9 +5615,9 @@ fn builtin_module_score(args: Vec<Value>) -> Result<Value> {
 /// to 711 MB. The residual values themselves are unchanged; only which columns
 /// survive.
 ///
-/// With one argument the result is a `Matrix`, as before. With two it is a
-/// `Record { matrix, genes }`, because a subset of columns is meaningless
-/// without the indices it kept.
+/// Every call returns a record containing the matrix and its original-axis gene
+/// indices, because zero-count genes are absent even when no feature cap is
+/// requested and a narrower matrix without that mapping is unsafe.
 fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
     let (n_cells, n_genes, get_row): (usize, usize, Box<dyn Fn(usize, &mut Vec<f64>)>) =
         match &args[0] {
@@ -3566,6 +5661,58 @@ fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
         },
     };
 
+    let latent_covariates = match args.get(2) {
+        None | Some(Value::Nil) => Vec::new(),
+        Some(Value::List(values)) if values.is_empty() => Vec::new(),
+        Some(Value::List(values)) if values.iter().all(|value| value.as_float().is_some()) => {
+            vec![values
+                .iter()
+                .map(|value| value.as_float().unwrap())
+                .collect()]
+        }
+        Some(Value::List(values)) => values
+            .iter()
+            .map(|column| match column {
+                Value::List(items) => items
+                    .iter()
+                    .map(|value| {
+                        value.as_float().ok_or_else(|| {
+                            BioLangError::type_error(
+                                "sc_sctransform() covariates must be numeric",
+                                None,
+                            )
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>(),
+                other => Err(BioLangError::type_error(
+                    format!(
+                        "sc_sctransform() covariates must be a numeric List or List<List>, got {}",
+                        other.type_of()
+                    ),
+                    None,
+                )),
+            })
+            .collect::<Result<Vec<_>>>()?,
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "sc_sctransform() covariates must be a numeric List or List<List>, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    if latent_covariates
+        .iter()
+        .any(|column| column.len() != n_cells)
+    {
+        return Err(BioLangError::type_error(
+            format!("sc_sctransform() covariates must have one value per cell ({n_cells})"),
+            None,
+        ));
+    }
+
     if n_cells == 0 || n_genes == 0 {
         return Ok(Value::List((vec![]).into()));
     }
@@ -3575,31 +5722,50 @@ fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
     // expression, rather than one number asserted for all of them.
     {
         use bl_core::bio_core::sctransform::{sctransform, GeneColumns, SctOptions};
-        let mut columns: Vec<Vec<(usize, f64)>> = vec![Vec::new(); n_genes];
-        let mut row = Vec::with_capacity(n_genes);
-        for cell in 0..n_cells {
-            get_row(cell, &mut row);
-            for (gene, &count) in row.iter().enumerate() {
-                if count != 0.0 {
-                    columns[gene].push((cell, count));
+        let data = if let Value::SparseMatrix(matrix) = &args[0] {
+            // `GeneColumns::from_cell_major` deliberately scans twice: once to
+            // size every gene column exactly and once to fill it. A sparse
+            // matrix can supply those scans directly from CSR. Routing it
+            // through `get_row` first cleared and revisited n_cells*n_genes
+            // zeros on each pass (over 800 million writes for HBC) even though
+            // only the non-zeros are relevant.
+            GeneColumns::from_cell_major(n_cells, n_genes, |emit| {
+                for cell in 0..n_cells {
+                    for position in matrix.indptr[cell]..matrix.indptr[cell + 1] {
+                        let count = matrix.data[position];
+                        if count != 0.0 {
+                            emit(cell, matrix.indices[position], count);
+                        }
+                    }
                 }
-            }
-        }
-        let data = GeneColumns { n_cells, columns };
+            })
+        } else {
+            GeneColumns::from_cell_major(n_cells, n_genes, |emit| {
+                let mut row = Vec::with_capacity(n_genes);
+                for cell in 0..n_cells {
+                    get_row(cell, &mut row);
+                    for (gene, &count) in row.iter().enumerate() {
+                        if count != 0.0 {
+                            emit(cell, gene, count);
+                        }
+                    }
+                }
+            })
+        };
         let options = SctOptions {
             n_variable_features: want,
+            latent_covariates,
             ..Default::default()
         };
         let result = sctransform(&data, &options);
         let width = result.kept_genes.len();
         let matrix = bl_core::matrix::Matrix::new(result.residuals, n_cells, width)
             .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, &e, None))?;
-        // Always paired with the gene indices, even uncapped. The model needs a
-        // handful of observations per gene to estimate an overdispersion at all,
-        // so genes detected in fewer than `min_cells` cells are dropped whether
-        // or not a feature cap was asked for. Returning a narrower matrix with
-        // no way to tell which columns survived would be the kind of quiet
-        // mismatch that shows up three steps later as a wrong gene name.
+        // Always paired with original-axis gene indices, even uncapped. Genes
+        // containing no counts are absent, while other low-detection genes can
+        // read regularized parameters from the expression trend. Returning a
+        // narrower matrix without its surviving indices would create exactly
+        // the quiet axis mismatch that later appears as a wrong gene name.
         let mut record = HashMap::new();
         record.insert("matrix".to_string(), Value::Matrix(matrix.into()));
         record.insert(
@@ -3613,8 +5779,78 @@ fn builtin_sc_sctransform(args: Vec<Value>) -> Result<Value> {
                     .into(),
             ),
         );
+        record.insert(
+            "ranked_genes".to_string(),
+            Value::List(
+                result
+                    .ranked_genes
+                    .into_iter()
+                    .map(|gene| Value::Int(gene as i64))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        );
+        record.insert(
+            "fit_genes".to_string(),
+            Value::List(
+                result
+                    .fit_genes
+                    .into_iter()
+                    .map(|gene| Value::Int(gene as i64))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        );
+        record.insert(
+            "fit_cells".to_string(),
+            Value::List(
+                result
+                    .fit_cells
+                    .into_iter()
+                    .map(|cell| Value::Int(cell as i64))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        );
+        record.insert(
+            "residual_variance".to_string(),
+            Value::List(
+                result
+                    .residual_variance
+                    .into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        );
+        record.insert(
+            "residual_variance_stage".to_string(),
+            Value::Str("pearson_before_centering_and_covariate_regression".into()),
+        );
+        record.insert(
+            "theta".to_string(),
+            Value::List(
+                result
+                    .theta
+                    .into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        );
+        record.insert(
+            "intercept".to_string(),
+            Value::List(
+                result
+                    .intercept
+                    .into_iter()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        );
         return Ok(Value::Record(record.into()));
-}
+    }
 }
 
 // â”€â”€ sc_integrate(matrix, batch_ids) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

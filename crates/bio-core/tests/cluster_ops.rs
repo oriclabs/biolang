@@ -63,12 +63,18 @@ fn louvain_separates_two_cliques() {
     let labels = bio_core::cluster_ops::louvain(&barbell(), 1.0);
     assert_eq!(labels.len(), 10);
     assert_eq!(
-        labels[0..5].iter().collect::<std::collections::HashSet<_>>().len(),
+        labels[0..5]
+            .iter()
+            .collect::<std::collections::HashSet<_>>()
+            .len(),
         1,
         "first clique was split: {labels:?}"
     );
     assert_eq!(
-        labels[5..10].iter().collect::<std::collections::HashSet<_>>().len(),
+        labels[5..10]
+            .iter()
+            .collect::<std::collections::HashSet<_>>()
+            .len(),
         1,
         "second clique was split: {labels:?}"
     );

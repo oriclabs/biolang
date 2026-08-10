@@ -212,7 +212,10 @@ fn tool_succeeds(cmd: &str, args: &[&str]) -> bool {
 
 /// Cargo features compiled into this build that gate native capabilities.
 fn compiled_features() -> Vec<&'static str> {
-    Vec::new()
+    let mut features = Vec::new();
+    #[cfg(feature = "gpu")]
+    features.push("gpu");
+    features
 }
 
 /// Best-effort total physical RAM in GB.
@@ -513,6 +516,29 @@ pub fn doctor_report() -> String {
             native_cell_ceiling(ram)
         ));
     }
+
+    let gpu = crate::gpu::info();
+    out.push_str("\nGPU acceleration\n----------------\n");
+    out.push_str(&format!("  compiled          : {}\n", yes_no(gpu.compiled)));
+    out.push_str(&format!("  enabled           : {}\n", yes_no(gpu.enabled)));
+    out.push_str(&format!(
+        "  available         : {}\n",
+        yes_no(gpu.available)
+    ));
+    if let Some(adapter) = gpu.adapter {
+        out.push_str(&format!("  adapter           : {adapter}\n"));
+    }
+    if let Some(backend) = gpu.backend {
+        out.push_str(&format!("  graphics backend  : {backend}\n"));
+    }
+    if let Some(device_type) = gpu.device_type {
+        out.push_str(&format!("  device type       : {device_type}\n"));
+    }
+    if let Some(driver) = gpu.driver.filter(|driver| !driver.is_empty()) {
+        out.push_str(&format!("  driver            : {driver}\n"));
+    }
+    out.push_str(&format!("  selection         : {}\n", gpu.reason));
+    out.push_str("  override          : BIOLANG_GPU=off selects the CPU fallback\n");
 
     out.push_str("\nCapabilities\n------------\n");
     let ctx = SelectionContext::default();

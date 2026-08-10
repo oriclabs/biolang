@@ -933,17 +933,17 @@ fn test_nested_blocks() {
     }
 }
 
-// ── empty block ───────────────────────────────────────────────
+// ── empty record ──────────────────────────────────────────────
 
 #[test]
-fn test_empty_block() {
+fn test_empty_braces_as_an_expression_statement_are_a_record() {
     let prog = parse("{ }");
     match &prog.stmts[0].node {
         Stmt::Expr(expr) => match &expr.node {
-            Expr::Block(stmts) => {
-                assert!(stmts.is_empty());
+            Expr::Record(entries) => {
+                assert!(entries.is_empty());
             }
-            other => panic!("expected Block, got {other:?}"),
+            other => panic!("expected Record, got {other:?}"),
         },
         other => panic!("expected Expr, got {other:?}"),
     }
@@ -951,9 +951,9 @@ fn test_empty_block() {
 
 // ── empty map in expression position ─────────────────
 
-// Which of the two  means is decided by position, as it is in JavaScript.
-// A statement of its own is a block (see test_empty_block above); where a value
-// is expected it is an empty map, so a tally can be opened and filled in.
+// Empty braces consistently mean an empty record expression. Structural braces
+// belonging to a function, loop, or if body are parsed by those constructs and
+// remain blocks.
 
 #[test]
 fn test_empty_braces_in_value_position_are_a_map() {
@@ -964,6 +964,24 @@ fn test_empty_braces_in_value_position_are_a_map() {
             other => panic!("expected Record, got {other:?}"),
         },
         other => panic!("expected Let, got {other:?}"),
+    }
+}
+
+#[test]
+fn test_empty_record_survives_inside_an_if_branch() {
+    let prog = parse("if false { {present: 1} } else { {} }");
+    match &prog.stmts[0].node {
+        Stmt::Expr(expr) => match &expr.node {
+            Expr::If { else_body, .. } => match &else_body.as_ref().unwrap()[0].node {
+                Stmt::Expr(inner) => match &inner.node {
+                    Expr::Record(entries) => assert!(entries.is_empty()),
+                    other => panic!("expected Record, got {other:?}"),
+                },
+                other => panic!("expected Expr, got {other:?}"),
+            },
+            other => panic!("expected If, got {other:?}"),
+        },
+        other => panic!("expected Expr, got {other:?}"),
     }
 }
 

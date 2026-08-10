@@ -295,6 +295,15 @@ fn read_file(path: &str) -> String {
 // ── Terminal run (ANSI) ──────────────────────────────────────────────────────
 
 pub fn run_notebook(path: &str) {
+    let filename = PathBuf::from(path)
+        .file_name()
+        .map(|name| name.to_string_lossy().to_string())
+        .unwrap_or_else(|| path.to_string());
+    eprintln!("\x1b[2m▶ running notebook {filename}\x1b[0m");
+    eprintln!(
+        "\x1b[2m  compute backend: {}\x1b[0m",
+        bl_runtime::gpu::execution_summary()
+    );
     let executed = execute_notebook(path);
 
     for eb in &executed {
@@ -488,6 +497,7 @@ pub fn export_html(path: &str) {
         HTML_TEMPLATE
             .replace("{title}", &html_escape(&filename))
             .replace("{body}", &body)
+            .replace("{figure_runtime}", FIGURE_FALLBACK_RUNTIME)
     );
 }
 
@@ -589,20 +599,18 @@ fn collect_data_files(source: &str, notebook_path: &str) -> Vec<(String, String)
 ///
 /// The difference from `export_html` is what the reader can do, not what the
 /// page says: both bake in the output of a real CLI run, so the page is
-/// complete with JavaScript disabled. This one additionally ships the
-/// playground runtime, so a reader can edit a block and re-run it against
-/// WebAssembly.
+/// complete with JavaScript disabled. This one additionally ships a plain-HTML
+/// editor, so a reader can edit cells and run them incrementally against one
+/// shared WebAssembly interpreter.
 ///
 /// The runtime itself is *not* inlined. It is ~5.9 MB (1.9 MB gzipped), and a
 /// reader working through a set of tutorials should download it once and have
 /// it cached, rather than once per page. `--wasm-base` points at wherever it is
 /// served from.
 ///
-/// `playground.js` is embedded from the website source at compile time rather
-/// than copied. Which blocks can run in the browser is a genuinely hard
-/// question — the WASM build carries 791 of 1018 builtins, so a notebook using
-/// `ensembl_*` or `write_csv` renders correctly here and still cannot run — and
-/// a second copy of that logic would answer it differently within a release.
+/// The dependency-free editor and SVG/canvas fallback runtimes are embedded
+/// from the website source at compile time rather than copied next to every
+/// exported notebook.
 pub fn export_html_wasm(path: &str, wasm_base: &str) {
     let executed = execute_notebook(path);
     let filename = PathBuf::from(path)
@@ -610,7 +618,14 @@ pub fn export_html_wasm(path: &str, wasm_base: &str) {
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "notebook".into());
 
-    let mut body = String::new();
+    let mut body = String::from(
+        "<div class=\"bl-notebook-bar\" role=\"toolbar\" aria-label=\"Notebook controls\">\n\
+           <span id=\"bl-kernel-status\">Browser kernel · starts on first run</span>\n\
+           <button id=\"bl-run-all\" type=\"button\">Run all</button>\n\
+         </div>\n\
+         <p class=\"bl-runtime-note\">Runs locally in this browser with WebAssembly. Native libraries, GPU, unrestricted file access, and very large analyses require the <code>bl</code> CLI.</p>\n",
+    );
+    let mut cell_index = 0usize;
     for eb in &executed {
         match &eb.block {
             Block::Prose(text) => {
@@ -621,18 +636,42 @@ pub fn export_html_wasm(path: &str, wasm_base: &str) {
                     continue;
                 }
                 if !cb.directives.contains(&CellDirective::Hide) {
-                    // playground.js looks for `code.language-biolang`, the same
-                    // selector the docs pages use, and attaches the button and
-                    // its own output panel around this element.
-                    body.push_str(
-                        "<div class=\"cell-code\"><pre><code class=\"language-biolang\">",
-                    );
-                    body.push_str(&highlight_biolang(&cb.code));
-                    body.push_str(
-                        "</code></pre></div>
-",
-                    );
+                    cell_index += 1;
+                    let hide_output = if cb.directives.contains(&CellDirective::HideOutput) {
+                        " data-hide-output=\"true\""
+                    } else {
+                        ""
+                    };
+                    body.push_str(&format!(
+                        "<section class=\"bl-notebook-cell\" data-cell=\"{cell_index}\"{hide_output}>\n\
+                           <div class=\"bl-cell-toolbar\">\n\
+                             <span class=\"bl-cell-count\">In [ ]</span>\n\
+                             <span class=\"bl-cell-timing\"></span>\n\
+                             <button class=\"bl-cell-run\" type=\"button\">Run</button>\n\
+                           </div>\n\
+                           <textarea class=\"bl-cell-editor\" aria-label=\"BioLang code cell {cell_index}\" spellcheck=\"false\" autocapitalize=\"off\" autocomplete=\"off\" wrap=\"off\">"
+                    ));
+                    body.push_str(&html_escape(&cb.code));
+                    body.push_str("</textarea>\n<div class=\"bl-live-output\" hidden></div>\n");
+                    if let Some(output) = &eb.output {
+                        if !cb.directives.contains(&CellDirective::HideOutput) && !output.is_empty()
+                        {
+                            body.push_str("<div class=\"bl-saved-output\"><div class=\"bl-saved-label\">Saved output</div>");
+                            emit_output(&mut body, output);
+                            body.push_str("</div>\n");
+                        }
+                    }
+                    body.push_str("</section>\n");
+                    continue;
                 }
+                // Hidden cells are notebook setup, not discarded code. The
+                // browser kernel evaluates them once when it starts so visible
+                // cells see the same initial state as the exported CLI run.
+                body.push_str(
+                    "<div class=\"bl-notebook-bootstrap\" hidden><textarea aria-hidden=\"true\">",
+                );
+                body.push_str(&html_escape(&cb.code));
+                body.push_str("</textarea></div>\n");
                 if let Some(output) = &eb.output {
                     if !cb.directives.contains(&CellDirective::HideOutput) && !output.is_empty() {
                         emit_output(&mut body, output);
@@ -670,7 +709,7 @@ window.__blDataFiles[{}] = true;
         ));
     }
 
-    let runtime = include_str!("../../../website/js/playground.js");
+    let runtime = include_str!("../../../website/js/notebook-runtime.js");
     println!(
         "{}",
         HTML_WASM_TEMPLATE
@@ -678,6 +717,7 @@ window.__blDataFiles[{}] = true;
             .replace("{wasm_base}", &html_escape(wasm_base.trim_end_matches('/')))
             .replace("{body}", &body)
             .replace("{data}", &data)
+            .replace("{figure_runtime}", FIGURE_FALLBACK_RUNTIME)
             .replace("{runtime}", runtime)
     );
 }
@@ -692,19 +732,39 @@ window.__blDataFiles[{}] = true;
 /// did not already cross: it is the output of code the reader just ran locally,
 /// on a page generated for them.
 fn emit_output(body: &mut String, output: &str) {
-    let trimmed = output.trim();
-    if trimmed.starts_with("<svg") && trimmed.ends_with("</svg>") {
+    let mut cursor = 0usize;
+    let mut found_figure = false;
+    while let Some(relative_start) = output[cursor..].find("<svg") {
+        let start = cursor + relative_start;
+        let Some(relative_end) = output[start..].find("</svg>") else {
+            break;
+        };
+        let end = start + relative_end + "</svg>".len();
+        emit_text_output(body, &output[cursor..start]);
         body.push_str("<figure class=\"cell-figure\">");
-        body.push_str(trimmed);
-        body.push_str("</figure>
-");
+        body.push_str(output[start..end].trim());
+        body.push_str("</figure>\n");
+        found_figure = true;
+        cursor = end;
+    }
+
+    if found_figure {
+        emit_text_output(body, &output[cursor..]);
+    } else {
+        emit_text_output(body, output);
+    }
+}
+
+fn emit_text_output(body: &mut String, output: &str) {
+    if output.trim().is_empty() {
         return;
     }
     body.push_str("<div class=\"cell-output\">");
     body.push_str(&html_escape(output));
-    body.push_str("</div>
-");
+    body.push_str("</div>\n");
 }
+
+const FIGURE_FALLBACK_RUNTIME: &str = include_str!("../../../website/js/figure-fallback.js");
 
 fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
@@ -1109,11 +1169,33 @@ fn inline_to_typst(text: &str) -> String {
     out
 }
 
-fn markdown_to_html(text: &str) -> String {
+fn markdown_table_cells(line: &str) -> Option<Vec<&str>> {
+    let trimmed = line.trim();
+    if !trimmed.contains('|') {
+        return None;
+    }
+    let without_left = trimmed.strip_prefix('|').unwrap_or(trimmed);
+    let content = without_left.strip_suffix('|').unwrap_or(without_left);
+    let cells = content.split('|').map(str::trim).collect::<Vec<_>>();
+    (cells.len() >= 2).then_some(cells)
+}
+
+fn is_markdown_table_separator(line: &str, columns: usize) -> bool {
+    markdown_table_cells(line).is_some_and(|cells| {
+        cells.len() == columns
+            && cells.iter().all(|cell| {
+                let dashes = cell.trim().trim_start_matches(':').trim_end_matches(':');
+                dashes.len() >= 3 && dashes.chars().all(|character| character == '-')
+            })
+    })
+}
+
+pub(crate) fn markdown_to_html(text: &str) -> String {
     let mut html = String::new();
     let mut in_list = false;
     let mut in_blockquote = false;
     let mut paragraph = String::new();
+    let lines = text.lines().collect::<Vec<_>>();
 
     let flush_paragraph = |p: &mut String, h: &mut String| {
         let t = p.trim();
@@ -1125,7 +1207,9 @@ fn markdown_to_html(text: &str) -> String {
         p.clear();
     };
 
-    for line in text.lines() {
+    let mut index = 0;
+    while index < lines.len() {
+        let line = lines[index];
         let trimmed = line.trim();
 
         // Close list if we're no longer in one
@@ -1138,6 +1222,40 @@ fn markdown_to_html(text: &str) -> String {
         if in_blockquote && !trimmed.starts_with("> ") {
             html.push_str("</blockquote>\n");
             in_blockquote = false;
+        }
+
+        // GitHub-flavoured Markdown table. Detect it from the header followed
+        // by a dash separator before treating either line as paragraph text.
+        if let Some(headers) = markdown_table_cells(trimmed) {
+            if lines
+                .get(index + 1)
+                .is_some_and(|separator| is_markdown_table_separator(separator, headers.len()))
+            {
+                flush_paragraph(&mut paragraph, &mut html);
+                html.push_str("<div class=\"markdown-table-wrap\"><table>\n<thead><tr>");
+                for header in &headers {
+                    html.push_str("<th>");
+                    html.push_str(&inline_to_html(header));
+                    html.push_str("</th>");
+                }
+                html.push_str("</tr></thead>\n<tbody>\n");
+                index += 2;
+                while let Some(row) = lines.get(index).and_then(|line| markdown_table_cells(line)) {
+                    if row.len() != headers.len() {
+                        break;
+                    }
+                    html.push_str("<tr>");
+                    for cell in row {
+                        html.push_str("<td>");
+                        html.push_str(&inline_to_html(cell));
+                        html.push_str("</td>");
+                    }
+                    html.push_str("</tr>\n");
+                    index += 1;
+                }
+                html.push_str("</tbody></table></div>\n");
+                continue;
+            }
         }
 
         // Headings
@@ -1184,6 +1302,7 @@ fn markdown_to_html(text: &str) -> String {
             }
             paragraph.push_str(trimmed);
         }
+        index += 1;
     }
 
     // Flush remaining
@@ -1374,6 +1493,10 @@ const HTML_TEMPLATE: &str = r#"<!DOCTYPE html>
     h2 { font-size: 1.5rem; }
     h3 { font-size: 1.25rem; }
     p { margin: 0.75rem 0; }
+    .markdown-table-wrap { overflow-x: auto; margin: 0.9rem 0; }
+    table { width: 100%; border-collapse: collapse; background: var(--output-bg); }
+    th, td { padding: 0.5rem 0.65rem; border: 1px solid var(--border); text-align: left; vertical-align: top; }
+    th { background: var(--code-bg); color: #f8fafc; }
     code { background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; }
     strong { color: #f8fafc; }
     em { color: var(--muted); }
@@ -1385,6 +1508,11 @@ const HTML_TEMPLATE: &str = r#"<!DOCTYPE html>
     .cell-code pre { margin: 0; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 0.875rem; line-height: 1.6; white-space: pre; }
     .cell-figure { margin: 0.25rem 0 1rem; padding: 0.5rem; background: #fff; border-radius: 6px; overflow-x: auto; }
     .cell-figure svg { max-width: 100%; height: auto; display: block; }
+    .cell-figure-controls { display: flex; justify-content: flex-end; margin-bottom: 0.35rem; }
+    .cell-figure-toggle { border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; color: #334155; padding: 0.2rem 0.5rem; font: 11px system-ui, sans-serif; cursor: pointer; }
+    .cell-figure-toggle:disabled { display: none; }
+    .cell-figure-canvas { display: block; }
+    .cell-figure-canvas[hidden], .cell-figure svg[hidden] { display: none; }
     .cell-output { background: var(--output-bg); border-left: 3px solid #f59e0b; padding: 0.75rem 1rem; margin: 0.25rem 0 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; white-space: pre-wrap; border-radius: 0 6px 6px 0; color: #fbbf24; }
     .kw { color: #c084fc; font-weight: 600; }
     .str { color: #34d399; }
@@ -1398,15 +1526,17 @@ const HTML_TEMPLATE: &str = r#"<!DOCTYPE html>
 <body>
 {body}
   <div class="meta">Generated by BioLang Notebook</div>
+<script>
+{figure_runtime}
+</script>
 </body>
 </html>"#;
 
 /// Template for `--export html-wasm`.
 ///
-/// `components-loaded` is set up front on purpose: playground.js waits for the
-/// website's component loader to set it and only falls back after three
-/// seconds. Nothing loads components here, so without it every exported
-/// notebook would sit inert for three seconds before its buttons appeared.
+/// Kept separate from the documentation playground: an exported notebook is
+/// an editor with a persistent, incremental session, while documentation code
+/// blocks are immutable examples that may be replayed independently.
 const HTML_WASM_TEMPLATE: &str = r##"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1421,14 +1551,39 @@ const HTML_WASM_TEMPLATE: &str = r##"<!DOCTYPE html>
     h1, h2, h3, h4, h5, h6 { color: #f8fafc; margin: 1.5rem 0 0.75rem; font-weight: 700; }
     h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
     p { margin: 0.75rem 0; }
+    .markdown-table-wrap { overflow-x: auto; margin: 0.9rem 0; }
+    table { width: 100%; border-collapse: collapse; background: var(--output-bg); }
+    th, td { padding: 0.5rem 0.65rem; border: 1px solid var(--border); text-align: left; vertical-align: top; }
+    th { background: var(--code-bg); color: #f8fafc; }
     ul, ol { margin: 0.75rem 0 0.75rem 1.5rem; }
     a { color: #a78bfa; }
     code { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; }
     p code, li code { background: var(--code-bg); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.9em; }
-    .cell-code { position: relative; margin: 1rem 0 0.25rem; }
-    .cell-code pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem 1.1rem; overflow-x: auto; font-size: 0.875rem; line-height: 1.6; }
+    button { font: inherit; }
+    .bl-notebook-bar { position: sticky; top: 0.5rem; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 0 0 1.25rem; padding: 0.65rem 0.8rem; border: 1px solid var(--border); border-radius: 8px; background: rgba(15,23,42,0.96); color: var(--muted); font-size: 0.8rem; backdrop-filter: blur(8px); }
+    .bl-notebook-bar button, .bl-cell-run { border: 0; border-radius: 5px; padding: 0.35rem 0.75rem; background: var(--accent); color: #fff; cursor: pointer; font-weight: 650; }
+    .bl-notebook-bar button:disabled, .bl-cell-run:disabled { opacity: 0.55; cursor: wait; }
+    .bl-runtime-note { margin: -0.75rem 0 1.25rem; color: var(--muted); font-size: 0.78rem; }
+    .bl-notebook-cell { margin: 1rem 0 1.4rem; }
+    .bl-cell-toolbar { min-height: 2rem; display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 0.7rem; color: var(--muted); font: 0.75rem system-ui, sans-serif; }
+    .bl-cell-count { color: #c4b5fd; font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; }
+    .bl-cell-editor { display: block; width: 100%; min-height: 76px; resize: vertical; overflow: hidden; border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem 1.1rem; background: var(--code-bg); color: var(--fg); font: 0.875rem/1.6 'JetBrains Mono', 'Fira Code', Consolas, monospace; tab-size: 2; white-space: pre; }
+    .bl-cell-editor:focus { outline: 2px solid #8b5cf6; outline-offset: 1px; border-color: transparent; }
+    .bl-notebook-cell.is-running .bl-cell-editor { border-color: #8b5cf6; }
+    .bl-live-output, .bl-saved-output { margin-top: 0.35rem; }
+    .bl-live-output[hidden], .bl-saved-output[hidden] { display: none; }
+    .bl-saved-label { margin: 0 0 0.2rem 0.7rem; color: var(--muted); font: 0.7rem system-ui, sans-serif; }
+    .bl-output-text, .bl-output-result, .bl-output-error, .bl-output-empty { margin: 0.2rem 0; padding: 0.7rem 0.9rem; border-left: 3px solid #64748b; border-radius: 0 6px 6px 0; background: var(--output-bg); color: var(--fg); font: 0.85rem/1.5 'JetBrains Mono', Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .bl-output-result { border-left-color: #22c55e; color: #86efac; }
+    .bl-output-error { border-left-color: #ef4444; color: #fca5a5; }
+    .bl-output-empty { color: var(--muted); }
     .cell-figure { margin: 0.25rem 0 1rem; padding: 0.5rem; background: #fff; border-radius: 6px; overflow-x: auto; }
     .cell-figure svg { max-width: 100%; height: auto; display: block; }
+    .cell-figure-controls { display: flex; justify-content: flex-end; margin-bottom: 0.35rem; }
+    .cell-figure-toggle { border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; color: #334155; padding: 0.2rem 0.5rem; font: 11px system-ui, sans-serif; cursor: pointer; }
+    .cell-figure-toggle:disabled { display: none; }
+    .cell-figure-canvas { display: block; }
+    .cell-figure-canvas[hidden], .cell-figure svg[hidden] { display: none; }
     .cell-output { background: var(--output-bg); border-left: 3px solid #f59e0b; padding: 0.75rem 1rem; margin: 0.25rem 0 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; white-space: pre-wrap; border-radius: 0 6px 6px 0; color: #fbbf24; }
     .kw { color: #c084fc; font-weight: 600; }
     .str { color: #34d399; }
@@ -1445,6 +1600,9 @@ const HTML_WASM_TEMPLATE: &str = r##"<!DOCTYPE html>
   <div class="meta">Generated by BioLang Notebook — outputs below each block are from the run that produced this page; press Run to execute it again in your browser.</div>
 <script>
 {data}
+</script>
+<script>
+{figure_runtime}
 </script>
 <script>
 {runtime}
@@ -1595,10 +1753,50 @@ mod tests {
     #[test]
     fn svg_output_is_rendered_as_a_figure() {
         let mut body = String::new();
-        emit_output(&mut body, "<svg xmlns=\"http://www.w3.org/2000/svg\"><rect/></svg>");
-        assert!(body.contains("cell-figure"), "not wrapped as a figure: {body}");
-        assert!(body.contains("<svg"), "the SVG was not emitted as markup: {body}");
+        emit_output(
+            &mut body,
+            "<svg xmlns=\"http://www.w3.org/2000/svg\"><rect/></svg>",
+        );
+        assert!(
+            body.contains("cell-figure"),
+            "not wrapped as a figure: {body}"
+        );
+        assert!(
+            body.contains("<svg"),
+            "the SVG was not emitted as markup: {body}"
+        );
         assert!(!body.contains("&lt;svg"), "the SVG was escaped: {body}");
+    }
+
+    #[test]
+    fn text_and_svg_output_are_rendered_separately() {
+        let mut body = String::new();
+        emit_output(
+            &mut body,
+            "cells: 3\n<svg xmlns=\"http://www.w3.org/2000/svg\"><rect/></svg>\ndone\n",
+        );
+        assert_eq!(body.matches("cell-figure").count(), 1, "{body}");
+        assert_eq!(body.matches("cell-output").count(), 2, "{body}");
+        assert!(body.contains("cells: 3"), "{body}");
+        assert!(body.contains("done"), "{body}");
+        assert!(!body.contains("&lt;svg"), "{body}");
+    }
+
+    #[test]
+    fn exported_pages_embed_the_canvas_fallback() {
+        assert!(HTML_TEMPLATE.contains("{figure_runtime}"));
+        assert!(HTML_WASM_TEMPLATE.contains("{figure_runtime}"));
+        assert!(FIGURE_FALLBACK_RUNTIME.contains("getContext('2d')"));
+    }
+
+    #[test]
+    fn live_notebook_runtime_is_editable_and_incremental() {
+        let runtime = include_str!("../../../website/js/notebook-runtime.js");
+        assert!(HTML_WASM_TEMPLATE.contains("bl-cell-editor"));
+        assert!(runtime.contains("module.evaluate(source)"));
+        assert!(runtime.contains("executeThrough"));
+        assert!(runtime.contains("module.reset()"));
+        assert!(runtime.contains("event.shiftKey"));
     }
 
     #[test]
@@ -1608,7 +1806,10 @@ mod tests {
         let mut body = String::new();
         emit_output(&mut body, "cells: 15049 <not a tag>");
         assert!(body.contains("cell-output"), "{body}");
-        assert!(body.contains("&lt;not a tag&gt;"), "output was not escaped: {body}");
+        assert!(
+            body.contains("&lt;not a tag&gt;"),
+            "output was not escaped: {body}"
+        );
     }
 
     #[test]
@@ -1617,7 +1818,10 @@ mod tests {
         let mut body = String::new();
         emit_output(&mut body, "wrote <svg> to disk");
         assert!(body.contains("cell-output"), "{body}");
-        assert!(body.contains("&lt;svg&gt;"), "a fragment was emitted as markup: {body}");
+        assert!(
+            body.contains("&lt;svg&gt;"),
+            "a fragment was emitted as markup: {body}"
+        );
     }
 
     use super::*;
@@ -1835,6 +2039,21 @@ mod tests {
         assert!(html.contains("<ul>"));
         assert!(html.contains("<li>Item A</li>"));
         assert!(html.contains("<li>Item B</li>"));
+    }
+
+    #[test]
+    fn markdown_tables_render_as_accessible_html() {
+        let html = markdown_to_html(
+            "| Question | BioLang function | What it returns |\n\
+             |---|---|---|\n\
+             | Quick overview | `summary(values)` | count, min, max |\n\
+             | Equal-share centre | `mean(values)` | arithmetic mean |",
+        );
+        assert!(html.contains("<table>"), "{html}");
+        assert!(html.contains("<th>Question</th>"), "{html}");
+        assert!(html.contains("<code>summary(values)</code>"), "{html}");
+        assert!(html.contains("<td>arithmetic mean</td>"), "{html}");
+        assert!(!html.contains("|---|"), "{html}");
     }
 
     #[test]
