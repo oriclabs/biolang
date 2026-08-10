@@ -33,16 +33,17 @@ fn _decision(name, value, source, note) {
 ## standard(obj, resolution, n_hvg, k, min_genes, max_genes, max_pct_mito,
 ##          min_cells, target, quiet) -> Record
 ##
-## Runs filter_genes -> filter_cells -> normalize -> variable_genes -> PCA
-## -> neighbors -> cluster_leiden and returns the clustered object with a
+## Runs filter_genes -> filter_cells -> normalize -> variable_genes -> scale
+## -> PCA -> SNN neighbors -> Louvain -> UMAP and returns the clustered object with a
 ## `decisions` field describing every parameter used.
 fn standard(obj, resolution = nil, n_hvg = nil, k = nil,
             min_genes = nil, max_genes = nil, max_pct_mito = nil,
-            min_cells = nil, target = nil, quiet = false) {
+            min_cells = nil, target = nil, quiet = false,
+            profile = "seurat_5_5_1") {
 
-    let r_res  = _or(resolution, 0.5)
+    let r_res  = _or(resolution, 0.8)
     let r_hvg  = _or(n_hvg, 2000)
-    let r_k    = _or(k, 15)
+    let r_k    = _or(k, 20)
     let r_ming = _or(min_genes, 200)
     let r_maxg = _or(max_genes, 5000)
     let r_mito = _or(max_pct_mito, 25.0)
@@ -56,9 +57,11 @@ fn standard(obj, resolution = nil, n_hvg = nil, k = nil,
         |> _pre.filter_cells(r_ming, r_maxg, r_mito)
         |> _pre.normalize(r_targ)
         |> _pre.variable_genes(r_hvg)
+        |> _pre.scale()
         |> _pre.run_pca()
         |> _pre.neighbors(r_k)
-        |> _pre.cluster_leiden(r_k, r_res)
+        |> _pre.cluster_louvain(r_k, r_res)
+        |> _pre.run_umap()
 
     let n_clusters = out.clusters |> unique |> len
 
@@ -84,7 +87,13 @@ fn standard(obj, resolution = nil, n_hvg = nil, k = nil,
     let warnings = check(out, obj, n_before, r_ming)
     for w in warnings { println("  WARNING: " + w) }
 
-    {... out, decisions: decisions, n_clusters: n_clusters, warnings: warnings}
+    {... out,
+        profile: profile,
+        idents: out.clusters,
+        decisions: decisions,
+        n_clusters: n_clusters,
+        warnings: warnings
+    }
 }
 
 ## check(out, obj, n_before, min_genes) -> List<Str>
@@ -124,10 +133,12 @@ fn report(obj, decisions, n_before, n_clusters) {
             d("max_genes").value + ", " + d("max_pct_mito").value + ")")
     println("        |> sc.normalize(" + d("target").value + ")")
     println("        |> sc.variable_genes(" + d("n_hvg").value + ")")
+    println("        |> sc.scale()")
     println("        |> sc.run_pca()")
     println("        |> sc.neighbors(" + d("k").value + ")")
-    println("        |> sc.cluster_leiden(" + d("k").value + ", " +
+    println("        |> sc.cluster_louvain(" + d("k").value + ", " +
             d("resolution").value + ")")
+    println("        |> sc.run_umap()")
     println("")
     println("  " + str(n_before) + " cells in -> " + str(obj.n_cells) +
             " kept -> " + str(n_clusters) + " clusters")
@@ -160,15 +171,16 @@ fn report(obj, decisions, n_before, n_clusters) {
 ## is repeated, so a sweep costs barely more than a single run.
 fn sweep(obj, resolutions = [0.1, 0.3, 0.5, 0.7, 1.0], n_hvg = nil, k = nil) {
     let r_hvg = _or(n_hvg, 2000)
-    let r_k   = _or(k, 15)
+    let r_k   = _or(k, 20)
 
     let base = obj
         |> _pre.normalize(10000.0)
         |> _pre.variable_genes(r_hvg)
+        |> _pre.scale()
         |> _pre.neighbors(r_k)
 
     let rows = resolutions |> map(|r| {
-        let out = base |> _pre.cluster_leiden(r_k, r)
+        let out = base |> _pre.cluster_louvain(r_k, r)
         {resolution: r, n_clusters: out.clusters |> unique |> len}
     })
 

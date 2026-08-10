@@ -27,14 +27,15 @@ assert shared_sct |> all(|gene| contains(left_sct.hvg, gene))
 assert shared_sct |> all(|gene| contains(right_sct.hvg, gene))
 
 let anchors = sc.find_integration_anchors(left, right,
-    reduction: "cca", n_features: 5, dims: 3, k_anchor: 3, k_score: 4)
+    reduction: "cca", n_features: 5, dims: 3, k_anchor: 3,
+    k_filter: 5, k_score: 4, max_features: 5)
 
 assert(len(anchors.anchors) > 0)
-assert(anchors.method == "paper_anchor_v1")
+assert(anchors.method == "seurat_mit_5_5_1_anchor")
 
 let integrated = sc.integrate_data(anchors, k_weight: 5, sd_weight: 1.0)
 assert(integrated.n_cells == 16)
-assert(len(integrated.integrated_matrix) == 16)
+assert(integrated.integrated_matrix.nrow == 16)
 assert(integrated.active_assay == "integrated")
 assert(len(integrated.integrated_embedding) == 16)
 assert len(integrated.pca_scores[0]) > anchors.dims,

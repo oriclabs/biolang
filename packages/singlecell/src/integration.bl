@@ -151,7 +151,15 @@ fn _integration_input(obj, features) {
         hvg_matrix: select_cols(normalized.norm_matrix, columns),
         hvg_genes: features |> map(|j| normalized.genes[j])
     }
-    _pre.scale(selected).scaled_matrix
+    # PrepSCTIntegration supplies Pearson residuals in scale.data and Seurat's
+    # SCT anchor path explicitly disables ScaleData. Scaling those residuals a
+    # second time changes the CCA, anchor filter, and weighting PCA.
+    if contains(keys(normalized), "norm_method") and
+       normalized.norm_method == "sctransform" {
+        selected.hvg_matrix
+    } else {
+        _pre.scale(selected).scaled_matrix
+    }
 }
 
 ## find_integration_anchors(obj_a, obj_b, ...) -> AnchorSet
@@ -160,12 +168,14 @@ fn _integration_input(obj, features) {
 ## in reciprocal PCA projections with reduction="rpca". The matrices used for
 ## matching are log-normalized, VST-selected, and scaled independently.
 fn find_integration_anchors(obj_a, obj_b, reduction = "cca", n_features = 2000,
-                            dims = 30, k_anchor = 5, k_score = 30) {
+                            dims = 30, k_anchor = 5, k_score = 30,
+                            k_filter = 200, max_features = 200) {
     let features = select_integration_features(obj_a, obj_b, n_features)
     let left = _integration_input(obj_a, features)
     let right = _integration_input(obj_b, features)
     let native = sc_find_anchors(left, right, {
-        reduction: reduction, dims: dims, k_anchor: k_anchor, k_score: k_score
+        reduction: reduction, dims: dims, k_anchor: k_anchor,
+        k_filter: k_filter, k_score: k_score, max_features: max_features
     })
     {... native,
         reference: obj_a,
@@ -174,7 +184,7 @@ fn find_integration_anchors(obj_a, obj_b, reduction = "cca", n_features = 2000,
         feature_names: features |> map(|j| obj_a.genes[j]),
         left_matrix: left,
         right_matrix: right,
-        method: "paper_anchor_v1",
+        method: "seurat_mit_5_5_1_anchor",
         compute_backend: native.compute_method
     }
 }
@@ -205,7 +215,7 @@ fn integrate_data(anchor_set, k_weight = 100, sd_weight = 1.0) {
         pca: pca,
         pca_scores: pca.scores,
         pca_loadings: pca.loadings,
-        integration_method: "paper_anchor_v1_" + anchor_set.reduction,
+        integration_method: "seurat_mit_5_5_1_" + anchor_set.reduction,
         assays: {... assays, integrated: {
             layers: {data: integrated, scale_data: integrated},
             variable_features: anchor_set.feature_names

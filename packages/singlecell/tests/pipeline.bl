@@ -11,16 +11,37 @@ let counts = range(0, 12) |> map(|i| {
 })
 
 let raw = sc.from_matrix(counts, genes, barcodes)
+
+# Other BioLang packages exchange the minimal single-cell contract rather than
+# package-private assay scaffolding. All preprocessing entry points must seed
+# their own empty records instead of attempting to spread Nil.
+let bare = {
+    matrix: counts, genes: genes, cells: barcodes,
+    n_cells: 12, n_genes: 6
+}
+let bare_normalized = sc.normalize(bare, 10000.0)
+assert contains(keys(bare_normalized), "assays"), "normalize failed to seed assays on a bare object"
+let bare_variable = sc.variable_genes(bare_normalized, 3)
+assert len(bare_variable.hvg) == 3, "variable_genes failed on a bare object"
+let bare_sct = sc.sctransform(bare, 3)
+assert contains(keys(bare_sct), "assays"), "sctransform failed to seed assays on a bare object"
+assert len(bare_sct.hvg) == 3, "sctransform failed on a bare object"
+
+assert raw.active_assay == "RNA", "object contract has no active RNA assay"
+assert len(raw.assays.RNA.layers.counts) == 12, "RNA counts layer is out of sync"
 let merged = sc.merge(raw, raw, 0, 1)
 assert merged.n_cells == 24, "merge cell count is wrong"
 assert nrow(merged.obs) == 24, "merge desynchronized obs"
 assert len(merged.batch_ids) == 24, "merge batch labels are wrong"
+assert len(merged.assays.RNA.layers.counts) == 24, "merge desynchronized RNA assay"
 
 let filtered = raw |> sc.filter_genes(2) |> sc.filter_cells(2, 10, 50.0)
 assert filtered.n_cells == 12, "cell filtering changed valid cells"
 assert filtered.n_genes == 6, "gene filtering changed expressed genes"
 assert nrow(filtered.obs) == filtered.n_cells, "obs is not synchronized"
 assert nrow(filtered.var) == filtered.n_genes, "var is not synchronized"
+assert len(filtered.assays.RNA.layers.counts) == filtered.n_cells,
+    "filtering desynchronized RNA assay"
 
 let result = filtered
     |> sc.normalize(10000.0)
@@ -67,5 +88,35 @@ assert contains(sc.expr_dotplot(plot_obj, ["C"]), "<svg"), "dot plot lost a non-
 let ordered = result |> sc.pseudotime(0) |> sc.order_by_pseudotime()
 assert ordered.n_cells == 12, "pseudotime ordering changed cell count"
 assert nrow(ordered.obs) == 12, "pseudotime ordering desynchronized obs"
+
+# The versioned standard profile includes scaling, Louvain, and a stored UMAP.
+let standard = sc.standard(raw, min_genes: 2, max_genes: 10,
+    max_pct_mito: 50.0, min_cells: 2, n_hvg: 6, k: 3,
+    resolution: 0.8, quiet: true)
+assert standard.profile == "seurat_5_5_1", "standard profile was not recorded"
+assert dim(standard.scaled_matrix)[0] == 12, "standard workflow skipped scaling"
+assert len(standard.umap) == 12, "standard workflow did not store UMAP"
+assert standard.idents == standard.clusters, "active identities are out of sync"
+
+# SCT matrices carry an explicit original-gene mapping. A zero-count gene at
+# the start of the raw axis must not shift the names attached to residuals.
+let axis_genes = ["ZERO", "A", "B", "C", "D"]
+let axis_counts = range(0, 120) |> map(|i| [
+    0.0,
+    2.0 + float(i % 3),
+    4.0 + float((i * 2) % 5),
+    if i < 60 { 12.0 } else { 1.0 },
+    if i >= 60 { 10.0 } else { 1.0 }
+])
+let axis_raw = sc.from_matrix(axis_counts, axis_genes,
+    range(0, 120) |> map(|i| "axis-" + str(i)))
+let axis_sct = sc.sctransform(axis_raw, 3)
+let expected_sct_names = axis_sct.hvg |> map(|j| axis_genes[j])
+assert axis_sct.hvg |> all(|j| j > 0), "SCT retained the all-zero gene"
+assert axis_sct.hvg_genes == expected_sct_names, "SCT gene names shifted off their raw indices"
+assert dim(axis_sct.hvg_matrix)[1] == len(axis_sct.hvg), "SCT matrix and gene axis disagree"
+assert axis_sct.sct_residual_variance_stage ==
+    "pearson_before_centering_and_covariate_regression",
+    "SCT variance metadata does not identify its calculation stage"
 
 println("singlecell package tests: ok")

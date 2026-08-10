@@ -30,10 +30,14 @@ reference checkpoints, not code dependencies.
 ```biolang
 import "singlecell" as sc
 
-let ctrl_raw = sc.load("ctrl_raw")
-let stim_raw = sc.load("stim_raw")
-println("raw ctrl: " + str(ctrl_raw.n_cells) + " barcodes x " + str(ctrl_raw.n_genes) + " genes")
-println("raw stim: " + str(stim_raw.n_cells) + " barcodes x " + str(stim_raw.n_genes) + " genes")
+# Set BIOLANG_HBC_OUTPUT to retain a new validation run separately. The
+# historical path remains the default for interactive course use.
+let configured_output = env("BIOLANG_HBC_OUTPUT")
+let output_dir = if configured_output == nil {
+    "validation-results/hbc-biolang"
+} else {
+    configured_output
+}
 ```
 
 The raw matrices include the full droplet barcode space. HBC first creates
@@ -60,32 +64,49 @@ fn hbc_filter(obj) {
     sc_subset_cells(obj, keep)
 }
 
-let ctrl = hbc_filter(ctrl_raw)
-let stim = hbc_filter(stim_raw)
-println("filtered ctrl: " + str(ctrl.n_cells) + " cells (HBC: 14847)")
-println("filtered stim: " + str(stim.n_cells) + " cells (HBC: 14782)")
 ```
 
 ## 3. Merge and retain genes detected in ten cells
 
 ```biolang
-let merged_cells = sc.merge(ctrl, stim, "ctrl", "stim")
-let merged_gene_qc = gene_qc(merged_cells.matrix, merged_cells.genes)
-let detected_cells = col(merged_gene_qc, "n_cells")
-let retained_gene_indices = range(0, merged_cells.n_genes)
-    |> filter(|gene| detected_cells[gene] >= 10)
-let ctrl_filtered = sc_subset_genes(ctrl, retained_gene_indices)
-let stim_filtered = sc_subset_genes(stim, retained_gene_indices)
-let filtered = sc.merge(ctrl_filtered, stim_filtered, "ctrl", "stim")
-println("merged: " + str(filtered.n_cells) + " cells (HBC: 29629)")
-println("genes:  " + str(filtered.n_genes) + " genes (HBC: 14065)")
+fn prepare_hbc_inputs() {
+    # Keep droplet-space matrices, QC tables, and the temporary merged object
+    # local. A notebook interpreter intentionally retains top-level variables;
+    # returning only the filtered inputs prevents those preparation objects
+    # from inflating every later stage's working set.
+    let ctrl_raw = sc.load("ctrl_raw")
+    let stim_raw = sc.load("stim_raw")
+    println("raw ctrl: " + str(ctrl_raw.n_cells) + " barcodes x " + str(ctrl_raw.n_genes) + " genes")
+    println("raw stim: " + str(stim_raw.n_cells) + " barcodes x " + str(stim_raw.n_genes) + " genes")
 
-if filtered.n_cells != 29629 {
-    error("HBC cell checkpoint failed: expected 29629, got " + str(filtered.n_cells))
+    let ctrl = hbc_filter(ctrl_raw)
+    let stim = hbc_filter(stim_raw)
+    println("filtered ctrl: " + str(ctrl.n_cells) + " cells (HBC: 14847)")
+    println("filtered stim: " + str(stim.n_cells) + " cells (HBC: 14782)")
+
+    let merged_cells = sc.merge(ctrl, stim, "ctrl", "stim")
+    let merged_gene_qc = gene_qc(merged_cells.matrix, merged_cells.genes)
+    let detected_cells = col(merged_gene_qc, "n_cells")
+    let retained_gene_indices = range(0, merged_cells.n_genes)
+        |> filter(|gene| detected_cells[gene] >= 10)
+    let ctrl_filtered = sc_subset_genes(ctrl, retained_gene_indices)
+    let stim_filtered = sc_subset_genes(stim, retained_gene_indices)
+    let filtered = sc.merge(ctrl_filtered, stim_filtered, "ctrl", "stim")
+    println("merged: " + str(filtered.n_cells) + " cells (HBC: 29629)")
+    println("genes:  " + str(filtered.n_genes) + " genes (HBC: 14065)")
+
+    if filtered.n_cells != 29629 {
+        error("HBC cell checkpoint failed: expected 29629, got " + str(filtered.n_cells))
+    }
+    if filtered.n_genes != 14065 {
+        error("HBC gene checkpoint failed: expected 14065, got " + str(filtered.n_genes))
+    }
+    {ctrl: ctrl_filtered, stim: stim_filtered,
+     ctrl_mito: col(cell_qc(ctrl.matrix, ctrl.genes), "pct_mito"),
+     stim_mito: col(cell_qc(stim.matrix, stim.genes), "pct_mito")}
 }
-if filtered.n_genes != 14065 {
-    error("HBC gene checkpoint failed: expected 14065, got " + str(filtered.n_genes))
-}
+
+let prepared = prepare_hbc_inputs()
 ```
 
 ## 4. Normalize and select 3,000 variable genes
@@ -99,25 +120,31 @@ is validated by cell-neighborhood, clustering, and marker agreement—not by
 requiring identical floating-point coordinates.
 
 ```biolang
-let ctrl_mito = col(cell_qc(ctrl.matrix, ctrl.genes), "pct_mito")
-let stim_mito = col(cell_qc(stim.matrix, stim.genes), "pct_mito")
-println("SCTransform v2: fitting the control sample")
-let ctrl_sct = sc.sctransform(ctrl_filtered, 5000, ctrl_mito)
-println("SCTransform v2: fitting the stimulated sample")
-let stim_sct = sc.sctransform(stim_filtered, 5000, stim_mito)
-let integration_features = sc.select_integration_features(ctrl_sct, stim_sct, 3000)
-println("selected integration features: " + str(len(integration_features)))
-write_csv(table(range(0, len(integration_features)) |> map(|i| {
-    {rank: i + 1, gene: ctrl_filtered.genes[integration_features[i]]}
-})), "validation-results/hbc-biolang/features.csv")
+fn integrate_hbc(prepared) {
+    # The SCT objects and AnchorSet are large intermediates. Keeping them local
+    # lets the interpreter release them once the corrected object is returned.
+    println("SCTransform v2: fitting the control sample")
+    let ctrl_sct = sc.sctransform(prepared.ctrl, 5000, prepared.ctrl_mito)
+    println("SCTransform v2: fitting the stimulated sample")
+    let stim_sct = sc.sctransform(prepared.stim, 5000, prepared.stim_mito)
+    let integration_features = sc.select_integration_features(ctrl_sct, stim_sct, 3000)
+    println("selected integration features: " + str(len(integration_features)))
+    write_csv(table(range(0, len(integration_features)) |> map(|i| {
+        {rank: i + 1, gene: prepared.ctrl.genes[integration_features[i]]}
+    })), output_dir + "/features.csv")
 
-println("CCA: finding cross-sample anchors")
-let anchors = sc.find_integration_anchors(ctrl_sct, stim_sct,
-    "cca", 3000, 30, 5, 30)
-println("anchors: " + str(len(anchors.anchors)))
-println("CCA compute backend: " + anchors.compute_backend)
-println("IntegrateData: applying local anchor corrections")
-let corrected = sc.integrate_data(anchors, 100, 1.0)
+    println("CCA: finding cross-sample anchors")
+    let anchors = sc.find_integration_anchors(ctrl_sct, stim_sct,
+        "cca", 3000, 30, 5, 30)
+    println("anchors: " + str(len(anchors.anchors)))
+    println("CCA compute backend: " + anchors.compute_backend)
+    println("IntegrateData: applying local anchor corrections")
+    {object: sc.integrate_data(anchors, 100, 1.0),
+     compute_backend: anchors.compute_backend}
+}
+
+let integration = integrate_hbc(prepared)
+let corrected = integration.object
 ```
 
 ## 5. SNN graph and Louvain clustering
@@ -146,7 +173,7 @@ stochastic optimization change coordinates without changing neighborhoods.
 ```biolang
 println("UMAP: 40 corrected PCs, 30 neighbors, seed 123456")
 let embedded = sc.run_umap(clustered, 40, 30, 0.3, 123456)
-write_text("validation-results/hbc-biolang/umap.svg", sc.plot_embedding(embedded, embedded.clusters,
+write_text(output_dir + "/umap.svg", sc.plot_embedding(embedded, embedded.clusters,
     "HBC PBMC data — BioLang clusters"))
 ```
 
@@ -161,7 +188,7 @@ println("RNA log-normalization for marker testing")
 let marker_ready = sc.normalize(embedded, 10000.0)
 let markers = sc.find_all_markers(marker_ready, 0.1, 0.25, true)
 println("positive marker rows: " + str(len(markers)))
-write_csv(table(markers), "validation-results/hbc-biolang/markers.csv")
+write_csv(table(markers), output_dir + "/markers.csv")
 ```
 
 ## 8. Write the validation manifest
@@ -180,7 +207,7 @@ let rows = range(0, embedded.n_cells) |> map(|i| {
         umap_2: xy[1]
     }
 })
-write_csv(table(rows), "validation-results/hbc-biolang/cells.csv")
+write_csv(table(rows), output_dir + "/cells.csv")
 let pc = matrix(embedded.pca_scores)
 write_csv(table({
     sample: embedded.batch_ids |> map(|batch| if batch == 0 { "ctrl" } else { "stim" }),
@@ -199,7 +226,7 @@ write_csv(table({
     pc_34: mat_col(pc, 33), pc_35: mat_col(pc, 34), pc_36: mat_col(pc, 35),
     pc_37: mat_col(pc, 36), pc_38: mat_col(pc, 37), pc_39: mat_col(pc, 38),
     pc_40: mat_col(pc, 39)
-}), "validation-results/hbc-biolang/pcs.csv")
+}), output_dir + "/pcs.csv")
 write_csv(table([{
     cells: embedded.n_cells,
     genes: embedded.n_genes,
@@ -208,8 +235,8 @@ write_csv(table([{
     neighbors: 20,
     resolution: 0.8,
     clusters: cluster_count,
-    compute_backend: anchors.compute_backend
-}]), "validation-results/hbc-biolang/summary.csv")
+    compute_backend: integration.compute_backend
+}]), output_dir + "/summary.csv")
 println("validation manifests written")
 ```
 

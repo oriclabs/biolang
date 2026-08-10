@@ -1,0 +1,83 @@
+# Standalone BioLang side of the SCTransform conformance harness.
+#
+# The R oracle is run separately and is not imported, invoked, or required by
+# this script. Both sides read the same 10x MEX fixture and emit comparable
+# numeric observations.
+
+import "singlecell" as sc
+
+let input_dir = env("BIOLANG_SCT_INPUT")
+let output_dir = env("BIOLANG_SCT_OUTPUT")
+if input_dir == nil or output_dir == nil {
+    error("set BIOLANG_SCT_INPUT and BIOLANG_SCT_OUTPUT")
+}
+
+let raw = sc.load(input_dir)
+let transform_started_ms = timestamp_ms()
+let transformed = sc_sctransform(raw.matrix, 0)
+let transform_elapsed_seconds = float(timestamp_ms() - transform_started_ms) / 1000.0
+
+let parameter_rows = range(0, len(transformed.genes)) |> map(|slot| {
+    let gene_index = transformed.genes[slot]
+    {
+        gene: raw.genes[gene_index],
+        gene_index: gene_index,
+        theta: transformed.theta[slot],
+        intercept: transformed.intercept[slot],
+        residual_variance: transformed.residual_variance[slot]
+    }
+})
+write_csv(table(parameter_rows), output_dir + "/genes.csv")
+
+let ranking_rows = range(0, len(transformed.ranked_genes)) |> map(|rank| {
+    let gene_index = transformed.ranked_genes[rank]
+    {rank: rank + 1, gene: raw.genes[gene_index], gene_index: gene_index}
+})
+write_csv(table(ranking_rows), output_dir + "/ranking.csv")
+
+let fit_rows = range(0, len(transformed.fit_genes)) |> map(|slot| {
+    let gene_index = transformed.fit_genes[slot]
+    {gene: raw.genes[gene_index], gene_index: gene_index}
+})
+write_csv(table(fit_rows), output_dir + "/fit-genes.csv")
+
+let fit_cell_rows = transformed.fit_cells |> map(|cell_index| {
+    {cell: raw.barcodes[cell_index], cell_index: cell_index}
+})
+write_csv(table(fit_cell_rows), output_dir + "/fit-cells.csv")
+
+let probe_gene_count = min(3000, len(transformed.ranked_genes))
+let probe_cell_count = min(64, raw.n_cells)
+let probe_genes = take(transformed.ranked_genes, probe_gene_count)
+let residual_rows = probe_genes |> flat_map(|gene_index| {
+    let slot = find_index(transformed.genes, |candidate| candidate == gene_index)
+    range(0, probe_cell_count) |> map(|cell| {
+        {
+            gene: raw.genes[gene_index],
+            cell: raw.barcodes[cell],
+            residual: matrix_at(transformed.matrix, cell, slot)
+        }
+    })
+})
+write_csv(table(residual_rows), output_dir + "/residuals.csv")
+
+write_csv(table([{
+    implementation: "BioLang paper-derived Rust",
+    cells: raw.n_cells,
+    genes: raw.n_genes,
+    modelled_genes: len(transformed.genes),
+    clip: sqrt(float(raw.n_cells) / 30.0),
+    seed: 1448145,
+    cells_for_fit: min(5000, raw.n_cells),
+    genes_for_fit: min(2000, raw.n_genes),
+    min_cells: 5,
+    residual_probe_strategy: "top_residual_variance",
+    residual_probe_genes: probe_gene_count,
+    residual_probe_cells: probe_cell_count,
+    elapsed_seconds: transform_elapsed_seconds
+}]), output_dir + "/manifest.csv")
+
+println("SCTRANSFORM_BIOLANG_OK cells=" + str(raw.n_cells) +
+        " genes=" + str(raw.n_genes) +
+        " modelled=" + str(len(transformed.genes)) +
+        " elapsed=" + str(transform_elapsed_seconds) + "s")

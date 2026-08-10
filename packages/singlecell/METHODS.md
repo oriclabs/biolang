@@ -22,8 +22,8 @@ code, and outputs are not inputs to the BioLang implementation.
 | `run_umap` | fuzzy simplicial graph and stochastic layout over the scalable neighbour index | cosine, 30 neighbours, min.dist 0.3, seed 42 | neighbour preservation after alignment |
 | `find_markers` | Wilcoxon rank-sum with per-contrast BH correction | min.pct .01, logFC .1 | statistic direction, p-values, adjusted p-values |
 | `sctransform` | SCT v2-style offset negative-binomial Pearson residuals, deterministic 5,000-cell/2,000-gene fit, parameter smoothing, and optional non-regularized cell-covariate regression | residual clipping and per-sample fit | residual correlation, variable-feature overlap |
-| `find_integration_anchors` | CountSketch/matrix-free CCA or RPCA, mutual neighbours, quantile-rescaled neighbourhood anchor scores | k.anchor=5, k.score=30 | anchor population/type agreement |
-| `integrate_data` | distance- and score-weighted anchor correction | k.weight=100, sd.weight=1 | batch mixing while retaining biological separation |
+| `find_integration_anchors` | Seurat 5.5.1 MIT anchor path adapted to Rust: cell-standardized CCA or RPCA, mutual neighbours, high-dimensional filter, four-neighbour score, quantile rescaling | k.anchor=5, k.filter=200, k.score=30, max.features=200 | anchor population/type agreement |
+| `integrate_data` | Seurat 5.5.1 MIT integration-vector direction and `FindWeightsC` kernel adapted to Rust | k.weight=100, sd.weight=1 | batch mixing while retaining biological separation |
 
 ## Primary method sources
 
@@ -39,6 +39,13 @@ Native GPU acceleration is implemented with `wgpu` and BioLang-owned WGSL
 kernels. The dependency chain is MIT/Apache-2.0; it does not introduce CUDA,
 Seurat, R, or GPL code. `bl doctor` reports the selected adapter. Use the global
 `--no-gpu` flag or `BIOLANG_GPU=off` for the f64 CPU fallback.
+
+The exact Seurat source version, archive hash, consulted files, modifications,
+and upstream MIT text are recorded in
+[`SEURAT_MIT_NOTICE.md`](./SEURAT_MIT_NOTICE.md). Seurat's GPL-family
+dependencies are not implementation sources. Large-data kNN uses BioLang's
+deterministic projection-forest or permissively licensed GPU backend instead of
+RcppAnnoy, so approximate neighbour ties can still differ from Seurat.
 
 ## What “matching” means
 
