@@ -1,0 +1,7 @@
+"sample","file","bytes","sha256"
+"ctrl","matrix.mtx.gz",42329214,"2de56ade96b6ea60eb3709dd2262c2ef36960c8ec6b3a1628a8912f8235f7fe8"
+"ctrl","features.tsv.gz",304728,"a8d2fd656ba28de0bd3139f21df9297b5916dcfb490c644429e8de7e0a5bf55f"
+"ctrl","barcodes.tsv.gz",2304182,"8b5be3eb26bbdba7434ee14b0b1b3f9cc3eec51fe584004d5fccb4fc1dbd3145"
+"stim","matrix.mtx.gz",47019287,"3f4d83edf8dfc30b92b6b75a9756eba7b4fbb9be3ba1cccdfbafc4721f4c0f9a"
+"stim","features.tsv.gz",304728,"b03759c46dd1e710047d5400268ceda45227564c4eb803d339754b7ed0855270"
+"stim","barcodes.tsv.gz",2304182,"c45585efbf7ec557c91f3a893755dd1a3ce9518a9e513f4f50c8e1a2a1ac682c"

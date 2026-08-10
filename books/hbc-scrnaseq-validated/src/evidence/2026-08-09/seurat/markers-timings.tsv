@@ -1,0 +1,6 @@
+timestamp	elapsed_seconds	stage
+2026-08-09T21:48:01+1000	0.010	read and filter hashed HBC inputs
+2026-08-09T21:48:16+1000	15.942	join measured Seurat 0.8 cluster labels
+2026-08-09T21:48:17+1000	16.028	LogNormalize RNA scale.factor=10000
+2026-08-09T21:48:18+1000	17.227	FindAllMarkers only.pos=TRUE min.pct=0.1 logfc.threshold=0.25
+2026-08-09T21:58:30+1000	629.851	SEURAT_HBC_MARKERS_OK rows=12634

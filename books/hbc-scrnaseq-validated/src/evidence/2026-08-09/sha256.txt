@@ -1,0 +1,41 @@
+# SHA-256, byte length, repository-relative generated path
+
+# HBC inputs (not committed)
+2de56ade96b6ea60eb3709dd2262c2ef36960c8ec6b3a1628a8912f8235f7fe8  42329214  ctrl_raw/matrix.mtx.gz
+a8d2fd656ba28de0bd3139f21df9297b5916dcfb490c644429e8de7e0a5bf55f  304728  ctrl_raw/features.tsv.gz
+8b5be3eb26bbdba7434ee14b0b1b3f9cc3eec51fe584004d5fccb4fc1dbd3145  2304182  ctrl_raw/barcodes.tsv.gz
+3f4d83edf8dfc30b92b6b75a9756eba7b4fbb9be3ba1cccdfbafc4721f4c0f9a  47019287  stim_raw/matrix.mtx.gz
+b03759c46dd1e710047d5400268ceda45227564c4eb803d339754b7ed0855270  304728  stim_raw/features.tsv.gz
+c45585efbf7ec557c91f3a893755dd1a3ce9518a9e513f4f50c8e1a2a1ac682c  2304182  stim_raw/barcodes.tsv.gz
+
+# Final comparison
+342aa85c01020bf50217fff1957e1284c6855fe67dc2c08cd71a64d32b35f27c  2015  validation-results/hbc-comparison.json
+
+# Seurat outputs
+5e0a123d8dc9146d1f2ee550e487dbf987725419f065aa29869f010759d3d450  871769  validation-results/hbc-seurat/cells.csv.gz
+1d5131e83476a9960ddb9f26e7171bf5ed043270227c76f2edf24d5d3390bc7e  10344932  validation-results/hbc-seurat/pcs.csv.gz
+6c02d6724a19d3b6fb1f8f43cff8710fa9e48ea2759ebf19b8daa4859006907a  41760  validation-results/hbc-seurat/integration-features.csv
+b1036ffc4868fd76a91a46b6e81285039bcb814e8bbf1e2c9cb03133b4defb5c  1012052  validation-results/hbc-seurat/markers.csv
+68199333c15536f24a7074cc8bf892d0b17eb7198994404acf9d409196716c7f  177  validation-results/hbc-seurat/summary.csv
+9e2641f7db58bbe6760d4e30fd3ad8a62fe20ff47e65585a3d9c7c3695c0bfd2  175  validation-results/hbc-seurat/cluster-trajectory.csv
+14e78d4e9135f6c1f8101f0dc2b196ee3d7349cd78daddc4a475265203cdca47  636  validation-results/hbc-seurat/input-manifest.csv
+dce37673a44a05a01e5188babbacecda42d1ca90173897109b4235a3a7396df2  71598  validation-results/hbc-seurat/run.log
+3449d8076081547474d7154616ed0f614cdcd26d4b0e7a91727050482c39aa94  4359  validation-results/hbc-seurat/session-info.txt
+17b501f8d1511e369ee30c5b054a5af47a31acc57219609775855c0f1bed039a  73  validation-results/hbc-seurat/markers-summary.csv
+14db7ee5d56af83faa9577898546879da070398264e0c20c9c82f56f79625455  403  validation-results/hbc-seurat/markers-timings.tsv
+3d39fe833cdcb29f4f8e66c51b2078938b28935bc5166c3ccf10653d67d97f2d  1273  validation-results/hbc-seurat/markers-run.log
+2bbcbf4ec15b15ea100e324bd03a0f6a3ee92687f233b0519e60a55b0635aeb8  3219  validation-results/hbc-seurat/markers-session-info.txt
+
+# BioLang outputs
+af0dfa60284253bea5549f6cdab8c2dfb2d59e40ca9f4680b1ac1846ba14a03d  1842479  validation-results/hbc-biolang/cells.csv
+cff47ab52d4ad7e7046d0467e3536fb555cbf50bb289742ac35ec88398dfb4e5  23765765  validation-results/hbc-biolang/pcs.csv
+76082991125dc2c7eb4ab6bbe8ff37a3c15a94a41523aa6ebc6136f7a0be1b31  32757  validation-results/hbc-biolang/features.csv
+cd2331d9b3cd7bc3aa9120a7ce7aa9bf165e141d723e248f8312cbe3cb0463dc  856565  validation-results/hbc-biolang/markers.csv
+27e753ad06500423430fd3155ce343a1757e0fe8aab9f0056f7706f803e14aa5  132  validation-results/hbc-biolang/summary.csv
+3c80cbab8d11e8f3267521b5cad5c705e678b77086e4fbaa0dbe4ab3de906ab9  9166  validation-results/hbc-biolang/run.log
+a05e6f547b22eee9f3ed1158c4255b36a8465e06c29aa8f22072d1a722cc0329  52  validation-results/hbc-biolang/timing.txt
+a02e6d8f3e9102a0a77ef489c012ed170618794d12e16968d8e3960c700e64b9  289856  validation-results/hbc-biolang/umap.svg
+
+# Evidence archives (contain byte-exact copies of the text files hashed above)
+a79b0414e6dade6713a15c7d1b7236a02a27ba5ce5e18546e248b6c7acb9dab6  9117  books/hbc-scrnaseq-validated/src/evidence/2026-08-09/seurat/logs-and-session.zip
+f5ad130b3209dc0899f7a09a402d615dd51e94b232140038baac825fe46df8fd  2826  books/hbc-scrnaseq-validated/src/evidence/2026-08-09/biolang/run-log.zip

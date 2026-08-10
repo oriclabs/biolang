@@ -1,0 +1,2 @@
+"cells","genes","integration_features","anchor_dims","downstream_pcs","neighbors","resolution","clusters","sct_backend"
+29629,14065,3000,30,40,20,0.8,19,"glmGamPoi-available"

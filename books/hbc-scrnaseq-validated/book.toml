@@ -1,0 +1,14 @@
+[book]
+title = "Single-cell RNA-seq in BioLang: an HBC-validated workflow"
+authors = ["BioLang contributors"]
+description = "An independent BioLang workflow validated against the public HBC PBMC training analysis"
+language = "en"
+src = "src"
+
+[build]
+build-dir = "../../website/books/hbc-scrnaseq-validated"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/oriclabs/biolang"

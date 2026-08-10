@@ -72,6 +72,7 @@ Thumbs.db
 !/books/single-cell-rna-seq/
 !/books/msmb/
 !/books/hbc-scrnaseq/
+!/books/hbc-scrnaseq-validated/
 
 # The MSMB companion generates its own data, so nothing here needs committing.
 # Readers who want the authors' original bundle download it into this directory;
@@ -87,6 +88,7 @@ Thumbs.db
 # sync. The other books commit theirs for historical reasons; this is the
 # arrangement to prefer.
 /website/books/msmb/
+/website/books/hbc-scrnaseq-validated/
 
 # Unfinished extensions (local only)
 /website/extension/biotally/
@@ -177,3 +179,8 @@ node_modules/
 /protein_comparison.csv
 /output/
 /results/
+
+# External HBC/Seurat oracle outputs and its isolated R library. Small reviewed
+# evidence snapshots are copied into the validated book explicitly.
+/validation-results/
+/.validation-r-library/
