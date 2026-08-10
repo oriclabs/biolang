@@ -136,6 +136,12 @@
   <url><loc>https://lang.bio/docs/tools/tui-help.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <!-- Books -->
   <url><loc>https://lang.bio/books/language/html/index.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lang.bio/books/practical-bioinformatics/html/index.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lang.bio/books/biostatistics/html/index.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lang.bio/books/msmb/index.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lang.bio/books/single-cell-rna-seq/html/index.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lang.bio/books/hbc-scrnaseq/html/index.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lang.bio/books/hbc-scrnaseq-validated/index.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://lang.bio/books/language/html/introduction.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://lang.bio/books/language/html/toc.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://lang.bio/books/language/html/ch01-getting-started.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>

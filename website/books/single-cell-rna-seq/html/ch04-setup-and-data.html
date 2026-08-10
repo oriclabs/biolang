@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-fd0f491a.js";
+            window.path_to_searchindex_js = "searchindex-d258225a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-80d3c337.js"></script>
@@ -144,7 +144,7 @@
                         <a href="print.html" title="Print this book" aria-label="Print this book">
                             <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
                         </a>
-                        <a href="https://github.com/oriclabs/biolang" title="Git repository" aria-label="Git repository">
+                        <a href="https://github.com/oriclabs/biolang-workflows" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
 
@@ -189,10 +189,16 @@ bl doctor
 </code></pre>
 <p>Install the package, then copy its examples into a standalone working
 directory:</p>
-<pre><code class="language-text">bl install singlecell
-bl examples singlecell --copy singlecell-examples
+<pre><code class="language-text">bl install ./singlecell
+bl examples ./singlecell --copy singlecell-examples
 cd singlecell-examples
 </code></pre>
+<p><code>bl install</code> takes a <strong>path</strong>, not a name. There is no package registry yet, and
+<code>bl install --git &lt;url&gt;</code> clones a whole repository into the package slot, which
+cannot work for a package living in a subdirectory of one. If you do not have a
+checkout, the
+<a href="../../hbc-scrnaseq/html/downloads/singlecell-starter.zip">starter kit</a> ships
+the package ready to install.</p>
 <p>The install step is what makes <code>import "singlecell" as sc</code> resolve. Imports are
 searched in the current directory first and <code>~/.biolang/packages/</code> last, so a
 copied example directory has nothing to import until the package is installed —
@@ -208,25 +214,37 @@ example files; it does not require the full BioLang repository. Because the
 current directory wins, a checkout still overrides the installed copy when you
 run from <code>packages/</code> — reinstall after editing the package if you want the
 change visible elsewhere.</p>
-<h2 id="generate-the-teaching-matrix"><a class="header" href="#generate-the-teaching-matrix">Generate the teaching matrix</a></h2>
-<p>The fixture contains four populations with distinct marker blocks, shared
-background genes, mitochondrial genes, and low-information droplets. It is
-synthetic: no person or patient data is involved.</p>
-<pre><code class="language-text">python make_demo_10x.py --output nsclc_like
+<h2 id="get-the-data"><a class="header" href="#get-the-data">Get the data</a></h2>
+<p>This book runs on a real experiment: peripheral blood mononuclear cells from
+lupus patients (Kang et al., <em>Nature Biotechnology</em> 2018), in two samples — an
+untreated control and one stimulated with interferon-beta. It is the dataset the
+Harvard Chan Bioinformatics Core teaches on, and they host a packaged copy.</p>
+<pre><code class="language-text">python get-data.py
 </code></pre>
-<p><code>--output</code> is relative to the current directory. With the commands above, the
-fixture is created at:</p>
-<pre><code class="language-text">&lt;your working directory&gt;/nsclc_like/
+<p><code>get-data.py</code> is in the
+<a href="../../hbc-scrnaseq/html/downloads/singlecell-starter.zip">starter kit</a>, or on
+its own at
+<a href="../../hbc-scrnaseq/html/downloads/get-data.py">get-data.py</a>.</p>
+<p><strong>Be warned about the size.</strong> The archive is 3.2 GB and the two directories this
+book needs total about 90 MB. Zip stores its index at the end of the file, so
+there is no way to fetch two members from a remote archive without pulling the
+whole thing. The script downloads once, extracts what is used, and deletes the
+archive, so the 3.2 GB is transient rather than resident.</p>
+<p>Afterwards you have:</p>
+<pre><code class="language-text">ctrl_raw/     barcodes.tsv.gz  features.tsv.gz  matrix.mtx.gz
+stim_raw/     barcodes.tsv.gz  features.tsv.gz  matrix.mtx.gz
 </code></pre>
-<p>It contains <code>matrix.mtx.gz</code>, <code>features.tsv.gz</code>, <code>barcodes.tsv.gz</code>, and
-<code>truth.csv</code>. The later <code>sc.load("nsclc_like")</code> calls resolve that same directory
-because the examples are run from the copied working directory.</p>
-<p>Expected summary:</p>
-<pre><code class="language-text">168 genes x 265 barcodes (25 junk)
-output: &lt;your working directory&gt;/nsclc_like
-</code></pre>
-<p>The generator uses a fixed seed. Re-running it produces the same logical
-dataset, making it suitable for tests and comparisons.</p>
+<p>Run everything from the directory containing those.</p>
+<blockquote>
+<p><strong>Why not a synthetic fixture?</strong> An earlier edition of this book generated one,
+and it was faster and needed no download. It was also wrong in a way that
+mattered: its genes were named <code>MARK0_000</code>, <code>MARK1_000</code>, and so on. Every
+mechanical step worked, and the one thing the annotation chapter exists to
+teach — reading <code>LYZ</code>, <code>CD14</code> and <code>S100A8</code> together and concluding <em>monocytes</em>
+— could not be shown at all. Real data also exercises the code differently:
+uneven cluster sizes, 737,280 droplets, and genuinely sparse matrices found
+four separate bugs that evenly sized toy data never touched.</p>
+</blockquote>
 <h2 id="load-it"><a class="header" href="#load-it">Load it</a></h2>
 <blockquote>
 <p>Requires CLI: package imports and local filesystem access are not available in
@@ -234,9 +252,18 @@ the browser runner.</p>
 </blockquote>
 <pre><code class="language-biolang">import "singlecell" as sc
 
-let cells = sc.load("nsclc_like")
-println(sc.summary(cells))
+let cells = sc.load("ctrl_raw")
+println("droplets: " + str(cells.n_cells))
+println("genes:    " + str(cells.n_genes))
+println("first genes: " + str(sc.get_genes(cells) |&gt; take(5)))
 </code></pre>
+<pre><code class="language-text">droplets: 737280
+genes:    33538
+first genes: [MIR1302-2HG, FAM138A, OR4F5, AL627309.1, AL627309.3]
+</code></pre>
+<p>737,280 is every barcode the chemistry can produce, not every cell — the
+overwhelming majority are empty droplets. Sorting that out is
+<a href="ch05-quality-control.html">Quality Control</a>.</p>
 <p>The object is a BioLang record. Important fields are:</p>
 <div class="table-wrapper">
 <table>

@@ -14,10 +14,6 @@ Disallow: /sequence-analysis/
 # Block old/duplicate book versions
 Disallow: /books/biostatisticsold/
 
-# Keep unpublished course books out of search results
-Disallow: /books/biostatistics/
-Disallow: /books/practical-bioinformatics/
-
 # Block mdBook print pages (duplicate of chapter content)
 Disallow: /*/print.html
 

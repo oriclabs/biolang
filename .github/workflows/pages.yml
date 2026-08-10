@@ -10,6 +10,12 @@ on:
       - 'desktop/**'
       - 'scripts/build-packs.mjs'
       - 'scripts/lib/**'
+  # Applied books live in a separate repository. The scheduled build picks up
+  # changes without coupling that repository back into the BioLang codebase.
+  schedule:
+    - cron: '17 3 * * *'
+  repository_dispatch:
+    types: [workflows-updated]
   workflow_dispatch:
 
 permissions:
@@ -26,6 +32,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check out applied books and workflows
+        uses: actions/checkout@v4
+        with:
+          repository: oriclabs/biolang-workflows
+          path: _workflows
 
       - uses: actions/setup-node@v4
         with:
@@ -98,17 +110,18 @@ jobs:
       # time either changes. Must run before the book build, which copies
       # src/downloads/ into the published site.
       - name: Build the single-cell starter kit
-        run: python scripts/build-starter-kit.py
+        run: python _workflows/scripts/build-starter-kit.py --biolang-source .
 
       - name: Build books
         run: |
           mdbook build books/language
-          mdbook build books/practical-bioinformatics/book
-          mdbook build books/biostatistics/book
-          mdbook build books/single-cell-rna-seq
-          mdbook build books/msmb/book
-          mdbook build books/hbc-scrnaseq
-          mdbook build books/hbc-scrnaseq-validated
+          mdbook build _workflows/books/practical-bioinformatics/book
+          mdbook build _workflows/books/biostatistics/book
+          mdbook build _workflows/books/single-cell-rna-seq
+          mdbook build _workflows/books/msmb/book
+          mdbook build _workflows/courses/hbc-scrnaseq
+          mdbook build _workflows/courses/hbc-scrnaseq-validated
+          cp -a _workflows/website/books/. website/books/
 
       - uses: actions/upload-pages-artifact@v3
         with:
