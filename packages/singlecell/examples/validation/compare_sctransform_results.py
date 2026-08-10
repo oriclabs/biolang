@@ -181,6 +181,53 @@ def main() -> int:
         if correlation is not None:
             per_gene_correlations.append(correlation)
 
+    # How much of the theta discrepancy survives into the residuals.
+    #
+    # Theta enters the residual only through the variance, r = (y - mu) /
+    # sqrt(mu + mu^2/theta), so d(log r)/d(log theta) = mu / (2 * (theta + mu)).
+    # That is bounded by 1/2 and small wherever mu << theta, which is most of a
+    # UMI matrix - so a theta bias should arrive at the residuals heavily
+    # attenuated. Reporting the attenuation measured per gene turns a failing
+    # theta gate from an unexplained defect into a bounded, characterised
+    # deviation, and the dose-response check confirms the two are actually
+    # linked rather than coincidentally sized.
+    theta_attenuation_pairs: list[tuple[float, float]] = []
+    for gene in sorted(residual_keys_by_gene):
+        if gene not in oracle_genes or gene not in biolang_genes:
+            continue
+        try:
+            oracle_theta = float(oracle_genes[gene]["theta"])
+            biolang_theta = float(biolang_genes[gene]["theta"])
+        except (KeyError, ValueError):
+            continue
+        if not math.isfinite(oracle_theta) or not math.isfinite(biolang_theta):
+            continue
+        if oracle_theta == 0.0:
+            continue
+        keys = residual_keys_by_gene[gene]
+        gene_residual_errors = relative_errors(
+            [oracle_residuals[key] for key in keys],
+            [biolang_residuals[key] for key in keys],
+            min_abs_reference=1e-9,
+        )
+        if not gene_residual_errors:
+            continue
+        theta_attenuation_pairs.append(
+            (
+                abs(biolang_theta - oracle_theta) / abs(oracle_theta),
+                percentile(gene_residual_errors, 0.5),
+            )
+        )
+    theta_errors = [pair[0] for pair in theta_attenuation_pairs]
+    gene_residual_medians = [pair[1] for pair in theta_attenuation_pairs]
+    theta_error_median = percentile(theta_errors, 0.5)
+    gene_residual_median = percentile(gene_residual_medians, 0.5)
+    theta_to_residual_attenuation = (
+        gene_residual_median / theta_error_median
+        if theta_error_median not in (None, 0.0) and gene_residual_median is not None
+        else None
+    )
+
     oracle_probe_genes = {gene for gene, _ in oracle_residuals}
     biolang_probe_genes = {gene for gene, _ in biolang_residuals}
     joined_probe_genes = {gene for gene, _ in residual_keys}
@@ -253,6 +300,13 @@ def main() -> int:
         ),
         "large_residual_relative_error_p90": percentile(
             large_residual_relative_error, 0.9
+        ),
+        "theta_attenuation_probe_genes": len(theta_attenuation_pairs),
+        "theta_relative_error_median_on_probe": theta_error_median,
+        "per_gene_residual_relative_error_median": gene_residual_median,
+        "theta_to_residual_attenuation": theta_to_residual_attenuation,
+        "theta_to_residual_dose_response": pearson(
+            theta_errors, gene_residual_medians
         ),
         "per_gene_residual_correlation_median": (
             statistics.median(per_gene_correlations) if per_gene_correlations else None
@@ -353,6 +407,13 @@ def main() -> int:
             and 0.98 <= metrics["residual_variance_regression_slope"] <= 1.02
         ),
         "feature_overlap_at_least_0_95": metrics["top_feature_overlap"] >= 0.95,
+        # A theta bias is tolerable only if it is demonstrably damped before it
+        # reaches the residuals. Requiring attenuation below 0.25 keeps that a
+        # measured claim rather than an assumption.
+        "theta_bias_attenuated_below_0_25": (
+            metrics["theta_to_residual_attenuation"] is not None
+            and metrics["theta_to_residual_attenuation"] <= 0.25
+        ),
         "residual_probe_covers_at_least_0_95_of_top_n": (
             metrics["joined_probe_genes"] / max(1, metrics["top_feature_n"]) >= 0.95
         ),
