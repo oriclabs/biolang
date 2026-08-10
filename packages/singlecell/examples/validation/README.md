@@ -79,3 +79,48 @@ run a paired test, and compare the resulting effects and IFIT1 p-value with
 paired exploratory model. Publication analyses should additionally run the
 exported raw pseudobulk counts through DESeq2 or edgeR with an explicit
 `~ donor + condition` design.
+
+## Standalone SCTransform conformance
+
+The maintained long-form runners, real-data workflows, and generated-evidence
+instructions live in
+[`oriclabs/biolang-workflows`](https://github.com/oriclabs/biolang-workflows/tree/main/validation/single-cell).
+This package-local copy remains as the implementation-level conformance harness
+during the non-destructive repository migration.
+
+`run_sctransform_validation.py` runs the original R package and BioLang in two
+separate processes against the same count matrix. The R package is a
+validation-only installation and is not imported, linked, or needed by
+BioLang. The driver records model parameters, residual variance, the ranked
+feature list, a residual probe drawn from the top 3,000 features, transform and
+whole-process time, and peak host working set.
+
+The runner requires the calibrated `glmGamPoi_offset` oracle backend by
+default and refuses a silent fallback to `nb_offset`. Use `--oracle-method`
+only when intentionally measuring a different reference profile.
+
+Build BioLang in release mode, install `sctransform` separately in R, and run a
+small deterministic check:
+
+```powershell
+cargo build --release -p bl-cli
+python packages/singlecell/examples/validation/run_sctransform_validation.py `
+  --mode synthetic `
+  --output validation-results/sctransform-synthetic-current
+```
+
+For a real 10x MEX matrix:
+
+```powershell
+Rscript packages/singlecell/examples/validation/prepare_hbc_sctransform_fixture.R `
+  ctrl_raw stim_raw validation-results/hbc-sctransform-input
+python packages/singlecell/examples/validation/run_sctransform_validation.py `
+  --mode tenx `
+  --input validation-results/hbc-sctransform-input/ctrl `
+  --output validation-results/sctransform-hbc-ctrl-current
+```
+
+The output directory must be new so observations from different builds cannot
+be mixed. `comparison.json` contains every numeric and resource metric plus
+independent pass/fail gates. CPU is the reproducibility default; pass
+`--gpu auto` or `--gpu on` only when intentionally validating that backend.

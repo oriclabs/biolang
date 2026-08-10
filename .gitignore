@@ -187,3 +187,5 @@ node_modules/
 
 # Scratch logs and caches written by validation and notebook-server runs.
 /tmp/
+__pycache__/
+*.py[cod]

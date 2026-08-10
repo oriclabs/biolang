@@ -16,6 +16,14 @@ def read_rows(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def read_json(path: Path) -> dict[str, object]:
+    with path.open(encoding="utf-8") as handle:
+        value = json.load(handle)
+    if not isinstance(value, dict):
+        raise ValueError(f"expected a JSON object in {path}")
+    return value
+
+
 def finite_pairs(left: list[float], right: list[float]) -> tuple[list[float], list[float]]:
     pairs = [(a, b) for a, b in zip(left, right) if math.isfinite(a) and math.isfinite(b)]
     return [a for a, _ in pairs], [b for _, b in pairs]
@@ -141,11 +149,19 @@ def main() -> int:
 
     oracle_ranking = read_rows(oracle_dir / "ranking.csv")
     biolang_ranking = read_rows(biolang_dir / "ranking.csv")
+    oracle_rank_by_gene = {
+        row["gene"]: float(row["rank"]) for row in oracle_ranking
+    }
+    biolang_rank_by_gene = {
+        row["gene"]: float(row["rank"]) for row in biolang_ranking
+    }
+    joined_rank_genes = sorted(oracle_rank_by_gene.keys() & biolang_rank_by_gene.keys())
     requested_top_n = int(sys.argv[4]) if len(sys.argv) == 5 else 3000
     top_n = min(requested_top_n, len(oracle_ranking), len(biolang_ranking))
     oracle_top = {row["gene"] for row in oracle_ranking[:top_n]}
     biolang_top = {row["gene"] for row in biolang_ranking[:top_n]}
     top_intersection = len(oracle_top & biolang_top)
+    joined_top_genes = sorted(oracle_top & biolang_top)
 
     oracle_residuals = {
         (row["gene"], row["cell"]): float(row["residual"])
@@ -301,6 +317,17 @@ def main() -> int:
         "top_feature_n": top_n,
         "top_feature_intersection": top_intersection,
         "top_feature_overlap": top_intersection / max(1, top_n),
+        "top_feature_jaccard": top_intersection
+        / max(1, len(oracle_top | biolang_top)),
+        "feature_rank_compared_genes": len(joined_rank_genes),
+        "feature_rank_spearman": spearman(
+            [oracle_rank_by_gene[gene] for gene in joined_rank_genes],
+            [biolang_rank_by_gene[gene] for gene in joined_rank_genes],
+        ),
+        "top_feature_rank_spearman_on_intersection": spearman(
+            [oracle_rank_by_gene[gene] for gene in joined_top_genes],
+            [biolang_rank_by_gene[gene] for gene in joined_top_genes],
+        ),
         "joined_residual_observations": len(residual_keys),
         "oracle_probe_genes": len(oracle_probe_genes),
         "biolang_probe_genes": len(biolang_probe_genes),
@@ -370,11 +397,44 @@ def main() -> int:
                 ),
             }
         )
+    oracle_resource_path = oracle_dir / "resources.json"
+    biolang_resource_path = biolang_dir / "resources.json"
+    if oracle_resource_path.exists() and biolang_resource_path.exists():
+        oracle_resources = read_json(oracle_resource_path)
+        biolang_resources = read_json(biolang_resource_path)
+        oracle_wall = float(oracle_resources["wall_seconds"])
+        biolang_wall = float(biolang_resources["wall_seconds"])
+        oracle_peak = int(oracle_resources["peak_working_set_bytes"])
+        biolang_peak = int(biolang_resources["peak_working_set_bytes"])
+        metrics.update(
+            {
+                "oracle_process_wall_seconds": oracle_wall,
+                "biolang_process_wall_seconds": biolang_wall,
+                "oracle_over_biolang_process_wall_ratio": (
+                    oracle_wall / biolang_wall if biolang_wall > 0 else None
+                ),
+                "oracle_peak_working_set_bytes": oracle_peak,
+                "biolang_peak_working_set_bytes": biolang_peak,
+                "oracle_peak_working_set_gib": oracle_peak / 1024**3,
+                "biolang_peak_working_set_gib": biolang_peak / 1024**3,
+                "oracle_over_biolang_peak_memory_ratio": (
+                    oracle_peak / biolang_peak if biolang_peak > 0 else None
+                ),
+                "resource_measurement_platform": oracle_resources.get("platform"),
+                "resource_poll_interval_seconds": oracle_resources.get(
+                    "poll_interval_seconds"
+                ),
+            }
+        )
     oracle_fit_gene_path = oracle_dir / "fit-genes.csv"
     biolang_fit_gene_path = biolang_dir / "fit-genes.csv"
     if oracle_fit_gene_path.exists() and biolang_fit_gene_path.exists():
-        oracle_fit_genes = {row["gene"] for row in read_rows(oracle_fit_gene_path)}
-        biolang_fit_genes = {row["gene"] for row in read_rows(biolang_fit_gene_path)}
+        oracle_fit_rows = read_rows(oracle_fit_gene_path)
+        biolang_fit_rows = read_rows(biolang_fit_gene_path)
+        oracle_fit_by_gene = {row["gene"]: row for row in oracle_fit_rows}
+        biolang_fit_by_gene = {row["gene"]: row for row in biolang_fit_rows}
+        oracle_fit_genes = set(oracle_fit_by_gene)
+        biolang_fit_genes = set(biolang_fit_by_gene)
         fit_gene_intersection = len(oracle_fit_genes & biolang_fit_genes)
         metrics.update(
             {
@@ -383,6 +443,82 @@ def main() -> int:
                 "fit_gene_intersection": fit_gene_intersection,
                 "fit_gene_overlap_min_set": fit_gene_intersection
                 / max(1, min(len(oracle_fit_genes), len(biolang_fit_genes))),
+            }
+        )
+        # Separate the unregularized per-gene estimator from the smoothing
+        # stage. These values are aligned by gene name because the independently
+        # sampled 2,000-gene fit sets are not identical.
+        shared_raw_genes = sorted(oracle_fit_genes & biolang_fit_genes)
+        unregularized_oracle_theta: list[float] = []
+        unregularized_biolang_theta: list[float] = []
+        unregularized_oracle_intercept: list[float] = []
+        unregularized_biolang_intercept: list[float] = []
+        for gene in shared_raw_genes:
+            # The oracle keeps raw fit parameters in genes.csv while its
+            # fit-genes.csv is the selected-name manifest. BioLang writes raw
+            # parameters directly beside its selected fit genes.
+            oracle_row = oracle_genes[gene]
+            biolang_row = biolang_fit_by_gene[gene]
+            if not all(
+                column in oracle_row and column in biolang_row
+                for column in ("raw_theta", "raw_intercept")
+            ):
+                continue
+            try:
+                left_theta = float(oracle_row["raw_theta"])
+                right_theta = float(biolang_row["raw_theta"])
+                left_intercept = float(oracle_row["raw_intercept"])
+                right_intercept = float(biolang_row["raw_intercept"])
+            except ValueError:
+                continue
+            if math.isfinite(left_theta) and math.isfinite(right_theta):
+                unregularized_oracle_theta.append(left_theta)
+                unregularized_biolang_theta.append(right_theta)
+            if math.isfinite(left_intercept) and math.isfinite(right_intercept):
+                unregularized_oracle_intercept.append(left_intercept)
+                unregularized_biolang_intercept.append(right_intercept)
+
+        raw_theta_ratios = [
+            observed / reference
+            for reference, observed in zip(
+                unregularized_oracle_theta, unregularized_biolang_theta
+            )
+            if reference > 0.0 and observed > 0.0
+        ]
+        raw_theta_errors = relative_errors(
+            unregularized_oracle_theta, unregularized_biolang_theta
+        )
+        raw_theta_slope, raw_theta_offset = linear_fit(
+            unregularized_oracle_theta, unregularized_biolang_theta
+        )
+        raw_intercept_slope, raw_intercept_offset = linear_fit(
+            unregularized_oracle_intercept, unregularized_biolang_intercept
+        )
+        metrics.update(
+            {
+                "unregularized_theta_compared_genes": len(
+                    unregularized_oracle_theta
+                ),
+                "unregularized_theta_median_biolang_over_oracle": percentile(
+                    raw_theta_ratios, 0.5
+                ),
+                "unregularized_theta_relative_error_median": percentile(
+                    raw_theta_errors, 0.5
+                ),
+                "unregularized_theta_relative_error_p90": percentile(
+                    raw_theta_errors, 0.9
+                ),
+                "unregularized_theta_regression_slope": raw_theta_slope,
+                "unregularized_theta_regression_offset": raw_theta_offset,
+                "unregularized_intercept_compared_genes": len(
+                    unregularized_oracle_intercept
+                ),
+                "unregularized_intercept_regression_slope": raw_intercept_slope,
+                "unregularized_intercept_regression_offset": raw_intercept_offset,
+                "unregularized_intercept_rmse": rmse(
+                    unregularized_oracle_intercept,
+                    unregularized_biolang_intercept,
+                ),
             }
         )
 
@@ -440,13 +576,18 @@ def main() -> int:
             and 0.98 <= metrics["residual_variance_regression_slope"] <= 1.02
         ),
         "feature_overlap_at_least_0_95": metrics["top_feature_overlap"] >= 0.95,
+        "feature_rank_correlation_at_least_0_95": (
+            metrics["feature_rank_spearman"] is not None
+            and metrics["feature_rank_spearman"] >= 0.95
+        ),
         # A theta bias is tolerable only if it is demonstrably damped before it
         # reaches the residuals. Requiring attenuation below 0.25 keeps that a
         # measured claim rather than an assumption.
-        # The smoothed quantity itself, on its own scale. sctransform's two
-        # official backends differ from each other by 9.6% in regularized theta
-        # on this same fixture, so a tighter theta gate than that would demand
-        # more agreement than the reference has with itself.
+        # The smoothed quantity itself, on its own scale. The original-scale
+        # theta gates remain visible and deliberately failing where calibration
+        # differs; this additional gate measures the quantity v2 actually fits.
+        # Reference-backend variation must be recorded as its own artifact
+        # before it is used to alter any threshold here.
         "od_factor_median_absolute_difference_at_most_0_01": (
             metrics["od_factor_absolute_difference_median"] is not None
             and metrics["od_factor_absolute_difference_median"] <= 0.01
@@ -474,6 +615,28 @@ def main() -> int:
             and metrics["large_residual_relative_error_median"] <= 0.02
         ),
     }
+    if metrics.get("unregularized_theta_median_biolang_over_oracle") is not None:
+        acceptance["unregularized_theta_median_ratio_0_95_to_1_05"] = (
+            0.95
+            <= metrics["unregularized_theta_median_biolang_over_oracle"]
+            <= 1.05
+        )
+        acceptance["unregularized_theta_median_relative_error_at_most_0_05"] = (
+            metrics["unregularized_theta_relative_error_median"] is not None
+            and metrics["unregularized_theta_relative_error_median"] <= 0.05
+        )
+    if metrics.get("oracle_over_biolang_process_wall_ratio") is not None:
+        acceptance["biolang_process_wall_time_below_oracle"] = (
+            metrics["oracle_over_biolang_process_wall_ratio"] > 1.0
+        )
+    if (
+        metrics.get("oracle_peak_working_set_bytes", 0) > 0
+        and metrics.get("biolang_peak_working_set_bytes", 0) > 0
+    ):
+        acceptance["biolang_peak_memory_at_most_oracle"] = (
+            metrics["biolang_peak_working_set_bytes"]
+            <= metrics["oracle_peak_working_set_bytes"]
+        )
     result = {"metrics": metrics, "acceptance": acceptance, "passed": all(acceptance.values())}
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
