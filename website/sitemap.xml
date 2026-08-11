@@ -11,6 +11,7 @@
   <url><loc>https://lang.bio/browser.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://lang.bio/benchmarks.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://lang.bio/books.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lang.bio/workflows.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://lang.bio/tui.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://lang.bio/privacy.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://lang.bio/biogist.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
