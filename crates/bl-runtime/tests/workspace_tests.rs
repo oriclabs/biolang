@@ -119,7 +119,7 @@ fn sequences_and_matrices_survive() {
 
     let mut m = Matrix::new(vec![1.0, 2.0, 3.0, 4.0], 2, 2).unwrap();
     m.row_names = Some(vec!["r1".into(), "r2".into()]);
-    let Value::Matrix(got) = roundtrip(&Value::Matrix(m)) else {
+    let Value::Matrix(got) = roundtrip(&Value::Matrix(m.into())) else {
         panic!("not a matrix")
     };
     assert_eq!((got.nrow, got.ncol), (2, 2));

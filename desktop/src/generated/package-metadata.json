@@ -2036,7 +2036,16 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 87
+          "line": 94
+        },
+        {
+          "name": "center_batches",
+          "signature": "center_batches(obj, batch_ids) -> Record",
+          "summary": "BioLang package function center_batches.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 153
         },
         {
           "name": "cluster",
@@ -2045,7 +2054,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 82
+          "line": 85
         },
         {
           "name": "cluster_diagnostics",
@@ -2056,7 +2065,7 @@
             "n_clusters"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 127
+          "line": 142
         },
         {
           "name": "cluster_leiden",
@@ -2065,7 +2074,16 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 83
+          "line": 86
+        },
+        {
+          "name": "cluster_louvain",
+          "signature": "cluster_louvain(obj, k = 20, resolution = 0.8) -> Record",
+          "summary": "BioLang package function cluster_louvain.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 87
         },
         {
           "name": "cluster_stability",
@@ -2074,7 +2092,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 129
+          "line": 144
         },
         {
           "name": "composition_table",
@@ -2083,7 +2101,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 116
+          "line": 131
         },
         {
           "name": "donor_gene_table",
@@ -2092,7 +2110,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 108
+          "line": 123
         },
         {
           "name": "doublets",
@@ -2101,7 +2119,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 89
+          "line": 96
         },
         {
           "name": "expr_dotplot",
@@ -2110,7 +2128,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 168
+          "line": 196
         },
         {
           "name": "filter_cells",
@@ -2119,7 +2137,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 72
+          "line": 73
         },
         {
           "name": "filter_genes",
@@ -2128,7 +2146,41 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 75
+          "line": 76
+        },
+        {
+          "name": "find_all_markers",
+          "signature": "find_all_markers(obj, min_pct = 0.01, logfc_threshold = 0.1, only_pos = false)",
+          "summary": "BioLang package function find_all_markers.",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 105
+        },
+        {
+          "name": "find_integration_anchors",
+          "signature": "find_integration_anchors(obj_a, obj_b, reduction = \"cca\", n_features = 2000, dims = 30, k_anchor = 5, k_score = 30, k_filter = 200, max_features = 200) -> AnchorSet",
+          "summary": "BioLang package function find_integration_anchors.",
+          "returnType": "AnchorSet",
+          "fields": [
+            "reference",
+            "query",
+            "features",
+            "feature_names",
+            "left_matrix",
+            "right_matrix",
+            "method",
+            "compute_backend"
+          ],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 164
+        },
+        {
+          "name": "find_markers",
+          "signature": "find_markers(obj, ident_1, ident_2, min_pct = 0.01, logfc_threshold = 0.1, only_pos = false)",
+          "summary": "BioLang package function find_markers.",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 101
         },
         {
           "name": "flag_doublets",
@@ -2137,26 +2189,16 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 90
+          "line": 97
         },
         {
           "name": "from_matrix",
           "signature": "from_matrix(matrix, genes, barcodes) -> Record",
           "summary": "BioLang package function from_matrix.",
           "returnType": "Record",
-          "fields": [
-            "matrix",
-            "genes",
-            "barcodes",
-            "n_cells",
-            "n_genes",
-            "obs",
-            "var",
-            "layers",
-            "is_sparse"
-          ],
+          "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 56
+          "line": 57
         },
         {
           "name": "gene_module_score",
@@ -2165,7 +2207,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 88
+          "line": 95
         },
         {
           "name": "get_barcodes",
@@ -2174,7 +2216,7 @@
           "returnType": "List<Str>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 62
+          "line": 63
         },
         {
           "name": "get_clusters",
@@ -2183,7 +2225,7 @@
           "returnType": "List<Int>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 64
+          "line": 65
         },
         {
           "name": "get_doublet_scores",
@@ -2192,7 +2234,7 @@
           "returnType": "List<Float>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 66
+          "line": 67
         },
         {
           "name": "get_genes",
@@ -2201,7 +2243,7 @@
           "returnType": "List<Str>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 61
+          "line": 62
         },
         {
           "name": "get_hvg_genes",
@@ -2210,7 +2252,7 @@
           "returnType": "List<Str>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 63
+          "line": 64
         },
         {
           "name": "get_matrix",
@@ -2219,7 +2261,7 @@
           "returnType": "List<List<Float>>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 59
+          "line": 60
         },
         {
           "name": "get_norm_matrix",
@@ -2228,7 +2270,7 @@
           "returnType": "List<List<Float>>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 60
+          "line": 61
         },
         {
           "name": "get_pseudotime",
@@ -2237,7 +2279,7 @@
           "returnType": "List<Float>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 65
+          "line": 66
         },
         {
           "name": "harmony",
@@ -2246,16 +2288,41 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 139
+          "line": 155
         },
         {
           "name": "integrate",
-          "signature": "integrate(obj, batch_ids) -> Record",
+          "signature": "integrate(obj, batch_ids)",
           "summary": "BioLang package function integrate.",
-          "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 137
+          "line": 152
+        },
+        {
+          "name": "integrate_data",
+          "signature": "integrate_data(anchor_set, k_weight = 100, sd_weight = 1.0) -> Record",
+          "summary": "BioLang package function integrate_data.",
+          "returnType": "Record",
+          "fields": [
+            "active_assay",
+            "integrated_matrix",
+            "integrated_features",
+            "integrated_embedding",
+            "pca",
+            "pca_scores",
+            "pca_loadings",
+            "integration_method",
+            "assays",
+            "layers",
+            "variable_features",
+            "reductions",
+            "embeddings",
+            "loadings",
+            "explained_variance",
+            "key"
+          ],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 170
         },
         {
           "name": "integrate_from_column",
@@ -2264,7 +2331,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 138
+          "line": 154
         },
         {
           "name": "load",
@@ -2273,7 +2340,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 55
+          "line": 56
         },
         {
           "name": "marker_table",
@@ -2282,7 +2349,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 91
+          "line": 98
         },
         {
           "name": "merge",
@@ -2291,7 +2358,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 142
+          "line": 158
         },
         {
           "name": "n_cells",
@@ -2300,7 +2367,7 @@
           "returnType": "Int",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 57
+          "line": 58
         },
         {
           "name": "n_genes",
@@ -2309,16 +2376,19 @@
           "returnType": "Int",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 58
+          "line": 59
         },
         {
           "name": "neighbors",
-          "signature": "neighbors(obj, k = 15) -> Record",
+          "signature": "neighbors(obj, k = 20, snn = true, n_dims = 10) -> Record",
           "summary": "BioLang package function neighbors.",
           "returnType": "Record",
-          "fields": [],
+          "fields": [
+            "knn",
+            "graphs"
+          ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 81
+          "line": 84
         },
         {
           "name": "normalize",
@@ -2327,10 +2397,12 @@
           "returnType": "Record",
           "fields": [
             "norm_matrix",
-            "layers"
+            "norm_method",
+            "layers",
+            "assays"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 76
+          "line": 77
         },
         {
           "name": "order_by_pseudotime",
@@ -2339,7 +2411,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 149
+          "line": 177
         },
         {
           "name": "paired_composition_test",
@@ -2348,7 +2420,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 120
+          "line": 135
         },
         {
           "name": "paired_pseudobulk_de",
@@ -2357,7 +2429,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 100
+          "line": 115
         },
         {
           "name": "plot_cluster_stability",
@@ -2366,7 +2438,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 234
+          "line": 262
         },
         {
           "name": "plot_composition",
@@ -2375,7 +2447,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 220
+          "line": 248
         },
         {
           "name": "plot_de_overlap",
@@ -2384,7 +2456,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 225
+          "line": 253
         },
         {
           "name": "plot_donor_expression",
@@ -2393,7 +2465,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 205
+          "line": 233
         },
         {
           "name": "plot_elbow",
@@ -2402,7 +2474,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 166
+          "line": 194
         },
         {
           "name": "plot_embedding",
@@ -2411,7 +2483,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 184
+          "line": 212
         },
         {
           "name": "plot_enrichment",
@@ -2420,7 +2492,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 230
+          "line": 258
         },
         {
           "name": "plot_feature",
@@ -2429,7 +2501,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 163
+          "line": 191
         },
         {
           "name": "plot_feature_split",
@@ -2438,7 +2510,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 188
+          "line": 216
         },
         {
           "name": "plot_group_heatmap",
@@ -2447,7 +2519,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 192
+          "line": 220
         },
         {
           "name": "plot_ma",
@@ -2456,7 +2528,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 201
+          "line": 229
         },
         {
           "name": "plot_markers",
@@ -2465,7 +2537,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 165
+          "line": 193
         },
         {
           "name": "plot_pca",
@@ -2474,7 +2546,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 162
+          "line": 190
         },
         {
           "name": "plot_proportions",
@@ -2483,7 +2555,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 167
+          "line": 195
         },
         {
           "name": "plot_pseudobulk_pca",
@@ -2492,7 +2564,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 213
+          "line": 241
         },
         {
           "name": "plot_qc_dashboard",
@@ -2501,7 +2573,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 180
+          "line": 208
         },
         {
           "name": "plot_qc_scatter",
@@ -2510,7 +2582,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 176
+          "line": 204
         },
         {
           "name": "plot_qc_violin",
@@ -2519,7 +2591,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 172
+          "line": 200
         },
         {
           "name": "plot_silhouette",
@@ -2528,7 +2600,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 238
+          "line": 266
         },
         {
           "name": "plot_umap",
@@ -2537,7 +2609,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 161
+          "line": 189
         },
         {
           "name": "plot_violin",
@@ -2546,7 +2618,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 164
+          "line": 192
         },
         {
           "name": "plot_volcano",
@@ -2555,7 +2627,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 196
+          "line": 224
         },
         {
           "name": "pseudobulk",
@@ -2564,7 +2636,7 @@
           "returnType": "Table",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 94
+          "line": 109
         },
         {
           "name": "pseudobulk_profiles",
@@ -2578,7 +2650,7 @@
             "genes"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 96
+          "line": 111
         },
         {
           "name": "pseudotime",
@@ -2587,7 +2659,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 148
+          "line": 176
         },
         {
           "name": "pseudotime_bins",
@@ -2596,7 +2668,7 @@
           "returnType": "List<Int>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 150
+          "line": 178
         },
         {
           "name": "qc",
@@ -2605,7 +2677,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 71
+          "line": 72
         },
         {
           "name": "ranked_genes",
@@ -2614,7 +2686,7 @@
           "returnType": "Table{gene, score}",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 133
+          "line": 148
         },
         {
           "name": "run_pca",
@@ -2624,28 +2696,78 @@
           "fields": [
             "pca",
             "pca_scores",
-            "pca_loadings"
+            "pca_loadings",
+            "reductions",
+            "embeddings",
+            "loadings",
+            "explained_variance",
+            "explained_variance_ratio",
+            "key"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 80
+          "line": 83
+        },
+        {
+          "name": "run_umap",
+          "signature": "run_umap(obj, n_dims = 10, n_neighbors = 30, min_dist = 0.3, seed = 42)",
+          "summary": "BioLang package function run_umap.",
+          "fields": [
+            "umap",
+            "reductions",
+            "embeddings",
+            "min_dist"
+          ],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 88
         },
         {
           "name": "scale",
-          "signature": "scale(obj) -> Record",
+          "signature": "scale(obj, clip = 10.0) -> Record",
           "summary": "BioLang package function scale.",
           "returnType": "Record",
-          "fields": [],
+          "fields": [
+            "scaled_matrix",
+            "assays"
+          ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 79
+          "line": 82
         },
         {
           "name": "sctransform",
-          "signature": "sctransform(obj) -> Record",
+          "signature": "sctransform(obj, n_features = 0, covariates = nil) -> Record",
           "summary": "BioLang package function sctransform.",
           "returnType": "Record",
+          "fields": [
+            "active_assay",
+            "norm_matrix",
+            "norm_method",
+            "hvg",
+            "hvg_matrix",
+            "hvg_genes",
+            "hvg_ranked",
+            "hvg_ranked_genes",
+            "sct_theta",
+            "sct_intercept",
+            "sct_residual_variance",
+            "sct_residual_variance_stage",
+            "assays",
+            "layers",
+            "variable_features",
+            "model",
+            "ranked_features",
+            "covariates_regressed"
+          ],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 78
+        },
+        {
+          "name": "select_integration_features",
+          "signature": "select_integration_features(obj_a, obj_b, n_features = 2000) -> List<Int>",
+          "summary": "BioLang package function select_integration_features.",
+          "returnType": "List<Int>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 77
+          "line": 161
         },
         {
           "name": "smooth_along_pseudotime",
@@ -2654,14 +2776,20 @@
           "returnType": "List<Float>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 151
+          "line": 179
         },
         {
           "name": "standard",
-          "signature": "standard(obj, resolution = nil, n_hvg = nil, k = nil, min_genes = nil, max_genes = nil, max_pct_mito = nil, min_cells = nil, target = nil, quiet = false) -> Record",
+          "signature": "standard(obj, resolution = nil, n_hvg = nil, k = nil, min_genes = nil, max_genes = nil, max_pct_mito = nil, min_cells = nil, target = nil, quiet = false, profile = \"seurat_5_5_1\") -> Record",
           "summary": "BioLang package function standard.",
           "returnType": "Record",
-          "fields": [],
+          "fields": [
+            "profile",
+            "idents",
+            "decisions",
+            "n_clusters",
+            "warnings"
+          ],
           "sourcePath": "packages/singlecell/src/mod.bl",
           "line": 43
         },
@@ -2683,7 +2811,7 @@
             "has_pseudotime"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 67
+          "line": 68
         },
         {
           "name": "sweep",
@@ -2692,16 +2820,20 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 49
+          "line": 50
         },
         {
           "name": "variable_genes",
           "signature": "variable_genes(obj, n = 2000) -> Record",
           "summary": "BioLang package function variable_genes.",
           "returnType": "Record",
-          "fields": [],
+          "fields": [
+            "hvg",
+            "hvg_method",
+            "assays"
+          ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 78
+          "line": 81
         }
       ]
     },

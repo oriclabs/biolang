@@ -2045,7 +2045,7 @@ pub fn normal_pdf(x: f64) -> f64 {
 }
 
 /// Lanczos approximation to log-gamma.
-fn ln_gamma(x: f64) -> f64 {
+pub(crate) fn ln_gamma(x: f64) -> f64 {
     if x <= 0.0 {
         return 0.0;
     }

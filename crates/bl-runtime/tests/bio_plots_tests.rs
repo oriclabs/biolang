@@ -641,26 +641,32 @@ fn test_roc_curve_wrong_type() {
 
 #[test]
 fn test_clustered_heatmap_ascii() {
-    let m = Value::Matrix(Matrix {
-        data: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
-        nrow: 2,
-        ncol: 3,
-        row_names: Some(vec!["r1".into(), "r2".into()]),
-        col_names: Some(vec!["c1".into(), "c2".into(), "c3".into()]),
-    });
+    let m = Value::Matrix(
+        Matrix {
+            data: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+            nrow: 2,
+            ncol: 3,
+            row_names: Some(vec!["r1".into(), "r2".into()]),
+            col_names: Some(vec!["c1".into(), "c2".into(), "c3".into()]),
+        }
+        .into(),
+    );
     let r = call_bio_plots_builtin("clustered_heatmap", vec![m]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_clustered_heatmap_svg() {
-    let m = Value::Matrix(Matrix {
-        data: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
-        nrow: 2,
-        ncol: 3,
-        row_names: Some(vec!["r1".into(), "r2".into()]),
-        col_names: Some(vec!["c1".into(), "c2".into(), "c3".into()]),
-    });
+    let m = Value::Matrix(
+        Matrix {
+            data: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+            nrow: 2,
+            ncol: 3,
+            row_names: Some(vec!["r1".into(), "r2".into()]),
+            col_names: Some(vec!["c1".into(), "c2".into(), "c3".into()]),
+        }
+        .into(),
+    );
     let r = call_bio_plots_builtin("clustered_heatmap", vec![m, svg_opts()]).unwrap();
     assert_svg(&r);
 }
@@ -1078,26 +1084,32 @@ fn test_circos_wrong_type() {
 
 #[test]
 fn test_hic_map_ascii() {
-    let m = Value::Matrix(Matrix {
-        data: vec![10.0, 5.0, 1.0, 5.0, 8.0, 3.0, 1.0, 3.0, 9.0],
-        nrow: 3,
-        ncol: 3,
-        row_names: Some(vec!["bin1".into(), "bin2".into(), "bin3".into()]),
-        col_names: Some(vec!["bin1".into(), "bin2".into(), "bin3".into()]),
-    });
+    let m = Value::Matrix(
+        Matrix {
+            data: vec![10.0, 5.0, 1.0, 5.0, 8.0, 3.0, 1.0, 3.0, 9.0],
+            nrow: 3,
+            ncol: 3,
+            row_names: Some(vec!["bin1".into(), "bin2".into(), "bin3".into()]),
+            col_names: Some(vec!["bin1".into(), "bin2".into(), "bin3".into()]),
+        }
+        .into(),
+    );
     let r = call_bio_plots_builtin("hic_map", vec![m]).unwrap();
     assert!(matches!(r, Value::Str(_)), "expected Str output, got {r:?}");
 }
 
 #[test]
 fn test_hic_map_svg() {
-    let m = Value::Matrix(Matrix {
-        data: vec![10.0, 5.0, 5.0, 8.0],
-        nrow: 2,
-        ncol: 2,
-        row_names: None,
-        col_names: None,
-    });
+    let m = Value::Matrix(
+        Matrix {
+            data: vec![10.0, 5.0, 5.0, 8.0],
+            nrow: 2,
+            ncol: 2,
+            row_names: None,
+            col_names: None,
+        }
+        .into(),
+    );
     let r = call_bio_plots_builtin("hic_map", vec![m, svg_opts()]).unwrap();
     assert_svg(&r);
 }
@@ -1718,7 +1730,7 @@ fn test_hic_map_large_matrix() {
         })
         .collect();
     let mat = Matrix::new(data, 10, 10).unwrap();
-    let result = call_bio_plots_builtin("hic_map", vec![Value::Matrix(mat)]).unwrap();
+    let result = call_bio_plots_builtin("hic_map", vec![Value::Matrix(mat.into())]).unwrap();
     assert!(
         matches!(result, Value::Str(_)),
         "expected Str output, got {result:?}"
@@ -1777,7 +1789,8 @@ fn test_ideogram_multiple_bands() {
 fn test_clustered_heatmap_large() {
     let data: Vec<f64> = (0..64).map(|i| (i as f64 * 0.5).sin()).collect();
     let mat = Matrix::new(data, 8, 8).unwrap();
-    let result = call_bio_plots_builtin("clustered_heatmap", vec![Value::Matrix(mat)]).unwrap();
+    let result =
+        call_bio_plots_builtin("clustered_heatmap", vec![Value::Matrix(mat.into())]).unwrap();
     assert!(
         matches!(result, Value::Str(_)),
         "expected Str output, got {result:?}"
@@ -1893,9 +1906,7 @@ fn small_ranges_do_not_repeat_a_tick_label() {
 fn whole_number_axes_do_not_carry_a_pointless_decimal() {
     // The other half of the same rule: asking for the fewest decimals that
     // separate the ticks means an integer axis gets none at all.
-    let values: Vec<Value> = (0..40)
-        .map(|i| Value::Float(f64::from(i) * 5.0))
-        .collect();
+    let values: Vec<Value> = (0..40).map(|i| Value::Float(f64::from(i) * 5.0)).collect();
     let svg = match call_bio_plots_builtin("elbow_plot", vec![Value::List(values.into())]) {
         Ok(Value::Str(s)) => s,
         other => panic!("elbow_plot returned {other:?}"),

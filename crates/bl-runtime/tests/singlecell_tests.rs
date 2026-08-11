@@ -281,6 +281,216 @@ fn sparse_pca_returns_compact_scores_and_loadings() {
     assert!(explained.iter().map(as_float).sum::<f64>() <= 1.0 + 1e-9);
 }
 
+// ─── sc_pca: the properties that make a result principal components ─────────
+
+/// A matrix whose covariance spectrum is deliberately *flat* in the tail.
+///
+/// This is the shape that broke the old implementation, so it is the shape the
+/// tests have to use. Twelve orthogonal directions carry variances 40 and 20 —
+/// well separated — then ten more within a few percent of each other. Deflated
+/// power iteration separates two directions at a rate set by the ratio of their
+/// variances, so a near-flat tail is where it stalls, and once one component is
+/// wrong every later one inherits the error.
+/// The gene count has to exceed the block width or there is nothing to test.
+/// With `k` components the implementation iterates on `k + 10` vectors, so a
+/// twelve-gene fixture would hand it the entire space and turn the subspace
+/// iteration into an exact dense solve — which passes every check while
+/// exercising none of the convergence machinery. Sixty genes against twelve
+/// requested components keeps it an actual subspace.
+const SPECTRUM_GENES: usize = 60;
+
+fn clustered_spectrum_matrix() -> Vec<Vec<f64>> {
+    let n_cells = 200;
+    (0..n_cells)
+        .map(|cell| {
+            (0..SPECTRUM_GENES)
+                .map(|gene| {
+                    // Two dominant directions, then a deliberately near-flat
+                    // tail: the regime where power iteration stalls.
+                    let variance = match gene {
+                        0 => 40.0,
+                        1 => 20.0,
+                        g => 3.0 - 0.03 * (g as f64),
+                    };
+                    // A deterministic, mean-zero basis: distinct frequencies
+                    // over the cell index.
+                    let phase = (cell as f64 + 1.0) * (gene as f64 + 1.0) * 0.7;
+                    variance.max(0.1).sqrt() * phase.sin()
+                })
+                .collect()
+        })
+        .collect()
+}
+
+fn pca_of(rows: Vec<Vec<f64>>, k: i64) -> Value {
+    call_singlecell_builtin("sc_pca", vec![matrix(rows), Value::Int(k)]).unwrap()
+}
+
+/// The defining property: principal components are ordered.
+///
+/// The old implementation returned 8 inversions out of 40 components on real
+/// data — explained variance rising from one component to the next, which means
+/// they were not principal components. Nothing downstream can be trusted when
+/// this fails, and nothing was checking it.
+#[test]
+fn pca_explained_variance_never_increases() {
+    let pca = pca_of(clustered_spectrum_matrix(), 12);
+    let explained: Vec<f64> = get_list(&pca, "explained_variance")
+        .iter()
+        .map(as_float)
+        .collect();
+    assert_eq!(explained.len(), 12);
+    for window in explained.windows(2) {
+        assert!(
+            window[0] >= window[1] - 1e-9,
+            "explained variance rose from {} to {} — components are out of order: {explained:?}",
+            window[0],
+            window[1]
+        );
+    }
+}
+
+/// Loadings must be orthonormal. A single Gram-Schmidt pass drifts exactly
+/// where the spectrum is flat, so this is the same failure seen from the other
+/// side: components that are supposed to describe independent directions and
+/// quietly do not.
+#[test]
+fn pca_loadings_are_orthonormal() {
+    let pca = pca_of(clustered_spectrum_matrix(), 12);
+    let loadings = get_list(&pca, "loadings");
+    let rows: Vec<Vec<f64>> = loadings
+        .iter()
+        .map(|row| match row {
+            Value::List(values) => values.iter().map(as_float).collect(),
+            other => panic!("expected a row, got {other:?}"),
+        })
+        .collect();
+    let k = rows[0].len();
+    let column = |c: usize| -> Vec<f64> { rows.iter().map(|row| row[c]).collect() };
+
+    for i in 0..k {
+        let a = column(i);
+        let norm: f64 = a.iter().map(|v| v * v).sum::<f64>().sqrt();
+        assert!(
+            (norm - 1.0).abs() < 1e-6,
+            "component {i} has norm {norm}, expected 1"
+        );
+        for j in (i + 1)..k {
+            let b = column(j);
+            let dot: f64 = a.iter().zip(&b).map(|(x, y)| x * y).sum();
+            assert!(
+                dot.abs() < 1e-6,
+                "components {i} and {j} are not orthogonal (dot = {dot})"
+            );
+        }
+    }
+}
+
+/// Scores must be the data projected onto the loadings. If the two disagree the
+/// embedding everything clusters on is not the one the loadings describe.
+#[test]
+fn pca_scores_are_the_projection_the_loadings_describe() {
+    let rows = clustered_spectrum_matrix();
+    let pca = pca_of(rows.clone(), 6);
+    let means: Vec<f64> = get_list(&pca, "mean").iter().map(as_float).collect();
+    let loadings: Vec<Vec<f64>> = get_list(&pca, "loadings")
+        .iter()
+        .map(|row| match row {
+            Value::List(values) => values.iter().map(as_float).collect(),
+            other => panic!("expected a row, got {other:?}"),
+        })
+        .collect();
+    let scores: Vec<Vec<f64>> = get_list(&pca, "scores")
+        .iter()
+        .map(|row| match row {
+            Value::List(values) => values.iter().map(as_float).collect(),
+            other => panic!("expected a row, got {other:?}"),
+        })
+        .collect();
+
+    for (cell, row) in rows.iter().enumerate() {
+        for component in 0..scores[cell].len() {
+            let expected: f64 = row
+                .iter()
+                .zip(&means)
+                .enumerate()
+                .map(|(gene, (value, mean))| (value - mean) * loadings[gene][component])
+                .sum();
+            assert!(
+                (scores[cell][component] - expected).abs() < 1e-6,
+                "cell {cell} component {component}: stored {} vs projected {expected}",
+                scores[cell][component]
+            );
+        }
+    }
+}
+
+/// Ask for every component and the variance must all be accounted for.
+///
+/// The eigenvalues of a covariance matrix sum to its trace, which is the total
+/// per-gene variance, so a full decomposition has to add back up to 100%.
+#[test]
+fn pca_with_every_component_accounts_for_all_the_variance() {
+    let rows = clustered_spectrum_matrix();
+    let n_genes = rows[0].len() as i64;
+    let pca = pca_of(rows, n_genes);
+    let ratios: Vec<f64> = get_list(&pca, "explained_variance_ratio")
+        .iter()
+        .map(as_float)
+        .collect();
+    let total: f64 = ratios.iter().sum();
+    assert!(
+        (total - 1.0).abs() < 1e-6,
+        "a full decomposition explained {:.6} of the variance, not all of it: {ratios:?}",
+        total
+    );
+}
+
+/// The test with teeth: a partial decomposition must agree with a full one.
+///
+/// Ordering is guaranteed by the Rayleigh-Ritz step whether or not the subspace
+/// converged, so monotonicity alone cannot detect a stalled iterate — a
+/// deliberately crippled sweep limit still passes it. What a stalled iterate
+/// *cannot* do is find the true leading directions, so its eigenvalues come out
+/// too small. Asking for twelve components on sixty genes is a genuine subspace
+/// iteration; asking for all sixty is an exact dense solve. They must agree.
+#[test]
+fn pca_subspace_iteration_finds_the_true_leading_components() {
+    let rows = clustered_spectrum_matrix();
+    let exact: Vec<f64> = get_list(
+        &pca_of(rows.clone(), SPECTRUM_GENES as i64),
+        "explained_variance",
+    )
+    .iter()
+    .map(as_float)
+    .collect();
+    let partial: Vec<f64> = get_list(&pca_of(rows, 12), "explained_variance")
+        .iter()
+        .map(as_float)
+        .collect();
+
+    assert_eq!(partial.len(), 12);
+    for (index, (got, want)) in partial.iter().zip(&exact).enumerate() {
+        let relative = (got - want).abs() / want.abs().max(1e-12);
+        assert!(
+            relative < 1e-6,
+            "component {index}: subspace run gave {got}, exact decomposition {want} \
+             (relative error {relative:.2e}) — the iteration had not converged"
+        );
+    }
+}
+
+/// Two runs of the same input must agree exactly. Sign is arbitrary in any
+/// eigendecomposition, so it is pinned by a rule rather than left to whichever
+/// way the arithmetic fell.
+#[test]
+fn pca_is_reproducible_including_component_signs() {
+    let rows = clustered_spectrum_matrix();
+    let first = get_list(&pca_of(rows.clone(), 8), "loadings");
+    let second = get_list(&pca_of(rows, 8), "loadings");
+    assert_eq!(first, second, "identical input gave different loadings");
+}
+
 #[test]
 fn leiden_graph_clusters_two_connected_groups() {
     let edges = vec![
@@ -576,54 +786,193 @@ fn test_module_score_empty_indices() {
 }
 
 // ─── sc_sctransform ──────────────────────────────────────────────────────────
+//
+// The builtin always returns `{matrix, genes}`. Genes detected in fewer than
+// five cells are dropped, so which original-axis columns survived is never
+// optional information — the previous shape, a bare Matrix assumed to line up
+// with the input gene axis, could not express that.
 
-/// Residuals as rows. `sc_sctransform` returns a Matrix rather than nested
-/// Lists: the result is dense by construction, and boxing every element into a
-/// Value cost roughly three times the flat form, which is what made it run out
-/// of memory on a real integrated object.
-fn sct_rows(result: &Value) -> Vec<Vec<f64>> {
-    match result {
+fn sct_result(value: &Value) -> (Vec<Vec<f64>>, Vec<usize>) {
+    let record = match value {
+        Value::Record(record) => record,
+        other => panic!("expected a Record, got {other:?}"),
+    };
+    let rows = match record.get("matrix").expect("matrix field") {
         Value::Matrix(m) => (0..m.nrow)
             .map(|i| (0..m.ncol).map(|j| m.data[i * m.ncol + j]).collect())
             .collect(),
         other => panic!("expected a Matrix, got {other:?}"),
-    }
+    };
+    let genes = match record.get("genes").expect("genes field") {
+        Value::List(values) => values
+            .iter()
+            .map(|v| match v {
+                Value::Int(n) => *n as usize,
+                other => panic!("expected Int, got {other:?}"),
+            })
+            .collect(),
+        other => panic!("expected a List, got {other:?}"),
+    };
+    (rows, genes)
+}
+
+/// Enough cells to actually fit an overdispersion — the method needs a gene
+/// detected in at least a handful of cells before it will model it at all, so
+/// four-cell fixtures return nothing and test nothing.
+///
+/// Genes 0 and 1 are switched on in the first half of the cells only. Genes 2
+/// to 7 track sequencing depth, which is what the model expects of a gene with
+/// no biology in it.
+fn sct_fixture() -> Vec<Vec<f64>> {
+    let n_cells = 120;
+    (0..n_cells)
+        .map(|cell| {
+            // Depth varies threefold across cells, so "scales with depth" and
+            // "is constant" are genuinely different behaviours here.
+            let depth = 1.0 + 2.0 * (cell as f64 / n_cells as f64);
+            (0..8)
+                .map(|gene| {
+                    let base = if gene < 2 && cell < n_cells / 2 {
+                        30.0
+                    } else {
+                        4.0
+                    };
+                    ((base * depth) + ((cell * (gene + 1)) % 3) as f64).round()
+                })
+                .collect()
+        })
+        .collect()
 }
 
 #[test]
-fn test_sc_sctransform_shape_preserved() {
-    let mat = matrix(vec![
-        vec![10.0, 0.0, 5.0],
-        vec![0.0, 20.0, 3.0],
-        vec![8.0, 8.0, 8.0],
-        vec![2.0, 2.0, 2.0],
-    ]);
-    let result = call_singlecell_builtin("sc_sctransform", vec![mat]).unwrap();
-    let rows = sct_rows(&result);
-    assert_eq!(rows.len(), 4, "same number of cells");
+fn test_sc_sctransform_returns_a_residual_per_cell_per_surviving_gene() {
+    let result = call_singlecell_builtin("sc_sctransform", vec![matrix(sct_fixture())]).unwrap();
+    let stage = match &result {
+        Value::Record(record) => record.get("residual_variance_stage"),
+        _ => None,
+    };
+    assert_eq!(
+        stage,
+        Some(&Value::Str(
+            "pearson_before_centering_and_covariate_regression".into()
+        ))
+    );
+    let (rows, genes) = sct_result(&result);
+    assert_eq!(rows.len(), 120, "one row per cell");
+    assert!(!genes.is_empty(), "every gene was filtered out");
     for row in &rows {
-        assert_eq!(row.len(), 3, "same number of genes");
+        assert_eq!(row.len(), genes.len(), "row width must match the gene list");
     }
+    assert!(
+        genes.windows(2).all(|w| w[0] < w[1]),
+        "indices ascend: {genes:?}"
+    );
+    assert!(
+        rows.iter().flatten().any(|&r| r != 0.0),
+        "every residual was zero"
+    );
 }
 
 #[test]
-fn test_sc_sctransform_residuals_clipped() {
-    // 100 cells, 1 gene — one cell has enormous count
-    let mut rows: Vec<Vec<f64>> = vec![vec![1.0]; 99];
-    rows.push(vec![100_000.0]); // last cell huge
-    let mat = matrix(rows);
-    let n_cells = 100;
+fn test_sc_sctransform_sparse_and_dense_paths_match() {
+    let rows = sct_fixture();
+    let dense =
+        call_singlecell_builtin("sc_sctransform", vec![matrix(rows.clone()), Value::Int(5)])
+            .unwrap();
+    let sparse =
+        call_singlecell_builtin("sc_sctransform", vec![sparse_matrix(rows), Value::Int(5)])
+            .unwrap();
+    let (dense_residuals, dense_genes) = sct_result(&dense);
+    let (sparse_residuals, sparse_genes) = sct_result(&sparse);
+    assert_eq!(sparse_genes, dense_genes);
+    assert_eq!(sparse_residuals, dense_residuals);
+}
 
-    let result = call_singlecell_builtin("sc_sctransform", vec![mat]).unwrap();
-    let vals = sct_rows(&result);
-    let clip = (n_cells as f64).sqrt();
-    for row in &vals {
-        let f = row[0];
-        assert!(
-            f <= clip + 1e-6 && f >= -clip - 1e-6,
-            "residual {f} outside clip range ±{clip}"
-        );
+#[test]
+fn test_sc_sctransform_drops_genes_below_min_cells_and_keeps_boundary() {
+    let rows: Vec<Vec<f64>> = (0..120)
+        .map(|cell| {
+            vec![
+                if cell < 4 { 7.0 } else { 0.0 },
+                if cell < 5 { 2.0 } else { 0.0 },
+                3.0 + (cell % 3) as f64,
+            ]
+        })
+        .collect();
+    let result = call_singlecell_builtin("sc_sctransform", vec![matrix(rows)]).unwrap();
+    let (_, genes) = sct_result(&result);
+    assert_eq!(genes, vec![1, 2]);
+}
+
+/// Pearson residuals are first clipped at sqrt(n_cells / 30), the published
+/// default, and then centered just as Seurat's SCTransform calls ScaleData.
+/// Centering a clipped column can move a value just outside the raw clip; it
+/// cannot move it outside twice that bound.
+#[test]
+fn test_sc_sctransform_residuals_follow_seurats_clip_then_center_order() {
+    let mut rows = sct_fixture();
+    // One cell with an absurd count, to push against the ceiling.
+    rows[0][0] = 500_000.0;
+    let n_cells = rows.len();
+    let result = call_singlecell_builtin("sc_sctransform", vec![matrix(rows)]).unwrap();
+    let (residuals, _) = sct_result(&result);
+
+    let clip = (n_cells as f64 / 30.0).sqrt();
+    for gene in 0..residuals[0].len() {
+        let mean = residuals.iter().map(|row| row[gene]).sum::<f64>() / n_cells as f64;
+        assert!(mean.abs() < 1e-10, "gene {gene} mean was {mean}");
+        for row in &residuals {
+            let value = row[gene];
+            assert!(
+                value.abs() <= 2.0 * clip + 1e-9,
+                "centered residual {value} escaped twice the raw clip of {clip}"
+            );
+        }
     }
+    assert!(
+        residuals.iter().flatten().any(|&r| r.abs() > clip - 1e-6),
+        "the outlier never approached the raw clip, so this proves nothing"
+    );
+}
+
+/// Capping picks by residual variance and must not disturb the values.
+#[test]
+fn test_sc_sctransform_cap_selects_without_changing_residuals() {
+    let rows = sct_fixture();
+    let (full, full_genes) =
+        sct_result(&call_singlecell_builtin("sc_sctransform", vec![matrix(rows.clone())]).unwrap());
+    let (capped, capped_genes) = sct_result(
+        &call_singlecell_builtin("sc_sctransform", vec![matrix(rows), Value::Int(3)]).unwrap(),
+    );
+
+    assert_eq!(capped_genes.len(), 3, "asked for three genes");
+    for (out, gene) in capped_genes.iter().enumerate() {
+        let source = full_genes
+            .iter()
+            .position(|g| g == gene)
+            .expect("a capped gene that the full run did not return");
+        for cell in 0..capped.len() {
+            assert!(
+                (capped[cell][out] - full[cell][source]).abs() < 1e-12,
+                "cell {cell} gene {gene}: capped {} vs full {}",
+                capped[cell][out],
+                full[cell][source]
+            );
+        }
+    }
+}
+
+/// Asking for more features than survive filtering is not an error, and must
+/// not silently return fewer than the unrestricted run.
+#[test]
+fn test_sc_sctransform_cap_wider_than_the_data_keeps_everything() {
+    let rows = sct_fixture();
+    let (_, all) =
+        sct_result(&call_singlecell_builtin("sc_sctransform", vec![matrix(rows.clone())]).unwrap());
+    let (_, asked) = sct_result(
+        &call_singlecell_builtin("sc_sctransform", vec![matrix(rows), Value::Int(999)]).unwrap(),
+    );
+    assert_eq!(all, asked);
 }
 
 #[test]
@@ -632,16 +981,14 @@ fn test_sc_sctransform_empty() {
     assert_eq!(result, Value::List((vec![]).into()));
 }
 
+/// An all-zero matrix has no gene worth modelling, so the answer is an empty
+/// gene list rather than a wall of NaN from dividing by a zero variance.
 #[test]
-fn test_sc_sctransform_zero_matrix() {
-    // All-zero input → all-zero residuals (mu = 0, residual = 0)
+fn test_sc_sctransform_zero_matrix_returns_no_genes() {
     let mat = matrix(vec![vec![0.0, 0.0], vec![0.0, 0.0]]);
     let result = call_singlecell_builtin("sc_sctransform", vec![mat]).unwrap();
-    for row in sct_rows(&result) {
-        for v in row {
-            assert!((v - 0.0).abs() < 1e-9);
-        }
-    }
+    let (_, genes) = sct_result(&result);
+    assert!(genes.is_empty(), "modelled a gene that is zero everywhere");
 }
 
 // ─── sc_integrate ─────────────────────────────────────────────────────────────

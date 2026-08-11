@@ -315,13 +315,27 @@ println(code)
 # Run a .bln notebook (Markdown + BioLang code cells)
 bl notebook analysis.bln
 
+# Open the notebook editor with a native, contextual local kernel
+bl notebook serve analysis.bln
+
 # Export to HTML report
 bl notebook analysis.bln --export html
 
+# Export editable cells backed by BioLang WebAssembly
+bl notebook analysis.bln --export html-wasm > analysis-live.html
+
 # Convert to/from Jupyter
-bl notebook analysis.bln --export ipynb
-bl notebook imported.ipynb --export bln
+bl notebook analysis.bln --to-ipynb > analysis.ipynb
+bl notebook imported.ipynb --from-ipynb > imported.bln
 ```
+
+The live HTML export uses dependency-free editors and one shared browser session.
+It preserves SVG plots and prepares a selectable canvas fallback. Native libraries,
+GPU work, unrestricted file access, and very large analyses can use
+`bl notebook serve`: it exposes a loopback-only, launch-token-protected local
+kernel with persistent cell context and a SOMER-compatible job API subset.
+Selecting a later cell automatically runs the missing earlier cells, avoiding
+undefined setup variables in tutorial notebooks.
 
 Sample `.bln` notebook:
 
@@ -416,6 +430,7 @@ crates/
 - [Website](https://lang.bio) -- getting started, language reference, builtin docs
 - [Playground](https://lang.bio/playground.html) -- try BioLang in your browser (no install required)
 - [Book](https://lang.bio/book/) -- comprehensive guide with examples
+- [Workflows](https://github.com/oriclabs/biolang-workflows) -- runnable analyses, practical books, courses, benchmarks, and independent validation
 
 ## License
 

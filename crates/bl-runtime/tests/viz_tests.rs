@@ -250,7 +250,7 @@ fn test_heatmap_ascii_table() {
 #[test]
 fn test_heatmap_ascii_matrix() {
     let mat = bl_core::matrix::Matrix::new(vec![1.0, 2.0, 3.0, 4.0], 2, 2).unwrap();
-    let result = call_viz_builtin("heatmap_ascii", vec![Value::Matrix(mat)]).unwrap();
+    let result = call_viz_builtin("heatmap_ascii", vec![Value::Matrix(mat.into())]).unwrap();
     assert!(matches!(result, Value::Nil));
 }
 

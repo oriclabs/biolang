@@ -197,7 +197,7 @@ fn builtin_to_dense(args: Vec<Value>) -> Result<Value> {
             })?;
             m.row_names = sm.row_names.clone();
             m.col_names = sm.col_names.clone();
-            Ok(Value::Matrix(m))
+            Ok(Value::Matrix(m.into()))
         }
         other => Err(BioLangError::type_error(
             format!("to_dense() requires SparseMatrix, got {}", other.type_of()),
