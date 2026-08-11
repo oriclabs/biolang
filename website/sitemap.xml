@@ -7,7 +7,7 @@
   <url><loc>https://lang.bio/playground.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://lang.bio/repl.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://lang.bio/viewer.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://lang.bio/studio.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lang.bio/workbench.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://lang.bio/browser.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://lang.bio/benchmarks.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://lang.bio/books.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
@@ -133,7 +133,7 @@
   <url><loc>https://lang.bio/docs/tools/compiler.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://lang.bio/docs/tools/viewer-help.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://lang.bio/docs/tools/repl-help.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://lang.bio/docs/tools/studio-help.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://lang.bio/docs/tools/workbench-help.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://lang.bio/docs/tools/tui-help.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <!-- Books -->
   <url><loc>https://lang.bio/books/language/html/index.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
