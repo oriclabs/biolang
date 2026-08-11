@@ -218,7 +218,7 @@ This is not an exaggeration. Before computational tools existed, identifying a s
 
 ## Your First Bioinformatics
 
-> **Try it right now — no installation needed!** You can run all the code examples in this chapter directly in your browser at **[lang.bio/playground](https://lang.bio/playground)**. The online playground is perfect for the exercises in Days 1 through 5. For later chapters that work with files (FASTQ, VCF, CSV), you will need the local `bl` installation — see [Appendix A](appendix-setup.md) for setup instructions.
+> **Try it right now — no installation needed!** You can run all the code examples in this chapter directly in your browser at **[lang.bio/playground](https://lang.bio/playground.html)**. The online playground is perfect for the exercises in Days 1 through 5. For later chapters that work with files (FASTQ, VCF, CSV), you will need the local `bl` installation — see [Appendix A](appendix-setup.md) for setup instructions.
 
 Let's write some code. BioLang treats DNA, RNA, and protein sequences as first-class types — not strings, but biological objects that understand what they are.
 

@@ -15,7 +15,7 @@ bases equally common?*, *would my experiment have detected anything?* — and
 builds the machinery needed to answer it.
 
 You need no statistics background. You need to be able to read BioLang at the
-level of the [language book](https://lang.bio/books/language/ch01-getting-started.html):
+level of the [language book](https://lang.bio/books/language/html/ch01-getting-started.html):
 `let`, `fn`, lists, and the pipe operator.
 
 ## How it is organised

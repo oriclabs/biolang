@@ -14,7 +14,7 @@ Today you will learn BioLang from scratch. By the end, you will be writing real 
 
 A REPL (Read-Eval-Print Loop) is an interactive environment where you type code, it runs immediately, and you see the result. It is the best way to learn a language because you get instant feedback.
 
-> **No installation yet?** You can try all the examples in this chapter at **[lang.bio/playground](https://lang.bio/playground)** — it runs BioLang directly in your browser. Perfect for learning the basics before committing to a local install.
+> **No installation yet?** You can try all the examples in this chapter at **[lang.bio/playground](https://lang.bio/playground.html)** — it runs BioLang directly in your browser. Perfect for learning the basics before committing to a local install.
 
 Launch it:
 
