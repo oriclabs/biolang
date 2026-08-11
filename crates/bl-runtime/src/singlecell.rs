@@ -3932,6 +3932,15 @@ fn builtin_find_all_markers(args: Vec<Value>) -> Result<Value> {
         members.entry(label.clone()).or_default().push(cell);
     }
 
+    // Seurat's FindAllMarkers returns only tests below this p-value. Without
+    // it every gene that clears the fold-change and detection filters is
+    // returned, which on a 3-cluster fixture was 156 rows against Seurat's 72 -
+    // the same 72, plus 84 that Seurat had discarded as insignificant.
+    let return_thresh = number("return_thresh", 0.01);
+    // Added to the summed linear expression before averaging, per Seurat's
+    // pseudocount.use.
+    const PSEUDOCOUNT: f64 = 1.0;
+
     struct Marker {
         gene: String,
         cluster: String,
@@ -3985,8 +3994,19 @@ fn builtin_find_all_markers(args: Vec<Value>) -> Result<Value> {
                 continue;
             }
 
-            let avg_log2fc = (linear_in / inside.len() as f64 + 1.0).log2()
-                - (linear_out / outside_count as f64 + 1.0).log2();
+            // Seurat's mean function for log1p data, which adds the
+            // pseudocount to the *sum* before dividing by the cell count:
+            //
+            //   log(x = (rowSums(expm1(x)) + pseudocount.use) / NCOL(x), base = base)
+            //
+            // Adding it to the mean instead looks equivalent and is not: the
+            // pseudocount is effectively 1/n rather than 1, so the two agree
+            // only where the group means are large. Measured against Seurat on
+            // a 3-cluster fixture, the mean form drifted by up to 0.19 log2
+            // units, worst on the strongest markers - exactly the genes a
+            // reader is looking at.
+            let avg_log2fc = ((linear_in + PSEUDOCOUNT) / inside.len() as f64).log2()
+                - ((linear_out + PSEUDOCOUNT) / outside_count as f64).log2();
             if avg_log2fc.abs() < logfc_threshold {
                 continue;
             }
@@ -3995,11 +4015,22 @@ fn builtin_find_all_markers(args: Vec<Value>) -> Result<Value> {
             }
 
             // Only now, on the few genes that survived, is the test worth running.
-            let Ok(test) =
-                bl_core::bio_core::stats_ops::mann_whitney_test(&in_group, &out_group, "two_sided")
-            else {
+            // Seurat runs R's wilcox.test, which applies the continuity
+            // correction. Matching it here is the difference between p-values
+            // that agree to machine precision and ones that are consistently
+            // about 1.4% out.
+            let Ok(test) = bl_core::bio_core::stats_ops::mann_whitney_u(
+                &in_group,
+                &out_group,
+                "two_sided",
+                true,
+            ) else {
                 continue;
             };
+
+            if !(test.p_value < return_thresh) {
+                continue;
+            }
 
             found.push(Marker {
                 gene: gene_names
@@ -4015,28 +4046,21 @@ fn builtin_find_all_markers(args: Vec<Value>) -> Result<Value> {
         }
     }
 
-    // FindAllMarkers is a sequence of one-vs-rest FindMarkers contrasts. Each
-    // contrast is corrected separately, with the number of genes in the assay
-    // as the hypothesis count even when pre-filtering avoided computing some
-    // tests. This is the public Seurat contract and prevents filtering from
-    // making adjusted p-values artificially optimistic.
-    let mut adjusted = vec![1.0_f64; found.len()];
-    for cluster in &cluster_order {
-        let mut indices: Vec<usize> = found
-            .iter()
-            .enumerate()
-            .filter(|(_, marker)| &marker.cluster == cluster)
-            .map(|(index, _)| index)
-            .collect();
-        indices.sort_by(|&a, &b| found[a].p_value.total_cmp(&found[b].p_value));
-        let mut running = 1.0_f64;
-        for rank_index in (0..indices.len()).rev() {
-            let index = indices[rank_index];
-            let rank = rank_index + 1;
-            running = running.min((found[index].p_value * n_genes as f64 / rank as f64).min(1.0));
-            adjusted[index] = running;
-        }
-    }
+    // Seurat corrects with Bonferroni over every gene in the assay:
+    //
+    //   p.adjust(p = de.results$p_val, method = "bonferroni", n = nrow(object))
+    //
+    // The hypothesis count is the whole assay even when pre-filtering skipped
+    // most of the tests, which stops filtering from making adjusted p-values
+    // artificially optimistic. This previously applied a Benjamini-Hochberg
+    // step-down instead - p * n / rank, held monotone - which is a different
+    // and far less conservative correction. It is not what FindAllMarkers
+    // reports, and on a 3-cluster fixture it disagreed with Seurat by up to
+    // 0.30 on the adjusted p-value while the raw p-values agreed.
+    let adjusted: Vec<f64> = found
+        .iter()
+        .map(|marker| (marker.p_value * n_genes as f64).min(1.0))
+        .collect();
 
     // Most significant first within each cluster, clusters in first-seen order:
     // the reading order for naming cell types.

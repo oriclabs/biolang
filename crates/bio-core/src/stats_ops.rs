@@ -584,10 +584,31 @@ pub fn t_test(group_a: &[f64], group_b: &[f64], alternative: &str) -> Result<TTe
     })
 }
 
+/// Mann-Whitney U, normal approximation, without a continuity correction.
+///
+/// This is Scanpy's convention in `rank_genes_groups`. R's `wilcox.test`
+/// shifts the statistic half a unit toward the mean before standardising,
+/// which is a real and visible difference - on a Seurat marker fixture it was
+/// the whole of a 1.4% median discrepancy in the p-values. Neither is wrong;
+/// they are different conventions, so the choice is made explicit rather than
+/// baked in. Use `mann_whitney_u` to select.
 pub fn mann_whitney_test(
     group_a: &[f64],
     group_b: &[f64],
     alternative: &str,
+) -> Result<MannWhitneyResult, String> {
+    mann_whitney_u(group_a, group_b, alternative, false)
+}
+
+/// Mann-Whitney U with the continuity correction selectable.
+///
+/// `continuity = true` reproduces R's `wilcox.test(..., correct = TRUE)`, which
+/// is what Seurat's `FindAllMarkers` reports.
+pub fn mann_whitney_u(
+    group_a: &[f64],
+    group_b: &[f64],
+    alternative: &str,
+    continuity: bool,
 ) -> Result<MannWhitneyResult, String> {
     let n_a = group_a.len();
     let n_b = group_b.len();
@@ -600,6 +621,7 @@ pub fn mann_whitney_test(
     combined.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
     let mut ranks = vec![0.0; combined.len()];
+    let mut tie_correction = 0.0f64;
     let mut i = 0;
     while i < combined.len() {
         let mut j = i;
@@ -609,6 +631,14 @@ pub fn mann_whitney_test(
         let avg_rank = (i + j - 1) as f64 / 2.0 + 1.0;
         for rank in &mut ranks[i..j] {
             *rank = avg_rank;
+        }
+        // Tied values share an averaged rank, which shrinks the variance of the
+        // rank sum. Sizes are collected here so that shrinkage can be applied
+        // below; without it the variance is overstated and every p-value from
+        // tied data comes out too large.
+        let tied = (j - i) as f64;
+        if tied > 1.0 {
+            tie_correction += tied * tied * tied - tied;
         }
         i = j;
     }
@@ -623,8 +653,44 @@ pub fn mann_whitney_test(
     let u = u_a - (n_a * (n_a + 1)) as f64 / 2.0;
     let u_stat = u.min((n_a * n_b) as f64 - u);
     let mean_u = (n_a * n_b) as f64 / 2.0;
-    let var_u = (n_a * n_b * (n_a + n_b + 1)) as f64 / 12.0;
-    let z = (u_stat - mean_u) / var_u.sqrt();
+    // Signed deviation of the *unfolded* statistic, which is what the
+    // correction has to act on: folding to min(U, n_a n_b - U) first would
+    // always shift toward zero and change the answer's direction.
+    let deviation = u - mean_u;
+    let shift = if continuity {
+        // Half a unit toward the mean, never past it.
+        if deviation > 0.0 {
+            -0.5
+        } else if deviation < 0.0 {
+            0.5
+        } else {
+            0.0
+        }
+    } else {
+        0.0
+    };
+    // Tie-corrected variance of U, the form both R's wilcox.test and Scanpy's
+    // rank_genes_groups use:
+    //
+    //   sigma^2 = (n_a n_b / 12) * ((N + 1) - sum(t^3 - t) / (N (N - 1)))
+    //
+    // The correction vanishes when every value is distinct, so this leaves
+    // untied data exactly where it was. It matters here because expression
+    // data is mostly zeros: on a Seurat marker fixture the uncorrected form
+    // disagreed with the reference on 46 of 72 tests.
+    let total = (n_a + n_b) as f64;
+    let var_u = if total > 1.0 {
+        ((n_a * n_b) as f64 / 12.0)
+            * ((total + 1.0) - tie_correction / (total * (total - 1.0)))
+    } else {
+        0.0
+    };
+    let sigma = var_u.sqrt();
+    let z = if sigma > 0.0 {
+        (deviation + shift) / sigma
+    } else {
+        0.0
+    };
 
     let p_value = match alternative {
         "two_sided" => 2.0 * (1.0 - normal_cdf(z.abs())),

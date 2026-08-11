@@ -183,7 +183,7 @@ fn only_pos_drops_the_depleted_genes() {
 }
 
 #[test]
-fn correction_is_per_contrast_and_counts_all_assay_genes() {
+fn correction_is_bonferroni_over_all_assay_genes() {
     let rows = markers(vec![]);
     assert!(!rows.is_empty());
     for row in &rows {
@@ -199,14 +199,15 @@ fn correction_is_per_contrast_and_counts_all_assay_genes() {
             .filter(|row| text(row, "cluster") == cluster.to_string())
             .collect();
         group.sort_by(|a, b| number(a, "p_value").total_cmp(&number(b, "p_value")));
-        let mut running = 1.0_f64;
-        let mut expected = vec![1.0; group.len()];
-        for rank_index in (0..group.len()).rev() {
-            running = running.min(
-                (number(group[rank_index], "p_value") * 6.0 / (rank_index + 1) as f64).min(1.0),
-            );
-            expected[rank_index] = running;
-        }
+        // Bonferroni over every gene in the assay, which is what Seurat does:
+        //   p.adjust(p = de.results$p_val, method = "bonferroni", n = nrow(object))
+        // This previously expected a Benjamini-Hochberg step-down, p * n / rank
+        // held monotone. That is a different and much less conservative
+        // correction, and it is not the one FindAllMarkers reports.
+        let expected: Vec<f64> = group
+            .iter()
+            .map(|row| (number(row, "p_value") * 6.0).min(1.0))
+            .collect();
         for (row, want) in group.into_iter().zip(expected) {
             assert!(
                 (number(row, "p_adj") - want).abs() < 1e-12,
