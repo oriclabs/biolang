@@ -1,3 +1,0 @@
-# Scanpy validation is intentionally separate from the BioLang runtime.
-scanpy[leiden]==1.12.3
-numba==0.65.1

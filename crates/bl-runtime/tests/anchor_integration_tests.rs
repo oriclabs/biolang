@@ -139,7 +139,7 @@ fn cca_anchors_are_deterministic_mutual_neighbours() {
             (4, 3, 1.0),
             (5, 5, 1.0),
         ],
-        "must match packages/singlecell/examples/validation/seurat_mit_anchor_fixture.R"
+        "must match validation/single-cell/seurat_mit_anchor_fixture.R in biolang-workflows"
     );
 }
 

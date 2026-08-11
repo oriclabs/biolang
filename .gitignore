@@ -121,6 +121,10 @@ node_modules/
 /packages/fragments.tsv.gz
 /packages/genes.gtf
 /packages/truth.csv
+# Metrics written by the cross-validation examples, which now live in the
+# biolang-workflows repository.
+/packages/validation_*.json
+**/__pycache__/
 
 # Example pack artifacts. Both are generated from packs/*/pack.toml — the
 # manifests are the source of truth, so the built bundles are never committed.
@@ -174,3 +178,19 @@ node_modules/
 /tmp/
 __pycache__/
 *.py[cod]
+
+# Never commit these. The split to biolang-workflows dropped these rules, and
+# without them a plain `git add -A` in this repository stages 1,508 files of
+# GPL-3 R packages and the study authors' raw 10x data into an MIT tree.
+#
+# The isolated R library used by the external validation oracle. Its contents
+# are GPL-3 (glmGamPoi, DelayedMatrixStats, HDF5Array and others); BioLang is
+# MIT and must not carry them.
+/.validation-r-library/
+# Oracle outputs and comparison artifacts. Large, regenerable, and they belong
+# with the harness in biolang-workflows.
+/validation-results/
+# The HBC course data. It belongs to the study authors and the training team
+# hosts it; a copy here would be a redistribution as well as gigabytes.
+/ctrl_raw/
+/stim_raw/

@@ -143,8 +143,8 @@ let restored = read_anndata("analysis.zarr")
 
 Direct `.h5ad` I/O requires conversion with Python/anndata or a configured
 container. Arbitrary AnnData metadata columns and auxiliary layers are not yet
-copied by the native Zarr interchange. Validation scripts for Scanpy and Seurat are under
-`packages/singlecell/examples/validation`; compare cluster partitions by barcode using
+copied by the native Zarr interchange. Validation scripts for Scanpy and Seurat live in the `biolang-workflows`
+repository under `validation/single-cell`; compare cluster partitions by barcode using
 ARI rather than comparing arbitrary numeric cluster IDs.
 
 Key functions: `load`, `filter_genes`, `filter_cells`, `normalize`,
