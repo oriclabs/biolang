@@ -89,6 +89,12 @@ jobs:
           git diff --exit-code -- website/docs/examples \
             || (echo "pack docs are stale — run 'node scripts/generate-pack-docs.mjs' and commit"; exit 1)
 
+      # Runs after the pack docs are regenerated, so a link into freshly
+      # generated documentation is checked against what this job just built
+      # rather than against whatever was committed.
+      - name: Check every internal site link resolves
+        run: node scripts/check-site-links.mjs
+
       - name: Build the CLI
         run: cargo build -p bl-cli
 
