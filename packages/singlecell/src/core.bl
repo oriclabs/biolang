@@ -14,7 +14,21 @@
 ## Read a 10x Genomics MEX directory (barcodes.tsv, features.tsv, matrix.mtx,
 ## with optional .gz variants) and return a single-cell object.
 fn load(path) {
-    read_10x_sparse(path)
+    _with_contract(read_10x_sparse(path))
+}
+
+## Attach the stable single-cell object contract to a runtime reader result.
+## Legacy top-level fields remain available for older BioLang packages.
+fn _with_contract(obj) {
+    let layers = if contains(keys(obj), "layers") { obj.layers } else { {counts: obj.matrix} }
+    {... obj,
+        profile: "biolang",
+        active_assay: "RNA",
+        assays: {RNA: {layers: layers, variable_features: []}},
+        reductions: {},
+        graphs: {},
+        idents: []
+    }
 }
 
 ## Rows of a dense matrix as List<List<Float>>.
@@ -37,7 +51,7 @@ fn _as_rows(m) {
 ## (cells × genes). Accepts either a `matrix(...)` value or a List<List<Float>>.
 fn from_matrix(matrix, genes, barcodes) {
     let rows = _as_rows(matrix)
-    {
+    _with_contract({
         matrix:   rows,
         genes:    genes,
         barcodes: barcodes,
@@ -47,7 +61,7 @@ fn from_matrix(matrix, genes, barcodes) {
         var:       table(genes |> map(|gene| {gene: gene})),
         layers:    {counts: rows},
         is_sparse: false
-    }
+    })
 }
 
 ## n_cells(obj) → Int

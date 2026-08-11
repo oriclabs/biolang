@@ -4071,7 +4071,7 @@ impl Interpreter {
                 }
                 let result = bl_core::matrix::Matrix::new(new_data, m.nrow, m.ncol)
                     .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, Some(span)))?;
-                Ok(Value::Matrix(result))
+                Ok(Value::Matrix(result.into()))
             }
             "ode_solve" => {
                 // ode_solve(f, y0, t_span) — RK4 integrator

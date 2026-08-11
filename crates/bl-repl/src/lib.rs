@@ -3520,7 +3520,7 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "sc_sctransform",
-        "sc_sctransform(matrix) -> matrix",
+        "sc_sctransform(matrix, n_variable_features?) -> matrix | {matrix, genes}",
         "singlecell",
     ),
     (

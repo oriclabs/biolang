@@ -149,7 +149,7 @@ fn builtin_score_matrix(args: Vec<Value>) -> Result<Value> {
     m.row_names = Some(aa_names.clone());
     m.col_names = Some(aa_names);
 
-    Ok(Value::Matrix(m))
+    Ok(Value::Matrix(m.into()))
 }
 
 fn builtin_edit_distance(args: Vec<Value>) -> Result<Value> {
@@ -565,7 +565,7 @@ fn builtin_distance_matrix(args: Vec<Value>) -> Result<Value> {
     m.row_names = Some(names.clone());
     m.col_names = Some(names);
 
-    Ok(Value::Matrix(m))
+    Ok(Value::Matrix(m.into()))
 }
 
 /// Compute pairwise distance between two aligned sequences.

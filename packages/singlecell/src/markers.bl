@@ -131,6 +131,31 @@ fn marker_table(obj, cluster_a, cluster_b) {
     })
 }
 
+## Seurat-compatible pairwise marker entry point. The return schema retains the
+## existing BioLang names while applying Seurat 5.5.1's public defaults.
+fn find_markers(obj, ident_1, ident_2, min_pct = 0.01,
+                logfc_threshold = 0.1, only_pos = false) {
+    marker_table(obj, ident_1, ident_2)
+        |> filter(|row|
+            (row.pct_a >= min_pct or row.pct_b >= min_pct) and
+            abs(row.log2fc) >= logfc_threshold and
+            (not only_pos or row.log2fc > 0.0)
+        )
+}
+
+## One-vs-rest marker tests for every identity class. The native builtin is
+## sparse-aware and receives gene names explicitly so output never depends on
+## positional placeholders.
+fn all_markers(obj, min_pct = 0.01, logfc_threshold = 0.1,
+               only_pos = false) {
+    sc_find_all_markers(obj.norm_matrix, obj.clusters, {
+        genes: obj.genes,
+        min_pct: min_pct,
+        logfc_threshold: logfc_threshold,
+        only_pos: only_pos
+    })
+}
+
 ## pseudobulk(obj, sample_ids) → Table
 ##
 ## Sum raw counts within each (cluster, sample) pair and return a Table whose

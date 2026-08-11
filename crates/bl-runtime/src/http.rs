@@ -48,6 +48,7 @@ pub fn http_builtin_list() -> Vec<(&'static str, Arity)> {
         ("http_get", Arity::Range(1, 2)),
         ("http_post", Arity::Range(2, 3)),
         ("download", Arity::Range(1, 2)),
+        ("unzip", Arity::Range(2, 3)),
         ("upload", Arity::Range(2, 3)),
         ("ref_genome", Arity::Range(1, 2)),
         ("bio_fetch", Arity::Range(1, 2)),
@@ -62,6 +63,7 @@ pub fn is_http_builtin(name: &str) -> bool {
         "http_get"
             | "http_post"
             | "download"
+            | "unzip"
             | "upload"
             | "ref_genome"
             | "bio_fetch"
@@ -75,6 +77,7 @@ pub fn call_http_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "http_get" => builtin_http_get(args),
         "http_post" => builtin_http_post(args),
         "download" => builtin_download(args),
+        "unzip" => builtin_unzip(args),
         "upload" => builtin_upload(args),
         "ref_genome" => builtin_ref_genome(args),
         "bio_fetch" => builtin_bio_fetch(args),
@@ -178,6 +181,101 @@ fn builtin_http_post(args: Vec<Value>) -> Result<Value> {
     })?;
 
     response_to_value(resp)
+}
+
+/// unzip(archive, dest, prefix?) -> List<Str>
+///
+/// Extract members of a zip archive into `dest`, returning the paths written.
+/// With `prefix`, only members whose name starts with it are extracted, and
+/// they land in `dest` under their base name rather than their archive path.
+///
+/// This exists because `download` could fetch an archive and nothing could open
+/// it. The single-cell teaching dataset is a 3.2 GB zip of which about 90 MB is
+/// wanted, so "fetch the data" needed Python for the one step BioLang lacked.
+///
+/// Zip keeps its index at the end of the file, so selective extraction still
+/// requires the whole archive locally; this does not stream from a URL.
+#[cfg(all(not(target_arch = "wasm32"), feature = "native"))]
+fn builtin_unzip(args: Vec<Value>) -> Result<Value> {
+    use std::io::Read;
+
+    let archive_path = require_str(&args[0], "unzip")?;
+    let dest = require_str(&args[1], "unzip")?;
+    let prefix = if args.len() > 2 {
+        require_str(&args[2], "unzip")?
+    } else {
+        ""
+    };
+
+    let file = std::fs::File::open(&archive_path).map_err(|e| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("unzip(): cannot open {archive_path}: {e}"),
+            None,
+        )
+    })?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("unzip(): {archive_path} is not a readable zip: {e}"),
+            None,
+        )
+    })?;
+
+    std::fs::create_dir_all(&dest).map_err(|e| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("unzip(): cannot create {dest}: {e}"),
+            None,
+        )
+    })?;
+
+    let mut written = Vec::new();
+    for i in 0..archive.len() {
+        let mut member = archive.by_index(i).map_err(|e| {
+            BioLangError::runtime(ErrorKind::IOError, format!("unzip(): {e}"), None)
+        })?;
+        let name = member.name().to_string();
+        if member.is_dir() || (!prefix.is_empty() && !name.starts_with(prefix)) {
+            continue;
+        }
+        // Never write outside dest: a crafted archive can carry ".." segments.
+        let leaf = std::path::Path::new(&name)
+            .file_name()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_default();
+        if leaf.is_empty() {
+            continue;
+        }
+        let out_path = std::path::Path::new(&dest).join(&leaf);
+        let mut bytes = Vec::new();
+        member.read_to_end(&mut bytes).map_err(|e| {
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("unzip(): reading {name}: {e}"),
+                None,
+            )
+        })?;
+        std::fs::write(&out_path, &bytes).map_err(|e| {
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!("unzip(): writing {}: {e}", out_path.display()),
+                None,
+            )
+        })?;
+        written.push(Value::Str(out_path.to_string_lossy().to_string()));
+    }
+
+    Ok(Value::List(written.into()))
+}
+
+#[cfg(any(target_arch = "wasm32", not(feature = "native")))]
+fn builtin_unzip(_args: Vec<Value>) -> Result<Value> {
+    Err(BioLangError::runtime(
+        ErrorKind::RuntimeError,
+        "unzip() needs the native build",
+        None,
+    ))
 }
 
 fn builtin_download(args: Vec<Value>) -> Result<Value> {

@@ -51,37 +51,106 @@ fn normalize(obj, target = 10000.0) {
     # fields but not always `layers`, so seed it from the raw counts rather
     # than failing on a field the producer was never required to set.
     let base = if contains(keys(obj), "layers") { obj.layers } else { {counts: obj.matrix} }
+    let assays = if contains(keys(obj), "assays") { obj.assays } else { ({}) }
+    let rna = if contains(keys(assays), "RNA") { assays.RNA } else { {layers: base, variable_features: []} }
     {... obj,
         norm_matrix: norm,
-        layers: {... base, lognorm: norm}
+        norm_method: "lognorm",
+        layers: {... base, lognorm: norm},
+        assays: {... assays, RNA: {... rna, layers: {... base, data: norm, lognorm: norm}}}
     }
 }
 
-## sctransform(obj) → Record
+## sctransform(obj, n_features) → Record
 ##
 ## Regularised negative-binomial regression (Pearson residuals),
-## clipped at ±sqrt(n_cells). Adds obj.norm_matrix.
-fn sctransform(obj) {
-    let residuals = sc_sctransform(obj.matrix)
-    {... obj, norm_matrix: residuals}
+## clipped at ±sqrt(n_cells / 30) before centering and optional covariate
+## regression. Adds obj.norm_matrix.
+##
+## Pearson residuals are dense by construction — `(0 - mu)/sqrt(var)` is not
+## zero — so an uncapped result costs `n_cells * n_genes * 8` bytes whatever
+## the input sparsity. At 29,629 cells and 16,681 genes that is about 4 GB.
+##
+## Pass `n_features` to keep only that many genes, ranked by the variance of
+## their residuals. This is `SCTransform(variable.features.n = ...)`: the same
+## residual values, fewer columns, and the cap bounds the dense peak rather
+## than just the return value. The final matrix for 3,000 features on that
+## object is 711 MB; parallel materialization adds at most one cell-length
+## column per worker.
+##
+## A capped call also fills obj.hvg, obj.hvg_matrix and obj.hvg_genes, because
+## ranking by residual variance *is* variable-gene selection under this
+## normalization — there is no separate `variable_genes` step to run afterwards.
+## covariates may be one numeric list or a list of numeric lists. They are
+## removed from Pearson residuals in a second, non-regularized linear model,
+## after residual-variance ranking. This is the vars.to.regress behavior used
+## by Seurat's SCTransform wrapper.
+fn sctransform(obj, n_features = 0, covariates = nil) {
+    # Always returns {matrix, genes}. Completely zero genes are dropped, while
+    # low-detection nonzero genes read regularized parameters from the fitted
+    # expression trend. The surviving original-axis indices are never optional.
+    let regressors = if covariates == nil { [] } else { covariates }
+    let out = sc_sctransform(obj.matrix, n_features, regressors)
+    let selected_genes = out.genes |> map(|j| obj.genes[j])
+    let ranked_genes = out.ranked_genes |> map(|j| obj.genes[j])
+    let assays = if contains(keys(obj), "assays") { obj.assays } else { ({}) }
+    {... obj,
+        active_assay: "SCT",
+        norm_matrix: out.matrix,
+        norm_method: "sctransform",
+        hvg: out.genes,
+        hvg_matrix: out.matrix,
+        hvg_genes: selected_genes,
+        hvg_ranked: out.ranked_genes,
+        hvg_ranked_genes: ranked_genes,
+        sct_theta: out.theta,
+        sct_intercept: out.intercept,
+        sct_residual_variance: out.residual_variance,
+        sct_residual_variance_stage: out.residual_variance_stage,
+        assays: {... assays, SCT: {
+            layers: {data: out.matrix, scale_data: out.matrix},
+            variable_features: selected_genes,
+            model: "regularized_negative_binomial_v2_offset",
+            ranked_features: ranked_genes,
+            covariates_regressed: len(regressors)
+        }}
+    }
 }
 
 ## variable_genes(obj, n) → Record
 ##
-## Select the top n highly variable genes by dispersion (squared coefficient of
-## variation, variance / mean²) computed on norm_matrix. Genes are ranked
-## globally, without binning by mean expression, so selection favours
-## low-expression genes more than scanpy's `seurat` flavour or Seurat's VST.
-## Compare downstream structure across tools, not the gene lists themselves.
+## Select the top n highly variable genes using the VST method described by
+## Stuart et al. 2019. The variance trend is fitted on raw counts; the selected
+## columns are then taken from the normalized matrix used downstream.
 ##
 ## Adds obj.hvg (List<Int>), obj.hvg_matrix (cells × HVGs),
 ## and obj.hvg_genes (List<Str>).
+##
+## **Do not call this on SCTransform output.** Dispersion divides by the square
+## of the mean, and Pearson residuals are centred by construction — every gene's
+## mean sits near zero, so the denominator is arithmetic noise rather than a
+## scale. Ranking that way does not measure variability. It looks like it works,
+## which is the problem: it produced a plausible gene list and a cluster count
+## that appeared to reproduce a published result, and the agreement was a
+## coincidence. Use `sctransform(obj, n)`, which ranks on residual variance.
 fn variable_genes(obj, n = 2000) {
+    if contains(keys(obj), "norm_method") and obj.norm_method == "sctransform" {
+        error("sc.variable_genes() cannot run after sc.sctransform(): SCT may " +
+              "drop zero-count genes, so the residual matrix no longer shares " +
+              "the raw gene axis, and dispersion ranking is not meaningful on " +
+              "centred residuals. Select features with sc.sctransform(obj, n).")
+    }
     let mat = obj.norm_matrix
-    let hvg_idx  = highly_variable_genes(mat, n)
+    let hvg_idx  = highly_variable_genes(obj.matrix, n, "vst")
     let hvg_mat  = select_cols(mat, hvg_idx)
     let hvg_g    = hvg_idx |> map(|j| obj.genes[j])
-    {... obj, hvg: hvg_idx, hvg_matrix: hvg_mat, hvg_genes: hvg_g}
+    let assays = if contains(keys(obj), "assays") { obj.assays } else { ({}) }
+    let rna = if contains(keys(assays), "RNA") { assays.RNA } else { {layers: obj.layers} }
+    {... obj,
+        hvg: hvg_idx, hvg_matrix: hvg_mat, hvg_genes: hvg_g,
+        hvg_method: "vst",
+        assays: {... assays, RNA: {... rna, variable_features: hvg_g}}
+    }
 }
 
 ## run_pca(obj, n_pcs) -> Record
@@ -96,7 +165,9 @@ fn variable_genes(obj, n = 2000) {
 ## expression and discards the correction.
 fn run_pca(obj, n_pcs = 50) {
     let k = keys(obj)
-    let mat = if contains(k, "hvg_matrix") {
+    let mat = if contains(k, "scaled_matrix") {
+        obj.scaled_matrix
+    } else if contains(k, "hvg_matrix") {
         obj.hvg_matrix
     } else if contains(k, "norm_matrix") {
         obj.norm_matrix
@@ -104,10 +175,18 @@ fn run_pca(obj, n_pcs = 50) {
         obj.matrix
     }
     let result = sc_pca(mat, n_pcs)
+    let reductions = if contains(k, "reductions") { obj.reductions } else { ({}) }
     {... obj,
         pca: result,
         pca_scores: result.scores,
-        pca_loadings: result.loadings
+        pca_loadings: result.loadings,
+        reductions: {... reductions, pca: {
+            embeddings: result.scores,
+            loadings: result.loadings,
+            explained_variance: result.explained_variance,
+            explained_variance_ratio: result.explained_variance_ratio,
+            key: "PC_"
+        }}
     }
 }
 
@@ -116,37 +195,23 @@ fn run_pca(obj, n_pcs = 50) {
 ## Per-gene mean-centering and unit-variance scaling of norm_matrix. Adds
 ## obj.scaled_matrix (cells × genes).
 ##
-## Dense only. Centering destroys sparsity — a scaled 10x matrix is a dense
-## n_cells × n_genes array — so this raises rather than quietly densifying an
-## object loaded from a 10x directory. run_pca centers mathematically without
-## materializing that array and is what production workflows should use.
-fn scale(obj) {
+## Only selected variable features are materialized. This matches the standard
+## PCA workflow without allocating a cells × full-transcriptome dense matrix.
+fn scale(obj, clip = 10.0) {
     if not contains(keys(obj), "norm_matrix") {
         error("sc.scale() needs normalized values — call sc.normalize() first")
     }
-    if typeof(obj.norm_matrix) == "SparseMatrix" {
-        error("sc.scale() is dense-only and this object's matrix is sparse " +
-              "(" + str(obj.n_cells) + " cells x " + str(obj.n_genes) + " genes). " +
-              "Scaling would materialize every zero. Use sc.run_pca(), which " +
-              "centers without densifying.")
+    let mat = if contains(keys(obj), "hvg_matrix") { obj.hvg_matrix } else { obj.norm_matrix }
+    # Native column moments and scaling avoid tens of millions of interpreted
+    # closure calls and keep the result in one compact Matrix allocation.
+    let scaled = sc_scale(mat, clip)
+    let assays = if contains(keys(obj), "assays") { obj.assays } else { ({}) }
+    let rna = if contains(keys(assays), "RNA") { assays.RNA } else { {layers: obj.layers} }
+    let assay_layers = if contains(keys(rna), "layers") { rna.layers } else { obj.layers }
+    {... obj,
+        scaled_matrix: scaled,
+        assays: {... assays, RNA: {... rna, layers: {... assay_layers, scale_data: scaled}}}
     }
-    let mat = obj.norm_matrix
-    let n_c = len(mat)
-    let n_g = if n_c > 0 then len(mat[0]) else 0
-
-    let gene_means = range(0, n_g) |> map(|j|
-        mean(range(0, n_c) |> map(|i| mat[i][j]))
-    )
-    let gene_stds = range(0, n_g) |> map(|j| {
-        let m  = gene_means[j]
-        let sq = range(0, n_c) |> map(|i| (mat[i][j] - m) ** 2.0)
-        sqrt(mean(sq) + 1e-8)
-    })
-
-    let scaled = mat |> map(|row|
-        range(0, n_g) |> map(|j| (row[j] - gene_means[j]) / gene_stds[j])
-    )
-    {... obj, scaled_matrix: scaled}
 }
 
 ## The embedding downstream steps should cluster on: the batch-corrected one
@@ -160,21 +225,41 @@ fn embedding_of(obj) {
     obj.pca_scores
 }
 
-## neighbors(obj, k) → Record
+## neighbors(obj, k, snn) → Record
 ##
-## Build a k-nearest-neighbour graph on the PCA scores, or on the integrated
-## embedding when `integrate` has run. Runs run_pca first if needed.
-## Adds obj.knn (List<Record{source, target, distance}>).
+## Build the neighbour graph on the PCA scores, or on the integrated embedding
+## when `integrate` has run. Runs run_pca first if needed.
+## Adds obj.knn (List<Record{source, target, weight}>).
+##
+## By default this is a **shared** nearest-neighbour graph: cells are joined by
+## the Jaccard index of their neighbour sets rather than by how close they are,
+## and edges at or below 1/15 are pruned. This is what `FindNeighbors` builds
+## and what community detection should run on. Proximity alone is a poor signal
+## in high dimensions — the distance to the nearest and to the furthest
+## neighbour converge as dimensions grow — while neighbourhood overlap holds up.
+##
+## Pass `snn = false` for the older plain kNN graph weighted by 1/(1+distance).
+## It is faster and worse, and it is kept so that results produced before the
+## SNN graph existed can still be reproduced.
 ##
 ## Exact search, so cost is quadratic in n_cells.
-fn neighbors(obj, k = 15) {
+fn neighbors(obj, k = 20, snn = true, n_dims = 10) {
     let prepared = if contains(keys(obj), "pca_scores") {
         obj
     } else {
         run_pca(obj)
     }
-    let graph = knn_graph(embedding_of(prepared), k)
-    {... prepared, knn: graph, n_neighbors: k}
+    let full = embedding_of(prepared)
+    let width = if len(full) > 0 { len(full[0]) } else { 0 }
+    let dims = range(0, if n_dims < width { n_dims } else { width })
+    let embed = if len(dims) > 0 { select_cols(full, dims) } else { full }
+    let graph = if snn { snn_graph(embed, k) } else { knn_graph(embed, k) }
+    let graphs = if contains(keys(prepared), "graphs") { prepared.graphs } else { ({}) }
+    let named_graphs = if snn { {... graphs, snn: graph} } else { {... graphs, nn: graph} }
+    {... prepared,
+        knn: graph, n_neighbors: k, neighbor_dims: len(dims),
+        graphs: named_graphs
+    }
 }
 
 ## cluster(obj, k) → Record
@@ -209,4 +294,52 @@ fn cluster_leiden(obj, k = 15, resolution = 1.0) {
     let prepared = if contains(keys(obj), "knn") { obj } else { neighbors(obj, k) }
     let clusters = leiden_graph(prepared.knn, prepared.n_cells, resolution)
     {... prepared, clusters: clusters, resolution: resolution}
+}
+
+## cluster_louvain(obj, k, resolution) → Record
+##
+## Community detection with Louvain — local moving and aggregation, without
+## Leiden's refinement pass. Adds obj.clusters (List<Int>).
+##
+## This is what you want when comparing against Seurat, whose `FindClusters`
+## defaults to `algorithm = 1`, which is Louvain. `cluster_leiden` is the better
+## algorithm — refinement is what guarantees every community is internally
+## connected, which Louvain does not — but "better" and "what the reference ran"
+## are different questions, and reproducing a published number needs the second.
+##
+## Runs from 10 randomised node orders and keeps the highest modularity, which
+## is `FindClusters(n.start = 10)`. A single greedy pass lands in whichever
+## local optimum the node order leads to; running it longer does not help,
+## running it again from a different order does.
+fn cluster_louvain(obj, k = 20, resolution = 0.8) {
+    let prepared = if contains(keys(obj), "knn") { obj } else { neighbors(obj, k) }
+    let clusters = louvain_graph(prepared.knn, prepared.n_cells, resolution)
+    {... prepared, clusters: clusters, resolution: resolution}
+}
+
+## Compute and store a UMAP reduction with the defaults used by Seurat 5.5.1.
+fn run_umap(obj, n_dims = 10, n_neighbors = 30, min_dist = 0.3, seed = 42) {
+    let prepared = if contains(keys(obj), "pca_scores") { obj } else { run_pca(obj) }
+    let full = embedding_of(prepared)
+    let width = if len(full) > 0 { len(full[0]) } else { 0 }
+    let dims = range(0, if n_dims < width { n_dims } else { width })
+    let input = if len(dims) > 0 { select_cols(full, dims) } else { full }
+    let embedding = sc_umap(input, {
+        n_components: 2,
+        n_neighbors: n_neighbors,
+        n_epochs: if prepared.n_cells <= 10000 { 500 } else { 200 },
+        min_dist: min_dist,
+        metric: "cosine",
+        seed: seed,
+        spread: 1.0,
+        negative_sample_rate: 5
+    })
+    let reductions = if contains(keys(prepared), "reductions") { prepared.reductions } else { ({}) }
+    {... prepared,
+        umap: embedding,
+        reductions: {... reductions, umap: {
+            embeddings: embedding, key: "UMAP_", n_neighbors: n_neighbors,
+            min_dist: min_dist, metric: "cosine", seed: seed
+        }}
+    }
 }

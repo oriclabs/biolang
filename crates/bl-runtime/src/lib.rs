@@ -14,6 +14,7 @@ pub mod datetime;
 pub mod deconvolution;
 pub mod drug;
 pub mod env;
+pub mod gpu;
 pub mod graph;
 pub mod gwas;
 pub mod hash;

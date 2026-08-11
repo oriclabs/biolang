@@ -169,3 +169,8 @@ node_modules/
 /protein_comparison.csv
 /output/
 /results/
+
+# Scratch logs and caches written by notebook-server and development runs.
+/tmp/
+__pycache__/
+*.py[cod]

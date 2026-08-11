@@ -156,27 +156,8 @@ impl Parser {
             TokenKind::Ident(_) if self.is_compound_assignment() => self.parse_compound_assign(),
             TokenKind::Ident(_) if self.is_index_assignment() => self.parse_index_assign(),
             TokenKind::Ident(_) if self.is_assignment() => self.parse_assign(),
-            // `{}` written as a statement of its own stays an empty block, the
-            // way it has always been. In expression position it is an empty map
-            // — see is_record_literal. Only the empty pair is decided here: a
-            // statement starting `{ name: value }` still reaches the record
-            // lookahead, because the last expression of a function body is its
-            // return value and returning a record literal is ordinary.
-            TokenKind::LBrace if self.next_is_closing_brace() => {
-                let expr = self.parse_block_expr()?;
-                let span = expr.span;
-                Ok(Spanned::new(Stmt::Expr(expr), span))
-            }
             _ => self.parse_expr_stmt(),
         }
-    }
-
-    /// `{` immediately followed by `}`, with no key, spread or statement between.
-    fn next_is_closing_brace(&self) -> bool {
-        matches!(
-            self.tokens.get(self.pos + 1).map(|t| &t.kind),
-            Some(TokenKind::RBrace)
-        )
     }
 
     /// Check if current position is `type Name = ...` (type alias).

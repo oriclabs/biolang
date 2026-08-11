@@ -36,6 +36,29 @@ fn eval_int(code: &str) -> i64 {
     }
 }
 
+// ── Empty record expressions stay records inside branch blocks ─────────────
+
+#[test]
+fn empty_record_in_an_if_branch_is_not_nil() {
+    let value = eval("if false { {present: 1} } else { {} }");
+    match value {
+        Value::Record(record) => assert!(record.is_empty()),
+        other => panic!("expected an empty record, got {other:?}"),
+    }
+}
+
+#[test]
+fn branch_empty_record_can_be_spread() {
+    let value = eval("let base = if false { {old: 1} } else { {} }\n{...base, new: 2}");
+    match value {
+        Value::Record(record) => {
+            assert_eq!(record.len(), 1);
+            assert_eq!(record.get("new"), Some(&Value::Int(2)));
+        }
+        other => panic!("expected a record, got {other:?}"),
+    }
+}
+
 // ── A pipe binds tighter than any binary operator ───────────────────
 
 #[test]
