@@ -1501,6 +1501,60 @@ fn builtin_save_png(args: Vec<Value>) -> Result<Value> {
 }
 
 #[cfg(feature = "native")]
+fn configure_generic_font_families(db: &mut resvg::usvg::fontdb::Database) {
+    // fontdb's generic defaults are Windows font names (Arial, Times New Roman,
+    // and Courier New). A Linux machine can therefore have plenty of fonts but
+    // still render every `font-family="sans-serif"` label as nothing. Point the
+    // CSS generic families at fonts that are actually present on this machine.
+    let families: Vec<String> = db
+        .faces()
+        .flat_map(|face| face.families.iter().map(|(name, _)| name.clone()))
+        .collect();
+
+    let choose = |preferred: &[&str]| {
+        preferred
+            .iter()
+            .find_map(|candidate| {
+                families
+                    .iter()
+                    .find(|name| name.eq_ignore_ascii_case(candidate))
+                    .cloned()
+            })
+            .or_else(|| families.first().cloned())
+    };
+
+    if let Some(family) = choose(&[
+        "Arial",
+        "DejaVu Sans",
+        "Liberation Sans",
+        "Noto Sans",
+        "Ubuntu",
+        "Segoe UI",
+        "Helvetica",
+    ]) {
+        db.set_sans_serif_family(family);
+    }
+    if let Some(family) = choose(&[
+        "Times New Roman",
+        "DejaVu Serif",
+        "Liberation Serif",
+        "Noto Serif",
+        "Georgia",
+    ]) {
+        db.set_serif_family(family);
+    }
+    if let Some(family) = choose(&[
+        "Courier New",
+        "DejaVu Sans Mono",
+        "Liberation Mono",
+        "Noto Sans Mono",
+        "Consolas",
+    ]) {
+        db.set_monospace_family(family);
+    }
+}
+
+#[cfg(feature = "native")]
 fn render_png(svg: &str, path: &str, scale: f64) -> Result<()> {
     use resvg::{tiny_skia, usvg};
 
@@ -1514,6 +1568,7 @@ fn render_png(svg: &str, path: &str, scale: f64) -> Result<()> {
     let fontdb = FONTS.get_or_init(|| {
         let mut db = usvg::fontdb::Database::new();
         db.load_system_fonts();
+        configure_generic_font_families(&mut db);
         std::sync::Arc::new(db)
     });
 
