@@ -1,4 +1,4 @@
-# singlecell — Single-cell RNA-seq analysis for BioLang
+﻿# singlecell â€” Single-cell RNA-seq analysis for BioLang
 #
 # Provides a Seurat-compatible workflow for 10x Genomics and other scRNA-seq data.
 #
@@ -26,7 +26,7 @@ import "singlecell/src/plots"       as _plots
 import "singlecell/src/advanced"    as _advanced
 import "singlecell/src/advanced_plots" as _advanced_plots
 
-# ─── One-call workflow ─────────────────────────────────────────────────────────
+# â”€â”€â”€ One-call workflow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 #
 # standard() runs the usual pipeline and prints the explicit version it ran,
 # marking every parameter [default] or [set]. Start here, then paste the printed
@@ -42,15 +42,16 @@ import "singlecell/src/advanced_plots" as _advanced_plots
 
 fn standard(obj, resolution = nil, n_hvg = nil, k = nil,
             min_genes = nil, max_genes = nil, max_pct_mito = nil,
-            min_cells = nil, target = nil, quiet = false) {
+            min_cells = nil, target = nil, quiet = false,
+            profile = "seurat_5_5_1") {
     _std.standard(obj, resolution, n_hvg, k, min_genes, max_genes,
-                  max_pct_mito, min_cells, target, quiet)
+                  max_pct_mito, min_cells, target, quiet, profile)
 }
 fn sweep(obj, resolutions = [0.1, 0.3, 0.5, 0.7, 1.0], n_hvg = nil, k = nil) {
     _std.sweep(obj, resolutions, n_hvg, k)
 }
 
-# ─── Core / object creation ────────────────────────────────────────────────────
+# â”€â”€â”€ Core / object creation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn load(path)                            { _core.load(path) }
 fn from_matrix(matrix, genes, barcodes) { _core.from_matrix(matrix, genes, barcodes) }
@@ -66,7 +67,7 @@ fn get_pseudotime(obj)                   { _core.get_pseudotime(obj) }
 fn get_doublet_scores(obj)               { _core.get_doublet_scores(obj) }
 fn summary(obj)                          { _core.summary(obj) }
 
-# ─── QC and preprocessing ──────────────────────────────────────────────────────
+# â”€â”€â”€ QC and preprocessing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn qc(obj)                               { _pre.qc(obj) }
 fn filter_cells(obj, min_genes = 200, max_genes = 5000, max_pct_mito = 25.0) {
@@ -74,15 +75,21 @@ fn filter_cells(obj, min_genes = 200, max_genes = 5000, max_pct_mito = 25.0) {
 }
 fn filter_genes(obj, min_cells = 3)      { _pre.filter_genes(obj, min_cells) }
 fn normalize(obj, target = 10000.0)      { _pre.normalize(obj, target) }
-fn sctransform(obj)                      { _pre.sctransform(obj) }
+fn sctransform(obj, n_features = 0, covariates = nil) {
+    _pre.sctransform(obj, n_features, covariates)
+}
 fn variable_genes(obj, n = 2000)         { _pre.variable_genes(obj, n) }
-fn scale(obj)                            { _pre.scale(obj) }
+fn scale(obj, clip = 10.0)                            { _pre.scale(obj, clip) }
 fn run_pca(obj, n_pcs = 50)              { _pre.run_pca(obj, n_pcs) }
-fn neighbors(obj, k = 15)               { _pre.neighbors(obj, k) }
+fn neighbors(obj, k = 20, snn = true, n_dims = 10) { _pre.neighbors(obj, k, snn, n_dims) }
 fn cluster(obj, k = 0)                   { _pre.cluster(obj, k) }
 fn cluster_leiden(obj, k = 15, resolution = 1.0) { _pre.cluster_leiden(obj, k, resolution) }
+fn cluster_louvain(obj, k = 20, resolution = 0.8) { _pre.cluster_louvain(obj, k, resolution) }
+fn run_umap(obj, n_dims = 10, n_neighbors = 30, min_dist = 0.3, seed = 42) {
+    _pre.run_umap(obj, n_dims, n_neighbors, min_dist, seed)
+}
 
-# ─── Cell annotation and scoring ──────────────────────────────────────────────
+# â”€â”€â”€ Cell annotation and scoring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn cell_cycle(obj, s_genes, g2m_genes)   { _mark.cell_cycle(obj, s_genes, g2m_genes) }
 fn gene_module_score(obj, gene_indices)  { _mark.gene_module_score(obj, gene_indices) }
@@ -90,6 +97,14 @@ fn doublets(obj, n_sim = 500)            { _mark.doublets(obj, n_sim) }
 fn flag_doublets(obj, threshold = 0.5)  { _mark.flag_doublets(obj, threshold) }
 fn marker_table(obj, cluster_a, cluster_b) {
     _mark.marker_table(obj, cluster_a, cluster_b)
+}
+fn find_markers(obj, ident_1, ident_2, min_pct = 0.01, logfc_threshold = 0.1,
+                only_pos = false) {
+    _mark.find_markers(obj, ident_1, ident_2, min_pct, logfc_threshold, only_pos)
+}
+fn find_all_markers(obj, min_pct = 0.01, logfc_threshold = 0.1,
+                    only_pos = false) {
+    _mark.all_markers(obj, min_pct, logfc_threshold, only_pos)
 }
 fn pseudobulk(obj, sample_ids)           { _mark.pseudobulk(obj, sample_ids) }
 ## Build raw and log-CPM donor-condition-cell-type pseudobulk profiles.
@@ -132,9 +147,10 @@ fn cluster_stability(obj, resolutions = [0.2, 0.5, 0.8, 1.0, 1.5], k = 15) {
 ## Prepare a signed gene-ranking table for the core gsea() function.
 fn ranked_genes(de_results)              { _advanced.ranked_genes(de_results) }
 
-# ─── Integration ──────────────────────────────────────────────────────────────
+# â”€â”€â”€ Integration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn integrate(obj, batch_ids)                    { _int.integrate(obj, batch_ids) }
+fn center_batches(obj, batch_ids)               { _int.center_batches(obj, batch_ids) }
 fn integrate_from_column(obj, batch_col)        { _int.integrate_from_column(obj, batch_col) }
 fn harmony(obj, batch_ids, theta = nil, n_clusters = nil) {
     _int.harmony(obj, batch_ids, theta, n_clusters)
@@ -142,8 +158,20 @@ fn harmony(obj, batch_ids, theta = nil, n_clusters = nil) {
 fn merge(obj_a, obj_b, batch_a = 0, batch_b = 1) {
     _int.merge(obj_a, obj_b, batch_a, batch_b)
 }
+fn select_integration_features(obj_a, obj_b, n_features = 2000) {
+    _int.select_integration_features(obj_a, obj_b, n_features)
+}
+fn find_integration_anchors(obj_a, obj_b, reduction = "cca", n_features = 2000,
+                            dims = 30, k_anchor = 5, k_score = 30,
+                            k_filter = 200, max_features = 200) {
+    _int.find_integration_anchors(obj_a, obj_b, reduction, n_features,
+                                  dims, k_anchor, k_score, k_filter, max_features)
+}
+fn integrate_data(anchor_set, k_weight = 100, sd_weight = 1.0) {
+    _int.integrate_data(anchor_set, k_weight, sd_weight)
+}
 
-# ─── Trajectory / pseudotime ──────────────────────────────────────────────────
+# â”€â”€â”€ Trajectory / pseudotime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn pseudotime(obj, start_cell)                  { _traj.pseudotime(obj, start_cell) }
 fn order_by_pseudotime(obj)                     { _traj.order_by_pseudotime(obj) }
@@ -152,7 +180,7 @@ fn smooth_along_pseudotime(obj, gene_idx, n_bins = 20) {
     _traj.smooth_along_pseudotime(obj, gene_idx, n_bins)
 }
 
-# ─── Plots ─────────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Plots â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 #
 # These take the sc object directly and do the Matrix -> List<Record> conversion
 # the plotting builtins require. SVG-returning functions give back a Str; the two

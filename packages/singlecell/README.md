@@ -15,9 +15,11 @@ let result = cells
     |> sc.filter_cells(200, 5000, 20.0)
     |> sc.normalize(10000.0)
     |> sc.variable_genes(2000)
+    |> sc.scale()
     |> sc.run_pca(30)
-    |> sc.neighbors(15)
-    |> sc.cluster_leiden(15, 0.5)
+    |> sc.neighbors(20, true, 10)
+    |> sc.cluster_louvain(20, 0.8)
+    |> sc.run_umap()
 
 println(sc.summary(result))
 write_text("umap.svg", sc.plot_umap(result))
@@ -64,17 +66,19 @@ subsets cell-level results and invalidates the neighbor graph.
 
 ## Pipeline contract
 
-The standard analysis order is:
+`sc.standard()` records the compatibility profile `seurat_5_5_1` and runs:
 
 1. `filter_genes` and `filter_cells`
 2. `normalize`
 3. `variable_genes`
-4. `run_pca`
-5. `neighbors`
-6. `cluster_leiden`
+4. `scale` selected variable features
+5. `run_pca`
+6. `neighbors` on the first 10 PCs, building an SNN graph
+7. `cluster_louvain`
+8. `run_umap`
 
-PCA centers features mathematically while operating on CSR values, so the
-workflow does not need to create a dense, centered expression matrix.
+Only selected variable features are materialized by `scale`, so the workflow
+does not create a dense full-transcriptome matrix.
 `neighbors` always uses PCA scores, or an integrated PCA embedding when one is
 present. `cluster_leiden` consumes the stored sparse graph rather than rebuilding
 neighbors.
@@ -85,6 +89,7 @@ Run the native runtime coverage:
 
 ```text
 cargo test -p bl-runtime --test singlecell_tests
+cargo test -p bl-runtime --test anchor_integration_tests
 ```
 
 Run the package-level behavior test from the repository `packages` directory:
@@ -93,18 +98,27 @@ Run the package-level behavior test from the repository `packages` directory:
 cd packages
 ../target/debug/bl run singlecell/tests/pipeline.bl
 ../target/debug/bl run singlecell/tests/advanced.bl
+../target/debug/bl run singlecell/tests/integration_anchors.bl
 ```
 
-The `validation` directory contains optional Scanpy and Seurat reference
-workflows. Those tools are not package dependencies. They are installed and run
-in separate Python or R environments so the BioLang package remains lightweight.
+The `validation` directory contains optional reference workflows. Validation
+tools are not linked, imported, packaged as runtime dependencies, or used to
+generate BioLang source. Run them only in an isolated environment.
 
 ## Method boundaries
 
-- `highly_variable_genes` ranks genes by dispersion (CV squared) globally,
-  without binning by mean expression the way Scanpy's `seurat` flavor and
-  Seurat VST do. Selection therefore leans toward low-expression genes and the
-  set is not expected to equal those flavors.
+- `highly_variable_genes(..., "vst")` fits the mean-variance trend on raw
+  counts and ranks standardized variance. It is the standard profile used by
+  `variable_genes`; the legacy dispersion selector remains available only by
+  requesting it explicitly.
+- `find_integration_anchors` independently implements the published CCA/RPCA,
+  mutual-neighbour, and shared-neighbour scoring design. `integrate_data`
+  applies locally weighted anchor corrections and preserves raw RNA counts.
+- UMAP follows the published fuzzy-neighbour graph, smooth-kNN calibration,
+  spectral initialization, and negative-sampling objective. It is deterministic
+  for a seed, but raw coordinates are not an interoperability contract: rotation,
+  reflection, and optimizer details can change coordinates without changing the
+  biological neighbourhoods.
 - `marker_table` reports `log2fc > 0` when a gene is higher in the first
   cluster, matching `FindMarkers(ident.1, ident.2)`, and computes it on the
   expression scale (expm1 of the log-normalized means) so it is comparable to
@@ -139,8 +153,8 @@ in separate Python or R environments so the BioLang package remains lightweight.
   sampled workflow or a remote backend until approximate-neighbor indexing is
   available.
 - Leiden cluster numeric IDs are arbitrary. Compare partitions with ARI or NMI.
-- `scale` is dense-only and raises on a sparse object rather than quietly
-  materializing every zero. Use `run_pca`, which centers without densifying.
+- `scale` accepts sparse input but materializes only the selected variable
+  features, using sample standard deviation and the standard clipping value 10.
 - AnnData Zarr is read and written natively while preserving CSR sparsity.
   The native interchange currently covers `X` and the `obs`/`var` index names;
   arbitrary AnnData metadata columns and auxiliary layers are not yet copied.

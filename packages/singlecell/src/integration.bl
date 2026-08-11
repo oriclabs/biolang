@@ -1,8 +1,6 @@
 # singlecell/src/integration.bl — Multi-sample batch correction
 #
-# Wraps sc_integrate for simplified batch correction (centering by batch).
-# For stronger integration, use the harmony or fastMNN approaches
-# (requires running sc_sctransform first, then sc_integrate).
+# Paper-derived CCA/RPCA anchor integration plus embedding-level batch methods.
 
 import "singlecell/src/preprocess" as _pre
 
@@ -15,11 +13,16 @@ import "singlecell/src/preprocess" as _pre
 ## batch_ids — List<Int>, one batch label per cell (same length as n_cells).
 ##
 ## Adds obj.integrated_embedding (cells x components) and obj.batch_ids.
-fn integrate(obj, batch_ids) {
+fn center_batches(obj, batch_ids) {
     let prepared = if contains(keys(obj), "pca_scores") { obj } else { _pre.run_pca(obj) }
     let corrected = sc_integrate(prepared.pca_scores, batch_ids)
     {... prepared, integrated_embedding: corrected, batch_ids: batch_ids}
 }
+
+# Backwards-compatible name for BioLang's original global-centering method.
+# New multi-object analyses should use find_integration_anchors() followed by
+# integrate_data(); this function intentionally remains an embedding operation.
+fn integrate(obj, batch_ids) { center_batches(obj, batch_ids) }
 
 ## harmony(obj, batch_ids) → Record
 ##
@@ -67,4 +70,161 @@ fn integrate_from_column(obj, batch_col) {
 ## Returns a new merged object with obj.batch_ids set.
 fn merge(obj_a, obj_b, batch_a = 0, batch_b = 1) {
     sc_merge_objects(obj_a, obj_b, batch_a, batch_b)
+}
+
+## select_integration_features(obj_a, obj_b, n_features) -> List<Int>
+##
+## Rank features by their appearance in either dataset's VST list. Both
+## objects must describe the same genes in the same order; this explicit rule
+## prevents positional feature mismatches from producing plausible nonsense.
+fn select_integration_features(obj_a, obj_b, n_features = 2000) {
+    if obj_a.genes != obj_b.genes {
+        error("sc.select_integration_features: objects must have identical genes in identical order")
+    }
+    let a = if contains(keys(obj_a), "hvg") { obj_a } else {
+        let normalized = if contains(keys(obj_a), "norm_matrix") { obj_a } else { _pre.normalize(obj_a) }
+        _pre.variable_genes(normalized, n_features)
+    }
+    let b = if contains(keys(obj_b), "hvg") { obj_b } else {
+        let normalized = if contains(keys(obj_b), "norm_matrix") { obj_b } else { _pre.normalize(obj_b) }
+        _pre.variable_genes(normalized, n_features)
+    }
+    let a_is_sct = contains(keys(a), "norm_method") and a.norm_method == "sctransform"
+    let b_is_sct = contains(keys(b), "norm_method") and b.norm_method == "sctransform"
+    # A capped SCT matrix cannot safely select a feature absent from the other
+    # sample's materialized residual axis. Rank over each complete cap, then
+    # restrict candidates to the shared axis. This is the bounded-memory
+    # alternative to recomputing missing residuals in PrepSCTIntegration.
+    let rank_a_all = if contains(keys(a), "hvg_ranked") { a.hvg_ranked } else { a.hvg }
+    let rank_b_all = if contains(keys(b), "hvg_ranked") { b.hvg_ranked } else { b.hvg }
+    let rank_a = if a_is_sct { rank_a_all } else { take(rank_a_all, n_features) }
+    let rank_b = if b_is_sct { rank_b_all } else { take(rank_b_all, n_features) }
+    let candidates = if a_is_sct and b_is_sct {
+        into(intersection(set(rank_a), set(rank_b)), "List")
+    } else {
+        (rank_a + rank_b) |> unique |> filter(|gene| {
+            (not a_is_sct or contains(a.hvg, gene)) and
+            (not b_is_sct or contains(b.hvg, gene))
+        })
+    }
+    let selected = candidates
+        |> map(|gene| {
+            let ia = find_index(rank_a, |candidate| candidate == gene)
+            let ib = find_index(rank_b, |candidate| candidate == gene)
+            let datasets = (if ia >= 0 { 1 } else { 0 }) + (if ib >= 0 { 1 } else { 0 })
+            let median_rank = if ia >= 0 and ib >= 0 {
+                (float(ia) + float(ib)) / 2.0
+            } else if ia >= 0 { float(ia) } else { float(ib) }
+            {gene: gene, datasets: datasets, median_rank: median_rank}
+        })
+        |> sort(|left, right| {
+            if left.datasets != right.datasets {
+                right.datasets - left.datasets
+            } else {
+                left.median_rank - right.median_rank
+            }
+        })
+        |> take(n_features)
+        |> map(|row| row.gene)
+    if len(selected) < n_features and len(candidates) >= n_features {
+        error("sc.select_integration_features: internal feature ranking lost candidates")
+    }
+    selected
+}
+
+fn _integration_input(obj, features) {
+    let normalized = if contains(keys(obj), "norm_matrix") { obj } else { _pre.normalize(obj) }
+    let columns = if contains(keys(normalized), "norm_method") and
+                     normalized.norm_method == "sctransform" {
+        features |> map(|feature| {
+            let column = find_index(normalized.hvg, |candidate| candidate == feature)
+            if column < 0 {
+                error("sc.find_integration_anchors: SCT residual missing for integration feature " +
+                      normalized.genes[feature] + "; increase the feature cap in " +
+                      "sc.sctransform(obj, n, covariates) before selecting cross-sample features")
+            }
+            column
+        })
+    } else { features }
+    let selected = {... normalized,
+        hvg: features,
+        hvg_matrix: select_cols(normalized.norm_matrix, columns),
+        hvg_genes: features |> map(|j| normalized.genes[j])
+    }
+    # PrepSCTIntegration supplies Pearson residuals in scale.data and Seurat's
+    # SCT anchor path explicitly disables ScaleData. Scaling those residuals a
+    # second time changes the CCA, anchor filter, and weighting PCA.
+    if contains(keys(normalized), "norm_method") and
+       normalized.norm_method == "sctransform" {
+        selected.hvg_matrix
+    } else {
+        _pre.scale(selected).scaled_matrix
+    }
+}
+
+## find_integration_anchors(obj_a, obj_b, ...) -> AnchorSet
+##
+## Find mutual nearest-neighbour anchors in a shared CCA space (default), or
+## in reciprocal PCA projections with reduction="rpca". The matrices used for
+## matching are log-normalized, VST-selected, and scaled independently.
+fn find_integration_anchors(obj_a, obj_b, reduction = "cca", n_features = 2000,
+                            dims = 30, k_anchor = 5, k_score = 30,
+                            k_filter = 200, max_features = 200) {
+    let features = select_integration_features(obj_a, obj_b, n_features)
+    let left = _integration_input(obj_a, features)
+    let right = _integration_input(obj_b, features)
+    let native = sc_find_anchors(left, right, {
+        reduction: reduction, dims: dims, k_anchor: k_anchor,
+        k_filter: k_filter, k_score: k_score, max_features: max_features
+    })
+    {... native,
+        reference: obj_a,
+        query: obj_b,
+        features: features,
+        feature_names: features |> map(|j| obj_a.genes[j]),
+        left_matrix: left,
+        right_matrix: right,
+        method: "seurat_mit_5_5_1_anchor",
+        compute_backend: native.compute_method
+    }
+}
+
+## integrate_data(anchor_set, k_weight, sd_weight) -> Record
+##
+## Correct the query expression locally from nearby scored anchors, then merge
+## it with the unmodified reference. The integrated expression assay contains
+## integration features; the RNA assay/raw matrix remains available unchanged.
+fn integrate_data(anchor_set, k_weight = 100, sd_weight = 1.0) {
+    let integrated = sc_integrate_anchors(
+        anchor_set.left_matrix, anchor_set.right_matrix, anchor_set,
+        {k_weight: k_weight, sd_weight: sd_weight}
+    )
+    let merged = sc_merge_objects(anchor_set.reference, anchor_set.query, 0, 1)
+    # Seurat's anchor dimensions and downstream PCA dimensions are separate
+    # choices. HBC uses the FindIntegrationAnchors default (30), then computes
+    # enough integrated PCs for downstream dims=1:40. Tying PCA width to the
+    # anchor width made that published workflow impossible to express.
+    let pca = sc_pca(integrated, 50)
+    let assays = if contains(keys(merged), "assays") { merged.assays } else { ({}) }
+    let reductions = if contains(keys(merged), "reductions") { merged.reductions } else { ({}) }
+    {... merged,
+        active_assay: "integrated",
+        integrated_matrix: integrated,
+        integrated_features: anchor_set.feature_names,
+        integrated_embedding: pca.scores,
+        pca: pca,
+        pca_scores: pca.scores,
+        pca_loadings: pca.loadings,
+        integration_method: "seurat_mit_5_5_1_" + anchor_set.reduction,
+        assays: {... assays, integrated: {
+            layers: {data: integrated, scale_data: integrated},
+            variable_features: anchor_set.feature_names
+        }},
+        reductions: {... reductions, integrated_pca: {
+            embeddings: pca.scores,
+            loadings: pca.loadings,
+            explained_variance: pca.explained_variance,
+            key: "iPC_"
+        }}
+    }
 }

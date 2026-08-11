@@ -7,6 +7,10 @@ repository.workspace = true
 homepage.workspace = true
 description = "CLI for BioLang: run scripts, start REPL, manage plugins"
 
+[features]
+default = ["notebook-server"]
+notebook-server = ["dep:rand", "dep:tiny_http"]
+
 [[bin]]
 name = "bl"
 path = "src/main.rs"
@@ -20,10 +24,13 @@ bl-fmt = { workspace = true }
 bl-repl = { workspace = true }
 bl-import = { workspace = true }
 clap = { version = "4", features = ["derive"] }
+clap_complete = "4"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 ureq = "2"
+rand = { version = "0.9", optional = true }
+tiny_http = { version = "0.12", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 zip = "2"

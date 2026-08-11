@@ -190,7 +190,7 @@ pub fn decode(j: &J) -> Result<Value> {
                     let mut m = Matrix::new(data, nrow, ncol).map_err(err)?;
                     m.row_names = names_of(o.get("row_names"));
                     m.col_names = names_of(o.get("col_names"));
-                    Value::Matrix(m)
+                    Value::Matrix(m.into())
                 }
                 "dna" => Value::DNA(BioSequence {
                     data: str_of(o.get("v")),

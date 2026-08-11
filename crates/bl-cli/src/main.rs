@@ -1,5 +1,7 @@
 mod events;
 mod notebook;
+#[cfg(feature = "notebook-server")]
+mod notebook_server;
 mod testing;
 mod update;
 
@@ -16,6 +18,12 @@ use std::time::Instant;
     about = "BioLang — pipe-first bioinformatics DSL"
 )]
 struct Cli {
+    /// Disable GPU acceleration and use the deterministic f64 CPU backend
+    #[arg(long, global = true, conflicts_with = "gpu")]
+    no_gpu: bool,
+    /// Enable GPU auto-detection explicitly (this is the default)
+    #[arg(long, global = true, conflicts_with = "no_gpu")]
+    gpu: bool,
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -96,8 +104,11 @@ enum Commands {
     },
     /// Run a literate notebook (.bln or .bl.md file)
     Notebook {
-        /// Path to the .bln, .bl.md, or .ipynb file
+        /// Path to a notebook, or `serve` followed by a notebook path
         file: String,
+        /// Notebook path when using `bl notebook serve NOTEBOOK`
+        #[arg(value_name = "NOTEBOOK")]
+        serve_file: Option<String>,
         /// Export format: html, html-wasm, typst, pdf
         #[arg(long)]
         export: Option<String>,
@@ -113,6 +124,18 @@ enum Commands {
         /// Convert .bln to Jupyter .ipynb format (prints to stdout)
         #[arg(long)]
         to_ipynb: bool,
+        /// Loopback address for `notebook serve`
+        #[arg(long, default_value = "127.0.0.1")]
+        bind: String,
+        /// Port for `notebook serve`; 0 asks the operating system for a free port
+        #[arg(long, default_value_t = 0)]
+        port: u16,
+        /// Filesystem root disclosed to the notebook server (defaults to the notebook directory)
+        #[arg(long)]
+        root: Option<String>,
+        /// Do not open the local notebook page in the default browser
+        #[arg(long)]
+        no_open: bool,
     },
     /// Install package dependencies
     Install {
@@ -155,6 +178,20 @@ enum Commands {
     },
     /// Check the environment and per-capability readiness (native vs container)
     Doctor,
+    /// Print a shell completion script
+    ///
+    /// Shells already complete file paths for native commands, so the value
+    /// here is the part they cannot guess — subcommands and flags — and
+    /// narrowing `bl run` to the files it can actually run.
+    ///
+    ///   bash:       bl completions bash       >> ~/.bashrc
+    ///   zsh:        bl completions zsh        > ~/.zfunc/_bl
+    ///   fish:       bl completions fish       > ~/.config/fish/completions/bl.fish
+    ///   powershell: bl completions powershell >> $PROFILE
+    Completions {
+        /// Shell to generate for
+        shell: clap_complete::Shell,
+    },
     /// Show version and check for updates
     Version,
     /// Upgrade to the latest release
@@ -183,6 +220,15 @@ fn main() {
         .spawn(|| {
             let cli = Cli::parse();
 
+            // Set the policy before either `doctor` or an analysis can cause
+            // the lazy adapter probe to be cached. The environment variable is
+            // also the stable interface for notebooks, services, and workers.
+            if cli.no_gpu {
+                std::env::set_var("BIOLANG_GPU", "off");
+            } else if cli.gpu {
+                std::env::set_var("BIOLANG_GPU", "on");
+            }
+
             // Background update check for interactive commands
             match &cli.command {
                 Some(Commands::Run { events: false, .. })
@@ -210,12 +256,45 @@ fn main() {
                 }) => format_files(&files, check, stdout, indent),
                 Some(Commands::Notebook {
                     file,
+                    serve_file,
                     export,
                     wasm_base,
                     from_ipynb,
                     to_ipynb,
+                    bind,
+                    port,
+                    root,
+                    no_open,
                 }) => {
-                    if from_ipynb {
+                    if file == "serve" {
+                        let Some(notebook_path) = serve_file else {
+                            eprintln!("Usage: bl notebook serve <NOTEBOOK> [--port PORT] [--no-open]");
+                            process::exit(2);
+                        };
+                        if export.is_some() || from_ipynb || to_ipynb {
+                            eprintln!("Error: export and conversion flags cannot be used with notebook serve");
+                            process::exit(2);
+                        }
+                        #[cfg(feature = "notebook-server")]
+                        notebook_server::serve(
+                            &notebook_path,
+                            &bind,
+                            port,
+                            root.as_deref(),
+                            !no_open,
+                        );
+                        #[cfg(not(feature = "notebook-server"))]
+                        {
+                            let _ = (notebook_path, bind, port, root, no_open);
+                            eprintln!(
+                                "Error: this bl binary was built without the `notebook-server` feature"
+                            );
+                            process::exit(2);
+                        }
+                    } else if serve_file.is_some() {
+                        eprintln!("Error: unexpected second notebook path; use `bl notebook serve <NOTEBOOK>`");
+                        process::exit(2);
+                    } else if from_ipynb {
                         notebook::ipynb_to_bln(&file);
                     } else if to_ipynb {
                         notebook::bln_to_ipynb(&file);
@@ -267,6 +346,11 @@ fn main() {
                     json,
                 ),
                 Some(Commands::Doctor) => print!("{}", bl_runtime::capabilities::doctor_report()),
+                Some(Commands::Completions { shell }) => {
+                    let mut cmd = <Cli as clap::CommandFactory>::command();
+                    let name = cmd.get_name().to_string();
+                    clap_complete::generate(shell, &mut cmd, name, &mut std::io::stdout());
+                }
                 Some(Commands::Version) => update::cmd_version(),
                 Some(Commands::Upgrade) => update::cmd_upgrade(),
                 Some(Commands::Metadata { format }) => cmd_metadata(&format),
@@ -325,12 +409,103 @@ const MAX_DISPLAYED_RESULTS: usize = 32;
 /// over a million reads cannot flood the event stream.
 const MAX_TRACE_EVENTS: usize = 500;
 
+/// A "did you mean" for a script path that could not be read.
+///
+/// The language already does this for identifiers — see `suggest_builtin` — so
+/// a mistyped file name gets the same treatment. It only ever runs after a read
+/// has already failed, so it cannot change what a working command does; a name
+/// that resolves is never second-guessed.
+///
+/// Deliberately not prefix resolution. Having `bl run ch03` silently pick
+/// `ch03-normalization-pca.bl` would make a script's meaning depend on what
+/// else is sitting in the directory, so a working command could start running a
+/// different file the day someone adds a similarly named one.
+fn nearby_script_hint(path: &str) -> String {
+    let wanted = PathBuf::from(path);
+    let dir = match wanted.parent() {
+        Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
+        _ => PathBuf::from("."),
+    };
+    let stem = wanted
+        .file_name()
+        .map(|s| s.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    if stem.is_empty() {
+        return String::new();
+    }
+
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return String::new();
+    };
+    let mut candidates: Vec<String> = entries
+        .filter_map(std::result::Result::ok)
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .filter(|n| {
+            let lower = n.to_lowercase();
+            lower.ends_with(".bl") || lower.ends_with(".bln") || lower.ends_with(".bl.md")
+        })
+        .collect();
+    if candidates.is_empty() {
+        return String::new();
+    }
+
+    // A shared prefix is the common case with numbered chapter scripts;
+    // otherwise fall back to the closest name by edit distance.
+    let bare = stem.trim_end_matches(".bl").trim_end_matches(".bln");
+    let mut by_prefix: Vec<&String> = candidates
+        .iter()
+        .filter(|n| n.to_lowercase().starts_with(bare) && !bare.is_empty())
+        .collect();
+    by_prefix.sort();
+    if !by_prefix.is_empty() {
+        let list = by_prefix
+            .iter()
+            .take(3)
+            .map(|n| n.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        return format!(
+            "
+  did you mean {list}?"
+        );
+    }
+
+    candidates.sort_by_key(|n| edit_distance(&stem, &n.to_lowercase()));
+    let best = &candidates[0];
+    if edit_distance(&stem, &best.to_lowercase()) <= (stem.len() / 2).max(3) {
+        return format!(
+            "
+  did you mean {best}?"
+        );
+    }
+    String::new()
+}
+
+/// Levenshtein distance, for the suggestion above.
+fn edit_distance(a: &str, b: &str) -> usize {
+    let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    let mut cur = vec![0usize; b.len() + 1];
+    for i in 1..=a.len() {
+        cur[0] = i;
+        for j in 1..=b.len() {
+            let cost = usize::from(a[i - 1] != b[j - 1]);
+            cur[j] = (prev[j] + 1).min(cur[j - 1] + 1).min(prev[j - 1] + cost);
+        }
+        std::mem::swap(&mut prev, &mut cur);
+    }
+    prev[b.len()]
+}
+
 fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bool) {
     let start = Instant::now();
     let source = match std::fs::read_to_string(path) {
         Ok(s) => s,
         Err(error) => fail_run(
-            format!("Error reading '{path}': {error}"),
+            format!(
+                "Error reading '{path}': {error}{}",
+                nearby_script_hint(path)
+            ),
             structured_events,
             &start,
         ),
@@ -343,14 +518,20 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
         .map(|f| f.to_string_lossy().to_string())
         .unwrap_or_else(|| path.to_string());
     if structured_events {
+        let compute_backend = bl_runtime::gpu::execution_summary();
         events::emit(serde_json::json!({
             "protocol": "biolang.events/v1",
             "event": "started",
             "path": path,
             "file": filename,
+            "computeBackend": compute_backend,
         }));
     } else {
         eprintln!("\x1b[2m▶ running {filename}\x1b[0m");
+        eprintln!(
+            "\x1b[2m  compute backend: {}\x1b[0m",
+            bl_runtime::gpu::execution_summary()
+        );
     }
 
     let tokens = match bl_lexer::Lexer::new(&source).tokenize() {

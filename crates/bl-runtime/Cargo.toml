@@ -8,8 +8,9 @@ homepage.workspace = true
 description = "Tree-walking interpreter with 1000+ builtins for BioLang"
 
 [features]
-default = ["native"]
-native = ["dep:bl-refs", "dep:flate2", "dep:glob", "dep:ureq", "dep:bl-bio", "dep:bl-apis", "dep:suppaftp", "dep:toml", "dep:dirs", "dep:rusqlite", "dep:parquet", "dep:pdf-extract", "dep:lz4_flex", "dep:ruzstd", "dep:resvg"]
+default = ["native", "gpu"]
+native = ["dep:bl-refs", "dep:flate2", "dep:zip", "dep:glob", "dep:ureq", "dep:bl-bio", "dep:bl-apis", "dep:suppaftp", "dep:toml", "dep:dirs", "dep:rusqlite", "dep:parquet", "dep:pdf-extract", "dep:lz4_flex", "dep:ruzstd", "dep:resvg"]
+gpu = ["dep:wgpu", "dep:pollster", "dep:bytemuck"]
 bytecode = ["dep:bl-compiler", "dep:bl-jit"]
 jit = ["bytecode", "bl-jit/jit"]
 
@@ -26,6 +27,7 @@ serde_json = "1"
 regex = "1"
 ureq = { version = "2", optional = true }
 flate2 = { version = "1", optional = true }
+zip = { version = "2", optional = true }
 # Blosc inner codecs (zarr chunks). Both are pure Rust, so the AnnData reader
 # keeps its no-C-dependency guarantee.
 lz4_flex = { version = "0.11", optional = true, default-features = false, features = ["std"] }
@@ -58,6 +60,13 @@ resvg = { version = "0.48", optional = true, default-features = false, features 
 # dependencies, so unlike resvg it compiles for wasm32 and the browser build
 # rasterises exactly as the CLI does.
 tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "png-format", "simd"] }
+# Optional cross-vendor compute acceleration. wgpu is MIT/Apache-2.0 and uses
+# the operating system's Vulkan, Metal or DirectX 12 driver; BioLang does not
+# link to CUDA, vendor SDKs, or GPL code. The runtime probes lazily and always
+# retains the deterministic f64 CPU implementation as a fallback.
+wgpu = { version = "0.19.4", optional = true }
+pollster = { version = "0.3.0", optional = true }
+bytemuck = { version = "1", features = ["derive"], optional = true }
 
 [dev-dependencies]
 tempfile = "3"

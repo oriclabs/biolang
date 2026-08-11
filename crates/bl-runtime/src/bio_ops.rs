@@ -246,6 +246,15 @@ fn extract_record_usize(args: &[Value], idx: usize, key: &str, default: usize) -
     default
 }
 
+fn extract_record_string(args: &[Value], idx: usize, key: &str, default: &str) -> String {
+    if let Some(Value::Record(map)) = args.get(idx) {
+        if let Some(Value::Str(value)) = map.get(key) {
+            return value.clone();
+        }
+    }
+    default.to_string()
+}
+
 fn builtin_umap(args: Vec<Value>) -> Result<Value> {
     let data = matrix_from_value(&args[0])?;
     let n_components = match &args[1] {
@@ -260,13 +269,21 @@ fn builtin_umap(args: Vec<Value>) -> Result<Value> {
     let n_neighbors = extract_record_usize(&args, 2, "n_neighbors", 15);
     let n_epochs = extract_record_usize(&args, 2, "n_epochs", 200);
     let min_dist = extract_record_float(&args, 2, "min_dist", 0.1);
+    let spread = extract_record_float(&args, 2, "spread", 1.0);
+    let seed = extract_record_usize(&args, 2, "seed", 42) as u64;
+    let negative_sample_rate = extract_record_usize(&args, 2, "negative_sample_rate", 5);
+    let metric = extract_record_string(&args, 2, "metric", "euclidean");
 
-    let embeddings = bl_core::bio_core::dimreduce_ops::umap(
+    let embeddings = bl_core::bio_core::dimreduce_ops::umap_configured(
         &data,
         n_components,
         n_neighbors,
         n_epochs,
         min_dist,
+        spread,
+        &metric,
+        seed,
+        negative_sample_rate,
     );
 
     let nrow = embeddings.len();
@@ -274,7 +291,7 @@ fn builtin_umap(args: Vec<Value>) -> Result<Value> {
     let flat: Vec<f64> = embeddings.into_iter().flatten().collect();
     let m = Matrix::new(flat, nrow, ncol)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, &e, None))?;
-    Ok(Value::Matrix(m))
+    Ok(Value::Matrix(m.into()))
 }
 
 fn builtin_tsne(args: Vec<Value>) -> Result<Value> {
@@ -305,7 +322,7 @@ fn builtin_tsne(args: Vec<Value>) -> Result<Value> {
     let flat: Vec<f64> = embeddings.into_iter().flatten().collect();
     let m = Matrix::new(flat, nrow, ncol)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, &e, None))?;
-    Ok(Value::Matrix(m))
+    Ok(Value::Matrix(m.into()))
 }
 
 fn builtin_leiden(args: Vec<Value>) -> Result<Value> {

@@ -183,9 +183,7 @@ fn only_pos_drops_the_depleted_genes() {
 }
 
 #[test]
-fn correction_covers_the_whole_table_not_each_cluster() {
-    // Adjusting within each cluster separately would understate the error rate
-    // by however many clusters there are, and is an easy thing to get wrong.
+fn correction_is_per_contrast_and_counts_all_assay_genes() {
     let rows = markers(vec![]);
     assert!(!rows.is_empty());
     for row in &rows {
@@ -195,35 +193,29 @@ fn correction_covers_the_whole_table_not_each_cluster() {
         );
         assert!(number(row, "p_adj") <= 1.0 + 1e-12);
     }
-    // The direct statement of it: adjusting the whole column at once has to
-    // reproduce the column. Correcting per cluster - a family of 5 here rather
-    // than 15 - gives smaller values and fails this.
-    //
-    // Comparing against the p_adjust builtin rather than recomputing the
-    // arithmetic here also means the two can never drift apart.
-    let raw: Vec<Value> = rows
-        .iter()
-        .map(|row| Value::Float(number(row, "p_value")))
-        .collect();
-    let expected = match bl_runtime::stats::call_stats_builtin(
-        "p_adjust",
-        vec![Value::List(raw.into()), Value::Str("BH".to_string())],
-    ) {
-        Ok(Value::List(values)) => values
+    for cluster in 0..CLUSTERS {
+        let mut group: Vec<&HashMap<String, Value>> = rows
             .iter()
-            .filter_map(|v| v.as_float())
-            .collect::<Vec<f64>>(),
-        other => panic!("p_adjust returned {other:?}"),
-    };
-    assert_eq!(expected.len(), rows.len());
-    for (row, want) in rows.iter().zip(&expected) {
-        assert!(
-            (number(row, "p_adj") - want).abs() < 1e-12,
-            "{} in cluster {}: p_adj {} but BH over the whole table gives {want}",
-            text(row, "gene"),
-            text(row, "cluster"),
-            number(row, "p_adj")
-        );
+            .filter(|row| text(row, "cluster") == cluster.to_string())
+            .collect();
+        group.sort_by(|a, b| number(a, "p_value").total_cmp(&number(b, "p_value")));
+        let mut running = 1.0_f64;
+        let mut expected = vec![1.0; group.len()];
+        for rank_index in (0..group.len()).rev() {
+            running = running.min(
+                (number(group[rank_index], "p_value") * 6.0 / (rank_index + 1) as f64).min(1.0),
+            );
+            expected[rank_index] = running;
+        }
+        for (row, want) in group.into_iter().zip(expected) {
+            assert!(
+                (number(row, "p_adj") - want).abs() < 1e-12,
+                "{} in cluster {}: p_adj {} but expected {want}",
+                text(row, "gene"),
+                cluster,
+                number(row, "p_adj")
+            );
+        }
     }
 }
 

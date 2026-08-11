@@ -4676,7 +4676,11 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
     // cost more than drawing the plot.
     let feature_label = {
         let explicit = get_opt_str(&opts, "feature_label", "").to_string();
-        if explicit.is_empty() { feature_col.clone() } else { explicit }
+        if explicit.is_empty() {
+            feature_col.clone()
+        } else {
+            explicit
+        }
     };
     let feature_values: Vec<f64> = if feature_col.is_empty() {
         Vec::new()
@@ -4892,8 +4896,16 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
         } else {
             "Dim 2"
         };
-        let x_label = if x_override.is_empty() { x_label } else { x_override.as_str() };
-        let y_label = if y_override.is_empty() { y_label } else { y_override.as_str() };
+        let x_label = if x_override.is_empty() {
+            x_label
+        } else {
+            x_override.as_str()
+        };
+        let y_label = if y_override.is_empty() {
+            y_label
+        } else {
+            y_override.as_str()
+        };
         c.draw_x_axis(&dx, x_label);
         c.draw_y_axis(&dy, y_label);
         c.draw_title(&title);

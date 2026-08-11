@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 29,
-    "builtin": 1028,
+    "builtin": 1037,
     "tutorial": 71,
     "example": 392
   },
@@ -5695,7 +5695,7 @@
       "category": "singlecell",
       "collection": "Runtime builtins",
       "summary": "BioLang singlecell builtin.",
-      "body": "# highly_variable_genes\n\nBioLang singlecell builtin.\n\n## Signature\n\n```biolang\nhighly_variable_genes(matrix, n?) -> List[Int] (dispersion-ranked columns)\n```\n\n**Returns:** `List[Int] (dispersion-ranked columns)`\n\n**Arity:** range, minimum 1, maximum 2",
+      "body": "# highly_variable_genes\n\nBioLang singlecell builtin.\n\n## Signature\n\n```biolang\nhighly_variable_genes(matrix, n?) -> List[Int] (dispersion-ranked columns)\n```\n\n**Returns:** `List[Int] (dispersion-ranked columns)`\n\n**Arity:** range, minimum 1, maximum 3",
       "signature": "highly_variable_genes(matrix, n?) -> List[Int] (dispersion-ranked columns)",
       "example": null,
       "returnType": "List[Int] (dispersion-ranked columns)",
@@ -7633,6 +7633,34 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "lollipop lollipop(arg1, arg2?) runtime registered biolang builtin accepting 1 argument(s)."
+    },
+    {
+      "id": "builtin:louvain_cluster",
+      "kind": "builtin",
+      "title": "louvain_cluster",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "body": "# louvain_cluster\n\nRegistered BioLang builtin accepting 2 argument(s).\n\n## Signature\n\n```biolang\nlouvain_cluster(arg1, arg2, arg3?)\n```\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "louvain_cluster(arg1, arg2, arg3?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "louvain_cluster louvain_cluster(arg1, arg2, arg3?) runtime registered biolang builtin accepting 2 argument(s)."
+    },
+    {
+      "id": "builtin:louvain_graph",
+      "kind": "builtin",
+      "title": "louvain_graph",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "body": "# louvain_graph\n\nRegistered BioLang builtin accepting 3 argument(s).\n\n## Signature\n\n```biolang\nlouvain_graph(arg1, arg2, arg3, arg4?)\n```\n\n**Arity:** range, minimum 3, maximum 4",
+      "signature": "louvain_graph(arg1, arg2, arg3, arg4?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "louvain_graph louvain_graph(arg1, arg2, arg3, arg4?) runtime registered biolang builtin accepting 3 argument(s)."
     },
     {
       "id": "builtin:lower",
@@ -11541,6 +11569,34 @@
       "keywords": "save_svg save_svg(svg, path) plot biolang plot builtin."
     },
     {
+      "id": "builtin:sc_find_all_markers",
+      "kind": "builtin",
+      "title": "sc_find_all_markers",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "body": "# sc_find_all_markers\n\nRegistered BioLang builtin accepting 2 argument(s).\n\n## Signature\n\n```biolang\nsc_find_all_markers(arg1, arg2, arg3?)\n```\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "sc_find_all_markers(arg1, arg2, arg3?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "sc_find_all_markers sc_find_all_markers(arg1, arg2, arg3?) runtime registered biolang builtin accepting 2 argument(s)."
+    },
+    {
+      "id": "builtin:sc_find_anchors",
+      "kind": "builtin",
+      "title": "sc_find_anchors",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "body": "# sc_find_anchors\n\nRegistered BioLang builtin accepting 2 argument(s).\n\n## Signature\n\n```biolang\nsc_find_anchors(arg1, arg2, arg3?)\n```\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "sc_find_anchors(arg1, arg2, arg3?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "sc_find_anchors sc_find_anchors(arg1, arg2, arg3?) runtime registered biolang builtin accepting 2 argument(s)."
+    },
+    {
       "id": "builtin:sc_integrate",
       "kind": "builtin",
       "title": "sc_integrate",
@@ -11553,6 +11609,20 @@
       "returnType": "matrix",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "sc_integrate sc_integrate(embedding, batch_ids) -> matrix singlecell biolang singlecell builtin."
+    },
+    {
+      "id": "builtin:sc_integrate_anchors",
+      "kind": "builtin",
+      "title": "sc_integrate_anchors",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "body": "# sc_integrate_anchors\n\nRegistered BioLang builtin accepting 3 argument(s).\n\n## Signature\n\n```biolang\nsc_integrate_anchors(arg1, arg2, arg3, arg4?)\n```\n\n**Arity:** range, minimum 3, maximum 4",
+      "signature": "sc_integrate_anchors(arg1, arg2, arg3, arg4?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "sc_integrate_anchors sc_integrate_anchors(arg1, arg2, arg3, arg4?) runtime registered biolang builtin accepting 3 argument(s)."
     },
     {
       "id": "builtin:sc_merge_objects",
@@ -11583,18 +11653,32 @@
       "keywords": "sc_pca sc_pca(matrix, n_components?) -> {scores, loadings, explained_variance_ratio, ...} singlecell biolang singlecell builtin."
     },
     {
+      "id": "builtin:sc_scale",
+      "kind": "builtin",
+      "title": "sc_scale",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# sc_scale\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nsc_scale(arg1, arg2?)\n```\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "sc_scale(arg1, arg2?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "sc_scale sc_scale(arg1, arg2?) runtime registered biolang builtin accepting 1 argument(s)."
+    },
+    {
       "id": "builtin:sc_sctransform",
       "kind": "builtin",
       "title": "sc_sctransform",
       "category": "singlecell",
       "collection": "Runtime builtins",
       "summary": "BioLang singlecell builtin.",
-      "body": "# sc_sctransform\n\nBioLang singlecell builtin.\n\n## Signature\n\n```biolang\nsc_sctransform(matrix) -> matrix\n```\n\n**Returns:** `matrix`\n\n**Arity:** exact, minimum 1, maximum 1",
-      "signature": "sc_sctransform(matrix) -> matrix",
+      "body": "# sc_sctransform\n\nBioLang singlecell builtin.\n\n## Signature\n\n```biolang\nsc_sctransform(matrix, n_variable_features?) -> matrix | {matrix, genes}\n```\n\n**Returns:** `matrix | {matrix, genes}`\n\n**Arity:** range, minimum 1, maximum 3",
+      "signature": "sc_sctransform(matrix, n_variable_features?) -> matrix | {matrix, genes}",
       "example": null,
-      "returnType": "matrix",
+      "returnType": "matrix | {matrix, genes}",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "sc_sctransform sc_sctransform(matrix) -> matrix singlecell biolang singlecell builtin."
+      "keywords": "sc_sctransform sc_sctransform(matrix, n_variable_features?) -> matrix | {matrix, genes} singlecell biolang singlecell builtin."
     },
     {
       "id": "builtin:sc_subset_cells",
@@ -11623,6 +11707,20 @@
       "returnType": "Record (invalidates reductions)",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "sc_subset_genes sc_subset_genes(object, indices) -> record (invalidates reductions) singlecell biolang singlecell builtin."
+    },
+    {
+      "id": "builtin:sc_umap",
+      "kind": "builtin",
+      "title": "sc_umap",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# sc_umap\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nsc_umap(arg1, arg2?)\n```\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "sc_umap(arg1, arg2?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "sc_umap sc_umap(arg1, arg2?) runtime registered biolang builtin accepting 1 argument(s)."
     },
     {
       "id": "builtin:scan",
@@ -12071,6 +12169,20 @@
       "returnType": "List|Str",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "slice slice(list|str, start, end?) → list|str list extract a subsequence by 0-based coordinates"
+    },
+    {
+      "id": "builtin:snn_graph",
+      "kind": "builtin",
+      "title": "snn_graph",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# snn_graph\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nsnn_graph(arg1, arg2?, arg3?)\n```\n\n**Arity:** range, minimum 1, maximum 3",
+      "signature": "snn_graph(arg1, arg2?, arg3?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "snn_graph snn_graph(arg1, arg2?, arg3?) runtime registered biolang builtin accepting 1 argument(s)."
     },
     {
       "id": "builtin:solve",
@@ -13947,6 +14059,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "unnest unnest(arg1, arg2) runtime registered biolang builtin accepting 2 argument(s)."
+    },
+    {
+      "id": "builtin:unzip",
+      "kind": "builtin",
+      "title": "unzip",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "body": "# unzip\n\nRegistered BioLang builtin accepting 2 argument(s).\n\n## Signature\n\n```biolang\nunzip(arg1, arg2, arg3?)\n```\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "unzip(arg1, arg2, arg3?)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "unzip unzip(arg1, arg2, arg3?) runtime registered biolang builtin accepting 2 argument(s)."
     },
     {
       "id": "builtin:upgma",

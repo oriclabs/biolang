@@ -1,0 +1,44 @@
+import "singlecell" as sc
+
+let genes = ["G1", "G2", "G3", "G4", "G5", "G6"]
+let left_counts = [
+    [12, 10, 1, 0, 2, 1], [11, 9, 2, 0, 1, 1],
+    [13, 11, 1, 1, 2, 0], [10, 12, 0, 1, 1, 2],
+    [1, 0, 11, 13, 2, 1], [2, 1, 10, 12, 1, 1],
+    [0, 1, 13, 11, 2, 0], [1, 2, 12, 10, 1, 2]
+]
+let right_counts = [
+    [18, 14, 1, 0, 3, 1], [16, 13, 2, 1, 2, 1],
+    [19, 15, 1, 1, 3, 0], [15, 16, 0, 1, 2, 2],
+    [2, 1, 16, 18, 3, 1], [3, 1, 15, 17, 2, 1],
+    [1, 2, 18, 16, 3, 0], [2, 3, 17, 15, 2, 2]
+]
+
+let left = sc.from_matrix(left_counts, genes, range(0, 8) |> map(|i| "L" + str(i)))
+let right = sc.from_matrix(right_counts, genes, range(0, 8) |> map(|i| "R" + str(i)))
+
+# Capped SCT integration must select only residual columns materialized in both
+# samples; otherwise positional lookup can silently shift or fail downstream.
+let left_sct = sc.sctransform(left, 5)
+let right_sct = sc.sctransform(right, 5)
+let shared_sct = sc.select_integration_features(left_sct, right_sct, 3)
+assert len(shared_sct) == 3
+assert shared_sct |> all(|gene| contains(left_sct.hvg, gene))
+assert shared_sct |> all(|gene| contains(right_sct.hvg, gene))
+
+let anchors = sc.find_integration_anchors(left, right,
+    reduction: "cca", n_features: 5, dims: 3, k_anchor: 3,
+    k_filter: 5, k_score: 4, max_features: 5)
+
+assert(len(anchors.anchors) > 0)
+assert(anchors.method == "seurat_mit_5_5_1_anchor")
+
+let integrated = sc.integrate_data(anchors, k_weight: 5, sd_weight: 1.0)
+assert(integrated.n_cells == 16)
+assert(integrated.integrated_matrix.nrow == 16)
+assert(integrated.active_assay == "integrated")
+assert(len(integrated.integrated_embedding) == 16)
+assert len(integrated.pca_scores[0]) > anchors.dims,
+    "downstream PCA width must not be capped by anchor dimensions"
+
+println("singlecell anchor integration: ok")

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "language": "BioLang",
-  "languageVersion": "1.3.0",
+  "languageVersion": "1.4.0",
   "builtins": [
     {
       "name": "abs",
@@ -6810,7 +6810,7 @@
       "arity": {
         "kind": "range",
         "minimum": 1,
-        "maximum": 2
+        "maximum": 3
       },
       "metadataQuality": "curated"
     },
@@ -9244,6 +9244,45 @@
         "kind": "range",
         "minimum": 1,
         "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "louvain_cluster",
+      "signature": "louvain_cluster(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "louvain_graph",
+      "signature": "louvain_graph(arg1, arg2, arg3, arg4?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3",
+        "arg4?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 3,
+        "maximum": 4
       },
       "metadataQuality": "runtime"
     },
@@ -14207,6 +14246,44 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "sc_find_all_markers",
+      "signature": "sc_find_all_markers(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "sc_find_anchors",
+      "signature": "sc_find_anchors(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "sc_integrate",
       "signature": "sc_integrate(embedding, batch_ids) -> matrix",
       "category": "singlecell",
@@ -14223,6 +14300,26 @@
         "maximum": 2
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "sc_integrate_anchors",
+      "signature": "sc_integrate_anchors(arg1, arg2, arg3, arg4?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3",
+        "arg4?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 3,
+        "maximum": 4
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "sc_merge_objects",
@@ -14263,19 +14360,38 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "sc_scale",
+      "signature": "sc_scale(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "sc_sctransform",
-      "signature": "sc_sctransform(matrix) -> matrix",
+      "signature": "sc_sctransform(matrix, n_variable_features?) -> matrix | {matrix, genes}",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
-        "matrix"
+        "matrix",
+        "n_variable_features?"
       ],
-      "returnType": "matrix",
+      "returnType": "matrix | {matrix, genes}",
       "example": null,
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 1,
-        "maximum": 1
+        "maximum": 3
       },
       "metadataQuality": "curated"
     },
@@ -14314,6 +14430,24 @@
         "maximum": 2
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "sc_umap",
+      "signature": "sc_umap(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "scan",
@@ -14881,6 +15015,25 @@
         "maximum": 3
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "snn_graph",
+      "signature": "snn_graph(arg1, arg2?, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "solve",
@@ -17234,6 +17387,25 @@
         "kind": "exact",
         "minimum": 2,
         "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "unzip",
+      "signature": "unzip(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
       },
       "metadataQuality": "runtime"
     },
