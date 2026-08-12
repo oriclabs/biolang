@@ -250,7 +250,15 @@ fn neighbors(obj, k = 20, snn = true, n_dims = 10) {
         run_pca(obj)
     }
     let full = embedding_of(prepared)
-    let width = if len(full) > 0 { len(full[0]) } else { 0 }
+    # Embeddings may be nested Lists (the historical PCA return type) or a
+    # dense Matrix loaded through the process-isolated binary interchange.
+    # `dim` handles both; row indexing is intentionally not supported by Matrix.
+    let width = if type(full) == "Matrix" {
+        let shape = dim(full)
+        if len(shape) > 1 { shape[1] } else { 0 }
+    } else {
+        if len(full) > 0 { len(full[0]) } else { 0 }
+    }
     let dims = range(0, if n_dims < width { n_dims } else { width })
     let embed = if len(dims) > 0 { select_cols(full, dims) } else { full }
     let graph = if snn { snn_graph(embed, k) } else { knn_graph(embed, k) }
@@ -321,7 +329,12 @@ fn cluster_louvain(obj, k = 20, resolution = 0.8) {
 fn run_umap(obj, n_dims = 10, n_neighbors = 30, min_dist = 0.3, seed = 42) {
     let prepared = if contains(keys(obj), "pca_scores") { obj } else { run_pca(obj) }
     let full = embedding_of(prepared)
-    let width = if len(full) > 0 { len(full[0]) } else { 0 }
+    let width = if type(full) == "Matrix" {
+        let shape = dim(full)
+        if len(shape) > 1 { shape[1] } else { 0 }
+    } else {
+        if len(full) > 0 { len(full[0]) } else { 0 }
+    }
     let dims = range(0, if n_dims < width { n_dims } else { width })
     let input = if len(dims) > 0 { select_cols(full, dims) } else { full }
     let embedding = sc_umap(input, {

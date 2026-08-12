@@ -72,6 +72,19 @@ let knn_obj = filtered
     |> sc.neighbors(3, false)
 assert len(knn_obj.knn) == 36, "kNN edge count is wrong"
 
+# Process-isolated providers use the compact binary reader, which returns a
+# dense Matrix rather than PCA's historical nested List representation.
+let matrix_embedding = matrix([
+    [0.0, 0.0], [0.1, 0.0], [0.0, 0.1],
+    [5.0, 5.0], [5.1, 5.0], [5.0, 5.1]
+])
+let matrix_object = {
+    n_cells: 6, pca_scores: matrix_embedding,
+    graphs: ({}), reductions: ({})
+}
+let matrix_graph = sc.neighbors(matrix_object, 2, true, 2)
+assert len(matrix_graph.knn) > 0, "neighbors rejected a dense Matrix embedding"
+
 # Named-gene plots must read the full normalized matrix even when a gene was
 # not selected as an HVG.
 let plot_obj = filtered

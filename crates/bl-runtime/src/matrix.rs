@@ -2,12 +2,15 @@ use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::matrix::Matrix;
 use bl_core::value::{Arity, Table, Value};
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::{BufReader, Read};
 
 pub fn matrix_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
         ("matrix", Arity::Exact(1)),
         ("matrix_from_table", Arity::Exact(2)),
         ("matrix_to_table", Arity::Exact(1)),
+        ("read_f64_matrix", Arity::Exact(1)),
         ("zeros", Arity::Exact(2)),
         ("eye", Arity::Exact(1)),
         ("dim", Arity::Exact(1)),
@@ -47,6 +50,7 @@ pub fn is_matrix_builtin(name: &str) -> bool {
         "matrix"
             | "matrix_from_table"
             | "matrix_to_table"
+            | "read_f64_matrix"
             | "zeros"
             | "eye"
             | "dim"
@@ -85,6 +89,7 @@ pub fn call_matrix_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "matrix" => builtin_matrix(args),
         "matrix_from_table" => builtin_matrix_from_table(args),
         "matrix_to_table" => builtin_matrix_to_table(args),
+        "read_f64_matrix" => builtin_read_f64_matrix(args),
         "zeros" => builtin_zeros(args),
         "eye" => builtin_eye(args),
         "dim" => builtin_dim(args),
@@ -125,6 +130,88 @@ pub fn call_matrix_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             None,
         )),
     }
+}
+
+/// Read the compact, dependency-neutral BLMATF64 interchange format.
+///
+/// Layout: eight-byte ASCII magic, little-endian u64 row count, little-endian
+/// u64 column count, then row-major IEEE-754 f64 values. This is deliberately a
+/// generic MIT runtime facility: producers are separate processes and no
+/// producer implementation or licence enters BioLang.
+fn builtin_read_f64_matrix(args: Vec<Value>) -> Result<Value> {
+    let path = match &args[0] {
+        Value::Str(path) => path,
+        other => {
+            return Err(BioLangError::type_error(
+                format!("read_f64_matrix() requires Str, got {}", other.type_of()),
+                None,
+            ))
+        }
+    };
+    let file = File::open(path).map_err(|error| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("read_f64_matrix(): cannot open {path}: {error}"),
+            None,
+        )
+    })?;
+    let metadata_len = file.metadata().map(|value| value.len()).unwrap_or(0);
+    let mut reader = BufReader::new(file);
+    let mut header = [0u8; 24];
+    reader.read_exact(&mut header).map_err(|error| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("read_f64_matrix(): invalid header in {path}: {error}"),
+            None,
+        )
+    })?;
+    if &header[..8] != b"BLMATF64" {
+        return Err(BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("read_f64_matrix(): invalid magic in {path}"),
+            None,
+        ));
+    }
+    let rows =
+        usize::try_from(u64::from_le_bytes(header[8..16].try_into().unwrap())).map_err(|_| {
+            BioLangError::runtime(ErrorKind::IOError, "matrix row count is too large", None)
+        })?;
+    let columns =
+        usize::try_from(u64::from_le_bytes(header[16..24].try_into().unwrap())).map_err(|_| {
+            BioLangError::runtime(ErrorKind::IOError, "matrix column count is too large", None)
+        })?;
+    let values = rows.checked_mul(columns).ok_or_else(|| {
+        BioLangError::runtime(ErrorKind::IOError, "matrix dimensions overflow", None)
+    })?;
+    let expected_bytes = 24u64
+        .checked_add((values as u64).saturating_mul(8))
+        .ok_or_else(|| {
+            BioLangError::runtime(ErrorKind::IOError, "matrix byte size overflows", None)
+        })?;
+    if metadata_len != expected_bytes {
+        return Err(BioLangError::runtime(
+            ErrorKind::IOError,
+            format!(
+                "read_f64_matrix(): {path} has {metadata_len} bytes, expected {expected_bytes} for {rows}x{columns}"
+            ),
+            None,
+        ));
+    }
+    let mut bytes = vec![0u8; values * 8];
+    reader.read_exact(&mut bytes).map_err(|error| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("read_f64_matrix(): cannot read {path}: {error}"),
+            None,
+        )
+    })?;
+    let data = bytes
+        .chunks_exact(8)
+        .map(|chunk| f64::from_le_bytes(chunk.try_into().unwrap()))
+        .collect();
+    let matrix = Matrix::new(data, rows, columns)
+        .map_err(|error| BioLangError::runtime(ErrorKind::IOError, error, None))?;
+    Ok(Value::Matrix(matrix.into()))
 }
 
 fn require_matrix<'a>(val: &'a Value, func: &str) -> Result<&'a Matrix> {
@@ -751,4 +838,54 @@ fn builtin_diag(args: Vec<Value>) -> Result<Value> {
     let m = Matrix::new(data, n, n)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(Value::Matrix(m.into()))
+}
+
+#[cfg(test)]
+mod binary_matrix_tests {
+    use super::call_matrix_builtin;
+    use bl_core::value::Value;
+    use std::io::Write;
+
+    #[test]
+    fn reads_row_major_f64_interchange_matrix() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("example.f64");
+        let mut output = std::fs::File::create(&path).unwrap();
+        output.write_all(b"BLMATF64").unwrap();
+        output.write_all(&2u64.to_le_bytes()).unwrap();
+        output.write_all(&3u64.to_le_bytes()).unwrap();
+        for value in [1.0f64, 2.0, 3.0, 4.0, 5.0, 6.0] {
+            output.write_all(&value.to_le_bytes()).unwrap();
+        }
+        drop(output);
+
+        let value = call_matrix_builtin(
+            "read_f64_matrix",
+            vec![Value::Str(path.to_string_lossy().into_owned())],
+        )
+        .unwrap();
+        let Value::Matrix(matrix) = value else {
+            panic!("reader did not return Matrix");
+        };
+        assert_eq!((matrix.nrow, matrix.ncol), (2, 3));
+        assert_eq!(matrix.data, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+    }
+
+    #[test]
+    fn rejects_truncated_f64_interchange_matrix() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("truncated.f64");
+        let mut output = std::fs::File::create(&path).unwrap();
+        output.write_all(b"BLMATF64").unwrap();
+        output.write_all(&2u64.to_le_bytes()).unwrap();
+        output.write_all(&3u64.to_le_bytes()).unwrap();
+        drop(output);
+
+        let error = call_matrix_builtin(
+            "read_f64_matrix",
+            vec![Value::Str(path.to_string_lossy().into_owned())],
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("expected 72"));
+    }
 }
