@@ -86,6 +86,16 @@ fn more_clusters_than_the_old_palette_still_get_distinct_colours() {
     );
 }
 
+#[test]
+fn seurat_theme_uses_r_familiar_discrete_colours() {
+    let svg = render(
+        points_as_records(4),
+        vec![("color", "cluster"), ("theme", "seurat")],
+    );
+    assert!(svg.contains("#f8766d"), "first ggplot-like hue is absent");
+    assert!(svg.contains("#7cae00"), "second ggplot-like hue is absent");
+}
+
 // ── continuous colouring (feature_plot) ─────────────────────────────────────
 //
 // Seurat's FeaturePlot: colour the embedding by one gene's expression. This is
@@ -126,6 +136,16 @@ fn the_feature_scale_is_labelled() {
         svg.matches("<rect").count() > 10,
         "no colour bar drawn: a reader cannot tell high from low"
     );
+}
+
+#[test]
+fn seurat_feature_theme_runs_from_light_grey_to_blue() {
+    let svg = render(
+        points_with_feature(40),
+        vec![("feature", "LYZ"), ("theme", "seurat")],
+    );
+    assert!(svg.contains("#d3d3d3"), "low-expression grey is absent");
+    assert!(svg.contains("#0000ff"), "high-expression blue is absent");
 }
 
 #[test]

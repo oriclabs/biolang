@@ -196,6 +196,14 @@ fn plot_proportions(obj, groups = nil)       { _plots.plot_proportions(obj, grou
 fn expr_dotplot(obj, genes, title = "expression dot plot") {
     _plots.expr_dotplot(obj, genes, title)
 }
+## Seurat/ggplot-familiar plot names and visual defaults.
+fn dim_plot(obj, groups = nil, title = "UMAP", label = false) {
+    _plots.dim_plot(obj, groups, title, label)
+}
+fn feature_plot(obj, gene, title = nil) { _plots.feature_plot(obj, gene, title) }
+fn vln_plot(obj, gene, title = nil) { _plots.vln_plot(obj, gene, title) }
+fn dot_plot(obj, genes, title = "DotPlot") { _plots.dot_plot(obj, genes, title) }
+fn do_heatmap(obj, n_per_cluster = 5) { _plots.do_heatmap(obj, n_per_cluster) }
 ## Render QC metric distributions as an SVG violin plot.
 fn plot_qc_violin(obj, title = "Cell quality distributions") {
     _advanced_plots.plot_qc_violin(obj, title)

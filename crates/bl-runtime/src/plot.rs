@@ -97,6 +97,17 @@ pub(crate) const PALETTE: [&str; 24] = [
     "#1b4965", "#7a4419", "#8b2e2e", "#2d6a4f", "#5a189a", "#0b525b",
 ];
 
+/// A ggplot/Seurat-like discrete palette for single-cell figures.
+///
+/// This is opt-in through `{theme: "seurat"}` so generic BioLang plots retain
+/// their existing colours. The ordering starts with the familiar ggplot hues
+/// and then uses high-contrast extensions for datasets with many clusters.
+pub(crate) const SEURAT_PALETTE: [&str; 24] = [
+    "#f8766d", "#7cae00", "#00bfc4", "#c77cff", "#e58700", "#00ba38", "#619cff", "#f564e3",
+    "#b79f00", "#00c08b", "#00a9ff", "#cd9600", "#7b61a8", "#00a08a", "#ff6f91", "#6a994e",
+    "#1982c4", "#ff924c", "#8ac926", "#6a4c93", "#d81159", "#218380", "#fbb13c", "#5f0f40",
+];
+
 /// `#rrggbb` to premultiplied-ready RGBA, with the alpha add_circle applies.
 ///
 /// The rastered and vector paths have to agree on colour as well as position,
@@ -126,6 +137,16 @@ pub(crate) fn sequential_color(t: f64) -> String {
     let r = (64.0 + t * 191.0) as u8;
     let g = (64.0 + (1.0 - (2.0 * t - 1.0).abs()) * 128.0) as u8;
     let b = (255.0 - t * 191.0) as u8;
+    format!("#{r:02x}{g:02x}{b:02x}")
+}
+
+/// Seurat FeaturePlot's familiar low-expression grey to high-expression blue.
+pub(crate) fn seurat_feature_color(t: f64) -> String {
+    let t = t.clamp(0.0, 1.0);
+    let channel = |low: f64, high: f64| (low + t * (high - low)).round() as u8;
+    let r = channel(211.0, 0.0);
+    let g = channel(211.0, 0.0);
+    let b = channel(211.0, 255.0);
     format!("#{r:02x}{g:02x}{b:02x}")
 }
 

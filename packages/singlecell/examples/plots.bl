@@ -38,6 +38,14 @@ write_text("markers.svg", sc.plot_markers(res, 3))
 # Note the `dotplot` builtin is a sequence dot-matrix and unrelated to this.
 write_text("dotplot.svg", sc.expr_dotplot(res, res.hvg_genes |> take(8)))
 
+# R/Seurat-familiar presentation and names. These retain BioLang's automatic
+# large-dataset rasterisation while using the visual grammar an R user expects.
+write_text("DimPlot.svg", sc.dim_plot(res, nil, "UMAP", true))
+write_text("FeaturePlot.svg", sc.feature_plot(res, marker))
+write_text("VlnPlot.svg", sc.vln_plot(res, marker))
+write_text("DotPlot.svg", sc.dot_plot(res, res.hvg_genes |> take(8)))
+write_text("DoHeatmap.svg", sc.do_heatmap(res, 3))
+
 println("wrote umap.svg pca.svg feature.svg violin.svg markers.svg dotplot.svg")
 println("")
 

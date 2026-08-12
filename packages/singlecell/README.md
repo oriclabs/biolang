@@ -22,8 +22,27 @@ let result = cells
     |> sc.run_umap()
 
 println(sc.summary(result))
-write_text("umap.svg", sc.plot_umap(result))
+write_text("umap.svg", sc.dim_plot(result, nil, "UMAP", true))
 ```
+
+## R-familiar plots
+
+The presentation layer uses familiar Seurat concepts without requiring R:
+
+```biolang
+write_text("DimPlot.svg", sc.dim_plot(result, nil, "UMAP", true))
+write_text("FeaturePlot.svg", sc.feature_plot(result, "MS4A1"))
+write_text("VlnPlot.svg", sc.vln_plot(result, "MS4A1"))
+write_text("DotPlot.svg", sc.dot_plot(result, ["CD3D", "NKG7", "MS4A1", "LYZ"]))
+write_text("DoHeatmap.svg", sc.do_heatmap(result, 5))
+```
+
+These are semantically aligned rather than pixel-for-pixel copies. `dim_plot`
+uses an R/ggplot-like discrete palette and optional median-position labels;
+`feature_plot` uses the familiar light-grey-to-blue scale. `dot_plot` maps
+circle area to percent detected and colour to per-gene standardized average
+expression. Above 5,000 cells the point layer is automatically rasterised,
+while titles, axes, labels, and legends remain vector SVG.
 
 The package also includes donor-aware pseudobulk exploration, paired
 composition tests, cluster diagnostics, and an SVG plot gallery:

@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use crate::builtins::write_output;
 use crate::plot::{
     col_range, extract_table_col, get_opt_f64, get_opt_str, hex_to_rgba, parse_options,
-    sequential_color, Scale, SvgCanvas, PALETTE,
+    sequential_color, seurat_feature_color, Scale, SvgCanvas, PALETTE, SEURAT_PALETTE,
 };
 use crate::viz::{get_opt_usize, nums_from_value, spark_str};
 
@@ -3899,6 +3899,7 @@ fn builtin_elbow_plot(args: Vec<Value>) -> Result<Value> {
 /// bandwidth parameter to pick wrongly.
 fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
+    let seurat_theme = get_opt_str(&opts, "theme", "") == "seurat";
     let value_col = ["value", "value_col", "y"]
         .iter()
         .map(|key| get_opt_str(&opts, key, ""))
@@ -4032,11 +4033,16 @@ fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
             let y = y_scale.map(value);
             outline.push(format!("{:.1},{:.1}", centre - density / peak * half, y));
         }
+        let colour = if seurat_theme {
+            SEURAT_PALETTE[gi % SEURAT_PALETTE.len()]
+        } else {
+            PALETTE[gi % PALETTE.len()]
+        };
         canvas.elements.push(format!(
             r#"<polygon points="{}" fill="{}" opacity="0.65" stroke="{}" stroke-width="1" />"#,
             outline.join(" "),
-            PALETTE[gi % PALETTE.len()],
-            PALETTE[gi % PALETTE.len()]
+            colour,
+            if seurat_theme { "#333333" } else { colour }
         ));
 
         // The median, so the violin still carries the summary a boxplot would.
@@ -4533,6 +4539,12 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
     let fmt = get_opt_str(&opts, "format", "svg").to_string();
     let title = get_opt_str(&opts, "title", "UMAP").to_string();
+    let seurat_theme = get_opt_str(&opts, "theme", "") == "seurat";
+    let label_groups = opts
+        .get("label_groups")
+        .or_else(|| opts.get("label"))
+        .is_some_and(Value::is_truthy);
+    let point_radius = get_opt_f64(&opts, "point_size", 3.0).max(0.1);
     // `color` is what everyone reaches for; `color_col` is the documented name.
     // Accepting only the latter meant `umap_plot(pts, { color: "cluster" })` was
     // silently ignored and every point came out one colour.
@@ -4768,10 +4780,18 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
                 } else {
                     (feature_values[i] - lo) / (hi - lo)
                 };
-                sequential_color(t)
+                if seurat_theme {
+                    seurat_feature_color(t)
+                } else {
+                    sequential_color(t)
+                }
             } else if has_groups {
                 let ci = group_map.get(&color_labels[i]).copied().unwrap_or(0);
-                PALETTE[ci % PALETTE.len()].to_string()
+                if seurat_theme {
+                    SEURAT_PALETTE[ci % SEURAT_PALETTE.len()].to_string()
+                } else {
+                    PALETTE[ci % PALETTE.len()].to_string()
+                }
             } else {
                 "#4e79a7".to_string()
             }
@@ -4792,7 +4812,7 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
                 .collect();
             c.add_point_raster(
                 &dots,
-                3.0,
+                point_radius,
                 (
                     c.margin.left,
                     c.margin.top,
@@ -4802,7 +4822,12 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
             );
         } else {
             for i in 0..xs.len() {
-                c.add_circle(x_scale.map(xs[i]), y_scale.map(ys[i]), 3.0, &point_color(i));
+                c.add_circle(
+                    x_scale.map(xs[i]),
+                    y_scale.map(ys[i]),
+                    point_radius,
+                    &point_color(i),
+                );
             }
         }
 
@@ -4836,7 +4861,11 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
                     y,
                     12.0,
                     bar_height / steps as f64 + 0.6,
-                    &sequential_color(t),
+                    &if seurat_theme {
+                        seurat_feature_color(t)
+                    } else {
+                        sequential_color(t)
+                    },
                 );
             }
             let (lo, hi) = feature_range;
@@ -4856,10 +4885,41 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
             let lx = plot_right + 10.0;
             let mut ly = c.margin.top + 10.0;
             for (gi, gname) in group_order.iter().enumerate() {
-                let color = PALETTE[gi % PALETTE.len()];
+                let color = if seurat_theme {
+                    SEURAT_PALETTE[gi % SEURAT_PALETTE.len()]
+                } else {
+                    PALETTE[gi % PALETTE.len()]
+                };
                 c.add_circle(lx + 5.0, ly + 4.0, 4.0, color);
                 c.add_text(lx + 13.0, ly + 8.0, gname, "start", 9.0);
                 ly += 16.0;
+            }
+        }
+
+        // Seurat's `label = TRUE`: place one readable label at the group
+        // centre. Medians are less sensitive than means to stray UMAP points.
+        if has_groups && label_groups {
+            for group in &group_order {
+                let mut group_x: Vec<f64> = color_labels
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, label)| (label == group).then_some(xs[i]))
+                    .collect();
+                let mut group_y: Vec<f64> = color_labels
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, label)| (label == group).then_some(ys[i]))
+                    .collect();
+                if group_x.is_empty() {
+                    continue;
+                }
+                group_x.sort_by(f64::total_cmp);
+                group_y.sort_by(f64::total_cmp);
+                let x = x_scale.map(group_x[group_x.len() / 2]);
+                let y = y_scale.map(group_y[group_y.len() / 2]);
+                let box_width = 8.0 + group.chars().count() as f64 * 6.2;
+                c.add_rect(x - box_width / 2.0, y - 10.0, box_width, 16.0, "#ffffff");
+                c.add_text(x, y + 2.0, group, "middle", 10.0);
             }
         }
 

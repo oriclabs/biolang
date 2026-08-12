@@ -116,6 +116,42 @@ fn plot_pca(obj, title = "PCA") {
     umap_plot(pts, {title: title})
 }
 
+## dim_plot(obj, groups, title, label) -> Str (SVG)
+##
+## Seurat/ggplot-style DimPlot. This is the R-familiar presentation layer;
+## `plot_umap` remains available for compatibility with older BioLang figures.
+fn dim_plot(obj, groups = nil, title = "UMAP", label = false) {
+    let base = if contains(keys(obj), "pca_scores") {
+        obj.pca_scores
+    } else {
+        sc_pca(_matrix_of(obj), 30).scores
+    }
+    let emb = if contains(keys(obj), "umap") { obj.umap } else {
+        umap(base, 2, {n_neighbors: 30, n_epochs: 500, min_dist: 0.3,
+                       metric: "cosine", seed: 42})
+    }
+    let labels = if groups == nil {
+        if contains(keys(obj), "clusters") {
+            obj.clusters |> map(|cluster| str(cluster))
+        } else {
+            range(0, obj.n_cells) |> map(|_| "cell")
+        }
+    } else {
+        groups |> map(|group| str(group))
+    }
+    if len(labels) != obj.n_cells {
+        error("sc.dim_plot() needs one group label per cell")
+    }
+    let rows = _rows(emb, obj.n_cells)
+    let points = range(0, obj.n_cells) |> map(|i| {
+        {x: rows[i][0], y: rows[i][1], cluster: labels[i]}
+    })
+    umap_plot(points, {
+        title: title, theme: "seurat", label_groups: label,
+        point_size: if obj.n_cells > 5000 { 1.6 } else { 2.4 }
+    })
+}
+
 ## plot_feature(obj, gene, title) → Str (SVG)
 ##
 ## UMAP coloured by one gene's expression on a continuous ramp — Seurat's
@@ -141,6 +177,31 @@ fn plot_feature(obj, gene, title = nil) {
         if title == nil { gene } else { title },
         gene
     )
+}
+
+## feature_plot(obj, gene, title) -> Str (SVG)
+##
+## Seurat-style FeaturePlot: low expression is light grey and high expression
+## is blue. The cell layer rasterises automatically for large datasets.
+fn feature_plot(obj, gene, title = nil) {
+    let gi = _expression_gene_index(obj, gene)
+    if gi < 0 { return "gene '" + gene + "' not found" }
+    let m = _expression_matrix_of(obj)
+    let values = range(0, obj.n_cells) |> map(|i| matrix_at(m, i, gi))
+    let base = if contains(keys(obj), "pca_scores") { obj.pca_scores } else { sc_pca(m, 30).scores }
+    let emb = if contains(keys(obj), "umap") { obj.umap } else {
+        umap(base, 2, {n_neighbors: 30, n_epochs: 500, min_dist: 0.3,
+                       metric: "cosine", seed: 42})
+    }
+    let rows = _rows(emb, obj.n_cells)
+    let points = range(0, obj.n_cells) |> map(|i| {
+        {x: rows[i][0], y: rows[i][1], value: values[i]}
+    })
+    umap_plot(points, {
+        title: if title == nil { gene } else { title },
+        feature: "value", feature_label: gene, theme: "seurat",
+        point_size: if obj.n_cells > 5000 { 1.6 } else { 2.4 }
+    })
 }
 
 ## Scatter with a continuous colour ramp, used by plot_feature and the QC
@@ -196,6 +257,24 @@ fn plot_violin(obj, gene) {
         _record_of(ids |> map(|c| _cluster_label(c)), cells)
     })
     violin(table(rows), {title: gene, ylab: "log-normalised expression"})
+}
+
+## vln_plot(obj, gene, title) -> Str (SVG)
+##
+## R-familiar VlnPlot with unpadded identity labels and a visible median.
+fn vln_plot(obj, gene, title = nil) {
+    let gi = _expression_gene_index(obj, gene)
+    if gi < 0 { return "gene '" + gene + "' not found" }
+    let m = _expression_matrix_of(obj)
+    let rows = _cluster_ids(obj) |> map(|cluster| {
+        _cells_in(obj, cluster) |> map(|i| {
+            {expression: matrix_at(m, i, gi), ident: str(cluster)}
+        })
+    }) |> flatten
+    violin_plot(rows, {
+        value: "expression", group: "ident",
+        title: if title == nil { gene } else { title }, theme: "seurat"
+    })
 }
 
 ## Build a Record from parallel key/value lists. Record literals cannot have
@@ -338,8 +417,9 @@ fn plot_proportions(obj, groups = nil, title = "cells per group") {
 ## expr_dotplot(obj, genes) → Str (SVG)
 ##
 ## Genes x clusters, circle area = fraction of cells expressing, circle colour =
-## mean expression among expressing cells. This is scanpy's dotplot / Seurat's
-## DotPlot; the `dotplot` builtin is a sequence dot-matrix and unrelated.
+## average expression standardized across clusters for that gene. These are
+## Seurat DotPlot semantics; the `dotplot` builtin is a sequence dot-matrix and
+## unrelated.
 ##
 ## Written as SVG here rather than delegating, because no builtin encodes two
 ## variables per cell.
@@ -368,7 +448,7 @@ fn expr_dotplot(obj, genes, title = "expression dot plot") {
     # value is read.
     let members = ids |> map(|c| _cells_in(obj, c))
 
-    # Per (gene, cluster): fraction expressing and mean among expressing cells.
+    # Per (gene, cluster): fraction detected and average over all cells.
     let stats = present |> map(|g| {
         let gi = find_index(names, |x| x == g)
         range(0, len(ids)) |> map(|ci| {
@@ -376,13 +456,20 @@ fn expr_dotplot(obj, genes, title = "expression dot plot") {
             let vals = cells |> map(|i| matrix_at(m, i, gi))
             let expressing = vals |> filter(|v| v > 0.0)
             {frac: if len(vals) > 0 { float(len(expressing)) / float(len(vals)) } else { 0.0 },
-             mean: if len(expressing) > 0 { mean(expressing) } else { 0.0 }}
+             average: if len(vals) > 0 { mean(vals) } else { 0.0 }}
         })
     })
 
-    let all_means = stats |> map(|rowv| rowv |> map(|s| s.mean)) |> flatten
-    let mx = if len(all_means) > 0 { max(all_means) } else { 1.0 }
-    let mmax = if mx > 0.0 { mx } else { 1.0 }
+    # Scale within each gene across identities, like Seurat's scale=TRUE.
+    let scaled = stats |> map(|rowv| {
+        let averages = rowv |> map(|s| s.average)
+        let centre = mean(averages)
+        let spread = if len(averages) > 1 { stdev(averages) } else { 0.0 }
+        rowv |> map(|s| {
+            let z = if spread > 0.0 { (s.average - centre) / spread } else { 0.0 }
+            if z < -2.5 { -2.5 } else { if z > 2.5 { 2.5 } else { z } }
+        })
+    })
 
     let parts = ["<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + str(w) +
                  "\" height=\"" + str(h) + "\" viewBox=\"0 0 " + str(w) + " " + str(h) + "\">",
@@ -403,9 +490,12 @@ fn expr_dotplot(obj, genes, title = "expression dot plot") {
             "text-anchor=\"end\">" + present[gi] + "</text>"]
         for k in range(0, len(ids)) {
             let s = stats[gi][k]
-            let radius = 2.0 + 9.0 * s.frac
-            let shade = int(255.0 - 200.0 * (s.mean / mmax))
-            let fill = "rgb(" + str(shade) + "," + str(int(0.35 * float(shade))) + ",150)"
+            # Radius is sqrt(fraction), so circle area—not diameter—encodes %.
+            let radius = 9.5 * sqrt(s.frac)
+            let colour_t = (scaled[gi][k] + 2.5) / 5.0
+            let low = int(211.0 * (1.0 - colour_t))
+            let blue = int(211.0 + 44.0 * colour_t)
+            let fill = "rgb(" + str(low) + "," + str(low) + "," + str(blue) + ")"
             parts = parts + ["<circle cx=\"" + str(left + k * cell_w + cell_w / 2) +
                 "\" cy=\"" + str(y) + "\" r=\"" + str(round(radius, 2)) +
                 "\" fill=\"" + fill + "\" stroke=\"#94a3b8\" stroke-width=\"0.5\"/>"]
@@ -417,7 +507,11 @@ fn expr_dotplot(obj, genes, title = "expression dot plot") {
         "circle size = fraction expressing</text>",
         "<text x=\"" + str(left + len(ids) * cell_w + 16) + "\" y=\"" + str(top + 20) +
         "\" font-family=\"sans-serif\" font-size=\"9\" fill=\"#475569\">" +
-        "colour = mean of expressing</text>", "</svg>"]
+        "colour = scaled average expression</text>", "</svg>"]
 
     join(parts, "\n")
 }
+
+## dot_plot and do_heatmap use the names familiar from Seurat documentation.
+fn dot_plot(obj, genes, title = "DotPlot") { expr_dotplot(obj, genes, title) }
+fn do_heatmap(obj, n_per_cluster = 5) { plot_markers(obj, n_per_cluster) }

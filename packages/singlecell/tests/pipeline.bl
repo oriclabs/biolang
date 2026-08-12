@@ -97,6 +97,13 @@ assert not contains(plot_obj.hvg_genes, "C"), "test gene unexpectedly selected a
 assert contains(sc.plot_feature(plot_obj, "C"), "<svg"), "feature plot lost a non-HVG gene"
 assert contains(sc.plot_violin(plot_obj, "C"), "<svg"), "violin plot lost a non-HVG gene"
 assert contains(sc.expr_dotplot(plot_obj, ["C"]), "<svg"), "dot plot lost a non-HVG gene"
+assert contains(sc.dim_plot(plot_obj, nil, "UMAP", true), "#f8766d"),
+    "Seurat-style DimPlot palette was not applied"
+assert contains(sc.feature_plot(plot_obj, "C"), "#d3d3d3"),
+    "Seurat-style FeaturePlot scale was not applied"
+assert contains(sc.vln_plot(plot_obj, "C"), "<svg"), "VlnPlot wrapper failed"
+assert contains(sc.dot_plot(plot_obj, ["C"]), "scaled average expression"),
+    "DotPlot does not disclose Seurat-style colour semantics"
 
 let ordered = result |> sc.pseudotime(0) |> sc.order_by_pseudotime()
 assert ordered.n_cells == 12, "pseudotime ordering changed cell count"
