@@ -2104,6 +2104,23 @@
           "line": 131
         },
         {
+          "name": "dim_plot",
+          "signature": "dim_plot(obj, groups = nil, title = \"UMAP\", label = false) -> Str (SVG)",
+          "summary": "Seurat/ggplot-familiar plot names and visual defaults.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 203
+        },
+        {
+          "name": "do_heatmap",
+          "signature": "do_heatmap(obj, n_per_cluster = 5)",
+          "summary": "BioLang package function do_heatmap.",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 209
+        },
+        {
           "name": "donor_gene_table",
           "signature": "donor_gene_table(obj, gene, donors, conditions, cell_types, target_type, condition_a, condition_b, min_cells = 10) -> List<Record>",
           "summary": "Return paired donor log2-CPM values for one gene and two conditions.",
@@ -2111,6 +2128,14 @@
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
           "line": 123
+        },
+        {
+          "name": "dot_plot",
+          "signature": "dot_plot(obj, genes, title = \"DotPlot\")",
+          "summary": "BioLang package function dot_plot.",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 208
         },
         {
           "name": "doublets",
@@ -2128,7 +2153,16 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 196
+          "line": 199
+        },
+        {
+          "name": "feature_plot",
+          "signature": "feature_plot(obj, gene, title = nil) -> Str (SVG)",
+          "summary": "BioLang package function feature_plot.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 206
         },
         {
           "name": "filter_cells",
@@ -2158,7 +2192,7 @@
         },
         {
           "name": "find_integration_anchors",
-          "signature": "find_integration_anchors(obj_a, obj_b, reduction = \"cca\", n_features = 2000, dims = 30, k_anchor = 5, k_score = 30, k_filter = 200, max_features = 200) -> AnchorSet",
+          "signature": "find_integration_anchors(obj_a, obj_b, reduction = \"cca\", n_features = 2000, dims = 30, k_anchor = 5, k_score = 30, k_filter = 200, max_features = 200, compatibility = nil) -> AnchorSet",
           "summary": "BioLang package function find_integration_anchors.",
           "returnType": "AnchorSet",
           "fields": [
@@ -2300,7 +2334,7 @@
         },
         {
           "name": "integrate_data",
-          "signature": "integrate_data(anchor_set, k_weight = 100, sd_weight = 1.0) -> Record",
+          "signature": "integrate_data(anchor_set, k_weight = 100, sd_weight = 1.0, compatibility = nil) -> Record",
           "summary": "BioLang package function integrate_data.",
           "returnType": "Record",
           "fields": [
@@ -2322,7 +2356,7 @@
             "key"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 170
+          "line": 172
         },
         {
           "name": "integrate_from_column",
@@ -2411,7 +2445,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 177
+          "line": 180
         },
         {
           "name": "paired_composition_test",
@@ -2438,7 +2472,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 262
+          "line": 273
         },
         {
           "name": "plot_composition",
@@ -2447,7 +2481,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 248
+          "line": 259
         },
         {
           "name": "plot_de_overlap",
@@ -2456,7 +2490,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 253
+          "line": 264
         },
         {
           "name": "plot_donor_expression",
@@ -2465,7 +2499,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 233
+          "line": 244
         },
         {
           "name": "plot_elbow",
@@ -2474,7 +2508,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 194
+          "line": 197
         },
         {
           "name": "plot_embedding",
@@ -2483,7 +2517,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 212
+          "line": 223
         },
         {
           "name": "plot_enrichment",
@@ -2492,7 +2526,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 258
+          "line": 269
         },
         {
           "name": "plot_feature",
@@ -2501,7 +2535,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 191
+          "line": 194
         },
         {
           "name": "plot_feature_split",
@@ -2510,7 +2544,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 216
+          "line": 227
         },
         {
           "name": "plot_group_heatmap",
@@ -2519,7 +2553,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 220
+          "line": 231
         },
         {
           "name": "plot_ma",
@@ -2528,7 +2562,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 229
+          "line": 240
         },
         {
           "name": "plot_markers",
@@ -2537,7 +2571,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 193
+          "line": 196
         },
         {
           "name": "plot_pca",
@@ -2546,7 +2580,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 190
+          "line": 193
         },
         {
           "name": "plot_proportions",
@@ -2555,7 +2589,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 195
+          "line": 198
         },
         {
           "name": "plot_pseudobulk_pca",
@@ -2564,7 +2598,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 241
+          "line": 252
         },
         {
           "name": "plot_qc_dashboard",
@@ -2573,7 +2607,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 208
+          "line": 219
         },
         {
           "name": "plot_qc_scatter",
@@ -2582,7 +2616,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 204
+          "line": 215
         },
         {
           "name": "plot_qc_violin",
@@ -2591,7 +2625,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 200
+          "line": 211
         },
         {
           "name": "plot_silhouette",
@@ -2600,7 +2634,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 266
+          "line": 277
         },
         {
           "name": "plot_umap",
@@ -2609,7 +2643,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 189
+          "line": 192
         },
         {
           "name": "plot_violin",
@@ -2618,7 +2652,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 192
+          "line": 195
         },
         {
           "name": "plot_volcano",
@@ -2627,7 +2661,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 224
+          "line": 235
         },
         {
           "name": "pseudobulk",
@@ -2659,7 +2693,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 176
+          "line": 179
         },
         {
           "name": "pseudotime_bins",
@@ -2668,7 +2702,7 @@
           "returnType": "List<Int>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 178
+          "line": 181
         },
         {
           "name": "qc",
@@ -2776,7 +2810,7 @@
           "returnType": "List<Float>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 179
+          "line": 182
         },
         {
           "name": "standard",
@@ -2834,6 +2868,15 @@
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
           "line": 81
+        },
+        {
+          "name": "vln_plot",
+          "signature": "vln_plot(obj, gene, title = nil) -> Str (SVG)",
+          "summary": "BioLang package function vln_plot.",
+          "returnType": "Str (SVG)",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 207
         }
       ]
     },
