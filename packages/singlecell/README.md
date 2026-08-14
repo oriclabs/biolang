@@ -133,6 +133,15 @@ generate BioLang source. Run them only in an isolated environment.
 - `find_integration_anchors` independently implements the published CCA/RPCA,
   mutual-neighbour, and shared-neighbour scoring design. `integrate_data`
   applies locally weighted anchor corrections and preserves raw RNA counts.
+- Exact Seurat numerical replay is opt-in and process-isolated. Install the
+  separately GPL-3.0-only `bl-seurat-provider`, then pass
+  `compatibility: "external"` to `find_integration_anchors`; the returned
+  anchor set automatically carries the exact weighting reduction and causes
+  `integrate_data` to use the same provider for PCA. `bl.exe` remains MIT and
+  the default call remains native. Set `BIOLANG_SEURAT_PROVIDER` when the
+  executable is not on `PATH`; `bl doctor` reports whether it was found. Run
+  output and the returned provider manifest disclose the external backend and
+  pinned package versions.
 - UMAP follows the published fuzzy-neighbour graph, smooth-kNN calibration,
   spectral initialization, and negative-sampling objective. It is deterministic
   for a seed, but raw coordinates are not an interoperability contract: rotation,

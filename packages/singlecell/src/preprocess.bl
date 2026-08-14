@@ -253,12 +253,21 @@ fn neighbors(obj, k = 20, snn = true, n_dims = 10) {
     # Embeddings may be nested Lists (the historical PCA return type) or a
     # dense Matrix loaded through the process-isolated binary interchange.
     # `dim` handles both; row indexing is intentionally not supported by Matrix.
-    let width = if type(full) == "Matrix" {
+    # PCA historically returns nested Lists while process interchange loads a
+    # compact Matrix. Use the dedicated predicate: `dim` is Matrix-only and
+    # row indexing is List-only, so neither operation is a universal probe.
+    let width = if is_matrix(full) {
         let shape = dim(full)
         if len(shape) > 1 { shape[1] } else { 0 }
     } else {
         if len(full) > 0 { len(full[0]) } else { 0 }
     }
+    # Narrowing here is legitimate -- a caller may hold fewer components than
+    # the default asks for -- but it must not be invisible. An HBC run asked for
+    # 40 dimensions, received 30, and reported 40 in its summary and every log
+    # line; the clusters, markers and UMAP were all computed on 30. The count
+    # actually used is already recorded below as `neighbor_dims`; a report that
+    # prints a constant instead of reading it is the thing that lies.
     let dims = range(0, if n_dims < width { n_dims } else { width })
     let embed = if len(dims) > 0 { select_cols(full, dims) } else { full }
     let graph = if snn { snn_graph(embed, k) } else { knn_graph(embed, k) }
@@ -329,7 +338,7 @@ fn cluster_louvain(obj, k = 20, resolution = 0.8) {
 fn run_umap(obj, n_dims = 10, n_neighbors = 30, min_dist = 0.3, seed = 42) {
     let prepared = if contains(keys(obj), "pca_scores") { obj } else { run_pca(obj) }
     let full = embedding_of(prepared)
-    let width = if type(full) == "Matrix" {
+    let width = if is_matrix(full) {
         let shape = dim(full)
         if len(shape) > 1 { shape[1] } else { 0 }
     } else {

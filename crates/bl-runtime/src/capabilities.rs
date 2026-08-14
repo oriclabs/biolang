@@ -126,6 +126,15 @@ pub fn registry() -> Vec<Capability> {
             fidelity: ReferenceEquivalent,
         },
         Capability {
+            // Exact numeric replay is deliberately a process boundary. The
+            // native CCA remains available and MIT-only; the optional provider
+            // owns its R/GPL-family runtime and exchanges neutral matrices.
+            name: "integrate_seurat_strict",
+            description: "Strict Seurat 5.5.1 CCA/PCA numeric boundaries",
+            backends: vec![LocalTool("bl-seurat-provider"), Native],
+            fidelity: Exploration,
+        },
+        Capability {
             name: "embed_umap",
             description: "UMAP / t-SNE embedding",
             backends: vec![Native, Python("scanpy")],
@@ -135,6 +144,30 @@ pub fn registry() -> Vec<Capability> {
             name: "cluster_leiden",
             description: "Community-detection clustering",
             backends: vec![Native, Python("leidenalg")],
+            fidelity: Exploration,
+        },
+        Capability {
+            // Two engines, and the order matters. The GPL provider is listed
+            // first because it is the one that reproduces `sctransform` v2:
+            // measured against R 0.4.3 with glmGamPoi it agrees on theta to
+            // 7.9e-8, on residuals to 1.6e-8 of the reference SD, and selects
+            // the identical top-3,000 features. The native engine is derived
+            // from the papers and lands at 98.2% feature agreement with
+            // residuals within 1.9% of that SD -- fine for exploration, not a
+            // number to publish as SCTransform.
+            //
+            // The provider is a separate GPL-3 program invoked as a process.
+            // It is deliberately not a crate: linking it would make `bl` a
+            // combined work and relicense the binary. `fidelity` below grades
+            // the *native* path, which is why it is Exploration even though
+            // the preferred backend is exact.
+            name: "normalize_sctransform",
+            description: "SCTransform v2 regularized negative-binomial normalization",
+            backends: vec![
+                LocalTool("bl-sctransform"),
+                Container("oriclabs/sctransform-rs"),
+                Native,
+            ],
             fidelity: Exploration,
         },
         Capability {
@@ -303,9 +336,35 @@ pub fn probe_env() -> EnvReport {
         None => false,
     };
 
+    // Probe every tool the registry actually declares, not a hand-kept list.
+    // The two used to be separate, so adding a `LocalTool` backend left it
+    // permanently undetected: `select_backend` looks the name up in this map
+    // and an absent key reads as "not installed". The capability would report
+    // a working fallback and never mention the preferred backend, even with
+    // the tool sitting on PATH.
+    let declared_tools = registry().into_iter().flat_map(|capability| {
+        capability
+            .backends
+            .into_iter()
+            .filter_map(|backend| match backend {
+                Backend::LocalTool(tool) => Some(tool),
+                _ => None,
+            })
+    });
     let mut tools_on_path = BTreeMap::new();
-    for tool in ["typst", "STAR", "samtools", "cmake"] {
-        tools_on_path.insert(tool.to_string(), tool_present(tool, &["--version"]));
+    // `samtools` and `cmake` are probed for the environment section rather than
+    // for a backend, so they are named here in addition to the registry.
+    for tool in declared_tools.chain(["samtools", "cmake"]) {
+        let configured = if tool == "bl-seurat-provider" {
+            std::env::var("BIOLANG_SEURAT_PROVIDER")
+                .ok()
+                .filter(|path| tool_present(path, &["--version"]))
+        } else {
+            None
+        };
+        tools_on_path
+            .entry(tool.to_string())
+            .or_insert_with(|| configured.is_some() || tool_present(tool, &["--version"]));
     }
 
     EnvReport {
@@ -549,11 +608,36 @@ pub fn doctor_report() -> String {
             None => ("[--]  ", decision.reason.clone()),
         };
         out.push_str(&format!("  {mark}{:<26} {}\n", cap.name, detail));
-        out.push_str(&format!("        {:<26} ({})\n", "", cap.fidelity.label()));
-        if decision.backend.is_none() {
-            // List how to enable each declared backend.
-            for b in &cap.backends {
-                out.push_str(&format!("          - {}: {}\n", b.label(), b.fix_hint()));
+        // `fidelity` grades the *native* path, so printing it bare beside a
+        // chosen external backend reads as a claim about the run that just
+        // happened. When the reference tool is what will execute, say which
+        // path the grade describes.
+        let grade = match &decision.backend {
+            Some(Backend::Native) | None => format!("({})", cap.fidelity.label()),
+            Some(_) => format!("(native path: {})", cap.fidelity.label()),
+        };
+        out.push_str(&format!("        {:<26} {}\n", "", grade));
+        match &decision.backend {
+            // Nothing runs: list how to enable each declared backend.
+            None => {
+                for b in &cap.backends {
+                    out.push_str(&format!("          - {}: {}\n", b.label(), b.fix_hint()));
+                }
+            }
+            // Something runs, but not the author's first choice. Say so: a
+            // capability reporting `[ok]` while silently running a fallback is
+            // how a user publishes exploration-grade numbers believing they
+            // used the reference tool.
+            Some(chosen) => {
+                if let Some(index) = cap.backends.iter().position(|b| b == chosen) {
+                    for preferred in &cap.backends[..index] {
+                        out.push_str(&format!(
+                            "          - preferred, unavailable: {}: {}\n",
+                            preferred.label(),
+                            preferred.fix_hint()
+                        ));
+                    }
+                }
             }
         }
     }

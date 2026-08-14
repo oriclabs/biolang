@@ -91,22 +91,37 @@ fn select_integration_features(obj_a, obj_b, n_features = 2000) {
     }
     let a_is_sct = contains(keys(a), "norm_method") and a.norm_method == "sctransform"
     let b_is_sct = contains(keys(b), "norm_method") and b.norm_method == "sctransform"
-    # A capped SCT matrix cannot safely select a feature absent from the other
-    # sample's materialized residual axis. Rank over each complete cap, then
-    # restrict candidates to the shared axis. This is the bounded-memory
-    # alternative to recomputing missing residuals in PrepSCTIntegration.
+    # Seurat's SelectIntegrationFeatures takes each dataset's *variable
+    # features* -- its top ranked genes, not its whole axis -- unions them,
+    # and orders by how many datasets called a gene variable, breaking ties on
+    # median rank. The union is what makes the first key mean anything.
+    #
+    # This used to intersect the two complete rankings whenever both samples
+    # were SCT. Intersecting everything makes `datasets` equal to two for every
+    # candidate, so the primary sort key is inert and the rule silently
+    # degenerates to "median rank over all genes" -- a different selection
+    # rule wearing the right shape. Measured against Seurat on the HBC pair it
+    # agreed on 90.8% of 3,000 features with a rank correlation of 0.937.
+    #
+    # Capping each ranking at `n_features` is what makes SCT match: an external
+    # provider materialises residuals for every kept gene, so `hvg_ranked` is
+    # the full axis, where Seurat's VariableFeatures(SCT) is already the top
+    # 3,000. The shared-axis filter below still applies, because the two
+    # samples keep different gene sets and a feature without a residual in both
+    # cannot be integrated.
     let rank_a_all = if contains(keys(a), "hvg_ranked") { a.hvg_ranked } else { a.hvg }
     let rank_b_all = if contains(keys(b), "hvg_ranked") { b.hvg_ranked } else { b.hvg }
-    let rank_a = if a_is_sct { rank_a_all } else { take(rank_a_all, n_features) }
-    let rank_b = if b_is_sct { rank_b_all } else { take(rank_b_all, n_features) }
-    let candidates = if a_is_sct and b_is_sct {
-        into(intersection(set(rank_a), set(rank_b)), "List")
-    } else {
-        (rank_a + rank_b) |> unique |> filter(|gene| {
-            (not a_is_sct or contains(a.hvg, gene)) and
-            (not b_is_sct or contains(b.hvg, gene))
-        })
-    }
+    let rank_a = take(rank_a_all, n_features)
+    let rank_b = take(rank_b_all, n_features)
+    let candidates = (rank_a + rank_b) |> unique |> filter(|gene| {
+        (not a_is_sct or contains(a.hvg, gene)) and
+        (not b_is_sct or contains(b.hvg, gene))
+    })
+    # R's table()/sort() path breaks equal dataset-count and median-rank ties
+    # lexicographically by feature name. Candidate insertion order is not an
+    # equivalent tie-break and changes the CCA column order even when the set
+    # is identical, which in turn perturbs a bounded iterative decomposition.
+    let lexical_names = candidates |> map(|gene| obj_a.genes[gene]) |> sort
     let selected = candidates
         |> map(|gene| {
             let ia = find_index(rank_a, |candidate| candidate == gene)
@@ -115,13 +130,16 @@ fn select_integration_features(obj_a, obj_b, n_features = 2000) {
             let median_rank = if ia >= 0 and ib >= 0 {
                 (float(ia) + float(ib)) / 2.0
             } else if ia >= 0 { float(ia) } else { float(ib) }
-            {gene: gene, datasets: datasets, median_rank: median_rank}
+            {gene: gene, datasets: datasets, median_rank: median_rank,
+             lexical_rank: find_index(lexical_names, |name| name == obj_a.genes[gene])}
         })
         |> sort(|left, right| {
             if left.datasets != right.datasets {
                 right.datasets - left.datasets
             } else {
-                left.median_rank - right.median_rank
+                let rank_delta = left.median_rank - right.median_rank
+                if rank_delta != 0.0 { rank_delta }
+                else { left.lexical_rank - right.lexical_rank }
             }
         })
         |> take(n_features)
@@ -167,16 +185,64 @@ fn _integration_input(obj, features) {
 ## Find mutual nearest-neighbour anchors in a shared CCA space (default), or
 ## in reciprocal PCA projections with reduction="rpca". The matrices used for
 ## matching are log-normalized, VST-selected, and scaled independently.
+##
+## `compatibility` is an optional process-neutral Record for strict replay.
+## It may supply `left_embedding`, `right_embedding`, and `filter_features`
+## produced by an independently installed decomposition provider. BioLang
+## still performs neighbour search, filtering, and scoring. Ordinary analyses
+## should leave it nil and use the native MIT implementation.
 fn find_integration_anchors(obj_a, obj_b, reduction = "cca", n_features = 2000,
                             dims = 30, k_anchor = 5, k_score = 30,
-                            k_filter = 200, max_features = 200) {
+                            k_filter = 200, max_features = 200,
+                            compatibility = nil) {
     let features = select_integration_features(obj_a, obj_b, n_features)
     let left = _integration_input(obj_a, features)
     let right = _integration_input(obj_b, features)
-    let native = sc_find_anchors(left, right, {
+    let native_opts = {
         reduction: reduction, dims: dims, k_anchor: k_anchor,
         k_filter: k_filter, k_score: k_score, max_features: max_features
-    })
+    }
+    let native = if compatibility == nil {
+        sc_find_anchors(left, right, native_opts)
+    } else if compatibility == "external" {
+        sc_find_anchors(left, right, {
+            reduction: reduction, dims: dims, k_anchor: k_anchor,
+            k_filter: k_filter, k_score: k_score,
+            max_features: max_features, external_provider: "auto"
+        })
+    } else {
+        let has_left = contains(keys(compatibility), "left_embedding")
+        let has_right = contains(keys(compatibility), "right_embedding")
+        if has_left != has_right {
+            error("sc.find_integration_anchors: compatibility must provide both " +
+                  "left_embedding and right_embedding")
+        }
+        if contains(keys(compatibility), "provider") and not has_left {
+            sc_find_anchors(left, right, {
+                reduction: reduction, dims: dims, k_anchor: k_anchor,
+                k_filter: k_filter, k_score: k_score,
+                max_features: max_features,
+                external_provider: compatibility.provider
+            })
+        } else if contains(keys(compatibility), "filter_features") {
+            sc_find_anchors(left, right, {
+                reduction: reduction, dims: dims, k_anchor: k_anchor,
+                k_filter: k_filter, k_score: k_score,
+                max_features: max_features,
+                left_embedding: compatibility.left_embedding,
+                right_embedding: compatibility.right_embedding,
+                filter_features: compatibility.filter_features
+            })
+        } else {
+            sc_find_anchors(left, right, {
+                reduction: reduction, dims: dims, k_anchor: k_anchor,
+                k_filter: k_filter, k_score: k_score,
+                max_features: max_features,
+                left_embedding: compatibility.left_embedding,
+                right_embedding: compatibility.right_embedding
+            })
+        }
+    }
     {... native,
         reference: obj_a,
         query: obj_b,
@@ -189,22 +255,45 @@ fn find_integration_anchors(obj_a, obj_b, reduction = "cca", n_features = 2000,
     }
 }
 
-## integrate_data(anchor_set, k_weight, sd_weight) -> Record
+## integrate_data(anchor_set, k_weight, sd_weight, compatibility) -> Record
 ##
 ## Correct the query expression locally from nearby scored anchors, then merge
 ## it with the unmodified reference. The integrated expression assay contains
 ## integration features; the RNA assay/raw matrix remains available unchanged.
-fn integrate_data(anchor_set, k_weight = 100, sd_weight = 1.0) {
+##
+## For strict replay, `compatibility` may contain `weight_reduction` and a
+## `pca` options Record accepted by sc_pca(), for example an externally seeded
+## restarted-Lanczos solve. It is optional and does not introduce a runtime
+## dependency on the process that generated those numeric artifacts.
+fn integrate_data(anchor_set, k_weight = 100, sd_weight = 1.0,
+                  compatibility = nil) {
+    let integration_opts = if compatibility != nil and
+                              contains(keys(compatibility), "weight_reduction") {
+        {k_weight: k_weight, sd_weight: sd_weight,
+         weight_reduction: compatibility.weight_reduction}
+    } else if contains(keys(anchor_set), "weight_reduction") {
+        {k_weight: k_weight, sd_weight: sd_weight,
+         weight_reduction: anchor_set.weight_reduction}
+    } else { {k_weight: k_weight, sd_weight: sd_weight} }
     let integrated = sc_integrate_anchors(
         anchor_set.left_matrix, anchor_set.right_matrix, anchor_set,
-        {k_weight: k_weight, sd_weight: sd_weight}
+        integration_opts
     )
     let merged = sc_merge_objects(anchor_set.reference, anchor_set.query, 0, 1)
     # Seurat's anchor dimensions and downstream PCA dimensions are separate
     # choices. HBC uses the FindIntegrationAnchors default (30), then computes
     # enough integrated PCs for downstream dims=1:40. Tying PCA width to the
     # anchor width made that published workflow impossible to express.
-    let pca = sc_pca(integrated, 50)
+    # Seurat's RunPCA applies irlba directly to the integrated SCT scale.data;
+    # it does not center those residual columns again. This matters after
+    # integration because correction can leave small non-zero feature means.
+    let pca = if compatibility != nil and contains(keys(compatibility), "pca") {
+        sc_pca(integrated, 50, false, compatibility.pca)
+    } else if contains(keys(anchor_set), "external_provider") {
+        sc_pca(integrated, 50, false, {
+            solver: "external", external_provider: anchor_set.external_provider
+        })
+    } else { sc_pca(integrated, 50, false) }
     let assays = if contains(keys(merged), "assays") { merged.assays } else { ({}) }
     let reductions = if contains(keys(merged), "reductions") { merged.reductions } else { ({}) }
     {... merged,

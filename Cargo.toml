@@ -6,6 +6,7 @@ members = [
     "crates/bl-lexer",
     "crates/bl-parser",
     "crates/bl-runtime",
+    "crates/bl-seurat-compat",
     "crates/bl-bio",
     "crates/bl-apis",
     "crates/bl-compiler",
@@ -39,6 +40,7 @@ bl-core = { path = "crates/bl-core" }
 bl-lexer = { path = "crates/bl-lexer" }
 bl-parser = { path = "crates/bl-parser" }
 bl-runtime = { path = "crates/bl-runtime" }
+bl-seurat-compat = { path = "crates/bl-seurat-compat" }
 bl-bio = { path = "crates/bl-bio" }
 bl-apis = { path = "crates/bl-apis" }
 bl-compiler = { path = "crates/bl-compiler" }

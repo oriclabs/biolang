@@ -18,12 +18,19 @@
 
 use bl_core::value::Value;
 use bl_runtime::singlecell::call_singlecell_builtin;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 fn fixture(name: &str) -> String {
-    let path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "fixtures", "seurat", name]
-        .iter()
-        .collect();
+    let path: PathBuf = [
+        env!("CARGO_MANIFEST_DIR"),
+        "tests",
+        "fixtures",
+        "seurat",
+        name,
+    ]
+    .iter()
+    .collect();
     std::fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("cannot read fixture {}: {error}", path.display()))
 }
@@ -150,6 +157,54 @@ fn snn_graph_matches_seurat_compute_snn() {
             want.2
         );
     }
+}
+
+/// The compatibility Louvain path must preserve Seurat's Java-compatible RNG,
+/// continuous ten-start random stream, and repeated multilevel iterations.
+#[test]
+fn louvain_graph_matches_seurat_modularity_optimizer() {
+    let edges: Vec<Value> = fixture("snn_expected.csv")
+        .lines()
+        .skip(1)
+        .filter(|line| !line.trim().is_empty())
+        .map(|line| {
+            let parts: Vec<&str> = line.split(',').collect();
+            let mut record = HashMap::new();
+            record.insert("source".to_string(), Value::Int(parts[0].parse().unwrap()));
+            record.insert("target".to_string(), Value::Int(parts[1].parse().unwrap()));
+            record.insert(
+                "weight".to_string(),
+                Value::Float(parts[2].parse().unwrap()),
+            );
+            Value::Record(record.into())
+        })
+        .collect();
+    let result = call_singlecell_builtin(
+        "louvain_graph",
+        vec![
+            Value::List(edges.into()),
+            Value::Int(200),
+            Value::Float(0.8),
+            Value::Int(10),
+        ],
+    )
+    .expect("louvain_graph failed");
+    let produced: Vec<i64> = match result {
+        Value::List(values) => values
+            .iter()
+            .map(|value| match value {
+                Value::Int(label) => *label,
+                other => panic!("cluster label was {other:?}"),
+            })
+            .collect(),
+        other => panic!("louvain_graph returned {other:?}"),
+    };
+    let expected: Vec<i64> = fixture("louvain_expected.csv")
+        .trim()
+        .split(',')
+        .map(|value| value.parse().unwrap())
+        .collect();
+    assert_eq!(produced, expected);
 }
 
 /// `normalize_total` then `log1p_transform` must reproduce `Seurat::LogNormalize`.

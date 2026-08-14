@@ -680,8 +680,7 @@ pub fn mann_whitney_u(
     // disagreed with the reference on 46 of 72 tests.
     let total = (n_a + n_b) as f64;
     let var_u = if total > 1.0 {
-        ((n_a * n_b) as f64 / 12.0)
-            * ((total + 1.0) - tie_correction / (total * (total - 1.0)))
+        ((n_a * n_b) as f64 / 12.0) * ((total + 1.0) - tie_correction / (total * (total - 1.0)))
     } else {
         0.0
     };

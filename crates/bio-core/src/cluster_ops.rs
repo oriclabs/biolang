@@ -293,6 +293,310 @@ pub fn modularity(adjacency: &[Vec<(usize, f64)>], labels: &[usize], resolution:
         .sum()
 }
 
+// Seurat's algorithm=1 community optimiser follows Modularity Optimizer 1.3.0.
+// Its random stream and move schedule are observable parts of the result: it
+// uses java.util.Random's 48-bit generator, swaps every position with a random
+// position (not Fisher-Yates), carries one stream across starts, and repeats a
+// multilevel pass up to n.iter times. Keep this compatibility implementation
+// separate from BioLang's general Louvain routine below.
+struct JavaRandom48 {
+    seed: u64,
+}
+
+impl JavaRandom48 {
+    fn new(seed: u64) -> Self {
+        Self {
+            seed: (seed ^ 0x5DEECE66D) & ((1u64 << 48) - 1),
+        }
+    }
+
+    fn next(&mut self, bits: u32) -> i32 {
+        self.seed = (self.seed.wrapping_mul(0x5DEECE66D).wrapping_add(0xB)) & ((1u64 << 48) - 1);
+        (self.seed >> (48 - bits)) as i32
+    }
+
+    fn next_int(&mut self, n: usize) -> usize {
+        assert!(n > 0);
+        if n.is_power_of_two() {
+            return ((n as u64 * self.next(31) as u64) >> 31) as usize;
+        }
+        loop {
+            let bits = self.next(31);
+            let value = bits % n as i32;
+            if bits.wrapping_sub(value).wrapping_add(n as i32 - 1) >= 0 {
+                return value as usize;
+            }
+        }
+    }
+}
+
+fn seurat_permutation(n: usize, random: &mut JavaRandom48) -> Vec<usize> {
+    let mut permutation: Vec<usize> = (0..n).collect();
+    for i in 0..n {
+        let j = random.next_int(n);
+        permutation.swap(i, j);
+    }
+    permutation
+}
+
+#[derive(Clone)]
+struct SeuratLouvainNetwork {
+    adjacency: Vec<Vec<(usize, f64)>>,
+    degrees: Vec<f64>,
+    self_link_weight: f64,
+}
+
+impl SeuratLouvainNetwork {
+    fn from_adjacency(adjacency: &[Vec<(usize, f64)>]) -> Self {
+        Self {
+            adjacency: adjacency.to_vec(),
+            degrees: adjacency
+                .iter()
+                .map(|neighbors| neighbors.iter().map(|(_, weight)| weight).sum())
+                .collect(),
+            self_link_weight: 0.0,
+        }
+    }
+
+    fn denominator(&self) -> f64 {
+        self.degrees.iter().sum::<f64>() + self.self_link_weight
+    }
+
+    fn reduce(&self, labels: &[usize], n_clusters: usize) -> Self {
+        let mut maps: Vec<HashMap<usize, f64>> = vec![HashMap::new(); n_clusters];
+        let mut degrees = vec![0.0; n_clusters];
+        let mut self_link_weight = self.self_link_weight;
+        for node in 0..self.adjacency.len() {
+            let source = labels[node];
+            degrees[source] += self.degrees[node];
+            for &(neighbor, weight) in &self.adjacency[node] {
+                let target = labels[neighbor];
+                if source == target {
+                    self_link_weight += weight;
+                } else {
+                    *maps[source].entry(target).or_insert(0.0) += weight;
+                }
+            }
+        }
+        let adjacency = maps
+            .into_iter()
+            .map(|map| {
+                let mut neighbors: Vec<_> = map.into_iter().collect();
+                neighbors.sort_by_key(|(neighbor, _)| *neighbor);
+                neighbors
+            })
+            .collect();
+        Self {
+            adjacency,
+            degrees,
+            self_link_weight,
+        }
+    }
+}
+
+fn compact_seurat_labels(labels: &mut [usize]) -> usize {
+    if labels.is_empty() {
+        return 0;
+    }
+    let mut counts = vec![0usize; labels.len()];
+    for &label in labels.iter() {
+        counts[label] += 1;
+    }
+    let mut replacement = vec![0usize; labels.len()];
+    let mut n_clusters = 0;
+    for (label, count) in counts.into_iter().enumerate() {
+        if count > 0 {
+            replacement[label] = n_clusters;
+            n_clusters += 1;
+        }
+    }
+    for label in labels {
+        *label = replacement[*label];
+    }
+    n_clusters
+}
+
+fn seurat_local_move(
+    network: &SeuratLouvainNetwork,
+    labels: &mut [usize],
+    resolution: f64,
+    random: &mut JavaRandom48,
+) -> bool {
+    let n = network.adjacency.len();
+    if n <= 1 {
+        return false;
+    }
+    let mut cluster_weight = vec![0.0; n];
+    let mut nodes_per_cluster = vec![0usize; n];
+    for node in 0..n {
+        cluster_weight[labels[node]] += network.degrees[node];
+        nodes_per_cluster[labels[node]] += 1;
+    }
+    let mut unused_clusters: Vec<usize> = (0..n)
+        .filter(|&cluster| nodes_per_cluster[cluster] == 0)
+        .collect();
+    let permutation = seurat_permutation(n, random);
+    let mut weights_per_cluster = vec![0.0; n];
+    let mut neighboring_clusters = Vec::with_capacity(n.saturating_sub(1));
+    let mut stable_nodes = 0usize;
+    let mut position = 0usize;
+    let mut updated = false;
+    while stable_nodes < n {
+        let node = permutation[position];
+        neighboring_clusters.clear();
+        for &(neighbor, weight) in &network.adjacency[node] {
+            let cluster = labels[neighbor];
+            if weights_per_cluster[cluster] == 0.0 {
+                neighboring_clusters.push(cluster);
+            }
+            weights_per_cluster[cluster] += weight;
+        }
+
+        let old_cluster = labels[node];
+        cluster_weight[old_cluster] -= network.degrees[node];
+        nodes_per_cluster[old_cluster] -= 1;
+        if nodes_per_cluster[old_cluster] == 0 {
+            unused_clusters.push(old_cluster);
+        }
+
+        let mut best_cluster = None;
+        let mut max_quality = 0.0;
+        for &cluster in &neighboring_clusters {
+            let quality = weights_per_cluster[cluster]
+                - network.degrees[node] * cluster_weight[cluster] * resolution;
+            if quality > max_quality
+                || (quality == max_quality && best_cluster.is_some_and(|best| cluster < best))
+            {
+                best_cluster = Some(cluster);
+                max_quality = quality;
+            }
+            weights_per_cluster[cluster] = 0.0;
+        }
+        let selected = if max_quality == 0.0 {
+            unused_clusters.pop().unwrap_or(old_cluster)
+        } else {
+            best_cluster.unwrap_or(old_cluster)
+        };
+        cluster_weight[selected] += network.degrees[node];
+        nodes_per_cluster[selected] += 1;
+        if selected == old_cluster {
+            stable_nodes += 1;
+        } else {
+            labels[node] = selected;
+            stable_nodes = 1;
+            updated = true;
+        }
+        position = if position + 1 < n { position + 1 } else { 0 };
+    }
+    compact_seurat_labels(labels);
+    updated
+}
+
+fn seurat_louvain_pass(
+    network: &SeuratLouvainNetwork,
+    labels: &mut [usize],
+    resolution: f64,
+    random: &mut JavaRandom48,
+) -> bool {
+    if network.adjacency.len() <= 1 {
+        return false;
+    }
+    let mut updated = seurat_local_move(network, labels, resolution, random);
+    let n_clusters = labels.iter().copied().max().unwrap_or(0) + 1;
+    if n_clusters < network.adjacency.len() {
+        let reduced = network.reduce(labels, n_clusters);
+        let mut reduced_labels: Vec<usize> = (0..n_clusters).collect();
+        let reduced_updated =
+            seurat_louvain_pass(&reduced, &mut reduced_labels, resolution, random);
+        if reduced_updated {
+            for label in labels.iter_mut() {
+                *label = reduced_labels[*label];
+            }
+            compact_seurat_labels(labels);
+            updated = true;
+        }
+    }
+    updated
+}
+
+fn seurat_quality(network: &SeuratLouvainNetwork, labels: &[usize], resolution: f64) -> f64 {
+    let denominator = network.denominator();
+    if denominator <= 0.0 {
+        return 0.0;
+    }
+    let n_clusters = labels.iter().copied().max().unwrap_or(0) + 1;
+    let mut quality = network.self_link_weight;
+    let mut cluster_weight = vec![0.0; n_clusters];
+    for node in 0..network.adjacency.len() {
+        cluster_weight[labels[node]] += network.degrees[node];
+        for &(neighbor, weight) in &network.adjacency[node] {
+            if labels[neighbor] == labels[node] {
+                quality += weight;
+            }
+        }
+    }
+    quality -= cluster_weight
+        .into_iter()
+        .map(|weight| weight * weight * resolution)
+        .sum::<f64>();
+    quality / denominator
+}
+
+/// Seurat 5 `FindClusters(algorithm = 1)` compatible Louvain optimisation.
+pub fn louvain_seurat_restarts(
+    adjacency: &[Vec<(usize, f64)>],
+    resolution: f64,
+    n_start: usize,
+    n_iter: usize,
+    seed: u64,
+) -> Vec<usize> {
+    let n = adjacency.len();
+    if n == 0 {
+        return vec![];
+    }
+    let network = SeuratLouvainNetwork::from_adjacency(adjacency);
+    let denominator = network.denominator();
+    if denominator <= 0.0 {
+        return (0..n).collect();
+    }
+    let scaled_resolution = resolution / denominator;
+    let mut random = JavaRandom48::new(seed);
+    let mut best_quality = f64::NEG_INFINITY;
+    let mut best_labels = Vec::new();
+    for _ in 0..n_start.max(1) {
+        let mut labels: Vec<usize> = (0..n).collect();
+        for _ in 0..n_iter.max(1) {
+            if !seurat_louvain_pass(&network, &mut labels, scaled_resolution, &mut random) {
+                break;
+            }
+        }
+        let quality = seurat_quality(&network, &labels, scaled_resolution);
+        if quality > best_quality {
+            best_quality = quality;
+            best_labels = labels;
+        }
+    }
+
+    // Seurat numbers clusters by decreasing size, preserving the old label as
+    // the stable tie-break. This does not change the partition, but it makes
+    // exported compatibility fixtures directly comparable.
+    let n_clusters = best_labels.iter().copied().max().unwrap_or(0) + 1;
+    let mut sizes = vec![0usize; n_clusters];
+    for &label in &best_labels {
+        sizes[label] += 1;
+    }
+    let mut order: Vec<usize> = (0..n_clusters).collect();
+    order.sort_by(|&left, &right| sizes[right].cmp(&sizes[left]));
+    let mut replacement = vec![0usize; n_clusters];
+    for (new, old) in order.into_iter().enumerate() {
+        replacement[old] = new;
+    }
+    best_labels
+        .into_iter()
+        .map(|label| replacement[label])
+        .collect()
+}
+
 /// Louvain repeated from several randomised node orders, keeping the best.
 ///
 /// Seurat's `FindClusters` defaults to `n.start = 10`: ten runs, each visiting

@@ -14,6 +14,12 @@ use bl_core::value::{Arity, Table, Value};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::io::{BufRead, BufReader};
+#[cfg(not(target_arch = "wasm32"))]
+use std::io::{Read, Write};
+#[cfg(not(target_arch = "wasm32"))]
+use std::path::Path;
+#[cfg(not(target_arch = "wasm32"))]
+use std::process::{Command, Stdio};
 
 // â”€â”€ Registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -27,6 +33,7 @@ pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
         ("sc_find_all_markers", Arity::Range(2, 3)),
         ("harmony_integrate", Arity::Range(2, 3)),
         ("cca", Arity::Range(2, 3)),
+        ("sc_anchor_candidates", Arity::Range(2, 3)),
         ("sc_find_anchors", Arity::Range(2, 3)),
         ("sc_integrate_anchors", Arity::Range(3, 4)),
         ("cell_qc", Arity::Range(1, 3)),
@@ -44,7 +51,7 @@ pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
         ("sc_subset_cells", Arity::Exact(2)),
         ("sc_subset_genes", Arity::Exact(2)),
         ("sc_merge_objects", Arity::Exact(4)),
-        ("sc_pca", Arity::Range(1, 2)),
+        ("sc_pca", Arity::Range(1, 4)),
         ("sc_scale", Arity::Range(1, 2)),
         ("doublet_score", Arity::Range(1, 2)),
         // Section 6 extensions: Seurat-compatible single-cell ops
@@ -88,6 +95,7 @@ pub fn is_singlecell_builtin(name: &str) -> bool {
             | "sc_find_all_markers"
             | "harmony_integrate"
             | "cca"
+            | "sc_anchor_candidates"
             | "sc_find_anchors"
             | "sc_integrate_anchors"
             | "cell_qc"
@@ -140,6 +148,7 @@ pub fn call_singlecell_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "sc_find_all_markers" => builtin_find_all_markers(args),
         "harmony_integrate" => builtin_harmony_integrate(args),
         "cca" => builtin_cca(args),
+        "sc_anchor_candidates" => builtin_sc_anchor_candidates(args),
         "sc_find_anchors" => builtin_sc_find_anchors(args),
         "sc_integrate_anchors" => builtin_sc_integrate_anchors(args),
         "cell_qc" => builtin_cell_qc(args),
@@ -783,6 +792,309 @@ fn builtin_sc_scale(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Matrix(output.into()))
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+fn external_provider_program(opts: &HashMap<String, Value>) -> Option<String> {
+    let requested = match opts.get("external_provider") {
+        Some(Value::Bool(true)) => Some("auto"),
+        Some(Value::Str(value)) => Some(value.as_str()),
+        _ => None,
+    }?;
+    if requested.eq_ignore_ascii_case("auto")
+        || requested.eq_ignore_ascii_case("external")
+        || requested.eq_ignore_ascii_case("seurat")
+    {
+        Some(
+            std::env::var("BIOLANG_SEURAT_PROVIDER")
+                .unwrap_or_else(|_| "bl-seurat-provider".to_string()),
+        )
+    } else {
+        Some(requested.to_string())
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn external_provider_program(opts: &HashMap<String, Value>) -> Option<String> {
+    match opts.get("external_provider") {
+        Some(Value::Bool(true)) | Some(Value::Str(_)) => Some("unavailable-in-wasm".to_string()),
+        _ => None,
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn write_blmat_values(
+    path: &Path,
+    rows: usize,
+    columns: usize,
+    mut value_at: impl FnMut(usize, usize) -> f64,
+) -> Result<()> {
+    let file = std::fs::File::create(path).map_err(|error| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("cannot create provider matrix {}: {error}", path.display()),
+            None,
+        )
+    })?;
+    let mut writer = std::io::BufWriter::new(file);
+    writer
+        .write_all(b"BLMATF64")
+        .map_err(|error| BioLangError::runtime(ErrorKind::IOError, error.to_string(), None))?;
+    writer
+        .write_all(&(rows as u64).to_le_bytes())
+        .and_then(|_| writer.write_all(&(columns as u64).to_le_bytes()))
+        .map_err(|error| BioLangError::runtime(ErrorKind::IOError, error.to_string(), None))?;
+    for row in 0..rows {
+        for column in 0..columns {
+            writer
+                .write_all(&value_at(row, column).to_le_bytes())
+                .map_err(|error| {
+                    BioLangError::runtime(ErrorKind::IOError, error.to_string(), None)
+                })?;
+        }
+    }
+    writer
+        .flush()
+        .map_err(|error| BioLangError::runtime(ErrorKind::IOError, error.to_string(), None))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn read_blmat_values(path: &Path, context: &str) -> Result<Vec<Vec<f64>>> {
+    let mut file = std::fs::File::open(path).map_err(|error| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("{context}: cannot open {}: {error}", path.display()),
+            None,
+        )
+    })?;
+    let mut header = [0_u8; 24];
+    file.read_exact(&mut header).map_err(|error| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("{context}: invalid matrix header: {error}"),
+            None,
+        )
+    })?;
+    if &header[..8] != b"BLMATF64" {
+        return Err(BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("{context}: invalid BLMATF64 magic"),
+            None,
+        ));
+    }
+    let rows =
+        usize::try_from(u64::from_le_bytes(header[8..16].try_into().unwrap())).map_err(|_| {
+            BioLangError::type_error(format!("{context}: row count is too large"), None)
+        })?;
+    let columns =
+        usize::try_from(u64::from_le_bytes(header[16..24].try_into().unwrap())).map_err(|_| {
+            BioLangError::type_error(format!("{context}: column count is too large"), None)
+        })?;
+    let values = rows.checked_mul(columns).ok_or_else(|| {
+        BioLangError::type_error(format!("{context}: matrix dimensions overflow"), None)
+    })?;
+    let mut bytes = vec![0_u8; values.saturating_mul(8)];
+    file.read_exact(&mut bytes).map_err(|error| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!("{context}: truncated matrix payload: {error}"),
+            None,
+        )
+    })?;
+    let flat: Vec<f64> = bytes
+        .chunks_exact(8)
+        .map(|chunk| f64::from_le_bytes(chunk.try_into().unwrap()))
+        .collect();
+    if flat.iter().any(|value| !value.is_finite()) {
+        return Err(BioLangError::type_error(
+            format!("{context}: provider returned non-finite values"),
+            None,
+        ));
+    }
+    Ok(flat
+        .chunks(columns.max(1))
+        .take(rows)
+        .map(<[f64]>::to_vec)
+        .collect())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn read_provider_manifest(path: &Path, context: &str) -> Result<HashMap<String, Value>> {
+    let contents = std::fs::read_to_string(path).map_err(|error| {
+        BioLangError::runtime(
+            ErrorKind::IOError,
+            format!(
+                "{context}: cannot read provider manifest {}: {error}",
+                path.display()
+            ),
+            None,
+        )
+    })?;
+    let mut lines = contents.lines();
+    let names = lines.next().unwrap_or_default().split(',');
+    let values = lines.next().unwrap_or_default().split(',');
+    let fields: HashMap<String, Value> = names
+        .zip(values)
+        .map(|(name, value)| (name.to_string(), Value::Str(value.to_string())))
+        .collect();
+    if fields.is_empty() {
+        return Err(BioLangError::type_error(
+            format!("{context}: provider manifest is empty"),
+            None,
+        ));
+    }
+    Ok(fields)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn run_external_provider(program: &str, arguments: &[String], context: &str) -> Result<()> {
+    let operation = arguments.first().map(String::as_str).unwrap_or("unknown");
+    eprintln!(
+        "BioLang single-cell backend: external provider '{program}' ({operation}, requested by {context})"
+    );
+    let output = Command::new(program)
+        .args(arguments)
+        .stdin(Stdio::null())
+        .output()
+        .map_err(|error| {
+            BioLangError::runtime(
+                ErrorKind::IOError,
+                format!(
+                    "{context}: cannot start external provider '{program}': {error}. Install bl-seurat-provider or set BIOLANG_SEURAT_PROVIDER"
+                ),
+                None,
+            )
+        })?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(BioLangError::runtime(
+            ErrorKind::IOError,
+            format!(
+                "{context}: external provider '{program}' failed with {}: {}",
+                output
+                    .status
+                    .code()
+                    .map_or_else(|| "no exit code".to_string(), |code| code.to_string()),
+                stderr.trim()
+            ),
+            None,
+        ));
+    }
+    Ok(())
+}
+
+struct ExternalCcaResult {
+    left_embedding: Vec<Vec<f64>>,
+    right_embedding: Vec<Vec<f64>>,
+    filter_features: Vec<usize>,
+    weight_reduction: Vec<Vec<f64>>,
+    manifest: HashMap<String, Value>,
+    program: String,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn external_cca(
+    program: String,
+    left: &[Vec<f64>],
+    right: &[Vec<f64>],
+    dimensions: usize,
+    seed: u64,
+    max_features: usize,
+) -> Result<ExternalCcaResult> {
+    let directory = tempfile::Builder::new()
+        .prefix("biolang-seurat-cca-")
+        .tempdir()
+        .map_err(|error| BioLangError::runtime(ErrorKind::IOError, error.to_string(), None))?;
+    let left_path = directory.path().join("left.f64");
+    let right_path = directory.path().join("right.f64");
+    let output_path = directory.path().join("output");
+    std::fs::create_dir(&output_path)
+        .map_err(|error| BioLangError::runtime(ErrorKind::IOError, error.to_string(), None))?;
+    let columns = left.first().map(Vec::len).unwrap_or(0);
+    write_blmat_values(&left_path, left.len(), columns, |row, column| {
+        left[row][column]
+    })?;
+    write_blmat_values(&right_path, right.len(), columns, |row, column| {
+        right[row][column]
+    })?;
+    run_external_provider(
+        &program,
+        &[
+            "cca".to_string(),
+            left_path.to_string_lossy().into_owned(),
+            right_path.to_string_lossy().into_owned(),
+            output_path.to_string_lossy().into_owned(),
+            dimensions.to_string(),
+            seed.to_string(),
+            max_features.to_string(),
+        ],
+        "sc_find_anchors()",
+    )?;
+    let left_embedding =
+        read_blmat_values(&output_path.join("left-embedding.f64"), "sc_find_anchors()")?;
+    let right_embedding = read_blmat_values(
+        &output_path.join("right-embedding.f64"),
+        "sc_find_anchors()",
+    )?;
+    let weight_reduction = read_blmat_values(
+        &output_path.join("weight-reduction.f64"),
+        "sc_find_anchors()",
+    )?;
+    let manifest = read_provider_manifest(&output_path.join("manifest.csv"), "sc_find_anchors()")?;
+    let filter_file = std::fs::File::open(output_path.join("filter-features.csv"))
+        .map_err(|error| BioLangError::runtime(ErrorKind::IOError, error.to_string(), None))?;
+    let filter_features = BufReader::new(filter_file)
+        .lines()
+        .skip(1)
+        .map(|line| {
+            line.map_err(|error| {
+                BioLangError::runtime(ErrorKind::IOError, error.to_string(), None)
+            })?
+            .trim()
+            .parse::<usize>()
+            .map_err(|error| {
+                BioLangError::type_error(format!("invalid provider filter index: {error}"), None)
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    if left_embedding.len() != left.len()
+        || right_embedding.len() != right.len()
+        || weight_reduction.len() != right.len()
+        || left_embedding.first().map(Vec::len).unwrap_or(0) != dimensions
+        || right_embedding.first().map(Vec::len).unwrap_or(0) != dimensions
+        || weight_reduction.first().map(Vec::len).unwrap_or(0) != dimensions
+        || filter_features.iter().any(|index| *index >= columns)
+    {
+        return Err(BioLangError::type_error(
+            "sc_find_anchors(): external provider returned incompatible dimensions",
+            None,
+        ));
+    }
+    Ok(ExternalCcaResult {
+        left_embedding,
+        right_embedding,
+        filter_features,
+        weight_reduction,
+        manifest,
+        program,
+    })
+}
+
+#[cfg(target_arch = "wasm32")]
+fn external_cca(
+    _program: String,
+    _left: &[Vec<f64>],
+    _right: &[Vec<f64>],
+    _dimensions: usize,
+    _seed: u64,
+    _max_features: usize,
+) -> Result<ExternalCcaResult> {
+    Err(BioLangError::runtime(
+        ErrorKind::IOError,
+        "sc_find_anchors(): external providers are unavailable in WebAssembly; use the native CLI"
+            .to_string(),
+        None,
+    ))
+}
+
 fn builtin_sc_pca(args: Vec<Value>) -> Result<Value> {
     let matrix = singlecell_matrix(&args[0], "sc_pca")?;
     let requested = if args.len() > 1 {
@@ -797,26 +1109,381 @@ fn builtin_sc_pca(args: Vec<Value>) -> Result<Value> {
     } else {
         50
     };
-    builtin_sc_pca_matrix(&matrix, requested)
+    let center = match args.get(2) {
+        Some(Value::Bool(value)) => *value,
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!("sc_pca() center must be Bool, got {}", other.type_of()),
+                None,
+            ))
+        }
+        None => true,
+    };
+    let opts = match args.get(3) {
+        Some(Value::Record(fields)) => fields.as_ref().clone(),
+        _ => HashMap::new(),
+    };
+    if matches!(opts.get("solver"), Some(Value::Str(name)) if name.eq_ignore_ascii_case("external"))
+    {
+        let program = external_provider_program(&opts).unwrap_or_else(|| {
+            std::env::var("BIOLANG_SEURAT_PROVIDER")
+                .unwrap_or_else(|_| "bl-seurat-provider".to_string())
+        });
+        return builtin_sc_pca_matrix_external(&matrix, requested, center, &program);
+    }
+    if matches!(opts.get("solver"), Some(Value::Str(name)) if name.eq_ignore_ascii_case("lanczos"))
+    {
+        return builtin_sc_pca_matrix_lanczos(&matrix, requested, center, &opts);
+    }
+    builtin_sc_pca_matrix(&matrix, requested, center)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn builtin_sc_pca_matrix_external(
+    matrix: &SingleCellMatrix<'_>,
+    requested: usize,
+    center: bool,
+    program: &str,
+) -> Result<Value> {
+    let (n_cells, n_genes) = matrix.dimensions();
+    // IRLBA requires the requested rank to be strictly smaller than both
+    // matrix dimensions. Real single-cell runs request 50 of thousands of
+    // features; the extra bound mainly makes tiny provider smoke tests valid.
+    let n_components = requested
+        .min(n_genes.saturating_sub(1))
+        .min(n_cells.saturating_sub(1));
+    if n_components == 0 {
+        return Err(BioLangError::type_error(
+            "sc_pca(): external PCA requires at least two cells and one feature",
+            None,
+        ));
+    }
+    let directory = tempfile::Builder::new()
+        .prefix("biolang-seurat-pca-")
+        .tempdir()
+        .map_err(|error| BioLangError::runtime(ErrorKind::IOError, error.to_string(), None))?;
+    let input_path = directory.path().join("input.f64");
+    let output_path = directory.path().join("output");
+    std::fs::create_dir(&output_path)
+        .map_err(|error| BioLangError::runtime(ErrorKind::IOError, error.to_string(), None))?;
+    write_blmat_values(&input_path, n_cells, n_genes, |row, column| {
+        matrix.value_at(row, column)
+    })?;
+    run_external_provider(
+        program,
+        &[
+            "pca".to_string(),
+            input_path.to_string_lossy().into_owned(),
+            output_path.to_string_lossy().into_owned(),
+            n_components.to_string(),
+            "42".to_string(),
+            center.to_string(),
+        ],
+        "sc_pca()",
+    )?;
+    let scores = read_blmat_values(&output_path.join("scores.f64"), "sc_pca()")?;
+    let loadings = read_blmat_values(&output_path.join("loadings.f64"), "sc_pca()")?;
+    let manifest = read_provider_manifest(&output_path.join("manifest.csv"), "sc_pca()")?;
+    if scores.len() != n_cells
+        || loadings.len() != n_genes
+        || scores.first().map(Vec::len).unwrap_or(0) != n_components
+        || loadings.first().map(Vec::len).unwrap_or(0) != n_components
+    {
+        return Err(BioLangError::type_error(
+            "sc_pca(): external provider returned incompatible dimensions",
+            None,
+        ));
+    }
+    let (sums, sums_squared) = matrix.column_moments();
+    let observed_means: Vec<f64> = sums.iter().map(|sum| sum / n_cells as f64).collect();
+    let means = if center {
+        observed_means.clone()
+    } else {
+        vec![0.0; n_genes]
+    };
+    let divisor = n_cells.saturating_sub(1).max(1) as f64;
+    let total_variance = sums_squared
+        .iter()
+        .zip(&observed_means)
+        .map(|(sum_squared, mean)| {
+            ((sum_squared - n_cells as f64 * mean * mean) / divisor).max(0.0)
+        })
+        .sum::<f64>();
+    let explained_variance: Vec<f64> = (0..n_components)
+        .map(|component| {
+            scores
+                .iter()
+                .map(|row| row[component] * row[component])
+                .sum::<f64>()
+                / divisor
+        })
+        .collect();
+    let explained_variance_ratio = explained_variance
+        .iter()
+        .map(|variance| {
+            Value::Float(if total_variance > 0.0 {
+                variance / total_variance
+            } else {
+                0.0
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(Value::Record(
+        HashMap::from([
+            ("scores".to_string(), matrix_to_value(scores)),
+            ("loadings".to_string(), matrix_to_value(loadings)),
+            (
+                "explained_variance".to_string(),
+                Value::List(
+                    explained_variance
+                        .into_iter()
+                        .map(Value::Float)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ),
+            (
+                "explained_variance_ratio".to_string(),
+                Value::List(explained_variance_ratio.into()),
+            ),
+            (
+                "mean".to_string(),
+                Value::List(
+                    means
+                        .into_iter()
+                        .map(Value::Float)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ),
+            ("n_components".to_string(), Value::Int(n_components as i64)),
+            ("sweeps".to_string(), Value::Int(0)),
+            ("converged".to_string(), Value::Bool(true)),
+            (
+                "compute_method".to_string(),
+                Value::Str(format!("external_process:{program}")),
+            ),
+            (
+                "external_provider_manifest".to_string(),
+                Value::Record(manifest.into()),
+            ),
+        ])
+        .into(),
+    ))
+}
+
+#[cfg(target_arch = "wasm32")]
+fn builtin_sc_pca_matrix_external(
+    _matrix: &SingleCellMatrix<'_>,
+    _requested: usize,
+    _center: bool,
+    _program: &str,
+) -> Result<Value> {
+    Err(BioLangError::runtime(
+        ErrorKind::IOError,
+        "sc_pca(): external providers are unavailable in WebAssembly; use the native CLI"
+            .to_string(),
+        None,
+    ))
+}
+
+/// Direct-matrix truncated SVD compatibility path. This is opt-in because the
+/// ordinary block PCA is faster and needs no random start; the restarted
+/// Lanczos path exists for workflows that must reproduce an IRLBA-style
+/// stopping point rather than the more fully converged principal subspace.
+fn builtin_sc_pca_matrix_lanczos(
+    matrix: &SingleCellMatrix<'_>,
+    requested: usize,
+    center: bool,
+    opts: &HashMap<String, Value>,
+) -> Result<Value> {
+    let (n_cells, n_genes) = matrix.dimensions();
+    let n_components = requested.min(n_genes).min(n_cells.saturating_sub(1));
+    let (sums, sums_squared) = matrix.column_moments();
+    let observed_means: Vec<f64> = if n_cells == 0 {
+        vec![0.0; n_genes]
+    } else {
+        sums.iter().map(|sum| sum / n_cells as f64).collect()
+    };
+    let means = if center {
+        observed_means.clone()
+    } else {
+        vec![0.0; n_genes]
+    };
+    let total_variance = if n_cells > 1 {
+        sums_squared
+            .iter()
+            .zip(&observed_means)
+            .map(|(sum_squared, mean)| {
+                ((sum_squared - n_cells as f64 * mean * mean) / (n_cells - 1) as f64).max(0.0)
+            })
+            .sum::<f64>()
+    } else {
+        0.0
+    };
+    let initial: Option<Vec<f64>> = match opts.get("initial") {
+        Some(Value::List(values)) => Some(
+            values
+                .iter()
+                .map(|value| {
+                    value.as_float().ok_or_else(|| {
+                        BioLangError::type_error("sc_pca() initial must be a List<Number>", None)
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?,
+        ),
+        Some(_) => {
+            return Err(BioLangError::type_error(
+                "sc_pca() initial must be a List<Number>",
+                None,
+            ))
+        }
+        None => None,
+    };
+    let work_extra = record_number(opts, "work_extra", 7.0).clamp(2.0, 256.0) as usize;
+    let tolerance = record_number(opts, "tolerance", 1e-5).clamp(1e-12, 1.0);
+    let max_iterations =
+        record_number(opts, "max_iterations", 1000.0).clamp(1.0, 10_000.0) as usize;
+    let seed = record_number(opts, "seed", 42.0).max(1.0) as u64;
+
+    let forward = |basis: &[Vec<f64>]| {
+        let width = basis.len();
+        let mut packed = vec![0.0; n_genes * width];
+        for (component, vector) in basis.iter().enumerate() {
+            for (gene, value) in vector.iter().copied().enumerate() {
+                packed[gene * width + component] = value;
+            }
+        }
+        let applied = matrix.multiply_centered_block(&means, &packed, width);
+        let columns = (0..width)
+            .map(|component| {
+                (0..n_cells)
+                    .map(|cell| applied[cell * width + component])
+                    .collect()
+            })
+            .collect();
+        (columns, false)
+    };
+    let reverse = |basis: &[Vec<f64>]| {
+        let width = basis.len();
+        let mut packed = vec![0.0; n_cells * width];
+        for (component, vector) in basis.iter().enumerate() {
+            for (cell, value) in vector.iter().copied().enumerate() {
+                packed[cell * width + component] = value;
+            }
+        }
+        let applied = matrix.transpose_multiply_centered_block(&means, &packed, width);
+        let columns = (0..width)
+            .map(|component| {
+                (0..n_genes)
+                    .map(|gene| applied[gene * width + component])
+                    .collect()
+            })
+            .collect();
+        (columns, false)
+    };
+    let (left, loadings, singular, _, iterations, converged) = restarted_lanczos_svd_with(
+        n_cells,
+        n_genes,
+        n_genes,
+        n_components,
+        work_extra,
+        tolerance,
+        max_iterations,
+        seed,
+        initial.as_deref(),
+        forward,
+        reverse,
+    )?;
+    let scores: Vec<Vec<f64>> = left
+        .into_iter()
+        .map(|row| {
+            row.into_iter()
+                .zip(&singular)
+                .map(|(value, scale)| value * scale)
+                .collect()
+        })
+        .collect();
+    let explained_variance: Vec<f64> = singular
+        .iter()
+        .map(|value| value * value / n_cells.saturating_sub(1).max(1) as f64)
+        .collect();
+    let explained_variance_ratio = explained_variance
+        .iter()
+        .map(|variance| {
+            Value::Float(if total_variance > 0.0 {
+                variance / total_variance
+            } else {
+                0.0
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(Value::Record(
+        HashMap::from([
+            ("scores".to_string(), matrix_to_value(scores)),
+            ("loadings".to_string(), matrix_to_value(loadings)),
+            (
+                "explained_variance".to_string(),
+                Value::List(
+                    explained_variance
+                        .into_iter()
+                        .map(Value::Float)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ),
+            (
+                "explained_variance_ratio".to_string(),
+                Value::List(explained_variance_ratio.into()),
+            ),
+            (
+                "mean".to_string(),
+                Value::List(
+                    means
+                        .into_iter()
+                        .map(Value::Float)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ),
+            ("n_components".to_string(), Value::Int(n_components as i64)),
+            ("sweeps".to_string(), Value::Int(iterations as i64)),
+            ("converged".to_string(), Value::Bool(converged)),
+            (
+                "compute_method".to_string(),
+                Value::Str("direct_matrix_restarted_lanczos_cpu".to_string()),
+            ),
+        ])
+        .into(),
+    ))
 }
 
 /// PCA implementation shared by the public builtin and native single-cell
 /// stages. Keeping the matrix in `SingleCellMatrix` form is important for
 /// large integration objects: a language `List<List<Float>>` representation
 /// costs several times the raw f64 storage and used to dominate peak memory.
-fn builtin_sc_pca_matrix(matrix: &SingleCellMatrix<'_>, requested: usize) -> Result<Value> {
+fn builtin_sc_pca_matrix(
+    matrix: &SingleCellMatrix<'_>,
+    requested: usize,
+    center: bool,
+) -> Result<Value> {
     let (n_cells, n_genes) = matrix.dimensions();
     let n_components = requested.min(n_genes).min(n_cells.saturating_sub(1));
     let (sums, sums_squared) = matrix.column_moments();
-    let means: Vec<f64> = if n_cells == 0 {
+    let observed_means: Vec<f64> = if n_cells == 0 {
         vec![0.0; n_genes]
     } else {
         sums.iter().map(|sum| sum / n_cells as f64).collect()
     };
+    let means = if center {
+        observed_means.clone()
+    } else {
+        vec![0.0; n_genes]
+    };
     let total_variance = if n_cells > 1 {
         sums_squared
             .iter()
-            .zip(&means)
+            .zip(&observed_means)
             .map(|(sum_squared, mean)| {
                 ((sum_squared - n_cells as f64 * mean * mean) / (n_cells - 1) as f64).max(0.0)
             })
@@ -846,11 +1513,18 @@ fn builtin_sc_pca_matrix(matrix: &SingleCellMatrix<'_>, requested: usize) -> Res
     // problem *within* the converged subspace, which is what makes the result
     // ordered and mutually orthogonal by construction rather than by hope.
     // A ceiling, not a schedule: the loop below stops when the returned
-    // components stop moving, which on real data happens far sooner.
+    // components stop moving. Keep the default ceiling bounded, however.
+    // Near-degenerate values at the requested-component boundary can make the
+    // full returned span rotate for hundreds of sweeps even after the leading
+    // components used downstream have settled. On the 14,847 x 3,000 HBC
+    // residual matrix, 30 versus 132 converged sweeps gives >= 0.9999999
+    // same-index correlation through PC40; the default of 50 keeps additional
+    // margin for the tail while preventing a pathological 300-sweep run.
+    // Users who need a more precise tail can raise BIOLANG_PCA_MAX_SWEEPS.
     let max_sweeps: usize = std::env::var("BIOLANG_PCA_MAX_SWEEPS")
         .ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(300);
+        .unwrap_or(50);
     const OVERSAMPLE: usize = 10;
 
     let block_width = (n_components + OVERSAMPLE).min(n_genes).min(n_cells);
@@ -1117,6 +1791,8 @@ fn builtin_sc_pca_matrix(matrix: &SingleCellMatrix<'_>, requested: usize) -> Res
         "n_components".to_string(),
         Value::Int(actual_components as i64),
     );
+    result.insert("sweeps".to_string(), Value::Int(sweeps_used as i64));
+    result.insert("converged".to_string(), Value::Bool(converged));
     Ok(Value::Record(result.into()))
 }
 
@@ -2295,12 +2971,32 @@ fn scalable_cross_svd(
     first: &[Vec<f64>],
     second: &[Vec<f64>],
     requested: usize,
-) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>, bool)> {
+    sweeps: usize,
+    oversample: usize,
+) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>, bool, bool)> {
     let source_width = first.first().map(Vec::len).unwrap_or(0);
-    let sketch_width = source_width.min(512).max(1);
-    let left = count_sketch_rows(first, sketch_width);
-    let right = count_sketch_rows(second, sketch_width);
-    let block_width = (requested + 8).min(first.len()).min(second.len()).max(1);
+    // At the normal 2,000-3,000 integration-feature scale, work directly on
+    // the input. This remains matrix-free (the quadratic cells x cells cross
+    // product is never allocated) and avoids corrupting the projected gene
+    // loadings used by Seurat's TopDimFeatures filter. Wider custom analyses
+    // retain a bounded CountSketch subspace.
+    let sketch_width = source_width.min(3_000).max(1);
+    let left_storage =
+        (sketch_width < source_width).then(|| count_sketch_rows(first, sketch_width));
+    let right_storage =
+        (sketch_width < source_width).then(|| count_sketch_rows(second, sketch_width));
+    let left = left_storage.as_deref().unwrap_or(first);
+    let right = right_storage.as_deref().unwrap_or(second);
+    // The HBC spectrum is nearly degenerate around the trailing requested
+    // components. Eight oversampling vectors converged the leading axes but
+    // left the weakest CCA directions a few degrees from IRLBA, which was
+    // enough to perturb anchor identities. A 32-vector guard subspace keeps
+    // those neighbouring singular directions during iteration without ever
+    // materialising the quadratic cell cross-product.
+    let block_width = (requested + oversample)
+        .min(first.len())
+        .min(second.len())
+        .max(1);
     let mut right_basis: Vec<Vec<f64>> = (0..block_width)
         .map(|component| {
             (0..right.len())
@@ -2315,7 +3011,11 @@ fn scalable_cross_svd(
     orthonormalise_block(&mut right_basis);
     let mut left_basis = Vec::new();
     let mut used_gpu = false;
-    for _ in 0..2 {
+    // Extra block-power passes matter mainly for the trailing CCA components.
+    // Twelve passes plus the wider guard subspace converge the full requested
+    // space while retaining the same O(cells * (features + block_width))
+    // memory bound.
+    for _ in 0..sweeps {
         let (next_left, accelerated) = cross_apply_block(&left, &right, &right_basis);
         left_basis = next_left;
         used_gpu |= accelerated;
@@ -2381,7 +3081,628 @@ fn scalable_cross_svd(
         right_embedding,
         singular.into_iter().take(k).collect(),
         used_gpu,
+        sketch_width < source_width,
     ))
+}
+
+/// Accurate SVD for the small projected matrices used by iterative solvers.
+/// Vectors are component-major: `left[c][row]` and `right[c][column]`.
+fn projected_svd(input: &[Vec<f64>]) -> (Vec<Vec<f64>>, Vec<f64>, Vec<Vec<f64>>) {
+    let rows = input.len();
+    let columns = input.first().map(Vec::len).unwrap_or(0);
+    let mut gram = vec![vec![0.0; columns]; columns];
+    for i in 0..columns {
+        for j in i..columns {
+            let value: f64 = input.iter().map(|row| row[i] * row[j]).sum();
+            gram[i][j] = value;
+            gram[j][i] = value;
+        }
+    }
+    let (right, eigenvalues) = jacobi_eigen_symmetric(&gram);
+    let singular: Vec<f64> = eigenvalues
+        .into_iter()
+        .map(|value| value.max(0.0).sqrt())
+        .collect();
+    let left: Vec<Vec<f64>> = right
+        .iter()
+        .zip(&singular)
+        .map(|(vector, &sigma)| {
+            if sigma <= 1e-14 {
+                return vec![0.0; rows];
+            }
+            input
+                .iter()
+                .map(|row| row.iter().zip(vector).map(|(a, b)| a * b).sum::<f64>() / sigma)
+                .collect()
+        })
+        .collect();
+    (left, singular, right)
+}
+
+/// Matrix-free augmented Lanczos bidiagonalization derived from Algorithm 3.1
+/// of Baglama and Reichel (2005). This is an independent implementation from
+/// the published equations: build a partial Golub-Kahan bidiagonalization,
+/// retain the requested Ritz vectors, augment them with the final residual,
+/// and expand the working space again. No implementation from `irlba` is used.
+#[allow(dead_code)]
+fn augmented_lanczos_cross_svd(
+    first: &[Vec<f64>],
+    second: &[Vec<f64>],
+    requested: usize,
+    work_extra: usize,
+    tolerance: f64,
+    max_iterations: usize,
+    seed: u64,
+    supplied_initial: Option<&[f64]>,
+) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>, bool, usize)> {
+    fn dot_product(left: &[f64], right: &[f64]) -> f64 {
+        left.iter().zip(right).map(|(a, b)| a * b).sum()
+    }
+
+    fn vector_norm(vector: &[f64]) -> f64 {
+        dot_product(vector, vector).sqrt()
+    }
+
+    fn subtract_scaled(target: &mut [f64], source: &[f64], scale: f64) {
+        for (value, basis) in target.iter_mut().zip(source) {
+            *value -= scale * basis;
+        }
+    }
+
+    fn normalise(vector: &mut [f64]) -> f64 {
+        let norm = vector_norm(vector);
+        if norm > 1e-14 && norm.is_finite() {
+            for value in vector {
+                *value /= norm;
+            }
+        }
+        norm
+    }
+
+    fn combine_basis(basis: &[Vec<f64>], coefficients: &[f64]) -> Vec<f64> {
+        let mut result = vec![0.0; basis.first().map(Vec::len).unwrap_or(0)];
+        for (vector, coefficient) in basis.iter().zip(coefficients) {
+            for (value, basis_value) in result.iter_mut().zip(vector) {
+                *value += coefficient * basis_value;
+            }
+        }
+        result
+    }
+
+    let left_rows = first.len();
+    let right_rows = second.len();
+    let available = left_rows
+        .min(right_rows)
+        .min(first.first().map(Vec::len).unwrap_or(0));
+    let wanted = requested.min(available).max(1);
+    let work = (wanted + work_extra.max(2)).min(available);
+    if work <= wanted {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "cca(): Lanczos work space must exceed the requested rank".to_string(),
+            None,
+        ));
+    }
+
+    // A deterministic, non-zero start keeps BioLang runs reproducible. The
+    // state transition is local to this clean-room solver; it does not attempt
+    // to reproduce any package's random-number implementation.
+    if let Some(initial) = supplied_initial {
+        if initial.len() != right_rows || initial.iter().any(|value| !value.is_finite()) {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!(
+                    "cca(): supplied Lanczos start has {} values; expected {right_rows} finite values",
+                    initial.len()
+                ),
+                None,
+            ));
+        }
+    }
+    let mut state = seed.max(1);
+    let mut initial: Vec<f64> = supplied_initial.map(<[f64]>::to_vec).unwrap_or_else(|| {
+        (0..right_rows)
+            .map(|_| {
+                state ^= state << 13;
+                state ^= state >> 7;
+                state ^= state << 17;
+                ((state >> 11) as f64 / ((1_u64 << 53) as f64)) * 2.0 - 1.0
+            })
+            .collect()
+    });
+    if normalise(&mut initial) <= 1e-14 {
+        initial.fill(1.0 / (right_rows as f64).sqrt());
+    }
+
+    let mut right_basis = vec![initial];
+    let mut left_basis: Vec<Vec<f64>> = Vec::with_capacity(work);
+    let mut small = vec![0.0; work * work];
+    let mut residual = Vec::new();
+    let mut residual_norm = 0.0;
+    let mut previous_singular: Option<Vec<f64>> = None;
+    let mut used_gpu = false;
+
+    for iteration in 1..=max_iterations.max(1) {
+        while left_basis.len() < work {
+            let column = left_basis.len();
+            let (mut next_left_block, accelerated) =
+                cross_apply_block(first, second, &[right_basis[column].clone()]);
+            used_gpu |= accelerated;
+            let mut next_left = next_left_block.pop().unwrap_or_default();
+
+            // Subtract coefficients already supplied by the augmented restart,
+            // then perform two full reorthogonalization passes. Recording the
+            // small corrections keeps A*P = Q*B true to working precision.
+            for (row, basis) in left_basis.iter().enumerate() {
+                subtract_scaled(&mut next_left, basis, small[row * work + column]);
+            }
+            for _ in 0..2 {
+                for (row, basis) in left_basis.iter().enumerate() {
+                    let coefficient = dot_product(basis, &next_left);
+                    small[row * work + column] += coefficient;
+                    subtract_scaled(&mut next_left, basis, coefficient);
+                }
+            }
+            let alpha = normalise(&mut next_left);
+            if alpha <= 1e-14 || !alpha.is_finite() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "cca(): Lanczos bidiagonalization broke down".to_string(),
+                    None,
+                ));
+            }
+            small[column * work + column] = alpha;
+            left_basis.push(next_left);
+
+            let (mut next_right_block, accelerated) =
+                cross_apply_block(second, first, &[left_basis[column].clone()]);
+            used_gpu |= accelerated;
+            residual = next_right_block.pop().unwrap_or_default();
+            for (basis_column, basis) in right_basis.iter().enumerate() {
+                subtract_scaled(&mut residual, basis, small[column * work + basis_column]);
+            }
+            for _ in 0..2 {
+                for (basis_column, basis) in right_basis.iter().enumerate() {
+                    let coefficient = dot_product(basis, &residual);
+                    small[column * work + basis_column] += coefficient;
+                    subtract_scaled(&mut residual, basis, coefficient);
+                }
+            }
+            residual_norm = vector_norm(&residual);
+            if column + 1 < work {
+                if residual_norm <= 1e-14 || !residual_norm.is_finite() {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "cca(): Lanczos residual vanished before the working space was complete"
+                            .to_string(),
+                        None,
+                    ));
+                }
+                let mut next_right = residual.clone();
+                for value in &mut next_right {
+                    *value /= residual_norm;
+                }
+                small[column * work + column + 1] = residual_norm;
+                right_basis.push(next_right);
+            }
+        }
+
+        let projected: Vec<Vec<f64>> = small.chunks(work).map(<[f64]>::to_vec).collect();
+        let (u_small, singular, v_small) = projected_svd(&projected);
+        let current: Vec<f64> = singular.iter().take(wanted).copied().collect();
+        let largest = current
+            .first()
+            .copied()
+            .unwrap_or(1.0)
+            .max(f64::MIN_POSITIVE);
+        let max_residual = (0..wanted)
+            .map(|component| residual_norm * u_small[component][work - 1].abs())
+            .fold(0.0_f64, f64::max);
+        let singular_change = previous_singular
+            .as_ref()
+            .map(|previous| {
+                current
+                    .iter()
+                    .zip(previous)
+                    .map(|(now, before)| (now - before).abs() / now.abs().max(f64::MIN_POSITIVE))
+                    .fold(0.0_f64, f64::max)
+            })
+            .unwrap_or(f64::INFINITY);
+        let invariant_subspace = residual_norm <= f64::EPSILON.sqrt() * largest;
+        let converged = max_residual <= tolerance * largest
+            && (singular_change <= tolerance || invariant_subspace);
+
+        if converged || iteration == max_iterations.max(1) {
+            let left_vectors: Vec<Vec<f64>> = (0..wanted)
+                .map(|component| {
+                    combine_basis(
+                        &left_basis,
+                        &(0..work)
+                            .map(|row| u_small[component][row])
+                            .collect::<Vec<_>>(),
+                    )
+                })
+                .collect();
+            let right_vectors: Vec<Vec<f64>> = (0..wanted)
+                .map(|component| {
+                    combine_basis(
+                        &right_basis,
+                        &(0..work)
+                            .map(|row| v_small[component][row])
+                            .collect::<Vec<_>>(),
+                    )
+                })
+                .collect();
+            let left_embedding: Vec<Vec<f64>> = (0..left_rows)
+                .map(|row| left_vectors.iter().map(|vector| vector[row]).collect())
+                .collect();
+            let right_embedding: Vec<Vec<f64>> = (0..right_rows)
+                .map(|row| right_vectors.iter().map(|vector| vector[row]).collect())
+                .collect();
+            return Ok((
+                left_embedding,
+                right_embedding,
+                current,
+                used_gpu,
+                iteration,
+            ));
+        }
+
+        // Ritz augmentation (paper section 3.1): keep the wanted Ritz pairs,
+        // append the normalized final residual as the next right vector, and
+        // preserve its coupling rho_j = beta_m * U[m,j].
+        let retained_left: Vec<Vec<f64>> = (0..wanted)
+            .map(|component| {
+                combine_basis(
+                    &left_basis,
+                    &(0..work)
+                        .map(|row| u_small[component][row])
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect();
+        let mut retained_right: Vec<Vec<f64>> = (0..wanted)
+            .map(|component| {
+                combine_basis(
+                    &right_basis,
+                    &(0..work)
+                        .map(|row| v_small[component][row])
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect();
+        if residual_norm <= 1e-14 || !residual_norm.is_finite() {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "cca(): Lanczos restart residual vanished before convergence".to_string(),
+                None,
+            ));
+        }
+        for value in &mut residual {
+            *value /= residual_norm;
+        }
+        retained_right.push(residual.clone());
+        left_basis = retained_left;
+        right_basis = retained_right;
+        small.fill(0.0);
+        for component in 0..wanted {
+            small[component * work + component] = current[component];
+            small[component * work + wanted] = residual_norm * u_small[component][work - 1];
+        }
+        previous_singular = Some(current);
+    }
+    unreachable!()
+}
+
+/// Matrix-free augmented restarted Lanczos bidiagonalization following the
+/// recurrence and three-vector augmentation described by Baglama and Reichel.
+/// Unlike the older experimental solver above, this keeps the residual Ritz
+/// couplings unchanged across a restart and performs the single full
+/// reorthogonalization prescribed by the recurrence.  Those details matter on
+/// the nearly degenerate tail of real single-cell CCA spectra.
+fn restarted_lanczos_svd_with<Forward, Reverse>(
+    left_rows: usize,
+    right_rows: usize,
+    rank_limit: usize,
+    requested: usize,
+    work_extra: usize,
+    tolerance: f64,
+    max_iterations: usize,
+    seed: u64,
+    supplied_initial: Option<&[f64]>,
+    mut forward: Forward,
+    mut reverse: Reverse,
+) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>, bool, usize, bool)>
+where
+    Forward: FnMut(&[Vec<f64>]) -> (Vec<Vec<f64>>, bool),
+    Reverse: FnMut(&[Vec<f64>]) -> (Vec<Vec<f64>>, bool),
+{
+    fn dot(left: &[f64], right: &[f64]) -> f64 {
+        left.iter().zip(right).map(|(a, b)| a * b).sum()
+    }
+    fn norm(vector: &[f64]) -> f64 {
+        dot(vector, vector).sqrt()
+    }
+    fn normalise(vector: &mut [f64]) -> f64 {
+        let length = norm(vector);
+        if length > 1e-14 && length.is_finite() {
+            for value in vector {
+                *value /= length;
+            }
+        }
+        length
+    }
+    fn orthogonalise_once(vector: &mut [f64], basis: &[Vec<f64>]) {
+        if basis.is_empty() {
+            return;
+        }
+        let coefficients: Vec<f64> = basis.iter().map(|column| dot(column, vector)).collect();
+        for (column, coefficient) in basis.iter().zip(coefficients) {
+            for (value, basis_value) in vector.iter_mut().zip(column) {
+                *value -= coefficient * basis_value;
+            }
+        }
+    }
+    fn combine(basis: &[Vec<f64>], coefficients: &[f64]) -> Vec<f64> {
+        let mut output = vec![0.0; basis.first().map(Vec::len).unwrap_or(0)];
+        for (column, coefficient) in basis.iter().zip(coefficients) {
+            for (value, basis_value) in output.iter_mut().zip(column) {
+                *value += coefficient * basis_value;
+            }
+        }
+        output
+    }
+
+    let available = left_rows.min(right_rows).min(rank_limit);
+    let wanted = requested.min(available).max(1);
+    let work = (wanted + work_extra.max(2)).min(available);
+    if work <= wanted {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "restarted Lanczos work space must exceed the requested rank".to_string(),
+            None,
+        ));
+    }
+    if let Some(initial) = supplied_initial {
+        if initial.len() != right_rows || initial.iter().any(|value| !value.is_finite()) {
+            return Err(BioLangError::type_error(
+                format!(
+                    "supplied Lanczos start has {} values; expected {right_rows} finite values",
+                    initial.len()
+                ),
+                None,
+            ));
+        }
+    }
+    let mut state = seed.max(1);
+    let mut start: Vec<f64> = supplied_initial.map(<[f64]>::to_vec).unwrap_or_else(|| {
+        (0..right_rows)
+            .map(|_| {
+                state ^= state << 13;
+                state ^= state >> 7;
+                state ^= state << 17;
+                ((state >> 11) as f64 / ((1_u64 << 53) as f64)) * 2.0 - 1.0
+            })
+            .collect()
+    });
+    if normalise(&mut start) <= 1e-14 {
+        start.fill(1.0 / (right_rows as f64).sqrt());
+    }
+
+    let mut right_basis = vec![start];
+    let mut left_basis: Vec<Vec<f64>> = Vec::with_capacity(work);
+    let mut bidiagonal = vec![0.0; work * work];
+    let mut previous_singular: Option<Vec<f64>> = None;
+    let mut retained = wanted;
+    let mut spectral_max = 1.0_f64;
+    let mut used_gpu = false;
+
+    for iteration in 1..=max_iterations.max(1) {
+        let first_new = if iteration == 1 { 0 } else { retained };
+        let (mut left_block, accelerated) = forward(&[right_basis[first_new].clone()]);
+        used_gpu |= accelerated;
+        let mut next_left = left_block.pop().unwrap_or_default();
+        if iteration != 1 {
+            orthogonalise_once(&mut next_left, &left_basis);
+        }
+        let mut diagonal = normalise(&mut next_left);
+        if diagonal <= 1e-14 || !diagonal.is_finite() {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "restarted Lanczos left basis reached an invariant subspace".to_string(),
+                None,
+            ));
+        }
+        left_basis.push(next_left);
+
+        let mut residual = Vec::new();
+        let mut residual_norm = 0.0;
+        for column in first_new..work {
+            let (mut right_block, accelerated) = reverse(&[left_basis[column].clone()]);
+            used_gpu |= accelerated;
+            residual = right_block.pop().unwrap_or_default();
+            for (value, basis_value) in residual.iter_mut().zip(&right_basis[column]) {
+                *value -= diagonal * basis_value;
+            }
+            orthogonalise_once(&mut residual, &right_basis[..=column]);
+            residual_norm = norm(&residual);
+            bidiagonal[column * work + column] = diagonal;
+
+            if column + 1 < work {
+                if residual_norm <= 1e-14 || !residual_norm.is_finite() {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "restarted Lanczos right basis reached an invariant subspace".to_string(),
+                        None,
+                    ));
+                }
+                let mut next_right = residual.clone();
+                for value in &mut next_right {
+                    *value /= residual_norm;
+                }
+                bidiagonal[column * work + column + 1] = residual_norm;
+                right_basis.push(next_right);
+
+                let (mut following_left, accelerated) = forward(&[right_basis[column + 1].clone()]);
+                used_gpu |= accelerated;
+                let mut following_left = following_left.pop().unwrap_or_default();
+                for (value, previous) in following_left.iter_mut().zip(&left_basis[column]) {
+                    *value -= residual_norm * previous;
+                }
+                orthogonalise_once(&mut following_left, &left_basis);
+                diagonal = normalise(&mut following_left);
+                if diagonal <= 1e-14 || !diagonal.is_finite() {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "restarted Lanczos left basis reached an invariant subspace".to_string(),
+                        None,
+                    ));
+                }
+                left_basis.push(following_left);
+            }
+        }
+
+        let projected: Vec<Vec<f64>> = bidiagonal.chunks(work).map(<[f64]>::to_vec).collect();
+        let (left_small, singular, right_small) = projected_svd(&projected);
+        let current: Vec<f64> = singular.iter().take(wanted).copied().collect();
+        spectral_max = spectral_max.max(current[0]);
+        let residuals: Vec<f64> = (0..wanted)
+            .map(|component| residual_norm * left_small[component][work - 1].abs())
+            .collect();
+        let stable: Vec<bool> = match &previous_singular {
+            Some(previous) => current
+                .iter()
+                .zip(previous)
+                .map(|(now, before)| {
+                    (now - before).abs() / now.abs().max(f64::MIN_POSITIVE) < tolerance
+                })
+                .collect(),
+            None => vec![false; wanted],
+        };
+        let converged_count = residuals
+            .iter()
+            .zip(&stable)
+            .filter(|(residual, stable)| **residual < tolerance * spectral_max && **stable)
+            .count();
+        let converged = converged_count >= wanted;
+        if std::env::var_os("BIOLANG_CCA_TRACE").is_some() {
+            let worst_residual = residuals.iter().copied().fold(0.0_f64, f64::max);
+            let stable_count = stable.iter().filter(|value| **value).count();
+            eprintln!(
+                "  restarted lanczos: iteration={iteration} retained={retained} residual_converged={} stable={stable_count}/{wanted} both={converged_count}/{wanted} worst_residual={worst_residual:.3e}",
+                residuals
+                    .iter()
+                    .filter(|value| **value < tolerance * spectral_max)
+                    .count()
+            );
+        }
+
+        if converged || iteration == max_iterations.max(1) {
+            let left_vectors: Vec<Vec<f64>> = (0..wanted)
+                .map(|component| combine(&left_basis, &left_small[component]))
+                .collect();
+            let right_vectors: Vec<Vec<f64>> = (0..wanted)
+                .map(|component| combine(&right_basis, &right_small[component]))
+                .collect();
+            let left_embedding = (0..left_rows)
+                .map(|row| left_vectors.iter().map(|vector| vector[row]).collect())
+                .collect();
+            let right_embedding = (0..right_rows)
+                .map(|row| right_vectors.iter().map(|vector| vector[row]).collect())
+                .collect();
+            return Ok((
+                left_embedding,
+                right_embedding,
+                current,
+                used_gpu,
+                iteration,
+                converged,
+            ));
+        }
+
+        retained = retained
+            .max(
+                wanted
+                    + residuals
+                        .iter()
+                        .take(wanted)
+                        .filter(|value| **value < tolerance * spectral_max)
+                        .count()
+                        .min(3),
+            )
+            .min(work - 1);
+        let new_left: Vec<Vec<f64>> = (0..retained)
+            .map(|component| combine(&left_basis, &left_small[component]))
+            .collect();
+        let mut new_right: Vec<Vec<f64>> = (0..retained)
+            .map(|component| combine(&right_basis, &right_small[component]))
+            .collect();
+        if residual_norm <= 1e-14 || !residual_norm.is_finite() {
+            // A vanished terminal residual means the Krylov space is invariant:
+            // the projected decomposition is already an exact decomposition of
+            // the represented matrix, even though the change-based stopping
+            // test needs a second iteration to call it stable.
+            let left_vectors: Vec<Vec<f64>> = (0..wanted)
+                .map(|component| combine(&left_basis, &left_small[component]))
+                .collect();
+            let right_vectors: Vec<Vec<f64>> = (0..wanted)
+                .map(|component| combine(&right_basis, &right_small[component]))
+                .collect();
+            let left_embedding = (0..left_rows)
+                .map(|row| left_vectors.iter().map(|vector| vector[row]).collect())
+                .collect();
+            let right_embedding = (0..right_rows)
+                .map(|row| right_vectors.iter().map(|vector| vector[row]).collect())
+                .collect();
+            return Ok((
+                left_embedding,
+                right_embedding,
+                current,
+                used_gpu,
+                iteration,
+                true,
+            ));
+        }
+        for value in &mut residual {
+            *value /= residual_norm;
+        }
+        new_right.push(residual);
+        left_basis = new_left;
+        right_basis = new_right;
+        bidiagonal.fill(0.0);
+        for component in 0..retained {
+            bidiagonal[component * work + component] = singular[component];
+            bidiagonal[component * work + retained] =
+                residual_norm * left_small[component][work - 1];
+        }
+        previous_singular = Some(current);
+    }
+    unreachable!()
+}
+
+fn restarted_lanczos_cross_svd(
+    first: &[Vec<f64>],
+    second: &[Vec<f64>],
+    requested: usize,
+    work_extra: usize,
+    tolerance: f64,
+    max_iterations: usize,
+    seed: u64,
+    supplied_initial: Option<&[f64]>,
+) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>, bool, usize, bool)> {
+    restarted_lanczos_svd_with(
+        first.len(),
+        second.len(),
+        first.first().map(Vec::len).unwrap_or(0),
+        requested,
+        work_extra,
+        tolerance,
+        max_iterations,
+        seed,
+        supplied_initial,
+        |basis| cross_apply_block(first, second, basis),
+        |basis| cross_apply_block(second, first, basis),
+    )
 }
 
 type CcaParts = (
@@ -2393,7 +3714,19 @@ type CcaParts = (
     String,
 );
 
-fn cca_dense(first: &[Vec<f64>], second: &[Vec<f64>], requested: usize) -> Result<CcaParts> {
+fn cca_dense(
+    first: &[Vec<f64>],
+    second: &[Vec<f64>],
+    requested: usize,
+    sweeps: usize,
+    oversample: usize,
+    solver: &str,
+    lanczos_work_extra: usize,
+    lanczos_tolerance: f64,
+    lanczos_max_iterations: usize,
+    lanczos_seed: u64,
+    lanczos_initial: Option<&[f64]>,
+) -> Result<CcaParts> {
     let genes = first.first().map(|row| row.len()).unwrap_or(0);
     let genes_second = second.first().map(|row| row.len()).unwrap_or(0);
     if genes == 0 || genes_second == 0 || first.is_empty() || second.is_empty() {
@@ -2416,9 +3749,18 @@ fn cca_dense(first: &[Vec<f64>], second: &[Vec<f64>], requested: usize) -> Resul
         ));
     }
 
-    if first.len().saturating_mul(second.len()) > 4_000_000 {
-        let (left_raw, right_raw, singular, used_gpu) =
-            scalable_cross_svd(first, second, requested)?;
+    if solver == "lanczos" {
+        let (left_raw, right_raw, singular, used_gpu, iterations, converged) =
+            restarted_lanczos_cross_svd(
+                first,
+                second,
+                requested,
+                lanczos_work_extra,
+                lanczos_tolerance,
+                lanczos_max_iterations,
+                lanczos_seed,
+                lanczos_initial,
+            )?;
         let left = l2_normalise_rows(&left_raw);
         let right = l2_normalise_rows(&right_raw);
         return Ok((
@@ -2427,10 +3769,37 @@ fn cca_dense(first: &[Vec<f64>], second: &[Vec<f64>], requested: usize) -> Resul
             left_raw,
             right_raw,
             singular,
-            if used_gpu {
+            format!(
+                "matrix_free_augmented_lanczos_{}_iter_{iterations}_{}",
+                if used_gpu { "gpu" } else { "cpu" },
+                if converged {
+                    "converged"
+                } else {
+                    "iteration_limit"
+                }
+            ),
+        ));
+    }
+
+    if first.len().saturating_mul(second.len()) > 4_000_000 {
+        let (left_raw, right_raw, singular, used_gpu, used_sketch) =
+            scalable_cross_svd(first, second, requested, sweeps, oversample)?;
+        let left = l2_normalise_rows(&left_raw);
+        let right = l2_normalise_rows(&right_raw);
+        return Ok((
+            left,
+            right,
+            left_raw,
+            right_raw,
+            singular,
+            if used_sketch && used_gpu {
                 "countsketch_subspace_gpu".to_string()
-            } else {
+            } else if used_sketch {
                 "countsketch_subspace_cpu".to_string()
+            } else if used_gpu {
+                "matrix_free_subspace_gpu".to_string()
+            } else {
+                "matrix_free_subspace_cpu".to_string()
             },
         ));
     }
@@ -2486,10 +3855,51 @@ fn builtin_cca(args: Vec<Value>) -> Result<Value> {
         .and_then(|v| v.as_float())
         .map(|v| v as usize)
         .unwrap_or(20);
+    let sweeps = record_number(&opts, "sweeps", 12.0).clamp(1.0, 100.0) as usize;
+    let oversample = record_number(&opts, "oversample", 32.0).clamp(0.0, 256.0) as usize;
+    let solver = match opts.get("solver") {
+        Some(Value::Str(value)) if value.eq_ignore_ascii_case("lanczos") => "lanczos",
+        _ => "subspace",
+    };
+    let lanczos_work_extra = record_number(&opts, "work_extra", 7.0).clamp(2.0, 256.0) as usize;
+    let lanczos_tolerance = record_number(&opts, "tolerance", 1e-5).clamp(1e-12, 1.0);
+    let lanczos_max_iterations =
+        record_number(&opts, "max_iterations", 1000.0).clamp(1.0, 10_000.0) as usize;
+    let lanczos_seed = record_number(&opts, "seed", 42.0).max(1.0) as u64;
+    let lanczos_initial: Option<Vec<f64>> = match opts.get("initial") {
+        Some(Value::List(values)) => Some(
+            values
+                .iter()
+                .map(|value| {
+                    value.as_float().ok_or_else(|| {
+                        BioLangError::type_error("cca() initial must be a List<Number>", None)
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?,
+        ),
+        Some(_) => {
+            return Err(BioLangError::type_error(
+                "cca() initial must be a List<Number>",
+                None,
+            ))
+        }
+        None => None,
+    };
     let first = require_matrix(&args[0], "cca")?;
     let second = require_matrix(&args[1], "cca")?;
-    let (left, right, left_raw, right_raw, singular, method) =
-        cca_dense(&first, &second, requested)?;
+    let (left, right, left_raw, right_raw, singular, method) = cca_dense(
+        &first,
+        &second,
+        requested,
+        sweeps,
+        oversample,
+        solver,
+        lanczos_work_extra,
+        lanczos_tolerance,
+        lanczos_max_iterations,
+        lanczos_seed,
+        lanczos_initial.as_deref(),
+    )?;
     Ok(Value::Record(
         HashMap::from([
             ("u".to_string(), matrix_to_value(left)),
@@ -2562,6 +3972,192 @@ fn squared_euclidean(left: &[f64], right: &[f64]) -> f64 {
     left.iter().zip(right).map(|(a, b)| (a - b) * (a - b)).sum()
 }
 
+enum CrossRpTree {
+    Leaf(Vec<usize>),
+    Split {
+        first: usize,
+        second: usize,
+        threshold: f64,
+        fallback_dimension: usize,
+        usable: bool,
+        left: Box<CrossRpTree>,
+        right: Box<CrossRpTree>,
+    },
+}
+
+fn cross_rp_projection(
+    reference: &[Vec<f64>],
+    row: &[f64],
+    first: usize,
+    second: usize,
+    fallback_dimension: usize,
+    usable: bool,
+) -> f64 {
+    if usable {
+        row.iter()
+            .zip(reference[first].iter().zip(&reference[second]))
+            .map(|(value, (a, b))| value * (a - b))
+            .sum()
+    } else {
+        row.get(fallback_dimension).copied().unwrap_or(0.0)
+    }
+}
+
+fn build_cross_rp_tree(
+    reference: &[Vec<f64>],
+    indices: Vec<usize>,
+    leaf_size: usize,
+    state: &mut u64,
+) -> CrossRpTree {
+    if indices.len() <= leaf_size {
+        return CrossRpTree::Leaf(indices);
+    }
+    *state = state
+        .wrapping_mul(6364136223846793005)
+        .wrapping_add(1442695040888963407);
+    let first_position = (*state as usize) % indices.len();
+    let first = indices[first_position];
+    *state = state
+        .wrapping_mul(6364136223846793005)
+        .wrapping_add(1442695040888963407);
+    let mut second_position = (*state as usize) % indices.len();
+    if second_position == first_position {
+        second_position = (second_position + 1) % indices.len();
+    }
+    let second = indices[second_position];
+    let dimensions = reference.first().map(Vec::len).unwrap_or(0);
+    let fallback_dimension = if dimensions == 0 {
+        0
+    } else {
+        ((*state >> 32) as usize) % dimensions
+    };
+    let usable = reference[first]
+        .iter()
+        .zip(&reference[second])
+        .any(|(a, b)| (a - b).abs() > 1e-12);
+    let mut projected: Vec<(usize, f64)> = indices
+        .into_iter()
+        .map(|index| {
+            (
+                index,
+                cross_rp_projection(
+                    reference,
+                    &reference[index],
+                    first,
+                    second,
+                    fallback_dimension,
+                    usable,
+                ),
+            )
+        })
+        .collect();
+    projected.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
+    let right_projected = projected.split_off(projected.len() / 2);
+    let threshold = (projected.last().map(|value| value.1).unwrap_or(0.0)
+        + right_projected.first().map(|value| value.1).unwrap_or(0.0))
+        * 0.5;
+    let left_indices = projected.into_iter().map(|value| value.0).collect();
+    let right_indices = right_projected.into_iter().map(|value| value.0).collect();
+    CrossRpTree::Split {
+        first,
+        second,
+        threshold,
+        fallback_dimension,
+        usable,
+        left: Box::new(build_cross_rp_tree(
+            reference,
+            left_indices,
+            leaf_size,
+            state,
+        )),
+        right: Box::new(build_cross_rp_tree(
+            reference,
+            right_indices,
+            leaf_size,
+            state,
+        )),
+    }
+}
+
+fn query_cross_rp_tree<'a>(
+    tree: &'a CrossRpTree,
+    reference: &[Vec<f64>],
+    query: &[f64],
+) -> &'a [usize] {
+    match tree {
+        CrossRpTree::Leaf(indices) => indices,
+        CrossRpTree::Split {
+            first,
+            second,
+            threshold,
+            fallback_dimension,
+            usable,
+            left,
+            right,
+        } => {
+            let projection = cross_rp_projection(
+                reference,
+                query,
+                *first,
+                *second,
+                *fallback_dimension,
+                *usable,
+            );
+            query_cross_rp_tree(
+                if projection <= *threshold {
+                    left
+                } else {
+                    right
+                },
+                reference,
+                query,
+            )
+        }
+    }
+}
+
+fn approximate_cross_neighbour_rows(
+    query: &[Vec<f64>],
+    reference: &[Vec<f64>],
+    wanted: usize,
+) -> Vec<Vec<(usize, f64)>> {
+    // Seurat's Annoy backend defaults to 50 trees. Keep the same independent
+    // tree count here; leaves are bounded, and candidates are materialised for
+    // one query at a time rather than for the whole merged dataset.
+    let leaf_size = if wanted <= 64 { 64 } else { 256 };
+    let tree_count = 50;
+    let trees: Vec<CrossRpTree> = (0..tree_count)
+        .map(|tree| {
+            let mut state =
+                0x9e3779b97f4a7c15_u64 ^ (tree as u64 + 1).wrapping_mul(0x517cc1b727220a95);
+            build_cross_rp_tree(
+                reference,
+                (0..reference.len()).collect(),
+                leaf_size,
+                &mut state,
+            )
+        })
+        .collect();
+    query
+        .iter()
+        .map(|row| {
+            let mut candidates = Vec::with_capacity(leaf_size * tree_count);
+            for tree in &trees {
+                candidates.extend_from_slice(query_cross_rp_tree(tree, reference, row));
+            }
+            candidates.sort_unstable();
+            candidates.dedup();
+            let mut distances: Vec<(usize, f64)> = candidates
+                .into_iter()
+                .map(|index| (index, squared_euclidean(row, &reference[index]).sqrt()))
+                .collect();
+            distances.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
+            distances.truncate(wanted);
+            distances
+        })
+        .collect()
+}
+
 /// Match Seurat's `Standardize`: center and sample-standardize every cell
 /// across integration features before taking the cross-product CCA.
 fn standardize_cells(rows: &[Vec<f64>]) -> Vec<Vec<f64>> {
@@ -2614,6 +4210,11 @@ fn cross_neighbour_rows(
             .collect();
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Ok(neighbours) = bl_seurat_compat::annoy_euclidean(reference, query, wanted, 50) {
+        return neighbours;
+    }
+
     let mut combined = reference.to_vec();
     let query_offset = combined.len();
     combined.extend(query.iter().cloned());
@@ -2628,16 +4229,19 @@ fn cross_neighbour_rows(
         .saturating_mul(expansion)
         .max(64)
         .min(combined.len().saturating_sub(1));
-    neighbour_rows_metric(&combined, search_k, "euclidean")
-        .into_iter()
-        .skip(query_offset)
-        .map(|row| {
-            row.into_iter()
-                .filter(|(index, _)| *index < query_offset)
-                .take(wanted)
-                .collect()
-        })
-        .collect()
+    if let Ok(Some(neighbours)) = crate::gpu::nearest_rows(&combined, search_k, "euclidean") {
+        return neighbours
+            .into_iter()
+            .skip(query_offset)
+            .map(|row| {
+                row.into_iter()
+                    .filter(|(index, _)| *index < query_offset)
+                    .take(wanted)
+                    .collect()
+            })
+            .collect();
+    }
+    approximate_cross_neighbour_rows(query, reference, wanted)
 }
 
 fn projected_feature_loadings(
@@ -2725,7 +4329,7 @@ fn pca_projection_parts_from_matrix(
     dimensions: usize,
     func: &str,
 ) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>)> {
-    let pca = builtin_sc_pca_matrix(matrix, dimensions)?;
+    let pca = builtin_sc_pca_matrix(matrix, dimensions, true)?;
     let scores = record_matrix(&pca, "scores", func)?;
     let loadings = record_matrix(&pca, "loadings", func)?;
     let means = match &pca {
@@ -2770,6 +4374,77 @@ fn project_pca(matrix: &[Vec<f64>], loadings: &[Vec<f64>], means: &[f64]) -> Vec
         .collect()
 }
 
+/// Find mutual cross-dataset neighbours in embeddings supplied by the caller.
+///
+/// This deliberately stops before feature filtering and anchor scoring.  It is
+/// useful both for custom integration pipelines and for testing the neighbour
+/// backend independently of CCA/PCA numerical differences.
+fn builtin_sc_anchor_candidates(args: Vec<Value>) -> Result<Value> {
+    let left = require_dense_matrix(&args[0], "sc_anchor_candidates")?;
+    let right = require_dense_matrix(&args[1], "sc_anchor_candidates")?;
+    let opts = match args.get(2) {
+        Some(Value::Record(fields)) => fields.as_ref().clone(),
+        _ => HashMap::new(),
+    };
+    if left.is_empty() || right.is_empty() {
+        return Err(BioLangError::type_error(
+            "sc_anchor_candidates() requires two non-empty embedding matrices",
+            None,
+        ));
+    }
+    let dimensions = left[0].len();
+    if dimensions == 0
+        || right[0].len() != dimensions
+        || left.iter().any(|row| row.len() != dimensions)
+        || right.iter().any(|row| row.len() != dimensions)
+    {
+        return Err(BioLangError::type_error(
+            "sc_anchor_candidates() requires rectangular matrices with identical columns",
+            None,
+        ));
+    }
+    let k_anchor = record_number(&opts, "k_anchor", 5.0).max(1.0) as usize;
+    let k_neighbours = record_number(&opts, "k_neighbours", 30.0).max(k_anchor as f64) as usize;
+    let left_to_right = cross_neighbour_rows(&left, &right, k_neighbours);
+    let right_to_left = cross_neighbour_rows(&right, &left, k_neighbours);
+    let mut candidates = Vec::new();
+    for (left_index, neighbours) in left_to_right.iter().enumerate() {
+        for &(right_index, _) in neighbours.iter().take(k_anchor) {
+            if right_to_left[right_index]
+                .iter()
+                .take(k_anchor)
+                .any(|&(candidate, _)| candidate == left_index)
+            {
+                candidates.push(Value::Record(
+                    HashMap::from([
+                        ("left".to_string(), Value::Int(left_index as i64)),
+                        ("right".to_string(), Value::Int(right_index as i64)),
+                    ])
+                    .into(),
+                ));
+            }
+        }
+    }
+    Ok(Value::Record(
+        HashMap::from([
+            (
+                "candidate_anchors".to_string(),
+                Value::List(candidates.into()),
+            ),
+            ("left_count".to_string(), Value::Int(left.len() as i64)),
+            ("right_count".to_string(), Value::Int(right.len() as i64)),
+            ("dims".to_string(), Value::Int(dimensions as i64)),
+            ("k_anchor".to_string(), Value::Int(k_anchor as i64)),
+            ("k_neighbours".to_string(), Value::Int(k_neighbours as i64)),
+            (
+                "compute_method".to_string(),
+                Value::Str("annoy_euclidean_50_trees".to_string()),
+            ),
+        ])
+        .into(),
+    ))
+}
+
 /// Seurat 5.5.1-compatible integration anchors: shared CCA or reciprocal-PCA
 /// space, mutual cross-dataset neighbours, high-dimensional filtering, then
 /// four-neighbour shared-neighbour scoring.
@@ -2805,25 +4480,170 @@ fn builtin_sc_find_anchors(args: Vec<Value>) -> Result<Value> {
     let k_filter = record_number(&opts, "k_filter", 200.0).max(0.0) as usize;
     let k_score = record_number(&opts, "k_score", 30.0).max(1.0) as usize;
     let max_features = record_number(&opts, "max_features", 200.0).max(1.0) as usize;
+    let cca_sweeps = record_number(&opts, "cca_sweeps", 12.0).clamp(1.0, 100.0) as usize;
+    let cca_oversample = record_number(&opts, "cca_oversample", 32.0).clamp(0.0, 256.0) as usize;
+    let cca_solver = match opts.get("cca_solver") {
+        Some(Value::Str(value)) if value.eq_ignore_ascii_case("lanczos") => "lanczos",
+        _ => "subspace",
+    };
+    let cca_work_extra = record_number(&opts, "cca_work_extra", 7.0).clamp(2.0, 256.0) as usize;
+    let cca_tolerance = record_number(&opts, "cca_tolerance", 1e-5).clamp(1e-12, 1.0);
+    let cca_max_iterations =
+        record_number(&opts, "cca_max_iterations", 1000.0).clamp(1.0, 10_000.0) as usize;
+    let cca_seed = record_number(&opts, "cca_seed", 42.0).max(1.0) as u64;
+    let cca_standardize = !matches!(opts.get("cca_standardize"), Some(Value::Bool(false)));
+    let trace_neighbours = matches!(opts.get("trace_neighbours"), Some(Value::Bool(true)));
+    let requested_external_provider = external_provider_program(&opts);
+    let cca_initial: Option<Vec<f64>> = match opts.get("cca_initial") {
+        Some(Value::List(values)) => Some(
+            values
+                .iter()
+                .map(|value| {
+                    value.as_float().ok_or_else(|| {
+                        BioLangError::type_error(
+                            "sc_find_anchors() cca_initial must be a List<Number>",
+                            None,
+                        )
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?,
+        ),
+        Some(_) => {
+            return Err(BioLangError::type_error(
+                "sc_find_anchors() cca_initial must be a List<Number>",
+                None,
+            ))
+        }
+        None => None,
+    };
+    let mut supplied_filter_features: Option<Vec<usize>> = match opts.get("filter_features") {
+        Some(Value::List(values)) => Some(
+            values
+                .iter()
+                .map(|value| match value {
+                    Value::Int(index) if *index >= 0 && (*index as usize) < genes => {
+                        Ok(*index as usize)
+                    }
+                    _ => Err(BioLangError::type_error(
+                        "sc_find_anchors() filter_features must contain valid non-negative feature indices",
+                        None,
+                    )),
+                })
+                .collect::<Result<Vec<_>>>()?,
+        ),
+        Some(_) => {
+            return Err(BioLangError::type_error(
+                "sc_find_anchors() filter_features must be a List<Int>",
+                None,
+            ))
+        }
+        None => None,
+    };
     let reduction = match opts.get("reduction") {
         Some(Value::Str(name)) => name.to_ascii_lowercase(),
         _ => "cca".to_string(),
     };
 
+    let mut provider_weight_reduction: Option<Vec<Vec<f64>>> = None;
+    let mut provider_manifest: Option<HashMap<String, Value>> = None;
+    let mut provider_program_used: Option<String> = None;
+
     let (left_embedding, right_embedding, left_projection, right_projection, compute_method) =
         match reduction.as_str() {
             "cca" => {
-                let left_standardized = standardize_cells(&left);
-                let right_standardized = standardize_cells(&right);
-                let (left_embedding, right_embedding, left_projection, right_projection, _, method) =
-                    cca_dense(&left_standardized, &right_standardized, requested_dims)?;
-                (
-                    left_embedding,
-                    right_embedding,
-                    left_projection,
-                    right_projection,
-                    method,
-                )
+                let mut supplied_embeddings =
+                    match (opts.get("left_embedding"), opts.get("right_embedding")) {
+                        (Some(left_value), Some(right_value)) => Some((
+                            require_dense_matrix(left_value, "sc_find_anchors")?,
+                            require_dense_matrix(right_value, "sc_find_anchors")?,
+                        )),
+                        (None, None) => None,
+                        _ => return Err(BioLangError::type_error(
+                            "sc_find_anchors() requires both left_embedding and right_embedding",
+                            None,
+                        )),
+                    };
+                if supplied_embeddings.is_none() {
+                    if let Some(program) = requested_external_provider.clone() {
+                        let result = external_cca(
+                            program,
+                            &left,
+                            &right,
+                            requested_dims,
+                            cca_seed,
+                            max_features,
+                        )?;
+                        supplied_filter_features = Some(result.filter_features);
+                        provider_weight_reduction = Some(result.weight_reduction);
+                        provider_manifest = Some(result.manifest);
+                        provider_program_used = Some(result.program);
+                        supplied_embeddings = Some((result.left_embedding, result.right_embedding));
+                    }
+                }
+                if let Some((left_embedding, right_embedding)) = supplied_embeddings {
+                    let dimensions = left_embedding.first().map(Vec::len).unwrap_or(0);
+                    if left_embedding.len() != left.len()
+                        || right_embedding.len() != right.len()
+                        || dimensions == 0
+                        || right_embedding.first().map(Vec::len).unwrap_or(0) != dimensions
+                        || left_embedding.iter().any(|row| row.len() != dimensions)
+                        || right_embedding.iter().any(|row| row.len() != dimensions)
+                    {
+                        return Err(BioLangError::type_error(
+                            "sc_find_anchors() supplied embeddings must have one rectangular row per input cell and identical dimensions",
+                            None,
+                        ));
+                    }
+                    (
+                        left_embedding,
+                        right_embedding,
+                        Vec::new(),
+                        Vec::new(),
+                        if provider_program_used.is_some() {
+                            "external_process_cca_embedding".to_string()
+                        } else {
+                            "supplied_cca_embedding".to_string()
+                        },
+                    )
+                } else {
+                    let left_standardized = if cca_standardize {
+                        standardize_cells(&left)
+                    } else {
+                        left.clone()
+                    };
+                    let right_standardized = if cca_standardize {
+                        standardize_cells(&right)
+                    } else {
+                        right.clone()
+                    };
+                    let (
+                        left_embedding,
+                        right_embedding,
+                        left_projection,
+                        right_projection,
+                        _,
+                        method,
+                    ) = cca_dense(
+                        &left_standardized,
+                        &right_standardized,
+                        requested_dims,
+                        cca_sweeps,
+                        cca_oversample,
+                        cca_solver,
+                        cca_work_extra,
+                        cca_tolerance,
+                        cca_max_iterations,
+                        cca_seed,
+                        cca_initial.as_deref(),
+                    )?;
+                    (
+                        left_embedding,
+                        right_embedding,
+                        left_projection,
+                        right_projection,
+                        method,
+                    )
+                }
             }
             "rpca" => {
                 let (left_scores, left_loadings, left_means) =
@@ -2884,12 +4704,12 @@ fn builtin_sc_find_anchors(args: Vec<Value>) -> Result<Value> {
     let left_to_right = cross_neighbour_rows(&left_embedding, &right_embedding, neighbour_k);
     let right_to_left = cross_neighbour_rows(&right_embedding, &left_embedding, neighbour_k);
     // Seurat asks its self-search for k+1 neighbours, so the first k scoring
-    // entries include the cell itself and k-1 other cells.
+    // entries include the cell itself and k-1 other cells. Ask the shared
+    // helper for k non-self rows: its Annoy path requests k+1 before removing
+    // self, preserving Seurat's n.trees * (k+1) default search budget.
     let left_within: Vec<Vec<usize>> = neighbour_rows_metric(
         &left_embedding,
-        k_score
-            .saturating_sub(1)
-            .min(left_embedding.len().saturating_sub(1)),
+        k_score.min(left_embedding.len().saturating_sub(1)),
         "euclidean",
     )
     .into_iter()
@@ -2903,9 +4723,7 @@ fn builtin_sc_find_anchors(args: Vec<Value>) -> Result<Value> {
     .collect();
     let right_within: Vec<Vec<usize>> = neighbour_rows_metric(
         &right_embedding,
-        k_score
-            .saturating_sub(1)
-            .min(right_embedding.len().saturating_sub(1)),
+        k_score.min(right_embedding.len().saturating_sub(1)),
         "euclidean",
     )
     .into_iter()
@@ -2938,13 +4756,20 @@ fn builtin_sc_find_anchors(args: Vec<Value>) -> Result<Value> {
 
     let effective_filter = if reduction == "cca" { k_filter } else { 0 };
     let anchors_before_filter = anchor_pairs.len();
+    let candidate_pairs = anchor_pairs.clone();
+    let mut selected_filter_features = Vec::new();
     if effective_filter > 0
         && left.len().min(right.len()) >= effective_filter
-        && !left_projection.is_empty()
+        && (supplied_filter_features.is_some() || !left_projection.is_empty())
     {
-        let loadings =
-            projected_feature_loadings(&left, &right, &left_projection, &right_projection);
-        let filter_features = top_dim_features(&loadings, max_features);
+        let filter_features = if let Some(features) = &supplied_filter_features {
+            features.clone()
+        } else {
+            let loadings =
+                projected_feature_loadings(&left, &right, &left_projection, &right_projection);
+            top_dim_features(&loadings, max_features)
+        };
+        selected_filter_features = filter_features.clone();
         if !filter_features.is_empty() {
             let left_filter = l2_normalise_rows(
                 &left
@@ -3046,32 +4871,130 @@ fn builtin_sc_find_anchors(args: Vec<Value>) -> Result<Value> {
             )
         })
         .collect();
+    let candidate_anchors: Vec<Value> = candidate_pairs
+        .into_iter()
+        .map(|(left_index, right_index)| {
+            Value::Record(
+                HashMap::from([
+                    ("left".to_string(), Value::Int(left_index as i64)),
+                    ("right".to_string(), Value::Int(right_index as i64)),
+                ])
+                .into(),
+            )
+        })
+        .collect();
     let dimensions = left_embedding.first().map(Vec::len).unwrap_or(0);
-    Ok(Value::Record(
-        HashMap::from([
-            ("anchors".to_string(), Value::List(anchors.into())),
-            (
-                "left_embedding".to_string(),
-                matrix_to_value(left_embedding),
+    let mut output = HashMap::from([
+        ("anchors".to_string(), Value::List(anchors.into())),
+        (
+            "candidate_anchors".to_string(),
+            Value::List(candidate_anchors.into()),
+        ),
+        (
+            "filter_features".to_string(),
+            Value::List(
+                selected_filter_features
+                    .into_iter()
+                    .map(|feature| Value::Int(feature as i64))
+                    .collect::<Vec<_>>()
+                    .into(),
             ),
-            (
-                "right_embedding".to_string(),
-                matrix_to_value(right_embedding),
-            ),
-            ("reduction".to_string(), Value::Str(reduction)),
-            ("compute_method".to_string(), Value::Str(compute_method)),
-            ("dims".to_string(), Value::Int(dimensions as i64)),
-            ("k_anchor".to_string(), Value::Int(k_anchor as i64)),
-            ("k_filter".to_string(), Value::Int(effective_filter as i64)),
-            ("k_score".to_string(), Value::Int(k_score as i64)),
-            ("max_features".to_string(), Value::Int(max_features as i64)),
-            (
-                "anchors_before_filter".to_string(),
-                Value::Int(anchors_before_filter as i64),
-            ),
-        ])
-        .into(),
-    ))
+        ),
+        (
+            "left_embedding".to_string(),
+            matrix_to_value(left_embedding),
+        ),
+        (
+            "right_embedding".to_string(),
+            matrix_to_value(right_embedding),
+        ),
+        ("reduction".to_string(), Value::Str(reduction)),
+        ("compute_method".to_string(), Value::Str(compute_method)),
+        ("dims".to_string(), Value::Int(dimensions as i64)),
+        ("k_anchor".to_string(), Value::Int(k_anchor as i64)),
+        ("k_filter".to_string(), Value::Int(effective_filter as i64)),
+        ("k_score".to_string(), Value::Int(k_score as i64)),
+        ("max_features".to_string(), Value::Int(max_features as i64)),
+        ("cca_sweeps".to_string(), Value::Int(cca_sweeps as i64)),
+        (
+            "cca_oversample".to_string(),
+            Value::Int(cca_oversample as i64),
+        ),
+        ("cca_solver".to_string(), Value::Str(cca_solver.to_string())),
+        (
+            "cca_work_extra".to_string(),
+            Value::Int(cca_work_extra as i64),
+        ),
+        ("cca_tolerance".to_string(), Value::Float(cca_tolerance)),
+        (
+            "cca_max_iterations".to_string(),
+            Value::Int(cca_max_iterations as i64),
+        ),
+        ("cca_seed".to_string(), Value::Int(cca_seed as i64)),
+        ("cca_standardize".to_string(), Value::Bool(cca_standardize)),
+        (
+            "anchors_before_filter".to_string(),
+            Value::Int(anchors_before_filter as i64),
+        ),
+    ]);
+    if let Some(weight_reduction) = provider_weight_reduction {
+        output.insert(
+            "weight_reduction".to_string(),
+            matrix_to_value(weight_reduction),
+        );
+    }
+    if let Some(manifest) = provider_manifest {
+        output.insert(
+            "external_provider_manifest".to_string(),
+            Value::Record(manifest.into()),
+        );
+    }
+    if let Some(program) = provider_program_used {
+        output.insert("external_provider".to_string(), Value::Str(program));
+    }
+    if trace_neighbours {
+        let neighbour_matrix = |rows: &[Vec<(usize, f64)>]| {
+            matrix_to_value(
+                rows.iter()
+                    .map(|row| {
+                        row.iter()
+                            .take(k_score)
+                            .map(|(index, _)| *index as f64)
+                            .collect()
+                    })
+                    .collect(),
+            )
+        };
+        let index_matrix = |rows: &[Vec<usize>]| {
+            matrix_to_value(
+                rows.iter()
+                    .map(|row| {
+                        row.iter()
+                            .take(k_score)
+                            .map(|index| *index as f64)
+                            .collect()
+                    })
+                    .collect(),
+            )
+        };
+        output.insert(
+            "left_to_right_neighbours".to_string(),
+            neighbour_matrix(&left_to_right),
+        );
+        output.insert(
+            "right_to_left_neighbours".to_string(),
+            neighbour_matrix(&right_to_left),
+        );
+        output.insert(
+            "left_within_neighbours".to_string(),
+            index_matrix(&left_within),
+        );
+        output.insert(
+            "right_within_neighbours".to_string(),
+            index_matrix(&right_within),
+        );
+    }
+    Ok(Value::Record(output.into()))
 }
 
 /// Locally weighted anchor correction. The kernel and integration-vector
@@ -3096,6 +5019,26 @@ fn builtin_sc_integrate_anchors(args: Vec<Value>) -> Result<Value> {
     let opts = match args.get(3) {
         Some(Value::Record(fields)) => fields.as_ref().clone(),
         _ => HashMap::new(),
+    };
+    let return_details = matches!(opts.get("return_details"), Some(Value::Bool(true)));
+    let diagnostic_weight_cells: Vec<usize> = match opts.get("diagnostic_weight_cells") {
+        Some(Value::List(values)) => values
+            .iter()
+            .map(|value| match value {
+                Value::Int(index) if *index >= 0 => Ok(*index as usize),
+                _ => Err(BioLangError::type_error(
+                    "sc_integrate_anchors() diagnostic_weight_cells must contain non-negative integers",
+                    None,
+                )),
+            })
+            .collect::<Result<Vec<_>>>()?,
+        Some(_) => {
+            return Err(BioLangError::type_error(
+                "sc_integrate_anchors() diagnostic_weight_cells must be a List<Int>",
+                None,
+            ))
+        }
+        None => Vec::new(),
     };
     let (left_cells, features) = left.dimensions();
     let (right_cells, right_features) = right.dimensions();
@@ -3229,58 +5172,41 @@ fn builtin_sc_integrate_anchors(args: Vec<Value>) -> Result<Value> {
             corrected.push(right.value_at(cell, feature));
         }
     }
-    for query_index in 0..right_embedding.len() {
-        let neighbours = &query_neighbours[query_index];
-        if neighbours.is_empty() {
-            continue;
-        }
-        let distance_scale = neighbours
-            .last()
-            .map(|(_, distance)| *distance)
-            .unwrap_or(1.0);
-        let mut order = Vec::with_capacity(effective_k);
-        let mut weights = Vec::with_capacity(effective_k);
-        for &(anchor_cell_position, distance) in neighbours {
-            let anchor_cell = unique_anchor_cells[anchor_cell_position];
-            let similarity = if distance_scale <= 1e-15 {
-                1.0
-            } else {
-                (1.0 - distance / distance_scale).max(0.0)
-            };
-            for &anchor_index in &anchors_by_query_cell[anchor_cell] {
-                if order.len() >= effective_k {
-                    break;
-                }
-                let score = anchors[anchor_index].2;
-                // Seurat 5.5.1 FindWeightsC:
-                // 1 - exp(-distance_similarity * anchor_score / (2 / sd)^2)
-                let weight = 1.0 - (-similarity * score / (2.0 / sd_weight).powi(2)).exp();
-                order.push(anchor_index);
-                weights.push(weight);
+    // Every corrected query row is independent. Parallelising by complete rows
+    // preserves the exact per-feature summation order while avoiding a serial
+    // 14k cells x 3k features x 100 anchors kernel on HBC-scale integrations.
+    par_rows_mut(&mut corrected, features, |first_query, corrected_rows| {
+        for (local_query, corrected_row) in corrected_rows.chunks_mut(features).enumerate() {
+            let query_index = first_query + local_query;
+            let neighbours = &query_neighbours[query_index];
+            if neighbours.is_empty() {
+                continue;
             }
-            if order.len() >= effective_k {
-                break;
+            let weights = integration_anchor_weights(
+                neighbours,
+                &unique_anchor_cells,
+                &anchors_by_query_cell,
+                &anchors,
+                effective_k,
+                sd_weight,
+            );
+            if weights.is_empty() {
+                continue;
+            }
+            for (feature, value) in corrected_row.iter_mut().enumerate() {
+                let adjustment: f64 = weights
+                    .iter()
+                    .map(|&(anchor_index, weight)| {
+                        let (left_index, right_index, _) = anchors[anchor_index];
+                        weight
+                            * (left.value_at(left_index, feature)
+                                - right.value_at(right_index, feature))
+                    })
+                    .sum::<f64>();
+                *value += adjustment;
             }
         }
-        let total_weight: f64 = weights.iter().sum();
-        if total_weight <= 1e-15 {
-            continue;
-        }
-        for feature in 0..features {
-            let adjustment: f64 = order
-                .iter()
-                .zip(&weights)
-                .map(|(&anchor_index, weight)| {
-                    let (left_index, right_index, _) = anchors[anchor_index];
-                    weight
-                        * (left.value_at(left_index, feature)
-                            - right.value_at(right_index, feature))
-                })
-                .sum::<f64>()
-                / total_weight;
-            corrected[query_index * features + feature] += adjustment;
-        }
-    }
+    });
     // The integrated assay is dense but it does not need interpreter boxing.
     // Keep it in the native flat Matrix representation so the following PCA
     // reads one compact allocation instead of retaining tens of millions of
@@ -3296,7 +5222,97 @@ fn builtin_sc_integrate_anchors(args: Vec<Value>) -> Result<Value> {
     let matrix = bl_core::matrix::Matrix::new(data, rows, features).map_err(|error| {
         BioLangError::type_error(format!("sc_integrate_anchors(): {error}"), None)
     })?;
-    Ok(Value::Matrix(matrix.into()))
+    let matrix = Value::Matrix(matrix.into());
+    if return_details {
+        let mut diagnostic_weights = Vec::new();
+        for &query_index in &diagnostic_weight_cells {
+            if query_index >= right_cells {
+                return Err(BioLangError::type_error(
+                    "sc_integrate_anchors() diagnostic_weight_cells index is outside the query matrix",
+                    None,
+                ));
+            }
+            for (anchor_index, weight) in integration_anchor_weights(
+                &query_neighbours[query_index],
+                &unique_anchor_cells,
+                &anchors_by_query_cell,
+                &anchors,
+                effective_k,
+                sd_weight,
+            ) {
+                diagnostic_weights.push(Value::Record(
+                    HashMap::from([
+                        ("query_cell".to_string(), Value::Int(query_index as i64)),
+                        ("anchor_index".to_string(), Value::Int(anchor_index as i64)),
+                        ("weight".to_string(), Value::Float(weight)),
+                    ])
+                    .into(),
+                ));
+            }
+        }
+        Ok(Value::Record(
+            HashMap::from([
+                ("integrated_matrix".to_string(), matrix),
+                (
+                    "query_weight_embedding".to_string(),
+                    matrix_to_value(right_embedding),
+                ),
+                ("effective_k".to_string(), Value::Int(effective_k as i64)),
+                (
+                    "diagnostic_weights".to_string(),
+                    Value::List(diagnostic_weights.into()),
+                ),
+            ])
+            .into(),
+        ))
+    } else {
+        Ok(matrix)
+    }
+}
+
+fn integration_anchor_weights(
+    neighbours: &[(usize, f64)],
+    unique_anchor_cells: &[usize],
+    anchors_by_query_cell: &[Vec<usize>],
+    anchors: &[(usize, usize, f64)],
+    effective_k: usize,
+    sd_weight: f64,
+) -> Vec<(usize, f64)> {
+    let distance_scale = neighbours
+        .last()
+        .map(|(_, distance)| *distance)
+        .unwrap_or(1.0);
+    let mut weights = Vec::with_capacity(effective_k);
+    for &(anchor_cell_position, distance) in neighbours {
+        let anchor_cell = unique_anchor_cells[anchor_cell_position];
+        let similarity = if distance_scale <= 1e-15 {
+            1.0
+        } else {
+            (1.0 - distance / distance_scale).max(0.0)
+        };
+        for &anchor_index in &anchors_by_query_cell[anchor_cell] {
+            if weights.len() >= effective_k {
+                break;
+            }
+            let score = anchors[anchor_index].2;
+            // Seurat 5.5.1 FindWeightsC:
+            // 1 - exp(-distance_similarity * anchor_score / (2 / sd)^2)
+            let weight = 1.0 - (-similarity * score / (2.0 / sd_weight).powi(2)).exp();
+            weights.push((anchor_index, weight));
+        }
+        if weights.len() >= effective_k {
+            break;
+        }
+    }
+    let total_weight: f64 = weights.iter().map(|(_, weight)| *weight).sum();
+    if total_weight <= 1e-15 {
+        Vec::new()
+    } else {
+        weights
+            .into_iter()
+            .map(|(anchor_index, weight)| (anchor_index, weight / total_weight))
+            .collect()
+    }
 }
 
 fn builtin_harmony_integrate(args: Vec<Value>) -> Result<Value> {
@@ -4438,6 +6454,27 @@ fn neighbour_rows_metric(
         return exact_neighbour_rows(embeddings, k, metric);
     }
 
+    // Seurat 5.5.1 builds a 50-tree Spotify Annoy Euclidean index and queries
+    // it with search.k=-1. Use that exact permissively licensed contract on
+    // native builds; the browser and non-Euclidean metrics retain the portable
+    // GPU/projection paths below.
+    #[cfg(not(target_arch = "wasm32"))]
+    if metric.eq_ignore_ascii_case("euclidean") {
+        if let Ok(neighbours) = bl_seurat_compat::annoy_euclidean(embeddings, embeddings, k + 1, 50)
+        {
+            return neighbours
+                .into_iter()
+                .enumerate()
+                .map(|(cell, row)| {
+                    row.into_iter()
+                        .filter(|(other, _)| *other != cell)
+                        .take(k)
+                        .collect()
+                })
+                .collect();
+        }
+    }
+
     // Portable GPU top-k search avoids the approximation gap for the graph
     // and UMAP range (normally 15-30 neighbors). Any unsupported shape or
     // driver failure transparently continues into the projection forest.
@@ -4453,6 +6490,10 @@ fn neighbour_rows_metric(
     // indices per cell, or about 18.2 GB for the 29,629-cell HBC object before
     // duplicates. Large-k searches need broader leaves, not an unbounded
     // number of retained candidates per cell.
+    // A larger ordinary-graph forest improved individual edge recall on HBC,
+    // but made the resulting modularity partition less Seurat-like at the
+    // fixed published parameters. Retain the measured 24-tree configuration;
+    // the large-k anchor-filter path remains bounded for peak-memory safety.
     let leaf_size = (k.saturating_mul(2)).clamp(32, 256);
     let tree_count = if k > 256 { 8_usize } else { 24_usize };
     let mut candidates: Vec<Vec<usize>> = (0..n)
@@ -4870,8 +6911,9 @@ fn builtin_louvain_graph(args: Vec<Value>) -> Result<Value> {
         None => 10,
     };
     let adjacency = leiden_adjacency(&args[0], n_nodes as usize, "louvain_graph")?;
-    let labels =
-        bl_core::bio_core::cluster_ops::louvain_sparse_restarts(&adjacency, resolution, n_start, 0);
+    let labels = bl_core::bio_core::cluster_ops::louvain_seurat_restarts(
+        &adjacency, resolution, n_start, 10, 0,
+    );
     Ok(Value::List(
         labels
             .into_iter()

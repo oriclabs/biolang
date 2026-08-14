@@ -68,8 +68,11 @@ wgpu = { version = "0.19.4", optional = true }
 pollster = { version = "0.3.0", optional = true }
 bytemuck = { version = "1", features = ["derive"], optional = true }
 
-[dev-dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+bl-seurat-compat = { workspace = true }
 tempfile = "3"
+
+[dev-dependencies]
 # Decodes the PNGs the export tests write, so they can assert the figure was
 # drawn rather than that a file appeared.
 resvg = { version = "0.48", default-features = false, features = ["text", "system-fonts", "raster-images"] }

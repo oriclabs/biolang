@@ -33,6 +33,23 @@ let anchors = sc.find_integration_anchors(left, right,
 assert(len(anchors.anchors) > 0)
 assert(anchors.method == "seurat_mit_5_5_1_anchor")
 
+# A strict-replay provider supplies only numeric artifacts. Holding the native
+# embedding/filter boundary fixed must reproduce the exact same scored anchors.
+let replayed_anchors = sc.find_integration_anchors(left, right,
+    reduction: "cca", n_features: 5, dims: 3, k_anchor: 3,
+    k_filter: 5, k_score: 4, max_features: 5,
+    compatibility: {
+        left_embedding: anchors.left_embedding,
+        right_embedding: anchors.right_embedding,
+        filter_features: anchors.filter_features
+    })
+let anchor_signature = |rows| rows
+    |> map(|row| str(row.left) + ":" + str(row.right) + ":" +
+                   str(row.raw_score) + ":" + str(row.score))
+    |> sort
+assert anchor_signature(replayed_anchors.anchors) == anchor_signature(anchors.anchors)
+assert replayed_anchors.compute_backend == "supplied_cca_embedding"
+
 let integrated = sc.integrate_data(anchors, k_weight: 5, sd_weight: 1.0)
 assert(integrated.n_cells == 16)
 assert(integrated.integrated_matrix.nrow == 16)
@@ -40,5 +57,39 @@ assert(integrated.active_assay == "integrated")
 assert(len(integrated.integrated_embedding) == 16)
 assert len(integrated.pca_scores[0]) > anchors.dims,
     "downstream PCA width must not be capped by anchor dimensions"
+let replayed_integration = sc.integrate_data(
+    replayed_anchors, k_weight: 5, sd_weight: 1.0,
+    compatibility: {weight_reduction: anchors.right_embedding}
+)
+assert replayed_integration.n_cells == 16
+assert replayed_integration.integrated_matrix.nrow == 16
+
+# Compact matrices are the interchange format used by external tools and the
+# fixed-PC conformance probe. The package wrapper must use the matrix-like
+# `dim` contract rather than attempting List row indexing.
+let external_scores = matrix([
+    [0.0, 0.0], [0.1, 0.0], [0.0, 0.1],
+    [5.0, 5.0], [5.1, 5.0], [5.0, 5.1]
+])
+let external_object = {
+    n_cells: 6,
+    pca_scores: external_scores,
+    integrated_embedding: external_scores,
+    graphs: ({}),
+    reductions: ({})
+}
+let external_graph = sc.neighbors(external_object, 3, true, 2)
+assert external_graph.neighbor_dims == 2
+let legacy_object = {
+    n_cells: 6,
+    pca_scores: [
+        [0.0, 0.0], [0.1, 0.0], [0.0, 0.1],
+        [5.0, 5.0], [5.1, 5.0], [5.0, 5.1]
+    ],
+    graphs: ({}),
+    reductions: ({})
+}
+let legacy_graph = sc.neighbors(legacy_object, 3, true, 2)
+assert legacy_graph.neighbor_dims == 2
 
 println("singlecell anchor integration: ok")

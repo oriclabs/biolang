@@ -163,12 +163,15 @@ fn select_integration_features(obj_a, obj_b, n_features = 2000) {
 }
 fn find_integration_anchors(obj_a, obj_b, reduction = "cca", n_features = 2000,
                             dims = 30, k_anchor = 5, k_score = 30,
-                            k_filter = 200, max_features = 200) {
+                            k_filter = 200, max_features = 200,
+                            compatibility = nil) {
     _int.find_integration_anchors(obj_a, obj_b, reduction, n_features,
-                                  dims, k_anchor, k_score, k_filter, max_features)
+                                  dims, k_anchor, k_score, k_filter, max_features,
+                                  compatibility)
 }
-fn integrate_data(anchor_set, k_weight = 100, sd_weight = 1.0) {
-    _int.integrate_data(anchor_set, k_weight, sd_weight)
+fn integrate_data(anchor_set, k_weight = 100, sd_weight = 1.0,
+                  compatibility = nil) {
+    _int.integrate_data(anchor_set, k_weight, sd_weight, compatibility)
 }
 
 # â”€â”€â”€ Trajectory / pseudotime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
