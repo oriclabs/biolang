@@ -51,6 +51,12 @@ try {
     $actual = Get-Content "packages/statistics/validation/results/biolang.json" -Raw | ConvertFrom-Json
     $expectedReal = Get-Content "packages/statistics/validation/results/r-real-reference.json" -Raw | ConvertFrom-Json
     $actualReal = Get-Content "packages/statistics/validation/results/biolang-real.json" -Raw | ConvertFrom-Json
+    $expectedGlm = Get-Content "packages/statistics/validation/results/r-glm-reference.json" -Raw | ConvertFrom-Json
+    $actualGlm = Get-Content "packages/statistics/validation/results/biolang-glm.json" -Raw | ConvertFrom-Json
+    $expectedMixed = Get-Content "packages/statistics/validation/results/r-mixed-reference.json" -Raw | ConvertFrom-Json
+    $actualMixed = Get-Content "packages/statistics/validation/results/biolang-mixed.json" -Raw | ConvertFrom-Json
+    $expectedCox = Get-Content "packages/statistics/validation/results/r-cox-reference.json" -Raw | ConvertFrom-Json
+    $actualCox = Get-Content "packages/statistics/validation/results/biolang-cox.json" -Raw | ConvertFrom-Json
     $checks = @(
         @("descriptive.mean", $expected.descriptive.mean, $actual.descriptive.mean, 1e-12),
         @("descriptive.median", $expected.descriptive.median, $actual.descriptive.median, 1e-12),
@@ -160,6 +166,54 @@ try {
         @("real.lung.observations", $expectedReal.lung.observations, $actualReal.lung.observations, 0),
         @("real.lung.events", $expectedReal.lung.events, $actualReal.lung.events, 0),
         @("real.lung.final_survival", $expectedReal.lung.final_survival, $actualReal.lung.final_survival, 1e-12)
+    )
+    $checks += @(
+        @("glm.binomial.coef0", $expectedGlm.binomial.coef0, $actualGlm.binomial.coef0, 1e-7),
+        @("glm.binomial.coef1", $expectedGlm.binomial.coef1, $actualGlm.binomial.coef1, 1e-7),
+        @("glm.binomial.coef2", $expectedGlm.binomial.coef2, $actualGlm.binomial.coef2, 1e-7),
+        @("glm.binomial.null_deviance", $expectedGlm.binomial.null_deviance, $actualGlm.binomial.null_deviance, 1e-10),
+        @("glm.binomial.residual_deviance", $expectedGlm.binomial.residual_deviance, $actualGlm.binomial.residual_deviance, 1e-7),
+        @("glm.binomial.aic", $expectedGlm.binomial.aic, $actualGlm.binomial.aic, 1e-7),
+        @("glm.binomial.dispersion", $expectedGlm.binomial.dispersion, $actualGlm.binomial.dispersion, 1e-7),
+        @("glm.binomial.brier", $expectedGlm.binomial.brier, $actualGlm.binomial.brier, 1e-7),
+        @("glm.binomial.maximum_leverage", $expectedGlm.binomial.maximum_leverage, $actualGlm.binomial.maximum_leverage, 1e-7),
+        @("glm.binomial.maximum_cook", $expectedGlm.binomial.maximum_cook, $actualGlm.binomial.maximum_cook, 1e-6),
+        @("glm.poisson.coef0", $expectedGlm.poisson.coef0, $actualGlm.poisson.coef0, 1e-7),
+        @("glm.poisson.coef1", $expectedGlm.poisson.coef1, $actualGlm.poisson.coef1, 1e-7),
+        @("glm.poisson.coef2", $expectedGlm.poisson.coef2, $actualGlm.poisson.coef2, 1e-7),
+        @("glm.poisson.coef3", $expectedGlm.poisson.coef3, $actualGlm.poisson.coef3, 1e-7),
+        @("glm.poisson.null_deviance", $expectedGlm.poisson.null_deviance, $actualGlm.poisson.null_deviance, 1e-10),
+        @("glm.poisson.residual_deviance", $expectedGlm.poisson.residual_deviance, $actualGlm.poisson.residual_deviance, 1e-7),
+        @("glm.poisson.aic", $expectedGlm.poisson.aic, $actualGlm.poisson.aic, 1e-7),
+        @("glm.poisson.dispersion", $expectedGlm.poisson.dispersion, $actualGlm.poisson.dispersion, 1e-7),
+        @("glm.poisson.expected_zeros", $expectedGlm.poisson.expected_zeros, $actualGlm.poisson.expected_zeros, 1e-7),
+        @("glm.poisson.maximum_leverage", $expectedGlm.poisson.maximum_leverage, $actualGlm.poisson.maximum_leverage, 1e-7),
+        @("glm.poisson.maximum_cook", $expectedGlm.poisson.maximum_cook, $actualGlm.poisson.maximum_cook, 1e-6)
+    )
+    $checks += @(
+        @("mixed.fixed_intercept", $expectedMixed.fixed_intercept, $actualMixed.fixed_intercept, 1e-6),
+        @("mixed.fixed_time", $expectedMixed.fixed_time, $actualMixed.fixed_time, 1e-6),
+        @("mixed.random_intercept_variance", $expectedMixed.random_intercept_variance, $actualMixed.random_intercept_variance, 1e-5),
+        @("mixed.residual_variance", $expectedMixed.residual_variance, $actualMixed.residual_variance, 1e-5),
+        @("mixed.icc", $expectedMixed.icc, $actualMixed.icc, 1e-5),
+        @("mixed.clusters", $expectedMixed.clusters, $actualMixed.clusters, 0),
+        @("mixed.observations", $expectedMixed.observations, $actualMixed.observations, 0)
+    )
+    $checks += @(
+        @("cox.coef_age", $expectedCox.coef_age, $actualCox.coef_age, 1e-7),
+        @("cox.coef_sex", $expectedCox.coef_sex, $actualCox.coef_sex, 1e-7),
+        @("cox.se_age", $expectedCox.se_age, $actualCox.se_age, 1e-7),
+        @("cox.se_sex", $expectedCox.se_sex, $actualCox.se_sex, 1e-7),
+        @("cox.partial_log_likelihood", $expectedCox.partial_log_likelihood, $actualCox.partial_log_likelihood, 1e-8),
+        @("cox.likelihood_ratio", $expectedCox.likelihood_ratio, $actualCox.likelihood_ratio, 1e-8),
+        @("cox.aic_partial", $expectedCox.aic_partial, $actualCox.aic_partial, 1e-8),
+        @("cox.final_baseline_hazard", $expectedCox.final_baseline_hazard, $actualCox.final_baseline_hazard, 1e-7),
+        @("cox.martingale_sum", $expectedCox.martingale_sum, $actualCox.martingale_sum, 1e-7),
+        @("cox.martingale_sum_squares", $expectedCox.martingale_sum_squares, $actualCox.martingale_sum_squares, 1e-7),
+        @("cox.schoenfeld_age_time_correlation", $expectedCox.schoenfeld_age_time_correlation, $actualCox.schoenfeld_age_time_correlation, 1e-7),
+        @("cox.schoenfeld_sex_time_correlation", $expectedCox.schoenfeld_sex_time_correlation, $actualCox.schoenfeld_sex_time_correlation, 1e-7),
+        @("cox.observations", $expectedCox.observations, $actualCox.observations, 0),
+        @("cox.events", $expectedCox.events, $actualCox.events, 0)
     )
 
     $failures = @()

@@ -62,3 +62,6 @@ fn time_series_diagnostics(values, options = ({})) { eda.time_series_diagnostics
 fn cluster_diagnostics(values, clusters, options = ({})) { eda.cluster_diagnostics(values, clusters, options) }
 fn means(values, options = ({})) { eda.means(values, options) }
 fn decision_map(options = ({})) { eda.decision_map(options) }
+fn glm_diagnostics(predictors, outcome, options = ({})) { eda.glm_diagnostics(predictors, outcome, options) }
+fn random_intercept_model(predictors, outcome, clusters, options = ({})) { eda.random_intercept_model(predictors, outcome, clusters, options) }
+fn cox_diagnostics(time, event, predictors, options = ({})) { eda.cox_diagnostics(time, event, predictors, options) }

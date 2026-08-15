@@ -281,6 +281,28 @@ The combined workflow is available in
 Grouped validation, robust sensitivity, weights, and ordered data are combined
 in [`examples/robust_weighted_timeseries.bl`](examples/robust_weighted_timeseries.bl).
 
-External base-R validation is documented in
+## Model diagnostics
+
+The guided layer fits and diagnoses three common model families:
+
+```biolang
+let binary = stat.glm_diagnostics(predictors, outcome, {family: "binomial"})
+let repeated = stat.random_intercept_model(predictors, outcome, patient_ids, {method: "reml"})
+let survival = stat.cox_diagnostics(follow_up_time, event, predictors)
+```
+
+`glm_diagnostics()` supports binomial and Poisson outcomes and reports residual
+deviance, dispersion, influence, and calibration or zero-count clues.
+`random_intercept_model()` reports fixed effects, variance components, ICC,
+partially pooled intercepts, and marginal and conditional fitted values.
+`cox_diagnostics()` uses a full multivariable Newton fit with Breslow ties and
+reports hazard-ratio intervals, partial likelihood, baseline hazard,
+concordance, martingale/deviance residuals, and a clearly labelled descriptive
+Schoenfeld screen. That screen is not a formal `cox.zph` replacement.
+
+All three preserve their inputs and return review clues rather than automatic
+deletion decisions. Model diagnostics cannot create a causal study design.
+
+External R validation is documented in
 [`validation/README.md`](validation/README.md). An unavailable R installation is
 reported as “not run,” never as a pass.

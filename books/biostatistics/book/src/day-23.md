@@ -23,7 +23,7 @@ Resampling methods draw repeated samples from your data to estimate the sampling
 
 Think of it like this. You have a bag containing 12 marbles (your data). You want to know how variable the "average marble weight" is. The classical approach derives a formula based on the normal distribution. The resampling approach says: shake the bag, pull out 12 marbles (with replacement), weigh them, compute the average. Put them back. Repeat 10,000 times. The distribution of those 10,000 averages tells you everything you need to know — no formula, no assumptions.
 
-> **Key insight:** Resampling methods trade mathematical assumptions for computational effort. With modern computers, 10,000 resamples takes milliseconds. The only assumption is that your sample is representative of the population — the same assumption underlying all of statistics.
+> **Key insight:** Resampling methods trade some distributional formulas for computational effort, not for an assumption-free analysis. The resampling unit must match the experimental unit; bootstrap observations should represent the target population, and permutation labels must be exchangeable under the null. Dependence, clustering, censoring, and small samples may require specialised schemes.
 
 ## The Bootstrap
 
@@ -221,7 +221,7 @@ The permutation test directly addresses the question: "Could the observed differ
 4. Repeat steps 2-3 many times (10,000 or more).
 5. The p-value is the proportion of shuffled statistics as extreme as or more extreme than the observed one.
 
-The logic is simple: if group membership does not matter (the null hypothesis), then shuffling labels should produce similar statistics. If the observed statistic is far from what shuffling produces, the group difference is real.
+The logic is simple: if labels are exchangeable under the null, shuffling them gives a reference distribution. An unusually extreme observed statistic is evidence against that null model; it does not prove that the estimated difference is causal, error-free, or certain to replicate.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="380" viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">

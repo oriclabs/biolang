@@ -260,3 +260,95 @@ real_json <- sprintf(
   nrow(lung), sum(lung$event), lung_final_survival
 )
 writeLines(real_json, "packages/statistics/validation/results/r-real-reference.json", useBytes = TRUE)
+
+glm_binary_data <- data.frame(am = mtcars$am, hp = mtcars$hp, wt = mtcars$wt)
+write.csv(glm_binary_data, "packages/statistics/validation/results/mtcars-glm.csv", row.names = FALSE)
+glm_binary <- glm(am ~ hp + wt, data = glm_binary_data, family = binomial())
+glm_binary_dispersion <- sum(residuals(glm_binary, type = "pearson")^2) /
+  df.residual(glm_binary)
+glm_binary_brier <- mean((glm_binary_data$am - fitted(glm_binary))^2)
+
+glm_poisson_data <- data.frame(
+  breaks = warpbreaks$breaks,
+  tension = factor(as.character(warpbreaks$tension), levels = unique(as.character(warpbreaks$tension))),
+  wool = factor(as.character(warpbreaks$wool), levels = unique(as.character(warpbreaks$wool)))
+)
+write.csv(glm_poisson_data, "packages/statistics/validation/results/warpbreaks-glm.csv", row.names = FALSE)
+glm_poisson <- glm(breaks ~ tension + wool, data = glm_poisson_data, family = poisson())
+glm_poisson_dispersion <- sum(residuals(glm_poisson, type = "pearson")^2) /
+  df.residual(glm_poisson)
+
+glm_json <- sprintf(
+  paste0(
+    '{',
+    '"binomial":{"coef0":%.17g,"coef1":%.17g,"coef2":%.17g,"null_deviance":%.17g,"residual_deviance":%.17g,"aic":%.17g,"dispersion":%.17g,"brier":%.17g,"maximum_leverage":%.17g,"maximum_cook":%.17g},',
+    '"poisson":{"coef0":%.17g,"coef1":%.17g,"coef2":%.17g,"coef3":%.17g,"null_deviance":%.17g,"residual_deviance":%.17g,"aic":%.17g,"dispersion":%.17g,"expected_zeros":%.17g,"maximum_leverage":%.17g,"maximum_cook":%.17g}',
+    '}'
+  ),
+  coef(glm_binary)[[1]], coef(glm_binary)[[2]], coef(glm_binary)[[3]],
+  glm_binary$null.deviance, glm_binary$deviance, AIC(glm_binary),
+  glm_binary_dispersion, glm_binary_brier, max(hatvalues(glm_binary)),
+  max(cooks.distance(glm_binary)),
+  coef(glm_poisson)[[1]], coef(glm_poisson)[[2]], coef(glm_poisson)[[3]],
+  coef(glm_poisson)[[4]], glm_poisson$null.deviance, glm_poisson$deviance,
+  AIC(glm_poisson), glm_poisson_dispersion,
+  sum(exp(-fitted(glm_poisson))), max(hatvalues(glm_poisson)),
+  max(cooks.distance(glm_poisson))
+)
+writeLines(glm_json, "packages/statistics/validation/results/r-glm-reference.json", useBytes = TRUE)
+
+mixed_fit <- nlme::lme(
+  weight ~ time,
+  random = ~ 1 | chick,
+  data = chick,
+  method = "REML",
+  control = nlme::lmeControl(msMaxIter = 200, returnObject = TRUE)
+)
+mixed_variances <- as.numeric(nlme::VarCorr(mixed_fit)[, "Variance"])
+mixed_random_variance <- mixed_variances[[1]]
+mixed_residual_variance <- mixed_variances[[2]]
+mixed_json <- sprintf(
+  paste0(
+    '{',
+    '"fixed_intercept":%.17g,"fixed_time":%.17g,',
+    '"random_intercept_variance":%.17g,"residual_variance":%.17g,',
+    '"icc":%.17g,"clusters":%d,"observations":%d',
+    '}'
+  ),
+  nlme::fixef(mixed_fit)[[1]], nlme::fixef(mixed_fit)[[2]],
+  mixed_random_variance, mixed_residual_variance,
+  mixed_random_variance / (mixed_random_variance + mixed_residual_variance),
+  length(unique(chick$chick)), nrow(chick)
+)
+writeLines(mixed_json, "packages/statistics/validation/results/r-mixed-reference.json", useBytes = TRUE)
+
+cox_fit <- survival::coxph(
+  survival::Surv(time, event) ~ age + sex,
+  data = lung,
+  ties = "breslow",
+  x = TRUE
+)
+cox_baseline <- survival::basehaz(cox_fit, centered = FALSE)
+cox_martingale <- residuals(cox_fit, type = "martingale")
+cox_schoenfeld <- residuals(cox_fit, type = "schoenfeld")
+cox_event_times <- as.numeric(rownames(cox_schoenfeld))
+cox_json <- sprintf(
+  paste0(
+    '{',
+    '"coef_age":%.17g,"coef_sex":%.17g,',
+    '"se_age":%.17g,"se_sex":%.17g,',
+    '"partial_log_likelihood":%.17g,"likelihood_ratio":%.17g,"aic_partial":%.17g,',
+    '"final_baseline_hazard":%.17g,"martingale_sum":%.17g,"martingale_sum_squares":%.17g,',
+    '"schoenfeld_age_time_correlation":%.17g,"schoenfeld_sex_time_correlation":%.17g,',
+    '"observations":%d,"events":%d',
+    '}'
+  ),
+  coef(cox_fit)[[1]], coef(cox_fit)[[2]],
+  sqrt(diag(vcov(cox_fit)))[[1]], sqrt(diag(vcov(cox_fit)))[[2]],
+  cox_fit$loglik[[2]], 2 * diff(cox_fit$loglik), AIC(cox_fit),
+  tail(cox_baseline$hazard, 1), sum(cox_martingale), sum(cox_martingale^2),
+  cor(cox_event_times, cox_schoenfeld[, "age"]),
+  cor(cox_event_times, cox_schoenfeld[, "sex"]),
+  cox_fit$n, cox_fit$nevent
+)
+writeLines(cox_json, "packages/statistics/validation/results/r-cox-reference.json", useBytes = TRUE)

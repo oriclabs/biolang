@@ -28,7 +28,11 @@ dispersion, multivariable coefficients and diagnostics, and omics matrix axis
 summaries. It additionally compares Huber regression with R `MASS::rlm`,
 weighted moments with explicit R formulas, and ACF/Ljung-Box/trend values with
 R's time-series functions. One-way ICC components and the cluster design-effect
-approximation are checked with explicit R formulas. It records versions, per-backend elapsed time,
+approximation are checked with explicit R formulas. Binomial and Poisson GLMs
+are checked against `stats::glm`, a random-intercept REML fit against
+`nlme::lme`, and a multivariable Breslow Cox model against
+`survival::coxph`. The current suite contains 147 scale-sensitive checks. It
+records versions, per-backend elapsed time,
 scale-sensitive differences, tolerances, and the final result in
 `validation/results/manifest.json`.
 

@@ -309,3 +309,65 @@ fn test_exploration_and_decision_map_connect_question_scale_and_uncertainty() {
     assert starts_with(map.svg, "<svg")
     assert map.automatic_choice == false
 }
+
+fn test_glm_diagnostics_expose_residual_influence_and_calibration_clues() {
+    let binary = stat.glm_diagnostics(table({
+        age: [20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64],
+        marker: [0.2, 0.8, 0.4, 1.2, 0.7, 1.6, 1.1, 2.0, 1.5, 2.4, 1.9, 2.8]
+    }), [0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1], {
+        family: "binomial",
+        include_values: true
+    })
+    assert binary.family == "binomial"
+    assert len(binary.coefficients) == 3
+    assert len(binary.fitted) == 12
+    assert len(binary.calibration_bins) == 10
+    assert binary.brier_score > 0.0
+    assert contains(binary.ascii, "No causal interpretation")
+
+    let counts = stat.glm_diagnostics(table({
+        exposure: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    }), [0, 1, 1, 2, 2, 4, 3, 5, 7, 8], {family: "poisson"})
+    assert counts.family == "poisson"
+    assert counts.expected_poisson_zeros > 0.0
+    assert counts.residual_deviance >= 0.0
+    assert counts.input_modified == false
+}
+
+fn test_random_intercept_model_partially_pools_declared_clusters() {
+    let model = stat.random_intercept_model(
+        table({time: [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]}),
+        [10.0, 12.1, 13.9, 15.0, 17.2, 18.8, 6.0, 8.1, 9.9, 13.0, 15.1, 16.9, 8.0, 10.2, 11.8, 17.0, 19.1, 20.9],
+        ["a", "a", "a", "b", "b", "b", "c", "c", "c", "d", "d", "d", "e", "e", "e", "f", "f", "f"],
+        {method: "reml", include_values: true}
+    )
+    assert model.method == "reml"
+    assert model.clusters == 6
+    assert abs(model.fixed_effects[1].estimate - 2.0) < 0.1
+    assert model.random_intercept_variance > model.residual_variance
+    assert model.intraclass_correlation > 0.5
+    assert len(model.conditional_fitted) == 18
+    assert contains(model.ascii, "partially pooled")
+    assert model.input_modified == false
+}
+
+fn test_cox_diagnostics_fit_multivariable_breslow_model() {
+    let model = stat.cox_diagnostics(
+        [5, 8, 9, 12, 15, 18, 20, 23, 26, 30, 32, 35],
+        [1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1],
+        table({
+            age: [51, 62, 57, 70, 45, 66, 54, 73, 49, 61, 58, 68],
+            treatment: [0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0]
+        }),
+        {include_values: true}
+    )
+    assert model.ties == "breslow"
+    assert model.complete_rows == 12
+    assert model.events == 8
+    assert len(model.coefficients) == 2
+    assert len(model.martingale_residuals) == 12
+    assert model.likelihood_ratio >= 0.0
+    assert model.formal_cox_zph_test == false
+    assert contains(model.ascii, "not cox.zph")
+    assert model.input_modified == false
+}

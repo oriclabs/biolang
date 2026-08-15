@@ -182,6 +182,31 @@ fn test_kaplan_meier() {
 }
 
 #[test]
+fn test_multivariable_cox_matches_breslow_reference() {
+    let times = [
+        5.0, 8.0, 9.0, 12.0, 15.0, 18.0, 20.0, 23.0, 26.0, 30.0, 32.0, 35.0,
+    ];
+    let events = [
+        true, true, false, true, true, false, true, false, true, true, false, true,
+    ];
+    let ages = [
+        51.0, 62.0, 57.0, 70.0, 45.0, 66.0, 54.0, 73.0, 49.0, 61.0, 58.0, 68.0,
+    ];
+    let treatments = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0];
+    let covariates = ages
+        .iter()
+        .zip(treatments)
+        .map(|(age, treatment)| vec![*age, treatment])
+        .collect::<Vec<_>>();
+    let result = cox_ph(&times, &events, &covariates).unwrap();
+
+    // R survival::coxph(..., ties = "breslow") reference values.
+    assert!((result.coefficients[0] - -0.1531305).abs() < 1e-6);
+    assert!((result.coefficients[1] - -2.0958585).abs() < 1e-6);
+    assert!(result.p_values.iter().all(|value| value.is_finite()));
+}
+
+#[test]
 fn test_multiple_regression() {
     let y: Vec<f64> = (1..=10).map(|i| 2.0 * i as f64 + 1.0).collect();
     let x: Vec<Vec<f64>> = (1..=10).map(|i| vec![i as f64]).collect();

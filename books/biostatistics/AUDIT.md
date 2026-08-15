@@ -26,7 +26,8 @@ powershell -NoProfile -ExecutionPolicy Bypass `
   -RscriptPath "C:\Program Files\R\R-4.5.2\bin\Rscript.exe" -RequireR
 ```
 
-It currently compares 105 scale-sensitive metrics with R, including real
+It currently compares 147 scale-sensitive metrics with R, including GLM,
+random-intercept, and Cox diagnostics plus real
 fixtures generated from `airquality`, `Nile`, `ChickWeight`, and
 `survival::lung`. Generated fixtures and outputs remain ignored.
 

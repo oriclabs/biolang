@@ -259,7 +259,7 @@ normal_qq_plot(means_n100, {title: "Q-Q Plot: Sample Means n=100"})
 
 Watch the skewness drop toward zero as n increases. By n=100, the sampling distribution is indistinguishable from a normal curve, even though the underlying data is wildly skewed.
 
-> **Key insight:** The CLT is why the normal distribution dominates statistics. Even when individual observations are non-normal, means of samples are approximately normal. Since most statistical tests are fundamentally about comparing means, the normal distribution is the right reference distribution for the test statistic — even when the raw data is not normal.
+> **Key insight:** Under suitable conditions, the CLT explains why sampling distributions of sums and means can become approximately normal even when individual observations are not. The approximation depends on sample size, tail behaviour, and dependence. It does not make the raw data normal, and it does not justify a normal reference for every statistic or study design.
 
 ### When Does the CLT "Kick In"?
 

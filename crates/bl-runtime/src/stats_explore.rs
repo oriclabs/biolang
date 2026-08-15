@@ -50,6 +50,9 @@ pub(crate) fn call(name: &str, args: Vec<Value>) -> Result<Value> {
         "stats_cluster_diagnostics" => cluster_diagnostics(args),
         "stats_means" => means_guide(args),
         "stats_decision_map" => decision_map(args),
+        "stats_glm_diagnostics" => glm_diagnostics(args),
+        "stats_random_intercept_model" => random_intercept_model(args),
+        "stats_cox_diagnostics" => cox_diagnostics(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
             format!("unknown exploratory statistics builtin '{name}'"),
@@ -6705,6 +6708,1582 @@ fn inverse_xtx(x: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
         }
     }
     Some(augmented.into_iter().map(|row| row[p..].to_vec()).collect())
+}
+
+fn inverse_xtwx(x: &[Vec<f64>], weights: &[f64]) -> Option<Vec<Vec<f64>>> {
+    if x.len() != weights.len() {
+        return None;
+    }
+    let p = x.first()?.len() + 1;
+    let mut augmented = vec![vec![0.0; p * 2]; p];
+    for (row, weight) in x.iter().zip(weights) {
+        for left in 0..p {
+            let left_value = if left == 0 { 1.0 } else { row[left - 1] };
+            for right in 0..p {
+                let right_value = if right == 0 { 1.0 } else { row[right - 1] };
+                augmented[left][right] += weight * left_value * right_value;
+            }
+        }
+    }
+    for index in 0..p {
+        augmented[index][p + index] = 1.0;
+    }
+    for column in 0..p {
+        let pivot_row = (column..p).max_by(|left, right| {
+            augmented[*left][column]
+                .abs()
+                .total_cmp(&augmented[*right][column].abs())
+        })?;
+        augmented.swap(column, pivot_row);
+        let pivot = augmented[column][column];
+        if pivot.abs() <= 1e-12 {
+            return None;
+        }
+        for value in &mut augmented[column] {
+            *value /= pivot;
+        }
+        for row in 0..p {
+            if row == column {
+                continue;
+            }
+            let factor = augmented[row][column];
+            for index in 0..p * 2 {
+                augmented[row][index] -= factor * augmented[column][index];
+            }
+        }
+    }
+    Some(augmented.into_iter().map(|row| row[p..].to_vec()).collect())
+}
+
+fn glm_diagnostics(args: Vec<Value>) -> Result<Value> {
+    let function = "stats_glm_diagnostics";
+    let predictors = require_table(&args[0], function)?;
+    let opts = options(&args, 2, function)?;
+    let family = opts
+        .get("family")
+        .and_then(Value::as_str)
+        .unwrap_or("binomial");
+    if !matches!(family, "binomial" | "logistic" | "poisson") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() family must be binomial or poisson"),
+            None,
+        ));
+    }
+    let family = if family == "logistic" {
+        "binomial"
+    } else {
+        family
+    };
+    let prepared = prepare_model(predictors, &args[1], &opts, function)?;
+    let n = prepared.y.len();
+    let feature_count = prepared.feature_names.len();
+    let parameter_count = feature_count + 1;
+    if n <= parameter_count {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() has {n} complete rows but needs more than {parameter_count} for the encoded model"),
+            None,
+        ));
+    }
+    if family == "binomial"
+        && prepared
+            .y
+            .iter()
+            .any(|value| *value != 0.0 && *value != 1.0)
+    {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() binomial outcomes must be exactly 0 or 1"),
+            None,
+        ));
+    }
+    if family == "poisson"
+        && prepared
+            .y
+            .iter()
+            .any(|value| *value < 0.0 || value.fract().abs() > 1e-12)
+    {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() Poisson outcomes must be non-negative integers"),
+            None,
+        ));
+    }
+
+    let (coefficients, p_values, fitter_aic) = if family == "binomial" {
+        let fit = crate::stats::logistic_regression_multi(&prepared.y, &prepared.x)
+            .map_err(|message| BioLangError::runtime(ErrorKind::TypeError, message, None))?;
+        (fit.0, fit.1, fit.3)
+    } else {
+        let fit = crate::stats::poisson_regression(&prepared.y, &prepared.x)
+            .map_err(|message| BioLangError::runtime(ErrorKind::TypeError, message, None))?;
+        (fit.0, fit.1, fit.3)
+    };
+    let design_rows = prepared
+        .x
+        .iter()
+        .map(|row| {
+            std::iter::once(1.0)
+                .chain(row.iter().copied())
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    let linear_predictors = design_rows
+        .iter()
+        .map(|row| dot(row, &coefficients))
+        .collect::<Vec<_>>();
+    let fitted = linear_predictors
+        .iter()
+        .map(|eta| {
+            if family == "binomial" {
+                1.0 / (1.0 + (-eta).exp())
+            } else {
+                eta.exp().min(1e10)
+            }
+        })
+        .collect::<Vec<_>>();
+    let variances = fitted
+        .iter()
+        .map(|mu| {
+            if family == "binomial" {
+                (mu * (1.0 - mu)).max(1e-10)
+            } else {
+                (*mu).max(1e-10)
+            }
+        })
+        .collect::<Vec<_>>();
+    let inverse = inverse_xtwx(&prepared.x, &variances).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() weighted model matrix is singular or numerically unstable"),
+            None,
+        )
+    })?;
+    let pearson_residuals = prepared
+        .y
+        .iter()
+        .zip(&fitted)
+        .zip(&variances)
+        .map(|((observed, fitted), variance)| (observed - fitted) / variance.sqrt())
+        .collect::<Vec<_>>();
+    let deviance_residuals = prepared
+        .y
+        .iter()
+        .zip(&fitted)
+        .map(|(observed, fitted)| {
+            let component = if family == "binomial" {
+                let mu = fitted.clamp(1e-15, 1.0 - 1e-15);
+                let observed_term = if *observed > 0.0 {
+                    observed * (observed / mu).ln()
+                } else {
+                    0.0
+                };
+                let complement = 1.0 - observed;
+                let complement_term = if complement > 0.0 {
+                    complement * (complement / (1.0 - mu)).ln()
+                } else {
+                    0.0
+                };
+                2.0 * (observed_term + complement_term)
+            } else if *observed > 0.0 {
+                2.0 * (observed * (observed / fitted.max(1e-15)).ln() - (observed - fitted))
+            } else {
+                2.0 * fitted
+            };
+            (observed - fitted).signum() * component.max(0.0).sqrt()
+        })
+        .collect::<Vec<_>>();
+    let residual_deviance = deviance_residuals
+        .iter()
+        .map(|value| value * value)
+        .sum::<f64>();
+    let degrees_freedom = n - parameter_count;
+    let pearson_chi_squared = pearson_residuals
+        .iter()
+        .map(|value| value * value)
+        .sum::<f64>();
+    let dispersion = pearson_chi_squared / degrees_freedom as f64;
+    let null_mean = (prepared.y.iter().sum::<f64>() / n as f64).clamp(
+        if family == "binomial" { 1e-15 } else { 0.0 },
+        if family == "binomial" {
+            1.0 - 1e-15
+        } else {
+            f64::INFINITY
+        },
+    );
+    let null_deviance = prepared
+        .y
+        .iter()
+        .map(|observed| {
+            if family == "binomial" {
+                let first = if *observed > 0.0 {
+                    observed * (observed / null_mean).ln()
+                } else {
+                    0.0
+                };
+                let complement = 1.0 - observed;
+                let second = if complement > 0.0 {
+                    complement * (complement / (1.0 - null_mean)).ln()
+                } else {
+                    0.0
+                };
+                2.0 * (first + second)
+            } else if *observed > 0.0 {
+                2.0 * (observed * (observed / null_mean.max(1e-15)).ln() - (observed - null_mean))
+            } else {
+                2.0 * null_mean
+            }
+        })
+        .sum::<f64>();
+    let log_likelihood = if family == "binomial" {
+        prepared
+            .y
+            .iter()
+            .zip(&fitted)
+            .map(|(observed, fitted)| {
+                let mu = fitted.clamp(1e-15, 1.0 - 1e-15);
+                observed * mu.ln() + (1.0 - observed) * (1.0 - mu).ln()
+            })
+            .sum::<f64>()
+    } else {
+        prepared
+            .y
+            .iter()
+            .zip(&fitted)
+            .map(|(observed, fitted)| {
+                observed * fitted.max(1e-15).ln() - fitted - log_gamma(observed + 1.0)
+            })
+            .sum::<f64>()
+    };
+    let aic = -2.0 * log_likelihood + 2.0 * parameter_count as f64;
+    let confidence = opts
+        .get("confidence")
+        .and_then(Value::as_float)
+        .unwrap_or(0.95);
+    if !(0.5..1.0).contains(&confidence) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() confidence must be between 0.5 and 1"),
+            None,
+        ));
+    }
+    let critical = bl_core::bio_core::stats_ops::normal_quantile((1.0 + confidence) / 2.0);
+    let mut coefficient_rows = Vec::new();
+    for index in 0..parameter_count {
+        let standard_error = inverse[index][index].max(0.0).sqrt();
+        coefficient_rows.push(record([
+            (
+                "name",
+                text(if index == 0 {
+                    "(intercept)"
+                } else {
+                    &prepared.feature_names[index - 1]
+                }),
+            ),
+            ("estimate", Value::Float(coefficients[index])),
+            ("standard_error", Value::Float(standard_error)),
+            ("p_value", Value::Float(p_values[index])),
+            (
+                "confidence_lower",
+                Value::Float(coefficients[index] - critical * standard_error),
+            ),
+            (
+                "confidence_upper",
+                Value::Float(coefficients[index] + critical * standard_error),
+            ),
+            ("effect_ratio", Value::Float(coefficients[index].exp())),
+        ]));
+    }
+    let mut leverages = Vec::with_capacity(n);
+    let mut standardized_pearson = Vec::with_capacity(n);
+    let mut cooks = Vec::with_capacity(n);
+    for ((row, weight), pearson) in design_rows.iter().zip(&variances).zip(&pearson_residuals) {
+        let transformed = inverse
+            .iter()
+            .map(|inverse_row| dot(inverse_row, row))
+            .collect::<Vec<_>>();
+        let leverage = (weight * dot(row, &transformed)).clamp(0.0, 1.0);
+        let denominator = (1.0 - leverage).max(1e-12);
+        leverages.push(leverage);
+        standardized_pearson.push(pearson / denominator.sqrt());
+        cooks.push(pearson.powi(2) * leverage / (parameter_count as f64 * denominator.powi(2)));
+    }
+    let cook_threshold = 4.0 / n as f64;
+    let leverage_threshold = 2.0 * parameter_count as f64 / n as f64;
+    let mut review_rows = Vec::new();
+    for index in 0..n {
+        if standardized_pearson[index].abs() >= 3.0
+            || cooks[index] > cook_threshold
+            || leverages[index] > leverage_threshold
+        {
+            review_rows.push(record([
+                ("row", Value::Int(prepared.original_rows[index] as i64)),
+                ("observed", Value::Float(prepared.y[index])),
+                ("fitted", Value::Float(fitted[index])),
+                (
+                    "standardized_pearson",
+                    Value::Float(standardized_pearson[index]),
+                ),
+                ("leverage", Value::Float(leverages[index])),
+                ("cook_distance", Value::Float(cooks[index])),
+                ("action", text("inspect; do not automatically delete")),
+            ]));
+        }
+    }
+    let observed_zeros = prepared.y.iter().filter(|value| **value == 0.0).count();
+    let expected_zeros =
+        (family == "poisson").then(|| fitted.iter().map(|value| (-value).exp()).sum::<f64>());
+    let brier_score = (family == "binomial").then(|| {
+        prepared
+            .y
+            .iter()
+            .zip(&fitted)
+            .map(|(observed, fitted)| (observed - fitted).powi(2))
+            .sum::<f64>()
+            / n as f64
+    });
+    let mut calibration = Vec::new();
+    if family == "binomial" {
+        let mut order = (0..n).collect::<Vec<_>>();
+        order.sort_by(|left, right| fitted[*left].total_cmp(&fitted[*right]));
+        let bins = n.min(10);
+        for bin_index in 0..bins {
+            let start = bin_index * n / bins;
+            let end = (bin_index + 1) * n / bins;
+            if start == end {
+                continue;
+            }
+            let indices = &order[start..end];
+            calibration.push(record([
+                ("bin", Value::Int((bin_index + 1) as i64)),
+                ("observations", Value::Int(indices.len() as i64)),
+                (
+                    "mean_fitted",
+                    Value::Float(
+                        indices.iter().map(|index| fitted[*index]).sum::<f64>()
+                            / indices.len() as f64,
+                    ),
+                ),
+                (
+                    "observed_event_fraction",
+                    Value::Float(
+                        indices.iter().map(|index| prepared.y[*index]).sum::<f64>()
+                            / indices.len() as f64,
+                    ),
+                ),
+            ]));
+        }
+    }
+    let mut issues = Vec::new();
+    if dispersion > 1.5 {
+        issues.push(issue(
+            "overdispersion_clue",
+            format!("Pearson dispersion is {}.", fmt_number(dispersion)),
+            if family == "poisson" {
+                "Inspect exposure, omitted structure, dependence, and negative-binomial/quasi-Poisson alternatives."
+            } else {
+                "Inspect dependence, omitted structure, and grouped-binomial assumptions; Bernoulli dispersion is not a free fitted parameter."
+            },
+            "review",
+        ));
+    }
+    if fitted.iter().any(|value| *value < 1e-6)
+        || (family == "binomial" && fitted.iter().any(|value| *value > 1.0 - 1e-6))
+    {
+        issues.push(issue(
+            "boundary_fit_clue",
+            "At least one fitted mean is extremely close to the response boundary.",
+            "Inspect separation, sparse factor levels, extrapolation, and coefficient stability.",
+            "review",
+        ));
+    }
+    if !review_rows.is_empty() {
+        issues.push(issue(
+            "influence_review",
+            format!("{} row(s) crossed a residual, leverage, or Cook review threshold.", review_rows.len()),
+            "Inspect data provenance and refit sensitivity; do not delete rows from these flags alone.",
+            "review",
+        ));
+    }
+    let ascii = format!(
+        "GLM diagnostic ({family}, n={n}, parameters={parameter_count})\nresidual deviance={} on {} df\nnull deviance={}  Pearson dispersion={}\nAIC={}{}\nreview rows={} (inspect, do not automatically delete)\n\nCoefficients are on the link scale; exp(coefficient) is a conditional odds/rate ratio. No causal interpretation or model selection is automatic.",
+        fmt_number(residual_deviance),
+        degrees_freedom,
+        fmt_number(null_deviance),
+        fmt_number(dispersion),
+        fmt_number(aic),
+        if (aic - fitter_aic).abs() > 1e-8 && family == "poisson" {
+            " (includes the Poisson factorial constant)"
+        } else {
+            ""
+        },
+        review_rows.len(),
+    );
+    let include_values = opts
+        .get("include_values")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    Ok(record([
+        ("schema", text("biolang.stats.glm-diagnostics/v1")),
+        ("kind", text("glm_diagnostics")),
+        ("family", text(family)),
+        ("complete_rows", Value::Int(n as i64)),
+        ("excluded_rows", Value::Int(prepared.excluded_rows as i64)),
+        ("encoded_predictors", Value::Int(feature_count as i64)),
+        ("parameters", Value::Int(parameter_count as i64)),
+        ("degrees_freedom", Value::Int(degrees_freedom as i64)),
+        ("encodings", list(prepared.encodings)),
+        ("coefficients", list(coefficient_rows)),
+        ("log_likelihood", Value::Float(log_likelihood)),
+        ("aic", Value::Float(aic)),
+        ("null_deviance", Value::Float(null_deviance)),
+        ("residual_deviance", Value::Float(residual_deviance)),
+        ("pearson_chi_squared", Value::Float(pearson_chi_squared)),
+        ("pearson_dispersion", Value::Float(dispersion)),
+        ("brier_score", number(brier_score)),
+        ("observed_zeros", Value::Int(observed_zeros as i64)),
+        ("expected_poisson_zeros", number(expected_zeros)),
+        ("calibration_bins", list(calibration)),
+        ("cook_threshold", Value::Float(cook_threshold)),
+        ("leverage_threshold", Value::Float(leverage_threshold)),
+        (
+            "maximum_leverage",
+            Value::Float(leverages.iter().copied().max_by(f64::total_cmp).unwrap_or(0.0)),
+        ),
+        (
+            "maximum_cook_distance",
+            Value::Float(cooks.iter().copied().max_by(f64::total_cmp).unwrap_or(0.0)),
+        ),
+        ("review_rows", list(review_rows)),
+        (
+            "fitted",
+            if include_values {
+                list(fitted.iter().copied().map(Value::Float).collect())
+            } else {
+                Value::Nil
+            },
+        ),
+        (
+            "pearson_residuals",
+            if include_values {
+                list(pearson_residuals.iter().copied().map(Value::Float).collect())
+            } else {
+                Value::Nil
+            },
+        ),
+        (
+            "deviance_residuals",
+            if include_values {
+                list(deviance_residuals.iter().copied().map(Value::Float).collect())
+            } else {
+                Value::Nil
+            },
+        ),
+        ("ascii", text(ascii)),
+        ("issues", list(issues)),
+        ("model_selected", Value::Bool(false)),
+        ("input_modified", Value::Bool(false)),
+        (
+            "limitations",
+            string_list([
+                "Residual, leverage, and Cook thresholds are diagnostic review clues, not deletion rules.",
+                "Pearson dispersion is descriptive; grouped binomial, repeated observations, survey designs, and exposure offsets require explicit structure.",
+                "Calibration bins are equal-count descriptive summaries and are not a formal goodness-of-fit test.",
+                "Coefficient intervals use model-based large-sample Wald standard errors.",
+            ]),
+        ),
+    ]))
+}
+
+fn invert_with_log_determinant(matrix: &[Vec<f64>]) -> Option<(Vec<Vec<f64>>, f64)> {
+    let n = matrix.len();
+    if n == 0 || matrix.iter().any(|row| row.len() != n) {
+        return None;
+    }
+    let mut augmented = vec![vec![0.0; 2 * n]; n];
+    for row in 0..n {
+        for column in 0..n {
+            augmented[row][column] = matrix[row][column];
+        }
+        augmented[row][n + row] = 1.0;
+    }
+    let mut log_determinant = 0.0;
+    for column in 0..n {
+        let pivot_row = (column..n).max_by(|left, right| {
+            augmented[*left][column]
+                .abs()
+                .total_cmp(&augmented[*right][column].abs())
+        })?;
+        augmented.swap(column, pivot_row);
+        let pivot = augmented[column][column];
+        if !pivot.is_finite() || pivot.abs() <= 1e-12 {
+            return None;
+        }
+        log_determinant += pivot.abs().ln();
+        for index in 0..2 * n {
+            augmented[column][index] /= pivot;
+        }
+        for row in 0..n {
+            if row == column {
+                continue;
+            }
+            let factor = augmented[row][column];
+            for index in 0..2 * n {
+                augmented[row][index] -= factor * augmented[column][index];
+            }
+        }
+    }
+    Some((
+        augmented.into_iter().map(|row| row[n..].to_vec()).collect(),
+        log_determinant,
+    ))
+}
+
+fn apply_random_intercept_inverse(
+    values: &[f64],
+    groups: &[usize],
+    group_sizes: &[usize],
+    lambda: f64,
+) -> Vec<f64> {
+    let mut sums = vec![0.0; group_sizes.len()];
+    for (value, group) in values.iter().zip(groups) {
+        sums[*group] += value;
+    }
+    values
+        .iter()
+        .zip(groups)
+        .map(|(value, group)| {
+            value - lambda / (1.0 + lambda * group_sizes[*group] as f64) * sums[*group]
+        })
+        .collect()
+}
+
+struct RandomInterceptProfile {
+    beta: Vec<f64>,
+    beta_information_inverse: Vec<Vec<f64>>,
+    sigma_residual_squared: f64,
+    log_likelihood: f64,
+}
+
+fn random_intercept_profile(
+    design: &[Vec<f64>],
+    outcome: &[f64],
+    groups: &[usize],
+    group_sizes: &[usize],
+    lambda: f64,
+    reml: bool,
+) -> Option<RandomInterceptProfile> {
+    let n = outcome.len();
+    let p = design.first()?.len();
+    if n <= p || lambda < 0.0 || !lambda.is_finite() {
+        return None;
+    }
+    let inverse_outcome = apply_random_intercept_inverse(outcome, groups, group_sizes, lambda);
+    let mut inverse_columns = vec![vec![0.0; n]; p];
+    for column in 0..p {
+        let values = design.iter().map(|row| row[column]).collect::<Vec<_>>();
+        inverse_columns[column] =
+            apply_random_intercept_inverse(&values, groups, group_sizes, lambda);
+    }
+    let mut information = vec![vec![0.0; p]; p];
+    let mut score = vec![0.0; p];
+    for left in 0..p {
+        score[left] = design
+            .iter()
+            .zip(&inverse_outcome)
+            .map(|(row, value)| row[left] * value)
+            .sum();
+        for right in 0..p {
+            information[left][right] = design
+                .iter()
+                .zip(&inverse_columns[right])
+                .map(|(row, value)| row[left] * value)
+                .sum();
+        }
+    }
+    let (information_inverse, log_information_determinant) =
+        invert_with_log_determinant(&information)?;
+    let beta = information_inverse
+        .iter()
+        .map(|row| dot(row, &score))
+        .collect::<Vec<_>>();
+    let residuals = design
+        .iter()
+        .zip(outcome)
+        .map(|(row, observed)| observed - dot(row, &beta))
+        .collect::<Vec<_>>();
+    let inverse_residuals = apply_random_intercept_inverse(&residuals, groups, group_sizes, lambda);
+    let quadratic = dot(&residuals, &inverse_residuals).max(f64::MIN_POSITIVE);
+    let scale_df = if reml { n - p } else { n };
+    let sigma_residual_squared = quadratic / scale_df as f64;
+    let log_v0_determinant = group_sizes
+        .iter()
+        .map(|size| (1.0 + lambda * *size as f64).ln())
+        .sum::<f64>();
+    let log_likelihood = -0.5
+        * (scale_df as f64
+            * ((2.0 * std::f64::consts::PI).ln() + sigma_residual_squared.ln() + 1.0)
+            + log_v0_determinant
+            + if reml {
+                log_information_determinant
+            } else {
+                0.0
+            });
+    Some(RandomInterceptProfile {
+        beta,
+        beta_information_inverse: information_inverse,
+        sigma_residual_squared,
+        log_likelihood,
+    })
+}
+
+fn random_intercept_model(args: Vec<Value>) -> Result<Value> {
+    let function = "stats_random_intercept_model";
+    let predictors = require_table(&args[0], function)?;
+    let Value::List(cluster_values) = &args[2] else {
+        return Err(BioLangError::type_error(
+            format!(
+                "{function}() clusters must be List, got {}",
+                args[2].type_of()
+            ),
+            None,
+        ));
+    };
+    if cluster_values.len() != predictors.rows.len() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{function}() cluster length {} does not match predictor rows {}",
+                cluster_values.len(),
+                predictors.rows.len()
+            ),
+            None,
+        ));
+    }
+    let opts = options(&args, 3, function)?;
+    let method = opts
+        .get("method")
+        .and_then(Value::as_str)
+        .unwrap_or("reml")
+        .to_ascii_lowercase();
+    if !matches!(method.as_str(), "reml" | "ml") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() method must be reml or ml"),
+            None,
+        ));
+    }
+    let reml = method == "reml";
+    let prepared = prepare_model(predictors, &args[1], &opts, function)?;
+    let mut x = Vec::new();
+    let mut y = Vec::new();
+    let mut original_rows = Vec::new();
+    let mut cluster_labels = Vec::new();
+    let mut cluster_lookup = HashMap::<String, usize>::new();
+    let mut groups = Vec::new();
+    let mut excluded_cluster_rows = 0usize;
+    for index in 0..prepared.y.len() {
+        let original_row = prepared.original_rows[index];
+        let Some(label) = cluster_values.get(original_row).and_then(category_label) else {
+            excluded_cluster_rows += 1;
+            continue;
+        };
+        let group = if let Some(group) = cluster_lookup.get(&label) {
+            *group
+        } else {
+            let group = cluster_labels.len();
+            cluster_labels.push(label.clone());
+            cluster_lookup.insert(label, group);
+            group
+        };
+        x.push(prepared.x[index].clone());
+        y.push(prepared.y[index]);
+        original_rows.push(original_row);
+        groups.push(group);
+    }
+    let n = y.len();
+    let fixed_features = prepared.feature_names.len();
+    let parameter_count = fixed_features + 1;
+    let cluster_count = cluster_labels.len();
+    if cluster_count < 2 || n <= parameter_count || n <= cluster_count {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() needs at least two clusters, repeated observations, and more complete rows than fixed-effect parameters"),
+            None,
+        ));
+    }
+    let mut group_sizes = vec![0usize; cluster_count];
+    for group in &groups {
+        group_sizes[*group] += 1;
+    }
+    if group_sizes.iter().all(|size| *size == 1) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() cannot estimate a random-intercept variance when every cluster has one observation"),
+            None,
+        ));
+    }
+    let design = x
+        .iter()
+        .map(|row| {
+            std::iter::once(1.0)
+                .chain(row.iter().copied())
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    let evaluate = |log_lambda: f64| {
+        let lambda = log_lambda.exp();
+        random_intercept_profile(&design, &y, &groups, &group_sizes, lambda, reml)
+            .map(|profile| (profile.log_likelihood, profile))
+    };
+    let boundary_profile = random_intercept_profile(&design, &y, &groups, &group_sizes, 0.0, reml)
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("{function}() fixed-effect information matrix is singular"),
+                None,
+            )
+        })?;
+    let mut best_log_lambda = -16.0;
+    let mut best_log_likelihood = boundary_profile.log_likelihood;
+    for index in 0..=128 {
+        let candidate = -16.0 + index as f64 * 0.25;
+        if let Some((likelihood, _)) = evaluate(candidate) {
+            if likelihood > best_log_likelihood {
+                best_log_likelihood = likelihood;
+                best_log_lambda = candidate;
+            }
+        }
+    }
+    let mut left = (best_log_lambda - 0.5).max(-20.0);
+    let mut right = (best_log_lambda + 0.5).min(20.0);
+    let golden = (5.0_f64.sqrt() - 1.0) / 2.0;
+    let mut c = right - golden * (right - left);
+    let mut d = left + golden * (right - left);
+    let mut fc = evaluate(c)
+        .map(|value| value.0)
+        .unwrap_or(f64::NEG_INFINITY);
+    let mut fd = evaluate(d)
+        .map(|value| value.0)
+        .unwrap_or(f64::NEG_INFINITY);
+    for _ in 0..100 {
+        if (right - left).abs() < 1e-10 {
+            break;
+        }
+        if fc > fd {
+            right = d;
+            d = c;
+            fd = fc;
+            c = right - golden * (right - left);
+            fc = evaluate(c)
+                .map(|value| value.0)
+                .unwrap_or(f64::NEG_INFINITY);
+        } else {
+            left = c;
+            c = d;
+            fc = fd;
+            d = left + golden * (right - left);
+            fd = evaluate(d)
+                .map(|value| value.0)
+                .unwrap_or(f64::NEG_INFINITY);
+        }
+    }
+    let optimized_log_lambda = (left + right) / 2.0;
+    let optimized = evaluate(optimized_log_lambda);
+    let (lambda, profile) = if let Some((likelihood, profile)) = optimized {
+        if likelihood > boundary_profile.log_likelihood + 1e-10 {
+            (optimized_log_lambda.exp(), profile)
+        } else {
+            (0.0, boundary_profile)
+        }
+    } else {
+        (0.0, boundary_profile)
+    };
+    let residual_variance = profile.sigma_residual_squared;
+    let random_intercept_variance = lambda * residual_variance;
+    let total_variance = random_intercept_variance + residual_variance;
+    let icc = if total_variance > 0.0 {
+        random_intercept_variance / total_variance
+    } else {
+        0.0
+    };
+    let confidence = opts
+        .get("confidence")
+        .and_then(Value::as_float)
+        .unwrap_or(0.95);
+    if !(0.5..1.0).contains(&confidence) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() confidence must be between 0.5 and 1"),
+            None,
+        ));
+    }
+    let critical = bl_core::bio_core::stats_ops::normal_quantile((1.0 + confidence) / 2.0);
+    let fixed_names = std::iter::once("(intercept)".to_string())
+        .chain(prepared.feature_names.iter().cloned())
+        .collect::<Vec<_>>();
+    let fixed_effects = profile
+        .beta
+        .iter()
+        .enumerate()
+        .map(|(index, estimate)| {
+            let standard_error = (residual_variance
+                * profile.beta_information_inverse[index][index].max(0.0))
+            .sqrt();
+            let z = if standard_error > 0.0 {
+                estimate / standard_error
+            } else {
+                0.0
+            };
+            record([
+                ("name", text(&fixed_names[index])),
+                ("estimate", Value::Float(*estimate)),
+                ("standard_error", Value::Float(standard_error)),
+                ("z_value", Value::Float(z)),
+                (
+                    "p_value_normal_approximation",
+                    Value::Float(2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(z.abs()))),
+                ),
+                (
+                    "confidence_lower",
+                    Value::Float(estimate - critical * standard_error),
+                ),
+                (
+                    "confidence_upper",
+                    Value::Float(estimate + critical * standard_error),
+                ),
+            ])
+        })
+        .collect::<Vec<_>>();
+    let marginal_fitted = design
+        .iter()
+        .map(|row| dot(row, &profile.beta))
+        .collect::<Vec<_>>();
+    let marginal_residuals = y
+        .iter()
+        .zip(&marginal_fitted)
+        .map(|(observed, fitted)| observed - fitted)
+        .collect::<Vec<_>>();
+    let mut group_residual_sums = vec![0.0; cluster_count];
+    for (residual, group) in marginal_residuals.iter().zip(&groups) {
+        group_residual_sums[*group] += residual;
+    }
+    let random_effect_values = (0..cluster_count)
+        .map(|group| {
+            lambda / (1.0 + lambda * group_sizes[group] as f64) * group_residual_sums[group]
+        })
+        .collect::<Vec<_>>();
+    let conditional_fitted = marginal_fitted
+        .iter()
+        .zip(&groups)
+        .map(|(fitted, group)| fitted + random_effect_values[*group])
+        .collect::<Vec<_>>();
+    let conditional_residuals = y
+        .iter()
+        .zip(&conditional_fitted)
+        .map(|(observed, fitted)| observed - fitted)
+        .collect::<Vec<_>>();
+    let max_cluster_details = opts
+        .get("max_cluster_details")
+        .and_then(Value::as_int)
+        .unwrap_or(50)
+        .clamp(0, 500) as usize;
+    let random_effects = cluster_labels
+        .iter()
+        .enumerate()
+        .take(max_cluster_details)
+        .map(|(group, label)| {
+            record([
+                ("cluster", text(label)),
+                ("observations", Value::Int(group_sizes[group] as i64)),
+                (
+                    "random_intercept",
+                    Value::Float(random_effect_values[group]),
+                ),
+                (
+                    "shrinkage_weight",
+                    Value::Float(
+                        lambda * group_sizes[group] as f64
+                            / (1.0 + lambda * group_sizes[group] as f64),
+                    ),
+                ),
+            ])
+        })
+        .collect::<Vec<_>>();
+    let mut issues = Vec::new();
+    if lambda == 0.0 || random_intercept_variance <= 1e-10 * residual_variance.max(1.0) {
+        issues.push(issue(
+            "variance_boundary",
+            "The estimated random-intercept variance is on or very near zero.",
+            "Treat the random effect as a boundary estimate; compare scientific design requirements and sensitivity rather than relying on an ordinary chi-square test.",
+            "review",
+        ));
+    }
+    let minimum_size = group_sizes.iter().copied().min().unwrap_or(0);
+    let maximum_size = group_sizes.iter().copied().max().unwrap_or(0);
+    if maximum_size > minimum_size.saturating_mul(3).max(1) {
+        issues.push(issue(
+            "unequal_cluster_sizes",
+            format!("Cluster sizes range from {minimum_size} to {maximum_size}."),
+            "Inspect weighting, informative cluster size, and whether a random slope or time structure is needed.",
+            "review",
+        ));
+    }
+    let include_values = opts
+        .get("include_values")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let ascii = format!(
+        "Random-intercept model ({}, n={n}, clusters={cluster_count})\nrandom-intercept SD={}  residual SD={}  ICC={}\nlog likelihood={}{}\n\nThe fixed effects describe conditional mean differences. Cluster intercepts are partially pooled; no random slope, temporal correlation, or causal interpretation is added automatically.",
+        method.to_uppercase(),
+        fmt_number(random_intercept_variance.sqrt()),
+        fmt_number(residual_variance.sqrt()),
+        fmt_number(icc),
+        fmt_number(profile.log_likelihood),
+        if lambda == 0.0 { " (variance boundary)" } else { "" },
+    );
+    Ok(record([
+        ("schema", text("biolang.stats.random-intercept/v1")),
+        ("kind", text("random_intercept_model")),
+        ("method", text(method)),
+        ("complete_rows", Value::Int(n as i64)),
+        (
+            "excluded_rows",
+            Value::Int((prepared.excluded_rows + excluded_cluster_rows) as i64),
+        ),
+        ("clusters", Value::Int(cluster_count as i64)),
+        ("minimum_cluster_size", Value::Int(minimum_size as i64)),
+        ("maximum_cluster_size", Value::Int(maximum_size as i64)),
+        ("fixed_effects", list(fixed_effects)),
+        ("encodings", list(prepared.encodings)),
+        (
+            "random_intercept_variance",
+            Value::Float(random_intercept_variance),
+        ),
+        ("random_intercept_sd", Value::Float(random_intercept_variance.sqrt())),
+        ("residual_variance", Value::Float(residual_variance)),
+        ("residual_sd", Value::Float(residual_variance.sqrt())),
+        ("intraclass_correlation", Value::Float(icc)),
+        ("variance_ratio", Value::Float(lambda)),
+        ("log_likelihood_profile", Value::Float(profile.log_likelihood)),
+        ("random_effects", list(random_effects)),
+        (
+            "random_effects_truncated",
+            Value::Bool(cluster_count > max_cluster_details),
+        ),
+        (
+            "marginal_fitted",
+            if include_values {
+                list(marginal_fitted.iter().copied().map(Value::Float).collect())
+            } else {
+                Value::Nil
+            },
+        ),
+        (
+            "conditional_fitted",
+            if include_values {
+                list(conditional_fitted.iter().copied().map(Value::Float).collect())
+            } else {
+                Value::Nil
+            },
+        ),
+        (
+            "conditional_residuals",
+            if include_values {
+                list(conditional_residuals.iter().copied().map(Value::Float).collect())
+            } else {
+                Value::Nil
+            },
+        ),
+        (
+            "original_rows",
+            if include_values {
+                list(original_rows.iter().map(|row| Value::Int(*row as i64)).collect())
+            } else {
+                Value::Nil
+            },
+        ),
+        ("ascii", text(ascii)),
+        ("issues", list(issues)),
+        ("input_modified", Value::Bool(false)),
+        (
+            "limitations",
+            string_list([
+                "Only one random intercept is fitted; random slopes, crossed/nested effects, and residual correlation structures are not included.",
+                "Fixed-effect p-values and intervals use a normal approximation; small-sample denominator degrees of freedom are not estimated.",
+                "Variance-component boundary inference does not follow an ordinary chi-square reference distribution.",
+                "Missing outcomes, predictors, or cluster labels are excluded together and disclosed.",
+            ]),
+        ),
+    ]))
+}
+
+struct CoxEvaluation {
+    log_likelihood: f64,
+    score: Vec<f64>,
+    information: Vec<Vec<f64>>,
+}
+
+fn evaluate_cox_breslow(
+    time: &[f64],
+    event: &[bool],
+    x: &[Vec<f64>],
+    beta: &[f64],
+) -> Option<CoxEvaluation> {
+    let p = beta.len();
+    let linear = x.iter().map(|row| dot(row, beta)).collect::<Vec<_>>();
+    let mut event_times = time
+        .iter()
+        .zip(event)
+        .filter_map(|(time, event)| event.then_some(*time))
+        .collect::<Vec<_>>();
+    event_times.sort_by(f64::total_cmp);
+    event_times.dedup_by(|left, right| (*left - *right).abs() <= 1e-12);
+    let mut log_likelihood = 0.0;
+    let mut score = vec![0.0; p];
+    let mut information = vec![vec![0.0; p]; p];
+    for event_time in event_times {
+        let event_rows = (0..time.len())
+            .filter(|index| event[*index] && (time[*index] - event_time).abs() <= 1e-12)
+            .collect::<Vec<_>>();
+        let event_count = event_rows.len();
+        if event_count == 0 {
+            continue;
+        }
+        let risk_rows = (0..time.len())
+            .filter(|index| time[*index] >= event_time)
+            .collect::<Vec<_>>();
+        let maximum_linear = risk_rows
+            .iter()
+            .map(|index| linear[*index])
+            .max_by(f64::total_cmp)?;
+        let mut risk_sum = 0.0;
+        let mut first_moment = vec![0.0; p];
+        let mut second_moment = vec![vec![0.0; p]; p];
+        for index in risk_rows {
+            let weight = (linear[index] - maximum_linear).exp();
+            risk_sum += weight;
+            for left in 0..p {
+                first_moment[left] += weight * x[index][left];
+                for right in 0..p {
+                    second_moment[left][right] += weight * x[index][left] * x[index][right];
+                }
+            }
+        }
+        if risk_sum <= 0.0 || !risk_sum.is_finite() {
+            return None;
+        }
+        log_likelihood += event_rows.iter().map(|index| linear[*index]).sum::<f64>()
+            - event_count as f64 * (maximum_linear + risk_sum.ln());
+        for left in 0..p {
+            let expected_left = first_moment[left] / risk_sum;
+            score[left] += event_rows.iter().map(|index| x[*index][left]).sum::<f64>()
+                - event_count as f64 * expected_left;
+            for right in 0..p {
+                information[left][right] += event_count as f64
+                    * (second_moment[left][right] / risk_sum
+                        - expected_left * first_moment[right] / risk_sum);
+            }
+        }
+    }
+    Some(CoxEvaluation {
+        log_likelihood,
+        score,
+        information,
+    })
+}
+
+fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
+    let function = "stats_cox_diagnostics";
+    let Value::List(times) = &args[0] else {
+        return Err(BioLangError::type_error(
+            format!("{function}() time must be List, got {}", args[0].type_of()),
+            None,
+        ));
+    };
+    let Value::List(events) = &args[1] else {
+        return Err(BioLangError::type_error(
+            format!("{function}() event must be List, got {}", args[1].type_of()),
+            None,
+        ));
+    };
+    let predictors = require_table(&args[2], function)?;
+    if times.len() != events.len() || times.len() != predictors.rows.len() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() time, event, and predictor rows must have equal length"),
+            None,
+        ));
+    }
+    let opts = options(&args, 3, function)?;
+    let time_value = Value::List(times.clone());
+    let prepared = prepare_model(predictors, &time_value, &opts, function)?;
+    let mut time = Vec::new();
+    let mut event = Vec::new();
+    let mut x = Vec::new();
+    let mut original_rows = Vec::new();
+    let mut excluded_event_rows = 0usize;
+    for index in 0..prepared.y.len() {
+        let original_row = prepared.original_rows[index];
+        let event_value = match events.get(original_row) {
+            Some(Value::Bool(value)) => Some(*value),
+            Some(Value::Int(value)) if *value == 0 || *value == 1 => Some(*value == 1),
+            Some(Value::Float(value)) if *value == 0.0 || *value == 1.0 => Some(*value == 1.0),
+            Some(Value::Nil) | None => None,
+            Some(other) => {
+                return Err(BioLangError::type_error(
+                    format!("{function}() event at row {original_row} must be Bool, 0, 1, or Nil; got {}", other.type_of()),
+                    None,
+                ));
+            }
+        };
+        let Some(event_value) = event_value else {
+            excluded_event_rows += 1;
+            continue;
+        };
+        if prepared.y[index] <= 0.0 {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("{function}() time at row {original_row} must be positive"),
+                None,
+            ));
+        }
+        time.push(prepared.y[index]);
+        event.push(event_value);
+        x.push(prepared.x[index].clone());
+        original_rows.push(original_row);
+    }
+    let n = time.len();
+    let p = prepared.feature_names.len();
+    let event_count = event.iter().filter(|value| **value).count();
+    if n <= p || event_count <= p {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() has {event_count} events and needs more events than the {p} encoded predictors"),
+            None,
+        ));
+    }
+    let means = (0..p)
+        .map(|column| x.iter().map(|row| row[column]).sum::<f64>() / n as f64)
+        .collect::<Vec<_>>();
+    let centred_x = x
+        .iter()
+        .map(|row| {
+            row.iter()
+                .zip(&means)
+                .map(|(value, mean)| value - mean)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    let mut beta = vec![0.0; p];
+    let mut converged = false;
+    let mut iterations = 0usize;
+    for iteration in 0..100 {
+        iterations = iteration + 1;
+        let current = evaluate_cox_breslow(&time, &event, &centred_x, &beta).ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("{function}() partial likelihood became numerically unstable"),
+                None,
+            )
+        })?;
+        let (inverse, _) = invert_with_log_determinant(&current.information).ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("{function}() information matrix is singular; inspect collinearity or sparse events"),
+                None,
+            )
+        })?;
+        let delta = inverse
+            .iter()
+            .map(|row| dot(row, &current.score))
+            .collect::<Vec<_>>();
+        let mut step = 1.0;
+        let mut accepted = None;
+        while step >= 1.0 / 1_048_576.0 {
+            let candidate = beta
+                .iter()
+                .zip(&delta)
+                .map(|(value, change)| value + step * change)
+                .collect::<Vec<_>>();
+            if let Some(evaluated) = evaluate_cox_breslow(&time, &event, &centred_x, &candidate) {
+                if evaluated.log_likelihood >= current.log_likelihood - 1e-10 {
+                    accepted = Some(candidate);
+                    break;
+                }
+            }
+            step *= 0.5;
+        }
+        let Some(candidate) = accepted else {
+            break;
+        };
+        let maximum_change = beta
+            .iter()
+            .zip(&candidate)
+            .map(|(left, right)| (left - right).abs())
+            .fold(0.0, f64::max);
+        beta = candidate;
+        if maximum_change < 1e-9 {
+            converged = true;
+            break;
+        }
+    }
+    let fitted_evaluation =
+        evaluate_cox_breslow(&time, &event, &centred_x, &beta).ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("{function}() could not evaluate the fitted partial likelihood"),
+                None,
+            )
+        })?;
+    let (covariance, _) =
+        invert_with_log_determinant(&fitted_evaluation.information).ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("{function}() fitted information matrix is singular"),
+                None,
+            )
+        })?;
+    let null_evaluation = evaluate_cox_breslow(&time, &event, &centred_x, &vec![0.0; p])
+        .expect("a validated risk set is evaluable at zero coefficients");
+    let likelihood_ratio =
+        2.0 * (fitted_evaluation.log_likelihood - null_evaluation.log_likelihood);
+    let likelihood_ratio_p =
+        1.0 - bl_core::bio_core::stats_ops::chi_square_cdf(likelihood_ratio.max(0.0), p);
+    let confidence = opts
+        .get("confidence")
+        .and_then(Value::as_float)
+        .unwrap_or(0.95);
+    if !(0.5..1.0).contains(&confidence) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() confidence must be between 0.5 and 1"),
+            None,
+        ));
+    }
+    let critical = bl_core::bio_core::stats_ops::normal_quantile((1.0 + confidence) / 2.0);
+    let coefficient_rows = beta
+        .iter()
+        .enumerate()
+        .map(|(index, estimate)| {
+            let standard_error = covariance[index][index].max(0.0).sqrt();
+            let z = if standard_error > 0.0 {
+                estimate / standard_error
+            } else {
+                0.0
+            };
+            record([
+                ("name", text(&prepared.feature_names[index])),
+                ("estimate", Value::Float(*estimate)),
+                ("standard_error", Value::Float(standard_error)),
+                ("z_value", Value::Float(z)),
+                (
+                    "p_value",
+                    Value::Float(2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(z.abs()))),
+                ),
+                ("hazard_ratio", Value::Float(estimate.exp())),
+                (
+                    "hazard_ratio_lower",
+                    Value::Float((estimate - critical * standard_error).exp()),
+                ),
+                (
+                    "hazard_ratio_upper",
+                    Value::Float((estimate + critical * standard_error).exp()),
+                ),
+            ])
+        })
+        .collect::<Vec<_>>();
+
+    let linear_predictors = x.iter().map(|row| dot(row, &beta)).collect::<Vec<_>>();
+    let mut event_times = time
+        .iter()
+        .zip(&event)
+        .filter_map(|(time, event)| event.then_some(*time))
+        .collect::<Vec<_>>();
+    event_times.sort_by(f64::total_cmp);
+    event_times.dedup_by(|left, right| (*left - *right).abs() <= 1e-12);
+    let max_baseline_rows = opts
+        .get("max_baseline_rows")
+        .and_then(Value::as_int)
+        .unwrap_or(500)
+        .clamp(0, 10_000) as usize;
+    let mut baseline_rows = Vec::new();
+    let mut cumulative_hazard = 0.0;
+    let mut cumulative_hazard_at_row = vec![0.0; n];
+    let mut schoenfeld_times = Vec::new();
+    let mut schoenfeld_by_feature = vec![Vec::<f64>::new(); p];
+    for event_time in &event_times {
+        let event_indices = (0..n)
+            .filter(|index| event[*index] && (time[*index] - event_time).abs() <= 1e-12)
+            .collect::<Vec<_>>();
+        let risk_indices = (0..n)
+            .filter(|index| time[*index] >= *event_time)
+            .collect::<Vec<_>>();
+        let maximum_linear = risk_indices
+            .iter()
+            .map(|index| linear_predictors[*index])
+            .max_by(f64::total_cmp)
+            .unwrap_or(0.0);
+        let scaled_weights = risk_indices
+            .iter()
+            .map(|index| (linear_predictors[*index] - maximum_linear).exp())
+            .collect::<Vec<_>>();
+        let scaled_sum = scaled_weights.iter().sum::<f64>();
+        let log_risk_sum = maximum_linear + scaled_sum.ln();
+        let increment = event_indices.len() as f64 * (-log_risk_sum).exp();
+        cumulative_hazard += increment;
+        if baseline_rows.len() < max_baseline_rows {
+            baseline_rows.push(record([
+                ("time", Value::Float(*event_time)),
+                ("events", Value::Int(event_indices.len() as i64)),
+                ("hazard_increment", Value::Float(increment)),
+                ("cumulative_hazard", Value::Float(cumulative_hazard)),
+                (
+                    "baseline_survival",
+                    Value::Float((-cumulative_hazard).exp()),
+                ),
+            ]));
+        }
+        let mut expected = vec![0.0; p];
+        for (risk_position, row) in risk_indices.iter().enumerate() {
+            for feature in 0..p {
+                expected[feature] += scaled_weights[risk_position] * x[*row][feature] / scaled_sum;
+            }
+        }
+        for row in event_indices {
+            schoenfeld_times.push(*event_time);
+            for feature in 0..p {
+                schoenfeld_by_feature[feature].push(x[row][feature] - expected[feature]);
+            }
+        }
+    }
+    // Evaluate the fitted cumulative baseline hazard at every observed time.
+    cumulative_hazard = 0.0;
+    for event_time in &event_times {
+        let deaths = (0..n)
+            .filter(|index| event[*index] && (time[*index] - event_time).abs() <= 1e-12)
+            .count();
+        let risk_log_values = (0..n)
+            .filter(|index| time[*index] >= *event_time)
+            .map(|index| linear_predictors[index])
+            .collect::<Vec<_>>();
+        let maximum = risk_log_values
+            .iter()
+            .copied()
+            .max_by(f64::total_cmp)
+            .unwrap_or(0.0);
+        let log_sum = maximum
+            + risk_log_values
+                .iter()
+                .map(|value| (value - maximum).exp())
+                .sum::<f64>()
+                .ln();
+        cumulative_hazard += deaths as f64 * (-log_sum).exp();
+        for row in 0..n {
+            if time[row] >= *event_time {
+                cumulative_hazard_at_row[row] = cumulative_hazard;
+            }
+        }
+    }
+    let martingale_residuals = (0..n)
+        .map(|index| {
+            (if event[index] { 1.0 } else { 0.0 })
+                - cumulative_hazard_at_row[index] * linear_predictors[index].exp()
+        })
+        .collect::<Vec<_>>();
+    let deviance_residuals = martingale_residuals
+        .iter()
+        .zip(&event)
+        .map(|(martingale, event)| {
+            let event_number = if *event { 1.0 } else { 0.0 };
+            let inside = if *event {
+                -2.0 * (martingale + (event_number - martingale).max(1e-15).ln())
+            } else {
+                -2.0 * martingale
+            };
+            martingale.signum() * inside.max(0.0).sqrt()
+        })
+        .collect::<Vec<_>>();
+    let mut ph_rows = Vec::new();
+    let mut ph_global_chi_squared = 0.0;
+    let mut ph_issue = false;
+    for feature in 0..p {
+        let correlation = pearson(&schoenfeld_times, &schoenfeld_by_feature[feature])
+            .map(|value| value.0)
+            .unwrap_or(0.0);
+        let approximate_z = correlation * (event_count as f64).sqrt();
+        let approximate_p =
+            2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(approximate_z.abs()));
+        ph_global_chi_squared += approximate_z.powi(2);
+        ph_issue |= correlation.abs() >= 0.2;
+        ph_rows.push(record([
+            ("name", text(&prepared.feature_names[feature])),
+            (
+                "schoenfeld_event_time_correlation",
+                Value::Float(correlation),
+            ),
+            ("approximate_z", Value::Float(approximate_z)),
+            ("approximate_p_value", Value::Float(approximate_p)),
+            ("formal_cox_zph_test", Value::Bool(false)),
+        ]));
+    }
+    let ph_global_p = 1.0 - bl_core::bio_core::stats_ops::chi_square_cdf(ph_global_chi_squared, p);
+    let mut comparable_pairs = 0usize;
+    let mut concordance_credit = 0.0;
+    for left in 0..n {
+        if !event[left] {
+            continue;
+        }
+        for right in 0..n {
+            if time[right] > time[left] {
+                comparable_pairs += 1;
+                if linear_predictors[left] > linear_predictors[right] + 1e-12 {
+                    concordance_credit += 1.0;
+                } else if (linear_predictors[left] - linear_predictors[right]).abs() <= 1e-12 {
+                    concordance_credit += 0.5;
+                }
+            }
+        }
+    }
+    let concordance = if comparable_pairs > 0 {
+        concordance_credit / comparable_pairs as f64
+    } else {
+        0.5
+    };
+    let deviance_review_rows = deviance_residuals
+        .iter()
+        .enumerate()
+        .filter(|(_, residual)| residual.abs() >= 3.0)
+        .map(|(index, residual)| {
+            record([
+                ("row", Value::Int(original_rows[index] as i64)),
+                ("time", Value::Float(time[index])),
+                ("event", Value::Bool(event[index])),
+                ("deviance_residual", Value::Float(*residual)),
+                ("action", text("inspect; do not automatically delete")),
+            ])
+        })
+        .collect::<Vec<_>>();
+    let tied_event_times = event_times
+        .iter()
+        .filter(|event_time| {
+            (0..n)
+                .filter(|index| event[*index] && (time[*index] - **event_time).abs() <= 1e-12)
+                .count()
+                > 1
+        })
+        .count();
+    let mut issues = Vec::new();
+    if !converged {
+        issues.push(issue(
+            "convergence_review",
+            format!("The coefficient update did not meet tolerance within {iterations} iterations."),
+            "Inspect scaling, collinearity, separation, sparse events, and coefficient stability before interpretation.",
+            "review",
+        ));
+    }
+    if ph_issue {
+        issues.push(issue(
+            "proportional_hazards_clue",
+            "At least one raw Schoenfeld residual correlation with event time has magnitude at least 0.2.",
+            "Inspect time-varying effects and plots, then confirm with a formal proportional-hazards diagnostic such as cox.zph.",
+            "review",
+        ));
+    }
+    if !deviance_review_rows.is_empty() {
+        issues.push(issue(
+            "deviance_residual_review",
+            format!(
+                "{} observation(s) have absolute deviance residual at least 3.",
+                deviance_review_rows.len()
+            ),
+            "Inspect data provenance and model sensitivity; this threshold is not a deletion rule.",
+            "review",
+        ));
+    }
+    let include_values = opts
+        .get("include_values")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let ascii = format!(
+        "Cox proportional-hazards diagnostic (n={n}, events={event_count}, predictors={p})\nBreslow ties: {tied_event_times} tied event time(s)\npartial log likelihood={}  LR chi-square={} p={}\nconcordance={} from {comparable_pairs} comparable pairs\nSchoenfeld screen chi-square={} p={} (descriptive approximation; not cox.zph)\n\nHazard ratios are conditional event-rate ratios under proportional hazards. They are not individual risk reductions or survival-time ratios.",
+        fmt_number(fitted_evaluation.log_likelihood),
+        fmt_number(likelihood_ratio),
+        fmt_number(likelihood_ratio_p),
+        fmt_number(concordance),
+        fmt_number(ph_global_chi_squared),
+        fmt_number(ph_global_p),
+    );
+    Ok(record([
+        ("schema", text("biolang.stats.cox-diagnostics/v1")),
+        ("kind", text("cox_diagnostics")),
+        ("ties", text("breslow")),
+        ("complete_rows", Value::Int(n as i64)),
+        (
+            "excluded_rows",
+            Value::Int((prepared.excluded_rows + excluded_event_rows) as i64),
+        ),
+        ("events", Value::Int(event_count as i64)),
+        ("censored", Value::Int((n - event_count) as i64)),
+        ("tied_event_times", Value::Int(tied_event_times as i64)),
+        ("encoded_predictors", Value::Int(p as i64)),
+        ("coefficients", list(coefficient_rows)),
+        ("encodings", list(prepared.encodings)),
+        ("converged", Value::Bool(converged)),
+        ("iterations", Value::Int(iterations as i64)),
+        (
+            "partial_log_likelihood",
+            Value::Float(fitted_evaluation.log_likelihood),
+        ),
+        ("aic_partial", Value::Float(-2.0 * fitted_evaluation.log_likelihood + 2.0 * p as f64)),
+        ("likelihood_ratio", Value::Float(likelihood_ratio)),
+        ("likelihood_ratio_df", Value::Int(p as i64)),
+        ("likelihood_ratio_p_value", Value::Float(likelihood_ratio_p)),
+        ("concordance", Value::Float(concordance)),
+        ("comparable_pairs", Value::Int(comparable_pairs as i64)),
+        ("baseline_hazard", list(baseline_rows)),
+        (
+            "baseline_hazard_truncated",
+            Value::Bool(event_times.len() > max_baseline_rows),
+        ),
+        ("proportional_hazards_screen", list(ph_rows)),
+        (
+            "ph_screen_global_chi_squared",
+            Value::Float(ph_global_chi_squared),
+        ),
+        ("ph_screen_global_p_value", Value::Float(ph_global_p)),
+        ("formal_cox_zph_test", Value::Bool(false)),
+        ("deviance_review_rows", list(deviance_review_rows)),
+        (
+            "martingale_residuals",
+            if include_values {
+                list(martingale_residuals.iter().copied().map(Value::Float).collect())
+            } else {
+                Value::Nil
+            },
+        ),
+        (
+            "deviance_residuals",
+            if include_values {
+                list(deviance_residuals.iter().copied().map(Value::Float).collect())
+            } else {
+                Value::Nil
+            },
+        ),
+        ("ascii", text(ascii)),
+        ("issues", list(issues)),
+        ("input_modified", Value::Bool(false)),
+        (
+            "limitations",
+            string_list([
+                "The fit uses the Breslow approximation for tied event times; Efron and exact partial likelihood are not implemented here.",
+                "The Schoenfeld screen uses raw residual correlation with event time and is explicitly not a formal cox.zph test.",
+                "Competing risks, recurrent events, left truncation, interval censoring, frailty, strata, and time-varying covariates require dedicated models.",
+                "Residual thresholds are inspection clues and never automatic deletion rules.",
+            ]),
+        ),
+    ]))
 }
 
 fn dot(left: &[f64], right: &[f64]) -> f64 {

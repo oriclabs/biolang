@@ -57,6 +57,9 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("stats_cluster_diagnostics", Arity::Range(2, 3)),
         ("stats_means", Arity::Range(1, 2)),
         ("stats_decision_map", Arity::Range(0, 1)),
+        ("stats_glm_diagnostics", Arity::Range(2, 3)),
+        ("stats_random_intercept_model", Arity::Range(3, 4)),
+        ("stats_cox_diagnostics", Arity::Range(3, 4)),
         // Math
         ("sqrt", Arity::Exact(1)),
         ("pow", Arity::Exact(2)),
@@ -235,6 +238,9 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "stats_cluster_diagnostics"
             | "stats_means"
             | "stats_decision_map"
+            | "stats_glm_diagnostics"
+            | "stats_random_intercept_model"
+            | "stats_cox_diagnostics"
             | "sqrt"
             | "pow"
             | "log"
@@ -396,7 +402,10 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         | "stats_time_series_diagnostics"
         | "stats_cluster_diagnostics"
         | "stats_means"
-        | "stats_decision_map" => crate::stats_explore::call(name, args),
+        | "stats_decision_map"
+        | "stats_glm_diagnostics"
+        | "stats_random_intercept_model"
+        | "stats_cox_diagnostics" => crate::stats_explore::call(name, args),
         "sqrt" => builtin_sqrt(args),
         "pow" => builtin_pow(args),
         "log" => builtin_log(args),
@@ -2286,7 +2295,7 @@ fn builtin_glm(args: Vec<Value>) -> Result<Value> {
 
 /// Multi-predictor logistic regression via IRLS.
 /// Returns (coefficients, p_values, log_likelihood, aic).
-fn logistic_regression_multi(
+pub(crate) fn logistic_regression_multi(
     y: &[f64],
     x: &[Vec<f64>],
 ) -> std::result::Result<(Vec<f64>, Vec<f64>, f64, f64), String> {
@@ -2434,7 +2443,7 @@ fn logistic_regression_multi(
 
 /// Poisson regression via IRLS.
 /// Returns (coefficients, p_values, deviance, aic).
-fn poisson_regression(
+pub(crate) fn poisson_regression(
     y: &[f64],
     x: &[Vec<f64>],
 ) -> std::result::Result<(Vec<f64>, Vec<f64>, f64, f64), String> {

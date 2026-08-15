@@ -147,3 +147,15 @@ fn means(values, options = ({})) {
 fn decision_map(options = ({})) {
     stats_decision_map(options)
 }
+
+fn glm_diagnostics(predictors, outcome, options = ({})) {
+    stats_glm_diagnostics(predictors, outcome, options)
+}
+
+fn random_intercept_model(predictors, outcome, clusters, options = ({})) {
+    stats_random_intercept_model(predictors, outcome, clusters, options)
+}
+
+fn cox_diagnostics(time, event, predictors, options = ({})) {
+    stats_cox_diagnostics(time, event, predictors, options)
+}

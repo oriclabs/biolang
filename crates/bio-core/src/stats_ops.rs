@@ -1636,6 +1636,46 @@ pub fn kaplan_meier(times: &[f64], events: &[bool]) -> Result<KaplanMeierResult,
     })
 }
 
+fn invert_square_matrix(matrix: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
+    let n = matrix.len();
+    if n == 0 || matrix.iter().any(|row| row.len() != n) {
+        return None;
+    }
+    let mut augmented = (0..n)
+        .map(|row| {
+            let mut values = Vec::with_capacity(2 * n);
+            values.extend_from_slice(&matrix[row]);
+            values.extend((0..n).map(|column| if row == column { 1.0 } else { 0.0 }));
+            values
+        })
+        .collect::<Vec<_>>();
+    for column in 0..n {
+        let pivot_row = (column..n).max_by(|left, right| {
+            augmented[*left][column]
+                .abs()
+                .total_cmp(&augmented[*right][column].abs())
+        })?;
+        if augmented[pivot_row][column].abs() <= 1e-14 {
+            return None;
+        }
+        augmented.swap(column, pivot_row);
+        let pivot = augmented[column][column];
+        for value in &mut augmented[column] {
+            *value /= pivot;
+        }
+        for row in 0..n {
+            if row == column {
+                continue;
+            }
+            let factor = augmented[row][column];
+            for entry in 0..(2 * n) {
+                augmented[row][entry] -= factor * augmented[column][entry];
+            }
+        }
+    }
+    Some(augmented.into_iter().map(|row| row[n..].to_vec()).collect())
+}
+
 pub fn cox_ph(
     time: &[f64],
     event: &[bool],
@@ -1662,7 +1702,22 @@ pub fn cox_ph(
         return Err("number of covariate rows must match number of observations".into());
     }
 
-    // Newton-Raphson for partial likelihood
+    // Centre the model matrix to keep exp(x beta) numerically stable. The Cox
+    // partial likelihood is invariant to this column-wise shift.
+    let means = (0..p)
+        .map(|column| covariates.iter().map(|row| row[column]).sum::<f64>() / n as f64)
+        .collect::<Vec<_>>();
+    let model_covariates = covariates
+        .iter()
+        .map(|row| {
+            row.iter()
+                .zip(&means)
+                .map(|(value, mean)| value - mean)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    // Full multivariable Newton-Raphson for the Breslow partial likelihood.
     let mut beta = vec![0.0; p];
     let max_iter = 50;
     let tol = 1e-8;
@@ -1682,16 +1737,27 @@ pub fn cox_ph(
             let mut risk_sum = 0.0;
             let mut weighted_x = vec![0.0; p];
             let mut weighted_xx = vec![vec![0.0; p]; p];
+            let maximum_eta = order
+                .iter()
+                .filter(|index| time[**index] >= time[i])
+                .map(|index| {
+                    (0..p)
+                        .map(|k| beta[k] * model_covariates[*index][k])
+                        .sum::<f64>()
+                })
+                .max_by(f64::total_cmp)
+                .unwrap_or(0.0);
 
             for &j in &order {
                 if time[j] >= time[i] {
-                    let eta: f64 = (0..p).map(|k| beta[k] * covariates[j][k]).sum();
-                    let w = eta.exp();
+                    let eta: f64 = (0..p).map(|k| beta[k] * model_covariates[j][k]).sum();
+                    let w = (eta - maximum_eta).exp();
                     risk_sum += w;
                     for k in 0..p {
-                        weighted_x[k] += w * covariates[j][k];
+                        weighted_x[k] += w * model_covariates[j][k];
                         for l in 0..p {
-                            weighted_xx[k][l] += w * covariates[j][k] * covariates[j][l];
+                            weighted_xx[k][l] +=
+                                w * model_covariates[j][k] * model_covariates[j][l];
                         }
                     }
                 }
@@ -1699,7 +1765,7 @@ pub fn cox_ph(
 
             if risk_sum > 0.0 {
                 for k in 0..p {
-                    gradient[k] += covariates[i][k] - weighted_x[k] / risk_sum;
+                    gradient[k] += model_covariates[i][k] - weighted_x[k] / risk_sum;
                     for l in 0..p {
                         hessian[k][l] -= weighted_xx[k][l] / risk_sum
                             - (weighted_x[k] * weighted_x[l]) / (risk_sum * risk_sum);
@@ -1708,16 +1774,19 @@ pub fn cox_ph(
             }
         }
 
-        // Simple diagonal update (avoid matrix inversion)
-        let mut max_change = 0.0;
+        let information = hessian
+            .iter()
+            .map(|row| row.iter().map(|value| -*value).collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+        let covariance = invert_square_matrix(&information)
+            .ok_or_else(|| "Cox information matrix is singular".to_string())?;
+        let delta = covariance
+            .iter()
+            .map(|row| row.iter().zip(&gradient).map(|(a, b)| a * b).sum::<f64>())
+            .collect::<Vec<_>>();
+        let max_change = delta.iter().map(|value| value.abs()).fold(0.0, f64::max);
         for k in 0..p {
-            if hessian[k][k].abs() > 1e-15 {
-                let delta = -gradient[k] / hessian[k][k];
-                beta[k] += delta;
-                if delta.abs() > max_change {
-                    max_change = delta.abs();
-                }
-            }
+            beta[k] += delta[k];
         }
         if max_change < tol {
             break;
@@ -1736,15 +1805,25 @@ pub fn cox_ph(
         let mut risk_sum = 0.0;
         let mut weighted_x = vec![0.0; p];
         let mut weighted_xx = vec![vec![0.0; p]; p];
+        let maximum_eta = order
+            .iter()
+            .filter(|index| time[**index] >= time[i])
+            .map(|index| {
+                (0..p)
+                    .map(|k| beta[k] * model_covariates[*index][k])
+                    .sum::<f64>()
+            })
+            .max_by(f64::total_cmp)
+            .unwrap_or(0.0);
         for &j in &order {
             if time[j] >= time[i] {
-                let eta: f64 = (0..p).map(|k| beta[k] * covariates[j][k]).sum();
-                let w = eta.exp();
+                let eta: f64 = (0..p).map(|k| beta[k] * model_covariates[j][k]).sum();
+                let w = (eta - maximum_eta).exp();
                 risk_sum += w;
                 for k in 0..p {
-                    weighted_x[k] += w * covariates[j][k];
+                    weighted_x[k] += w * model_covariates[j][k];
                     for l in 0..p {
-                        weighted_xx[k][l] += w * covariates[j][k] * covariates[j][l];
+                        weighted_xx[k][l] += w * model_covariates[j][k] * model_covariates[j][l];
                     }
                 }
             }
@@ -1758,12 +1837,10 @@ pub fn cox_ph(
             }
         }
     }
+    let covariance = invert_square_matrix(&info)
+        .ok_or_else(|| "fitted Cox information matrix is singular".to_string())?;
     for k in 0..p {
-        se[k] = if info[k][k] > 0.0 {
-            (1.0 / info[k][k]).sqrt()
-        } else {
-            f64::NAN
-        };
+        se[k] = covariance[k][k].max(0.0).sqrt();
     }
 
     let p_values: Vec<f64> = beta

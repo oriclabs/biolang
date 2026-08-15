@@ -228,3 +228,88 @@ write_json({
         final_survival: lung_final_survival
     }
 }, "packages/statistics/validation/results/biolang-real.json")
+
+let mtcars_glm = read_csv("packages/statistics/validation/results/mtcars-glm.csv")
+let binary_glm = stat.glm_diagnostics(table({
+    hp: mtcars_glm |> col("hp"),
+    wt: mtcars_glm |> col("wt")
+}), mtcars_glm |> col("am"), {family: "binomial"})
+
+let warpbreaks_glm = read_csv("packages/statistics/validation/results/warpbreaks-glm.csv")
+let poisson_glm = stat.glm_diagnostics(table({
+    tension: warpbreaks_glm |> col("tension"),
+    wool: warpbreaks_glm |> col("wool")
+}), warpbreaks_glm |> col("breaks"), {family: "poisson"})
+
+write_json({
+    binomial: {
+        coef0: binary_glm.coefficients[0].estimate,
+        coef1: binary_glm.coefficients[1].estimate,
+        coef2: binary_glm.coefficients[2].estimate,
+        null_deviance: binary_glm.null_deviance,
+        residual_deviance: binary_glm.residual_deviance,
+        aic: binary_glm.aic,
+        dispersion: binary_glm.pearson_dispersion,
+        brier: binary_glm.brier_score,
+        maximum_leverage: binary_glm.maximum_leverage,
+        maximum_cook: binary_glm.maximum_cook_distance
+    },
+    poisson: {
+        coef0: poisson_glm.coefficients[0].estimate,
+        coef1: poisson_glm.coefficients[1].estimate,
+        coef2: poisson_glm.coefficients[2].estimate,
+        coef3: poisson_glm.coefficients[3].estimate,
+        null_deviance: poisson_glm.null_deviance,
+        residual_deviance: poisson_glm.residual_deviance,
+        aic: poisson_glm.aic,
+        dispersion: poisson_glm.pearson_dispersion,
+        expected_zeros: poisson_glm.expected_poisson_zeros,
+        maximum_leverage: poisson_glm.maximum_leverage,
+        maximum_cook: poisson_glm.maximum_cook_distance
+    }
+}, "packages/statistics/validation/results/biolang-glm.json")
+
+let chick_mixed = stat.random_intercept_model(
+    table({time: chick |> col("time")}),
+    chick |> col("weight"),
+    chick |> col("chick"),
+    {method: "reml"}
+)
+write_json({
+    fixed_intercept: chick_mixed.fixed_effects[0].estimate,
+    fixed_time: chick_mixed.fixed_effects[1].estimate,
+    random_intercept_variance: chick_mixed.random_intercept_variance,
+    residual_variance: chick_mixed.residual_variance,
+    icc: chick_mixed.intraclass_correlation,
+    clusters: chick_mixed.clusters,
+    observations: chick_mixed.complete_rows
+}, "packages/statistics/validation/results/biolang-mixed.json")
+
+let lung_cox = stat.cox_diagnostics(
+    lung |> col("time"),
+    lung |> col("event"),
+    table({
+        age: lung |> col("age"),
+        sex: lung |> col("sex")
+    }),
+    {include_values: true}
+)
+let lung_cox_baseline = lung_cox.baseline_hazard[len(lung_cox.baseline_hazard) - 1]
+let lung_cox_martingale_squares = lung_cox.martingale_residuals
+    |> map(|value| value * value)
+write_json({
+    coef_age: lung_cox.coefficients[0].estimate,
+    coef_sex: lung_cox.coefficients[1].estimate,
+    se_age: lung_cox.coefficients[0].standard_error,
+    se_sex: lung_cox.coefficients[1].standard_error,
+    partial_log_likelihood: lung_cox.partial_log_likelihood,
+    likelihood_ratio: lung_cox.likelihood_ratio,
+    aic_partial: lung_cox.aic_partial,
+    final_baseline_hazard: lung_cox_baseline.cumulative_hazard,
+    martingale_sum: sum(lung_cox.martingale_residuals),
+    martingale_sum_squares: sum(lung_cox_martingale_squares),
+    schoenfeld_age_time_correlation: lung_cox.proportional_hazards_screen[0].schoenfeld_event_time_correlation,
+    schoenfeld_sex_time_correlation: lung_cox.proportional_hazards_screen[1].schoenfeld_event_time_correlation,
+    observations: lung_cox.complete_rows,
+    events: lung_cox.events
+}, "packages/statistics/validation/results/biolang-cox.json")
