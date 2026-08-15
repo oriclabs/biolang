@@ -11,6 +11,7 @@
 
 import "statistics/src/tests"      as tests
 import "statistics/src/correction" as corr
+import "statistics/src/explore"    as eda
 
 fn bh(p_values)                         { corr.bh(p_values) }
 fn bonferroni(p_values)                  { corr.bonferroni(p_values) }
@@ -21,3 +22,42 @@ fn chi2(observed, expected)              { tests.chi2(observed, expected) }
 fn permtest(a, b, n=1000)               { tests.permtest(a, b, n) }
 fn bootstrap(values, n=1000, conf=0.95) { tests.bootstrap(values, n, conf) }
 fn pearson(x, y)                         { tests.pearson(x, y) }
+
+# Explainable exploration. These functions return Records containing the
+# calculated facts, clues, alternatives, limitations, and reproducible choices.
+# They never delete outliers, transform values, or select a test automatically.
+fn explore(values, options = ({}))              { eda.explore(values, options) }
+fn compare(values, groups, options = ({}))      { eda.compare(values, groups, options) }
+fn relationship(x, y, options = ({}))           { eda.relationship(x, y, options) }
+fn categorical(values, options = ({}))          { eda.categorical(values, options) }
+fn guide(report, context = ({}))                { eda.guide(report, context) }
+fn explain(report, detail = "learning")         { eda.explain(report, detail) }
+fn distribution_plot(values, options = ({}))    { eda.distribution_plot(values, options) }
+fn distribution_ascii(values, options = ({}))   { eda.distribution_ascii(values, options) }
+fn preprocessing(values, options = ({}))        { eda.preprocessing(values, options) }
+fn profile(data, options = ({}))                 { eda.profile(data, options) }
+fn missingness(data, options = ({}))             { eda.missingness(data, options) }
+fn design_check(data, options = ({}))            { eda.design_check(data, options) }
+fn preview_transform(values, method, options = ({})) { eda.preview_transform(values, method, options) }
+fn uncertainty(values, options = ({}))           { eda.uncertainty(values, options) }
+fn shape(values, options = ({}))                 { eda.shape(values, options) }
+fn normal_qq_plot(values, options = ({}))        { eda.normal_qq_plot(values, options) }
+fn group_plot(values, groups, options = ({}))    { eda.group_plot(values, groups, options) }
+fn relationship_plot(x, y, options = ({}))       { eda.relationship_plot(x, y, options) }
+fn categorical_plot(values, options = ({}))      { eda.categorical_plot(values, options) }
+fn missingness_plot(data, options = ({}))        { eda.missingness_plot(data, options) }
+fn normalization_guide(matrix, options = ({}))   { eda.normalization_guide(matrix, options) }
+fn associations(data, options = ({}))            { eda.associations(data, options) }
+fn scan(data, options = ({}))                    { eda.scan(data, options) }
+fn overview_ascii(data, options = ({}))          { eda.overview_ascii(data, options) }
+fn linear_diagnostics(x, y, options = ({}))      { eda.linear_diagnostics(x, y, options) }
+fn linear_diagnostic_plot(x, y, options = ({}))  { eda.linear_diagnostic_plot(x, y, options) }
+fn report(data, options = ({}))                  { eda.report(data, options) }
+fn distribution_clues(values, options = ({}))   { eda.distribution_clues(values, options) }
+fn multiple_linear_diagnostics(predictors, outcome, options = ({})) { eda.multiple_linear_diagnostics(predictors, outcome, options) }
+fn omics_profile(matrix, options = ({}))         { eda.omics_profile(matrix, options) }
+fn robust_linear_diagnostics(predictors, outcome, options = ({})) { eda.robust_linear_diagnostics(predictors, outcome, options) }
+fn weighted_summary(values, weights, options = ({})) { eda.weighted_summary(values, weights, options) }
+fn time_series_diagnostics(values, options = ({})) { eda.time_series_diagnostics(values, options) }
+fn cluster_diagnostics(values, clusters, options = ({})) { eda.cluster_diagnostics(values, clusters, options) }
+fn means(values, options = ({})) { eda.means(values, options) }

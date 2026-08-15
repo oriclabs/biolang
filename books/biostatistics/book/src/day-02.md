@@ -78,7 +78,7 @@ There are three things you need to know about any dataset:
   <path d="M 500,138 Q 515,130 530,110 Q 540,100 545,98 Q 555,100 570,115 Q 590,130 610,138" fill="none" stroke="#7c3aed" stroke-width="2"/>
   <text x="555" y="155" text-anchor="middle" font-size="9" fill="#7c3aed">Skewed → wrong test = wrong answer</text>
   <text x="555" y="195" text-anchor="middle" font-size="10" fill="#475569">Bell-shaped → t-test OK</text>
-  <text x="555" y="210" text-anchor="middle" font-size="10" fill="#475569">Skewed → need log-transform</text>
+  <text x="555" y="210" text-anchor="middle" font-size="10" fill="#475569">Skewed → inspect scale and model</text>
   <text x="555" y="225" text-anchor="middle" font-size="10" fill="#475569">Bimodal → two populations?</text>
   <text x="555" y="248" text-anchor="middle" font-size="10" font-style="italic" fill="#7c3aed">#1 reason results fail to replicate</text>
 </svg>
@@ -100,7 +100,7 @@ The mean uses every data point, which is both its strength and its weakness. It 
 
 Now add one highly expressed gene: 12, 15, 14, 13, 16, 5000. Mean = 845.0. The mean has been dragged from 14 to 845 by a single outlier. It no longer represents "typical" expression.
 
-> **Common pitfall:** In genomics, gene expression distributions are heavily right-skewed. Reporting mean FPKM/TPM values without acknowledging this skew is misleading. The median is almost always a better summary for expression data.
+> **Common pitfall:** Expression summaries answer different questions. The arithmetic mean describes equal-share abundance and is relevant to totals; the median describes a typical sample and resists a long tail. Inspect the distribution and measurement scale instead of declaring one universally better.
 
 ### Median (Middle Value)
 
@@ -159,13 +159,108 @@ For continuous data, the mode is the peak of the density curve. Bimodal distribu
 
 ### When to Use Each
 
-| Measure | Best For | Sensitive to Outliers? | Biological Example |
-|---|---|---|---|
-| Mean | Symmetric, well-behaved data | Yes, very | Measurement error in technical replicates |
-| Median | Skewed data, outliers present | No | Gene expression (FPKM/TPM) |
-| Mode | Categorical data, multimodal | No | Variant allele frequency peaks |
+Do not begin with “Which formula is most popular?” Begin with “What does average
+mean in this scientific question?”
 
-> **Key insight:** Always report both mean and median. If they differ substantially, your data is skewed, and the median is the more honest summary.
+| Question being answered | Centre | Matching description of spread | Typical use |
+|---|---|---|---|
+| If the total were shared equally, what would each unit receive? | Arithmetic mean | SD for roughly symmetric additive variation | Technical measurements, additive outcomes |
+| What value separates the lower half from the upper half? | Median | IQR or MAD | Skewed concentrations, durations, valid extremes |
+| What single multiplication factor represents compound change? | Geometric mean | Geometric SD or multiplicative interval | Fold changes, growth factors, positive titres |
+| What is the average after justified unequal representation? | Weighted mean | Weighted SD **and** design-aware uncertainty | Sampling weights, exposures, precision weights |
+| What common rate applies over equal amounts of work? | Harmonic mean | Raw rate quantiles and uncertainty for the target rate | Equal-distance speeds, throughput per fixed work |
+| What centre remains after a predeclared symmetric tail trim? | Trimmed mean | Winsorized SD or bootstrap interval | Robust sensitivity analysis |
+| Which category or peak occurs most often? | Mode | Counts or proportions, possibly more than one mode | Blood group, genotype class, distribution peaks |
+
+<div style="text-align: center; margin: 2em 0;">
+<svg width="700" height="350" viewBox="0 0 700 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three matching centre and spread pairs" style="max-width: 100%; background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="350" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#1e293b">Choose centre and spread as a pair</text>
+  <rect x="20" y="45" width="660" height="82" rx="7" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="38" y="67" font-size="13" font-weight="bold" fill="#1e40af">Additive, roughly symmetric</text>
+  <line x1="55" y1="96" x2="350" y2="96" stroke="#64748b" stroke-width="1.5"/>
+  <circle cx="115" cy="96" r="5" fill="#2563eb"/><circle cx="155" cy="96" r="5" fill="#2563eb"/><circle cx="195" cy="96" r="5" fill="#2563eb"/><circle cx="235" cy="96" r="5" fill="#2563eb"/><circle cx="275" cy="96" r="5" fill="#2563eb"/>
+  <line x1="195" y1="75" x2="195" y2="113" stroke="#dc2626" stroke-width="2"/><line x1="155" y1="116" x2="235" y2="116" stroke="#16a34a" stroke-width="3"/>
+  <text x="420" y="82" font-size="13" fill="#334155">Arithmetic mean = balance point</text><text x="420" y="105" font-size="13" fill="#334155">SD = additive distance from it</text>
+  <rect x="20" y="137" width="660" height="82" rx="7" fill="#f0fdf4" stroke="#86efac"/>
+  <text x="38" y="159" font-size="13" font-weight="bold" fill="#166534">Skewed or heavy-tailed</text>
+  <line x1="55" y1="188" x2="350" y2="188" stroke="#64748b" stroke-width="1.5"/>
+  <circle cx="90" cy="188" r="5" fill="#16a34a"/><circle cx="112" cy="188" r="5" fill="#16a34a"/><circle cx="130" cy="188" r="5" fill="#16a34a"/><circle cx="150" cy="188" r="5" fill="#16a34a"/><circle cx="172" cy="188" r="5" fill="#16a34a"/><circle cx="310" cy="188" r="5" fill="#dc2626"/>
+  <line x1="140" y1="167" x2="140" y2="205" stroke="#7c3aed" stroke-width="2"/><rect x="112" y="207" width="60" height="6" fill="#7c3aed" rx="3"/>
+  <text x="420" y="174" font-size="13" fill="#334155">Median = halfway observation</text><text x="420" y="197" font-size="13" fill="#334155">IQR/MAD = robust spread</text>
+  <rect x="20" y="229" width="660" height="100" rx="7" fill="#faf5ff" stroke="#d8b4fe"/>
+  <text x="38" y="251" font-size="13" font-weight="bold" fill="#6b21a8">Positive, multiplicative</text>
+  <line x1="70" y1="283" x2="350" y2="283" stroke="#64748b" stroke-width="1.5"/>
+  <circle cx="90" cy="283" r="5" fill="#7c3aed"/><circle cx="165" cy="283" r="5" fill="#7c3aed"/><circle cx="240" cy="283" r="5" fill="#7c3aed"/><circle cx="315" cy="283" r="5" fill="#7c3aed"/>
+  <text x="90" y="303" text-anchor="middle" font-size="11" fill="#475569">1</text><text x="165" y="303" text-anchor="middle" font-size="11" fill="#475569">2</text><text x="240" y="303" text-anchor="middle" font-size="11" fill="#475569">4</text><text x="315" y="303" text-anchor="middle" font-size="11" fill="#475569">8</text>
+  <line x1="202" y1="263" x2="202" y2="300" stroke="#dc2626" stroke-width="2"/>
+  <text x="420" y="268" font-size="13" fill="#334155">Geometric mean = ratio balance</text><text x="420" y="291" font-size="13" fill="#334155">Geometric SD = multiply/divide factor</text><text x="420" y="314" font-size="11" fill="#6b7280">1, 2, 4, 8 are equally spaced on a log scale.</text>
+</svg>
+</div>
+
+The mean and median can both be worth reporting when they answer useful
+questions. A difference between them is a clue about asymmetry or mixtures—not
+proof that either summary is dishonest.
+
+### “Mean” Has Several Meanings
+
+#### Arithmetic mean: additive balance
+
+For values 2, 4, and 9, the arithmetic mean is `(2 + 4 + 9) / 3 = 5`.
+It is the correct balance point when differences add. Its natural companion is
+the SD, because both use distance from the arithmetic mean.
+
+#### Geometric mean: multiplicative balance
+
+For positive values, take the mean on the log scale and transform back. A
+half-fold change followed by a two-fold change has geometric mean
+`sqrt(0.5 × 2) = 1`: no average multiplicative change. The arithmetic mean is
+1.25 and answers a different, additive question.
+
+A geometric SD is a **factor**, not an additive distance. Geometric mean 20 with
+geometric SD 1.5 gives a one-geometric-SD range of `20 / 1.5` to `20 × 1.5`,
+not `20 ± 1.5`.
+
+#### Harmonic mean: a rate over fixed work
+
+Suppose the same distance is travelled at 60 km/h and 30 km/h. The arithmetic
+mean is 45, but the overall equal-distance speed is the harmonic mean, 40 km/h,
+because more time is spent at the slower rate. Do not use it merely because a
+variable is called a rate: the exposure or numerator must justify it.
+
+#### Weighted mean: observations do not contribute equally
+
+Weights may represent frequency, sampling probability, exposure, or precision;
+these meanings are not interchangeable. A weighted SD describes spread under
+the weights, but a valid standard error may also need survey strata, clusters,
+replicate weights, or a model of measurement precision.
+
+#### Trimmed mean: a declared compromise
+
+A 10% trimmed mean removes the lowest and highest 10% symmetrically before
+averaging. It can be a useful sensitivity summary, but choosing the trim after
+seeing an inconvenient result can hide biology. Show the untrimmed distribution
+and use a winsorized spread or bootstrap interval.
+
+#### Root mean square: magnitude, not “typical” centre
+
+RMS squares values, averages, and takes the square root. It is useful for signal
+magnitude and error size, but it is not normally a replacement for the mean or
+median of observed measurements.
+
+BioLang calculates these side by side and explains their compatible spreads:
+
+```bio
+import "statistics" as stat
+
+let choices = stat.means([1, 2, 4, 8], {trim_fraction: 0.25})
+println("Arithmetic mean: " + str(choices.arithmetic_mean))
+println("Geometric mean: " + str(choices.geometric_mean))
+println("Harmonic mean: " + str(choices.harmonic_mean))
+choices.centre_spread_pairs
+```
+
+`stat.means()` never selects an answer automatically. If weights are part of
+the scientific design, use `stat.weighted_summary(values, weights)` as well.
 
 ## Measures of Spread
 
@@ -184,6 +279,20 @@ Variance measures the average squared distance from the mean:
 **Standard Deviation:** s = &radic;(s&sup2;)
 
 We divide by (n-1) rather than n (Bessel's correction) because a sample underestimates the true population variance. The standard deviation is in the same units as the data, making it more interpretable than variance.
+
+Variance is **not** the whole width of a distribution, and SD does not mean “the
+left side plus the right side.” They encode the same spread in different units:
+
+- SD is a typical distance from the arithmetic mean, expressed in the original unit.
+- Variance is SD squared, expressed in squared units and useful inside statistical formulas.
+- Adding 10 to every value moves the mean by 10 but leaves SD and variance unchanged.
+- Multiplying every value by 3 multiplies SD by 3 and variance by 9.
+
+`mean ± SD` is most interpretable for a roughly symmetric, single-peaked
+distribution. For skewed data, pair the median with IQR or MAD. For positive
+multiplicative data, pair the geometric mean with a geometric SD or fold range.
+The 68–95–99.7 rule below is a property of an approximately normal model, not a
+universal definition of SD and not an automatic outlier-removal rule.
 
 **Rule of thumb:** For normally distributed data, about 68% of values fall within 1 SD of the mean, 95% within 2 SDs, and 99.7% within 3 SDs. If a quality score is more than 3 SDs below the mean, something is wrong with that tile.
 
@@ -240,7 +349,7 @@ CV = (SD / Mean) &times; 100%. The CV expresses variability relative to the mean
 
 Skewness measures asymmetry. A skewness of 0 means perfectly symmetric (like the normal distribution). Positive skewness means a right tail (most values cluster low, with a few very high values). Negative skewness means a left tail.
 
-**Biological reality:** Most biological measurements are positively skewed. Gene expression, protein abundance, cell counts, read depths — all tend to have many low values and a few very high ones. This is because multiplicative processes (gene regulation cascades, exponential growth) naturally produce right-skewed distributions.
+**Biological reality:** Many—not all—biological measurements are positively skewed. Expression abundance, protein abundance, cell counts, and read depths can have many low values and a few high ones because of biological heterogeneity, multiplicative mechanisms, sampling, and technical limits. Mixtures and batch effects can create similar shapes, so skewness alone does not reveal the cause.
 
 ### Kurtosis
 
@@ -248,7 +357,7 @@ Kurtosis measures the "tailedness" of the distribution — how likely extreme va
 
 In genomics, variant allele frequency distributions often have high kurtosis, reflecting the mixture of common variants (clustered near 50%) and rare variants (near 0%).
 
-> **Key insight:** If skewness is far from 0 or kurtosis is far from 3, your data is not normally distributed, and parametric tests that assume normality may give misleading results. We will explore this deeply on Day 3.
+> **Key insight:** Skewness and kurtosis are clues, not pass/fail gates. Model assumptions usually concern residuals or a sampling distribution, not necessarily the raw outcome. Plot the data, preserve the study design, and inspect the fitted model rather than choosing a test from one shape number.
 
 ## Descriptive Statistics in BioLang
 

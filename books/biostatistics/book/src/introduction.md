@@ -107,6 +107,11 @@ Every day has a companion directory with a BioLang setup script and Python and
 R comparison scripts. The runnable BioLang analyses are the code blocks in the
 chapter itself. The current companion structure is:
 
+For a shorter interactive path through centre/spread choices, logarithms,
+weights, repeated subjects, robust regression, and ordered data, open
+`books/biostatistics/practical-statistics-validation.bln`. Its cells are meant
+to be run from top to bottom and preserve interpreter context.
+
 ```
 biostatistics/
   days/

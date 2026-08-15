@@ -18,6 +18,44 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         // sample and cumsum are registered via table_ops with flexible arity
         // to support both List and Table dispatch (see call_builtin)
         ("summary", Arity::Exact(1)),
+        // Explainable exploratory statistics. These deliberately return
+        // structured evidence rather than silently choosing an analysis.
+        ("stats_explore", Arity::Range(1, 2)),
+        ("stats_compare", Arity::Range(2, 3)),
+        ("stats_relationship", Arity::Range(2, 3)),
+        ("stats_categories", Arity::Range(1, 2)),
+        ("stats_guide", Arity::Range(1, 2)),
+        ("stats_explain", Arity::Range(1, 2)),
+        ("stats_distribution_plot", Arity::Range(1, 2)),
+        ("stats_distribution_ascii", Arity::Range(1, 2)),
+        ("stats_preprocess", Arity::Range(1, 2)),
+        ("stats_profile", Arity::Range(1, 2)),
+        ("stats_missingness", Arity::Range(1, 2)),
+        ("stats_design_check", Arity::Range(1, 2)),
+        ("stats_transform_preview", Arity::Range(2, 3)),
+        ("stats_uncertainty", Arity::Range(1, 2)),
+        ("stats_shape", Arity::Range(1, 2)),
+        ("stats_normal_qq_plot", Arity::Range(1, 2)),
+        ("normal_qq_plot", Arity::Range(1, 2)),
+        ("stats_group_plot", Arity::Range(2, 3)),
+        ("stats_relationship_plot", Arity::Range(2, 3)),
+        ("stats_categorical_plot", Arity::Range(1, 2)),
+        ("stats_missingness_plot", Arity::Range(1, 2)),
+        ("stats_normalization_guide", Arity::Range(1, 2)),
+        ("stats_associations", Arity::Range(1, 2)),
+        ("stats_scan", Arity::Range(1, 2)),
+        ("stats_overview_ascii", Arity::Range(1, 2)),
+        ("stats_linear_diagnostics", Arity::Range(2, 3)),
+        ("stats_linear_diagnostic_plot", Arity::Range(2, 3)),
+        ("stats_report", Arity::Range(1, 2)),
+        ("stats_distribution_clues", Arity::Range(1, 2)),
+        ("stats_multiple_linear_diagnostics", Arity::Range(2, 3)),
+        ("stats_omics_profile", Arity::Range(1, 2)),
+        ("stats_robust_linear_diagnostics", Arity::Range(2, 3)),
+        ("stats_weighted_summary", Arity::Range(2, 3)),
+        ("stats_time_series_diagnostics", Arity::Range(1, 2)),
+        ("stats_cluster_diagnostics", Arity::Range(2, 3)),
+        ("stats_means", Arity::Range(1, 2)),
         // Math
         ("sqrt", Arity::Exact(1)),
         ("pow", Arity::Exact(2)),
@@ -159,6 +197,42 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "sample"
             | "cumsum"
             | "summary"
+            | "stats_explore"
+            | "stats_compare"
+            | "stats_relationship"
+            | "stats_categories"
+            | "stats_guide"
+            | "stats_explain"
+            | "stats_distribution_plot"
+            | "stats_distribution_ascii"
+            | "stats_preprocess"
+            | "stats_profile"
+            | "stats_missingness"
+            | "stats_design_check"
+            | "stats_transform_preview"
+            | "stats_uncertainty"
+            | "stats_shape"
+            | "stats_normal_qq_plot"
+            | "normal_qq_plot"
+            | "stats_group_plot"
+            | "stats_relationship_plot"
+            | "stats_categorical_plot"
+            | "stats_missingness_plot"
+            | "stats_normalization_guide"
+            | "stats_associations"
+            | "stats_scan"
+            | "stats_overview_ascii"
+            | "stats_linear_diagnostics"
+            | "stats_linear_diagnostic_plot"
+            | "stats_report"
+            | "stats_distribution_clues"
+            | "stats_multiple_linear_diagnostics"
+            | "stats_omics_profile"
+            | "stats_robust_linear_diagnostics"
+            | "stats_weighted_summary"
+            | "stats_time_series_diagnostics"
+            | "stats_cluster_diagnostics"
+            | "stats_means"
             | "sqrt"
             | "pow"
             | "log"
@@ -284,6 +358,42 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "sample" => builtin_sample(args),
         "cumsum" => builtin_cumsum(args),
         "summary" => builtin_summary(args),
+        "stats_explore"
+        | "stats_compare"
+        | "stats_relationship"
+        | "stats_categories"
+        | "stats_guide"
+        | "stats_explain"
+        | "stats_distribution_plot"
+        | "stats_distribution_ascii"
+        | "stats_preprocess"
+        | "stats_profile"
+        | "stats_missingness"
+        | "stats_design_check"
+        | "stats_transform_preview"
+        | "stats_uncertainty"
+        | "stats_shape"
+        | "stats_normal_qq_plot"
+        | "normal_qq_plot"
+        | "stats_group_plot"
+        | "stats_relationship_plot"
+        | "stats_categorical_plot"
+        | "stats_missingness_plot"
+        | "stats_normalization_guide"
+        | "stats_associations"
+        | "stats_scan"
+        | "stats_overview_ascii"
+        | "stats_linear_diagnostics"
+        | "stats_linear_diagnostic_plot"
+        | "stats_report"
+        | "stats_distribution_clues"
+        | "stats_multiple_linear_diagnostics"
+        | "stats_omics_profile"
+        | "stats_robust_linear_diagnostics"
+        | "stats_weighted_summary"
+        | "stats_time_series_diagnostics"
+        | "stats_cluster_diagnostics"
+        | "stats_means" => crate::stats_explore::call(name, args),
         "sqrt" => builtin_sqrt(args),
         "pow" => builtin_pow(args),
         "log" => builtin_log(args),

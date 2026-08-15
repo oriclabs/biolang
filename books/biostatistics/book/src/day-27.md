@@ -536,8 +536,8 @@ print("\nGroup A: " + str(summary(a)))
 print("Group B: " + str(summary(b)))
 
 # --- Normality Check (visual) ---
-qq_plot(a, {title: "Q-Q Plot — Group A"})
-qq_plot(b, {title: "Q-Q Plot — Group B"})
+normal_qq_plot(a, {title: "Q-Q Plot — Group A"})
+normal_qq_plot(b, {title: "Q-Q Plot — Group B"})
 
 # --- Primary Analysis ---
 let tt = ttest(a, b)

@@ -289,8 +289,8 @@ let healthy = [2.1, 5.4, 1.8, 8.2, 3.5, 12.1, 4.7, 6.3, 2.9, 45.0,
 
 # First, demonstrate why t-test is inappropriate
 # Check normality visually — both distributions are right-skewed
-qq_plot(ibd, {title: "QQ Plot: IBD"})
-qq_plot(healthy, {title: "QQ Plot: Healthy"})
+normal_qq_plot(ibd, {title: "QQ Plot: IBD"})
+normal_qq_plot(healthy, {title: "QQ Plot: Healthy"})
 print("Both groups are heavily skewed — normality violated!\n")
 
 # Mann-Whitney U test (non-parametric)
@@ -320,7 +320,7 @@ let after  = [120, 12, 340, 22, 28, 450,  35,  65, 10, 210, 42,  890]
 
 # Normality check on differences
 let diffs = zip(before, after) |> map(|p| p[0] - p[1])
-qq_plot(diffs, {title: "QQ Plot: Paired Differences"})
+normal_qq_plot(diffs, {title: "QQ Plot: Paired Differences"})
 print("Differences are non-normal -> use Wilcoxon signed-rank\n")
 
 # Wilcoxon signed-rank test

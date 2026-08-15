@@ -1,0 +1,41 @@
+import "statistics" as stat
+
+let study = table({
+    patient: ["p1", "p1", "p2", "p3", "p4", "p5"],
+    treatment: ["control", "control", "control", "drug", "drug", "drug"],
+    batch: ["run1", "run1", "run2", "run1", "run2", "run2"],
+    time: [0, 7, 0, 0, 0, 0],
+    age: [34, 34, 52, 48, nil, 150],
+    response: [1.2, 1.7, 2.0, 8.0, 9.2, 30.0]
+})
+
+let audit = stat.profile(study, {
+    subject_column: "patient",
+    group_column: "treatment",
+    batch_column: "batch",
+    time_column: "time",
+    ranges: {age: {min: 0, max: 120}}
+})
+
+println(stat.explain(audit))
+println(stat.missingness_plot(study, {format: "ascii"}))
+
+let response = [1.2, 1.7, 2.0, 8.0, 9.2, 30.0]
+let treatment = ["control", "control", "control", "drug", "drug", "drug"]
+let preview = stat.preview_transform(response, "log")
+println(stat.explain(preview))
+println(stat.group_plot(response, treatment, {format: "ascii"}))
+
+let interval = stat.uncertainty(response, {
+    statistic: "median",
+    repetitions: 2000,
+    seed: 42
+})
+println(stat.explain(interval))
+
+let count_matrix = [[0, 10, 20], [2, 20, 40], [1, 4, 5]]
+let normalization = stat.normalization_guide(count_matrix, {
+    data_type: "counts",
+    sample_axis: "rows"
+})
+println(stat.explain(normalization))

@@ -1,0 +1,65 @@
+import "statistics" as stat
+
+# A deliberately imperfect repeated-measures study. The functions describe
+# evidence and alternatives; they do not clean the data or choose a test.
+let study = table({
+    subject: ["p01", "p01", "p02", "p02", "p03", "p03", "p04", "p04"],
+    arm: ["control", "treated", "control", "treated", "control", "treated", "control", "treated"],
+    batch: ["run1", "run2", "run1", "run2", "run1", "run2", "run1", "run2"],
+    time: [0, 1, 0, 1, 0, 1, 0, 1],
+    baseline: [4.8, 4.8, 5.2, 5.2, 5.0, 5.0, 5.5, 5.5],
+    response: [10.2, 18.3, 11.1, 20.5, 9.8, 19.4, 12.0, nil]
+})
+
+let context = {
+    subject_column: "subject",
+    group_column: "arm",
+    batch_column: "batch",
+    time_column: "time",
+    seed: 42
+}
+
+println(stat.overview_ascii(study))
+
+let scan = stat.scan(study, context)
+println(stat.explain(scan))
+
+let missing = stat.missingness(study, {group_column: "arm"})
+println("Missingness patterns: " + str(len(missing.patterns)))
+
+let distribution = stat.distribution_clues([0, 0, 1, 1, 2, 4, 9, 15])
+println("Count variance/mean: " + str(distribution.variance_mean_ratio))
+
+let predictors = table({
+    baseline: [4.8, 4.8, 5.2, 5.2, 5.0, 5.0, 5.5],
+    arm: ["control", "treated", "control", "treated", "control", "treated", "control"]
+})
+let model = stat.multiple_linear_diagnostics(
+    predictors,
+    [10.2, 18.3, 11.1, 20.5, 9.8, 19.4, 12.0],
+    {interactions: ["baseline:arm"], validation_folds: 0}
+)
+println("Adjusted R-squared: " + str(model.adjusted_r_squared))
+
+let counts = [
+    [8, 0, 1, 0, 3],
+    [3, 1, 0, 0, 2],
+    [0, 4, 0, 7, 0],
+    [6, 0, 2, 0, 1]
+]
+let omics = stat.omics_profile(counts, {
+    modality: "bulk_rnaseq",
+    sample_axis: "rows"
+})
+println("Count-matrix zero fraction: " + str(omics.zero_fraction))
+
+# In a notebook, displaying report.content renders the HTML. On the CLI it can
+# be copied to a file with the ordinary BioLang file APIs.
+let report = stat.report(study, {
+    ...context,
+    format: "html",
+    title: "Repeated-measures study review",
+    generated_at: "supply an ISO-8601 timestamp from your workflow"
+})
+println("Report MIME type: " + report.mime_type)
+println("Report characters: " + str(len(report.content)))

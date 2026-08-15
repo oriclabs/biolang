@@ -11,7 +11,7 @@ This appendix lists BioLang's statistical builtins by category. For each functio
 | `mean(x)` | Arithmetic mean | `mean([2, 4, 6])` → `4.0` |
 | `median(x)` | Middle value | `median([1, 3, 7])` → `3.0` |
 | `stdev(x)` | Sample standard deviation | `stdev([2, 4, 6])` → `2.0` |
-| `var(x)` | Sample variance | `var([2, 4, 6])` → `4.0` |
+| `variance(x)` | Sample variance | `variance([2, 4, 6])` → `4.0` |
 | `min(x)` | Minimum value | `min([3, 1, 4])` → `1` |
 | `max(x)` | Maximum value | `max([3, 1, 4])` → `4` |
 | `sum(x)` | Sum of all values | `sum([1, 2, 3])` → `6` |
@@ -24,94 +24,91 @@ This appendix lists BioLang's statistical builtins by category. For each functio
 | `log2(x)` | Base-2 logarithm | `log2(8)` → `3.0` |
 | `log10(x)` | Base-10 logarithm | `log10(1000)` → `3.0` |
 
+## Guided Exploration
+
+These functions are provided by the `statistics` package:
+
+| Function | Description |
+|---|---|
+| `stat.explore(values, options?)` | Full-data descriptive facts, clues, alternatives, and limitations |
+| `stat.preprocessing(values, options?)` | Observable issues and non-applied preprocessing/normalization options |
+| `stat.compare(values, groups, options?)` | Per-group exploration and analysis alternatives |
+| `stat.relationship(x, y, options?)` | Complete-pair Pearson/Spearman and relationship alternatives |
+| `stat.categorical(values, options?)` | Counts, proportions, missingness, modes, and rare-level clues |
+| `stat.guide(report, context?)` | Attach the question and experimental unit without automatic test selection |
+| `stat.explain(report, detail?)` | Render `quick`, `learning`, or `audit` explanations |
+| `stat.distribution_plot(values, options?)` | Annotated distribution showing observations, centre, spread, and review flags |
+| `stat.distribution_ascii(values, options?)` | Terminal histogram with centre, IQR, exclusions, and review flags |
+| `stat.profile(table, options?)` | Dataset-wide type, integrity, missingness, range, and design audit |
+| `stat.missingness(table, options?)` | Missingness by row, column, pattern, co-occurrence, optional group, and observed/missing comparisons |
+| `stat.design_check(table, options?)` | Repeated, paired, longitudinal, nested, clustered, imbalance, and confounding clues |
+| `stat.preview_transform(values, method, options?)` | Non-mutating before/after transformation comparison |
+| `stat.uncertainty(values, options?)` | Seeded bootstrap interval for centres, spread, differences, or correlations |
+| `stat.shape(values, options?)` | Shape and multiple-peak evidence without a distribution diagnosis |
+| `stat.normal_qq_plot(values, options?)` | Normal-distribution Q-Q diagnostic in SVG or ASCII |
+| `stat.group_plot(values, groups, options?)` | Grouped observations and robust summaries in SVG or ASCII |
+| `stat.relationship_plot(x, y, options?)` | Relationship diagnostic in SVG or ASCII |
+| `stat.categorical_plot(values, options?)` | Frequency bars in SVG or ASCII |
+| `stat.missingness_plot(table, options?)` | Missingness map in SVG or ASCII |
+| `stat.normalization_guide(matrix, options?)` | Dense/sparse matrix audit and domain-aware normalization choices |
+| `stat.scan(table, options?)` | Recommended non-mutating first pass with evidence-linked next steps |
+| `stat.overview_ascii(table, options?)` | Compact terminal-safe whole-table summary |
+| `stat.associations(table, options?)` | Bounded type-appropriate pairwise effect-size screen |
+| `stat.linear_diagnostics(x, y, options?)` | Residual form, spread, tails, order, and influence clues for a simple line |
+| `stat.linear_diagnostic_plot(x, y, options?)` | Residual-versus-fitted or residual Q-Q display in SVG or ASCII |
+| `stat.report(table, options?)` | Self-contained HTML or Markdown health report with provenance and copyable next steps |
+| `stat.distribution_clues(values, options?)` | Likelihood/AIC and shape clues for common continuous and count families without model selection |
+| `stat.multiple_linear_diagnostics(predictors, outcome, options?)` | Encodings, interactions, VIF, influence, intervals, residuals, and held-out error |
+| `stat.omics_profile(matrix, options?)` | Sparse-safe modality-aware profile for common biological matrices |
+| `stat.robust_linear_diagnostics(predictors, outcome, options?)` | Compare Huber and OLS coefficients as an outlier-sensitivity check |
+| `stat.weighted_summary(values, weights, options?)` | Weighted summaries plus effective sample size and weight concentration |
+| `stat.time_series_diagnostics(values, options?)` | Trend, autocorrelation, Ljung-Box, and first-difference clues |
+| `stat.cluster_diagnostics(values, clusters, options?)` | ICC, cluster-size imbalance, and approximate information loss |
+| `stat.means(values, options?)` | Definitions of average paired with compatible spread and use conditions |
+
+See [Guided Exploration in BioLang](appendix-guided-exploration.md) for runnable
+examples and the non-mutating recommendation contract.
+
 ## Probability Distributions
 
-Each distribution has four functions following the `d/p/q/r` convention: `d` (density/mass), `p` (cumulative probability), `q` (quantile/inverse CDF), `r` (random samples). All parameters are positional.
+BioLang follows the familiar `d/p/q/r` convention where a form is currently implemented: `d` is density/mass, `p` is cumulative probability, `q` is a quantile, and `r` draws samples. The tables below list only forms currently registered by the runtime.
 
 ### Continuous
 
+| Distribution | Available functions |
+|---|---|
+| Normal | `dnorm(x, mean?, sd?)`, `pnorm(x, mean?, sd?)`, `qnorm(p, mean?, sd?)`, `rnorm(n, mean?, sd?)` |
+| Uniform | `dunif(x, min?, max?)`, `punif(x, min?, max?)` |
+| Exponential | `dexp(x, rate?)`, `pexp(x, rate?)` |
+
 ```bio
-# Normal: dnorm(x, mu, sigma), pnorm(x, mu, sigma), qnorm(p, mu, sigma), rnorm(n, mu, sigma)
-dnorm(0, 0, 1)        # Density at x=0 for standard normal
-pnorm(1.96, 0, 1)     # P(X <= 1.96) ≈ 0.975
-qnorm(0.975, 0, 1)    # Quantile at p=0.975 ≈ 1.96
-rnorm(100, 0, 1)      # Generate 100 standard normal values
+dnorm(0, 0, 1)
+pnorm(1.96, 0, 1)
+qnorm(0.975, 0, 1)
+rnorm(100, 0, 1)
 
-# Student's t: dt(x, df), pt(x, df), qt(p, df), rt(n, df)
-dt(0, 10)
-pt(2.228, 10)
-qt(0.975, 10)
-rt(100, 10)
-
-# F: df(x, df1, df2), pf(x, df1, df2), qf(p, df1, df2), rf(n, df1, df2)
-df(1.5, 5, 20)
-pf(3.0, 5, 20)
-qf(0.95, 5, 20)
-rf(100, 5, 20)
-
-# Chi-square: dchisq(x, df), pchisq(x, df), qchisq(p, df), rchisq(n, df)
-dchisq(5.0, 5)
-pchisq(11.07, 5)
-qchisq(0.95, 5)
-rchisq(100, 5)
-
-# Beta: dbeta(x, alpha, beta), pbeta(x, alpha, beta), qbeta(p, alpha, beta), rbeta(n, alpha, beta)
-dbeta(0.3, 2, 5)
-pbeta(0.5, 2, 5)
-qbeta(0.95, 2, 5)
-rbeta(100, 2, 5)
-
-# Gamma: dgamma(x, shape, rate), pgamma(x, shape, rate), qgamma(p, shape, rate), rgamma(n, shape, rate)
-dgamma(1.0, 2, 1)
-pgamma(3.0, 2, 1)
-qgamma(0.95, 2, 1)
-rgamma(100, 2, 1)
-
-# Exponential: dexp(x, rate), pexp(x, rate), qexp(p, rate), rexp(n, rate)
-dexp(1.0, 0.5)
-pexp(2.0, 0.5)
-qexp(0.95, 0.5)
-rexp(100, 0.5)
-
-# Log-Normal: dlnorm(x, mu, sigma), plnorm(x, mu, sigma), qlnorm(p, mu, sigma), rlnorm(n, mu, sigma)
-dlnorm(1.0, 0, 1)
-plnorm(2.0, 0, 1)
-qlnorm(0.95, 0, 1)
-rlnorm(100, 0, 1)
-
-# Uniform: dunif(x, min, max), punif(x, min, max), qunif(p, min, max), runif(n, min, max)
 dunif(0.5, 0, 1)
 punif(0.7, 0, 1)
-qunif(0.5, 0, 1)
-runif(100, 0, 1)
+
+dexp(1.0, 0.5)
+pexp(2.0, 0.5)
 ```
 
 ### Discrete
 
-```bio
-# Binomial: dbinom(k, n, p), pbinom(k, n, p), qbinom(q, n, p), rbinom(size, n, p)
-dbinom(10, 20, 0.5)       # P(X = 10)
-pbinom(10, 20, 0.5)       # P(X <= 10)
-qbinom(0.5, 20, 0.5)      # Smallest k with P(X <= k) >= 0.5
-rbinom(100, 20, 0.5)      # Generate 100 random values
+| Distribution | Available functions |
+|---|---|
+| Binomial | `dbinom(k, size, probability)`, `pbinom(k, size, probability)`, `rbinom(n, size, probability)` |
+| Poisson | `dpois(k, lambda)`, `ppois(k, lambda)`, `rpois(n, lambda)` |
 
-# Poisson: dpois(k, lambda), ppois(k, lambda), qpois(q, lambda), rpois(n, lambda)
+```bio
+dbinom(10, 20, 0.5)
+pbinom(10, 20, 0.5)
+rbinom(100, 20, 0.5)
+
 dpois(5, 5.0)
 ppois(7, 5.0)
-qpois(0.95, 5.0)
 rpois(100, 5.0)
-
-# Negative Binomial: dnbinom(k, mu, size), pnbinom(k, mu, size), qnbinom(q, mu, size), rnbinom(n, mu, size)
-dnbinom(8, 10, 5)
-pnbinom(15, 10, 5)
-qnbinom(0.95, 10, 5)
-rnbinom(100, 10, 5)
-
-# Hypergeometric: dhyper(k, K, N_minus_K, n), phyper(k, K, N_minus_K, n), qhyper(q, K, N_minus_K, n), rhyper(size, K, N_minus_K, n)
-dhyper(5, 200, 19800, 500)
-phyper(5, 200, 19800, 500)
-qhyper(0.95, 200, 19800, 500)
-rhyper(100, 200, 19800, 500)
 ```
 
 ## Hypothesis Tests
@@ -123,13 +120,13 @@ rhyper(100, 200, 19800, 500)
 | `ttest(a, b)` | Welch's two-sample t-test | `ttest(ctrl, treat)` |
 | `ttest_paired(a, b)` | Paired t-test | `ttest_paired(before, after)` |
 | `ttest_one(x, mu)` | One-sample t-test | `ttest_one(diffs, 0)` |
-| `wilcoxon(a, b)` | Wilcoxon rank-sum / signed-rank test | `wilcoxon(ctrl, treat)` |
+| `wilcoxon(a, b)` | Mann-Whitney/Wilcoxon rank-sum for independent groups | `wilcoxon(ctrl, treat)` |
 
 ### Comparing Multiple Groups
 
 | Function | Description | Example |
 |---|---|---|
-| `anova(groups)` | One-way ANOVA (auto-detects Welch/Kruskal-Wallis) | `anova([g1, g2, g3])` |
+| `anova(groups)` | Classical one-way ANOVA | `anova([g1, g2, g3])` |
 
 > **Post-hoc comparisons:** Follow a significant ANOVA with pairwise tests and p-value correction:
 >
@@ -150,7 +147,7 @@ rhyper(100, 200, 19800, 500)
 
 | Function | Description | Example |
 |---|---|---|
-| `chi_square(observed, expected)` | Chi-square test | `chi_square(observed, expected)` |
+| `chi_square(observed, expected)` | Chi-square goodness-of-fit for flat observed/expected lists | `chi_square(observed, expected)` |
 | `fisher_exact(a, b, c, d)` | Fisher's exact test (2x2) | `fisher_exact(10, 5, 3, 12)` |
 
 > **Effect sizes for categorical data** are computed inline:
@@ -200,7 +197,7 @@ histogram(residuals, {title: "Residual Distribution"})
 |---|---|---|
 | `p_adjust(pvals, method)` | Adjust p-values | `p_adjust(pvals, "BH")` |
 
-Supported methods: `"bonferroni"`, `"holm"`, `"BH"` (Benjamini-Hochberg), `"BY"` (Benjamini-Yekutieli).
+Supported methods: `"bonferroni"`, `"holm"`, and `"BH"` (Benjamini-Hochberg).
 
 ```bio
 # Typical genomics workflow: test all genes, then correct
@@ -246,7 +243,8 @@ let clusters = kmeans(expr_matrix, 2)
 | `heatmap(table, options)` | Heatmap with optional clustering | `heatmap(matrix, {cluster_rows: true, title: "Expression"})` |
 | `volcano(table, options)` | Volcano plot for DE results | `volcano(de_results, {fc_threshold: 1.0, title: "DE"})` |
 | `manhattan(table, options)` | Manhattan plot for GWAS | `manhattan(gwas_results, {significance_line: 5e-8, title: "GWAS"})` |
-| `qq_plot(data, options)` | Q-Q plot (normality check) | `qq_plot(residuals, {title: "Normality Check"})` |
+| `qq_plot(p_values, options)` | Observed-versus-expected genomic p-value Q-Q plot | `qq_plot(p_values, {title: "GWAS Q-Q"})` |
+| `normal_qq_plot(values, options)` | Observed-versus-theoretical normal Q-Q diagnostic | `normal_qq_plot(values, {title: "Normal Q-Q"})` |
 | `forest_plot(table, options)` | Forest plot for meta-analysis | `forest_plot(meta_tbl, {null_value: 0, title: "Meta-analysis"})` |
 | `roc_curve(table, options)` | ROC curve | `roc_curve(roc_tbl, {title: "Classifier ROC"})` |
 | `pca_plot(result, options)` | PCA scatter plot | `pca_plot(result, {title: "PCA"})` |
@@ -308,7 +306,7 @@ let p_value = len(null_diffs |> filter(|d| d >= observed_diff)) / n_perm
 
 ## Power Analysis
 
-BioLang does not have dedicated power analysis functions. Compute sample sizes using distribution quantiles and effect size formulas:
+BioLang provides `power_analysis(effect_size, alpha, power?, n?)` for an approximate two-sample t-test calculation. Omitting `n` returns the required per-group sample size:
 
 ```bio
 # Sample size for two-sample t-test
@@ -316,13 +314,11 @@ BioLang does not have dedicated power analysis functions. Compute sample sizes u
 let effect_size = 0.5     # Cohen's d
 let alpha = 0.05
 let power = 0.80
-let z_alpha = qnorm(1 - alpha / 2, 0, 1)    # 1.96
-let z_beta = qnorm(power, 0, 1)              # 0.842
-let n_per_group = round(2 * ((z_alpha + z_beta) / effect_size) ** 2, 0)
-print("Required n per group: " + str(n_per_group))
+let planned = power_analysis(effect_size, alpha, power)
+print("Required n per group: " + str(planned.n))
 
 # Cohen's d (inline)
-let d = abs(mean(a) - mean(b)) / sqrt(((len(a) - 1) * var(a) + (len(b) - 1) * var(b)) / (len(a) + len(b) - 2))
+let d = abs(mean(a) - mean(b)) / sqrt(((len(a) - 1) * variance(a) + (len(b) - 1) * variance(b)) / (len(a) + len(b) - 2))
 ```
 
 ## Bayesian Methods
@@ -342,10 +338,8 @@ let post_b = prior_b + (n - k)
 let post_mean = post_a / (post_a + post_b)
 print("Posterior mean: " + str(round(post_mean, 3)))
 
-# 95% credible interval via Beta quantiles
-let ci_lo = qbeta(0.025, post_a, post_b)
-let ci_hi = qbeta(0.975, post_a, post_b)
-print("95% CI: [" + str(round(ci_lo, 3)) + ", " + str(round(ci_hi, 3)) + "]")
+# Beta quantiles are not currently a BioLang builtin. Use a validated external
+# implementation when a Beta posterior credible interval is required.
 
 # Normal-Normal conjugate update
 # Prior: N(mu0, sigma0^2); Data: n observations with mean x_bar and known sigma
@@ -359,22 +353,12 @@ let post_sd = sqrt(1.0 / post_prec)
 
 ## Survival Analysis
 
-BioLang provides basic building blocks for survival analysis. For simple comparisons:
+BioLang provides censoring-aware log-rank and Cox functions. Do not replace a survival comparison with an ordinary t-test on observed times.
 
-```text
-# Conceptual or diagnostic example; not directly executable.
-# Compare survival times between two groups
-let result = ttest(arm1_times, arm2_times)
+```bio
+# events are Bool or 0/1 lists, where true/1 means the event was observed.
+let result = log_rank_test(arm1_times, arm1_events, arm2_times, arm2_events)
 print("p-value: " + str(round(result.p_value, 4)))
-
-# Median survival
-let med_a = sort(arm1_times)[len(arm1_times) / 2]
-let med_b = sort(arm2_times)[len(arm2_times) / 2]
-print("Median survival — Arm A: " + str(med_a) + ", Arm B: " + str(med_b))
-
-# Approximate hazard ratio from median ratio
-let hr = med_b / med_a
-
-# Regression on survival times
-let model = lm(~survival_time ~ age + stage + treatment, patient_data)
 ```
+
+Use `cox_ph(time, event, covariates)` when covariate-adjusted proportional-hazards modelling is appropriate. A ratio of raw medians is not a hazard ratio.

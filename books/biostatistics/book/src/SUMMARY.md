@@ -61,3 +61,4 @@
 - [Appendix C: Distribution Reference Card](appendix-distributions.md)
 - [Appendix D: Glossary](appendix-glossary.md)
 - [Appendix E: BioLang Statistics Quick Reference](appendix-reference.md)
+- [Appendix F: Guided Exploration in BioLang](appendix-guided-exploration.md)

@@ -1,0 +1,145 @@
+# Explainable exploratory statistics.
+#
+# The Rust runtime performs deterministic full-data calculations. This package
+# layer keeps the public API readable and leaves the structured evidence open
+# for notebooks, reports, and downstream code.
+
+fn explore(values, options = ({})) {
+    stats_explore(values, options)
+}
+
+fn compare(values, groups, options = ({})) {
+    stats_compare(values, groups, options)
+}
+
+fn relationship(x, y, options = ({})) {
+    stats_relationship(x, y, options)
+}
+
+fn categorical(values, options = ({})) {
+    stats_categories(values, options)
+}
+
+fn guide(report, context = ({})) {
+    stats_guide(report, context)
+}
+
+fn explain(report, detail = "learning") {
+    stats_explain(report, detail)
+}
+
+fn distribution_plot(values, options = ({})) {
+    stats_distribution_plot(values, options)
+}
+
+fn distribution_ascii(values, options = ({})) {
+    stats_distribution_ascii(values, options)
+}
+
+fn preprocessing(values, options = ({})) {
+    stats_preprocess(values, options)
+}
+
+fn profile(data, options = ({})) {
+    stats_profile(data, options)
+}
+
+fn missingness(data, options = ({})) {
+    stats_missingness(data, options)
+}
+
+fn design_check(data, options = ({})) {
+    stats_design_check(data, options)
+}
+
+fn preview_transform(values, method, options = ({})) {
+    stats_transform_preview(values, method, options)
+}
+
+fn uncertainty(values, options = ({})) {
+    stats_uncertainty(values, options)
+}
+
+fn shape(values, options = ({})) {
+    stats_shape(values, options)
+}
+
+fn normal_qq_plot(values, options = ({})) {
+    stats_normal_qq_plot(values, options)
+}
+
+fn group_plot(values, groups, options = ({})) {
+    stats_group_plot(values, groups, options)
+}
+
+fn relationship_plot(x, y, options = ({})) {
+    stats_relationship_plot(x, y, options)
+}
+
+fn categorical_plot(values, options = ({})) {
+    stats_categorical_plot(values, options)
+}
+
+fn missingness_plot(data, options = ({})) {
+    stats_missingness_plot(data, options)
+}
+
+fn normalization_guide(matrix, options = ({})) {
+    stats_normalization_guide(matrix, options)
+}
+
+fn associations(data, options = ({})) {
+    stats_associations(data, options)
+}
+
+fn scan(data, options = ({})) {
+    stats_scan(data, options)
+}
+
+fn overview_ascii(data, options = ({})) {
+    stats_overview_ascii(data, options)
+}
+
+fn linear_diagnostics(x, y, options = ({})) {
+    stats_linear_diagnostics(x, y, options)
+}
+
+fn linear_diagnostic_plot(x, y, options = ({})) {
+    stats_linear_diagnostic_plot(x, y, options)
+}
+
+fn report(data, options = ({})) {
+    stats_report(data, options)
+}
+
+fn distribution_clues(values, options = ({})) {
+    stats_distribution_clues(values, options)
+}
+
+fn multiple_linear_diagnostics(predictors, outcome, options = ({})) {
+    stats_multiple_linear_diagnostics(predictors, outcome, options)
+}
+
+fn omics_profile(matrix, options = ({})) {
+    stats_omics_profile(matrix, options)
+}
+
+fn robust_linear_diagnostics(predictors, outcome, options = ({})) {
+    stats_robust_linear_diagnostics(predictors, outcome, options)
+}
+
+fn weighted_summary(values, weights, options = ({})) {
+    stats_weighted_summary(values, weights, options)
+}
+
+fn time_series_diagnostics(values, options = ({})) {
+    stats_time_series_diagnostics(values, options)
+}
+
+fn cluster_diagnostics(values, clusters, options = ({})) {
+    stats_cluster_diagnostics(values, clusters, options)
+}
+
+fn means(values, options = ({})) {
+    stats_means(values, options)
+}

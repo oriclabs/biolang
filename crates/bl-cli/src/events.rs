@@ -167,6 +167,10 @@ pub fn is_structured_result(value: &Value) -> bool {
     match value {
         Value::Table(_) | Value::Matrix(_) | Value::SparseMatrix(_) => true,
         Value::Str(text) => text.trim_start().starts_with("<svg"),
+        Value::Record(values) => matches!(
+            values.get("schema"),
+            Some(Value::Str(schema)) if schema == "biolang.stats.report/v1"
+        ),
         Value::List(items) => {
             !items.is_empty() && items.iter().all(|item| matches!(item, Value::Record(_)))
         }
@@ -291,8 +295,12 @@ pub fn value_preview(value: &Value) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{value_preview, value_to_json, value_to_json_with_result_directory, LineIndex};
+    use super::{
+        is_structured_result, value_preview, value_to_json, value_to_json_with_result_directory,
+        LineIndex,
+    };
     use bl_core::value::{Table, Value};
+    use std::collections::HashMap;
 
     #[test]
     fn serializes_typed_table_results() {
@@ -311,6 +319,19 @@ mod tests {
         let json = value_to_json(&Value::Str("<svg><rect /></svg>".into()));
         assert_eq!(json["kind"], "plot");
         assert_eq!(json["format"], "svg");
+    }
+
+    #[test]
+    fn recognizes_statistics_reports_as_structured_results() {
+        let report = Value::Record(
+            HashMap::from([(
+                "schema".into(),
+                Value::Str("biolang.stats.report/v1".into()),
+            )])
+            .into(),
+        );
+        assert!(is_structured_result(&report));
+        assert_eq!(value_to_json(&report)["kind"], "record");
     }
 
     #[test]

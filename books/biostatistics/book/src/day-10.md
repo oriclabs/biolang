@@ -359,9 +359,9 @@ let stage_III = [35.2, 88.1, 42.5, 120.0, 55.3, 78.9, 95.2, 48.7, 110.5, 65.8]
 
 # Check normality
 # Visual normality check — all stages are right-skewed
-qq_plot(stage_I, {title: "QQ: Stage I"})
-qq_plot(stage_II, {title: "QQ: Stage II"})
-qq_plot(stage_III, {title: "QQ: Stage III"})
+normal_qq_plot(stage_I, {title: "QQ: Stage I"})
+normal_qq_plot(stage_II, {title: "QQ: Stage II"})
+normal_qq_plot(stage_III, {title: "QQ: Stage III"})
 print("Normality violated -> use Kruskal-Wallis (anova on ranks)\n")
 
 let result = anova([stage_I, stage_II, stage_III])
@@ -423,7 +423,7 @@ print("=== Assumption Checks ===")
 print(f"Variances: T-reg={variance(t_reg):.3}, T-eff={variance(t_eff):.3}, B cell={variance(b_cell):.3}, NK={variance(nk):.3}")
 # Visual normality check
 for name, data in [["T-reg", t_reg], ["T-eff", t_eff], ["B cell", b_cell], ["NK", nk]] {
-  qq_plot(data, {title: "QQ Plot: {name}"})
+  normal_qq_plot(data, {title: "QQ Plot: {name}"})
 }
 
 # Step 2: ANOVA

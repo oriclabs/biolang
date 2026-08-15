@@ -5,5 +5,5 @@ fn bonferroni(p_values)  { bonferroni_adjust(p_values) }
 fn inflation(p_values)   { genomic_inflation(p_values) }
 
 fn significant(p_values, threshold=0.05) {
-  p_values |> enumerate |> filter(fn(i, p) -> p <= threshold) |> map(fn(i, _) -> i)
+  range(0, len(p_values)) |> filter(|i| p_values[i] <= threshold)
 }

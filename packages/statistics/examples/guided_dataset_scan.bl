@@ -1,0 +1,42 @@
+import "statistics" as stat
+
+# A small, deliberately imperfect study table. The scan does not repair it: it
+# shows the evidence and tells us which scientific decisions are still needed.
+let data = table({
+    patient: ["p01", "p02", "p03", "p04", "p05", "p05"],
+    arm: ["control", "control", "treated", "treated", "treated", "treated"],
+    batch: ["run1", "run1", "run2", "run2", "run2", "run2"],
+    baseline: [4.1, 4.4, 5.0, nil, 5.8, 5.8],
+    response: [8.3, 8.9, 10.2, 12.1, 29.0, 29.0]
+})
+
+println(stat.overview_ascii(data))
+
+let scan = stat.scan(data, {
+    subject_column: "patient",
+    group_column: "arm",
+    batch_column: "batch"
+})
+
+println("\nPrioritized, evidence-linked next steps")
+for item in scan.recommendations {
+    println("- [" + item.priority + "] " + item.next_step)
+    println("  evidence: " + item.evidence)
+    println("  BioLang: " + item.example)
+}
+
+println("\nStrongest pairwise screening clues")
+for pair in scan.associations.pairs {
+    println("- " + pair.left + " / " + pair.right +
+        ": " + pair.strength + " (score=" + str(round(pair.screening_score, 3)) + ")")
+}
+
+let complete_baseline = [4.1, 4.4, 5.0, 5.8, 5.8]
+let complete_response = [8.3, 8.9, 10.2, 29.0, 29.0]
+let diagnostics = stat.linear_diagnostics(complete_baseline, complete_response)
+println("\n" + stat.explain(diagnostics))
+println(stat.linear_diagnostic_plot(
+    complete_baseline,
+    complete_response,
+    {format: "ascii"}
+))

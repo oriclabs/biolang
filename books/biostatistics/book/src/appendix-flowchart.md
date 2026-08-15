@@ -48,18 +48,22 @@ Use this when you have one outcome variable and two groups (e.g., control vs. tr
 | No | Yes | No | Welch's t-test | `ttest(a, b)` |
 | No | No | — | Mann-Whitney U | `wilcoxon(a, b)` |
 | Yes | Yes | — | Paired t-test | `ttest_paired(a, b)` |
-| Yes | No | — | Wilcoxon signed-rank | `wilcoxon(a, b)` |
+| Yes | No | — | Wilcoxon signed-rank | Not currently a builtin; `wilcoxon(a, b)` is rank-sum for independent groups |
 
 > **Key insight:** Welch's t-test is almost always preferred over Student's t-test because it does not assume equal variances. When variances are actually equal, Welch's test gives nearly identical results. When they are not, Student's test can be dangerously wrong. BioLang uses Welch's by default.
 
 ### How to check normality
 
 ```bio
-let data = [2.3, 4.1, 3.7, 5.2, 4.8, 3.1, 6.0, 4.4]
+import "statistics" as stat
 
-# Visual check — Q-Q plot (best for small samples)
-qq_plot(data, {title: "Normality Check"})
+let data = [2.3, 4.1, 3.7, 5.2, 4.8, 3.1, 6.0, 4.4]
+let report = stat.explore(data)
+stat.distribution_plot(data, {title: "Distribution check"})
 ```
+
+Use `normal_qq_plot(values)` for a normal-distribution diagnostic. The older
+`qq_plot(p_values)` remains specifically for genomic p-value Q-Q plots.
 
 > **Common pitfall:** With small samples (n < 30), normality tests have low power and may fail to reject normality even when the data is non-normal. With large samples (n > 5000), normality tests reject normality for trivially small deviations. Use Q-Q plots as a visual supplement.
 
@@ -71,10 +75,10 @@ Use this when you have three or more groups (e.g., three drug doses, four tissue
 |---|---|---|---|---|
 | Yes | Yes | Independent groups | One-way ANOVA | `anova(groups)` |
 | Yes | No | Independent groups | Welch's ANOVA | `anova(groups)` |
-| No | — | Independent groups | Kruskal-Wallis | `anova(groups)` |
-| Yes | — | Repeated measures | Repeated-measures ANOVA | `anova(groups)` |
-| No | — | Repeated measures | Friedman test | `anova(groups)` |
-| Yes | — | Two factors | Two-way ANOVA | `anova(groups)` |
+| No | — | Independent groups | Kruskal-Wallis | Not currently a builtin |
+| Yes | — | Repeated measures | Repeated-measures ANOVA | Not currently a builtin |
+| No | — | Repeated measures | Friedman test | Not currently a builtin |
+| Yes | — | Two factors | Two-way ANOVA | Use an explicitly specified regression model; `anova(groups)` is one-way only |
 
 ### Post-hoc Tests
 
@@ -118,12 +122,12 @@ Use this when both your variables are categorical (e.g., mutation status vs. dis
 
 | Design | Expected cell counts | Test | BioLang |
 |---|---|---|---|
-| 2x2 table, large samples | All expected >= 5 | Chi-square test | `chi_square(observed, expected)` |
+| 2x2 table, large samples | All expected >= 5 | Chi-square test of independence | Constructing expected contingency counts is not currently a dedicated builtin |
 | 2x2 table, small samples | Any expected < 5 | Fisher's exact test | `fisher_exact(a, b, c, d)` |
-| Larger than 2x2 | All expected >= 5 | Chi-square test | `chi_square(observed, expected)` |
-| Larger than 2x2, small samples | Any expected < 5 | Fisher-Freeman-Halton | `fisher_exact(a, b, c, d)` |
-| Paired categorical data | — | McNemar's test | `chi_square(observed, expected)` |
-| Trend across ordered categories | — | Cochran-Armitage trend test | `chi_square(observed, expected)` |
+| Larger than 2x2 | All expected >= 5 | Chi-square test of independence | Not currently a dedicated builtin; `chi_square()` accepts flat observed/expected lists for goodness-of-fit |
+| Larger than 2x2, small samples | Any expected < 5 | Fisher-Freeman-Halton | Not currently a builtin; `fisher_exact()` is 2x2 only |
+| Paired categorical data | — | McNemar's test | Not currently a builtin |
+| Trend across ordered categories | — | Cochran-Armitage trend test | Not currently a builtin |
 
 ### Measures of Association for Categorical Data
 
@@ -169,8 +173,8 @@ Use this when your outcome is the time until something happens (death, relapse, 
 | Question | Method | BioLang |
 |---|---|---|
 | Estimate survival curve | Kaplan-Meier | Sort event times, compute stepwise survival |
-| Compare survival between two groups | Log-rank test | `ttest(times_a, times_b)` as proxy |
-| Compare survival, multiple groups | Log-rank test | `anova([group1_times, group2_times, ...])` |
+| Compare survival between two groups | Log-rank test | `log_rank_test(times_a, events_a, times_b, events_b)` |
+| Compare survival, multiple groups | Multi-group log-rank test | Not currently a builtin |
 | Adjust for covariates | Cox proportional hazards | `cox_ph(time, event, covariates)` |
 | Estimate median survival | From sorted times | `sort(times)[len(times) / 2]` |
 
@@ -207,7 +211,7 @@ Use this whenever you perform more than one statistical test on the same dataset
 | Bonferroni | Family-wise error rate | Most conservative | `p_adjust(pvals, "bonferroni")` |
 | Holm | Family-wise error rate | Less conservative | `p_adjust(pvals, "holm")` |
 | Benjamini-Hochberg | False discovery rate | Moderate | `p_adjust(pvals, "BH")` |
-| Benjamini-Yekutieli | FDR under dependence | Conservative FDR | `p_adjust(pvals, "BY")` |
+| Benjamini-Yekutieli | FDR under dependence | Conservative FDR | Not currently a builtin |
 | Permutation | Empirical null | Gold standard | Inline loop with `shuffle()` |
 
 > **Key insight:** For genomics (testing thousands of genes), Benjamini-Hochberg FDR correction at q = 0.05 is the standard. Bonferroni is too conservative for genome-wide studies — it controls the family-wise error rate, which is the wrong quantity when you expect hundreds of true positives.
@@ -219,7 +223,7 @@ Use this whenever you perform more than one statistical test on the same dataset
 | Gene expression, treated vs. control | Welch's t-test | `ttest(treated, control)` |
 | Gene expression across 4 tissues | One-way ANOVA | `anova([tissue1, tissue2, tissue3, tissue4])` |
 | Mutation frequency in cases vs. controls | Fisher's exact test | `fisher_exact(a, b, c, d)` |
-| Survival by treatment arm | Compare survival times | `ttest(arm1_times, arm2_times)` |
+| Survival by treatment arm | Log-rank comparison with censoring | `log_rank_test(times_a, events_a, times_b, events_b)` |
 | 20,000 gene differential expression | t-test + BH correction | `p_adjust(pvals, "BH")` |
 | Sample clustering from RNA-seq | PCA + hierarchical clustering | `pca(data)` then `hclust(scores)` |
 | Correlation: expression vs. methylation | Spearman (often non-linear) | `spearman(expr, meth)` |

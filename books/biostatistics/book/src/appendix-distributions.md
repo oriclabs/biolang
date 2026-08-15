@@ -58,7 +58,7 @@ qlnorm(p, 0, 1)     # Value at cumulative probability p
 rlnorm(100, 0, 1)   # Generate 100 random values
 ```
 
-> **Key insight:** When your data is right-skewed and always positive, try log-transforming it. If the log-transformed values look normal, your original data is log-normal, and you should perform statistics on the log scale.
+> **Key insight:** Positive right-skew and multiplicative effects make a log scale worth previewing, not mandatory. A bell-shaped log histogram is only one clue; choose the analysis from the estimand, sampling process, dependence, variance, and residual behavior. For counts, a count model may be preferable to logging before inference.
 
 ### Student's t
 

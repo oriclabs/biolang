@@ -44,6 +44,7 @@ pub mod singlecell;
 pub mod sparse;
 pub mod statistics;
 pub mod stats;
+mod stats_explore;
 pub mod structure;
 pub mod table_ops;
 pub mod tempfiles;

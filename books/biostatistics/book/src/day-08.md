@@ -303,8 +303,8 @@ if var_ratio > 2.0 or var_ratio < 0.5 {
 }
 
 # 3. QQ plots for visual normality assessment
-qq_plot(tumor, {title: "QQ Plot: Tumor BRCA1 Expression"})
-qq_plot(normal, {title: "QQ Plot: Normal BRCA1 Expression"})
+normal_qq_plot(tumor, {title: "QQ Plot: Tumor BRCA1 Expression"})
+normal_qq_plot(normal, {title: "QQ Plot: Normal BRCA1 Expression"})
 ```
 
 ### Paired t-Test: Before/After Treatment
@@ -451,7 +451,7 @@ Hemoglobin levels (g/dL) in two groups:
 let anemia  = [9.2, 8.8, 10.1, 9.5, 8.3, 9.7, 8.6, 9.0, 10.3, 8.9]
 let healthy = [13.5, 14.2, 12.8, 13.9, 14.5, 13.1, 14.0, 13.6, 12.9, 14.3]
 
-# TODO: 1. Check normality with qq_plot() on each group
+# TODO: 1. Check normality with normal_qq_plot() on each group
 # TODO: 2. Check equal variances by comparing variance() per group
 # TODO: 3. Run the appropriate t-test with ttest()
 # TODO: 4. Compute Cohen's d inline: (mean(a)-mean(b)) / sqrt((variance(a)+variance(b))/2)
@@ -480,7 +480,7 @@ The following data are highly skewed (as often seen in cytokine measurements):
 let treatment = [2.1, 1.8, 45.2, 3.5, 2.9, 1.2, 38.7, 4.1, 2.3, 1.5]
 let control   = [0.8, 0.5, 0.9, 0.3, 1.1, 0.7, 0.4, 0.6, 1.0, 0.2]
 
-# TODO: Test normality with qq_plot()
+# TODO: Test normality with normal_qq_plot()
 # TODO: Run the t-test with ttest() anyway — what does it say?
 # TODO: Try log-transforming the data and re-testing
 # TODO: Preview: tomorrow we'll learn non-parametric alternatives

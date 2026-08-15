@@ -1,0 +1,31 @@
+import "statistics" as stat
+
+# One unusually high protein measurement. BioLang reports it as a review flag;
+# it does not remove it or silently choose a transformation.
+let protein = [12.1, 12.4, 12.8, 13.0, 13.2, 13.5, 29.0]
+
+let report = stat.explore(protein, {
+    name: "protein concentration"
+})
+
+println(stat.explain(report))
+println(stat.distribution_ascii(protein, {width: 48, height: 8}))
+
+# Add study-design information separately. Values alone cannot tell BioLang
+# what the experimental unit is.
+let guided = stat.guide(report, {
+    question: "describe baseline protein concentration",
+    experimental_unit: "patient"
+})
+
+println("\nDesign guidance")
+println(guided.guidance.design_note)
+
+println("\nPreprocessing clues")
+let prep = stat.preprocessing(protein, {data_type: "continuous"})
+println(stat.explain(prep))
+
+# In a notebook, leave this expression last to display the annotated SVG.
+stat.distribution_plot(protein, {
+    title: "Protein concentration: centre, spread, and review flags"
+})

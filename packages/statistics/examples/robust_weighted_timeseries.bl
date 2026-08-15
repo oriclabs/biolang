@@ -1,0 +1,45 @@
+import "statistics" as stat
+
+# One table can contain model predictors and a grouping identifier. The
+# identifier is excluded from the fit and used to keep subjects together.
+let predictors = table({
+    subject: ["p1", "p1", "p2", "p2", "p3", "p3", "p4", "p4", "p5", "p5", "p6", "p6"],
+    dose: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+})
+let response = [4.5, 6.0, 7.6, 9.1, 10.7, 12.2, 13.8, 15.3, 16.9, 18.4, 20.0, 35.0]
+
+let ordinary = stat.multiple_linear_diagnostics(predictors, response, {
+    validation_group_column: "subject",
+    validation_folds: 3
+})
+let sensitivity = stat.robust_linear_diagnostics(predictors, response, {
+    exclude_columns: ["subject"]
+})
+
+println("Validation: " + ordinary.validation_method)
+println("Groups: " + str(ordinary.validation_groups))
+println("Rows given less influence by Huber fit: " + str(sensitivity.downweighted_rows))
+
+let weighted = stat.weighted_summary(
+    [10, 12, 14, 20],
+    [1, 1, 1, 6],
+    {weight_kind: "probability"}
+)
+println("Weighted mean: " + str(weighted.weighted_mean))
+println("Effective sample size: " + str(weighted.effective_sample_size))
+
+let temporal = stat.time_series_diagnostics(
+    [5.0, 5.4, 5.8, 6.1, 6.5, 6.9, 7.2, 7.8, 8.0, 8.5, 8.8, 9.2],
+    {max_lag: 4}
+)
+println("Order correlation: " + str(temporal.order_correlation))
+println("Ljung-Box p-value: " + str(temporal.ljung_box_p_value))
+println(temporal.ascii)
+
+let clustered = stat.cluster_diagnostics(
+    response,
+    ["p1", "p1", "p2", "p2", "p3", "p3", "p4", "p4", "p5", "p5", "p6", "p6"]
+)
+println("Within-subject ICC clue: " + str(clustered.intraclass_correlation))
+println("Approximate independent-information N: " + str(clustered.approximate_effective_sample_size))
+println(clustered.ascii)

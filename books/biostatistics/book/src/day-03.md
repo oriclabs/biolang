@@ -111,7 +111,7 @@ The normal distribution is a good model for:
 
 The normal distribution is a terrible model for:
 - Raw gene expression (FPKM, TPM, counts) — heavily right-skewed
-- Read counts — discrete, non-negative, often zero-inflated
+- Read counts — discrete and non-negative; their variance and zero frequency often exceed a simple Poisson model
 - Allele frequencies — bounded between 0 and 1
 - Survival times — always positive, typically right-skewed
 - Any data with a hard boundary (concentrations cannot be negative)
@@ -137,9 +137,15 @@ Gene regulation is a cascade of multiplicative processes. A transcription factor
 
 This is a mathematical fact: if X = Y&#x2081; &times; Y&#x2082; &times; ... &times; Y&#x2099; and the Y values are independent, then log(X) = log(Y&#x2081;) + log(Y&#x2082;) + ... + log(Y&#x2099;). Sums of independent variables tend toward normal (by the Central Limit Theorem), so log(X) is approximately normal, meaning X is log-normal.
 
-### The Log-Transform Trick
+### Logarithms: Change the Question Deliberately
 
-This is why bioinformaticians routinely log-transform expression data before analysis:
+Logarithms turn ratios into differences and compress large positive values. That
+can be useful, but it changes the estimand: the arithmetic mean of logged values
+describes a geometric centre after back-transformation, not the arithmetic mean
+on the original scale.
+
+Bioinformaticians often use a log-like transform for visualization and
+distance-based exploration of positive abundance data:
 
 ```bio
 set_seed(42)
@@ -159,9 +165,72 @@ let log_stats = summary(log2_expr)
 print(f"Log2 — Mean: {log_stats.mean:.1}, Median: {log_stats.median:.1}, Skew: {log_stats.skewness:.2}")
 ```
 
-After log-transformation, the mean and median converge, skewness drops toward zero, and the histogram looks bell-shaped. Now parametric tests are appropriate.
+In this simulated example, the mean and median move closer and skewness falls.
+That makes patterns easier to display, but it does **not** prove that a t-test or
+linear model is appropriate. Check residuals, independence, variance, sampling,
+and the scientific meaning of effects. Count models such as negative-binomial
+regression usually operate on raw counts with an exposure or library-size
+offset; logging counts first would change that model.
 
-> **Clinical relevance:** Differential expression tools like DESeq2 and edgeR work with counts and model them with the negative binomial distribution, but many downstream analyses (clustering, PCA, visualization) require log-transformed data. Understanding why is essential for correct analysis.
+<div style="text-align: center; margin: 2em 0;">
+<svg width="700" height="270" viewBox="0 0 700 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Linear and log base two axes" style="max-width: 100%; background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="350" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#1e293b">A log scale changes distance from differences to ratios</text>
+  <text x="45" y="66" font-size="13" font-weight="bold" fill="#1e40af">Linear axis</text>
+  <line x1="90" y1="94" x2="620" y2="94" stroke="#64748b" stroke-width="2"/>
+  <circle cx="150" cy="94" r="6" fill="#2563eb"/><circle cx="215" cy="94" r="6" fill="#2563eb"/><circle cx="345" cy="94" r="6" fill="#2563eb"/><circle cx="605" cy="94" r="6" fill="#2563eb"/>
+  <text x="150" y="118" text-anchor="middle" font-size="12" fill="#334155">1</text><text x="215" y="118" text-anchor="middle" font-size="12" fill="#334155">2</text><text x="345" y="118" text-anchor="middle" font-size="12" fill="#334155">4</text><text x="605" y="118" text-anchor="middle" font-size="12" fill="#334155">8</text>
+  <text x="350" y="140" text-anchor="middle" font-size="11" fill="#6b7280">Equal physical gaps mean equal differences: +1, +2, +4 grow.</text>
+  <text x="45" y="174" font-size="13" font-weight="bold" fill="#6b21a8">log2 axis</text>
+  <line x1="90" y1="202" x2="620" y2="202" stroke="#64748b" stroke-width="2"/>
+  <circle cx="150" cy="202" r="6" fill="#7c3aed"/><circle cx="300" cy="202" r="6" fill="#7c3aed"/><circle cx="450" cy="202" r="6" fill="#7c3aed"/><circle cx="600" cy="202" r="6" fill="#7c3aed"/>
+  <text x="150" y="226" text-anchor="middle" font-size="12" fill="#334155">1</text><text x="300" y="226" text-anchor="middle" font-size="12" fill="#334155">2</text><text x="450" y="226" text-anchor="middle" font-size="12" fill="#334155">4</text><text x="600" y="226" text-anchor="middle" font-size="12" fill="#334155">8</text>
+  <text x="375" y="252" text-anchor="middle" font-size="11" fill="#6b7280">Equal physical gaps mean equal ratios: every step is &times;2.</text>
+</svg>
+</div>
+
+#### When a log scale is a sensible candidate
+
+- Values are positive and ratios or fold changes are scientifically meaningful.
+- A fixed percentage change matters more than a fixed unit change.
+- Spread grows with the level, suggesting multiplicative rather than additive noise.
+- A few large positive values obscure the rest of a visualization.
+- Effects are naturally interpreted as doubling, halving, or percentage change.
+
+#### When not to apply a log mechanically
+
+- Raw counts are being analyzed with a Poisson or negative-binomial count model.
+- Values are negative, unless a scientifically justified different transform is used.
+- Zeros are meaningful: adding 1 is a modelling choice whose impact is largest near zero.
+- The variable is already logarithmic, such as pH, decibels, Phred quality, or log fold change.
+- Values are proportions bounded by 0 and 1; a binomial/beta model or logit may match the question better.
+- The outcome is censored survival time; logging does not account for censoring.
+- The apparent skew is caused by mixed cell types, batches, or subgroups that should be modelled rather than compressed away.
+
+#### `log`, `log1p`, `log2`, or `log10`?
+
+| Transform | Domain | Interpretation |
+|---|---|---|
+| `log(x)` | `x > 0` | Natural log; convenient for models and calculus |
+| `log1p(x)` | `x > -1` | Computes `log(1+x)` accurately; keeps zero at zero but introduces a pseudocount scale |
+| `log2(x)` | `x > 0` | One unit means a doubling; useful for fold changes |
+| `log10(x)` | `x > 0` | One unit means ten-fold; useful for orders of magnitude |
+
+Changing the log base rescales the axis but does not create new information.
+The important decisions are whether a log scale matches the scientific process,
+how zeros are handled, and which scale the final effect is reported on.
+
+Preview rather than guessing:
+
+```bio
+import "statistics" as stat
+
+let preview = stat.preview_transform(expression, "log1p")
+println("Raw skewness: " + str(preview.before.skewness))
+println("Log1p skewness: " + str(preview.after.skewness))
+println("Zeros before/after: " + str(preview.zeros_before) + "/" + str(preview.zeros_after))
+```
+
+> **Clinical relevance:** Differential-expression count models use raw counts with a count likelihood and normalization/offset terms. Downstream PCA, clustering, and visualization often use a variance-stabilizing or log-like representation. Keep those two roles separate and record which data layer each step used.
 
 ## The Poisson Distribution
 
@@ -326,15 +395,15 @@ A Q-Q (quantile-quantile) plot compares your data's quantiles against the theore
 set_seed(42)
 # Q-Q plot for normal data (should be a straight line)
 let normal_data = rnorm(500, 0, 1)
-qq_plot(normal_data, {title: "Q-Q Plot: Normal Data"})
+normal_qq_plot(normal_data, {title: "Q-Q Plot: Normal Data"})
 
 # Q-Q plot for log-normal data (curved — not normal!)
 let lognormal_data = normal_data |> map(|x| exp(x))
-qq_plot(lognormal_data, {title: "Q-Q Plot: Log-Normal Data (Raw)"})
+normal_qq_plot(lognormal_data, {title: "Q-Q Plot: Log-Normal Data (Raw)"})
 
 # Q-Q plot after log-transform (straight again)
 let transformed = lognormal_data |> map(|x| log(x))
-qq_plot(transformed, {title: "Q-Q Plot: Log-Normal Data (After Log Transform)"})
+normal_qq_plot(transformed, {title: "Q-Q Plot: Log-Normal Data (After Log Transform)"})
 ```
 
 **Reading a Q-Q plot:**
@@ -430,13 +499,13 @@ let normal_data = rnorm(200, 50, 10)
 let skewed_data = rnorm(200, 3, 1) |> map(|x| exp(x))
 
 # For normal data: Q-Q plot should show points on the diagonal
-qq_plot(normal_data, {title: "Q-Q: Normal Data"})
+normal_qq_plot(normal_data, {title: "Q-Q: Normal Data"})
 let stats_normal = summary(normal_data)
 print(f"Normal data — Skewness: {stats_normal.skewness:.4}")
 # Skewness near 0: consistent with normality
 
 # For skewed data: Q-Q plot will curve away from the diagonal
-qq_plot(skewed_data, {title: "Q-Q: Skewed Data"})
+normal_qq_plot(skewed_data, {title: "Q-Q: Skewed Data"})
 let stats_skewed = summary(skewed_data)
 print(f"Skewed data — Skewness: {stats_skewed.skewness:.4}")
 # High skewness: definitely not normal
@@ -556,7 +625,7 @@ let log_vals = rnorm(2000, 2.0, 1.5)
 let dataset_c = log_vals |> map(|x| 10.0 ** x)
 
 # TODO: For each dataset, create a histogram and Q-Q plot
-# TODO: Check normality visually with qq_plot() and histogram()
+# TODO: Check normality visually with normal_qq_plot() and histogram()
 # TODO: For dataset C, try log-transforming and re-check
 # TODO: State which distribution best describes each and why
 ```
@@ -589,10 +658,10 @@ set_seed(42)
 let protein_abundance = rnorm(300, 4, 1.2) |> map(|x| exp(x))
 
 # TODO: Plot histogram of raw data
-# TODO: Check normality with qq_plot() — is it normal?
+# TODO: Check normality with normal_qq_plot() — is it normal?
 # TODO: Apply log transform
 # TODO: Plot histogram of transformed data
-# TODO: Check normality of transformed data with qq_plot()
+# TODO: Check normality of transformed data with normal_qq_plot()
 # TODO: Compare skewness before and after
 ```
 
@@ -616,7 +685,7 @@ let mystery = rbinom(1000, 50, 0.15)
 
 - A **distribution** is the theoretical shape describing how likely each value is. Every dataset has one, and every statistical test assumes one.
 - The **normal distribution** arises from additive effects and is defined by mean and standard deviation. It is appropriate for measurement error and many physiological traits.
-- **Gene expression is NOT normal** — it is log-normal because gene regulation is multiplicative. Always log-transform before using parametric tests.
+- **Expression has no single universal distribution** — raw counts, normalized abundance, transformed values, genes, and samples answer different questions. Choose a count model or transformation from the measurement process and inspect model residuals.
 - The **Poisson distribution** models count data (reads, mutations) with the key property that mean equals variance. When variance exceeds the mean (overdispersion), use the negative binomial instead.
 - The **binomial distribution** models fixed trials with a success probability — relevant for genotype frequencies and allele sampling.
 - **Q-Q plots** are the most informative visual diagnostic for distribution checking. The **Shapiro-Wilk test** provides a formal hypothesis test for normality.

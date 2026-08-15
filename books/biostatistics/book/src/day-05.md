@@ -254,7 +254,7 @@ histogram(means_n100, {bins: 50, title: "Sample Means, n=100"})
 print(f"n=100 skewness: {skewness(means_n100):.2}")
 
 # Verify normality visually with Q-Q plot
-qq_plot(means_n100, {title: "Q-Q Plot: Sample Means n=100"})
+normal_qq_plot(means_n100, {title: "Q-Q Plot: Sample Means n=100"})
 ```
 
 Watch the skewness drop toward zero as n increases. By n=100, the sampling distribution is indistinguishable from a normal curve, even though the underlying data is wildly skewed.
