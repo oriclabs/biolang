@@ -191,3 +191,72 @@ json <- sprintf(
 
 dir.create("packages/statistics/validation/results", recursive = TRUE, showWarnings = FALSE)
 writeLines(json, "packages/statistics/validation/results/r-reference.json", useBytes = TRUE)
+
+# Real-data fixtures are exported from datasets distributed with R/recommended
+# packages. They are generated oracle inputs, not vendored project data.
+air <- na.omit(airquality[, c("Ozone", "Month")])
+names(air) <- c("ozone", "month")
+month_sizes <- table(air$month)
+air$analysis_weight <- 1 / as.numeric(month_sizes[as.character(air$month)])
+write.csv(air, "packages/statistics/validation/results/airquality.csv", row.names = FALSE)
+
+nile <- data.frame(flow = as.numeric(Nile))
+write.csv(nile, "packages/statistics/validation/results/nile.csv", row.names = FALSE)
+
+chick <- subset(ChickWeight, Diet == 1, select = c(weight, Time, Chick))
+chick$Chick <- as.character(chick$Chick)
+names(chick) <- c("weight", "time", "chick")
+write.csv(chick, "packages/statistics/validation/results/chickweight.csv", row.names = FALSE)
+
+lung <- survival::lung[, c("time", "status", "age", "sex")]
+lung$event <- as.integer(lung$status == 2)
+lung$status <- NULL
+write.csv(lung, "packages/statistics/validation/results/lung.csv", row.names = FALSE)
+
+air_skew <- adjusted_skewness(air$ozone)
+air_log_skew <- adjusted_skewness(log(air$ozone))
+air_weight_sum <- sum(air$analysis_weight)
+air_weight_sq_sum <- sum(air$analysis_weight^2)
+air_weighted_mean <- sum(air$ozone * air$analysis_weight) / air_weight_sum
+air_weighted_variance <- sum(air$analysis_weight * (air$ozone - air_weighted_mean)^2) /
+  (air_weight_sum - air_weight_sq_sum / air_weight_sum)
+air_effective_n <- air_weight_sum^2 / air_weight_sq_sum
+
+nile_acf <- as.numeric(acf(nile$flow, plot = FALSE, lag.max = 3)$acf)[2:4]
+nile_ljung <- Box.test(nile$flow, lag = 3, type = "Ljung-Box")
+nile_trend <- unname(coef(lm(flow ~ seq_along(flow), data = nile))[[2]])
+
+chick_ids <- chick$chick
+chick_sizes <- as.numeric(table(chick_ids))
+chick_means <- tapply(chick$weight, chick_ids, mean)
+chick_grand_mean <- mean(chick$weight)
+chick_between_ss <- sum(chick_sizes * (chick_means - chick_grand_mean)^2)
+chick_within_ss <- sum((chick$weight - chick_means[chick_ids])^2)
+chick_between_ms <- chick_between_ss / (length(chick_sizes) - 1)
+chick_within_ms <- chick_within_ss / (length(chick$weight) - length(chick_sizes))
+chick_effective_size <- (length(chick$weight) - sum(chick_sizes^2) / length(chick$weight)) /
+  (length(chick_sizes) - 1)
+chick_icc <- (chick_between_ms - chick_within_ms) /
+  (chick_between_ms + (chick_effective_size - 1) * chick_within_ms)
+
+lung_km <- survival::survfit(survival::Surv(time, event) ~ 1, data = lung)
+lung_final_survival <- tail(lung_km$surv, 1)
+
+real_json <- sprintf(
+  paste0(
+    '{',
+    '"airquality":{"observations":%d,"mean":%.17g,"median":%.17g,"sd":%.17g,"skewness":%.17g,"log_skewness":%.17g,"weighted_mean":%.17g,"weighted_variance":%.17g,"effective_n":%.17g},',
+    '"nile":{"observations":%d,"acf1":%.17g,"acf2":%.17g,"acf3":%.17g,"ljung_box_q":%.17g,"ljung_box_p":%.17g,"trend":%.17g},',
+    '"chickweight":{"observations":%d,"clusters":%d,"between_ms":%.17g,"within_ms":%.17g,"effective_size":%.17g,"icc":%.17g},',
+    '"lung":{"observations":%d,"events":%d,"final_survival":%.17g}',
+    '}'
+  ),
+  nrow(air), mean(air$ozone), median(air$ozone), sd(air$ozone), air_skew,
+  air_log_skew, air_weighted_mean, air_weighted_variance, air_effective_n,
+  nrow(nile), nile_acf[[1]], nile_acf[[2]], nile_acf[[3]],
+  unname(nile_ljung$statistic), nile_ljung$p.value, nile_trend,
+  nrow(chick), length(unique(chick_ids)), chick_between_ms, chick_within_ms,
+  chick_effective_size, chick_icc,
+  nrow(lung), sum(lung$event), lung_final_survival
+)
+writeLines(real_json, "packages/statistics/validation/results/r-real-reference.json", useBytes = TRUE)

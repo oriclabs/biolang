@@ -295,3 +295,17 @@ fn test_means_are_paired_with_spread_and_not_automatically_selected() {
     assert len(choices.centre_spread_pairs) == 7
     assert choices.automatic_choice == false
 }
+
+fn test_exploration_and_decision_map_connect_question_scale_and_uncertainty() {
+    let report = stat.explore([1, 2, 4, 8, 32])
+    assert report.centre_spread_guidance.automatic_choice == false
+    assert contains(report.visual_guide.ascii, "Variance = SD x SD")
+    assert starts_with(report.visual_guide.svg, "<svg")
+    assert contains(report.visual_guide.scale_clue, "log preview")
+
+    let map = stat.decision_map()
+    assert len(map.paths) == 6
+    assert contains(map.ascii, "CENTRE")
+    assert starts_with(map.svg, "<svg")
+    assert map.automatic_choice == false
+}

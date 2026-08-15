@@ -35,6 +35,14 @@ scale-sensitive differences, tolerances, and the final result in
 Arithmetic, geometric, harmonic, trimmed, and root-mean-square calculations
 used by `stat.means()` are also compared with independent R expressions.
 
+The same run generates and checks four real-data fixtures from R-distributed
+datasets: non-missing `airquality` ozone observations (including equal-month
+analysis weights and a log-scale preview), the ordered `Nile` flow series,
+repeated measurements from the Diet 1 arm of `ChickWeight`, and censored
+follow-up from `survival::lung`. The CSV files and both implementations'
+outputs remain under the ignored `validation/results/` directory. They are
+oracle inputs, not bundled runtime dependencies or project datasets.
+
 Scalar arithmetic uses a `1e-12` relative gate. Normal-Q-Q correlation uses a
 `1e-9` gate because R and BioLang deliberately use independent inverse-normal
 quantile approximations; integer flag counts must match exactly.

@@ -13,7 +13,7 @@ Dr. Sarah Chen stares at her screen. The Illumina NovaSeq 6000 finished its run 
 
 She cannot read 10,247 numbers. She cannot scroll through them and develop an intuition. She has five minutes before the meeting starts. What she needs is a way to compress 10,247 numbers into a handful of meaningful summaries that answer three questions: What is the typical quality? How much does it vary? Are there any red flags?
 
-This is the job of descriptive statistics. They are the first thing you compute, every time, before you run a single test. Get them wrong — or skip them — and everything downstream is built on sand.
+This is the job of descriptive statistics. They are a useful early step before modelling, alongside checks of units, missingness, study design, and the experimental unit. A single summary cannot certify that a dataset is usable.
 
 ## What Are Descriptive Statistics?
 
@@ -30,9 +30,9 @@ There are three things you need to know about any dataset:
 
 **Spread tells you how much you can trust the center.** Two experiments might both report a mean IC50 of 12 nM, but one has values ranging from 11 to 13 (tight, reproducible) while the other ranges from 2 to 45 (noisy, unreliable). The center is the same — the spread tells you completely different stories. High spread means your next measurement could land anywhere; low spread means you can make confident predictions. In RNA-seq, high within-group variance buries real differential expression in noise.
 
-**Shape tells you which statistical tools are safe to use.** Almost every standard statistical test (t-test, ANOVA, linear regression) assumes the data is approximately bell-shaped (normally distributed). If your data is heavily right-skewed — which gene expression nearly always is — those tests give wrong answers. Shape also reveals hidden structure: a bimodal distribution might mean you have two distinct populations mixed together (e.g., responders and non-responders to a drug). Ignoring shape is the single most common reason published biomedical results fail to replicate.
+**Shape gives modelling clues.** Many models make assumptions about errors, residuals, conditional outcomes, or sampling processes—not simply about the raw measurements. A right-skewed outcome can suggest a log-scale preview, a count model, or a robust summary, but the scientific estimand and design decide which is appropriate. Bimodality can be a clue to mixtures, batch effects, censoring, or subgroups; it is not by itself proof of two biological populations.
 
-> **Key insight:** Center without spread is meaningless ("the average temperature is 72°F" tells you nothing if the range is -20 to 160). Spread without shape is dangerous (a standard deviation assumes symmetry, but skewed data violates this). You always need all three.
+> **Key insight:** Report centre with a compatible spread, retain a view of the full distribution, and state the measurement scale. Standard deviation is defined for skewed data, but it can be a poor description of a *typical* distance when the mean and tails dominate; median with IQR or MAD is often a useful companion.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="280" viewBox="0 0 680 280" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -366,74 +366,54 @@ Let us return to Dr. Chen's problem. She has 10,247 quality scores and five minu
 ### Loading and Summarizing Data
 
 ```bio
+import "statistics" as stat
+
 set_seed(42)
 # Simulate sequencing quality scores (Phred scale, typically 0-40)
 let quality_scores = rnorm(10247, 32.5, 3.8)
 
-# One-line comprehensive summary
-let stats = summary(quality_scores)
-print(stats)
-# Output:
-#   n:        10247
-#   mean:     32.48
-#   median:   32.51
-#   sd:       3.81
-#   min:      17.23
-#   max:      47.12
-#   q1:       29.93
-#   q3:       35.07
-#   iqr:      5.14
-#   skewness: -0.01
-#   kurtosis: 2.99
+# Values are calculated when this block runs; none are pasted in advance.
+let report = stat.explore(quality_scores, {
+    name: "tile quality",
+    data_type: "Phred scores"
+})
+println(report.explanation)
+println(report.visual_guide.ascii)
 ```
 
-That single call answers Dr. Chen's three questions immediately. Mean quality is 32.5 (good — above the Phred 30 threshold). The SD is 3.8 (moderate spread). Skewness is near zero (symmetric). No red flags. The run is usable.
+That call calculates the observed centre, spread, shape, missing-value counts, and review flags. It does **not** decide whether the run is usable: Dr. Chen must compare the observed distribution with the instrument's QC specification and inspect per-cycle, per-tile, and library-level evidence.
 
 ### Computing Individual Statistics
 
 ```bio
-# Individual measures of center
-let avg = mean(quality_scores)       # 32.48
-let med = median(quality_scores)     # 32.51
-let mod = mode(quality_scores)       # 32 (rounded to nearest integer)
+# Individual measures of centre
+let avg = mean(quality_scores)
+let med = median(quality_scores)
 
 # Individual measures of spread
-let sd = stdev(quality_scores)       # 3.81
-let v = variance(quality_scores)     # 14.52
-let r = range_stat(quality_scores)   # [17.23, 47.12]
-let q = quantile(quality_scores, [0.25, 0.5, 0.75])  # [29.93, 32.51, 35.07]
-let i = iqr(quality_scores)          # 5.14
-
-# Shape
-let sk = skewness(quality_scores)    # -0.01
-let ku = kurtosis(quality_scores)    # 2.99
+let sd = stdev(quality_scores)
+let v = variance(quality_scores)
+let q1 = report.summary.q1
+let q3 = report.summary.q3
+let i = report.summary.iqr
 
 print(f"Mean: {avg}, Median: {med}")
 print(f"SD: {sd}, IQR: {i}")
-print(f"Skewness: {sk}, Kurtosis: {ku}")
+print(f"Q1: {q1}, Q3: {q3}, Skewness: {report.summary.skewness}")
 ```
+
+An exact numeric mode is usually unhelpful for continuous measurements because
+nearby values need not repeat. If a peak matters scientifically, show the
+distribution and state the binning or density method used to identify it.
 
 ### The `summary()` Function
 
 For a more detailed report:
 
 ```bio
-let report = summary(quality_scores)
-print(report)
-# Output:
-#   Variable:    quality_scores
-#   Count:       10247
-#   Mean:        32.48
-#   Std Dev:     3.81
-#   Min:         17.23
-#   25%:         29.93
-#   50%:         32.51
-#   75%:         35.07
-#   Max:         47.12
-#   Skewness:    -0.01
-#   Kurtosis:    2.99
-#   CV:          11.73%
-#   SE(mean):    0.038
+let choices = stat.means(quality_scores)
+println(choices.quick_explanation)
+println(choices.centre_spread_pairs)
 ```
 
 ### Working with Real Sequencing Data
@@ -732,7 +712,7 @@ let samples = {
 ## Key Takeaways
 
 - Descriptive statistics compress large datasets into interpretable summaries of center, spread, and shape.
-- The **mean** is efficient but outlier-sensitive; the **median** is robust. For skewed biological data, prefer the median.
+- The **mean** is efficient for an additive expectation but sensitive to extremes; the **median** is robust and describes a ranked halfway point. For skewed data, report the pair that matches the estimand and often show both.
 - **Standard deviation** measures absolute spread; **IQR** is robust to outliers; **CV** enables comparison across different scales.
 - **Skewness** and **kurtosis** reveal whether your data's shape matches the assumptions of common statistical tests.
 - **Always visualize** your data with histograms and box plots before computing any test. Summary statistics can hide multimodal distributions, outliers, and other structural features.

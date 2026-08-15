@@ -49,6 +49,7 @@ pub(crate) fn call(name: &str, args: Vec<Value>) -> Result<Value> {
         "stats_time_series_diagnostics" => time_series_diagnostics(args),
         "stats_cluster_diagnostics" => cluster_diagnostics(args),
         "stats_means" => means_guide(args),
+        "stats_decision_map" => decision_map(args),
         _ => Err(BioLangError::runtime(
             ErrorKind::NameError,
             format!("unknown exploratory statistics builtin '{name}'"),
@@ -795,6 +796,11 @@ fn numeric_report(data: NumericData, variable: &str, data_type: &str) -> Value {
     }
 
     let preprocessing = preprocessing_record(&data, &summary, data_type);
+    let centre_spread_guidance = means_guide(vec![list(
+        data.values.iter().copied().map(Value::Float).collect(),
+    )])
+    .expect("a validated numeric vector always produces centre/spread guidance");
+    let visual_guide = centre_spread_visual(&data, &summary, center_name, spread_name);
     let preprocessing_issue_count = match &preprocessing {
         Value::Record(record) => match record.get("issues") {
             Some(Value::List(items)) => items.len(),
@@ -934,6 +940,8 @@ fn numeric_report(data: NumericData, variable: &str, data_type: &str) -> Value {
             ]),
         ),
         ("transformations", list(transformations)),
+        ("centre_spread_guidance", centre_spread_guidance),
+        ("visual_guide", visual_guide),
         ("preprocessing", preprocessing),
         ("quick_explanation", text(quick)),
         ("explanation", text(explanation)),
@@ -946,6 +954,82 @@ fn numeric_report(data: NumericData, variable: &str, data_type: &str) -> Value {
                 "Use stats_shape() for bin-width-sensitive multiple-peak evidence; it does not diagnose biological populations.",
             ]),
         ),
+    ])
+}
+
+fn centre_spread_visual(
+    data: &NumericData,
+    summary: &NumericSummary,
+    center_name: &str,
+    spread_name: &str,
+) -> Value {
+    let range = (summary.max - summary.min).abs();
+    let position = |value: f64| {
+        if range <= f64::EPSILON {
+            50.0
+        } else {
+            (5.0 + 90.0 * (value - summary.min) / range).clamp(5.0, 95.0)
+        }
+    };
+    let mean_x = position(summary.mean);
+    let median_x = position(summary.median);
+    let q1_x = position(summary.q1);
+    let q3_x = position(summary.q3);
+    let sd_low_x = position(summary.mean - summary.sd);
+    let sd_high_x = position(summary.mean + summary.sd);
+    let raw_skew = summary.skewness;
+    let log_summary = if summary.min > 0.0 {
+        let logged = data
+            .values
+            .iter()
+            .map(|value| value.ln())
+            .collect::<Vec<_>>();
+        Some(summarize(&NumericData {
+            original_indices: (0..logged.len()).collect(),
+            total: logged.len(),
+            missing: 0,
+            non_finite: 0,
+            values: logged,
+        }))
+    } else {
+        None
+    };
+    let scale_clue = match (&log_summary, raw_skew) {
+        (Some(logged), Some(raw)) if raw.abs() >= 0.75 => format!(
+            "A log preview is eligible because values are positive. Raw skewness {}; log skewness {}. Use it only for a ratio or multiplicative question.",
+            fmt_number(raw),
+            logged
+                .skewness
+                .map(fmt_number)
+                .unwrap_or_else(|| "not assessed".into())
+        ),
+        (Some(_), _) => "Values are positive, so a log preview is possible, but shape alone is not a reason to transform them.".into(),
+        (None, _) => "A plain log transform is not defined for these observed values because at least one value is zero or negative.".into(),
+    };
+    let ascii = format!(
+        "CENTRE + SPREAD + SCALE\n\nrange     {}  |------------------------------|  {}\nIQR                 Q1 ===== median ===== Q3\nmean/SD          mean-SD <---- mean ----> mean+SD\n\nSuggested descriptive pair: {center_name} + {spread_name}\nSD is a typical distance from the mean. Variance = SD x SD; it is not a second or whole width.\n{scale_clue}\nUncertainty is separate: use an interval/SE that respects the sampling design.",
+        fmt_number(summary.min),
+        fmt_number(summary.max),
+    );
+    let svg = format!(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="cst csd"><title id="cst">Centre, spread, and scale guide</title><desc id="csd">The mean with one standard deviation and the median with the interquartile range on the observed scale.</desc><style>.t{{font:14px system-ui;fill:#172033}}.s{{font:12px system-ui;fill:#455468}}.axis{{stroke:#64748b;stroke-width:2}}.iqr{{stroke:#0f766e;stroke-width:12;stroke-linecap:round}}.sd{{stroke:#2563eb;stroke-width:5;stroke-linecap:round}}.mark{{stroke:#172033;stroke-width:2}}</style><text class="t" x="20" y="26">Centre + spread on the observed scale</text><line class="axis" x1="38" y1="80" x2="722" y2="80"/><line class="sd" x1="{sd_low}" y1="72" x2="{sd_high}" y2="72"/><line class="mark" x1="{mean}" y1="58" x2="{mean}" y2="88"/><text class="s" x="{mean}" y="52" text-anchor="middle">mean</text><text class="s" x="38" y="102">mean - SD</text><text class="s" x="722" y="102" text-anchor="end">mean + SD</text><line class="iqr" x1="{q1}" y1="140" x2="{q3}" y2="140"/><line class="mark" x1="{median}" y1="124" x2="{median}" y2="156"/><text class="s" x="{q1}" y="166" text-anchor="middle">Q1</text><text class="s" x="{median}" y="118" text-anchor="middle">median</text><text class="s" x="{q3}" y="166" text-anchor="middle">Q3</text><text class="s" x="20" y="202">SD: distance around the mean. Variance = SD². IQR: width of the middle 50%.</text></svg>"#,
+        sd_low = 38.0 + sd_low_x / 100.0 * 684.0,
+        sd_high = 38.0 + sd_high_x / 100.0 * 684.0,
+        mean = 38.0 + mean_x / 100.0 * 684.0,
+        q1 = 38.0 + q1_x / 100.0 * 684.0,
+        median = 38.0 + median_x / 100.0 * 684.0,
+        q3 = 38.0 + q3_x / 100.0 * 684.0,
+    );
+    record([
+        ("ascii", text(ascii)),
+        ("svg", text(svg)),
+        ("scale_clue", text(scale_clue)),
+        ("raw_skewness", number(raw_skew)),
+        (
+            "log_skewness",
+            number(log_summary.as_ref().and_then(|value| value.skewness)),
+        ),
+        ("automatic_choice", Value::Bool(false)),
     ])
 }
 
@@ -5989,6 +6073,99 @@ fn dataset_report(args: Vec<Value>) -> Result<Value> {
         .and_then(Value::as_int)
         .unwrap_or(10)
         .clamp(0, 50) as usize;
+    let max_guidance_columns = opts
+        .get("report_numeric_columns")
+        .and_then(Value::as_int)
+        .unwrap_or(12)
+        .clamp(0, 50) as usize;
+    let mut centre_scale_guidance = Vec::new();
+    let mut centre_scale_rows = Vec::new();
+    for (column_index, column) in table.columns.iter().enumerate() {
+        if centre_scale_rows.len() >= max_guidance_columns {
+            break;
+        }
+        let values = list(
+            table
+                .rows
+                .iter()
+                .map(|row| row.get(column_index).cloned().unwrap_or(Value::Nil))
+                .collect(),
+        );
+        let Ok(data) = numeric_data(&values, "stats_report") else {
+            continue;
+        };
+        if data.values.len() < 2 {
+            continue;
+        }
+        let summary = summarize(&data);
+        let robust = summary.skewness.is_some_and(|value| value.abs() >= 0.5)
+            || !summary.outlier_positions.is_empty();
+        let centre = if robust { "median" } else { "mean" };
+        let spread = if robust { "IQR" } else { "standard deviation" };
+        let scale = if summary.min > 0.0 && summary.skewness.is_some_and(|value| value >= 0.75) {
+            "preview log only for a ratio/multiplicative question"
+        } else {
+            "retain original scale unless the estimand requires another scale"
+        };
+        let uncertainty = if robust {
+            "quantile/bootstrap interval using the sampling unit"
+        } else {
+            "design-aware mean SE/confidence interval"
+        };
+        centre_scale_rows.push((
+            column.to_string(),
+            centre.to_string(),
+            spread.to_string(),
+            scale.to_string(),
+            uncertainty.to_string(),
+        ));
+        centre_scale_guidance.push(record([
+            ("column", text(column.to_string())),
+            ("centre", text(centre)),
+            ("spread", text(spread)),
+            ("scale", text(scale)),
+            ("uncertainty", text(uncertainty)),
+            ("raw_skewness", number(summary.skewness)),
+            ("heuristic", Value::Bool(true)),
+            ("automatic_choice", Value::Bool(false)),
+        ]));
+    }
+    let centre_markdown = if centre_scale_rows.is_empty() {
+        "No eligible numeric columns were found.".into()
+    } else {
+        let rows = centre_scale_rows
+            .iter()
+            .map(|(column, centre, spread, scale, uncertainty)| {
+                format!("| {column} | {centre} | {spread} | {scale} | {uncertainty} |")
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        format!(
+            "| Column | Centre clue | Matching spread | Scale clue | Uncertainty |\n|---|---|---|---|---|\n{rows}\n\nThese are descriptive clues, not automatic analysis choices."
+        )
+    };
+    let centre_html = if centre_scale_rows.is_empty() {
+        "<p>No eligible numeric columns were found.</p>".into()
+    } else {
+        let rows = centre_scale_rows
+            .iter()
+            .map(|(column, centre, spread, scale, uncertainty)| {
+                format!(
+                    "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
+                    html_escape(column),
+                    html_escape(centre),
+                    html_escape(spread),
+                    html_escape(scale),
+                    html_escape(uncertainty),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("");
+        format!("<table><thead><tr><th>Column</th><th>Centre clue</th><th>Matching spread</th><th>Scale clue</th><th>Uncertainty</th></tr></thead><tbody>{rows}</tbody></table><p><small>These are descriptive clues, not automatic analysis choices.</small></p>")
+    };
+    let decision = decision_map(Vec::new())?;
+    let decision_ascii = record_string(&decision, "ascii").unwrap_or("");
+    let decision_svg = record_string(&decision, "svg").unwrap_or("");
     let profile = match &scan {
         Value::Record(map) => map.get("profile"),
         _ => None,
@@ -6103,7 +6280,7 @@ fn dataset_report(args: Vec<Value>) -> Result<Value> {
                 .join("\n")
         };
         format!(
-            "# {title}\n\n## Reproducibility\n\n- BioLang: {}\n- Backend: {backend}\n- Generated at: {generated_at}\n- Seed: {}\n- Options: {}\n\n## Dataset overview\n\n```text\n{overview_text}\n```\n\n## Integrity, missingness, and design\n\n- Complete rows: {complete_rows} of {}\n- Missing/non-finite cells: {missing_cells}\n- Distinct missingness patterns: {missing_pattern_count}\n- Duplicate complete rows: {duplicate_rows}\n- Design issue clues: {design_issue_count}\n- Design structures: {}\n\n## Prioritized next steps\n\n{recommendations_text}\n\n## Strongest association clues\n\n{pairs_text}\n\n## Interpretation boundary\n\nThis report is descriptive and non-mutating. It does not diagnose a missing-data mechanism, establish causality, select a statistical test, or validate the experimental design.\n",
+            "# {title}\n\n## Reproducibility\n\n- BioLang: {}\n- Backend: {backend}\n- Generated at: {generated_at}\n- Seed: {}\n- Options: {}\n\n## Dataset overview\n\n```text\n{overview_text}\n```\n\n## Integrity, missingness, and design\n\n- Complete rows: {complete_rows} of {}\n- Missing/non-finite cells: {missing_cells}\n- Distinct missingness patterns: {missing_pattern_count}\n- Duplicate complete rows: {duplicate_rows}\n- Design issue clues: {design_issue_count}\n- Design structures: {}\n\n## Centre, spread, scale, and uncertainty\n\n{centre_markdown}\n\n```text\n{decision_ascii}\n```\n\n## Prioritized next steps\n\n{recommendations_text}\n\n## Strongest association clues\n\n{pairs_text}\n\n## Interpretation boundary\n\nThis report is descriptive and non-mutating. It does not diagnose a missing-data mechanism, establish causality, select a statistical test, or validate the experimental design.\n",
             env!("CARGO_PKG_VERSION"),
             seed.map(|value| value.to_string()).unwrap_or_else(|| "not supplied".into()),
             if option_summary.is_empty() { "defaults" } else { &option_summary },
@@ -6132,7 +6309,7 @@ fn dataset_report(args: Vec<Value>) -> Result<Value> {
             .collect::<Vec<_>>()
             .join("");
         format!(
-            "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><style>body{{font:16px/1.55 system-ui,sans-serif;max-width:1100px;margin:auto;padding:2rem;color:#172033}}h1,h2{{color:#123b5d}}pre{{white-space:pre-wrap;background:#f4f7fa;padding:1rem;border-radius:.5rem;overflow:auto}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #ccd5df;padding:.45rem;text-align:left}}li{{margin:.8rem 0}}.boundary{{border-left:4px solid #d97706;padding:.8rem;background:#fff7ed}}</style></head><body><h1>{}</h1><h2>Reproducibility</h2><table><tr><th>BioLang</th><td>{}</td></tr><tr><th>Backend</th><td>{}</td></tr><tr><th>Generated at</th><td>{}</td></tr><tr><th>Seed</th><td>{}</td></tr><tr><th>Options</th><td>{}</td></tr></table><h2>Dataset overview</h2><pre>{}</pre><h2>Integrity, missingness, and design</h2><table><tr><th>Complete rows</th><td>{} of {}</td></tr><tr><th>Missing/non-finite cells</th><td>{}</td></tr><tr><th>Missingness patterns</th><td>{}</td></tr><tr><th>Duplicate rows</th><td>{}</td></tr><tr><th>Design issue clues</th><td>{}</td></tr><tr><th>Design structures</th><td>{}</td></tr></table><h2>Prioritized next steps</h2><ol>{}</ol><h2>Strongest association clues</h2><table><thead><tr><th>Left</th><th>Right</th><th>Measure</th><th>Score</th></tr></thead><tbody>{}</tbody></table><h2>Interpretation boundary</h2><p class=\"boundary\">This report is descriptive and non-mutating. It does not diagnose a missing-data mechanism, establish causality, select a statistical test, or validate the experimental design.</p></body></html>",
+            "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><style>body{{font:16px/1.55 system-ui,sans-serif;max-width:1100px;margin:auto;padding:2rem;color:#172033}}h1,h2{{color:#123b5d}}pre{{white-space:pre-wrap;background:#f4f7fa;padding:1rem;border-radius:.5rem;overflow:auto}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #ccd5df;padding:.45rem;text-align:left}}li{{margin:.8rem 0}}svg{{max-width:100%;height:auto}}.boundary{{border-left:4px solid #d97706;padding:.8rem;background:#fff7ed}}</style></head><body><h1>{}</h1><h2>Reproducibility</h2><table><tr><th>BioLang</th><td>{}</td></tr><tr><th>Backend</th><td>{}</td></tr><tr><th>Generated at</th><td>{}</td></tr><tr><th>Seed</th><td>{}</td></tr><tr><th>Options</th><td>{}</td></tr></table><h2>Dataset overview</h2><pre>{}</pre><h2>Integrity, missingness, and design</h2><table><tr><th>Complete rows</th><td>{} of {}</td></tr><tr><th>Missing/non-finite cells</th><td>{}</td></tr><tr><th>Missingness patterns</th><td>{}</td></tr><tr><th>Duplicate rows</th><td>{}</td></tr><tr><th>Design issue clues</th><td>{}</td></tr><tr><th>Design structures</th><td>{}</td></tr></table><h2>Centre, spread, scale, and uncertainty</h2>{}{}<h2>Prioritized next steps</h2><ol>{}</ol><h2>Strongest association clues</h2><table><thead><tr><th>Left</th><th>Right</th><th>Measure</th><th>Score</th></tr></thead><tbody>{}</tbody></table><h2>Interpretation boundary</h2><p class=\"boundary\">This report is descriptive and non-mutating. It does not diagnose a missing-data mechanism, establish causality, select a statistical test, or validate the experimental design.</p></body></html>",
             html_escape(title),
             html_escape(title),
             env!("CARGO_PKG_VERSION"),
@@ -6148,6 +6325,8 @@ fn dataset_report(args: Vec<Value>) -> Result<Value> {
             duplicate_rows,
             design_issue_count,
             html_escape(&if design_clue_names.is_empty() { "none declared or detected".into() } else { design_clue_names.join(", ") }),
+            centre_html,
+            decision_svg,
             recommendation_html,
             pair_html,
         )
@@ -6167,6 +6346,8 @@ fn dataset_report(args: Vec<Value>) -> Result<Value> {
         ("title", text(title)),
         ("content", text(content)),
         ("scan", scan),
+        ("centre_scale_guidance", list(centre_scale_guidance)),
+        ("decision_map", decision),
         (
             "provenance",
             record([
@@ -7450,6 +7631,186 @@ fn means_guide(args: Vec<Value>) -> Result<Value> {
         (
             "quick_explanation",
             text("An average is a scientific question, not merely a formula. Choose its matching spread and uncertainty from the same scale and sampling design."),
+        ),
+    ]))
+}
+
+fn decision_map(args: Vec<Value>) -> Result<Value> {
+    let opts = options(&args, 0, "stats_decision_map")?;
+    let title = opts
+        .get("title")
+        .and_then(Value::as_str)
+        .unwrap_or("Choose the question before the statistic");
+    let paths = vec![
+        record([
+            ("question", text("additive equal-share centre")),
+            ("centre", text("arithmetic mean")),
+            ("spread", text("standard deviation")),
+            ("scale", text("original additive scale")),
+            (
+                "uncertainty",
+                text("design-aware SE or confidence interval"),
+            ),
+        ]),
+        record([
+            (
+                "question",
+                text("typical ranked value or skew-resistant centre"),
+            ),
+            ("centre", text("median")),
+            ("spread", text("IQR or MAD")),
+            (
+                "scale",
+                text("original scale; preview transforms separately"),
+            ),
+            (
+                "uncertainty",
+                text("quantile or bootstrap interval using the correct resampling unit"),
+            ),
+        ]),
+        record([
+            (
+                "question",
+                text("positive ratios, folds, or compound growth"),
+            ),
+            ("centre", text("geometric mean")),
+            ("spread", text("geometric SD or multiplicative interval")),
+            (
+                "scale",
+                text("log scale for calculation, back-transform for reporting"),
+            ),
+            (
+                "uncertainty",
+                text("log-scale interval, then back-transform endpoints"),
+            ),
+        ]),
+        record([
+            (
+                "question",
+                text("unequal representation, exposure, or precision"),
+            ),
+            ("centre", text("weighted mean")),
+            ("spread", text("weighted SD")),
+            ("scale", text("scale justified by the estimand")),
+            (
+                "uncertainty",
+                text("survey/design-aware SE; weights alone are insufficient"),
+            ),
+        ]),
+        record([
+            (
+                "question",
+                text("positive rates over a fixed amount of work"),
+            ),
+            ("centre", text("harmonic mean")),
+            ("spread", text("raw rate quantiles")),
+            ("scale", text("rate or reciprocal-time scale")),
+            (
+                "uncertainty",
+                text("interval for the target aggregate rate"),
+            ),
+        ]),
+        record([
+            ("question", text("most common category, value, or peak")),
+            ("centre", text("mode")),
+            (
+                "spread",
+                text("counts/proportions across categories or peaks"),
+            ),
+            (
+                "scale",
+                text("categorical or carefully binned numeric scale"),
+            ),
+            (
+                "uncertainty",
+                text("binomial/multinomial interval when applicable"),
+            ),
+        ]),
+    ];
+    let ascii = format!(
+        "{title}\n\nQUESTION                     CENTRE          SPREAD             SCALE              UNCERTAINTY\nadditive equal share    -> mean        -> SD             -> original       -> design-aware CI\ntypical / skew-resistant-> median      -> IQR or MAD     -> original       -> quantile/bootstrap CI\nratios / fold changes   -> geometric   -> geometric SD   -> log/backtransform-> log-scale CI\nunequal representation  -> weighted    -> weighted SD    -> justified      -> design-aware SE\nfixed-work rates        -> harmonic    -> rate quantiles -> rate/reciprocal-> target-rate CI\nmost frequent category  -> mode        -> proportions    -> categorical    -> binomial/multinomial CI\n\nBefore following a row: identify units, experimental unit, dependence, censoring, and the scientific estimand. No row is selected automatically."
+    );
+    let rows = [
+        (
+            "Additive equal share",
+            "Mean",
+            "SD",
+            "Original",
+            "Design-aware CI",
+        ),
+        (
+            "Typical / skew-resistant",
+            "Median",
+            "IQR / MAD",
+            "Original",
+            "Quantile/bootstrap CI",
+        ),
+        (
+            "Ratios / folds",
+            "Geometric",
+            "Geometric SD",
+            "Log -> back",
+            "Log-scale CI",
+        ),
+        (
+            "Unequal representation",
+            "Weighted",
+            "Weighted SD",
+            "Justified",
+            "Design-aware SE",
+        ),
+        (
+            "Fixed-work rates",
+            "Harmonic",
+            "Rate quantiles",
+            "Rate",
+            "Rate CI",
+        ),
+        (
+            "Most frequent",
+            "Mode",
+            "Proportions",
+            "Categorical",
+            "Binomial/multinomial CI",
+        ),
+    ];
+    let mut svg_rows = String::new();
+    for (index, (question, centre, spread, scale, uncertainty)) in rows.iter().enumerate() {
+        let y = 82 + index * 46;
+        let fill = if index % 2 == 0 { "#f8fafc" } else { "#eef6f8" };
+        svg_rows.push_str(&format!(
+            "<rect x=\"18\" y=\"{}\" width=\"964\" height=\"42\" rx=\"5\" fill=\"{}\"/><text class=\"cell\" x=\"30\" y=\"{}\">{}</text><text class=\"cell\" x=\"305\" y=\"{}\">{}</text><text class=\"cell\" x=\"445\" y=\"{}\">{}</text><text class=\"cell\" x=\"610\" y=\"{}\">{}</text><text class=\"cell\" x=\"752\" y=\"{}\">{}</text>",
+            y,
+            fill,
+            y + 26,
+            html_escape(question),
+            y + 26,
+            html_escape(centre),
+            y + 26,
+            html_escape(spread),
+            y + 26,
+            html_escape(scale),
+            y + 26,
+            html_escape(uncertainty),
+        ));
+    }
+    let svg = format!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 390\" role=\"img\" aria-labelledby=\"dmt dmd\"><title id=\"dmt\">{}</title><desc id=\"dmd\">A decision map linking a scientific question to a compatible centre, spread, scale, and uncertainty method.</desc><style>.title{{font:700 20px system-ui;fill:#123b5d}}.head{{font:700 13px system-ui;fill:#334155}}.cell{{font:13px system-ui;fill:#172033}}.note{{font:12px system-ui;fill:#7c2d12}}</style><text class=\"title\" x=\"18\" y=\"30\">{}</text><text class=\"head\" x=\"30\" y=\"68\">QUESTION</text><text class=\"head\" x=\"305\" y=\"68\">CENTRE</text><text class=\"head\" x=\"445\" y=\"68\">SPREAD</text><text class=\"head\" x=\"610\" y=\"68\">SCALE</text><text class=\"head\" x=\"752\" y=\"68\">UNCERTAINTY</text>{}<text class=\"note\" x=\"18\" y=\"374\">Check units, design, dependence, censoring, and estimand first. BioLang does not select a row automatically.</text></svg>",
+        html_escape(title),
+        html_escape(title),
+        svg_rows,
+    );
+    Ok(record([
+        ("schema", text("biolang.stats.decision-map/v1")),
+        ("kind", text("centre_spread_scale_uncertainty_map")),
+        ("title", text(title)),
+        ("paths", list(paths)),
+        ("ascii", text(ascii)),
+        ("svg", text(svg)),
+        ("automatic_choice", Value::Bool(false)),
+        (
+            "interpretation_boundary",
+            text("The map organizes questions; it cannot infer the estimand or sampling design from observed values."),
         ),
     ]))
 }

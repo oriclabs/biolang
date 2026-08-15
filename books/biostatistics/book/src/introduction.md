@@ -108,9 +108,11 @@ R comparison scripts. The runnable BioLang analyses are the code blocks in the
 chapter itself. The current companion structure is:
 
 For a shorter interactive path through centre/spread choices, logarithms,
-weights, repeated subjects, robust regression, and ordered data, open
-`books/biostatistics/practical-statistics-validation.bln`. Its cells are meant
-to be run from top to bottom and preserve interpreter context.
+weights, repeated subjects, robust regression, and ordered data, use the
+[downloadable practical BioLang notebook](../practical-statistics-validation.bln).
+In a repository checkout it lives at
+`books/biostatistics/practical-statistics-validation.bln`. Run its cells from
+top to bottom so later cells can reuse interpreter context.
 
 ```
 biostatistics/

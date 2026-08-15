@@ -9,11 +9,11 @@
 
 ## The Problem
 
-Dr. James Park has RNA-seq data from 12 tumor samples. He needs to identify genes that are differentially expressed between treatment and control groups. He knows the standard approach: run a t-test on each gene. The t-test assumes data is normally distributed, so he checks his data.
+Dr. James Park has RNA-seq data from 12 tumor samples. He needs to identify genes that differ between treatment and control groups. He considers a t-test for a difference in means, then notices that raw sequencing abundance has a mean-variance relationship, zeros, and library-size structure that a simple gene-wise normal model does not represent.
 
 Gene FPKM values range from 0 to 50,000. Most genes sit near zero, with a handful expressed at astronomical levels. The histogram looks nothing like a bell curve — it is a massive spike at zero with a long right tail stretching to infinity. He runs the t-test anyway. Out of 20,000 genes, 4,700 come back "significant" at p < 0.05. That is 23.5% of all genes, far more than seems biologically plausible for this modest treatment.
 
-Something is deeply wrong. The t-test assumed his data was symmetric and bell-shaped. It was neither. The test produced garbage because the assumption was violated. If Dr. Park had understood distributions — the subject of today's chapter — he would have known to transform his data or use a different test entirely.
+This is an illustrative warning, not a measured analysis: those 4,700 calls could reflect treatment effects, confounding, multiplicity, mean-variance dependence, or a mismatched model. A t-test concerns a mean and the sampling behaviour of its statistic; it does not require every raw observation to look perfectly normal. For RNA-seq counts, methods that model counts, library size, and dispersion are usually more defensible than gene-wise tests on raw FPKM values.
 
 ## What Is a Distribution?
 
@@ -21,9 +21,9 @@ A distribution is a recipe that tells you how likely each possible value is. Thi
 
 Every dataset has an underlying distribution — the theoretical shape that generated the data you observe. When you draw a histogram of your data, you are estimating this shape from a finite sample. With 10 data points, the histogram is choppy and unreliable. With 10,000, it smooths out and begins to reveal the true underlying curve.
 
-Why does this matter? Because **every statistical test makes assumptions about the distribution of your data.** The t-test assumes normality. The chi-square test assumes expected counts are large enough. The Poisson regression assumes counts follow a Poisson process. Violate the assumption, and the test's guarantees evaporate.
+Why does this matter? Statistical procedures rely on assumptions about sampling, dependence, model form, and sometimes a distribution. A t-test's normal model concerns group outcomes or paired differences under its derivation; regression diagnostics focus on conditional residual behaviour; a chi-square approximation needs adequate expected counts; Poisson regression assumes a conditional count mean/variance structure. Departures matter by degree and purpose, so inspect their effect rather than using one pass/fail shape test.
 
-> **Key insight:** A statistical test is a contract. It says: "If your data follows distribution X, then I guarantee my conclusions are reliable with probability Y." Break the contract, and you get no guarantees.
+> **Key insight:** Treat a model as an explicit approximation. State its estimand and assumptions, inspect diagnostics and sensitivity analyses, and interpret uncertainty conditionally on those choices.
 
 ## The Normal Distribution
 
@@ -96,7 +96,7 @@ The curve is perfectly symmetric around &mu;. It extends infinitely in both dire
 | &mu; &plusmn; 3&sigma; | 99.7% | Almost everything |
 | Beyond 3&sigma; | 0.3% | Extreme outliers |
 
-If a measurement falls more than 3 standard deviations from the mean, it is either a genuine outlier or something went wrong.
+For an approximately normal reference distribution, about 0.27% of observations lie beyond ±3 SD. Crossing that line is a review flag, not a diagnosis: it may be a valid tail observation, a different subgroup, a recording problem, or evidence that mean/SD is the wrong descriptive frame.
 
 ### Biological Examples of Normality
 
@@ -129,7 +129,7 @@ print(f"Mean: {stats.mean:.1}, Median: {stats.median:.1}, Skewness: {stats.skewn
 
 ## The Log-Normal Distribution
 
-If gene expression is not normal, what is it? In most cases, it is **log-normal**: the data itself is skewed, but the logarithm of the data is normally distributed.
+Some positive abundance measurements are reasonably described by a **log-normal** model: the data are skewed while their logarithms are closer to symmetric. Raw sequencing counts are discrete and commonly require count-specific sampling models; zeros, mixtures, and detection limits also prevent a universal log-normal claim.
 
 ### Why Gene Expression Is Log-Normal
 

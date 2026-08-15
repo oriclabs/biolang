@@ -56,6 +56,7 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("stats_time_series_diagnostics", Arity::Range(1, 2)),
         ("stats_cluster_diagnostics", Arity::Range(2, 3)),
         ("stats_means", Arity::Range(1, 2)),
+        ("stats_decision_map", Arity::Range(0, 1)),
         // Math
         ("sqrt", Arity::Exact(1)),
         ("pow", Arity::Exact(2)),
@@ -233,6 +234,7 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "stats_time_series_diagnostics"
             | "stats_cluster_diagnostics"
             | "stats_means"
+            | "stats_decision_map"
             | "sqrt"
             | "pow"
             | "log"
@@ -393,7 +395,8 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         | "stats_weighted_summary"
         | "stats_time_series_diagnostics"
         | "stats_cluster_diagnostics"
-        | "stats_means" => crate::stats_explore::call(name, args),
+        | "stats_means"
+        | "stats_decision_map" => crate::stats_explore::call(name, args),
         "sqrt" => builtin_sqrt(args),
         "pow" => builtin_pow(args),
         "log" => builtin_log(args),

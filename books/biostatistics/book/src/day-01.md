@@ -447,4 +447,4 @@ A paper reports testing a drug on patients across 8 different cancer subtypes. O
 
 ## What's Next
 
-Tomorrow, we roll up our sleeves and meet real data. You will learn to summarize 10,000 numbers into a handful of meaningful statistics — means, medians, standard deviations, and more. You will discover why the mean is a liar when outliers are present, why box plots reveal truths that histograms hide, and how a single command in BioLang can tell you whether a sequencing run is worth analyzing or should be thrown away. Day 2 is where the hands-on work begins.
+Tomorrow, we roll up our sleeves and meet data. You will summarize 10,000 numbers with means, medians, standard deviations, quantiles, and visual checks. You will see how extreme observations affect the mean, how box plots and histograms show complementary evidence, and how BioLang can organize QC clues without making the scientific accept/reject decision for you. Day 2 is where the hands-on work begins.

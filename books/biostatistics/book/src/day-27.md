@@ -438,10 +438,9 @@ Literate analysis interleaves code, results, and narrative explanation in a sing
 let pca_result = pca(log_cpm)
 scatter(pca_result.scores[0], pca_result.scores[1])
 
-# Result: Sample S14 is a clear outlier on PC1 (3.8 SD from centroid).
-# Decision: Remove S14 from downstream analysis.
-# Justification: S14 had the lowest library size (2.1M reads vs
-# median 15.3M) and highest duplication rate (82%).
+# Do not paste an imagined result here. Record the measured sample identifier,
+# distance, library-size/duplication evidence, and a predeclared action after
+# this code has run. A PCA distance alone does not justify sample removal.
 ```
 
 > **Key insight:** Every decision in an analysis (removing a sample, choosing a threshold, selecting a normalization method) should be documented with a justification. Six months later, neither you nor a reviewer will remember why you chose FDR < 0.05 instead of 0.01.

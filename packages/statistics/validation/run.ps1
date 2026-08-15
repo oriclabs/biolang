@@ -49,6 +49,8 @@ try {
 
     $expected = Get-Content "packages/statistics/validation/results/r-reference.json" -Raw | ConvertFrom-Json
     $actual = Get-Content "packages/statistics/validation/results/biolang.json" -Raw | ConvertFrom-Json
+    $expectedReal = Get-Content "packages/statistics/validation/results/r-real-reference.json" -Raw | ConvertFrom-Json
+    $actualReal = Get-Content "packages/statistics/validation/results/biolang-real.json" -Raw | ConvertFrom-Json
     $checks = @(
         @("descriptive.mean", $expected.descriptive.mean, $actual.descriptive.mean, 1e-12),
         @("descriptive.median", $expected.descriptive.median, $actual.descriptive.median, 1e-12),
@@ -131,6 +133,33 @@ try {
         @("means.harmonic", $expected.means.harmonic, $actual.means.harmonic, 1e-12),
         @("means.trimmed", $expected.means.trimmed, $actual.means.trimmed, 1e-12),
         @("means.rms", $expected.means.rms, $actual.means.rms, 1e-12)
+    )
+    $checks += @(
+        @("real.airquality.observations", $expectedReal.airquality.observations, $actualReal.airquality.observations, 0),
+        @("real.airquality.mean", $expectedReal.airquality.mean, $actualReal.airquality.mean, 1e-12),
+        @("real.airquality.median", $expectedReal.airquality.median, $actualReal.airquality.median, 1e-12),
+        @("real.airquality.sd", $expectedReal.airquality.sd, $actualReal.airquality.sd, 1e-12),
+        @("real.airquality.skewness", $expectedReal.airquality.skewness, $actualReal.airquality.skewness, 1e-12),
+        @("real.airquality.log_skewness", $expectedReal.airquality.log_skewness, $actualReal.airquality.log_skewness, 1e-12),
+        @("real.airquality.weighted_mean", $expectedReal.airquality.weighted_mean, $actualReal.airquality.weighted_mean, 1e-12),
+        @("real.airquality.weighted_variance", $expectedReal.airquality.weighted_variance, $actualReal.airquality.weighted_variance, 1e-12),
+        @("real.airquality.effective_n", $expectedReal.airquality.effective_n, $actualReal.airquality.effective_n, 1e-12),
+        @("real.nile.observations", $expectedReal.nile.observations, $actualReal.nile.observations, 0),
+        @("real.nile.acf1", $expectedReal.nile.acf1, $actualReal.nile.acf1, 1e-12),
+        @("real.nile.acf2", $expectedReal.nile.acf2, $actualReal.nile.acf2, 1e-12),
+        @("real.nile.acf3", $expectedReal.nile.acf3, $actualReal.nile.acf3, 1e-12),
+        @("real.nile.ljung_box_q", $expectedReal.nile.ljung_box_q, $actualReal.nile.ljung_box_q, 1e-12),
+        @("real.nile.ljung_box_p", $expectedReal.nile.ljung_box_p, $actualReal.nile.ljung_box_p, 1e-10),
+        @("real.nile.trend", $expectedReal.nile.trend, $actualReal.nile.trend, 1e-12),
+        @("real.chickweight.observations", $expectedReal.chickweight.observations, $actualReal.chickweight.observations, 0),
+        @("real.chickweight.clusters", $expectedReal.chickweight.clusters, $actualReal.chickweight.clusters, 0),
+        @("real.chickweight.between_ms", $expectedReal.chickweight.between_ms, $actualReal.chickweight.between_ms, 1e-12),
+        @("real.chickweight.within_ms", $expectedReal.chickweight.within_ms, $actualReal.chickweight.within_ms, 1e-12),
+        @("real.chickweight.effective_size", $expectedReal.chickweight.effective_size, $actualReal.chickweight.effective_size, 1e-12),
+        @("real.chickweight.icc", $expectedReal.chickweight.icc, $actualReal.chickweight.icc, 1e-12),
+        @("real.lung.observations", $expectedReal.lung.observations, $actualReal.lung.observations, 0),
+        @("real.lung.events", $expectedReal.lung.events, $actualReal.lung.events, 0),
+        @("real.lung.final_survival", $expectedReal.lung.final_survival, $actualReal.lung.final_survival, 1e-12)
     )
 
     $failures = @()

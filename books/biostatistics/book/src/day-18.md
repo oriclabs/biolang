@@ -635,4 +635,4 @@ Simulate 100 "studies" with n=10 per group and a true small effect (d=0.3). Show
 
 ## What's Next
 
-Statistical significance tells you whether an effect is real, but not whether it **matters**. Day 19 introduces **effect sizes** — Cohen's d, odds ratios, relative risk — and the critical distinction between statistical significance and practical importance.
+Statistical significance measures incompatibility with a specified null model; it does not establish that an effect is real or important. Day 19 introduces **effect sizes** — Cohen's d, odds ratios, relative risk — and the critical distinction between statistical evidence, magnitude, precision, and practical importance.

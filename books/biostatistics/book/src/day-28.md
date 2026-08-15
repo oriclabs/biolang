@@ -255,7 +255,7 @@ plot(km_rows, {type: "line", x: "time", y: "event",
   ylabel: "Survival Probability"})
 ```
 
-> **Clinical relevance:** The hazard ratio is the primary metric regulators examine. HR < 1 means the experimental arm has a lower rate of progression. HR = 0.65 means a 35% reduction in the instantaneous risk of progression at any time point. Both the HR point estimate and its confidence interval must exclude 1.0 for regulatory significance.
+> **Clinical relevance:** A hazard ratio is one important time-to-event summary. Under proportional hazards, HR = 0.65 describes an estimated 35% lower instantaneous event rate for the experimental arm at a given time among individuals still event-free; it is not a 35% reduction in individual risk or survival time. Report its interval, absolute survival summaries, censoring, and proportional-hazards diagnostics. Regulatory conclusions depend on the prespecified estimand and full evidence, not merely whether an interval excludes 1.
 
 ## Section 3: Secondary Endpoint — Tumor Response
 
@@ -601,7 +601,7 @@ print("ECOG 0 HR vs ECOG 1-2 HR — compare above forest plot")
 print("If HRs are similar, no treatment x ECOG interaction")
 ```
 
-> **Clinical relevance:** A significant interaction test suggests the treatment effect truly differs between subgroups — for example, Drug X might work better in PD-L1-high patients. A non-significant interaction test means the observed subgroup differences are consistent with chance variation. Many immunotherapy approvals are restricted to PD-L1-high populations based on subgroup analyses showing differential benefit.
+> **Clinical relevance:** An interaction estimate and interval quantify how treatment effects may differ between subgroups—for example, PD-L1-high and PD-L1-low patients. A small interaction p-value is evidence against the no-interaction model, not proof of a true subgroup effect; a large value can also reflect low power. Prespecification, multiplicity control, biological plausibility, absolute effects, and external validation matter for subgroup claims.
 
 ## Section 7: Multivariate Cox Model
 

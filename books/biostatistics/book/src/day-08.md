@@ -75,7 +75,7 @@ A larger t-statistic means more evidence of a real difference.
 ### Assumptions
 
 1. **Independence**: Observations within and between groups are independent
-2. **Normality**: Data in each group are approximately normally distributed
+2. **Sampling shape**: For small samples, each group's conditional outcomes should not have extreme departures that make mean-based inference unstable; in a paired test, inspect the paired differences
 3. **Equal variances**: Both groups have similar spread (homoscedasticity)
 
 ### The Pooled Standard Error
@@ -90,7 +90,7 @@ Degrees of freedom: **df = n1 + n2 - 2**
 
 Welch's t-test does not assume equal variances. It uses each group's own variance estimate and adjusts the degrees of freedom downward with the Welch-Satterthwaite equation.
 
-> **Key insight:** Welch's t-test is almost always the better default choice. It performs nearly as well as the pooled t-test when variances ARE equal, and much better when they are not. Most modern statistical software (including R's `t.test()`) uses Welch's version by default.
+> **Key insight:** For two independent groups and a difference-in-means estimand, Welch's t-test is a useful default because it does not require equal variances. It still requires independent experimental units and can be unstable with very small, highly skewed, heavy-tailed, or dependent samples. R's `t.test()` uses Welch's version by default.
 
 ## Paired t-Test: Matched Samples
 
@@ -160,7 +160,7 @@ Where d-bar is the mean of the paired differences and s_d is their standard devi
 </svg>
 </div>
 
-> **Common pitfall:** Using an independent t-test on paired data wastes statistical power. If you have natural pairs, always use the paired test. Conversely, using a paired test on unpaired data gives wrong results.
+> **Common pitfall:** Ignoring genuine pairing usually gives the wrong uncertainty and can waste information. Use a paired analysis when the scientific units are correctly matched and the target is a within-pair change; do not manufacture pairs between independent observations.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="650" height="360" viewBox="0 0 650 360" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -222,11 +222,11 @@ Where d-bar is the mean of the paired differences and s_d is their standard devi
 
 ### Normality: Shapiro-Wilk Test
 
-The Shapiro-Wilk test checks whether data could have come from a normal distribution.
+The Shapiro-Wilk test measures evidence against an exact normal model. It does not certify normality or choose a test.
 
 - H0: Data are normally distributed
-- If p > 0.05, normality assumption is reasonable
-- If p < 0.05, data are significantly non-normal
+- A large p-value means the sample did not provide strong evidence against exact normality; with small n the test may have little power.
+- A small p-value is evidence of a departure, whose practical importance should be judged visually and through sensitivity of the intended analysis.
 
 Also use **QQ plots**: if points fall along the diagonal line, data are approximately normal.
 
@@ -235,12 +235,12 @@ Also use **QQ plots**: if points fall along the diagonal line, data are approxim
 Levene's test checks whether two groups have equal variances.
 
 - H0: Variances are equal
-- If p > 0.05, equal variance assumption is reasonable
-- If p < 0.05, use Welch's t-test (or just always use Welch's)
+- A large p-value does not prove equal variances.
+- For independent groups and a mean difference, Welch's method avoids making equality of variance a prerequisite; also inspect design, group sizes, and influential values.
 
 ## Cohen's d: Quantifying Effect Size
 
-A p-value tells you *whether* a difference exists. Cohen's d tells you *how large* it is, in standard deviation units:
+A p-value measures compatibility with a null model; it does not tell you whether a difference exists. Cohen's d estimates a standardized mean difference, while its confidence interval shows precision:
 
 **d = (x-bar1 - x-bar2) / s_pooled**
 
@@ -251,7 +251,7 @@ A p-value tells you *whether* a difference exists. Cohen's d tells you *how larg
 | 0.8 | Large | Strong phenotypic difference |
 | > 1.2 | Very large | Knockout vs wild-type |
 
-> **Key insight:** A large p-value with a large Cohen's d suggests you are underpowered — you may have a real effect but too few samples to detect it. A small p-value with a tiny Cohen's d suggests the effect, while real, may not be biologically meaningful.
+> **Key insight:** A large p-value with an imprecise, large point estimate is compatible with several effect sizes; inspect its confidence interval and design rather than declaring a hidden real effect. A small p-value with a tiny estimate can indicate a precisely measured but practically unimportant difference. Domain thresholds decide importance.
 
 ## The t-Test in BioLang
 
@@ -498,4 +498,4 @@ let control   = [0.8, 0.5, 0.9, 0.3, 1.1, 0.7, 0.4, 0.6, 1.0, 0.2]
 
 ## What's Next
 
-What happens when your data violate the normality assumption? Cytokine levels, bacterial abundances, and many other biological measurements are wildly skewed. Tomorrow we introduce non-parametric tests — rank-based alternatives to the t-test that make no assumptions about the shape of your data distribution.
+What happens when an exact normal model is a poor approximation? Cytokine levels, bacterial abundances, and many other biological measurements can be strongly skewed. Tomorrow we introduce rank-based alternatives to the t-test. They avoid an exact normal outcome model, but still require a compatible estimand, independence or correct pairing, and careful treatment of ties and sampling design.

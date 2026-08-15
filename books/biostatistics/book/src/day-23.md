@@ -13,7 +13,7 @@ Your collaborator is studying a rare metabolic disorder. She has tissue samples 
 
 You reach for a t-test, but hesitate. With only 6 observations per group, you cannot meaningfully assess whether the data is normally distributed. A Shapiro-Wilk test on 6 points has almost no power. The Wilcoxon rank-sum test is an option, but with only 6 per group, it can only detect very large effects.
 
-What if you could test the hypothesis without assuming any distribution at all? What if you could build a confidence interval for any statistic — not just the mean, but the median, the trimmed mean, the ratio of two variances, the 90th percentile — without knowing the population distribution?
+What if you could approximate a sampling distribution by resampling observed units instead of writing down a full parametric outcome distribution? Bootstrap and permutation methods can target many statistics, but they are not assumption-free: the resampling unit, exchangeability, dependence, representativeness, and small-sample behaviour still matter.
 
 You can. Resampling methods let the data speak for itself, replacing theoretical assumptions with raw computational power. They are among the most broadly applicable tools in statistics, and after today, you will wonder how you ever lived without them.
 

@@ -69,7 +69,7 @@ Consider testing whether a new drug reduces blood pressure.
 | Multiple comparisons | Requires correction (Day 12) | Naturally skeptical with informative priors |
 | Small samples | Unreliable (CLT breaks down) | Works with proper priors |
 
-> **Common pitfall:** A frequentist 95% confidence interval does NOT mean "95% probability the parameter is in this interval." It means "if we repeated the experiment many times, 95% of intervals constructed this way would contain the true value." This distinction confuses almost everyone. The Bayesian credible interval actually does mean what most people think a confidence interval means.
+> **Common pitfall:** A frequentist 95% confidence interval is calibrated by repeated use of its construction procedure; it is not a posterior probability statement about this fixed parameter. A Bayesian 95% credible interval assigns 95% posterior probability under the specified likelihood, prior, and model. That interpretation is conditional on those choices, so prior predictive checks and sensitivity analyses remain important.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="340" viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -424,7 +424,7 @@ print("Data mean:         " + str(round(data_mean, 3)))
 
 With only 8 observations, the informative priors pull the posterior toward them. With 800 observations, even a badly wrong prior would be overwhelmed by the data.
 
-> **Common pitfall:** Using a highly informative prior with little data is dangerous — the prior dominates. Use weakly informative priors (centered on a reasonable value but with wide spread) unless you have strong external evidence to justify a tight prior. A flat prior is always safe but may be less efficient.
+> **Common pitfall:** With little data, an informative prior can strongly affect the posterior. Use prior predictive checks and sensitivity analyses, and justify information from external evidence. A nominally "flat" prior is not automatically safe: it can be improper, depend on parameterization, or place implausible mass on scientifically impossible values.
 
 ## Posterior Predictive Distribution
 

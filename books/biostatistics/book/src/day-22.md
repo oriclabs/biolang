@@ -580,4 +580,4 @@ for (k in 2:7) {
 
 ## What's Next
 
-PCA and clustering assume that the data you have is large enough to draw conclusions. But what if your dataset is tiny — six mice per group, far too few to verify normality or trust asymptotic theory? Tomorrow, we meet resampling methods: bootstrap and permutation tests. These techniques let your data speak for itself, building confidence intervals and testing hypotheses without any distributional assumptions, by literally reshuffling the data thousands of times.
+PCA and clustering can be unstable when the dataset is tiny. With six mice per group, distribution diagnostics and asymptotic approximations carry substantial uncertainty. Tomorrow, we meet bootstrap and permutation methods. They approximate uncertainty by resampling, but still rely on representative observations, a correct resampling unit, and exchangeability or other design assumptions.

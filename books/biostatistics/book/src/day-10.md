@@ -277,7 +277,7 @@ Just as Cohen's d quantifies the effect for two groups, **eta-squared** quantifi
 
 | Parametric | Non-Parametric | Use When |
 |---|---|---|
-| One-way ANOVA | Kruskal-Wallis | Groups are independent, normality violated |
+| One-way ANOVA | Kruskal-Wallis | Groups are independent and a rank/distribution comparison answers the question |
 | Repeated measures ANOVA | Friedman test | Same subjects measured under all conditions |
 
 ## ANOVA in BioLang
@@ -362,7 +362,7 @@ let stage_III = [35.2, 88.1, 42.5, 120.0, 55.3, 78.9, 95.2, 48.7, 110.5, 65.8]
 normal_qq_plot(stage_I, {title: "QQ: Stage I"})
 normal_qq_plot(stage_II, {title: "QQ: Stage II"})
 normal_qq_plot(stage_III, {title: "QQ: Stage III"})
-print("Normality violated -> use Kruskal-Wallis (anova on ranks)\n")
+print("The groups are skewed; compare estimands and diagnostics before choosing a model.\n")
 
 let result = anova([stage_I, stage_II, stage_III])
 print("=== Kruskal-Wallis Test ===")
@@ -572,9 +572,9 @@ let intense  = [155, 172, 148, 180, 162]
 - The **F-statistic** compares between-group variance to within-group variance: F much greater than 1 suggests real differences
 - A significant ANOVA tells you "at least one group differs" — use **Tukey HSD** post-hoc to find which pairs differ
 - **Eta-squared** measures effect size: the proportion of total variance explained by group membership
-- **Kruskal-Wallis** is the non-parametric alternative when normality is violated
+- **Kruskal-Wallis** compares group rank distributions; interpreting it as a location shift needs similarly shaped distributions
 - **Friedman test** handles repeated measures designs non-parametrically
-- Always check assumptions (normality, equal variances) before interpreting ANOVA results
+- Check independence, variance structure, residual diagnostics, influential observations, and the estimand before interpreting ANOVA results
 
 ## What's Next
 
