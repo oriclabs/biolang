@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -203,9 +203,9 @@ let sig_01 = p_values |&gt; filter(|p| p &lt; 0.01) |&gt; len()
 let sig_001 = p_values |&gt; filter(|p| p &lt; 0.001) |&gt; len()
 
 print("=== 20,000 Null Genes (No True Differences) ===")
-print("'Significant' at p &lt; 0.05:  {sig_05} (expected: ~1000)")
-print("'Significant' at p &lt; 0.01:  {sig_01} (expected: ~200)")
-print("'Significant' at p &lt; 0.001: {sig_001} (expected: ~20)")
+print(f"'Significant' at p &lt; 0.05:  {sig_05} (expected: ~1000)")
+print(f"'Significant' at p &lt; 0.01:  {sig_01} (expected: ~200)")
+print(f"'Significant' at p &lt; 0.001: {sig_001} (expected: ~20)")
 print("\nEvery single one is a false positive!")
 
 histogram(p_values, {title: "p-Value Distribution Under Complete Null", x_label: "p-value", bins: 50})
@@ -526,9 +526,9 @@ for i in 1..20000 {
   fold_changes = append(fold_changes, mean(group2) - mean(group1))
 }
 
-print("Total genes: {len(p_values)}")
-print("True DE genes: {is_true |&gt; filter(|x| x == 1) |&gt; len()}")
-print("Null genes: {is_true |&gt; filter(|x| x == 0) |&gt; len()}")
+print(f"Total genes: {len(p_values)}")
+print(f"True DE genes: {is_true |&gt; filter(|x| x == 1) |&gt; len()}")
+print(f"Null genes: {is_true |&gt; filter(|x| x == 0) |&gt; len()}")
 </code></pre>
 <h3 id="applying-all-correction-methods"><a class="header" href="#applying-all-correction-methods">Applying All Correction Methods</a></h3>
 <pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
@@ -566,7 +566,7 @@ for method_name, adj_p in [
   }
   let total = len(discoveries)
   let fdr = if total &gt; 0 then false_pos / total else 0.0
-  print("{method_name} | {total:&gt;17} | {true_pos:&gt;8} | {false_pos:&gt;9} | {fdr:&gt;6.3}")
+  print(f"{method_name} | {total:&gt;17} | {true_pos:&gt;8} | {false_pos:&gt;9} | {fdr:&gt;6.3}")
 }
 </code></pre>
 <h3 id="drawing-a-volcano-plot"><a class="header" href="#drawing-a-volcano-plot">Drawing a Volcano Plot</a></h3>
@@ -596,9 +596,9 @@ for i in 0..len(p_bh) {
   else if p_bh[i] &lt; 0.05 and log2_fc[i] &lt; -1.0 { sig_down = sig_down + 1 }
   else { not_sig = not_sig + 1 }
 }
-print("Significantly upregulated:   {sig_up}")
-print("Significantly downregulated: {sig_down}")
-print("Not significant:             {not_sig}")
+print(f"Significantly upregulated:   {sig_up}")
+print(f"Significantly downregulated: {sig_down}")
+print(f"Not significant:             {not_sig}")
 </code></pre>
 <h3 id="visualizing-the-bh-procedure"><a class="header" href="#visualizing-the-bh-procedure">Visualizing the BH Procedure</a></h3>
 <pre><code class="language-bio">set_seed(42)
@@ -625,7 +625,7 @@ scatter(range(1, 101), sorted_p)
 
 let bh_adjusted = p_adjust(p_vals, "BH")
 let n_sig = bh_adjusted |&gt; filter(|p| p &lt; 0.05) |&gt; len()
-print("BH discoveries (FDR &lt; 0.05): {n_sig}")
+print(f"BH discoveries (FDR &lt; 0.05): {n_sig}")
 </code></pre>
 <h3 id="p-value-histograms-diagnostic-tool"><a class="header" href="#p-value-histograms-diagnostic-tool">p-Value Histograms: Diagnostic Tool</a></h3>
 <pre><code class="language-bio">set_seed(42)

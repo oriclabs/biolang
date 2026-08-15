@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -242,7 +242,7 @@
 <tr><td>No</td><td>Yes</td><td>No</td><td>Welch’s t-test</td><td><code>ttest(a, b)</code></td></tr>
 <tr><td>No</td><td>No</td><td>—</td><td>Mann-Whitney U</td><td><code>wilcoxon(a, b)</code></td></tr>
 <tr><td>Yes</td><td>Yes</td><td>—</td><td>Paired t-test</td><td><code>ttest_paired(a, b)</code></td></tr>
-<tr><td>Yes</td><td>No</td><td>—</td><td>Wilcoxon signed-rank</td><td><code>wilcoxon(a, b)</code></td></tr>
+<tr><td>Yes</td><td>No</td><td>—</td><td>Wilcoxon signed-rank</td><td>Not currently a builtin; <code>wilcoxon(a, b)</code> is rank-sum for independent groups</td></tr>
 </tbody>
 </table>
 </div>
@@ -250,11 +250,14 @@
 <p><strong>Key insight:</strong> Welch’s t-test is almost always preferred over Student’s t-test because it does not assume equal variances. When variances are actually equal, Welch’s test gives nearly identical results. When they are not, Student’s test can be dangerously wrong. BioLang uses Welch’s by default.</p>
 </blockquote>
 <h3 id="how-to-check-normality"><a class="header" href="#how-to-check-normality">How to check normality</a></h3>
-<pre><code class="language-bio">let data = [2.3, 4.1, 3.7, 5.2, 4.8, 3.1, 6.0, 4.4]
+<pre><code class="language-bio">import "statistics" as stat
 
-# Visual check — Q-Q plot (best for small samples)
-qq_plot(data, {title: "Normality Check"})
+let data = [2.3, 4.1, 3.7, 5.2, 4.8, 3.1, 6.0, 4.4]
+let report = stat.explore(data)
+stat.distribution_plot(data, {title: "Distribution check"})
 </code></pre>
+<p>Use <code>normal_qq_plot(values)</code> for a normal-distribution diagnostic. The older
+<code>qq_plot(p_values)</code> remains specifically for genomic p-value Q-Q plots.</p>
 <blockquote>
 <p><strong>Common pitfall:</strong> With small samples (n &lt; 30), normality tests have low power and may fail to reject normality even when the data is non-normal. With large samples (n &gt; 5000), normality tests reject normality for trivially small deviations. Use Q-Q plots as a visual supplement.</p>
 </blockquote>
@@ -268,10 +271,10 @@ qq_plot(data, {title: "Normality Check"})
 <tbody>
 <tr><td>Yes</td><td>Yes</td><td>Independent groups</td><td>One-way ANOVA</td><td><code>anova(groups)</code></td></tr>
 <tr><td>Yes</td><td>No</td><td>Independent groups</td><td>Welch’s ANOVA</td><td><code>anova(groups)</code></td></tr>
-<tr><td>No</td><td>—</td><td>Independent groups</td><td>Kruskal-Wallis</td><td><code>anova(groups)</code></td></tr>
-<tr><td>Yes</td><td>—</td><td>Repeated measures</td><td>Repeated-measures ANOVA</td><td><code>anova(groups)</code></td></tr>
-<tr><td>No</td><td>—</td><td>Repeated measures</td><td>Friedman test</td><td><code>anova(groups)</code></td></tr>
-<tr><td>Yes</td><td>—</td><td>Two factors</td><td>Two-way ANOVA</td><td><code>anova(groups)</code></td></tr>
+<tr><td>No</td><td>—</td><td>Independent groups</td><td>Kruskal-Wallis</td><td>Not currently a builtin</td></tr>
+<tr><td>Yes</td><td>—</td><td>Repeated measures</td><td>Repeated-measures ANOVA</td><td>Not currently a builtin</td></tr>
+<tr><td>No</td><td>—</td><td>Repeated measures</td><td>Friedman test</td><td>Not currently a builtin</td></tr>
+<tr><td>Yes</td><td>—</td><td>Two factors</td><td>Two-way ANOVA</td><td>Use an explicitly specified regression model; <code>anova(groups)</code> is one-way only</td></tr>
 </tbody>
 </table>
 </div>
@@ -327,12 +330,12 @@ qq_plot(data, {title: "Normality Check"})
 <tr><th>Design</th><th>Expected cell counts</th><th>Test</th><th>BioLang</th></tr>
 </thead>
 <tbody>
-<tr><td>2x2 table, large samples</td><td>All expected &gt;= 5</td><td>Chi-square test</td><td><code>chi_square(observed, expected)</code></td></tr>
+<tr><td>2x2 table, large samples</td><td>All expected &gt;= 5</td><td>Chi-square test of independence</td><td>Constructing expected contingency counts is not currently a dedicated builtin</td></tr>
 <tr><td>2x2 table, small samples</td><td>Any expected &lt; 5</td><td>Fisher’s exact test</td><td><code>fisher_exact(a, b, c, d)</code></td></tr>
-<tr><td>Larger than 2x2</td><td>All expected &gt;= 5</td><td>Chi-square test</td><td><code>chi_square(observed, expected)</code></td></tr>
-<tr><td>Larger than 2x2, small samples</td><td>Any expected &lt; 5</td><td>Fisher-Freeman-Halton</td><td><code>fisher_exact(a, b, c, d)</code></td></tr>
-<tr><td>Paired categorical data</td><td>—</td><td>McNemar’s test</td><td><code>chi_square(observed, expected)</code></td></tr>
-<tr><td>Trend across ordered categories</td><td>—</td><td>Cochran-Armitage trend test</td><td><code>chi_square(observed, expected)</code></td></tr>
+<tr><td>Larger than 2x2</td><td>All expected &gt;= 5</td><td>Chi-square test of independence</td><td>Not currently a dedicated builtin; <code>chi_square()</code> accepts flat observed/expected lists for goodness-of-fit</td></tr>
+<tr><td>Larger than 2x2, small samples</td><td>Any expected &lt; 5</td><td>Fisher-Freeman-Halton</td><td>Not currently a builtin; <code>fisher_exact()</code> is 2x2 only</td></tr>
+<tr><td>Paired categorical data</td><td>—</td><td>McNemar’s test</td><td>Not currently a builtin</td></tr>
+<tr><td>Trend across ordered categories</td><td>—</td><td>Cochran-Armitage trend test</td><td>Not currently a builtin</td></tr>
 </tbody>
 </table>
 </div>
@@ -389,8 +392,8 @@ print("R-squared: " + str(round(model.r_squared, 3)))
 </thead>
 <tbody>
 <tr><td>Estimate survival curve</td><td>Kaplan-Meier</td><td>Sort event times, compute stepwise survival</td></tr>
-<tr><td>Compare survival between two groups</td><td>Log-rank test</td><td><code>ttest(times_a, times_b)</code> as proxy</td></tr>
-<tr><td>Compare survival, multiple groups</td><td>Log-rank test</td><td><code>anova([group1_times, group2_times, ...])</code></td></tr>
+<tr><td>Compare survival between two groups</td><td>Log-rank test</td><td><code>log_rank_test(times_a, events_a, times_b, events_b)</code></td></tr>
+<tr><td>Compare survival, multiple groups</td><td>Multi-group log-rank test</td><td>Not currently a builtin</td></tr>
 <tr><td>Adjust for covariates</td><td>Cox proportional hazards</td><td><code>cox_ph(time, event, covariates)</code></td></tr>
 <tr><td>Estimate median survival</td><td>From sorted times</td><td><code>sort(times)[len(times) / 2]</code></td></tr>
 </tbody>
@@ -441,7 +444,7 @@ print("R-squared: " + str(round(model.r_squared, 3)))
 <tr><td>Bonferroni</td><td>Family-wise error rate</td><td>Most conservative</td><td><code>p_adjust(pvals, "bonferroni")</code></td></tr>
 <tr><td>Holm</td><td>Family-wise error rate</td><td>Less conservative</td><td><code>p_adjust(pvals, "holm")</code></td></tr>
 <tr><td>Benjamini-Hochberg</td><td>False discovery rate</td><td>Moderate</td><td><code>p_adjust(pvals, "BH")</code></td></tr>
-<tr><td>Benjamini-Yekutieli</td><td>FDR under dependence</td><td>Conservative FDR</td><td><code>p_adjust(pvals, "BY")</code></td></tr>
+<tr><td>Benjamini-Yekutieli</td><td>FDR under dependence</td><td>Conservative FDR</td><td>Not currently a builtin</td></tr>
 <tr><td>Permutation</td><td>Empirical null</td><td>Gold standard</td><td>Inline loop with <code>shuffle()</code></td></tr>
 </tbody>
 </table>
@@ -459,7 +462,7 @@ print("R-squared: " + str(round(model.r_squared, 3)))
 <tr><td>Gene expression, treated vs. control</td><td>Welch’s t-test</td><td><code>ttest(treated, control)</code></td></tr>
 <tr><td>Gene expression across 4 tissues</td><td>One-way ANOVA</td><td><code>anova([tissue1, tissue2, tissue3, tissue4])</code></td></tr>
 <tr><td>Mutation frequency in cases vs. controls</td><td>Fisher’s exact test</td><td><code>fisher_exact(a, b, c, d)</code></td></tr>
-<tr><td>Survival by treatment arm</td><td>Compare survival times</td><td><code>ttest(arm1_times, arm2_times)</code></td></tr>
+<tr><td>Survival by treatment arm</td><td>Log-rank comparison with censoring</td><td><code>log_rank_test(times_a, events_a, times_b, events_b)</code></td></tr>
 <tr><td>20,000 gene differential expression</td><td>t-test + BH correction</td><td><code>p_adjust(pvals, "BH")</code></td></tr>
 <tr><td>Sample clustering from RNA-seq</td><td>PCA + hierarchical clustering</td><td><code>pca(data)</code> then <code>hclust(scores)</code></td></tr>
 <tr><td>Correlation: expression vs. methylation</td><td>Spearman (often non-linear)</td><td><code>spearman(expr, meth)</code></td></tr>

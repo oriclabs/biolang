@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,8 +181,8 @@
                         <h1 id="day-9-when-normality-fails--non-parametric-tests"><a class="header" href="#day-9-when-normality-fails--non-parametric-tests">Day 9: When Normality Fails — Non-Parametric Tests</a></h1>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Dr. Maria Gonzalez studies the gut microbiome in inflammatory bowel disease (IBD). She has 16S rRNA sequencing data from 15 IBD patients and 15 healthy controls, measuring the relative abundance of <em>Faecalibacterium prausnitzii</em>, a key anti-inflammatory bacterium. Looking at the data, she sees a mess: most values cluster near zero, a few patients have moderate levels, and one healthy individual has an enormous abundance of 45%. The histogram looks nothing like a bell curve — it is right-skewed with a long tail.</p>
-<p>She runs a Shapiro-Wilk test on each group: both return p &lt; 0.001, firmly rejecting normality. The t-test assumes normally distributed data. With data this skewed, the t-test’s p-value could be wildly inaccurate — too liberal or too conservative, depending on the specific pattern. She needs tests that work without any assumptions about the shape of the distribution.</p>
-<p>These are <strong>non-parametric tests</strong>: methods that operate on the <em>ranks</em> of data rather than the raw values, making them robust to skewness, outliers, and any distributional shape.</p>
+<p>She runs a Shapiro-Wilk test on each group: both return p &lt; 0.001, evidence against an exact normal model. That result alone does not choose the analysis. She must decide whether her estimand is a difference in means, ranks, medians under additional assumptions, or entire distributions; she must also respect independence, ties, zeros, and the experimental unit.</p>
+<p>Many <strong>rank-based tests</strong> operate on ordering rather than the raw distances between values. They can reduce the influence of extreme magnitudes, but they still have assumptions about exchangeability, independence, pairing, continuity/ties, and what a distributional shift means.</p>
 <h2 id="what-are-non-parametric-tests"><a class="header" href="#what-are-non-parametric-tests">What Are Non-Parametric Tests?</a></h2>
 <p>Imagine you are judging a cooking competition. A parametric judge scores each dish on a precise 1-100 scale and compares average scores. A non-parametric judge simply ranks the dishes from best to worst — first place, second place, third place. The ranking approach is less precise when scores are reliable, but it is far more robust when one judge has an eccentric scoring system.</p>
 <p>Non-parametric tests replace raw data values with their <strong>ranks</strong> (1st smallest, 2nd smallest, …) and then analyze the ranks. This has powerful consequences:</p>
@@ -192,17 +192,17 @@
 <tr><th>Property</th><th>Parametric (t-test)</th><th>Non-parametric (rank-based)</th></tr>
 </thead>
 <tbody>
-<tr><td>Assumes normality</td><td>Yes</td><td>No</td></tr>
-<tr><td>Sensitive to outliers</td><td>Very</td><td>Resistant</td></tr>
+<tr><td>Exact normal model used in the classical derivation</td><td>Yes</td><td>No</td></tr>
+<tr><td>Sensitivity to extreme magnitudes</td><td>Can be high</td><td>Usually lower after ranking</td></tr>
 <tr><td>Uses raw values</td><td>Yes</td><td>Uses ranks</td></tr>
 <tr><td>Power (normal data)</td><td>Highest</td><td>Slightly lower (~95%)</td></tr>
-<tr><td>Power (non-normal data)</td><td>Unreliable</td><td>Reliable</td></tr>
+<tr><td>Power away from normality</td><td>Depends on shape, n, and estimand</td><td>Depends on shape, ties, n, and estimand</td></tr>
 <tr><td>Handles ordinal data</td><td>No</td><td>Yes</td></tr>
 </tbody>
 </table>
 </div>
 <blockquote>
-<p><strong>Key insight:</strong> Non-parametric tests are not “worse” versions of parametric tests. They are the correct choice when distributional assumptions are violated. Using a t-test on heavily skewed data is like measuring temperature with a ruler — you might get a number, but it doesn’t mean anything.</p>
+<p><strong>Key insight:</strong> Rank-based tests are not automatic fallbacks for every non-normal histogram. Choose them when their rank or distribution estimand answers the biological question, and state what equality under the null means. A mean-based model, transformation, permutation method, quantile model, or count model may answer a different and more relevant question.</p>
 </blockquote>
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="300" viewbox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -231,19 +231,19 @@
   <text x="475" y="238" text-anchor="middle" font-size="10" fill="#f59e0b">mean</text>
   <!-- Outlier annotation -->
   <text x="590" y="210" font-size="9" fill="#dc2626">rare high values</text>
-  <text x="510" y="260" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="bold">t-test unreliable!</text>
-  <text x="510" y="275" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="bold">Use Mann-Whitney</text>
+  <text x="510" y="260" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="bold">mean may hide the shape</text>
+  <text x="510" y="275" text-anchor="middle" font-size="10" fill="#16a34a" font-weight="bold">Choose the estimand first</text>
 </svg>
 </div>
 
 <h2 id="when-to-choose-non-parametric"><a class="header" href="#when-to-choose-non-parametric">When to Choose Non-Parametric</a></h2>
-<p>Use non-parametric tests when:</p>
+<p>Consider a rank-based method when:</p>
 <ul>
-<li><strong>Shapiro-Wilk</strong> rejects normality (p &lt; 0.05) and sample size is small</li>
+<li>Ordering or a broad distributional comparison answers the scientific question</li>
 <li>Data are <strong>ordinal</strong> (pain scale 1-10, tumor grade I-IV)</li>
-<li>Data have <strong>heavy outliers</strong> that cannot be removed</li>
-<li><strong>Sample sizes are very small</strong> (n &lt; 10 per group)</li>
-<li>Data are <strong>bounded</strong> or have floor/ceiling effects (many zeros)</li>
+<li>Valid extremes make raw magnitudes a poor basis for the intended comparison</li>
+<li>The randomization/exchangeability structure supports the chosen test</li>
+<li>Ties, bounds, floor/ceiling effects, and small-sample discreteness have been handled explicitly</li>
 </ul>
 <h2 id="the-rank-transformation"><a class="header" href="#the-rank-transformation">The Rank Transformation</a></h2>
 <p>The foundation of all non-parametric tests is replacing values with ranks:</p>
@@ -462,20 +462,20 @@ let healthy = [2.1, 5.4, 1.8, 8.2, 3.5, 12.1, 4.7, 6.3, 2.9, 45.0,
 
 # First, demonstrate why t-test is inappropriate
 # Check normality visually — both distributions are right-skewed
-qq_plot(ibd, {title: "QQ Plot: IBD"})
-qq_plot(healthy, {title: "QQ Plot: Healthy"})
+normal_qq_plot(ibd, {title: "QQ Plot: IBD"})
+normal_qq_plot(healthy, {title: "QQ Plot: Healthy"})
 print("Both groups are heavily skewed — normality violated!\n")
 
 # Mann-Whitney U test (non-parametric)
 let result = wilcoxon(ibd, healthy)
 print("=== Mann-Whitney U Test ===")
-print("U statistic: {result.statistic:.1}")
-print("p-value: {result.p_value:.2e}")
+print(f"U statistic: {result.statistic:.1}")
+print(f"p-value: {result.p_value:.2e}")
 
 # Compare to (inappropriate) t-test
 let t_result = ttest(ibd, healthy)
-print("\n(Inappropriate) Welch's t-test p-value: {t_result.p_value:.2e}")
-print("Mann-Whitney p-value: {result.p_value:.2e}")
+print(f"\n(Inappropriate) Welch's t-test p-value: {t_result.p_value:.2e}")
+print(f"Mann-Whitney p-value: {result.p_value:.2e}")
 print("Results may differ substantially with skewed data")
 
 # Visualize the skewed distributions
@@ -490,14 +490,14 @@ let after  = [120, 12, 340, 22, 28, 450,  35,  65, 10, 210, 42,  890]
 
 # Normality check on differences
 let diffs = zip(before, after) |&gt; map(|p| p[0] - p[1])
-qq_plot(diffs, {title: "QQ Plot: Paired Differences"})
+normal_qq_plot(diffs, {title: "QQ Plot: Paired Differences"})
 print("Differences are non-normal -&gt; use Wilcoxon signed-rank\n")
 
 # Wilcoxon signed-rank test
 let result = wilcoxon(before, after)
 print("=== Wilcoxon Signed-Rank Test ===")
-print("V statistic: {result.statistic:.1}")
-print("p-value: {result.p_value:.6}")
+print(f"V statistic: {result.statistic:.1}")
+print(f"p-value: {result.p_value:.6}")
 print("All 12 patients showed reduction in IL-6")
 
 # For comparison: the sign test via dbinom (even more robust, less powerful)
@@ -510,7 +510,7 @@ for k in range(n_pos, n_nonzero + 1) {
     sign_p = sign_p + dbinom(k, n_nonzero, 0.5)
 }
 let sign_p = 2.0 * min(sign_p, 1.0 - sign_p)  # two-tailed
-print("\nSign test p-value: {sign_p:.6}")
+print(f"\nSign test p-value: {sign_p:.6}")
 </code></pre>
 <h3 id="kruskal-wallis-multiple-body-sites"><a class="header" href="#kruskal-wallis-multiple-body-sites">Kruskal-Wallis: Multiple Body Sites</a></h3>
 <pre><code class="language-bio"># Bacterial diversity (Shannon index) across three gut regions
@@ -521,9 +521,9 @@ let rectum  = [3.8, 4.2, 3.5, 4.5, 3.9, 4.1, 3.6, 4.3, 3.7, 4.0]
 # Kruskal-Wallis: use anova() on rank-transformed data
 let result = anova([ileum, cecum, rectum])
 print("=== Kruskal-Wallis Test: Diversity Across Body Sites ===")
-print("H statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
-print("Degrees of freedom: {result.df}")
+print(f"H statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
+print(f"Degrees of freedom: {result.df_between}")
 
 if result.p_value &lt; 0.05 {
   print("\nAt least one body site differs. Running pairwise comparisons...")
@@ -534,9 +534,9 @@ if result.p_value &lt; 0.05 {
 
   # Bonferroni correction for 3 comparisons
   let adjusted = p_adjust([p1, p2, p3], "bonferroni")
-  print("Ileum vs Cecum:  p = {adjusted[0]:.4}")
-  print("Ileum vs Rectum: p = {adjusted[1]:.4}")
-  print("Cecum vs Rectum: p = {adjusted[2]:.4}")
+  print(f"Ileum vs Cecum:  p = {adjusted[0]:.4}")
+  print(f"Ileum vs Rectum: p = {adjusted[1]:.4}")
+  print(f"Cecum vs Rectum: p = {adjusted[2]:.4}")
 }
 
 let bp_table = table({"Ileum": ileum, "Cecum": cecum, "Rectum": rectum})
@@ -552,9 +552,9 @@ let oncogenes = [5.2, 8.1, 6.3, 12.4, 7.5, 5.8, 9.2, 6.7, 11.3, 7.0,
 
 let result = ks_test(tumor_suppressors, oncogenes)
 print("=== KS Test: Expression Distributions ===")
-print("D statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
-print("Maximum distance between cumulative distributions: {result.statistic:.4}")
+print(f"D statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
+print(f"Maximum distance between cumulative distributions: {result.statistic:.4}")
 
 histogram([tumor_suppressors, oncogenes], {labels: ["Tumor Suppressors", "Oncogenes"], title: "Expression Distributions by Gene Class", x_label: "Expression (log2-CPM)", bins: 12})
 </code></pre>
@@ -568,14 +568,14 @@ let norm_a = rnorm(20, 5.0, 1.0)
 let norm_b = rnorm(20, 6.0, 1.0)
 let t_p = ttest(norm_a, norm_b).p_value
 let w_p = wilcoxon(norm_a, norm_b).p_value
-print("t-test p = {t_p:.4}, Mann-Whitney p = {w_p:.4}")
+print(f"t-test p = {t_p:.4}, Mann-Whitney p = {w_p:.4}")
 
 print("\n=== Skewed Data with Outlier: Tests May Disagree ===")
 let skew_a = [1.2, 1.5, 1.8, 1.1, 1.4, 1.6, 1.3, 1.7, 1.9, 50.0]
 let skew_b = [2.1, 2.3, 2.5, 2.0, 2.4, 2.2, 2.6, 2.1, 2.3, 2.5]
 let t_p2 = ttest(skew_a, skew_b).p_value
 let w_p2 = wilcoxon(skew_a, skew_b).p_value
-print("t-test p = {t_p2:.4}, Mann-Whitney p = {w_p2:.4}")
+print(f"t-test p = {t_p2:.4}, Mann-Whitney p = {w_p2:.4}")
 print("The outlier inflates the t-test mean, masking the real pattern")
 </code></pre>
 <p><strong>Python:</strong></p>
@@ -656,9 +656,9 @@ let vaginal = [45, 30, 55, 38, 25, 50, 42, 35, 48, 28]
 <li>The <strong>Wilcoxon signed-rank</strong> test is the non-parametric alternative to the paired t-test</li>
 <li>The <strong>Kruskal-Wallis</strong> test extends to three or more groups (non-parametric ANOVA)</li>
 <li>The <strong>KS test</strong> compares entire distributions, not just central tendency</li>
-<li>Non-parametric tests have about 95% of the power of parametric tests when data ARE normal, but are far more reliable when data are NOT normal</li>
-<li>Microbiome data, cytokine levels, survival times, and ordinal scales almost always require non-parametric methods</li>
-<li>Always check normality first (Shapiro-Wilk, QQ plots) — let the data guide your choice of test</li>
+<li>Relative power depends on the particular test, alternative, sample size, ties, and distribution; there is no universal 95% rule</li>
+<li>Microbiome abundance, cytokines, survival outcomes, and ordinal scales need methods matched to their sampling process and estimand; survival data additionally require censoring-aware methods</li>
+<li>Inspect distributions and model diagnostics, but choose the test from the question and design rather than a normality-test threshold</li>
 </ul>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
 <p>So far we have compared two groups. But what if you have three, four, or ten groups — different drug doses, tissue types, or experimental conditions? Running all pairwise t-tests inflates false positives dramatically. Tomorrow we introduce ANOVA, the principled way to compare many groups simultaneously, along with post-hoc tests that identify <em>which</em> groups differ.</p>

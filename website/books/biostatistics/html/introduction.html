@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -289,6 +289,12 @@ pipe-chained steps.</p>
 <p>Every day has a companion directory with a BioLang setup script and Python and
 R comparison scripts. The runnable BioLang analyses are the code blocks in the
 chapter itself. The current companion structure is:</p>
+<p>For a shorter interactive path through centre/spread choices, logarithms,
+weights, repeated subjects, robust regression, and ordered data, use the
+<a href="../practical-statistics-validation.bln">downloadable practical BioLang notebook</a>.
+In a repository checkout it lives at
+<code>books/biostatistics/practical-statistics-validation.bln</code>. Run its cells from
+top to bottom so later cells can reuse interpreter context.</p>
 <pre><code>biostatistics/
   days/
     day-01/
@@ -331,7 +337,7 @@ cd biolang/books/biostatistics
 <h2 id="setting-up-your-environment"><a class="header" href="#setting-up-your-environment">Setting Up Your Environment</a></h2>
 <p>Full installation instructions are in <a href="appendix-setup.html">Appendix A</a>, but here is the short version:</p>
 <pre><code class="language-bash"># Install BioLang
-curl -sSf https://biolang.org/install.sh | sh
+curl -fsSL https://lang.bio/install.sh | sh
 
 # Verify it works
 bl --version
@@ -340,7 +346,7 @@ bl --version
 bl repl
 </code></pre>
 <p>On Windows, use the PowerShell installer:</p>
-<pre><code class="language-powershell">irm https://biolang.org/install.ps1 | iex
+<pre><code class="language-powershell">iwr -useb https://lang.bio/install.ps1 | iex
 </code></pre>
 <p>If you want to run the Python comparison scripts (optional but recommended):</p>
 <pre><code class="language-bash">pip install scipy numpy pandas matplotlib statsmodels lifelines scikit-learn
@@ -381,8 +387,8 @@ kaplan_meier(survival, {title: "Overall Survival by Treatment"})
 <p>And power analysis for planning your next experiment:</p>
 <pre><code class="language-bio"># Power calculation: how many samples per group?
 let result = power_t_test(0.5, 0.05, 0.8)
-println("Required sample size per group: {result.n}")
-println("Effect size: {result.effect_size}, alpha: {result.alpha}, power: {result.power}")
+println(f"Required sample size per group: {result.n}")
+println(f"Effect size: {result.effect_size}, alpha: {result.alpha}, power: {result.power}")
 </code></pre>
 <p>BioLang’s statistical, tabular, and visualization builtins keep the analysis
 close to the biological question.</p>

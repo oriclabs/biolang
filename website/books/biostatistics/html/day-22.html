@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -721,7 +721,7 @@ for (k in 2:7) {
 <li>Clustered heatmaps are the standard visualization for gene expression patterns across samples.</li>
 </ul>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
-<p>PCA and clustering assume that the data you have is large enough to draw conclusions. But what if your dataset is tiny — six mice per group, far too few to verify normality or trust asymptotic theory? Tomorrow, we meet resampling methods: bootstrap and permutation tests. These techniques let your data speak for itself, building confidence intervals and testing hypotheses without any distributional assumptions, by literally reshuffling the data thousands of times.</p>
+<p>PCA and clustering can be unstable when the dataset is tiny. With six mice per group, distribution diagnostics and asymptotic approximations carry substantial uncertainty. Tomorrow, we meet bootstrap and permutation methods. They approximate uncertainty by resampling, but still rely on representative observations, a correct resampling unit, and exchangeability or other design assumptions.</p>
 
                     </main>
 

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -512,8 +512,8 @@ let sample_sizes = [5, 10, 15, 20, 30, 50, 75, 100]
 let n_simulations = 1000
 
 print("=== Power Analysis: Two-Sample t-test ===")
-print("Effect size (Cohen's d): {effect_size}")
-print("Alpha: {alpha}")
+print(f"Effect size (Cohen's d): {effect_size}")
+print(f"Alpha: {alpha}")
 print("")
 print("n per group    Estimated Power")
 
@@ -533,7 +533,7 @@ for n in sample_sizes {
 
     let power = significant / n_simulations
     let marker = if power &gt;= power_target { " &lt;-- sufficient" } else { "" }
-    print("{n}            {power |&gt; round(3)}{marker}")
+    print(f"{n}            {power |&gt; round(3)}{marker}")
 }
 </code></pre>
 <h3 id="power-curves-for-different-effect-sizes"><a class="header" href="#power-curves-for-different-effect-sizes">Power Curves for Different Effect Sizes</a></h3>
@@ -610,7 +610,7 @@ for fc in fold_changes {
         powers = powers + [detected / n_sims]
     }
 
-    print("{fc}     " ++ powers |&gt; map(|p| "{(p * 100) |&gt; round(0)}%") |&gt; join("   "))
+    print(f"{fc}     " ++ powers |&gt; map(|p| f"{(p * 100) |&gt; round(0)}%") |&gt; join("   "))
 }
 
 # Key takeaway: n=3 barely detects 4-fold changes;
@@ -645,10 +645,10 @@ for sim in 0..n_sims {
     }
 }
 
-print("=== Paired vs Unpaired Design (n={n}, d={effect}) ===")
-print("Unpaired power: {(power_unpaired / n_sims * 100) |&gt; round(1)}%")
-print("Paired power:   {(power_paired / n_sims * 100) |&gt; round(1)}%")
-print("Pairing advantage: {((power_paired - power_unpaired) / n_sims * 100) |&gt; round(1)} percentage points")
+print(f"=== Paired vs Unpaired Design (n={n}, d={effect}) ===")
+print(f"Unpaired power: {(power_unpaired * 100.0 / n_sims) |&gt; round(1)}%")
+print(f"Paired power:   {(power_paired * 100.0 / n_sims) |&gt; round(1)}%")
+print(f"Pairing advantage: {((power_paired - power_unpaired) * 100.0 / n_sims) |&gt; round(1)} percentage points")
 </code></pre>
 <h3 id="multi-group-design-anova"><a class="header" href="#multi-group-design-anova">Multi-Group Design (ANOVA)</a></h3>
 <pre><code class="language-bio">set_seed(42)
@@ -658,7 +658,7 @@ let k = 4  # number of groups
 let group_means = [0, 0.3, 0.6, 0.9]  # increasing effect
 let sample_sizes = [5, 10, 15, 20, 30]
 
-print("=== ANOVA Power (k={k} groups) ===")
+print(f"=== ANOVA Power (k={k} groups) ===")
 for n in sample_sizes {
     let sig = 0
 
@@ -672,7 +672,7 @@ for n in sample_sizes {
         if result.p_value &lt; 0.05 { sig = sig + 1 }
     }
 
-    print("n = {n} per group: power = {(sig / n_sims * 100) |&gt; round(1)}%")
+    print(f"n = {n} per group: power = {(sig * 100.0 / n_sims) |&gt; round(1)}%")
 }
 </code></pre>
 <h3 id="sample-size-recommendation-report"><a class="header" href="#sample-size-recommendation-report">Sample Size Recommendation Report</a></h3>
@@ -704,7 +704,7 @@ for s in scenarios {
         }
     }
 
-    print("{s.name}: n = {required_n}/group")
+    print(f"{s.name}: n = {required_n}/group")
 }
 
 print("")
@@ -807,7 +807,7 @@ library(simr)
 <li>Power curves visualize the sample size / power trade-off and help identify the sweet spot</li>
 </ul>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
-<p>Statistical significance tells you whether an effect is real, but not whether it <strong>matters</strong>. Day 19 introduces <strong>effect sizes</strong> — Cohen’s d, odds ratios, relative risk — and the critical distinction between statistical significance and practical importance.</p>
+<p>Statistical significance measures incompatibility with a specified null model; it does not establish that an effect is real or important. Day 19 introduces <strong>effect sizes</strong> — Cohen’s d, odds ratios, relative risk — and the critical distinction between statistical evidence, magnitude, precision, and practical importance.</p>
 
                     </main>
 

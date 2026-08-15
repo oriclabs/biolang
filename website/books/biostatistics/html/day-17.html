@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -460,8 +460,8 @@ for i in 0..n {
     }
 }
 
-print("Events: {status |&gt; sum} / {n} ({(status |&gt; sum) / n * 100 |&gt; round(1)}%)")
-print("Censored: {n - (status |&gt; sum)}")
+print(f"Events: {status |&gt; sum} / {n} ({(status |&gt; sum) * 100.0 / n |&gt; round(1)}%)")
+print(f"Censored: {n - (status |&gt; sum)}")
 
 # Fit Kaplan-Meier for each group
 let wt_times = []
@@ -481,8 +481,8 @@ for i in 0..n {
 let km_wt = kaplan_meier(wt_times, wt_status)
 let km_mut = kaplan_meier(mut_times, mut_status)
 
-print("Median survival (TP53 WT): {km_wt.median |&gt; round(1)} months")
-print("Median survival (TP53 mut): {km_mut.median |&gt; round(1)} months")
+print(f"Median survival (TP53 WT): {km_wt.median |&gt; round(1)} months")
+print(f"Median survival (TP53 mut): {km_mut.median |&gt; round(1)} months")
 </code></pre>
 <h3 id="kaplan-meier-plot"><a class="header" href="#kaplan-meier-plot">Kaplan-Meier Plot</a></h3>
 <pre><code class="language-bio"># Publication-quality survival curves
@@ -505,7 +505,7 @@ let km_all = kaplan_meier(survival_time, status)
 # Use Cox PH as a proxy for log-rank (equivalent for single binary predictor)
 let cox_lr = cox_ph(survival_time, status, [tp53_mut])
 print("=== Log-Rank Test (via Cox) ===")
-print("p-value: {cox_lr.p_value |&gt; round(4)}")
+print(f"p-value: {cox_lr.p_value |&gt; round(4)}")
 
 if cox_lr.p_value &lt; 0.05 {
     print("Significant difference in survival between TP53 groups")
@@ -524,19 +524,19 @@ let stage = rnorm(n, 2.5, 0.8) |&gt; map(|x| max(1, min(4, round(x))))
 let cox_simple = cox_ph(survival_time, status, [tp53_mut])
 
 print("=== Univariate Cox Model ===")
-print("TP53 Mutation HR: {cox_simple.hazard_ratio |&gt; round(2)}")
-print("  p-value: {cox_simple.p_value |&gt; round(4)}")
+print(f"TP53 Mutation HR: {cox_simple.hazard_ratio |&gt; round(2)}")
+print(f"  p-value: {cox_simple.p_value |&gt; round(4)}")
 
 # Multivariable Cox model — adjust for age and stage
 let cox_adjusted = cox_ph(survival_time, status, [tp53_mut, age, stage])
 
 print("\n=== Multivariable Cox Model ===")
-print("Hazard ratios: {cox_adjusted.hazard_ratios}")
-print("p-values: {cox_adjusted.p_values}")
+print(f"Hazard ratios: {cox_adjusted.hazard_ratios}")
+print(f"p-values: {cox_adjusted.p_values}")
 
 # Compare: does TP53 HR change after adjusting for stage?
-print("\nTP53 HR unadjusted: {cox_simple.hazard_ratio |&gt; round(2)}")
-print("TP53 HR adjusted:   {cox_adjusted.hazard_ratios[0] |&gt; round(2)}")
+print(f"\nTP53 HR unadjusted: {cox_simple.hazard_ratio |&gt; round(2)}")
+print(f"TP53 HR adjusted:   {cox_adjusted.hazard_ratios[0] |&gt; round(2)}")
 </code></pre>
 <h3 id="forest-plot-of-hazard-ratios"><a class="header" href="#forest-plot-of-hazard-ratios">Forest Plot of Hazard Ratios</a></h3>
 <pre><code class="language-bio"># Visualize all HRs from the multivariable model

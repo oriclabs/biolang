@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -469,7 +469,7 @@
 <tr><th>Parametric</th><th>Non-Parametric</th><th>Use When</th></tr>
 </thead>
 <tbody>
-<tr><td>One-way ANOVA</td><td>Kruskal-Wallis</td><td>Groups are independent, normality violated</td></tr>
+<tr><td>One-way ANOVA</td><td>Kruskal-Wallis</td><td>Groups are independent and a rank/distribution comparison answers the question</td></tr>
 <tr><td>Repeated measures ANOVA</td><td>Friedman test</td><td>Same subjects measured under all conditions</td></tr>
 </tbody>
 </table>
@@ -485,16 +485,16 @@ let dose_100 = [180, 210, 165, 225, 195, 172, 218, 198]
 # One-way ANOVA
 let result = anova([placebo, dose_25, dose_50, dose_100])
 print("=== One-Way ANOVA: Tumor Volume by Dose ===")
-print("F-statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
-print("df between: {result.df_between}, df within: {result.df_within}")
+print(f"F-statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
+print(f"df between: {result.df_between}, df within: {result.df_within}")
 
 # Effect size: eta-squared = SS_between / SS_total (inline from anova output)
 let eta2 = result.ss_between / (result.ss_between + result.ss_within)
-print("Eta-squared: {eta2:.4} ({eta2*100:.1}% of variance explained)")
+print(f"Eta-squared: {eta2:.4} ({eta2*100:.1}% of variance explained)")
 
 # Check assumptions: compare variances per group
-print("\nVariances: placebo={variance(placebo):.1}, 25mg={variance(dose_25):.1}, 50mg={variance(dose_50):.1}, 100mg={variance(dose_100):.1}")
+print(f"\nVariances: placebo={variance(placebo):.1}, 25mg={variance(dose_25):.1}, 50mg={variance(dose_50):.1}, 100mg={variance(dose_100):.1}")
 </code></pre>
 <h3 id="tukey-hsd-post-hoc"><a class="header" href="#tukey-hsd-post-hoc">Tukey HSD Post-Hoc</a></h3>
 <pre><code class="language-bio">let placebo  = [485, 512, 468, 530, 495, 478, 521, 503]
@@ -520,7 +520,7 @@ print("=== Pairwise t-tests (Bonferroni-adjusted) ===")
 print("Comparison          | Diff     | p-adj")
 print("--------------------|----------|--------")
 for k in 0..len(pair_labels) {
-  print("{pair_labels[k]:&lt;20}| {adj_p[k]:.4}")
+  print(f"{pair_labels[k]:&lt;20}| {adj_p[k]:.4}")
 }
 </code></pre>
 <h3 id="grouped-boxplot-visualization"><a class="header" href="#grouped-boxplot-visualization">Grouped Boxplot Visualization</a></h3>
@@ -541,15 +541,15 @@ let stage_III = [35.2, 88.1, 42.5, 120.0, 55.3, 78.9, 95.2, 48.7, 110.5, 65.8]
 
 # Check normality
 # Visual normality check — all stages are right-skewed
-qq_plot(stage_I, {title: "QQ: Stage I"})
-qq_plot(stage_II, {title: "QQ: Stage II"})
-qq_plot(stage_III, {title: "QQ: Stage III"})
-print("Normality violated -&gt; use Kruskal-Wallis (anova on ranks)\n")
+normal_qq_plot(stage_I, {title: "QQ: Stage I"})
+normal_qq_plot(stage_II, {title: "QQ: Stage II"})
+normal_qq_plot(stage_III, {title: "QQ: Stage III"})
+print("The groups are skewed; compare estimands and diagnostics before choosing a model.\n")
 
 let result = anova([stage_I, stage_II, stage_III])
 print("=== Kruskal-Wallis Test ===")
-print("H statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
+print(f"H statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
 
 # Pairwise follow-up with Bonferroni correction
 if result.p_value &lt; 0.05 {
@@ -559,9 +559,9 @@ if result.p_value &lt; 0.05 {
   let adj = p_adjust([p12, p13, p23], "bonferroni")
 
   print("\nPairwise Mann-Whitney (Bonferroni-adjusted):")
-  print("  Stage I vs II:   p = {adj[0]:.4}")
-  print("  Stage I vs III:  p = {adj[1]:.4}")
-  print("  Stage II vs III: p = {adj[2]:.4}")
+  print(f"  Stage I vs II:   p = {adj[0]:.4}")
+  print(f"  Stage I vs III:  p = {adj[1]:.4}")
+  print(f"  Stage II vs III: p = {adj[2]:.4}")
 }
 
 let bp_table = table({"Stage I": stage_I, "Stage II": stage_II, "Stage III": stage_III})
@@ -577,12 +577,12 @@ let drug_c = [3, 2, 4, 3, 1, 3, 2, 3]
 # Friedman test: anova() on ranks for repeated measures
 let result = anova([drug_a, drug_b, drug_c])
 print("=== Friedman Test: Pain Scores Across Analgesics ===")
-print("Chi-squared: {result.statistic:.4}")
-print("p-value: {result.p_value:.6}")
+print(f"Chi-squared: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.6}")
 
 if result.p_value &lt; 0.05 {
   print("At least one analgesic differs in pain reduction")
-  print("Medians: Drug A={median(drug_a)}, Drug B={median(drug_b)}, Drug C={median(drug_c)}")
+  print(f"Medians: Drug A={median(drug_a)}, Drug B={median(drug_b)}, Drug C={median(drug_c)}")
 }
 </code></pre>
 <h3 id="complete-workflow-gene-expression-across-tissues"><a class="header" href="#complete-workflow-gene-expression-across-tissues">Complete Workflow: Gene Expression Across Tissues</a></h3>
@@ -596,20 +596,20 @@ let nk     = [0.8, 1.1, 0.6, 1.3, 0.9, 1.0, 0.7, 1.2]
 # Step 1: Check assumptions
 print("=== Assumption Checks ===")
 # Compare variances across groups
-print("Variances: T-reg={variance(t_reg):.3}, T-eff={variance(t_eff):.3}, B cell={variance(b_cell):.3}, NK={variance(nk):.3}")
+print(f"Variances: T-reg={variance(t_reg):.3}, T-eff={variance(t_eff):.3}, B cell={variance(b_cell):.3}, NK={variance(nk):.3}")
 # Visual normality check
 for name, data in [["T-reg", t_reg], ["T-eff", t_eff], ["B cell", b_cell], ["NK", nk]] {
-  qq_plot(data, {title: "QQ Plot: {name}"})
+  normal_qq_plot(data, {title: "QQ Plot: {name}"})
 }
 
 # Step 2: ANOVA
 let result = anova([t_reg, t_eff, b_cell, nk])
 print("\n=== One-Way ANOVA ===")
-print("F = {result.statistic:.2}, p = {result.p_value:.2e}")
+print(f"F = {result.statistic:.2}, p = {result.p_value:.2e}")
 
 # Step 3: Effect size (eta-squared from anova output)
 let eta2 = result.ss_between / (result.ss_between + result.ss_within)
-print("Eta-squared = {eta2:.3} (cell type explains {eta2*100:.1}% of variance)")
+print(f"Eta-squared = {eta2:.3} (cell type explains {eta2*100:.1}% of variance)")
 
 # Step 4: Post-hoc — pairwise ttest() + p_adjust()
 let cell_groups = [t_reg, t_eff, b_cell, nk]
@@ -627,7 +627,7 @@ let pw_adj = p_adjust(pw_pvals, "bonferroni")
 print("\n=== Pairwise t-tests (Bonferroni) ===")
 for k in 0..len(pw_labels) {
   let sig = if pw_adj[k] &lt; 0.001 then "***" else if pw_adj[k] &lt; 0.01 then "**" else if pw_adj[k] &lt; 0.05 then "*" else "ns"
-  print("{pw_labels[k]:&lt;20} p={pw_adj[k]:.4} {sig}")
+  print(f"{pw_labels[k]:&lt;20} p={pw_adj[k]:.4} {sig}")
 }
 
 # Step 5: Visualize
@@ -726,9 +726,9 @@ let intense  = [155, 172, 148, 180, 162]
 <li>The <strong>F-statistic</strong> compares between-group variance to within-group variance: F much greater than 1 suggests real differences</li>
 <li>A significant ANOVA tells you “at least one group differs” — use <strong>Tukey HSD</strong> post-hoc to find which pairs differ</li>
 <li><strong>Eta-squared</strong> measures effect size: the proportion of total variance explained by group membership</li>
-<li><strong>Kruskal-Wallis</strong> is the non-parametric alternative when normality is violated</li>
+<li><strong>Kruskal-Wallis</strong> compares group rank distributions; interpreting it as a location shift needs similarly shaped distributions</li>
 <li><strong>Friedman test</strong> handles repeated measures designs non-parametrically</li>
-<li>Always check assumptions (normality, equal variances) before interpreting ANOVA results</li>
+<li>Check independence, variance structure, residual diagnostics, influential observations, and the estimand before interpreting ANOVA results</li>
 </ul>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
 <p>Tomorrow we shift from continuous to categorical outcomes. When your data consist of counts in categories — genotypes, disease status, response/non-response — you need the chi-square test and Fisher’s exact test. These tools are essential for testing genetic associations, evaluating Hardy-Weinberg equilibrium, and computing odds ratios in case-control studies.</p>

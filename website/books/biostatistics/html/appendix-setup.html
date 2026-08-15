@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,9 +183,9 @@
 <h2 id="installing-biolang"><a class="header" href="#installing-biolang">Installing BioLang</a></h2>
 <h3 id="linux-and-macos"><a class="header" href="#linux-and-macos">Linux and macOS</a></h3>
 <p>Open a terminal and run:</p>
-<pre><code class="language-bash">curl -sSf https://biolang.org/install.sh | sh
+<pre><code class="language-bash">curl -fsSL https://lang.bio/install.sh | sh
 </code></pre>
-<p>This installs the <code>bl</code> binary to <code>~/.biolang/bin/</code> and adds it to your PATH. Restart your terminal or run:</p>
+<p>This installs the <code>bl</code> binary to <code>/usr/local/bin</code> and adds it to your PATH. Restart your terminal or run:</p>
 <pre><code class="language-bash">source ~/.bashrc   # or ~/.zshrc on macOS
 </code></pre>
 <p>Verify the installation:</p>
@@ -195,9 +195,9 @@
 the current 1.x CLI and runtime.</p>
 <h3 id="windows"><a class="header" href="#windows">Windows</a></h3>
 <p>Open PowerShell and run:</p>
-<pre><code class="language-powershell">irm https://biolang.org/install.ps1 | iex
+<pre><code class="language-powershell">iwr -useb https://lang.bio/install.ps1 | iex
 </code></pre>
-<p>This installs <code>bl.exe</code> to <code>%USERPROFILE%\.biolang\bin\</code> and updates your PATH. Close and reopen PowerShell, then verify:</p>
+<p>This installs <code>bl.exe</code> to <code>%LOCALAPPDATA%\Programs\BioLang\bin</code> and updates your PATH. Close and reopen PowerShell, then verify:</p>
 <pre><code class="language-powershell">bl --version
 </code></pre>
 <h3 id="manual-installation"><a class="header" href="#manual-installation">Manual Installation</a></h3>

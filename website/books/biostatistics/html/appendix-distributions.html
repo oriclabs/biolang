@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -240,7 +240,7 @@ qlnorm(p, 0, 1)     # Value at cumulative probability p
 rlnorm(100, 0, 1)   # Generate 100 random values
 </code></pre>
 <blockquote>
-<p><strong>Key insight:</strong> When your data is right-skewed and always positive, try log-transforming it. If the log-transformed values look normal, your original data is log-normal, and you should perform statistics on the log scale.</p>
+<p><strong>Key insight:</strong> Positive right-skew and multiplicative effects make a log scale worth previewing, not mandatory. A bell-shaped log histogram is only one clue; choose the analysis from the estimand, sampling process, dependence, variance, and residual behavior. For counts, a count model may be preferable to logging before inference.</p>
 </blockquote>
 <h3 id="students-t"><a class="header" href="#students-t">Student’s t</a></h3>
 <div class="table-wrapper">

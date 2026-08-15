@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -193,7 +193,7 @@
 <tr><td><code>mean(x)</code></td><td>Arithmetic mean</td><td><code>mean([2, 4, 6])</code> → <code>4.0</code></td></tr>
 <tr><td><code>median(x)</code></td><td>Middle value</td><td><code>median([1, 3, 7])</code> → <code>3.0</code></td></tr>
 <tr><td><code>stdev(x)</code></td><td>Sample standard deviation</td><td><code>stdev([2, 4, 6])</code> → <code>2.0</code></td></tr>
-<tr><td><code>var(x)</code></td><td>Sample variance</td><td><code>var([2, 4, 6])</code> → <code>4.0</code></td></tr>
+<tr><td><code>variance(x)</code></td><td>Sample variance</td><td><code>variance([2, 4, 6])</code> → <code>4.0</code></td></tr>
 <tr><td><code>min(x)</code></td><td>Minimum value</td><td><code>min([3, 1, 4])</code> → <code>1</code></td></tr>
 <tr><td><code>max(x)</code></td><td>Maximum value</td><td><code>max([3, 1, 4])</code> → <code>4</code></td></tr>
 <tr><td><code>sum(x)</code></td><td>Sum of all values</td><td><code>sum([1, 2, 3])</code> → <code>6</code></td></tr>
@@ -208,87 +208,99 @@
 </tbody>
 </table>
 </div>
+<h2 id="guided-exploration"><a class="header" href="#guided-exploration">Guided Exploration</a></h2>
+<p>These functions are provided by the <code>statistics</code> package:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Function</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>stat.explore(values, options?)</code></td><td>Full-data descriptive facts, clues, alternatives, and limitations</td></tr>
+<tr><td><code>stat.preprocessing(values, options?)</code></td><td>Observable issues and non-applied preprocessing/normalization options</td></tr>
+<tr><td><code>stat.compare(values, groups, options?)</code></td><td>Per-group exploration and analysis alternatives</td></tr>
+<tr><td><code>stat.relationship(x, y, options?)</code></td><td>Complete-pair Pearson/Spearman and relationship alternatives</td></tr>
+<tr><td><code>stat.categorical(values, options?)</code></td><td>Counts, proportions, missingness, modes, and rare-level clues</td></tr>
+<tr><td><code>stat.guide(report, context?)</code></td><td>Attach the question and experimental unit without automatic test selection</td></tr>
+<tr><td><code>stat.explain(report, detail?)</code></td><td>Render <code>quick</code>, <code>learning</code>, or <code>audit</code> explanations</td></tr>
+<tr><td><code>stat.distribution_plot(values, options?)</code></td><td>Annotated distribution showing observations, centre, spread, and review flags</td></tr>
+<tr><td><code>stat.distribution_ascii(values, options?)</code></td><td>Terminal histogram with centre, IQR, exclusions, and review flags</td></tr>
+<tr><td><code>stat.profile(table, options?)</code></td><td>Dataset-wide type, integrity, missingness, range, and design audit</td></tr>
+<tr><td><code>stat.missingness(table, options?)</code></td><td>Missingness by row, column, pattern, co-occurrence, optional group, and observed/missing comparisons</td></tr>
+<tr><td><code>stat.design_check(table, options?)</code></td><td>Repeated, paired, longitudinal, nested, clustered, imbalance, and confounding clues</td></tr>
+<tr><td><code>stat.preview_transform(values, method, options?)</code></td><td>Non-mutating before/after transformation comparison</td></tr>
+<tr><td><code>stat.uncertainty(values, options?)</code></td><td>Seeded bootstrap interval for centres, spread, differences, or correlations</td></tr>
+<tr><td><code>stat.shape(values, options?)</code></td><td>Shape and multiple-peak evidence without a distribution diagnosis</td></tr>
+<tr><td><code>stat.normal_qq_plot(values, options?)</code></td><td>Normal-distribution Q-Q diagnostic in SVG or ASCII</td></tr>
+<tr><td><code>stat.group_plot(values, groups, options?)</code></td><td>Grouped observations and robust summaries in SVG or ASCII</td></tr>
+<tr><td><code>stat.relationship_plot(x, y, options?)</code></td><td>Relationship diagnostic in SVG or ASCII</td></tr>
+<tr><td><code>stat.categorical_plot(values, options?)</code></td><td>Frequency bars in SVG or ASCII</td></tr>
+<tr><td><code>stat.missingness_plot(table, options?)</code></td><td>Missingness map in SVG or ASCII</td></tr>
+<tr><td><code>stat.normalization_guide(matrix, options?)</code></td><td>Dense/sparse matrix audit and domain-aware normalization choices</td></tr>
+<tr><td><code>stat.scan(table, options?)</code></td><td>Recommended non-mutating first pass with evidence-linked next steps</td></tr>
+<tr><td><code>stat.overview_ascii(table, options?)</code></td><td>Compact terminal-safe whole-table summary</td></tr>
+<tr><td><code>stat.associations(table, options?)</code></td><td>Bounded type-appropriate pairwise effect-size screen</td></tr>
+<tr><td><code>stat.linear_diagnostics(x, y, options?)</code></td><td>Residual form, spread, tails, order, and influence clues for a simple line</td></tr>
+<tr><td><code>stat.linear_diagnostic_plot(x, y, options?)</code></td><td>Residual-versus-fitted or residual Q-Q display in SVG or ASCII</td></tr>
+<tr><td><code>stat.report(table, options?)</code></td><td>Self-contained HTML or Markdown health report with provenance and copyable next steps</td></tr>
+<tr><td><code>stat.distribution_clues(values, options?)</code></td><td>Likelihood/AIC and shape clues for common continuous and count families without model selection</td></tr>
+<tr><td><code>stat.multiple_linear_diagnostics(predictors, outcome, options?)</code></td><td>Encodings, interactions, VIF, influence, intervals, residuals, and held-out error</td></tr>
+<tr><td><code>stat.omics_profile(matrix, options?)</code></td><td>Sparse-safe modality-aware profile for common biological matrices</td></tr>
+<tr><td><code>stat.robust_linear_diagnostics(predictors, outcome, options?)</code></td><td>Compare Huber and OLS coefficients as an outlier-sensitivity check</td></tr>
+<tr><td><code>stat.weighted_summary(values, weights, options?)</code></td><td>Weighted summaries plus effective sample size and weight concentration</td></tr>
+<tr><td><code>stat.time_series_diagnostics(values, options?)</code></td><td>Trend, autocorrelation, Ljung-Box, and first-difference clues</td></tr>
+<tr><td><code>stat.cluster_diagnostics(values, clusters, options?)</code></td><td>ICC, cluster-size imbalance, and approximate information loss</td></tr>
+<tr><td><code>stat.means(values, options?)</code></td><td>Definitions of average paired with compatible spread and use conditions</td></tr>
+</tbody>
+</table>
+</div>
+<p>See <a href="appendix-guided-exploration.html">Guided Exploration in BioLang</a> for runnable
+examples and the non-mutating recommendation contract.</p>
 <h2 id="probability-distributions"><a class="header" href="#probability-distributions">Probability Distributions</a></h2>
-<p>Each distribution has four functions following the <code>d/p/q/r</code> convention: <code>d</code> (density/mass), <code>p</code> (cumulative probability), <code>q</code> (quantile/inverse CDF), <code>r</code> (random samples). All parameters are positional.</p>
+<p>BioLang follows the familiar <code>d/p/q/r</code> convention where a form is currently implemented: <code>d</code> is density/mass, <code>p</code> is cumulative probability, <code>q</code> is a quantile, and <code>r</code> draws samples. The tables below list only forms currently registered by the runtime.</p>
 <h3 id="continuous"><a class="header" href="#continuous">Continuous</a></h3>
-<pre><code class="language-bio"># Normal: dnorm(x, mu, sigma), pnorm(x, mu, sigma), qnorm(p, mu, sigma), rnorm(n, mu, sigma)
-dnorm(0, 0, 1)        # Density at x=0 for standard normal
-pnorm(1.96, 0, 1)     # P(X &lt;= 1.96) ≈ 0.975
-qnorm(0.975, 0, 1)    # Quantile at p=0.975 ≈ 1.96
-rnorm(100, 0, 1)      # Generate 100 standard normal values
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Distribution</th><th>Available functions</th></tr>
+</thead>
+<tbody>
+<tr><td>Normal</td><td><code>dnorm(x, mean?, sd?)</code>, <code>pnorm(x, mean?, sd?)</code>, <code>qnorm(p, mean?, sd?)</code>, <code>rnorm(n, mean?, sd?)</code></td></tr>
+<tr><td>Uniform</td><td><code>dunif(x, min?, max?)</code>, <code>punif(x, min?, max?)</code></td></tr>
+<tr><td>Exponential</td><td><code>dexp(x, rate?)</code>, <code>pexp(x, rate?)</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-bio">dnorm(0, 0, 1)
+pnorm(1.96, 0, 1)
+qnorm(0.975, 0, 1)
+rnorm(100, 0, 1)
 
-# Student's t: dt(x, df), pt(x, df), qt(p, df), rt(n, df)
-dt(0, 10)
-pt(2.228, 10)
-qt(0.975, 10)
-rt(100, 10)
-
-# F: df(x, df1, df2), pf(x, df1, df2), qf(p, df1, df2), rf(n, df1, df2)
-df(1.5, 5, 20)
-pf(3.0, 5, 20)
-qf(0.95, 5, 20)
-rf(100, 5, 20)
-
-# Chi-square: dchisq(x, df), pchisq(x, df), qchisq(p, df), rchisq(n, df)
-dchisq(5.0, 5)
-pchisq(11.07, 5)
-qchisq(0.95, 5)
-rchisq(100, 5)
-
-# Beta: dbeta(x, alpha, beta), pbeta(x, alpha, beta), qbeta(p, alpha, beta), rbeta(n, alpha, beta)
-dbeta(0.3, 2, 5)
-pbeta(0.5, 2, 5)
-qbeta(0.95, 2, 5)
-rbeta(100, 2, 5)
-
-# Gamma: dgamma(x, shape, rate), pgamma(x, shape, rate), qgamma(p, shape, rate), rgamma(n, shape, rate)
-dgamma(1.0, 2, 1)
-pgamma(3.0, 2, 1)
-qgamma(0.95, 2, 1)
-rgamma(100, 2, 1)
-
-# Exponential: dexp(x, rate), pexp(x, rate), qexp(p, rate), rexp(n, rate)
-dexp(1.0, 0.5)
-pexp(2.0, 0.5)
-qexp(0.95, 0.5)
-rexp(100, 0.5)
-
-# Log-Normal: dlnorm(x, mu, sigma), plnorm(x, mu, sigma), qlnorm(p, mu, sigma), rlnorm(n, mu, sigma)
-dlnorm(1.0, 0, 1)
-plnorm(2.0, 0, 1)
-qlnorm(0.95, 0, 1)
-rlnorm(100, 0, 1)
-
-# Uniform: dunif(x, min, max), punif(x, min, max), qunif(p, min, max), runif(n, min, max)
 dunif(0.5, 0, 1)
 punif(0.7, 0, 1)
-qunif(0.5, 0, 1)
-runif(100, 0, 1)
+
+dexp(1.0, 0.5)
+pexp(2.0, 0.5)
 </code></pre>
 <h3 id="discrete"><a class="header" href="#discrete">Discrete</a></h3>
-<pre><code class="language-bio"># Binomial: dbinom(k, n, p), pbinom(k, n, p), qbinom(q, n, p), rbinom(size, n, p)
-dbinom(10, 20, 0.5)       # P(X = 10)
-pbinom(10, 20, 0.5)       # P(X &lt;= 10)
-qbinom(0.5, 20, 0.5)      # Smallest k with P(X &lt;= k) &gt;= 0.5
-rbinom(100, 20, 0.5)      # Generate 100 random values
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Distribution</th><th>Available functions</th></tr>
+</thead>
+<tbody>
+<tr><td>Binomial</td><td><code>dbinom(k, size, probability)</code>, <code>pbinom(k, size, probability)</code>, <code>rbinom(n, size, probability)</code></td></tr>
+<tr><td>Poisson</td><td><code>dpois(k, lambda)</code>, <code>ppois(k, lambda)</code>, <code>rpois(n, lambda)</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-bio">dbinom(10, 20, 0.5)
+pbinom(10, 20, 0.5)
+rbinom(100, 20, 0.5)
 
-# Poisson: dpois(k, lambda), ppois(k, lambda), qpois(q, lambda), rpois(n, lambda)
 dpois(5, 5.0)
 ppois(7, 5.0)
-qpois(0.95, 5.0)
 rpois(100, 5.0)
-
-# Negative Binomial: dnbinom(k, mu, size), pnbinom(k, mu, size), qnbinom(q, mu, size), rnbinom(n, mu, size)
-dnbinom(8, 10, 5)
-pnbinom(15, 10, 5)
-qnbinom(0.95, 10, 5)
-rnbinom(100, 10, 5)
-
-# Hypergeometric: dhyper(k, K, N_minus_K, n), phyper(k, K, N_minus_K, n), qhyper(q, K, N_minus_K, n), rhyper(size, K, N_minus_K, n)
-dhyper(5, 200, 19800, 500)
-phyper(5, 200, 19800, 500)
-qhyper(0.95, 200, 19800, 500)
-rhyper(100, 200, 19800, 500)
 </code></pre>
 <h2 id="hypothesis-tests"><a class="header" href="#hypothesis-tests">Hypothesis Tests</a></h2>
 <h3 id="comparing-two-groups"><a class="header" href="#comparing-two-groups">Comparing Two Groups</a></h3>
@@ -301,7 +313,7 @@ rhyper(100, 200, 19800, 500)
 <tr><td><code>ttest(a, b)</code></td><td>Welch’s two-sample t-test</td><td><code>ttest(ctrl, treat)</code></td></tr>
 <tr><td><code>ttest_paired(a, b)</code></td><td>Paired t-test</td><td><code>ttest_paired(before, after)</code></td></tr>
 <tr><td><code>ttest_one(x, mu)</code></td><td>One-sample t-test</td><td><code>ttest_one(diffs, 0)</code></td></tr>
-<tr><td><code>wilcoxon(a, b)</code></td><td>Wilcoxon rank-sum / signed-rank test</td><td><code>wilcoxon(ctrl, treat)</code></td></tr>
+<tr><td><code>wilcoxon(a, b)</code></td><td>Mann-Whitney/Wilcoxon rank-sum for independent groups</td><td><code>wilcoxon(ctrl, treat)</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -312,7 +324,7 @@ rhyper(100, 200, 19800, 500)
 <tr><th>Function</th><th>Description</th><th>Example</th></tr>
 </thead>
 <tbody>
-<tr><td><code>anova(groups)</code></td><td>One-way ANOVA (auto-detects Welch/Kruskal-Wallis)</td><td><code>anova([g1, g2, g3])</code></td></tr>
+<tr><td><code>anova(groups)</code></td><td>Classical one-way ANOVA</td><td><code>anova([g1, g2, g3])</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -340,7 +352,7 @@ let adjusted = p_adjust(pvals, “bonferroni”)</p>
 <tr><th>Function</th><th>Description</th><th>Example</th></tr>
 </thead>
 <tbody>
-<tr><td><code>chi_square(observed, expected)</code></td><td>Chi-square test</td><td><code>chi_square(observed, expected)</code></td></tr>
+<tr><td><code>chi_square(observed, expected)</code></td><td>Chi-square goodness-of-fit for flat observed/expected lists</td><td><code>chi_square(observed, expected)</code></td></tr>
 <tr><td><code>fisher_exact(a, b, c, d)</code></td><td>Fisher’s exact test (2x2)</td><td><code>fisher_exact(10, 5, 3, 12)</code></td></tr>
 </tbody>
 </table>
@@ -404,7 +416,7 @@ histogram(residuals, {title: "Residual Distribution"})
 </tbody>
 </table>
 </div>
-<p>Supported methods: <code>"bonferroni"</code>, <code>"holm"</code>, <code>"BH"</code> (Benjamini-Hochberg), <code>"BY"</code> (Benjamini-Yekutieli).</p>
+<p>Supported methods: <code>"bonferroni"</code>, <code>"holm"</code>, and <code>"BH"</code> (Benjamini-Hochberg).</p>
 <pre><code class="language-bio"># Typical genomics workflow: test all genes, then correct
 let pvals = genes |&gt; map(|g| ttest(g.ctrl, g.treat).p_value)
 let padj = p_adjust(pvals, "BH")
@@ -452,7 +464,8 @@ let clusters = kmeans(expr_matrix, 2)
 <tr><td><code>heatmap(table, options)</code></td><td>Heatmap with optional clustering</td><td><code>heatmap(matrix, {cluster_rows: true, title: "Expression"})</code></td></tr>
 <tr><td><code>volcano(table, options)</code></td><td>Volcano plot for DE results</td><td><code>volcano(de_results, {fc_threshold: 1.0, title: "DE"})</code></td></tr>
 <tr><td><code>manhattan(table, options)</code></td><td>Manhattan plot for GWAS</td><td><code>manhattan(gwas_results, {significance_line: 5e-8, title: "GWAS"})</code></td></tr>
-<tr><td><code>qq_plot(data, options)</code></td><td>Q-Q plot (normality check)</td><td><code>qq_plot(residuals, {title: "Normality Check"})</code></td></tr>
+<tr><td><code>qq_plot(p_values, options)</code></td><td>Observed-versus-expected genomic p-value Q-Q plot</td><td><code>qq_plot(p_values, {title: "GWAS Q-Q"})</code></td></tr>
+<tr><td><code>normal_qq_plot(values, options)</code></td><td>Observed-versus-theoretical normal Q-Q diagnostic</td><td><code>normal_qq_plot(values, {title: "Normal Q-Q"})</code></td></tr>
 <tr><td><code>forest_plot(table, options)</code></td><td>Forest plot for meta-analysis</td><td><code>forest_plot(meta_tbl, {null_value: 0, title: "Meta-analysis"})</code></td></tr>
 <tr><td><code>roc_curve(table, options)</code></td><td>ROC curve</td><td><code>roc_curve(roc_tbl, {title: "Classifier ROC"})</code></td></tr>
 <tr><td><code>pca_plot(result, options)</code></td><td>PCA scatter plot</td><td><code>pca_plot(result, {title: "PCA"})</code></td></tr>
@@ -522,19 +535,17 @@ let p_value = len(null_diffs |&gt; filter(|d| d &gt;= observed_diff)) / n_perm
 </table>
 </div>
 <h2 id="power-analysis"><a class="header" href="#power-analysis">Power Analysis</a></h2>
-<p>BioLang does not have dedicated power analysis functions. Compute sample sizes using distribution quantiles and effect size formulas:</p>
+<p>BioLang provides <code>power_analysis(effect_size, alpha, power?, n?)</code> for an approximate two-sample t-test calculation. Omitting <code>n</code> returns the required per-group sample size:</p>
 <pre><code class="language-bio"># Sample size for two-sample t-test
 # H0: mu1 = mu2, H1: mu1 != mu2
 let effect_size = 0.5     # Cohen's d
 let alpha = 0.05
 let power = 0.80
-let z_alpha = qnorm(1 - alpha / 2, 0, 1)    # 1.96
-let z_beta = qnorm(power, 0, 1)              # 0.842
-let n_per_group = round(2 * ((z_alpha + z_beta) / effect_size) ** 2, 0)
-print("Required n per group: " + str(n_per_group))
+let planned = power_analysis(effect_size, alpha, power)
+print("Required n per group: " + str(planned.n))
 
 # Cohen's d (inline)
-let d = abs(mean(a) - mean(b)) / sqrt(((len(a) - 1) * var(a) + (len(b) - 1) * var(b)) / (len(a) + len(b) - 2))
+let d = abs(mean(a) - mean(b)) / sqrt(((len(a) - 1) * variance(a) + (len(b) - 1) * variance(b)) / (len(a) + len(b) - 2))
 </code></pre>
 <h2 id="bayesian-methods"><a class="header" href="#bayesian-methods">Bayesian Methods</a></h2>
 <p>BioLang supports Bayesian analysis through conjugate update formulas computed inline:</p>
@@ -550,10 +561,8 @@ let post_b = prior_b + (n - k)
 let post_mean = post_a / (post_a + post_b)
 print("Posterior mean: " + str(round(post_mean, 3)))
 
-# 95% credible interval via Beta quantiles
-let ci_lo = qbeta(0.025, post_a, post_b)
-let ci_hi = qbeta(0.975, post_a, post_b)
-print("95% CI: [" + str(round(ci_lo, 3)) + ", " + str(round(ci_hi, 3)) + "]")
+# Beta quantiles are not currently a BioLang builtin. Use a validated external
+# implementation when a Beta posterior credible interval is required.
 
 # Normal-Normal conjugate update
 # Prior: N(mu0, sigma0^2); Data: n observations with mean x_bar and known sigma
@@ -565,23 +574,12 @@ let post_mu = (prior_prec * prior_mu + data_prec * mean(data)) / post_prec
 let post_sd = sqrt(1.0 / post_prec)
 </code></pre>
 <h2 id="survival-analysis"><a class="header" href="#survival-analysis">Survival Analysis</a></h2>
-<p>BioLang provides basic building blocks for survival analysis. For simple comparisons:</p>
-<pre><code class="language-text"># Conceptual or diagnostic example; not directly executable.
-# Compare survival times between two groups
-let result = ttest(arm1_times, arm2_times)
+<p>BioLang provides censoring-aware log-rank and Cox functions. Do not replace a survival comparison with an ordinary t-test on observed times.</p>
+<pre><code class="language-bio"># events are Bool or 0/1 lists, where true/1 means the event was observed.
+let result = log_rank_test(arm1_times, arm1_events, arm2_times, arm2_events)
 print("p-value: " + str(round(result.p_value, 4)))
-
-# Median survival
-let med_a = sort(arm1_times)[len(arm1_times) / 2]
-let med_b = sort(arm2_times)[len(arm2_times) / 2]
-print("Median survival — Arm A: " + str(med_a) + ", Arm B: " + str(med_b))
-
-# Approximate hazard ratio from median ratio
-let hr = med_b / med_a
-
-# Regression on survival times
-let model = lm(~survival_time ~ age + stage + treatment, patient_data)
 </code></pre>
+<p>Use <code>cox_ph(time, event, covariates)</code> when covariate-adjusted proportional-hazards modelling is appropriate. A ratio of raw medians is not a hazard ratio.</p>
 
                     </main>
 
@@ -591,6 +589,9 @@ let model = lm(~survival_time ~ age + stage + treatment, patient_data)
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
+                            <a rel="next prefetch" href="appendix-guided-exploration.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -602,6 +603,9 @@ let model = lm(~survival_time ~ age + stage + treatment, patient_data)
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
+                    <a rel="next prefetch" href="appendix-guided-exploration.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
             </nav>
 
         </div>

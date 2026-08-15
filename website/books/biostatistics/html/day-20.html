@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -480,7 +480,7 @@ let expr_matrix = range(0, n_samples) |&gt; map(|i| {
     })
 })
 
-print("Expression matrix: {n_samples} samples x {n_genes} genes")
+print(f"Expression matrix: {n_samples} samples x {n_genes} genes")
 print("Centers: Memorial=10, Hopkins=10, Mayo=10")
 </code></pre>
 <h3 id="detecting-batch-effects-with-pca"><a class="header" href="#detecting-batch-effects-with-pca">Detecting Batch Effects with PCA</a></h3>
@@ -489,7 +489,7 @@ let pca_result = pca(expr_matrix, 5)
 
 print("=== PCA Variance Explained ===")
 for i in 0..5 {
-    print("PC{i+1}: {(pca_result.variance_explained[i] * 100) |&gt; round(1)}%")
+    print(f"PC{i+1}: {(pca_result.variance_explained[i] * 100) |&gt; round(1)}%")
 }
 
 # Plot PC1 vs PC2, colored by center
@@ -538,11 +538,11 @@ for g in 0..10 {
     if batch_test.p_value &lt; 0.05 { batch_significant = batch_significant + 1 }
     if bio_test.p_value &lt; 0.05 { bio_significant = bio_significant + 1 }
 
-    print("Gene {g+1}: batch F={batch_test.f_statistic |&gt; round(2)} p={batch_test.p_value |&gt; round(4)}  bio p={bio_test.p_value |&gt; round(4)}")
+    print(f"Gene {g+1}: batch F={batch_test.f_statistic |&gt; round(2)} p={batch_test.p_value |&gt; round(4)}  bio p={bio_test.p_value |&gt; round(4)}")
 }
 
-print("\nGenes with significant batch effect: {batch_significant} / 10")
-print("Genes with significant biological effect: {bio_significant} / 10")
+print(f"\nGenes with significant batch effect: {batch_significant} / 10")
+print(f"Genes with significant biological effect: {bio_significant} / 10")
 </code></pre>
 <h3 id="correlation-heatmap-for-batch-detection"><a class="header" href="#correlation-heatmap-for-batch-detection">Correlation Heatmap for Batch Detection</a></h3>
 <pre><code class="language-bio"># Sample-to-sample correlation: compute a few representative pairs
@@ -552,8 +552,8 @@ let s2 = expr_matrix[5]   # Memorial, Normal
 let s3 = expr_matrix[10]  # Hopkins, Tumor
 
 print("=== Sample Correlations ===")
-print("Memorial Tumor vs Memorial Normal: {cor(s1, s2) |&gt; round(3)}")
-print("Memorial Tumor vs Hopkins Tumor:   {cor(s1, s3) |&gt; round(3)}")
+print(f"Memorial Tumor vs Memorial Normal: {cor(s1, s2) |&gt; round(3)}")
+print(f"Memorial Tumor vs Hopkins Tumor:   {cor(s1, s3) |&gt; round(3)}")
 print("If same-center pairs are more correlated than same-condition pairs,")
 print("batch effects dominate")
 </code></pre>
@@ -600,9 +600,9 @@ for g in 0..5 {
     })
     let model_adjusted = lm(~expr ~ cond + hopkins + mayo, adj_data)
 
-    print("Gene {g+1}:")
-    print("  Naive:    slope = {model_naive.slope |&gt; round(3)}, p = {model_naive.p_value |&gt; round(4)}")
-    print("  Adjusted: cond coef = {model_adjusted.coefficients[0] |&gt; round(3)}")
+    print(f"Gene {g+1}:")
+    print(f"  Naive:    slope = {model_naive.slope |&gt; round(3)}, p = {model_naive.p_value |&gt; round(4)}")
+    print(f"  Adjusted: cond coef = {model_adjusted.coefficients[0] |&gt; round(3)}")
 }
 </code></pre>
 <h3 id="beforeafter-comparison"><a class="header" href="#beforeafter-comparison">Before/After Comparison</a></h3>
@@ -689,7 +689,7 @@ for g in 0..5 {
 # Step 1: PCA on raw data (batch-contaminated)
 let pca_before = pca(expr_matrix, 3)
 print("=== Before Correction ===")
-print("PC1 variance: {(pca_before.variance_explained[0] * 100) |&gt; round(1)}% (likely batch)")
+print(f"PC1 variance: {(pca_before.variance_explained[0] * 100) |&gt; round(1)}% (likely batch)")
 
 # Step 2: Regress out batch effect from each gene
 let is_hopkins = center |&gt; map(|c| if c == "Hopkins" { 1.0 } else { 0.0 })
@@ -713,7 +713,7 @@ for i in 0..n_samples {
 # Step 3: PCA on corrected data
 let pca_after = pca(corrected_matrix, 3)
 print("\n=== After Correction ===")
-print("PC1 variance: {(pca_after.variance_explained[0] * 100) |&gt; round(1)}% (should be biology now)")
+print(f"PC1 variance: {(pca_after.variance_explained[0] * 100) |&gt; round(1)}% (should be biology now)")
 
 # Compare side by side
 let pca_corrected = table({
@@ -739,7 +739,7 @@ for c in centers {
         }
     }
     let pct = (n_tumor / (n_tumor + n_normal) * 100) |&gt; round(1)
-    print("{c}       {n_tumor}       {n_normal}      {pct}%")
+    print(f"{c}       {n_tumor}       {n_normal}      {pct}%")
 }
 
 # If one center is 100% tumor and another is 100% normal,
@@ -756,7 +756,7 @@ for c in centers {
         }
     }
     if !has_tumor || !has_normal {
-        print("FATAL: {c} has only one condition!")
+        print(f"FATAL: {c} has only one condition!")
         balanced = false
     }
 }

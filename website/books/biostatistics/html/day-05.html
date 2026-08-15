@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -307,9 +307,9 @@ for i in 0..1000 {
 }
 
 # Compare the distributions
-print("Population:         mean = {mean(population):.1}, SD = {stdev(population):.1}")
-print("Sample means (n=30):  mean = {mean(sample_means_30):.1}, SD = {stdev(sample_means_30):.1}")
-print("Sample means (n=200): mean = {mean(sample_means_200):.1}, SD = {stdev(sample_means_200):.1}")
+print(f"Population:         mean = {mean(population):.1}, SD = {stdev(population):.1}")
+print(f"Sample means (n=30):  mean = {mean(sample_means_30):.1}, SD = {stdev(sample_means_30):.1}")
+print(f"Sample means (n=200): mean = {mean(sample_means_200):.1}, SD = {stdev(sample_means_200):.1}")
 
 histogram(sample_means_30, {bins: 40, title: "Sampling Distribution (n=30)"})
 histogram(sample_means_200, {bins: 40, title: "Sampling Distribution (n=200)"})
@@ -388,7 +388,7 @@ let skewed_pop = rnorm(100000, 2, 1) |&gt; map(|x| exp(x))
 # The population is extremely skewed
 histogram(skewed_pop, {bins: 50, title: "Population: Exponential (Very Skewed)"})
 let pop_stats = summary(skewed_pop)
-print("Population skewness: {pop_stats.skewness:.2}")
+print(f"Population skewness: {pop_stats.skewness:.2}")
 
 # Sample means with n=5 (still somewhat skewed)
 let means_n5 = []
@@ -397,7 +397,7 @@ for i in 0..2000 {
     means_n5 = means_n5 + [mean(s)]
 }
 histogram(means_n5, {bins: 50, title: "Sample Means, n=5"})
-print("n=5 skewness: {skewness(means_n5):.2}")
+print(f"n=5 skewness: {skewness(means_n5):.2}")
 
 # Sample means with n=30 (approaching normal)
 let means_n30 = []
@@ -406,7 +406,7 @@ for i in 0..2000 {
     means_n30 = means_n30 + [mean(s)]
 }
 histogram(means_n30, {bins: 50, title: "Sample Means, n=30"})
-print("n=30 skewness: {skewness(means_n30):.2}")
+print(f"n=30 skewness: {skewness(means_n30):.2}")
 
 # Sample means with n=100 (very close to normal)
 let means_n100 = []
@@ -415,10 +415,10 @@ for i in 0..2000 {
     means_n100 = means_n100 + [mean(s)]
 }
 histogram(means_n100, {bins: 50, title: "Sample Means, n=100"})
-print("n=100 skewness: {skewness(means_n100):.2}")
+print(f"n=100 skewness: {skewness(means_n100):.2}")
 
 # Verify normality visually with Q-Q plot
-qq_plot(means_n100, {title: "Q-Q Plot: Sample Means n=100"})
+normal_qq_plot(means_n100, {title: "Q-Q Plot: Sample Means n=100"})
 </code></pre>
 <p>Watch the skewness drop toward zero as n increases. By n=100, the sampling distribution is indistinguishable from a normal curve, even though the underlying data is wildly skewed.</p>
 <blockquote>
@@ -533,7 +533,7 @@ for n in sample_sizes {
     }
     let observed_se = stdev(means)
 
-    print("  {n:&gt;6}    |     {theoretical_se:&gt;6.2}     |    {observed_se:.2}")
+    print(f"  {n:&gt;6}    |     {theoretical_se:&gt;6.2}     |    {observed_se:.2}")
 }
 </code></pre>
 <div class="table-wrapper">
@@ -631,7 +631,7 @@ for n in sizes {
         detections = detections + run_trial(n)
     }
     let power = detections / 1000.0
-    print("  {n:&gt;5}   |     {power * 100:.1}%")
+    print(f"  {n:&gt;5}   |     {power * 100:.1}%")
 }
 </code></pre>
 <p>Typical results:</p>
@@ -665,7 +665,7 @@ for n in sizes {
 let expression = rnorm(50, 3.0, 1.5) |&gt; map(|x| exp(x))
 
 let observed_median = median(expression)
-print("Observed median: {observed_median:.2}")
+print(f"Observed median: {observed_median:.2}")
 
 # Bootstrap: resample with replacement 5000 times
 let boot_medians = []
@@ -676,12 +676,12 @@ for i in 0..5000 {
 
 # Bootstrap SE
 let boot_se = stdev(boot_medians)
-print("Bootstrap SE of median: {boot_se:.2}")
+print(f"Bootstrap SE of median: {boot_se:.2}")
 
 # Bootstrap 95% confidence interval (percentile method)
 let ci_lower = quantile(boot_medians, 0.025)
 let ci_upper = quantile(boot_medians, 0.975)
-print("95% Bootstrap CI: [{ci_lower:.2}, {ci_upper:.2}]")
+print(f"95% Bootstrap CI: [{ci_lower:.2}, {ci_upper:.2}]")
 
 histogram(boot_medians, {bins: 50, title: "Bootstrap Distribution of the Median"})
 </code></pre>
@@ -713,7 +713,7 @@ for n in sample_sizes {
     let se = stdev(estimated_afs)
     let theoretical_se = sqrt(true_af * (1.0 - true_af) / (2.0 * n))
 
-    print("n={n}: SE={se:.4} (theoretical: {theoretical_se:.4})")
+    print(f"n={n}: SE={se:.4} (theoretical: {theoretical_se:.4})")
     histogram(estimated_afs, {bins: 40, title: "Allele Frequency Estimates (n={n})"})
 }
 
@@ -806,7 +806,7 @@ let noise = rnorm(n, 0, 1.5)
 let protein = gene_expr |&gt; map(|x| 0.7 * x) |&gt; zip(noise) |&gt; map(|pair| pair.0 + pair.1)
 
 let observed_r = cor(gene_expr, protein)
-print("Observed correlation: {observed_r:.3}")
+print(f"Observed correlation: {observed_r:.3}")
 
 # TODO: Bootstrap the correlation 5000 times
 # TODO: Compute the 95% bootstrap CI

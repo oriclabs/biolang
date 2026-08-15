@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,7 +189,7 @@
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Dr. Sarah Chen stares at her screen. The Illumina NovaSeq 6000 finished its run overnight, and now she has 10,247 quality scores — one for each tile on the flow cell. Her PI needs a decision by the morning meeting: is this data usable, or do they need to re-run the library, burning another $4,000 and two days?</p>
 <p>She cannot read 10,247 numbers. She cannot scroll through them and develop an intuition. She has five minutes before the meeting starts. What she needs is a way to compress 10,247 numbers into a handful of meaningful summaries that answer three questions: What is the typical quality? How much does it vary? Are there any red flags?</p>
-<p>This is the job of descriptive statistics. They are the first thing you compute, every time, before you run a single test. Get them wrong — or skip them — and everything downstream is built on sand.</p>
+<p>This is the job of descriptive statistics. They are a useful early step before modelling, alongside checks of units, missingness, study design, and the experimental unit. A single summary cannot certify that a dataset is usable.</p>
 <h2 id="what-are-descriptive-statistics"><a class="header" href="#what-are-descriptive-statistics">What Are Descriptive Statistics?</a></h2>
 <p>Descriptive statistics are summaries. Think of them as a movie trailer for your data. The full movie (the raw dataset) might be two hours long, but the trailer gives you the genre, the tone, and the key plot points in two minutes. A good trailer does not lie about the movie. A good set of descriptive statistics does not lie about the data.</p>
 <p>There are three things you need to know about any dataset:</p>
@@ -201,9 +201,9 @@
 <h3 id="why-do-these-three-matter"><a class="header" href="#why-do-these-three-matter">Why Do These Three Matter?</a></h3>
 <p><strong>Center tells you what is “normal.”</strong> If the mean quality score of your sequencing run is Q35, you know tiles are performing well. If it is Q15, something went wrong. Without center, you have no reference point — you cannot say whether a single observation is typical or alarming. In clinical genomics, center defines the baseline: what is the typical variant allele frequency in this cohort? What is the average coverage across your target regions?</p>
 <p><strong>Spread tells you how much you can trust the center.</strong> Two experiments might both report a mean IC50 of 12 nM, but one has values ranging from 11 to 13 (tight, reproducible) while the other ranges from 2 to 45 (noisy, unreliable). The center is the same — the spread tells you completely different stories. High spread means your next measurement could land anywhere; low spread means you can make confident predictions. In RNA-seq, high within-group variance buries real differential expression in noise.</p>
-<p><strong>Shape tells you which statistical tools are safe to use.</strong> Almost every standard statistical test (t-test, ANOVA, linear regression) assumes the data is approximately bell-shaped (normally distributed). If your data is heavily right-skewed — which gene expression nearly always is — those tests give wrong answers. Shape also reveals hidden structure: a bimodal distribution might mean you have two distinct populations mixed together (e.g., responders and non-responders to a drug). Ignoring shape is the single most common reason published biomedical results fail to replicate.</p>
+<p><strong>Shape gives modelling clues.</strong> Many models make assumptions about errors, residuals, conditional outcomes, or sampling processes—not simply about the raw measurements. A right-skewed outcome can suggest a log-scale preview, a count model, or a robust summary, but the scientific estimand and design decide which is appropriate. Bimodality can be a clue to mixtures, batch effects, censoring, or subgroups; it is not by itself proof of two biological populations.</p>
 <blockquote>
-<p><strong>Key insight:</strong> Center without spread is meaningless (“the average temperature is 72°F” tells you nothing if the range is -20 to 160). Spread without shape is dangerous (a standard deviation assumes symmetry, but skewed data violates this). You always need all three.</p>
+<p><strong>Key insight:</strong> Report centre with a compatible spread, retain a view of the full distribution, and state the measurement scale. Standard deviation is defined for skewed data, but it can be a poor description of a <em>typical</em> distance when the mean and tails dominate; median with IQR or MAD is often a useful companion.</p>
 </blockquote>
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="280" viewbox="0 0 680 280" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -246,7 +246,7 @@
   <path d="M 500,138 Q 515,130 530,110 Q 540,100 545,98 Q 555,100 570,115 Q 590,130 610,138" fill="none" stroke="#7c3aed" stroke-width="2" />
   <text x="555" y="155" text-anchor="middle" font-size="9" fill="#7c3aed">Skewed → wrong test = wrong answer</text>
   <text x="555" y="195" text-anchor="middle" font-size="10" fill="#475569">Bell-shaped → t-test OK</text>
-  <text x="555" y="210" text-anchor="middle" font-size="10" fill="#475569">Skewed → need log-transform</text>
+  <text x="555" y="210" text-anchor="middle" font-size="10" fill="#475569">Skewed → inspect scale and model</text>
   <text x="555" y="225" text-anchor="middle" font-size="10" fill="#475569">Bimodal → two populations?</text>
   <text x="555" y="248" text-anchor="middle" font-size="10" font-style="italic" fill="#7c3aed">#1 reason results fail to replicate</text>
 </svg>
@@ -261,7 +261,7 @@
 <p><strong>Example:</strong> Five gene expression values (FPKM): 12, 15, 14, 13, 16. Mean = 14.0. Reasonable.</p>
 <p>Now add one highly expressed gene: 12, 15, 14, 13, 16, 5000. Mean = 845.0. The mean has been dragged from 14 to 845 by a single outlier. It no longer represents “typical” expression.</p>
 <blockquote>
-<p><strong>Common pitfall:</strong> In genomics, gene expression distributions are heavily right-skewed. Reporting mean FPKM/TPM values without acknowledging this skew is misleading. The median is almost always a better summary for expression data.</p>
+<p><strong>Common pitfall:</strong> Expression summaries answer different questions. The arithmetic mean describes equal-share abundance and is relevant to totals; the median describes a typical sample and resists a long tail. Inspect the distribution and measurement scale instead of declaring one universally better.</p>
 </blockquote>
 <h3 id="median-middle-value"><a class="header" href="#median-middle-value">Median (Middle Value)</a></h3>
 <p>The median is the value that splits the data in half: 50% of observations fall below it, 50% above. Sort the data and pick the middle number (or average the two middle numbers if n is even).</p>
@@ -312,21 +312,95 @@
 </div>
 
 <h3 id="when-to-use-each"><a class="header" href="#when-to-use-each">When to Use Each</a></h3>
+<p>Do not begin with “Which formula is most popular?” Begin with “What does average
+mean in this scientific question?”</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Measure</th><th>Best For</th><th>Sensitive to Outliers?</th><th>Biological Example</th></tr>
+<tr><th>Question being answered</th><th>Centre</th><th>Matching description of spread</th><th>Typical use</th></tr>
 </thead>
 <tbody>
-<tr><td>Mean</td><td>Symmetric, well-behaved data</td><td>Yes, very</td><td>Measurement error in technical replicates</td></tr>
-<tr><td>Median</td><td>Skewed data, outliers present</td><td>No</td><td>Gene expression (FPKM/TPM)</td></tr>
-<tr><td>Mode</td><td>Categorical data, multimodal</td><td>No</td><td>Variant allele frequency peaks</td></tr>
+<tr><td>If the total were shared equally, what would each unit receive?</td><td>Arithmetic mean</td><td>SD for roughly symmetric additive variation</td><td>Technical measurements, additive outcomes</td></tr>
+<tr><td>What value separates the lower half from the upper half?</td><td>Median</td><td>IQR or MAD</td><td>Skewed concentrations, durations, valid extremes</td></tr>
+<tr><td>What single multiplication factor represents compound change?</td><td>Geometric mean</td><td>Geometric SD or multiplicative interval</td><td>Fold changes, growth factors, positive titres</td></tr>
+<tr><td>What is the average after justified unequal representation?</td><td>Weighted mean</td><td>Weighted SD <strong>and</strong> design-aware uncertainty</td><td>Sampling weights, exposures, precision weights</td></tr>
+<tr><td>What common rate applies over equal amounts of work?</td><td>Harmonic mean</td><td>Raw rate quantiles and uncertainty for the target rate</td><td>Equal-distance speeds, throughput per fixed work</td></tr>
+<tr><td>What centre remains after a predeclared symmetric tail trim?</td><td>Trimmed mean</td><td>Winsorized SD or bootstrap interval</td><td>Robust sensitivity analysis</td></tr>
+<tr><td>Which category or peak occurs most often?</td><td>Mode</td><td>Counts or proportions, possibly more than one mode</td><td>Blood group, genotype class, distribution peaks</td></tr>
 </tbody>
 </table>
 </div>
-<blockquote>
-<p><strong>Key insight:</strong> Always report both mean and median. If they differ substantially, your data is skewed, and the median is the more honest summary.</p>
-</blockquote>
+<div style="text-align: center; margin: 2em 0;">
+<svg width="700" height="350" viewbox="0 0 700 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three matching centre and spread pairs" style="max-width: 100%; background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
+  <text x="350" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#1e293b">Choose centre and spread as a pair</text>
+  <rect x="20" y="45" width="660" height="82" rx="7" fill="#eff6ff" stroke="#93c5fd" />
+  <text x="38" y="67" font-size="13" font-weight="bold" fill="#1e40af">Additive, roughly symmetric</text>
+  <line x1="55" y1="96" x2="350" y2="96" stroke="#64748b" stroke-width="1.5" />
+  <circle cx="115" cy="96" r="5" fill="#2563eb" /><circle cx="155" cy="96" r="5" fill="#2563eb" /><circle cx="195" cy="96" r="5" fill="#2563eb" /><circle cx="235" cy="96" r="5" fill="#2563eb" /><circle cx="275" cy="96" r="5" fill="#2563eb" />
+  <line x1="195" y1="75" x2="195" y2="113" stroke="#dc2626" stroke-width="2" /><line x1="155" y1="116" x2="235" y2="116" stroke="#16a34a" stroke-width="3" />
+  <text x="420" y="82" font-size="13" fill="#334155">Arithmetic mean = balance point</text><text x="420" y="105" font-size="13" fill="#334155">SD = additive distance from it</text>
+  <rect x="20" y="137" width="660" height="82" rx="7" fill="#f0fdf4" stroke="#86efac" />
+  <text x="38" y="159" font-size="13" font-weight="bold" fill="#166534">Skewed or heavy-tailed</text>
+  <line x1="55" y1="188" x2="350" y2="188" stroke="#64748b" stroke-width="1.5" />
+  <circle cx="90" cy="188" r="5" fill="#16a34a" /><circle cx="112" cy="188" r="5" fill="#16a34a" /><circle cx="130" cy="188" r="5" fill="#16a34a" /><circle cx="150" cy="188" r="5" fill="#16a34a" /><circle cx="172" cy="188" r="5" fill="#16a34a" /><circle cx="310" cy="188" r="5" fill="#dc2626" />
+  <line x1="140" y1="167" x2="140" y2="205" stroke="#7c3aed" stroke-width="2" /><rect x="112" y="207" width="60" height="6" fill="#7c3aed" rx="3" />
+  <text x="420" y="174" font-size="13" fill="#334155">Median = halfway observation</text><text x="420" y="197" font-size="13" fill="#334155">IQR/MAD = robust spread</text>
+  <rect x="20" y="229" width="660" height="100" rx="7" fill="#faf5ff" stroke="#d8b4fe" />
+  <text x="38" y="251" font-size="13" font-weight="bold" fill="#6b21a8">Positive, multiplicative</text>
+  <line x1="70" y1="283" x2="350" y2="283" stroke="#64748b" stroke-width="1.5" />
+  <circle cx="90" cy="283" r="5" fill="#7c3aed" /><circle cx="165" cy="283" r="5" fill="#7c3aed" /><circle cx="240" cy="283" r="5" fill="#7c3aed" /><circle cx="315" cy="283" r="5" fill="#7c3aed" />
+  <text x="90" y="303" text-anchor="middle" font-size="11" fill="#475569">1</text><text x="165" y="303" text-anchor="middle" font-size="11" fill="#475569">2</text><text x="240" y="303" text-anchor="middle" font-size="11" fill="#475569">4</text><text x="315" y="303" text-anchor="middle" font-size="11" fill="#475569">8</text>
+  <line x1="202" y1="263" x2="202" y2="300" stroke="#dc2626" stroke-width="2" />
+  <text x="420" y="268" font-size="13" fill="#334155">Geometric mean = ratio balance</text><text x="420" y="291" font-size="13" fill="#334155">Geometric SD = multiply/divide factor</text><text x="420" y="314" font-size="11" fill="#6b7280">1, 2, 4, 8 are equally spaced on a log scale.</text>
+</svg>
+</div>
+
+<p>The mean and median can both be worth reporting when they answer useful
+questions. A difference between them is a clue about asymmetry or mixtures—not
+proof that either summary is dishonest.</p>
+<h3 id="mean-has-several-meanings"><a class="header" href="#mean-has-several-meanings">“Mean” Has Several Meanings</a></h3>
+<h4 id="arithmetic-mean-additive-balance"><a class="header" href="#arithmetic-mean-additive-balance">Arithmetic mean: additive balance</a></h4>
+<p>For values 2, 4, and 9, the arithmetic mean is <code>(2 + 4 + 9) / 3 = 5</code>.
+It is the correct balance point when differences add. Its natural companion is
+the SD, because both use distance from the arithmetic mean.</p>
+<h4 id="geometric-mean-multiplicative-balance"><a class="header" href="#geometric-mean-multiplicative-balance">Geometric mean: multiplicative balance</a></h4>
+<p>For positive values, take the mean on the log scale and transform back. A
+half-fold change followed by a two-fold change has geometric mean
+<code>sqrt(0.5 × 2) = 1</code>: no average multiplicative change. The arithmetic mean is
+1.25 and answers a different, additive question.</p>
+<p>A geometric SD is a <strong>factor</strong>, not an additive distance. Geometric mean 20 with
+geometric SD 1.5 gives a one-geometric-SD range of <code>20 / 1.5</code> to <code>20 × 1.5</code>,
+not <code>20 ± 1.5</code>.</p>
+<h4 id="harmonic-mean-a-rate-over-fixed-work"><a class="header" href="#harmonic-mean-a-rate-over-fixed-work">Harmonic mean: a rate over fixed work</a></h4>
+<p>Suppose the same distance is travelled at 60 km/h and 30 km/h. The arithmetic
+mean is 45, but the overall equal-distance speed is the harmonic mean, 40 km/h,
+because more time is spent at the slower rate. Do not use it merely because a
+variable is called a rate: the exposure or numerator must justify it.</p>
+<h4 id="weighted-mean-observations-do-not-contribute-equally"><a class="header" href="#weighted-mean-observations-do-not-contribute-equally">Weighted mean: observations do not contribute equally</a></h4>
+<p>Weights may represent frequency, sampling probability, exposure, or precision;
+these meanings are not interchangeable. A weighted SD describes spread under
+the weights, but a valid standard error may also need survey strata, clusters,
+replicate weights, or a model of measurement precision.</p>
+<h4 id="trimmed-mean-a-declared-compromise"><a class="header" href="#trimmed-mean-a-declared-compromise">Trimmed mean: a declared compromise</a></h4>
+<p>A 10% trimmed mean removes the lowest and highest 10% symmetrically before
+averaging. It can be a useful sensitivity summary, but choosing the trim after
+seeing an inconvenient result can hide biology. Show the untrimmed distribution
+and use a winsorized spread or bootstrap interval.</p>
+<h4 id="root-mean-square-magnitude-not-typical-centre"><a class="header" href="#root-mean-square-magnitude-not-typical-centre">Root mean square: magnitude, not “typical” centre</a></h4>
+<p>RMS squares values, averages, and takes the square root. It is useful for signal
+magnitude and error size, but it is not normally a replacement for the mean or
+median of observed measurements.</p>
+<p>BioLang calculates these side by side and explains their compatible spreads:</p>
+<pre><code class="language-bio">import "statistics" as stat
+
+let choices = stat.means([1, 2, 4, 8], {trim_fraction: 0.25})
+println("Arithmetic mean: " + str(choices.arithmetic_mean))
+println("Geometric mean: " + str(choices.geometric_mean))
+println("Harmonic mean: " + str(choices.harmonic_mean))
+choices.centre_spread_pairs
+</code></pre>
+<p><code>stat.means()</code> never selects an answer automatically. If weights are part of
+the scientific design, use <code>stat.weighted_summary(values, weights)</code> as well.</p>
 <h2 id="measures-of-spread"><a class="header" href="#measures-of-spread">Measures of Spread</a></h2>
 <p>Knowing the center is not enough. Two datasets can have identical means and wildly different behaviors. Consider drug response in two patient cohorts — both might have a mean survival of 12 months, but in one cohort everyone lives 11-13 months, while in the other, half die in 2 months and half live 22 months. The clinical implications are completely different.</p>
 <h3 id="range"><a class="header" href="#range">Range</a></h3>
@@ -336,6 +410,19 @@
 <p><strong>Variance:</strong> s² = (1 / (n-1)) ∑ (xᵢ - x̄)²</p>
 <p><strong>Standard Deviation:</strong> s = √(s²)</p>
 <p>We divide by (n-1) rather than n (Bessel’s correction) because a sample underestimates the true population variance. The standard deviation is in the same units as the data, making it more interpretable than variance.</p>
+<p>Variance is <strong>not</strong> the whole width of a distribution, and SD does not mean “the
+left side plus the right side.” They encode the same spread in different units:</p>
+<ul>
+<li>SD is a typical distance from the arithmetic mean, expressed in the original unit.</li>
+<li>Variance is SD squared, expressed in squared units and useful inside statistical formulas.</li>
+<li>Adding 10 to every value moves the mean by 10 but leaves SD and variance unchanged.</li>
+<li>Multiplying every value by 3 multiplies SD by 3 and variance by 9.</li>
+</ul>
+<p><code>mean ± SD</code> is most interpretable for a roughly symmetric, single-peaked
+distribution. For skewed data, pair the median with IQR or MAD. For positive
+multiplicative data, pair the geometric mean with a geometric SD or fold range.
+The 68–95–99.7 rule below is a property of an approximately normal model, not a
+universal definition of SD and not an automatic outlier-removal rule.</p>
 <p><strong>Rule of thumb:</strong> For normally distributed data, about 68% of values fall within 1 SD of the mean, 95% within 2 SDs, and 99.7% within 3 SDs. If a quality score is more than 3 SDs below the mean, something is wrong with that tile.</p>
 <h3 id="interquartile-range-iqr"><a class="header" href="#interquartile-range-iqr">Interquartile Range (IQR)</a></h3>
 <p>The IQR is the range of the middle 50% of the data: Q3 - Q1, where Q1 is the 25th percentile and Q3 is the 75th percentile.</p>
@@ -387,76 +474,55 @@
 
 <h3 id="skewness"><a class="header" href="#skewness">Skewness</a></h3>
 <p>Skewness measures asymmetry. A skewness of 0 means perfectly symmetric (like the normal distribution). Positive skewness means a right tail (most values cluster low, with a few very high values). Negative skewness means a left tail.</p>
-<p><strong>Biological reality:</strong> Most biological measurements are positively skewed. Gene expression, protein abundance, cell counts, read depths — all tend to have many low values and a few very high ones. This is because multiplicative processes (gene regulation cascades, exponential growth) naturally produce right-skewed distributions.</p>
+<p><strong>Biological reality:</strong> Many—not all—biological measurements are positively skewed. Expression abundance, protein abundance, cell counts, and read depths can have many low values and a few high ones because of biological heterogeneity, multiplicative mechanisms, sampling, and technical limits. Mixtures and batch effects can create similar shapes, so skewness alone does not reveal the cause.</p>
 <h3 id="kurtosis"><a class="header" href="#kurtosis">Kurtosis</a></h3>
 <p>Kurtosis measures the “tailedness” of the distribution — how likely extreme values are compared to a normal distribution. High kurtosis means heavy tails (more outliers than expected). Low kurtosis means light tails.</p>
 <p>In genomics, variant allele frequency distributions often have high kurtosis, reflecting the mixture of common variants (clustered near 50%) and rare variants (near 0%).</p>
 <blockquote>
-<p><strong>Key insight:</strong> If skewness is far from 0 or kurtosis is far from 3, your data is not normally distributed, and parametric tests that assume normality may give misleading results. We will explore this deeply on Day 3.</p>
+<p><strong>Key insight:</strong> Skewness and kurtosis are clues, not pass/fail gates. Model assumptions usually concern residuals or a sampling distribution, not necessarily the raw outcome. Plot the data, preserve the study design, and inspect the fitted model rather than choosing a test from one shape number.</p>
 </blockquote>
 <h2 id="descriptive-statistics-in-biolang"><a class="header" href="#descriptive-statistics-in-biolang">Descriptive Statistics in BioLang</a></h2>
 <p>Let us return to Dr. Chen’s problem. She has 10,247 quality scores and five minutes.</p>
 <h3 id="loading-and-summarizing-data"><a class="header" href="#loading-and-summarizing-data">Loading and Summarizing Data</a></h3>
-<pre><code class="language-bio">set_seed(42)
+<pre><code class="language-bio">import "statistics" as stat
+
+set_seed(42)
 # Simulate sequencing quality scores (Phred scale, typically 0-40)
 let quality_scores = rnorm(10247, 32.5, 3.8)
 
-# One-line comprehensive summary
-let stats = summary(quality_scores)
-print(stats)
-# Output:
-#   n:        10247
-#   mean:     32.48
-#   median:   32.51
-#   sd:       3.81
-#   min:      17.23
-#   max:      47.12
-#   q1:       29.93
-#   q3:       35.07
-#   iqr:      5.14
-#   skewness: -0.01
-#   kurtosis: 2.99
+# Values are calculated when this block runs; none are pasted in advance.
+let report = stat.explore(quality_scores, {
+    name: "tile quality",
+    data_type: "Phred scores"
+})
+println(report.explanation)
+println(report.visual_guide.ascii)
 </code></pre>
-<p>That single call answers Dr. Chen’s three questions immediately. Mean quality is 32.5 (good — above the Phred 30 threshold). The SD is 3.8 (moderate spread). Skewness is near zero (symmetric). No red flags. The run is usable.</p>
+<p>That call calculates the observed centre, spread, shape, missing-value counts, and review flags. It does <strong>not</strong> decide whether the run is usable: Dr. Chen must compare the observed distribution with the instrument’s QC specification and inspect per-cycle, per-tile, and library-level evidence.</p>
 <h3 id="computing-individual-statistics"><a class="header" href="#computing-individual-statistics">Computing Individual Statistics</a></h3>
-<pre><code class="language-bio"># Individual measures of center
-let avg = mean(quality_scores)       # 32.48
-let med = median(quality_scores)     # 32.51
-let mod = mode(quality_scores)       # 32 (rounded to nearest integer)
+<pre><code class="language-bio"># Individual measures of centre
+let avg = mean(quality_scores)
+let med = median(quality_scores)
 
 # Individual measures of spread
-let sd = stdev(quality_scores)       # 3.81
-let v = variance(quality_scores)     # 14.52
-let r = range_stat(quality_scores)   # [17.23, 47.12]
-let q = quantile(quality_scores, [0.25, 0.5, 0.75])  # [29.93, 32.51, 35.07]
-let i = iqr(quality_scores)          # 5.14
+let sd = stdev(quality_scores)
+let v = variance(quality_scores)
+let q1 = report.summary.q1
+let q3 = report.summary.q3
+let i = report.summary.iqr
 
-# Shape
-let sk = skewness(quality_scores)    # -0.01
-let ku = kurtosis(quality_scores)    # 2.99
-
-print("Mean: {avg}, Median: {med}")
-print("SD: {sd}, IQR: {i}")
-print("Skewness: {sk}, Kurtosis: {ku}")
+print(f"Mean: {avg}, Median: {med}")
+print(f"SD: {sd}, IQR: {i}")
+print(f"Q1: {q1}, Q3: {q3}, Skewness: {report.summary.skewness}")
 </code></pre>
+<p>An exact numeric mode is usually unhelpful for continuous measurements because
+nearby values need not repeat. If a peak matters scientifically, show the
+distribution and state the binning or density method used to identify it.</p>
 <h3 id="the-summary-function"><a class="header" href="#the-summary-function">The <code>summary()</code> Function</a></h3>
 <p>For a more detailed report:</p>
-<pre><code class="language-bio">let report = summary(quality_scores)
-print(report)
-# Output:
-#   Variable:    quality_scores
-#   Count:       10247
-#   Mean:        32.48
-#   Std Dev:     3.81
-#   Min:         17.23
-#   25%:         29.93
-#   50%:         32.51
-#   75%:         35.07
-#   Max:         47.12
-#   Skewness:    -0.01
-#   Kurtosis:    2.99
-#   CV:          11.73%
-#   SE(mean):    0.038
+<pre><code class="language-bio">let choices = stat.means(quality_scores)
+println(choices.quick_explanation)
+println(choices.centre_spread_pairs)
 </code></pre>
 <h3 id="working-with-real-sequencing-data"><a class="header" href="#working-with-real-sequencing-data">Working with Real Sequencing Data</a></h3>
 <pre><code class="language-bio">set_seed(42)
@@ -567,9 +633,9 @@ boxplot(scores, {title: "Quality Score Box Plot"})
 
 # Summary table
 let stats = summary(scores)
-print("QC Decision: {if stats.mean &gt; 30 then 'PASS' else 'FAIL'}")
-print("Mean Q-score: {stats.mean:.1}")
-print("Tiles below Q20: {scores |&gt; filter(|s| s &lt; 20) |&gt; len()}")
+print(f"QC Decision: {if stats.mean &gt; 30 then "PASS" else "FAIL"}")
+print(f"Mean Q-score: {stats.mean:.1}")
+print(f"Tiles below Q20: {scores |&gt; filter(|s| s &lt; 20) |&gt; len()}")
 </code></pre>
 <h2 id="python-and-r-equivalents"><a class="header" href="#python-and-r-equivalents">Python and R Equivalents</a></h2>
 <p>For those coming from Python or R, here are the equivalent operations.</p>
@@ -644,12 +710,12 @@ let fraction_below_q20 = tiles_below_q20 / len(scores)
 let qc_pass = stats.mean &gt;= pass_threshold and fraction_below_q20 &lt;= fail_fraction_limit
 
 print("=== Sequencing Run QC Report ===")
-print("Total tiles:          {len(scores)}")
-print("Mean quality:         {stats.mean:.2}")
-print("Median quality:       {stats.median:.2}")
-print("Std deviation:        {stats.sd:.2}")
-print("Tiles below Q20:      {tiles_below_q20} ({fraction_below_q20 * 100:.1}%)")
-print("QC Result:            {if qc_pass then 'PASS' else 'FAIL'}")
+print(f"Total tiles:          {len(scores)}")
+print(f"Mean quality:         {stats.mean:.2}")
+print(f"Median quality:       {stats.median:.2}")
+print(f"Std deviation:        {stats.sd:.2}")
+print(f"Tiles below Q20:      {tiles_below_q20} ({fraction_below_q20 * 100:.1}%)")
+print(f"QC Result:            {if qc_pass then "PASS" else "FAIL"}")
 print("================================")
 
 # Step 6: Visualize
@@ -707,7 +773,7 @@ let samples = {
 <h2 id="key-takeaways"><a class="header" href="#key-takeaways">Key Takeaways</a></h2>
 <ul>
 <li>Descriptive statistics compress large datasets into interpretable summaries of center, spread, and shape.</li>
-<li>The <strong>mean</strong> is efficient but outlier-sensitive; the <strong>median</strong> is robust. For skewed biological data, prefer the median.</li>
+<li>The <strong>mean</strong> is efficient for an additive expectation but sensitive to extremes; the <strong>median</strong> is robust and describes a ranked halfway point. For skewed data, report the pair that matches the estimand and often show both.</li>
 <li><strong>Standard deviation</strong> measures absolute spread; <strong>IQR</strong> is robust to outliers; <strong>CV</strong> enables comparison across different scales.</li>
 <li><strong>Skewness</strong> and <strong>kurtosis</strong> reveal whether your data’s shape matches the assumptions of common statistical tests.</li>
 <li><strong>Always visualize</strong> your data with histograms and box plots before computing any test. Summary statistics can hide multimodal distributions, outliers, and other structural features.</li>

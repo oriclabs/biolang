@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -249,7 +249,7 @@
 <h3 id="assumptions"><a class="header" href="#assumptions">Assumptions</a></h3>
 <ol>
 <li><strong>Independence</strong>: Observations within and between groups are independent</li>
-<li><strong>Normality</strong>: Data in each group are approximately normally distributed</li>
+<li><strong>Sampling shape</strong>: For small samples, each group’s conditional outcomes should not have extreme departures that make mean-based inference unstable; in a paired test, inspect the paired differences</li>
 <li><strong>Equal variances</strong>: Both groups have similar spread (homoscedasticity)</li>
 </ol>
 <h3 id="the-pooled-standard-error"><a class="header" href="#the-pooled-standard-error">The Pooled Standard Error</a></h3>
@@ -259,7 +259,7 @@
 <h2 id="welchs-t-test-the-safer-default"><a class="header" href="#welchs-t-test-the-safer-default">Welch’s t-Test: The Safer Default</a></h2>
 <p>Welch’s t-test does not assume equal variances. It uses each group’s own variance estimate and adjusts the degrees of freedom downward with the Welch-Satterthwaite equation.</p>
 <blockquote>
-<p><strong>Key insight:</strong> Welch’s t-test is almost always the better default choice. It performs nearly as well as the pooled t-test when variances ARE equal, and much better when they are not. Most modern statistical software (including R’s <code>t.test()</code>) uses Welch’s version by default.</p>
+<p><strong>Key insight:</strong> For two independent groups and a difference-in-means estimand, Welch’s t-test is a useful default because it does not require equal variances. It still requires independent experimental units and can be unstable with very small, highly skewed, heavy-tailed, or dependent samples. R’s <code>t.test()</code> uses Welch’s version by default.</p>
 </blockquote>
 <h2 id="paired-t-test-matched-samples"><a class="header" href="#paired-t-test-matched-samples">Paired t-Test: Matched Samples</a></h2>
 <p>When observations are naturally paired — tumor/normal from the same patient, before/after treatment on the same subject — the paired t-test is far more powerful because it controls for inter-subject variability.</p>
@@ -331,7 +331,7 @@
 </div>
 
 <blockquote>
-<p><strong>Common pitfall:</strong> Using an independent t-test on paired data wastes statistical power. If you have natural pairs, always use the paired test. Conversely, using a paired test on unpaired data gives wrong results.</p>
+<p><strong>Common pitfall:</strong> Ignoring genuine pairing usually gives the wrong uncertainty and can waste information. Use a paired analysis when the scientific units are correctly matched and the target is a within-pair change; do not manufacture pairs between independent observations.</p>
 </blockquote>
 <div style="text-align: center; margin: 2em 0;">
 <svg width="650" height="360" viewbox="0 0 650 360" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -391,22 +391,22 @@
 
 <h2 id="checking-assumptions"><a class="header" href="#checking-assumptions">Checking Assumptions</a></h2>
 <h3 id="normality-shapiro-wilk-test"><a class="header" href="#normality-shapiro-wilk-test">Normality: Shapiro-Wilk Test</a></h3>
-<p>The Shapiro-Wilk test checks whether data could have come from a normal distribution.</p>
+<p>The Shapiro-Wilk test measures evidence against an exact normal model. It does not certify normality or choose a test.</p>
 <ul>
 <li>H0: Data are normally distributed</li>
-<li>If p &gt; 0.05, normality assumption is reasonable</li>
-<li>If p &lt; 0.05, data are significantly non-normal</li>
+<li>A large p-value means the sample did not provide strong evidence against exact normality; with small n the test may have little power.</li>
+<li>A small p-value is evidence of a departure, whose practical importance should be judged visually and through sensitivity of the intended analysis.</li>
 </ul>
 <p>Also use <strong>QQ plots</strong>: if points fall along the diagonal line, data are approximately normal.</p>
 <h3 id="equal-variances-levenes-test"><a class="header" href="#equal-variances-levenes-test">Equal Variances: Levene’s Test</a></h3>
 <p>Levene’s test checks whether two groups have equal variances.</p>
 <ul>
 <li>H0: Variances are equal</li>
-<li>If p &gt; 0.05, equal variance assumption is reasonable</li>
-<li>If p &lt; 0.05, use Welch’s t-test (or just always use Welch’s)</li>
+<li>A large p-value does not prove equal variances.</li>
+<li>For independent groups and a mean difference, Welch’s method avoids making equality of variance a prerequisite; also inspect design, group sizes, and influential values.</li>
 </ul>
 <h2 id="cohens-d-quantifying-effect-size"><a class="header" href="#cohens-d-quantifying-effect-size">Cohen’s d: Quantifying Effect Size</a></h2>
-<p>A p-value tells you <em>whether</em> a difference exists. Cohen’s d tells you <em>how large</em> it is, in standard deviation units:</p>
+<p>A p-value measures compatibility with a null model; it does not tell you whether a difference exists. Cohen’s d estimates a standardized mean difference, while its confidence interval shows precision:</p>
 <p><strong>d = (x-bar1 - x-bar2) / s_pooled</strong></p>
 <div class="table-wrapper">
 <table>
@@ -422,7 +422,7 @@
 </table>
 </div>
 <blockquote>
-<p><strong>Key insight:</strong> A large p-value with a large Cohen’s d suggests you are underpowered — you may have a real effect but too few samples to detect it. A small p-value with a tiny Cohen’s d suggests the effect, while real, may not be biologically meaningful.</p>
+<p><strong>Key insight:</strong> A large p-value with an imprecise, large point estimate is compatible with several effect sizes; inspect its confidence interval and design rather than declaring a hidden real effect. A small p-value with a tiny estimate can indicate a precisely measured but practically unimportant difference. Domain thresholds decide importance.</p>
 </blockquote>
 <h2 id="the-t-test-in-biolang"><a class="header" href="#the-t-test-in-biolang">The t-Test in BioLang</a></h2>
 <h3 id="independent-two-sample-t-test-gene-expression"><a class="header" href="#independent-two-sample-t-test-gene-expression">Independent Two-Sample t-Test: Gene Expression</a></h3>
@@ -433,15 +433,15 @@ let normal = [6.2, 7.1, 6.5, 7.4, 6.8, 7.0, 6.3, 7.2, 6.9, 6.6, 7.3, 6.1]
 # Default: Welch's t-test (unequal variances)
 let result = ttest(tumor, normal)
 print("=== Welch's t-test: BRCA1 Tumor vs Normal ===")
-print("t-statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.2e}")
-print("Degrees of freedom: {result.df:.1}")
-print("Mean tumor: {mean(tumor):.2}, Mean normal: {mean(normal):.2}")
-print("Difference: {mean(tumor) - mean(normal):.2} log2-CPM")
+print(f"t-statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.2e}")
+print(f"Degrees of freedom: {result.df:.1}")
+print(f"Mean tumor: {mean(tumor):.2}, Mean normal: {mean(normal):.2}")
+print(f"Difference: {mean(tumor) - mean(normal):.2} log2-CPM")
 
 # Effect size (Cohen's d inline)
 let d = (mean(tumor) - mean(normal)) / sqrt((variance(tumor) + variance(normal)) / 2.0)
-print("Cohen's d: {d:.3}")
+print(f"Cohen's d: {d:.3}")
 
 # Visualize
 let bp_table = table({"Tumor": tumor, "Normal": normal})
@@ -455,12 +455,12 @@ let normal = [6.2, 7.1, 6.5, 7.4, 6.8, 7.0, 6.3, 7.2, 6.9, 6.6, 7.3, 6.1]
 # (no built-in Shapiro-Wilk; use QQ plots + summary stats)
 let s_tumor = summary(tumor)
 let s_normal = summary(normal)
-print("Tumor summary:  {s_tumor}")
-print("Normal summary: {s_normal}")
+print(f"Tumor summary:  {s_tumor}")
+print(f"Normal summary: {s_normal}")
 
 # 2. Equal variance check: compare variances from summary()
 let var_ratio = variance(tumor) / variance(normal)
-print("Variance ratio (tumor/normal): {var_ratio:.3}")
+print(f"Variance ratio (tumor/normal): {var_ratio:.3}")
 if var_ratio &gt; 2.0 or var_ratio &lt; 0.5 {
   print("Variances appear unequal -&gt; use Welch's t-test (the default)")
 } else {
@@ -468,8 +468,8 @@ if var_ratio &gt; 2.0 or var_ratio &lt; 0.5 {
 }
 
 # 3. QQ plots for visual normality assessment
-qq_plot(tumor, {title: "QQ Plot: Tumor BRCA1 Expression"})
-qq_plot(normal, {title: "QQ Plot: Normal BRCA1 Expression"})
+normal_qq_plot(tumor, {title: "QQ Plot: Tumor BRCA1 Expression"})
+normal_qq_plot(normal, {title: "QQ Plot: Normal BRCA1 Expression"})
 </code></pre>
 <h3 id="paired-t-test-beforeafter-treatment"><a class="header" href="#paired-t-test-beforeafter-treatment">Paired t-Test: Before/After Treatment</a></h3>
 <pre><code class="language-bio"># Tumor volume (mm^3) before and after 6 weeks of treatment
@@ -480,18 +480,18 @@ let after  = [180, 245, 165, 298, 220, 350, 132, 270, 210, 248]
 # Paired t-test: accounts for patient-to-patient variability
 let result = ttest_paired(before, after)
 print("=== Paired t-test: Tumor Volume Before vs After Treatment ===")
-print("t-statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.6}")
+print(f"t-statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.6}")
 
 # Show the paired differences
 let diffs = zip(before, after) |&gt; map(|pair| pair[0] - pair[1])
-print("Mean reduction: {mean(diffs):.1} mm^3")
-print("Individual reductions: {diffs}")
+print(f"Mean reduction: {mean(diffs):.1} mm^3")
+print(f"Individual reductions: {diffs}")
 
 # Compare: what if we wrongly used an independent t-test?
 let wrong_result = ttest(before, after)
-print("\nWrong (independent) t-test p-value: {wrong_result.p_value:.6}")
-print("Correct (paired) t-test p-value: {result.p_value:.6}")
+print(f"\nWrong (independent) t-test p-value: {wrong_result.p_value:.6}")
+print(f"Correct (paired) t-test p-value: {result.p_value:.6}")
 print("Paired test is more powerful because it removes inter-patient variability")
 
 # Visualize paired differences
@@ -504,9 +504,9 @@ let gc_per_contig = [40.2, 41.5, 39.8, 42.1, 40.7, 41.3, 39.5, 42.4,
 
 let result = ttest_one(gc_per_contig, 41.0)
 print("=== One-sample t-test: GC Content vs Expected 41% ===")
-print("Sample mean: {mean(gc_per_contig):.2}%")
-print("t-statistic: {result.statistic:.4}")
-print("p-value: {result.p_value:.4}")
+print(f"Sample mean: {mean(gc_per_contig):.2}%")
+print(f"t-statistic: {result.statistic:.4}")
+print(f"p-value: {result.p_value:.4}")
 
 if result.p_value &gt; 0.05 {
   print("No significant deviation from expected GC content")
@@ -539,7 +539,7 @@ for i in 0..len(genes) {
   let result = ttest(tumor_expr[i], normal_expr[i])
   let d = (mean(tumor_expr[i]) - mean(normal_expr[i])) / sqrt((variance(tumor_expr[i]) + variance(normal_expr[i])) / 2.0)
   let interp = if abs(d) &gt; 0.8 then "Large" else if abs(d) &gt; 0.5 then "Medium" else "Small"
-  print("{genes[i]:&lt;10} | {result.statistic:&gt;6.2} | {result.p_value:&gt;10.2e} | {d:&gt;9.3} | {interp}")
+  print(f"{genes[i]:&lt;10} | {result.statistic:&gt;6.2} | {result.p_value:&gt;10.2e} | {d:&gt;9.3} | {interp}")
 }
 </code></pre>
 <p><strong>Python:</strong></p>
@@ -595,7 +595,7 @@ c) Testing whether mean read length from your sequencer matches the expected 150
 <pre><code class="language-bio">let anemia  = [9.2, 8.8, 10.1, 9.5, 8.3, 9.7, 8.6, 9.0, 10.3, 8.9]
 let healthy = [13.5, 14.2, 12.8, 13.9, 14.5, 13.1, 14.0, 13.6, 12.9, 14.3]
 
-# TODO: 1. Check normality with qq_plot() on each group
+# TODO: 1. Check normality with normal_qq_plot() on each group
 # TODO: 2. Check equal variances by comparing variance() per group
 # TODO: 3. Run the appropriate t-test with ttest()
 # TODO: 4. Compute Cohen's d inline: (mean(a)-mean(b)) / sqrt((variance(a)+variance(b))/2)
@@ -616,7 +616,7 @@ let after  = [180, 245, 165, 298, 220, 350, 132, 270, 210, 248]
 <pre><code class="language-bio">let treatment = [2.1, 1.8, 45.2, 3.5, 2.9, 1.2, 38.7, 4.1, 2.3, 1.5]
 let control   = [0.8, 0.5, 0.9, 0.3, 1.1, 0.7, 0.4, 0.6, 1.0, 0.2]
 
-# TODO: Test normality with qq_plot()
+# TODO: Test normality with normal_qq_plot()
 # TODO: Run the t-test with ttest() anyway — what does it say?
 # TODO: Try log-transforming the data and re-testing
 # TODO: Preview: tomorrow we'll learn non-parametric alternatives
@@ -632,7 +632,7 @@ let control   = [0.8, 0.5, 0.9, 0.3, 1.1, 0.7, 0.4, 0.6, 1.0, 0.2]
 <li>A non-significant t-test with a large Cohen’s d suggests you need more samples</li>
 </ul>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
-<p>What happens when your data violate the normality assumption? Cytokine levels, bacterial abundances, and many other biological measurements are wildly skewed. Tomorrow we introduce non-parametric tests — rank-based alternatives to the t-test that make no assumptions about the shape of your data distribution.</p>
+<p>What happens when an exact normal model is a poor approximation? Cytokine levels, bacterial abundances, and many other biological measurements can be strongly skewed. Tomorrow we introduce rank-based alternatives to the t-test. They avoid an exact normal outcome model, but still require a compatible estimand, independence or correct pairing, and careful treatment of ties and sampling design.</p>
 
                     </main>
 

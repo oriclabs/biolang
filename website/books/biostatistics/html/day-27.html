@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -594,10 +594,9 @@ let sig = de_results |&gt; filter(|r|
 let pca_result = pca(log_cpm)
 scatter(pca_result.scores[0], pca_result.scores[1])
 
-# Result: Sample S14 is a clear outlier on PC1 (3.8 SD from centroid).
-# Decision: Remove S14 from downstream analysis.
-# Justification: S14 had the lowest library size (2.1M reads vs
-# median 15.3M) and highest duplication rate (82%).
+# Do not paste an imagined result here. Record the measured sample identifier,
+# distance, library-size/duplication evidence, and a predeclared action after
+# this code has run. A PCA distance alone does not justify sample removal.
 </code></pre>
 <blockquote>
 <p><strong>Key insight:</strong> Every decision in an analysis (removing a sample, choosing a threshold, selecting a normalization method) should be documented with a justification. Six months later, neither you nor a reviewer will remember why you chose FDR &lt; 0.05 instead of 0.01.</p>
@@ -686,8 +685,8 @@ print("\nGroup A: " + str(summary(a)))
 print("Group B: " + str(summary(b)))
 
 # --- Normality Check (visual) ---
-qq_plot(a, {title: "Q-Q Plot — Group A"})
-qq_plot(b, {title: "Q-Q Plot — Group B"})
+normal_qq_plot(a, {title: "Q-Q Plot — Group A"})
+normal_qq_plot(b, {title: "Q-Q Plot — Group B"})
 
 # --- Primary Analysis ---
 let tt = ttest(a, b)

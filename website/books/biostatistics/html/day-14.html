@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-72a1a56c.js";
+            window.path_to_searchindex_js = "searchindex-92144030.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f5d8e804.js"></script>
+        <script src="toc-0c6a9f60.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -463,24 +463,24 @@ let model = lm(expression, ic50)
 
 # Print model summary
 print("=== Linear Regression Summary ===")
-print("Intercept: {model.intercept}")
-print("Slope: {model.slope}")
-print("R²: {model.r_squared}")
-print("Slope p-value: {model.p_value}")
+print(f"Intercept: {model.intercept}")
+print(f"Slope: {model.slope}")
+print(f"R²: {model.r_squared}")
+print(f"Slope p-value: {model.p_value}")
 </code></pre>
 <h3 id="interpreting-coefficients"><a class="header" href="#interpreting-coefficients">Interpreting Coefficients</a></h3>
 <pre><code class="language-bio"># Detailed coefficient table
 print("=== Coefficients ===")
-print("  Intercept: {model.intercept}")
-print("  Expression β: {model.slope}")
-print("  p-value: {model.p_value}")
+print(f"  Intercept: {model.intercept}")
+print(f"  Expression β: {model.slope}")
+print(f"  p-value: {model.p_value}")
 
 # Interpretation
 let slope = model.slope
 print("\nFor each 1-unit increase in expression,")
-print("IC50 decreases by {slope |&gt; abs |&gt; round(2)} μM")
-print("R² = {model.r_squared |&gt; round(3)}: expression explains")
-print("{(model.r_squared * 100) |&gt; round(1)}% of IC50 variation")
+print(f"IC50 decreases by {slope |&gt; abs |&gt; round(2)} μM")
+print(f"R² = {model.r_squared |&gt; round(3)}: expression explains")
+print(f"{(model.r_squared * 100) |&gt; round(1)}% of IC50 variation")
 </code></pre>
 <h3 id="prediction-with-intervals"><a class="header" href="#prediction-with-intervals">Prediction with Intervals</a></h3>
 <pre><code class="language-bio"># Predict IC50 for new cell lines
@@ -490,7 +490,7 @@ let new_expression = [7.0, 10.0, 13.0]
 print("=== Predictions ===")
 for i in 0..3 {
     let predicted = model.slope * new_expression[i] + model.intercept
-    print("Expression = {new_expression[i]}: Predicted IC50 = {predicted |&gt; round(1)} μM")
+    print(f"Expression = {new_expression[i]}: Predicted IC50 = {predicted |&gt; round(1)} μM")
 }
 </code></pre>
 <h3 id="residual-analysis"><a class="header" href="#residual-analysis">Residual Analysis</a></h3>
@@ -527,16 +527,16 @@ let y = zip(x, rnorm(50, 0, 3))
 
 # Fit linear model in observed range
 let model_extrap = lm(x, y)
-print("R² in training range: {model_extrap.r_squared |&gt; round(3)}")
+print(f"R² in training range: {model_extrap.r_squared |&gt; round(3)}")
 
 # Predict within range — reasonable
 let pred_in = model_extrap.slope * 10.0 + model_extrap.intercept
-print("Prediction at x=10 (in range): {pred_in |&gt; round(1)}")
+print(f"Prediction at x=10 (in range): {pred_in |&gt; round(1)}")
 
 # Predict outside range — dangerous!
 let pred_out = model_extrap.slope * 25.0 + model_extrap.intercept
-print("Prediction at x=25 (extrapolation): {pred_out |&gt; round(1)}")
-print("True value at x=25 would be: {(100 - 3*25 + 0.2*25**2) |&gt; round(1)}")
+print(f"Prediction at x=25 (extrapolation): {pred_out |&gt; round(1)}")
+print(f"True value at x=25 would be: {(100 - 3*25 + 0.2*25**2) |&gt; round(1)}")
 print("Extrapolation error demonstrates the danger!")
 </code></pre>
 <h3 id="working-with-log-transformed-data"><a class="header" href="#working-with-log-transformed-data">Working with Log-Transformed Data</a></h3>
@@ -548,12 +548,12 @@ let response = zip(dose, rnorm(40, 0, 3))
 
 # Linear model on raw scale — poor fit
 let model_raw = lm(dose, response)
-print("R² (raw scale): {model_raw.r_squared |&gt; round(3)}")
+print(f"R² (raw scale): {model_raw.r_squared |&gt; round(3)}")
 
 # Log-transform dose — much better
 let log_dose = dose |&gt; map(|d| log2(d))
 let model_log = lm(log_dose, response)
-print("R² (log scale): {model_log.r_squared |&gt; round(3)}")
+print(f"R² (log scale): {model_log.r_squared |&gt; round(3)}")
 
 # Compare residual plots to see the difference
 </code></pre>
