@@ -1,5 +1,19 @@
-name: Deploy to GitHub Pages
+name: Verify site build
 
+# This workflow used to deploy lang.bio directly from this repository. So does
+# oriclabs/biolang-website, and both trees carry a CNAME of lang.bio, so the two
+# deployments raced: whichever finished last replaced the live site. The
+# aggregator there is the correct publisher, because it is the only one that
+# sees all three repositories at once. It checks this repository out as _core
+# and oriclabs/biolang-workflows as _workflows, builds the practical books and
+# courses from _workflows (where they are canonical), and builds the language
+# reference, packs, wasm module, and workbench from here. A deploy from this
+# repository alone could only ever publish part of that, so when it landed last
+# it replaced the assembled site with an un-aggregated one.
+#
+# The build steps are kept, without the deploy. They are what makes a site
+# breakage visible on the commit that caused it rather than up to six hours
+# later, when the aggregator's polling schedule next runs.
 on:
   push:
     branches: [main]
@@ -10,15 +24,26 @@ on:
       - 'desktop/**'
       - 'scripts/build-packs.mjs'
       - 'scripts/lib/**'
+  pull_request:
+    paths:
+      - 'website/**'
+      - 'books/**'
+      - 'packs/**'
+      - 'desktop/**'
+      - 'scripts/build-packs.mjs'
+      - 'scripts/lib/**'
   workflow_dispatch:
 
+# Deploying needs pages: write and id-token: write. Verification does not, and
+# leaving them granted would let a change to this file start publishing again
+# without that being the visible intent of the change.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
+# Not the `pages` group. That group exists to serialise deployments, and this
+# job no longer deploys; sharing the name would cancel unrelated runs.
 concurrency:
-  group: pages
+  group: verify-site-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -37,7 +62,7 @@ jobs:
           # GitHub API, which is rate-limited per IP and shared across Actions
           # runners. When it was throttled, tag_name was absent, `tag` became the
           # empty string, and the URL collapsed to `download//mdbook--x86_64-...`,
-          # which 404s. The whole deploy then failed for a reason unrelated to
+          # which 404s. The whole build then failed for a reason unrelated to
           # anything in the commit. Pinning removes the API call, and makes the
           # docs build reproducible: "latest" also meant a new mdBook release
           # could change the published books with no commit behind it.
@@ -56,8 +81,8 @@ jobs:
 
       # wasm/builtins.json is gitignored, so it is absent from a fresh checkout
       # and the playground silently fell back to its regex allowlist — the very
-      # drift the generated catalog exists to prevent. Regenerate it at deploy
-      # time from the committed module so the two cannot disagree.
+      # drift the generated catalog exists to prevent. Regenerate it from the
+      # committed module so the two cannot disagree.
       - name: Generate the browser builtin catalog
         working-directory: website
         run: node tests/write_wasm_builtins.mjs
@@ -100,6 +125,11 @@ jobs:
       - name: Build the single-cell starter kit
         run: python scripts/build-starter-kit.py
 
+      # books/language is the only book the aggregator takes from this
+      # repository; the rest are built from biolang-workflows, where they are
+      # canonical. They are still authored and audited here
+      # (scripts/audit-biostatistics-book.ps1 reads books/biostatistics/book/src),
+      # so building all of them catches a broken chapter at its source.
       - name: Build books
         run: |
           mdbook build books/language
@@ -109,16 +139,14 @@ jobs:
           mdbook build books/msmb/book
           mdbook build books/hbc-scrnaseq
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: website
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      # The same assertions the aggregator makes before it publishes, so a
+      # missing entry point fails here instead of blocking a deploy later.
+      - name: Verify the site assembled
+        run: |
+          set -euo pipefail
+          test "$(cat website/CNAME)" = "lang.bio"
+          test -f website/books/language/html/index.html
+          test -f website/books/biostatistics/html/index.html
+          test -f website/workbench/index.html
+          test -f website/wasm/bl_wasm_bg.wasm
+          test -f website/packs/index.json

@@ -28,6 +28,24 @@ cargo test --workspace           # Run all tests
 cargo clippy --workspace         # Lint checks
 ```
 
+### How lang.bio is published
+
+Nothing in this repository deploys the site. `oriclabs/biolang-website` does,
+and it is the only place that can: it checks this repository out as `_core` and
+`oriclabs/biolang-workflows` as `_workflows`, then assembles one site from both.
+The language reference, example packs, wasm module, and browser workbench come
+from here; the practical books and the HBC courses are built from
+`biolang-workflows`, where they are canonical. Those books are still authored
+and audited here, and `scripts/audit-biostatistics-book.ps1` reads
+`books/biostatistics/book/src`, so a chapter is edited in this repository and
+synced across.
+
+`.github/workflows/verify-site.yml` runs the same build without deploying, so a
+broken chapter or a missing entry point fails on the commit that caused it. The
+publisher polls on a schedule rather than being triggered, because a scoped
+`GITHUB_TOKEN` cannot start a workflow in another repository — so a merge here
+reaches lang.bio at the next poll, not immediately.
+
 ### Generated Files
 
 Three committed artifacts are built from sources elsewhere in the tree:
