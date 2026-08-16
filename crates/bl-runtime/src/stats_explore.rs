@@ -195,8 +195,12 @@ struct NumericSummary {
     median: f64,
     q1: f64,
     q3: f64,
-    variance: f64,
-    sd: f64,
+    /// Absent below two observations. The sample form divides by n - 1, so a
+    /// single observation has no variance to report; returning zero would say
+    /// the data has no spread when what is true is that its spread is unknown,
+    /// and `suggestion.spread` would then recommend quoting it.
+    variance: Option<f64>,
+    sd: Option<f64>,
     iqr: f64,
     mad: f64,
     skewness: Option<f64>,
@@ -214,16 +218,14 @@ fn summarize(data: &NumericData) -> NumericSummary {
     let mut sorted = data.values.clone();
     sorted.sort_by(f64::total_cmp);
     let mean = data.values.iter().sum::<f64>() / n as f64;
-    let variance = if n > 1 {
+    let variance = (n > 1).then(|| {
         data.values
             .iter()
             .map(|value| (value - mean).powi(2))
             .sum::<f64>()
             / (n - 1) as f64
-    } else {
-        0.0
-    };
-    let sd = variance.sqrt();
+    });
+    let sd = variance.map(f64::sqrt);
     let median_value = quantile_sorted(&sorted, 0.5);
     let q1 = quantile_sorted(&sorted, 0.25);
     let q3 = quantile_sorted(&sorted, 0.75);
@@ -273,7 +275,7 @@ fn summarize(data: &NumericData) -> NumericSummary {
         sd,
         iqr,
         mad,
-        skewness: sample_skewness(&data.values, mean, sd),
+        skewness: sd.and_then(|sd| sample_skewness(&data.values, mean, sd)),
         lower_fence,
         upper_fence,
         outlier_positions,
@@ -548,7 +550,7 @@ fn preprocessing_record(data: &NumericData, summary: &NumericSummary, data_type:
             "values |> map(|x| log(1.0 + x))",
         ));
     }
-    if summary.sd > f64::EPSILON {
+    if summary.sd.is_some_and(|sd| sd > f64::EPSILON) {
         suggestions.push(preprocessing_option(
             "z-score standardization",
             "task_dependent",
@@ -665,16 +667,27 @@ fn numeric_report(data: NumericData, variable: &str, data_type: &str) -> Value {
     let robust = summary.skewness.is_some_and(|value| value.abs() >= 0.5)
         || !summary.outlier_positions.is_empty();
     let center_name = if robust { "median" } else { "mean" };
-    let spread_name = if robust { "IQR" } else { "standard deviation" };
+    // A single observation has no sample spread of any kind, so recommending
+    // one would ask the reader to quote a number that does not exist. The IQR
+    // of one value is zero and the SD is undefined; neither describes anything.
+    let spread_name = match (summary.sd, robust) {
+        (None, _) => "none: a single observation has no spread to report",
+        (Some(_), true) => "IQR",
+        (Some(_), false) => "standard deviation",
+    };
     let center_reason = if robust {
         "The median is less affected by asymmetry and unusually distant observations."
     } else {
         "The distribution has no strong asymmetry or Tukey outlier flags."
     };
-    let spread_reason = if robust {
-        "The IQR describes the middle half without depending on the mean."
-    } else {
-        "Standard deviation describes distance from the mean in the original units."
+    let spread_reason = match (summary.sd, robust) {
+        (None, _) => {
+            "Sample spread needs at least two observations; the sample variance divides by n - 1."
+        }
+        (Some(_), true) => "The IQR describes the middle half without depending on the mean.",
+        (Some(_), false) => {
+            "Standard deviation describes distance from the mean in the original units."
+        }
     };
 
     let outliers = summary
@@ -715,6 +728,23 @@ fn numeric_report(data: NumericData, variable: &str, data_type: &str) -> Value {
             }),
         ),
     ])];
+    if summary.sd.is_none() {
+        clues.push(record([
+            ("id", text("single_observation")),
+            (
+                "observation",
+                text("Only one observation was used, so this variable has no measurable spread."),
+            ),
+            (
+                "evidence",
+                text(
+                    "Sample variance divides by n - 1, which is zero here, so variance and \
+                     standard deviation are reported as absent rather than as zero.",
+                ),
+            ),
+            ("certainty", text("flag_only")),
+        ]));
+    }
     if !outliers.is_empty() {
         clues.push(record([
             ("id", text("possible_outliers")),
@@ -827,8 +857,14 @@ fn numeric_report(data: NumericData, variable: &str, data_type: &str) -> Value {
         fmt_number(summary.median),
         center_name,
         center_reason,
-        fmt_number(summary.sd),
-        fmt_number(summary.variance),
+        summary
+            .sd
+            .map(fmt_number)
+            .unwrap_or_else(|| "not defined".into()),
+        summary
+            .variance
+            .map(fmt_number)
+            .unwrap_or_else(|| "not defined".into()),
         fmt_number(summary.iqr),
         fmt_number(summary.q1),
         fmt_number(summary.q3),
@@ -865,8 +901,8 @@ fn numeric_report(data: NumericData, variable: &str, data_type: &str) -> Value {
                 ("q3", Value::Float(summary.q3)),
                 ("max", Value::Float(summary.max)),
                 ("mean", Value::Float(summary.mean)),
-                ("variance", Value::Float(summary.variance)),
-                ("sd", Value::Float(summary.sd)),
+                ("variance", number(summary.variance)),
+                ("sd", number(summary.sd)),
                 ("iqr", Value::Float(summary.iqr)),
                 ("mad", Value::Float(summary.mad)),
                 ("mad_normal_consistent", Value::Float(summary.mad * 1.4826)),
@@ -978,8 +1014,11 @@ fn centre_spread_visual(
     let median_x = position(summary.median);
     let q1_x = position(summary.q1);
     let q3_x = position(summary.q3);
-    let sd_low_x = position(summary.mean - summary.sd);
-    let sd_high_x = position(summary.mean + summary.sd);
+    // With fewer than two observations there is no SD, so the band collapses
+    // onto the mean rather than being drawn as a measured spread of nothing.
+    let spread = summary.sd.unwrap_or(0.0);
+    let sd_low_x = position(summary.mean - spread);
+    let sd_high_x = position(summary.mean + spread);
     let raw_skew = summary.skewness;
     let log_summary = if summary.min > 0.0 {
         let logged = data
@@ -1783,12 +1822,14 @@ fn distribution_plot(args: Vec<Value>) -> Result<Value> {
     canvas.add_text(62.0, iqr_y + 14.0, "Q1 - Q3", "start", 11.0);
 
     let sd_y = height * 0.80;
-    for multiplier in (1..=3).rev() {
+    // The 1/2/3-SD reference bands are a normal-model aid; without an SD
+    // there is nothing to reference, so none are drawn.
+    for multiplier in (1..=3).rev().filter(|_| summary.sd.is_some()) {
         let left = x_scale
-            .map(summary.mean - multiplier as f64 * summary.sd)
+            .map(summary.mean - multiplier as f64 * summary.sd.unwrap_or(0.0))
             .max(60.0);
         let right = x_scale
-            .map(summary.mean + multiplier as f64 * summary.sd)
+            .map(summary.mean + multiplier as f64 * summary.sd.unwrap_or(0.0))
             .min(width - 30.0);
         if right > left {
             let color = match multiplier {
@@ -1933,7 +1974,10 @@ fn distribution_ascii(args: Vec<Value>) -> Result<Value> {
     ));
     output.push_str(&format!(
         "SD {} | IQR {} | Tukey review flags {}\n",
-        fmt_number(summary.sd),
+        summary
+            .sd
+            .map(fmt_number)
+            .unwrap_or_else(|| "not defined".into()),
         fmt_number(summary.iqr),
         summary.outlier_positions.len()
     ));
@@ -2008,8 +2052,8 @@ fn compact_summary(summary: &NumericSummary) -> Value {
         ("q3", Value::Float(summary.q3)),
         ("max", Value::Float(summary.max)),
         ("mean", Value::Float(summary.mean)),
-        ("variance", Value::Float(summary.variance)),
-        ("sd", Value::Float(summary.sd)),
+        ("variance", number(summary.variance)),
+        ("sd", number(summary.sd)),
         ("iqr", Value::Float(summary.iqr)),
         ("mad", Value::Float(summary.mad)),
         ("skewness", number(summary.skewness)),
@@ -2623,8 +2667,12 @@ fn missingness_record(table: &Table, opts: &HashMap<String, Value>) -> Result<Va
             };
             let observed_summary = summarize(&observed_data);
             let missing_summary = summarize(&missing_data);
-            let pooled_sd = (((observed_summary.n - 1) as f64 * observed_summary.variance
-                + (missing_summary.n - 1) as f64 * missing_summary.variance)
+            // A group with a single observation contributes no variance, so it
+            // adds nothing to the pooled estimate rather than being counted as
+            // a measured spread of zero.
+            let pooled_sd = (((observed_summary.n - 1) as f64
+                * observed_summary.variance.unwrap_or(0.0)
+                + (missing_summary.n - 1) as f64 * missing_summary.variance.unwrap_or(0.0))
                 / (observed_summary.n + missing_summary.n - 2) as f64)
                 .sqrt();
             let standardized_difference = if pooled_sd > f64::EPSILON {
@@ -2953,7 +3001,7 @@ fn transform_preview(args: Vec<Value>) -> Result<Value> {
             )
         }
         "zscore" => {
-            if before.sd <= f64::EPSILON {
+            if before.sd.is_none_or(|sd| sd <= f64::EPSILON) {
                 return Err(BioLangError::runtime(
                     ErrorKind::TypeError,
                     "stats_transform_preview() zscore is undefined for zero-variance data",
@@ -2963,7 +3011,7 @@ fn transform_preview(args: Vec<Value>) -> Result<Value> {
             (
                 data.values
                     .iter()
-                    .map(|value| (value - before.mean) / before.sd)
+                    .map(|value| (value - before.mean) / before.sd.unwrap_or(1.0))
                     .collect(),
                 "(x - mean) / sample_sd",
                 "The output is centred at zero with sample SD one.",
@@ -3038,10 +3086,10 @@ fn transform_preview(args: Vec<Value>) -> Result<Value> {
     let explanation = format!(
         "Transformation preview: {method}\n\nBefore\n  skewness: {}\n  SD: {}\n  IQR: {}\n\nAfter\n  skewness: {}\n  SD: {}\n  IQR: {}\n\nWhat changes\n  {changes}\n\nCaution\n  {caution}\n\nThe input was not modified.",
         before.skewness.map(fmt_number).unwrap_or_else(|| "not assessed".into()),
-        fmt_number(before.sd),
+        before.sd.map(fmt_number).unwrap_or_else(|| "not defined".into()),
         fmt_number(before.iqr),
         after.skewness.map(fmt_number).unwrap_or_else(|| "not assessed".into()),
-        fmt_number(after.sd),
+        after.sd.map(fmt_number).unwrap_or_else(|| "not defined".into()),
         fmt_number(after.iqr),
     );
     Ok(record([
@@ -3101,7 +3149,7 @@ fn statistic(values: &[f64], name: &str) -> Option<f64> {
                 missing: 0,
                 non_finite: 0,
             };
-            Some(summarize(&data).sd)
+            summarize(&data).sd
         }
         _ => None,
     }
@@ -3542,9 +3590,9 @@ fn normal_qq_plot(args: Vec<Value>) -> Result<Value> {
     canvas.margin.bottom = 60.0;
     canvas.add_line(
         x_scale.map(x_domain.0),
-        y_scale.map(summary.mean + summary.sd * x_domain.0),
+        y_scale.map(summary.mean + summary.sd.unwrap_or(0.0) * x_domain.0),
         x_scale.map(x_domain.1),
-        y_scale.map(summary.mean + summary.sd * x_domain.1),
+        y_scale.map(summary.mean + summary.sd.unwrap_or(0.0) * x_domain.1),
         "#94a3b8",
         2.0,
     );
@@ -5348,7 +5396,10 @@ fn overview_ascii(args: Vec<Value>) -> Result<Value> {
                             fmt_number(summary.median),
                             fmt_number(summary.iqr),
                             fmt_number(summary.mean),
-                            fmt_number(summary.sd)
+                            summary
+                                .sd
+                                .map(fmt_number)
+                                .unwrap_or_else(|| "not defined".into())
                         ),
                     )
                 }
@@ -5588,7 +5639,7 @@ fn linear_diagnostic_record(facts: &LinearDiagnosticFacts, include_values: bool)
         n,
         facts.excluded,
         fmt_number(facts.slope),
-        fmt_number(residual_summary.sd),
+        residual_summary.sd.map(fmt_number).unwrap_or_else(|| "not defined".into()),
         qq_correlation.map(fmt_number).unwrap_or_else(|| "undefined".into()),
         influential_flags
     );
@@ -9215,7 +9266,7 @@ fn means_guide(args: Vec<Value>) -> Result<Value> {
         ("trimmed_mean", Value::Float(trimmed_mean)),
         ("winsorized_sd", Value::Float(winsorized_sd)),
         ("root_mean_square", Value::Float(root_mean_square)),
-        ("sample_sd", Value::Float(summary.sd)),
+        ("sample_sd", number(summary.sd)),
         ("iqr", Value::Float(summary.iqr)),
         ("mad", Value::Float(summary.mad)),
         ("raw_skewness", number(summary.skewness)),

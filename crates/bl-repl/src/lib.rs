@@ -1672,10 +1672,7 @@ pub fn biolang_metadata() -> BioLangMetadata {
         .iter()
         .map(|(name, example, return_type)| (*name, (*example, *return_type)))
         .collect::<HashMap<_, _>>();
-    let summaries = BUILTIN_SUMMARIES
-        .iter()
-        .copied()
-        .collect::<HashMap<_, _>>();
+    let summaries = BUILTIN_SUMMARIES.iter().copied().collect::<HashMap<_, _>>();
 
     let mut builtins = all_builtin_names()
         .into_iter()
@@ -1888,6 +1885,12 @@ const BUILTIN_SUMMARIES: &[(&str, &str)] = &[
     ("stats_missingness_plot", "Missingness map, in SVG or ASCII."),
     ("stats_linear_diagnostic_plot", "Residual-versus-fitted or residual Q-Q display."),
     ("stats_overview_ascii", "Compact terminal-safe whole-table summary."),
+    // Where BioLang deliberately differs from R's default, the summary says so:
+    // a reader comparing the two would otherwise conclude BioLang is wrong.
+    ("ttest", "Two-sample t test, pooled (Student) form. R's t.test defaults to Welch and will differ."),
+    ("wilcoxon", "Rank-sum test using the normal approximation without continuity correction, as Scanpy does. R defaults to the exact distribution at small n."),
+    ("fisher_exact", "Fisher exact test on a 2x2 table. The odds ratio is the sample ratio; R's fisher.test reports the conditional maximum likelihood estimate."),
+    ("cor", "Pearson correlation. Undefined when either input is constant, and NaN is returned; stats_relationship reports the same case as absent."),
 ];
 
 const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[

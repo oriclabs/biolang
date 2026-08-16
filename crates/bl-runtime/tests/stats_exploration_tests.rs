@@ -928,3 +928,119 @@ fn means_guide_pairs_each_centre_with_a_compatible_spread() {
 }
 
 use std::collections::HashMap;
+
+// ── Degenerate inputs ────────────────────────────────────────────────
+//
+// The suite had no empty-input test at all, which is how a single-observation
+// summary came to report a standard deviation of 0.0 and then recommend
+// quoting it. These cover the three shapes that break statistics: nothing,
+// one value, and no variance.
+
+/// Every guided entry point refuses an empty input by name, rather than
+/// dividing by zero or returning an empty record that reads like a result.
+#[test]
+fn guided_entry_points_reject_empty_input_by_name() {
+    let cases: &[(&str, Vec<Value>)] = &[
+        ("stats_explore", vec![numbers(&[])]),
+        ("stats_shape", vec![numbers(&[])]),
+        ("stats_means", vec![numbers(&[])]),
+        ("stats_uncertainty", vec![numbers(&[])]),
+        ("stats_distribution_clues", vec![numbers(&[])]),
+        ("stats_distribution_ascii", vec![numbers(&[])]),
+        ("stats_relationship", vec![numbers(&[]), numbers(&[])]),
+        ("stats_compare", vec![numbers(&[]), strings(&[])]),
+        ("stats_categories", vec![numbers(&[])]),
+    ];
+    for (name, args) in cases {
+        let error = call_stats_builtin(name, args.clone())
+            .expect_err(&format!("{name} should reject an empty input"));
+        let rendered = format!("{error:?}");
+        assert!(
+            rendered.contains(name),
+            "{name} should name itself in its error, got {rendered}"
+        );
+    }
+}
+
+/// A single observation has no sample spread. Reporting zero would claim the
+/// data has none, when what is true is that it cannot be measured.
+#[test]
+fn a_single_observation_reports_no_spread_rather_than_zero() {
+    let report = call_stats_builtin("stats_explore", vec![numbers(&[5.0])]).unwrap();
+    let summary = field(&report, "summary");
+    assert_eq!(field(summary, "sd"), &Value::Nil);
+    assert_eq!(field(summary, "variance"), &Value::Nil);
+    assert!((float_field(summary, "mean") - 5.0).abs() < 1e-12);
+
+    // and it must not recommend quoting a spread that does not exist
+    let suggestion = field(&report, "suggestion");
+    let spread = field(suggestion, "spread").as_str().unwrap().to_string();
+    assert!(
+        !spread.contains("standard deviation") && !spread.contains("IQR"),
+        "n=1 must not recommend a spread, got {spread:?}"
+    );
+
+    // and the reason must be disclosed as a clue, not left silent
+    let Value::List(clues) = field(&report, "clues") else {
+        panic!("clues should be a List");
+    };
+    let ids = clues
+        .iter()
+        .filter_map(|clue| field(clue, "id").as_str().map(str::to_string))
+        .collect::<Vec<_>>();
+    assert!(
+        ids.iter().any(|id| id == "single_observation"),
+        "n=1 should be disclosed, got clues {ids:?}"
+    );
+}
+
+/// Constant input has zero variance, so correlation is undefined. Reporting
+/// zero would assert "no relationship" for something unknowable, and the
+/// p-value derived from it came out as a confident 1.0.
+#[test]
+fn correlation_of_a_constant_variable_is_undefined_not_zero() {
+    let constant = numbers(&[1.0, 1.0, 1.0]);
+    let varying = numbers(&[1.0, 2.0, 3.0]);
+
+    let report = call_stats_builtin(
+        "stats_relationship",
+        vec![constant.clone(), varying.clone()],
+    )
+    .unwrap();
+    assert_eq!(
+        field(&report, "pearson"),
+        &Value::Nil,
+        "the guided layer reports an undefined correlation as absent"
+    );
+
+    // The Float-returning builtins cannot express absence, so they agree on NaN.
+    let bare = call_stats_builtin("cor", vec![constant, varying]).unwrap();
+    let Value::Float(value) = bare else {
+        panic!("cor should return a Float, got {bare:?}");
+    };
+    assert!(value.is_nan(), "cor of a constant variable should be NaN");
+}
+
+/// A constant variable still has a defined mean, median and IQR: only the
+/// spread-based quantities are affected, and the summary should say so.
+#[test]
+fn constant_input_keeps_the_quantities_that_are_still_defined() {
+    let report = call_stats_builtin("stats_explore", vec![numbers(&[5.0, 5.0, 5.0, 5.0])]).unwrap();
+    let summary = field(&report, "summary");
+    assert!((float_field(summary, "mean") - 5.0).abs() < 1e-12);
+    assert!((float_field(summary, "median") - 5.0).abs() < 1e-12);
+    assert!((float_field(summary, "iqr")).abs() < 1e-12);
+    // four observations, so the sample variance is defined and is genuinely zero
+    assert!((float_field(summary, "sd")).abs() < 1e-12);
+    assert!((float_field(summary, "variance")).abs() < 1e-12);
+    // zero spread is a measured result here, so it is not disclosed as absent
+    let Value::List(clues) = field(&report, "clues") else {
+        panic!("clues should be a List");
+    };
+    assert!(
+        !clues
+            .iter()
+            .any(|clue| field(clue, "id").as_str() == Some("single_observation")),
+        "four observations is not the single-observation case"
+    );
+}

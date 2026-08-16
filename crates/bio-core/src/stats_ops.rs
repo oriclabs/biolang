@@ -193,7 +193,12 @@ pub fn pearson_correlation(x: &[f64], y: &[f64]) -> f64 {
     let denominator = ((n * sum_x2 - sum_x * sum_x) * (n * sum_y2 - sum_y * sum_y)).sqrt();
 
     if denominator == 0.0 {
-        0.0
+        // A constant input has no variance, so the correlation is undefined
+        // rather than zero. Returning zero asserted "no linear relationship",
+        // which `correlation()` then turned into t = 0 and p = 1.0 -- a
+        // confident, and wrong, "definitely not significant". NaN matches the
+        // `cor` builtin, which has always reported this case that way.
+        f64::NAN
     } else {
         numerator / denominator
     }
