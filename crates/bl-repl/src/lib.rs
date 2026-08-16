@@ -1672,6 +1672,10 @@ pub fn biolang_metadata() -> BioLangMetadata {
         .iter()
         .map(|(name, example, return_type)| (*name, (*example, *return_type)))
         .collect::<HashMap<_, _>>();
+    let summaries = BUILTIN_SUMMARIES
+        .iter()
+        .copied()
+        .collect::<HashMap<_, _>>();
 
     let mut builtins = all_builtin_names()
         .into_iter()
@@ -1696,8 +1700,10 @@ pub fn biolang_metadata() -> BioLangMetadata {
             BuiltinMetadata {
                 name: name.to_string(),
                 signature,
-                summary: catalog_entry
-                    .map(|_| format!("BioLang {category} builtin."))
+                summary: summaries
+                    .get(name)
+                    .map(|summary| (*summary).to_string())
+                    .or_else(|| catalog_entry.map(|_| format!("BioLang {category} builtin.")))
                     .unwrap_or_else(|| {
                         format!(
                             "Registered BioLang builtin accepting {} argument(s).",
@@ -1836,6 +1842,54 @@ fn cmd_history(arg: &str, history: &dyn History) {
 // ── Extended function help ──────────────────────────────────────
 
 /// Curated examples for common builtins
+/// One-line purposes for builtins whose category label is not enough on its own.
+///
+/// Catalogued builtins otherwise summarise as "BioLang <category> builtin.",
+/// which is fine for `mean` and useless for `stats_cox_diagnostics`. These are
+/// taken from packages/statistics/README.md, so the reference and the package
+/// documentation say the same thing.
+const BUILTIN_SUMMARIES: &[(&str, &str)] = &[
+    ("stats_explore", "Centre, spread, shape, missingness, transformation candidates and review flags for one numeric variable."),
+    ("stats_compare", "Per-group evidence and the analyses appropriate to it, without choosing one."),
+    ("stats_relationship", "Complete-pair counts, Pearson and Spearman association, and a regression line."),
+    ("stats_categories", "Counts, proportions, modes, missingness and rare-level clues for a categorical variable."),
+    ("stats_guide", "Attach an explicit scientific question and experimental unit to a report."),
+    ("stats_explain", "Render a report as quick, learning or audit text."),
+    ("stats_shape", "Skewness, kurtosis, histogram-peak and normal-Q-Q evidence, with no diagnosis."),
+    ("stats_uncertainty", "Seeded bootstrap interval for a centre, spread, group difference or correlation."),
+    ("stats_means", "Every mean paired with a compatible spread, so neither is quoted alone."),
+    ("stats_preprocess", "Observable data-quality issues and non-applied normalisation alternatives."),
+    ("stats_transform_preview", "Before-and-after evidence for a transform, without applying it."),
+    ("stats_distribution_clues", "Scale-sensitive normal, log-normal, Poisson and negative-binomial fit clues."),
+    ("stats_profile", "Whole-table types, summaries, missingness, duplicates and design clues."),
+    ("stats_missingness", "Missingness by row, column, pair and optional group."),
+    ("stats_design_check", "Repeated units, imbalance, and batch or group confounding."),
+    ("stats_associations", "Bounded Pearson, Spearman, Cramer's V and categorical-numeric effect sizes."),
+    ("stats_scan", "One-command profile, association screen and prioritised next steps."),
+    ("stats_report", "Self-contained HTML or Markdown data-health report with provenance."),
+    ("stats_normalization_guide", "Dense or sparse matrix audit and domain-aware normalisation alternatives."),
+    ("stats_omics_profile", "Modality-aware matrix profile that preserves sparse semantics."),
+    ("stats_linear_diagnostics", "Residual form, spread, Q-Q, order and influence clues for a simple linear model."),
+    ("stats_multiple_linear_diagnostics", "Categorical encoding, interactions, VIF, influence and deterministic held-out error."),
+    ("stats_robust_linear_diagnostics", "Huber regression as an explicit sensitivity check against the ordinary fit."),
+    ("stats_glm_diagnostics", "Binomial or Poisson fit with deviance, dispersion, influence and calibration clues. Check `converged` before reading anything else."),
+    ("stats_random_intercept_model", "One random intercept by REML: fixed effects, variance components, ICC and partially pooled intercepts."),
+    ("stats_cox_diagnostics", "Multivariable Cox fit with Breslow ties, hazard-ratio intervals, baseline hazard and martingale residuals. The Schoenfeld screen is descriptive, not cox.zph."),
+    ("stats_weighted_summary", "Weighted moments with the weighting scheme and effective sample size disclosed."),
+    ("stats_time_series_diagnostics", "Autocorrelation, Ljung-Box and trend evidence for ordered observations."),
+    ("stats_cluster_diagnostics", "Quantify declared non-independence without fitting a model."),
+    ("stats_decision_map", "The questions that narrow a method, with `automatic_choice` false."),
+    ("stats_distribution_plot", "Annotated histogram: observations, mean, median, IQR, SD bands and outlier flags."),
+    ("stats_distribution_ascii", "Terminal-safe histogram, with exclusions and review flags stated."),
+    ("stats_normal_qq_plot", "Normal-distribution Q-Q diagnostic, distinct from the genomic qq_plot()."),
+    ("stats_group_plot", "Group observations and robust summaries, in SVG or ASCII."),
+    ("stats_relationship_plot", "Scatterplot and fitted line, in SVG or ASCII."),
+    ("stats_categorical_plot", "Frequency bars, in SVG or ASCII."),
+    ("stats_missingness_plot", "Missingness map, in SVG or ASCII."),
+    ("stats_linear_diagnostic_plot", "Residual-versus-fitted or residual Q-Q display."),
+    ("stats_overview_ascii", "Compact terminal-safe whole-table summary."),
+];
+
 const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
     (
         "gc_content",
@@ -1982,6 +2036,85 @@ const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
         "p_adjust",
         "p_adjust([0.01, 0.04, 0.5], \"bh\")  # → adjusted p-values",
         "List",
+    ),
+    // Stats builtins that were catalogued with a return type but no example.
+    (
+        "variance",
+        "variance([2.0, 4.0, 4.0, 6.0])  # → 2.6667 (sample, n-1)",
+        "Float",
+    ),
+    (
+        "quantile",
+        "quantile([1.0, 2.0, 3.0, 4.0], 0.5)  # → 2.5 (type-7, as R)",
+        "Float",
+    ),
+    ("cumsum", "cumsum([1, 2, 3])  # → [1, 3, 6]", "List"),
+    (
+        "normalize",
+        "normalize([1.0, 2.0, 3.0], \"zscore\")  # → [-1.0, 0.0, 1.0]",
+        "List",
+    ),
+    (
+        "anova",
+        "anova([[1.0,2.0],[5.0,6.0]])  # → Record{f_statistic,p_value,df_between,df_within}",
+        "Record{f_statistic,p_value,df_between,df_within}",
+    ),
+    (
+        "chi_square",
+        "chi_square([10, 20, 30], [20, 20, 20])  # → Record{chi2,p,df}",
+        "Record{chi2,p,df}",
+    ),
+    (
+        "fisher_exact",
+        "fisher_exact(8, 2, 1, 5)  # → Record{p,odds}",
+        "Record{p,odds}",
+    ),
+    (
+        "wilcoxon",
+        "wilcoxon([1.0,2.0,3.0], [4.0,5.0,6.0])  # → Record{u,p}",
+        "Record{u,p}",
+    ),
+    (
+        "ttest_one",
+        "ttest_one([5.1, 4.9, 5.0], 5.0)  # → Record{statistic,p_value,df}",
+        "Record{statistic,p_value,df}",
+    ),
+    (
+        "ttest_paired",
+        "ttest_paired([5.1, 4.9], [4.8, 4.6])  # → Record{statistic,p_value,df,mean_diff}",
+        "Record{statistic,p_value,df,mean_diff}",
+    ),
+    // Guided exploration. Shown through the package wrapper, because that is
+    // how a script reaches them.
+    (
+        "stats_explore",
+        "import \"statistics\" as stat\nstat.explore([12.1, 12.4, 13.0, 29.0])  # → Record{kind: \"numeric\", ...}",
+        "Record",
+    ),
+    (
+        "stats_glm_diagnostics",
+        "stat.glm_diagnostics(predictors, outcome, {family: \"binomial\"})  # check .converged first",
+        "Record",
+    ),
+    (
+        "stats_cox_diagnostics",
+        "stat.cox_diagnostics(time, event, predictors)  # Breslow ties, as survival::coxph(ties=\"breslow\")",
+        "Record",
+    ),
+    (
+        "stats_random_intercept_model",
+        "stat.random_intercept_model(predictors, outcome, subject_ids, {method: \"reml\"})",
+        "Record",
+    ),
+    (
+        "stats_uncertainty",
+        "stat.uncertainty(values, {statistic: \"median\", seed: 42})  # seeded, and the seed is returned",
+        "Record",
+    ),
+    (
+        "stats_scan",
+        "stat.scan(table)  # profile, association screen and prioritised next steps",
+        "Record",
     ),
     ("matrix", "matrix([[1,2],[3,4]])  # → 2x2 Matrix", "Matrix"),
     (
@@ -2671,6 +2804,208 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("wilcoxon", "wilcoxon(list1, list2) → Record{u,p}", "stats"),
     ("p_adjust", "p_adjust(pvals, method) → List", "stats"),
     ("normalize", "normalize(list, method) → List", "stats"),
+    // Guided exploration. These are the builtins the `statistics` package wraps;
+    // scripts normally reach them as `stat.explore(...)` after
+    // `import "statistics" as stat`. Every analysis here returns a Record
+    // carrying `kind` and `schema` alongside the evidence, and every plot
+    // returns a Str holding SVG or ASCII depending on `options.format`. None of
+    // them modify their input or choose a test: `input_modified` and
+    // `automatic_choice` are fields you can assert on.
+    (
+        "stats_explore",
+        "stats_explore(values, options?) → Record{kind,summary,shape,outliers,alternatives,limitations}",
+        "stats",
+    ),
+    (
+        "stats_compare",
+        "stats_compare(values, groups, options?) → Record{kind,groups,alternatives,limitations}",
+        "stats",
+    ),
+    (
+        "stats_relationship",
+        "stats_relationship(x, y, options?) → Record{kind,pearson,spearman,slope,intercept}",
+        "stats",
+    ),
+    (
+        "stats_categories",
+        "stats_categories(values, options?) → Record{kind,counts,proportions,modes}",
+        "stats",
+    ),
+    (
+        "stats_guide",
+        "stats_guide(report, context?) → Record",
+        "stats",
+    ),
+    (
+        "stats_explain",
+        "stats_explain(report, detail?) → Str",
+        "stats",
+    ),
+    (
+        "stats_shape",
+        "stats_shape(values, options?) → Record{kind,evidence,sensitivity}",
+        "stats",
+    ),
+    (
+        "stats_uncertainty",
+        "stats_uncertainty(values, options?) → Record{estimate,lower,upper,seed,method}",
+        "stats",
+    ),
+    (
+        "stats_means",
+        "stats_means(values, options?) → Record{arithmetic_mean,geometric_mean,harmonic_mean,median,centre_spread_pairs}",
+        "stats",
+    ),
+    (
+        "stats_preprocess",
+        "stats_preprocess(values, options?) → Record{issues,alternatives,input_modified}",
+        "stats",
+    ),
+    (
+        "stats_transform_preview",
+        "stats_transform_preview(values, method, options?) → Record{before,after,input_modified}",
+        "stats",
+    ),
+    (
+        "stats_distribution_clues",
+        "stats_distribution_clues(values, options?) → Record{candidates,model_selected}",
+        "stats",
+    ),
+    (
+        "stats_profile",
+        "stats_profile(table, options?) → Record{columns,missingness,duplicates,design}",
+        "stats",
+    ),
+    (
+        "stats_missingness",
+        "stats_missingness(table, options?) → Record{by_row,by_column,by_pair}",
+        "stats",
+    ),
+    (
+        "stats_design_check",
+        "stats_design_check(table, options?) → Record{repeated_units,imbalance,confounding}",
+        "stats",
+    ),
+    (
+        "stats_associations",
+        "stats_associations(table, options?) → Record{pairs,strength}",
+        "stats",
+    ),
+    (
+        "stats_scan",
+        "stats_scan(table, options?) → Record{profile,associations,next_steps}",
+        "stats",
+    ),
+    (
+        "stats_report",
+        "stats_report(table, options?) → Record{html,markdown,provenance}",
+        "stats",
+    ),
+    (
+        "stats_normalization_guide",
+        "stats_normalization_guide(matrix, options?) → Record{facts,alternatives,input_modified}",
+        "stats",
+    ),
+    (
+        "stats_omics_profile",
+        "stats_omics_profile(matrix, options?) → Record{modality,axis_summaries,input_modified}",
+        "stats",
+    ),
+    (
+        "stats_linear_diagnostics",
+        "stats_linear_diagnostics(x, y, options?) → Record{residual_mse,normal_qq_correlation,influence}",
+        "stats",
+    ),
+    (
+        "stats_multiple_linear_diagnostics",
+        "stats_multiple_linear_diagnostics(predictors, outcome, options?) → Record{coefficients,vif,validation_rmse}",
+        "stats",
+    ),
+    (
+        "stats_robust_linear_diagnostics",
+        "stats_robust_linear_diagnostics(predictors, outcome, options?) → Record{coefficients,weights,converged}",
+        "stats",
+    ),
+    (
+        "stats_glm_diagnostics",
+        "stats_glm_diagnostics(predictors, outcome, options?) → Record{coefficients,residual_deviance,aic,converged,iterations}",
+        "stats",
+    ),
+    (
+        "stats_random_intercept_model",
+        "stats_random_intercept_model(predictors, outcome, clusters, options?) → Record{fixed_effects,random_intercept_variance,residual_variance,intraclass_correlation}",
+        "stats",
+    ),
+    (
+        "stats_cox_diagnostics",
+        "stats_cox_diagnostics(time, event, predictors, options?) → Record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged}",
+        "stats",
+    ),
+    (
+        "stats_weighted_summary",
+        "stats_weighted_summary(values, weights, options?) → Record{weighted_mean,effective_sample_size}",
+        "stats",
+    ),
+    (
+        "stats_time_series_diagnostics",
+        "stats_time_series_diagnostics(values, options?) → Record{acf,ljung_box,trend}",
+        "stats",
+    ),
+    (
+        "stats_cluster_diagnostics",
+        "stats_cluster_diagnostics(values, clusters, options?) → Record{icc,design_effect}",
+        "stats",
+    ),
+    (
+        "stats_decision_map",
+        "stats_decision_map(options?) → Record{questions,automatic_choice}",
+        "stats",
+    ),
+    (
+        "stats_distribution_plot",
+        "stats_distribution_plot(values, options?) → Str",
+        "stats",
+    ),
+    (
+        "stats_distribution_ascii",
+        "stats_distribution_ascii(values, options?) → Str",
+        "stats",
+    ),
+    (
+        "stats_normal_qq_plot",
+        "stats_normal_qq_plot(values, options?) → Str",
+        "stats",
+    ),
+    (
+        "stats_group_plot",
+        "stats_group_plot(values, groups, options?) → Str",
+        "stats",
+    ),
+    (
+        "stats_relationship_plot",
+        "stats_relationship_plot(x, y, options?) → Str",
+        "stats",
+    ),
+    (
+        "stats_categorical_plot",
+        "stats_categorical_plot(values, options?) → Str",
+        "stats",
+    ),
+    (
+        "stats_missingness_plot",
+        "stats_missingness_plot(table, options?) → Str",
+        "stats",
+    ),
+    (
+        "stats_linear_diagnostic_plot",
+        "stats_linear_diagnostic_plot(x, y, options?) → Str",
+        "stats",
+    ),
+    (
+        "stats_overview_ascii",
+        "stats_overview_ascii(table, options?) → Str",
+        "stats",
+    ),
     (
         "lm",
         "lm(x, y) → Record{slope,intercept,r_squared,p_value,std_error}",
