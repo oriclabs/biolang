@@ -1,5 +1,11 @@
 # Day 3: Distributions — The Shape of Biological Variation
 
+> **Start here**
+> - **In one sentence:** A distribution describes which values are common, which are rare, and the overall shape of variation.
+> - **Look for:** symmetry, tails, zeros, bounds, multiple peaks, and whether spread changes with the centre.
+> - **Use this when:** choosing summaries, visualizations, transformations, simulations, or a model for the data-generating process.
+> - **Do not conclude:** that data must look perfectly bell-shaped before analysis or that one normality test chooses the method.
+
 <div class="day-meta">
 <span class="badge">Day 3 of 30</span>
 <span class="badge">Prerequisites: Days 1-2</span>

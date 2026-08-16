@@ -1,5 +1,11 @@
 # Day 27: Reproducible Statistical Analysis
 
+> **Start here**
+> - **In one sentence:** A reproducible analysis can be rerun from recorded inputs, code, configuration, software versions, and seeds.
+> - **Look for:** provenance, immutable inputs, explicit parameters, environment information, checks, and generated outputs.
+> - **Use this when:** doing any analysis that another person—or future you—may need to verify or update.
+> - **Do not conclude:** that having a script or repository automatically makes the scientific result correct or reproducible.
+
 <div class="day-meta">
 <span class="badge">Day 27 of 30</span>
 <span class="badge">Prerequisites: All previous days</span>

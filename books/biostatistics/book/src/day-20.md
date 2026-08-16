@@ -1,5 +1,11 @@
 # Day 20: Batch Effects and Confounders
 
+> **Start here**
+> - **In one sentence:** A batch effect is a technical pattern; a confounder is a variable entangled with both the exposure and outcome.
+> - **Look for:** samples separating by processing date, site, plate, lane, or operator instead of the biology of interest.
+> - **Use this when:** designing, checking, and modelling any study assembled across runs, sites, times, or processing groups.
+> - **Do not conclude:** that software can recover a biological effect when biology and batch are perfectly confounded.
+
 ## The Problem
 
 Dr. David Liu is leading a multi-center study comparing gene expression in 200 breast tumors versus 100 normal breast tissues. Three hospitals contributed samples: Memorial (80 tumors, 40 normals), Hopkins (70 tumors, 30 normals), and Mayo (50 tumors, 30 normals). He runs PCA on the full expression matrix, expecting to see tumor and normal separate.
@@ -26,19 +32,19 @@ Batch effects are **systematic technical differences** between groups of samples
 
 ### How Large Are Batch Effects?
 
-In a landmark 2010 study, Leek et al. analyzed publicly available microarray data and found:
-
-- Batch effects were present in **virtually all** high-throughput datasets
-- They often explained **more variance** than the biological signal of interest
-- They affected **thousands of genes** per batch, not just a handful
-
-In RNA-seq, batch effects are typically smaller than in microarrays but still substantial — often explaining 10-30% of total variance.
+There is no universal percentage. A batch effect can be negligible in one
+dataset and dominate another, depending on the protocol, material, instrument,
+operator, storage, and balance of the design. Measure it in the current study
+instead of borrowing a typical value from another experiment.
 
 ## Identifying Batch Effects
 
 ### 1. PCA Visualization
 
-The most powerful diagnostic. Color samples by batch variable and biological variable. If batch dominates PC1/PC2, you have a problem.
+PCA is a useful visual screen. Colour samples by both batch and biological
+variables. Separation by batch is a clue to investigate alongside balance
+tables, quality metrics, feature-level checks, and the study design; absence
+from PC1/PC2 does not prove that batch is harmless.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="380" viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -727,14 +733,14 @@ You have 60 tumor and 60 normal samples that must be processed across 3 days (40
 
 ## Key Takeaways
 
-- **Batch effects** are systematic technical differences that can dominate biological signals — they are present in virtually all high-throughput datasets
-- **PCA** is the most powerful tool for detecting batch effects: color by batch and biological variables to see which dominates
+- **Batch effects** are systematic technical differences whose size must be assessed in the current dataset
+- **PCA** is one useful screen: colour by batch and biological variables, then combine it with design and quality checks
 - **Confounders** create spurious associations (or mask real ones); **Simpson's paradox** is the extreme case where aggregate trends reverse within subgroups
 - **Prevention** is the best strategy: use balanced, randomized designs that distribute biological conditions across batches
 - **Confounded designs** (batch = biology) cannot be rescued by any statistical method — the experiment must be redesigned
 - **Correction approaches:** include batch as a covariate (simplest), ComBat (empirical Bayes), SVA (discover unknown batches), or RUVseq (negative controls)
 - Always perform a **balance check** before analysis: ensure no batch variable is perfectly correlated with the biological variable of interest
-- **Before/after PCA** is the standard way to demonstrate that batch correction worked
+- A **before/after PCA** can show one consequence of correction, but preservation of biology, balance, diagnostics, and sensitivity analyses are also needed
 
 ## What's Next
 

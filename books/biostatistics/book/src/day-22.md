@@ -1,5 +1,11 @@
 # Day 22: Clustering — Finding Structure in Omics Data
 
+> **Start here**
+> - **In one sentence:** Clustering groups observations according to a chosen definition of similarity.
+> - **Look for:** stability across seeds and settings, silhouette patterns, batch alignment, and independent biological evidence.
+> - **Use this when:** exploring possible subgroups without known labels.
+> - **Do not conclude:** that every returned cluster is a natural population; clustering algorithms can partition noise.
+
 <div class="day-meta">
 <span class="badge">Day 22 of 30</span>
 <span class="badge">Prerequisites: Days 2-3, 13, 21</span>
@@ -11,7 +17,11 @@
 
 You are part of a cancer genomics consortium. Five hundred tumor samples have been profiled with RNA-seq, measuring the expression of 18,000 genes in each. The pathologist has classified these tumors into three histological subtypes based on what she sees under the microscope. But molecular data often reveals finer distinctions invisible to the eye.
 
-Your task: find natural groupings in the gene expression data — without peeking at the pathologist's labels. If the molecular subtypes align with the histological ones, confidence in the classification increases. If the data reveals additional subtypes, you may have discovered clinically distinct groups that respond differently to treatment. In breast cancer, this is exactly how the PAM50 molecular subtypes were discovered — and they now guide treatment decisions for millions of patients worldwide.
+Your task is to explore possible groupings in the gene-expression data without
+using the pathologist's labels to construct them. Agreement with histology can
+be useful supporting evidence. A new grouping is a hypothesis that needs
+replication, marker interpretation, clinical association, and preferably
+functional or external validation before it is called a biological subtype.
 
 But there is a danger lurking. Clustering algorithms always find clusters, even in random noise. The critical question is not "can I find groups?" but "are the groups real?"
 
@@ -364,7 +374,10 @@ for k in 2..8 {
 
 ## Clustering Always Finds Clusters — Even in Noise
 
-This is the single most important warning about clustering. Run k-means with k = 3 on completely random data, and it will dutifully return three clusters. The clusters will look somewhat real in a scatter plot. But they are meaningless.
+Here is the central warning about clustering: run k-means with k = 3 on
+simulated unstructured noise and it will still return three partitions. A
+projection may make those partitions look persuasive even though the simulation
+contains no generating subpopulations.
 
 ```bio
 set_seed(42)

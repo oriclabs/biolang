@@ -1,5 +1,11 @@
 # Day 18: Experimental Design and Statistical Power
 
+> **Start here**
+> - **In one sentence:** Power is the chance that a planned analysis detects a chosen meaningful effect when that effect truly exists.
+> - **Look for:** the effect worth detecting, expected variability, sample size, allocation, dropout, and the planned error threshold.
+> - **Use this when:** designing a study before data collection or explaining what effects a completed study could reliably detect.
+> - **Do not conclude:** that 80% power means an obtained result has an 80% chance of being true.
+
 ## The Problem
 
 Dr. Ana Reyes is a junior PI writing her first R01 grant. She proposes a study comparing gene expression between psoriatic skin and normal skin using RNA-seq, planning **3 samples per group** because "that's what the lab down the hall used."
@@ -282,7 +288,10 @@ An underpowered study is not just a failed study — it's actively harmful:
 3. **False negatives:** Real treatments or biomarkers get abandoned
 4. **Ethical cost:** Patients enrolled in clinical trials with no realistic chance of detecting a benefit
 
-> **Clinical relevance:** The FDA and EMA require power analyses for all clinical trial protocols. Journal reviewers increasingly require them for observational studies too. "How many samples do you need?" is the first question of good experimental design.
+> **Clinical relevance:** Confirmatory trial protocols commonly justify sample
+> size and operating characteristics under applicable guidance. Requirements
+> vary by study and jurisdiction. A useful justification states the target
+> effect, variability, error rates, dropout, analysis, and assumptions.
 
 ## Experimental Design in BioLang
 
@@ -630,7 +639,7 @@ Simulate 100 "studies" with n=10 per group and a true small effect (d=0.3). Show
 - For RNA-seq: n=3 is barely adequate (detects >4-fold), n=8 is good (2-fold), n=12+ is ideal (1.5-fold)
 - **Paired designs** dramatically increase power by removing between-subject variability
 - The **winner's curse**: underpowered studies that happen to be significant overestimate the true effect
-- Always use **conservative** effect size estimates and add buffer for dropout/QC failures
+- Base the target effect on biological or clinical importance, use defensible variability estimates, and allow explicitly for expected dropout or QC loss
 - Power curves visualize the sample size / power trade-off and help identify the sweet spot
 
 ## What's Next

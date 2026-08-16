@@ -4,7 +4,11 @@
 
 You have the data. Thousands of gene expression measurements. Hundreds of patient outcomes. Millions of variants. You know the biology. You understand the experiment. But when it comes time to choose a statistical test, set a significance threshold, or interpret a confidence interval, the ground shifts under your feet.
 
-This book fixes that. In 30 days, you will go from statistical anxiety to statistical fluency — not by memorizing formulas, but by solving real biological problems with real data. Every test you learn has a reason. Every formula has a story. Every p-value has a context.
+This book gives you a practical path through that uncertainty. You will learn
+with biological questions, small runnable examples, and clearly labelled
+simulations or illustrative scenarios. The goal is not to memorize formulas;
+it is to understand what a method asks, what its picture shows, and what its
+result does—and does not—support.
 
 And you will do it all in BioLang, whose current runtime provides hundreds of
 builtins across statistics, data handling, biological formats, and
@@ -37,14 +41,30 @@ The first week builds foundations for every reader, but your starting point may 
 | **New to both stats and biology** | Every day — they are written for you | Nothing — read it all |
 | **Some stats background** | Skim Week 1 for BioLang syntax, start deeply at Week 2 | Days 1-4 for review only |
 
-> **Complete beginner?** That is completely fine. Day 1 starts with a single concept — what is a distribution? — and builds from there. No calculus. No linear algebra. No prior programming experience beyond basic BioLang familiarity. If you can type `bl run script.bl`, you are ready.
+> **Complete beginner?** That is completely fine. Day 1 begins with why uncertainty matters, and Days 2–4 build centre, spread, shape, and probability. On a first reading, use each **Start here** box and picture; formulas may be revisited later.
+
+## How to Read Each Chapter
+
+Follow the same path every day:
+
+| Step | Ask yourself | What to do |
+|---|---|---|
+| **1. Question** | What biological quantity or comparison do I care about? | Say it in ordinary words before choosing a function. |
+| **2. Picture** | What do the observations look like? | Inspect points, groups, shape, missingness, and design. |
+| **3. Summary** | Which centre, spread, effect, or probability answers the question? | Keep the measurement units visible. |
+| **4. Model** | What assumptions connect the sample to the claim? | Read the technical section when you need to fit or defend the analysis. |
+| **5. Interpretation** | What remains uncertain, and what would change the conclusion? | Report the estimate, interval, limitations, and practical meaning. |
+
+> **If a formula feels intimidating:** read the sentence above it, identify the
+> inputs and output, and continue. You do not need to derive every formula to
+> understand the question it answers.
 
 ## What You Will Learn
 
 Over 30 days, you will go from statistical uncertainty to being able to:
 
 - Describe and summarize any biological dataset (distributions, central tendency, spread, outliers)
-- Choose the correct statistical test for any experimental design
+- Choose a defensible analysis by matching the question, outcome, and experimental design
 - Perform and interpret t-tests, ANOVA, chi-square tests, and their non-parametric alternatives
 - Run linear and logistic regression on biological data
 - Analyze time-to-event data with Kaplan-Meier curves and Cox proportional hazards models

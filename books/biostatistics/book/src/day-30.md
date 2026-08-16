@@ -1,5 +1,11 @@
 # Day 30: Capstone — Genome-Wide Association Study
 
+> **Start here**
+> - **In one sentence:** A GWAS screens genetic variants for association with a trait while controlling population structure, relatedness, quality, and genome-wide multiplicity.
+> - **Look for:** quality-control losses, allele frequency, ancestry structure, Q-Q calibration, Manhattan peaks, effect sizes, and replication.
+> - **Use this when:** genotype and phenotype data support a prespecified genome-wide association design.
+> - **Do not conclude:** that an associated variant is causal, identifies the responsible gene, or applies equally across populations.
+
 <div class="day-meta">
 <span class="badge">Day 30 of 30</span>
 <span class="badge">Capstone: Days 4, 7, 11-12, 16, 18-19, 21, 25</span>

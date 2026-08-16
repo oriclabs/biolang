@@ -1,5 +1,11 @@
 # Day 4: Probability — Quantifying Uncertainty
 
+> **Start here**
+> - **In one sentence:** Probability expresses uncertainty on a scale from impossible to certain.
+> - **Look for:** the event being discussed, its reference population, the time period, and whether probabilities are conditional.
+> - **Use this when:** reasoning about inheritance, diagnosis, risk, sampling, or uncertain future outcomes.
+> - **Do not conclude:** that a population probability predicts exactly what will happen to one person.
+
 <div class="day-meta">
 <span class="badge">Day 4 of 30</span>
 <span class="badge">Prerequisites: Days 1-3</span>
@@ -195,7 +201,8 @@ In words: the probability of A given B equals the probability of B given A, time
 </svg>
 </div>
 
-This is the single most important application of Bayes' theorem in biomedical science. Work through it carefully.
+Diagnostic testing is a practical application of Bayes' theorem because it
+shows clearly how prevalence changes the meaning of a positive result.
 
 **Setup:**
 - A genetic disease has a prevalence of 1 in 1,000 (P(disease) = 0.001)
@@ -228,7 +235,7 @@ How can a "99% accurate" test give such a low positive predictive value? Because
 
 PPV = 99 / 5,094 = 1.94%. The false positives overwhelm the true positives.
 
-> **Clinical relevance:** This is why population-wide genetic screening for rare conditions produces mostly false positives. It is also why a confirmatory test with a different methodology is always required. Understanding PPV is essential for anyone interpreting genetic test results.
+> **Clinical relevance:** Screening a rare condition can produce many false-positive results even when sensitivity and specificity look impressive. Whether confirmation is required depends on the test, clinical pathway, harms, and governing guidance; PPV makes that decision easier to reason about.
 
 ### Bayes in BioLang
 
@@ -588,10 +595,10 @@ let error_rate = 0.01
 - **Probability** quantifies uncertainty on a 0-to-1 scale. It is the mathematical language of statistics.
 - The **addition rule** handles "or" questions; the **multiplication rule** handles "and" questions. Whether events are mutually exclusive or independent changes the formula.
 - **Conditional probability** P(A|B) is NOT the same as P(B|A). Confusing them is the source of the prosecutor's fallacy and misinterpretation of diagnostic tests.
-- **Bayes' theorem** is the bridge from P(B|A) to P(A|B). It shows that a positive test for a rare disease usually means the patient is healthy — the positive predictive value depends critically on prevalence.
+- **Bayes' theorem** is the bridge from P(B|A) to P(A|B). For rare conditions, even a useful test can produce many false-positive results, so positive predictive value depends strongly on prevalence and test performance.
 - In genetics, probability models like **Hardy-Weinberg equilibrium** and **Mendelian inheritance** translate directly into binomial probability calculations.
-- Always compute both **PPV and NPV** when interpreting diagnostic or screening tests. Sensitivity and specificity alone are insufficient.
+- Report **PPV and NPV** for the relevant prevalence when interpreting a diagnostic or screening test; sensitivity and specificity answer different questions.
 
 ## What's Next
 
-Today you learned to compute probabilities for individual events. But in real experiments, you do not observe single events — you observe samples drawn from populations. Tomorrow, on Day 5, we tackle the crucial question of sampling: Why does sample size matter so much? You will see the Central Limit Theorem in action — watching the distribution of sample means magically approach normality even when the underlying data is wildly skewed. You will understand what "statistical power" means and why a study with 20 patients per arm is almost guaranteed to fail. Day 5 is the bridge between probability theory and the practical reality of experimental design.
+Tomorrow, Day 5 connects probability to sampling. You will see when averages from repeated samples become more regular, how sample size affects precision, and why power depends on the effect, variability, design, analysis, and error threshold—not on one universal minimum sample size.

@@ -1,5 +1,11 @@
 # Day 7: Hypothesis Testing — Asking Precise Questions
 
+> **Start here**
+> - **In one sentence:** A hypothesis test asks how surprising the data would be under a clearly stated null model.
+> - **Look for:** where the observed statistic falls in the null reference distribution.
+> - **Use this when:** the question, comparison, and error threshold were defined before inspecting the result.
+> - **Do not conclude:** that a p-value is the probability the null is true, or that significance means importance.
+
 ## The Problem
 
 Dr. Kenji Nakamura has spent three years developing a blood-based biomarker panel for early Alzheimer's detection. His team measures plasma levels of phosphorylated tau (p-tau217) in 40 cognitively normal individuals and 40 patients with confirmed early-stage Alzheimer's. The mean p-tau217 level in the Alzheimer's group is 3.8 pg/mL, compared to 2.9 pg/mL in controls. The difference looks promising — nearly 30% higher.
@@ -16,7 +22,7 @@ Think of hypothesis testing as a courtroom trial for your scientific claim.
 - The **prosecution's evidence** is your data. You are trying to show the evidence is so overwhelming that the "innocence" explanation is implausible.
 - The **verdict** is either "guilty" (reject H0) or "not proven" (fail to reject H0). Notice: the jury never declares the defendant "innocent" — just that the evidence was insufficient.
 
-> **Key insight:** Hypothesis testing never proves your theory is true. It only tells you whether the data are inconsistent enough with "no effect" that you can reject that explanation with a specified level of confidence.
+> **Key insight:** A hypothesis test does not prove a theory. It measures how incompatible the observed statistic is with a specified null model, conditional on the design and assumptions. Report the effect and interval as well as the test result.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="340" viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">

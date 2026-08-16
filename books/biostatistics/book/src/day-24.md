@@ -1,5 +1,11 @@
 # Day 24: Bayesian Thinking for Biologists
 
+> **Start here**
+> - **In one sentence:** Bayesian analysis combines a stated prior with the data model to produce an updated posterior distribution.
+> - **Look for:** the prior, likelihood, posterior, credible interval, and how conclusions change under reasonable prior choices.
+> - **Use this when:** prior information and direct probability statements about model parameters are useful and defensible.
+> - **Do not conclude:** that the posterior is assumption-free or automatically true; it depends on the model, prior, and data quality.
+
 <div class="day-meta">
 <span class="badge">Day 24 of 30</span>
 <span class="badge">Prerequisites: Days 4, 6-7</span>
@@ -20,11 +26,17 @@ You have several pieces of evidence:
 
 No single piece of evidence is conclusive. Each is uncertain. But together, they should shift your belief about pathogenicity. How do you combine them?
 
-The frequentist framework has no natural mechanism for combining prior knowledge with new data. The Bayesian framework does — it is literally designed for this. Today, you will learn how to think like a Bayesian, and you will see why this way of reasoning is becoming standard practice in clinical variant classification.
+Bayesian models provide one explicit way to combine prior information with new
+data. Frequentist analyses can also use external information through design,
+constraints, hierarchical models, or prespecified evidence synthesis, but they
+do not interpret parameters through a posterior probability distribution.
 
 ## What Is Bayesian Statistics?
 
-Bayesian statistics treats probability as a measure of belief, not a long-run frequency. Instead of asking "what would happen if I repeated this experiment infinitely many times?" it asks "given what I know, how confident should I be?"
+In Bayesian statistics, probability represents uncertainty conditional on a
+specified model and prior. The practical question becomes: after combining
+those assumptions with the observed data, what does the posterior say about
+the parameter or a future observation?
 
 The fundamental equation is Bayes' theorem:
 
@@ -49,7 +61,11 @@ Where:
 
 The posterior from one analysis becomes the prior for the next — evidence accumulates naturally.
 
-> **Key insight:** Bayesian inference is sequential updating. Each new piece of evidence shifts your belief. This is exactly how clinical variant classification works: you start with a prior (population frequency suggests most variants are benign), then update with each line of evidence (computational predictions, functional assays, segregation data).
+> **Key insight:** Bayesian inference supports sequential updating when each
+> evidence source is represented in a defensible likelihood and dependence is
+> handled correctly. Clinical variant-classification frameworks combine several
+> evidence types, but they should not be treated as independent numerical
+> updates without a validated model.
 
 ## Frequentist vs Bayesian: The Practical Difference
 
@@ -66,8 +82,8 @@ Consider testing whether a new drug reduces blood pressure.
 | Prior knowledge | Not formally incorporated | Explicitly included via priors |
 | Result | p-value, confidence interval | Posterior distribution, credible interval |
 | "95% interval" means | 95% of such intervals would contain the true value | 95% probability the parameter is in this interval |
-| Multiple comparisons | Requires correction (Day 12) | Naturally skeptical with informative priors |
-| Small samples | Unreliable (CLT breaks down) | Works with proper priors |
+| Multiple comparisons | Uses family-wise, FDR, hierarchical, or simultaneous methods | Can use hierarchical priors or explicit decision rules; multiplicity does not vanish automatically |
+| Small samples | Exact or small-sample methods may be available; uncertainty is often wide | Priors can stabilize estimates, but sensitivity to assumptions is often greater |
 
 > **Common pitfall:** A frequentist 95% confidence interval is calibrated by repeated use of its construction procedure; it is not a posterior probability statement about this fixed parameter. A Bayesian 95% credible interval assigns 95% posterior probability under the specified likelihood, prior, and model. That interpretation is conditional on those choices, so prior predictive checks and sensitivity analyses remain important.
 
@@ -552,7 +568,7 @@ print("Final classification: " +
 
 - **No meaningful prior** exists (purely exploratory analysis)
 - **Sample is large** (prior is overwhelmed anyway, results converge)
-- **Regulatory requirements** demand frequentist analysis (FDA still primarily uses p-values)
+- A protocol, regulator, or decision framework may require a particular estimand and analysis; check the current applicable guidance rather than assuming one statistical philosophy is mandatory
 - **Simplicity matters** (t-test is faster to explain than posterior distributions)
 
 ## Bayesian Thinking in BioLang

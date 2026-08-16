@@ -1,5 +1,11 @@
 # Day 28: Capstone — Clinical Trial Analysis
 
+> **Start here**
+> - **In one sentence:** A clinical trial uses a prespecified design to estimate benefits and harms of an intervention in a target population.
+> - **Look for:** randomization, allocation, masking, participant flow, missing outcomes, effect intervals, adverse events, and the estimand.
+> - **Use this when:** testing an intervention prospectively under ethical and regulatory oversight.
+> - **Do not conclude:** that statistical significance alone establishes clinical benefit, safety, generalizability, or ethical acceptability.
+
 <div class="day-meta">
 <span class="badge">Day 28 of 30</span>
 <span class="badge">Capstone: Days 2, 6-8, 11, 17, 19, 25</span>

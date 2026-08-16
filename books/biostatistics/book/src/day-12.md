@@ -1,12 +1,21 @@
 # Day 12: The Multiple Testing Crisis — FDR and Correction
 
+> **Start here**
+> - **In one sentence:** Testing thousands of questions creates false alarms unless the analysis controls the collection of decisions.
+> - **Look for:** the number of tests, the p-value distribution, adjusted values, and how many findings survive correction.
+> - **Use this when:** many related genes, variants, metabolites, regions, or outcomes are tested together.
+> - **Do not conclude:** that an adjusted p-value is the probability that one particular finding is false.
+
 ## The Problem
 
 Dr. Rachel Kim is a genomicist analyzing differential gene expression between tumor and normal tissue. She runs a Welch's t-test on each of 20,000 genes and finds 1,200 with p < 0.05. Exciting — until she does the arithmetic: 20,000 genes multiplied by a 5% false positive rate equals 1,000 genes that would appear "significant" purely by chance, even if not a single gene were truly differentially expressed.
 
 Her 1,200 "hits" likely contain about 1,000 false positives and perhaps 200 true findings. That is a false discovery rate of over 80%. If she publishes this list and a validation lab tries to confirm the top 50 genes, roughly 40 will fail to replicate. Her scientific reputation — and the lab's funding — depends on solving this problem.
 
-This is the **multiple testing crisis**, and it is the single most important statistical concept in genomics. Every differential expression study, every GWAS, every proteomics screen must address it. The solutions — Bonferroni correction, Benjamini-Hochberg FDR, and their relatives — are what make genome-scale analysis possible.
+This is the **multiple-testing problem**. Genome-scale analyses should state
+which collection of hypotheses is being controlled and why the chosen error
+criterion fits the scientific goal. Bonferroni, Holm, Benjamini-Hochberg, and
+model-based approaches control different kinds of error.
 
 ## Making It Visceral: A Simulation
 

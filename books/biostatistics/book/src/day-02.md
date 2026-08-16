@@ -1,5 +1,11 @@
 # Day 2: Your Data at a Glance — Descriptive Statistics
 
+> **Start here**
+> - **In one sentence:** Centre describes what is typical, spread describes how much values differ, and shape shows how those values are arranged.
+> - **Look for:** the raw points first, then mean or median, SD or IQR, skewness, gaps, clusters, and unusual observations.
+> - **Use this when:** beginning every analysis and checking whether summaries hide important structure.
+> - **Do not conclude:** that one centre or one spread tells the whole story, or that every unusual point is an error.
+
 <div class="day-meta">
 <span class="badge">Day 2 of 30</span>
 <span class="badge">Prerequisites: Day 1</span>
@@ -26,9 +32,9 @@ There are three things you need to know about any dataset:
 
 ### Why Do These Three Matter?
 
-**Center tells you what is "normal."** If the mean quality score of your sequencing run is Q35, you know tiles are performing well. If it is Q15, something went wrong. Without center, you have no reference point — you cannot say whether a single observation is typical or alarming. In clinical genomics, center defines the baseline: what is the typical variant allele frequency in this cohort? What is the average coverage across your target regions?
+**Centre describes a reference point.** Depending on the question, this may be the equal-share balance point (mean), halfway observation (median), most common value (mode), or another centre. Whether Q35 is acceptable still depends on the instrument, protocol, and quality criteria; the centre alone cannot certify the run.
 
-**Spread tells you how much you can trust the center.** Two experiments might both report a mean IC50 of 12 nM, but one has values ranging from 11 to 13 (tight, reproducible) while the other ranges from 2 to 45 (noisy, unreliable). The center is the same — the spread tells you completely different stories. High spread means your next measurement could land anywhere; low spread means you can make confident predictions. In RNA-seq, high within-group variance buries real differential expression in noise.
+**Spread describes variation among observations.** Two experiments might both report a mean IC50 of 12 nM, but one ranges from 11 to 13 while the other ranges from 2 to 45. That is different from uncertainty in the estimated mean: spread describes the observations, while a standard error or confidence interval describes precision of an estimate under a sampling model.
 
 **Shape gives modelling clues.** Many models make assumptions about errors, residuals, conditional outcomes, or sampling processes—not simply about the raw measurements. A right-skewed outcome can suggest a log-scale preview, a count model, or a robust summary, but the scientific estimand and design decide which is appropriate. Bimodality can be a clue to mixtures, batch effects, censoring, or subgroups; it is not by itself proof of two biological populations.
 
@@ -431,18 +437,18 @@ let mixed_scores = good_tiles + bad_tiles
 let mixed_stats = summary(mixed_scores)
 print(mixed_stats)
 # Mean: 29.7 — looks okay at first glance
-# Median: 32.1 — the median reveals the truth: most tiles are fine
+# Median: 32.1 — the halfway value stays near the good-tile peak
 # Skewness: -1.4 — strongly left-skewed, warning sign!
 
 # The mean alone would have hidden the problem.
-# Always look at the full distribution.
+# Inspect the full distribution alongside the summaries.
 ```
 
 > **Common pitfall:** Relying on the mean alone can hide bimodal distributions. The "bad tile" problem above is common in sequencing — a mean of 29.7 looks passable, but 22% of tiles are failing. Always visualize.
 
 ## Visualization: Always Plot Before You Test
 
-Numbers tell part of the story. Plots tell the rest. Anscombe's Quartet — four datasets with identical means, variances, and correlations but wildly different structures — demonstrates why you must always look at your data.
+Numbers and plots answer complementary questions. Anscombe's Quartet—four datasets with identical means, variances, and correlations but very different structures—shows why important analyses should include a suitable view of the observations.
 
 ### Histograms
 

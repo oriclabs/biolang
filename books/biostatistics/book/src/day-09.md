@@ -1,5 +1,11 @@
 # Day 9: When Normality Fails — Non-Parametric Tests
 
+> **Start here**
+> - **In one sentence:** Rank-based tests compare ordering patterns instead of relying directly on measured distances.
+> - **Look for:** overlap, ordering, ties, outliers, and whether paired observations remain paired.
+> - **Use this when:** the rank-based question matches the scientific target, especially for ordinal or strongly skewed data.
+> - **Do not conclude:** that these tests are assumption-free or are simply t-tests for non-normal data.
+
 ## The Problem
 
 Dr. Maria Gonzalez studies the gut microbiome in inflammatory bowel disease (IBD). She has 16S rRNA sequencing data from 15 IBD patients and 15 healthy controls, measuring the relative abundance of *Faecalibacterium prausnitzii*, a key anti-inflammatory bacterium. Looking at the data, she sees a mess: most values cluster near zero, a few patients have moderate levels, and one healthy individual has an enormous abundance of 45%. The histogram looks nothing like a bell curve — it is right-skewed with a long tail.

@@ -1,5 +1,11 @@
 # Day 15: Multiple Regression and Model Selection
 
+> **Start here**
+> - **In one sentence:** Multiple regression estimates how an outcome relates to one predictor while holding the included predictors fixed.
+> - **Look for:** coefficient intervals, residual patterns, collinearity, influential rows, and held-out prediction error.
+> - **Use this when:** several measured predictors are needed to explain or predict a continuous outcome.
+> - **Do not conclude:** that an automatically selected model is the true model or that adjustment removes unmeasured confounding.
+
 ## The Problem
 
 Dr. Maria Chen is a clinical researcher studying pancreatic cancer. She has tumor samples from 120 patients, each profiled with 10 biomarkers: CA19-9, CEA, MKI67, TP53 status, tumor size, age, albumin, CRP, neutrophil-lymphocyte ratio (NLR), and platelet count. She wants to predict **tumor stage** (a continuous composite score from 1.0 to 4.0) from these biomarkers.

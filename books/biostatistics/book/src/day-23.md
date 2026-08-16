@@ -1,5 +1,11 @@
 # Day 23: Resampling — Bootstrap and Permutation Tests
 
+> **Start here**
+> - **In one sentence:** Resampling repeats a carefully chosen sampling or label-shuffling process to reveal uncertainty.
+> - **Look for:** the resampling unit, bootstrap distribution, null distribution, interval width, and result stability.
+> - **Use this when:** estimating uncertainty or testing an exchangeable-label null without a convenient closed-form calculation.
+> - **Do not conclude:** that computation removes assumptions about independence, representativeness, censoring, or study design.
+
 <div class="day-meta">
 <span class="badge">Day 23 of 30</span>
 <span class="badge">Prerequisites: Days 6-8</span>
@@ -15,13 +21,13 @@ You reach for a t-test, but hesitate. With only 6 observations per group, you ca
 
 What if you could approximate a sampling distribution by resampling observed units instead of writing down a full parametric outcome distribution? Bootstrap and permutation methods can target many statistics, but they are not assumption-free: the resampling unit, exchangeability, dependence, representativeness, and small-sample behaviour still matter.
 
-You can. Resampling methods let the data speak for itself, replacing theoretical assumptions with raw computational power. They are among the most broadly applicable tools in statistics, and after today, you will wonder how you ever lived without them.
+Resampling provides a practical route: repeat a sampling or label-shuffling operation that represents the design, calculate the statistic each time, and examine the resulting distribution. Computation replaces some algebra, but it does not replace study assumptions.
 
 ## What Are Resampling Methods?
 
 Resampling methods draw repeated samples from your data to estimate the sampling distribution of a statistic. Instead of deriving a formula for how the mean varies from sample to sample (the classical approach), you literally simulate the process: draw a new sample, compute the statistic, repeat thousands of times, and look at the distribution of results.
 
-Think of it like this. You have a bag containing 12 marbles (your data). You want to know how variable the "average marble weight" is. The classical approach derives a formula based on the normal distribution. The resampling approach says: shake the bag, pull out 12 marbles (with replacement), weigh them, compute the average. Put them back. Repeat 10,000 times. The distribution of those 10,000 averages tells you everything you need to know — no formula, no assumptions.
+Think of it like this. You have a bag containing 12 marbles (your data). To explore how the average might vary, repeatedly draw 12 marbles with replacement and calculate their mean. The resulting bootstrap distribution estimates one part of the uncertainty, provided those marbles reasonably represent the population and independent marbles are the correct resampling unit.
 
 > **Key insight:** Resampling methods trade some distributional formulas for computational effort, not for an assumption-free analysis. The resampling unit must match the experimental unit; bootstrap observations should represent the target population, and permutation labels must be exchangeable under the null. Dependence, clustering, censoring, and small samples may require specialised schemes.
 

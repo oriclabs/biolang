@@ -1,5 +1,11 @@
 # Day 26: Meta-Analysis — Combining Studies
 
+> **Start here**
+> - **In one sentence:** Meta-analysis combines comparable study estimates while giving more weight to estimates with greater precision.
+> - **Look for:** study definitions, effect units, confidence intervals, heterogeneity, missing studies, and the pooled model.
+> - **Use this when:** several studies address a sufficiently similar question and their differences are explicitly examined.
+> - **Do not conclude:** that a precise pooled estimate repairs biased studies, publication bias, or incompatible outcomes.
+
 <div class="day-meta">
 <span class="badge">Day 26 of 30</span>
 <span class="badge">Prerequisites: Days 6-8, 14, 19</span>

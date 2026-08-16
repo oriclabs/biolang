@@ -1,5 +1,11 @@
 # Day 21: Dimensionality Reduction — PCA and Friends
 
+> **Start here**
+> - **In one sentence:** Dimensionality reduction creates a small set of viewing directions for data with many measurements.
+> - **Look for:** variance explained, loadings, batch patterns, outliers, and whether the picture is stable under reasonable choices.
+> - **Use this when:** exploring or visualizing many correlated features such as genes, proteins, or metabolites.
+> - **Do not conclude:** that a two-dimensional picture contains all the information or proves that visible groups are real.
+
 <div class="day-meta">
 <span class="badge">Day 21 of 30</span>
 <span class="badge">Prerequisites: Days 2-3, 13, 20</span>
@@ -15,7 +21,9 @@ You stare at the matrix. Twenty thousand dimensions. You cannot visualize it. Yo
 
 What you need is a camera angle. A way to look at 20,000-dimensional data from the direction that reveals the most structure. A method that compresses the information into a handful of dimensions you can actually see and reason about — without throwing away the patterns that matter.
 
-That method is Principal Component Analysis. It is the single most widely used technique in genomics for exploring high-dimensional data, and by the end of today, you will understand exactly how it works, when it fails, and how to use it effectively.
+Principal Component Analysis is one widely used linear method for this task.
+This chapter builds an intuitive reading of scores, loadings, and variance
+explained, then shows limitations and checks needed before interpretation.
 
 ## What Is Dimensionality Reduction?
 
@@ -33,16 +41,23 @@ Before we solve the problem, let us understand why high dimensions are problemat
 
 In one dimension, 10 evenly spaced points cover a line segment well. In two dimensions, you need 100 points (10 x 10) to cover a square with the same density. In three dimensions, 1,000 points (10 x 10 x 10). In 20,000 dimensions, you would need 10^20,000 points — a number so large it dwarfs the number of atoms in the observable universe.
 
-This means that in high-dimensional space, data is always sparse. Your 5,000 cells are scattered across 20,000-dimensional space like five thousand grains of sand in the Sahara. Most of the space is empty. Distances between points become unreliable — in very high dimensions, the nearest neighbor and the farthest neighbor are almost the same distance away.
+With limited observations, high-dimensional space is sampled sparsely. Distance
+can become difficult to interpret because irrelevant features, scale, noise,
+and the chosen metric may contribute as much as meaningful structure. This is
+a warning to validate the representation, not a claim that every distance is
+automatically useless.
 
 | Dimensions | Points needed for even coverage | Nearest-neighbor reliability |
 |---|---|---|
 | 2 | 100 | Excellent |
 | 10 | 10 billion | Good |
 | 100 | 10^100 | Poor |
-| 20,000 | 10^20,000 | Meaningless |
+| 20,000 | 10^20,000 | Requires structure or dimension reduction |
 
-This is the curse of dimensionality. It makes direct analysis of raw high-dimensional data unreliable. Fortunately, biological data has a saving grace: most of the 20,000 gene dimensions are redundant. Genes in the same pathway are correlated. Housekeeping genes barely vary. The "true" dimensionality of gene expression data is typically much lower than the number of genes measured — perhaps tens to hundreds of effective dimensions. PCA exploits this redundancy.
+This is the curse of dimensionality. Biological features are often correlated,
+so a smaller representation may capture useful structure, but its effective
+dimension is dataset-dependent. PCA exploits linear covariance; it does not
+guarantee that every important biological pattern appears in the first few PCs.
 
 ## PCA Mechanics: Finding the Best Camera Angle
 
@@ -156,7 +171,10 @@ Each principal component has an associated eigenvalue. The eigenvalue tells you 
 | ... | ... | ... | ... |
 | PC20 | 2.1 | 0.7% | 75.2% |
 
-In a typical scRNA-seq dataset, the first 20-50 PCs might capture 70-80% of the total variance. The remaining thousands of PCs together account for the other 20-30% — mostly noise.
+There is no universal number or percentage of useful PCs. The answer depends on
+normalization, feature selection, cell composition, technical effects, and the
+downstream task. Later PCs may contain noise, subtle biology, or both, so check
+stability and relevant diagnostics rather than applying a fixed cutoff.
 
 > **Key insight:** If the first 2 PCs capture 60%+ of the variance, a 2D PCA plot is a good representation. If they capture only 15%, the data has complex structure that two dimensions cannot convey.
 

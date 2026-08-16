@@ -1,5 +1,11 @@
 # Day 10: Comparing Many Groups — ANOVA and Beyond
 
+> **Start here**
+> - **In one sentence:** ANOVA compares differences among group means with the ordinary variation inside the groups.
+> - **Look for:** group centres, within-group spread, overlap, and the observations behind every summary.
+> - **Use this when:** comparing a continuous outcome across three or more groups under an appropriate design.
+> - **Do not conclude:** that a significant overall test identifies which groups differ; that needs planned contrasts or follow-up comparisons.
+
 ## The Problem
 
 Dr. James Park's oncology team is testing a new targeted therapy at four dose levels: 0 mg (placebo), 25 mg, 50 mg, and 100 mg. Each group has 8 mice, and after 4 weeks they measure tumor volume in cubic millimeters. The team lead suggests: "Just do t-tests between all pairs of doses — that's 6 comparisons, no big deal."
@@ -177,7 +183,7 @@ ANOVA controls this by testing all groups in a single hypothesis test.
 
 ### Tukey's Honestly Significant Difference (HSD)
 
-The gold standard post-hoc test. Compares all pairs of group means while controlling the family-wise error rate.
+Tukey HSD is a common choice when the planned goal is to compare every pair of group means while controlling the family-wise error rate.
 
 - Tests all k(k-1)/2 pairwise differences
 - Provides adjusted p-values and confidence intervals
@@ -569,7 +575,7 @@ let intense  = [155, 172, 148, 180, 162]
 
 - **Multiple t-tests** inflate the false positive rate — the family-wise error rate grows rapidly with the number of comparisons
 - **ANOVA** tests whether any group differs from the others in a single F-test, controlling the overall error rate
-- The **F-statistic** compares between-group variance to within-group variance: F much greater than 1 suggests real differences
+- The **F-statistic** compares between-group variation with within-group variation; a large value is evidence against the equal-means null under the model
 - A significant ANOVA tells you "at least one group differs" — use **Tukey HSD** post-hoc to find which pairs differ
 - **Eta-squared** measures effect size: the proportion of total variance explained by group membership
 - **Kruskal-Wallis** compares group rank distributions; interpreting it as a location shift needs similarly shaped distributions

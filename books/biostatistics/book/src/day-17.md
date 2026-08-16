@@ -1,5 +1,11 @@
 # Day 17: Survival Analysis — Time-to-Event Data
 
+> **Start here**
+> - **In one sentence:** Survival analysis uses both follow-up time and whether the event was observed or censored.
+> - **Look for:** survival steps, numbers still at risk, censoring marks, curve separation, and changing effects over time.
+> - **Use this when:** time to death, relapse, recovery, failure, or another event is the outcome.
+> - **Do not conclude:** that a hazard ratio is a survival probability, a risk reduction for one person, or a ratio of survival times.
+
 ## The Problem
 
 Dr. Elena Volkov is a cancer genomicist analyzing overall survival in 250 lung adenocarcinoma patients. She has tumor sequencing data and wants to answer: **Do TP53-mutant patients survive longer than TP53 wild-type patients?**
@@ -120,7 +126,10 @@ Where:
 
 The **median survival** is the time at which the KM curve crosses 0.50 — the point where half the patients have experienced the event. It is more robust than the mean because it is less affected by a few extreme values.
 
-> **Clinical relevance:** "Median overall survival was 18 months in the treatment arm versus 12 months in the control arm" is the standard way clinical trials report survival data. It's the single most important number in oncology clinical trials.
+> **Clinical relevance:** Median survival is one useful summary when each curve
+> falls below 50%, but it discards the rest of the follow-up pattern. Also
+> report uncertainty, numbers at risk, clinically relevant time-point survival,
+> adverse outcomes, and an analysis suited to the study question.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="380" viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">

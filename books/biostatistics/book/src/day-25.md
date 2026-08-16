@@ -1,5 +1,11 @@
 # Day 25: Statistical Visualization — Plots That Tell the Truth
 
+> **Start here**
+> - **In one sentence:** A statistical plot makes patterns, uncertainty, and data quality visible without hiding the observations that matter.
+> - **Look for:** axes, units, scales, missing values, raw points, uncertainty, group sizes, and visual encodings.
+> - **Use this when:** exploring data, checking a model, or communicating a result to another person.
+> - **Do not conclude:** that an attractive plot is neutral, complete, or proof of a scientific claim.
+
 <div class="day-meta">
 <span class="badge">Day 25 of 30</span>
 <span class="badge">Prerequisites: All previous days</span>

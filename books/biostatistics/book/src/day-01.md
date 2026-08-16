@@ -1,5 +1,11 @@
 # Day 1: Why Statistics? The Story Your Data Is Trying to Tell
 
+> **Start here**
+> - **In one sentence:** Statistics helps us learn from incomplete, variable data without pretending that uncertainty has disappeared.
+> - **Look for:** the biological question, the experimental unit, possible bias, the size of the effect, and its uncertainty.
+> - **Use this when:** reading a paper, planning an experiment, checking data, or making a claim from observations.
+> - **Do not conclude:** that a calculation can rescue a poorly designed study or turn association into causation.
+
 <div class="day-meta">
 <span class="badge">Day 1 of 30</span>
 <span class="badge">No Prerequisites</span>
@@ -9,9 +15,9 @@
 
 ## The Problem
 
-In 2006, a pharmaceutical company invested over $800 million developing a promising cancer therapy. Phase II clinical trials had shown a statistically significant survival benefit in 87 patients with advanced colorectal cancer. The data looked compelling: a 38% improvement in median progression-free survival. Investors were jubilant. The company fast-tracked Phase III.
+Consider an illustrative drug-development scenario. A small Phase II cancer trial reports a statistically significant improvement, so the team moves quickly toward a much larger Phase III trial. The apparent benefit then fails to replicate. The example is fictional, but the design problem is real: an imprecise early estimate can look more certain than it is.
 
-Then came the reckoning. The Phase III trial enrolled 1,200 patients across 120 medical centers. The drug performed no better than placebo. The stock price collapsed overnight. Nearly a billion dollars and eight years of research, gone — not because the science was wrong, but because the statistics were misunderstood. The Phase II "signal" was noise, amplified by a sample too small to tell the difference.
+The lesson is not that every small study is wrong. It is that small studies usually produce wider uncertainty and more variable effect estimates. Decisions should therefore consider the interval, study design, prior evidence, and replication—not only whether one p-value crossed a threshold.
 
 This story is not unusual. It plays out every year in laboratories, hospitals, and boardrooms around the world. Similar scenarios have unfolded with Alzheimer's drugs, cardiovascular therapies, and anti-inflammatory agents. The difference between a breakthrough and a blunder often comes down to a few fundamental statistical concepts — concepts that any biologist, clinician, or bioinformatician can learn.
 
@@ -124,11 +130,11 @@ Here is the most fundamental question in statistics: **Is the pattern I see real
 
 Consider a simple experiment. You flip a coin 10 times and get 8 heads. Is the coin biased? Your intuition says maybe — 8 out of 10 is a lot of heads. But if you do the math, a fair coin produces 8 or more heads about 5.5% of the time. That is unlikely, but not astronomically so. You might just be unlucky.
 
-Now flip the coin 100 times and get 80 heads. Is the coin biased? Almost certainly yes. A fair coin producing 80 or more heads in 100 flips has a probability of about 0.000000000000006. You would need to flip coins continuously for the age of the universe to expect this by chance.
+Now flip the coin 100 times and get 80 heads. Under a fair-coin model, the probability of 80 or more heads is about 0.00000000056—roughly one in 1.8 billion. That is strong evidence against the fair-coin model, although it does not diagnose why the result occurred.
 
 The pattern (80% heads) is the same in both cases. What changed is the **sample size**. With 10 flips, 80% heads is plausible noise. With 100 flips, 80% heads is an unmistakable signal.
 
-This is exactly what happened with the cancer drug. In 87 patients, a 38% improvement could easily arise from random variation — which patients happened to be enrolled, how they responded to the placebo, what comorbidities they had. In 1,200 patients, the noise averages out, and the true effect (or lack thereof) becomes visible.
+The same reasoning applies to the illustrative cancer trial: a small early study leaves more room for sampling variation. A larger, well-designed study usually narrows that uncertainty, but size alone does not remove bias, measurement problems, or differences between study populations.
 
 > **Common pitfall:** Small studies frequently produce dramatic-looking results. This is not because small studies discover larger effects — it is because small samples are inherently noisy, and noise occasionally looks like a big signal. This phenomenon is called the "winner's curse" and it haunts biomedical research.
 
@@ -140,7 +146,7 @@ In statistics, there are exactly two ways to be wrong, and they have very differ
 
 A Type I error occurs when you conclude there is an effect when there is none. You declare the coin biased when it is actually fair. You approve a drug that does not work.
 
-The most devastating Type I error in pharmaceutical history may be thalidomide in the 1950s. Marketed as a safe sedative for pregnant women, the drug was approved based on inadequate evidence. It caused severe birth defects in over 10,000 children worldwide. While this tragedy involved failures far beyond statistics — regulatory, ethical, and scientific — the core issue was concluding safety from data that could not support that conclusion.
+A laboratory example is advancing a compound because one noisy screen crosses a threshold even though the compound has no repeatable effect. Replication, quality control, and multiplicity correction reduce this risk; no single threshold eliminates it.
 
 A more modern example: in 2004, Merck withdrew Vioxx (rofecoxib), a blockbuster anti-inflammatory drug, after it became clear that it significantly increased heart attack risk. The drug had been on the market for five years. Post-withdrawal analysis suggested that the cardiovascular risk had been detectable in the original trial data, but was either missed or downplayed. The cost: an estimated 88,000-140,000 excess cases of heart disease in the United States alone.
 
@@ -148,7 +154,7 @@ A more modern example: in 2004, Merck withdrew Vioxx (rofecoxib), a blockbuster 
 
 A Type II error occurs when you fail to detect a real effect. You declare the coin fair when it is actually biased. You reject a drug that actually works.
 
-The canonical example is Helicobacter pylori. In 1982, Barry Marshall and Robin Warren proposed that stomach ulcers were caused by a bacterium, not by stress or spicy food as the medical establishment believed. Their initial data was compelling but their sample sizes were small. The medical community dismissed their findings for over a decade, costing millions of patients effective treatment. Marshall eventually infected himself with H. pylori, developed gastritis, and cured it with antibiotics to prove his point. He and Warren won the Nobel Prize in 2005.
+A laboratory example is discarding a promising treatment because a small, noisy experiment could not distinguish its effect from background variation. A non-significant result may reflect no important effect, inadequate precision, poor measurement, or a mismatched analysis; the interval and design help distinguish these possibilities.
 
 Every year, real treatments are abandoned because clinical trials were too small to detect their effect. Every year, genuine biological mechanisms are dismissed because the experiment lacked statistical power. Type II errors are the silent killers of science — you never know what you missed, because the missed discovery never makes it into a journal.
 

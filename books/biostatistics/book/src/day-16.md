@@ -1,5 +1,11 @@
 # Day 16: Logistic Regression — Binary Outcomes
 
+> **Start here**
+> - **In one sentence:** Logistic regression models the probability of a yes/no outcome without predicting values below zero or above one.
+> - **Look for:** predicted probabilities, calibration, overlap, influential observations, and discrimination such as the ROC curve.
+> - **Use this when:** each experimental unit has a binary outcome and the sampling design is represented correctly.
+> - **Do not conclude:** that an odds ratio is a risk ratio, an individual probability change, or a causal effect.
+
 ## The Problem
 
 Dr. Priya Sharma is an immuno-oncologist analyzing data from 180 melanoma patients who received anti-PD-1 immunotherapy. For each patient, she has three biomarkers — **tumor mutational burden (TMB)**, **PD-L1 expression**, and **microsatellite instability (MSI) status** — and one outcome: **response** (tumor shrank ≥30%) or **non-response**.
@@ -103,7 +109,10 @@ The sigmoid function transforms the linear predictor (which ranges from -∞ to 
 | +2 | 0.88 |
 | +5 | 0.993 |
 
-The curve is steepest at P = 0.5 (the decision boundary) and flattens at the extremes — exactly how biological responses behave.
+The curve is steepest near P = 0.5 and flattens near zero and one. This keeps
+predicted probabilities inside their valid range; whether it describes a
+particular biological response must be checked from fit, calibration, and
+subject-matter knowledge.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="650" height="320" viewBox="0 0 650 320" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">

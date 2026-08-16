@@ -1,5 +1,11 @@
 # Day 5: Sampling, Bias, and Why n Matters
 
+> **Start here**
+> - **In one sentence:** A sample is the small group you measure so you can learn about a larger population.
+> - **Look for:** whether the sampled units resemble the target population, and how estimates vary from sample to sample.
+> - **Use this when:** planning any experiment or deciding how far its result can be generalized.
+> - **Do not conclude:** that a large sample repairs biased sampling, poor measurement, or a confounded design.
+
 <div class="day-meta">
 <span class="badge">Day 5 of 30</span>
 <span class="badge">Prerequisites: Days 1-4</span>
@@ -151,11 +157,14 @@ Two crucial observations:
 
 ## The Central Limit Theorem
 
-The Central Limit Theorem (CLT) is perhaps the single most important result in statistics. It says:
+The Central Limit Theorem (CLT) is a useful result for understanding sample means. In simplified terms, it says:
 
 **Regardless of the shape of the population distribution, the sampling distribution of the mean approaches a normal distribution as sample size increases.**
 
-This is remarkable. The underlying data can be skewed, bimodal, uniform, or any shape at all. As long as you take large enough samples and compute means, those means will be approximately normally distributed.
+This is useful, but conditional. For independent observations with finite
+variance, sample means often become approximately normal as sample size grows.
+How large is "large enough" depends on skewness, tails, dependence, and the
+accuracy needed; no fixed sample size works for every population.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="420" viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -534,7 +543,7 @@ print(f"95% Bootstrap CI: [{ci_lower:.2}, {ci_upper:.2}]")
 histogram(boot_medians, {bins: 50, title: "Bootstrap Distribution of the Median"})
 ```
 
-> **Key insight:** The bootstrap treats your sample as a stand-in for the population. By resampling from your sample, you simulate what would happen if you could repeatedly sample from the population. It is remarkably effective even for small samples.
+> **Key insight:** The bootstrap treats the observed sample as a stand-in for the population. It can work well when the sample represents that population and the resampling unit matches the design. With very small or dependent samples, it has little information from which to reconstruct uncertainty.
 
 ## Hands-On: CLT with Allele Frequencies
 
@@ -701,13 +710,13 @@ set_seed(42)
 ## Key Takeaways
 
 - **Population vs. sample:** You study a sample to learn about a population. The quality of inference depends on sample size and sampling method.
-- The **sampling distribution** is the distribution of a statistic computed from repeated samples. It is narrower than the data distribution and centered at the true value.
-- The **Central Limit Theorem** guarantees that sample means are approximately normal regardless of the population distribution, given sufficient sample size. This is why normal-based tests work so broadly.
-- **Standard error (SE = SD/&radic;n)** quantifies the precision of your estimate. Quadrupling n halves the SE.
+- The **sampling distribution** describes how a statistic would vary across repeated samples from the same process. Its centre and width depend on the estimator and design.
+- Under suitable independence and finite-variance conditions, the **Central Limit Theorem** explains why the sampling distribution of a mean often becomes approximately normal as sample size grows. Heavy tails, dependence, and small samples can make the approximation poor.
+- For an independent sample mean, **standard error** is estimated by SD/&radic;n. Quadrupling n then halves this estimated SE; clustered or dependent data need a design-aware calculation.
 - **Bias** (selection, survivorship, ascertainment, measurement, publication) is a systematic distortion that cannot be fixed by increasing n. Identify and prevent bias at the design stage.
 - **Statistical power** is the probability of detecting a real effect. Underpowered studies waste resources and miss real effects. The four determinants of power are effect size, sample size, variability, and significance threshold.
-- The **bootstrap** provides empirical estimates of standard errors and confidence intervals for any statistic, without relying on distributional assumptions.
+- The **bootstrap** can estimate uncertainty for many statistics when the resampling scheme represents how the data were collected. It still relies on representative data and a correct resampling unit.
 
 ## What's Next
 
-You have now completed the foundations. You know how to summarize data (Day 2), understand its distributional shape (Day 3), reason about probabilities (Day 4), and appreciate the central role of sample size and sampling variability (Day 5). Starting next week, we put these foundations to work. Day 6 introduces **confidence intervals** — the formal framework for saying "I'm 95% sure the true value lies between here and here." You will see how the standard error you learned today transforms into a rigorous statement about uncertainty, and why confidence intervals are more informative than p-values alone. The testing begins.
+You have now completed the foundations: summaries, distributional shape, probability, sampling, and precision. Day 6 introduces **confidence intervals**—procedures designed to capture a target parameter at a stated long-run rate. You will connect standard error to interval width and learn to read an estimate together with its uncertainty.

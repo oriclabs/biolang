@@ -1,4 +1,10 @@
-# Day 6: Confidence Intervals — The Range of Truth
+# Day 6: Confidence Intervals — An Estimate with Uncertainty
+
+> **Start here**
+> - **In one sentence:** A confidence interval shows the estimate and how precisely the study has located it.
+> - **Look for:** the centre, the interval width, and whether it crosses a scientifically important value.
+> - **Use this when:** reporting an estimated mean, difference, proportion, effect, or model coefficient.
+> - **Do not conclude:** that a particular 95% interval has a 95% probability of containing the fixed true value.
 
 ## The Problem
 
@@ -87,7 +93,7 @@ When n is large (say, n > 30), the t-distribution closely resembles the normal d
 | 100 | 1.984 | 1.960 | ~1% wider |
 | 1000 | 1.962 | 1.960 | Negligible |
 
-> **Key insight:** For biological experiments with n < 30, always use the t-distribution. Using z would give falsely narrow intervals that overstate your precision.
+> **Key insight:** For a mean with an unknown population SD, the usual classical interval uses a t reference with the appropriate degrees of freedom. The choice is about the model and estimated variance, not a universal n = 30 switch; skewness, dependence, clustering, and the design may require another interval.
 
 ## CI for a Proportion
 
@@ -99,13 +105,13 @@ When the variable is binary — mutation present/absent, responder/non-responder
 
 This is the textbook formula, but it performs poorly when p is near 0 or 1, or when n is small. It can even produce intervals that extend below 0 or above 1.
 
-### Wilson Interval (Preferred)
+### Wilson Interval (A Useful Default for a Simple Proportion)
 
-The Wilson score interval adjusts the center and width, and is recommended for most biological applications:
+The Wilson score interval adjusts the centre and width and usually behaves better than the simple Wald interval for independent binary observations:
 
 **CI = (p-hat + z²/2n +/- z x sqrt(p-hat(1-p-hat)/n + z²/4n²)) / (1 + z²/n)**
 
-> **Clinical relevance:** When reporting mutation carrier frequencies, drug response rates, or diagnostic sensitivity/specificity, always use Wilson intervals. Regulatory agencies expect intervals that behave properly even at extreme proportions.
+> **Clinical relevance:** Wilson is a useful default for a simple independent proportion. Paired observations, clustered samples, survey designs, diagnostic accuracy studies, and very small counts need intervals that represent their actual design.
 
 ## CI for the Difference Between Two Means
 
@@ -115,26 +121,26 @@ Often the real question is not "what is the mean?" but "how much do two groups d
 
 Where SE_diff = sqrt(s1²/n1 + s2²/n2) for Welch's approach.
 
-**The critical interpretation:** If the CI for the difference includes zero, the data are consistent with no difference between the groups. If it excludes zero, the difference is statistically significant.
+**The practical interpretation:** Values inside the interval are comparatively compatible with the fitted model and data. Crossing zero means the interval includes both directions or no mean difference; excluding zero corresponds to a two-sided test at the matching level, but importance still depends on the effect size and context.
 
 | CI for Difference | Interpretation |
 |---|---|
-| [1.2, 4.8] | Groups differ; difference is between 1.2 and 4.8 units |
+| [1.2, 4.8] | Compatible mean differences are positive and range from 1.2 to 4.8 units |
 | [-0.5, 3.1] | Includes zero; cannot rule out no difference |
-| [-4.2, -1.1] | Groups differ; group 2 is higher by 1.1 to 4.2 units |
+| [-4.2, -1.1] | Compatible mean differences are negative; group 2 is higher by 1.1 to 4.2 units |
 
 ## Bootstrap Confidence Intervals
 
-What if your statistic is a median, a ratio, or something with no tidy formula? The **bootstrap** is a computer-intensive method that works for *any* statistic:
+What if your statistic is a median, a ratio, or something with no tidy formula? The **bootstrap** is a computer-intensive method that can estimate uncertainty for many statistics:
 
 1. Resample your data **with replacement**, same size as original
 2. Compute the statistic on the resample
 3. Repeat 10,000 times
 4. Take the 2.5th and 97.5th percentiles of the bootstrap distribution
 
-This is called the **percentile method**. No assumptions about normality or distribution shape are required.
+This is called the **percentile method**. It does not require an exact normal outcome model, but it does require a defensible resampling unit and representative observations. Very small samples, dependence, bias, boundaries, and non-smooth statistics can make a simple percentile interval inaccurate.
 
-> **Key insight:** Bootstrap CIs are the Swiss army knife of interval estimation. When in doubt, bootstrap it.
+> **Key insight:** Bootstrap intervals are flexible, but the resampling plan must imitate the study design. When in doubt, state the experimental unit and check whether a specialised interval is needed.
 
 ## What Controls CI Width?
 
@@ -493,7 +499,7 @@ let ic50 = [11.2, 13.1, 12.8, 10.9, 14.2, 12.0, 11.7, 12.5]
 
 - A **confidence interval** gives a range of plausible values for a population parameter, not just a point estimate
 - The 95% in "95% CI" refers to the long-run coverage rate of the procedure, not the probability for a specific interval
-- For small samples (n < 30), always use the **t-distribution** — it accounts for extra uncertainty
+- Classical intervals for a mean with unknown population SD use a **t reference**; adequacy also depends on the outcome shape, independence, and design
 - **Bootstrap CIs** work for any statistic (median, ratio, fold change) without distributional assumptions
 - CI width shrinks with larger n, lower variability, and lower confidence level
 - A CI for the difference that **includes zero** means the data are consistent with no difference

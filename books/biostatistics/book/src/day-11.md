@@ -1,5 +1,11 @@
 # Day 11: Categorical Data — Chi-Square and Fisher's Exact
 
+> **Start here**
+> - **In one sentence:** Categorical tests compare observed counts with the counts expected under a stated no-association model.
+> - **Look for:** which table cells differ most from expectation and whether any expected counts are small.
+> - **Use this when:** the data are counts of independent units in categories, with paired designs handled separately.
+> - **Do not conclude:** that association proves causation or that percentages can be analysed without their denominators.
+
 ## The Problem
 
 Dr. Elena Vasquez is an epidemiologist studying the genetics of Alzheimer's disease. She genotypes a SNP near the APOE gene in 1,000 participants: 500 with Alzheimer's and 500 age-matched controls. Among Alzheimer's patients, 180 carry at least one copy of the risk allele. Among controls, 120 carry it. The numbers look different — 36% versus 24% — but these are proportions, not measurements on a continuous scale. She cannot compute a mean or standard deviation. She cannot run a t-test.
@@ -148,13 +154,20 @@ If observed genotype counts deviate significantly from HWE expectations, it may 
 
 When sample sizes are small or expected counts fall below 5, the chi-square approximation is unreliable. Fisher's exact test computes the exact probability using the hypergeometric distribution.
 
-Fisher's exact test is computationally expensive for large tables but is the gold standard for 2x2 tables with small counts — common in rare variant studies and pilot experiments.
+Fisher's exact test is a common exact conditional analysis for a 2x2 table with
+small counts. Its conditioning and sampling assumptions should match the
+design; other exact or model-based analyses may target a different question.
 
-> **Clinical relevance:** Regulatory agencies (FDA, EMA) often prefer Fisher's exact test for safety analyses where adverse events are rare and sample sizes are modest.
+> **Clinical relevance:** Rare adverse-event tables often need exact or
+> small-sample methods. The prespecified protocol and applicable regulatory
+> guidance determine the analysis; one test is not automatically preferred in
+> every setting.
 
 ## McNemar's Test: Paired Categorical Data
 
-When observations are paired — the same patients tested before and after treatment, or the same samples tested with two diagnostic methods — McNemar's test is the correct choice.
+For paired binary observations—such as the same patients before and after, or
+the same samples measured by two methods—McNemar's test compares the two kinds
+of discordant pair under its matched-pair assumptions.
 
 | | Test B Positive | Test B Negative |
 |---|---|---|
@@ -295,7 +308,7 @@ print("Observed: 8/200 cases vs 2/200 controls carry the variant\n")
 let chi_result = chi_square(observed, [5.0, 195.0, 5.0, 195.0])
 print(f"Chi-square p-value: {chi_result.p_value:.4} (unreliable — low expected counts)")
 
-# Fisher's exact is the correct choice
+# Fisher's exact represents this small 2x2 comparison
 let fisher_result = fisher_exact(8, 192, 2, 198)
 print(f"Fisher's exact p-value: {fisher_result.p_value:.4}")
 

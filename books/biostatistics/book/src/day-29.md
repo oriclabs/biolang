@@ -1,5 +1,11 @@
 # Day 29: Capstone — Differential Expression Study
 
+> **Start here**
+> - **In one sentence:** Differential-expression analysis estimates gene-level changes while modelling counts, library composition, biological variation, and many simultaneous tests.
+> - **Look for:** sample quality, library size, count distributions, sample relationships, effect sizes, intervals, adjusted p-values, and pathway context.
+> - **Use this when:** comparing bulk RNA-seq expression under a design represented in the count model.
+> - **Do not conclude:** that every adjusted hit is biologically important, causal, or validated in another cohort.
+
 <div class="day-meta">
 <span class="badge">Day 29 of 30</span>
 <span class="badge">Capstone: Days 2-3, 8, 12-13, 20-21, 25</span>
@@ -814,7 +820,7 @@ library(DESeq2)
 library(pheatmap)
 library(EnhancedVolcano)
 
-# DESeq2 workflow (gold standard for RNA-seq DE)
+# DESeq2 workflow (one widely used RNA-seq DE approach)
 dds <- DESeqDataSetFromMatrix(countData = counts,
                                colData = sample_info,
                                design = ~ group)

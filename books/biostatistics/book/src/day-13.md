@@ -1,5 +1,11 @@
 # Day 13: Correlation — Finding Relationships
 
+> **Start here**
+> - **In one sentence:** Correlation summarizes how two measurements tend to move together.
+> - **Look for:** the scatter-plot shape, direction, strength, outliers, clusters, and curves.
+> - **Use this when:** exploring association between two numeric variables with a method suited to the shape and scale.
+> - **Do not conclude:** that correlation proves causation, rules out confounding, or captures every nonlinear relationship.
+
 ## The Problem
 
 Dr. Sarah Kim is studying breast cancer transcriptomics across 200 tumor samples. She notices that **BRCA1** and **BARD1** expression seem to rise and fall together — when one is high, the other tends to be high too. Exciting! These genes encode proteins that form a heterodimer critical for DNA repair.
@@ -128,7 +134,7 @@ $$r = \frac{\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum_{i=1}^{n}(x
 - Data are roughly normally distributed (for inference)
 - No extreme outliers (a single outlier can flip the sign)
 
-**Strengths:** Most powerful when assumptions are met. Directly related to R² in linear regression.
+**Strengths:** Directly describes linear association and is related to R² in simple linear regression. Its precision can be good when the linear model is appropriate.
 
 **Weakness:** Sensitive to outliers. Misses non-linear relationships entirely.
 
@@ -144,9 +150,9 @@ Spearman's correlation operates on **ranks** rather than raw values. It measures
 - Ordinal or continuous data
 - Monotonic relationship (doesn't need to be linear)
 
-**Strengths:** Robust to outliers. Works with non-normal distributions. Handles log-scale expression data naturally.
+**Strengths:** Less affected by extreme magnitudes than Pearson and useful for monotonic relationships or ordinal measurements.
 
-**Weakness:** Less powerful than Pearson when linearity holds.
+**Weakness:** Discards distance information through ranking and still depends on independent observations and careful handling of ties.
 
 ### 3. Kendall's τ (tau): The Most Robust
 
@@ -156,7 +162,7 @@ $$\tau = \frac{(\text{concordant pairs}) - (\text{discordant pairs})}{\binom{n}{
 
 A pair (i, j) is concordant if both xᵢ > xⱼ and yᵢ > yⱼ (or both less). It's discordant if they disagree.
 
-**Strengths:** Most robust to outliers. Better for small samples. Has clearer probabilistic interpretation.
+**Strengths:** Has a pairwise concordance interpretation and is often useful with ordinal data, ties, or modest samples.
 
 **Weakness:** Computationally slower for large datasets. Values tend to be smaller than Pearson/Spearman for the same data.
 
@@ -164,15 +170,15 @@ A pair (i, j) is concordant if both xᵢ > xⱼ and yᵢ > yⱼ (or both less). 
 
 | Situation | Best Choice | Why |
 |-----------|-------------|-----|
-| Both variables normal, linear relationship | Pearson | Most powerful |
-| Skewed data (e.g., raw gene expression) | Spearman | Rank-based, outlier-robust |
-| Small sample (n < 30) | Kendall | Most reliable for small n |
+| A linear association in meaningful units | Pearson | Directly summarizes linear co-movement |
+| A monotonic association where ranks answer the question | Spearman | Summarizes ordered co-movement |
+| Ordinal data or a pairwise concordance question | Kendall | Direct concordant/discordant-pair interpretation |
 | Ordinal data (e.g., tumor grade 1-4) | Spearman or Kendall | Ranks are appropriate |
 | Suspect outliers | Spearman or Kendall | Rank-based methods resist outliers |
 | Large RNA-seq dataset, log-transformed | Pearson or Spearman | Both work well after log transform |
-| Survival times with censoring | Kendall | Handles ties from censoring |
+| Survival times with censoring | A censoring-aware method | Ordinary correlation does not represent censoring |
 
-> **Common pitfall:** Using Pearson on raw RNA-seq counts. These are heavily right-skewed — a few highly expressed genes dominate the correlation. Always log-transform first or use Spearman.
+> **Common pitfall:** Correlating raw RNA-seq counts can mainly reflect library size, abundance, composition, and mean-variance structure. Use a normalization and scale appropriate to the biological question, inspect the scatter plot, and treat Spearman as a different estimand—not an automatic repair.
 
 ## Partial Correlation: Controlling for Confounders
 

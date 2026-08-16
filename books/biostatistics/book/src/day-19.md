@@ -1,5 +1,11 @@
 # Day 19: Effect Sizes — Beyond p-Values
 
+> **Start here**
+> - **In one sentence:** An effect size describes how large a difference or relationship is; a p-value addresses a different question about evidence.
+> - **Look for:** the effect estimate, its units, its interval, and a threshold of practical or biological importance.
+> - **Use this when:** interpreting, comparing, planning, or combining study results.
+> - **Do not conclude:** that labels such as small, medium, and large replace domain knowledge or uncertainty intervals.
+
 ## The Problem
 
 Two papers land on Dr. Rachel Nguyen's desk the same morning.
@@ -262,12 +268,12 @@ Eta-squared tells you what fraction of total variance is explained by group memb
 
 ## Forest Plots: The Standard Display
 
-**Forest plots** are the gold standard for displaying effect sizes across multiple comparisons. Each row shows:
+**Forest plots** are a widely used display for effect sizes across multiple comparisons. Each row shows:
 - A point estimate (the effect size)
 - A horizontal line (the confidence interval)
 - A vertical reference line (null effect: 0 for differences, 1 for ratios)
 
-They're essential for:
+They are useful for:
 - Meta-analyses (combining studies)
 - Multi-gene comparisons (e.g., DE genes ranked by effect size)
 - Subgroup analyses (effect by age, sex, stage)

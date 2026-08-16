@@ -1,5 +1,11 @@
 # Day 8: Comparing Two Groups — The t-Test
 
+> **Start here**
+> - **In one sentence:** A t-test compares a difference in means with the uncertainty in that difference.
+> - **Look for:** group centres, spread, overlap, unusual values, and paired lines when measurements come from the same unit.
+> - **Use this when:** a mean difference is the scientific target and the independent or paired design is represented correctly.
+> - **Do not conclude:** that a small p-value makes the difference large, useful, causal, or well measured.
+
 ## The Problem
 
 Dr. Sofia Reyes is a cancer biologist studying BRCA1 expression in breast tissue. She has RNA-seq data from 12 tumor samples and 12 matched normal samples from the same patients. The mean BRCA1 expression in tumors is 4.2 log2-CPM versus 6.8 log2-CPM in normals — a 2.6-fold reduction. But with only 12 samples per group and considerable biological variability, can she confidently claim BRCA1 is downregulated in tumors?
@@ -16,7 +22,7 @@ Think of it this way: you have two piles of measurements. The t-test weighs how 
 
 **The t-statistic** = (difference in means) / (standard error of the difference)
 
-A larger t-statistic means more evidence of a real difference.
+A larger absolute t-statistic means the estimated mean difference is large relative to its standard error. Its interpretation still depends on the design, assumptions, effect size, and multiplicity.
 
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="320" viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
