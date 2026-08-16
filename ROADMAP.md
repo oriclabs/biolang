@@ -5,6 +5,32 @@ file format support, and the package ecosystem. Ordered by impact within each se
 
 ---
 
+## Status as of 1.4.0 (2026-08-16)
+
+This document was written before any of it was built and has not been updated
+since, so the "Missing now" headings below are stale. Verified against the
+runtime at 1.4.0 rather than assumed:
+
+| Section | State |
+|---|---|
+| 1. Statistical primitives | **Complete.** All 13 "Missing now (high priority)" entries exist — `spearman`, `kendall`, `mutual_information`, `pca`, `kaplan_meier`, `cox_ph`, `log_rank_test`, `quantile_norm`, `batch_correct`, `bootstrap`, `permutation_test`, `power_analysis`, `meta_analysis` |
+| 2. Table operations | **Complete.** All 8 "Missing now (critical)" entries exist, including the joins called highest single impact |
+| 3. Sparse matrix type | Present (`sparse_matrix`, AnnData `.zarr` read/write) |
+| 6. Single-cell primitives | **Complete.** All 7 entries exist |
+| 7. Cancer-specific primitives | Partial — `tumor_purity` exists; `msi_score` and `mutation_burden` do not |
+| 8. File formats | `read_anndata` covers the zarr path; `read_h5ad` does not exist (HDF5 avoided deliberately) |
+| 9. Language features | `@compile`, `@memoize`/`@memo`/`@cache` and `@vectorize`/`@vec` are implemented. **`@parallel`, called the highest single impact language feature, is not** |
+| 11. Packages | 40 packages ship |
+
+The single largest item still open is `@parallel`. Everything the document
+called critical or highest-impact in the runtime sections is done.
+
+This table is a checkpoint, not a rewrite: the per-section design notes below
+are still the reasoning behind each choice and are worth keeping, but read them
+as a design record rather than as a description of what is missing.
+
+---
+
 ## 1. Core Runtime — Statistical Primitives
 
 These are needed by scRNA, bulk RNA-seq, GWAS, survival, methylation, and clinical

@@ -9,9 +9,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-The workspace version is already `1.4.0`, so this section becomes
-`## [1.4.0] - <date>` when the tag is cut. Nothing below has been released:
-`v1.3.0` is the newest tag.
+## [1.4.0] - 2026-08-16
 
 ### Added
 - **Guided, explainable statistics** (`packages/statistics`). Around forty

@@ -1,20 +1,29 @@
 # BioLang TODO
 
+> **Audited at 1.4.0, 2026-08-16.** Boxes below were ticked only where the
+> claim was checked against the tree or the live site, not from memory. Items
+> left unticked were either verified absent (Homebrew formula, `paper.md`,
+> `CODE_OF_CONDUCT.md`, issue templates) or could not be checked here
+> (crates.io was rate-limiting). Priorities 4 and 6 have not been audited.
+
 ## Priority 1: Publication-Ready (Required for JOSS/Journal Submission)
 
 ### Public Release
-- [ ] Publish to GitHub with proper README, LICENSE (MIT/Apache-2.0), and CITATION.cff
+- [x] Publish to GitHub with proper README, LICENSE (MIT/Apache-2.0), and CITATION.cff
 - [ ] `cargo install biolang` working from crates.io
-- [ ] Pre-built binaries for Linux/macOS/Windows via GitHub Releases
-- [ ] Homebrew formula (`brew install biolang`)
-- [ ] Version pinned at 1.0.0 with semantic versioning commitment
+- [x] Pre-built binaries for Linux/macOS/Windows via GitHub Releases — `release.yml`
+      builds four platforms on a `v*` tag, including native arm64 Linux
+- [ ] Homebrew formula (`brew install biolang`) — not present
+- [x] Version pinned at 1.0.0 with semantic versioning commitment — now 1.4.0
 
 ### Real-World Benchmarks
-- [ ] Pick 5 common tasks: FASTQ QC, VCF filtering, FASTA stats, k-mer counting, CSV wrangling
-- [ ] Implement each in BioLang, Python+Biopython, R+Bioconductor
-- [ ] Measure: wall-clock time, lines of code, memory usage, time-to-first-result
-- [ ] Run on real public datasets (SRA accessions for reproducibility)
-- [ ] Publish benchmark scripts in `benchmarks/` directory
+- [x] Pick 5 common tasks: FASTQ QC, VCF filtering, FASTA stats, k-mer counting, CSV wrangling
+      — 32 tasks across both platforms
+- [x] Implement each in BioLang, Python+Biopython, R+Bioconductor
+- [x] Measure: wall-clock time, lines of code, memory usage, time-to-first-result
+- [x] Run on real public datasets (SRA accessions for reproducibility) — ENCODE,
+      E. coli K-12, S. cerevisiae, ClinVar under `benchmarks/data_real/`
+- [x] Publish benchmark scripts in `benchmarks/` directory
 
 ### End-to-End Case Studies (3 minimum)
 - [ ] RNA-seq QC pipeline: FASTQ → quality filter → adapter stats → summary report
@@ -69,18 +78,21 @@
 - [ ] "Learn BioLang in 30 Minutes" tutorial targeting biologists who know basic R/Python
 - [ ] 10 graduated exercises: sequence basics → file I/O → API queries → pipelines
 - [x] Rosalind Bioinformatics Armory pack — all 15 problems, 12 asserted (`packs/rosalind-armory/`)
-- [ ] Rosalind Bioinformatics Stronghold pack (107 problems) — best next target
-- [ ] Rosalind Bioinformatics Textbook Track pack (154 problems) — showcase only; the
-      course exists to have students implement these, and BioLang builtins short-circuit that
-- [ ] Rosalind Algorithmic Heights pack (34 problems) — language conformance probe, no bio content
-- [ ] Pack distribution: build artifacts, `packs/index.json`, `bl packs add`
+- [x] Rosalind Bioinformatics Stronghold pack — 105/105 (v1.1.0)
+- [x] Rosalind Bioinformatics Textbook Track pack — 124/124 (v1.0.0)
+- [x] Rosalind Algorithmic Heights pack — 34/34 (v1.1.0)
+- [x] Pack distribution: build artifacts, `packs/index.json`, `bl add` — the index is
+      built at deploy by `scripts/build-packs.mjs` so the playground, the docs and
+      the CLI all read one URL
 - [ ] Side-by-side comparisons: "How you'd do this in Python" vs BioLang
 - [ ] Downloadable sample datasets (small: < 10MB each) in `examples/sample-data/`
 
 ### Playground / Try-It-Online
-- [ ] WebAssembly build of BioLang interpreter
-- [ ] Browser-based REPL on biolang.dev (no install required)
-- [ ] Pre-loaded examples users can edit and run
+- [x] WebAssembly build of BioLang interpreter — `crates/bl-wasm`, 851 browser
+      builtins, kept in step with the source by `check-wasm-fresh.mjs`
+- [x] Browser-based REPL on lang.bio (no install required) — `/playground.html`,
+      `/repl.html`, and the full workbench at `/workbench/`
+- [x] Pre-loaded examples users can edit and run — the Rosalind packs
 - [ ] Share-by-URL for code snippets
 - [ ] This is the single highest-impact adoption driver
 
@@ -102,7 +114,8 @@
 - [ ] Parallel `par_map` / `par_filter` actually using rayon thread pool
 
 ### JIT Compilation (Cranelift)
-- [ ] Feature-gate behind `--features jit`
+- [x] Feature-gate behind `--features jit` — `bl-runtime/Cargo.toml` declares
+      `bytecode` and `jit`, both off by default
 - [ ] Target hot loops: map/filter/reduce over large collections
 - [ ] Benchmark: show 5-10x speedup on numeric-heavy operations
 - [ ] Fallback gracefully to interpreter for unsupported constructs
@@ -118,8 +131,9 @@
 ## Priority 5: Ecosystem & Interop
 
 ### Package Manager
-- [ ] `bl add <package>` installs community packages from registry
-- [ ] `biolang.toml` manifest for project dependencies
+- [x] `bl add <package>` installs community packages from registry — `bl` also
+      has `install`, `remove`, `plugins`, `init` and `doctor`
+- [x] `biolang.toml` manifest for project dependencies — every package carries one
 - [ ] Central registry (start with GitHub-based, like Cargo)
 - [ ] Versioned dependencies with lock file
 
@@ -130,8 +144,10 @@
 - [ ] This answers "Can it call DESeq2?" — the most common objection
 
 ### Notebook Integration
-- [ ] Jupyter kernel for BioLang (bl-kernel)
-- [ ] VS Code extension with syntax highlighting + LSP
+- [ ] Jupyter kernel for BioLang (bl-kernel) — `bl notebook` serves its own
+      notebook instead, with figures rendered rather than escaped
+- [x] VS Code extension with syntax highlighting + LSP — `crates/bl-lsp`, and the
+      extensions published from the website repository
 - [ ] Quarto/RMarkdown code block support (`{biolang}`)
 
 ### Plugin Ecosystem
@@ -177,7 +193,8 @@
 ### Interactive Plots
 - [ ] SVG output with hover tooltips (gene names on volcano plot points)
 - [ ] Click-to-zoom on Manhattan plots
-- [ ] Export to PNG via resvg (no browser dependency)
+- [x] Export to PNG via resvg (no browser dependency) — added in v1.3.0, with
+      scatters rasterised above 5,000 points
 
 ---
 

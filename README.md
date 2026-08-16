@@ -364,16 +364,21 @@ Benchmarked against Python (BioPython) and R (Bioconductor) on 32 bioinformatics
 
 | Task | BioLang | Python | Speedup |
 |---|---|---|---|
-| ENCODE Peak Overlap | 0.363s | 2.574s | **7.1x** |
-| Protein K-mers | 0.191s | 1.331s | **7.0x** |
-| FASTA Parse (30 KB) | 0.138s | 0.926s | **6.7x** |
-| E. coli Genome | 0.176s | 1.081s | **6.1x** |
-| GC Content (51 MB) | 0.830s | 2.771s | **3.3x** |
-| K-mer Counting (21-mers) | 6.551s | 21.01s | **3.2x** |
+| FASTA Parse (30 KB) | 0.002s | 0.153s | **76.5x** |
+| ENCODE Peak Overlap | 0.154s | 2.614s | **17.0x** |
+| E. coli Genome Stats | 0.010s | 0.164s | **16.4x** |
+| Protein K-mers | 0.011s | 0.154s | **14.0x** |
+| GC Content (51 MB) | 0.125s | 0.721s | **5.8x** |
+| K-mer Counting (21-mers) | 6.119s | 19.908s | **3.3x** |
 
 Linux (WSL2), Intel i9-12900K. Python wins on VCF/CSV text parsing (optimized C extensions). BioLang scripts average **50-70% fewer lines** of code.
 
-See the [full benchmark results](https://oriclabs.github.io/biolang/benchmarks.html) for all 30 tasks across Linux and Windows, methodology, and correctness validation. Raw data and reproducible scripts in [`benchmarks/`](benchmarks/).
+Read from `benchmarks/results/latest/linux/scores.yaml`, which the suite writes
+and which the file itself names as the single source for this table. The
+figures published here had been stale since before v1.1.0 and understated the
+measured result by two to three times.
+
+See the [full benchmark results](https://lang.bio/benchmarks.html) for all 32 tasks across Linux and Windows, methodology, and correctness validation. Raw data and reproducible scripts in [`benchmarks/`](benchmarks/).
 
 ## Releases
 
