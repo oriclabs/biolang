@@ -39,6 +39,28 @@ scale-sensitive differences, tolerances, and the final result in
 Arithmetic, geometric, harmonic, trimmed, and root-mean-square calculations
 used by `stat.means()` are also compared with independent R expressions.
 
+## Frozen conformance constants
+
+The oracle above needs R and is run by hand, so it cannot fail a refactor.
+`model_conformance.R` closes that gap for the four model fitters. It prints R's
+answers for fixtures small enough to inline in a Rust test, which are frozen in
+`crates/bl-runtime/tests/stats_model_conformance.rs` and therefore run under an
+ordinary `cargo test`, on any machine, without R and without redistributing an R
+dataset.
+
+```powershell
+Rscript packages/statistics/validation/model_conformance.R
+```
+
+Two definitional differences from R are documented in that test rather than
+absorbed into loose tolerances. `hatvalues()` reads the QR that `glm.fit` built
+during the final IRLS iteration, so its weights belong to the previous
+coefficient vector; BioLang recomputes the hat matrix at the converged
+coefficients, and the frozen leverage constants are R's hat recomputed the same
+way. Separately, `glm.fit` stops when the deviance stops changing while this
+IRLS stops when the coefficients stop changing, so the two fits settle at
+slightly different points.
+
 The same run generates and checks four real-data fixtures from R-distributed
 datasets: non-missing `airquality` ozone observations (including equal-month
 analysis weights and a log-scale preview), the ordered `Nile` flow series,

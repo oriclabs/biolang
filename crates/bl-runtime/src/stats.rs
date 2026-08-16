@@ -2215,7 +2215,7 @@ fn builtin_glm(args: Vec<Value>) -> Result<Value> {
                     (
                         "coefficients",
                         Value::List(
-                            res.0
+                            res.coefficients
                                 .into_iter()
                                 .map(Value::Float)
                                 .collect::<Vec<_>>()
@@ -2225,15 +2225,17 @@ fn builtin_glm(args: Vec<Value>) -> Result<Value> {
                     (
                         "p_values",
                         Value::List(
-                            res.1
+                            res.p_values
                                 .into_iter()
                                 .map(Value::Float)
                                 .collect::<Vec<_>>()
                                 .into(),
                         ),
                     ),
-                    ("log_likelihood", Value::Float(res.2)),
-                    ("aic", Value::Float(res.3)),
+                    ("log_likelihood", Value::Float(res.family_statistic)),
+                    ("aic", Value::Float(res.aic)),
+                    ("converged", Value::Bool(res.converged)),
+                    ("iterations", Value::Int(res.iterations as i64)),
                     ("family", Value::Str("binomial".into())),
                 ]))
             }
@@ -2263,7 +2265,7 @@ fn builtin_glm(args: Vec<Value>) -> Result<Value> {
                 (
                     "coefficients",
                     Value::List(
-                        res.0
+                        res.coefficients
                             .into_iter()
                             .map(Value::Float)
                             .collect::<Vec<_>>()
@@ -2273,15 +2275,17 @@ fn builtin_glm(args: Vec<Value>) -> Result<Value> {
                 (
                     "p_values",
                     Value::List(
-                        res.1
+                        res.p_values
                             .into_iter()
                             .map(Value::Float)
                             .collect::<Vec<_>>()
                             .into(),
                     ),
                 ),
-                ("deviance", Value::Float(res.2)),
-                ("aic", Value::Float(res.3)),
+                ("deviance", Value::Float(res.family_statistic)),
+                ("aic", Value::Float(res.aic)),
+                ("converged", Value::Bool(res.converged)),
+                ("iterations", Value::Int(res.iterations as i64)),
                 ("family", Value::Str("poisson".into())),
             ]))
         }
@@ -2295,10 +2299,37 @@ fn builtin_glm(args: Vec<Value>) -> Result<Value> {
 
 /// Multi-predictor logistic regression via IRLS.
 /// Returns (coefficients, p_values, log_likelihood, aic).
+/// Outcome of an IRLS generalized-linear fit.
+///
+/// `family_statistic` carries the goodness-of-fit number each family already
+/// reported through this slot: the log likelihood for
+/// `logistic_regression_multi`, the deviance for `poisson_regression`.
+///
+/// `converged` says whether the largest coefficient update fell below the
+/// tolerance before the iteration cap was reached. IRLS previously returned
+/// the final iterate either way, so a fit that had not settled was
+/// indistinguishable from one that had; R's `glm()` warns in that situation
+/// and sets `$converged`, and callers here surface the same fact rather than
+/// presenting an unconverged fit as final.
+pub(crate) struct GlmFit {
+    pub(crate) coefficients: Vec<f64>,
+    pub(crate) p_values: Vec<f64>,
+    pub(crate) family_statistic: f64,
+    pub(crate) aic: f64,
+    pub(crate) converged: bool,
+    pub(crate) iterations: usize,
+}
+
+/// Maximum IRLS iterations before a fit is reported as not converged.
+const GLM_MAX_ITERATIONS: usize = 50;
+
+/// Convergence tolerance on the largest absolute coefficient change.
+const GLM_TOLERANCE: f64 = 1e-8;
+
 pub(crate) fn logistic_regression_multi(
     y: &[f64],
     x: &[Vec<f64>],
-) -> std::result::Result<(Vec<f64>, Vec<f64>, f64, f64), String> {
+) -> std::result::Result<GlmFit, String> {
     let n = y.len();
     if n < 2 || x.is_empty() || x[0].is_empty() {
         return Err("insufficient data".into());
@@ -2307,9 +2338,12 @@ pub(crate) fn logistic_regression_multi(
 
     // Build design matrix with intercept
     let mut beta = vec![0.0; p];
-    let max_iter = 50;
+    let max_iter = GLM_MAX_ITERATIONS;
+    let mut converged = false;
+    let mut iterations = 0usize;
 
-    for _ in 0..max_iter {
+    for iteration in 0..max_iter {
+        iterations = iteration + 1;
         let mut mu: Vec<f64> = Vec::with_capacity(n);
         for i in 0..n {
             let eta = beta[0]
@@ -2370,7 +2404,8 @@ pub(crate) fn logistic_regression_multi(
             .map(|(a, b)| (a - b).abs())
             .fold(0.0, f64::max);
         beta = new_beta;
-        if max_change < 1e-8 {
+        if max_change < GLM_TOLERANCE {
+            converged = true;
             break;
         }
     }
@@ -2438,15 +2473,19 @@ pub(crate) fn logistic_regression_multi(
         })
         .collect();
 
-    Ok((beta, p_values, ll, aic))
+    Ok(GlmFit {
+        coefficients: beta,
+        p_values,
+        family_statistic: ll,
+        aic,
+        converged,
+        iterations,
+    })
 }
 
 /// Poisson regression via IRLS.
-/// Returns (coefficients, p_values, deviance, aic).
-pub(crate) fn poisson_regression(
-    y: &[f64],
-    x: &[Vec<f64>],
-) -> std::result::Result<(Vec<f64>, Vec<f64>, f64, f64), String> {
+/// `GlmFit::family_statistic` carries the deviance.
+pub(crate) fn poisson_regression(y: &[f64], x: &[Vec<f64>]) -> std::result::Result<GlmFit, String> {
     let n = y.len();
     if n < 2 || x.is_empty() || x[0].is_empty() {
         return Err("insufficient data".into());
@@ -2455,8 +2494,11 @@ pub(crate) fn poisson_regression(
 
     let mut beta = vec![0.0; p];
     beta[0] = y.iter().map(|&yi| (yi.max(0.01)).ln()).sum::<f64>() / n as f64;
+    let mut converged = false;
+    let mut iterations = 0usize;
 
-    for _ in 0..50 {
+    for iteration in 0..GLM_MAX_ITERATIONS {
+        iterations = iteration + 1;
         let mu: Vec<f64> = (0..n)
             .map(|i| {
                 let eta = beta[0]
@@ -2503,7 +2545,8 @@ pub(crate) fn poisson_regression(
             .map(|(a, b)| (a - b).abs())
             .fold(0.0, f64::max);
         beta = new_beta;
-        if max_change < 1e-8 {
+        if max_change < GLM_TOLERANCE {
+            converged = true;
             break;
         }
     }
@@ -2577,7 +2620,14 @@ pub(crate) fn poisson_regression(
         })
         .collect();
 
-    Ok((beta, p_values, deviance, aic))
+    Ok(GlmFit {
+        coefficients: beta,
+        p_values,
+        family_statistic: deviance,
+        aic,
+        converged,
+        iterations,
+    })
 }
 
 /// Solve Ax = b via Gaussian elimination with partial pivoting.

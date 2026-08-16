@@ -325,6 +325,16 @@ fn test_glm_diagnostics_expose_residual_influence_and_calibration_clues() {
     assert binary.brier_score > 0.0
     assert contains(binary.ascii, "No causal interpretation")
 
+    # This fixture is perfectly separable, so it has no finite maximum
+    # likelihood estimate. R reports "algorithm did not converge" on the same
+    # data. The coefficients above are an artefact of where iteration stopped,
+    # and the report has to say so rather than present them as an estimate.
+    assert binary.converged == false
+    assert binary.iterations == 50
+    assert contains(binary.ascii, "NOT CONVERGED")
+    let separation_flags = binary.issues |> filter(|item| item.id == "fit_not_converged")
+    assert len(separation_flags) == 1
+
     let counts = stat.glm_diagnostics(table({
         exposure: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     }), [0, 1, 1, 2, 2, 4, 3, 5, 7, 8], {family: "poisson"})
@@ -332,6 +342,13 @@ fn test_glm_diagnostics_expose_residual_influence_and_calibration_clues() {
     assert counts.expected_poisson_zeros > 0.0
     assert counts.residual_deviance >= 0.0
     assert counts.input_modified == false
+
+    # A well-behaved fit settles well inside the iteration limit and carries no
+    # convergence flag, so the disclosure above is specific rather than constant.
+    assert counts.converged == true
+    assert counts.iterations < 50
+    let count_flags = counts.issues |> filter(|item| item.id == "fit_not_converged")
+    assert len(count_flags) == 0
 }
 
 fn test_random_intercept_model_partially_pools_declared_clusters() {

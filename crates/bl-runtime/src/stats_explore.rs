@@ -6811,15 +6811,17 @@ fn glm_diagnostics(args: Vec<Value>) -> Result<Value> {
         ));
     }
 
-    let (coefficients, p_values, fitter_aic) = if family == "binomial" {
-        let fit = crate::stats::logistic_regression_multi(&prepared.y, &prepared.x)
-            .map_err(|message| BioLangError::runtime(ErrorKind::TypeError, message, None))?;
-        (fit.0, fit.1, fit.3)
+    let fit = if family == "binomial" {
+        crate::stats::logistic_regression_multi(&prepared.y, &prepared.x)
     } else {
-        let fit = crate::stats::poisson_regression(&prepared.y, &prepared.x)
-            .map_err(|message| BioLangError::runtime(ErrorKind::TypeError, message, None))?;
-        (fit.0, fit.1, fit.3)
-    };
+        crate::stats::poisson_regression(&prepared.y, &prepared.x)
+    }
+    .map_err(|message| BioLangError::runtime(ErrorKind::TypeError, message, None))?;
+    let coefficients = fit.coefficients;
+    let p_values = fit.p_values;
+    let fitter_aic = fit.aic;
+    let converged = fit.converged;
+    let iterations = fit.iterations;
     let design_rows = prepared
         .x
         .iter()
@@ -7088,6 +7090,14 @@ fn glm_diagnostics(args: Vec<Value>) -> Result<Value> {
             "review",
         ));
     }
+    if !converged {
+        issues.push(issue(
+            "fit_not_converged",
+            format!("Iteratively reweighted least squares reached its {iterations}-iteration limit without the coefficients settling."),
+            "Treat every coefficient, interval, and diagnostic below as provisional; inspect separation, collinearity, and predictor scaling before interpreting them.",
+            "blocking",
+        ));
+    }
     if fitted.iter().any(|value| *value < 1e-6)
         || (family == "binomial" && fitted.iter().any(|value| *value > 1.0 - 1e-6))
     {
@@ -7107,7 +7117,12 @@ fn glm_diagnostics(args: Vec<Value>) -> Result<Value> {
         ));
     }
     let ascii = format!(
-        "GLM diagnostic ({family}, n={n}, parameters={parameter_count})\nresidual deviance={} on {} df\nnull deviance={}  Pearson dispersion={}\nAIC={}{}\nreview rows={} (inspect, do not automatically delete)\n\nCoefficients are on the link scale; exp(coefficient) is a conditional odds/rate ratio. No causal interpretation or model selection is automatic.",
+        "GLM diagnostic ({family}, n={n}, parameters={parameter_count})\n{}residual deviance={} on {} df\nnull deviance={}  Pearson dispersion={}\nAIC={}{}\nreview rows={} (inspect, do not automatically delete)\n\nCoefficients are on the link scale; exp(coefficient) is a conditional odds/rate ratio. No causal interpretation or model selection is automatic.",
+        if converged {
+            String::new()
+        } else {
+            format!("NOT CONVERGED after {iterations} IRLS iterations; every number below is provisional\n")
+        },
         fmt_number(residual_deviance),
         degrees_freedom,
         fmt_number(null_deviance),
@@ -7180,6 +7195,8 @@ fn glm_diagnostics(args: Vec<Value>) -> Result<Value> {
                 Value::Nil
             },
         ),
+        ("converged", Value::Bool(converged)),
+        ("iterations", Value::Int(iterations as i64)),
         ("ascii", text(ascii)),
         ("issues", list(issues)),
         ("model_selected", Value::Bool(false)),
@@ -7187,6 +7204,7 @@ fn glm_diagnostics(args: Vec<Value>) -> Result<Value> {
         (
             "limitations",
             string_list([
+                "Every number here is conditional on `converged`; an unconverged fit still returns coefficients, and they are provisional.",
                 "Residual, leverage, and Cook thresholds are diagnostic review clues, not deletion rules.",
                 "Pearson dispersion is descriptive; grouped binomial, repeated observations, survey designs, and exposure offsets require explicit structure.",
                 "Calibration bins are equal-count descriptive summaries and are not a formal goodness-of-fit test.",

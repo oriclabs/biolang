@@ -292,7 +292,13 @@ let survival = stat.cox_diagnostics(follow_up_time, event, predictors)
 ```
 
 `glm_diagnostics()` supports binomial and Poisson outcomes and reports residual
-deviance, dispersion, influence, and calibration or zero-count clues.
+deviance, dispersion, influence, and calibration or zero-count clues. It also
+reports `converged` and `iterations`. Iteratively reweighted least squares
+returns its final iterate whether or not the coefficients settled, so check
+`converged` before interpreting anything else: a separated logistic fit still
+produces coefficients, and they are an artefact of where iteration stopped
+rather than an estimate. A fit that did not converge is disclosed as a
+`fit_not_converged` issue and is marked in the rendered summary.
 `random_intercept_model()` reports fixed effects, variance components, ICC,
 partially pooled intercepts, and marginal and conditional fitted values.
 `cox_diagnostics()` uses a full multivariable Newton fit with Breslow ties and
