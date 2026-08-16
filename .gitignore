@@ -163,6 +163,9 @@ node_modules/
 /*.bed
 /*.sam
 /*.zarr/
+# Examples write their own .zarr before reading it back, so a committed store is
+# a byproduct wherever it lands, not just at the repository root.
+*.zarr/
 /Dockerfile
 /_params.json
 /results.json
