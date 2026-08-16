@@ -16,6 +16,10 @@
  * how v1.2.0 was tagged with three stale artifacts at once, one of which would
  * have shipped a runtime two days older than the documentation describing it.
  *
+ * A fourth check compares npm/package.json against the workspace version.
+ * Nothing generates that file, but nothing synced it either, and it sat at
+ * 1.1.0 through two tagged releases.
+ *
  * This runs the same regenerators CI runs and reports what moved. It rewrites
  * the files in place rather than diffing into a temp directory, so a failure
  * leaves the corrected output ready to commit.
@@ -61,6 +65,7 @@ const failures = [];
       what: "pack documentation",
       fix: "node scripts/generate-pack-docs.mjs",
       files: dirty,
+      corrected: true,
     });
   }
 }
@@ -86,6 +91,7 @@ const failures = [];
       what: "workbench help index",
       fix: "cd desktop && npm run generate:help",
       files: dirty,
+      corrected: true,
     });
   }
 }
@@ -119,6 +125,45 @@ const failures = [];
       what: "workbench WASM copy",
       fix: "cp website/wasm/bl_wasm_bg.wasm website/wasm/bl_wasm.js desktop/public/wasm/",
       files: differing,
+      corrected: false,
+    });
+  }
+}
+
+// 4. npm package version.
+//
+// npm/package.json wraps the WASM module built from this workspace, so a
+// version it does not share is a version that describes something else.
+// Nothing synced them: release.yml fires on a v* tag and builds binaries, and
+// the manifest is edited by hand. It sat at 1.1.0 through v1.2.0, v1.3.0 and
+// the whole of 1.4.0, so `npm install biolang` advertised a release three
+// behind the runtime inside it.
+//
+// Compared rather than rewritten. Which version is right is a release
+// decision, and guessing it here would let a typo in either file silently
+// rename the other.
+{
+  const [cargo, manifest] = await Promise.all([
+    readFile(path.join(repositoryRoot, "Cargo.toml"), "utf8"),
+    readFile(path.join(repositoryRoot, "npm", "package.json"), "utf8"),
+  ]);
+  const workspaceVersion = cargo
+    .split(/\[workspace\.package\]/)[1]
+    ?.match(/^\s*version\s*=\s*"([^"]+)"/m)?.[1];
+  const npmVersion = JSON.parse(manifest).version;
+  if (!workspaceVersion) {
+    failures.push({
+      what: "workspace version",
+      fix: "check that [workspace.package] in Cargo.toml still declares a version",
+      files: ["Cargo.toml"],
+      corrected: false,
+    });
+  } else if (workspaceVersion !== npmVersion) {
+    failures.push({
+      what: `npm package version (${npmVersion}) does not match the workspace (${workspaceVersion})`,
+      fix: `set "version": "${workspaceVersion}" in npm/package.json, or correct Cargo.toml`,
+      files: ["npm/package.json"],
+      corrected: false,
     });
   }
 }
@@ -130,12 +175,17 @@ if (failures.length) {
     for (const file of failure.files) console.error(`    ${file}`);
     console.error(`    fix: ${failure.fix}\n`);
   }
-  const regenerated = failures.filter((failure) => failure.what !== "workbench WASM copy");
-  if (regenerated.length) {
-    console.error("The first two are already corrected in your working tree - commit them.");
+  // Named rather than counted. This used to read "the first two", which was
+  // wrong whenever the corrected checks were not the first two to fail.
+  const corrected = failures.filter((failure) => failure.corrected);
+  if (corrected.length) {
+    const names = corrected.map((failure) => failure.what).join(" and ");
+    console.error(`Already corrected in your working tree - commit them: ${names}.`);
   }
   console.error("To push anyway: git push --no-verify\n");
   process.exit(1);
 }
 
-console.log("Generated files are current: pack docs, workbench help index, WASM copies.");
+console.log(
+  "Generated files are current: pack docs, workbench help index, WASM copies, npm version.",
+);

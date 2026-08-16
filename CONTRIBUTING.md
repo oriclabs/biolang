@@ -58,7 +58,11 @@ and `desktop/public/wasm` as a byte-for-byte copy of `website/wasm`. Editing a
 source without rerunning its generator leaves a stale artifact that `cargo
 test` cannot see — CI regenerates and fails instead.
 
-Enable the pre-push hook once per clone, and it catches all three before
+The same check compares `npm/package.json` against the workspace version in
+`Cargo.toml`. Nothing generates that file, but nothing synced it either, and it
+sat at 1.1.0 through two tagged releases while the runtime it wraps moved on.
+
+Enable the pre-push hook once per clone, and it catches all four before
 anything leaves your machine:
 
 ```bash
