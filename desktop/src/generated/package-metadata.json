@@ -2946,7 +2946,7 @@
     {
       "name": "statistics",
       "version": "0.1.0",
-      "description": "Statistical tests: multiple testing correction, Fisher exact, chi-square, permutation, bootstrap, logistic regression",
+      "description": "Explainable exploratory statistics, visual guidance, tests, resampling, and multiple-testing correction",
       "exports": [
         {
           "name": "bh",
@@ -2954,7 +2954,7 @@
           "summary": "BioLang package function bh.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 15
+          "line": 16
         },
         {
           "name": "bonferroni",
@@ -2962,7 +2962,7 @@
           "summary": "BioLang package function bonferroni.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 16
+          "line": 17
         },
         {
           "name": "bootstrap",
@@ -2970,7 +2970,7 @@
           "summary": "BioLang package function bootstrap.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 22
+          "line": 23
         },
         {
           "name": "chi2",
@@ -2978,7 +2978,15 @@
           "summary": "BioLang package function chi2.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 20
+          "line": 21
+        },
+        {
+          "name": "explain",
+          "signature": "explain(report, detail = \"learning\")",
+          "summary": "BioLang package function explain.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 34
         },
         {
           "name": "fisher",
@@ -2986,7 +2994,7 @@
           "summary": "BioLang package function fisher.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 19
+          "line": 20
         },
         {
           "name": "inflation",
@@ -2994,7 +3002,7 @@
           "summary": "BioLang package function inflation.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 17
+          "line": 18
         },
         {
           "name": "pearson",
@@ -3002,7 +3010,7 @@
           "summary": "BioLang package function pearson.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 23
+          "line": 24
         },
         {
           "name": "permtest",
@@ -3010,7 +3018,7 @@
           "summary": "BioLang package function permtest.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 21
+          "line": 22
         },
         {
           "name": "significant",
@@ -3018,7 +3026,7 @@
           "summary": "BioLang package function significant.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 18
+          "line": 19
         }
       ]
     },

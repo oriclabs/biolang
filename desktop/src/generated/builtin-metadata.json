@@ -10716,6 +10716,24 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "normal_qq_plot",
+      "signature": "normal_qq_plot(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "normalize",
       "signature": "normalize(list, method) → List",
       "category": "stats",
@@ -15533,6 +15551,723 @@
         "maximum": 2
       },
       "metadataQuality": "curated"
+    },
+    {
+      "name": "stats_associations",
+      "signature": "stats_associations(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_categorical_plot",
+      "signature": "stats_categorical_plot(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_categories",
+      "signature": "stats_categories(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_cluster_diagnostics",
+      "signature": "stats_cluster_diagnostics(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_compare",
+      "signature": "stats_compare(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_cox_diagnostics",
+      "signature": "stats_cox_diagnostics(arg1, arg2, arg3, arg4?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3",
+        "arg4?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 3,
+        "maximum": 4
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_decision_map",
+      "signature": "stats_decision_map(arg1?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 0 argument(s).",
+      "parameters": [
+        "arg1?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_design_check",
+      "signature": "stats_design_check(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_distribution_ascii",
+      "signature": "stats_distribution_ascii(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_distribution_clues",
+      "signature": "stats_distribution_clues(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_distribution_plot",
+      "signature": "stats_distribution_plot(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_explain",
+      "signature": "stats_explain(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_explore",
+      "signature": "stats_explore(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_glm_diagnostics",
+      "signature": "stats_glm_diagnostics(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_group_plot",
+      "signature": "stats_group_plot(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_guide",
+      "signature": "stats_guide(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_linear_diagnostic_plot",
+      "signature": "stats_linear_diagnostic_plot(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_linear_diagnostics",
+      "signature": "stats_linear_diagnostics(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_means",
+      "signature": "stats_means(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_missingness",
+      "signature": "stats_missingness(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_missingness_plot",
+      "signature": "stats_missingness_plot(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_multiple_linear_diagnostics",
+      "signature": "stats_multiple_linear_diagnostics(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_normal_qq_plot",
+      "signature": "stats_normal_qq_plot(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_normalization_guide",
+      "signature": "stats_normalization_guide(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_omics_profile",
+      "signature": "stats_omics_profile(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_overview_ascii",
+      "signature": "stats_overview_ascii(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_preprocess",
+      "signature": "stats_preprocess(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_profile",
+      "signature": "stats_profile(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_random_intercept_model",
+      "signature": "stats_random_intercept_model(arg1, arg2, arg3, arg4?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3",
+        "arg4?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 3,
+        "maximum": 4
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_relationship",
+      "signature": "stats_relationship(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_relationship_plot",
+      "signature": "stats_relationship_plot(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_report",
+      "signature": "stats_report(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_robust_linear_diagnostics",
+      "signature": "stats_robust_linear_diagnostics(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_scan",
+      "signature": "stats_scan(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_shape",
+      "signature": "stats_shape(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_time_series_diagnostics",
+      "signature": "stats_time_series_diagnostics(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_transform_preview",
+      "signature": "stats_transform_preview(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_uncertainty",
+      "signature": "stats_uncertainty(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "stats_weighted_summary",
+      "signature": "stats_weighted_summary(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
     },
     {
       "name": "stdev",
