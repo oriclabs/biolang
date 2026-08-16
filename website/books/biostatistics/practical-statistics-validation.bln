@@ -135,8 +135,9 @@ println(clustered.ascii)
 
 The companion validation runner compares BioLang with R for descriptive
 statistics, transformations, regression, robust fitting, weighted moments,
-time-series diagnostics, ICC components, distribution likelihoods, and omics
-summaries. The current acceptance manifest contains 105 scale-sensitive metrics,
+time-series diagnostics, ICC components, distribution likelihoods, omics
+summaries, GLMs, a random-intercept model, and Cox survival diagnostics. The
+current acceptance manifest contains 147 scale-sensitive metrics,
 including real-data checks generated from R's `airquality`, `Nile`,
-`ChickWeight`, and `survival::lung` datasets; an unavailable R process is never
-recorded as a pass.
+`ChickWeight`, and `survival::lung` datasets;
+an unavailable R process is never recorded as a pass.

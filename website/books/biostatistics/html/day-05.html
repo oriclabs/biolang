@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-92144030.js";
+            window.path_to_searchindex_js = "searchindex-71b5e392.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0c6a9f60.js"></script>
@@ -422,7 +422,7 @@ normal_qq_plot(means_n100, {title: "Q-Q Plot: Sample Means n=100"})
 </code></pre>
 <p>Watch the skewness drop toward zero as n increases. By n=100, the sampling distribution is indistinguishable from a normal curve, even though the underlying data is wildly skewed.</p>
 <blockquote>
-<p><strong>Key insight:</strong> The CLT is why the normal distribution dominates statistics. Even when individual observations are non-normal, means of samples are approximately normal. Since most statistical tests are fundamentally about comparing means, the normal distribution is the right reference distribution for the test statistic — even when the raw data is not normal.</p>
+<p><strong>Key insight:</strong> Under suitable conditions, the CLT explains why sampling distributions of sums and means can become approximately normal even when individual observations are not. The approximation depends on sample size, tail behaviour, and dependence. It does not make the raw data normal, and it does not justify a normal reference for every statistic or study design.</p>
 </blockquote>
 <h3 id="when-does-the-clt-kick-in"><a class="header" href="#when-does-the-clt-kick-in">When Does the CLT “Kick In”?</a></h3>
 <p>The speed of convergence to normality depends on how non-normal the population is:</p>
@@ -887,7 +887,6 @@ print(f"Observed correlation: {observed_r:.3}")
 
         <!-- Custom JS scripts -->
         <script src="theme/toolbar-buttons-e928fb09.js"></script>
-        <script src="theme/book-runner-395634af.js"></script>
 
 
 
