@@ -255,11 +255,20 @@ print("Peaks overlapping exons: " + str(len(overlaps)))
 ### API queries
 
 ```
-let gene = ncbi_gene("BRCA1")
-print(gene.description)
+# ncbi_gene returns a Record only when the search matches exactly one gene.
+# A bare symbol matches it across organisms, so it returns the list of ids;
+# pass a limit to get the summary Record, and prefer a qualified query when
+# you mean one particular gene.
+let ids = ncbi_gene("BRCA1")
+print(len(ids))
 
-let variants = ensembl_vep("17:43044295:G:A")
-print(variants)
+let gene = ncbi_gene("BRCA1[sym] AND human[orgn]", 1)
+print(gene.symbol + ": " + gene.description)
+
+# ensembl_vep queries Ensembl's HGVS endpoint, so it takes HGVS notation
+# rather than a colon-delimited position.
+let variants = ensembl_vep("ENST00000269305.9:c.215C>G")
+print(len(variants))
 ```
 
 ### Knowledge graphs
