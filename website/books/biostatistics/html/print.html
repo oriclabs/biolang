@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
 
         <!-- Custom JS scripts for mdbook-pdf PDF generation -->
@@ -66,7 +66,7 @@
         </script>
     <div style="display: none"><a href="#introduction">introduction</a><a href="#day-01">day-01</a><a href="#day-02">day-02</a><a href="#day-03">day-03</a><a href="#day-04">day-04</a><a href="#day-05">day-05</a><a href="#day-06">day-06</a><a href="#day-07">day-07</a><a href="#day-08">day-08</a><a href="#day-09">day-09</a><a href="#day-10">day-10</a><a href="#day-11">day-11</a><a href="#day-12">day-12</a><a href="#day-13">day-13</a><a href="#day-14">day-14</a><a href="#day-15">day-15</a><a href="#day-16">day-16</a><a href="#day-17">day-17</a><a href="#day-18">day-18</a><a href="#day-19">day-19</a><a href="#day-20">day-20</a><a href="#day-21">day-21</a><a href="#day-22">day-22</a><a href="#day-23">day-23</a><a href="#day-24">day-24</a><a href="#day-25">day-25</a><a href="#day-26">day-26</a><a href="#day-27">day-27</a><a href="#day-28">day-28</a><a href="#day-29">day-29</a><a href="#day-30">day-30</a><a href="#appendix-setup">appendix-setup</a><a href="#appendix-flowchart">appendix-flowchart</a><a href="#appendix-distributions">appendix-distributions</a><a href="#appendix-glossary">appendix-glossary</a><a href="#appendix-reference">appendix-reference</a><a href="#appendix-guided-exploration">appendix-guided-exploration</a></div>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -210,7 +210,11 @@
 <p><em>From p-values to pipelines — a structured journey through the statistics every biologist actually needs.</em></p>
 </blockquote>
 <p>You have the data. Thousands of gene expression measurements. Hundreds of patient outcomes. Millions of variants. You know the biology. You understand the experiment. But when it comes time to choose a statistical test, set a significance threshold, or interpret a confidence interval, the ground shifts under your feet.</p>
-<p>This book fixes that. In 30 days, you will go from statistical anxiety to statistical fluency — not by memorizing formulas, but by solving real biological problems with real data. Every test you learn has a reason. Every formula has a story. Every p-value has a context.</p>
+<p>This book gives you a practical path through that uncertainty. You will learn
+with biological questions, small runnable examples, and clearly labelled
+simulations or illustrative scenarios. The goal is not to memorize formulas;
+it is to understand what a method asks, what its picture shows, and what its
+result does—and does not—support.</p>
 <p>And you will do it all in BioLang, whose current runtime provides hundreds of
 builtins across statistics, data handling, biological formats, and
 visualization. That lets you express an analysis — from data loading to
@@ -249,13 +253,34 @@ pipe-chained steps.</p>
 </table>
 </div>
 <blockquote>
-<p><strong>Complete beginner?</strong> That is completely fine. Day 1 starts with a single concept — what is a distribution? — and builds from there. No calculus. No linear algebra. No prior programming experience beyond basic BioLang familiarity. If you can type <code>bl run script.bl</code>, you are ready.</p>
+<p><strong>Complete beginner?</strong> That is completely fine. Day 1 begins with why uncertainty matters, and Days 2–4 build centre, spread, shape, and probability. On a first reading, use each <strong>Start here</strong> box and picture; formulas may be revisited later.</p>
+</blockquote>
+<h2 id="how-to-read-each-chapter"><a class="header" href="#how-to-read-each-chapter">How to Read Each Chapter</a></h2>
+<p>Follow the same path every day:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Step</th><th>Ask yourself</th><th>What to do</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>1. Question</strong></td><td>What biological quantity or comparison do I care about?</td><td>Say it in ordinary words before choosing a function.</td></tr>
+<tr><td><strong>2. Picture</strong></td><td>What do the observations look like?</td><td>Inspect points, groups, shape, missingness, and design.</td></tr>
+<tr><td><strong>3. Summary</strong></td><td>Which centre, spread, effect, or probability answers the question?</td><td>Keep the measurement units visible.</td></tr>
+<tr><td><strong>4. Model</strong></td><td>What assumptions connect the sample to the claim?</td><td>Read the technical section when you need to fit or defend the analysis.</td></tr>
+<tr><td><strong>5. Interpretation</strong></td><td>What remains uncertain, and what would change the conclusion?</td><td>Report the estimate, interval, limitations, and practical meaning.</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>If a formula feels intimidating:</strong> read the sentence above it, identify the
+inputs and output, and continue. You do not need to derive every formula to
+understand the question it answers.</p>
 </blockquote>
 <h2 id="what-you-will-learn"><a class="header" href="#what-you-will-learn">What You Will Learn</a></h2>
 <p>Over 30 days, you will go from statistical uncertainty to being able to:</p>
 <ul>
 <li>Describe and summarize any biological dataset (distributions, central tendency, spread, outliers)</li>
-<li>Choose the correct statistical test for any experimental design</li>
+<li>Choose a defensible analysis by matching the question, outcome, and experimental design</li>
 <li>Perform and interpret t-tests, ANOVA, chi-square tests, and their non-parametric alternatives</li>
 <li>Run linear and logistic regression on biological data</li>
 <li>Analyze time-to-event data with Kaplan-Meier curves and Cox proportional hazards models</li>
@@ -521,6 +546,15 @@ t.test(data$ctrl, data$treated)
 <p>Turn the page. Your journey starts now.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-1-why-statistics-the-story-your-data-is-trying-to-tell"><a class="header" href="#day-1-why-statistics-the-story-your-data-is-trying-to-tell">Day 1: Why Statistics? The Story Your Data Is Trying to Tell</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Statistics helps us learn from incomplete, variable data without pretending that uncertainty has disappeared.</li>
+<li><strong>Look for:</strong> the biological question, the experimental unit, possible bias, the size of the effect, and its uncertainty.</li>
+<li><strong>Use this when:</strong> reading a paper, planning an experiment, checking data, or making a claim from observations.</li>
+<li><strong>Do not conclude:</strong> that a calculation can rescue a poorly designed study or turn association into causation.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 1 of 30</span>
 <span class="badge">No Prerequisites</span>
@@ -529,8 +563,8 @@ t.test(data$ctrl, data$treated)
 </div>
 
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>In 2006, a pharmaceutical company invested over $800 million developing a promising cancer therapy. Phase II clinical trials had shown a statistically significant survival benefit in 87 patients with advanced colorectal cancer. The data looked compelling: a 38% improvement in median progression-free survival. Investors were jubilant. The company fast-tracked Phase III.</p>
-<p>Then came the reckoning. The Phase III trial enrolled 1,200 patients across 120 medical centers. The drug performed no better than placebo. The stock price collapsed overnight. Nearly a billion dollars and eight years of research, gone — not because the science was wrong, but because the statistics were misunderstood. The Phase II “signal” was noise, amplified by a sample too small to tell the difference.</p>
+<p>Consider an illustrative drug-development scenario. A small Phase II cancer trial reports a statistically significant improvement, so the team moves quickly toward a much larger Phase III trial. The apparent benefit then fails to replicate. The example is fictional, but the design problem is real: an imprecise early estimate can look more certain than it is.</p>
+<p>The lesson is not that every small study is wrong. It is that small studies usually produce wider uncertainty and more variable effect estimates. Decisions should therefore consider the interval, study design, prior evidence, and replication—not only whether one p-value crossed a threshold.</p>
 <p>This story is not unusual. It plays out every year in laboratories, hospitals, and boardrooms around the world. Similar scenarios have unfolded with Alzheimer’s drugs, cardiovascular therapies, and anti-inflammatory agents. The difference between a breakthrough and a blunder often comes down to a few fundamental statistical concepts — concepts that any biologist, clinician, or bioinformatician can learn.</p>
 <p>That is what this book is about. In 30 days, you will build the statistical intuition and practical skills to avoid these mistakes — whether you are designing a clinical trial, analyzing RNA-seq data, or evaluating a paper over morning coffee.</p>
 <h2 id="what-is-statistics"><a class="header" href="#what-is-statistics">What Is Statistics?</a></h2>
@@ -622,9 +656,9 @@ t.test(data$ctrl, data$treated)
 </div>
 
 <p>Consider a simple experiment. You flip a coin 10 times and get 8 heads. Is the coin biased? Your intuition says maybe — 8 out of 10 is a lot of heads. But if you do the math, a fair coin produces 8 or more heads about 5.5% of the time. That is unlikely, but not astronomically so. You might just be unlucky.</p>
-<p>Now flip the coin 100 times and get 80 heads. Is the coin biased? Almost certainly yes. A fair coin producing 80 or more heads in 100 flips has a probability of about 0.000000000000006. You would need to flip coins continuously for the age of the universe to expect this by chance.</p>
+<p>Now flip the coin 100 times and get 80 heads. Under a fair-coin model, the probability of 80 or more heads is about 0.00000000056—roughly one in 1.8 billion. That is strong evidence against the fair-coin model, although it does not diagnose why the result occurred.</p>
 <p>The pattern (80% heads) is the same in both cases. What changed is the <strong>sample size</strong>. With 10 flips, 80% heads is plausible noise. With 100 flips, 80% heads is an unmistakable signal.</p>
-<p>This is exactly what happened with the cancer drug. In 87 patients, a 38% improvement could easily arise from random variation — which patients happened to be enrolled, how they responded to the placebo, what comorbidities they had. In 1,200 patients, the noise averages out, and the true effect (or lack thereof) becomes visible.</p>
+<p>The same reasoning applies to the illustrative cancer trial: a small early study leaves more room for sampling variation. A larger, well-designed study usually narrows that uncertainty, but size alone does not remove bias, measurement problems, or differences between study populations.</p>
 <blockquote>
 <p><strong>Common pitfall:</strong> Small studies frequently produce dramatic-looking results. This is not because small studies discover larger effects — it is because small samples are inherently noisy, and noise occasionally looks like a big signal. This phenomenon is called the “winner’s curse” and it haunts biomedical research.</p>
 </blockquote>
@@ -632,11 +666,11 @@ t.test(data$ctrl, data$treated)
 <p>In statistics, there are exactly two ways to be wrong, and they have very different consequences.</p>
 <h3 id="type-i-error-the-false-alarm"><a class="header" href="#type-i-error-the-false-alarm">Type I Error: The False Alarm</a></h3>
 <p>A Type I error occurs when you conclude there is an effect when there is none. You declare the coin biased when it is actually fair. You approve a drug that does not work.</p>
-<p>The most devastating Type I error in pharmaceutical history may be thalidomide in the 1950s. Marketed as a safe sedative for pregnant women, the drug was approved based on inadequate evidence. It caused severe birth defects in over 10,000 children worldwide. While this tragedy involved failures far beyond statistics — regulatory, ethical, and scientific — the core issue was concluding safety from data that could not support that conclusion.</p>
+<p>A laboratory example is advancing a compound because one noisy screen crosses a threshold even though the compound has no repeatable effect. Replication, quality control, and multiplicity correction reduce this risk; no single threshold eliminates it.</p>
 <p>A more modern example: in 2004, Merck withdrew Vioxx (rofecoxib), a blockbuster anti-inflammatory drug, after it became clear that it significantly increased heart attack risk. The drug had been on the market for five years. Post-withdrawal analysis suggested that the cardiovascular risk had been detectable in the original trial data, but was either missed or downplayed. The cost: an estimated 88,000-140,000 excess cases of heart disease in the United States alone.</p>
 <h3 id="type-ii-error-the-missed-discovery"><a class="header" href="#type-ii-error-the-missed-discovery">Type II Error: The Missed Discovery</a></h3>
 <p>A Type II error occurs when you fail to detect a real effect. You declare the coin fair when it is actually biased. You reject a drug that actually works.</p>
-<p>The canonical example is Helicobacter pylori. In 1982, Barry Marshall and Robin Warren proposed that stomach ulcers were caused by a bacterium, not by stress or spicy food as the medical establishment believed. Their initial data was compelling but their sample sizes were small. The medical community dismissed their findings for over a decade, costing millions of patients effective treatment. Marshall eventually infected himself with H. pylori, developed gastritis, and cured it with antibiotics to prove his point. He and Warren won the Nobel Prize in 2005.</p>
+<p>A laboratory example is discarding a promising treatment because a small, noisy experiment could not distinguish its effect from background variation. A non-significant result may reflect no important effect, inadequate precision, poor measurement, or a mismatched analysis; the interval and design help distinguish these possibilities.</p>
 <p>Every year, real treatments are abandoned because clinical trials were too small to detect their effect. Every year, genuine biological mechanisms are dismissed because the experiment lacked statistical power. Type II errors are the silent killers of science — you never know what you missed, because the missed discovery never makes it into a journal.</p>
 <p>How many effective cancer therapies have been shelved because the Phase II trial enrolled 40 patients instead of 400? We will never know. But the statistical tools to prevent this — power analysis and sample size calculation — are straightforward. You will learn them on Day 26.</p>
 <div class="table-wrapper">
@@ -888,6 +922,15 @@ t.test(data$ctrl, data$treated)
 <p>Tomorrow, we roll up our sleeves and meet data. You will summarize 10,000 numbers with means, medians, standard deviations, quantiles, and visual checks. You will see how extreme observations affect the mean, how box plots and histograms show complementary evidence, and how BioLang can organize QC clues without making the scientific accept/reject decision for you. Day 2 is where the hands-on work begins.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-2-your-data-at-a-glance--descriptive-statistics"><a class="header" href="#day-2-your-data-at-a-glance--descriptive-statistics">Day 2: Your Data at a Glance — Descriptive Statistics</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Centre describes what is typical, spread describes how much values differ, and shape shows how those values are arranged.</li>
+<li><strong>Look for:</strong> the raw points first, then mean or median, SD or IQR, skewness, gaps, clusters, and unusual observations.</li>
+<li><strong>Use this when:</strong> beginning every analysis and checking whether summaries hide important structure.</li>
+<li><strong>Do not conclude:</strong> that one centre or one spread tells the whole story, or that every unusual point is an error.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 2 of 30</span>
 <span class="badge">Prerequisites: Day 1</span>
@@ -908,8 +951,8 @@ t.test(data$ctrl, data$treated)
 <li><strong>Shape</strong> — Is the data symmetric? Skewed? Are there outliers?</li>
 </ol>
 <h3 id="why-do-these-three-matter"><a class="header" href="#why-do-these-three-matter">Why Do These Three Matter?</a></h3>
-<p><strong>Center tells you what is “normal.”</strong> If the mean quality score of your sequencing run is Q35, you know tiles are performing well. If it is Q15, something went wrong. Without center, you have no reference point — you cannot say whether a single observation is typical or alarming. In clinical genomics, center defines the baseline: what is the typical variant allele frequency in this cohort? What is the average coverage across your target regions?</p>
-<p><strong>Spread tells you how much you can trust the center.</strong> Two experiments might both report a mean IC50 of 12 nM, but one has values ranging from 11 to 13 (tight, reproducible) while the other ranges from 2 to 45 (noisy, unreliable). The center is the same — the spread tells you completely different stories. High spread means your next measurement could land anywhere; low spread means you can make confident predictions. In RNA-seq, high within-group variance buries real differential expression in noise.</p>
+<p><strong>Centre describes a reference point.</strong> Depending on the question, this may be the equal-share balance point (mean), halfway observation (median), most common value (mode), or another centre. Whether Q35 is acceptable still depends on the instrument, protocol, and quality criteria; the centre alone cannot certify the run.</p>
+<p><strong>Spread describes variation among observations.</strong> Two experiments might both report a mean IC50 of 12 nM, but one ranges from 11 to 13 while the other ranges from 2 to 45. That is different from uncertainty in the estimated mean: spread describes the observations, while a standard error or confidence interval describes precision of an estimate under a sampling model.</p>
 <p><strong>Shape gives modelling clues.</strong> Many models make assumptions about errors, residuals, conditional outcomes, or sampling processes—not simply about the raw measurements. A right-skewed outcome can suggest a log-scale preview, a count model, or a robust summary, but the scientific estimand and design decide which is appropriate. Bimodality can be a clue to mixtures, batch effects, censoring, or subgroups; it is not by itself proof of two biological populations.</p>
 <blockquote>
 <p><strong>Key insight:</strong> Report centre with a compatible spread, retain a view of the full distribution, and state the measurement scale. Standard deviation is defined for skewed data, but it can be a poor description of a <em>typical</em> distance when the mean and tails dominate; median with IQR or MAD is often a useful companion.</p>
@@ -1246,17 +1289,17 @@ let mixed_scores = good_tiles + bad_tiles
 let mixed_stats = summary(mixed_scores)
 print(mixed_stats)
 # Mean: 29.7 — looks okay at first glance
-# Median: 32.1 — the median reveals the truth: most tiles are fine
+# Median: 32.1 — the halfway value stays near the good-tile peak
 # Skewness: -1.4 — strongly left-skewed, warning sign!
 
 # The mean alone would have hidden the problem.
-# Always look at the full distribution.
+# Inspect the full distribution alongside the summaries.
 </code></pre>
 <blockquote>
 <p><strong>Common pitfall:</strong> Relying on the mean alone can hide bimodal distributions. The “bad tile” problem above is common in sequencing — a mean of 29.7 looks passable, but 22% of tiles are failing. Always visualize.</p>
 </blockquote>
 <h2 id="visualization-always-plot-before-you-test"><a class="header" href="#visualization-always-plot-before-you-test">Visualization: Always Plot Before You Test</a></h2>
-<p>Numbers tell part of the story. Plots tell the rest. Anscombe’s Quartet — four datasets with identical means, variances, and correlations but wildly different structures — demonstrates why you must always look at your data.</p>
+<p>Numbers and plots answer complementary questions. Anscombe’s Quartet—four datasets with identical means, variances, and correlations but very different structures—shows why important analyses should include a suitable view of the observations.</p>
 <h3 id="histograms"><a class="header" href="#histograms">Histograms</a></h3>
 <p>A histogram bins your data and counts frequencies. It reveals the distribution’s shape at a glance.</p>
 <pre><code class="language-bio"># Basic histogram (quality_scores is defined earlier in this chapter)
@@ -1493,6 +1536,15 @@ let samples = {
 <p>You now know how to summarize data, but you may have noticed something: we keep saying “normally distributed” and “skewed” without precisely defining what a distribution is. Tomorrow, on Day 3, we dive into the mathematical shapes that biological data follows — the normal distribution, the log-normal, the Poisson, and the binomial. You will learn why gene expression data refuses to be normal, why read counts follow a Poisson process (sort of), and how to test whether your data fits the distribution you think it does. Understanding distributions is the key to choosing the right statistical test — and avoiding the wrong one.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-3-distributions--the-shape-of-biological-variation"><a class="header" href="#day-3-distributions--the-shape-of-biological-variation">Day 3: Distributions — The Shape of Biological Variation</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> A distribution describes which values are common, which are rare, and the overall shape of variation.</li>
+<li><strong>Look for:</strong> symmetry, tails, zeros, bounds, multiple peaks, and whether spread changes with the centre.</li>
+<li><strong>Use this when:</strong> choosing summaries, visualizations, transformations, simulations, or a model for the data-generating process.</li>
+<li><strong>Do not conclude:</strong> that data must look perfectly bell-shaped before analysis or that one normality test chooses the method.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 3 of 30</span>
 <span class="badge">Prerequisites: Days 1-2</span>
@@ -2144,6 +2196,15 @@ let mystery = rbinom(1000, 50, 0.15)
 <p>You now understand the shapes that biological data takes. But distributions describe what values are likely — which is just another way of saying they describe probabilities. Tomorrow, on Day 4, we formalize probability itself. You will learn to compute the chance that a child inherits a BRCA1 mutation, understand why a positive genetic test might mean less than you think (Bayes’ theorem will surprise you), and discover why the prosecutor’s fallacy has sent innocent people to prison. Probability is the language of uncertainty, and uncertainty is the native tongue of biology.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-4-probability--quantifying-uncertainty"><a class="header" href="#day-4-probability--quantifying-uncertainty">Day 4: Probability — Quantifying Uncertainty</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Probability expresses uncertainty on a scale from impossible to certain.</li>
+<li><strong>Look for:</strong> the event being discussed, its reference population, the time period, and whether probabilities are conditional.</li>
+<li><strong>Use this when:</strong> reasoning about inheritance, diagnosis, risk, sampling, or uncertain future outcomes.</li>
+<li><strong>Do not conclude:</strong> that a population probability predicts exactly what will happen to one person.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 4 of 30</span>
 <span class="badge">Prerequisites: Days 1-3</span>
@@ -2312,7 +2373,8 @@ P(B and C) = P(B|A) × P(C|B) = 0.5 × 0.72 = 0.36.</p>
 </svg>
 </div>
 
-<p>This is the single most important application of Bayes’ theorem in biomedical science. Work through it carefully.</p>
+<p>Diagnostic testing is a practical application of Bayes’ theorem because it
+shows clearly how prevalence changes the meaning of a positive result.</p>
 <p><strong>Setup:</strong></p>
 <ul>
 <li>A genetic disease has a prevalence of 1 in 1,000 (P(disease) = 0.001)</li>
@@ -2343,7 +2405,7 @@ P(positive) = 0.00099 + 0.04995 = 0.05094</p>
 </div>
 <p>PPV = 99 / 5,094 = 1.94%. The false positives overwhelm the true positives.</p>
 <blockquote>
-<p><strong>Clinical relevance:</strong> This is why population-wide genetic screening for rare conditions produces mostly false positives. It is also why a confirmatory test with a different methodology is always required. Understanding PPV is essential for anyone interpreting genetic test results.</p>
+<p><strong>Clinical relevance:</strong> Screening a rare condition can produce many false-positive results even when sensitivity and specificity look impressive. Whether confirmation is required depends on the test, clinical pathway, harms, and governing guidance; PPV makes that decision easier to reason about.</p>
 </blockquote>
 <h3 id="bayes-in-biolang"><a class="header" href="#bayes-in-biolang">Bayes in BioLang</a></h3>
 <pre><code class="language-bio"># Diagnostic test calculator using Bayes' theorem
@@ -2657,14 +2719,23 @@ let error_rate = 0.01
 <li><strong>Probability</strong> quantifies uncertainty on a 0-to-1 scale. It is the mathematical language of statistics.</li>
 <li>The <strong>addition rule</strong> handles “or” questions; the <strong>multiplication rule</strong> handles “and” questions. Whether events are mutually exclusive or independent changes the formula.</li>
 <li><strong>Conditional probability</strong> P(A|B) is NOT the same as P(B|A). Confusing them is the source of the prosecutor’s fallacy and misinterpretation of diagnostic tests.</li>
-<li><strong>Bayes’ theorem</strong> is the bridge from P(B|A) to P(A|B). It shows that a positive test for a rare disease usually means the patient is healthy — the positive predictive value depends critically on prevalence.</li>
+<li><strong>Bayes’ theorem</strong> is the bridge from P(B|A) to P(A|B). For rare conditions, even a useful test can produce many false-positive results, so positive predictive value depends strongly on prevalence and test performance.</li>
 <li>In genetics, probability models like <strong>Hardy-Weinberg equilibrium</strong> and <strong>Mendelian inheritance</strong> translate directly into binomial probability calculations.</li>
-<li>Always compute both <strong>PPV and NPV</strong> when interpreting diagnostic or screening tests. Sensitivity and specificity alone are insufficient.</li>
+<li>Report <strong>PPV and NPV</strong> for the relevant prevalence when interpreting a diagnostic or screening test; sensitivity and specificity answer different questions.</li>
 </ul>
 <h2 id="whats-next-3"><a class="header" href="#whats-next-3">What’s Next</a></h2>
-<p>Today you learned to compute probabilities for individual events. But in real experiments, you do not observe single events — you observe samples drawn from populations. Tomorrow, on Day 5, we tackle the crucial question of sampling: Why does sample size matter so much? You will see the Central Limit Theorem in action — watching the distribution of sample means magically approach normality even when the underlying data is wildly skewed. You will understand what “statistical power” means and why a study with 20 patients per arm is almost guaranteed to fail. Day 5 is the bridge between probability theory and the practical reality of experimental design.</p>
+<p>Tomorrow, Day 5 connects probability to sampling. You will see when averages from repeated samples become more regular, how sample size affects precision, and why power depends on the effect, variability, design, analysis, and error threshold—not on one universal minimum sample size.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-5-sampling-bias-and-why-n-matters"><a class="header" href="#day-5-sampling-bias-and-why-n-matters">Day 5: Sampling, Bias, and Why n Matters</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> A sample is the small group you measure so you can learn about a larger population.</li>
+<li><strong>Look for:</strong> whether the sampled units resemble the target population, and how estimates vary from sample to sample.</li>
+<li><strong>Use this when:</strong> planning any experiment or deciding how far its result can be generalized.</li>
+<li><strong>Do not conclude:</strong> that a large sample repairs biased sampling, poor measurement, or a confounded design.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 5 of 30</span>
 <span class="badge">Prerequisites: Days 1-4</span>
@@ -2806,9 +2877,12 @@ histogram(sample_means_200, {bins: 40, title: "Sampling Distribution (n=200)"})
 <li>The n=200 distribution is much <strong>narrower</strong> than n=30. Larger samples give more precise estimates.</li>
 </ol>
 <h2 id="the-central-limit-theorem"><a class="header" href="#the-central-limit-theorem">The Central Limit Theorem</a></h2>
-<p>The Central Limit Theorem (CLT) is perhaps the single most important result in statistics. It says:</p>
+<p>The Central Limit Theorem (CLT) is a useful result for understanding sample means. In simplified terms, it says:</p>
 <p><strong>Regardless of the shape of the population distribution, the sampling distribution of the mean approaches a normal distribution as sample size increases.</strong></p>
-<p>This is remarkable. The underlying data can be skewed, bimodal, uniform, or any shape at all. As long as you take large enough samples and compute means, those means will be approximately normally distributed.</p>
+<p>This is useful, but conditional. For independent observations with finite
+variance, sample means often become approximately normal as sample size grows.
+How large is “large enough” depends on skewness, tails, dependence, and the
+accuracy needed; no fixed sample size works for every population.</p>
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="420" viewbox="0 0 680 420" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
   <text x="340" y="26" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">The Central Limit Theorem in Action</text>
@@ -3172,7 +3246,7 @@ print(f"95% Bootstrap CI: [{ci_lower:.2}, {ci_upper:.2}]")
 histogram(boot_medians, {bins: 50, title: "Bootstrap Distribution of the Median"})
 </code></pre>
 <blockquote>
-<p><strong>Key insight:</strong> The bootstrap treats your sample as a stand-in for the population. By resampling from your sample, you simulate what would happen if you could repeatedly sample from the population. It is remarkably effective even for small samples.</p>
+<p><strong>Key insight:</strong> The bootstrap treats the observed sample as a stand-in for the population. It can work well when the sample represents that population and the resampling unit matches the design. With very small or dependent samples, it has little information from which to reconstruct uncertainty.</p>
 </blockquote>
 <h2 id="hands-on-clt-with-allele-frequencies"><a class="header" href="#hands-on-clt-with-allele-frequencies">Hands-On: CLT with Allele Frequencies</a></h2>
 <p>Let us experience the Central Limit Theorem using realistic genetic data.</p>
@@ -3311,17 +3385,26 @@ print(f"Observed correlation: {observed_r:.3}")
 <h2 id="key-takeaways-5"><a class="header" href="#key-takeaways-5">Key Takeaways</a></h2>
 <ul>
 <li><strong>Population vs. sample:</strong> You study a sample to learn about a population. The quality of inference depends on sample size and sampling method.</li>
-<li>The <strong>sampling distribution</strong> is the distribution of a statistic computed from repeated samples. It is narrower than the data distribution and centered at the true value.</li>
-<li>The <strong>Central Limit Theorem</strong> guarantees that sample means are approximately normal regardless of the population distribution, given sufficient sample size. This is why normal-based tests work so broadly.</li>
-<li><strong>Standard error (SE = SD/√n)</strong> quantifies the precision of your estimate. Quadrupling n halves the SE.</li>
+<li>The <strong>sampling distribution</strong> describes how a statistic would vary across repeated samples from the same process. Its centre and width depend on the estimator and design.</li>
+<li>Under suitable independence and finite-variance conditions, the <strong>Central Limit Theorem</strong> explains why the sampling distribution of a mean often becomes approximately normal as sample size grows. Heavy tails, dependence, and small samples can make the approximation poor.</li>
+<li>For an independent sample mean, <strong>standard error</strong> is estimated by SD/√n. Quadrupling n then halves this estimated SE; clustered or dependent data need a design-aware calculation.</li>
 <li><strong>Bias</strong> (selection, survivorship, ascertainment, measurement, publication) is a systematic distortion that cannot be fixed by increasing n. Identify and prevent bias at the design stage.</li>
 <li><strong>Statistical power</strong> is the probability of detecting a real effect. Underpowered studies waste resources and miss real effects. The four determinants of power are effect size, sample size, variability, and significance threshold.</li>
-<li>The <strong>bootstrap</strong> provides empirical estimates of standard errors and confidence intervals for any statistic, without relying on distributional assumptions.</li>
+<li>The <strong>bootstrap</strong> can estimate uncertainty for many statistics when the resampling scheme represents how the data were collected. It still relies on representative data and a correct resampling unit.</li>
 </ul>
 <h2 id="whats-next-4"><a class="header" href="#whats-next-4">What’s Next</a></h2>
-<p>You have now completed the foundations. You know how to summarize data (Day 2), understand its distributional shape (Day 3), reason about probabilities (Day 4), and appreciate the central role of sample size and sampling variability (Day 5). Starting next week, we put these foundations to work. Day 6 introduces <strong>confidence intervals</strong> — the formal framework for saying “I’m 95% sure the true value lies between here and here.” You will see how the standard error you learned today transforms into a rigorous statement about uncertainty, and why confidence intervals are more informative than p-values alone. The testing begins.</p>
+<p>You have now completed the foundations: summaries, distributional shape, probability, sampling, and precision. Day 6 introduces <strong>confidence intervals</strong>—procedures designed to capture a target parameter at a stated long-run rate. You will connect standard error to interval width and learn to read an estimate together with its uncertainty.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="day-6-confidence-intervals--the-range-of-truth"><a class="header" href="#day-6-confidence-intervals--the-range-of-truth">Day 6: Confidence Intervals — The Range of Truth</a></h1>
+<h1 id="day-6-confidence-intervals--an-estimate-with-uncertainty"><a class="header" href="#day-6-confidence-intervals--an-estimate-with-uncertainty">Day 6: Confidence Intervals — An Estimate with Uncertainty</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> A confidence interval shows the estimate and how precisely the study has located it.</li>
+<li><strong>Look for:</strong> the centre, the interval width, and whether it crosses a scientifically important value.</li>
+<li><strong>Use this when:</strong> reporting an estimated mean, difference, proportion, effect, or model coefficient.</li>
+<li><strong>Do not conclude:</strong> that a particular 95% interval has a 95% probability of containing the fixed true value.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-5"><a class="header" href="#the-problem-5">The Problem</a></h2>
 <p>Dr. Amara Chen’s pharmacology team has spent six months developing a novel kinase inhibitor for triple-negative breast cancer. After extensive optimization, they measure the half-maximal inhibitory concentration (IC50) across eight independent replicates: 11.2, 13.1, 12.8, 10.9, 14.2, 12.0, 11.7, and 12.5 nanomolar. The mean is 12.3 nM — an excellent result that would place their compound among the most potent in its class.</p>
 <p>But when Dr. Chen presents these results to the medicinal chemistry team, the lead chemist asks the uncomfortable question: “If you ran the experiment again tomorrow, would you get 12.3 nM? Or could it be 15? Or 9?” The point estimate of 12.3 nM tells them where the center of their data is, but it says nothing about how <em>confident</em> they should be in that number. They need a range — a confidence interval — that captures the uncertainty inherent in measuring anything biological.</p>
@@ -3409,47 +3492,47 @@ print(f"Observed correlation: {observed_r:.3}")
 </table>
 </div>
 <blockquote>
-<p><strong>Key insight:</strong> For biological experiments with n &lt; 30, always use the t-distribution. Using z would give falsely narrow intervals that overstate your precision.</p>
+<p><strong>Key insight:</strong> For a mean with an unknown population SD, the usual classical interval uses a t reference with the appropriate degrees of freedom. The choice is about the model and estimated variance, not a universal n = 30 switch; skewness, dependence, clustering, and the design may require another interval.</p>
 </blockquote>
 <h2 id="ci-for-a-proportion"><a class="header" href="#ci-for-a-proportion">CI for a Proportion</a></h2>
 <p>When the variable is binary — mutation present/absent, responder/non-responder — we need a CI for a proportion p-hat = x/n.</p>
 <h3 id="wald-interval-simple-but-flawed"><a class="header" href="#wald-interval-simple-but-flawed">Wald Interval (Simple but Flawed)</a></h3>
 <p><strong>CI = p-hat +/- z x sqrt(p-hat(1 - p-hat) / n)</strong></p>
 <p>This is the textbook formula, but it performs poorly when p is near 0 or 1, or when n is small. It can even produce intervals that extend below 0 or above 1.</p>
-<h3 id="wilson-interval-preferred"><a class="header" href="#wilson-interval-preferred">Wilson Interval (Preferred)</a></h3>
-<p>The Wilson score interval adjusts the center and width, and is recommended for most biological applications:</p>
+<h3 id="wilson-interval-a-useful-default-for-a-simple-proportion"><a class="header" href="#wilson-interval-a-useful-default-for-a-simple-proportion">Wilson Interval (A Useful Default for a Simple Proportion)</a></h3>
+<p>The Wilson score interval adjusts the centre and width and usually behaves better than the simple Wald interval for independent binary observations:</p>
 <p><strong>CI = (p-hat + z²/2n +/- z x sqrt(p-hat(1-p-hat)/n + z²/4n²)) / (1 + z²/n)</strong></p>
 <blockquote>
-<p><strong>Clinical relevance:</strong> When reporting mutation carrier frequencies, drug response rates, or diagnostic sensitivity/specificity, always use Wilson intervals. Regulatory agencies expect intervals that behave properly even at extreme proportions.</p>
+<p><strong>Clinical relevance:</strong> Wilson is a useful default for a simple independent proportion. Paired observations, clustered samples, survey designs, diagnostic accuracy studies, and very small counts need intervals that represent their actual design.</p>
 </blockquote>
 <h2 id="ci-for-the-difference-between-two-means"><a class="header" href="#ci-for-the-difference-between-two-means">CI for the Difference Between Two Means</a></h2>
 <p>Often the real question is not “what is the mean?” but “how much do two groups differ?” The CI for the difference between two independent means is:</p>
 <p><strong>CI = (x-bar1 - x-bar2) +/- t x SE_diff</strong></p>
 <p>Where SE_diff = sqrt(s1²/n1 + s2²/n2) for Welch’s approach.</p>
-<p><strong>The critical interpretation:</strong> If the CI for the difference includes zero, the data are consistent with no difference between the groups. If it excludes zero, the difference is statistically significant.</p>
+<p><strong>The practical interpretation:</strong> Values inside the interval are comparatively compatible with the fitted model and data. Crossing zero means the interval includes both directions or no mean difference; excluding zero corresponds to a two-sided test at the matching level, but importance still depends on the effect size and context.</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>CI for Difference</th><th>Interpretation</th></tr>
 </thead>
 <tbody>
-<tr><td>[1.2, 4.8]</td><td>Groups differ; difference is between 1.2 and 4.8 units</td></tr>
+<tr><td>[1.2, 4.8]</td><td>Compatible mean differences are positive and range from 1.2 to 4.8 units</td></tr>
 <tr><td>[-0.5, 3.1]</td><td>Includes zero; cannot rule out no difference</td></tr>
-<tr><td>[-4.2, -1.1]</td><td>Groups differ; group 2 is higher by 1.1 to 4.2 units</td></tr>
+<tr><td>[-4.2, -1.1]</td><td>Compatible mean differences are negative; group 2 is higher by 1.1 to 4.2 units</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="bootstrap-confidence-intervals"><a class="header" href="#bootstrap-confidence-intervals">Bootstrap Confidence Intervals</a></h2>
-<p>What if your statistic is a median, a ratio, or something with no tidy formula? The <strong>bootstrap</strong> is a computer-intensive method that works for <em>any</em> statistic:</p>
+<p>What if your statistic is a median, a ratio, or something with no tidy formula? The <strong>bootstrap</strong> is a computer-intensive method that can estimate uncertainty for many statistics:</p>
 <ol>
 <li>Resample your data <strong>with replacement</strong>, same size as original</li>
 <li>Compute the statistic on the resample</li>
 <li>Repeat 10,000 times</li>
 <li>Take the 2.5th and 97.5th percentiles of the bootstrap distribution</li>
 </ol>
-<p>This is called the <strong>percentile method</strong>. No assumptions about normality or distribution shape are required.</p>
+<p>This is called the <strong>percentile method</strong>. It does not require an exact normal outcome model, but it does require a defensible resampling unit and representative observations. Very small samples, dependence, bias, boundaries, and non-smooth statistics can make a simple percentile interval inaccurate.</p>
 <blockquote>
-<p><strong>Key insight:</strong> Bootstrap CIs are the Swiss army knife of interval estimation. When in doubt, bootstrap it.</p>
+<p><strong>Key insight:</strong> Bootstrap intervals are flexible, but the resampling plan must imitate the study design. When in doubt, state the experimental unit and check whether a specialised interval is needed.</p>
 </blockquote>
 <h2 id="what-controls-ci-width"><a class="header" href="#what-controls-ci-width">What Controls CI Width?</a></h2>
 <p>Three factors determine how wide or narrow your confidence interval will be:</p>
@@ -3769,7 +3852,7 @@ let drug_y = [5.8, 6.5, 7.2, 6.0, 5.9, 6.8]
 <ul>
 <li>A <strong>confidence interval</strong> gives a range of plausible values for a population parameter, not just a point estimate</li>
 <li>The 95% in “95% CI” refers to the long-run coverage rate of the procedure, not the probability for a specific interval</li>
-<li>For small samples (n &lt; 30), always use the <strong>t-distribution</strong> — it accounts for extra uncertainty</li>
+<li>Classical intervals for a mean with unknown population SD use a <strong>t reference</strong>; adequacy also depends on the outcome shape, independence, and design</li>
 <li><strong>Bootstrap CIs</strong> work for any statistic (median, ratio, fold change) without distributional assumptions</li>
 <li>CI width shrinks with larger n, lower variability, and lower confidence level</li>
 <li>A CI for the difference that <strong>includes zero</strong> means the data are consistent with no difference</li>
@@ -3779,6 +3862,15 @@ let drug_y = [5.8, 6.5, 7.2, 6.0, 5.9, 6.8]
 <p>Tomorrow we formalize the logic behind “ruling out chance” with hypothesis testing. You will learn to frame biological questions as null and alternative hypotheses, compute p-values, and understand the courtroom analogy that makes the whole framework click. Confidence intervals and hypothesis tests are two sides of the same coin — a 95% CI that excludes zero corresponds exactly to a p-value less than 0.05.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-7-hypothesis-testing--asking-precise-questions"><a class="header" href="#day-7-hypothesis-testing--asking-precise-questions">Day 7: Hypothesis Testing — Asking Precise Questions</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> A hypothesis test asks how surprising the data would be under a clearly stated null model.</li>
+<li><strong>Look for:</strong> where the observed statistic falls in the null reference distribution.</li>
+<li><strong>Use this when:</strong> the question, comparison, and error threshold were defined before inspecting the result.</li>
+<li><strong>Do not conclude:</strong> that a p-value is the probability the null is true, or that significance means importance.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-6"><a class="header" href="#the-problem-6">The Problem</a></h2>
 <p>Dr. Kenji Nakamura has spent three years developing a blood-based biomarker panel for early Alzheimer’s detection. His team measures plasma levels of phosphorylated tau (p-tau217) in 40 cognitively normal individuals and 40 patients with confirmed early-stage Alzheimer’s. The mean p-tau217 level in the Alzheimer’s group is 3.8 pg/mL, compared to 2.9 pg/mL in controls. The difference looks promising — nearly 30% higher.</p>
 <p>But when Dr. Nakamura submits to the FDA for breakthrough device designation, the reviewer’s response is blunt: “Your biomarker shows a numerical difference. Can you demonstrate this isn’t just sampling noise? What is the probability of seeing a difference this large if the biomarker has no real diagnostic value?” This is the fundamental question that hypothesis testing answers.</p>
@@ -3791,7 +3883,7 @@ let drug_y = [5.8, 6.5, 7.2, 6.0, 5.9, 6.8]
 <li>The <strong>verdict</strong> is either “guilty” (reject H0) or “not proven” (fail to reject H0). Notice: the jury never declares the defendant “innocent” — just that the evidence was insufficient.</li>
 </ul>
 <blockquote>
-<p><strong>Key insight:</strong> Hypothesis testing never proves your theory is true. It only tells you whether the data are inconsistent enough with “no effect” that you can reject that explanation with a specified level of confidence.</p>
+<p><strong>Key insight:</strong> A hypothesis test does not prove a theory. It measures how incompatible the observed statistic is with a specified null model, conditional on the design and assumptions. Report the effect and interval as well as the test result.</p>
 </blockquote>
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="340" viewbox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -4251,6 +4343,15 @@ c) Do patients with the variant allele have higher LDL cholesterol?</p>
 <p>Tomorrow we move from the z-test (which requires known sigma) to the workhorse of biological research: the t-test. You will learn independent, paired, and Welch’s versions, check assumptions with Shapiro-Wilk and Levene’s tests, and quantify effect sizes with Cohen’s d. If hypothesis testing is the question, the t-test is the answer for two-group comparisons.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-8-comparing-two-groups--the-t-test"><a class="header" href="#day-8-comparing-two-groups--the-t-test">Day 8: Comparing Two Groups — The t-Test</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> A t-test compares a difference in means with the uncertainty in that difference.</li>
+<li><strong>Look for:</strong> group centres, spread, overlap, unusual values, and paired lines when measurements come from the same unit.</li>
+<li><strong>Use this when:</strong> a mean difference is the scientific target and the independent or paired design is represented correctly.</li>
+<li><strong>Do not conclude:</strong> that a small p-value makes the difference large, useful, causal, or well measured.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-7"><a class="header" href="#the-problem-7">The Problem</a></h2>
 <p>Dr. Sofia Reyes is a cancer biologist studying BRCA1 expression in breast tissue. She has RNA-seq data from 12 tumor samples and 12 matched normal samples from the same patients. The mean BRCA1 expression in tumors is 4.2 log2-CPM versus 6.8 log2-CPM in normals — a 2.6-fold reduction. But with only 12 samples per group and considerable biological variability, can she confidently claim BRCA1 is downregulated in tumors?</p>
 <p>She cannot use a z-test because the population standard deviation is unknown — she must estimate it from the data itself. She needs the <strong>t-test</strong>, the most widely used statistical test in biomedical research. But which version? Her samples are paired (tumor and normal from the same patient), which adds another consideration. And before running any test, she should verify that the data meet the test’s assumptions.</p>
@@ -4259,7 +4360,7 @@ c) Do patients with the variant allele have higher LDL cholesterol?</p>
 <p>The t-test asks: “Is the difference between two group means larger than what we would expect from random sampling variation alone?”</p>
 <p>Think of it this way: you have two piles of measurements. The t-test weighs how far apart the piles’ centers are, relative to how spread out each pile is. If the piles are far apart and tight, the difference is convincing. If they overlap substantially, it is not.</p>
 <p><strong>The t-statistic</strong> = (difference in means) / (standard error of the difference)</p>
-<p>A larger t-statistic means more evidence of a real difference.</p>
+<p>A larger absolute t-statistic means the estimated mean difference is large relative to its standard error. Its interpretation still depends on the design, assumptions, effect size, and multiplicity.</p>
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="320" viewbox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" style="background: #fafbfc; border: 1px solid #e5e7eb; border-radius: 8px;">
   <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e293b">Easy vs Hard to Distinguish: Overlap Determines Significance</text>
@@ -4707,6 +4808,15 @@ let control   = [0.8, 0.5, 0.9, 0.3, 1.1, 0.7, 0.4, 0.6, 1.0, 0.2]
 <p>What happens when an exact normal model is a poor approximation? Cytokine levels, bacterial abundances, and many other biological measurements can be strongly skewed. Tomorrow we introduce rank-based alternatives to the t-test. They avoid an exact normal outcome model, but still require a compatible estimand, independence or correct pairing, and careful treatment of ties and sampling design.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-9-when-normality-fails--non-parametric-tests"><a class="header" href="#day-9-when-normality-fails--non-parametric-tests">Day 9: When Normality Fails — Non-Parametric Tests</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Rank-based tests compare ordering patterns instead of relying directly on measured distances.</li>
+<li><strong>Look for:</strong> overlap, ordering, ties, outliers, and whether paired observations remain paired.</li>
+<li><strong>Use this when:</strong> the rank-based question matches the scientific target, especially for ordinal or strongly skewed data.</li>
+<li><strong>Do not conclude:</strong> that these tests are assumption-free or are simply t-tests for non-normal data.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-8"><a class="header" href="#the-problem-8">The Problem</a></h2>
 <p>Dr. Maria Gonzalez studies the gut microbiome in inflammatory bowel disease (IBD). She has 16S rRNA sequencing data from 15 IBD patients and 15 healthy controls, measuring the relative abundance of <em>Faecalibacterium prausnitzii</em>, a key anti-inflammatory bacterium. Looking at the data, she sees a mess: most values cluster near zero, a few patients have moderate levels, and one healthy individual has an enormous abundance of 45%. The histogram looks nothing like a bell curve — it is right-skewed with a long tail.</p>
 <p>She runs a Shapiro-Wilk test on each group: both return p &lt; 0.001, evidence against an exact normal model. That result alone does not choose the analysis. She must decide whether her estimand is a difference in means, ranks, medians under additional assumptions, or entire distributions; she must also respect independence, ties, zeros, and the experimental unit.</p>
@@ -5192,6 +5302,15 @@ let vaginal = [45, 30, 55, 38, 25, 50, 42, 35, 48, 28]
 <p>So far we have compared two groups. But what if you have three, four, or ten groups — different drug doses, tissue types, or experimental conditions? Running all pairwise t-tests inflates false positives dramatically. Tomorrow we introduce ANOVA, the principled way to compare many groups simultaneously, along with post-hoc tests that identify <em>which</em> groups differ.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-10-comparing-many-groups--anova-and-beyond"><a class="header" href="#day-10-comparing-many-groups--anova-and-beyond">Day 10: Comparing Many Groups — ANOVA and Beyond</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> ANOVA compares differences among group means with the ordinary variation inside the groups.</li>
+<li><strong>Look for:</strong> group centres, within-group spread, overlap, and the observations behind every summary.</li>
+<li><strong>Use this when:</strong> comparing a continuous outcome across three or more groups under an appropriate design.</li>
+<li><strong>Do not conclude:</strong> that a significant overall test identifies which groups differ; that needs planned contrasts or follow-up comparisons.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-9"><a class="header" href="#the-problem-9">The Problem</a></h2>
 <p>Dr. James Park’s oncology team is testing a new targeted therapy at four dose levels: 0 mg (placebo), 25 mg, 50 mg, and 100 mg. Each group has 8 mice, and after 4 weeks they measure tumor volume in cubic millimeters. The team lead suggests: “Just do t-tests between all pairs of doses — that’s 6 comparisons, no big deal.”</p>
 <p>But Dr. Park knows this is a trap. With 6 independent tests at alpha = 0.05, the probability of at least one false positive is not 5% — it is 1 - (0.95)^6 = 26.5%. Run 10 comparisons and it climbs to 40%. With 20,000 genes, the problem becomes catastrophic (we will tackle that on Day 12). The solution for comparing several groups at once is <strong>Analysis of Variance</strong> — ANOVA — which tests all groups simultaneously in a single, principled framework.</p>
@@ -5371,7 +5490,7 @@ let vaginal = [45, 30, 55, 38, 25, 50, 42, 35, 48, 28]
 </blockquote>
 <h2 id="post-hoc-tests-which-groups-differ"><a class="header" href="#post-hoc-tests-which-groups-differ">Post-Hoc Tests: Which Groups Differ?</a></h2>
 <h3 id="tukeys-honestly-significant-difference-hsd"><a class="header" href="#tukeys-honestly-significant-difference-hsd">Tukey’s Honestly Significant Difference (HSD)</a></h3>
-<p>The gold standard post-hoc test. Compares all pairs of group means while controlling the family-wise error rate.</p>
+<p>Tukey HSD is a common choice when the planned goal is to compare every pair of group means while controlling the family-wise error rate.</p>
 <ul>
 <li>Tests all k(k-1)/2 pairwise differences</li>
 <li>Provides adjusted p-values and confidence intervals</li>
@@ -5736,7 +5855,7 @@ let intense  = [155, 172, 148, 180, 162]
 <ul>
 <li><strong>Multiple t-tests</strong> inflate the false positive rate — the family-wise error rate grows rapidly with the number of comparisons</li>
 <li><strong>ANOVA</strong> tests whether any group differs from the others in a single F-test, controlling the overall error rate</li>
-<li>The <strong>F-statistic</strong> compares between-group variance to within-group variance: F much greater than 1 suggests real differences</li>
+<li>The <strong>F-statistic</strong> compares between-group variation with within-group variation; a large value is evidence against the equal-means null under the model</li>
 <li>A significant ANOVA tells you “at least one group differs” — use <strong>Tukey HSD</strong> post-hoc to find which pairs differ</li>
 <li><strong>Eta-squared</strong> measures effect size: the proportion of total variance explained by group membership</li>
 <li><strong>Kruskal-Wallis</strong> compares group rank distributions; interpreting it as a location shift needs similarly shaped distributions</li>
@@ -5747,6 +5866,15 @@ let intense  = [155, 172, 148, 180, 162]
 <p>Tomorrow we shift from continuous to categorical outcomes. When your data consist of counts in categories — genotypes, disease status, response/non-response — you need the chi-square test and Fisher’s exact test. These tools are essential for testing genetic associations, evaluating Hardy-Weinberg equilibrium, and computing odds ratios in case-control studies.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-11-categorical-data--chi-square-and-fishers-exact"><a class="header" href="#day-11-categorical-data--chi-square-and-fishers-exact">Day 11: Categorical Data — Chi-Square and Fisher’s Exact</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Categorical tests compare observed counts with the counts expected under a stated no-association model.</li>
+<li><strong>Look for:</strong> which table cells differ most from expectation and whether any expected counts are small.</li>
+<li><strong>Use this when:</strong> the data are counts of independent units in categories, with paired designs handled separately.</li>
+<li><strong>Do not conclude:</strong> that association proves causation or that percentages can be analysed without their denominators.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-10"><a class="header" href="#the-problem-10">The Problem</a></h2>
 <p>Dr. Elena Vasquez is an epidemiologist studying the genetics of Alzheimer’s disease. She genotypes a SNP near the APOE gene in 1,000 participants: 500 with Alzheimer’s and 500 age-matched controls. Among Alzheimer’s patients, 180 carry at least one copy of the risk allele. Among controls, 120 carry it. The numbers look different — 36% versus 24% — but these are proportions, not measurements on a continuous scale. She cannot compute a mean or standard deviation. She cannot run a t-test.</p>
 <p>When your data are counts in categories — disease yes/no, genotype AA/AG/GG, response/non-response — you need tests designed for categorical data. The chi-square test and Fisher’s exact test are the workhorses. They also underpin some of the most important calculations in genetics: Hardy-Weinberg equilibrium, odds ratios for case-control studies, and allelic association tests.</p>
@@ -5899,12 +6027,19 @@ let intense  = [155, 172, 148, 180, 162]
 
 <h2 id="fishers-exact-test"><a class="header" href="#fishers-exact-test">Fisher’s Exact Test</a></h2>
 <p>When sample sizes are small or expected counts fall below 5, the chi-square approximation is unreliable. Fisher’s exact test computes the exact probability using the hypergeometric distribution.</p>
-<p>Fisher’s exact test is computationally expensive for large tables but is the gold standard for 2x2 tables with small counts — common in rare variant studies and pilot experiments.</p>
+<p>Fisher’s exact test is a common exact conditional analysis for a 2x2 table with
+small counts. Its conditioning and sampling assumptions should match the
+design; other exact or model-based analyses may target a different question.</p>
 <blockquote>
-<p><strong>Clinical relevance:</strong> Regulatory agencies (FDA, EMA) often prefer Fisher’s exact test for safety analyses where adverse events are rare and sample sizes are modest.</p>
+<p><strong>Clinical relevance:</strong> Rare adverse-event tables often need exact or
+small-sample methods. The prespecified protocol and applicable regulatory
+guidance determine the analysis; one test is not automatically preferred in
+every setting.</p>
 </blockquote>
 <h2 id="mcnemars-test-paired-categorical-data"><a class="header" href="#mcnemars-test-paired-categorical-data">McNemar’s Test: Paired Categorical Data</a></h2>
-<p>When observations are paired — the same patients tested before and after treatment, or the same samples tested with two diagnostic methods — McNemar’s test is the correct choice.</p>
+<p>For paired binary observations—such as the same patients before and after, or
+the same samples measured by two methods—McNemar’s test compares the two kinds
+of discordant pair under its matched-pair assumptions.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -6042,7 +6177,7 @@ print("Observed: 8/200 cases vs 2/200 controls carry the variant\n")
 let chi_result = chi_square(observed, [5.0, 195.0, 5.0, 195.0])
 print(f"Chi-square p-value: {chi_result.p_value:.4} (unreliable — low expected counts)")
 
-# Fisher's exact is the correct choice
+# Fisher's exact represents this small 2x2 comparison
 let fisher_result = fisher_exact(8, 192, 2, 198)
 print(f"Fisher's exact p-value: {fisher_result.p_value:.4}")
 
@@ -6291,10 +6426,22 @@ let populations = ["East Asian", "European", "African"]
 <p>You now have a powerful toolkit for individual tests. But in genomics, we never run just one test — we run thousands or millions simultaneously. Testing 20,000 genes means 1,000 false positives at alpha = 0.05. Tomorrow we confront the multiple testing crisis head-on and learn the corrections that make genome-scale analysis possible, culminating in the volcano plot that has become the icon of differential expression analysis.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-12-the-multiple-testing-crisis--fdr-and-correction"><a class="header" href="#day-12-the-multiple-testing-crisis--fdr-and-correction">Day 12: The Multiple Testing Crisis — FDR and Correction</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Testing thousands of questions creates false alarms unless the analysis controls the collection of decisions.</li>
+<li><strong>Look for:</strong> the number of tests, the p-value distribution, adjusted values, and how many findings survive correction.</li>
+<li><strong>Use this when:</strong> many related genes, variants, metabolites, regions, or outcomes are tested together.</li>
+<li><strong>Do not conclude:</strong> that an adjusted p-value is the probability that one particular finding is false.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-11"><a class="header" href="#the-problem-11">The Problem</a></h2>
 <p>Dr. Rachel Kim is a genomicist analyzing differential gene expression between tumor and normal tissue. She runs a Welch’s t-test on each of 20,000 genes and finds 1,200 with p &lt; 0.05. Exciting — until she does the arithmetic: 20,000 genes multiplied by a 5% false positive rate equals 1,000 genes that would appear “significant” purely by chance, even if not a single gene were truly differentially expressed.</p>
 <p>Her 1,200 “hits” likely contain about 1,000 false positives and perhaps 200 true findings. That is a false discovery rate of over 80%. If she publishes this list and a validation lab tries to confirm the top 50 genes, roughly 40 will fail to replicate. Her scientific reputation — and the lab’s funding — depends on solving this problem.</p>
-<p>This is the <strong>multiple testing crisis</strong>, and it is the single most important statistical concept in genomics. Every differential expression study, every GWAS, every proteomics screen must address it. The solutions — Bonferroni correction, Benjamini-Hochberg FDR, and their relatives — are what make genome-scale analysis possible.</p>
+<p>This is the <strong>multiple-testing problem</strong>. Genome-scale analyses should state
+which collection of hypotheses is being controlled and why the chosen error
+criterion fits the scientific goal. Bonferroni, Holm, Benjamini-Hochberg, and
+model-based approaches control different kinds of error.</p>
 <h2 id="making-it-visceral-a-simulation"><a class="header" href="#making-it-visceral-a-simulation">Making It Visceral: A Simulation</a></h2>
 <p>Before discussing theory, let us see the problem with our own eyes.</p>
 <pre><code class="language-bio">set_seed(42)
@@ -6863,6 +7010,15 @@ EnhancedVolcano(results, lab = rownames(results),
 <p>With the multiple testing crisis solved, we have completed the core toolkit of statistical hypothesis testing. Week 3 shifts to modeling and relationships: tomorrow we explore correlation — how to measure and test whether two continuous variables move together, from gene expression co-regulation to dose-response curves. This transition from “are groups different?” to “how are variables related?” opens the door to regression, prediction, and the modeling approaches that power modern biostatistics.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-13-correlation--finding-relationships"><a class="header" href="#day-13-correlation--finding-relationships">Day 13: Correlation — Finding Relationships</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Correlation summarizes how two measurements tend to move together.</li>
+<li><strong>Look for:</strong> the scatter-plot shape, direction, strength, outliers, clusters, and curves.</li>
+<li><strong>Use this when:</strong> exploring association between two numeric variables with a method suited to the shape and scale.</li>
+<li><strong>Do not conclude:</strong> that correlation proves causation, rules out confounding, or captures every nonlinear relationship.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-12"><a class="header" href="#the-problem-12">The Problem</a></h2>
 <p>Dr. Sarah Kim is studying breast cancer transcriptomics across 200 tumor samples. She notices that <strong>BRCA1</strong> and <strong>BARD1</strong> expression seem to rise and fall together — when one is high, the other tends to be high too. Exciting! These genes encode proteins that form a heterodimer critical for DNA repair.</p>
 <p>But her collaborator raises a concern: “Both genes are upregulated in rapidly dividing cells. Couldn’t <strong>cell proliferation</strong> be driving both signals independently? You might be seeing a spurious association.”</p>
@@ -6989,7 +7145,7 @@ EnhancedVolcano(results, lab = rownames(results),
 <li>Data are roughly normally distributed (for inference)</li>
 <li>No extreme outliers (a single outlier can flip the sign)</li>
 </ul>
-<p><strong>Strengths:</strong> Most powerful when assumptions are met. Directly related to R² in linear regression.</p>
+<p><strong>Strengths:</strong> Directly describes linear association and is related to R² in simple linear regression. Its precision can be good when the linear model is appropriate.</p>
 <p><strong>Weakness:</strong> Sensitive to outliers. Misses non-linear relationships entirely.</p>
 <h3 id="2-spearmans-ρ-rho-the-rank-based-alternative"><a class="header" href="#2-spearmans-ρ-rho-the-rank-based-alternative">2. Spearman’s ρ (rho): The Rank-Based Alternative</a></h3>
 <p>Spearman’s correlation operates on <strong>ranks</strong> rather than raw values. It measures <strong>monotonic</strong> association — whether Y tends to increase (or decrease) as X increases, even if not linearly.</p>
@@ -7003,13 +7159,13 @@ EnhancedVolcano(results, lab = rownames(results),
 <li>Ordinal or continuous data</li>
 <li>Monotonic relationship (doesn’t need to be linear)</li>
 </ul>
-<p><strong>Strengths:</strong> Robust to outliers. Works with non-normal distributions. Handles log-scale expression data naturally.</p>
-<p><strong>Weakness:</strong> Less powerful than Pearson when linearity holds.</p>
+<p><strong>Strengths:</strong> Less affected by extreme magnitudes than Pearson and useful for monotonic relationships or ordinal measurements.</p>
+<p><strong>Weakness:</strong> Discards distance information through ranking and still depends on independent observations and careful handling of ties.</p>
 <h3 id="3-kendalls-τ-tau-the-most-robust"><a class="header" href="#3-kendalls-τ-tau-the-most-robust">3. Kendall’s τ (tau): The Most Robust</a></h3>
 <p>Kendall’s tau counts <strong>concordant</strong> and <strong>discordant</strong> pairs:</p>
 <p>$$\tau = \frac{(\text{concordant pairs}) - (\text{discordant pairs})}{\binom{n}{2}}$$</p>
 <p>A pair (i, j) is concordant if both xᵢ &gt; xⱼ and yᵢ &gt; yⱼ (or both less). It’s discordant if they disagree.</p>
-<p><strong>Strengths:</strong> Most robust to outliers. Better for small samples. Has clearer probabilistic interpretation.</p>
+<p><strong>Strengths:</strong> Has a pairwise concordance interpretation and is often useful with ordinal data, ties, or modest samples.</p>
 <p><strong>Weakness:</strong> Computationally slower for large datasets. Values tend to be smaller than Pearson/Spearman for the same data.</p>
 <h3 id="decision-table-which-correlation-to-use"><a class="header" href="#decision-table-which-correlation-to-use">Decision Table: Which Correlation to Use?</a></h3>
 <div class="table-wrapper">
@@ -7018,18 +7174,18 @@ EnhancedVolcano(results, lab = rownames(results),
 <tr><th>Situation</th><th>Best Choice</th><th>Why</th></tr>
 </thead>
 <tbody>
-<tr><td>Both variables normal, linear relationship</td><td>Pearson</td><td>Most powerful</td></tr>
-<tr><td>Skewed data (e.g., raw gene expression)</td><td>Spearman</td><td>Rank-based, outlier-robust</td></tr>
-<tr><td>Small sample (n &lt; 30)</td><td>Kendall</td><td>Most reliable for small n</td></tr>
+<tr><td>A linear association in meaningful units</td><td>Pearson</td><td>Directly summarizes linear co-movement</td></tr>
+<tr><td>A monotonic association where ranks answer the question</td><td>Spearman</td><td>Summarizes ordered co-movement</td></tr>
+<tr><td>Ordinal data or a pairwise concordance question</td><td>Kendall</td><td>Direct concordant/discordant-pair interpretation</td></tr>
 <tr><td>Ordinal data (e.g., tumor grade 1-4)</td><td>Spearman or Kendall</td><td>Ranks are appropriate</td></tr>
 <tr><td>Suspect outliers</td><td>Spearman or Kendall</td><td>Rank-based methods resist outliers</td></tr>
 <tr><td>Large RNA-seq dataset, log-transformed</td><td>Pearson or Spearman</td><td>Both work well after log transform</td></tr>
-<tr><td>Survival times with censoring</td><td>Kendall</td><td>Handles ties from censoring</td></tr>
+<tr><td>Survival times with censoring</td><td>A censoring-aware method</td><td>Ordinary correlation does not represent censoring</td></tr>
 </tbody>
 </table>
 </div>
 <blockquote>
-<p><strong>Common pitfall:</strong> Using Pearson on raw RNA-seq counts. These are heavily right-skewed — a few highly expressed genes dominate the correlation. Always log-transform first or use Spearman.</p>
+<p><strong>Common pitfall:</strong> Correlating raw RNA-seq counts can mainly reflect library size, abundance, composition, and mean-variance structure. Use a normalization and scale appropriate to the biological question, inspect the scatter plot, and treat Spearman as a different estimand—not an automatic repair.</p>
 </blockquote>
 <h2 id="partial-correlation-controlling-for-confounders"><a class="header" href="#partial-correlation-controlling-for-confounders">Partial Correlation: Controlling for Confounders</a></h2>
 <p>Standard correlation between X and Y can be <strong>inflated</strong> or <strong>deflated</strong> by a confounding variable Z that influences both. Partial correlation removes the effect of Z:</p>
@@ -7410,6 +7566,15 @@ let y_large = add_scaled(x_large, 0.1, rnorm(2000, 0, 1))
 <p>Now that we can quantify relationships between two variables, Day 14 takes the next step: <strong>using one variable to predict another</strong>. We’ll build our first linear regression models, learning to fit lines, interpret slopes, and critically evaluate whether our predictions are trustworthy.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-14-linear-regression--prediction-from-data"><a class="header" href="#day-14-linear-regression--prediction-from-data">Day 14: Linear Regression — Prediction from Data</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Linear regression describes how the expected outcome changes as a predictor changes.</li>
+<li><strong>Look for:</strong> the fitted line, uncertainty band, residual pattern, influential observations, and extrapolation.</li>
+<li><strong>Use this when:</strong> a straight-line conditional mean is a sensible description or prediction target.</li>
+<li><strong>Do not conclude:</strong> that a fitted slope is causal merely because it is precise or statistically significant.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-13"><a class="header" href="#the-problem-13">The Problem</a></h2>
 <p>Dr. James Park is a pharmacogenomicist working with the NCI-60 cell line panel — 60 cancer cell lines spanning 9 tissue types. He has gene expression data and drug sensitivity measurements (IC50 values) for each line. His question: <strong>Can we predict how sensitive a cell line will be to a new kinase inhibitor based on its expression of the drug’s target gene?</strong></p>
 <p>He knows the target gene and IC50 seem correlated (Day 13 confirmed r = -0.72). But correlation just says “they move together.” James needs to go further: given a <strong>new cell line</strong> with a known expression level, what IC50 should he <strong>predict</strong>? And how confident should he be?</p>
@@ -7507,7 +7672,10 @@ let y_large = add_scaled(x_large, 0.1, rnorm(2000, 0, 1))
 </tbody>
 </table>
 </div>
-<p>If r = -0.72, then R² = 0.52, meaning 52% of the variation in IC50 is explained by target expression. The remaining 48% is unexplained — due to other genes, pathway redundancy, or noise.</p>
+<p>If r = -0.72 in simple linear regression, R² = 0.52: the fitted line accounts
+for 52% of the observed variation in IC50 in this sample. That is descriptive,
+not proof that expression caused the variation; the remainder may reflect
+other predictors, measurement variation, model mismatch, or random variation.</p>
 <h2 id="interpreting-regression-output"><a class="header" href="#interpreting-regression-output">Interpreting Regression Output</a></h2>
 <p>A regression produces a table of coefficients:</p>
 <div class="table-wrapper">
@@ -7886,6 +8054,15 @@ let y_clean = linear_noise(x_clean, 5, 1.5, rnorm(49, 0, 2))
 <p>One predictor is rarely enough. Day 15 introduces <strong>multiple regression</strong>, where we predict outcomes from many variables simultaneously — and face new challenges like multicollinearity, model selection, and regularization.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-15-multiple-regression-and-model-selection"><a class="header" href="#day-15-multiple-regression-and-model-selection">Day 15: Multiple Regression and Model Selection</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Multiple regression estimates how an outcome relates to one predictor while holding the included predictors fixed.</li>
+<li><strong>Look for:</strong> coefficient intervals, residual patterns, collinearity, influential rows, and held-out prediction error.</li>
+<li><strong>Use this when:</strong> several measured predictors are needed to explain or predict a continuous outcome.</li>
+<li><strong>Do not conclude:</strong> that an automatically selected model is the true model or that adjustment removes unmeasured confounding.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-14"><a class="header" href="#the-problem-14">The Problem</a></h2>
 <p>Dr. Maria Chen is a clinical researcher studying pancreatic cancer. She has tumor samples from 120 patients, each profiled with 10 biomarkers: CA19-9, CEA, MKI67, TP53 status, tumor size, age, albumin, CRP, neutrophil-lymphocyte ratio (NLR), and platelet count. She wants to predict <strong>tumor stage</strong> (a continuous composite score from 1.0 to 4.0) from these biomarkers.</p>
 <p>But there’s a problem. CA19-9 and CEA are highly correlated (r = 0.88) — they measure overlapping biology. Including both inflates standard errors and makes coefficients uninterpretable. And with 10 potential predictors, how does she find the <strong>best subset</strong> without overfitting?</p>
@@ -8402,6 +8579,15 @@ let n = 200
 <p>What if your outcome isn’t continuous but <strong>binary</strong> — responder vs. non-responder, alive vs. dead, mutant vs. wild-type? Day 16 introduces <strong>logistic regression</strong>, where we predict probabilities of categorical outcomes using ROC curves, odds ratios, and the powerful GLM framework.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-16-logistic-regression--binary-outcomes"><a class="header" href="#day-16-logistic-regression--binary-outcomes">Day 16: Logistic Regression — Binary Outcomes</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Logistic regression models the probability of a yes/no outcome without predicting values below zero or above one.</li>
+<li><strong>Look for:</strong> predicted probabilities, calibration, overlap, influential observations, and discrimination such as the ROC curve.</li>
+<li><strong>Use this when:</strong> each experimental unit has a binary outcome and the sampling design is represented correctly.</li>
+<li><strong>Do not conclude:</strong> that an odds ratio is a risk ratio, an individual probability change, or a causal effect.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-15"><a class="header" href="#the-problem-15">The Problem</a></h2>
 <p>Dr. Priya Sharma is an immuno-oncologist analyzing data from 180 melanoma patients who received anti-PD-1 immunotherapy. For each patient, she has three biomarkers — <strong>tumor mutational burden (TMB)</strong>, <strong>PD-L1 expression</strong>, and <strong>microsatellite instability (MSI) status</strong> — and one outcome: <strong>response</strong> (tumor shrank ≥30%) or <strong>non-response</strong>.</p>
 <p>Her first instinct is to use linear regression, predicting response (coded 1/0) from the biomarkers. But the predictions come out as 1.3 for one patient and -0.2 for another. Probabilities can’t be greater than 1 or less than 0.</p>
@@ -8508,7 +8694,10 @@ let n = 200
 </tbody>
 </table>
 </div>
-<p>The curve is steepest at P = 0.5 (the decision boundary) and flattens at the extremes — exactly how biological responses behave.</p>
+<p>The curve is steepest near P = 0.5 and flattens near zero and one. This keeps
+predicted probabilities inside their valid range; whether it describes a
+particular biological response must be checked from fit, calibration, and
+subject-matter knowledge.</p>
 <div style="text-align: center; margin: 2em 0;">
 <svg width="650" height="320" viewbox="0 0 650 320" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
   <text x="325" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">The Sigmoid (Logistic) Function</text>
@@ -8953,6 +9142,15 @@ let response = msi  # perfect separation!
 <p>Sometimes the outcome isn’t just binary — it’s <strong>time-to-event</strong>: how long until a patient relapses, how long a cell line survives treatment. Day 17 introduces <strong>survival analysis</strong>, where censoring makes standard methods fail and Kaplan-Meier curves become essential.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-17-survival-analysis--time-to-event-data"><a class="header" href="#day-17-survival-analysis--time-to-event-data">Day 17: Survival Analysis — Time-to-Event Data</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Survival analysis uses both follow-up time and whether the event was observed or censored.</li>
+<li><strong>Look for:</strong> survival steps, numbers still at risk, censoring marks, curve separation, and changing effects over time.</li>
+<li><strong>Use this when:</strong> time to death, relapse, recovery, failure, or another event is the outcome.</li>
+<li><strong>Do not conclude:</strong> that a hazard ratio is a survival probability, a risk reduction for one person, or a ratio of survival times.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-16"><a class="header" href="#the-problem-16">The Problem</a></h2>
 <p>Dr. Elena Volkov is a cancer genomicist analyzing overall survival in 250 lung adenocarcinoma patients. She has tumor sequencing data and wants to answer: <strong>Do TP53-mutant patients survive longer than TP53 wild-type patients?</strong></p>
 <p>Her first attempt: compute the mean survival time for each group and run a t-test. But she immediately hits a wall. 40% of patients are <strong>still alive</strong> at the end of the study. Their survival time is <strong>at least</strong> 36 months — but she doesn’t know their actual survival time. Dropping these patients biases the analysis (the longest survivors are removed). Using 36 months as their survival time underestimates it.</p>
@@ -9075,7 +9273,10 @@ At each event time tⱼ:</p>
 <h3 id="median-survival"><a class="header" href="#median-survival">Median Survival</a></h3>
 <p>The <strong>median survival</strong> is the time at which the KM curve crosses 0.50 — the point where half the patients have experienced the event. It is more robust than the mean because it is less affected by a few extreme values.</p>
 <blockquote>
-<p><strong>Clinical relevance:</strong> “Median overall survival was 18 months in the treatment arm versus 12 months in the control arm” is the standard way clinical trials report survival data. It’s the single most important number in oncology clinical trials.</p>
+<p><strong>Clinical relevance:</strong> Median survival is one useful summary when each curve
+falls below 50%, but it discards the rest of the follow-up pattern. Also
+report uncertainty, numbers at risk, clinically relevant time-point survival,
+adverse outcomes, and an analysis suited to the study question.</p>
 </blockquote>
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="380" viewbox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
@@ -9542,6 +9743,15 @@ let subtype = rnorm(n, 0, 1) |&gt; map(|x|
 <p>We’ve been analyzing data. But before collecting data, there’s a critical question: <strong>How many samples do you need?</strong> Day 18 covers experimental design and statistical power — the science of planning studies that can actually detect the effects you’re looking for.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-18-experimental-design-and-statistical-power"><a class="header" href="#day-18-experimental-design-and-statistical-power">Day 18: Experimental Design and Statistical Power</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Power is the chance that a planned analysis detects a chosen meaningful effect when that effect truly exists.</li>
+<li><strong>Look for:</strong> the effect worth detecting, expected variability, sample size, allocation, dropout, and the planned error threshold.</li>
+<li><strong>Use this when:</strong> designing a study before data collection or explaining what effects a completed study could reliably detect.</li>
+<li><strong>Do not conclude:</strong> that 80% power means an obtained result has an 80% chance of being true.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-17"><a class="header" href="#the-problem-17">The Problem</a></h2>
 <p>Dr. Ana Reyes is a junior PI writing her first R01 grant. She proposes a study comparing gene expression between psoriatic skin and normal skin using RNA-seq, planning <strong>3 samples per group</strong> because “that’s what the lab down the hall used.”</p>
 <p>The grant comes back with this reviewer comment:</p>
@@ -9858,7 +10068,10 @@ let subtype = rnorm(n, 0, 1) |&gt; map(|x|
 <li><strong>Ethical cost:</strong> Patients enrolled in clinical trials with no realistic chance of detecting a benefit</li>
 </ol>
 <blockquote>
-<p><strong>Clinical relevance:</strong> The FDA and EMA require power analyses for all clinical trial protocols. Journal reviewers increasingly require them for observational studies too. “How many samples do you need?” is the first question of good experimental design.</p>
+<p><strong>Clinical relevance:</strong> Confirmatory trial protocols commonly justify sample
+size and operating characteristics under applicable guidance. Requirements
+vary by study and jurisdiction. A useful justification states the target
+effect, variability, error rates, dropout, analysis, and assumptions.</p>
 </blockquote>
 <h2 id="experimental-design-in-biolang"><a class="header" href="#experimental-design-in-biolang">Experimental Design in BioLang</a></h2>
 <h3 id="basic-power-analysis-for-t-test"><a class="header" href="#basic-power-analysis-for-t-test">Basic Power Analysis for t-test</a></h3>
@@ -10166,13 +10379,22 @@ library(simr)
 <li>For RNA-seq: n=3 is barely adequate (detects &gt;4-fold), n=8 is good (2-fold), n=12+ is ideal (1.5-fold)</li>
 <li><strong>Paired designs</strong> dramatically increase power by removing between-subject variability</li>
 <li>The <strong>winner’s curse</strong>: underpowered studies that happen to be significant overestimate the true effect</li>
-<li>Always use <strong>conservative</strong> effect size estimates and add buffer for dropout/QC failures</li>
+<li>Base the target effect on biological or clinical importance, use defensible variability estimates, and allow explicitly for expected dropout or QC loss</li>
 <li>Power curves visualize the sample size / power trade-off and help identify the sweet spot</li>
 </ul>
 <h2 id="whats-next-17"><a class="header" href="#whats-next-17">What’s Next</a></h2>
 <p>Statistical significance measures incompatibility with a specified null model; it does not establish that an effect is real or important. Day 19 introduces <strong>effect sizes</strong> — Cohen’s d, odds ratios, relative risk — and the critical distinction between statistical evidence, magnitude, precision, and practical importance.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-19-effect-sizes--beyond-p-values"><a class="header" href="#day-19-effect-sizes--beyond-p-values">Day 19: Effect Sizes — Beyond p-Values</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> An effect size describes how large a difference or relationship is; a p-value addresses a different question about evidence.</li>
+<li><strong>Look for:</strong> the effect estimate, its units, its interval, and a threshold of practical or biological importance.</li>
+<li><strong>Use this when:</strong> interpreting, comparing, planning, or combining study results.</li>
+<li><strong>Do not conclude:</strong> that labels such as small, medium, and large replace domain knowledge or uncertainty intervals.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-18"><a class="header" href="#the-problem-18">The Problem</a></h2>
 <p>Two papers land on Dr. Rachel Nguyen’s desk the same morning.</p>
 <p><strong>Paper A:</strong> “GENE_X is significantly differentially expressed between tumor and normal tissue (p = 0.00001, n = 5,000).” She looks at the supplementary data: the mean difference is <strong>0.02 FPKM</strong> on a scale where genes range from 0 to 50,000 FPKM. The fold change is 1.001.</p>
@@ -10453,13 +10675,13 @@ library(simr)
 </div>
 <p>Eta-squared tells you what fraction of total variance is explained by group membership.</p>
 <h2 id="forest-plots-the-standard-display"><a class="header" href="#forest-plots-the-standard-display">Forest Plots: The Standard Display</a></h2>
-<p><strong>Forest plots</strong> are the gold standard for displaying effect sizes across multiple comparisons. Each row shows:</p>
+<p><strong>Forest plots</strong> are a widely used display for effect sizes across multiple comparisons. Each row shows:</p>
 <ul>
 <li>A point estimate (the effect size)</li>
 <li>A horizontal line (the confidence interval)</li>
 <li>A vertical reference line (null effect: 0 for differences, 1 for ratios)</li>
 </ul>
-<p>They’re essential for:</p>
+<p>They are useful for:</p>
 <ul>
 <li>Meta-analyses (combining studies)</li>
 <li>Multi-gene comparisons (e.g., DE genes ranked by effect size)</li>
@@ -10875,6 +11097,15 @@ let study_sizes = [10, 15, 25, 40, 60, 100, 150, 200]
 <p>We’ve learned to quantify and test effects. But what happens when technical artifacts overwhelm biology? Day 20 tackles the critical problem of <strong>batch effects and confounders</strong> — when your PCA reveals that the dominant signal in your data is the lab that processed the sample, not the biology you’re studying.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-20-batch-effects-and-confounders"><a class="header" href="#day-20-batch-effects-and-confounders">Day 20: Batch Effects and Confounders</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> A batch effect is a technical pattern; a confounder is a variable entangled with both the exposure and outcome.</li>
+<li><strong>Look for:</strong> samples separating by processing date, site, plate, lane, or operator instead of the biology of interest.</li>
+<li><strong>Use this when:</strong> designing, checking, and modelling any study assembled across runs, sites, times, or processing groups.</li>
+<li><strong>Do not conclude:</strong> that software can recover a biological effect when biology and batch are perfectly confounded.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem-19"><a class="header" href="#the-problem-19">The Problem</a></h2>
 <p>Dr. David Liu is leading a multi-center study comparing gene expression in 200 breast tumors versus 100 normal breast tissues. Three hospitals contributed samples: Memorial (80 tumors, 40 normals), Hopkins (70 tumors, 30 normals), and Mayo (50 tumors, 30 normals). He runs PCA on the full expression matrix, expecting to see tumor and normal separate.</p>
 <p>Instead, the PCA plot shows <strong>three tight clusters — one per hospital</strong>. The first principal component explains 35% of variance and perfectly separates the centers. Tumor vs. normal? It’s buried in PC4 at 4% of variance.</p>
@@ -10901,16 +11132,16 @@ let study_sizes = [10, 15, 25, 40, 60, 100, 150, 200]
 <p><strong>Key insight:</strong> Batch effects are not random noise — they are systematic biases that affect thousands of genes simultaneously. They shift entire samples in the same direction, which is why PCA detects them so readily.</p>
 </blockquote>
 <h3 id="how-large-are-batch-effects"><a class="header" href="#how-large-are-batch-effects">How Large Are Batch Effects?</a></h3>
-<p>In a landmark 2010 study, Leek et al. analyzed publicly available microarray data and found:</p>
-<ul>
-<li>Batch effects were present in <strong>virtually all</strong> high-throughput datasets</li>
-<li>They often explained <strong>more variance</strong> than the biological signal of interest</li>
-<li>They affected <strong>thousands of genes</strong> per batch, not just a handful</li>
-</ul>
-<p>In RNA-seq, batch effects are typically smaller than in microarrays but still substantial — often explaining 10-30% of total variance.</p>
+<p>There is no universal percentage. A batch effect can be negligible in one
+dataset and dominate another, depending on the protocol, material, instrument,
+operator, storage, and balance of the design. Measure it in the current study
+instead of borrowing a typical value from another experiment.</p>
 <h2 id="identifying-batch-effects"><a class="header" href="#identifying-batch-effects">Identifying Batch Effects</a></h2>
 <h3 id="1-pca-visualization"><a class="header" href="#1-pca-visualization">1. PCA Visualization</a></h3>
-<p>The most powerful diagnostic. Color samples by batch variable and biological variable. If batch dominates PC1/PC2, you have a problem.</p>
+<p>PCA is a useful visual screen. Colour samples by both batch and biological
+variables. Separation by batch is a clue to investigate alongside balance
+tables, quality metrics, feature-level checks, and the study design; absence
+from PC1/PC2 does not prove that batch is harmless.</p>
 <div style="text-align: center; margin: 2em 0;">
 <svg width="680" height="380" viewbox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px;">
   <text x="340" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">PCA Reveals Batch Effects: Samples Cluster by Facility, Not Biology</text>
@@ -11567,19 +11798,28 @@ let n_genes = 30
 </code></pre>
 <h2 id="key-takeaways-20"><a class="header" href="#key-takeaways-20">Key Takeaways</a></h2>
 <ul>
-<li><strong>Batch effects</strong> are systematic technical differences that can dominate biological signals — they are present in virtually all high-throughput datasets</li>
-<li><strong>PCA</strong> is the most powerful tool for detecting batch effects: color by batch and biological variables to see which dominates</li>
+<li><strong>Batch effects</strong> are systematic technical differences whose size must be assessed in the current dataset</li>
+<li><strong>PCA</strong> is one useful screen: colour by batch and biological variables, then combine it with design and quality checks</li>
 <li><strong>Confounders</strong> create spurious associations (or mask real ones); <strong>Simpson’s paradox</strong> is the extreme case where aggregate trends reverse within subgroups</li>
 <li><strong>Prevention</strong> is the best strategy: use balanced, randomized designs that distribute biological conditions across batches</li>
 <li><strong>Confounded designs</strong> (batch = biology) cannot be rescued by any statistical method — the experiment must be redesigned</li>
 <li><strong>Correction approaches:</strong> include batch as a covariate (simplest), ComBat (empirical Bayes), SVA (discover unknown batches), or RUVseq (negative controls)</li>
 <li>Always perform a <strong>balance check</strong> before analysis: ensure no batch variable is perfectly correlated with the biological variable of interest</li>
-<li><strong>Before/after PCA</strong> is the standard way to demonstrate that batch correction worked</li>
+<li>A <strong>before/after PCA</strong> can show one consequence of correction, but preservation of biology, balance, diagnostics, and sensitivity analyses are also needed</li>
 </ul>
 <h2 id="whats-next-19"><a class="header" href="#whats-next-19">What’s Next</a></h2>
 <p>With three full weeks of biostatistics under your belt, you’re ready for the advanced topics of Week 4. Day 21 introduces <strong>dimensionality reduction</strong> — PCA, t-SNE, and UMAP — the tools that turn 20,000-dimensional gene expression data into interpretable 2D visualizations.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-21-dimensionality-reduction--pca-and-friends"><a class="header" href="#day-21-dimensionality-reduction--pca-and-friends">Day 21: Dimensionality Reduction — PCA and Friends</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Dimensionality reduction creates a small set of viewing directions for data with many measurements.</li>
+<li><strong>Look for:</strong> variance explained, loadings, batch patterns, outliers, and whether the picture is stable under reasonable choices.</li>
+<li><strong>Use this when:</strong> exploring or visualizing many correlated features such as genes, proteins, or metabolites.</li>
+<li><strong>Do not conclude:</strong> that a two-dimensional picture contains all the information or proves that visible groups are real.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 21 of 30</span>
 <span class="badge">Prerequisites: Days 2-3, 13, 20</span>
@@ -11591,7 +11831,9 @@ let n_genes = 30
 <p>A single-cell RNA sequencing experiment has just finished. Your collaborator drops a matrix on your desk: expression levels for 20,000 genes measured across 5,000 individual cells. She wants to know whether the cells form distinct populations — immune subtypes, perhaps, or tumor cells versus stroma.</p>
 <p>You stare at the matrix. Twenty thousand dimensions. You cannot visualize it. You cannot eyeball it. You cannot plot 20,000 axes on a screen. If you pick two genes at random and make a scatter plot, you might miss the structure entirely — those two genes might be irrelevant. Pick different genes and you get a completely different picture.</p>
 <p>What you need is a camera angle. A way to look at 20,000-dimensional data from the direction that reveals the most structure. A method that compresses the information into a handful of dimensions you can actually see and reason about — without throwing away the patterns that matter.</p>
-<p>That method is Principal Component Analysis. It is the single most widely used technique in genomics for exploring high-dimensional data, and by the end of today, you will understand exactly how it works, when it fails, and how to use it effectively.</p>
+<p>Principal Component Analysis is one widely used linear method for this task.
+This chapter builds an intuitive reading of scores, loadings, and variance
+explained, then shows limitations and checks needed before interpretation.</p>
 <h2 id="what-is-dimensionality-reduction"><a class="header" href="#what-is-dimensionality-reduction">What Is Dimensionality Reduction?</a></h2>
 <p>Dimensionality reduction takes data with many variables (dimensions) and represents it using fewer variables, while preserving as much of the important structure as possible.</p>
 <p>Think of it this way. You are standing on a hilltop overlooking a city. The city exists in three dimensions, but you are looking at it from one particular angle. Your view — a photograph — is a two-dimensional representation of a three-dimensional scene. A good photograph, taken from the right angle, captures the layout of the streets, the relative positions of buildings, and the overall structure. A bad photograph, taken facing a blank wall, tells you nothing.</p>
@@ -11602,7 +11844,11 @@ let n_genes = 30
 <h2 id="the-curse-of-dimensionality"><a class="header" href="#the-curse-of-dimensionality">The Curse of Dimensionality</a></h2>
 <p>Before we solve the problem, let us understand why high dimensions are problematic.</p>
 <p>In one dimension, 10 evenly spaced points cover a line segment well. In two dimensions, you need 100 points (10 x 10) to cover a square with the same density. In three dimensions, 1,000 points (10 x 10 x 10). In 20,000 dimensions, you would need 10^20,000 points — a number so large it dwarfs the number of atoms in the observable universe.</p>
-<p>This means that in high-dimensional space, data is always sparse. Your 5,000 cells are scattered across 20,000-dimensional space like five thousand grains of sand in the Sahara. Most of the space is empty. Distances between points become unreliable — in very high dimensions, the nearest neighbor and the farthest neighbor are almost the same distance away.</p>
+<p>With limited observations, high-dimensional space is sampled sparsely. Distance
+can become difficult to interpret because irrelevant features, scale, noise,
+and the chosen metric may contribute as much as meaningful structure. This is
+a warning to validate the representation, not a claim that every distance is
+automatically useless.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -11612,11 +11858,14 @@ let n_genes = 30
 <tr><td>2</td><td>100</td><td>Excellent</td></tr>
 <tr><td>10</td><td>10 billion</td><td>Good</td></tr>
 <tr><td>100</td><td>10^100</td><td>Poor</td></tr>
-<tr><td>20,000</td><td>10^20,000</td><td>Meaningless</td></tr>
+<tr><td>20,000</td><td>10^20,000</td><td>Requires structure or dimension reduction</td></tr>
 </tbody>
 </table>
 </div>
-<p>This is the curse of dimensionality. It makes direct analysis of raw high-dimensional data unreliable. Fortunately, biological data has a saving grace: most of the 20,000 gene dimensions are redundant. Genes in the same pathway are correlated. Housekeeping genes barely vary. The “true” dimensionality of gene expression data is typically much lower than the number of genes measured — perhaps tens to hundreds of effective dimensions. PCA exploits this redundancy.</p>
+<p>This is the curse of dimensionality. Biological features are often correlated,
+so a smaller representation may capture useful structure, but its effective
+dimension is dataset-dependent. PCA exploits linear covariance; it does not
+guarantee that every important biological pattern appears in the first few PCs.</p>
 <h2 id="pca-mechanics-finding-the-best-camera-angle"><a class="header" href="#pca-mechanics-finding-the-best-camera-angle">PCA Mechanics: Finding the Best Camera Angle</a></h2>
 <p>PCA proceeds in a simple sequence of steps.</p>
 <h3 id="step-1-center-the-data"><a class="header" href="#step-1-center-the-data">Step 1: Center the Data</a></h3>
@@ -11726,7 +11975,10 @@ let n_genes = 30
 </tbody>
 </table>
 </div>
-<p>In a typical scRNA-seq dataset, the first 20-50 PCs might capture 70-80% of the total variance. The remaining thousands of PCs together account for the other 20-30% — mostly noise.</p>
+<p>There is no universal number or percentage of useful PCs. The answer depends on
+normalization, feature selection, cell composition, technical effects, and the
+downstream task. Later PCs may contain noise, subtle biology, or both, so check
+stability and relevant diagnostics rather than applying a fixed cutoff.</p>
 <blockquote>
 <p><strong>Key insight:</strong> If the first 2 PCs capture 60%+ of the variance, a 2D PCA plot is a good representation. If they capture only 15%, the data has complex structure that two dimensions cannot convey.</p>
 </blockquote>
@@ -12083,6 +12335,15 @@ sort(abs(pca_result$rotation[,1]), decreasing = TRUE)[1:10]
 <p>Tomorrow we take the reduced data from PCA and ask: are there natural groups? Clustering methods — k-means, hierarchical, and DBSCAN — will find structure in your omics data, identify tumor subtypes, and reveal cellular populations. But beware: clustering always finds clusters, even in pure noise. You will learn how to tell real structure from statistical ghosts.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-22-clustering--finding-structure-in-omics-data"><a class="header" href="#day-22-clustering--finding-structure-in-omics-data">Day 22: Clustering — Finding Structure in Omics Data</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Clustering groups observations according to a chosen definition of similarity.</li>
+<li><strong>Look for:</strong> stability across seeds and settings, silhouette patterns, batch alignment, and independent biological evidence.</li>
+<li><strong>Use this when:</strong> exploring possible subgroups without known labels.</li>
+<li><strong>Do not conclude:</strong> that every returned cluster is a natural population; clustering algorithms can partition noise.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 22 of 30</span>
 <span class="badge">Prerequisites: Days 2-3, 13, 21</span>
@@ -12092,7 +12353,11 @@ sort(abs(pca_result$rotation[,1]), decreasing = TRUE)[1:10]
 
 <h2 id="the-problem-21"><a class="header" href="#the-problem-21">The Problem</a></h2>
 <p>You are part of a cancer genomics consortium. Five hundred tumor samples have been profiled with RNA-seq, measuring the expression of 18,000 genes in each. The pathologist has classified these tumors into three histological subtypes based on what she sees under the microscope. But molecular data often reveals finer distinctions invisible to the eye.</p>
-<p>Your task: find natural groupings in the gene expression data — without peeking at the pathologist’s labels. If the molecular subtypes align with the histological ones, confidence in the classification increases. If the data reveals additional subtypes, you may have discovered clinically distinct groups that respond differently to treatment. In breast cancer, this is exactly how the PAM50 molecular subtypes were discovered — and they now guide treatment decisions for millions of patients worldwide.</p>
+<p>Your task is to explore possible groupings in the gene-expression data without
+using the pathologist’s labels to construct them. Agreement with histology can
+be useful supporting evidence. A new grouping is a hypothesis that needs
+replication, marker interpretation, clinical association, and preferably
+functional or external validation before it is called a biological subtype.</p>
 <p>But there is a danger lurking. Clustering algorithms always find clusters, even in random noise. The critical question is not “can I find groups?” but “are the groups real?”</p>
 <h2 id="what-is-clustering"><a class="header" href="#what-is-clustering">What Is Clustering?</a></h2>
 <p>Clustering is unsupervised grouping: divide observations into sets such that observations within a set are more similar to each other than to observations in other sets.</p>
@@ -12433,7 +12698,10 @@ for k in 2..8 {
 <p><strong>Common pitfall:</strong> A high silhouette score does not prove biological relevance. Random data with well-separated clusters in PCA space can have high silhouette scores. Always validate clusters against independent information — clinical outcomes, known markers, or held-out data.</p>
 </blockquote>
 <h2 id="clustering-always-finds-clusters--even-in-noise"><a class="header" href="#clustering-always-finds-clusters--even-in-noise">Clustering Always Finds Clusters — Even in Noise</a></h2>
-<p>This is the single most important warning about clustering. Run k-means with k = 3 on completely random data, and it will dutifully return three clusters. The clusters will look somewhat real in a scatter plot. But they are meaningless.</p>
+<p>Here is the central warning about clustering: run k-means with k = 3 on
+simulated unstructured noise and it will still return three partitions. A
+projection may make those partitions look persuasive even though the simulation
+contains no generating subpopulations.</p>
 <pre><code class="language-bio">set_seed(42)
 # DANGER: Clustering random noise
 let noise = range(0, 500) |&gt; map(|_| rnorm(20, 0, 1)) |&gt; matrix()
@@ -12628,6 +12896,15 @@ for (k in 2:7) {
 <p>PCA and clustering can be unstable when the dataset is tiny. With six mice per group, distribution diagnostics and asymptotic approximations carry substantial uncertainty. Tomorrow, we meet bootstrap and permutation methods. They approximate uncertainty by resampling, but still rely on representative observations, a correct resampling unit, and exchangeability or other design assumptions.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-23-resampling--bootstrap-and-permutation-tests"><a class="header" href="#day-23-resampling--bootstrap-and-permutation-tests">Day 23: Resampling — Bootstrap and Permutation Tests</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Resampling repeats a carefully chosen sampling or label-shuffling process to reveal uncertainty.</li>
+<li><strong>Look for:</strong> the resampling unit, bootstrap distribution, null distribution, interval width, and result stability.</li>
+<li><strong>Use this when:</strong> estimating uncertainty or testing an exchangeable-label null without a convenient closed-form calculation.</li>
+<li><strong>Do not conclude:</strong> that computation removes assumptions about independence, representativeness, censoring, or study design.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 23 of 30</span>
 <span class="badge">Prerequisites: Days 6-8</span>
@@ -12639,10 +12916,10 @@ for (k in 2:7) {
 <p>Your collaborator is studying a rare metabolic disorder. She has tissue samples from 6 affected mice and 6 controls, measuring enzyme activity in each. The treatment group shows higher median enzyme activity, and she wants to know if the difference is real.</p>
 <p>You reach for a t-test, but hesitate. With only 6 observations per group, you cannot meaningfully assess whether the data is normally distributed. A Shapiro-Wilk test on 6 points has almost no power. The Wilcoxon rank-sum test is an option, but with only 6 per group, it can only detect very large effects.</p>
 <p>What if you could approximate a sampling distribution by resampling observed units instead of writing down a full parametric outcome distribution? Bootstrap and permutation methods can target many statistics, but they are not assumption-free: the resampling unit, exchangeability, dependence, representativeness, and small-sample behaviour still matter.</p>
-<p>You can. Resampling methods let the data speak for itself, replacing theoretical assumptions with raw computational power. They are among the most broadly applicable tools in statistics, and after today, you will wonder how you ever lived without them.</p>
+<p>Resampling provides a practical route: repeat a sampling or label-shuffling operation that represents the design, calculate the statistic each time, and examine the resulting distribution. Computation replaces some algebra, but it does not replace study assumptions.</p>
 <h2 id="what-are-resampling-methods"><a class="header" href="#what-are-resampling-methods">What Are Resampling Methods?</a></h2>
 <p>Resampling methods draw repeated samples from your data to estimate the sampling distribution of a statistic. Instead of deriving a formula for how the mean varies from sample to sample (the classical approach), you literally simulate the process: draw a new sample, compute the statistic, repeat thousands of times, and look at the distribution of results.</p>
-<p>Think of it like this. You have a bag containing 12 marbles (your data). You want to know how variable the “average marble weight” is. The classical approach derives a formula based on the normal distribution. The resampling approach says: shake the bag, pull out 12 marbles (with replacement), weigh them, compute the average. Put them back. Repeat 10,000 times. The distribution of those 10,000 averages tells you everything you need to know — no formula, no assumptions.</p>
+<p>Think of it like this. You have a bag containing 12 marbles (your data). To explore how the average might vary, repeatedly draw 12 marbles with replacement and calculate their mean. The resulting bootstrap distribution estimates one part of the uncertainty, provided those marbles reasonably represent the population and independent marbles are the correct resampling unit.</p>
 <blockquote>
 <p><strong>Key insight:</strong> Resampling methods trade some distributional formulas for computational effort, not for an assumption-free analysis. The resampling unit must match the experimental unit; bootstrap observations should represent the target population, and permutation labels must be exchangeable under the null. Dependence, clustering, censoring, and small samples may require specialised schemes.</p>
 </blockquote>
@@ -13329,6 +13606,15 @@ let response = [35, 62, 41, 78, 30, 82, 55, 50, 71, 38, 48, 79, 58, 33, 68]
 <p>Tomorrow we cross the philosophical divide in statistics. Everything so far has been frequentist: probabilities describe long-run frequencies of events. Bayesian statistics takes a fundamentally different view — probability describes degrees of belief, and we update those beliefs as evidence accumulates. You will learn to combine prior knowledge with observed data using Bayes’ theorem, build posterior distributions, and discover why Bayesian thinking is particularly natural for interpreting variants of uncertain significance.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-24-bayesian-thinking-for-biologists"><a class="header" href="#day-24-bayesian-thinking-for-biologists">Day 24: Bayesian Thinking for Biologists</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Bayesian analysis combines a stated prior with the data model to produce an updated posterior distribution.</li>
+<li><strong>Look for:</strong> the prior, likelihood, posterior, credible interval, and how conclusions change under reasonable prior choices.</li>
+<li><strong>Use this when:</strong> prior information and direct probability statements about model parameters are useful and defensible.</li>
+<li><strong>Do not conclude:</strong> that the posterior is assumption-free or automatically true; it depends on the model, prior, and data quality.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 24 of 30</span>
 <span class="badge">Prerequisites: Days 4, 6-7</span>
@@ -13346,9 +13632,15 @@ let response = [35, 62, 41, 78, 30, 82, 55, 50, 71, 38, 48, 79, 58, 33, 68]
 <li><strong>Family data</strong>: Two of three affected relatives carry the variant (one does not, but that could be a phenocopy).</li>
 </ol>
 <p>No single piece of evidence is conclusive. Each is uncertain. But together, they should shift your belief about pathogenicity. How do you combine them?</p>
-<p>The frequentist framework has no natural mechanism for combining prior knowledge with new data. The Bayesian framework does — it is literally designed for this. Today, you will learn how to think like a Bayesian, and you will see why this way of reasoning is becoming standard practice in clinical variant classification.</p>
+<p>Bayesian models provide one explicit way to combine prior information with new
+data. Frequentist analyses can also use external information through design,
+constraints, hierarchical models, or prespecified evidence synthesis, but they
+do not interpret parameters through a posterior probability distribution.</p>
 <h2 id="what-is-bayesian-statistics"><a class="header" href="#what-is-bayesian-statistics">What Is Bayesian Statistics?</a></h2>
-<p>Bayesian statistics treats probability as a measure of belief, not a long-run frequency. Instead of asking “what would happen if I repeated this experiment infinitely many times?” it asks “given what I know, how confident should I be?”</p>
+<p>In Bayesian statistics, probability represents uncertainty conditional on a
+specified model and prior. The practical question becomes: after combining
+those assumptions with the observed data, what does the posterior say about
+the parameter or a future observation?</p>
 <p>The fundamental equation is Bayes’ theorem:</p>
 <p><strong>Posterior = (Likelihood x Prior) / Evidence</strong></p>
 <p>Or more precisely:</p>
@@ -13369,7 +13661,11 @@ let response = [35, 62, 41, 78, 30, 82, 55, 50, 71, 38, 48, 79, 58, 33, 68]
 </ol>
 <p>The posterior from one analysis becomes the prior for the next — evidence accumulates naturally.</p>
 <blockquote>
-<p><strong>Key insight:</strong> Bayesian inference is sequential updating. Each new piece of evidence shifts your belief. This is exactly how clinical variant classification works: you start with a prior (population frequency suggests most variants are benign), then update with each line of evidence (computational predictions, functional assays, segregation data).</p>
+<p><strong>Key insight:</strong> Bayesian inference supports sequential updating when each
+evidence source is represented in a defensible likelihood and dependence is
+handled correctly. Clinical variant-classification frameworks combine several
+evidence types, but they should not be treated as independent numerical
+updates without a validated model.</p>
 </blockquote>
 <h2 id="frequentist-vs-bayesian-the-practical-difference"><a class="header" href="#frequentist-vs-bayesian-the-practical-difference">Frequentist vs Bayesian: The Practical Difference</a></h2>
 <p>Consider testing whether a new drug reduces blood pressure.</p>
@@ -13386,8 +13682,8 @@ let response = [35, 62, 41, 78, 30, 82, 55, 50, 71, 38, 48, 79, 58, 33, 68]
 <tr><td>Prior knowledge</td><td>Not formally incorporated</td><td>Explicitly included via priors</td></tr>
 <tr><td>Result</td><td>p-value, confidence interval</td><td>Posterior distribution, credible interval</td></tr>
 <tr><td>“95% interval” means</td><td>95% of such intervals would contain the true value</td><td>95% probability the parameter is in this interval</td></tr>
-<tr><td>Multiple comparisons</td><td>Requires correction (Day 12)</td><td>Naturally skeptical with informative priors</td></tr>
-<tr><td>Small samples</td><td>Unreliable (CLT breaks down)</td><td>Works with proper priors</td></tr>
+<tr><td>Multiple comparisons</td><td>Uses family-wise, FDR, hierarchical, or simultaneous methods</td><td>Can use hierarchical priors or explicit decision rules; multiplicity does not vanish automatically</td></tr>
+<tr><td>Small samples</td><td>Exact or small-sample methods may be available; uncertainty is often wide</td><td>Priors can stabilize estimates, but sensitivity to assumptions is often greater</td></tr>
 </tbody>
 </table>
 </div>
@@ -13833,7 +14129,7 @@ print("Final classification: " +
 <ul>
 <li><strong>No meaningful prior</strong> exists (purely exploratory analysis)</li>
 <li><strong>Sample is large</strong> (prior is overwhelmed anyway, results converge)</li>
-<li><strong>Regulatory requirements</strong> demand frequentist analysis (FDA still primarily uses p-values)</li>
+<li>A protocol, regulator, or decision framework may require a particular estimand and analysis; check the current applicable guidance rather than assuming one statistical philosophy is mandatory</li>
 <li><strong>Simplicity matters</strong> (t-test is faster to explain than posterior distributions)</li>
 </ul>
 <h2 id="bayesian-thinking-in-biolang"><a class="header" href="#bayesian-thinking-in-biolang">Bayesian Thinking in BioLang</a></h2>
@@ -13995,6 +14291,15 @@ qbeta(c(0.025, 0.975), post_a, post_b)
 <p>We have learned to test hypotheses, build models, reduce dimensions, cluster data, resample, and reason Bayesianly. But all of these methods ultimately produce results that must be communicated — and the primary language of scientific communication is visual. Tomorrow, we tackle statistical visualization: which plot for which data, how to make plots that tell the truth, and how to avoid the visualization sins that plague the literature.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-25-statistical-visualization--plots-that-tell-the-truth"><a class="header" href="#day-25-statistical-visualization--plots-that-tell-the-truth">Day 25: Statistical Visualization — Plots That Tell the Truth</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> A statistical plot makes patterns, uncertainty, and data quality visible without hiding the observations that matter.</li>
+<li><strong>Look for:</strong> axes, units, scales, missing values, raw points, uncertainty, group sizes, and visual encodings.</li>
+<li><strong>Use this when:</strong> exploring data, checking a model, or communicating a result to another person.</li>
+<li><strong>Do not conclude:</strong> that an attractive plot is neutral, complete, or proof of a scientific claim.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 25 of 30</span>
 <span class="badge">Prerequisites: All previous days</span>
@@ -14572,6 +14877,15 @@ let skewed = rnorm(100, 0, 1) |&gt; map(|x| abs(x) * 10)
 <p>Individual studies provide individual estimates. But what happens when five different labs study the same question and get five different answers? Tomorrow, we tackle meta-analysis — the formal framework for combining results across studies to get a single, more precise estimate. You will build forest plots, assess heterogeneity, check for publication bias, and learn when pooling studies is appropriate and when it is dangerously misleading.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-26-meta-analysis--combining-studies"><a class="header" href="#day-26-meta-analysis--combining-studies">Day 26: Meta-Analysis — Combining Studies</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Meta-analysis combines comparable study estimates while giving more weight to estimates with greater precision.</li>
+<li><strong>Look for:</strong> study definitions, effect units, confidence intervals, heterogeneity, missing studies, and the pooled model.</li>
+<li><strong>Use this when:</strong> several studies address a sufficiently similar question and their differences are explicitly examined.</li>
+<li><strong>Do not conclude:</strong> that a precise pooled estimate repairs biased studies, publication bias, or incompatible outcomes.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 26 of 30</span>
 <span class="badge">Prerequisites: Days 6-8, 14, 19</span>
@@ -15129,6 +15443,15 @@ let se_log_hr = [0.12, 0.15, 0.10, 0.11, 0.13]
 <p>We have learned to analyze data, but can we trust our analysis? Tomorrow we confront the reproducibility crisis head-on: how to structure your statistical analysis so that it can be re-run perfectly by anyone, at any time. Random seeds, modular scripts, parameter files, and version tracking — the practices that separate publishable science from a pile of scattered scripts.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-27-reproducible-statistical-analysis"><a class="header" href="#day-27-reproducible-statistical-analysis">Day 27: Reproducible Statistical Analysis</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> A reproducible analysis can be rerun from recorded inputs, code, configuration, software versions, and seeds.</li>
+<li><strong>Look for:</strong> provenance, immutable inputs, explicit parameters, environment information, checks, and generated outputs.</li>
+<li><strong>Use this when:</strong> doing any analysis that another person—or future you—may need to verify or update.</li>
+<li><strong>Do not conclude:</strong> that having a script or repository automatically makes the scientific result correct or reproducible.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 27 of 30</span>
 <span class="badge">Prerequisites: All previous days</span>
@@ -15798,6 +16121,15 @@ renv::snapshot() # Lock package versions with renv
 <p>You have now mastered the individual techniques and the practices that make them trustworthy. It is time to put everything together. The final three days are capstone projects — complete, end-to-end statistical analyses of realistic datasets. Tomorrow: a clinical trial with survival endpoints, subgroup analyses, and publication figures. Day 29: a differential expression study with 15,000 genes. Day 30: a genome-wide association study with 500,000 SNPs. Each capstone integrates methods from across the entire book.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-28-capstone--clinical-trial-analysis"><a class="header" href="#day-28-capstone--clinical-trial-analysis">Day 28: Capstone — Clinical Trial Analysis</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> A clinical trial uses a prespecified design to estimate benefits and harms of an intervention in a target population.</li>
+<li><strong>Look for:</strong> randomization, allocation, masking, participant flow, missing outcomes, effect intervals, adverse events, and the estimand.</li>
+<li><strong>Use this when:</strong> testing an intervention prospectively under ethical and regulatory oversight.</li>
+<li><strong>Do not conclude:</strong> that statistical significance alone establishes clinical benefit, safety, generalizability, or ethical acceptability.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 28 of 30</span>
 <span class="badge">Capstone: Days 2, 6-8, 11, 17, 19, 25</span>
@@ -16503,6 +16835,15 @@ fisher.test(matrix(c(orr_drug, 150-orr_drug, orr_chemo, 150-orr_chemo), nrow=2))
 <p>Tomorrow we shift from clinical trials to molecular biology: a complete differential expression analysis of RNA-seq data from tumor versus normal tissue. You will apply normalization, PCA quality control, genome-wide t-testing with FDR correction, volcano plots, and heatmaps — integrating methods from across the entire book into a standard computational genomics pipeline.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-29-capstone--differential-expression-study"><a class="header" href="#day-29-capstone--differential-expression-study">Day 29: Capstone — Differential Expression Study</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Differential-expression analysis estimates gene-level changes while modelling counts, library composition, biological variation, and many simultaneous tests.</li>
+<li><strong>Look for:</strong> sample quality, library size, count distributions, sample relationships, effect sizes, intervals, adjusted p-values, and pathway context.</li>
+<li><strong>Use this when:</strong> comparing bulk RNA-seq expression under a design represented in the count model.</li>
+<li><strong>Do not conclude:</strong> that every adjusted hit is biologically important, causal, or validated in another cohort.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 29 of 30</span>
 <span class="badge">Capstone: Days 2-3, 8, 12-13, 20-21, 25</span>
@@ -17263,7 +17604,7 @@ print(f"Significant DE genes: {len(sig)}")
 library(pheatmap)
 library(EnhancedVolcano)
 
-# DESeq2 workflow (gold standard for RNA-seq DE)
+# DESeq2 workflow (one widely used RNA-seq DE approach)
 dds &lt;- DESeqDataSetFromMatrix(countData = counts,
                                colData = sample_info,
                                design = ~ group)
@@ -17326,6 +17667,15 @@ summary(res, alpha = 0.05)
 <p>Tomorrow is the final capstone — and the most computationally ambitious. You will analyze a genome-wide association study: 500,000 SNPs across 10,000 individuals, testing for association with type 2 diabetes. Quality control, population structure, genome-wide testing, Manhattan plots, Q-Q plots, and effect size interpretation — the full GWAS pipeline, from raw genotypes to publishable results.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="day-30-capstone--genome-wide-association-study"><a class="header" href="#day-30-capstone--genome-wide-association-study">Day 30: Capstone — Genome-Wide Association Study</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> A GWAS screens genetic variants for association with a trait while controlling population structure, relatedness, quality, and genome-wide multiplicity.</li>
+<li><strong>Look for:</strong> quality-control losses, allele frequency, ancestry structure, Q-Q calibration, Manhattan peaks, effect sizes, and replication.</li>
+<li><strong>Use this when:</strong> genotype and phenotype data support a prespecified genome-wide association design.</li>
+<li><strong>Do not conclude:</strong> that an associated variant is causal, identifies the responsible gene, or applies equally across populations.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 30 of 30</span>
 <span class="badge">Capstone: Days 4, 7, 11-12, 16, 18-19, 21, 25</span>

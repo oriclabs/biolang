@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-14-linear-regression--prediction-from-data"><a class="header" href="#day-14-linear-regression--prediction-from-data">Day 14: Linear Regression — Prediction from Data</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Linear regression describes how the expected outcome changes as a predictor changes.</li>
+<li><strong>Look for:</strong> the fitted line, uncertainty band, residual pattern, influential observations, and extrapolation.</li>
+<li><strong>Use this when:</strong> a straight-line conditional mean is a sensible description or prediction target.</li>
+<li><strong>Do not conclude:</strong> that a fitted slope is causal merely because it is precise or statistically significant.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Dr. James Park is a pharmacogenomicist working with the NCI-60 cell line panel — 60 cancer cell lines spanning 9 tissue types. He has gene expression data and drug sensitivity measurements (IC50 values) for each line. His question: <strong>Can we predict how sensitive a cell line will be to a new kinase inhibitor based on its expression of the drug’s target gene?</strong></p>
 <p>He knows the target gene and IC50 seem correlated (Day 13 confirmed r = -0.72). But correlation just says “they move together.” James needs to go further: given a <strong>new cell line</strong> with a known expression level, what IC50 should he <strong>predict</strong>? And how confident should he be?</p>
@@ -276,7 +285,10 @@
 </tbody>
 </table>
 </div>
-<p>If r = -0.72, then R² = 0.52, meaning 52% of the variation in IC50 is explained by target expression. The remaining 48% is unexplained — due to other genes, pathway redundancy, or noise.</p>
+<p>If r = -0.72 in simple linear regression, R² = 0.52: the fitted line accounts
+for 52% of the observed variation in IC50 in this sample. That is descriptive,
+not proof that expression caused the variation; the remainder may reflect
+other predictors, measurement variation, model mismatch, or random variation.</p>
 <h2 id="interpreting-regression-output"><a class="header" href="#interpreting-regression-output">Interpreting Regression Output</a></h2>
 <p>A regression produces a table of coefficients:</p>
 <div class="table-wrapper">

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-10-comparing-many-groups--anova-and-beyond"><a class="header" href="#day-10-comparing-many-groups--anova-and-beyond">Day 10: Comparing Many Groups — ANOVA and Beyond</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> ANOVA compares differences among group means with the ordinary variation inside the groups.</li>
+<li><strong>Look for:</strong> group centres, within-group spread, overlap, and the observations behind every summary.</li>
+<li><strong>Use this when:</strong> comparing a continuous outcome across three or more groups under an appropriate design.</li>
+<li><strong>Do not conclude:</strong> that a significant overall test identifies which groups differ; that needs planned contrasts or follow-up comparisons.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Dr. James Park’s oncology team is testing a new targeted therapy at four dose levels: 0 mg (placebo), 25 mg, 50 mg, and 100 mg. Each group has 8 mice, and after 4 weeks they measure tumor volume in cubic millimeters. The team lead suggests: “Just do t-tests between all pairs of doses — that’s 6 comparisons, no big deal.”</p>
 <p>But Dr. Park knows this is a trap. With 6 independent tests at alpha = 0.05, the probability of at least one false positive is not 5% — it is 1 - (0.95)^6 = 26.5%. Run 10 comparisons and it climbs to 40%. With 20,000 genes, the problem becomes catastrophic (we will tackle that on Day 12). The solution for comparing several groups at once is <strong>Analysis of Variance</strong> — ANOVA — which tests all groups simultaneously in a single, principled framework.</p>
@@ -358,7 +367,7 @@
 </blockquote>
 <h2 id="post-hoc-tests-which-groups-differ"><a class="header" href="#post-hoc-tests-which-groups-differ">Post-Hoc Tests: Which Groups Differ?</a></h2>
 <h3 id="tukeys-honestly-significant-difference-hsd"><a class="header" href="#tukeys-honestly-significant-difference-hsd">Tukey’s Honestly Significant Difference (HSD)</a></h3>
-<p>The gold standard post-hoc test. Compares all pairs of group means while controlling the family-wise error rate.</p>
+<p>Tukey HSD is a common choice when the planned goal is to compare every pair of group means while controlling the family-wise error rate.</p>
 <ul>
 <li>Tests all k(k-1)/2 pairwise differences</li>
 <li>Provides adjusted p-values and confidence intervals</li>
@@ -723,7 +732,7 @@ let intense  = [155, 172, 148, 180, 162]
 <ul>
 <li><strong>Multiple t-tests</strong> inflate the false positive rate — the family-wise error rate grows rapidly with the number of comparisons</li>
 <li><strong>ANOVA</strong> tests whether any group differs from the others in a single F-test, controlling the overall error rate</li>
-<li>The <strong>F-statistic</strong> compares between-group variance to within-group variance: F much greater than 1 suggests real differences</li>
+<li>The <strong>F-statistic</strong> compares between-group variation with within-group variation; a large value is evidence against the equal-means null under the model</li>
 <li>A significant ANOVA tells you “at least one group differs” — use <strong>Tukey HSD</strong> post-hoc to find which pairs differ</li>
 <li><strong>Eta-squared</strong> measures effect size: the proportion of total variance explained by group membership</li>
 <li><strong>Kruskal-Wallis</strong> compares group rank distributions; interpreting it as a location shift needs similarly shaped distributions</li>

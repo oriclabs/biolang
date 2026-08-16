@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-15-multiple-regression-and-model-selection"><a class="header" href="#day-15-multiple-regression-and-model-selection">Day 15: Multiple Regression and Model Selection</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Multiple regression estimates how an outcome relates to one predictor while holding the included predictors fixed.</li>
+<li><strong>Look for:</strong> coefficient intervals, residual patterns, collinearity, influential rows, and held-out prediction error.</li>
+<li><strong>Use this when:</strong> several measured predictors are needed to explain or predict a continuous outcome.</li>
+<li><strong>Do not conclude:</strong> that an automatically selected model is the true model or that adjustment removes unmeasured confounding.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Dr. Maria Chen is a clinical researcher studying pancreatic cancer. She has tumor samples from 120 patients, each profiled with 10 biomarkers: CA19-9, CEA, MKI67, TP53 status, tumor size, age, albumin, CRP, neutrophil-lymphocyte ratio (NLR), and platelet count. She wants to predict <strong>tumor stage</strong> (a continuous composite score from 1.0 to 4.0) from these biomarkers.</p>
 <p>But there’s a problem. CA19-9 and CEA are highly correlated (r = 0.88) — they measure overlapping biology. Including both inflates standard errors and makes coefficients uninterpretable. And with 10 potential predictors, how does she find the <strong>best subset</strong> without overfitting?</p>

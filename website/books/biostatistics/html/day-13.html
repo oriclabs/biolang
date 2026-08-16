@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-13-correlation--finding-relationships"><a class="header" href="#day-13-correlation--finding-relationships">Day 13: Correlation — Finding Relationships</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Correlation summarizes how two measurements tend to move together.</li>
+<li><strong>Look for:</strong> the scatter-plot shape, direction, strength, outliers, clusters, and curves.</li>
+<li><strong>Use this when:</strong> exploring association between two numeric variables with a method suited to the shape and scale.</li>
+<li><strong>Do not conclude:</strong> that correlation proves causation, rules out confounding, or captures every nonlinear relationship.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Dr. Sarah Kim is studying breast cancer transcriptomics across 200 tumor samples. She notices that <strong>BRCA1</strong> and <strong>BARD1</strong> expression seem to rise and fall together — when one is high, the other tends to be high too. Exciting! These genes encode proteins that form a heterodimer critical for DNA repair.</p>
 <p>But her collaborator raises a concern: “Both genes are upregulated in rapidly dividing cells. Couldn’t <strong>cell proliferation</strong> be driving both signals independently? You might be seeing a spurious association.”</p>
@@ -305,7 +314,7 @@
 <li>Data are roughly normally distributed (for inference)</li>
 <li>No extreme outliers (a single outlier can flip the sign)</li>
 </ul>
-<p><strong>Strengths:</strong> Most powerful when assumptions are met. Directly related to R² in linear regression.</p>
+<p><strong>Strengths:</strong> Directly describes linear association and is related to R² in simple linear regression. Its precision can be good when the linear model is appropriate.</p>
 <p><strong>Weakness:</strong> Sensitive to outliers. Misses non-linear relationships entirely.</p>
 <h3 id="2-spearmans-ρ-rho-the-rank-based-alternative"><a class="header" href="#2-spearmans-ρ-rho-the-rank-based-alternative">2. Spearman’s ρ (rho): The Rank-Based Alternative</a></h3>
 <p>Spearman’s correlation operates on <strong>ranks</strong> rather than raw values. It measures <strong>monotonic</strong> association — whether Y tends to increase (or decrease) as X increases, even if not linearly.</p>
@@ -319,13 +328,13 @@
 <li>Ordinal or continuous data</li>
 <li>Monotonic relationship (doesn’t need to be linear)</li>
 </ul>
-<p><strong>Strengths:</strong> Robust to outliers. Works with non-normal distributions. Handles log-scale expression data naturally.</p>
-<p><strong>Weakness:</strong> Less powerful than Pearson when linearity holds.</p>
+<p><strong>Strengths:</strong> Less affected by extreme magnitudes than Pearson and useful for monotonic relationships or ordinal measurements.</p>
+<p><strong>Weakness:</strong> Discards distance information through ranking and still depends on independent observations and careful handling of ties.</p>
 <h3 id="3-kendalls-τ-tau-the-most-robust"><a class="header" href="#3-kendalls-τ-tau-the-most-robust">3. Kendall’s τ (tau): The Most Robust</a></h3>
 <p>Kendall’s tau counts <strong>concordant</strong> and <strong>discordant</strong> pairs:</p>
 <p>$$\tau = \frac{(\text{concordant pairs}) - (\text{discordant pairs})}{\binom{n}{2}}$$</p>
 <p>A pair (i, j) is concordant if both xᵢ &gt; xⱼ and yᵢ &gt; yⱼ (or both less). It’s discordant if they disagree.</p>
-<p><strong>Strengths:</strong> Most robust to outliers. Better for small samples. Has clearer probabilistic interpretation.</p>
+<p><strong>Strengths:</strong> Has a pairwise concordance interpretation and is often useful with ordinal data, ties, or modest samples.</p>
 <p><strong>Weakness:</strong> Computationally slower for large datasets. Values tend to be smaller than Pearson/Spearman for the same data.</p>
 <h3 id="decision-table-which-correlation-to-use"><a class="header" href="#decision-table-which-correlation-to-use">Decision Table: Which Correlation to Use?</a></h3>
 <div class="table-wrapper">
@@ -334,18 +343,18 @@
 <tr><th>Situation</th><th>Best Choice</th><th>Why</th></tr>
 </thead>
 <tbody>
-<tr><td>Both variables normal, linear relationship</td><td>Pearson</td><td>Most powerful</td></tr>
-<tr><td>Skewed data (e.g., raw gene expression)</td><td>Spearman</td><td>Rank-based, outlier-robust</td></tr>
-<tr><td>Small sample (n &lt; 30)</td><td>Kendall</td><td>Most reliable for small n</td></tr>
+<tr><td>A linear association in meaningful units</td><td>Pearson</td><td>Directly summarizes linear co-movement</td></tr>
+<tr><td>A monotonic association where ranks answer the question</td><td>Spearman</td><td>Summarizes ordered co-movement</td></tr>
+<tr><td>Ordinal data or a pairwise concordance question</td><td>Kendall</td><td>Direct concordant/discordant-pair interpretation</td></tr>
 <tr><td>Ordinal data (e.g., tumor grade 1-4)</td><td>Spearman or Kendall</td><td>Ranks are appropriate</td></tr>
 <tr><td>Suspect outliers</td><td>Spearman or Kendall</td><td>Rank-based methods resist outliers</td></tr>
 <tr><td>Large RNA-seq dataset, log-transformed</td><td>Pearson or Spearman</td><td>Both work well after log transform</td></tr>
-<tr><td>Survival times with censoring</td><td>Kendall</td><td>Handles ties from censoring</td></tr>
+<tr><td>Survival times with censoring</td><td>A censoring-aware method</td><td>Ordinary correlation does not represent censoring</td></tr>
 </tbody>
 </table>
 </div>
 <blockquote>
-<p><strong>Common pitfall:</strong> Using Pearson on raw RNA-seq counts. These are heavily right-skewed — a few highly expressed genes dominate the correlation. Always log-transform first or use Spearman.</p>
+<p><strong>Common pitfall:</strong> Correlating raw RNA-seq counts can mainly reflect library size, abundance, composition, and mean-variance structure. Use a normalization and scale appropriate to the biological question, inspect the scatter plot, and treat Spearman as a different estimand—not an automatic repair.</p>
 </blockquote>
 <h2 id="partial-correlation-controlling-for-confounders"><a class="header" href="#partial-correlation-controlling-for-confounders">Partial Correlation: Controlling for Confounders</a></h2>
 <p>Standard correlation between X and Y can be <strong>inflated</strong> or <strong>deflated</strong> by a confounding variable Z that influences both. Partial correlation removes the effect of Z:</p>

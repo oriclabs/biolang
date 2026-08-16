@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-24-bayesian-thinking-for-biologists"><a class="header" href="#day-24-bayesian-thinking-for-biologists">Day 24: Bayesian Thinking for Biologists</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Bayesian analysis combines a stated prior with the data model to produce an updated posterior distribution.</li>
+<li><strong>Look for:</strong> the prior, likelihood, posterior, credible interval, and how conclusions change under reasonable prior choices.</li>
+<li><strong>Use this when:</strong> prior information and direct probability statements about model parameters are useful and defensible.</li>
+<li><strong>Do not conclude:</strong> that the posterior is assumption-free or automatically true; it depends on the model, prior, and data quality.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 24 of 30</span>
 <span class="badge">Prerequisites: Days 4, 6-7</span>
@@ -196,9 +205,15 @@
 <li><strong>Family data</strong>: Two of three affected relatives carry the variant (one does not, but that could be a phenocopy).</li>
 </ol>
 <p>No single piece of evidence is conclusive. Each is uncertain. But together, they should shift your belief about pathogenicity. How do you combine them?</p>
-<p>The frequentist framework has no natural mechanism for combining prior knowledge with new data. The Bayesian framework does — it is literally designed for this. Today, you will learn how to think like a Bayesian, and you will see why this way of reasoning is becoming standard practice in clinical variant classification.</p>
+<p>Bayesian models provide one explicit way to combine prior information with new
+data. Frequentist analyses can also use external information through design,
+constraints, hierarchical models, or prespecified evidence synthesis, but they
+do not interpret parameters through a posterior probability distribution.</p>
 <h2 id="what-is-bayesian-statistics"><a class="header" href="#what-is-bayesian-statistics">What Is Bayesian Statistics?</a></h2>
-<p>Bayesian statistics treats probability as a measure of belief, not a long-run frequency. Instead of asking “what would happen if I repeated this experiment infinitely many times?” it asks “given what I know, how confident should I be?”</p>
+<p>In Bayesian statistics, probability represents uncertainty conditional on a
+specified model and prior. The practical question becomes: after combining
+those assumptions with the observed data, what does the posterior say about
+the parameter or a future observation?</p>
 <p>The fundamental equation is Bayes’ theorem:</p>
 <p><strong>Posterior = (Likelihood x Prior) / Evidence</strong></p>
 <p>Or more precisely:</p>
@@ -219,7 +234,11 @@
 </ol>
 <p>The posterior from one analysis becomes the prior for the next — evidence accumulates naturally.</p>
 <blockquote>
-<p><strong>Key insight:</strong> Bayesian inference is sequential updating. Each new piece of evidence shifts your belief. This is exactly how clinical variant classification works: you start with a prior (population frequency suggests most variants are benign), then update with each line of evidence (computational predictions, functional assays, segregation data).</p>
+<p><strong>Key insight:</strong> Bayesian inference supports sequential updating when each
+evidence source is represented in a defensible likelihood and dependence is
+handled correctly. Clinical variant-classification frameworks combine several
+evidence types, but they should not be treated as independent numerical
+updates without a validated model.</p>
 </blockquote>
 <h2 id="frequentist-vs-bayesian-the-practical-difference"><a class="header" href="#frequentist-vs-bayesian-the-practical-difference">Frequentist vs Bayesian: The Practical Difference</a></h2>
 <p>Consider testing whether a new drug reduces blood pressure.</p>
@@ -236,8 +255,8 @@
 <tr><td>Prior knowledge</td><td>Not formally incorporated</td><td>Explicitly included via priors</td></tr>
 <tr><td>Result</td><td>p-value, confidence interval</td><td>Posterior distribution, credible interval</td></tr>
 <tr><td>“95% interval” means</td><td>95% of such intervals would contain the true value</td><td>95% probability the parameter is in this interval</td></tr>
-<tr><td>Multiple comparisons</td><td>Requires correction (Day 12)</td><td>Naturally skeptical with informative priors</td></tr>
-<tr><td>Small samples</td><td>Unreliable (CLT breaks down)</td><td>Works with proper priors</td></tr>
+<tr><td>Multiple comparisons</td><td>Uses family-wise, FDR, hierarchical, or simultaneous methods</td><td>Can use hierarchical priors or explicit decision rules; multiplicity does not vanish automatically</td></tr>
+<tr><td>Small samples</td><td>Exact or small-sample methods may be available; uncertainty is often wide</td><td>Priors can stabilize estimates, but sensitivity to assumptions is often greater</td></tr>
 </tbody>
 </table>
 </div>
@@ -683,7 +702,7 @@ print("Final classification: " +
 <ul>
 <li><strong>No meaningful prior</strong> exists (purely exploratory analysis)</li>
 <li><strong>Sample is large</strong> (prior is overwhelmed anyway, results converge)</li>
-<li><strong>Regulatory requirements</strong> demand frequentist analysis (FDA still primarily uses p-values)</li>
+<li>A protocol, regulator, or decision framework may require a particular estimand and analysis; check the current applicable guidance rather than assuming one statistical philosophy is mandatory</li>
 <li><strong>Simplicity matters</strong> (t-test is faster to explain than posterior distributions)</li>
 </ul>
 <h2 id="bayesian-thinking-in-biolang"><a class="header" href="#bayesian-thinking-in-biolang">Bayesian Thinking in BioLang</a></h2>

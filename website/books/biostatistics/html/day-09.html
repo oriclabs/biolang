@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-9-when-normality-fails--non-parametric-tests"><a class="header" href="#day-9-when-normality-fails--non-parametric-tests">Day 9: When Normality Fails — Non-Parametric Tests</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Rank-based tests compare ordering patterns instead of relying directly on measured distances.</li>
+<li><strong>Look for:</strong> overlap, ordering, ties, outliers, and whether paired observations remain paired.</li>
+<li><strong>Use this when:</strong> the rank-based question matches the scientific target, especially for ordinal or strongly skewed data.</li>
+<li><strong>Do not conclude:</strong> that these tests are assumption-free or are simply t-tests for non-normal data.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Dr. Maria Gonzalez studies the gut microbiome in inflammatory bowel disease (IBD). She has 16S rRNA sequencing data from 15 IBD patients and 15 healthy controls, measuring the relative abundance of <em>Faecalibacterium prausnitzii</em>, a key anti-inflammatory bacterium. Looking at the data, she sees a mess: most values cluster near zero, a few patients have moderate levels, and one healthy individual has an enormous abundance of 45%. The histogram looks nothing like a bell curve — it is right-skewed with a long tail.</p>
 <p>She runs a Shapiro-Wilk test on each group: both return p &lt; 0.001, evidence against an exact normal model. That result alone does not choose the analysis. She must decide whether her estimand is a difference in means, ranks, medians under additional assumptions, or entire distributions; she must also respect independence, ties, zeros, and the experimental unit.</p>

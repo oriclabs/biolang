@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,10 +179,22 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-12-the-multiple-testing-crisis--fdr-and-correction"><a class="header" href="#day-12-the-multiple-testing-crisis--fdr-and-correction">Day 12: The Multiple Testing Crisis — FDR and Correction</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Testing thousands of questions creates false alarms unless the analysis controls the collection of decisions.</li>
+<li><strong>Look for:</strong> the number of tests, the p-value distribution, adjusted values, and how many findings survive correction.</li>
+<li><strong>Use this when:</strong> many related genes, variants, metabolites, regions, or outcomes are tested together.</li>
+<li><strong>Do not conclude:</strong> that an adjusted p-value is the probability that one particular finding is false.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Dr. Rachel Kim is a genomicist analyzing differential gene expression between tumor and normal tissue. She runs a Welch’s t-test on each of 20,000 genes and finds 1,200 with p &lt; 0.05. Exciting — until she does the arithmetic: 20,000 genes multiplied by a 5% false positive rate equals 1,000 genes that would appear “significant” purely by chance, even if not a single gene were truly differentially expressed.</p>
 <p>Her 1,200 “hits” likely contain about 1,000 false positives and perhaps 200 true findings. That is a false discovery rate of over 80%. If she publishes this list and a validation lab tries to confirm the top 50 genes, roughly 40 will fail to replicate. Her scientific reputation — and the lab’s funding — depends on solving this problem.</p>
-<p>This is the <strong>multiple testing crisis</strong>, and it is the single most important statistical concept in genomics. Every differential expression study, every GWAS, every proteomics screen must address it. The solutions — Bonferroni correction, Benjamini-Hochberg FDR, and their relatives — are what make genome-scale analysis possible.</p>
+<p>This is the <strong>multiple-testing problem</strong>. Genome-scale analyses should state
+which collection of hypotheses is being controlled and why the chosen error
+criterion fits the scientific goal. Bonferroni, Holm, Benjamini-Hochberg, and
+model-based approaches control different kinds of error.</p>
 <h2 id="making-it-visceral-a-simulation"><a class="header" href="#making-it-visceral-a-simulation">Making It Visceral: A Simulation</a></h2>
 <p>Before discussing theory, let us see the problem with our own eyes.</p>
 <pre><code class="language-bio">set_seed(42)

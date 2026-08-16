@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-18-experimental-design-and-statistical-power"><a class="header" href="#day-18-experimental-design-and-statistical-power">Day 18: Experimental Design and Statistical Power</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Power is the chance that a planned analysis detects a chosen meaningful effect when that effect truly exists.</li>
+<li><strong>Look for:</strong> the effect worth detecting, expected variability, sample size, allocation, dropout, and the planned error threshold.</li>
+<li><strong>Use this when:</strong> designing a study before data collection or explaining what effects a completed study could reliably detect.</li>
+<li><strong>Do not conclude:</strong> that 80% power means an obtained result has an 80% chance of being true.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Dr. Ana Reyes is a junior PI writing her first R01 grant. She proposes a study comparing gene expression between psoriatic skin and normal skin using RNA-seq, planning <strong>3 samples per group</strong> because “that’s what the lab down the hall used.”</p>
 <p>The grant comes back with this reviewer comment:</p>
@@ -495,7 +504,10 @@
 <li><strong>Ethical cost:</strong> Patients enrolled in clinical trials with no realistic chance of detecting a benefit</li>
 </ol>
 <blockquote>
-<p><strong>Clinical relevance:</strong> The FDA and EMA require power analyses for all clinical trial protocols. Journal reviewers increasingly require them for observational studies too. “How many samples do you need?” is the first question of good experimental design.</p>
+<p><strong>Clinical relevance:</strong> Confirmatory trial protocols commonly justify sample
+size and operating characteristics under applicable guidance. Requirements
+vary by study and jurisdiction. A useful justification states the target
+effect, variability, error rates, dropout, analysis, and assumptions.</p>
 </blockquote>
 <h2 id="experimental-design-in-biolang"><a class="header" href="#experimental-design-in-biolang">Experimental Design in BioLang</a></h2>
 <h3 id="basic-power-analysis-for-t-test"><a class="header" href="#basic-power-analysis-for-t-test">Basic Power Analysis for t-test</a></h3>
@@ -803,7 +815,7 @@ library(simr)
 <li>For RNA-seq: n=3 is barely adequate (detects &gt;4-fold), n=8 is good (2-fold), n=12+ is ideal (1.5-fold)</li>
 <li><strong>Paired designs</strong> dramatically increase power by removing between-subject variability</li>
 <li>The <strong>winner’s curse</strong>: underpowered studies that happen to be significant overestimate the true effect</li>
-<li>Always use <strong>conservative</strong> effect size estimates and add buffer for dropout/QC failures</li>
+<li>Base the target effect on biological or clinical importance, use defensible variability estimates, and allow explicitly for expected dropout or QC loss</li>
 <li>Power curves visualize the sample size / power trade-off and help identify the sweet spot</li>
 </ul>
 <h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>

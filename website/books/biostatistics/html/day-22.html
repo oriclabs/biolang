@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-22-clustering--finding-structure-in-omics-data"><a class="header" href="#day-22-clustering--finding-structure-in-omics-data">Day 22: Clustering — Finding Structure in Omics Data</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Clustering groups observations according to a chosen definition of similarity.</li>
+<li><strong>Look for:</strong> stability across seeds and settings, silhouette patterns, batch alignment, and independent biological evidence.</li>
+<li><strong>Use this when:</strong> exploring possible subgroups without known labels.</li>
+<li><strong>Do not conclude:</strong> that every returned cluster is a natural population; clustering algorithms can partition noise.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 22 of 30</span>
 <span class="badge">Prerequisites: Days 2-3, 13, 21</span>
@@ -188,7 +197,11 @@
 
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>You are part of a cancer genomics consortium. Five hundred tumor samples have been profiled with RNA-seq, measuring the expression of 18,000 genes in each. The pathologist has classified these tumors into three histological subtypes based on what she sees under the microscope. But molecular data often reveals finer distinctions invisible to the eye.</p>
-<p>Your task: find natural groupings in the gene expression data — without peeking at the pathologist’s labels. If the molecular subtypes align with the histological ones, confidence in the classification increases. If the data reveals additional subtypes, you may have discovered clinically distinct groups that respond differently to treatment. In breast cancer, this is exactly how the PAM50 molecular subtypes were discovered — and they now guide treatment decisions for millions of patients worldwide.</p>
+<p>Your task is to explore possible groupings in the gene-expression data without
+using the pathologist’s labels to construct them. Agreement with histology can
+be useful supporting evidence. A new grouping is a hypothesis that needs
+replication, marker interpretation, clinical association, and preferably
+functional or external validation before it is called a biological subtype.</p>
 <p>But there is a danger lurking. Clustering algorithms always find clusters, even in random noise. The critical question is not “can I find groups?” but “are the groups real?”</p>
 <h2 id="what-is-clustering"><a class="header" href="#what-is-clustering">What Is Clustering?</a></h2>
 <p>Clustering is unsupervised grouping: divide observations into sets such that observations within a set are more similar to each other than to observations in other sets.</p>
@@ -529,7 +542,10 @@ for k in 2..8 {
 <p><strong>Common pitfall:</strong> A high silhouette score does not prove biological relevance. Random data with well-separated clusters in PCA space can have high silhouette scores. Always validate clusters against independent information — clinical outcomes, known markers, or held-out data.</p>
 </blockquote>
 <h2 id="clustering-always-finds-clusters--even-in-noise"><a class="header" href="#clustering-always-finds-clusters--even-in-noise">Clustering Always Finds Clusters — Even in Noise</a></h2>
-<p>This is the single most important warning about clustering. Run k-means with k = 3 on completely random data, and it will dutifully return three clusters. The clusters will look somewhat real in a scatter plot. But they are meaningless.</p>
+<p>Here is the central warning about clustering: run k-means with k = 3 on
+simulated unstructured noise and it will still return three partitions. A
+projection may make those partitions look persuasive even though the simulation
+contains no generating subpopulations.</p>
 <pre><code class="language-bio">set_seed(42)
 # DANGER: Clustering random noise
 let noise = range(0, 500) |&gt; map(|_| rnorm(20, 0, 1)) |&gt; matrix()

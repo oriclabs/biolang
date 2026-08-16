@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-11-categorical-data--chi-square-and-fishers-exact"><a class="header" href="#day-11-categorical-data--chi-square-and-fishers-exact">Day 11: Categorical Data — Chi-Square and Fisher’s Exact</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Categorical tests compare observed counts with the counts expected under a stated no-association model.</li>
+<li><strong>Look for:</strong> which table cells differ most from expectation and whether any expected counts are small.</li>
+<li><strong>Use this when:</strong> the data are counts of independent units in categories, with paired designs handled separately.</li>
+<li><strong>Do not conclude:</strong> that association proves causation or that percentages can be analysed without their denominators.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Dr. Elena Vasquez is an epidemiologist studying the genetics of Alzheimer’s disease. She genotypes a SNP near the APOE gene in 1,000 participants: 500 with Alzheimer’s and 500 age-matched controls. Among Alzheimer’s patients, 180 carry at least one copy of the risk allele. Among controls, 120 carry it. The numbers look different — 36% versus 24% — but these are proportions, not measurements on a continuous scale. She cannot compute a mean or standard deviation. She cannot run a t-test.</p>
 <p>When your data are counts in categories — disease yes/no, genotype AA/AG/GG, response/non-response — you need tests designed for categorical data. The chi-square test and Fisher’s exact test are the workhorses. They also underpin some of the most important calculations in genetics: Hardy-Weinberg equilibrium, odds ratios for case-control studies, and allelic association tests.</p>
@@ -331,12 +340,19 @@
 
 <h2 id="fishers-exact-test"><a class="header" href="#fishers-exact-test">Fisher’s Exact Test</a></h2>
 <p>When sample sizes are small or expected counts fall below 5, the chi-square approximation is unreliable. Fisher’s exact test computes the exact probability using the hypergeometric distribution.</p>
-<p>Fisher’s exact test is computationally expensive for large tables but is the gold standard for 2x2 tables with small counts — common in rare variant studies and pilot experiments.</p>
+<p>Fisher’s exact test is a common exact conditional analysis for a 2x2 table with
+small counts. Its conditioning and sampling assumptions should match the
+design; other exact or model-based analyses may target a different question.</p>
 <blockquote>
-<p><strong>Clinical relevance:</strong> Regulatory agencies (FDA, EMA) often prefer Fisher’s exact test for safety analyses where adverse events are rare and sample sizes are modest.</p>
+<p><strong>Clinical relevance:</strong> Rare adverse-event tables often need exact or
+small-sample methods. The prespecified protocol and applicable regulatory
+guidance determine the analysis; one test is not automatically preferred in
+every setting.</p>
 </blockquote>
 <h2 id="mcnemars-test-paired-categorical-data"><a class="header" href="#mcnemars-test-paired-categorical-data">McNemar’s Test: Paired Categorical Data</a></h2>
-<p>When observations are paired — the same patients tested before and after treatment, or the same samples tested with two diagnostic methods — McNemar’s test is the correct choice.</p>
+<p>For paired binary observations—such as the same patients before and after, or
+the same samples measured by two methods—McNemar’s test compares the two kinds
+of discordant pair under its matched-pair assumptions.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -474,7 +490,7 @@ print("Observed: 8/200 cases vs 2/200 controls carry the variant\n")
 let chi_result = chi_square(observed, [5.0, 195.0, 5.0, 195.0])
 print(f"Chi-square p-value: {chi_result.p_value:.4} (unreliable — low expected counts)")
 
-# Fisher's exact is the correct choice
+# Fisher's exact represents this small 2x2 comparison
 let fisher_result = fisher_exact(8, 192, 2, 198)
 print(f"Fisher's exact p-value: {fisher_result.p_value:.4}")
 

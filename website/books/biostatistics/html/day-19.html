@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-19-effect-sizes--beyond-p-values"><a class="header" href="#day-19-effect-sizes--beyond-p-values">Day 19: Effect Sizes — Beyond p-Values</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> An effect size describes how large a difference or relationship is; a p-value addresses a different question about evidence.</li>
+<li><strong>Look for:</strong> the effect estimate, its units, its interval, and a threshold of practical or biological importance.</li>
+<li><strong>Use this when:</strong> interpreting, comparing, planning, or combining study results.</li>
+<li><strong>Do not conclude:</strong> that labels such as small, medium, and large replace domain knowledge or uncertainty intervals.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Two papers land on Dr. Rachel Nguyen’s desk the same morning.</p>
 <p><strong>Paper A:</strong> “GENE_X is significantly differentially expressed between tumor and normal tissue (p = 0.00001, n = 5,000).” She looks at the supplementary data: the mean difference is <strong>0.02 FPKM</strong> on a scale where genes range from 0 to 50,000 FPKM. The fold change is 1.001.</p>
@@ -459,13 +468,13 @@
 </div>
 <p>Eta-squared tells you what fraction of total variance is explained by group membership.</p>
 <h2 id="forest-plots-the-standard-display"><a class="header" href="#forest-plots-the-standard-display">Forest Plots: The Standard Display</a></h2>
-<p><strong>Forest plots</strong> are the gold standard for displaying effect sizes across multiple comparisons. Each row shows:</p>
+<p><strong>Forest plots</strong> are a widely used display for effect sizes across multiple comparisons. Each row shows:</p>
 <ul>
 <li>A point estimate (the effect size)</li>
 <li>A horizontal line (the confidence interval)</li>
 <li>A vertical reference line (null effect: 0 for differences, 1 for ratios)</li>
 </ul>
-<p>They’re essential for:</p>
+<p>They are useful for:</p>
 <ul>
 <li>Meta-analyses (combining studies)</li>
 <li>Multi-gene comparisons (e.g., DE genes ranked by effect size)</li>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Day 6: Confidence Intervals — The Range of Truth - Practical Biostatistics in 30 Days</title>
+        <title>Day 6: Confidence Intervals — An Estimate with Uncertainty - Practical Biostatistics in 30 Days</title>
 
 
         <!-- Custom HTML head -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -178,7 +178,16 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="day-6-confidence-intervals--the-range-of-truth"><a class="header" href="#day-6-confidence-intervals--the-range-of-truth">Day 6: Confidence Intervals — The Range of Truth</a></h1>
+                        <h1 id="day-6-confidence-intervals--an-estimate-with-uncertainty"><a class="header" href="#day-6-confidence-intervals--an-estimate-with-uncertainty">Day 6: Confidence Intervals — An Estimate with Uncertainty</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> A confidence interval shows the estimate and how precisely the study has located it.</li>
+<li><strong>Look for:</strong> the centre, the interval width, and whether it crosses a scientifically important value.</li>
+<li><strong>Use this when:</strong> reporting an estimated mean, difference, proportion, effect, or model coefficient.</li>
+<li><strong>Do not conclude:</strong> that a particular 95% interval has a 95% probability of containing the fixed true value.</li>
+</ul>
+</blockquote>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Dr. Amara Chen’s pharmacology team has spent six months developing a novel kinase inhibitor for triple-negative breast cancer. After extensive optimization, they measure the half-maximal inhibitory concentration (IC50) across eight independent replicates: 11.2, 13.1, 12.8, 10.9, 14.2, 12.0, 11.7, and 12.5 nanomolar. The mean is 12.3 nM — an excellent result that would place their compound among the most potent in its class.</p>
 <p>But when Dr. Chen presents these results to the medicinal chemistry team, the lead chemist asks the uncomfortable question: “If you ran the experiment again tomorrow, would you get 12.3 nM? Or could it be 15? Or 9?” The point estimate of 12.3 nM tells them where the center of their data is, but it says nothing about how <em>confident</em> they should be in that number. They need a range — a confidence interval — that captures the uncertainty inherent in measuring anything biological.</p>
@@ -266,47 +275,47 @@
 </table>
 </div>
 <blockquote>
-<p><strong>Key insight:</strong> For biological experiments with n &lt; 30, always use the t-distribution. Using z would give falsely narrow intervals that overstate your precision.</p>
+<p><strong>Key insight:</strong> For a mean with an unknown population SD, the usual classical interval uses a t reference with the appropriate degrees of freedom. The choice is about the model and estimated variance, not a universal n = 30 switch; skewness, dependence, clustering, and the design may require another interval.</p>
 </blockquote>
 <h2 id="ci-for-a-proportion"><a class="header" href="#ci-for-a-proportion">CI for a Proportion</a></h2>
 <p>When the variable is binary — mutation present/absent, responder/non-responder — we need a CI for a proportion p-hat = x/n.</p>
 <h3 id="wald-interval-simple-but-flawed"><a class="header" href="#wald-interval-simple-but-flawed">Wald Interval (Simple but Flawed)</a></h3>
 <p><strong>CI = p-hat +/- z x sqrt(p-hat(1 - p-hat) / n)</strong></p>
 <p>This is the textbook formula, but it performs poorly when p is near 0 or 1, or when n is small. It can even produce intervals that extend below 0 or above 1.</p>
-<h3 id="wilson-interval-preferred"><a class="header" href="#wilson-interval-preferred">Wilson Interval (Preferred)</a></h3>
-<p>The Wilson score interval adjusts the center and width, and is recommended for most biological applications:</p>
+<h3 id="wilson-interval-a-useful-default-for-a-simple-proportion"><a class="header" href="#wilson-interval-a-useful-default-for-a-simple-proportion">Wilson Interval (A Useful Default for a Simple Proportion)</a></h3>
+<p>The Wilson score interval adjusts the centre and width and usually behaves better than the simple Wald interval for independent binary observations:</p>
 <p><strong>CI = (p-hat + z²/2n +/- z x sqrt(p-hat(1-p-hat)/n + z²/4n²)) / (1 + z²/n)</strong></p>
 <blockquote>
-<p><strong>Clinical relevance:</strong> When reporting mutation carrier frequencies, drug response rates, or diagnostic sensitivity/specificity, always use Wilson intervals. Regulatory agencies expect intervals that behave properly even at extreme proportions.</p>
+<p><strong>Clinical relevance:</strong> Wilson is a useful default for a simple independent proportion. Paired observations, clustered samples, survey designs, diagnostic accuracy studies, and very small counts need intervals that represent their actual design.</p>
 </blockquote>
 <h2 id="ci-for-the-difference-between-two-means"><a class="header" href="#ci-for-the-difference-between-two-means">CI for the Difference Between Two Means</a></h2>
 <p>Often the real question is not “what is the mean?” but “how much do two groups differ?” The CI for the difference between two independent means is:</p>
 <p><strong>CI = (x-bar1 - x-bar2) +/- t x SE_diff</strong></p>
 <p>Where SE_diff = sqrt(s1²/n1 + s2²/n2) for Welch’s approach.</p>
-<p><strong>The critical interpretation:</strong> If the CI for the difference includes zero, the data are consistent with no difference between the groups. If it excludes zero, the difference is statistically significant.</p>
+<p><strong>The practical interpretation:</strong> Values inside the interval are comparatively compatible with the fitted model and data. Crossing zero means the interval includes both directions or no mean difference; excluding zero corresponds to a two-sided test at the matching level, but importance still depends on the effect size and context.</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>CI for Difference</th><th>Interpretation</th></tr>
 </thead>
 <tbody>
-<tr><td>[1.2, 4.8]</td><td>Groups differ; difference is between 1.2 and 4.8 units</td></tr>
+<tr><td>[1.2, 4.8]</td><td>Compatible mean differences are positive and range from 1.2 to 4.8 units</td></tr>
 <tr><td>[-0.5, 3.1]</td><td>Includes zero; cannot rule out no difference</td></tr>
-<tr><td>[-4.2, -1.1]</td><td>Groups differ; group 2 is higher by 1.1 to 4.2 units</td></tr>
+<tr><td>[-4.2, -1.1]</td><td>Compatible mean differences are negative; group 2 is higher by 1.1 to 4.2 units</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="bootstrap-confidence-intervals"><a class="header" href="#bootstrap-confidence-intervals">Bootstrap Confidence Intervals</a></h2>
-<p>What if your statistic is a median, a ratio, or something with no tidy formula? The <strong>bootstrap</strong> is a computer-intensive method that works for <em>any</em> statistic:</p>
+<p>What if your statistic is a median, a ratio, or something with no tidy formula? The <strong>bootstrap</strong> is a computer-intensive method that can estimate uncertainty for many statistics:</p>
 <ol>
 <li>Resample your data <strong>with replacement</strong>, same size as original</li>
 <li>Compute the statistic on the resample</li>
 <li>Repeat 10,000 times</li>
 <li>Take the 2.5th and 97.5th percentiles of the bootstrap distribution</li>
 </ol>
-<p>This is called the <strong>percentile method</strong>. No assumptions about normality or distribution shape are required.</p>
+<p>This is called the <strong>percentile method</strong>. It does not require an exact normal outcome model, but it does require a defensible resampling unit and representative observations. Very small samples, dependence, bias, boundaries, and non-smooth statistics can make a simple percentile interval inaccurate.</p>
 <blockquote>
-<p><strong>Key insight:</strong> Bootstrap CIs are the Swiss army knife of interval estimation. When in doubt, bootstrap it.</p>
+<p><strong>Key insight:</strong> Bootstrap intervals are flexible, but the resampling plan must imitate the study design. When in doubt, state the experimental unit and check whether a specialised interval is needed.</p>
 </blockquote>
 <h2 id="what-controls-ci-width"><a class="header" href="#what-controls-ci-width">What Controls CI Width?</a></h2>
 <p>Three factors determine how wide or narrow your confidence interval will be:</p>
@@ -626,7 +635,7 @@ let drug_y = [5.8, 6.5, 7.2, 6.0, 5.9, 6.8]
 <ul>
 <li>A <strong>confidence interval</strong> gives a range of plausible values for a population parameter, not just a point estimate</li>
 <li>The 95% in “95% CI” refers to the long-run coverage rate of the procedure, not the probability for a specific interval</li>
-<li>For small samples (n &lt; 30), always use the <strong>t-distribution</strong> — it accounts for extra uncertainty</li>
+<li>Classical intervals for a mean with unknown population SD use a <strong>t reference</strong>; adequacy also depends on the outcome shape, independence, and design</li>
 <li><strong>Bootstrap CIs</strong> work for any statistic (median, ratio, fold change) without distributional assumptions</li>
 <li>CI width shrinks with larger n, lower variability, and lower confidence level</li>
 <li>A CI for the difference that <strong>includes zero</strong> means the data are consistent with no difference</li>

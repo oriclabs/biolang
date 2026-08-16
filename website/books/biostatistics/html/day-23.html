@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-23-resampling--bootstrap-and-permutation-tests"><a class="header" href="#day-23-resampling--bootstrap-and-permutation-tests">Day 23: Resampling — Bootstrap and Permutation Tests</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Resampling repeats a carefully chosen sampling or label-shuffling process to reveal uncertainty.</li>
+<li><strong>Look for:</strong> the resampling unit, bootstrap distribution, null distribution, interval width, and result stability.</li>
+<li><strong>Use this when:</strong> estimating uncertainty or testing an exchangeable-label null without a convenient closed-form calculation.</li>
+<li><strong>Do not conclude:</strong> that computation removes assumptions about independence, representativeness, censoring, or study design.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 23 of 30</span>
 <span class="badge">Prerequisites: Days 6-8</span>
@@ -190,10 +199,10 @@
 <p>Your collaborator is studying a rare metabolic disorder. She has tissue samples from 6 affected mice and 6 controls, measuring enzyme activity in each. The treatment group shows higher median enzyme activity, and she wants to know if the difference is real.</p>
 <p>You reach for a t-test, but hesitate. With only 6 observations per group, you cannot meaningfully assess whether the data is normally distributed. A Shapiro-Wilk test on 6 points has almost no power. The Wilcoxon rank-sum test is an option, but with only 6 per group, it can only detect very large effects.</p>
 <p>What if you could approximate a sampling distribution by resampling observed units instead of writing down a full parametric outcome distribution? Bootstrap and permutation methods can target many statistics, but they are not assumption-free: the resampling unit, exchangeability, dependence, representativeness, and small-sample behaviour still matter.</p>
-<p>You can. Resampling methods let the data speak for itself, replacing theoretical assumptions with raw computational power. They are among the most broadly applicable tools in statistics, and after today, you will wonder how you ever lived without them.</p>
+<p>Resampling provides a practical route: repeat a sampling or label-shuffling operation that represents the design, calculate the statistic each time, and examine the resulting distribution. Computation replaces some algebra, but it does not replace study assumptions.</p>
 <h2 id="what-are-resampling-methods"><a class="header" href="#what-are-resampling-methods">What Are Resampling Methods?</a></h2>
 <p>Resampling methods draw repeated samples from your data to estimate the sampling distribution of a statistic. Instead of deriving a formula for how the mean varies from sample to sample (the classical approach), you literally simulate the process: draw a new sample, compute the statistic, repeat thousands of times, and look at the distribution of results.</p>
-<p>Think of it like this. You have a bag containing 12 marbles (your data). You want to know how variable the “average marble weight” is. The classical approach derives a formula based on the normal distribution. The resampling approach says: shake the bag, pull out 12 marbles (with replacement), weigh them, compute the average. Put them back. Repeat 10,000 times. The distribution of those 10,000 averages tells you everything you need to know — no formula, no assumptions.</p>
+<p>Think of it like this. You have a bag containing 12 marbles (your data). To explore how the average might vary, repeatedly draw 12 marbles with replacement and calculate their mean. The resulting bootstrap distribution estimates one part of the uncertainty, provided those marbles reasonably represent the population and independent marbles are the correct resampling unit.</p>
 <blockquote>
 <p><strong>Key insight:</strong> Resampling methods trade some distributional formulas for computational effort, not for an assumption-free analysis. The resampling unit must match the experimental unit; bootstrap observations should represent the target population, and permutation labels must be exchangeable under the null. Dependence, clustering, censoring, and small samples may require specialised schemes.</p>
 </blockquote>

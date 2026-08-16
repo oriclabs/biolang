@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-2-your-data-at-a-glance--descriptive-statistics"><a class="header" href="#day-2-your-data-at-a-glance--descriptive-statistics">Day 2: Your Data at a Glance — Descriptive Statistics</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Centre describes what is typical, spread describes how much values differ, and shape shows how those values are arranged.</li>
+<li><strong>Look for:</strong> the raw points first, then mean or median, SD or IQR, skewness, gaps, clusters, and unusual observations.</li>
+<li><strong>Use this when:</strong> beginning every analysis and checking whether summaries hide important structure.</li>
+<li><strong>Do not conclude:</strong> that one centre or one spread tells the whole story, or that every unusual point is an error.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 2 of 30</span>
 <span class="badge">Prerequisites: Day 1</span>
@@ -199,8 +208,8 @@
 <li><strong>Shape</strong> — Is the data symmetric? Skewed? Are there outliers?</li>
 </ol>
 <h3 id="why-do-these-three-matter"><a class="header" href="#why-do-these-three-matter">Why Do These Three Matter?</a></h3>
-<p><strong>Center tells you what is “normal.”</strong> If the mean quality score of your sequencing run is Q35, you know tiles are performing well. If it is Q15, something went wrong. Without center, you have no reference point — you cannot say whether a single observation is typical or alarming. In clinical genomics, center defines the baseline: what is the typical variant allele frequency in this cohort? What is the average coverage across your target regions?</p>
-<p><strong>Spread tells you how much you can trust the center.</strong> Two experiments might both report a mean IC50 of 12 nM, but one has values ranging from 11 to 13 (tight, reproducible) while the other ranges from 2 to 45 (noisy, unreliable). The center is the same — the spread tells you completely different stories. High spread means your next measurement could land anywhere; low spread means you can make confident predictions. In RNA-seq, high within-group variance buries real differential expression in noise.</p>
+<p><strong>Centre describes a reference point.</strong> Depending on the question, this may be the equal-share balance point (mean), halfway observation (median), most common value (mode), or another centre. Whether Q35 is acceptable still depends on the instrument, protocol, and quality criteria; the centre alone cannot certify the run.</p>
+<p><strong>Spread describes variation among observations.</strong> Two experiments might both report a mean IC50 of 12 nM, but one ranges from 11 to 13 while the other ranges from 2 to 45. That is different from uncertainty in the estimated mean: spread describes the observations, while a standard error or confidence interval describes precision of an estimate under a sampling model.</p>
 <p><strong>Shape gives modelling clues.</strong> Many models make assumptions about errors, residuals, conditional outcomes, or sampling processes—not simply about the raw measurements. A right-skewed outcome can suggest a log-scale preview, a count model, or a robust summary, but the scientific estimand and design decide which is appropriate. Bimodality can be a clue to mixtures, batch effects, censoring, or subgroups; it is not by itself proof of two biological populations.</p>
 <blockquote>
 <p><strong>Key insight:</strong> Report centre with a compatible spread, retain a view of the full distribution, and state the measurement scale. Standard deviation is defined for skewed data, but it can be a poor description of a <em>typical</em> distance when the mean and tails dominate; median with IQR or MAD is often a useful companion.</p>
@@ -537,17 +546,17 @@ let mixed_scores = good_tiles + bad_tiles
 let mixed_stats = summary(mixed_scores)
 print(mixed_stats)
 # Mean: 29.7 — looks okay at first glance
-# Median: 32.1 — the median reveals the truth: most tiles are fine
+# Median: 32.1 — the halfway value stays near the good-tile peak
 # Skewness: -1.4 — strongly left-skewed, warning sign!
 
 # The mean alone would have hidden the problem.
-# Always look at the full distribution.
+# Inspect the full distribution alongside the summaries.
 </code></pre>
 <blockquote>
 <p><strong>Common pitfall:</strong> Relying on the mean alone can hide bimodal distributions. The “bad tile” problem above is common in sequencing — a mean of 29.7 looks passable, but 22% of tiles are failing. Always visualize.</p>
 </blockquote>
 <h2 id="visualization-always-plot-before-you-test"><a class="header" href="#visualization-always-plot-before-you-test">Visualization: Always Plot Before You Test</a></h2>
-<p>Numbers tell part of the story. Plots tell the rest. Anscombe’s Quartet — four datasets with identical means, variances, and correlations but wildly different structures — demonstrates why you must always look at your data.</p>
+<p>Numbers and plots answer complementary questions. Anscombe’s Quartet—four datasets with identical means, variances, and correlations but very different structures—shows why important analyses should include a suitable view of the observations.</p>
 <h3 id="histograms"><a class="header" href="#histograms">Histograms</a></h3>
 <p>A histogram bins your data and counts frequencies. It reveals the distribution’s shape at a glance.</p>
 <pre><code class="language-bio"># Basic histogram (quality_scores is defined earlier in this chapter)

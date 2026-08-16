@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "ayu";
-            window.path_to_searchindex_js = "searchindex-71b5e392.js";
+            window.path_to_searchindex_js = "searchindex-b1695c5a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0c6a9f60.js"></script>
+        <script src="toc-d925b68f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,6 +179,15 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="day-21-dimensionality-reduction--pca-and-friends"><a class="header" href="#day-21-dimensionality-reduction--pca-and-friends">Day 21: Dimensionality Reduction — PCA and Friends</a></h1>
+<blockquote>
+<p><strong>Start here</strong></p>
+<ul>
+<li><strong>In one sentence:</strong> Dimensionality reduction creates a small set of viewing directions for data with many measurements.</li>
+<li><strong>Look for:</strong> variance explained, loadings, batch patterns, outliers, and whether the picture is stable under reasonable choices.</li>
+<li><strong>Use this when:</strong> exploring or visualizing many correlated features such as genes, proteins, or metabolites.</li>
+<li><strong>Do not conclude:</strong> that a two-dimensional picture contains all the information or proves that visible groups are real.</li>
+</ul>
+</blockquote>
 <div class="day-meta">
 <span class="badge">Day 21 of 30</span>
 <span class="badge">Prerequisites: Days 2-3, 13, 20</span>
@@ -190,7 +199,9 @@
 <p>A single-cell RNA sequencing experiment has just finished. Your collaborator drops a matrix on your desk: expression levels for 20,000 genes measured across 5,000 individual cells. She wants to know whether the cells form distinct populations — immune subtypes, perhaps, or tumor cells versus stroma.</p>
 <p>You stare at the matrix. Twenty thousand dimensions. You cannot visualize it. You cannot eyeball it. You cannot plot 20,000 axes on a screen. If you pick two genes at random and make a scatter plot, you might miss the structure entirely — those two genes might be irrelevant. Pick different genes and you get a completely different picture.</p>
 <p>What you need is a camera angle. A way to look at 20,000-dimensional data from the direction that reveals the most structure. A method that compresses the information into a handful of dimensions you can actually see and reason about — without throwing away the patterns that matter.</p>
-<p>That method is Principal Component Analysis. It is the single most widely used technique in genomics for exploring high-dimensional data, and by the end of today, you will understand exactly how it works, when it fails, and how to use it effectively.</p>
+<p>Principal Component Analysis is one widely used linear method for this task.
+This chapter builds an intuitive reading of scores, loadings, and variance
+explained, then shows limitations and checks needed before interpretation.</p>
 <h2 id="what-is-dimensionality-reduction"><a class="header" href="#what-is-dimensionality-reduction">What Is Dimensionality Reduction?</a></h2>
 <p>Dimensionality reduction takes data with many variables (dimensions) and represents it using fewer variables, while preserving as much of the important structure as possible.</p>
 <p>Think of it this way. You are standing on a hilltop overlooking a city. The city exists in three dimensions, but you are looking at it from one particular angle. Your view — a photograph — is a two-dimensional representation of a three-dimensional scene. A good photograph, taken from the right angle, captures the layout of the streets, the relative positions of buildings, and the overall structure. A bad photograph, taken facing a blank wall, tells you nothing.</p>
@@ -201,7 +212,11 @@
 <h2 id="the-curse-of-dimensionality"><a class="header" href="#the-curse-of-dimensionality">The Curse of Dimensionality</a></h2>
 <p>Before we solve the problem, let us understand why high dimensions are problematic.</p>
 <p>In one dimension, 10 evenly spaced points cover a line segment well. In two dimensions, you need 100 points (10 x 10) to cover a square with the same density. In three dimensions, 1,000 points (10 x 10 x 10). In 20,000 dimensions, you would need 10^20,000 points — a number so large it dwarfs the number of atoms in the observable universe.</p>
-<p>This means that in high-dimensional space, data is always sparse. Your 5,000 cells are scattered across 20,000-dimensional space like five thousand grains of sand in the Sahara. Most of the space is empty. Distances between points become unreliable — in very high dimensions, the nearest neighbor and the farthest neighbor are almost the same distance away.</p>
+<p>With limited observations, high-dimensional space is sampled sparsely. Distance
+can become difficult to interpret because irrelevant features, scale, noise,
+and the chosen metric may contribute as much as meaningful structure. This is
+a warning to validate the representation, not a claim that every distance is
+automatically useless.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -211,11 +226,14 @@
 <tr><td>2</td><td>100</td><td>Excellent</td></tr>
 <tr><td>10</td><td>10 billion</td><td>Good</td></tr>
 <tr><td>100</td><td>10^100</td><td>Poor</td></tr>
-<tr><td>20,000</td><td>10^20,000</td><td>Meaningless</td></tr>
+<tr><td>20,000</td><td>10^20,000</td><td>Requires structure or dimension reduction</td></tr>
 </tbody>
 </table>
 </div>
-<p>This is the curse of dimensionality. It makes direct analysis of raw high-dimensional data unreliable. Fortunately, biological data has a saving grace: most of the 20,000 gene dimensions are redundant. Genes in the same pathway are correlated. Housekeeping genes barely vary. The “true” dimensionality of gene expression data is typically much lower than the number of genes measured — perhaps tens to hundreds of effective dimensions. PCA exploits this redundancy.</p>
+<p>This is the curse of dimensionality. Biological features are often correlated,
+so a smaller representation may capture useful structure, but its effective
+dimension is dataset-dependent. PCA exploits linear covariance; it does not
+guarantee that every important biological pattern appears in the first few PCs.</p>
 <h2 id="pca-mechanics-finding-the-best-camera-angle"><a class="header" href="#pca-mechanics-finding-the-best-camera-angle">PCA Mechanics: Finding the Best Camera Angle</a></h2>
 <p>PCA proceeds in a simple sequence of steps.</p>
 <h3 id="step-1-center-the-data"><a class="header" href="#step-1-center-the-data">Step 1: Center the Data</a></h3>
@@ -325,7 +343,10 @@
 </tbody>
 </table>
 </div>
-<p>In a typical scRNA-seq dataset, the first 20-50 PCs might capture 70-80% of the total variance. The remaining thousands of PCs together account for the other 20-30% — mostly noise.</p>
+<p>There is no universal number or percentage of useful PCs. The answer depends on
+normalization, feature selection, cell composition, technical effects, and the
+downstream task. Later PCs may contain noise, subtle biology, or both, so check
+stability and relevant diagnostics rather than applying a fixed cutoff.</p>
 <blockquote>
 <p><strong>Key insight:</strong> If the first 2 PCs capture 60%+ of the variance, a 2D PCA plot is a good representation. If they capture only 15%, the data has complex structure that two dimensions cannot convey.</p>
 </blockquote>
