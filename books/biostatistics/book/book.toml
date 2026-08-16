@@ -13,13 +13,14 @@ default-theme = "light"
 preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/oriclabs/biolang"
 additional-css = ["theme/print.css"]
-additional-js = ["theme/toolbar-buttons.js", "theme/book-runner.js"]
+additional-js = ["theme/toolbar-buttons.js"]
 
 [output.html.search]
 enable = true
 
 [output.html.playground]
 editable = false
+copyable = true
 
 [output.pdf]
 optional = true

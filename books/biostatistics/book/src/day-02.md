@@ -449,7 +449,7 @@ Numbers tell part of the story. Plots tell the rest. Anscombe's Quartet — four
 A histogram bins your data and counts frequencies. It reveals the distribution's shape at a glance.
 
 ```bio
-# Basic histogram (uses quality_scores from block above — click "Run All Above + This")
+# Basic histogram (quality_scores is defined earlier in this chapter)
 histogram(quality_scores, {bins: 50, title: "Sequencing Quality Distribution"})
 ```
 
