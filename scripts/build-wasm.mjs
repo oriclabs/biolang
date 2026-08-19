@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Build the browser runtime, put it in both places, and record what it was
- * built from.
+ * Build the browser runtime owned by the workbench and record what it was
+ * built from. The website publisher copies this canonical module at deploy time.
  *
  * There were three manual steps here and each one had been forgotten at least
  * once: run wasm-pack, copy the output to desktop/public/wasm, and remember
@@ -16,14 +16,13 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { fingerprint } from "./lib/wasm-fingerprint.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const websiteWasm = path.join(repositoryRoot, "website", "wasm");
 const workbenchWasm = path.join(repositoryRoot, "desktop", "public", "wasm");
 
 console.log("Building the browser runtime (release)...");
@@ -35,29 +34,24 @@ execFileSync(
     "--target",
     "web",
     "--out-dir",
-    "../../website/wasm",
+    "../../desktop/public/wasm",
     "--no-typescript",
     "--release",
   ],
   { cwd: repositoryRoot, stdio: "inherit" },
 );
 
-// The fingerprint lives beside website/wasm rather than inside it: wasm-pack
+// The fingerprint lives beside the generated directory rather than inside it: wasm-pack
 // writes its own .gitignore into the out-dir on every build - a bare `*` -
 // so anything new in there is untrackable, and an exception added by hand is
 // destroyed by the next build.
 //
-// The workbench ships its own copy. Nothing generates it from the first, which
-// is exactly how the two came to disagree.
 mkdirSync(workbenchWasm, { recursive: true });
-for (const file of ["bl_wasm_bg.wasm", "bl_wasm.js"]) {
-  copyFileSync(path.join(websiteWasm, file), path.join(workbenchWasm, file));
-}
-console.log(`Copied the module to ${path.relative(repositoryRoot, workbenchWasm)}.`);
+console.log(`Built the module in ${path.relative(repositoryRoot, workbenchWasm)}.`);
 
 const { hash, fileCount } = fingerprint(repositoryRoot);
 writeFileSync(
-  path.join(repositoryRoot, "website", "wasm-build-fingerprint.json"),
+  path.join(repositoryRoot, "desktop", "public", "wasm-build-fingerprint.json"),
   `${JSON.stringify(
     {
       comment:
@@ -73,4 +67,4 @@ writeFileSync(
   )}\n`,
 );
 console.log(`Recorded a fingerprint of ${fileCount} source files.`);
-console.log("\nCommit website/wasm, desktop/public/wasm and the fingerprint together.");
+console.log("\nCommit desktop/public/wasm and its fingerprint together.");

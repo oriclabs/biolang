@@ -2,13 +2,7 @@
 /**
  * Regenerate every committed artifact and fail if that changed anything.
  *
- * Three files in this repository are generated from sources that live
- * elsewhere in it, and each one has its own CI job because each has drifted
- * before:
- *
- *   website/docs/examples     built from the example packs
- *   desktop/src/generated     built from the same packs, plus `bl metadata`
- *   desktop/public/wasm       a byte-for-byte copy of website/wasm
+ * The workbench help index is generated from sources elsewhere in this tree.
  *
  * Editing a source and forgetting its generated output is not a mistake the
  * ordinary gates can catch: `cargo test` and check-examples-run both pass, so
@@ -16,7 +10,7 @@
  * how v1.2.0 was tagged with three stale artifacts at once, one of which would
  * have shipped a runtime two days older than the documentation describing it.
  *
- * A fourth check compares npm/package.json against the workspace version.
+ * A second check compares npm/package.json against the workspace version.
  * Nothing generates that file, but nothing synced it either, and it sat at
  * 1.1.0 through two tagged releases.
  *
@@ -52,27 +46,9 @@ async function dirtyPaths(paths) {
 
 const failures = [];
 
-// 1. Pack documentation.
+// 1. Workbench help index.
 //
-// website/docs/examples is generated from packs/*/pack.toml and the .bl files
-// beside them. The stronghold assertions were strengthened without rerunning
-// this, which is the failure that started the list.
-{
-  await run("node", ["scripts/generate-pack-docs.mjs"]);
-  const dirty = await dirtyPaths(["website/docs/examples"]);
-  if (dirty.length) {
-    failures.push({
-      what: "pack documentation",
-      fix: "node scripts/generate-pack-docs.mjs",
-      files: dirty,
-      corrected: true,
-    });
-  }
-}
-
-// 2. Workbench help index.
-//
-// Built from the packs, the books and `bl metadata`. generate-help falls back
+// Built from the packs and `bl metadata`. generate-help falls back
 // to the committed metadata snapshot when the CLI is missing and still reports
 // success, so an unbuilt binary would quietly produce a degraded index and this
 // check would blame the wrong thing. Require the binary instead.
@@ -96,41 +72,7 @@ const failures = [];
   }
 }
 
-// 3. The two WASM copies.
-//
-// website/wasm serves the playground and desktop/public/wasm ships inside the
-// workbench. Nothing generates the second from the first, so a rebuild that
-// updates only one leaves the workbench on the older runtime - silently, since
-// both still load and run.
-//
-// This checks only that the two copies agree with each other. Two equally stale
-// copies pass it, and that is the common case: nothing rebuilds the module when
-// the runtime changes. scripts/check-wasm-fresh.mjs covers that half, by
-// comparing the module against the Rust source rather than against its own copy.
-{
-  const pairs = [
-    ["website/wasm/bl_wasm_bg.wasm", "desktop/public/wasm/bl_wasm_bg.wasm"],
-    ["website/wasm/bl_wasm.js", "desktop/public/wasm/bl_wasm.js"],
-  ];
-  const differing = [];
-  for (const [source, copy] of pairs) {
-    const [a, b] = await Promise.all([
-      readFile(path.join(repositoryRoot, source)),
-      readFile(path.join(repositoryRoot, copy)).catch(() => null),
-    ]);
-    if (!b || !a.equals(b)) differing.push(copy);
-  }
-  if (differing.length) {
-    failures.push({
-      what: "workbench WASM copy",
-      fix: "cp website/wasm/bl_wasm_bg.wasm website/wasm/bl_wasm.js desktop/public/wasm/",
-      files: differing,
-      corrected: false,
-    });
-  }
-}
-
-// 4. npm package version.
+// 2. npm package version.
 //
 // npm/package.json wraps the WASM module built from this workspace, so a
 // version it does not share is a version that describes something else.
@@ -187,5 +129,5 @@ if (failures.length) {
 }
 
 console.log(
-  "Generated files are current: pack docs, workbench help index, WASM copies, npm version.",
+  "Generated files are current: workbench help index and npm version.",
 );

@@ -6,14 +6,14 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const packsDir = path.resolve(here, "..", "website", "packs");
+const packsDir = path.resolve(here, "..", "dist", "packs");
 
 /**
  * Serve the built example packs at /packs during `vite dev`.
  *
  * Example-pack deep links — /workbench/?pack=<id>&problem=<ID> — fetch the
  * catalog from /packs/index.json at the origin root. On lang.bio that is
- * website/packs/, which CI builds and the site serves. The dev server's root is
+ * /packs/, which the publisher builds and the site serves. The dev server's root is
  * desktop/public/, which has no packs directory, so every deep link 404'd on
  * the catalog fetch and opened the workbench with nothing in it.
  *
@@ -47,7 +47,7 @@ function servePacksInDev(): Plugin {
           res.end(JSON.stringify({
             error: "Example packs have not been built",
             expected: packsDir,
-            fix: "node scripts/build-packs.mjs --out website/packs",
+            fix: "node scripts/build-packs.mjs",
           }, null, 2));
           return;
         }

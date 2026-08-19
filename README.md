@@ -443,8 +443,8 @@ crates/
 
 - [Website](https://lang.bio) -- getting started, language reference, builtin docs
 - [Playground](https://lang.bio/playground.html) -- try BioLang in your browser (no install required)
-- [Book](https://lang.bio/book/) -- comprehensive guide with examples
-- [Workflows](https://github.com/oriclabs/biolang-workflows) -- runnable analyses, practical books, courses, benchmarks, and independent validation
+- [Language reference](https://lang.bio/books/language/html/) -- comprehensive guide with examples
+- [Workflows](https://github.com/oriclabs/biolang-workflows) -- runnable analyses, practical courses, notebooks, benchmarks, and independent validation
 
 ## License
 

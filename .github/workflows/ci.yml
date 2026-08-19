@@ -61,39 +61,11 @@ jobs:
       - name: Build pack artifacts
         run: node scripts/build-packs.mjs
 
-      # The docs record which problems run in a browser, worked out from the
-      # module's own builtin catalog. That catalog is generated rather than
-      # committed, so without this step a clean checkout regenerates the pages
-      # without the column and the staleness check below fails on a difference
-      # that says nothing about the code.
-      - name: Generate the browser builtin catalog
-        working-directory: website
-        run: node tests/write_wasm_builtins.mjs
-
       # The committed WASM module can lag the Rust sources without any gate
-      # noticing: cargo test, clippy and check-generated all pass, and a stale
-      # module loads and runs exactly like a current one. check-generated
-      # compares the two copies of the module against each other, which two
-      # equally stale copies satisfy. This compares the module against the
-      # source instead. Six builtins had already drifted out of the playground
-      # when it was written.
+      # noticing. Compare the workbench-owned module against its source; the
+      # website publisher copies that same module when assembling lang.bio.
       - name: Check the browser runtime matches the source
         run: node scripts/check-wasm-fresh.mjs
-
-      # The pack docs pages are committed so the repository stays browsable, so
-      # they have to be regenerated whenever a pack changes. Same contract as the
-      # help index below.
-      - name: Regenerate pack docs and check they are committed
-        run: |
-          node scripts/generate-pack-docs.mjs
-          git diff --exit-code -- website/docs/examples \
-            || (echo "pack docs are stale — run 'node scripts/generate-pack-docs.mjs' and commit"; exit 1)
-
-      # Runs after the pack docs are regenerated, so a link into freshly
-      # generated documentation is checked against what this job just built
-      # rather than against whatever was committed.
-      - name: Check every internal site link resolves
-        run: node scripts/check-site-links.mjs
 
       - name: Build the CLI
         run: cargo build -p bl-cli
@@ -122,45 +94,6 @@ jobs:
       # rather than a plain pass/fail gate.
       - name: Run every example
         run: node scripts/check-examples-run.mjs
-
-      # The MSMB companion quotes numbers - several checked against the values
-      # Holmes & Huber publish - and those are its main claim to being correct.
-      # The scripts assert their published figures; this runs them, so a change
-      # to gamma_cdf, pca, upgma or the multinomial sampler cannot move a figure
-      # without the prose that quotes it going stale in silence.
-      - name: Check the MSMB companion's published figures
-        run: node scripts/check-msmb.mjs
-
-      # The packs are advertised as runnable in the browser. Native passing does
-      # not prove that: the WASM build ships a subset of the builtins, so a pack
-      # can be green here and dead in the playground. Run the same sources
-      # through the real module and check the answers they print.
-      # Every pack, not just the default one. This step ran only the armory
-      # pack until the Algorithmic Heights pack was added, so a problem that
-      # needed a parser fix newer than the committed WASM passed CI while
-      # failing in the playground.
-      - name: Check packs run in the browser build
-        working-directory: website
-        run: |
-          for pack in ../packs/*/; do
-            node tests/run_pack_wasm.mjs "$(basename "$pack")"
-          done
-
-      # The docs table tells readers which problems run in a browser, worked out
-      # by static analysis. This runs each one for real and fails if the claim
-      # and the behaviour disagree in either direction.
-      - name: Audit the docs "Runs in" claims
-        working-directory: website
-        run: node tests/audit_browser_claims.mjs
-
-      # Run buttons were once disabled across whole pages because comments were
-      # scanned as code. These pages must offer Run on every block.
-      - name: Check Run buttons are offered
-        working-directory: website
-        run: |
-          npm ci
-          npx playwright install --with-deps chromium
-          npx playwright test tests/e2e/run-button-availability.spec.mjs
 
   network-packs:
     name: Example packs (network)
@@ -210,12 +143,3 @@ jobs:
       - name: Verify documented examples
         working-directory: desktop
         run: npm run check:examples
-
-      # The module is committed twice — website/wasm serves the playground and
-      # desktop/public/wasm ships inside the workbench. They drifted once
-      # already, leaving the workbench without builtins the playground had.
-      - name: Check the two WASM copies match
-        run: |
-          cmp website/wasm/bl_wasm_bg.wasm desktop/public/wasm/bl_wasm_bg.wasm \
-            && cmp website/wasm/bl_wasm.js desktop/public/wasm/bl_wasm.js \
-            || (echo "WASM copies differ — rebuild and copy so both ship the same builtins"; exit 1)

@@ -709,7 +709,7 @@ window.__blDataFiles[{}] = true;
         ));
     }
 
-    let runtime = include_str!("../../../website/js/notebook-runtime.js");
+    let runtime = include_str!("../assets/notebook-runtime.js");
     println!(
         "{}",
         HTML_WASM_TEMPLATE
@@ -764,7 +764,7 @@ fn emit_text_output(body: &mut String, output: &str) {
     body.push_str("</div>\n");
 }
 
-const FIGURE_FALLBACK_RUNTIME: &str = include_str!("../../../website/js/figure-fallback.js");
+const FIGURE_FALLBACK_RUNTIME: &str = include_str!("../assets/figure-fallback.js");
 
 fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
@@ -1508,7 +1508,7 @@ const HTML_TEMPLATE: &str = r#"<!DOCTYPE html>
     .cell-code pre { margin: 0; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 0.875rem; line-height: 1.6; white-space: pre; }
     .cell-figure { margin: 0.25rem 0 1rem; padding: 0.5rem; background: #fff; border-radius: 6px; overflow-x: auto; }
     .cell-figure svg { max-width: 100%; height: auto; display: block; }
-    .cell-figure-controls { display: flex; justify-content: flex-end; margin-bottom: 0.35rem; }
+    .cell-figure-controls { display: flex; justify-content: flex-end; gap: 0.35rem; margin-bottom: 0.35rem; }
     .cell-figure-toggle { border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; color: #334155; padding: 0.2rem 0.5rem; font: 11px system-ui, sans-serif; cursor: pointer; }
     .cell-figure-toggle:disabled { display: none; }
     .cell-figure-canvas { display: block; }
@@ -1579,7 +1579,7 @@ const HTML_WASM_TEMPLATE: &str = r##"<!DOCTYPE html>
     .bl-output-empty { color: var(--muted); }
     .cell-figure { margin: 0.25rem 0 1rem; padding: 0.5rem; background: #fff; border-radius: 6px; overflow-x: auto; }
     .cell-figure svg { max-width: 100%; height: auto; display: block; }
-    .cell-figure-controls { display: flex; justify-content: flex-end; margin-bottom: 0.35rem; }
+    .cell-figure-controls { display: flex; justify-content: flex-end; gap: 0.35rem; margin-bottom: 0.35rem; }
     .cell-figure-toggle { border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; color: #334155; padding: 0.2rem 0.5rem; font: 11px system-ui, sans-serif; cursor: pointer; }
     .cell-figure-toggle:disabled { display: none; }
     .cell-figure-canvas { display: block; }
@@ -1787,11 +1787,14 @@ mod tests {
         assert!(HTML_TEMPLATE.contains("{figure_runtime}"));
         assert!(HTML_WASM_TEMPLATE.contains("{figure_runtime}"));
         assert!(FIGURE_FALLBACK_RUNTIME.contains("getContext('2d')"));
+        assert!(FIGURE_FALLBACK_RUNTIME.contains("bl:figures-updated"));
+        assert!(FIGURE_FALLBACK_RUNTIME.contains("Download PNG"));
+        assert!(FIGURE_FALLBACK_RUNTIME.contains("toDataURL('image/png')"));
     }
 
     #[test]
     fn live_notebook_runtime_is_editable_and_incremental() {
-        let runtime = include_str!("../../../website/js/notebook-runtime.js");
+        let runtime = include_str!("../assets/notebook-runtime.js");
         assert!(HTML_WASM_TEMPLATE.contains("bl-cell-editor"));
         assert!(runtime.contains("module.evaluate(source)"));
         assert!(runtime.contains("executeThrough"));

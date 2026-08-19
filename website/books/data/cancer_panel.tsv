@@ -1,7 +1,0 @@
-gene	syndrome	inheritance
-BRCA1	Hereditary breast and ovarian cancer	AD
-BRCA2	Hereditary breast and ovarian cancer	AD
-TP53	Li-Fraumeni syndrome	AD
-EGFR	Receptor tyrosine kinase pathway	somatic
-KRAS	RAS/MAPK pathway	somatic
-PIK3CA	PI3K/AKT pathway	somatic

@@ -33,37 +33,30 @@ cargo clippy --workspace         # Lint checks
 Nothing in this repository deploys the site. `oriclabs/biolang-website` does,
 and it is the only place that can: it checks this repository out as `_core` and
 `oriclabs/biolang-workflows` as `_workflows`, then assembles one site from both.
-The language reference, example packs, wasm module, and browser workbench come
-from here; the practical books and the HBC courses are built from
-`biolang-workflows`, where they are canonical. Those books are still authored
-and audited here, and `scripts/audit-biostatistics-book.ps1` reads
-`books/biostatistics/book/src`, so a chapter is edited in this repository and
-synced across.
+The language reference, example packs, canonical wasm module, and browser
+workbench come from here. Practical courses, notebooks, applied workflows, and
+their validation live only in `biolang-workflows`. Authored static pages,
+browser tests, and deployment live only in `biolang-website`.
 
-`books/hbc-scrnaseq-validated` shows why the split matters: it is built from
-`_workflows/courses`, so no deploy made from this repository ever contained it,
-and it only reached lang.bio once the publisher took over.
-
-`.github/workflows/verify-site.yml` runs the same build without deploying, so a
-broken chapter or a missing entry point fails on the commit that caused it. The
-publisher polls on a schedule rather than being triggered, because a scoped
-`GITHUB_TOKEN` cannot start a workflow in another repository — so a merge here
-reaches lang.bio at the next poll, not immediately.
+The publisher polls on a schedule rather than being triggered, because a scoped
+`GITHUB_TOKEN` cannot start a workflow in another repository. A merge here
+therefore reaches lang.bio at the next poll, or through a manual website run.
 
 ### Generated Files
 
-Three committed artifacts are built from sources elsewhere in the tree:
-`website/docs/examples` and `desktop/src/generated` from the example packs,
-and `desktop/public/wasm` as a byte-for-byte copy of `website/wasm`. Editing a
-source without rerunning its generator leaves a stale artifact that `cargo
-test` cannot see — CI regenerates and fails instead.
+Two committed artifacts are built from sources elsewhere in the tree:
+`desktop/src/generated` from the example packs and CLI metadata, and
+`desktop/public/wasm` from the browser runtime crates. The website publisher
+copies that wasm module; there is no second committed copy in this repository.
+Editing a source without rerunning its generator leaves a stale artifact that
+`cargo test` cannot see, so CI checks both.
 
 The same check compares `npm/package.json` against the workspace version in
 `Cargo.toml`. Nothing generates that file, but nothing synced it either, and it
 sat at 1.1.0 through two tagged releases while the runtime it wraps moved on.
 
-Enable the pre-push hook once per clone, and it catches all four before
-anything leaves your machine:
+Enable the pre-push hook once per clone, and it catches generated metadata and
+version drift before anything leaves your machine:
 
 ```bash
 git config core.hooksPath .githooks
@@ -93,7 +86,7 @@ output ready to commit. `git push --no-verify` skips it.
 1. Add the implementation in `bl-runtime/src/builtins.rs`
 2. Register it with `register(name, arity, function)` in the appropriate section
 3. Add a test in `bl-runtime/tests/`
-4. Document it on the website under `website/docs/builtins/`
+4. Document it in `oriclabs/biolang-website` under `docs/builtins/`
 
 ### Conventions
 

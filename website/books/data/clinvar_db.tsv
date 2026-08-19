@@ -1,9 +1,0 @@
-variant_key	clinvar_class	condition
-chr1:11856378:C:T	drug_response	Methotrexate response
-chr7:55259515:T:G	pathogenic	Non-small-cell lung cancer
-chr12:25245350:C:A	pathogenic	Colorectal cancer
-chr13:32929387:A:G	pathogenic	Hereditary breast and ovarian cancer
-chr17:7579472:G:C	pathogenic	Li-Fraumeni syndrome
-chr17:43093449:G:A	pathogenic	Hereditary breast and ovarian cancer
-chr17:43093500:C:T	uncertain	Hereditary breast and ovarian cancer
-chr3:178936091:G:A	pathogenic	Breast cancer

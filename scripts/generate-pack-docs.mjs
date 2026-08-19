@@ -11,7 +11,7 @@
  * The coverage table is generated too, including the `blocked_on` reasons, so
  * "partial" is visible to a reader rather than buried in a manifest.
  *
- * Usage: node scripts/generate-pack-docs.mjs [--out website/docs/examples]
+ * Usage: node scripts/generate-pack-docs.mjs [--out dist/docs/examples]
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -24,7 +24,7 @@ const outputRoot = path.resolve(
   repositoryRoot,
   outIndex >= 0 && process.argv[outIndex + 1]
     ? process.argv[outIndex + 1]
-    : path.join("website", "docs", "examples"),
+    : path.join("dist", "docs", "examples"),
 );
 
 const escape = (text) =>
@@ -71,7 +71,7 @@ const groupTitle = (group) =>
 /**
  * Builtins the browser build ships, or null when the catalog is not present.
  *
- * `website/wasm/builtins.json` is generated from the compiled module, so it is
+ * The deployment's `website/wasm/builtins.json` is generated from the compiled module, so it is
  * the same source `tests/run_pack_wasm.mjs` checks against. When it is absent —
  * a checkout that has not built WASM — the column is dropped rather than
  * guessed at.

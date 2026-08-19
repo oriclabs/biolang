@@ -1,6 +1,0 @@
-# msmbstats — the pieces the MSMB companion needs that BioLang does not ship.
-#
-#   import "msmbstats/src/multinomial"
-#
-# Kept as a local package rather than a per-chapter lib/ directory so every
-# chapter shares one implementation and one set of checks.

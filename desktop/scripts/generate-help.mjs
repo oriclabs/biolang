@@ -429,21 +429,9 @@ const language = await summaryEntries({
   kind: "language",
   collection: "BioLang Language Guide",
 });
-const practical = await summaryEntries({
-  summaryPath: "books/practical-bioinformatics/book/src/SUMMARY.md",
-  sourceRoot: "books/practical-bioinformatics/book/src",
-  kind: "tutorial",
-  collection: "Practical Bioinformatics in 30 Days",
-});
-const biostatistics = await summaryEntries({
-  summaryPath: "books/biostatistics/book/src/SUMMARY.md",
-  sourceRoot: "books/biostatistics/book/src",
-  kind: "tutorial",
-  collection: "Biostatistics in 30 Days",
-});
 const builtins = await builtinEntries();
 const examples = await exampleEntries();
-const entries = [...language, ...builtins, ...practical, ...biostatistics, ...examples];
+const entries = [...language, ...builtins, ...examples];
 const packages = await packageMetadata();
 
 await mkdir(path.dirname(outputPath), { recursive: true });
@@ -452,7 +440,7 @@ const output = `${JSON.stringify({
   counts: {
     language: language.length,
     builtin: builtins.length,
-    tutorial: practical.length + biostatistics.length,
+    tutorial: 0,
     example: examples.length,
   },
   entries,
