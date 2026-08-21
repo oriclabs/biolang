@@ -20,10 +20,8 @@ if ! git diff --quiet HEAD origin/main -- crates 2>/dev/null; then
     node scripts/check-wasm-fresh.mjs
 fi
 
-# Only worth running when the interpreter or the companion actually changed;
-# the scripts take a couple of minutes end to end.
-if git diff --quiet HEAD origin/main -- crates books/msmb 2>/dev/null; then
-    echo "MSMB figures: unchanged since origin/main, skipping."
-else
-    node scripts/check-msmb.mjs
-fi
+# The MSMB figure check used to run here. `00a624e` moved that book and
+# `scripts/check-msmb.mjs` to biolang-workflows and left this block behind
+# calling a script that is no longer in this repository, so every push that
+# touched crates/ died on MODULE_NOT_FOUND after the checks above had passed.
+# The check still exists; it belongs to the repository that owns the book.
