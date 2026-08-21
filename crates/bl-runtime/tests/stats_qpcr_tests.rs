@@ -67,7 +67,17 @@ fn list_floats(val: &Value) -> Vec<f64> {
 #[test]
 fn stats_registry_complete() {
     let list = statistics_builtin_list();
-    assert!(list.len() >= 8);
+    let names: Vec<&str> = list.iter().map(|(name, _)| *name).collect();
+    assert_eq!(
+        names,
+        vec![
+            "bh_adjust",
+            "bonferroni_adjust",
+            "bootstrap_ci",
+            "genomic_inflation",
+            "pearson_correlation",
+        ]
+    );
     for (name, _) in &list {
         assert!(
             is_statistics_builtin(name),
@@ -75,6 +85,26 @@ fn stats_registry_complete() {
         );
     }
     assert!(!is_statistics_builtin("not_a_real_builtin"));
+}
+
+/// The three that moved out, and must not come back.
+///
+/// Both registries feed one arity table and this one is appended second, so a
+/// name registered in both takes its arity from here and its implementation
+/// from `stats.rs`. That is how `permutation_test` came to reject the optional
+/// fourth argument its own implementation accepted.
+#[test]
+fn the_names_stats_owns_are_not_registered_here() {
+    for name in ["fisher_exact", "chi_square", "permutation_test"] {
+        assert!(
+            !is_statistics_builtin(name),
+            "{name} is registered in two modules again"
+        );
+        assert!(
+            !statistics_builtin_list().iter().any(|(n, _)| *n == name),
+            "{name} is back in the arity list"
+        );
+    }
 }
 
 #[test]
@@ -141,77 +171,11 @@ fn bonferroni_adjust_clamps_to_1() {
     }
 }
 
-// ── Fisher exact test ─────────────────────────────────────────────────
-
-#[test]
-fn fisher_exact_clear_significance() {
-    // a=10, b=0, c=0, d=10 → p should be very small
-    let result = call_statistics_builtin(
-        "fisher_exact",
-        vec![Value::Int(10), Value::Int(0), Value::Int(0), Value::Int(10)],
-    )
-    .unwrap();
-    let p = table_row0_float(&result, 0);
-    assert!(p < 0.01, "expected p < 0.01, got {p}");
-}
-
-#[test]
-fn fisher_exact_no_association() {
-    // a=5, b=5, c=5, d=5 → odds ratio = 1, p near 1
-    let result = call_statistics_builtin(
-        "fisher_exact",
-        vec![Value::Int(5), Value::Int(5), Value::Int(5), Value::Int(5)],
-    )
-    .unwrap();
-    let or_ = table_row0_float(&result, 1);
-    assert!((or_ - 1.0).abs() < 1e-10, "expected OR=1.0, got {or_}");
-}
-
-// ── Chi-square test ───────────────────────────────────────────────────
-
-#[test]
-fn chi_square_uniform() {
-    // Perfectly uniform observed == expected → statistic = 0
-    let obs = float_list(&[10.0, 10.0, 10.0]);
-    let exp = float_list(&[10.0, 10.0, 10.0]);
-    let result = call_statistics_builtin("chi_square", vec![obs, exp]).unwrap();
-    let stat = table_row0_float(&result, 0);
-    assert!(stat.abs() < 1e-10, "expected statistic≈0, got {stat}");
-    let p = table_row0_float(&result, 2);
-    assert!(p > 0.9, "expected p≈1.0, got {p}");
-}
-
-#[test]
-fn chi_square_large_deviation() {
-    // Extreme deviation → large statistic, small p
-    let obs = float_list(&[100.0, 0.0, 0.0]);
-    let exp = float_list(&[33.3, 33.3, 33.3]);
-    let result = call_statistics_builtin("chi_square", vec![obs, exp]).unwrap();
-    let stat = table_row0_float(&result, 0);
-    assert!(stat > 100.0, "expected large statistic, got {stat}");
-    let p = table_row0_float(&result, 2);
-    assert!(p < 0.001, "expected p < 0.001, got {p}");
-}
-
-// ── Permutation test ──────────────────────────────────────────────────
-
-#[test]
-fn permutation_test_identical_groups() {
-    let a = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
-    let b = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
-    let result = call_statistics_builtin("permutation_test", vec![a, b, Value::Int(500)]).unwrap();
-    let p = extract_float(&result);
-    assert!(p > 0.2, "identical groups should have high p, got {p}");
-}
-
-#[test]
-fn permutation_test_different_groups() {
-    let a = float_list(&[100.0, 110.0, 105.0, 108.0, 102.0]);
-    let b = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
-    let result = call_statistics_builtin("permutation_test", vec![a, b, Value::Int(500)]).unwrap();
-    let p = extract_float(&result);
-    assert!(p < 0.1, "very different groups should have low p, got {p}");
-}
+// Fisher's exact test, chi-square and the permutation test used to be tested
+// here, against this module's copies of them. Dispatch never reached those
+// copies -- `stats.rs` owns all three -- so the tests were guarding code no
+// caller could run, and they have moved to `stats_tests.rs`, which goes through
+// the live implementations.
 
 // ── Bootstrap CI ──────────────────────────────────────────────────────
 

@@ -2228,7 +2228,7 @@ fn normal_tail_probability(z: f64, tail: &str) -> (f64, String) {
         "left" => (cdf, format!("P(Z <= {})", fmt_number(z))),
         "right" => (1.0 - cdf, format!("P(Z >= {})", fmt_number(z))),
         _ => {
-            let probability = 2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(z.abs()));
+            let probability = 2.0 * bl_core::bio_core::stats_ops::normal_sf(z.abs());
             (probability, format!("P(|Z| >= {})", fmt_number(z.abs())))
         }
     }
@@ -8224,7 +8224,7 @@ fn random_intercept_model(args: Vec<Value>) -> Result<Value> {
                 ("z_value", Value::Float(z)),
                 (
                     "p_value_normal_approximation",
-                    Value::Float(2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(z.abs()))),
+                    Value::Float(2.0 * bl_core::bio_core::stats_ops::normal_sf(z.abs())),
                 ),
                 (
                     "confidence_lower",
@@ -8631,7 +8631,7 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
     let likelihood_ratio =
         2.0 * (fitted_evaluation.log_likelihood - null_evaluation.log_likelihood);
     let likelihood_ratio_p =
-        1.0 - bl_core::bio_core::stats_ops::chi_square_cdf(likelihood_ratio.max(0.0), p);
+        bl_core::bio_core::stats_ops::chi_square_sf(likelihood_ratio.max(0.0), p);
     let confidence = opts
         .get("confidence")
         .and_then(Value::as_float)
@@ -8661,7 +8661,7 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
                 ("z_value", Value::Float(z)),
                 (
                     "p_value",
-                    Value::Float(2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(z.abs()))),
+                    Value::Float(2.0 * bl_core::bio_core::stats_ops::normal_sf(z.abs())),
                 ),
                 ("hazard_ratio", Value::Float(estimate.exp())),
                 (
@@ -8794,8 +8794,7 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
             .map(|value| value.0)
             .unwrap_or(0.0);
         let approximate_z = correlation * (event_count as f64).sqrt();
-        let approximate_p =
-            2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(approximate_z.abs()));
+        let approximate_p = 2.0 * bl_core::bio_core::stats_ops::normal_sf(approximate_z.abs());
         ph_global_chi_squared += approximate_z.powi(2);
         ph_issue |= correlation.abs() >= 0.2;
         ph_rows.push(record([
@@ -8809,7 +8808,7 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
             ("formal_cox_zph_test", Value::Bool(false)),
         ]));
     }
-    let ph_global_p = 1.0 - bl_core::bio_core::stats_ops::chi_square_cdf(ph_global_chi_squared, p);
+    let ph_global_p = bl_core::bio_core::stats_ops::chi_square_sf(ph_global_chi_squared, p);
     let mut comparable_pairs = 0usize;
     let mut concordance_credit = 0.0;
     for left in 0..n {
@@ -10139,7 +10138,7 @@ fn time_series_diagnostics(args: Vec<Value>) -> Result<Value> {
             .enumerate()
             .map(|(index, correlation)| correlation.powi(2) / (n - index - 1) as f64)
             .sum::<f64>();
-    let ljung_box_p = 1.0 - bl_core::bio_core::stats_ops::chi_square_cdf(ljung_box_q, max_lag);
+    let ljung_box_p = bl_core::bio_core::stats_ops::chi_square_sf(ljung_box_q, max_lag);
     let index = (0..n).map(|value| value as f64).collect::<Vec<_>>();
     let trend = pearson(&index, &data.values);
     let differences = data

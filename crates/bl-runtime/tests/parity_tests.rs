@@ -52,15 +52,44 @@ fn as_floats(v: &Value) -> Vec<f64> {
 ///
 /// a=[1,2,3,4], b=[5,6,7,8]: U=0, mu=8, sigma=sqrt(4*4*9/12)=sqrt(12),
 /// z=(0-8)/sqrt(12)=-2.309401, two-sided p = 2*Phi(-2.309401) = 0.0209353.
+///
+/// The method has to be named now. `wilcoxon`'s default used to be this,
+/// unconditionally; it is now R's rule, which on eight untied values picks the
+/// exact test instead. Neither of those is wrong -- but this test is about
+/// parity with two specific tools, and both use the uncorrected normal
+/// approximation, so it asks for that by name. (The single-cell path is
+/// unaffected either way: it calls `mann_whitney_u` directly rather than going
+/// through this builtin.)
 #[test]
 fn wilcoxon_matches_normal_approximation() {
+    let a = float_list(&[1.0, 2.0, 3.0, 4.0]);
+    let b = float_list(&[5.0, 6.0, 7.0, 8.0]);
+    let mut options = std::collections::HashMap::new();
+    options.insert("method".to_string(), Value::Str("normal".into()));
+    options.insert("continuity".to_string(), Value::Bool(false));
+    let res = call_stats_builtin(
+        "wilcoxon",
+        vec![a, b, Value::Record(std::sync::Arc::new(options))],
+    )
+    .unwrap();
+    let p = record_float(&res, "pvalue");
+    assert!(
+        (p - 0.0209353).abs() < 5e-4,
+        "wilcoxon p={p}, expected ~0.0209353 (normal approx)"
+    );
+}
+
+/// And the default is the exact test, which R reports as 0.028571428571428571
+/// for the same eight values.
+#[test]
+fn wilcoxon_defaults_to_the_exact_test_on_small_untied_groups() {
     let a = float_list(&[1.0, 2.0, 3.0, 4.0]);
     let b = float_list(&[5.0, 6.0, 7.0, 8.0]);
     let res = call_stats_builtin("wilcoxon", vec![a, b]).unwrap();
     let p = record_float(&res, "pvalue");
     assert!(
-        (p - 0.0209353).abs() < 5e-4,
-        "wilcoxon p={p}, expected ~0.0209353 (normal approx)"
+        (p - 0.028571428571428571).abs() < 1e-12,
+        "wilcoxon p={p}, expected R's exact 0.0285714"
     );
 }
 

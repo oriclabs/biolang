@@ -282,19 +282,40 @@ pub fn rank_transform(data: &[f64]) -> Vec<f64> {
 
 // ── Distribution Functions ───────────────────────────────────────────────────
 
+/// Φ(x), the standard normal CDF.
+///
+/// This used to be the Abramowitz & Stegun rational approximation, good to
+/// about seven significant figures — fine for reporting, and not fine for a
+/// tail. `Q(1/2, x²/2)` is the same function computed by the series and
+/// continued fraction already here for the gamma distribution, which converges
+/// to machine precision, and it costs nothing extra to maintain because it is
+/// not a second approximation.
+///
+/// The tail is taken from whichever side is small, so no digits are lost to
+/// the subtraction that `1 - Φ(x)` performs at large x.
 pub fn normal_cdf(x: f64) -> f64 {
-    // Abramowitz & Stegun erf approximation (max error 1.5e-7)
-    // Φ(x) = 0.5 * (1 + erf(x / sqrt(2)))
-    let z = x / std::f64::consts::SQRT_2;
-    let a = z.abs();
-    // Rational approximation of erf
-    let t = 1.0 / (1.0 + 0.3275911 * a);
-    let erf_abs = 1.0
-        - t * (0.254829592
-            + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))))
-            * (-a * a).exp();
-    let erf_val = if z >= 0.0 { erf_abs } else { -erf_abs };
-    0.5 * (1.0 + erf_val)
+    if x.is_nan() {
+        return f64::NAN;
+    }
+    let half_square = 0.5 * x * x;
+    if x >= 0.0 {
+        0.5 * (1.0 + regularized_gamma_p(0.5, half_square))
+    } else {
+        0.5 * regularized_gamma_q(0.5, half_square)
+    }
+}
+
+/// The upper tail of the standard normal: the probability of exceeding `x`.
+///
+/// `1.0 - normal_cdf(x)` cannot express this. Past about x = 8 the CDF is 1 to
+/// every bit a double has, so the subtraction gives exactly 0 — and a p-value
+/// of zero is not a stronger result, it is a missing one. It also breaks
+/// anything that takes a logarithm, which is the y axis of every volcano plot.
+pub fn normal_sf(x: f64) -> f64 {
+    if x.is_nan() {
+        return f64::NAN;
+    }
+    normal_cdf(-x)
 }
 
 pub fn normal_quantile(p: f64) -> f64 {
@@ -356,16 +377,37 @@ pub fn students_t_cdf(t: f64, df: f64) -> f64 {
     if t.is_infinite() {
         return if t > 0.0 { 1.0 } else { 0.0 };
     }
-    if df > 100.0 {
-        return normal_cdf(t);
+    if t >= 0.0 {
+        1.0 - students_t_sf(t, df)
+    } else {
+        students_t_sf(-t, df)
+    }
+}
+
+/// The upper tail of Student's t: P(T > t).
+///
+/// Two things were wrong with computing this as `1 - students_t_cdf(t, df)`.
+///
+/// The subtraction cancels, in the tail, which is where a p-value lives. And
+/// above 100 degrees of freedom the CDF used to hand the question to
+/// `normal_cdf` outright — the t distribution has heavier tails than the normal
+/// at every finite df, so that returned a p-value too small in the direction
+/// that overstates significance: at df = 101 and t = 5 the normal gives
+/// 2.87e-7 against the true 1.21e-6, a factor of four. The incomplete beta
+/// costs a few dozen iterations and is right at any df, so there is no reason
+/// to approximate.
+pub fn students_t_sf(t: f64, df: f64) -> f64 {
+    if t.is_nan() || df.is_nan() || df <= 0.0 {
+        return f64::NAN;
+    }
+    if t.is_infinite() {
+        return if t > 0.0 { 0.0 } else { 1.0 };
+    }
+    if t < 0.0 {
+        return 1.0 - students_t_sf(-t, df);
     }
     let x = df / (df + t * t);
-    let p = 0.5 * regularized_incomplete_beta(x, df / 2.0, 0.5);
-    if t >= 0.0 {
-        1.0 - p
-    } else {
-        p
-    }
+    0.5 * regularized_incomplete_beta(x, df / 2.0, 0.5)
 }
 
 /// Inverse of [`students_t_cdf`] for finite positive degrees of freedom.
@@ -515,6 +557,22 @@ pub fn studentized_range_quantile(probability: f64, groups: usize, df: f64) -> f
     (lower + upper) / 2.0
 }
 
+/// The upper tail of the chi-square distribution: P(X > chi2).
+///
+/// Computed from the incomplete gamma's own upper branch rather than as
+/// `1 - chi_square_cdf(...)`. That subtraction lost precision below about
+/// 1e-15 and underflowed to exactly zero past it: chi2 = 81 with one degree of
+/// freedom returned 0.0 where the answer is 2.2571e-19.
+pub fn chi_square_sf(chi2: f64, df: usize) -> f64 {
+    if chi2.is_nan() {
+        return f64::NAN;
+    }
+    if chi2 <= 0.0 {
+        return 1.0;
+    }
+    regularized_gamma_q(df as f64 / 2.0, chi2 / 2.0)
+}
+
 pub fn chi_square_cdf(chi2: f64, df: usize) -> f64 {
     if chi2 <= 0.0 {
         return 0.0;
@@ -612,59 +670,87 @@ pub fn regularized_incomplete_beta(x: f64, a: f64, b: f64) -> f64 {
 /// is 0.1573, and p = 0.114 for chi2 = 20 on 3 df, where it is 0.00017 - large
 /// statistics coming back with large p-values, which inverts every conclusion
 /// drawn from them.
-fn regularized_gamma_p(a: f64, x: f64) -> f64 {
+/// P(a, x), the regularized lower incomplete gamma function.
+pub fn regularized_gamma_p(a: f64, x: f64) -> f64 {
     if a <= 0.0 || x.is_nan() || a.is_nan() {
         return f64::NAN;
     }
     if x <= 0.0 {
         return 0.0;
     }
+    if x < a + 1.0 {
+        incomplete_gamma_series(a, x)
+    } else {
+        (1.0 - incomplete_gamma_continued_fraction(a, x)).clamp(0.0, 1.0)
+    }
+}
 
+/// Q(a, x) = 1 - P(a, x), the regularized *upper* incomplete gamma function.
+///
+/// Worth having as its own function rather than as `1.0 - P`: the two branches
+/// each compute one tail well and the other by subtraction, so taking whichever
+/// branch computes the tail you asked for keeps the digits. Past the point
+/// where P rounds to 1, subtraction has none left to keep.
+pub fn regularized_gamma_q(a: f64, x: f64) -> f64 {
+    if a <= 0.0 || x.is_nan() || a.is_nan() {
+        return f64::NAN;
+    }
+    if x <= 0.0 {
+        return 1.0;
+    }
+    if x < a + 1.0 {
+        (1.0 - incomplete_gamma_series(a, x)).clamp(0.0, 1.0)
+    } else {
+        incomplete_gamma_continued_fraction(a, x)
+    }
+}
+
+/// P(a, x) by the series, which converges quickly for x below about a + 1.
+fn incomplete_gamma_series(a: f64, x: f64) -> f64 {
     // ln of the shared prefactor x^a e^-x / gamma(a), kept in logs so that large
     // a does not overflow before the division.
     let ln_prefactor = -x + a * x.ln() - ln_gamma(a);
-
-    if x < a + 1.0 {
-        // Series: P(a,x) = prefactor * sum_{n>=0} x^n / (a(a+1)...(a+n))
-        let mut ap = a;
-        let mut del = 1.0 / a;
-        let mut sum = del;
-        for _ in 0..1000 {
-            ap += 1.0;
-            del *= x / ap;
-            sum += del;
-            if del.abs() < sum.abs() * 1e-15 {
-                break;
-            }
+    let mut ap = a;
+    let mut del = 1.0 / a;
+    let mut sum = del;
+    for _ in 0..1000 {
+        ap += 1.0;
+        del *= x / ap;
+        sum += del;
+        if del.abs() < sum.abs() * 1e-15 {
+            break;
         }
-        (sum * ln_prefactor.exp()).clamp(0.0, 1.0)
-    } else {
-        // Continued fraction for the upper tail Q(a,x), by modified Lentz.
-        let tiny = 1e-300_f64;
-        let mut b = x + 1.0 - a;
-        let mut c = 1.0 / tiny;
-        let mut d = 1.0 / b;
-        let mut h = d;
-        for i in 1..1000 {
-            let an = -(i as f64) * (i as f64 - a);
-            b += 2.0;
-            d = an * d + b;
-            if d.abs() < tiny {
-                d = tiny;
-            }
-            c = b + an / c;
-            if c.abs() < tiny {
-                c = tiny;
-            }
-            d = 1.0 / d;
-            let delta = d * c;
-            h *= delta;
-            if (delta - 1.0).abs() < 1e-15 {
-                break;
-            }
-        }
-        (1.0 - ln_prefactor.exp() * h).clamp(0.0, 1.0)
     }
+    (sum * ln_prefactor.exp()).clamp(0.0, 1.0)
+}
+
+/// Q(a, x) by continued fraction (modified Lentz), for x above about a + 1.
+fn incomplete_gamma_continued_fraction(a: f64, x: f64) -> f64 {
+    let ln_prefactor = -x + a * x.ln() - ln_gamma(a);
+    let tiny = 1e-300_f64;
+    let mut b = x + 1.0 - a;
+    let mut c = 1.0 / tiny;
+    let mut d = 1.0 / b;
+    let mut h = d;
+    for i in 1..1000 {
+        let an = -(i as f64) * (i as f64 - a);
+        b += 2.0;
+        d = an * d + b;
+        if d.abs() < tiny {
+            d = tiny;
+        }
+        c = b + an / c;
+        if c.abs() < tiny {
+            c = tiny;
+        }
+        d = 1.0 / d;
+        let delta = d * c;
+        h *= delta;
+        if (delta - 1.0).abs() < 1e-15 {
+            break;
+        }
+    }
+    (ln_prefactor.exp() * h).clamp(0.0, 1.0)
 }
 
 fn gamma_cdf(x: f64, shape: f64, scale: f64) -> f64 {
@@ -794,9 +880,9 @@ pub fn t_test_with_variance(
     };
 
     let p_value = match alternative {
-        "two_sided" => 2.0 * (1.0 - students_t_cdf(t_stat.abs(), df)),
+        "two_sided" => 2.0 * students_t_sf(t_stat.abs(), df),
         "less" => students_t_cdf(t_stat, df),
-        "greater" => 1.0 - students_t_cdf(t_stat, df),
+        "greater" => students_t_sf(t_stat, df),
         _ => return Err("invalid alternative hypothesis".into()),
     };
     Ok(TTestResult {
@@ -919,9 +1005,9 @@ pub fn mann_whitney_u(
     };
 
     let p_value = match alternative {
-        "two_sided" => 2.0 * (1.0 - normal_cdf(z.abs())),
+        "two_sided" => 2.0 * normal_sf(z.abs()),
         "less" => normal_cdf(z),
-        "greater" => 1.0 - normal_cdf(z),
+        "greater" => normal_sf(z),
         _ => return Err("invalid alternative hypothesis".into()),
     };
     Ok(MannWhitneyResult {
@@ -1199,7 +1285,7 @@ pub fn correlation(x: &[f64], y: &[f64], method: &str) -> Result<CorrelationResu
         _ => return Err("invalid correlation method".into()),
     };
     let t_stat = corr * ((n as f64 - 2.0) / (1.0 - corr.powi(2))).sqrt();
-    let p_value = 2.0 * (1.0 - students_t_cdf(t_stat.abs(), n as f64 - 2.0));
+    let p_value = 2.0 * students_t_sf(t_stat.abs(), n as f64 - 2.0);
     Ok(CorrelationResult {
         correlation: corr,
         p_value,
@@ -1207,36 +1293,238 @@ pub fn correlation(x: &[f64], y: &[f64], method: &str) -> Result<CorrelationResu
     })
 }
 
+/// Chi-square test of independence on an r x c contingency table.
+///
+/// Distinct from a goodness-of-fit test, and the distinction is the degrees of
+/// freedom. Goodness of fit compares k counts against k proportions fixed in
+/// advance and has k - 1 of them. Here the expected counts are estimated from
+/// the table's own margins, which uses up r - 1 and c - 1 more, leaving
+/// (r - 1)(c - 1). Reaching for the goodness-of-fit entry point on a 2x2 table
+/// gives df = 3 where the answer is 1.
+///
+/// `yates` applies the continuity correction, which R's `chisq.test` does by
+/// default on 2x2 tables and never on larger ones.
+pub fn chi_square_contingency(table: &[Vec<f64>], yates: bool) -> Result<ChiSquareResult, String> {
+    let rows = table.len();
+    if rows < 2 {
+        return Err("contingency table needs at least 2 rows".into());
+    }
+    let cols = table[0].len();
+    if cols < 2 {
+        return Err("contingency table needs at least 2 columns".into());
+    }
+    if table.iter().any(|row| row.len() != cols) {
+        return Err("contingency table rows must all have the same length".into());
+    }
+    if table.iter().flatten().any(|count| *count < 0.0) {
+        return Err("contingency table counts cannot be negative".into());
+    }
+
+    let row_totals: Vec<f64> = table.iter().map(|row| row.iter().sum()).collect();
+    let col_totals: Vec<f64> = (0..cols)
+        .map(|j| table.iter().map(|row| row[j]).sum())
+        .collect();
+    let total: f64 = row_totals.iter().sum();
+    if total <= 0.0 {
+        return Err("contingency table is empty".into());
+    }
+
+    let mut expected = vec![vec![0.0; cols]; rows];
+    let mut chi_sq = 0.0;
+    // Yates applies only to 2x2, which is the only shape where the correction
+    // was derived and the only one R applies it to.
+    let apply_yates = yates && rows == 2 && cols == 2;
+    for i in 0..rows {
+        for j in 0..cols {
+            let e = row_totals[i] * col_totals[j] / total;
+            expected[i][j] = e;
+            if e <= 0.0 {
+                return Err(
+                    "contingency table has a row or column of zeros, so an expected count is zero"
+                        .into(),
+                );
+            }
+            let mut deviation = (table[i][j] - e).abs();
+            if apply_yates {
+                // Never past zero: subtracting half from a deviation smaller
+                // than half would move the statistic away from its own null.
+                deviation = (deviation - 0.5).max(0.0);
+            }
+            chi_sq += deviation * deviation / e;
+        }
+    }
+
+    let df = (rows - 1) * (cols - 1);
+    Ok(ChiSquareResult {
+        chi_square: chi_sq,
+        p_value: chi_square_sf(chi_sq, df),
+        df,
+        expected,
+    })
+}
+
 pub fn chi_square_test(table: &[Vec<f64>]) -> Result<ChiSquareResult, String> {
     if table.len() != 2 || table[0].len() != 2 {
         return Err("contingency table must be 2x2".into());
     }
-    let a = table[0][0];
-    let b = table[0][1];
-    let c = table[1][0];
-    let d = table[1][1];
-    let row_totals = [a + b, c + d];
-    let col_totals = [a + c, b + d];
-    let total = row_totals[0] + row_totals[1];
+    chi_square_contingency(table, false)
+}
 
-    let mut expected = vec![vec![0.0; 2]; 2];
-    for i in 0..2 {
-        for j in 0..2 {
-            expected[i][j] = row_totals[i] * col_totals[j] / total;
+// ── Conditional odds ratio for a 2x2 table ───────────────────────────────────
+//
+// The cross-product ad/bc is the sample odds ratio, and it is what this module
+// reported. R's `fisher.test` reports something else: the value of the odds
+// ratio that maximises the likelihood of the observed table given its margins,
+// under the noncentral hypergeometric distribution. Both are standard, they
+// answer slightly different questions, and they do not agree -- on the Titanic
+// 2x2 the sample ratio is 10.147 and the conditional MLE 10.1319. Anyone
+// cross-checking against R finds the mismatch and has to work out which is
+// wrong, so both are now reported, each under its own name.
+
+/// The support of `a` given the margins, and the log weights over it.
+///
+/// Kept in logs because the binomial coefficients overflow long before the
+/// probabilities become interesting.
+fn noncentral_log_weights(row1: u64, row2: u64, col1: u64) -> (u64, Vec<f64>) {
+    let lo = col1.saturating_sub(row2);
+    let hi = row1.min(col1);
+    let weights = (lo..=hi)
+        .map(|k| log_binomial(row1, k) + log_binomial(row2, col1 - k))
+        .collect();
+    (lo, weights)
+}
+
+/// E[a | psi], the mean of the noncentral hypergeometric distribution.
+fn noncentral_mean(lo: u64, log_weights: &[f64], log_psi: f64) -> f64 {
+    let terms: Vec<f64> = log_weights
+        .iter()
+        .enumerate()
+        .map(|(i, w)| w + (lo + i as u64) as f64 * log_psi)
+        .collect();
+    let peak = terms.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    if !peak.is_finite() {
+        return f64::NAN;
+    }
+    let mut total = 0.0;
+    let mut weighted = 0.0;
+    for (i, term) in terms.iter().enumerate() {
+        let p = (term - peak).exp();
+        total += p;
+        weighted += p * (lo + i as u64) as f64;
+    }
+    weighted / total
+}
+
+/// P(a <= observed | psi) and P(a >= observed | psi).
+fn noncentral_tails(lo: u64, log_weights: &[f64], log_psi: f64, observed: u64) -> (f64, f64) {
+    let terms: Vec<f64> = log_weights
+        .iter()
+        .enumerate()
+        .map(|(i, w)| w + (lo + i as u64) as f64 * log_psi)
+        .collect();
+    let peak = terms.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let mut total = 0.0;
+    let mut at_or_below = 0.0;
+    let mut at_or_above = 0.0;
+    for (i, term) in terms.iter().enumerate() {
+        let p = (term - peak).exp();
+        let k = lo + i as u64;
+        total += p;
+        if k <= observed {
+            at_or_below += p;
+        }
+        if k >= observed {
+            at_or_above += p;
         }
     }
-    let chi_sq = (a - expected[0][0]).powi(2) / expected[0][0]
-        + (b - expected[0][1]).powi(2) / expected[0][1]
-        + (c - expected[1][0]).powi(2) / expected[1][0]
-        + (d - expected[1][1]).powi(2) / expected[1][1];
-    let df = 1;
-    let p_value = 1.0 - chi_square_cdf(chi_sq, df);
-    Ok(ChiSquareResult {
-        chi_square: chi_sq,
-        p_value,
-        df,
-        expected,
+    (at_or_below / total, at_or_above / total)
+}
+
+/// Solve a monotone function of log(psi) for the value where it hits `target`.
+///
+/// Bisection on the log scale rather than Newton: the odds ratio spans many
+/// orders of magnitude, the functions here are monotone but not always
+/// smoothly so at the ends of the support, and a hundred halvings of a
+/// [-100, 100] bracket is exact to well past what a double can hold.
+fn solve_log_psi(target: f64, increasing: bool, evaluate: impl Fn(f64) -> f64) -> f64 {
+    let (mut low, mut high) = (-100.0_f64, 100.0_f64);
+    for _ in 0..200 {
+        let middle = 0.5 * (low + high);
+        let value = evaluate(middle);
+        let below = if increasing {
+            value < target
+        } else {
+            value > target
+        };
+        if below {
+            low = middle;
+        } else {
+            high = middle;
+        }
+    }
+    0.5 * (low + high)
+}
+
+/// The conditional maximum likelihood odds ratio, as R's `fisher.test` reports.
+///
+/// It is the psi at which the observed count is the expected count. At either
+/// end of the support no finite psi does that -- the likelihood is still
+/// climbing -- and the answer is 0 or infinity, which is also what R gives.
+pub fn conditional_odds_ratio(a: u64, b: u64, c: u64, d: u64) -> f64 {
+    let (row1, row2, col1) = (a + b, c + d, a + c);
+    let (lo, log_weights) = noncentral_log_weights(row1, row2, col1);
+    let hi = lo + log_weights.len() as u64 - 1;
+    if a == lo {
+        return 0.0;
+    }
+    if a == hi {
+        return f64::INFINITY;
+    }
+    solve_log_psi(a as f64, true, |log_psi| {
+        noncentral_mean(lo, &log_weights, log_psi)
     })
+    .exp()
+}
+
+/// The exact confidence interval for the conditional odds ratio.
+///
+/// Obtained by inverting the test, as R does: the bounds are the odds ratios at
+/// which the observed table sits exactly at the tail probability. Not the same
+/// interval as the Wald one on the log of the sample ratio, and not centred on
+/// anything -- which is the point, since the sampling distribution is not
+/// symmetric.
+pub fn conditional_odds_ratio_interval(
+    a: u64,
+    b: u64,
+    c: u64,
+    d: u64,
+    confidence: f64,
+) -> (f64, f64) {
+    let (row1, row2, col1) = (a + b, c + d, a + c);
+    let (lo, log_weights) = noncentral_log_weights(row1, row2, col1);
+    let hi = lo + log_weights.len() as u64 - 1;
+    let alpha = (1.0 - confidence) / 2.0;
+
+    // P(X >= a | psi) climbs from 0 to 1 as psi grows, so the lower bound is
+    // where it first reaches alpha; P(X <= a | psi) falls the other way, and
+    // the upper bound is where it drops to alpha.
+    let lower = if a == lo {
+        0.0
+    } else {
+        solve_log_psi(alpha, true, |log_psi| {
+            noncentral_tails(lo, &log_weights, log_psi, a).1
+        })
+        .exp()
+    };
+    let upper = if a == hi {
+        f64::INFINITY
+    } else {
+        solve_log_psi(alpha, false, |log_psi| {
+            noncentral_tails(lo, &log_weights, log_psi, a).0
+        })
+        .exp()
+    };
+    (lower, upper)
 }
 
 pub fn fishers_exact_test(table: &[Vec<f64>]) -> Result<FishersResult, String> {
@@ -1348,7 +1636,7 @@ pub fn linear_regression(x: &[f64], y: &[f64]) -> Result<LinearRegressionResult,
     let mse = ss_res / (n - 2.0);
     let se_slope = (mse / denominator).sqrt();
     let t_stat = slope / se_slope;
-    let p_value = 2.0 * (1.0 - students_t_cdf(t_stat.abs(), n - 2.0));
+    let p_value = 2.0 * students_t_sf(t_stat.abs(), n - 2.0);
     Ok(LinearRegressionResult {
         slope,
         intercept,
@@ -1423,10 +1711,7 @@ pub fn logistic_regression(x: &[f64], y: &[f64]) -> Result<LogisticRegressionRes
         let se1 = (hessian_final[0][0] / det).abs().sqrt();
         let z0 = if se0 > 0.0 { beta[0] / se0 } else { 0.0 };
         let z1 = if se1 > 0.0 { beta[1] / se1 } else { 0.0 };
-        vec![
-            2.0 * (1.0 - normal_cdf(z0.abs())),
-            2.0 * (1.0 - normal_cdf(z1.abs())),
-        ]
+        vec![2.0 * normal_sf(z0.abs()), 2.0 * normal_sf(z1.abs())]
     } else {
         vec![f64::NAN; 2]
     };
@@ -1505,9 +1790,9 @@ pub fn wilcoxon_signed_rank_test(
     let z = (w_stat - mean_w) / var_w.sqrt();
 
     let p_value = match alternative {
-        "two_sided" => 2.0 * (1.0 - normal_cdf(z.abs())),
+        "two_sided" => 2.0 * normal_sf(z.abs()),
         "less" => normal_cdf(z),
-        "greater" => 1.0 - normal_cdf(z),
+        "greater" => normal_sf(z),
         _ => return Err("invalid alternative hypothesis".into()),
     };
     Ok(WilcoxonResult {
@@ -1676,9 +1961,9 @@ pub fn paired_wilcoxon_signed_rank_test(
             };
             let z = (w_positive - mean - correction) / variance.sqrt();
             match alternative {
-                "two_sided" => (2.0 * (1.0 - normal_cdf(z.abs()))).min(1.0),
+                "two_sided" => (2.0 * normal_sf(z.abs())).min(1.0),
                 "less" => normal_cdf(z),
-                "greater" => 1.0 - normal_cdf(z),
+                "greater" => normal_sf(z),
                 _ => unreachable!(),
             }
         }
@@ -1756,7 +2041,7 @@ pub fn kruskal_wallis_test(groups: &[Vec<f64>]) -> Result<KruskalWallisResult, S
     }
     let h_stat = uncorrected_h / tie_correction;
     let df = groups.len() - 1;
-    let p_value = 1.0 - chi_square_cdf(h_stat, df);
+    let p_value = chi_square_sf(h_stat, df);
     let epsilon_squared = if all_values.len() > groups.len() {
         (h_stat - groups.len() as f64 + 1.0) / (all_values.len() as f64 - groups.len() as f64)
     } else {
@@ -2169,7 +2454,7 @@ pub fn kendall_tau(x: &[f64], y: &[f64]) -> Result<CorrelationResult, String> {
     // Normal approximation for p-value
     let var = (2.0 * (2.0 * n as f64 + 5.0)) / (9.0 * n as f64 * (n as f64 - 1.0));
     let z = tau / var.sqrt();
-    let p_value = 2.0 * (1.0 - normal_cdf(z.abs()));
+    let p_value = 2.0 * normal_sf(z.abs());
     Ok(CorrelationResult {
         correlation: tau,
         p_value,
@@ -2506,7 +2791,7 @@ pub fn cox_ph(
             if s.is_nan() || s == 0.0 {
                 f64::NAN
             } else {
-                2.0 * (1.0 - normal_cdf((b / s).abs()))
+                2.0 * normal_sf((b / s).abs())
             }
         })
         .collect();
@@ -2691,7 +2976,7 @@ pub fn multiple_linear_regression(
         .collect();
     let p_values: Vec<f64> = t_values
         .iter()
-        .map(|&t| 2.0 * (1.0 - students_t_cdf(t.abs(), (n - k) as f64)))
+        .map(|&t| 2.0 * students_t_sf(t.abs(), (n - k) as f64))
         .collect();
 
     let f_statistic = if p > 0 && mse > 0.0 {

@@ -2236,3 +2236,423 @@ fn power_t_test_needs_more_samples_for_smaller_effects() {
 fn power_t_test_needs_more_samples_for_higher_power() {
     assert!(required_n(0.5, 0.05, 0.95) > required_n(0.5, 0.05, 0.80));
 }
+
+// ── permutation_test ────────────────────────────────────────────────
+//
+// It had no test against the live implementation at all. It had two against a
+// second copy in `statistics.rs` that dispatch never reached -- and because
+// both registries feed one arity table, with that one appended second, its
+// `Exact(3)` decided the arity while `stats.rs` decided the behaviour. The
+// documented optional fourth argument was rejected before any code that could
+// have used it ran.
+
+fn permutation_p(args: Vec<Value>) -> f64 {
+    let result = call_stats_builtin("permutation_test", args).expect("permutation_test runs");
+    match result {
+        Value::Record(fields) => match fields.get("p_value") {
+            Some(Value::Float(p)) => *p,
+            other => panic!("no p_value: {other:?}"),
+        },
+        other => panic!("expected a Record, got {other:?}"),
+    }
+}
+
+#[test]
+fn permutation_test_takes_its_optional_permutation_count() {
+    let a = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
+    let b = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
+    let p = permutation_p(vec![a, b, Value::Str("mean_diff".into()), Value::Int(500)]);
+    assert!((0.0..=1.0).contains(&p), "p outside [0, 1]: {p}");
+}
+
+#[test]
+fn permutation_test_works_without_the_optional_count() {
+    let a = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
+    let b = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
+    let p = permutation_p(vec![a, b, Value::Str("mean_diff".into())]);
+    assert!((0.0..=1.0).contains(&p), "p outside [0, 1]: {p}");
+}
+
+#[test]
+fn identical_groups_are_not_significant() {
+    let a = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
+    let b = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
+    let p = permutation_p(vec![a, b, Value::Str("mean_diff".into()), Value::Int(500)]);
+    assert!(p > 0.2, "identical groups should have a high p, got {p}");
+}
+
+#[test]
+fn clearly_different_groups_are_significant() {
+    let a = float_list(&[100.0, 110.0, 105.0, 108.0, 102.0]);
+    let b = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
+    let p = permutation_p(vec![a, b, Value::Str("mean_diff".into()), Value::Int(500)]);
+    assert!(
+        p < 0.1,
+        "very different groups should have a low p, got {p}"
+    );
+}
+
+#[test]
+fn every_documented_statistic_is_accepted() {
+    // Discoverable only by triggering the error, which is its own problem, but
+    // at least the four the error names must all work.
+    for statistic in ["mean_diff", "median_diff", "ks", "t"] {
+        let a = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
+        let b = float_list(&[2.0, 3.0, 4.0, 5.0, 6.0]);
+        let p = permutation_p(vec![a, b, Value::Str(statistic.into()), Value::Int(200)]);
+        assert!((0.0..=1.0).contains(&p), "{statistic} gave p = {p}");
+    }
+}
+
+#[test]
+fn an_unknown_statistic_names_the_ones_that_exist() {
+    let a = float_list(&[1.0, 2.0, 3.0]);
+    let b = float_list(&[4.0, 5.0, 6.0]);
+    let error = call_stats_builtin(
+        "permutation_test",
+        vec![a, b, Value::Str("wilcoxon".into())],
+    )
+    .expect_err("wilcoxon is not one of the statistics");
+    let message = error.to_string();
+    for statistic in ["mean_diff", "median_diff", "ks", "t"] {
+        assert!(
+            message.contains(statistic),
+            "{statistic} unlisted: {message}"
+        );
+    }
+}
+
+// ── Tail probabilities, contingency tables and odds ratios ──────────────
+//
+// Every reference value here is R 4.6.1, printed to seventeen significant
+// figures. They cover six things the book found by trying to use the runtime
+// for a statistics course.
+
+fn record_float(value: &Value, field: &str) -> f64 {
+    match value {
+        Value::Record(fields) => match fields.get(field) {
+            Some(Value::Float(f)) => *f,
+            Some(Value::Int(n)) => *n as f64,
+            other => panic!("field {field} is {other:?}"),
+        },
+        other => panic!("expected a Record, got {other:?}"),
+    }
+}
+
+fn relative_error(got: f64, expected: f64) -> f64 {
+    if expected == 0.0 {
+        got.abs()
+    } else {
+        ((got - expected) / expected).abs()
+    }
+}
+
+/// Two cells whose chi-square statistic is exactly `chi2` on one df.
+fn one_df_table(chi2: f64) -> (Value, Value) {
+    let deviation = (chi2 * 50.0).sqrt();
+    (
+        float_list(&[100.0 + deviation, 100.0 - deviation]),
+        float_list(&[100.0, 100.0]),
+    )
+}
+
+#[test]
+fn chi_square_p_values_survive_the_far_tail() {
+    // `pchisq(x, 1, lower.tail = FALSE)`. Computed as `1 - cdf` these lost
+    // precision below 1e-15 and underflowed to exactly 0.0 past it -- and a
+    // p-value of zero is not a stronger result, it is a missing one. It also
+    // breaks every -log10(p), which is the y axis of a volcano plot.
+    for (chi2, expected) in [
+        (4.0, 0.045500263896358473),
+        (16.0, 6.3342483666239808e-05),
+        (36.0, 1.973175290075397e-09),
+        (64.0, 1.244192114854357e-15),
+        (81.0, 2.2571768119076811e-19),
+        (200.0, 2.0884875837625449e-45),
+        (500.0, 9.5053977665540927e-111),
+    ] {
+        let (observed, expected_counts) = one_df_table(chi2);
+        let result = call_stats_builtin("chi_square", vec![observed, expected_counts]).unwrap();
+        let p = record_float(&result, "p_value");
+        assert!(
+            relative_error(p, expected) < 1e-11,
+            "chi2 = {chi2}: R says {expected}, got {p}"
+        );
+    }
+}
+
+#[test]
+fn pnorm_is_accurate_rather_than_seven_figures() {
+    // The 68/95 rule to R's own digits. The Abramowitz & Stegun approximation
+    // this replaced was good to about 1.5e-7 absolute -- fine for reporting,
+    // and not fine for a tail.
+    let within = |k: f64| {
+        let hi = call_stats_builtin("pnorm", vec![Value::Float(k)]).unwrap();
+        let lo = call_stats_builtin("pnorm", vec![Value::Float(-k)]).unwrap();
+        match (hi, lo) {
+            (Value::Float(h), Value::Float(l)) => h - l,
+            other => panic!("pnorm should return Float, got {other:?}"),
+        }
+    };
+    assert!(relative_error(within(1.0), 0.68268949213708585) < 1e-12);
+    assert!(relative_error(within(2.0), 0.95449973610364158) < 1e-12);
+}
+
+#[test]
+fn a_deep_normal_tail_is_a_number_rather_than_zero() {
+    // pnorm(-10) in R is 7.6198530241605269e-24.
+    let p = match call_stats_builtin("pnorm", vec![Value::Float(-10.0)]).unwrap() {
+        Value::Float(p) => p,
+        other => panic!("{other:?}"),
+    };
+    assert!(relative_error(p, 7.6198530241605269e-24) < 1e-11, "got {p}");
+}
+
+#[test]
+fn a_contingency_table_gets_contingency_degrees_of_freedom() {
+    // The Berkeley 2x2 aggregate. `chi_square(observed, expected)` is a
+    // goodness-of-fit test and reports k - 1 = 3 here, which is wrong for a
+    // table whose expected counts came from its own margins.
+    //
+    // R: chisq.test gives 91.609598 with Yates and 92.205280 without, both on
+    // one degree of freedom.
+    let table =
+        Value::List(vec![float_list(&[1198.0, 1493.0]), float_list(&[557.0, 1278.0])].into());
+    let mut yates_options = HashMap::new();
+    yates_options.insert("correct".to_string(), Value::Bool(false));
+
+    let corrected = call_stats_builtin("chi_square_contingency", vec![table.clone()]).unwrap();
+    assert_eq!(record_float(&corrected, "df"), 1.0);
+    assert!(relative_error(record_float(&corrected, "chi2"), 91.609598) < 1e-7);
+    assert!(relative_error(record_float(&corrected, "p_value"), 1.0557968087828389e-21) < 1e-10);
+
+    let plain = call_stats_builtin(
+        "chi_square_contingency",
+        vec![table, Value::Record(std::sync::Arc::new(yates_options))],
+    )
+    .unwrap();
+    assert!(relative_error(record_float(&plain, "chi2"), 92.205280) < 1e-7);
+    assert!(relative_error(record_float(&plain, "p_value"), 7.8136003889946405e-22) < 1e-10);
+}
+
+#[test]
+fn yates_is_for_two_by_two_and_nothing_else() {
+    // R applies the correction to 2x2 tables and never to larger ones, so
+    // asking for it on a 4x2 must change nothing. Hair colour against eye
+    // colour, collapsed to brown and blue: R gives 108.997545 on 3 df.
+    let table = Value::List(
+        vec![
+            float_list(&[68.0, 20.0]),
+            float_list(&[119.0, 84.0]),
+            float_list(&[26.0, 17.0]),
+            float_list(&[7.0, 94.0]),
+        ]
+        .into(),
+    );
+    let result = call_stats_builtin("chi_square_contingency", vec![table]).unwrap();
+    assert_eq!(record_float(&result, "df"), 3.0);
+    assert!(relative_error(record_float(&result, "chi2"), 108.997545) < 1e-7);
+    assert!(relative_error(record_float(&result, "p_value"), 1.8032802150609905e-23) < 1e-10);
+    match &result {
+        Value::Record(fields) => {
+            assert_eq!(fields.get("yates_correction"), Some(&Value::Bool(false)))
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn yates_never_pushes_a_deviation_past_zero() {
+    // Every cell of this table sits within half a count of its expected value,
+    // so the correction takes all four deviations to zero and R's chisq.test
+    // returns a statistic of exactly 0 with p = 1. Subtracting the half without
+    // clamping leaves small negative deviations that square back to something
+    // positive, which is a statistic pointing away from the null it is measured
+    // against. Uncorrected, R gives 0.023242630385487569.
+    let table = Value::List(vec![float_list(&[10.0, 10.0]), float_list(&[10.0, 11.0])].into());
+    let corrected = call_stats_builtin("chi_square_contingency", vec![table.clone()]).unwrap();
+    assert_eq!(
+        record_float(&corrected, "chi2"),
+        0.0,
+        "every deviation here is under half a count"
+    );
+    assert_eq!(record_float(&corrected, "p_value"), 1.0);
+
+    let mut options = HashMap::new();
+    options.insert("correct".to_string(), Value::Bool(false));
+    let plain = call_stats_builtin(
+        "chi_square_contingency",
+        vec![table, Value::Record(std::sync::Arc::new(options))],
+    )
+    .unwrap();
+    assert!(
+        relative_error(record_float(&plain, "chi2"), 0.023242630385487569) < 1e-12,
+        "got {}",
+        record_float(&plain, "chi2")
+    );
+}
+
+#[test]
+fn fisher_reports_both_odds_ratios() {
+    // The sample cross-product and R's conditional MLE are different
+    // estimators of different things, and quoting only one left anyone
+    // cross-checking to work out which was wrong.
+    //
+    // The reference is not `fisher.test`'s printed estimate: that solves the
+    // same root with `uniroot`'s default tolerance of about 1.2e-4, and on the
+    // first table below it lands on 9.965185 where the root is 9.963354209.
+    // These are R's own numbers computed with tol = 1e-12.
+    for (a, b, c, d, sample, conditional) in [
+        (
+            308u64,
+            142u64,
+            154u64,
+            709u64,
+            9.9859154929577461,
+            9.963354209,
+        ),
+        (3, 1, 1, 3, 9.0, 6.408319658),
+        (10, 2, 3, 15, 25.0, 21.305317557),
+    ] {
+        let result = call_stats_builtin(
+            "fisher_exact",
+            vec![
+                Value::Int(a as i64),
+                Value::Int(b as i64),
+                Value::Int(c as i64),
+                Value::Int(d as i64),
+            ],
+        )
+        .unwrap();
+        assert!(
+            relative_error(record_float(&result, "odds_ratio"), sample) < 1e-12,
+            "sample odds ratio for {a},{b},{c},{d}"
+        );
+        assert!(
+            relative_error(record_float(&result, "conditional_odds_ratio"), conditional) < 1e-8,
+            "conditional odds ratio for {a},{b},{c},{d}: expected {conditional}, got {}",
+            record_float(&result, "conditional_odds_ratio")
+        );
+    }
+}
+
+#[test]
+fn the_exact_interval_is_not_the_wald_one() {
+    // R's conf.int, again at tol = 1e-14 rather than fisher.test's default:
+    // [2.753383, 301.462338] for 10/2/3/15. The Wald interval on the log of
+    // the sample ratio is a different and symmetric thing, and both are
+    // reported under names that say which is which.
+    let result = call_stats_builtin(
+        "fisher_exact",
+        vec![Value::Int(10), Value::Int(2), Value::Int(3), Value::Int(15)],
+    )
+    .unwrap();
+    assert!(
+        relative_error(
+            record_float(&result, "conditional_confidence_lower"),
+            2.753383
+        ) < 1e-6
+    );
+    assert!(
+        relative_error(
+            record_float(&result, "conditional_confidence_upper"),
+            301.462338
+        ) < 1e-6
+    );
+    assert!(
+        record_float(&result, "confidence_upper")
+            != record_float(&result, "conditional_confidence_upper"),
+        "the two intervals should not be the same interval"
+    );
+}
+
+#[test]
+fn wilcoxon_defaults_to_the_test_r_would_choose() {
+    // PlantGrowth ctrl against trt2: twenty untied values in two groups of ten,
+    // so R uses the exact distribution and gets 0.063012838554634215. The old
+    // default was the normal approximation with no continuity correction --
+    // 0.05878, the least accurate of the three available -- chosen for none of
+    // them.
+    let ctrl = float_list(&[4.17, 5.58, 5.18, 6.11, 4.50, 4.61, 5.17, 4.53, 5.33, 5.14]);
+    let trt2 = float_list(&[6.31, 5.12, 5.54, 5.50, 5.37, 5.29, 4.92, 6.15, 5.80, 5.26]);
+
+    let auto = call_stats_builtin("wilcoxon", vec![ctrl.clone(), trt2.clone()]).unwrap();
+    assert!(
+        relative_error(record_float(&auto, "p_value"), 0.063012838554634215) < 1e-12,
+        "default: got {}",
+        record_float(&auto, "p_value")
+    );
+
+    let with_correction = |key: &str, value: Value| {
+        let mut options = HashMap::new();
+        options.insert(key.to_string(), value);
+        call_stats_builtin(
+            "wilcoxon",
+            vec![
+                ctrl.clone(),
+                trt2.clone(),
+                Value::Record(std::sync::Arc::new(options)),
+            ],
+        )
+        .unwrap()
+    };
+
+    // R, exact = FALSE: 0.064022101283026933 corrected, 0.058781721355358897 not.
+    let corrected = with_correction("continuity", Value::Bool(true));
+    assert!(
+        relative_error(record_float(&corrected, "p_value"), 0.064022101283026933) < 1e-12,
+        "continuity: got {}",
+        record_float(&corrected, "p_value")
+    );
+    let uncorrected = with_correction("continuity", Value::Bool(false));
+    assert!(
+        relative_error(record_float(&uncorrected, "p_value"), 0.058781721355358897) < 1e-12,
+        "no continuity: got {}",
+        record_float(&uncorrected, "p_value")
+    );
+}
+
+#[test]
+fn ties_send_wilcoxon_to_the_approximation() {
+    // The exact rank distribution is not valid with ties, so the automatic
+    // choice must not pick it -- R warns and falls back for the same reason.
+    let a = float_list(&[1.0, 2.0, 3.0, 4.0, 5.0]);
+    let b = float_list(&[5.0, 6.0, 7.0, 8.0, 9.0]);
+    let result = call_stats_builtin("wilcoxon", vec![a, b]).unwrap();
+    match &result {
+        Value::Record(fields) => assert_eq!(
+            fields.get("method"),
+            Some(&Value::Str("mann_whitney_normal".into())),
+            "a tied sample should not get an exact p-value"
+        ),
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn a_t_test_on_a_large_sample_uses_the_t_distribution() {
+    // Above 100 degrees of freedom the CDF used to hand the question to the
+    // normal outright. The t has heavier tails at every finite df, so that
+    // returned p-values too small -- overstating significance. R:
+    // 2 * pt(5, 101, lower.tail = FALSE) = 2.419870267043516e-06, where twice the
+    // normal tail is 5.7330314e-07, a factor of four out.
+    let n = 102;
+    let mut a: Vec<f64> = (0..n).map(|i| f64::from(i) / f64::from(n)).collect();
+    let mean: f64 = a.iter().sum::<f64>() / f64::from(n);
+    for value in &mut a {
+        *value -= mean;
+    }
+    // Two-sample with df = 202 would need a second group; the one-sample form
+    // is the direct route to a large df.
+    let shift =
+        5.0 * (a.iter().map(|v| v * v).sum::<f64>() / (f64::from(n) - 1.0) / f64::from(n)).sqrt();
+    let shifted: Vec<f64> = a.iter().map(|v| v + shift).collect();
+    let result =
+        call_stats_builtin("ttest_one", vec![float_list(&shifted), Value::Float(0.0)]).unwrap();
+    let p = record_float(&result, "p_value");
+    // R: 2 * pt(5, 101, lower.tail = FALSE)
+    assert!(
+        relative_error(p, 2.419870267043516e-06) < 1e-8,
+        "expected the t tail, got {p}"
+    );
+}

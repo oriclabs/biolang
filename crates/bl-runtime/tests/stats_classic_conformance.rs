@@ -107,28 +107,60 @@ fn chi_square_matches_r_chisq_test() {
     assert_matches_r("df", float_field(&report, "df"), 2.0, 0.0);
 }
 
+/// All three of R's answers for the same ten numbers, each asked for by name.
+///
+/// This used to pin one of them -- the uncorrected normal approximation, which
+/// was `wilcoxon`'s unconditional default -- and its comment noted that R
+/// reports something else here. `wilcoxon` now follows R's rule, so the three
+/// are pinned together and the default is asserted to be the one R picks.
+///
+/// The tolerance is 1e-12 rather than the 1e-7 the normal case needed before.
+/// That slack was the old `pnorm` approximation, and it is gone.
 #[test]
-fn wilcoxon_matches_r_normal_approximation_without_continuity_correction() {
-    let report = call_stats_builtin(
-        "wilcoxon",
+fn wilcoxon_matches_r_in_all_three_modes() {
+    let groups = || {
         vec![
             numbers(&[1.2, 2.4, 3.1, 4.8, 5.5]),
             numbers(&[2.0, 3.3, 4.1, 6.2, 7.9]),
-        ],
-    )
-    .unwrap();
-    assert_matches_r("statistic", float_field(&report, "statistic"), 8.0, 1e-12);
-    // R defaults to the exact distribution at this sample size and reports
-    // 0.42063492063492064. This uses the normal approximation without a
-    // continuity correction, which is Scanpy's convention and the one
-    // find_all_markers was matched to; the pinned value is
-    // wilcox.test(exact = FALSE, correct = FALSE). The residual is the
-    // normal CDF, not the test.
+        ]
+    };
+    let with = |pairs: Vec<(&str, Value)>| {
+        let mut options = std::collections::HashMap::new();
+        for (key, value) in pairs {
+            options.insert(key.to_string(), value);
+        }
+        let mut args = groups();
+        args.push(Value::Record(std::sync::Arc::new(options)));
+        call_stats_builtin("wilcoxon", args).unwrap()
+    };
+
+    // R's default at this sample size: ten untied values, so the exact test.
+    let default = call_stats_builtin("wilcoxon", groups()).unwrap();
+    assert_matches_r("statistic", float_field(&default, "statistic"), 8.0, 1e-12);
+    assert_matches_r(
+        "p_value (exact, which is what wilcox.test picks here)",
+        float_field(&default, "p_value"),
+        4.2063492063492064e-1,
+        1e-12,
+    );
+
+    // wilcox.test(exact = FALSE, correct = FALSE) -- Scanpy's convention, and
+    // what `find_all_markers` is matched to through `mann_whitney_u`.
+    let plain = with(vec![("continuity", Value::Bool(false))]);
     assert_matches_r(
         "p_value (normal approximation, no continuity correction)",
-        float_field(&report, "p_value"),
+        float_field(&plain, "p_value"),
         3.4720763934942450e-1,
-        1e-7,
+        1e-12,
+    );
+
+    // wilcox.test(exact = FALSE, correct = TRUE)
+    let corrected = with(vec![("continuity", Value::Bool(true))]);
+    assert_matches_r(
+        "p_value (normal approximation, continuity corrected)",
+        float_field(&corrected, "p_value"),
+        4.0339530489262831e-1,
+        1e-12,
     );
 }
 

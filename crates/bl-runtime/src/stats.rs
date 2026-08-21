@@ -136,6 +136,7 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("tukey_hsd", Arity::Range(1, 2)),
         ("pairwise_ttest", Arity::Range(1, 2)),
         ("chi_square", Arity::Exact(2)),
+        ("chi_square_contingency", Arity::Range(1, 2)),
         ("fisher_exact", Arity::Range(4, 5)),
         ("wilcoxon", Arity::Range(2, 3)),
         ("wilcoxon_paired", Arity::Range(2, 3)),
@@ -313,6 +314,7 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "tukey_hsd"
             | "pairwise_ttest"
             | "chi_square"
+            | "chi_square_contingency"
             | "fisher_exact"
             | "wilcoxon"
             | "wilcoxon_paired"
@@ -484,6 +486,7 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "tukey_hsd" => builtin_tukey_hsd(args),
         "pairwise_ttest" => builtin_pairwise_ttest(args),
         "chi_square" => builtin_chi_square(args),
+        "chi_square_contingency" => builtin_chi_square_contingency(args),
         "fisher_exact" => builtin_fisher_exact(args),
         "wilcoxon" => builtin_wilcoxon(args),
         "wilcoxon_paired" => builtin_wilcoxon_paired(args),
@@ -1509,11 +1512,12 @@ fn inference_confidence(options: Option<&HashMap<String, Value>>, function: &str
 }
 
 fn t_p_value(statistic: f64, df: f64, alternative: &str) -> f64 {
-    let cdf = bl_core::bio_core::stats_ops::students_t_cdf(statistic, df);
+    // Each tail from the side that computes it, rather than from one minus the
+    // other: the subtraction is exact only where the answer is uninteresting.
     match alternative {
-        "less" => cdf,
-        "greater" => 1.0 - cdf,
-        _ => 2.0 * (1.0 - bl_core::bio_core::stats_ops::students_t_cdf(statistic.abs(), df)),
+        "less" => bl_core::bio_core::stats_ops::students_t_cdf(statistic, df),
+        "greater" => bl_core::bio_core::stats_ops::students_t_sf(statistic, df),
+        _ => 2.0 * bl_core::bio_core::stats_ops::students_t_sf(statistic.abs(), df),
     }
 }
 
@@ -2027,6 +2031,83 @@ fn builtin_pairwise_ttest(args: Vec<Value>) -> Result<Value> {
     ]))
 }
 
+/// A contingency table from a Table value or a list of rows of numbers.
+fn contingency_rows(value: &Value, who: &str) -> Result<Vec<Vec<f64>>> {
+    let rows: Vec<Vec<f64>> = match value {
+        Value::Table(table) => table
+            .rows
+            .iter()
+            .map(|row| row.iter().filter_map(to_f64).collect())
+            .collect(),
+        Value::List(items) => items
+            .iter()
+            .map(|item| match item {
+                Value::List(cells) => Ok(cells.iter().filter_map(to_f64).collect::<Vec<f64>>()),
+                other => Err(BioLangError::type_error(
+                    format!(
+                        "{who}() rows must be Lists of numbers, got {}",
+                        other.type_of()
+                    ),
+                    None,
+                )),
+            })
+            .collect::<Result<Vec<_>>>()?,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "{who}() requires a Table or a List of rows, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    Ok(rows)
+}
+
+fn builtin_chi_square_contingency(args: Vec<Value>) -> Result<Value> {
+    let rows = contingency_rows(&args[0], "chi_square_contingency")?;
+    let options = inference_options(&args, 1, "chi_square_contingency", &["correct"])?;
+    // R corrects 2x2 tables by default; `chi_square_contingency` ignores the
+    // request on any other shape, because the correction is only derived there.
+    let correct = options
+        .and_then(|values| values.get("correct"))
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+
+    let result = bl_core::bio_core::stats_ops::chi_square_contingency(&rows, correct)
+        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let applied = correct && rows.len() == 2 && rows[0].len() == 2;
+
+    let expected = Value::List(
+        result
+            .expected
+            .iter()
+            .map(|row| {
+                Value::List(
+                    row.iter()
+                        .map(|e| Value::Float(*e))
+                        .collect::<Vec<_>>()
+                        .into(),
+                )
+            })
+            .collect::<Vec<_>>()
+            .into(),
+    );
+    Ok(make_record(vec![
+        ("method", Value::Str("chi_square_independence".into())),
+        ("statistic", Value::Float(result.chi_square)),
+        ("chi2", Value::Float(result.chi_square)),
+        ("p_value", Value::Float(result.p_value)),
+        ("pvalue", Value::Float(result.p_value)),
+        ("df", Value::Int(result.df as i64)),
+        ("rows", Value::Int(rows.len() as i64)),
+        ("columns", Value::Int(rows[0].len() as i64)),
+        ("yates_correction", Value::Bool(applied)),
+        ("expected", expected),
+    ]))
+}
+
 fn builtin_chi_square(args: Vec<Value>) -> Result<Value> {
     let observed = require_num_list(&args[0], "chi_square")?;
     let expected = require_num_list(&args[1], "chi_square")?;
@@ -2051,7 +2132,7 @@ fn builtin_chi_square(args: Vec<Value>) -> Result<Value> {
         chi2 += (o - e).powi(2) / e;
     }
     let df = (observed.len() - 1).max(1);
-    let p_value = 1.0 - bl_core::bio_core::stats_ops::chi_square_cdf(chi2, df);
+    let p_value = bl_core::bio_core::stats_ops::chi_square_sf(chi2, df);
     Ok(make_record(vec![
         ("chi2", Value::Float(chi2)),
         ("statistic", Value::Float(chi2)),
@@ -2073,6 +2154,16 @@ fn builtin_fisher_exact(args: Vec<Value>) -> Result<Value> {
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     let confidence_lower = Value::Float(res.confidence_interval.0);
     let confidence_upper = Value::Float(res.confidence_interval.1);
+
+    // Two estimators, each under its own name. `odds_ratio` stays the sample
+    // cross-product it has always been; `conditional_odds_ratio` is what R's
+    // `fisher.test` prints, and the exact interval belongs with it because it
+    // comes from inverting the same conditional test. Reporting only one of
+    // them left anyone cross-checking against R to work out which was wrong.
+    let conditional = bl_core::bio_core::stats_ops::conditional_odds_ratio(a, b, c, d);
+    let (exact_lower, exact_upper) =
+        bl_core::bio_core::stats_ops::conditional_odds_ratio_interval(a, b, c, d, confidence);
+
     Ok(make_record(vec![
         ("method", Value::Str("fisher_exact_two_sided".into())),
         ("p_value", Value::Float(res.p_value)),
@@ -2083,6 +2174,21 @@ fn builtin_fisher_exact(args: Vec<Value>) -> Result<Value> {
         (
             "odds_ratio_estimator",
             Value::Str("sample_cross_product".into()),
+        ),
+        ("conditional_odds_ratio", Value::Float(conditional)),
+        (
+            "conditional_odds_ratio_estimator",
+            Value::Str("conditional_mle".into()),
+        ),
+        (
+            "conditional_confidence_interval",
+            interval_record(Value::Float(exact_lower), Value::Float(exact_upper)),
+        ),
+        ("conditional_confidence_lower", Value::Float(exact_lower)),
+        ("conditional_confidence_upper", Value::Float(exact_upper)),
+        (
+            "conditional_confidence_interval_method",
+            Value::Str("exact_conditional".into()),
         ),
         ("confidence_level", Value::Float(confidence)),
         (
@@ -2098,6 +2204,23 @@ fn builtin_fisher_exact(args: Vec<Value>) -> Result<Value> {
     ]))
 }
 
+/// Whether any value appears more than once across both groups.
+///
+/// The exact rank distribution assumes every value is distinct; with a tie the
+/// ranks are averaged and the distribution no longer applies, which is why R
+/// falls back to the normal approximation and warns.
+fn has_ties(a: &[f64], b: &[f64]) -> bool {
+    let mut all: Vec<f64> = a.iter().chain(b.iter()).copied().collect();
+    all.sort_by(|x, y| x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal));
+    all.windows(2).any(|pair| (pair[0] - pair[1]).abs() < 1e-10)
+}
+
+/// Whether the caller actually wrote `continuity`, rather than getting the
+/// default.
+fn explicit_continuity(options: Option<&HashMap<String, Value>>) -> bool {
+    options.is_some_and(|values| values.contains_key("continuity"))
+}
+
 fn builtin_wilcoxon(args: Vec<Value>) -> Result<Value> {
     let a = require_num_list(&args[0], "wilcoxon")?;
     let b = require_num_list(&args[1], "wilcoxon")?;
@@ -2111,11 +2234,28 @@ fn builtin_wilcoxon(args: Vec<Value>) -> Result<Value> {
     let method = options
         .and_then(|values| values.get("method"))
         .and_then(Value::as_str)
-        .unwrap_or("normal");
+        .unwrap_or("auto");
     let continuity = options
         .and_then(|values| values.get("continuity"))
         .and_then(Value::as_bool)
-        .unwrap_or(false);
+        .unwrap_or(true);
+    // R's rule, and the reason for it: the exact distribution is the right
+    // answer and is only affordable for small groups, and it is not valid at
+    // all once values are tied. The old default was the normal approximation
+    // with no continuity correction -- the least accurate of the three
+    // available here, and chosen for none of them.
+    let method = if method != "auto" {
+        method
+    } else if explicit_continuity(options) {
+        // Asking for the continuity correction is asking for the approximation
+        // it corrects; the alternative is to refuse the call over a method the
+        // caller never chose.
+        "normal"
+    } else if a.len() < 50 && b.len() < 50 && !has_ties(&a, &b) {
+        "exact"
+    } else {
+        "normal"
+    };
     let (res, method_name, used_continuity) = match method {
         "normal" | "approximate" => (
             bl_core::bio_core::stats_ops::mann_whitney_u(&a, &b, &alternative, continuity),
@@ -2123,7 +2263,10 @@ fn builtin_wilcoxon(args: Vec<Value>) -> Result<Value> {
             continuity,
         ),
         "exact" => {
-            if continuity {
+            // Only an explicit request is an error: `continuity` now defaults
+            // to true, and refusing every automatically-chosen exact test
+            // because of a default nobody asked for would be absurd.
+            if continuity && explicit_continuity(options) {
                 return Err(BioLangError::runtime(
                     ErrorKind::TypeError,
                     "wilcoxon() continuity correction applies only to method='normal'",
@@ -2139,7 +2282,7 @@ fn builtin_wilcoxon(args: Vec<Value>) -> Result<Value> {
         _ => {
             return Err(BioLangError::runtime(
                 ErrorKind::TypeError,
-                "wilcoxon() method must be 'normal' or 'exact'",
+                "wilcoxon() method must be 'auto', 'normal' or 'exact'",
                 None,
             ))
         }
@@ -3143,7 +3286,7 @@ pub(crate) fn logistic_regression_multi(
             let se = inv[j][j].abs().sqrt();
             if se > 0.0 {
                 let z = beta[j] / se;
-                2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(z.abs()))
+                2.0 * bl_core::bio_core::stats_ops::normal_sf(z.abs())
             } else {
                 1.0
             }
@@ -3290,7 +3433,7 @@ pub(crate) fn poisson_regression(y: &[f64], x: &[Vec<f64>]) -> std::result::Resu
             let se = inv[j][j].abs().sqrt();
             if se > 0.0 {
                 let z = beta[j] / se;
-                2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(z.abs()))
+                2.0 * bl_core::bio_core::stats_ops::normal_sf(z.abs())
             } else {
                 1.0
             }
@@ -3895,7 +4038,7 @@ fn builtin_hardy_weinberg(args: Vec<Value>) -> Result<Value> {
     } else {
         0.0
     };
-    let p_value = 1.0 - bl_core::bio_core::stats_ops::chi_square_cdf(chi2_val, 1);
+    let p_value = bl_core::bio_core::stats_ops::chi_square_sf(chi2_val, 1);
     let in_equilibrium = p_value > 0.05;
     Ok(make_record(vec![
         ("p", Value::Float(p)),
@@ -4376,7 +4519,7 @@ fn builtin_log_rank_test(args: Vec<Value>) -> Result<Value> {
     } else {
         0.0
     };
-    let p_value = 1.0 - bl_core::bio_core::stats_ops::chi_square_cdf(chi2, 1);
+    let p_value = bl_core::bio_core::stats_ops::chi_square_sf(chi2, 1);
 
     Ok(make_record(vec![
         ("statistic", Value::Float(chi2)),
@@ -4905,7 +5048,7 @@ fn builtin_meta_analysis(args: Vec<Value>) -> Result<Value> {
         .zip(effects.iter())
         .map(|(&wi, &ei)| wi * (ei - pooled_fixed).powi(2))
         .sum();
-    let p_q = 1.0 - bl_core::bio_core::stats_ops::chi_square_cdf(q_stat, df as usize);
+    let p_q = bl_core::bio_core::stats_ops::chi_square_sf(q_stat, df as usize);
     let i_squared = ((q_stat - df) / q_stat * 100.0).max(0.0);
 
     let (pooled_effect, pooled_se, tau_squared) = match method.as_str() {

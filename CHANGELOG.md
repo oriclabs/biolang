@@ -25,7 +25,48 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   side by side is not the same picture: each panel gets its own scale, so the
   comparison the figure exists to make is the one thing it cannot show.
 
+- **`chi_square_contingency(table, opts?)`**, a chi-square test of independence
+  on an r x c table. `chi_square(observed, expected)` is a goodness-of-fit test
+  and reports k - 1 degrees of freedom, which is wrong for a table whose
+  expected counts came from its own margins — on the Berkeley 2x2 that is 3
+  where the answer is 1. Yates' continuity correction is applied to 2x2 tables
+  by default and to no other shape, as R does.
+- **`fisher_exact` reports the conditional odds ratio too.** `odds_ratio` is
+  still the sample cross-product; `conditional_odds_ratio` is the conditional
+  MLE R's `fisher.test` prints, with an exact interval from inverting the same
+  test rather than a Wald interval on the sample ratio.
+- `regularized_gamma_q`, `chi_square_sf`, `normal_sf` and `students_t_sf` in
+  `bio-core`: each upper tail computed from the branch that has the digits,
+  rather than as one minus its opposite.
+
 ### Fixed
+- **Upper tails no longer underflow to zero.** Every p-value was computed as
+  `1 - some_cdf(x)`, a subtraction with nothing left where the answer is
+  interesting: chi-square p-values drifted below 1e-15 and hit exactly 0.0 past
+  it, so a chi2 of 81 reported 0.0 where the answer is 2.2572e-19, and
+  `spearman` returned 0.0 on n = 272 where it should return 1.9895e-56. A
+  p-value of zero is not a stronger result, it is a missing one, and it breaks
+  every `-log10(p)`. Now accurate to about 1e-13 down to 9.5e-111.
+- **`pnorm` is no longer a seven-figure approximation.** It was Abramowitz &
+  Stegun, good to 1.5e-7 *absolute* — which in a tail is the whole answer. It
+  now computes the tail from the incomplete gamma already in the module and
+  agrees with R to about 4e-14, including `pnorm(-10) = 7.6199e-24`.
+- **Student's t no longer becomes the normal above 100 degrees of freedom.**
+  The CDF short-circuited to `normal_cdf` for df > 100. The t has heavier tails
+  at every finite df, so this returned p-values too small — a factor of four at
+  df = 101 and t = 5, and still 8% out at df = 2000. Every t-test, correlation
+  test and regression coefficient on a sample above 100 was affected.
+- **`wilcoxon` defaults to the test R would choose.** All three modes were
+  implemented and each matched R, but the default was the normal approximation
+  with no continuity correction — the least accurate of the three, and chosen
+  for none of them. It now uses the exact distribution when both groups are
+  under 50 with no ties, and the corrected approximation otherwise.
+- **`permutation_test` accepts its documented fourth argument.** It was
+  registered in two modules; dispatch reached `stats.rs` for the behaviour while
+  the copy in `statistics.rs` decided the arity, so `Exact(3)` rejected the
+  optional permutation count before the implementation that accepts it ran.
+  `fisher_exact` and `chi_square` were duplicated the same way. All three copies
+  are gone.
 - **Inference builtins no longer ignore options they do not read.**
   `ttest(a, b, {welch: true})` returned the pooled-variance result with no
   warning, and so did a mistyped `{varianse: "welch"}` — a call that reads as

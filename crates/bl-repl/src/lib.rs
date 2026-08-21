@@ -2090,6 +2090,11 @@ const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
         "Record{chi2,p_value,df}",
     ),
     (
+        "chi_square_contingency",
+        "chi_square_contingency([[10, 20], [30, 40]])  # → Record{chi2,p_value,df}",
+        "Record{chi2,p_value,df,expected}",
+    ),
+    (
         "fisher_exact",
         "fisher_exact(8, 2, 1, 5)  # → Record{p_value,odds_ratio,confidence_interval}",
         "Record{p_value,odds_ratio,confidence_interval}",
@@ -3016,7 +3021,12 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "chi_square",
-        "chi_square(obs, exp) → Record{chi2,p_value,df}",
+        "chi_square(obs, exp) → Record{chi2,p_value,df}; goodness of fit, df = k-1",
+        "stats",
+    ),
+    (
+        "chi_square_contingency",
+        "chi_square_contingency(table, opts?) → Record{chi2,p_value,df,expected}",
         "stats",
     ),
     (

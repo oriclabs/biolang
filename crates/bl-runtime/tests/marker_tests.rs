@@ -18,6 +18,16 @@ const N_CELLS: usize = PER_CLUSTER * CLUSTERS;
 /// Genes 4 and 5 both belong to cluster 0 but differ in how: 4 blazes in a
 /// quarter of its cells, 5 is modest across all of them. They exist to separate
 /// the dot plot's two encodings, which a mean alone cannot.
+///
+/// WEAK leaks into a few cells of the other clusters, and that detail is
+/// load-bearing. Without it WEAK separates cluster 0 exactly as perfectly as
+/// M0 does, a rank test cannot tell two perfect separations apart, and which
+/// of them is reported first comes down to how the within-group ties happen to
+/// fall. That was invisible while p-values underflowed to zero and the
+/// fold-change tie-break decided everything; once they became real numbers,
+/// WEAK's 1.83e-26 edged out M0's 2.26e-26 on nothing but tie structure, while
+/// M0 has twice the fold change. A fixture meant to assert "M0 names cluster 0"
+/// has to make M0 the better marker rather than the luckier one.
 fn counts() -> Value {
     let mut rows = Vec::with_capacity(N_CELLS);
     for cell in 0..N_CELLS {
@@ -36,6 +46,9 @@ fn counts() -> Value {
                 row[4] = 4.0;
             }
             row[5] = 0.45 + (within % 3) as f64 * 0.01;
+        } else if within % 5 == 0 {
+            // The leak: a fifth of the other clusters carries WEAK too.
+            row[5] = 0.4;
         }
         rows.push(Value::List(
             row.into_iter().map(Value::Float).collect::<Vec<_>>().into(),
