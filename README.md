@@ -100,6 +100,7 @@ the reference, and a shared misreading of a format would stay invisible to it.
 - **Plugin system** -- extend with Python, TypeScript, R, or native plugins
 - **Self-update** -- `bl version` checks for updates, `bl upgrade` downloads the latest release
 - **LSP** -- language server with diagnostics, completion, and hover
+- **Optional converter** -- the separate `bl-convert` executable validates and safely converts tabular, interval and sequence files without increasing `bl`'s size
 
 ## Install
 
@@ -157,6 +158,16 @@ Or from a clone, which is what you want if you intend to change anything:
 git clone https://github.com/oriclabs/biolang.git
 cd biolang
 cargo install --path crates/bl-cli
+```
+
+The lightweight converter ships in the release archives beside `bl`, and can
+also be built from the same source checkout. It stays a separate executable:
+
+```bash
+cargo install --path crates/bl-convert
+bl-convert formats
+# With both executables present, this delegates to bl-convert:
+bl convert input.vcf output.bed
 ```
 
 ## Quick Start
@@ -391,21 +402,27 @@ See the [full benchmark results](https://lang.bio/benchmarks.html) for all 32 ta
 
 ## Releases
 
-Pre-built binaries are published on every tagged release for 4 platforms:
+Pre-built binaries are published on every tagged release for 5 platforms:
 
-| Platform | Archive | Binaries |
-|---|---|---|
-| Linux x86_64 | `biolang-linux-x86_64.tar.gz` | `bl`, `bl-lsp` |
-| macOS x86_64 | `biolang-macos-x86_64.tar.gz` | `bl`, `bl-lsp` |
-| macOS ARM (Apple Silicon) | `biolang-macos-aarch64.tar.gz` | `bl`, `bl-lsp` |
-| Windows x86_64 | `biolang-windows-x86_64.zip` | `bl.exe`, `bl-lsp.exe` |
+| Platform | Archive |
+|---|---|
+| Linux x86_64 | `biolang-linux-x86_64.tar.gz` |
+| Linux ARM64 | `biolang-linux-aarch64.tar.gz` |
+| macOS x86_64 | `biolang-macos-x86_64.tar.gz` |
+| macOS ARM (Apple Silicon) | `biolang-macos-aarch64.tar.gz` |
+| Windows x86_64 | `biolang-windows-x86_64.zip` |
 
 Download from [Releases](https://github.com/oriclabs/biolang/releases).
 
-Each release includes:
+Each archive contains:
 - **`bl`** -- main CLI: run scripts, interactive REPL, manage plugins
 - **`bl-lsp`** -- language server for editor integration (VS Code, Neovim, etc.)
-- **`checksums.sha256`** -- SHA-256 checksums for all archives
+- **`bl-convert`** -- optional format converter and external-tool runner, which
+  is also what `bl convert ...` delegates to
+- **`packages/`** -- the bundled BioLang packages, so `import "statistics"`
+  resolves without a checkout
+
+`checksums.sha256` is published alongside the archives.
 
 Releases are built automatically via GitHub Actions when a version tag is pushed:
 
@@ -437,11 +454,13 @@ crates/
   bl-repl/     -- Interactive REPL
   bl-lsp/      -- Language Server Protocol
   bl-cli/      -- CLI binary (bl)
+  bl-convert/  -- Optional safe format-conversion CLI (bl-convert)
 ```
 
 ## Documentation
 
 - [Website](https://lang.bio) -- getting started, language reference, builtin docs
+- [BL Convert guide](https://lang.bio/docs/tools/bl-convert.html) -- safe file conversion and optional external-tool backends
 - [Playground](https://lang.bio/playground.html) -- try BioLang in your browser (no install required)
 - [Language reference](https://lang.bio/books/language/html/) -- comprehensive guide with examples
 - [Workflows](https://github.com/oriclabs/biolang-workflows) -- runnable analyses, practical courses, notebooks, benchmarks, and independent validation

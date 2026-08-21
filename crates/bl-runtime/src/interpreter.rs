@@ -1162,6 +1162,27 @@ impl Interpreter {
             }
         }
 
+        // 5. Packages shipped alongside the executable.
+        //
+        // Last on purpose. A release archive carries the packages that match
+        // the binary it ships with, so this is the floor that makes
+        // `import "statistics"` work on a machine that has only unpacked a
+        // tarball — but a package the user checked out, or installed with
+        // `bl install`, is the one they chose, and has to win. Searching this
+        // first would let a bundled copy silently shadow it.
+        //
+        // Both layouts are tried: `bl` beside `packages/`, and `bin/bl` with
+        // `packages/` one level up.
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(exe_dir) = exe.parent() {
+                for candidate in [exe_dir.join("packages"), exe_dir.join("../packages")] {
+                    if candidate.is_dir() && !search_dirs.contains(&candidate) {
+                        search_dirs.push(candidate);
+                    }
+                }
+            }
+        }
+
         for dir in &search_dirs {
             // Try the path exactly as written. Only `<path>.bl` was attempted
             // before, so an import that already carried the extension resolved

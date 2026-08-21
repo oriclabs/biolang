@@ -18,6 +18,7 @@ jobs:
             archive: biolang-linux-x86_64.tar.gz
             binary: bl
             lsp_binary: bl-lsp
+            convert_binary: bl-convert
           # Built on a native arm64 runner rather than cross-compiled from
           # x86_64. The dependency tree pulls in openssl-sys, ring, bzip2-sys
           # and zstd-sys, all of which compile C and would each need a working
@@ -32,21 +33,25 @@ jobs:
             archive: biolang-linux-aarch64.tar.gz
             binary: bl
             lsp_binary: bl-lsp
+            convert_binary: bl-convert
           - os: macos-latest
             target: x86_64-apple-darwin
             archive: biolang-macos-x86_64.tar.gz
             binary: bl
             lsp_binary: bl-lsp
+            convert_binary: bl-convert
           - os: macos-latest
             target: aarch64-apple-darwin
             archive: biolang-macos-aarch64.tar.gz
             binary: bl
             lsp_binary: bl-lsp
+            convert_binary: bl-convert
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             archive: biolang-windows-x86_64.zip
             binary: bl.exe
             lsp_binary: bl-lsp.exe
+            convert_binary: bl-convert.exe
 
     runs-on: ${{ matrix.os }}
 
@@ -58,17 +63,35 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      # bl-convert is built here because `bl convert` is a subcommand of the
+      # shipped `bl`: it delegates to a sibling `bl-convert` executable, and
+      # without one in the archive the subcommand `bl --help` advertises can
+      # only answer "not installed; cargo install --path crates/bl-convert" —
+      # a checkout and a Rust toolchain that a binary-install user does not
+      # have. It stays a separate executable, so `bl` does not grow.
       - name: Build release binaries
-        run: cargo build --release --target ${{ matrix.target }} -p bl-cli -p bl-lsp
+        run: cargo build --release --target ${{ matrix.target }} -p bl-cli -p bl-lsp -p bl-convert
 
+      # `packages/` ships beside the binary so `import "statistics"` works on a
+      # machine that has only unpacked the archive. There is no registry, so
+      # without this the 37 packages taught by the docs and practical courses are documented
+      # everywhere and reachable nowhere. ~970 KB of tracked source against a
+      # ~38 MB binary.
+      #
+      # A plain copy is correct here because the runner starts from a fresh
+      # checkout: only tracked files exist. Do not reuse this step for a local
+      # build, where a working tree also holds run artifacts (plots, CSVs) that
+      # are not package content.
       - name: Package (Unix)
         if: runner.os != 'Windows'
         run: |
           mkdir -p dist
           cp target/${{ matrix.target }}/release/${{ matrix.binary }} dist/
           cp target/${{ matrix.target }}/release/${{ matrix.lsp_binary }} dist/
+          cp target/${{ matrix.target }}/release/${{ matrix.convert_binary }} dist/
           cp LICENSE dist/
           cp README.md dist/
+          cp -R packages dist/
           cd dist && tar czf ../${{ matrix.archive }} *
 
       - name: Package (Windows)
@@ -78,8 +101,10 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist
           Copy-Item "target/${{ matrix.target }}/release/${{ matrix.binary }}" dist/
           Copy-Item "target/${{ matrix.target }}/release/${{ matrix.lsp_binary }}" dist/
+          Copy-Item "target/${{ matrix.target }}/release/${{ matrix.convert_binary }}" dist/
           Copy-Item LICENSE dist/
           Copy-Item README.md dist/
+          Copy-Item -Recurse packages dist/packages
           Compress-Archive -Path dist/* -DestinationPath ${{ matrix.archive }}
 
       - name: Upload artifact

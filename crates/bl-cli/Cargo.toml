@@ -8,8 +8,12 @@ homepage.workspace = true
 description = "CLI for BioLang: run scripts, start REPL, manage plugins"
 
 [features]
-default = ["notebook-server"]
+default = ["notebook-server", "gpu"]
 notebook-server = ["dep:rand", "dep:tiny_http"]
+# Passthrough so the shipped binary can be built without the wgpu/naga stack.
+# The runtime keeps its deterministic f64 CPU path either way; without this
+# feature the GPU probe reports "not compiled" and every call falls back.
+gpu = ["bl-runtime/gpu"]
 
 [[bin]]
 name = "bl"
@@ -19,7 +23,7 @@ path = "src/main.rs"
 bl-core = { workspace = true }
 bl-lexer = { workspace = true }
 bl-parser = { workspace = true }
-bl-runtime = { workspace = true, features = ["native"] }
+bl-runtime = { workspace = true, default-features = false, features = ["native"] }
 bl-fmt = { workspace = true }
 bl-repl = { workspace = true }
 bl-import = { workspace = true }
