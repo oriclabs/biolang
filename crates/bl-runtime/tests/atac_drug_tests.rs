@@ -1,7 +1,13 @@
-#[path = "../src/atac.rs"]
-mod atac;
-#[path = "../src/drug.rs"]
-mod drug;
+// Both modules are `pub` in lib.rs, and the two entry points this file uses are
+// public, so it links against the library like every other integration test.
+//
+// It used to pull both sources in a second time with `#[path]`, compiling them
+// as modules of the test binary. In that copy `crate::` means the test crate,
+// so `atac.rs`'s reference to `crate::singlecell` had nothing to resolve
+// against and the whole suite failed to build -- eleven tests that had stopped
+// running while the library itself compiled clean.
+use bl_runtime::atac;
+use bl_runtime::drug;
 
 use bl_core::value::{Table, Value};
 
