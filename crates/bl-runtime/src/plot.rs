@@ -7,6 +7,8 @@ pub fn plot_builtin_list() -> Vec<(&'static str, Arity)> {
         ("plot", Arity::Range(1, 2)),
         ("heatmap", Arity::Range(1, 2)),
         ("histogram", Arity::Range(1, 2)),
+        ("ecdf_plot", Arity::Range(1, 2)),
+        ("density_plot", Arity::Range(1, 2)),
         ("volcano", Arity::Range(1, 2)),
         ("ma_plot", Arity::Range(1, 2)),
         ("save_svg", Arity::Exact(2)),
@@ -22,6 +24,8 @@ pub fn is_plot_builtin(name: &str) -> bool {
         "plot"
             | "heatmap"
             | "histogram"
+            | "ecdf_plot"
+            | "density_plot"
             | "volcano"
             | "ma_plot"
             | "save_svg"
@@ -59,6 +63,8 @@ pub fn call_plot_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "plot" => builtin_plot(args),
         "heatmap" => builtin_heatmap(args),
         "histogram" => builtin_histogram(args),
+        "ecdf_plot" => builtin_ecdf_plot(args),
+        "density_plot" => builtin_density_plot(args),
         "volcano" => builtin_volcano(args),
         "ma_plot" => builtin_ma_plot(args),
         "save_svg" | "save_plot" => builtin_save_svg(args),
@@ -1301,6 +1307,252 @@ fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Str(canvas.render()))
 }
 
+/// The numbers in a list argument, for the plots that take one list.
+///
+/// Numeric strings are accepted because a column read from a CSV arrives as
+/// text often enough that rejecting it would be the wrong default.
+fn numeric_list(value: &Value, who: &str) -> Result<Vec<f64>> {
+    let items = match value {
+        Value::List(items) => items,
+        _ => {
+            return Err(BioLangError::type_error(
+                format!("{who}() requires List of numbers"),
+                None,
+            ))
+        }
+    };
+    let mut numbers = Vec::with_capacity(items.len());
+    for item in items.iter() {
+        match item {
+            Value::Int(n) => numbers.push(*n as f64),
+            Value::Float(f) => numbers.push(*f),
+            Value::Str(s) => {
+                if let Ok(f) = s.parse::<f64>() {
+                    numbers.push(f);
+                }
+            }
+            _ => {}
+        }
+    }
+    if numbers.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{who}() received no numeric values - check that your data contains numbers, not strings"
+            ),
+            None,
+        ));
+    }
+    Ok(numbers)
+}
+
+/// The empirical cumulative distribution: for each value, the fraction of the
+/// data at or below it.
+///
+/// Drawn as the step function it actually is rather than joined with straight
+/// lines, because the distribution really is flat between observations. Unlike
+/// a histogram it has no bin width, so it shows the data without a parameter
+/// that changes the story being told.
+fn builtin_ecdf_plot(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let width = get_opt_f64(&opts, "width", 800.0);
+    let height = get_opt_f64(&opts, "height", 600.0);
+    let title = get_opt_str(&opts, "title", "Empirical CDF").to_string();
+
+    let mut values = numeric_list(&args[0], "ecdf_plot")?;
+    values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let n = values.len() as f64;
+
+    let (lo, hi) = col_range(&values);
+    let span = if (hi - lo).abs() < f64::EPSILON {
+        1.0
+    } else {
+        hi - lo
+    };
+
+    let mut canvas = SvgCanvas::new(width, height);
+    let right_edge = canvas.margin.left + canvas.plot_width();
+    let x_scale = Scale {
+        domain: (lo, lo + span),
+        range: (canvas.margin.left, right_edge),
+    };
+    let y_scale = Scale {
+        domain: (0.0, 1.0),
+        range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
+    };
+
+    // One polyline rather than two line elements per observation: the same
+    // picture, and a tenth of the file for a column of a few hundred values,
+    // which matters when the SVG is inlined into a page.
+    let mut points = Vec::with_capacity(2 * values.len() + 2);
+    points.push(format!(
+        "{:.1},{:.1}",
+        x_scale.map(values[0]),
+        y_scale.map(0.0)
+    ));
+    for (index, value) in values.iter().enumerate() {
+        let x = x_scale.map(*value);
+        let y = y_scale.map((index + 1) as f64 / n);
+        // The riser at the observation, then the flat run to the next one.
+        points.push(format!("{x:.1},{y:.1}"));
+        let next_x = match values.get(index + 1) {
+            Some(next) => x_scale.map(*next),
+            None => right_edge,
+        };
+        points.push(format!("{next_x:.1},{y:.1}"));
+    }
+    canvas.elements.push(format!(
+        r#"<polyline points="{}" fill="none" stroke="{}" stroke-width="1.5" />"#,
+        points.join(" "),
+        PALETTE[0]
+    ));
+
+    canvas.draw_x_axis(
+        &Scale {
+            domain: (lo, lo + span),
+            range: (lo, lo + span),
+        },
+        &axis_label(&opts, "xlabel", "Value"),
+    );
+    canvas.draw_y_axis(
+        &Scale {
+            domain: (0.0, 1.0),
+            range: (0.0, 1.0),
+        },
+        &axis_label(&opts, "ylabel", "Proportion at or below"),
+    );
+    canvas.draw_title(&title);
+
+    Ok(Value::Str(canvas.render()))
+}
+
+/// Silverman's rule of thumb for a kernel bandwidth: the width R's `bw.nrd0`
+/// picks, computed the same way so the two agree.
+///
+/// `0.9 * min(sd, IQR/1.34) * n^(-1/5)`. The `min` is what keeps a long tail
+/// from inflating the standard deviation and oversmoothing everything else,
+/// and the IQR falls back to the sd when the middle half of the data is a
+/// single repeated value. Expects `values` already sorted.
+fn silverman_bandwidth(values: &[f64]) -> f64 {
+    let n = values.len() as f64;
+    let mean = values.iter().sum::<f64>() / n;
+    let sd = if values.len() > 1 {
+        (values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (n - 1.0)).sqrt()
+    } else {
+        1.0
+    };
+    // Type 7, matching quantile() elsewhere in the runtime and R's default.
+    let quantile = |p: f64| -> f64 {
+        let h = (n - 1.0) * p;
+        let lower = h.floor() as usize;
+        let upper = (lower + 1).min(values.len() - 1);
+        values[lower] + (h - h.floor()) * (values[upper] - values[lower])
+    };
+    let iqr = quantile(0.75) - quantile(0.25);
+    // R's fallback chain, in R's order: the IQR estimate, then the standard
+    // deviation, then the magnitude of a single observation, then 1. Each step
+    // exists because the one before it can be exactly zero -- on a column of
+    // repeated values every measure of spread is -- and a bandwidth of zero
+    // divides by zero and draws nothing.
+    let mut spread = sd.min(iqr / 1.34);
+    if spread <= 0.0 {
+        spread = sd;
+    }
+    if spread <= 0.0 {
+        spread = values[0].abs();
+    }
+    if spread <= 0.0 {
+        spread = 1.0;
+    }
+    0.9 * spread * n.powf(-0.2)
+}
+
+/// A Gaussian kernel density estimate: a smooth stand-in for a histogram that
+/// does not depend on where the bin edges happen to fall.
+///
+/// The default bandwidth is Silverman's rule of thumb,
+/// `0.9 * min(sd, IQR/1.34) * n^(-1/5)`, which is what R's `bw.nrd0` computes,
+/// so the two agree by construction. Pass `bandwidth` to override it - and do
+/// look at more than one, because bandwidth is to a density what bin width is
+/// to a histogram: a choice that changes the shape being argued for.
+fn builtin_density_plot(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let width = get_opt_f64(&opts, "width", 800.0);
+    let height = get_opt_f64(&opts, "height", 600.0);
+    let title = get_opt_str(&opts, "title", "Density").to_string();
+
+    let mut values = numeric_list(&args[0], "density_plot")?;
+    values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let n = values.len() as f64;
+
+    let bandwidth =
+        get_opt_f64(&opts, "bandwidth", silverman_bandwidth(&values)).max(f64::MIN_POSITIVE);
+
+    // Reach three bandwidths past the data so the tails are not cut off.
+    let (data_lo, data_hi) = col_range(&values);
+    let lo = data_lo - 3.0 * bandwidth;
+    let hi = data_hi + 3.0 * bandwidth;
+
+    let steps = 256usize;
+    let normaliser = 1.0 / (n * bandwidth * (2.0 * std::f64::consts::PI).sqrt());
+    let mut densities = Vec::with_capacity(steps);
+    for step in 0..steps {
+        let x = lo + (hi - lo) * step as f64 / (steps - 1) as f64;
+        let density = values
+            .iter()
+            .map(|v| {
+                let z = (x - v) / bandwidth;
+                (-0.5 * z * z).exp()
+            })
+            .sum::<f64>()
+            * normaliser;
+        densities.push((x, density));
+    }
+    let peak = densities
+        .iter()
+        .map(|(_, d)| *d)
+        .fold(0.0f64, f64::max)
+        .max(f64::MIN_POSITIVE);
+
+    let mut canvas = SvgCanvas::new(width, height);
+    let x_scale = Scale {
+        domain: (lo, hi),
+        range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
+    };
+    let y_scale = Scale {
+        domain: (0.0, peak),
+        range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
+    };
+
+    let points: Vec<String> = densities
+        .iter()
+        .map(|(x, d)| format!("{:.1},{:.1}", x_scale.map(*x), y_scale.map(*d)))
+        .collect();
+    canvas.elements.push(format!(
+        r#"<polyline points="{}" fill="none" stroke="{}" stroke-width="2" />"#,
+        points.join(" "),
+        PALETTE[0]
+    ));
+
+    canvas.draw_x_axis(
+        &Scale {
+            domain: (lo, hi),
+            range: (lo, hi),
+        },
+        &axis_label(&opts, "xlabel", "Value"),
+    );
+    canvas.draw_y_axis(
+        &Scale {
+            domain: (0.0, peak),
+            range: (0.0, peak),
+        },
+        &axis_label(&opts, "ylabel", "Density"),
+    );
+    canvas.draw_title(&title);
+
+    Ok(Value::Str(canvas.render()))
+}
+
 fn builtin_volcano(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "volcano")?;
     let opts = parse_options(&args);
@@ -1879,5 +2131,184 @@ mod axis_label_tests {
             !svg.contains(">Count<"),
             "the default y label should be gone"
         );
+    }
+}
+
+#[cfg(test)]
+mod distribution_plot_tests {
+    use super::{call_plot_builtin, silverman_bandwidth};
+    use bl_core::value::Value;
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    // `ecdf_plot` and `density_plot` are the two ways of showing a distribution
+    // that a histogram's bin width cannot distort: the ECDF has no parameter at
+    // all, and a density has one that is stated rather than implied by where
+    // the bin edges happened to fall.
+
+    fn numbers(values: &[f64]) -> Value {
+        Value::List(Arc::new(values.iter().copied().map(Value::Float).collect()))
+    }
+
+    fn options(pairs: &[(&str, Value)]) -> Value {
+        let mut record = HashMap::new();
+        for (key, value) in pairs {
+            record.insert((*key).to_string(), value.clone());
+        }
+        Value::Record(Arc::new(record))
+    }
+
+    fn render(name: &str, args: Vec<Value>) -> String {
+        match call_plot_builtin(name, args).expect("plot renders") {
+            Value::Str(svg) => svg.to_string(),
+            other => panic!("{name} should return SVG, got {other:?}"),
+        }
+    }
+
+    /// Every case here is `bw.nrd0` from R 4.6.1, printed to twelve places. A
+    /// density is only comparable with one drawn in R if the default smoothing
+    /// agrees, so these are checked against the reference rather than against
+    /// whatever the formula currently returns.
+    fn assert_matches_r(label: &str, values: &[f64], expected: f64) {
+        let got = silverman_bandwidth(values);
+        assert!(
+            (got - expected).abs() < 1e-11,
+            "{label}: bw.nrd0 is {expected}, got {got}"
+        );
+    }
+
+    #[test]
+    fn the_default_bandwidth_is_the_one_r_picks() {
+        assert_matches_r(
+            "primes",
+            &[2.0, 3.0, 5.0, 7.0, 11.0, 13.0, 17.0, 19.0, 23.0, 29.0],
+            5.124_406_997_583,
+        );
+    }
+
+    #[test]
+    fn one_far_out_value_does_not_widen_the_bandwidth() {
+        // sd is 30.9 here and the IQR is 4.5. Taking the smaller is the whole
+        // point of the rule: one outlier must not smooth the other nine values
+        // into a single hill. It also pins the divisor -- R uses 1.34, and 1.349
+        // (the exact interquartile range of a standard normal, and what the
+        // comment in R's own source says) would give 1.894 instead.
+        assert_matches_r(
+            "heavy tail",
+            &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 100.0],
+            1.906_997_944_138,
+        );
+    }
+
+    #[test]
+    fn a_tied_middle_half_falls_back_to_the_standard_deviation() {
+        // The IQR is exactly zero here, so the rule's usual estimate is zero --
+        // a bandwidth that would make the density a row of infinite spikes.
+        assert_matches_r(
+            "tied middle",
+            &[0.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 10.0],
+            1.338_462_650_764,
+        );
+    }
+
+    #[test]
+    fn a_constant_column_still_gets_a_positive_bandwidth() {
+        // sd and IQR are both zero. Nothing here is worth plotting, but the
+        // bandwidth is a divisor and must not be zero. R uses the magnitude of
+        // an observation, and then 1 when even that is zero.
+        assert_matches_r("constant 7", &[7.0; 6], 4.402_610_848_261);
+        assert_matches_r("constant 0", &[0.0; 6], 0.628_944_406_894);
+    }
+
+    #[test]
+    fn the_ecdf_is_drawn_as_steps_not_as_a_joined_line() {
+        // Two segments per observation -- the riser at the value, then the flat
+        // run to the next one. Joining the points directly would draw a
+        // distribution that is smooth between observations, which is exactly
+        // what an ECDF is not.
+        let svg = render("ecdf_plot", vec![numbers(&[1.0, 2.0, 3.0, 4.0])]);
+        let points = svg
+            .split(r#"<polyline points=""#)
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("the step is drawn as a polyline");
+        // Two points per observation -- the top of the riser and the end of the
+        // flat run -- plus the corner it starts from on the axis.
+        assert_eq!(
+            points.split(' ').count(),
+            9,
+            "expected 2 vertices per observation: {points}"
+        );
+        // Consecutive pairs must share alternately an x then a y: that is what
+        // makes it a staircase rather than a line joining the observations.
+        let vertices: Vec<(&str, &str)> = points
+            .split(' ')
+            .map(|point| point.split_once(',').expect("x,y"))
+            .collect();
+        for pair in vertices.windows(2) {
+            assert!(
+                pair[0].0 == pair[1].0 || pair[0].1 == pair[1].1,
+                "{:?} -> {:?} is a diagonal, not a step",
+                pair[0],
+                pair[1]
+            );
+        }
+    }
+
+    #[test]
+    fn the_ecdf_says_what_its_y_axis_means() {
+        let svg = render("ecdf_plot", vec![numbers(&[1.0, 2.0, 3.0])]);
+        assert!(svg.contains(">Proportion at or below<"), "{svg:.400}");
+
+        let labelled = render(
+            "ecdf_plot",
+            vec![
+                numbers(&[1.0, 2.0, 3.0]),
+                options(&[("ylabel", Value::Str("fraction of samples".into()))]),
+            ],
+        );
+        assert!(labelled.contains(">fraction of samples<"));
+        assert!(!labelled.contains(">Proportion at or below<"));
+    }
+
+    #[test]
+    fn an_explicit_bandwidth_changes_the_curve() {
+        // The failure this guards against is the one that made every axis label
+        // in this file wrong for so long: an option accepted, parsed, and then
+        // not used. A bandwidth ten times wider must draw a different picture.
+        let values = numbers(&[1.0, 2.0, 3.0, 8.0, 9.0, 10.0]);
+        let narrow = render(
+            "density_plot",
+            vec![values.clone(), options(&[("bandwidth", Value::Float(0.2))])],
+        );
+        let wide = render(
+            "density_plot",
+            vec![values, options(&[("bandwidth", Value::Float(2.0))])],
+        );
+        assert_ne!(narrow, wide, "the bandwidth option was ignored");
+    }
+
+    #[test]
+    fn a_list_with_no_numbers_in_it_is_an_error_rather_than_an_empty_plot() {
+        let text = Value::List(Arc::new(vec![Value::Str("setosa".into())]));
+        let error = call_plot_builtin("density_plot", vec![text])
+            .expect_err("a column of species names is not a distribution");
+        assert!(
+            error.to_string().contains("no numeric values"),
+            "unhelpful message: {error}"
+        );
+    }
+
+    #[test]
+    fn a_numeric_column_read_from_a_csv_still_plots() {
+        // Columns arrive as text often enough that rejecting them would be the
+        // wrong default -- this is what a `col()` on an unparsed CSV gives you.
+        let as_text = Value::List(Arc::new(
+            ["1.5", "2.5", "3.5", "4.5"]
+                .iter()
+                .map(|s| Value::Str((*s).into()))
+                .collect(),
+        ));
+        assert!(render("ecdf_plot", vec![as_text]).starts_with("<svg"));
     }
 }

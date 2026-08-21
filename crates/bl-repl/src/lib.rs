@@ -3315,6 +3315,12 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("plot", "plot(table, opts?) → Str (SVG)", "plot"),
     ("heatmap", "heatmap(table, opts?) → Str (SVG)", "plot"),
     ("histogram", "histogram(list, opts?) → Str (SVG)", "plot"),
+    ("ecdf_plot", "ecdf_plot(list, opts?) → Str (SVG)", "plot"),
+    (
+        "density_plot",
+        "density_plot(list, opts?) → Str (SVG)",
+        "plot",
+    ),
     ("volcano", "volcano(table, opts?) → Str (SVG)", "plot"),
     ("ma_plot", "ma_plot(table, opts?) → Str (SVG)", "plot"),
     ("save_svg", "save_svg(svg, path)", "plot"),

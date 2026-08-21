@@ -9,6 +9,23 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `ecdf_plot(list, opts?)` and `density_plot(list, opts?)`. Both show a
+  distribution without a histogram's bin width deciding what it looks like: the
+  ECDF has no smoothing parameter at all and is drawn as the step function it
+  is, and the density's bandwidth is stated rather than implied by where the bin
+  edges happened to fall. The default bandwidth is Silverman's rule computed the
+  way R's `bw.nrd0` computes it, fallback chain included, and is checked against
+  R 4.6.1 on five cases including the tied and constant columns where every
+  measure of spread is zero.
+
+### Fixed
+- Plot builtins hardcoded their axis labels. `histogram` drew `"Value"` and
+  `"Count"` and accepted an `xlabel` option it then ignored, so a figure had to
+  string-replace the rendered SVG to say what had been measured. `plot`,
+  `histogram`, `volcano`, `ma_plot` and `genome_track` now honour `xlabel` and
+  `ylabel`.
+
 ## [1.4.0] - 2026-08-16
 
 ### Added
