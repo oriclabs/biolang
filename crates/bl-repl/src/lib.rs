@@ -2095,6 +2095,11 @@ const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
         "Record{chi2,p_value,df,expected}",
     ),
     (
+        "permutation_test",
+        "permutation_test(a, b, \"mean_diff\", 10000)  # → Record{p_value,observed}",
+        "Record{p_value,observed}",
+    ),
+    (
         "fisher_exact",
         "fisher_exact(8, 2, 1, 5)  # → Record{p_value,odds_ratio,confidence_interval}",
         "Record{p_value,odds_ratio,confidence_interval}",
@@ -3027,6 +3032,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     (
         "chi_square_contingency",
         "chi_square_contingency(table, opts?) → Record{chi2,p_value,df,expected}",
+        "stats",
+    ),
+    (
+        "permutation_test",
+        "permutation_test(a, b, statistic, n?) → Record; statistic is one of mean_diff, median_diff, ks, t",
         "stats",
     ),
     (

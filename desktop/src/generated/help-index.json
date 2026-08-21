@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 30,
-    "builtin": 1097,
+    "builtin": 1100,
     "tutorial": 0,
     "example": 392
   },
@@ -1814,12 +1814,26 @@
       "category": "stats",
       "collection": "Runtime builtins",
       "summary": "2",
-      "body": "# chi_square\n\n2\n\n## Signature\n\n```biolang\nchi_square(obs, exp) → Record{chi2,p_value,df}\n```\n\n## Example\n\n```biolang\nchi_square([10, 20, 30], [20, 20, 20])  # → Record{chi2,p_value,df}\n```\n\n**Returns:** `Record{chi2,p_value,df}`\n\n**Arity:** exact, minimum 2, maximum 2",
-      "signature": "chi_square(obs, exp) → Record{chi2,p_value,df}",
+      "body": "# chi_square\n\n2\n\n## Signature\n\n```biolang\nchi_square(obs, exp) → Record{chi2,p_value,df}; goodness of fit, df = k-1\n```\n\n## Example\n\n```biolang\nchi_square([10, 20, 30], [20, 20, 20])  # → Record{chi2,p_value,df}\n```\n\n**Returns:** `Record{chi2,p_value,df}`\n\n**Arity:** exact, minimum 2, maximum 2",
+      "signature": "chi_square(obs, exp) → Record{chi2,p_value,df}; goodness of fit, df = k-1",
       "example": "chi_square([10, 20, 30], [20, 20, 20])  # → Record{chi2,p_value,df}",
       "returnType": "Record{chi2,p_value,df}",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "chi_square chi_square(obs, exp) → record{chi2,p_value,df} stats 2"
+      "keywords": "chi_square chi_square(obs, exp) → record{chi2,p_value,df}; goodness of fit, df = k-1 stats 2"
+    },
+    {
+      "id": "builtin:chi_square_contingency",
+      "kind": "builtin",
+      "title": "chi_square_contingency",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "BioLang stats builtin.",
+      "body": "# chi_square_contingency\n\nBioLang stats builtin.\n\n## Signature\n\n```biolang\nchi_square_contingency(table, opts?) → Record{chi2,p_value,df,expected}\n```\n\n## Example\n\n```biolang\nchi_square_contingency([[10, 20], [30, 40]])  # → Record{chi2,p_value,df}\n```\n\n**Returns:** `Record{chi2,p_value,df,expected}`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "chi_square_contingency(table, opts?) → Record{chi2,p_value,df,expected}",
+      "example": "chi_square_contingency([[10, 20], [30, 40]])  # → Record{chi2,p_value,df}",
+      "returnType": "Record{chi2,p_value,df,expected}",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "chi_square_contingency chi_square_contingency(table, opts?) → record{chi2,p_value,df,expected} stats biolang stats builtin."
     },
     {
       "id": "builtin:choose",
@@ -3278,6 +3292,20 @@
       "keywords": "density density(data, opts?) → str (svg) plot biolang plot builtin."
     },
     {
+      "id": "builtin:density_plot",
+      "kind": "builtin",
+      "title": "density_plot",
+      "category": "plot",
+      "collection": "Runtime builtins",
+      "summary": "BioLang plot builtin.",
+      "body": "# density_plot\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\ndensity_plot(list, opts?) → Str (SVG)\n```\n\n**Returns:** `Str (SVG)`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "density_plot(list, opts?) → Str (SVG)",
+      "example": null,
+      "returnType": "Str (SVG)",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "density_plot density_plot(list, opts?) → str (svg) plot biolang plot builtin."
+    },
+    {
       "id": "builtin:depth",
       "kind": "builtin",
       "title": "depth",
@@ -3794,6 +3822,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "each each(arg1, arg2) runtime execute fn for side effects on every element"
+    },
+    {
+      "id": "builtin:ecdf_plot",
+      "kind": "builtin",
+      "title": "ecdf_plot",
+      "category": "plot",
+      "collection": "Runtime builtins",
+      "summary": "BioLang plot builtin.",
+      "body": "# ecdf_plot\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\necdf_plot(list, opts?) → Str (SVG)\n```\n\n**Returns:** `Str (SVG)`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "ecdf_plot(list, opts?) → Str (SVG)",
+      "example": null,
+      "returnType": "Str (SVG)",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "ecdf_plot ecdf_plot(list, opts?) → str (svg) plot biolang plot builtin."
     },
     {
       "id": "builtin:edge_count",
@@ -9861,15 +9903,15 @@
       "id": "builtin:permutation_test",
       "kind": "builtin",
       "title": "permutation_test",
-      "category": "runtime",
+      "category": "stats",
       "collection": "Runtime builtins",
       "summary": "3",
-      "body": "# permutation_test\n\n3\n\n## Signature\n\n```biolang\npermutation_test(arg1, arg2, arg3)\n```\n\n**Arity:** exact, minimum 3, maximum 3",
-      "signature": "permutation_test(arg1, arg2, arg3)",
-      "example": null,
-      "returnType": null,
+      "body": "# permutation_test\n\n3\n\n## Signature\n\n```biolang\npermutation_test(a, b, statistic, n?) → Record; statistic is one of mean_diff, median_diff, ks, t\n```\n\n## Example\n\n```biolang\npermutation_test(a, b, \"mean_diff\", 10000)  # → Record{p_value,observed}\n```\n\n**Returns:** `Record{p_value,observed}`\n\n**Arity:** range, minimum 3, maximum 4",
+      "signature": "permutation_test(a, b, statistic, n?) → Record; statistic is one of mean_diff, median_diff, ks, t",
+      "example": "permutation_test(a, b, \"mean_diff\", 10000)  # → Record{p_value,observed}",
+      "returnType": "Record{p_value,observed}",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "permutation_test permutation_test(arg1, arg2, arg3) runtime 3"
+      "keywords": "permutation_test permutation_test(a, b, statistic, n?) → record; statistic is one of mean_diff, median_diff, ks, t stats 3"
     },
     {
       "id": "builtin:permutations",
@@ -10004,12 +10046,12 @@
       "category": "plot",
       "collection": "Runtime builtins",
       "summary": "BioLang plot builtin.",
-      "body": "# plot\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\nplot(table, opts?) → Str (SVG)\n```\n\n**Returns:** `Str (SVG)`\n\n**Arity:** range, minimum 1, maximum 2",
-      "signature": "plot(table, opts?) → Str (SVG)",
+      "body": "# plot\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\nplot(table, opts?) → Str (SVG); opts.y may name several columns\n```\n\n**Returns:** `Str (SVG); opts.y may name several columns`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "plot(table, opts?) → Str (SVG); opts.y may name several columns",
       "example": null,
-      "returnType": "Str (SVG)",
+      "returnType": "Str (SVG); opts.y may name several columns",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "plot plot(table, opts?) → str (svg) plot biolang plot builtin."
+      "keywords": "plot plot(table, opts?) → str (svg); opts.y may name several columns plot biolang plot builtin."
     },
     {
       "id": "builtin:pnorm",

@@ -1883,7 +1883,7 @@
     },
     {
       "name": "chi_square",
-      "signature": "chi_square(obs, exp) → Record{chi2,p_value,df}",
+      "signature": "chi_square(obs, exp) → Record{chi2,p_value,df}; goodness of fit, df = k-1",
       "category": "stats",
       "summary": "BioLang stats builtin.",
       "parameters": [
@@ -1895,6 +1895,24 @@
       "arity": {
         "kind": "exact",
         "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "chi_square_contingency",
+      "signature": "chi_square_contingency(table, opts?) → Record{chi2,p_value,df,expected}",
+      "category": "stats",
+      "summary": "BioLang stats builtin.",
+      "parameters": [
+        "table",
+        "opts?"
+      ],
+      "returnType": "Record{chi2,p_value,df,expected}",
+      "example": "chi_square_contingency([[10, 20], [30, 40]])  # → Record{chi2,p_value,df}",
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
         "maximum": 2
       },
       "metadataQuality": "curated"
@@ -3741,6 +3759,24 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "density_plot",
+      "signature": "density_plot(list, opts?) → Str (SVG)",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "list",
+        "opts?"
+      ],
+      "returnType": "Str (SVG)",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "depth",
       "signature": "depth(arg1, arg2?)",
       "category": "runtime",
@@ -4404,6 +4440,24 @@
         "maximum": 2
       },
       "metadataQuality": "runtime"
+    },
+    {
+      "name": "ecdf_plot",
+      "signature": "ecdf_plot(list, opts?) → Str (SVG)",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "list",
+        "opts?"
+      ],
+      "returnType": "Str (SVG)",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
     },
     {
       "name": "edge_count",
@@ -12062,22 +12116,23 @@
     },
     {
       "name": "permutation_test",
-      "signature": "permutation_test(arg1, arg2, arg3)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "signature": "permutation_test(a, b, statistic, n?) → Record; statistic is one of mean_diff, median_diff, ks, t",
+      "category": "stats",
+      "summary": "BioLang stats builtin.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3"
+        "a",
+        "b",
+        "statistic",
+        "n?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record{p_value,observed}",
+      "example": "permutation_test(a, b, \"mean_diff\", 10000)  # → Record{p_value,observed}",
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 3,
-        "maximum": 3
+        "maximum": 4
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "permutations",
@@ -12241,14 +12296,14 @@
     },
     {
       "name": "plot",
-      "signature": "plot(table, opts?) → Str (SVG)",
+      "signature": "plot(table, opts?) → Str (SVG); opts.y may name several columns",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "table",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "Str (SVG); opts.y may name several columns",
       "example": null,
       "arity": {
         "kind": "range",
