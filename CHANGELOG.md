@@ -19,7 +19,29 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   R 4.6.1 on five cases including the tied and constant columns where every
   measure of spread is zero.
 
+- **Several series on one pair of axes.** `plot(table, {y: ["a", "b", "c"]})`
+  draws one line, scatter or bar group per named column, on one shared vertical
+  scale, with a legend naming them. Drawing them separately and placing them
+  side by side is not the same picture: each panel gets its own scale, so the
+  comparison the figure exists to make is the one thing it cannot show.
+
 ### Fixed
+- **A bar chart's y axis now includes zero.** It scaled to the range of the
+  data, so counts of 100 and 104 were drawn as a bar of nothing beside a
+  full-height one. A bar's length is read as the quantity; anchoring it
+  anywhere but zero is the best-known way to mislead with a chart, and it was
+  the default. Negative bars hang below the line rather than collapsing.
+- **A bar chart labels its x axis with its categories.** The x column was read
+  as numbers, so "Biology" became NaN and the axis ran 0.0 to 1.0 underneath
+  bars that had nothing to do with those numbers. Labels are thinned when there
+  are more than the axis can fit.
+- **The box plot agrees with `quantile()`.** It took `sorted[n / 4]` and
+  `sorted[3 * n / 4]` — the nearest-rank rule — while `quantile()` interpolates
+  (type 7, as R does). On the ozone column that drew the top of the box at 64
+  next to a printed third quartile of 63.25. The whiskers now follow Tukey's
+  rule, stopping at the last value within 1.5 IQR of the box with anything
+  beyond it drawn as its own mark, instead of reaching to the extremes and
+  drawing every dataset as though it had no outliers.
 - Plot builtins hardcoded their axis labels. `histogram` drew `"Value"` and
   `"Count"` and accepted an `xlabel` option it then ignored, so a figure had to
   string-replace the rendered SVG to say what had been measured. `plot`,

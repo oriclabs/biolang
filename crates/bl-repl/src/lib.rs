@@ -3312,7 +3312,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
         "fs",
     ),
     // Plot
-    ("plot", "plot(table, opts?) → Str (SVG)", "plot"),
+    (
+        "plot",
+        "plot(table, opts?) → Str (SVG); opts.y may name several columns",
+        "plot",
+    ),
     ("heatmap", "heatmap(table, opts?) → Str (SVG)", "plot"),
     ("histogram", "histogram(list, opts?) → Str (SVG)", "plot"),
     ("ecdf_plot", "ecdf_plot(list, opts?) → Str (SVG)", "plot"),

@@ -398,6 +398,47 @@ impl SvgCanvas {
         );
     }
 
+    /// An x axis of labels rather than numbers, for a bar chart.
+    ///
+    /// A bar chart's x column is almost always categories, and a category has
+    /// no numeric position: reading it through `extract_table_col` turns
+    /// "Biology" into NaN and draws an axis running 0.0 to 1.0 underneath bars
+    /// that have nothing to do with those numbers. This puts each category's
+    /// own name under its group instead.
+    ///
+    /// Labels are thinned when there are more of them than the axis can fit,
+    /// because overlapping text is less readable than fewer labels.
+    pub(crate) fn draw_category_axis(&mut self, labels: &[String], axis_label: &str) {
+        let y = self.margin.top + self.plot_height();
+        self.add_line(
+            self.margin.left,
+            y,
+            self.margin.left + self.plot_width(),
+            y,
+            "#333",
+            1.0,
+        );
+        if !labels.is_empty() {
+            let slot = self.plot_width() / labels.len() as f64;
+            // Roughly 46px of room per label before they start to collide.
+            let step = (46.0 / slot).ceil().max(1.0) as usize;
+            for (index, label) in labels.iter().enumerate().step_by(step) {
+                let x = self.margin.left + slot * (index as f64 + 0.5);
+                self.add_line(x, y, x, y + 5.0, "#333", 1.0);
+                self.add_text(x, y + 18.0, label, "middle", 11.0);
+            }
+        }
+        if !axis_label.is_empty() {
+            self.add_text(
+                self.margin.left + self.plot_width() / 2.0,
+                self.height - 5.0,
+                axis_label,
+                "middle",
+                13.0,
+            );
+        }
+    }
+
     pub(crate) fn draw_y_axis(&mut self, scale: &Scale, label: &str) {
         let x = self.margin.left;
         self.add_line(
@@ -516,6 +557,23 @@ pub(crate) fn extract_table_col(table: &Table, col: &str) -> Result<Vec<f64>> {
     Ok(vals)
 }
 
+/// A column as the text a reader would see, for labelling a category axis.
+fn column_labels(table: &Table, col: &str) -> Vec<String> {
+    let Some(idx) = table.col_index(col) else {
+        return Vec::new();
+    };
+    table
+        .rows
+        .iter()
+        .map(|row| match &row[idx] {
+            Value::Str(s) => s.to_string(),
+            Value::Int(n) => n.to_string(),
+            Value::Float(f) => format!("{f}"),
+            other => format!("{other:?}"),
+        })
+        .collect()
+}
+
 pub(crate) fn col_range(vals: &[f64]) -> (f64, f64) {
     let mut min = f64::INFINITY;
     let mut max = f64::NEG_INFINITY;
@@ -547,6 +605,69 @@ pub(crate) fn require_table<'a>(val: &'a Value, func: &str) -> Result<&'a Table>
 }
 
 // ── Builtins ────────────────────────────────────────────────────
+
+/// The y columns a plot draws: one, or several when `y` is given a list.
+///
+/// Several series on one pair of axes is the case that every hand-drawn figure
+/// in the statistics book needed and no builtin could express. Drawing them
+/// separately and placing them side by side is not the same picture: each panel
+/// gets its own scale, so the comparison the figure exists to make is the one
+/// thing it cannot show.
+fn series_columns(opts: &HashMap<String, Value>, fallback: &str) -> Vec<String> {
+    let named: Vec<String> = match opts.get("y") {
+        Some(Value::List(items)) => items
+            .iter()
+            .filter_map(|item| item.as_str().map(str::to_string))
+            .collect(),
+        Some(value) => value.as_str().map(str::to_string).into_iter().collect(),
+        None => Vec::new(),
+    };
+    if named.is_empty() {
+        vec![fallback.to_string()]
+    } else {
+        named
+    }
+}
+
+/// A key naming each series, drawn inside the top right of the plot area.
+///
+/// Only when there is more than one: a legend for a single series is a caption
+/// repeating the axis label.
+fn draw_legend(canvas: &mut SvgCanvas, names: &[String]) {
+    if names.len() < 2 {
+        return;
+    }
+    let right = canvas.margin.left + canvas.plot_width();
+    for (index, name) in names.iter().enumerate() {
+        let y = canvas.margin.top + 14.0 + 18.0 * index as f64;
+        let swatch_end = right - 8.0;
+        let swatch_start = swatch_end - 22.0;
+        canvas.add_line(
+            swatch_start,
+            y,
+            swatch_end,
+            y,
+            PALETTE[index % PALETTE.len()],
+            3.0,
+        );
+        canvas.add_text(swatch_start - 6.0, y + 4.0, name, "end", 12.0);
+    }
+}
+
+/// Type 7 quantiles — R's default, and what this runtime's `quantile()` gives.
+///
+/// The box plot used to take `sorted[n / 4]` and `sorted[3 * n / 4]`, which is
+/// the nearest-rank rule. On the book's ozone column that puts the top of the
+/// box at 64 while `quantile(ozone, 0.75)` reports 63.25, so the picture and
+/// the numbers printed beside it disagreed about the same data; on the ten
+/// values 1 to 10 the two rules give 3 and 8 against 3.25 and 7.75. Expects
+/// `sorted` already sorted and non-empty.
+fn quantile_type7(sorted: &[f64], p: f64) -> f64 {
+    let h = (sorted.len() - 1) as f64 * p;
+    let lower = h.floor() as usize;
+    let upper = (lower + 1).min(sorted.len() - 1);
+    sorted[lower] + (h - h.floor()) * (sorted[upper] - sorted[lower])
+}
 
 fn builtin_plot(args: Vec<Value>) -> Result<Value> {
     // Handle Record with x/y lists: plot({x: [...], y: [...], title: "..."})
@@ -598,13 +719,29 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
     }
 
     let x_col = get_opt_str(&opts, "x", &table.columns[0]).to_string();
-    let y_col = get_opt_str(&opts, "y", &table.columns[1]).to_string();
+    let y_cols = series_columns(&opts, &table.columns[1]);
 
     let xs = extract_table_col(table, &x_col)?;
-    let ys = extract_table_col(table, &y_col)?;
+    let mut series: Vec<Vec<f64>> = Vec::with_capacity(y_cols.len());
+    for column in &y_cols {
+        series.push(extract_table_col(table, column)?);
+    }
 
     let (x_min, x_max) = col_range(&xs);
-    let (y_min, y_max) = col_range(&ys);
+    // One vertical scale across every series, so the comparison is honest.
+    let (mut y_min, mut y_max) = series.iter().fold((f64::MAX, f64::MIN), |(lo, hi), ys| {
+        let (series_lo, series_hi) = col_range(ys);
+        (lo.min(series_lo), hi.max(series_hi))
+    });
+    if plot_type == "bar" {
+        // A bar says "this much", and the reader takes its length as the
+        // quantity. Starting the axis at the smallest value instead of zero
+        // draws counts of 100 and 104 as a bar of nothing beside a full-height
+        // one -- the best-known way to mislead with a chart, and it was the
+        // default here. A bar chart's axis includes zero.
+        y_min = y_min.min(0.0);
+        y_max = y_max.max(0.0);
+    }
 
     let mut canvas = SvgCanvas::new(width, height);
     let x_scale = Scale {
@@ -618,38 +755,63 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
 
     match plot_type.as_str() {
         "scatter" => {
-            for i in 0..xs.len() {
-                if xs[i].is_finite() && ys[i].is_finite() {
-                    canvas.add_circle(x_scale.map(xs[i]), y_scale.map(ys[i]), 4.0, PALETTE[0]);
+            for (index, ys) in series.iter().enumerate() {
+                let colour = PALETTE[index % PALETTE.len()];
+                for i in 0..xs.len().min(ys.len()) {
+                    if xs[i].is_finite() && ys[i].is_finite() {
+                        canvas.add_circle(x_scale.map(xs[i]), y_scale.map(ys[i]), 4.0, colour);
+                    }
                 }
             }
+            draw_legend(&mut canvas, &y_cols);
         }
         "line" => {
-            let points: Vec<String> = xs
-                .iter()
-                .zip(ys.iter())
-                .filter(|(x, y)| x.is_finite() && y.is_finite())
-                .map(|(x, y)| format!("{:.1},{:.1}", x_scale.map(*x), y_scale.map(*y)))
-                .collect();
-            if !points.is_empty() {
-                canvas.elements.push(format!(
-                    r#"<polyline points="{}" fill="none" stroke="{}" stroke-width="2" />"#,
-                    points.join(" "),
-                    PALETTE[0]
-                ));
+            for (index, ys) in series.iter().enumerate() {
+                let points: Vec<String> = xs
+                    .iter()
+                    .zip(ys.iter())
+                    .filter(|(x, y)| x.is_finite() && y.is_finite())
+                    .map(|(x, y)| format!("{:.1},{:.1}", x_scale.map(*x), y_scale.map(*y)))
+                    .collect();
+                if !points.is_empty() {
+                    canvas.elements.push(format!(
+                        r#"<polyline points="{}" fill="none" stroke="{}" stroke-width="2" />"#,
+                        points.join(" "),
+                        PALETTE[index % PALETTE.len()]
+                    ));
+                }
             }
+            draw_legend(&mut canvas, &y_cols);
         }
         "bar" => {
-            let bar_w = canvas.plot_width() / xs.len() as f64 * 0.8;
-            let gap = canvas.plot_width() / xs.len() as f64 * 0.1;
+            // Grouped: one cluster per x position, one bar per series inside it.
+            let group_w = canvas.plot_width() / xs.len() as f64;
+            let bar_w = group_w * 0.8 / series.len() as f64;
             let baseline = y_scale.map(0.0f64.max(y_min));
-            for (i, (&_x, &y)) in xs.iter().zip(ys.iter()).enumerate() {
-                let bx = canvas.margin.left + gap + i as f64 * (bar_w + 2.0 * gap);
-                let by = y_scale.map(y);
-                let bh = (baseline - by).abs();
-                let top = by.min(baseline);
-                canvas.add_rect(bx, top, bar_w, bh, PALETTE[i % PALETTE.len()]);
+            for (index, ys) in series.iter().enumerate() {
+                // A single series keeps its old per-bar colouring, which is what
+                // a bar chart of categories wants; several series colour by
+                // series instead, because that is what the legend names.
+                for (i, &y) in ys.iter().enumerate() {
+                    if !y.is_finite() {
+                        continue;
+                    }
+                    let bx = canvas.margin.left
+                        + group_w * i as f64
+                        + group_w * 0.1
+                        + bar_w * index as f64;
+                    let by = y_scale.map(y);
+                    let bh = (baseline - by).abs();
+                    let top = by.min(baseline);
+                    let colour = if series.len() == 1 {
+                        PALETTE[i % PALETTE.len()]
+                    } else {
+                        PALETTE[index % PALETTE.len()]
+                    };
+                    canvas.add_rect(bx, top, bar_w, bh, colour);
+                }
             }
+            draw_legend(&mut canvas, &y_cols);
         }
         "box" => {
             // Box plot per numeric column
@@ -660,12 +822,25 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
                     continue;
                 }
                 sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                let n = sorted.len();
-                let q1 = sorted[n / 4];
-                let med = sorted[n / 2];
-                let q3 = sorted[3 * n / 4];
-                let lo = sorted[0];
-                let hi = sorted[n - 1];
+                let q1 = quantile_type7(&sorted, 0.25);
+                let med = quantile_type7(&sorted, 0.5);
+                let q3 = quantile_type7(&sorted, 0.75);
+                // Tukey whiskers: out to the furthest point within 1.5 IQR of
+                // the box, with anything beyond drawn as its own mark. Reaching
+                // to the extremes instead makes every dataset look as though it
+                // has none, which is the one thing a box plot is for.
+                let fence = 1.5 * (q3 - q1);
+                let lo = sorted
+                    .iter()
+                    .copied()
+                    .find(|v| *v >= q1 - fence)
+                    .unwrap_or(sorted[0]);
+                let hi = sorted
+                    .iter()
+                    .copied()
+                    .rev()
+                    .find(|v| *v <= q3 + fence)
+                    .unwrap_or(sorted[sorted.len() - 1]);
 
                 let bx = canvas.margin.left
                     + (ci as f64 + 0.2) * canvas.plot_width() / table.num_cols() as f64;
@@ -695,6 +870,9 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
                     "#333",
                     1.0,
                 );
+                for value in sorted.iter().filter(|v| **v < lo || **v > hi) {
+                    canvas.add_circle(bx + bw / 2.0, y_scale.map(*value), 3.0, "#333");
+                }
             }
         }
         _ => {
@@ -714,8 +892,18 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
         domain: (y_min, y_max),
         range: (y_min, y_max),
     };
-    canvas.draw_x_axis(&d_x_scale, &axis_label(&opts, "xlabel", &x_col));
-    canvas.draw_y_axis(&d_y_scale, &axis_label(&opts, "ylabel", &y_col));
+    // With several series the legend names them, so the default y label would
+    // be one column's name standing for all of them. Better to say nothing.
+    let default_ylabel = if y_cols.len() == 1 { &y_cols[0] } else { "" };
+    if plot_type == "bar" {
+        canvas.draw_category_axis(
+            &column_labels(table, &x_col),
+            &axis_label(&opts, "xlabel", &x_col),
+        );
+    } else {
+        canvas.draw_x_axis(&d_x_scale, &axis_label(&opts, "xlabel", &x_col));
+    }
+    canvas.draw_y_axis(&d_y_scale, &axis_label(&opts, "ylabel", default_ylabel));
     if !title.is_empty() {
         canvas.draw_title(&title);
     }
@@ -2310,5 +2498,491 @@ mod distribution_plot_tests {
                 .collect(),
         ));
         assert!(render("ecdf_plot", vec![as_text]).starts_with("<svg"));
+    }
+}
+
+#[cfg(test)]
+mod series_and_box_tests {
+    use super::{call_plot_builtin, quantile_type7};
+    use bl_core::value::{Table, Value};
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    // Two things a plot could not do: draw more than one series on one pair of
+    // axes, and agree with `quantile()` about where the quartiles are.
+
+    fn table(columns: &[&str], rows: &[&[f64]]) -> Value {
+        Value::Table(Table::new(
+            columns.iter().map(|c| (*c).to_string()).collect(),
+            rows.iter()
+                .map(|row| row.iter().copied().map(Value::Float).collect())
+                .collect(),
+        ))
+    }
+
+    fn options(pairs: &[(&str, Value)]) -> Value {
+        let mut record = HashMap::new();
+        for (key, value) in pairs {
+            record.insert((*key).to_string(), value.clone());
+        }
+        Value::Record(Arc::new(record))
+    }
+
+    fn strings(names: &[&str]) -> Value {
+        Value::List(Arc::new(
+            names.iter().map(|n| Value::Str((*n).into())).collect(),
+        ))
+    }
+
+    fn render(args: Vec<Value>) -> String {
+        match call_plot_builtin("plot", args).expect("plot renders") {
+            Value::Str(svg) => svg.to_string(),
+            other => panic!("plot should return SVG, got {other:?}"),
+        }
+    }
+
+    fn wide() -> Value {
+        table(
+            &["x", "small", "large"],
+            &[
+                &[1.0, 1.0, 10.0],
+                &[2.0, 2.0, 20.0],
+                &[3.0, 3.0, 30.0],
+                &[4.0, 4.0, 40.0],
+            ],
+        )
+    }
+
+    fn line_options(columns: &[&str]) -> Value {
+        options(&[("type", Value::Str("line".into())), ("y", strings(columns))])
+    }
+
+    #[test]
+    fn a_list_of_y_columns_draws_one_line_each() {
+        let svg = render(vec![wide(), line_options(&["small", "large"])]);
+        assert_eq!(
+            svg.matches("<polyline").count(),
+            2,
+            "expected one polyline per series: {svg:.600}"
+        );
+    }
+
+    #[test]
+    fn the_series_share_one_vertical_scale() {
+        // The reason to draw them together rather than side by side. If each
+        // series were scaled to itself, "small" would occupy the same height
+        // alone as it does beside a series ten times larger.
+        let alone = render(vec![wide(), line_options(&["small"])]);
+        let together = render(vec![wide(), line_options(&["small", "large"])]);
+        let first_line = |svg: &str| -> String {
+            svg.split(r#"<polyline points=""#)
+                .nth(1)
+                .and_then(|rest| rest.split('"').next())
+                .expect("a polyline")
+                .to_string()
+        };
+        assert_ne!(
+            first_line(&alone),
+            first_line(&together),
+            "the small series was not rescaled to the shared range"
+        );
+    }
+
+    #[test]
+    fn a_legend_names_the_series_and_only_when_there_are_several() {
+        let several = render(vec![wide(), line_options(&["small", "large"])]);
+        assert!(several.contains(">small<"), "{several:.600}");
+        assert!(several.contains(">large<"));
+        // Once each, in the legend. Letting the y axis default to one of the
+        // column names would label the whole scale after half the data.
+        assert_eq!(several.matches(">small<").count(), 1, "{several:.600}");
+        assert_eq!(several.matches(">large<").count(), 1);
+
+        // One series is named by the y axis, so a legend would only repeat it.
+        let single = render(vec![wide(), line_options(&["small"])]);
+        assert_eq!(single.matches(">small<").count(), 1, "{single:.600}");
+    }
+
+    #[test]
+    fn a_plain_string_y_still_selects_one_column() {
+        let svg = render(vec![
+            wide(),
+            options(&[
+                ("type", Value::Str("line".into())),
+                ("y", Value::Str("large".into())),
+            ]),
+        ]);
+        assert_eq!(svg.matches("<polyline").count(), 1);
+        assert!(svg.contains(">large<"), "the y axis should name the column");
+    }
+
+    #[test]
+    fn grouped_bars_draw_one_bar_per_series_per_category() {
+        let svg = render(vec![
+            wide(),
+            options(&[
+                ("type", Value::Str("bar".into())),
+                ("y", strings(&["small", "large"])),
+            ]),
+        ]);
+        // Four categories, two series, plus the background rect.
+        assert_eq!(svg.matches("<rect").count(), 9, "{svg:.600}");
+
+        // And side by side rather than on top of each other: eight bars at
+        // eight distinct x positions. Drawing them at the same x hides one
+        // series behind the other, which is the failure a grouped bar chart
+        // exists to avoid.
+        let mut positions: Vec<f64> = svg
+            .split(r#"<rect x=""#)
+            .skip(1)
+            .filter_map(|rest| rest.split('"').next())
+            .filter_map(|x| x.parse::<f64>().ok())
+            .collect();
+        positions.sort_by(|a, b| a.partial_cmp(b).expect("finite"));
+        let distinct = {
+            let mut copy = positions.clone();
+            copy.dedup();
+            copy.len()
+        };
+        assert_eq!(distinct, 8, "bars overlap: {positions:?}");
+
+        // And the leftmost one clear of the y axis, which sits at the default
+        // left margin of 60. A bar drawn on the axis reads as part of it.
+        assert!(
+            positions[0] > 60.0,
+            "first bar sits on the axis: {positions:?}"
+        );
+    }
+
+    #[test]
+    fn a_missing_column_is_an_error_rather_than_a_silently_empty_plot() {
+        let error = call_plot_builtin(
+            "plot",
+            vec![wide(), options(&[("y", strings(&["small", "enormous"]))])],
+        )
+        .expect_err("a column that is not in the table");
+        assert!(
+            error.to_string().contains("enormous"),
+            "the message should name the column: {error}"
+        );
+    }
+
+    #[test]
+    fn the_quartiles_are_the_ones_quantile_reports() {
+        // R 4.6.1: quantile(1:10) gives 3.25, 5.5, 7.75. The nearest-rank rule
+        // the box plot used gives 3, 5.5 and 8 for the same ten values.
+        let ten: Vec<f64> = (1..=10).map(f64::from).collect();
+        for (p, expected) in [(0.25, 3.25), (0.5, 5.5), (0.75, 7.75)] {
+            let got = quantile_type7(&ten, p);
+            assert!(
+                (got - expected).abs() < 1e-12,
+                "quantile at {p} is {expected}, got {got}"
+            );
+        }
+        // And on the primes, where the interpolation lands off a data point.
+        let primes = [2.0, 3.0, 5.0, 7.0, 11.0, 13.0, 17.0, 19.0, 23.0, 29.0];
+        assert!((quantile_type7(&primes, 0.75) - 18.5).abs() < 1e-12);
+    }
+
+    fn categories(names: &[&str], values: &[f64]) -> Value {
+        Value::Table(Table::new(
+            vec!["dept".to_string(), "rate".to_string()],
+            names
+                .iter()
+                .zip(values.iter())
+                .map(|(name, value)| vec![Value::Str((*name).into()), Value::Float(*value)])
+                .collect(),
+        ))
+    }
+
+    #[test]
+    fn a_bar_chart_puts_the_category_names_under_the_bars() {
+        // A category has no numeric position, so reading the column as numbers
+        // gives NaN and an axis running 0.0 to 1.0 under bars that have nothing
+        // to do with those numbers. That is what this used to draw.
+        let svg = render(vec![
+            categories(&["Biology", "Chemistry", "Physics"], &[0.62, 0.34, 0.51]),
+            options(&[("type", Value::Str("bar".into()))]),
+        ]);
+        for department in ["Biology", "Chemistry", "Physics"] {
+            assert!(
+                svg.contains(&format!(">{department}<")),
+                "{department} is missing: {svg:.700}"
+            );
+        }
+        // And nothing else on that row: the tick labels under a bar chart are
+        // the categories, not numbers interpolated from a column of NaN. The
+        // default 600px canvas puts them at y=568.
+        let under_the_axis: Vec<&str> = svg
+            .split(r#" y="568.0""#)
+            .skip(1)
+            .filter_map(|fragment| fragment.split('>').nth(1))
+            .filter_map(|text| text.split('<').next())
+            .collect();
+        assert_eq!(
+            under_the_axis,
+            vec!["Biology", "Chemistry", "Physics"],
+            "the x tick labels are not the categories"
+        );
+
+        // Centred in its slot, not on the edge between two of them. With three
+        // categories across the default 720px plot area, the first belongs at
+        // 60 + 240/2 = 180.
+        let biology_x = svg
+            .split(r#"<text x=""#)
+            .find(|fragment| fragment.contains(">Biology<"))
+            .and_then(|fragment| fragment.split('"').next())
+            .and_then(|x| x.parse::<f64>().ok())
+            .expect("a Biology label with an x");
+        assert!(
+            (biology_x - 180.0).abs() < 1.0,
+            "the first category label sits at {biology_x}, not centred at 180"
+        );
+    }
+
+    #[test]
+    fn a_scatter_keeps_its_numeric_axis() {
+        // The x values are deliberately not round, so a numeric axis puts ticks
+        // between them and a category axis would print the values themselves.
+        let uneven = Value::Table(Table::new(
+            vec!["x".to_string(), "y".to_string()],
+            [0.0, 33.0, 67.0, 100.0]
+                .iter()
+                .map(|x| vec![Value::Float(*x), Value::Float(*x)])
+                .collect(),
+        ));
+        let svg = render(vec![uneven, options(&[("x", Value::Str("x".into()))])]);
+        assert!(
+            svg.contains(">20<") || svg.contains(">20.0<"),
+            "the x axis should be numbered, not labelled: {svg:.700}"
+        );
+        assert!(
+            !svg.contains(">33<"),
+            "the data values are being used as tick labels: {svg:.700}"
+        );
+    }
+
+    #[test]
+    fn too_many_categories_to_fit_are_thinned_rather_than_overlapped() {
+        // Sixty labels across seven hundred pixels is unreadable mush. Fewer
+        // labels is worse than all of them only when they fit.
+        let names: Vec<String> = (1..=60).map(|n| format!("sample{n}")).collect();
+        let refs: Vec<&str> = names.iter().map(String::as_str).collect();
+        let values: Vec<f64> = (1..=60).map(f64::from).collect();
+        let svg = render(vec![
+            categories(&refs, &values),
+            options(&[("type", Value::Str("bar".into()))]),
+        ]);
+        let drawn = names
+            .iter()
+            .filter(|name| svg.contains(&format!(">{name}<")))
+            .count();
+        assert!(drawn > 0, "no labels at all");
+        assert!(drawn < 60, "all 60 labels were drawn: they cannot fit");
+        // Still thinned evenly rather than truncated: the last one is present.
+        assert!(svg.contains(">sample1<"), "the first label is missing");
+    }
+
+    #[test]
+    fn a_bar_chart_measures_from_zero() {
+        // Two counts, one twice the other, must be drawn as one bar twice the
+        // height of the other. Scaling to the data's own range instead makes
+        // the smaller bar vanish entirely, which is how a 3% difference gets
+        // published as a dramatic one.
+        let svg = render(vec![
+            categories(&["few", "many"], &[10.0, 20.0]),
+            options(&[("type", Value::Str("bar".into()))]),
+        ]);
+        let heights: Vec<f64> = svg
+            .split(r#"<rect x=""#)
+            .skip(1)
+            .filter_map(|fragment| {
+                fragment
+                    .split(r#"height=""#)
+                    .nth(1)
+                    .and_then(|rest| rest.split('"').next())
+                    .and_then(|h| h.parse::<f64>().ok())
+            })
+            .collect();
+        assert_eq!(heights.len(), 2, "expected two bars: {svg:.700}");
+        assert!(heights[0] > 1.0, "the smaller bar collapsed to {heights:?}");
+        assert!(
+            (heights[1] / heights[0] - 2.0).abs() < 0.05,
+            "20 should be twice the height of 10, got {heights:?}"
+        );
+    }
+
+    #[test]
+    fn a_negative_bar_hangs_below_the_zero_line() {
+        // Bars grow from zero in both directions. Growing them from the
+        // smallest value instead flattens the negative one to nothing, and it
+        // is the negative bar that usually carries the news.
+        let svg = render(vec![
+            categories(&["loss", "gain"], &[-5.0, 10.0]),
+            options(&[("type", Value::Str("bar".into()))]),
+        ]);
+        let heights: Vec<f64> = svg
+            .split(r#"<rect x=""#)
+            .skip(1)
+            .filter_map(|fragment| {
+                fragment
+                    .split(r#"height=""#)
+                    .nth(1)
+                    .and_then(|rest| rest.split('"').next())
+                    .and_then(|h| h.parse::<f64>().ok())
+            })
+            .collect();
+        assert_eq!(heights.len(), 2, "expected two bars: {svg:.700}");
+        assert!(
+            heights[0] > 1.0,
+            "the negative bar collapsed to {heights:?}"
+        );
+        assert!(
+            (heights[1] / heights[0] - 2.0).abs() < 0.05,
+            "10 should be twice the length of -5, got {heights:?}"
+        );
+
+        // Both bars must meet at the zero line: the negative one starts there
+        // and hangs down, the positive one ends there. A rect placed at the far
+        // end of its own length instead is the right size in the wrong place.
+        let tops: Vec<f64> = svg
+            .split(r#"<rect x=""#)
+            .skip(1)
+            .filter_map(|fragment| {
+                fragment
+                    .split(r#" y=""#)
+                    .nth(1)
+                    .and_then(|rest| rest.split('"').next())
+                    .and_then(|y| y.parse::<f64>().ok())
+            })
+            .collect();
+        let zero_line = tops[1] + heights[1];
+        assert!(
+            (tops[0] - zero_line).abs() < 0.2,
+            "the negative bar starts at {}, the zero line is at {zero_line}",
+            tops[0]
+        );
+    }
+
+    #[test]
+    fn a_scatter_still_frames_the_data_it_has() {
+        // The zero rule is for bars only. Forcing a scatter of values around
+        // 1000 to include the origin would waste the whole plot area.
+        let svg = render(vec![
+            Value::Table(Table::new(
+                vec!["x".to_string(), "y".to_string()],
+                (0..4)
+                    .map(|n| {
+                        vec![
+                            Value::Float(f64::from(n)),
+                            Value::Float(1000.0 + f64::from(n)),
+                        ]
+                    })
+                    .collect(),
+            )),
+            options(&[("type", Value::Str("scatter".into()))]),
+        ]);
+        assert!(
+            !svg.contains(">0<") || svg.contains(">1000<"),
+            "the y axis was stretched down to zero: {svg:.700}"
+        );
+        assert!(svg.contains(">1000<") || svg.contains(">1000.0<"));
+    }
+
+    #[test]
+    fn a_box_plot_marks_the_points_beyond_the_whiskers() {
+        // Tukey's rule is the reason to draw a box plot at all: the whisker
+        // stops at the last value within 1.5 IQR of the box and everything past
+        // it gets its own mark. Reaching to the extremes instead draws every
+        // dataset as though it had no outliers.
+        // Three of the columns run 1 to 7 with the last value replaced, so
+        // each has a box from 2.75 to 6.25 and an IQR of 3.5, putting the fence
+        // at 11.5. The odd values sit either side of it: 14 is past it and must
+        // be marked, 10.5 is inside it and must not. A wider 3 IQR rule (fence
+        // 16.75) marks neither; a narrower 1 IQR rule (fence 9.75) marks both.
+        // Something merely enormous would pass whatever multiple was used.
+        //
+        // The fourth column puts values below the box instead of above it,
+        // because the two whiskers are separate pieces of code. It runs
+        // -6, -1, 3..8: the box is 2 to 6.25, the fence 6.375, so -6 is out and
+        // -1 is not. Two low values rather than one, so that reaching down from
+        // the wrong quartile is visible as an extra mark rather than landing on
+        // the same answer by luck.
+        let rows: [[f64; 4]; 8] = [
+            [1.0, 1.0, 1.0, -6.0],
+            [2.0, 2.0, 2.0, -1.0],
+            [3.0, 3.0, 3.0, 3.0],
+            [4.0, 4.0, 4.0, 4.0],
+            [5.0, 5.0, 5.0, 5.0],
+            [6.0, 6.0, 6.0, 6.0],
+            [7.0, 7.0, 7.0, 7.0],
+            [8.0, 10.5, 14.0, 8.0],
+        ];
+        let both = Value::Table(Table::new(
+            vec![
+                "clean".to_string(),
+                "borderline".to_string(),
+                "spiky".to_string(),
+                "low".to_string(),
+            ],
+            rows.iter()
+                .map(|row| row.iter().copied().map(Value::Float).collect())
+                .collect(),
+        ));
+        let clean_only = table(
+            &["clean", "also_clean"],
+            &[
+                &[1.0, 1.0],
+                &[2.0, 2.0],
+                &[3.0, 3.0],
+                &[4.0, 4.0],
+                &[5.0, 5.0],
+                &[6.0, 6.0],
+                &[7.0, 7.0],
+                &[8.0, 8.0],
+            ],
+        );
+        let box_opts = options(&[("type", Value::Str("box".into()))]);
+
+        let plain = render(vec![clean_only, box_opts.clone()]);
+        assert_eq!(
+            plain.matches("<circle").count(),
+            0,
+            "nothing here is beyond a fence: {plain:.600}"
+        );
+
+        let flagged = render(vec![both, box_opts]);
+        assert_eq!(
+            flagged.matches("<circle").count(),
+            2,
+            "the 14 and the -6 should both be marked: {flagged:.600}"
+        );
+
+        // The median line is the most-read mark on a box plot, and nothing
+        // above would notice it being drawn at the wrong height. The first
+        // column runs 1 to 8, whose quartiles are 2.75, 4.5 and 6.25 -- the
+        // median exactly halfway up the box -- so the line has to land on the
+        // box's midpoint whatever the vertical scale turns out to be.
+        let attribute = |fragment: &str, name: &str| -> f64 {
+            fragment
+                .split(&format!("{name}=\""))
+                .nth(1)
+                .and_then(|rest| rest.split('"').next())
+                .and_then(|value| value.parse::<f64>().ok())
+                .unwrap_or_else(|| panic!("no {name} in {fragment:.120}"))
+        };
+        let first_box = plain.split(r#"<rect x=""#).nth(1).expect("a box is drawn");
+        let box_top = attribute(first_box, "y");
+        let box_height = attribute(first_box, "height");
+        let median_line = plain
+            .split(r#"stroke-width="2""#)
+            .next()
+            .and_then(|before| before.rsplit("<line ").next())
+            .expect("a median line");
+        let median_y = attribute(median_line, "y1");
+        assert!(
+            (median_y - (box_top + box_height / 2.0)).abs() < 0.2,
+            "median at {median_y}, box from {box_top} spanning {box_height}"
+        );
     }
 }
