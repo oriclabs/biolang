@@ -10,7 +10,7 @@ pub fn statistics_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
         ("bh_adjust", Arity::Exact(1)),
         ("bonferroni_adjust", Arity::Exact(1)),
-        ("fisher_exact", Arity::Exact(4)),
+        ("fisher_exact", Arity::Range(4, 5)),
         ("chi_square", Arity::Exact(2)),
         ("permutation_test", Arity::Exact(3)),
         ("bootstrap_ci", Arity::Range(1, 3)),

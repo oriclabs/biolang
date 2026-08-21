@@ -36,6 +36,14 @@ fn distribution_ascii(values, options = ({})) {
     stats_distribution_ascii(values, options)
 }
 
+fn normal_diagram(values = [], options = ({})) {
+    stats_normal_diagram(values, options)
+}
+
+fn visualize(report, options = ({})) {
+    stats_visualize(report, options)
+}
+
 fn preprocessing(values, options = ({})) {
     stats_preprocess(values, options)
 }

@@ -1,6 +1,7 @@
 param(
     [string]$BioLangExe = "",
     [string]$RscriptPath = "",
+    [ValidateRange(1, 20)][int]$BenchmarkRepeats = 3,
     [switch]$RequireR
 )
 
@@ -8,6 +9,79 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path
 $results = Join-Path $PSScriptRoot "results"
 New-Item -ItemType Directory -Force $results | Out-Null
+
+function Quote-NativeArgument([string]$Value) {
+    if ($Value -notmatch '[\s"]') { return $Value }
+    return '"' + ($Value -replace '(\\*)"', '$1$1\"' -replace '(\\+)$', '$1$1') + '"'
+}
+
+function Invoke-ValidationProcess {
+    param(
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string[]]$ArgumentList
+    )
+
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $FilePath
+    $startInfo.Arguments = (($ArgumentList | ForEach-Object { Quote-NativeArgument $_ }) -join ' ')
+    $startInfo.WorkingDirectory = $repoRoot
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    $timer = [System.Diagnostics.Stopwatch]::StartNew()
+    if (-not $process.Start()) { throw "Could not start $FilePath" }
+    $processStarted = $process.StartTime
+    $relatedProcessName = [System.IO.Path]::GetFileNameWithoutExtension($FilePath)
+    $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+    $stderrTask = $process.StandardError.ReadToEndAsync()
+    $peakBytes = 0L
+    while (-not $process.WaitForExit(20)) {
+        # On Windows Rscript starts a second Rscript process. Track processes
+        # with the same executable name that began in this invocation window,
+        # otherwise only the small launcher (about 8 MiB) would be reported.
+        $workingSet = 0L
+        foreach ($related in @(Get-Process -Name $relatedProcessName -ErrorAction SilentlyContinue)) {
+            try {
+                if ($related.StartTime -ge $processStarted.AddMilliseconds(-250)) {
+                    $workingSet += [long]$related.WorkingSet64
+                }
+            }
+            catch {
+                # The process may exit between enumeration and inspection.
+            }
+        }
+        $peakBytes = [Math]::Max($peakBytes, $workingSet)
+    }
+    $process.WaitForExit()
+    $timer.Stop()
+    $stdout = $stdoutTask.Result
+    $stderr = $stderrTask.Result
+    if ($stdout) { [Console]::Out.Write($stdout) }
+    if ($stderr) { [Console]::Error.Write($stderr) }
+    $exitCode = $process.ExitCode
+    $process.Dispose()
+
+    [pscustomobject]@{
+        exit_code = $exitCode
+        elapsed_seconds = $timer.Elapsed.TotalSeconds
+        peak_working_set_bytes = $peakBytes
+    }
+}
+
+function Get-Percentile([double[]]$Values, [double]$Probability) {
+    if ($Values.Count -eq 0) { return $null }
+    $sorted = @($Values | Sort-Object)
+    if ($sorted.Count -eq 1) { return [double]$sorted[0] }
+    $position = $Probability * ($sorted.Count - 1)
+    $lower = [Math]::Floor($position)
+    $upper = [Math]::Ceiling($position)
+    $fraction = $position - $lower
+    return [double]$sorted[$lower] + $fraction * ([double]$sorted[$upper] - [double]$sorted[$lower])
+}
 
 $rscriptExe = ""
 if ($RscriptPath) {
@@ -29,23 +103,45 @@ if (-not $rscriptExe) {
 
 Push-Location $repoRoot
 try {
-    if (-not $BioLangExe) {
+    $usingRepositoryBuild = -not $BioLangExe
+    if ($usingRepositoryBuild) {
         $BioLangExe = Join-Path $repoRoot "target\debug\bl.exe"
-    }
-    if (-not (Test-Path -LiteralPath $BioLangExe)) {
         & cargo build -p bl-cli
         if ($LASTEXITCODE -ne 0) { throw "cargo build -p bl-cli failed" }
     }
+    if (-not (Test-Path -LiteralPath $BioLangExe)) {
+        throw "BioLang executable was not found: $BioLangExe"
+    }
 
-    $rTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    & $rscriptExe "packages/statistics/validation/reference.R"
-    if ($LASTEXITCODE -ne 0) { throw "R reference run failed" }
-    $rTimer.Stop()
+    $rSuites = [System.Collections.Generic.List[object]]::new()
+    $blSuites = [System.Collections.Generic.List[object]]::new()
+    for ($repeat = 1; $repeat -le $BenchmarkRepeats; $repeat++) {
+        $rRuns = @(
+            Invoke-ValidationProcess $rscriptExe @("packages/statistics/validation/reference.R")
+            Invoke-ValidationProcess $rscriptExe @("packages/statistics/validation/inference_reference.R")
+        )
+        if (@($rRuns | Where-Object { $_.exit_code -ne 0 }).Count -gt 0) {
+            throw "R reference run failed on repetition $repeat"
+        }
+        $rSuites.Add([pscustomobject]@{
+            repetition = $repeat
+            elapsed_seconds = ($rRuns | Measure-Object -Property elapsed_seconds -Sum).Sum
+            peak_working_set_bytes = ($rRuns | Measure-Object -Property peak_working_set_bytes -Maximum).Maximum
+        })
 
-    $blTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    & $BioLangExe run "packages/statistics/validation/biolang_reference.bl"
-    if ($LASTEXITCODE -ne 0) { throw "BioLang reference run failed" }
-    $blTimer.Stop()
+        $blRuns = @(
+            Invoke-ValidationProcess $BioLangExe @("run", "packages/statistics/validation/biolang_reference.bl")
+            Invoke-ValidationProcess $BioLangExe @("run", "packages/statistics/validation/biolang_inference.bl")
+        )
+        if (@($blRuns | Where-Object { $_.exit_code -ne 0 }).Count -gt 0) {
+            throw "BioLang reference run failed on repetition $repeat"
+        }
+        $blSuites.Add([pscustomobject]@{
+            repetition = $repeat
+            elapsed_seconds = ($blRuns | Measure-Object -Property elapsed_seconds -Sum).Sum
+            peak_working_set_bytes = ($blRuns | Measure-Object -Property peak_working_set_bytes -Maximum).Maximum
+        })
+    }
 
     $expected = Get-Content "packages/statistics/validation/results/r-reference.json" -Raw | ConvertFrom-Json
     $actual = Get-Content "packages/statistics/validation/results/biolang.json" -Raw | ConvertFrom-Json
@@ -57,6 +153,8 @@ try {
     $actualMixed = Get-Content "packages/statistics/validation/results/biolang-mixed.json" -Raw | ConvertFrom-Json
     $expectedCox = Get-Content "packages/statistics/validation/results/r-cox-reference.json" -Raw | ConvertFrom-Json
     $actualCox = Get-Content "packages/statistics/validation/results/biolang-cox.json" -Raw | ConvertFrom-Json
+    $expectedInference = Get-Content "packages/statistics/validation/results/r-inference-reference.json" -Raw | ConvertFrom-Json
+    $actualInference = Get-Content "packages/statistics/validation/results/biolang-inference.json" -Raw | ConvertFrom-Json
     $checks = @(
         @("descriptive.mean", $expected.descriptive.mean, $actual.descriptive.mean, 1e-12),
         @("descriptive.median", $expected.descriptive.median, $actual.descriptive.median, 1e-12),
@@ -216,19 +314,161 @@ try {
         @("cox.events", $expectedCox.events, $actualCox.events, 0)
     )
 
+    # Classic tests are evaluated live rather than only against constants
+    # copied into Rust unit tests. A fifth item marks a deliberate R/BioLang
+    # convention difference; those rows must remain different or the
+    # documentation and API choice need review.
+    $checks += @(
+        @("inference.ttest.statistic", $expectedInference.ttest_pooled.statistic, $actualInference.ttest.statistic, 1e-12),
+        @("inference.ttest.p_value", $expectedInference.ttest_pooled.p_value, $actualInference.ttest.p_value, 1e-11),
+        @("inference.ttest.df", $expectedInference.ttest_pooled.df, $actualInference.ttest.df, 0),
+        @("inference.ttest.standard_error", $expectedInference.ttest_pooled.standard_error, $actualInference.ttest.standard_error, 1e-12),
+        @("inference.ttest.confidence_lower", $expectedInference.ttest_pooled.confidence_lower, $actualInference.ttest.confidence_lower, 1e-10),
+        @("inference.ttest.confidence_upper", $expectedInference.ttest_pooled.confidence_upper, $actualInference.ttest.confidence_upper, 1e-10),
+        @("inference.ttest.cohens_d", $expectedInference.ttest_pooled.cohens_d, $actualInference.ttest.cohens_d, 1e-12),
+        @("inference.ttest.hedges_g", $expectedInference.ttest_pooled.hedges_g, $actualInference.ttest.hedges_g, 1e-12),
+        @("inference.ttest_welch.statistic", $expectedInference.ttest_r_default.statistic, $actualInference.ttest_welch.statistic, 1e-12),
+        @("inference.ttest_welch.p_value", $expectedInference.ttest_r_default.p_value, $actualInference.ttest_welch.p_value, 1e-11),
+        @("inference.ttest_welch.df", $expectedInference.ttest_r_default.df, $actualInference.ttest_welch.df, 1e-12),
+        @("inference.ttest_welch.standard_error", $expectedInference.ttest_r_default.standard_error, $actualInference.ttest_welch.standard_error, 1e-12),
+        @("inference.ttest_welch.confidence_lower", $expectedInference.ttest_r_default.confidence_lower, $actualInference.ttest_welch.confidence_lower, 1e-10),
+        @("inference.ttest_welch.confidence_upper", $expectedInference.ttest_r_default.confidence_upper, $actualInference.ttest_welch.confidence_upper, 1e-10),
+        @("convention.ttest.r_default_p_value", $expectedInference.ttest_r_default.p_value, $actualInference.ttest.p_value, 1e-12, "expected_convention_difference"),
+        @("convention.ttest.r_default_df", $expectedInference.ttest_r_default.df, $actualInference.ttest.df, 1e-12, "expected_convention_difference"),
+        @("inference.ttest_one.statistic", $expectedInference.ttest_one.statistic, $actualInference.ttest_one.statistic, 1e-12),
+        @("inference.ttest_one.p_value", $expectedInference.ttest_one.p_value, $actualInference.ttest_one.p_value, 1e-11),
+        @("inference.ttest_one.df", $expectedInference.ttest_one.df, $actualInference.ttest_one.df, 0),
+        @("inference.ttest_one.confidence_lower", $expectedInference.ttest_one.confidence_lower, $actualInference.ttest_one.confidence_lower, 1e-10),
+        @("inference.ttest_one.confidence_upper", $expectedInference.ttest_one.confidence_upper, $actualInference.ttest_one.confidence_upper, 1e-10),
+        @("inference.ttest_one.cohens_d", $expectedInference.ttest_one.cohens_d, $actualInference.ttest_one.cohens_d, 1e-12),
+        @("edge.tiny_ttest_one.statistic", $expectedInference.ttest_tiny.statistic, $actualInference.ttest_tiny.statistic, 1e-12),
+        @("edge.tiny_ttest_one.p_value", $expectedInference.ttest_tiny.p_value, $actualInference.ttest_tiny.p_value, 1e-11),
+        @("edge.tiny_ttest_one.df", $expectedInference.ttest_tiny.df, $actualInference.ttest_tiny.df, 0),
+        @("inference.ttest_paired.statistic", $expectedInference.ttest_paired.statistic, $actualInference.ttest_paired.statistic, 1e-12),
+        @("inference.ttest_paired.p_value", $expectedInference.ttest_paired.p_value, $actualInference.ttest_paired.p_value, 1e-11),
+        @("inference.ttest_paired.df", $expectedInference.ttest_paired.df, $actualInference.ttest_paired.df, 0),
+        @("inference.ttest_paired.confidence_lower", $expectedInference.ttest_paired.confidence_lower, $actualInference.ttest_paired.confidence_lower, 1e-10),
+        @("inference.ttest_paired.confidence_upper", $expectedInference.ttest_paired.confidence_upper, $actualInference.ttest_paired.confidence_upper, 1e-10),
+        @("inference.ttest_paired.cohens_dz", $expectedInference.ttest_paired.cohens_dz, $actualInference.ttest_paired.cohens_dz, 1e-12),
+        @("inference.wilcoxon.statistic", $expectedInference.wilcoxon_normal.statistic, $actualInference.wilcoxon.statistic, 1e-12),
+        @("inference.wilcoxon.p_value", $expectedInference.wilcoxon_normal.p_value, $actualInference.wilcoxon.p_value, 1e-7),
+        @("inference.wilcoxon.rank_biserial", $expectedInference.wilcoxon_normal.rank_biserial, $actualInference.wilcoxon.rank_biserial, 1e-12),
+        @("inference.wilcoxon_continuity.statistic", $expectedInference.wilcoxon_continuity.statistic, $actualInference.wilcoxon_continuity.statistic, 1e-12),
+        @("inference.wilcoxon_continuity.p_value", $expectedInference.wilcoxon_continuity.p_value, $actualInference.wilcoxon_continuity.p_value, 2e-7),
+        @("inference.wilcoxon_exact.statistic", $expectedInference.wilcoxon_r_default.statistic, $actualInference.wilcoxon_exact.statistic, 1e-12),
+        @("inference.wilcoxon_exact.p_value", $expectedInference.wilcoxon_r_default.p_value, $actualInference.wilcoxon_exact.p_value, 1e-12),
+        @("convention.wilcoxon.r_default_p_value", $expectedInference.wilcoxon_r_default.p_value, $actualInference.wilcoxon.p_value, 1e-12, "expected_convention_difference"),
+        @("edge.wilcoxon_ties.statistic", $expectedInference.wilcoxon_ties.statistic, $actualInference.wilcoxon_ties.statistic, 1e-12),
+        @("edge.wilcoxon_ties.p_value", $expectedInference.wilcoxon_ties.p_value, $actualInference.wilcoxon_ties.p_value, 1e-7),
+        @("inference.wilcoxon_paired_normal.statistic", $expectedInference.wilcoxon_paired_normal.statistic, $actualInference.wilcoxon_paired_normal.statistic, 1e-12),
+        @("inference.wilcoxon_paired_normal.p_value", $expectedInference.wilcoxon_paired_normal.p_value, $actualInference.wilcoxon_paired_normal.p_value, 1e-7),
+        @("inference.wilcoxon_paired_normal.rank_biserial", $expectedInference.wilcoxon_paired_normal.rank_biserial, $actualInference.wilcoxon_paired_normal.rank_biserial, 1e-12),
+        @("inference.wilcoxon_paired_continuity.statistic", $expectedInference.wilcoxon_paired_continuity.statistic, $actualInference.wilcoxon_paired_continuity.statistic, 1e-12),
+        @("inference.wilcoxon_paired_continuity.p_value", $expectedInference.wilcoxon_paired_continuity.p_value, $actualInference.wilcoxon_paired_continuity.p_value, 2e-7),
+        @("inference.wilcoxon_paired_exact.statistic", $expectedInference.wilcoxon_paired_exact.statistic, $actualInference.wilcoxon_paired_exact.statistic, 1e-12),
+        @("inference.wilcoxon_paired_exact.p_value", $expectedInference.wilcoxon_paired_exact.p_value, $actualInference.wilcoxon_paired_exact.p_value, 1e-12),
+        @("inference.anova.f_statistic", $expectedInference.anova.f_statistic, $actualInference.anova.f_statistic, 1e-12),
+        @("inference.anova.p_value", $expectedInference.anova.p_value, $actualInference.anova.p_value, 1e-10),
+        @("inference.anova.df_between", $expectedInference.anova.df_between, $actualInference.anova.df_between, 0),
+        @("inference.anova.df_within", $expectedInference.anova.df_within, $actualInference.anova.df_within, 0),
+        @("inference.anova_welch.f_statistic", $expectedInference.anova_welch.f_statistic, $actualInference.anova_welch.f_statistic, 1e-11),
+        @("inference.anova_welch.p_value", $expectedInference.anova_welch.p_value, $actualInference.anova_welch.p_value, 1e-10),
+        @("inference.anova_welch.df_between", $expectedInference.anova_welch.df_between, $actualInference.anova_welch.df_between, 1e-12),
+        @("inference.anova_welch.df_within", $expectedInference.anova_welch.df_within, $actualInference.anova_welch.df_within, 1e-11),
+        @("inference.anova_welch.ss_between", $expectedInference.anova_welch.ss_between, $actualInference.anova_welch.ss_between, 1e-12),
+        @("inference.anova_welch.ss_within", $expectedInference.anova_welch.ss_within, $actualInference.anova_welch.ss_within, 1e-12),
+        @("inference.anova_welch.ss_total", $expectedInference.anova_welch.ss_total, $actualInference.anova_welch.ss_total, 1e-12),
+        @("inference.anova_welch.eta_squared", $expectedInference.anova_welch.eta_squared, $actualInference.anova_welch.eta_squared, 1e-12),
+        @("inference.anova_welch.omega_squared", $expectedInference.anova_welch.omega_squared, $actualInference.anova_welch.omega_squared, 1e-12),
+        @("inference.kruskal_wallis.h_statistic", $expectedInference.kruskal_wallis.h_statistic, $actualInference.kruskal_wallis.h_statistic, 1e-12),
+        @("inference.kruskal_wallis.p_value", $expectedInference.kruskal_wallis.p_value, $actualInference.kruskal_wallis.p_value, 1e-10),
+        @("inference.kruskal_wallis.df", $expectedInference.kruskal_wallis.df, $actualInference.kruskal_wallis.df, 0),
+        @("inference.kruskal_wallis.epsilon_squared", $expectedInference.kruskal_wallis.epsilon_squared, $actualInference.kruskal_wallis.epsilon_squared, 1e-12),
+        @("inference.tukey_hsd.critical_value", $expectedInference.tukey_hsd.critical_value, $actualInference.tukey_hsd.critical_value, 2e-5),
+        @("inference.tukey_hsd.mean_square_within", $expectedInference.tukey_hsd.mean_square_within, $actualInference.tukey_hsd.mean_square_within, 1e-12),
+        @("inference.fisher.p_value", $expectedInference.fisher.p_value, $actualInference.fisher.p_value, 1e-12),
+        @("inference.fisher.sample_odds_ratio", $expectedInference.fisher.sample_odds_ratio, $actualInference.fisher.odds_ratio, 1e-12),
+        # R qnorm and BioLang's independent inverse-normal approximation differ
+        # slightly before exponentiation widens the upper odds-ratio endpoint.
+        @("inference.fisher.wald_lower", $expectedInference.fisher.wald_lower, $actualInference.fisher.confidence_lower, 5e-9),
+        @("inference.fisher.wald_upper", $expectedInference.fisher.wald_upper, $actualInference.fisher.confidence_upper, 5e-9),
+        @("convention.fisher.r_conditional_odds_ratio", $expectedInference.fisher.r_conditional_odds_ratio, $actualInference.fisher.odds_ratio, 1e-12, "expected_convention_difference"),
+        @("inference.chi_square.statistic", $expectedInference.chi_square.statistic, $actualInference.chi_square.statistic, 1e-12),
+        @("inference.chi_square.p_value", $expectedInference.chi_square.p_value, $actualInference.chi_square.p_value, 1e-12),
+        @("inference.chi_square.df", $expectedInference.chi_square.df, $actualInference.chi_square.df, 0),
+        @("inference.correlation.pearson", $expectedInference.correlation.pearson, $actualInference.correlation.pearson, 1e-12)
+    )
+    foreach ($field in @("mean_differences", "p_values", "confidence_lower", "confidence_upper")) {
+        $referenceValues = @($expectedInference.tukey_hsd.$field)
+        $observedValues = @($actualInference.tukey_hsd.$field)
+        for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+            $tolerance = if ($field -eq "mean_differences") { 1e-12 } else { 2e-5 }
+            $checks += ,@("inference.tukey_hsd.$field.$index", $referenceValues[$index], $observedValues[$index], $tolerance)
+        }
+    }
+    foreach ($field in @("raw_p_values", "adjusted_p_values")) {
+        $referenceValues = @($expectedInference.pairwise_welch_holm.$field)
+        $observedValues = @($actualInference.pairwise_welch_holm.$field)
+        for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+            $checks += ,@("inference.pairwise_welch_holm.$field.$index", $referenceValues[$index], $observedValues[$index], 1e-10)
+        }
+    }
+    foreach ($method in @("bh", "bonferroni", "holm")) {
+        $referenceAdjusted = @($expectedInference.p_adjust.$method)
+        $observedAdjusted = @($actualInference.p_adjust.$method)
+        for ($index = 0; $index -lt $referenceAdjusted.Count; $index++) {
+            $checks += ,@("inference.p_adjust.$method.$index", $referenceAdjusted[$index], $observedAdjusted[$index], 1e-12)
+        }
+        $referenceBoundary = @($expectedInference.p_adjust_boundary.$method)
+        $observedBoundary = @($actualInference.p_adjust_boundary.$method)
+        for ($index = 0; $index -lt $referenceBoundary.Count; $index++) {
+            $checks += ,@("edge.p_adjust_boundary.$method.$index", $referenceBoundary[$index], $observedBoundary[$index], 1e-12)
+        }
+    }
+
     $failures = @()
     $outcomes = foreach ($check in $checks) {
-        $name, $reference, $observed, $tolerance = $check
+        $name, $reference, $observed, $tolerance = $check[0..3]
+        $declaredClassification = if ($check.Count -ge 5) { [string]$check[4] } else { "" }
         $scale = [Math]::Max(1.0, [Math]::Abs([double]$reference))
         $difference = [Math]::Abs([double]$observed - [double]$reference)
-        $passed = $difference -le ([double]$tolerance * $scale)
+        $absoluteLimit = [double]$tolerance * $scale
+        $numericallyEquivalent = $difference -le $absoluteLimit
+        $referenceMagnitude = [Math]::Abs([double]$reference)
+        # Relative error is undefined near zero. Keep the absolute error and
+        # tolerance there instead of manufacturing an alarming percentage by
+        # dividing floating-point noise by an arbitrary tiny denominator.
+        $relativeDifference = if ($referenceMagnitude -gt 1e-12) {
+            $difference / $referenceMagnitude
+        }
+        else {
+            $null
+        }
+
+        if ($declaredClassification -eq "expected_convention_difference") {
+            $passed = -not $numericallyEquivalent
+            $classification = if ($passed) {
+                "expected_convention_difference"
+            }
+            else {
+                "convention_changed_review_required"
+            }
+        }
+        else {
+            $passed = $numericallyEquivalent
+            $classification = if ($passed) { "numerically_equivalent" } else { "biolang_mismatch" }
+        }
         if (-not $passed) { $failures += $name }
         [ordered]@{
             metric = $name
             reference = [double]$reference
             biolang = [double]$observed
             absolute_difference = $difference
+            relative_difference = $relativeDifference
+            tolerance_scale = "max(1, abs(reference))"
             tolerance = [double]$tolerance
+            absolute_tolerance = $absoluteLimit
+            classification = $classification
             passed = $passed
         }
     }
@@ -250,19 +490,156 @@ try {
         $failures += "matrix.sample_totals"
     }
 
+    $accuracyRows = @($outcomes | Where-Object { $_.classification -eq "numerically_equivalent" })
+    $accuracyGroups = @("all") + @(
+        $accuracyRows |
+            ForEach-Object { ([string]$_.metric -split '\.')[0] } |
+            Sort-Object -Unique
+    )
+    $accuracySummary = foreach ($groupName in $accuracyGroups) {
+        $rows = if ($groupName -eq "all") {
+            $accuracyRows
+        }
+        else {
+            @($accuracyRows | Where-Object { ([string]$_.metric -split '\.')[0] -eq $groupName })
+        }
+        if ($rows.Count -eq 0) { continue }
+
+        $referenceMean = ($rows | ForEach-Object { [double]$_.reference } | Measure-Object -Average).Average
+        $observedMean = ($rows | ForEach-Object { [double]$_.biolang } | Measure-Object -Average).Average
+        $sumCross = 0.0
+        $sumReferenceSquares = 0.0
+        $sumSquaredError = 0.0
+        $relativeErrors = [System.Collections.Generic.List[double]]::new()
+        foreach ($row in $rows) {
+            $referenceValue = [double]$row.reference
+            $observedValue = [double]$row.biolang
+            $centeredReference = $referenceValue - $referenceMean
+            $sumCross += $centeredReference * ($observedValue - $observedMean)
+            $sumReferenceSquares += $centeredReference * $centeredReference
+            $sumSquaredError += ($observedValue - $referenceValue) * ($observedValue - $referenceValue)
+            if ($null -ne $row.relative_difference) {
+                $relativeErrors.Add([double]$row.relative_difference)
+            }
+        }
+        $slope = if ($sumReferenceSquares -gt 0.0) { $sumCross / $sumReferenceSquares } else { $null }
+        $intercept = if ($null -ne $slope) { $observedMean - $slope * $referenceMean } else { $null }
+        [ordered]@{
+            group = $groupName
+            metrics = $rows.Count
+            regression_slope = $slope
+            regression_intercept = $intercept
+            rmse = [Math]::Sqrt($sumSquaredError / $rows.Count)
+            median_relative_error = Get-Percentile $relativeErrors.ToArray() 0.5
+            p95_relative_error = Get-Percentile $relativeErrors.ToArray() 0.95
+            maximum_relative_error = if ($relativeErrors.Count -gt 0) {
+                ($relativeErrors | Measure-Object -Maximum).Maximum
+            }
+            else {
+                $null
+            }
+        }
+    }
+
+    $rElapsedSeconds = Get-Percentile @($rSuites | ForEach-Object { [double]$_.elapsed_seconds }) 0.5
+    $blElapsedSeconds = Get-Percentile @($blSuites | ForEach-Object { [double]$_.elapsed_seconds }) 0.5
+    $rPeakBytes = ($rSuites | Measure-Object -Property peak_working_set_bytes -Maximum).Maximum
+    $blPeakBytes = ($blSuites | Measure-Object -Property peak_working_set_bytes -Maximum).Maximum
+    $classificationCounts = [ordered]@{}
+    foreach ($outcome in $outcomes) {
+        $classificationName = [string]$outcome.classification
+        if (-not $classificationCounts.Contains($classificationName)) {
+            $classificationCounts[$classificationName] = 0
+        }
+        $classificationCounts[$classificationName]++
+    }
+
     $manifest = [ordered]@{
-        schema = "biolang.statistics.external-validation/v1"
+        schema = "biolang.statistics.external-validation/v2"
         generated_utc = [DateTime]::UtcNow.ToString("o")
         r_version = (& $rscriptExe --version 2>&1 | Out-String).Trim()
         biolang_version = (& $BioLangExe --version 2>&1 | Out-String).Trim()
-        r_elapsed_seconds = [Math]::Round($rTimer.Elapsed.TotalSeconds, 6)
-        biolang_elapsed_seconds = [Math]::Round($blTimer.Elapsed.TotalSeconds, 6)
+        measurement = [ordered]@{
+            scope = "Two fresh processes per backend: guided/model/real-data suite plus classic-inference suite"
+            memory_metric = "Maximum aggregate working set of same-named backend processes started in the invocation window"
+            repetitions = $BenchmarkRepeats
+            elapsed_summary = "median of repetitions"
+            memory_summary = "maximum sampled peak across repetitions"
+            r_elapsed_seconds = [Math]::Round($rElapsedSeconds, 6)
+            biolang_elapsed_seconds = [Math]::Round($blElapsedSeconds, 6)
+            r_peak_working_set_bytes = [long]$rPeakBytes
+            biolang_peak_working_set_bytes = [long]$blPeakBytes
+            r_repetitions = $rSuites
+            biolang_repetitions = $blSuites
+        }
         metrics = $outcomes
+        classification_counts = $classificationCounts
+        scale_sensitive_accuracy = $accuracySummary
+        relative_error_denominator = "abs(reference); omitted when abs(reference) <= 1e-12"
         sample_totals_match = $sampleTotalsMatch
         passed = ($failures.Count -eq 0)
         failures = $failures
     }
     $manifest | ConvertTo-Json -Depth 8 | Set-Content "packages/statistics/validation/results/manifest.json" -Encoding UTF8
+
+    $outcomes | ForEach-Object { [pscustomobject]$_ } |
+        Export-Csv "packages/statistics/validation/results/checks.csv" -NoTypeInformation -Encoding UTF8
+
+    $statusText = if ($manifest.passed) { "PASS" } else { "FAIL" }
+    $report = @(
+        "# BioLang statistics external validation",
+        "",
+        "**Status:** $statusText",
+        "",
+        "The R and BioLang programs run independently on the same deterministic inputs. R is a development oracle only; it is not linked or bundled with BioLang.",
+        "",
+        "## Result summary",
+        "",
+        "| Item | Result |",
+        "|---|---:|",
+        "| Numeric metrics compared | $($outcomes.Count) |",
+        "| Numerically equivalent | $($classificationCounts['numerically_equivalent']) |",
+        "| Expected convention differences | $($classificationCounts['expected_convention_difference']) |",
+        "| Failures requiring review | $($failures.Count) |",
+        "| Matrix sample totals | $(if ($sampleTotalsMatch) { 'match' } else { 'mismatch' }) |",
+        "",
+        "## Runtime and memory",
+        "",
+        "| Backend | Median elapsed seconds | Maximum peak working set (MiB) |",
+        "|---|---:|---:|",
+        ("| R | {0:N3} | {1:N1} |" -f $rElapsedSeconds, ($rPeakBytes / 1MB)),
+        ("| BioLang | {0:N3} | {1:N1} |" -f $blElapsedSeconds, ($blPeakBytes / 1MB)),
+        "",
+        "Each backend is run $BenchmarkRepeats times. Elapsed time is the median full-suite time; memory is the maximum sampled peak. The full suite starts two fresh processes per backend, and R's launcher and worker are included.",
+        "",
+        "## Scale-sensitive accuracy",
+        "",
+        "Correlation is intentionally not used as a parity gate. Slope, intercept, RMSE, and relative-error percentiles expose proportional or offset bias.",
+        "",
+        "| Group | Metrics | Slope | Intercept | RMSE | Median relative error | P95 relative error |",
+        "|---|---:|---:|---:|---:|---:|---:|"
+    )
+    foreach ($summary in $accuracySummary) {
+        $slopeText = if ($null -eq $summary.regression_slope) { "n/a" } else { "{0:G6}" -f $summary.regression_slope }
+        $interceptText = if ($null -eq $summary.regression_intercept) { "n/a" } else { "{0:G6}" -f $summary.regression_intercept }
+        $report += "| $($summary.group) | $($summary.metrics) | $slopeText | $interceptText | $('{0:G6}' -f $summary.rmse) | $('{0:P3}' -f $summary.median_relative_error) | $('{0:P3}' -f $summary.p95_relative_error) |"
+    }
+    $report += @(
+        "",
+        "## Interpretation",
+        "",
+        "- ``numerically_equivalent``: within the metric's declared scale-aware tolerance.",
+        "- ``expected_convention_difference``: deliberately differs from R's default, while a separately configured R calculation matches BioLang.",
+        "- ``biolang_mismatch``: outside tolerance and requires investigation; it is not relabelled as an expected difference automatically.",
+        "",
+        "Machine-readable details are in `manifest.json`; one row per comparison is in `checks.csv`."
+    )
+    if ($failures.Count -gt 0) {
+        $report += @("", "## Failures", "")
+        foreach ($failure in $failures) { $report += "- $failure" }
+    }
+    $report | Set-Content "packages/statistics/validation/results/report.md" -Encoding UTF8
+
     $manifest | ConvertTo-Json -Depth 8
     if ($failures.Count -gt 0) { exit 1 }
 }

@@ -300,14 +300,39 @@ fn test_exploration_and_decision_map_connect_question_scale_and_uncertainty() {
     let report = stat.explore([1, 2, 4, 8, 32])
     assert report.centre_spread_guidance.automatic_choice == false
     assert contains(report.visual_guide.ascii, "Variance = SD x SD")
+    assert contains(report.visual_guide.ascii, "not an outlier test")
     assert starts_with(report.visual_guide.svg, "<svg")
     assert contains(report.visual_guide.scale_clue, "log preview")
+    assert len(report.visual_guide.sd_bands) == 3
+    assert report.visual_guide.sd_bands[0].normal_reference_proportion == 0.6827
+    assert len(report.visual_guide.reading_order) == 6
 
     let map = stat.decision_map()
     assert len(map.paths) == 6
     assert contains(map.ascii, "CENTRE")
     assert starts_with(map.svg, "<svg")
     assert map.automatic_choice == false
+}
+
+fn test_normal_diagram_and_report_visualizer_support_terminal_and_notebook_outputs() {
+    let values = [-2, -1, 0, 1, 2]
+    assert contains(stat.normal_diagram(), "No observations supplied")
+    let diagram = stat.normal_diagram(values)
+    assert starts_with(diagram, "<svg")
+    assert contains(diagram, "68.27%")
+    assert contains(diagram, "Observed within 1 / 2 / 3 SD")
+
+    let terminal = stat.normal_diagram(values, {
+        format: "ascii",
+        z: 1.96,
+        tail: "right"
+    })
+    assert contains(terminal, "NORMAL DISTRIBUTION: SD AREAS")
+    assert contains(terminal, "P(Z >= 1.96) = 0.024")
+
+    let report = stat.explore(values)
+    assert starts_with(stat.visualize(report), "<svg")
+    assert contains(stat.visualize(report, {format: "ascii"}), "CENTRE + SPREAD + SCALE")
 }
 
 fn test_glm_diagnostics_expose_residual_influence_and_calibration_clues() {

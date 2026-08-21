@@ -1,5 +1,6 @@
 use bl_core::value::{Table, Value};
 use bl_runtime::stats::call_stats_builtin;
+use std::collections::HashMap;
 
 fn int_list(vals: &[i64]) -> Value {
     Value::List(
@@ -316,6 +317,67 @@ fn test_anova_same_groups() {
     let result = call_stats_builtin("anova", vec![groups]).unwrap();
     let p = get_record_float(&result, "p_value");
     assert!(p > 0.5, "p={p} should be high for identical groups");
+}
+
+fn unequal_anova_groups() -> Value {
+    Value::List(
+        vec![
+            float_list(&[1.2, 2.4, 3.1, 4.8, 5.5]),
+            float_list(&[2.0, 3.3, 4.1, 6.2, 7.9, 9.1, 10.3]),
+            float_list(&[0.5, 1.1, 1.8, 2.2]),
+        ]
+        .into(),
+    )
+}
+
+#[test]
+fn test_anova_explicit_welch_matches_r_and_discloses_effect_sizes() {
+    let options = option_record(&[("variance", Value::Str("welch".into()))]);
+    let result = call_stats_builtin("anova", vec![unequal_anova_groups(), options]).unwrap();
+    assert_eq!(get_record_str(&result, "method"), "welch_anova");
+    assert!((get_record_float(&result, "f_statistic") - 8.238_003_24).abs() < 1e-8);
+    assert!((get_record_float(&result, "df_within") - 7.986_031_25).abs() < 1e-8);
+    assert!((get_record_float(&result, "p_value") - 0.011_448_51).abs() < 1e-8);
+    assert!((get_record_float(&result, "eta_squared") - 0.454_421_76).abs() < 1e-8);
+    assert!((get_record_float(&result, "omega_squared") - 0.355_564_48).abs() < 1e-8);
+}
+
+#[test]
+fn test_kruskal_wallis_matches_r_and_returns_epsilon_squared() {
+    let result = call_stats_builtin("kruskal_wallis", vec![unequal_anova_groups()]).unwrap();
+    assert_eq!(get_record_str(&result, "method"), "kruskal_wallis_rank_sum");
+    let h = get_record_float(&result, "h_statistic");
+    let p = get_record_float(&result, "p_value");
+    let epsilon = get_record_float(&result, "epsilon_squared");
+    assert!((h - 8.074_474_79).abs() < 1e-8, "H={h}");
+    assert!((p - 0.017_646_15).abs() < 1e-8, "p={p}");
+    assert!((epsilon - 0.467_267_29).abs() < 1e-8, "epsilon={epsilon}");
+}
+
+#[test]
+fn test_tukey_hsd_is_a_studentized_range_procedure_not_pairwise_ttests() {
+    let result = call_stats_builtin("tukey_hsd", vec![unequal_anova_groups()]).unwrap();
+    assert_eq!(get_record_str(&result, "method"), "tukey_kramer_hsd");
+    let comparisons = get_record_list(&result, "comparisons");
+    assert_eq!(comparisons.len(), 3);
+    let third = &comparisons[2];
+    assert!((get_record_float(third, "p_adjusted") - 0.018_042_4).abs() < 2e-5);
+    assert!((get_record_float(third, "confidence_lower") - 0.819_324_1).abs() < 2e-5);
+    assert!((get_record_float(third, "confidence_upper") - 8.637_818_8).abs() < 2e-5);
+}
+
+#[test]
+fn test_pairwise_ttest_defaults_to_welch_with_holm_adjustment() {
+    let result = call_stats_builtin("pairwise_ttest", vec![unequal_anova_groups()]).unwrap();
+    assert_eq!(get_record_str(&result, "method"), "pairwise_welch_t");
+    assert_eq!(get_record_str(&result, "adjustment"), "holm");
+    let comparisons = get_record_list(&result, "comparisons");
+    assert_eq!(comparisons.len(), 3);
+    for comparison in comparisons {
+        assert!(
+            get_record_float(comparison, "p_adjusted") >= get_record_float(comparison, "p_value")
+        );
+    }
 }
 
 #[test]
@@ -1159,6 +1221,115 @@ fn test_p_adjust_holm() {
     }
 }
 
+fn get_record_list<'a>(val: &'a Value, key: &str) -> &'a [Value] {
+    match val {
+        Value::Record(map) => match map.get(key).unwrap() {
+            Value::List(values) => values,
+            _ => panic!("expected list for key {key}"),
+        },
+        _ => panic!("expected Record"),
+    }
+}
+
+#[test]
+fn test_fisher_exact_labels_sample_odds_and_returns_wald_interval() {
+    let result = call_stats_builtin(
+        "fisher_exact",
+        vec![Value::Int(8), Value::Int(2), Value::Int(1), Value::Int(5)],
+    )
+    .unwrap();
+    assert_eq!(
+        get_record_str(&result, "odds_ratio_estimator"),
+        "sample_cross_product"
+    );
+    assert_eq!(
+        get_record_str(&result, "confidence_interval_method"),
+        "wald_log_odds"
+    );
+    assert!((get_record_float(&result, "confidence_lower") - 1.416185).abs() < 1e-6);
+    assert!((get_record_float(&result, "confidence_upper") - 282.448946).abs() < 1e-5);
+}
+
+#[test]
+fn test_fisher_exact_accepts_an_explicit_confidence_level() {
+    let options = option_record(&[("confidence", Value::Float(0.90))]);
+    let result = call_stats_builtin(
+        "fisher_exact",
+        vec![
+            Value::Int(8),
+            Value::Int(2),
+            Value::Int(1),
+            Value::Int(5),
+            options,
+        ],
+    )
+    .unwrap();
+    assert!((get_record_float(&result, "confidence_level") - 0.90).abs() < 1e-12);
+    assert!((get_record_float(&result, "confidence_lower") - 2.167680).abs() < 1e-6);
+    assert!((get_record_float(&result, "confidence_upper") - 184.529097).abs() < 1e-5);
+}
+
+#[test]
+fn test_ttest_default_remains_pooled_and_discloses_method() {
+    let a = float_list(&[1.2, 2.4, 3.1, 4.8, 5.5]);
+    let b = float_list(&[2.0, 3.3, 4.1, 6.2, 7.9]);
+    let result = call_stats_builtin("ttest", vec![a, b]).unwrap();
+    assert_eq!(get_record_str(&result, "method"), "student_pooled");
+    assert!((get_record_float(&result, "df") - 8.0).abs() < 1e-12);
+    assert!((get_record_float(&result, "confidence_lower") + 4.324296).abs() < 1e-6);
+    assert!((get_record_float(&result, "confidence_upper") - 1.724296).abs() < 1e-6);
+}
+
+#[test]
+fn test_ttest_welch_matches_r_default() {
+    let a = float_list(&[1.2, 2.4, 3.1, 4.8, 5.5]);
+    let b = float_list(&[2.0, 3.3, 4.1, 6.2, 7.9]);
+    let options = option_record(&[("variance", Value::Str("welch".into()))]);
+    let result = call_stats_builtin("ttest", vec![a, b, options]).unwrap();
+    assert_eq!(get_record_str(&result, "method"), "welch");
+    assert!((get_record_float(&result, "df") - 7.399468500859778).abs() < 1e-10);
+    assert!((get_record_float(&result, "p_value") - 0.35286953859808035).abs() < 1e-10);
+    assert!((get_record_float(&result, "confidence_lower") + 4.367557).abs() < 1e-6);
+    assert!((get_record_float(&result, "confidence_upper") - 1.767557).abs() < 1e-6);
+}
+
+fn option_record(values: &[(&str, Value)]) -> Value {
+    Value::Record(
+        values
+            .iter()
+            .map(|(key, value)| ((*key).to_string(), value.clone()))
+            .collect::<HashMap<_, _>>()
+            .into(),
+    )
+}
+
+fn get_record_str<'a>(val: &'a Value, key: &str) -> &'a str {
+    match val {
+        Value::Record(map) => match map.get(key).unwrap() {
+            Value::Str(value) => value,
+            _ => panic!("expected string for key {key}"),
+        },
+        _ => panic!("expected Record"),
+    }
+}
+
+#[test]
+fn test_p_adjust_holm_is_monotone_with_tied_pvalues() {
+    let pvals = float_list(&[0.0, 0.01, 0.01, 1.0]);
+    let result = call_stats_builtin("p_adjust", vec![pvals, Value::Str("holm".into())]).unwrap();
+    let Value::List(values) = result else {
+        panic!("p_adjust should return a List");
+    };
+    let adjusted: Vec<f64> = values
+        .iter()
+        .map(|value| match value {
+            Value::Float(number) => *number,
+            other => panic!("expected Float, got {other:?}"),
+        })
+        .collect();
+    assert_eq!(adjusted, vec![0.0, 0.03, 0.03, 1.0]);
+}
+
 #[test]
 fn test_p_adjust_unknown_method_error() {
     let pvals = float_list(&[0.05]);
@@ -1510,6 +1681,70 @@ fn test_wilcoxon_basic() {
     let result = call_stats_builtin("wilcoxon", vec![a, b]).unwrap();
     let p = get_record_float(&result, "p_value");
     assert!(p < 0.05, "p={p} should be significant for separated groups");
+}
+
+#[test]
+fn test_wilcoxon_exact_matches_r_for_untied_small_samples() {
+    let a = float_list(&[1.2, 2.4, 3.1, 4.8, 5.5]);
+    let b = float_list(&[2.0, 3.3, 4.1, 6.2, 7.9]);
+    let options = option_record(&[("method", Value::Str("exact".into()))]);
+    let result = call_stats_builtin("wilcoxon", vec![a, b, options]).unwrap();
+    assert_eq!(get_record_str(&result, "method"), "mann_whitney_exact");
+    assert!((get_record_float(&result, "p_value") - 0.42063492063492064).abs() < 1e-12);
+    assert!((get_record_float(&result, "rank_biserial") + 0.36).abs() < 1e-12);
+}
+
+#[test]
+fn test_wilcoxon_normal_continuity_matches_r() {
+    let a = float_list(&[1.2, 2.4, 3.1, 4.8, 5.5]);
+    let b = float_list(&[2.0, 3.3, 4.1, 6.2, 7.9]);
+    let options = option_record(&[
+        ("method", Value::Str("normal".into())),
+        ("continuity", Value::Bool(true)),
+    ]);
+    let result = call_stats_builtin("wilcoxon", vec![a, b, options]).unwrap();
+    assert_eq!(get_record_str(&result, "method"), "mann_whitney_normal");
+    let p_value = get_record_float(&result, "p_value");
+    assert!(
+        (p_value - 0.4033953048926283).abs() < 2e-7,
+        "BioLang p={p_value}"
+    );
+}
+
+#[test]
+fn test_wilcoxon_exact_rejects_ties_instead_of_silently_approximating() {
+    let a = float_list(&[1.0, 2.0, 2.0]);
+    let b = float_list(&[2.0, 3.0, 4.0]);
+    let options = option_record(&[("method", Value::Str("exact".into()))]);
+    let error = call_stats_builtin("wilcoxon", vec![a, b, options]).unwrap_err();
+    assert!(error.to_string().contains("untied"));
+}
+
+#[test]
+fn test_paired_wilcoxon_exact_discloses_direction_and_effect() {
+    let a = float_list(&[11.0, 8.0, 13.0, 6.0, 15.0, 4.0, 17.0, 2.0]);
+    let b = float_list(&[10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]);
+    let options = option_record(&[("method", Value::Str("exact".into()))]);
+    let result = call_stats_builtin("wilcoxon_paired", vec![a, b, options]).unwrap();
+    assert_eq!(
+        get_record_str(&result, "method"),
+        "wilcoxon_signed_rank_exact"
+    );
+    assert_eq!(get_record_float(&result, "statistic"), 16.0);
+    assert!((get_record_float(&result, "rank_biserial") + 1.0 / 9.0).abs() < 1e-12);
+}
+
+#[test]
+fn test_paired_wilcoxon_normal_handles_tied_differences() {
+    let before = float_list(&[12.1, 13.5, 11.8, 14.2, 15.0, 13.0]);
+    let after = float_list(&[11.7, 12.9, 11.5, 13.1, 14.4, 12.8]);
+    let result = call_stats_builtin("wilcoxon_paired", vec![before, after]).unwrap();
+    assert_eq!(
+        get_record_str(&result, "method"),
+        "wilcoxon_signed_rank_normal"
+    );
+    assert_eq!(get_record_float(&result, "statistic"), 21.0);
+    assert_eq!(get_record_float(&result, "rank_biserial"), 1.0);
 }
 
 // ── ks_test ─────────────────────────────────────────────────────

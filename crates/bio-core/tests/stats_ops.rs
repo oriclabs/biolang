@@ -60,6 +60,52 @@ fn test_anova() {
 }
 
 #[test]
+fn welch_anova_matches_r_oneway_test() {
+    let groups = vec![
+        vec![1.2, 2.4, 3.1, 4.8, 5.5],
+        vec![2.0, 3.3, 4.1, 6.2, 7.9, 9.1, 10.3],
+        vec![0.5, 1.1, 1.8, 2.2],
+    ];
+    let result = welch_anova(&groups).unwrap();
+    assert!((result.f_statistic - 8.238_003_24).abs() < 1e-8);
+    assert!((result.df_within - 7.986_031_25).abs() < 1e-8);
+    assert!((result.p_value - 0.011_448_51).abs() < 1e-8);
+    assert!((result.eta_squared - 0.454_421_76).abs() < 1e-8);
+    assert!((result.omega_squared - 0.355_564_48).abs() < 1e-8);
+}
+
+#[test]
+fn tukey_hsd_matches_r_tukey_hsd_for_unequal_sizes() {
+    let groups = vec![
+        vec![1.2, 2.4, 3.1, 4.8, 5.5],
+        vec![2.0, 3.3, 4.1, 6.2, 7.9, 9.1, 10.3],
+        vec![0.5, 1.1, 1.8, 2.2],
+    ];
+    let result = tukey_hsd(&groups, 0.95).unwrap();
+    assert_eq!(result.comparisons.len(), 3);
+    let comparison = &result.comparisons[2];
+    // BioLang reports group 2 - group 3; R's printed 3-2 row has the
+    // opposite sign but identical p-value and mirrored interval.
+    assert!((comparison.mean_difference - 4.728_571_428_571_429).abs() < 1e-12);
+    assert!((comparison.p_value - 0.018_042_4).abs() < 2e-5);
+    assert!((comparison.confidence_lower - 0.819_324_1).abs() < 2e-5);
+    assert!((comparison.confidence_upper - 8.637_818_8).abs() < 2e-5);
+}
+
+#[test]
+fn kruskal_wallis_applies_the_r_tie_correction() {
+    let groups = vec![
+        vec![1.0, 2.0, 2.0, 4.0],
+        vec![2.0, 3.0, 3.0, 5.0],
+        vec![1.0, 1.0, 4.0, 6.0],
+    ];
+    let result = kruskal_wallis_test(&groups).unwrap();
+    assert!((result.tie_correction - 0.965_034_965_034_965).abs() < 1e-12);
+    assert!((result.h_statistic - 0.906_702_898_550_724_6).abs() < 1e-12);
+    assert!((result.p_value - 0.635_494_750_205_286_7).abs() < 1e-12);
+}
+
+#[test]
 fn test_correlation_pearson() {
     let x = [1.0, 2.0, 3.0, 4.0, 5.0];
     let y = [2.0, 4.0, 6.0, 8.0, 10.0];
@@ -100,6 +146,26 @@ fn test_wilcoxon() {
     let result = wilcoxon_signed_rank_test(&a, &b, "two_sided").unwrap();
     assert_eq!(result.n_pairs, 5);
     assert!((result.statistic - 0.0).abs() < 1.0);
+}
+
+#[test]
+fn paired_wilcoxon_exact_uses_positive_rank_sum_and_paired_effect() {
+    let a = [11.0, 8.0, 13.0, 6.0, 15.0, 4.0, 17.0, 2.0];
+    let b = [10.0; 8];
+    let result = paired_wilcoxon_signed_rank_test(&a, &b, "two_sided", true, false).unwrap();
+    assert_eq!(result.statistic, 16.0);
+    assert_eq!(result.w_negative, 20.0);
+    assert!((result.rank_biserial + 1.0 / 9.0).abs() < 1e-12);
+    assert!((0.0..=1.0).contains(&result.p_value));
+}
+
+#[test]
+fn paired_wilcoxon_exact_refuses_ties_instead_of_silently_approximating() {
+    let a = [2.0, 3.0, 4.0];
+    let b = [1.0, 2.0, 3.0];
+    let error = paired_wilcoxon_signed_rank_test(&a, &b, "two_sided", true, false)
+        .expect_err("equal absolute differences are ties");
+    assert!(error.contains("distinct"));
 }
 
 #[test]

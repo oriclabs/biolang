@@ -1,0 +1,194 @@
+# Live BioLang side of the independent classic-inference comparison.
+
+let a = [1.2, 2.4, 3.1, 4.8, 5.5]
+let b = [2.0, 3.3, 4.1, 6.2, 7.9]
+let one_sample = [8.3, 9.1, 10.2, 11.4, 12.0, 9.8]
+let tiny_sample = [1, 2, 4]
+let paired_before = [12.1, 13.5, 11.8, 14.2, 15.0, 13.0]
+let paired_after = [11.7, 12.9, 11.5, 13.1, 14.4, 12.8]
+let paired_exact_a = [11, 8, 13, 6, 15, 4, 17, 2]
+let paired_exact_b = [10, 10, 10, 10, 10, 10, 10, 10]
+let ties_a = [1, 2, 2, 3, 5]
+let ties_b = [2, 2, 4, 4, 6]
+
+let pooled = ttest(a, b)
+let welch = ttest(a, b, {variance: "welch"})
+let one = ttest_one(one_sample, 10.0)
+let tiny = ttest_one(tiny_sample, 2.0)
+let paired = ttest_paired(paired_before, paired_after)
+let ranks = wilcoxon(a, b)
+let ranks_continuity = wilcoxon(a, b, {method: "normal", continuity: true})
+let ranks_exact = wilcoxon(a, b, {method: "exact"})
+let tied_ranks = wilcoxon(ties_a, ties_b)
+let paired_ranks = wilcoxon_paired(paired_before, paired_after)
+let paired_ranks_continuity = wilcoxon_paired(paired_before, paired_after, {continuity: true})
+let paired_ranks_exact = wilcoxon_paired(paired_exact_a, paired_exact_b, {method: "exact"})
+let groups = anova([[1, 2, 3], [5, 6, 7], [9, 10, 11]])
+let multi_groups = [
+    [1.2, 2.4, 3.1, 4.8, 5.5],
+    [2.0, 3.3, 4.1, 6.2, 7.9, 9.1, 10.3],
+    [0.5, 1.1, 1.8, 2.2]
+]
+let multi_welch = anova(multi_groups, {variance: "welch"})
+let multi_kruskal = kruskal_wallis(multi_groups)
+let multi_tukey = tukey_hsd(multi_groups)
+let multi_pairs = pairwise_ttest(multi_groups)
+let fisher_report = fisher_exact(8, 2, 1, 5)
+let chi = chi_square([10, 20, 30], [20, 20, 20])
+let raw_p = [0.01, 0.04, 0.03, 0.5, 0.2]
+let boundary_p = [0.0, 0.01, 0.01, 1.0]
+
+write_json({
+    ttest: {
+        statistic: pooled.statistic,
+        p_value: pooled.p_value,
+        df: pooled.df,
+        standard_error: pooled.standard_error,
+        confidence_lower: pooled.confidence_lower,
+        confidence_upper: pooled.confidence_upper,
+        cohens_d: pooled.cohens_d,
+        hedges_g: pooled.hedges_g
+    },
+    ttest_welch: {
+        statistic: welch.statistic,
+        p_value: welch.p_value,
+        df: welch.df,
+        standard_error: welch.standard_error,
+        confidence_lower: welch.confidence_lower,
+        confidence_upper: welch.confidence_upper
+    },
+    ttest_one: {
+        statistic: one.statistic,
+        p_value: one.p_value,
+        df: one.df,
+        confidence_lower: one.confidence_lower,
+        confidence_upper: one.confidence_upper,
+        cohens_d: one.cohens_d
+    },
+    ttest_tiny: {
+        statistic: tiny.statistic,
+        p_value: tiny.p_value,
+        df: tiny.df
+    },
+    ttest_paired: {
+        statistic: paired.statistic,
+        p_value: paired.p_value,
+        df: paired.df,
+        confidence_lower: paired.confidence_lower,
+        confidence_upper: paired.confidence_upper,
+        cohens_dz: paired.cohens_dz
+    },
+    wilcoxon: {
+        statistic: ranks.statistic,
+        p_value: ranks.p_value,
+        rank_biserial: ranks.rank_biserial
+    },
+    wilcoxon_continuity: {
+        statistic: ranks_continuity.statistic,
+        p_value: ranks_continuity.p_value
+    },
+    wilcoxon_exact: {
+        statistic: ranks_exact.statistic,
+        p_value: ranks_exact.p_value
+    },
+    wilcoxon_ties: {
+        statistic: tied_ranks.statistic,
+        p_value: tied_ranks.p_value
+    },
+    wilcoxon_paired_normal: {
+        statistic: paired_ranks.statistic,
+        p_value: paired_ranks.p_value,
+        rank_biserial: paired_ranks.rank_biserial
+    },
+    wilcoxon_paired_continuity: {
+        statistic: paired_ranks_continuity.statistic,
+        p_value: paired_ranks_continuity.p_value
+    },
+    wilcoxon_paired_exact: {
+        statistic: paired_ranks_exact.statistic,
+        p_value: paired_ranks_exact.p_value
+    },
+    anova: {
+        f_statistic: groups.f_statistic,
+        p_value: groups.p_value,
+        df_between: groups.df_between,
+        df_within: groups.df_within
+    },
+    anova_welch: {
+        f_statistic: multi_welch.f_statistic,
+        p_value: multi_welch.p_value,
+        df_between: multi_welch.df_between,
+        df_within: multi_welch.df_within,
+        ss_between: multi_welch.ss_between,
+        ss_within: multi_welch.ss_within,
+        ss_total: multi_welch.ss_total,
+        eta_squared: multi_welch.eta_squared,
+        omega_squared: multi_welch.omega_squared
+    },
+    kruskal_wallis: {
+        h_statistic: multi_kruskal.h_statistic,
+        p_value: multi_kruskal.p_value,
+        df: multi_kruskal.df,
+        epsilon_squared: multi_kruskal.epsilon_squared
+    },
+    tukey_hsd: {
+        critical_value: multi_tukey.critical_value,
+        mean_square_within: multi_tukey.mean_square_within,
+        mean_differences: [
+            multi_tukey.comparisons[0].mean_difference,
+            multi_tukey.comparisons[1].mean_difference,
+            multi_tukey.comparisons[2].mean_difference
+        ],
+        p_values: [
+            multi_tukey.comparisons[0].p_adjusted,
+            multi_tukey.comparisons[1].p_adjusted,
+            multi_tukey.comparisons[2].p_adjusted
+        ],
+        confidence_lower: [
+            multi_tukey.comparisons[0].confidence_lower,
+            multi_tukey.comparisons[1].confidence_lower,
+            multi_tukey.comparisons[2].confidence_lower
+        ],
+        confidence_upper: [
+            multi_tukey.comparisons[0].confidence_upper,
+            multi_tukey.comparisons[1].confidence_upper,
+            multi_tukey.comparisons[2].confidence_upper
+        ]
+    },
+    pairwise_welch_holm: {
+        raw_p_values: [
+            multi_pairs.comparisons[0].p_value,
+            multi_pairs.comparisons[1].p_value,
+            multi_pairs.comparisons[2].p_value
+        ],
+        adjusted_p_values: [
+            multi_pairs.comparisons[0].p_adjusted,
+            multi_pairs.comparisons[1].p_adjusted,
+            multi_pairs.comparisons[2].p_adjusted
+        ]
+    },
+    fisher: {
+        p_value: fisher_report.p_value,
+        odds_ratio: fisher_report.odds_ratio,
+        confidence_lower: fisher_report.confidence_lower,
+        confidence_upper: fisher_report.confidence_upper
+    },
+    chi_square: {
+        statistic: chi.chi2,
+        p_value: chi.p_value,
+        df: chi.df
+    },
+    correlation: {
+        pearson: cor([1, 2, 3, 4, 5], [2, 4.1, 5.9, 8.2, 9.8])
+    },
+    p_adjust: {
+        bh: p_adjust(raw_p, "bh"),
+        bonferroni: p_adjust(raw_p, "bonferroni"),
+        holm: p_adjust(raw_p, "holm")
+    },
+    p_adjust_boundary: {
+        bh: p_adjust(boundary_p, "bh"),
+        bonferroni: p_adjust(boundary_p, "bonferroni"),
+        holm: p_adjust(boundary_p, "holm")
+    }
+}, "packages/statistics/validation/results/biolang-inference.json")

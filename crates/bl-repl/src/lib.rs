@@ -1878,6 +1878,8 @@ const BUILTIN_SUMMARIES: &[(&str, &str)] = &[
     ("stats_decision_map", "The questions that narrow a method, with `automatic_choice` false."),
     ("stats_distribution_plot", "Annotated histogram: observations, mean, median, IQR, SD bands and outlier flags."),
     ("stats_distribution_ascii", "Terminal-safe histogram, with exclusions and review flags stated."),
+    ("stats_normal_diagram", "Normal-curve teaching diagram with 1/2/3-SD regions, optional observed coverage and z-tail highlighting."),
+    ("stats_visualize", "Render an exploration report's visual guide as SVG or terminal-safe ASCII."),
     ("stats_normal_qq_plot", "Normal-distribution Q-Q diagnostic, distinct from the genomic qq_plot()."),
     ("stats_group_plot", "Group observations and robust summaries, in SVG or ASCII."),
     ("stats_relationship_plot", "Scatterplot and fitted line, in SVG or ASCII."),
@@ -1887,9 +1889,14 @@ const BUILTIN_SUMMARIES: &[(&str, &str)] = &[
     ("stats_overview_ascii", "Compact terminal-safe whole-table summary."),
     // Where BioLang deliberately differs from R's default, the summary says so:
     // a reader comparing the two would otherwise conclude BioLang is wrong.
-    ("ttest", "Two-sample t test, pooled (Student) form. R's t.test defaults to Welch and will differ."),
-    ("wilcoxon", "Rank-sum test using the normal approximation without continuity correction, as Scanpy does. R defaults to the exact distribution at small n."),
-    ("fisher_exact", "Fisher exact test on a 2x2 table. The odds ratio is the sample ratio; R's fisher.test reports the conditional maximum likelihood estimate."),
+    ("ttest", "Two-sample t test. Two arguments preserve the pooled Student form; pass {variance: \"welch\"} for Welch/R-default inference. Returns method, interval, and effect size."),
+    ("wilcoxon", "Independent-group Mann-Whitney rank-sum test. Default: normal approximation without continuity correction; options select method: \"exact\" or continuity: true."),
+    ("wilcoxon_paired", "Paired Wilcoxon signed-rank test on a-b differences. Default: tie-corrected normal approximation; options select method: \"exact\" or continuity: true."),
+    ("fisher_exact", "Two-sided Fisher exact test on a 2x2 table. Reports the sample cross-product odds ratio and a labelled Wald log-odds interval; R reports a conditional estimate."),
+    ("anova", "One-way analysis of means. One argument preserves classical equal-variance ANOVA; pass {variance: \"welch\"} for unequal variances. Returns method, effect sizes, and sums of squares."),
+    ("kruskal_wallis", "Independent-group Kruskal-Wallis rank-sum test with tie correction and epsilon-squared effect size."),
+    ("tukey_hsd", "Tukey-Kramer all-pairs comparison using the studentized-range distribution and simultaneous family-wise confidence intervals."),
+    ("pairwise_ttest", "Explicit pairwise t-tests. Defaults to Welch tests with Holm correction; options select variance and adjustment."),
     ("cor", "Pearson correlation. Undefined when either input is constant, and NaN is returned; stats_relationship reports the same case as absent."),
 ];
 
@@ -2033,7 +2040,7 @@ const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
         "lm([1,2,3], [2,4,6])  # → {slope: 2.0, r2: 1.0, ...}",
         "Record",
     ),
-    ("ttest", "ttest([1,2,3], [4,5,6])  # → {t, p, df}", "Record"),
+    ("ttest", "ttest([1,2,3], [4,5,9], {variance: \"welch\"})  # → method, p, CI, effect", "Record"),
     ("cor", "cor([1,2,3], [1,2,3])  # → 1.0", "Float"),
     (
         "p_adjust",
@@ -2059,23 +2066,43 @@ const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
     ),
     (
         "anova",
-        "anova([[1.0,2.0],[5.0,6.0]])  # → Record{f_statistic,p_value,df_between,df_within}",
-        "Record{f_statistic,p_value,df_between,df_within}",
+        "anova(groups, {variance: \"welch\"})  # → method, F, p, df, eta², omega²",
+        "Record",
+    ),
+    (
+        "kruskal_wallis",
+        "kruskal_wallis(groups)  # → H, p, tie correction, epsilon²",
+        "Record",
+    ),
+    (
+        "tukey_hsd",
+        "tukey_hsd(groups)  # → simultaneous all-pairs comparisons",
+        "Record",
+    ),
+    (
+        "pairwise_ttest",
+        "pairwise_ttest(groups, {variance: \"welch\", adjust: \"holm\"})",
+        "Record",
     ),
     (
         "chi_square",
-        "chi_square([10, 20, 30], [20, 20, 20])  # → Record{chi2,p,df}",
-        "Record{chi2,p,df}",
+        "chi_square([10, 20, 30], [20, 20, 20])  # → Record{chi2,p_value,df}",
+        "Record{chi2,p_value,df}",
     ),
     (
         "fisher_exact",
-        "fisher_exact(8, 2, 1, 5)  # → Record{p,odds}",
-        "Record{p,odds}",
+        "fisher_exact(8, 2, 1, 5)  # → Record{p_value,odds_ratio,confidence_interval}",
+        "Record{p_value,odds_ratio,confidence_interval}",
     ),
     (
         "wilcoxon",
-        "wilcoxon([1.0,2.0,3.0], [4.0,5.0,6.0])  # → Record{u,p}",
-        "Record{u,p}",
+        "wilcoxon([1.0,2.0,3.0], [4.0,5.0,6.0])  # → Record{u_statistic,p_value,effect_size}",
+        "Record{u_statistic,p_value,effect_size}",
+    ),
+    (
+        "wilcoxon_paired",
+        "wilcoxon_paired(before, after, {method: \"normal\"})",
+        "Record{v_statistic,p_value,effect_size}",
     ),
     (
         "ttest_one",
@@ -2087,37 +2114,215 @@ const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
         "ttest_paired([5.1, 4.9], [4.8, 4.6])  # → Record{statistic,p_value,df,mean_diff}",
         "Record{statistic,p_value,df,mean_diff}",
     ),
-    // Guided exploration. Shown through the package wrapper, because that is
-    // how a script reaches them.
+    // Guided exploration. Shown as the builtin rather than the `statistics`
+    // package wrapper that also exposes it: the builtin is compiled into `bl`
+    // and runs anywhere, while `import "statistics" as stat` first needs the
+    // package installed, so a wrapper example fails on a clean machine. It is
+    // also the name this help entry is titled with.
     (
         "stats_explore",
-        "import \"statistics\" as stat\nstat.explore([12.1, 12.4, 13.0, 29.0])  # → Record{kind: \"numeric\", ...}",
+        "stats_explore([12.1, 12.4, 13.0, 29.0])  # → Record{kind: \"numeric\", ...}",
         "Record",
     ),
     (
         "stats_glm_diagnostics",
-        "stat.glm_diagnostics(predictors, outcome, {family: \"binomial\"})  # check .converged first",
+        "stats_glm_diagnostics(predictors, outcome, {family: \"binomial\"})  # check .converged first",
         "Record",
     ),
     (
         "stats_cox_diagnostics",
-        "stat.cox_diagnostics(time, event, predictors)  # Breslow ties, as survival::coxph(ties=\"breslow\")",
+        "stats_cox_diagnostics(time, event, predictors)  # Breslow ties, as survival::coxph(ties=\"breslow\")",
         "Record",
     ),
     (
         "stats_random_intercept_model",
-        "stat.random_intercept_model(predictors, outcome, subject_ids, {method: \"reml\"})",
+        "stats_random_intercept_model(predictors, outcome, subject_ids, {method: \"reml\"})",
         "Record",
     ),
     (
         "stats_uncertainty",
-        "stat.uncertainty(values, {statistic: \"median\", seed: 42})  # seeded, and the seed is returned",
+        "stats_uncertainty(values, {statistic: \"median\", seed: 42})  # seeded, and the seed is returned",
         "Record",
     ),
     (
         "stats_scan",
-        "stat.scan(table)  # profile, association screen and prioritised next steps",
+        "stats_scan(trial)  # profile, association screen and prioritised next steps",
         "Record",
+    ),
+    (
+        "stats_means",
+        "stats_means([2.0, 4.0, 8.0])  # → every mean paired with a compatible spread",
+        "Record",
+    ),
+    (
+        "stats_shape",
+        "stats_shape(values)  # → skewness, kurtosis and Q-Q evidence; no diagnosis",
+        "Record",
+    ),
+    (
+        "stats_compare",
+        "stats_compare(values, groups)  # → per-group evidence; no test is chosen",
+        "Record",
+    ),
+    (
+        "stats_relationship",
+        "stats_relationship(x, y)  # → Pearson, Spearman and a fitted line",
+        "Record",
+    ),
+    (
+        "stats_categories",
+        "stats_categories([\"red\", \"blue\", \"red\"])  # → levels, modes, rare-level clues",
+        "Record",
+    ),
+    (
+        "stats_guide",
+        "stats_guide(report, {question: \"Does dose shift the median?\", experimental_unit: \"patient\"})",
+        "Record",
+    ),
+    (
+        "stats_preprocess",
+        "stats_preprocess(values)  # → issues and suggestions; nothing is applied",
+        "Record",
+    ),
+    (
+        "stats_transform_preview",
+        "stats_transform_preview(values, \"log\")  # → before and after; input unchanged",
+        "Record",
+    ),
+    (
+        "stats_distribution_clues",
+        "stats_distribution_clues(counts)  # → four candidate families, none selected",
+        "Record",
+    ),
+    (
+        "stats_profile",
+        "stats_profile(trial, {subject_column: \"patient\"})  # → columns, missingness, design",
+        "Record",
+    ),
+    (
+        "stats_missingness",
+        "stats_missingness(trial, {group_column: \"arm\"})  # → by column, row, pair and group",
+        "Record",
+    ),
+    (
+        "stats_design_check",
+        "stats_design_check(trial, {group_column: \"arm\", batch_column: \"run\"})  # blocking if every batch is one arm",
+        "Record",
+    ),
+    (
+        "stats_associations",
+        "stats_associations(trial)  # → bounded effect sizes; no hypothesis tests",
+        "Record",
+    ),
+    (
+        "stats_report",
+        "stats_report(trial, {format: \"html\"})  # → .content, .mime_type, .provenance",
+        "Record",
+    ),
+    (
+        "stats_normalization_guide",
+        "stats_normalization_guide(counts_matrix)  # → audit and alternatives; nothing applied",
+        "Record",
+    ),
+    (
+        "stats_omics_profile",
+        "stats_omics_profile(counts_matrix, {modality: \"single_cell\"})  # sparse stays sparse",
+        "Record",
+    ),
+    (
+        "stats_linear_diagnostics",
+        "stats_linear_diagnostics(x, y)  # → residual clues and Cook distances",
+        "Record",
+    ),
+    (
+        "stats_multiple_linear_diagnostics",
+        "stats_multiple_linear_diagnostics(predictors, y, {validation_folds: 4})",
+        "Record",
+    ),
+    (
+        "stats_robust_linear_diagnostics",
+        "stats_robust_linear_diagnostics(predictors, y)  # Huber, as an explicit sensitivity check",
+        "Record",
+    ),
+    (
+        "stats_weighted_summary",
+        "stats_weighted_summary(values, weights)  # → weighted mean and effective sample size",
+        "Record",
+    ),
+    (
+        "stats_time_series_diagnostics",
+        "stats_time_series_diagnostics(series)  # → autocorrelations, Ljung-Box, trend",
+        "Record",
+    ),
+    (
+        "stats_cluster_diagnostics",
+        "stats_cluster_diagnostics(values, clusters)  # → ICC and design effect",
+        "Record",
+    ),
+    (
+        "stats_decision_map",
+        "stats_decision_map()  # → centre/spread/scale/uncertainty paths; chooses nothing",
+        "Record",
+    ),
+    (
+        "stats_explain",
+        "stats_explain(report, \"audit\")  # detail: \"quick\", \"learning\" or \"audit\"",
+        "Str",
+    ),
+    (
+        "stats_overview_ascii",
+        "stats_overview_ascii(trial)  # → terminal-safe whole-table summary",
+        "Str",
+    ),
+    (
+        "stats_distribution_plot",
+        "stats_distribution_plot(values)  # → SVG histogram with mean, median, IQR and SD bands",
+        "Str",
+    ),
+    (
+        "stats_distribution_ascii",
+        "stats_distribution_ascii(values)  # → terminal-safe histogram",
+        "Str",
+    ),
+    (
+        "stats_normal_diagram",
+        "stats_normal_diagram()  # → teaching curve with 1/2/3-SD regions",
+        "Str",
+    ),
+    (
+        "stats_normal_qq_plot",
+        "stats_normal_qq_plot(values)  # distinct from the genomic qq_plot()",
+        "Str",
+    ),
+    (
+        "stats_group_plot",
+        "stats_group_plot(values, groups, {format: \"ascii\"})",
+        "Str",
+    ),
+    (
+        "stats_relationship_plot",
+        "stats_relationship_plot(x, y)  # → scatterplot and fitted line",
+        "Str",
+    ),
+    (
+        "stats_categorical_plot",
+        "stats_categorical_plot(labels)  # → frequency bars",
+        "Str",
+    ),
+    (
+        "stats_missingness_plot",
+        "stats_missingness_plot(trial, {format: \"ascii\"})",
+        "Str",
+    ),
+    (
+        "stats_linear_diagnostic_plot",
+        "stats_linear_diagnostic_plot(x, y, {view: \"qq\"})  # view: \"residuals\" or \"qq\"",
+        "Str",
+    ),
+    (
+        "stats_visualize",
+        "stats_visualize(report, {format: \"ascii\"})",
+        "Str",
     ),
     ("matrix", "matrix([[1,2],[3,4]])  # → 2x2 Matrix", "Matrix"),
     (
@@ -2771,7 +2976,7 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("cumsum", "cumsum(list) → List", "stats"),
     (
         "summary",
-        "summary(list) → Record{min,q1,median,mean,q3,max}",
+        "summary(list) → Record{count,min,median,mean,max,sd}",
         "stats",
     ),
     (
@@ -2791,24 +2996,40 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "anova",
-        "anova(groups) → Record{f_statistic,p_value,df_between,df_within}",
+        "anova(groups, options?) → Record{method,f_statistic,p_value,df_between,df_within,eta_squared,omega_squared}",
+        "stats",
+    ),
+    (
+        "kruskal_wallis",
+        "kruskal_wallis(groups) → Record{h_statistic,p_value,epsilon_squared}",
+        "stats",
+    ),
+    (
+        "tukey_hsd",
+        "tukey_hsd(groups, options?) → Record{comparisons,critical_value}",
+        "stats",
+    ),
+    (
+        "pairwise_ttest",
+        "pairwise_ttest(groups, options?) → Record{adjustment,comparisons}",
         "stats",
     ),
     (
         "chi_square",
-        "chi_square(obs, exp) → Record{chi2,p,df}",
+        "chi_square(obs, exp) → Record{chi2,p_value,df}",
         "stats",
     ),
     (
         "fisher_exact",
-        "fisher_exact(a,b,c,d) → Record{p,odds}",
+        "fisher_exact(a,b,c,d) → Record{p_value,odds_ratio,confidence_interval}",
         "stats",
     ),
-    ("wilcoxon", "wilcoxon(list1, list2) → Record{u,p}", "stats"),
+    ("wilcoxon", "wilcoxon(list1, list2) → Record{u_statistic,p_value,effect_size}", "stats"),
+    ("wilcoxon_paired", "wilcoxon_paired(before, after, options?) → Record{v_statistic,p_value,effect_size}", "stats"),
     ("p_adjust", "p_adjust(pvals, method) → List", "stats"),
     ("normalize", "normalize(list, method) → List", "stats"),
     // Guided exploration. These are the builtins the `statistics` package wraps;
-    // scripts normally reach them as `stat.explore(...)` after
+    // scripts normally reach them as `stats_explore(...)` after
     // `import "statistics" as stat`. Every analysis here returns a Record
     // carrying `kind` and `schema` alongside the evidence, and every plot
     // returns a Str holding SVG or ASCII depending on `options.format`. None of
@@ -2831,7 +3052,7 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "stats_categories",
-        "stats_categories(values, options?) → Record{kind,counts,proportions,modes}",
+        "stats_categories(values, options?) → Record{kind,levels,modes,rare_levels}",
         "stats",
     ),
     (
@@ -2861,7 +3082,7 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "stats_preprocess",
-        "stats_preprocess(values, options?) → Record{issues,alternatives,input_modified}",
+        "stats_preprocess(values, options?) → Record{issues,suggestions,automatic_changes}",
         "stats",
     ),
     (
@@ -2876,52 +3097,52 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "stats_profile",
-        "stats_profile(table, options?) → Record{columns,missingness,duplicates,design}",
+        "stats_profile(table, options?) → Record{columns,missingness,duplicate_rows,design}",
         "stats",
     ),
     (
         "stats_missingness",
-        "stats_missingness(table, options?) → Record{by_row,by_column,by_pair}",
+        "stats_missingness(table, options?) → Record{columns,missing_by_row,co_missing}",
         "stats",
     ),
     (
         "stats_design_check",
-        "stats_design_check(table, options?) → Record{repeated_units,imbalance,confounding}",
+        "stats_design_check(table, options?) → Record{groups,repeated_subjects,design_clues,issues}",
         "stats",
     ),
     (
         "stats_associations",
-        "stats_associations(table, options?) → Record{pairs,strength}",
+        "stats_associations(table, options?) → Record{pairs,high_association_pairs,threshold}",
         "stats",
     ),
     (
         "stats_scan",
-        "stats_scan(table, options?) → Record{profile,associations,next_steps}",
+        "stats_scan(table, options?) → Record{profile,associations,recommendations}",
         "stats",
     ),
     (
         "stats_report",
-        "stats_report(table, options?) → Record{html,markdown,provenance}",
+        "stats_report(table, options?) → Record{format,content,provenance}",
         "stats",
     ),
     (
         "stats_normalization_guide",
-        "stats_normalization_guide(matrix, options?) → Record{facts,alternatives,input_modified}",
+        "stats_normalization_guide(matrix, options?) → Record{data_type,suggestions,automatic_changes}",
         "stats",
     ),
     (
         "stats_omics_profile",
-        "stats_omics_profile(matrix, options?) → Record{modality,axis_summaries,input_modified}",
+        "stats_omics_profile(matrix, options?) → Record{modality,suggestions,automatic_changes}",
         "stats",
     ),
     (
         "stats_linear_diagnostics",
-        "stats_linear_diagnostics(x, y, options?) → Record{residual_mse,normal_qq_correlation,influence}",
+        "stats_linear_diagnostics(x, y, options?) → Record{residual_mse,normal_qq_correlation,cook_distances}",
         "stats",
     ),
     (
         "stats_multiple_linear_diagnostics",
-        "stats_multiple_linear_diagnostics(predictors, outcome, options?) → Record{coefficients,vif,validation_rmse}",
+        "stats_multiple_linear_diagnostics(predictors, outcome, options?) → Record{coefficients,maximum_vif,validation_rmse}",
         "stats",
     ),
     (
@@ -2951,17 +3172,17 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "stats_time_series_diagnostics",
-        "stats_time_series_diagnostics(values, options?) → Record{acf,ljung_box,trend}",
+        "stats_time_series_diagnostics(values, options?) → Record{autocorrelations,ljung_box_p_value,trend_per_observation}",
         "stats",
     ),
     (
         "stats_cluster_diagnostics",
-        "stats_cluster_diagnostics(values, clusters, options?) → Record{icc,design_effect}",
+        "stats_cluster_diagnostics(values, clusters, options?) → Record{intraclass_correlation,approximate_unequal_independence_design_effect}",
         "stats",
     ),
     (
         "stats_decision_map",
-        "stats_decision_map(options?) → Record{questions,automatic_choice}",
+        "stats_decision_map(options?) → Record{paths,automatic_choice}",
         "stats",
     ),
     (
@@ -2972,6 +3193,16 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     (
         "stats_distribution_ascii",
         "stats_distribution_ascii(values, options?) → Str",
+        "stats",
+    ),
+    (
+        "stats_normal_diagram",
+        "stats_normal_diagram(values?, options?) → Str",
+        "stats",
+    ),
+    (
+        "stats_visualize",
+        "stats_visualize(report, options?) → Str",
         "stats",
     ),
     (
@@ -3730,185 +3961,185 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     // Single-cell RNA-seq
     (
         "read_10x",
-        "read_10x(path, gene_column?) -> Record (dense)",
+        "read_10x(path, gene_column?) → Record (dense)",
         "singlecell",
     ),
     (
         "read_10x_sparse",
-        "read_10x_sparse(path, gene_column?) -> Record (CSR counts, obs, var, layers)",
+        "read_10x_sparse(path, gene_column?) → Record (CSR counts, obs, var, layers)",
         "singlecell",
     ),
     (
         "read_anndata",
-        "read_anndata(zarr_path) -> Record (native dense or CSR AnnData Zarr)",
+        "read_anndata(zarr_path) → Record (native dense or CSR AnnData Zarr)",
         "singlecell",
     ),
     (
         "write_anndata",
-        "write_anndata(zarr_path, object) -> Nil (preserves CSR sparsity)",
+        "write_anndata(zarr_path, object) → Nil (preserves CSR sparsity)",
         "singlecell",
     ),
     (
         "normalize_total",
-        "normalize_total(matrix, target?) -> matrix (row library-size normalization)",
+        "normalize_total(matrix, target?) → matrix (row library-size normalization)",
         "singlecell",
     ),
     (
         "log1p_transform",
-        "log1p_transform(matrix) -> matrix (preserves CSR sparsity)",
+        "log1p_transform(matrix) → matrix (preserves CSR sparsity)",
         "singlecell",
     ),
     (
         "highly_variable_genes",
-        "highly_variable_genes(matrix, n?) -> List[Int] (dispersion-ranked columns)",
+        "highly_variable_genes(matrix, n?) → List[Int] (dispersion-ranked columns)",
         "singlecell",
     ),
     (
         "cca",
-        "cca(matrix1, matrix2, opts?) -> Record{u, v, d} \
+        "cca(matrix1, matrix2, opts?) → Record{u, v, d} \
          (shared axes; cells x cells, so small inputs only)",
         "singlecell",
     ),
     (
         "harmony_integrate",
-        "harmony_integrate(embedding, batches, opts?) -> matrix \
+        "harmony_integrate(embedding, batches, opts?) → matrix \
          (batch-corrected, per-cluster)",
         "singlecell",
     ),
     (
         "find_all_markers",
-        "find_all_markers(matrix, clusters, opts?) -> List[Record] \
+        "find_all_markers(matrix, clusters, opts?) → List[Record] \
          (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2)",
         "singlecell",
     ),
     (
         "cell_qc",
-        "cell_qc(matrix, gene_names?, mito_prefix?) -> Table",
+        "cell_qc(matrix, gene_names?, mito_prefix?) → Table",
         "singlecell",
     ),
     (
         "gene_qc",
-        "gene_qc(matrix, gene_names?) -> Table",
+        "gene_qc(matrix, gene_names?) → Table",
         "singlecell",
     ),
     (
         "select_rows",
-        "select_rows(matrix|table, indices) -> matrix|table",
+        "select_rows(matrix|table, indices) → matrix|table",
         "singlecell",
     ),
     (
         "select_cols",
-        "select_cols(matrix, indices) -> matrix",
+        "select_cols(matrix, indices) → matrix",
         "singlecell",
     ),
     (
         "matrix_at",
-        "matrix_at(matrix, row, column) -> Value",
+        "matrix_at(matrix, row, column) → Value",
         "singlecell",
     ),
     (
         "sc_subset_cells",
-        "sc_subset_cells(object, indices) -> Record (synchronized metadata/layers)",
+        "sc_subset_cells(object, indices) → Record (synchronized metadata/layers)",
         "singlecell",
     ),
     (
         "sc_subset_genes",
-        "sc_subset_genes(object, indices) -> Record (invalidates reductions)",
+        "sc_subset_genes(object, indices) → Record (invalidates reductions)",
         "singlecell",
     ),
     (
         "sc_merge_objects",
-        "sc_merge_objects(left, right, left_batch, right_batch) -> Record",
+        "sc_merge_objects(left, right, left_batch, right_batch) → Record",
         "singlecell",
     ),
     (
         "sc_pca",
-        "sc_pca(matrix, n_components?) -> {scores, loadings, explained_variance_ratio, ...}",
+        "sc_pca(matrix, n_components?) → {scores, loadings, explained_variance_ratio, ...}",
         "singlecell",
     ),
     (
         "knn_graph",
-        "knn_graph(embedding, k?) -> List[{source, target, distance}]",
+        "knn_graph(embedding, k?) → List[{source, target, distance}]",
         "singlecell",
     ),
     (
         "leiden_cluster",
-        "leiden_cluster(embedding, k, resolution?) -> List[Int]",
+        "leiden_cluster(embedding, k, resolution?) → List[Int]",
         "singlecell",
     ),
     (
         "leiden_graph",
-        "leiden_graph(edges, n_nodes, resolution) -> List[Int]",
+        "leiden_graph(edges, n_nodes, resolution) → List[Int]",
         "singlecell",
     ),
     (
         "doublet_score",
-        "doublet_score(matrix, n_simulated?) -> List[Float]",
+        "doublet_score(matrix, n_simulated?) → List[Float]",
         "singlecell",
     ),
     (
         "cell_cycle_score",
-        "cell_cycle_score(matrix, s_gene_indices, g2m_gene_indices) -> List[Record]",
+        "cell_cycle_score(matrix, s_gene_indices, g2m_gene_indices) → List[Record]",
         "singlecell",
     ),
     (
         "module_score",
-        "module_score(matrix, gene_indices) -> List[Float]",
+        "module_score(matrix, gene_indices) → List[Float]",
         "singlecell",
     ),
     (
         "sc_sctransform",
-        "sc_sctransform(matrix, n_variable_features?) -> matrix | {matrix, genes}",
+        "sc_sctransform(matrix, n_variable_features?) → matrix | {matrix, genes}",
         "singlecell",
     ),
     (
         "sc_integrate",
-        "sc_integrate(embedding, batch_ids) -> matrix",
+        "sc_integrate(embedding, batch_ids) → matrix",
         "singlecell",
     ),
     (
         "diffusion_pseudotime",
-        "diffusion_pseudotime(embedding, edges, start_cell) -> List[Float]",
+        "diffusion_pseudotime(embedding, edges, start_cell) → List[Float]",
         "singlecell",
     ),
     (
         "lr_score",
-        "lr_score(matrix, labels, ligand_receptor_pairs) -> List[Record]",
+        "lr_score(matrix, labels, ligand_receptor_pairs) → List[Record]",
         "singlecell",
     ),
     (
         "lr_aggregate",
-        "lr_aggregate(scores, pathway_map) -> List[Record]",
+        "lr_aggregate(scores, pathway_map) → List[Record]",
         "singlecell",
     ),
     (
         "spatial_neighbors",
-        "spatial_neighbors(coordinates, k?) -> List[Record]",
+        "spatial_neighbors(coordinates, k?) → List[Record]",
         "singlecell",
     ),
     (
         "spatial_moransi",
-        "spatial_moransi(expression, edges) -> Float",
+        "spatial_moransi(expression, edges) → Float",
         "singlecell",
     ),
     (
         "reference_classify",
-        "reference_classify(query, reference_profiles, labels) -> List[Record]",
+        "reference_classify(query, reference_profiles, labels) → List[Record]",
         "singlecell",
     ),
     (
         "pseudobulk_aggregate",
-        "pseudobulk_aggregate(matrix, sample_ids, groups) -> Record",
+        "pseudobulk_aggregate(matrix, sample_ids, groups) → Record",
         "singlecell",
     ),
     (
         "wnn_graph",
-        "wnn_graph(rna_edges, protein_edges, rna_weight) -> List[Record]",
+        "wnn_graph(rna_edges, protein_edges, rna_weight) → List[Record]",
         "singlecell",
     ),
     (
         "velocity_estimate",
-        "velocity_estimate(spliced, unspliced) -> matrix",
+        "velocity_estimate(spliced, unspliced) → matrix",
         "singlecell",
     ),
     // GAP 6: Typed table columns

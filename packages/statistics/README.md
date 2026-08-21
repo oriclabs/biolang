@@ -27,6 +27,8 @@ stat.distribution_plot(values)
 | `stat.explain(report, detail?)` | Render `quick`, `learning`, or `audit` text |
 | `stat.distribution_plot(values, options?)` | Annotated histogram, observations, mean, median, IQR, SD bands, and outlier flags |
 | `stat.distribution_ascii(values, options?)` | CLI-safe histogram with mean, median, IQR, SD, exclusions, and review flags |
+| `stat.normal_diagram(values?, options?)` | Teaching bell curve with 1/2/3-SD areas, optional observed coverage and z-tail highlighting |
+| `stat.visualize(report, options?)` | Render `stat.explore()` guidance as SVG or terminal-safe ASCII |
 | `stat.preprocessing(values, options?)` | Observable data-quality issues and non-applied normalization/transformation alternatives |
 | `stat.profile(table, options?)` | Whole-table types, summaries, missingness, duplicates, range checks, and design clues |
 | `stat.missingness(table, options?)` | Missingness by row, column, pair, and optional group |
@@ -58,6 +60,88 @@ stat.distribution_plot(values)
 Suggestions are deterministic heuristics, not automatic scientific decisions.
 The package never removes observations or applies a transformation. It also does
 not infer pairing, independence, experimental units, batches, or confounding.
+
+## Multi-group inference
+
+The inference builtins use explicit method labels and return effect sizes:
+
+```biolang
+let groups = [control, low_dose, high_dose]
+
+# Unequal-variance comparison of group means.
+let global = anova(groups, {variance: "welch"})
+
+# Rank/distribution comparison with tie correction.
+let ranked = kruskal_wallis(groups)
+
+# Use only with a defensible classical shared-variance ANOVA model.
+let all_pairs = tukey_hsd(groups, {confidence: 0.95})
+
+# Pair-specific Welch tests with explicit multiplicity correction.
+let welch_pairs = pairwise_ttest(groups, {
+    variance: "welch",
+    adjust: "holm"
+})
+```
+
+`tukey_hsd()` is a genuine studentized-range Tukey-Kramer procedure;
+`pairwise_ttest()` is deliberately named differently. Kruskal-Wallis is not a
+test of medians, and separate pairwise rank-sum tests are not Dunn's test.
+
+For repeated measurements on the same subjects, use the paired signed-rank
+API rather than the independent-group `wilcoxon()` function:
+
+```biolang
+let change = wilcoxon_paired(before, after, {
+    method: "normal",
+    continuity: true
+})
+```
+
+The result defines differences as `before - after`, reports the positive-rank
+V statistic and a paired rank-biserial effect size. Exact mode is available
+only when the non-zero absolute differences are untied, so it never silently
+substitutes an approximation.
+
+`stat.explore()` also returns `visual_guide`. Its `ascii` and `svg` fields explain
+centre, spread, and scale; `sd_bands` reports the observed fraction within one,
+two, and three SD of the mean. The familiar 68/95/99.7 percentages are included
+only as normal-model references. They are not used as an automatic outlier rule.
+`reading_order` gives a short, plain-language sequence for interpreting the
+distribution without changing the data.
+
+## Normal curve and guided rendering
+
+The theoretical diagram needs no data:
+
+```biolang
+stat.normal_diagram()
+```
+
+Supplying observations adds their measured 1/2/3-SD coverage beneath the
+normal reference. It does not declare the observations normal:
+
+```biolang
+let values = [9.8, 10.1, 10.3, 10.7, 11.0, 11.4, 12.2]
+
+# Notebook/web SVG; exported HTML also offers canvas and PNG fallback.
+stat.normal_diagram(values)
+
+# Terminal-safe bell curve with the right tail beyond z = 1.96 highlighted.
+println(stat.normal_diagram(values, {
+    format: "ascii",
+    z: 1.96,
+    tail: "right"
+}))
+
+let report = stat.explore(values)
+stat.visualize(report)
+println(stat.visualize(report, {format: "ascii"}))
+```
+
+`tail` may be `left`, `right`, or `two`. Highlight probabilities use the
+standard normal CDF. The diagram labels the empirical rule as a model reference,
+not an outlier cutoff.
 
 ## Choose a centre together with its spread
 

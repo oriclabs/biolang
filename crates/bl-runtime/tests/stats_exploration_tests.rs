@@ -85,6 +85,30 @@ fn numeric_exploration_uses_sample_variance_and_type_seven_quantiles() {
 }
 
 #[test]
+fn numeric_exploration_explains_observed_sd_bands_without_calling_them_outliers() {
+    let report = call_stats_builtin(
+        "stats_explore",
+        vec![numbers(&[-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0])],
+    )
+    .unwrap();
+    let visual = field(&report, "visual_guide");
+    let Value::List(bands) = field(visual, "sd_bands") else {
+        panic!("sd_bands should be a List");
+    };
+    assert_eq!(bands.len(), 3);
+    assert_eq!(field(&bands[0], "multiple"), &Value::Int(1));
+    assert!((float_field(&bands[0], "observed_proportion") - 5.0 / 7.0).abs() < 1e-12);
+    assert!((float_field(&bands[0], "normal_reference_proportion") - 0.6827).abs() < 1e-12);
+    assert!(
+        matches!(field(visual, "sd_band_caution"), Value::Str(value) if value.contains("not automatically"))
+    );
+    assert!(matches!(field(visual, "reading_order"), Value::List(items) if items.len() == 6));
+    assert!(
+        matches!(field(visual, "ascii"), Value::Str(value) if value.contains("95%") && value.contains("not an outlier test"))
+    );
+}
+
+#[test]
 fn grouped_exploration_preserves_first_seen_group_order() {
     let report = call_stats_builtin(
         "stats_compare",
@@ -99,6 +123,50 @@ fn grouped_exploration_preserves_first_seen_group_order() {
     };
     assert_eq!(names[0], Value::Str("B".into()));
     assert_eq!(names[1], Value::Str("A".into()));
+}
+
+#[test]
+fn grouped_exploration_recommends_explicit_welch_and_reports_spread_clue() {
+    let report = call_stats_builtin(
+        "stats_compare",
+        vec![
+            numbers(&[1.0, 2.0, 3.0, 1.0, 10.0, 20.0]),
+            strings(&["A", "A", "A", "B", "B", "B"]),
+        ],
+    )
+    .unwrap();
+    assert_eq!(
+        field(&report, "recommended_test"),
+        &Value::Str("welch_t".into())
+    );
+    assert!(matches!(
+        field(&report, "recommended_call"),
+        Value::Str(value) if value.contains("variance: \"welch\"")
+    ));
+    assert_eq!(field(&report, "unequal_spread_clue"), &Value::Bool(true));
+    assert!(float_field(&report, "variance_ratio") > 10.0);
+}
+
+#[test]
+fn multi_group_exploration_recommends_welch_anova_and_compares_all_spreads() {
+    let report = call_stats_builtin(
+        "stats_compare",
+        vec![
+            numbers(&[1.0, 2.0, 3.0, 1.0, 8.0, 16.0, 4.0, 5.0, 6.0]),
+            strings(&["A", "A", "A", "B", "B", "B", "C", "C", "C"]),
+        ],
+    )
+    .unwrap();
+    assert_eq!(
+        field(&report, "recommended_test"),
+        &Value::Str("welch_anova".into())
+    );
+    assert_eq!(
+        field(&report, "recommended_call"),
+        &Value::Str("anova(groups, {variance: \"welch\"})".into())
+    );
+    assert_eq!(field(&report, "unequal_spread_clue"), &Value::Bool(true));
+    assert!(float_field(&report, "variance_ratio") > 50.0);
 }
 
 #[test]
@@ -169,6 +237,50 @@ fn distribution_ascii_is_annotated_and_discloses_exclusions() {
     assert!(chart.contains("All 5 finite observations"));
     assert!(chart.contains("1 missing and 0 non-finite excluded"));
     assert!(chart.contains("Tukey review flags 1"));
+}
+
+#[test]
+fn normal_diagram_has_svg_and_ascii_teaching_paths() {
+    let svg = call_stats_builtin("stats_normal_diagram", vec![]).unwrap();
+    let Value::Str(svg) = svg else {
+        panic!("normal diagram should be an SVG String");
+    };
+    assert!(svg.starts_with("<svg"));
+    assert!(svg.contains("68.27%"));
+    assert!(svg.contains("95.45%"));
+    assert!(svg.contains("99.73%"));
+    assert!(svg.contains("not outlier cutoffs"));
+
+    let options = Value::Record(
+        HashMap::from([
+            ("format".into(), Value::Str("ascii".into())),
+            ("z".into(), Value::Float(1.96)),
+            ("tail".into(), Value::Str("right".into())),
+        ])
+        .into(),
+    );
+    let ascii = call_stats_builtin(
+        "stats_normal_diagram",
+        vec![numbers(&[-2.0, -1.0, 0.0, 1.0, 2.0]), options],
+    )
+    .unwrap();
+    let Value::Str(ascii) = ascii else {
+        panic!("normal diagram should be an ASCII String");
+    };
+    assert!(ascii.contains("NORMAL DISTRIBUTION: SD AREAS"));
+    assert!(ascii.contains("Observed within 1 / 2 / 3 SD"));
+    assert!(ascii.contains("P(Z >= 1.96) = 0.024"));
+}
+
+#[test]
+fn report_visualizer_exposes_existing_svg_and_ascii_without_recalculating() {
+    let report = call_stats_builtin("stats_explore", vec![numbers(&[1.0, 2.0, 3.0, 8.0])]).unwrap();
+    let svg = call_stats_builtin("stats_visualize", vec![report.clone()]).unwrap();
+    assert!(matches!(svg, Value::Str(value) if value.starts_with("<svg")));
+    let options =
+        Value::Record(HashMap::from([("format".into(), Value::Str("ascii".into()))]).into());
+    let ascii = call_stats_builtin("stats_visualize", vec![report, options]).unwrap();
+    assert!(matches!(ascii, Value::Str(value) if value.contains("CENTRE + SPREAD + SCALE")));
 }
 
 #[test]
@@ -979,6 +1091,9 @@ fn a_single_observation_reports_no_spread_rather_than_zero() {
         !spread.contains("standard deviation") && !spread.contains("IQR"),
         "n=1 must not recommend a spread, got {spread:?}"
     );
+    assert!(
+        matches!(field(field(&report, "visual_guide"), "sd_bands"), Value::List(items) if items.is_empty())
+    );
 
     // and the reason must be disclosed as a clue, not left silent
     let Value::List(clues) = field(&report, "clues") else {
@@ -1042,5 +1157,179 @@ fn constant_input_keeps_the_quantities_that_are_still_defined() {
             .iter()
             .any(|clue| field(clue, "id").as_str() == Some("single_observation")),
         "four observations is not the single-observation case"
+    );
+}
+
+/// Helper for the design tests: a table whose batch/group overlap is varied.
+fn design_table(rows: &[(&str, &str, &str)]) -> Value {
+    Value::Table(Table::new(
+        vec!["subject".into(), "group".into(), "batch".into()],
+        rows.iter()
+            .map(|(subject, group, batch)| {
+                vec![
+                    Value::Str((*subject).into()),
+                    Value::Str((*group).into()),
+                    Value::Str((*batch).into()),
+                ]
+            })
+            .collect(),
+    ))
+}
+
+fn design_issue_ids(report: &Value) -> Vec<String> {
+    let Value::List(issues) = field(report, "issues") else {
+        panic!("issues should be a List");
+    };
+    issues
+        .iter()
+        .filter_map(|entry| field(entry, "id").as_str().map(str::to_string))
+        .collect()
+}
+
+fn design_options() -> Value {
+    Value::Record(
+        HashMap::from([
+            ("subject_column".into(), Value::Str("subject".into())),
+            ("group_column".into(), Value::Str("group".into())),
+            ("batch_column".into(), Value::Str("batch".into())),
+        ])
+        .into(),
+    )
+}
+
+/// The highest-stakes rule in the package: when every batch holds exactly one
+/// group, no analysis of this table can separate the two effects. It has to be
+/// blocking rather than advisory, because proceeding produces a number that
+/// looks like a group effect and is not one.
+#[test]
+fn design_check_blocks_when_every_batch_contains_a_single_group() {
+    let report = call_stats_builtin(
+        "stats_design_check",
+        vec![
+            design_table(&[
+                ("s1", "control", "run1"),
+                ("s2", "control", "run1"),
+                ("s3", "drug", "run2"),
+                ("s4", "drug", "run2"),
+            ]),
+            design_options(),
+        ],
+    )
+    .unwrap();
+
+    let Value::List(issues) = field(&report, "issues") else {
+        panic!("issues should be a List");
+    };
+    let confounding = issues
+        .iter()
+        .find(|entry| field(entry, "id").as_str() == Some("batch_group_confounding"))
+        .expect("complete batch/group confounding should be reported");
+    assert_eq!(field(confounding, "level"), &Value::Str("blocking".into()));
+    assert_eq!(field(confounding, "is_diagnosis"), &Value::Bool(false));
+    assert_eq!(
+        field(&report, "independence_established"),
+        &Value::Bool(false)
+    );
+}
+
+/// The companion the confounding rule needs: a rule that fires on every table
+/// is worth nothing. One shared batch is enough to make the effects separable,
+/// and the check must then stay quiet.
+#[test]
+fn design_check_stays_quiet_when_a_batch_spans_both_groups() {
+    let report = call_stats_builtin(
+        "stats_design_check",
+        vec![
+            design_table(&[
+                ("s1", "control", "run1"),
+                ("s2", "drug", "run1"),
+                ("s3", "control", "run2"),
+                ("s4", "drug", "run2"),
+                ("s5", "control", "run2"),
+                ("s6", "drug", "run1"),
+            ]),
+            design_options(),
+        ],
+    )
+    .unwrap();
+
+    assert!(
+        !design_issue_ids(&report).contains(&"batch_group_confounding".to_string()),
+        "batches that span both groups are not confounded: {:?}",
+        design_issue_ids(&report)
+    );
+}
+
+/// Repeated subject IDs mean the rows are not independent, which changes which
+/// analyses are admissible rather than merely which are advisable.
+#[test]
+fn design_check_counts_repeated_experimental_units() {
+    let report = call_stats_builtin(
+        "stats_design_check",
+        vec![
+            design_table(&[
+                ("s1", "control", "run1"),
+                ("s1", "control", "run2"),
+                ("s2", "drug", "run1"),
+                ("s3", "drug", "run2"),
+            ]),
+            design_options(),
+        ],
+    )
+    .unwrap();
+
+    assert_eq!(field(&report, "repeated_subjects"), &Value::Int(1));
+    assert_eq!(field(&report, "unique_subjects"), &Value::Int(3));
+    assert!(design_issue_ids(&report).contains(&"repeated_experimental_units".to_string()));
+}
+
+/// The decision map exists to narrow a choice without making it. If it ever
+/// starts reporting a selection, the guarantee its documentation rests on is
+/// gone.
+#[test]
+fn decision_map_offers_paths_without_choosing_one() {
+    let map = call_stats_builtin("stats_decision_map", vec![]).unwrap();
+    assert_eq!(field(&map, "automatic_choice"), &Value::Bool(false));
+    let Value::List(paths) = field(&map, "paths") else {
+        panic!("paths should be a List");
+    };
+    assert!(paths.len() >= 4, "expected several centre/spread paths");
+    for path in paths.iter() {
+        for required in ["question", "centre", "spread", "scale", "uncertainty"] {
+            assert!(
+                matches!(field(path, required), Value::Str(text) if !text.is_empty()),
+                "every path needs a non-empty {required}"
+            );
+        }
+    }
+}
+
+/// Documents where the confounding rule stops. It fires only on *complete*
+/// confounding -- every batch holding one group. A table where one batch spans
+/// both groups and another holds only one is partially confounded: the group
+/// effect is still estimable, from the overlapping batch alone, so the rule
+/// stays quiet. That is a real boundary and not an oversight, but it is also
+/// the case a reader is most likely to assume is covered, so it is pinned here
+/// rather than left to inference.
+#[test]
+fn design_check_treats_partial_batch_overlap_as_estimable() {
+    let report = call_stats_builtin(
+        "stats_design_check",
+        vec![
+            design_table(&[
+                ("s1", "control", "run1"),
+                ("s2", "drug", "run1"),
+                ("s3", "drug", "run2"),
+                ("s4", "drug", "run2"),
+            ]),
+            design_options(),
+        ],
+    )
+    .unwrap();
+
+    assert!(
+        !design_issue_ids(&report).contains(&"batch_group_confounding".to_string()),
+        "run1 spans both groups, so the group effect is identified: {:?}",
+        design_issue_ids(&report)
     );
 }

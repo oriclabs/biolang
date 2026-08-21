@@ -22,6 +22,8 @@ pub(crate) fn call(name: &str, args: Vec<Value>) -> Result<Value> {
         "stats_explain" => explain(args),
         "stats_distribution_plot" => distribution_plot(args),
         "stats_distribution_ascii" => distribution_ascii(args),
+        "stats_normal_diagram" => normal_diagram(args),
+        "stats_visualize" => visualize_report(args),
         "stats_preprocess" => preprocessing_guide(args),
         "stats_profile" => profile_table(args),
         "stats_missingness" => missingness_report(args),
@@ -1019,6 +1021,38 @@ fn centre_spread_visual(
     let spread = summary.sd.unwrap_or(0.0);
     let sd_low_x = position(summary.mean - spread);
     let sd_high_x = position(summary.mean + spread);
+    let normal_references = [0.6827, 0.9545, 0.9973];
+    let sd_bands = summary
+        .sd
+        .map(|sd| {
+            (1..=3)
+                .map(|multiple| {
+                    let distance = multiple as f64 * sd;
+                    let lower = summary.mean - distance;
+                    let upper = summary.mean + distance;
+                    let count = data
+                        .values
+                        .iter()
+                        .filter(|value| **value >= lower && **value <= upper)
+                        .count();
+                    record([
+                        ("multiple", Value::Int(multiple as i64)),
+                        ("lower", Value::Float(lower)),
+                        ("upper", Value::Float(upper)),
+                        ("observed_count", Value::Int(count as i64)),
+                        (
+                            "observed_proportion",
+                            Value::Float(count as f64 / summary.n as f64),
+                        ),
+                        (
+                            "normal_reference_proportion",
+                            Value::Float(normal_references[multiple - 1]),
+                        ),
+                    ])
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
     let raw_skew = summary.skewness;
     let log_summary = if summary.min > 0.0 {
         let logged = data
@@ -1048,8 +1082,30 @@ fn centre_spread_visual(
         (Some(_), _) => "Values are positive, so a log preview is possible, but shape alone is not a reason to transform them.".into(),
         (None, _) => "A plain log transform is not defined for these observed values because at least one value is zero or negative.".into(),
     };
+    let band_summary = summary
+        .sd
+        .map(|sd| {
+            (1..=3)
+                .map(|multiple| {
+                    let distance = multiple as f64 * sd;
+                    let count = data
+                        .values
+                        .iter()
+                        .filter(|value| {
+                            **value >= summary.mean - distance && **value <= summary.mean + distance
+                        })
+                        .count();
+                    format!(
+                        "{multiple} SD: {:.1}% observed",
+                        100.0 * count as f64 / summary.n as f64
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("; ")
+        })
+        .unwrap_or_else(|| "SD bands need at least two observations".into());
     let ascii = format!(
-        "CENTRE + SPREAD + SCALE\n\nrange     {}  |------------------------------|  {}\nIQR                 Q1 ===== median ===== Q3\nmean/SD          mean-SD <---- mean ----> mean+SD\n\nSuggested descriptive pair: {center_name} + {spread_name}\nSD is a typical distance from the mean. Variance = SD x SD; it is not a second or whole width.\n{scale_clue}\nUncertainty is separate: use an interval/SE that respects the sampling design.",
+        "CENTRE + SPREAD + SCALE\n\nrange     {}  |------------------------------|  {}\nIQR                 Q1 ===== median ===== Q3\nmean/SD          mean-SD <---- mean ----> mean+SD\n\nSuggested descriptive pair: {center_name} + {spread_name}\nSD is a typical distance from the mean. Variance = SD x SD; it is in squared units, not a second or whole width.\nObserved coverage: {band_summary}.\nThe 68% / 95% / 99.7% rule is a normal-distribution reference, not an outlier test.\n{scale_clue}\nUncertainty is separate: use an interval/SE that respects the sampling design.",
         fmt_number(summary.min),
         fmt_number(summary.max),
     );
@@ -1065,6 +1121,24 @@ fn centre_spread_visual(
     record([
         ("ascii", text(ascii)),
         ("svg", text(svg)),
+        ("sd_bands", list(sd_bands)),
+        (
+            "sd_band_caution",
+            text(
+                "Observed 1/2/3-SD coverage is descriptive. The 68/95/99.7 percentages are references only when a normal model is reasonable, and values beyond a band are not automatically errors or outliers.",
+            ),
+        ),
+        (
+            "reading_order",
+            string_list([
+                "Look at shape and separate groups first.",
+                "Choose a centre that answers the scientific question.",
+                "Pair mean with SD, or median with IQR/MAD when robustness is needed.",
+                "Inspect tails and flagged observations; do not delete them automatically.",
+                "Consider a log scale only for positive, ratio-like measurements.",
+                "Keep data spread separate from uncertainty in an estimate.",
+            ]),
+        ),
         ("scale_clue", text(scale_clue)),
         ("raw_skewness", number(raw_skew)),
         (
@@ -1169,10 +1243,84 @@ fn compare_groups(args: Vec<Value>) -> Result<Value> {
             ])
         })
         .collect::<Vec<_>>();
+    let independent_group_variances = if !paired {
+        let variances = grouped
+            .iter()
+            .map(|group| {
+                if group.len() < 2 {
+                    return None;
+                }
+                let mean = group.iter().map(|(_, value)| *value).sum::<f64>() / group.len() as f64;
+                Some(
+                    group
+                        .iter()
+                        .map(|(_, value)| (value - mean).powi(2))
+                        .sum::<f64>()
+                        / (group.len() - 1) as f64,
+                )
+            })
+            .collect::<Option<Vec<_>>>();
+        variances
+    } else {
+        None
+    };
+    let (variance_ratio, unequal_spread_clue, variance_note) = match independent_group_variances {
+        Some(variances) => {
+            let lower = variances[0].min(variances[1]);
+            let upper = variances[0].max(variances[1]);
+            if lower <= f64::EPSILON && upper > f64::EPSILON {
+                (
+                    None,
+                    true,
+                    if labels.len() == 2 {
+                        "One group has essentially no observed spread while the other does. Welch's t-test avoids a pooled-variance assumption, but inspect the measurements and design before testing.".to_string()
+                    } else {
+                        "At least one group has essentially no observed spread while another does. Welch ANOVA cannot estimate a finite weight for a zero-variance group, so inspect the measurements before testing.".to_string()
+                    },
+                )
+            } else {
+                let ratio = if upper <= f64::EPSILON { 1.0 } else { upper / lower };
+                let clue = ratio >= 2.0;
+                let note = if clue {
+                    if labels.len() == 2 {
+                        format!(
+                            "The larger sample variance is {} times the smaller one. This is an unequal-spread clue, so use Welch's t-test rather than pooling variances.",
+                            fmt_number(ratio)
+                        )
+                    } else {
+                        format!(
+                            "The largest sample variance is {} times the smallest one. This is an unequal-spread clue, so prefer Welch ANOVA to classical equal-variance ANOVA.",
+                            fmt_number(ratio)
+                        )
+                    }
+                } else {
+                    if labels.len() == 2 {
+                        format!(
+                            "The sample-variance ratio is {}. No strong unequal-spread clue appears here, but Welch's t-test remains a safe default for independent means.",
+                            fmt_number(ratio)
+                        )
+                    } else {
+                        format!(
+                            "The largest-to-smallest sample-variance ratio is {}. No strong unequal-spread clue appears here, but Welch ANOVA remains a safe default for independent means.",
+                            fmt_number(ratio)
+                        )
+                    }
+                };
+                (Some(ratio), clue, note)
+            }
+        }
+        None => (
+            None,
+            false,
+            "A variance comparison needs at least two usable observations in every independent group.".to_string(),
+        ),
+    };
     let primary = if paired {
         "Inspect within-pair differences before choosing a paired analysis."
+    } else if labels.len() == 2 {
+        "For a difference in independent-group means, use Welch's t-test and report the mean difference, confidence interval, and effect size."
     } else {
-        "Compare group distributions and report an effect size with uncertainty."
+        "For differences among independent-group means, use Welch ANOVA and report the global effect size; follow a detected difference with an explicitly adjusted comparison procedure."
     };
     let choices = if labels.len() == 2 {
         if paired {
@@ -1227,19 +1375,25 @@ fn compare_groups(args: Vec<Value>) -> Result<Value> {
     } else {
         vec![
             approach(
-                "one-way ANOVA",
+                "Welch ANOVA",
                 "The estimand is group mean differences.",
-                "Follow a detected difference with planned or adjusted comparisons.",
+                "Follow a detected difference with planned contrasts or pairwise Welch tests using multiplicity correction.",
                 "candidate",
             ),
             approach(
-                "rank-based or permutation comparison",
-                "Parametric mean modelling is not suitable.",
-                "Different methods answer different questions; choose the estimand first.",
+                "classical one-way ANOVA plus Tukey HSD",
+                "An equal-variance mean model is scientifically and diagnostically defensible.",
+                "Tukey HSD controls family-wise error for all pairwise comparisons and uses the shared ANOVA residual variance.",
                 "alternative",
             ),
             approach(
-                "regression",
+                "Kruskal-Wallis",
+                "A rank/distribution comparison is the intended estimand.",
+                "It is not simply a median test, and follow-up comparisons need their own rank-based procedure.",
+                "alternative",
+            ),
+            approach(
+                "regression or permutation model",
                 "Covariates, interactions, or batch variables matter.",
                 "Requires model diagnostics and a specified reference group.",
                 "alternative",
@@ -1248,21 +1402,45 @@ fn compare_groups(args: Vec<Value>) -> Result<Value> {
     };
     let group_names = labels.join(", ");
     let explanation = format!(
-        "Grouped exploratory statistics\n\nGroups\n  {}\n  {} usable group(s); {} observation(s) lacked a usable group label.\n\nSuggested next step\n  {}\n\nDesign information required\n  BioLang cannot infer independence, pairing, experimental units, batches, or confounding from these vectors. paired was explicitly set to {}.\n\nReport effect sizes and confidence intervals alongside any p-value.",
+        "Grouped exploratory statistics\n\nGroups\n  {}\n  {} usable group(s); {} observation(s) lacked a usable group label.\n\nSuggested next step\n  {}\n\nSpread check\n  {}\n\nDesign information required\n  BioLang cannot infer independence, pairing, experimental units, batches, or confounding from these vectors. paired was explicitly set to {}.\n\nReport effect sizes and confidence intervals alongside any p-value.",
         group_names,
         labels.len(),
         excluded_group,
         primary,
+        variance_note,
         paired,
     );
     Ok(record([
         ("schema", text("biolang.stats.exploration/v1")),
         ("kind", text("grouped_numeric")),
         ("groups", list(group_reports)),
-        ("group_names", string_list(labels)),
+        ("group_names", string_list(labels.clone())),
         ("paired", Value::Bool(paired)),
         ("excluded_missing_group", Value::Int(excluded_group as i64)),
         ("suggestion", text(primary)),
+        (
+            "recommended_test",
+            text(if paired {
+                "paired analysis"
+            } else if labels.len() == 2 {
+                "welch_t"
+            } else {
+                "welch_anova"
+            }),
+        ),
+        (
+            "recommended_call",
+            text(if paired {
+                "ttest_paired(before, after)"
+            } else if labels.len() == 2 {
+                "ttest(group_a, group_b, {variance: \"welch\"})"
+            } else {
+                "anova(groups, {variance: \"welch\"})"
+            }),
+        ),
+        ("variance_ratio", number(variance_ratio)),
+        ("unequal_spread_clue", Value::Bool(unequal_spread_clue)),
+        ("variance_note", text(variance_note)),
         ("alternatives", list(choices)),
         ("quick_explanation", text(primary)),
         ("explanation", text(explanation)),
@@ -1990,6 +2168,440 @@ fn distribution_ascii(args: Vec<Value>) -> Result<Value> {
     );
 
     Ok(text(output))
+}
+
+fn normal_density(z: f64) -> f64 {
+    (-0.5 * z * z).exp()
+}
+
+fn normal_x(z: f64, left: f64, right: f64) -> f64 {
+    left + ((z + 4.0) / 8.0) * (right - left)
+}
+
+fn normal_y(z: f64, baseline: f64, curve_height: f64) -> f64 {
+    baseline - normal_density(z) * curve_height
+}
+
+fn normal_area_path(
+    start: f64,
+    end: f64,
+    left: f64,
+    right: f64,
+    baseline: f64,
+    curve_height: f64,
+) -> String {
+    let steps = (((end - start).abs() * 36.0).ceil() as usize).max(2);
+    let mut path = format!("M {:.2} {:.2}", normal_x(start, left, right), baseline);
+    for index in 0..=steps {
+        let z = start + (end - start) * index as f64 / steps as f64;
+        path.push_str(&format!(
+            " L {:.2} {:.2}",
+            normal_x(z, left, right),
+            normal_y(z, baseline, curve_height)
+        ));
+    }
+    path.push_str(&format!(
+        " L {:.2} {:.2} Z",
+        normal_x(end, left, right),
+        baseline
+    ));
+    path
+}
+
+fn normal_curve_path(left: f64, right: f64, baseline: f64, curve_height: f64) -> String {
+    let mut path = String::new();
+    for index in 0..=320 {
+        let z = -4.0 + 8.0 * index as f64 / 320.0;
+        let command = if index == 0 { 'M' } else { 'L' };
+        path.push_str(&format!(
+            "{command} {:.2} {:.2} ",
+            normal_x(z, left, right),
+            normal_y(z, baseline, curve_height)
+        ));
+    }
+    path
+}
+
+fn normal_tail_probability(z: f64, tail: &str) -> (f64, String) {
+    let cdf = bl_core::bio_core::stats_ops::normal_cdf(z);
+    match tail {
+        "left" => (cdf, format!("P(Z <= {})", fmt_number(z))),
+        "right" => (1.0 - cdf, format!("P(Z >= {})", fmt_number(z))),
+        _ => {
+            let probability = 2.0 * (1.0 - bl_core::bio_core::stats_ops::normal_cdf(z.abs()));
+            (probability, format!("P(|Z| >= {})", fmt_number(z.abs())))
+        }
+    }
+}
+
+fn normal_observed_notes(data: Option<&NumericData>) -> (String, String) {
+    let Some(data) = data else {
+        return (
+            "No observations supplied: the percentages describe an ideal normal distribution."
+                .into(),
+            "Use observed data to compare its coverage with the reference bands.".into(),
+        );
+    };
+    let summary = summarize(data);
+    let coverage = summary
+        .sd
+        .map(|sd| {
+            (1..=3)
+                .map(|multiple| {
+                    let distance = multiple as f64 * sd;
+                    let count = data
+                        .values
+                        .iter()
+                        .filter(|value| {
+                            **value >= summary.mean - distance && **value <= summary.mean + distance
+                        })
+                        .count();
+                    format!("{:.1}%", 100.0 * count as f64 / summary.n as f64)
+                })
+                .collect::<Vec<_>>()
+                .join(" / ")
+        })
+        .unwrap_or_else(|| "not defined / not defined / not defined".into());
+    let observed = format!(
+        "Observed within 1 / 2 / 3 SD: {coverage} (n={}; mean {}; SD {}).",
+        summary.n,
+        fmt_number(summary.mean),
+        summary
+            .sd
+            .map(fmt_number)
+            .unwrap_or_else(|| "not defined".into())
+    );
+    let shape = if summary.sd.is_none_or(|sd| sd <= f64::EPSILON) {
+        "The observations have no measurable spread, so a normal-curve comparison is not meaningful."
+    } else if summary.n < 20 {
+        "Shape evidence is limited below 20 observations; treat the normal percentages as a reference only."
+    } else if summary.skewness.is_some_and(|value| value.abs() >= 0.5)
+        || !summary.outlier_positions.is_empty()
+    {
+        "The observed data show asymmetry or Tukey review flags; prefer their measured coverage over the normal rule."
+    } else {
+        "No strong asymmetry or Tukey review flags were detected; a Q-Q plot can provide another normal-shape check."
+    };
+    (observed, shape.into())
+}
+
+fn normal_diagram_ascii(
+    data: Option<&NumericData>,
+    opts: &HashMap<String, Value>,
+    z: Option<f64>,
+    tail: &str,
+) -> String {
+    let width = opts
+        .get("width")
+        .and_then(Value::as_int)
+        .map(|value| value.clamp(41, 101) as usize)
+        .unwrap_or(65);
+    let height = opts
+        .get("height")
+        .and_then(Value::as_int)
+        .map(|value| value.clamp(8, 20) as usize)
+        .unwrap_or(12);
+    let mut output = String::from("NORMAL DISTRIBUTION: SD AREAS\n");
+    for row in 0..height {
+        let level = (height - 1 - row) as f64 / (height - 1) as f64;
+        for column in 0..width {
+            let current_z = -4.0 + 8.0 * column as f64 / (width - 1) as f64;
+            let density = normal_density(current_z);
+            let on_curve = (density - level).abs() <= 0.55 / height as f64;
+            let highlighted = z.is_some_and(|threshold| match tail {
+                "left" => current_z <= threshold,
+                "right" => current_z >= threshold,
+                _ => current_z.abs() >= threshold.abs(),
+            });
+            let fill = if current_z.abs() <= 1.0 {
+                '1'
+            } else if current_z.abs() <= 2.0 {
+                '2'
+            } else if current_z.abs() <= 3.0 {
+                '3'
+            } else {
+                '.'
+            };
+            output.push(if on_curve {
+                '*'
+            } else if density >= level {
+                if highlighted {
+                    '!'
+                } else {
+                    fill
+                }
+            } else {
+                ' '
+            });
+        }
+        output.push('\n');
+    }
+    output.push_str(&"-".repeat(width));
+    output.push_str("\nz:       -3       -2       -1        0       +1       +2       +3\n");
+    output.push_str("1 = within +/-1 SD: 68.27%\n");
+    output.push_str("1+2 = within +/-2 SD: 95.45%\n");
+    output.push_str("1+2+3 = within +/-3 SD: 99.73%\n");
+    output.push_str(
+        "These percentages describe an ideal normal curve; they are not an outlier rule.\n",
+    );
+    let (observed, shape) = normal_observed_notes(data);
+    output.push_str(&observed);
+    output.push('\n');
+    output.push_str(&shape);
+    if let Some(z) = z {
+        let (probability, label) = normal_tail_probability(z, tail);
+        output.push_str(&format!(
+            "\n! = highlighted {tail} tail: {label} = {:.6}.",
+            probability
+        ));
+    }
+    output
+}
+
+fn normal_diagram_svg(
+    data: Option<&NumericData>,
+    opts: &HashMap<String, Value>,
+    z: Option<f64>,
+    tail: &str,
+) -> String {
+    let width = opts
+        .get("width")
+        .and_then(Value::as_float)
+        .unwrap_or(860.0)
+        .clamp(760.0, 1_200.0);
+    let height = opts
+        .get("height")
+        .and_then(Value::as_float)
+        .unwrap_or(500.0)
+        .clamp(460.0, 720.0);
+    let title = opts
+        .get("title")
+        .and_then(Value::as_str)
+        .unwrap_or("Normal distribution: what 1, 2, and 3 SD mean");
+    let left = 62.0;
+    let right = width - 35.0;
+    let baseline = height - 205.0;
+    let curve_height = baseline - 55.0;
+    let mut canvas = SvgCanvas::new(width, height);
+    canvas.margin.left = left;
+    canvas.margin.right = width - right;
+    canvas.margin.top = 45.0;
+    canvas.margin.bottom = height - baseline;
+
+    let regions = [
+        (-4.0, -3.0, "#f8fafc"),
+        (-3.0, -2.0, "#dbeafe"),
+        (-2.0, -1.0, "#93c5fd"),
+        (-1.0, 1.0, "#60a5fa"),
+        (1.0, 2.0, "#93c5fd"),
+        (2.0, 3.0, "#dbeafe"),
+        (3.0, 4.0, "#f8fafc"),
+    ];
+    for (start, end, fill) in regions {
+        let path = normal_area_path(start, end, left, right, baseline, curve_height);
+        canvas.elements.push(format!(
+            r#"<path d="{path}" fill="{fill}" stroke="none" />"#
+        ));
+    }
+    if let Some(threshold) = z {
+        let clamped = threshold.clamp(-4.0, 4.0);
+        let ranges = match tail {
+            "left" => vec![(-4.0, clamped)],
+            "right" => vec![(clamped, 4.0)],
+            _ => {
+                let magnitude = clamped.abs();
+                vec![(-4.0, -magnitude), (magnitude, 4.0)]
+            }
+        };
+        for (start, end) in ranges.into_iter().filter(|(start, end)| end > start) {
+            let path = normal_area_path(start, end, left, right, baseline, curve_height);
+            canvas.elements.push(format!(
+                r##"<path d="{path}" fill="#f97316" fill-opacity="0.58" stroke="none" />"##
+            ));
+        }
+    }
+    let curve = normal_curve_path(left, right, baseline, curve_height);
+    canvas.elements.push(format!(
+        r##"<path d="{curve}" fill="none" stroke="#172033" stroke-width="2.2" />"##
+    ));
+    canvas.add_line(left, baseline, right, baseline, "#334155", 1.2);
+    for marker in -3..=3 {
+        let x = normal_x(marker as f64, left, right);
+        canvas.add_line(x, baseline, x, baseline + 7.0, "#334155", 1.0);
+        if marker != 0 {
+            canvas.add_line(
+                x,
+                baseline,
+                x,
+                normal_y(marker as f64, baseline, curve_height),
+                "#94a3b8",
+                1.0,
+            );
+        }
+        let label = if marker == 0 {
+            "mean".into()
+        } else {
+            format!("{marker:+} SD")
+        };
+        canvas.add_text(x, baseline + 22.0, &label, "middle", 11.0);
+    }
+    canvas.draw_title(title);
+
+    let legend_y = baseline + 52.0;
+    canvas.add_rect(left, legend_y - 11.0, 18.0, 11.0, "#60a5fa");
+    canvas.add_text(
+        left + 25.0,
+        legend_y,
+        "Central +/- 1 SD region: 68.27%",
+        "start",
+        12.0,
+    );
+    canvas.add_rect(left, legend_y + 15.0, 18.0, 11.0, "#93c5fd");
+    canvas.add_text(
+        left + 25.0,
+        legend_y + 26.0,
+        "Including the 1-to-2 SD shoulders: 95.45% total",
+        "start",
+        12.0,
+    );
+    canvas.add_rect(left, legend_y + 41.0, 18.0, 11.0, "#dbeafe");
+    canvas.add_text(
+        left + 25.0,
+        legend_y + 52.0,
+        "Including the 2-to-3 SD shoulders: 99.73% total",
+        "start",
+        12.0,
+    );
+    canvas.add_text(
+        width / 2.0,
+        legend_y,
+        "SD is distance around the mean; variance is SD squared.",
+        "start",
+        11.0,
+    );
+    canvas.add_text(
+        width / 2.0,
+        legend_y + 22.0,
+        "The percentages are normal-model references, not outlier cutoffs.",
+        "start",
+        11.0,
+    );
+    let (observed, shape) = normal_observed_notes(data);
+    canvas.add_text(left, legend_y + 82.0, &observed, "start", 11.0);
+    canvas.add_text(left, legend_y + 102.0, &shape, "start", 10.0);
+    if let Some(z) = z {
+        let (probability, label) = normal_tail_probability(z, tail);
+        canvas.add_text(
+            left,
+            legend_y + 124.0,
+            &format!("Orange highlight ({tail}): {label} = {:.6}", probability),
+            "start",
+            11.0,
+        );
+    }
+    canvas.render()
+}
+
+fn normal_diagram(args: Vec<Value>) -> Result<Value> {
+    let (data, opts) = match args.as_slice() {
+        [] => (None, HashMap::new()),
+        [Value::Record(opts)] => (None, opts.as_ref().clone()),
+        [Value::List(items)] if items.is_empty() => (None, HashMap::new()),
+        [values] => (
+            Some(numeric_data(values, "stats_normal_diagram")?),
+            HashMap::new(),
+        ),
+        [Value::List(items), Value::Record(opts)] if items.is_empty() => {
+            (None, opts.as_ref().clone())
+        }
+        [values, Value::Record(opts)] => (
+            Some(numeric_data(values, "stats_normal_diagram")?),
+            opts.as_ref().clone(),
+        ),
+        [_, other] => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "stats_normal_diagram() options must be Record, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::ArityError,
+                "stats_normal_diagram() accepts optional values and options",
+                None,
+            ))
+        }
+    };
+    let format = opts.get("format").and_then(Value::as_str).unwrap_or("svg");
+    let tail = opts.get("tail").and_then(Value::as_str).unwrap_or("two");
+    if !matches!(tail, "left" | "right" | "two") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "stats_normal_diagram() tail must be 'left', 'right', or 'two'",
+            None,
+        ));
+    }
+    let z = match opts.get("z") {
+        None | Some(Value::Nil) => None,
+        Some(Value::Int(value)) => Some(*value as f64),
+        Some(Value::Float(value)) if value.is_finite() => Some(*value),
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "stats_normal_diagram() z must be finite numeric, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    match format {
+        "ascii" => Ok(text(normal_diagram_ascii(data.as_ref(), &opts, z, tail))),
+        "svg" => Ok(text(normal_diagram_svg(data.as_ref(), &opts, z, tail))),
+        _ => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "stats_normal_diagram() format must be 'svg' or 'ascii'",
+            None,
+        )),
+    }
+}
+
+fn visualize_report(args: Vec<Value>) -> Result<Value> {
+    let Value::Record(report) = &args[0] else {
+        return Err(BioLangError::type_error(
+            format!(
+                "stats_visualize() requires an exploration Record, got {}",
+                args[0].type_of()
+            ),
+            None,
+        ));
+    };
+    let opts = options(&args, 1, "stats_visualize")?;
+    let format = opts.get("format").and_then(Value::as_str).unwrap_or("svg");
+    if !matches!(format, "svg" | "ascii") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "stats_visualize() format must be 'svg' or 'ascii'",
+            None,
+        ));
+    }
+    let Some(Value::Record(visual)) = report.get("visual_guide") else {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "stats_visualize() report has no visual_guide; pass a record from stat.explore()",
+            None,
+        ));
+    };
+    visual.get(format).cloned().ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("stats_visualize() report has no {format} visual"),
+            None,
+        )
+    })
 }
 
 fn require_table<'a>(value: &'a Value, function: &str) -> Result<&'a Table> {

@@ -34,6 +34,8 @@ fn guide(report, context = ({}))                { eda.guide(report, context) }
 fn explain(report, detail = "learning")         { eda.explain(report, detail) }
 fn distribution_plot(values, options = ({}))    { eda.distribution_plot(values, options) }
 fn distribution_ascii(values, options = ({}))   { eda.distribution_ascii(values, options) }
+fn normal_diagram(values = [], options = ({}))  { eda.normal_diagram(values, options) }
+fn visualize(report, options = ({}))            { eda.visualize(report, options) }
 fn preprocessing(values, options = ({}))        { eda.preprocessing(values, options) }
 fn profile(data, options = ({}))                 { eda.profile(data, options) }
 fn missingness(data, options = ({}))             { eda.missingness(data, options) }

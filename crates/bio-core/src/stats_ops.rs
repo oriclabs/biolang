@@ -11,11 +11,15 @@ pub struct TTestResult {
     pub df: f64,
     pub mean_a: f64,
     pub mean_b: f64,
+    pub variance_a: f64,
+    pub variance_b: f64,
+    pub standard_error: f64,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct MannWhitneyResult {
     pub statistic: f64,
+    pub u_a: f64,
     pub p_value: f64,
     pub n_a: usize,
     pub n_b: usize,
@@ -28,6 +32,34 @@ pub struct AnovaResult {
     pub df_between: f64,
     pub df_within: f64,
     pub group_means: Vec<f64>,
+    pub group_variances: Vec<f64>,
+    pub group_sizes: Vec<usize>,
+    pub ss_between: f64,
+    pub ss_within: f64,
+    pub ss_total: f64,
+    pub eta_squared: f64,
+    pub omega_squared: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TukeyComparison {
+    pub group_a: usize,
+    pub group_b: usize,
+    pub mean_difference: f64,
+    pub standard_error: f64,
+    pub q_statistic: f64,
+    pub p_value: f64,
+    pub confidence_lower: f64,
+    pub confidence_upper: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TukeyHsdResult {
+    pub confidence_level: f64,
+    pub df_within: f64,
+    pub mean_square_within: f64,
+    pub critical_value: f64,
+    pub comparisons: Vec<TukeyComparison>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -89,11 +121,29 @@ pub struct WilcoxonResult {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct PairedWilcoxonResult {
+    /// Sum of the ranks whose paired difference (a - b) is positive. This is
+    /// the V statistic reported by R's paired wilcox.test.
+    pub statistic: f64,
+    pub w_positive: f64,
+    pub w_negative: f64,
+    pub p_value: f64,
+    pub n_pairs: usize,
+    pub n_nonzero: usize,
+    pub rank_biserial: f64,
+    pub has_ties: bool,
+    pub has_zero_differences: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct KruskalWallisResult {
     pub h_statistic: f64,
     pub p_value: f64,
     pub df: usize,
     pub group_ranks: Vec<f64>,
+    pub tie_correction: f64,
+    pub epsilon_squared: f64,
+    pub total_n: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -221,7 +271,7 @@ pub fn rank_transform(data: &[f64]) -> Vec<f64> {
         while j < indexed.len() && (indexed[j].0 - indexed[i].0).abs() < 1e-10 {
             j += 1;
         }
-        let avg_rank = (i + j) as f64 / 2.0 + 1.0;
+        let avg_rank = (i + j + 1) as f64 / 2.0;
         for k in i..j {
             ranks[indexed[k].1] = avg_rank;
         }
@@ -318,12 +368,151 @@ pub fn students_t_cdf(t: f64, df: f64) -> f64 {
     }
 }
 
+/// Inverse of [`students_t_cdf`] for finite positive degrees of freedom.
+///
+/// A bracketed binary search is deliberately used here: confidence intervals
+/// are not a hot loop, and monotonic inversion avoids adding another numerical
+/// approximation whose tails could disagree with the CDF used for p-values.
+pub fn students_t_quantile(probability: f64, df: f64) -> f64 {
+    if !probability.is_finite() || probability <= 0.0 || probability >= 1.0 || df <= 0.0 {
+        return f64::NAN;
+    }
+    if (probability - 0.5).abs() < f64::EPSILON {
+        return 0.0;
+    }
+    if probability < 0.5 {
+        return -students_t_quantile(1.0 - probability, df);
+    }
+
+    let mut lower = 0.0;
+    let mut upper = 1.0;
+    while students_t_cdf(upper, df) < probability && upper < 1.0e12 {
+        upper *= 2.0;
+    }
+    for _ in 0..120 {
+        let midpoint = 0.5 * (lower + upper);
+        if students_t_cdf(midpoint, df) < probability {
+            lower = midpoint;
+        } else {
+            upper = midpoint;
+        }
+    }
+    0.5 * (lower + upper)
+}
+
 pub fn f_distribution_cdf(f: f64, df1: f64, df2: f64) -> f64 {
     if f <= 0.0 {
         return 0.0;
     }
     let x = df1 * f / (df1 * f + df2);
     regularized_incomplete_beta(x, df1 / 2.0, df2 / 2.0)
+}
+
+fn simpson_integral<F>(function: F, lower: f64, upper: f64, intervals: usize) -> f64
+where
+    F: Fn(f64) -> f64,
+{
+    let intervals = if intervals % 2 == 0 {
+        intervals
+    } else {
+        intervals + 1
+    };
+    let width = (upper - lower) / intervals as f64;
+    let mut total = function(lower) + function(upper);
+    for index in 1..intervals {
+        let weight = if index % 2 == 0 { 2.0 } else { 4.0 };
+        total += weight * function(lower + index as f64 * width);
+    }
+    total * width / 3.0
+}
+
+/// CDF of the range of `groups` independent standard-normal observations.
+///
+/// The integral is the defining normal-range probability
+/// `k integral phi(x) [Phi(x+r)-Phi(x)]^(k-1) dx`. It is evaluated directly,
+/// keeping this MIT implementation independent of statistical package code.
+fn normal_range_cdf(range: f64, groups: usize) -> f64 {
+    if groups < 2 || range <= 0.0 {
+        return 0.0;
+    }
+    if range >= 16.0 {
+        return 1.0;
+    }
+    let exponent = (groups - 1) as i32;
+    let result = simpson_integral(
+        |location| {
+            let probability = (normal_cdf(location + range) - normal_cdf(location)).clamp(0.0, 1.0);
+            groups as f64 * normal_pdf(location) * probability.powi(exponent)
+        },
+        -9.0,
+        9.0,
+        160,
+    );
+    result.clamp(0.0, 1.0)
+}
+
+/// CDF of Tukey's studentized-range distribution.
+///
+/// Conditional on the independently estimated variance, the numerator is a
+/// normal range. Integrating that probability over its chi-square denominator
+/// gives the finite-degrees-of-freedom distribution used by Tukey HSD and the
+/// Tukey-Kramer unequal-size extension.
+pub fn studentized_range_cdf(q: f64, groups: usize, df: f64) -> f64 {
+    if q.is_nan() || df.is_nan() || groups < 2 || df <= 0.0 {
+        return f64::NAN;
+    }
+    if q <= 0.0 {
+        return 0.0;
+    }
+    if q.is_infinite() {
+        return 1.0;
+    }
+    if df >= 1_000.0 {
+        return normal_range_cdf(q, groups);
+    }
+
+    let shape = df / 2.0;
+    let log_normalizer = shape * 2.0_f64.ln() + ln_gamma(shape);
+    let upper = df + 14.0 * (2.0 * df).sqrt() + 60.0;
+    let result = simpson_integral(
+        |chi_square| {
+            if chi_square <= 0.0 {
+                return 0.0;
+            }
+            let log_density = (shape - 1.0) * chi_square.ln() - chi_square / 2.0 - log_normalizer;
+            let scaled_range = q * (chi_square / df).sqrt();
+            log_density.exp() * normal_range_cdf(scaled_range, groups)
+        },
+        0.0,
+        upper,
+        240,
+    );
+    result.clamp(0.0, 1.0)
+}
+
+pub fn studentized_range_quantile(probability: f64, groups: usize, df: f64) -> f64 {
+    if !probability.is_finite()
+        || probability <= 0.0
+        || probability >= 1.0
+        || groups < 2
+        || df <= 0.0
+    {
+        return f64::NAN;
+    }
+    let mut lower = 0.0;
+    let mut upper = 4.0;
+    while studentized_range_cdf(upper, groups, df) < probability && upper < 1.0e4 {
+        upper *= 2.0;
+    }
+    for _ in 0..38 {
+        let midpoint = (lower + upper) / 2.0;
+        if studentized_range_cdf(midpoint, groups, df) < probability {
+            lower = midpoint;
+        } else {
+            upper = midpoint;
+        }
+    }
+    (lower + upper) / 2.0
 }
 
 pub fn chi_square_cdf(chi2: f64, df: usize) -> f64 {
@@ -549,6 +738,20 @@ fn odds_ratio_confidence_interval(a: u64, b: u64, c: u64, d: u64, confidence: f6
 // ── Statistical Tests ────────────────────────────────────────────────────────
 
 pub fn t_test(group_a: &[f64], group_b: &[f64], alternative: &str) -> Result<TTestResult, String> {
+    t_test_with_variance(group_a, group_b, alternative, true)
+}
+
+/// Two-sample t-test with an explicit variance convention.
+///
+/// `equal_variance = true` is the historical pooled Student test used by
+/// [`t_test`]. `false` applies Welch's standard error and Satterthwaite degrees
+/// of freedom, matching R's `t.test()` default.
+pub fn t_test_with_variance(
+    group_a: &[f64],
+    group_b: &[f64],
+    alternative: &str,
+    equal_variance: bool,
+) -> Result<TTestResult, String> {
     if group_a.len() < 2 || group_b.len() < 2 {
         return Err("groups must have at least 2 observations".into());
     }
@@ -559,9 +762,25 @@ pub fn t_test(group_a: &[f64], group_b: &[f64], alternative: &str) -> Result<TTe
     let n_a = group_a.len() as f64;
     let n_b = group_b.len() as f64;
 
-    let pooled_var = ((n_a - 1.0) * var_a + (n_b - 1.0) * var_b) / (n_a + n_b - 2.0);
-    let se = (pooled_var / n_a + pooled_var / n_b).sqrt();
-    let df = n_a + n_b - 2.0;
+    let (se, df) = if equal_variance {
+        let pooled_var = ((n_a - 1.0) * var_a + (n_b - 1.0) * var_b) / (n_a + n_b - 2.0);
+        (
+            (pooled_var / n_a + pooled_var / n_b).sqrt(),
+            n_a + n_b - 2.0,
+        )
+    } else {
+        let component_a = var_a / n_a;
+        let component_b = var_b / n_b;
+        let squared_se = component_a + component_b;
+        let denominator =
+            component_a * component_a / (n_a - 1.0) + component_b * component_b / (n_b - 1.0);
+        let welch_df = if denominator > 0.0 {
+            squared_se * squared_se / denominator
+        } else {
+            n_a + n_b - 2.0
+        };
+        (squared_se.sqrt(), welch_df)
+    };
     // When both groups have zero variance, se=0 and t is undefined.
     // If means are equal → t=0, p=1; if means differ → t=±inf, p=0.
     let t_stat = if se == 0.0 {
@@ -586,6 +805,9 @@ pub fn t_test(group_a: &[f64], group_b: &[f64], alternative: &str) -> Result<TTe
         df,
         mean_a,
         mean_b,
+        variance_a: var_a,
+        variance_b: var_b,
+        standard_error: se,
     })
 }
 
@@ -704,6 +926,83 @@ pub fn mann_whitney_u(
     };
     Ok(MannWhitneyResult {
         statistic: u_stat,
+        u_a: u,
+        p_value,
+        n_a,
+        n_b,
+    })
+}
+
+/// Exact Mann-Whitney U distribution for untied observations.
+///
+/// R also falls back from its exact calculation when ties are present. The
+/// explicit error keeps callers from believing they received an exact p-value
+/// when the rank distribution used here is not valid for their data.
+pub fn mann_whitney_exact_test(
+    group_a: &[f64],
+    group_b: &[f64],
+    alternative: &str,
+) -> Result<MannWhitneyResult, String> {
+    let n_a = group_a.len();
+    let n_b = group_b.len();
+    if n_a < 1 || n_b < 1 {
+        return Err("groups must have at least 1 observation".into());
+    }
+    let total = n_a + n_b;
+    if total > 50 {
+        return Err(
+            "exact Mann-Whitney is limited to 50 total observations; use method='normal'".into(),
+        );
+    }
+
+    let mut combined = group_a.to_vec();
+    combined.extend_from_slice(group_b);
+    combined.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    if combined.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err(
+            "exact Mann-Whitney requires untied observations; use method='normal' for ties".into(),
+        );
+    }
+
+    let u_a = group_a
+        .iter()
+        .map(|a| group_b.iter().filter(|b| a > *b).count() as f64)
+        .sum::<f64>();
+    let observed_u = u_a.round() as usize;
+    let maximum_rank_sum = n_a * (2 * total - n_a + 1) / 2;
+    let minimum_rank_sum = n_a * (n_a + 1) / 2;
+    let mut counts = vec![vec![0.0_f64; maximum_rank_sum + 1]; n_a + 1];
+    counts[0][0] = 1.0;
+    for rank in 1..=total {
+        for selected in (1..=n_a.min(rank)).rev() {
+            for sum in (rank..=maximum_rank_sum).rev() {
+                counts[selected][sum] += counts[selected - 1][sum - rank];
+            }
+        }
+    }
+    let distribution = &counts[n_a];
+    let total_count = distribution.iter().sum::<f64>();
+    let lower_count = distribution
+        .iter()
+        .enumerate()
+        .filter(|(rank_sum, _)| rank_sum.saturating_sub(minimum_rank_sum) <= observed_u)
+        .map(|(_, count)| *count)
+        .sum::<f64>();
+    let upper_count = distribution
+        .iter()
+        .enumerate()
+        .filter(|(rank_sum, _)| rank_sum.saturating_sub(minimum_rank_sum) >= observed_u)
+        .map(|(_, count)| *count)
+        .sum::<f64>();
+    let p_value = match alternative {
+        "two_sided" => (2.0 * lower_count.min(upper_count) / total_count).min(1.0),
+        "less" => lower_count / total_count,
+        "greater" => upper_count / total_count,
+        _ => return Err("invalid alternative hypothesis".into()),
+    };
+    Ok(MannWhitneyResult {
+        statistic: u_a.min((n_a * n_b) as f64 - u_a),
+        u_a,
         p_value,
         n_a,
         n_b,
@@ -716,12 +1015,22 @@ pub fn anova(groups: &[Vec<f64>]) -> Result<AnovaResult, String> {
     }
     let mut all_values = Vec::new();
     let mut group_means = Vec::new();
+    let mut group_variances = Vec::new();
     let mut group_sizes = Vec::new();
     for group in groups {
         if group.is_empty() {
-            return Err("groups cannot be empty".into());
+            return Err("ANOVA groups cannot be empty".into());
         }
-        group_means.push(mean(group));
+        if group.iter().any(|value| !value.is_finite()) {
+            return Err("ANOVA groups must contain only finite values".into());
+        }
+        let group_mean = mean(group);
+        group_means.push(group_mean);
+        group_variances.push(if group.len() > 1 {
+            variance(group, group_mean)
+        } else {
+            f64::NAN
+        });
         group_sizes.push(group.len());
         all_values.extend_from_slice(group);
     }
@@ -745,6 +1054,13 @@ pub fn anova(groups: &[Vec<f64>]) -> Result<AnovaResult, String> {
     let msw = ssw / df_within;
     let f_stat = if msw > 0.0 { msb / msw } else { f64::INFINITY };
     let p_value = 1.0 - f_distribution_cdf(f_stat, df_between, df_within);
+    let sst = ssb + ssw;
+    let eta_squared = if sst > 0.0 { ssb / sst } else { f64::NAN };
+    let omega_squared = if sst + msw > 0.0 {
+        (ssb - df_between * msw) / (sst + msw)
+    } else {
+        f64::NAN
+    };
 
     Ok(AnovaResult {
         f_statistic: f_stat,
@@ -752,6 +1068,123 @@ pub fn anova(groups: &[Vec<f64>]) -> Result<AnovaResult, String> {
         df_between,
         df_within,
         group_means,
+        group_variances,
+        group_sizes,
+        ss_between: ssb,
+        ss_within: ssw,
+        ss_total: sst,
+        eta_squared,
+        omega_squared,
+    })
+}
+
+/// Welch's heteroscedastic one-way analysis of means.
+///
+/// This is Welch's 1951 weighted-means statistic with the usual approximate
+/// F distribution.  The sums of squares and effect sizes in the returned
+/// record remain descriptive raw-data quantities; they are not used to form
+/// the heteroscedastic test statistic.
+pub fn welch_anova(groups: &[Vec<f64>]) -> Result<AnovaResult, String> {
+    let descriptive = anova(groups)?;
+    let k = groups.len() as f64;
+    let weights = descriptive
+        .group_sizes
+        .iter()
+        .zip(&descriptive.group_variances)
+        .map(|(&size, &sample_variance)| {
+            if size < 2 {
+                Err("Welch ANOVA requires at least 2 observations in every group".to_string())
+            } else if sample_variance <= 0.0 || !sample_variance.is_finite() {
+                Err("Welch ANOVA requires positive sample variance in every group".to_string())
+            } else {
+                Ok(size as f64 / sample_variance)
+            }
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let weight_sum = weights.iter().sum::<f64>();
+    let weighted_mean = weights
+        .iter()
+        .zip(&descriptive.group_means)
+        .map(|(weight, group_mean)| weight * group_mean)
+        .sum::<f64>()
+        / weight_sum;
+    let numerator = weights
+        .iter()
+        .zip(&descriptive.group_means)
+        .map(|(weight, group_mean)| weight * (group_mean - weighted_mean).powi(2))
+        .sum::<f64>()
+        / (k - 1.0);
+    let correction_sum = weights
+        .iter()
+        .zip(&descriptive.group_sizes)
+        .map(|(weight, &size)| {
+            let relative_weight = weight / weight_sum;
+            (1.0 - relative_weight).powi(2) / (size as f64 - 1.0)
+        })
+        .sum::<f64>();
+    let denominator = 1.0 + 2.0 * (k - 2.0) * correction_sum / (k * k - 1.0);
+    let f_statistic = numerator / denominator;
+    let df_between = k - 1.0;
+    let df_within = (k * k - 1.0) / (3.0 * correction_sum);
+    let p_value = 1.0 - f_distribution_cdf(f_statistic, df_between, df_within);
+
+    Ok(AnovaResult {
+        f_statistic,
+        p_value,
+        df_between,
+        df_within,
+        ..descriptive
+    })
+}
+
+/// Tukey HSD with the Tukey-Kramer standard error for unequal group sizes.
+pub fn tukey_hsd(groups: &[Vec<f64>], confidence: f64) -> Result<TukeyHsdResult, String> {
+    if !confidence.is_finite() || confidence <= 0.0 || confidence >= 1.0 {
+        return Err("Tukey HSD confidence must be between 0 and 1".into());
+    }
+    if groups.iter().any(|group| group.len() < 2) {
+        return Err("Tukey HSD requires at least 2 observations in every group".into());
+    }
+    let analysis = anova(groups)?;
+    if analysis.df_within <= 0.0 {
+        return Err("Tukey HSD requires positive residual degrees of freedom".into());
+    }
+    let mean_square_within = analysis.ss_within / analysis.df_within;
+    if mean_square_within <= 0.0 || !mean_square_within.is_finite() {
+        return Err("Tukey HSD requires positive within-group variance".into());
+    }
+    let critical_value = studentized_range_quantile(confidence, groups.len(), analysis.df_within);
+    let mut comparisons = Vec::new();
+    for group_a in 0..groups.len() {
+        for group_b in (group_a + 1)..groups.len() {
+            let mean_difference = analysis.group_means[group_a] - analysis.group_means[group_b];
+            let standard_error = (mean_square_within
+                * 0.5
+                * (1.0 / analysis.group_sizes[group_a] as f64
+                    + 1.0 / analysis.group_sizes[group_b] as f64))
+                .sqrt();
+            let q_statistic = mean_difference.abs() / standard_error;
+            let p_value = (1.0
+                - studentized_range_cdf(q_statistic, groups.len(), analysis.df_within))
+            .clamp(0.0, 1.0);
+            comparisons.push(TukeyComparison {
+                group_a,
+                group_b,
+                mean_difference,
+                standard_error,
+                q_statistic,
+                p_value,
+                confidence_lower: mean_difference - critical_value * standard_error,
+                confidence_upper: mean_difference + critical_value * standard_error,
+            });
+        }
+    }
+    Ok(TukeyHsdResult {
+        confidence_level: confidence,
+        df_within: analysis.df_within,
+        mean_square_within,
+        critical_value,
+        comparisons,
     })
 }
 
@@ -807,8 +1240,18 @@ pub fn chi_square_test(table: &[Vec<f64>]) -> Result<ChiSquareResult, String> {
 }
 
 pub fn fishers_exact_test(table: &[Vec<f64>]) -> Result<FishersResult, String> {
+    fishers_exact_test_with_confidence(table, 0.95)
+}
+
+pub fn fishers_exact_test_with_confidence(
+    table: &[Vec<f64>],
+    confidence: f64,
+) -> Result<FishersResult, String> {
     if table.len() != 2 || table[0].len() != 2 {
         return Err("contingency table must be 2x2".into());
+    }
+    if !confidence.is_finite() || confidence <= 0.0 || confidence >= 1.0 {
+        return Err("confidence must be between 0 and 1".into());
     }
     let a = table[0][0] as u64;
     let b = table[0][1] as u64;
@@ -824,7 +1267,7 @@ pub fn fishers_exact_test(table: &[Vec<f64>]) -> Result<FishersResult, String> {
         (a as f64 * d as f64) / (b as f64 * c as f64)
     };
     let p_value = fishers_exact_p_value(a, b, c, d);
-    let confidence_interval = odds_ratio_confidence_interval(a, b, c, d, 0.95);
+    let confidence_interval = odds_ratio_confidence_interval(a, b, c, d, confidence);
     Ok(FishersResult {
         odds_ratio,
         p_value,
@@ -1037,7 +1480,7 @@ pub fn wilcoxon_signed_rank_test(
         while j < abs_diffs.len() && (abs_diffs[j].0 - abs_diffs[i].0).abs() < 1e-10 {
             j += 1;
         }
-        let avg_rank = (i + j) as f64 / 2.0 + 1.0;
+        let avg_rank = (i + j + 1) as f64 / 2.0;
         for k in i..j {
             ranks[abs_diffs[k].1] = avg_rank;
         }
@@ -1074,13 +1517,199 @@ pub fn wilcoxon_signed_rank_test(
     })
 }
 
+/// Paired Wilcoxon signed-rank test with an explicit inference backend.
+///
+/// `exact = true` uses the finite null distribution and therefore requires
+/// distinct, non-zero absolute differences. The normal backend applies the
+/// standard tie correction; `continuity` moves the statistic half a rank
+/// toward its null mean. Differences are defined as `group_a - group_b`.
+pub fn paired_wilcoxon_signed_rank_test(
+    group_a: &[f64],
+    group_b: &[f64],
+    alternative: &str,
+    exact: bool,
+    continuity: bool,
+) -> Result<PairedWilcoxonResult, String> {
+    if group_a.len() != group_b.len() {
+        return Err("paired Wilcoxon test requires equal group sizes".into());
+    }
+    if group_a.is_empty() {
+        return Err("paired Wilcoxon test requires at least one pair".into());
+    }
+    if group_a
+        .iter()
+        .chain(group_b.iter())
+        .any(|value| !value.is_finite())
+    {
+        return Err("paired Wilcoxon test requires finite values".into());
+    }
+    if !matches!(alternative, "two_sided" | "less" | "greater") {
+        return Err("invalid alternative hypothesis".into());
+    }
+    if exact && continuity {
+        return Err("continuity correction applies only to the normal method".into());
+    }
+
+    let differences: Vec<f64> = group_a
+        .iter()
+        .zip(group_b.iter())
+        .map(|(&a, &b)| a - b)
+        .filter(|difference| *difference != 0.0)
+        .collect();
+    let has_zero_differences = differences.len() != group_a.len();
+    if differences.is_empty() {
+        if exact {
+            return Err("exact paired Wilcoxon test is undefined with zero differences".into());
+        }
+        return Ok(PairedWilcoxonResult {
+            statistic: 0.0,
+            w_positive: 0.0,
+            w_negative: 0.0,
+            p_value: 1.0,
+            n_pairs: group_a.len(),
+            n_nonzero: 0,
+            rank_biserial: 0.0,
+            has_ties: false,
+            has_zero_differences,
+        });
+    }
+
+    let mut ordered: Vec<(f64, usize)> = differences
+        .iter()
+        .enumerate()
+        .map(|(index, difference)| (difference.abs(), index))
+        .collect();
+    ordered.sort_by(|left, right| left.0.total_cmp(&right.0));
+    let mut ranks = vec![0.0; differences.len()];
+    let mut tie_sizes = Vec::new();
+    let mut start = 0;
+    while start < ordered.len() {
+        let mut end = start + 1;
+        while end < ordered.len() && ordered[end].0 == ordered[start].0 {
+            end += 1;
+        }
+        let average_rank = (start + end + 1) as f64 / 2.0;
+        for item in &ordered[start..end] {
+            ranks[item.1] = average_rank;
+        }
+        if end - start > 1 {
+            tie_sizes.push(end - start);
+        }
+        start = end;
+    }
+    let has_ties = !tie_sizes.is_empty();
+    if exact && (has_ties || has_zero_differences) {
+        return Err(
+            "exact paired Wilcoxon test requires distinct, non-zero absolute differences; use method='normal'"
+                .into(),
+        );
+    }
+    if exact && differences.len() > 50 {
+        return Err("exact paired Wilcoxon test supports at most 50 non-zero pairs".into());
+    }
+
+    let w_positive: f64 = differences
+        .iter()
+        .zip(ranks.iter())
+        .filter_map(|(difference, rank)| (*difference > 0.0).then_some(*rank))
+        .sum();
+    let total_rank: f64 = ranks.iter().sum();
+    let w_negative = total_rank - w_positive;
+    let rank_biserial = if total_rank > 0.0 {
+        (w_positive - w_negative) / total_rank
+    } else {
+        0.0
+    };
+
+    let p_value = if exact {
+        let total_rank_integer = differences.len() * (differences.len() + 1) / 2;
+        let observed = w_positive.round() as usize;
+        let mut counts = vec![0_u128; total_rank_integer + 1];
+        counts[0] = 1;
+        let mut reachable = 0;
+        for rank in 1..=differences.len() {
+            for sum in (0..=reachable).rev() {
+                counts[sum + rank] = counts[sum + rank].saturating_add(counts[sum]);
+            }
+            reachable += rank;
+        }
+        let outcomes = 2_f64.powi(differences.len() as i32);
+        let lower = counts[..=observed]
+            .iter()
+            .map(|count| *count as f64)
+            .sum::<f64>()
+            / outcomes;
+        let upper = counts[observed..]
+            .iter()
+            .map(|count| *count as f64)
+            .sum::<f64>()
+            / outcomes;
+        match alternative {
+            "two_sided" => (2.0 * lower.min(upper)).min(1.0),
+            "less" => lower,
+            "greater" => upper,
+            _ => unreachable!(),
+        }
+    } else {
+        let n = differences.len() as f64;
+        let mean = n * (n + 1.0) / 4.0;
+        let tie_term: f64 = tie_sizes
+            .iter()
+            .map(|size| {
+                let size = *size as f64;
+                size.powi(3) - size
+            })
+            .sum();
+        let variance = n * (n + 1.0) * (2.0 * n + 1.0) / 24.0 - tie_term / 48.0;
+        if variance <= 0.0 {
+            1.0
+        } else {
+            let correction = if continuity {
+                match alternative {
+                    "two_sided" => 0.5 * (w_positive - mean).signum(),
+                    "less" => -0.5,
+                    "greater" => 0.5,
+                    _ => unreachable!(),
+                }
+            } else {
+                0.0
+            };
+            let z = (w_positive - mean - correction) / variance.sqrt();
+            match alternative {
+                "two_sided" => (2.0 * (1.0 - normal_cdf(z.abs()))).min(1.0),
+                "less" => normal_cdf(z),
+                "greater" => 1.0 - normal_cdf(z),
+                _ => unreachable!(),
+            }
+        }
+    };
+
+    Ok(PairedWilcoxonResult {
+        statistic: w_positive,
+        w_positive,
+        w_negative,
+        p_value,
+        n_pairs: group_a.len(),
+        n_nonzero: differences.len(),
+        rank_biserial,
+        has_ties,
+        has_zero_differences,
+    })
+}
+
 pub fn kruskal_wallis_test(groups: &[Vec<f64>]) -> Result<KruskalWallisResult, String> {
     if groups.len() < 2 {
         return Err("Kruskal-Wallis requires at least 2 groups".into());
     }
     let mut all_values: Vec<(f64, usize)> = Vec::new();
     for (gi, group) in groups.iter().enumerate() {
+        if group.is_empty() {
+            return Err("Kruskal-Wallis groups cannot be empty".into());
+        }
         for &v in group {
+            if !v.is_finite() {
+                return Err("Kruskal-Wallis groups must contain only finite values".into());
+            }
             all_values.push((v, gi));
         }
     }
@@ -1090,13 +1719,16 @@ pub fn kruskal_wallis_test(groups: &[Vec<f64>]) -> Result<KruskalWallisResult, S
 
     all_values.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
     let mut ranks = vec![0.0; all_values.len()];
+    let mut tie_sum = 0.0;
     let mut i = 0;
     while i < all_values.len() {
         let mut j = i;
         while j < all_values.len() && (all_values[j].0 - all_values[i].0).abs() < 1e-10 {
             j += 1;
         }
-        let avg_rank = (i + j) as f64 / 2.0 + 1.0;
+        let avg_rank = (i + j + 1) as f64 / 2.0;
+        let tie_size = (j - i) as f64;
+        tie_sum += tie_size.powi(3) - tie_size;
         for rank in &mut ranks[i..j] {
             *rank = avg_rank;
         }
@@ -1112,19 +1744,32 @@ pub fn kruskal_wallis_test(groups: &[Vec<f64>]) -> Result<KruskalWallisResult, S
 
     let n = all_values.len() as f64;
     let mean_rank = (n + 1.0) / 2.0;
-    let h_stat = (12.0 / (n * (n + 1.0)))
+    let uncorrected_h = (12.0 / (n * (n + 1.0)))
         * group_ranks
             .iter()
             .zip(&group_sizes)
             .map(|(&r, &size)| (r - size as f64 * mean_rank).powi(2) / size as f64)
             .sum::<f64>();
+    let tie_correction = 1.0 - tie_sum / (n.powi(3) - n);
+    if tie_correction <= 0.0 {
+        return Err("Kruskal-Wallis is undefined when every observation is tied".into());
+    }
+    let h_stat = uncorrected_h / tie_correction;
     let df = groups.len() - 1;
     let p_value = 1.0 - chi_square_cdf(h_stat, df);
+    let epsilon_squared = if all_values.len() > groups.len() {
+        (h_stat - groups.len() as f64 + 1.0) / (all_values.len() as f64 - groups.len() as f64)
+    } else {
+        f64::NAN
+    };
     Ok(KruskalWallisResult {
         h_statistic: h_stat,
         p_value,
         df,
         group_ranks,
+        tie_correction,
+        epsilon_squared,
+        total_n: all_values.len(),
     })
 }
 
@@ -1478,15 +2123,21 @@ pub fn holm_bonferroni_correction(p_values: &[f64]) -> MultipleTestingResult {
     indexed_p.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
     let m = p_values.len() as f64;
     let mut adjusted = vec![0.0; p_values.len()];
-    let mut rejected = Vec::new();
+    let mut running_max = 0.0_f64;
     for (rank, (p_value, original_idx)) in indexed_p.iter().enumerate() {
         let rank_f = (rank + 1) as f64;
-        let adjusted_p = p_value * (m - rank_f + 1.0);
-        adjusted[*original_idx] = adjusted_p.min(1.0);
-        if adjusted_p <= 0.05 {
-            rejected.push(*original_idx);
-        }
+        let raw_adjusted = (p_value * (m - rank_f + 1.0)).min(1.0);
+        // Holm adjusted p-values must be monotone in sorted-p order. Without
+        // the cumulative maximum, tied or closely spaced p-values can receive
+        // a smaller adjusted value at a later rank (for example 0.03, 0.02).
+        running_max = running_max.max(raw_adjusted);
+        adjusted[*original_idx] = running_max;
     }
+    let rejected = indexed_p
+        .iter()
+        .filter(|(_, original_idx)| adjusted[*original_idx] <= 0.05)
+        .map(|(_, original_idx)| *original_idx)
+        .collect();
     MultipleTestingResult {
         adjusted_p_values: adjusted,
         rejected,

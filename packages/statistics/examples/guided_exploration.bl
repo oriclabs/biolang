@@ -10,6 +10,7 @@ let report = stat.explore(protein, {
 
 println(stat.explain(report))
 println(stat.distribution_ascii(protein, {width: 48, height: 8}))
+println(stat.normal_diagram(protein, {format: "ascii"}))
 
 # Add study-design information separately. Values alone cannot tell BioLang
 # what the experimental unit is.

@@ -248,11 +248,15 @@ hypothesis testing.
 | `max(xs) -> Num` | Maximum value |
 | `sum(xs) -> Num` | Sum of all elements |
 | `cor(xs, ys) -> Float` | Pearson correlation coefficient |
-| `ttest(xs, ys) -> Record` | Two-sample t-test; returns `{statistic, pvalue}` |
+| `ttest(xs, ys, options?) -> Record` | Two-sample t-test. Two arguments retain pooled Student inference; `{variance: "welch"}` selects Welch. Returns method, mean difference, confidence interval, Cohen's d/Hedges' g, statistic, df, and p-value. |
 | `chi_square(observed, expected) -> Record` | Chi-squared test; returns `{statistic, pvalue, df}` |
-| `wilcoxon(xs, ys) -> Record` | Wilcoxon rank-sum test |
-| `anova(groups) -> Record` | One-way ANOVA across groups |
-| `fisher_exact(a, b, c, d) -> Record` | Fisher's exact test on a 2x2 contingency table |
+| `wilcoxon(xs, ys, options?) -> Record` | Independent-group Mann-Whitney/Wilcoxon rank-sum. Default is the normal approximation without continuity correction; `{method: "exact"}` selects an untied small-sample exact calculation and `{continuity: true}` selects R's normal correction. |
+| `wilcoxon_paired(before, after, options?) -> Record` | Paired Wilcoxon signed-rank test on `before - after`. Default is a tie-corrected normal approximation; exact mode requires distinct non-zero absolute differences. Reports V and paired rank-biserial effect size. |
+| `anova(groups, options?) -> Record` | One-way analysis of means. One argument retains classical equal-variance ANOVA; `{variance: "welch"}` selects Welch ANOVA. Returns method, sums of squares, eta-squared, and omega-squared. |
+| `kruskal_wallis(groups) -> Record` | Kruskal-Wallis independent-group rank-sum test with tie correction and epsilon-squared. |
+| `tukey_hsd(groups, options?) -> Record` | Tukey-Kramer all-pairs comparisons with studentized-range adjusted p-values and simultaneous family-wise intervals. |
+| `pairwise_ttest(groups, options?) -> Record` | Explicit pairwise t-tests; defaults to Welch with Holm correction. Supports `variance: "welch"|"pooled"` and `adjust: "holm"|"bonferroni"|"bh"|"none"`. |
+| `fisher_exact(a, b, c, d, options?) -> Record` | Fisher's exact test on a 2x2 table; labels its sample cross-product odds ratio and Wald log-odds confidence interval. |
 | `p_adjust(pvals, method?) -> List[Float]` | Multiple testing correction (default: Benjamini-Hochberg) |
 | `lm(xs, ys) -> Record` | Simple linear regression; returns `{slope, intercept, r_squared}` |
 | `ks_test(xs, ys) -> Record` | Kolmogorov-Smirnov test |
@@ -677,7 +681,7 @@ defaults.
 |---|---|---|
 | `bh_adjust(p_values)` | 1 | Benjamini-Hochberg FDR correction, order preserved |
 | `bonferroni_adjust(p_values)` | 1 | Bonferroni correction, clamped to 1.0 |
-| `fisher_exact(a, b, c, d)` | 4 | Two-sided Fisher's exact test; returns `{p_value, odds_ratio}` |
+| `fisher_exact(a, b, c, d, options?)` | 4-5 | Two-sided Fisher's exact test; returns p-value, labelled sample odds ratio, and confidence interval. |
 | `chi_square(observed, expected)` | 2 | Chi-squared goodness-of-fit; returns `{statistic, df, p_value}` |
 | `permutation_test(a, b, n)` | 3 | Permutation test with `n` shuffles; returns p-value |
 | `bootstrap_ci(values, n, conf)` | 3 | Percentile bootstrap CI; returns `{mean, lower, upper, std_err}` |

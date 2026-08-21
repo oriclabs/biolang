@@ -28,6 +28,8 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("stats_explain", Arity::Range(1, 2)),
         ("stats_distribution_plot", Arity::Range(1, 2)),
         ("stats_distribution_ascii", Arity::Range(1, 2)),
+        ("stats_normal_diagram", Arity::Range(0, 2)),
+        ("stats_visualize", Arity::Range(1, 2)),
         ("stats_preprocess", Arity::Range(1, 2)),
         ("stats_profile", Arity::Range(1, 2)),
         ("stats_missingness", Arity::Range(1, 2)),
@@ -126,13 +128,17 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("hist", Arity::Range(1, 2)),
         ("scatter", Arity::Exact(2)),
         // Statistical testing (wraps bio_core::stats_ops)
-        ("ttest", Arity::Exact(2)),
-        ("ttest_paired", Arity::Exact(2)),
-        ("ttest_one", Arity::Exact(2)),
-        ("anova", Arity::Exact(1)),
+        ("ttest", Arity::Range(2, 3)),
+        ("ttest_paired", Arity::Range(2, 3)),
+        ("ttest_one", Arity::Range(2, 3)),
+        ("anova", Arity::Range(1, 2)),
+        ("kruskal_wallis", Arity::Exact(1)),
+        ("tukey_hsd", Arity::Range(1, 2)),
+        ("pairwise_ttest", Arity::Range(1, 2)),
         ("chi_square", Arity::Exact(2)),
-        ("fisher_exact", Arity::Exact(4)),
-        ("wilcoxon", Arity::Exact(2)),
+        ("fisher_exact", Arity::Range(4, 5)),
+        ("wilcoxon", Arity::Range(2, 3)),
+        ("wilcoxon_paired", Arity::Range(2, 3)),
         ("p_adjust", Arity::Exact(2)),
         ("normalize", Arity::Exact(2)),
         ("lm", Arity::Exact(2)),
@@ -209,6 +215,8 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "stats_explain"
             | "stats_distribution_plot"
             | "stats_distribution_ascii"
+            | "stats_normal_diagram"
+            | "stats_visualize"
             | "stats_preprocess"
             | "stats_profile"
             | "stats_missingness"
@@ -301,9 +309,13 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "ttest_paired"
             | "ttest_one"
             | "anova"
+            | "kruskal_wallis"
+            | "tukey_hsd"
+            | "pairwise_ttest"
             | "chi_square"
             | "fisher_exact"
             | "wilcoxon"
+            | "wilcoxon_paired"
             | "p_adjust"
             | "normalize"
             | "lm"
@@ -374,6 +386,8 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         | "stats_explain"
         | "stats_distribution_plot"
         | "stats_distribution_ascii"
+        | "stats_normal_diagram"
+        | "stats_visualize"
         | "stats_preprocess"
         | "stats_profile"
         | "stats_missingness"
@@ -466,9 +480,13 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "ttest_paired" => builtin_ttest_paired(args),
         "ttest_one" => builtin_ttest_one(args),
         "anova" => builtin_anova(args),
+        "kruskal_wallis" => builtin_kruskal_wallis(args),
+        "tukey_hsd" => builtin_tukey_hsd(args),
+        "pairwise_ttest" => builtin_pairwise_ttest(args),
         "chi_square" => builtin_chi_square(args),
         "fisher_exact" => builtin_fisher_exact(args),
         "wilcoxon" => builtin_wilcoxon(args),
+        "wilcoxon_paired" => builtin_wilcoxon_paired(args),
         "p_adjust" => builtin_p_adjust(args),
         "normalize" => builtin_normalize(args),
         "lm" => builtin_lm(args),
@@ -1389,18 +1407,177 @@ fn builtin_random_int(args: Vec<Value>) -> Result<Value> {
 
 // ── Statistical testing (wraps bio_core::stats_ops) ─────────────
 
+fn inference_options<'a>(
+    args: &'a [Value],
+    index: usize,
+    function: &str,
+) -> Result<Option<&'a HashMap<String, Value>>> {
+    match args.get(index) {
+        None => Ok(None),
+        Some(Value::Record(options)) => Ok(Some(options)),
+        Some(other) => Err(BioLangError::type_error(
+            format!(
+                "{function}() options must be Record, got {}",
+                other.type_of()
+            ),
+            None,
+        )),
+    }
+}
+
+fn inference_alternative(
+    options: Option<&HashMap<String, Value>>,
+    function: &str,
+) -> Result<String> {
+    let raw = options
+        .and_then(|values| values.get("alternative"))
+        .and_then(Value::as_str)
+        .unwrap_or("two_sided");
+    match raw {
+        "two_sided" | "two-sided" | "two.sided" => Ok("two_sided".into()),
+        "less" | "greater" => Ok(raw.into()),
+        _ => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() alternative must be 'two_sided', 'less', or 'greater'"),
+            None,
+        )),
+    }
+}
+
+fn inference_confidence(options: Option<&HashMap<String, Value>>, function: &str) -> Result<f64> {
+    let confidence = options
+        .and_then(|values| values.get("confidence"))
+        .and_then(to_f64)
+        .unwrap_or(0.95);
+    if !confidence.is_finite() || confidence <= 0.0 || confidence >= 1.0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() confidence must be between 0 and 1"),
+            None,
+        ));
+    }
+    Ok(confidence)
+}
+
+fn t_p_value(statistic: f64, df: f64, alternative: &str) -> f64 {
+    let cdf = bl_core::bio_core::stats_ops::students_t_cdf(statistic, df);
+    match alternative {
+        "less" => cdf,
+        "greater" => 1.0 - cdf,
+        _ => 2.0 * (1.0 - bl_core::bio_core::stats_ops::students_t_cdf(statistic.abs(), df)),
+    }
+}
+
+fn t_confidence_interval(
+    estimate: f64,
+    standard_error: f64,
+    df: f64,
+    alternative: &str,
+    confidence: f64,
+) -> (Value, Value) {
+    let probability = if alternative == "two_sided" {
+        0.5 * (1.0 + confidence)
+    } else {
+        confidence
+    };
+    let critical = bl_core::bio_core::stats_ops::students_t_quantile(probability, df);
+    match alternative {
+        "less" => (
+            Value::Nil,
+            Value::Float(estimate + critical * standard_error),
+        ),
+        "greater" => (
+            Value::Float(estimate - critical * standard_error),
+            Value::Nil,
+        ),
+        _ => (
+            Value::Float(estimate - critical * standard_error),
+            Value::Float(estimate + critical * standard_error),
+        ),
+    }
+}
+
+fn interval_record(lower: Value, upper: Value) -> Value {
+    make_record(vec![("lower", lower), ("upper", upper)])
+}
+
+fn standardized_effect(estimate: f64, standard_deviation: f64) -> Value {
+    if standard_deviation > 0.0 && standard_deviation.is_finite() {
+        Value::Float(estimate / standard_deviation)
+    } else {
+        Value::Nil
+    }
+}
+
 fn builtin_ttest(args: Vec<Value>) -> Result<Value> {
     let a = require_num_list(&args[0], "ttest")?;
     let b = require_num_list(&args[1], "ttest")?;
-    let res = bl_core::bio_core::stats_ops::t_test(&a, &b, "two_sided")
-        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let options = inference_options(&args, 2, "ttest")?;
+    let alternative = inference_alternative(options, "ttest")?;
+    let confidence = inference_confidence(options, "ttest")?;
+    let variance_method = options
+        .and_then(|values| values.get("variance"))
+        .and_then(Value::as_str)
+        .unwrap_or("pooled");
+    let equal_variance = match variance_method {
+        "pooled" | "equal" | "student" => true,
+        "welch" | "unequal" => false,
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "ttest() variance must be 'pooled' or 'welch'",
+                None,
+            ))
+        }
+    };
+    let res =
+        bl_core::bio_core::stats_ops::t_test_with_variance(&a, &b, &alternative, equal_variance)
+            .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let mean_difference = res.mean_a - res.mean_b;
+    let (confidence_lower, confidence_upper) = t_confidence_interval(
+        mean_difference,
+        res.standard_error,
+        res.df,
+        &alternative,
+        confidence,
+    );
+    let pooled_variance = ((a.len() - 1) as f64 * res.variance_a
+        + (b.len() - 1) as f64 * res.variance_b)
+        / (a.len() + b.len() - 2) as f64;
+    let cohens_d = standardized_effect(mean_difference, pooled_variance.sqrt());
+    let hedges_correction = 1.0 - 3.0 / (4.0 * (a.len() + b.len()) as f64 - 9.0);
+    let hedges_g = match cohens_d {
+        Value::Float(value) => Value::Float(value * hedges_correction),
+        _ => Value::Nil,
+    };
+    let method = if equal_variance {
+        "student_pooled"
+    } else {
+        "welch"
+    };
     Ok(make_record(vec![
+        ("method", Value::Str(method.into())),
+        ("alternative", Value::Str(alternative)),
         ("t_statistic", Value::Float(res.statistic)),
         ("statistic", Value::Float(res.statistic)),
         ("p_value", Value::Float(res.p_value)),
         ("pvalue", Value::Float(res.p_value)),
         ("df", Value::Float(res.df)),
-        ("mean_diff", Value::Float(res.mean_a - res.mean_b)),
+        ("mean_a", Value::Float(res.mean_a)),
+        ("mean_b", Value::Float(res.mean_b)),
+        ("mean_diff", Value::Float(mean_difference)),
+        ("standard_error", Value::Float(res.standard_error)),
+        ("confidence_level", Value::Float(confidence)),
+        (
+            "confidence_interval",
+            interval_record(confidence_lower.clone(), confidence_upper.clone()),
+        ),
+        ("confidence_lower", confidence_lower),
+        ("confidence_upper", confidence_upper),
+        ("effect_size", cohens_d.clone()),
+        ("effect_size_name", Value::Str("cohens_d_pooled_sd".into())),
+        ("cohens_d", cohens_d),
+        ("hedges_g", hedges_g),
     ]))
 }
 
@@ -1414,6 +1591,16 @@ fn builtin_ttest_paired(args: Vec<Value>) -> Result<Value> {
             None,
         ));
     }
+    if a.len() < 2 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "ttest_paired() requires at least two pairs",
+            None,
+        ));
+    }
+    let options = inference_options(&args, 2, "ttest_paired")?;
+    let alternative = inference_alternative(options, "ttest_paired")?;
+    let confidence = inference_confidence(options, "ttest_paired")?;
     let diffs: Vec<f64> = a.iter().zip(b.iter()).map(|(x, y)| x - y).collect();
     let n = diffs.len() as f64;
     let mean_d = diffs.iter().sum::<f64>() / n;
@@ -1421,38 +1608,84 @@ fn builtin_ttest_paired(args: Vec<Value>) -> Result<Value> {
     let se = (var_d / n).sqrt();
     let t = if se > 0.0 { mean_d / se } else { 0.0 };
     let df = n - 1.0;
-    let p = 2.0 * (1.0 - bl_core::bio_core::stats_ops::students_t_cdf(t.abs(), df));
+    let p = t_p_value(t, df, &alternative);
+    let (confidence_lower, confidence_upper) =
+        t_confidence_interval(mean_d, se, df, &alternative, confidence);
+    let effect_size = standardized_effect(mean_d, var_d.sqrt());
     Ok(make_record(vec![
+        ("method", Value::Str("paired_t".into())),
+        ("alternative", Value::Str(alternative)),
         ("t_statistic", Value::Float(t)),
         ("statistic", Value::Float(t)),
         ("p_value", Value::Float(p)),
         ("pvalue", Value::Float(p)),
         ("df", Value::Float(df)),
         ("mean_diff", Value::Float(mean_d)),
+        ("standard_error", Value::Float(se)),
+        ("confidence_level", Value::Float(confidence)),
+        (
+            "confidence_interval",
+            interval_record(confidence_lower.clone(), confidence_upper.clone()),
+        ),
+        ("confidence_lower", confidence_lower),
+        ("confidence_upper", confidence_upper),
+        ("effect_size", effect_size.clone()),
+        ("effect_size_name", Value::Str("cohens_dz".into())),
+        ("cohens_dz", effect_size),
     ]))
 }
 
 fn builtin_ttest_one(args: Vec<Value>) -> Result<Value> {
     let data = require_num_list(&args[0], "ttest_one")?;
     let mu = require_num(&args[1], "ttest_one")?;
+    if data.len() < 2 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "ttest_one() requires at least two observations",
+            None,
+        ));
+    }
+    let options = inference_options(&args, 2, "ttest_one")?;
+    let alternative = inference_alternative(options, "ttest_one")?;
+    let confidence = inference_confidence(options, "ttest_one")?;
     let n = data.len() as f64;
     let mean = data.iter().sum::<f64>() / n;
     let var = data.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / (n - 1.0);
     let se = (var / n).sqrt();
-    let t = if se > 0.0 { (mean - mu) / se } else { 0.0 };
+    let mean_difference = mean - mu;
+    let t = if se > 0.0 { mean_difference / se } else { 0.0 };
     let df = n - 1.0;
-    let p = 2.0 * (1.0 - bl_core::bio_core::stats_ops::students_t_cdf(t.abs(), df));
+    let p = t_p_value(t, df, &alternative);
+    let (confidence_lower, confidence_upper) =
+        t_confidence_interval(mean_difference, se, df, &alternative, confidence);
+    let effect_size = standardized_effect(mean_difference, var.sqrt());
     Ok(make_record(vec![
+        ("method", Value::Str("one_sample_t".into())),
+        ("alternative", Value::Str(alternative)),
         ("t_statistic", Value::Float(t)),
         ("statistic", Value::Float(t)),
         ("p_value", Value::Float(p)),
         ("pvalue", Value::Float(p)),
         ("df", Value::Float(df)),
+        ("mean", Value::Float(mean)),
+        ("null_mean", Value::Float(mu)),
+        ("mean_diff", Value::Float(mean_difference)),
+        ("standard_error", Value::Float(se)),
+        ("confidence_level", Value::Float(confidence)),
+        (
+            "confidence_interval",
+            interval_record(confidence_lower.clone(), confidence_upper.clone()),
+        ),
+        ("confidence_lower", confidence_lower),
+        ("confidence_upper", confidence_upper),
+        ("effect_size", effect_size.clone()),
+        ("effect_size_name", Value::Str("cohens_d".into())),
+        ("cohens_d", effect_size),
     ]))
 }
 
-fn builtin_anova(args: Vec<Value>) -> Result<Value> {
-    let groups = match &args[0] {
+fn require_numeric_groups(value: &Value, function: &str) -> Result<Vec<Vec<f64>>> {
+    match value {
         Value::List(items) => {
             let mut gs: Vec<Vec<f64>> = Vec::new();
             for item in items.iter() {
@@ -1462,7 +1695,7 @@ fn builtin_anova(args: Vec<Value>) -> Result<Value> {
                         for v in inner.iter() {
                             nums.push(to_f64(v).ok_or_else(|| {
                                 BioLangError::type_error(
-                                    "anova() requires list of numeric lists",
+                                    format!("{function}() requires list of numeric lists"),
                                     None,
                                 )
                             })?);
@@ -1471,31 +1704,267 @@ fn builtin_anova(args: Vec<Value>) -> Result<Value> {
                     }
                     _ => {
                         return Err(BioLangError::type_error(
-                            "anova() requires list of lists",
+                            format!("{function}() requires list of lists"),
                             None,
                         ))
                     }
                 };
                 gs.push(g);
             }
-            gs
+            Ok(gs)
         }
+        _ => Err(BioLangError::type_error(
+            format!("{function}() requires List of Lists"),
+            None,
+        )),
+    }
+}
+
+fn float_values(values: &[f64]) -> Value {
+    Value::List(
+        values
+            .iter()
+            .map(|value| Value::Float(*value))
+            .collect::<Vec<_>>()
+            .into(),
+    )
+}
+
+fn integer_values(values: &[usize]) -> Value {
+    Value::List(
+        values
+            .iter()
+            .map(|value| Value::Int(*value as i64))
+            .collect::<Vec<_>>()
+            .into(),
+    )
+}
+
+fn builtin_anova(args: Vec<Value>) -> Result<Value> {
+    let groups = require_numeric_groups(&args[0], "anova")?;
+    let options = inference_options(&args, 1, "anova")?;
+    let variance = options
+        .and_then(|values| values.get("variance"))
+        .and_then(Value::as_str)
+        .unwrap_or("equal");
+    let (method, res) = match variance {
+        "equal" | "pooled" | "classical" => (
+            "one_way_anova_equal_variance",
+            bl_core::bio_core::stats_ops::anova(&groups),
+        ),
+        "welch" | "unequal" => (
+            "welch_anova",
+            bl_core::bio_core::stats_ops::welch_anova(&groups),
+        ),
         _ => {
-            return Err(BioLangError::type_error(
-                "anova() requires List of Lists",
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "anova() variance must be 'equal' or 'welch'",
                 None,
             ))
         }
     };
-    let res = bl_core::bio_core::stats_ops::anova(&groups)
-        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let res = res.map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
     Ok(make_record(vec![
+        ("method", Value::Str(method.into())),
         ("f_statistic", Value::Float(res.f_statistic)),
         ("statistic", Value::Float(res.f_statistic)),
         ("p_value", Value::Float(res.p_value)),
         ("pvalue", Value::Float(res.p_value)),
         ("df_between", Value::Float(res.df_between)),
         ("df_within", Value::Float(res.df_within)),
+        ("group_means", float_values(&res.group_means)),
+        ("group_variances", float_values(&res.group_variances)),
+        ("group_sizes", integer_values(&res.group_sizes)),
+        ("ss_between", Value::Float(res.ss_between)),
+        ("ss_within", Value::Float(res.ss_within)),
+        ("ss_total", Value::Float(res.ss_total)),
+        ("eta_squared", Value::Float(res.eta_squared)),
+        ("omega_squared", Value::Float(res.omega_squared)),
+        ("effect_size", Value::Float(res.omega_squared)),
+        ("effect_size_name", Value::Str("omega_squared".into())),
+        (
+            "effect_size_scope",
+            Value::Str("descriptive_raw_group_separation".into()),
+        ),
+    ]))
+}
+
+fn builtin_kruskal_wallis(args: Vec<Value>) -> Result<Value> {
+    let groups = require_numeric_groups(&args[0], "kruskal_wallis")?;
+    let res = bl_core::bio_core::stats_ops::kruskal_wallis_test(&groups)
+        .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None))?;
+    Ok(make_record(vec![
+        ("method", Value::Str("kruskal_wallis_rank_sum".into())),
+        ("h_statistic", Value::Float(res.h_statistic)),
+        ("statistic", Value::Float(res.h_statistic)),
+        ("p_value", Value::Float(res.p_value)),
+        ("pvalue", Value::Float(res.p_value)),
+        ("df", Value::Int(res.df as i64)),
+        ("total_n", Value::Int(res.total_n as i64)),
+        ("group_rank_sums", float_values(&res.group_ranks)),
+        ("tie_correction", Value::Float(res.tie_correction)),
+        ("epsilon_squared", Value::Float(res.epsilon_squared)),
+        ("effect_size", Value::Float(res.epsilon_squared)),
+        ("effect_size_name", Value::Str("epsilon_squared".into())),
+    ]))
+}
+
+fn builtin_tukey_hsd(args: Vec<Value>) -> Result<Value> {
+    let groups = require_numeric_groups(&args[0], "tukey_hsd")?;
+    let options = inference_options(&args, 1, "tukey_hsd")?;
+    let confidence = inference_confidence(options, "tukey_hsd")?;
+    let res = bl_core::bio_core::stats_ops::tukey_hsd(&groups, confidence)
+        .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None))?;
+    let comparisons = res
+        .comparisons
+        .into_iter()
+        .map(|comparison| {
+            make_record(vec![
+                ("group_a", Value::Int(comparison.group_a as i64)),
+                ("group_b", Value::Int(comparison.group_b as i64)),
+                (
+                    "contrast",
+                    Value::Str(format!(
+                        "group_{} - group_{}",
+                        comparison.group_a + 1,
+                        comparison.group_b + 1
+                    )),
+                ),
+                ("mean_difference", Value::Float(comparison.mean_difference)),
+                ("standard_error", Value::Float(comparison.standard_error)),
+                ("q_statistic", Value::Float(comparison.q_statistic)),
+                ("p_value", Value::Float(comparison.p_value)),
+                ("p_adjusted", Value::Float(comparison.p_value)),
+                (
+                    "confidence_lower",
+                    Value::Float(comparison.confidence_lower),
+                ),
+                (
+                    "confidence_upper",
+                    Value::Float(comparison.confidence_upper),
+                ),
+            ])
+        })
+        .collect::<Vec<_>>();
+    Ok(make_record(vec![
+        ("method", Value::Str("tukey_kramer_hsd".into())),
+        (
+            "multiplicity_control",
+            Value::Str("studentized_range_familywise".into()),
+        ),
+        ("confidence_level", Value::Float(res.confidence_level)),
+        ("df_within", Value::Float(res.df_within)),
+        ("mean_square_within", Value::Float(res.mean_square_within)),
+        ("critical_value", Value::Float(res.critical_value)),
+        ("comparisons", Value::List(comparisons.into())),
+    ]))
+}
+
+fn adjusted_pairwise_p_values(p_values: &[f64], method: &str) -> Result<Vec<f64>> {
+    let adjusted = match method {
+        "none" => p_values.to_vec(),
+        "holm" => {
+            bl_core::bio_core::stats_ops::holm_bonferroni_correction(p_values).adjusted_p_values
+        }
+        "bonferroni" => {
+            bl_core::bio_core::stats_ops::bonferroni_correction(p_values).adjusted_p_values
+        }
+        "bh" | "fdr" => {
+            bl_core::bio_core::stats_ops::benjamini_hochberg_correction(p_values, 0.05)
+                .adjusted_p_values
+        }
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "pairwise_ttest() adjust must be 'holm', 'bonferroni', 'bh', or 'none'",
+                None,
+            ))
+        }
+    };
+    Ok(adjusted)
+}
+
+fn builtin_pairwise_ttest(args: Vec<Value>) -> Result<Value> {
+    let groups = require_numeric_groups(&args[0], "pairwise_ttest")?;
+    if groups.len() < 2 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "pairwise_ttest() requires at least 2 groups",
+            None,
+        ));
+    }
+    let options = inference_options(&args, 1, "pairwise_ttest")?;
+    let variance = options
+        .and_then(|values| values.get("variance"))
+        .and_then(Value::as_str)
+        .unwrap_or("welch");
+    let equal_variance = match variance {
+        "welch" | "unequal" => false,
+        "pooled" | "equal" | "student" => true,
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "pairwise_ttest() variance must be 'welch' or 'pooled'",
+                None,
+            ))
+        }
+    };
+    let adjustment = options
+        .and_then(|values| values.get("adjust"))
+        .and_then(Value::as_str)
+        .unwrap_or("holm");
+    let alternative = inference_alternative(options, "pairwise_ttest")?;
+    let mut raw = Vec::new();
+    let mut results = Vec::new();
+    for group_a in 0..groups.len() {
+        for group_b in (group_a + 1)..groups.len() {
+            let result = bl_core::bio_core::stats_ops::t_test_with_variance(
+                &groups[group_a],
+                &groups[group_b],
+                &alternative,
+                equal_variance,
+            )
+            .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None))?;
+            let p_value = t_p_value(result.statistic, result.df, &alternative);
+            raw.push(p_value);
+            results.push((group_a, group_b, result, p_value));
+        }
+    }
+    let adjusted = adjusted_pairwise_p_values(&raw, adjustment)?;
+    let comparisons = results
+        .into_iter()
+        .zip(adjusted)
+        .map(|((group_a, group_b, result, p_value), p_adjusted)| {
+            let mean_difference = result.mean_a - result.mean_b;
+            make_record(vec![
+                ("group_a", Value::Int(group_a as i64)),
+                ("group_b", Value::Int(group_b as i64)),
+                (
+                    "contrast",
+                    Value::Str(format!("group_{} - group_{}", group_a + 1, group_b + 1)),
+                ),
+                ("mean_difference", Value::Float(mean_difference)),
+                ("standard_error", Value::Float(result.standard_error)),
+                ("statistic", Value::Float(result.statistic)),
+                ("df", Value::Float(result.df)),
+                ("p_value", Value::Float(p_value)),
+                ("p_adjusted", Value::Float(p_adjusted)),
+            ])
+        })
+        .collect::<Vec<_>>();
+    Ok(make_record(vec![
+        (
+            "method",
+            Value::Str(if equal_variance {
+                "pairwise_student_t".into()
+            } else {
+                "pairwise_welch_t".into()
+            }),
+        ),
+        ("alternative", Value::Str(alternative)),
+        ("adjustment", Value::Str(adjustment.into())),
+        ("comparisons", Value::List(comparisons.into())),
     ]))
 }
 
@@ -1538,26 +2007,165 @@ fn builtin_fisher_exact(args: Vec<Value>) -> Result<Value> {
     let b = require_num(&args[1], "fisher_exact")? as u64;
     let c = require_num(&args[2], "fisher_exact")? as u64;
     let d = require_num(&args[3], "fisher_exact")? as u64;
+    let options = inference_options(&args, 4, "fisher_exact")?;
+    let confidence = inference_confidence(options, "fisher_exact")?;
     let table = vec![vec![a as f64, b as f64], vec![c as f64, d as f64]];
-    let res = bl_core::bio_core::stats_ops::fishers_exact_test(&table)
+    let res = bl_core::bio_core::stats_ops::fishers_exact_test_with_confidence(&table, confidence)
         .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let confidence_lower = Value::Float(res.confidence_interval.0);
+    let confidence_upper = Value::Float(res.confidence_interval.1);
     Ok(make_record(vec![
+        ("method", Value::Str("fisher_exact_two_sided".into())),
         ("p_value", Value::Float(res.p_value)),
         ("pvalue", Value::Float(res.p_value)),
         ("odds_ratio", Value::Float(res.odds_ratio)),
+        ("effect_size", Value::Float(res.odds_ratio)),
+        ("effect_size_name", Value::Str("sample_odds_ratio".into())),
+        (
+            "odds_ratio_estimator",
+            Value::Str("sample_cross_product".into()),
+        ),
+        ("confidence_level", Value::Float(confidence)),
+        (
+            "confidence_interval_method",
+            Value::Str("wald_log_odds".into()),
+        ),
+        (
+            "confidence_interval",
+            interval_record(confidence_lower.clone(), confidence_upper.clone()),
+        ),
+        ("confidence_lower", confidence_lower),
+        ("confidence_upper", confidence_upper),
     ]))
 }
 
 fn builtin_wilcoxon(args: Vec<Value>) -> Result<Value> {
     let a = require_num_list(&args[0], "wilcoxon")?;
     let b = require_num_list(&args[1], "wilcoxon")?;
-    let res = bl_core::bio_core::stats_ops::mann_whitney_test(&a, &b, "two_sided")
-        .map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let options = inference_options(&args, 2, "wilcoxon")?;
+    let alternative = inference_alternative(options, "wilcoxon")?;
+    let method = options
+        .and_then(|values| values.get("method"))
+        .and_then(Value::as_str)
+        .unwrap_or("normal");
+    let continuity = options
+        .and_then(|values| values.get("continuity"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let (res, method_name, used_continuity) = match method {
+        "normal" | "approximate" => (
+            bl_core::bio_core::stats_ops::mann_whitney_u(&a, &b, &alternative, continuity),
+            "mann_whitney_normal",
+            continuity,
+        ),
+        "exact" => {
+            if continuity {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "wilcoxon() continuity correction applies only to method='normal'",
+                    None,
+                ));
+            }
+            (
+                bl_core::bio_core::stats_ops::mann_whitney_exact_test(&a, &b, &alternative),
+                "mann_whitney_exact",
+                false,
+            )
+        }
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "wilcoxon() method must be 'normal' or 'exact'",
+                None,
+            ))
+        }
+    };
+    let res = res.map_err(|e| BioLangError::runtime(ErrorKind::TypeError, e, None))?;
+    let rank_biserial = 2.0 * res.u_a / (res.n_a * res.n_b) as f64 - 1.0;
     Ok(make_record(vec![
+        ("method", Value::Str(method_name.into())),
+        ("alternative", Value::Str(alternative)),
+        ("continuity_correction", Value::Bool(used_continuity)),
         ("u_statistic", Value::Float(res.statistic)),
+        ("u_group_a", Value::Float(res.u_a)),
         ("statistic", Value::Float(res.statistic)),
         ("p_value", Value::Float(res.p_value)),
         ("pvalue", Value::Float(res.p_value)),
+        ("effect_size", Value::Float(rank_biserial)),
+        ("effect_size_name", Value::Str("rank_biserial".into())),
+        ("rank_biserial", Value::Float(rank_biserial)),
+    ]))
+}
+
+fn builtin_wilcoxon_paired(args: Vec<Value>) -> Result<Value> {
+    let a = require_num_list(&args[0], "wilcoxon_paired")?;
+    let b = require_num_list(&args[1], "wilcoxon_paired")?;
+    let options = inference_options(&args, 2, "wilcoxon_paired")?;
+    let alternative = inference_alternative(options, "wilcoxon_paired")?;
+    let method = options
+        .and_then(|values| values.get("method"))
+        .and_then(Value::as_str)
+        .unwrap_or("normal");
+    let exact = match method {
+        "normal" | "approximate" => false,
+        "exact" => true,
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "wilcoxon_paired() method must be 'normal' or 'exact'",
+                None,
+            ))
+        }
+    };
+    let continuity = options
+        .and_then(|values| values.get("continuity"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let result = bl_core::bio_core::stats_ops::paired_wilcoxon_signed_rank_test(
+        &a,
+        &b,
+        &alternative,
+        exact,
+        continuity,
+    )
+    .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None))?;
+    Ok(make_record(vec![
+        (
+            "method",
+            Value::Str(
+                if exact {
+                    "wilcoxon_signed_rank_exact"
+                } else {
+                    "wilcoxon_signed_rank_normal"
+                }
+                .into(),
+            ),
+        ),
+        ("alternative", Value::Str(alternative)),
+        ("continuity_correction", Value::Bool(continuity)),
+        ("statistic", Value::Float(result.statistic)),
+        ("v_statistic", Value::Float(result.statistic)),
+        ("w_positive", Value::Float(result.w_positive)),
+        ("w_negative", Value::Float(result.w_negative)),
+        ("p_value", Value::Float(result.p_value)),
+        ("pvalue", Value::Float(result.p_value)),
+        ("n_pairs", Value::Int(result.n_pairs as i64)),
+        ("n_nonzero", Value::Int(result.n_nonzero as i64)),
+        ("has_ties", Value::Bool(result.has_ties)),
+        (
+            "has_zero_differences",
+            Value::Bool(result.has_zero_differences),
+        ),
+        ("effect_size", Value::Float(result.rank_biserial)),
+        (
+            "effect_size_name",
+            Value::Str("paired_rank_biserial".into()),
+        ),
+        ("rank_biserial", Value::Float(result.rank_biserial)),
+        (
+            "difference_definition",
+            Value::Str("group_a_minus_group_b".into()),
+        ),
     ]))
 }
 

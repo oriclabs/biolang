@@ -39,23 +39,40 @@ Compare expression levels between two conditions.
 let tumor = tsv("expr.tsv") |> filter(|r| r.group == "tumor") |> col("BRCA1")
 let normal = tsv("expr.tsv") |> filter(|r| r.group == "normal") |> col("BRCA1")
 
-let result = ttest(tumor, normal)
-# result => {statistic: 4.32, pvalue: 0.00018, df: 28, mean_diff: 2.15}
+let result = ttest(tumor, normal, {variance: "welch"})
+# result includes method, statistic, p_value, df, mean_diff,
+# confidence_interval, cohens_d, and hedges_g
 
 if result.pvalue < 0.05 then
   println("BRCA1 significantly different (p=" + str(result.pvalue) + ")")
 ```
 
+The explicit Welch option is a good default for two independent means because
+it does not pool the group variances. The older two-argument form remains the
+pooled Student test for compatibility, and every result states its `method`.
+Use `ttest_paired(before, after)` when the observations are genuinely paired.
+
 ### Wilcoxon Rank-Sum
 
-For non-normally distributed data such as read counts.
+For an independent-group rank/distribution comparison. This is not simply a
+test of medians, and using ranks does not by itself provide an appropriate
+sampling model for raw sequencing counts.
 
 ```biolang
 let treated = [1240, 890, 1560, 2100, 780, 1890, 1345]
 let control = [450, 520, 380, 610, 490, 430, 550]
 
 let result = wilcoxon(treated, control)
-# result => {statistic: 49.0, pvalue: 0.0012}
+# Default: normal approximation without continuity correction.
+# result includes method, p_value, and rank_biserial effect size.
+
+let small_exact = wilcoxon(treated, control, {method: "exact"})
+# Exact mode requires untied observations and at most 50 total observations.
+
+let r_normal = wilcoxon(treated, control, {
+  method: "normal",
+  continuity: true
+})
 ```
 
 ### Chi-squared Test
@@ -86,9 +103,49 @@ let liver = tsv("expr.tsv") |> filter(|r| r.tissue == "liver") |> col("TP53")
 let lung = tsv("expr.tsv") |> filter(|r| r.tissue == "lung") |> col("TP53")
 let kidney = tsv("expr.tsv") |> filter(|r| r.tissue == "kidney") |> col("TP53")
 
-let result = anova([brain, liver, lung, kidney])
-# result => {f_statistic: 8.74, pvalue: 0.00003, df_between: 3, df_within: 76}
+let groups = [brain, liver, lung, kidney]
+
+# Safer mean comparison when group variances may differ.
+let result = anova(groups, {variance: "welch"})
+# result states method and includes F, p, both df values, eta_squared,
+# omega_squared, group means, variances, sizes, and sums of squares.
+
+# Classical equal-variance ANOVA remains explicit and backwards compatible.
+let classical = anova(groups)
+
+# If classical ANOVA's shared-variance model is defensible, Tukey-Kramer gives
+# genuine studentized-range all-pairs inference and simultaneous intervals.
+let tukey = tukey_hsd(groups, {confidence: 0.95})
+
+# For a rank/distribution comparison instead of a mean comparison:
+let ranks = kruskal_wallis(groups)
+# ranks includes tie_correction and epsilon_squared.
+
+# Adjusted pairwise mean tests are labelled separately from Tukey HSD.
+let pairs = pairwise_ttest(groups, {
+  variance: "welch",
+  adjust: "holm"
+})
 ```
+
+For measurements taken twice from the same subjects, preserve the pairing:
+
+```biolang
+let before = [12.1, 13.5, 11.8, 14.2, 15.0, 13.0]
+let after  = [11.7, 12.9, 11.5, 13.1, 14.4, 12.8]
+
+let paired_ranks = wilcoxon_paired(before, after)
+# Differences are before - after. The result reports V, the number of
+# non-zero pairs, tie/zero flags, and paired rank-biserial effect size.
+```
+
+The independent `wilcoxon()` and paired `wilcoxon_paired()` functions answer
+different study-design questions and are intentionally separate.
+
+These procedures answer different questions. Kruskal-Wallis is not simply a
+test of medians, and pairwise Welch tests with Holm correction are not Tukey
+HSD. `tukey_hsd` uses the pooled residual variance from classical ANOVA, while
+`pairwise_ttest` estimates each pair's standard error independently.
 
 ### Fisher's Exact Test
 
@@ -97,7 +154,8 @@ Test enrichment of a mutation in cases versus controls.
 ```biolang
 # Contingency table: mutation+/case, mutation-/case, mutation+/ctrl, mutation-/ctrl
 let result = fisher_exact(45, 155, 12, 188)
-# result => {odds_ratio: 5.48, pvalue: 0.00001}
+# The result labels odds_ratio_estimator as "sample_cross_product" and
+# confidence_interval_method as "wald_log_odds".
 ```
 
 ## Multiple Testing Correction

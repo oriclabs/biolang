@@ -31,10 +31,43 @@ R's time-series functions. One-way ICC components and the cluster design-effect
 approximation are checked with explicit R formulas. Binomial and Poisson GLMs
 are checked against `stats::glm`, a random-intercept REML fit against
 `nlme::lme`, and a multivariable Breslow Cox model against
-`survival::coxph`. The current suite contains 147 scale-sensitive checks. It
-records versions, per-backend elapsed time,
-scale-sensitive differences, tolerances, and the final result in
-`validation/results/manifest.json`.
+`survival::coxph`. Classic inference is also run independently in both
+backends: pooled, one-sample, and paired t-tests; independent Mann-Whitney and
+paired Wilcoxon signed-rank tests; ANOVA;
+Fisher exact; chi-square; Pearson correlation; and BH, Bonferroni, and Holm
+adjustments. It now validates explicit Welch inference, mean-difference
+confidence intervals, standardized t-test effects, exact and continuity-corrected
+rank tests, rank-biserial effects, and labelled Fisher odds-ratio intervals. The
+multi-group extension independently checks classical and Welch ANOVA, raw sums
+of squares, eta/omega squared, tie-corrected Kruskal-Wallis with epsilon
+squared, every Tukey-Kramer contrast and simultaneous interval, and pairwise
+Welch tests with Holm correction. The current suite compares 268 numeric metrics: 264 numerical
+equivalences and four deliberately documented differences from R defaults.
+Finite edge cases include a three-observation t-test, tied ranks, zero/one and
+tied p-values, a zero-heavy count distribution, and an extreme regression
+outlier.
+
+The default run performs three interleaved repetitions. It reports median
+elapsed time and maximum sampled working set rather than treating one noisy run
+as a benchmark. Override this when a quick correctness-only run is useful:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File packages/statistics/validation/run.ps1 `
+  -BenchmarkRepeats 1 -RequireR
+```
+
+The runner writes three ignored artifacts under `validation/results/`:
+
+- `manifest.json`: versions, raw repetition measurements, every tolerance and
+  classification, and group-level slope/intercept/RMSE/error percentiles;
+- `checks.csv`: one row per numeric comparison for filtering or plotting;
+- `report.md`: a compact human-readable result, timing, memory, and accuracy
+  summary.
+
+Correlation is not used as a parity gate. Scale-sensitive absolute and relative
+errors remain attached to each metric, and group summaries expose proportional
+or offset bias. Relative error is omitted for references whose magnitude is at
+or below `1e-12`, where an absolute error is the meaningful quantity.
 
 Arithmetic, geometric, harmonic, trimmed, and root-mean-square calculations
 used by `stat.means()` are also compared with independent R expressions.
@@ -69,9 +102,20 @@ follow-up from `survival::lung`. The CSV files and both implementations'
 outputs remain under the ignored `validation/results/` directory. They are
 oracle inputs, not bundled runtime dependencies or project datasets.
 
-Scalar arithmetic uses a `1e-12` relative gate. Normal-Q-Q correlation uses a
-`1e-9` gate because R and BioLang deliberately use independent inverse-normal
-quantile approximations; integer flag counts must match exactly.
+Scalar arithmetic generally uses a `1e-12 * max(1, abs(reference))` gate.
+Normal-Q-Q correlation uses a `1e-9` gate because R and BioLang deliberately
+use independent inverse-normal quantile approximations; integer flag counts
+must match exactly. Model-fit and distribution-tail tolerances are declared per
+metric in `run.ps1` and recorded as absolute limits in the manifest.
+
+The four `expected_convention_difference` rows are not loose passes. BioLang's
+pooled t-test is separately compared with `t.test(var.equal = TRUE)`, its
+normal-approximation rank test with `wilcox.test(exact = FALSE, correct =
+FALSE)`, and its sample odds ratio with the explicit cross-product ratio. The
+R-default Welch degrees of freedom/p-value, exact small-sample Wilcoxon p-value,
+and Fisher conditional-MLE odds ratio must remain different; if they become
+equal, the run fails with `convention_changed_review_required` so the API and
+documentation are reviewed together.
 
 Exit code `2` means R was unavailable and validation was not run. It must never
 be presented as a pass. `-RequireR` converts that condition into a terminating
