@@ -1,0 +1,61 @@
+import "atac" as atac
+import "singlecell" as sc
+
+let counts = to_sparse(matrix([
+    [8.0, 1.0, 0.0, 0.0],
+    [7.0, 2.0, 0.0, 1.0],
+    [6.0, 1.0, 2.0, 0.0],
+    [0.0, 1.0, 8.0, 1.0],
+    [1.0, 0.0, 7.0, 2.0],
+    [0.0, 2.0, 6.0, 1.0]
+]))
+let raw = {
+    matrix: counts,
+    genes: ["p1", "p2", "p3", "p4"],
+    barcodes: ["c1", "c2", "c3", "c4", "c5", "c6"],
+    n_cells: 6,
+    n_genes: 4,
+    is_sparse: true,
+    layers: {counts: counts}
+}
+
+let left_counts = to_sparse(matrix([[1.0, 0.0], [0.0, 1.0]]))
+let right_counts = to_sparse(matrix([[1.0, 1.0]]))
+let left = {matrix: left_counts, genes: ["a", "b"], barcodes: ["l1", "l2"],
+            n_cells: 2, n_genes: 2, layers: {counts: left_counts}}
+let right = {matrix: right_counts, genes: ["a", "b"], barcodes: ["r1"],
+             n_cells: 1, n_genes: 2, layers: {counts: right_counts}}
+let merged = atac.merge_samples([left, right], ["sample-a", "sample-b"])
+assert merged.batch_ids == ["sample-a", "sample-a", "sample-b"],
+       "multi-sample merge lost sample labels"
+
+let normalized = atac.tfidf(raw)
+assert is_sparse(normalized.norm_matrix), "TF-IDF made the peak matrix dense"
+
+let selected = atac.top_features(normalized, 0)
+assert selected.n_top_features == 4, "top feature count is wrong"
+assert is_sparse(selected.hvg_matrix), "feature selection made the matrix dense"
+
+let reduced = atac.lsi(selected, 2)
+assert is_matrix(reduced.lsi_scores), "LSI scores are not a compact Matrix"
+assert is_matrix(reduced.lsi_loadings), "LSI loadings are not a compact Matrix"
+assert dim(reduced.lsi_scores) == [6, 2], "LSI score shape is wrong"
+assert dim(reduced.lsi_loadings) == [4, 2], "LSI loading shape is wrong"
+
+let depth = atac.depth_cor(reduced, 2)
+assert len(depth.correlations) == 2, "depth correlation count is wrong"
+
+let integrated = atac.harmony(reduced, [0, 0, 0, 1, 1, 1], 2.0, 2)
+assert is_matrix(integrated.integrated_embedding), "Harmony output is not compact"
+assert dim(integrated.integrated_embedding) == [6, 2], "Harmony shape is wrong"
+let mixing = atac.mixing_score(integrated, [0, 0, 0, 1, 1, 1], 3)
+assert mixing.k == 3, "batch mixing used the wrong neighbourhood size"
+assert mixing.mixing_score >= 0.0 and mixing.mixing_score <= 1.0,
+       "invalid other-sample mixing score"
+assert mixing.n_compared_neighbours == 2, "article-style self neighbour was not removed"
+
+# sc.neighbors must consume the ATAC analysis_embedding and not silently run
+# RNA PCA over the count matrix.
+let graph = sc.neighbors(integrated, 2, false, 2)
+assert contains(keys(graph), "knn"), "singlecell neighbours ignored the LSI embedding"
+assert graph.neighbor_dims == 2, "neighbours used the wrong number of LSI dimensions"

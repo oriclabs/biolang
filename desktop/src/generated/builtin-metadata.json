@@ -310,18 +310,19 @@
     },
     {
       "name": "anova",
-      "signature": "anova(groups) → Record{f_statistic,p_value,df_between,df_within}",
+      "signature": "anova(groups, options?) → Record{method,f_statistic,p_value,df_between,df_within,eta_squared,omega_squared}",
       "category": "stats",
-      "summary": "BioLang stats builtin.",
+      "summary": "One-way analysis of means. One argument preserves classical equal-variance ANOVA; pass {variance: \"welch\"} for unequal variances. Returns method, effect sizes, and sums of squares.",
       "parameters": [
-        "groups"
+        "groups",
+        "options?"
       ],
-      "returnType": "Record{f_statistic,p_value,df_between,df_within}",
-      "example": null,
+      "returnType": "Record",
+      "example": "anova(groups, {variance: \"welch\"})  # → method, F, p, df, eta², omega²",
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 1,
-        "maximum": 1
+        "maximum": 2
       },
       "metadataQuality": "curated"
     },
@@ -534,6 +535,160 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "atac_batch_mixing",
+      "signature": "atac_batch_mixing(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "atac_depth_cor",
+      "signature": "atac_depth_cor(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "atac_detected_features",
+      "signature": "atac_detected_features(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "atac_filter_peaks",
+      "signature": "atac_filter_peaks(arg1, arg2?, arg3?, arg4?, arg5?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?",
+        "arg3?",
+        "arg4?",
+        "arg5?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "atac_fragment_qc",
+      "signature": "atac_fragment_qc(arg1, arg2?, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "atac_frip",
+      "signature": "atac_frip(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "atac_ngs101_qc",
+      "signature": "atac_ngs101_qc(arg1, arg2, arg3, arg4, arg5)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 5 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3",
+        "arg4",
+        "arg5"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 5,
+        "maximum": 5
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "atac_peak_qc",
+      "signature": "atac_peak_qc(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "atac_qc",
       "signature": "atac_qc(arg1)",
       "category": "runtime",
@@ -547,6 +702,62 @@
         "kind": "exact",
         "minimum": 1,
         "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "atac_tfidf",
+      "signature": "atac_tfidf(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "atac_top_features",
+      "signature": "atac_top_features(arg1, arg2?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "atac_tss_qc",
+      "signature": "atac_tss_qc(arg1, arg2, arg3, arg4?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3",
+        "arg4?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 3,
+        "maximum": 4
       },
       "metadataQuality": "runtime"
     },
@@ -1458,7 +1669,7 @@
     },
     {
       "name": "cca",
-      "signature": "cca(matrix1, matrix2, opts?) -> Record{u, v, d} (shared axes; cells x cells, so small inputs only)",
+      "signature": "cca(matrix1, matrix2, opts?) → Record{u, v, d} (shared axes; cells x cells, so small inputs only)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -1511,7 +1722,7 @@
     },
     {
       "name": "cell_cycle_score",
-      "signature": "cell_cycle_score(matrix, s_gene_indices, g2m_gene_indices) -> List[Record]",
+      "signature": "cell_cycle_score(matrix, s_gene_indices, g2m_gene_indices) → List[Record]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -1530,7 +1741,7 @@
     },
     {
       "name": "cell_qc",
-      "signature": "cell_qc(matrix, gene_names?, mito_prefix?) -> Table",
+      "signature": "cell_qc(matrix, gene_names?, mito_prefix?) → Table",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -1672,15 +1883,15 @@
     },
     {
       "name": "chi_square",
-      "signature": "chi_square(obs, exp) → Record{chi2,p,df}",
+      "signature": "chi_square(obs, exp) → Record{chi2,p_value,df}",
       "category": "stats",
       "summary": "BioLang stats builtin.",
       "parameters": [
         "obs",
         "exp"
       ],
-      "returnType": "Record{chi2,p,df}",
-      "example": null,
+      "returnType": "Record{chi2,p_value,df}",
+      "example": "chi_square([10, 20, 30], [20, 20, 20])  # → Record{chi2,p_value,df}",
       "arity": {
         "kind": "exact",
         "minimum": 2,
@@ -2713,7 +2924,7 @@
       "name": "cor",
       "signature": "cor(list1, list2) → Float",
       "category": "stats",
-      "summary": "BioLang stats builtin.",
+      "summary": "Pearson correlation. Undefined when either input is constant, and NaN is returned; stats_relationship reports the same case as absent.",
       "parameters": [
         "list1",
         "list2"
@@ -3165,7 +3376,7 @@
         "list"
       ],
       "returnType": "List",
-      "example": null,
+      "example": "cumsum([1, 2, 3])  # → [1, 3, 6]",
       "arity": {
         "kind": "range",
         "minimum": 1,
@@ -3744,7 +3955,7 @@
     },
     {
       "name": "diffusion_pseudotime",
-      "signature": "diffusion_pseudotime(embedding, edges, start_cell) -> List[Float]",
+      "signature": "diffusion_pseudotime(embedding, edges, start_cell) → List[Float]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -4032,7 +4243,7 @@
     },
     {
       "name": "doublet_score",
-      "signature": "doublet_score(matrix, n_simulated?) -> List[Float]",
+      "signature": "doublet_score(matrix, n_simulated?) → List[Float]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -5045,7 +5256,7 @@
     },
     {
       "name": "find_all_markers",
-      "signature": "find_all_markers(matrix, clusters, opts?) -> List[Record] (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2)",
+      "signature": "find_all_markers(matrix, clusters, opts?) → List[Record] (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -5154,21 +5365,21 @@
     },
     {
       "name": "fisher_exact",
-      "signature": "fisher_exact(a,b,c,d) → Record{p,odds}",
+      "signature": "fisher_exact(a,b,c,d) → Record{p_value,odds_ratio,confidence_interval}",
       "category": "stats",
-      "summary": "BioLang stats builtin.",
+      "summary": "Two-sided Fisher exact test on a 2x2 table. Reports the sample cross-product odds ratio and a labelled Wald log-odds interval; R reports a conditional estimate.",
       "parameters": [
         "a",
         "b",
         "c",
         "d"
       ],
-      "returnType": "Record{p,odds}",
-      "example": null,
+      "returnType": "Record{p_value,odds_ratio,confidence_interval}",
+      "example": "fisher_exact(8, 2, 1, 5)  # → Record{p_value,odds_ratio,confidence_interval}",
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 4,
-        "maximum": 4
+        "maximum": 5
       },
       "metadataQuality": "curated"
     },
@@ -5857,7 +6068,7 @@
     },
     {
       "name": "gene_qc",
-      "signature": "gene_qc(matrix, gene_names?) -> Table",
+      "signature": "gene_qc(matrix, gene_names?) → Table",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -6618,7 +6829,7 @@
     },
     {
       "name": "harmony_integrate",
-      "signature": "harmony_integrate(embedding, batches, opts?) -> matrix (batch-corrected, per-cluster)",
+      "signature": "harmony_integrate(embedding, batches, opts?) → matrix (batch-corrected, per-cluster)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -6798,7 +7009,7 @@
     },
     {
       "name": "highly_variable_genes",
-      "signature": "highly_variable_genes(matrix, n?) -> List[Int] (dispersion-ranked columns)",
+      "signature": "highly_variable_genes(matrix, n?) → List[Int] (dispersion-ranked columns)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -8622,7 +8833,7 @@
     },
     {
       "name": "knn_graph",
-      "signature": "knn_graph(embedding, k?) -> List[{source, target, distance}]",
+      "signature": "knn_graph(embedding, k?) → List[{source, target, distance}]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -8635,6 +8846,23 @@
         "kind": "range",
         "minimum": 1,
         "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "kruskal_wallis",
+      "signature": "kruskal_wallis(groups) → Record{h_statistic,p_value,epsilon_squared}",
+      "category": "stats",
+      "summary": "Independent-group Kruskal-Wallis rank-sum test with tie correction and epsilon-squared effect size.",
+      "parameters": [
+        "groups"
+      ],
+      "returnType": "Record",
+      "example": "kruskal_wallis(groups)  # → H, p, tie correction, epsilon²",
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
       },
       "metadataQuality": "curated"
     },
@@ -8838,7 +9066,7 @@
     },
     {
       "name": "leiden_cluster",
-      "signature": "leiden_cluster(embedding, k, resolution?) -> List[Int]",
+      "signature": "leiden_cluster(embedding, k, resolution?) → List[Int]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -8857,7 +9085,7 @@
     },
     {
       "name": "leiden_graph",
-      "signature": "leiden_graph(edges, n_nodes, resolution) -> List[Int]",
+      "signature": "leiden_graph(edges, n_nodes, resolution) → List[Int]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -9108,7 +9336,7 @@
     },
     {
       "name": "log1p_transform",
-      "signature": "log1p_transform(matrix) -> matrix (preserves CSR sparsity)",
+      "signature": "log1p_transform(matrix) → matrix (preserves CSR sparsity)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -9305,7 +9533,7 @@
     },
     {
       "name": "lr_aggregate",
-      "signature": "lr_aggregate(scores, pathway_map) -> List[Record]",
+      "signature": "lr_aggregate(scores, pathway_map) → List[Record]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -9323,7 +9551,7 @@
     },
     {
       "name": "lr_score",
-      "signature": "lr_score(matrix, labels, ligand_receptor_pairs) -> List[Record]",
+      "signature": "lr_score(matrix, labels, ligand_receptor_pairs) → List[Record]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -9610,7 +9838,7 @@
     },
     {
       "name": "matrix_at",
-      "signature": "matrix_at(matrix, row, column) -> Value",
+      "signature": "matrix_at(matrix, row, column) → Value",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -9956,7 +10184,7 @@
     },
     {
       "name": "module_score",
-      "signature": "module_score(matrix, gene_indices) -> List[Float]",
+      "signature": "module_score(matrix, gene_indices) → List[Float]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -10743,7 +10971,7 @@
         "method"
       ],
       "returnType": "List",
-      "example": null,
+      "example": "normalize([1.0, 2.0, 3.0], \"zscore\")  # → [-1.0, 0.0, 1.0]",
       "arity": {
         "kind": "exact",
         "minimum": 2,
@@ -10825,7 +11053,7 @@
     },
     {
       "name": "normalize_total",
-      "signature": "normalize_total(matrix, target?) -> matrix (row library-size normalization)",
+      "signature": "normalize_total(matrix, target?) → matrix (row library-size normalization)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -11225,6 +11453,24 @@
         "kind": "exact",
         "minimum": 3,
         "maximum": 3
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "pairwise_ttest",
+      "signature": "pairwise_ttest(groups, options?) → Record{adjustment,comparisons}",
+      "category": "stats",
+      "summary": "Explicit pairwise t-tests. Defaults to Welch tests with Holm correction; options select variance and adjustment.",
+      "parameters": [
+        "groups",
+        "options?"
+      ],
+      "returnType": "Record",
+      "example": "pairwise_ttest(groups, {variance: \"welch\", adjust: \"holm\"})",
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
       },
       "metadataQuality": "curated"
     },
@@ -11744,6 +11990,25 @@
     {
       "name": "peak_matrix",
       "signature": "peak_matrix(arg1, arg2, arg3?)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3?"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "peak_matrix_sparse",
+      "signature": "peak_matrix_sparse(arg1, arg2, arg3?)",
       "category": "runtime",
       "summary": "Registered BioLang builtin accepting 2 argument(s).",
       "parameters": [
@@ -12319,7 +12584,7 @@
     },
     {
       "name": "pseudobulk_aggregate",
-      "signature": "pseudobulk_aggregate(matrix, sample_ids, groups) -> Record",
+      "signature": "pseudobulk_aggregate(matrix, sample_ids, groups) → Record",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -12597,7 +12862,7 @@
         "q"
       ],
       "returnType": "Float",
-      "example": null,
+      "example": "quantile([1.0, 2.0, 3.0, 4.0], 0.5)  # → 2.5 (type-7, as R)",
       "arity": {
         "kind": "exact",
         "minimum": 2,
@@ -12878,7 +13143,7 @@
     },
     {
       "name": "read_10x",
-      "signature": "read_10x(path, gene_column?) -> Record (dense)",
+      "signature": "read_10x(path, gene_column?) → Record (dense)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -12896,7 +13161,7 @@
     },
     {
       "name": "read_10x_sparse",
-      "signature": "read_10x_sparse(path, gene_column?) -> Record (CSR counts, obs, var, layers)",
+      "signature": "read_10x_sparse(path, gene_column?) → Record (CSR counts, obs, var, layers)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -12914,7 +13179,7 @@
     },
     {
       "name": "read_anndata",
-      "signature": "read_anndata(zarr_path) -> Record (native dense or CSR AnnData Zarr)",
+      "signature": "read_anndata(zarr_path) → Record (native dense or CSR AnnData Zarr)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -13362,7 +13627,7 @@
     },
     {
       "name": "reference_classify",
-      "signature": "reference_classify(query, reference_profiles, labels) -> List[Record]",
+      "signature": "reference_classify(query, reference_profiles, labels) → List[Record]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -14339,7 +14604,7 @@
     },
     {
       "name": "sc_integrate",
-      "signature": "sc_integrate(embedding, batch_ids) -> matrix",
+      "signature": "sc_integrate(embedding, batch_ids) → matrix",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -14377,7 +14642,7 @@
     },
     {
       "name": "sc_merge_objects",
-      "signature": "sc_merge_objects(left, right, left_batch, right_batch) -> Record",
+      "signature": "sc_merge_objects(left, right, left_batch, right_batch) → Record",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -14397,7 +14662,7 @@
     },
     {
       "name": "sc_pca",
-      "signature": "sc_pca(matrix, n_components?) -> {scores, loadings, explained_variance_ratio, ...}",
+      "signature": "sc_pca(matrix, n_components?) → {scores, loadings, explained_variance_ratio, ...}",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -14433,7 +14698,7 @@
     },
     {
       "name": "sc_sctransform",
-      "signature": "sc_sctransform(matrix, n_variable_features?) -> matrix | {matrix, genes}",
+      "signature": "sc_sctransform(matrix, n_variable_features?) → matrix | {matrix, genes}",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -14451,7 +14716,7 @@
     },
     {
       "name": "sc_subset_cells",
-      "signature": "sc_subset_cells(object, indices) -> Record (synchronized metadata/layers)",
+      "signature": "sc_subset_cells(object, indices) → Record (synchronized metadata/layers)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -14469,7 +14734,7 @@
     },
     {
       "name": "sc_subset_genes",
-      "signature": "sc_subset_genes(object, indices) -> Record (invalidates reductions)",
+      "signature": "sc_subset_genes(object, indices) → Record (invalidates reductions)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -14648,7 +14913,7 @@
     },
     {
       "name": "select_cols",
-      "signature": "select_cols(matrix, indices) -> matrix",
+      "signature": "select_cols(matrix, indices) → matrix",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -14666,7 +14931,7 @@
     },
     {
       "name": "select_rows",
-      "signature": "select_rows(matrix|table, indices) -> matrix|table",
+      "signature": "select_rows(matrix|table, indices) → matrix|table",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -15252,7 +15517,7 @@
     },
     {
       "name": "spatial_moransi",
-      "signature": "spatial_moransi(expression, edges) -> Float",
+      "signature": "spatial_moransi(expression, edges) → Float",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -15270,7 +15535,7 @@
     },
     {
       "name": "spatial_neighbors",
-      "signature": "spatial_neighbors(coordinates, k?) -> List[Record]",
+      "signature": "spatial_neighbors(coordinates, k?) → List[Record]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -15554,720 +15819,756 @@
     },
     {
       "name": "stats_associations",
-      "signature": "stats_associations(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_associations(table, options?) → Record{pairs,high_association_pairs,threshold}",
+      "category": "stats",
+      "summary": "Bounded Pearson, Spearman, Cramer's V and categorical-numeric effect sizes.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_associations(trial)  # → bounded effect sizes; no hypothesis tests",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_categorical_plot",
-      "signature": "stats_categorical_plot(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_categorical_plot(values, options?) → Str",
+      "category": "stats",
+      "summary": "Frequency bars, in SVG or ASCII.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Str",
+      "example": "stats_categorical_plot(labels)  # → frequency bars",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_categories",
-      "signature": "stats_categories(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_categories(values, options?) → Record{kind,levels,modes,rare_levels}",
+      "category": "stats",
+      "summary": "Counts, proportions, modes, missingness and rare-level clues for a categorical variable.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_categories([\"red\", \"blue\", \"red\"])  # → levels, modes, rare-level clues",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_cluster_diagnostics",
-      "signature": "stats_cluster_diagnostics(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_cluster_diagnostics(values, clusters, options?) → Record{intraclass_correlation,approximate_unequal_independence_design_effect}",
+      "category": "stats",
+      "summary": "Quantify declared non-independence without fitting a model.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "values",
+        "clusters",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_cluster_diagnostics(values, clusters)  # → ICC and design effect",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_compare",
-      "signature": "stats_compare(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_compare(values, groups, options?) → Record{kind,groups,alternatives,limitations}",
+      "category": "stats",
+      "summary": "Per-group evidence and the analyses appropriate to it, without choosing one.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "values",
+        "groups",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_compare(values, groups)  # → per-group evidence; no test is chosen",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_cox_diagnostics",
-      "signature": "stats_cox_diagnostics(arg1, arg2, arg3, arg4?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "signature": "stats_cox_diagnostics(time, event, predictors, options?) → Record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged}",
+      "category": "stats",
+      "summary": "Multivariable Cox fit with Breslow ties, hazard-ratio intervals, baseline hazard and martingale residuals. The Schoenfeld screen is descriptive, not cox.zph.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3",
-        "arg4?"
+        "time",
+        "event",
+        "predictors",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_cox_diagnostics(time, event, predictors)  # Breslow ties, as survival::coxph(ties=\"breslow\")",
       "arity": {
         "kind": "range",
         "minimum": 3,
         "maximum": 4
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_decision_map",
-      "signature": "stats_decision_map(arg1?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 0 argument(s).",
+      "signature": "stats_decision_map(options?) → Record{paths,automatic_choice}",
+      "category": "stats",
+      "summary": "The questions that narrow a method, with `automatic_choice` false.",
       "parameters": [
-        "arg1?"
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_decision_map()  # → centre/spread/scale/uncertainty paths; chooses nothing",
       "arity": {
         "kind": "range",
         "minimum": 0,
         "maximum": 1
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_design_check",
-      "signature": "stats_design_check(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_design_check(table, options?) → Record{groups,repeated_subjects,design_clues,issues}",
+      "category": "stats",
+      "summary": "Repeated units, imbalance, and batch or group confounding.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_design_check(trial, {group_column: \"arm\", batch_column: \"run\"})  # blocking if every batch is one arm",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_distribution_ascii",
-      "signature": "stats_distribution_ascii(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_distribution_ascii(values, options?) → Str",
+      "category": "stats",
+      "summary": "Terminal-safe histogram, with exclusions and review flags stated.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Str",
+      "example": "stats_distribution_ascii(values)  # → terminal-safe histogram",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_distribution_clues",
-      "signature": "stats_distribution_clues(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_distribution_clues(values, options?) → Record{candidates,model_selected}",
+      "category": "stats",
+      "summary": "Scale-sensitive normal, log-normal, Poisson and negative-binomial fit clues.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_distribution_clues(counts)  # → four candidate families, none selected",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_distribution_plot",
-      "signature": "stats_distribution_plot(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_distribution_plot(values, options?) → Str",
+      "category": "stats",
+      "summary": "Annotated histogram: observations, mean, median, IQR, SD bands and outlier flags.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Str",
+      "example": "stats_distribution_plot(values)  # → SVG histogram with mean, median, IQR and SD bands",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_explain",
-      "signature": "stats_explain(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_explain(report, detail?) → Str",
+      "category": "stats",
+      "summary": "Render a report as quick, learning or audit text.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "report",
+        "detail?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Str",
+      "example": "stats_explain(report, \"audit\")  # detail: \"quick\", \"learning\" or \"audit\"",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_explore",
-      "signature": "stats_explore(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_explore(values, options?) → Record{kind,summary,shape,outliers,alternatives,limitations}",
+      "category": "stats",
+      "summary": "Centre, spread, shape, missingness, transformation candidates and review flags for one numeric variable.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_explore([12.1, 12.4, 13.0, 29.0])  # → Record{kind: \"numeric\", ...}",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_glm_diagnostics",
-      "signature": "stats_glm_diagnostics(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_glm_diagnostics(predictors, outcome, options?) → Record{coefficients,residual_deviance,aic,converged,iterations}",
+      "category": "stats",
+      "summary": "Binomial or Poisson fit with deviance, dispersion, influence and calibration clues. Check `converged` before reading anything else.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "predictors",
+        "outcome",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_glm_diagnostics(predictors, outcome, {family: \"binomial\"})  # check .converged first",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_group_plot",
-      "signature": "stats_group_plot(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_group_plot(values, groups, options?) → Str",
+      "category": "stats",
+      "summary": "Group observations and robust summaries, in SVG or ASCII.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "values",
+        "groups",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Str",
+      "example": "stats_group_plot(values, groups, {format: \"ascii\"})",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_guide",
-      "signature": "stats_guide(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_guide(report, context?) → Record",
+      "category": "stats",
+      "summary": "Attach an explicit scientific question and experimental unit to a report.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "report",
+        "context?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_guide(report, {question: \"Does dose shift the median?\", experimental_unit: \"patient\"})",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_linear_diagnostic_plot",
-      "signature": "stats_linear_diagnostic_plot(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_linear_diagnostic_plot(x, y, options?) → Str",
+      "category": "stats",
+      "summary": "Residual-versus-fitted or residual Q-Q display.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "x",
+        "y",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Str",
+      "example": "stats_linear_diagnostic_plot(x, y, {view: \"qq\"})  # view: \"residuals\" or \"qq\"",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_linear_diagnostics",
-      "signature": "stats_linear_diagnostics(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_linear_diagnostics(x, y, options?) → Record{residual_mse,normal_qq_correlation,cook_distances}",
+      "category": "stats",
+      "summary": "Residual form, spread, Q-Q, order and influence clues for a simple linear model.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "x",
+        "y",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_linear_diagnostics(x, y)  # → residual clues and Cook distances",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_means",
-      "signature": "stats_means(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_means(values, options?) → Record{arithmetic_mean,geometric_mean,harmonic_mean,median,centre_spread_pairs}",
+      "category": "stats",
+      "summary": "Every mean paired with a compatible spread, so neither is quoted alone.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_means([2.0, 4.0, 8.0])  # → every mean paired with a compatible spread",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_missingness",
-      "signature": "stats_missingness(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_missingness(table, options?) → Record{columns,missing_by_row,co_missing}",
+      "category": "stats",
+      "summary": "Missingness by row, column, pair and optional group.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_missingness(trial, {group_column: \"arm\"})  # → by column, row, pair and group",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_missingness_plot",
-      "signature": "stats_missingness_plot(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_missingness_plot(table, options?) → Str",
+      "category": "stats",
+      "summary": "Missingness map, in SVG or ASCII.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Str",
+      "example": "stats_missingness_plot(trial, {format: \"ascii\"})",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_multiple_linear_diagnostics",
-      "signature": "stats_multiple_linear_diagnostics(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_multiple_linear_diagnostics(predictors, outcome, options?) → Record{coefficients,maximum_vif,validation_rmse}",
+      "category": "stats",
+      "summary": "Categorical encoding, interactions, VIF, influence and deterministic held-out error.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "predictors",
+        "outcome",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_multiple_linear_diagnostics(predictors, y, {validation_folds: 4})",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "stats_normal_diagram",
+      "signature": "stats_normal_diagram(values?, options?) → Str",
+      "category": "stats",
+      "summary": "Normal-curve teaching diagram with 1/2/3-SD regions, optional observed coverage and z-tail highlighting.",
+      "parameters": [
+        "values?",
+        "options?"
+      ],
+      "returnType": "Str",
+      "example": "stats_normal_diagram()  # → teaching curve with 1/2/3-SD regions",
+      "arity": {
+        "kind": "range",
+        "minimum": 0,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_normal_qq_plot",
-      "signature": "stats_normal_qq_plot(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_normal_qq_plot(values, options?) → Str",
+      "category": "stats",
+      "summary": "Normal-distribution Q-Q diagnostic, distinct from the genomic qq_plot().",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Str",
+      "example": "stats_normal_qq_plot(values)  # distinct from the genomic qq_plot()",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_normalization_guide",
-      "signature": "stats_normalization_guide(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_normalization_guide(matrix, options?) → Record{data_type,suggestions,automatic_changes}",
+      "category": "stats",
+      "summary": "Dense or sparse matrix audit and domain-aware normalisation alternatives.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "matrix",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_normalization_guide(counts_matrix)  # → audit and alternatives; nothing applied",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_omics_profile",
-      "signature": "stats_omics_profile(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_omics_profile(matrix, options?) → Record{modality,suggestions,automatic_changes}",
+      "category": "stats",
+      "summary": "Modality-aware matrix profile that preserves sparse semantics.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "matrix",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_omics_profile(counts_matrix, {modality: \"single_cell\"})  # sparse stays sparse",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_overview_ascii",
-      "signature": "stats_overview_ascii(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_overview_ascii(table, options?) → Str",
+      "category": "stats",
+      "summary": "Compact terminal-safe whole-table summary.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Str",
+      "example": "stats_overview_ascii(trial)  # → terminal-safe whole-table summary",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_preprocess",
-      "signature": "stats_preprocess(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_preprocess(values, options?) → Record{issues,suggestions,automatic_changes}",
+      "category": "stats",
+      "summary": "Observable data-quality issues and non-applied normalisation alternatives.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_preprocess(values)  # → issues and suggestions; nothing is applied",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_profile",
-      "signature": "stats_profile(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_profile(table, options?) → Record{columns,missingness,duplicate_rows,design}",
+      "category": "stats",
+      "summary": "Whole-table types, summaries, missingness, duplicates and design clues.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_profile(trial, {subject_column: \"patient\"})  # → columns, missingness, design",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_random_intercept_model",
-      "signature": "stats_random_intercept_model(arg1, arg2, arg3, arg4?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "signature": "stats_random_intercept_model(predictors, outcome, clusters, options?) → Record{fixed_effects,random_intercept_variance,residual_variance,intraclass_correlation}",
+      "category": "stats",
+      "summary": "One random intercept by REML: fixed effects, variance components, ICC and partially pooled intercepts.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3",
-        "arg4?"
+        "predictors",
+        "outcome",
+        "clusters",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_random_intercept_model(predictors, outcome, subject_ids, {method: \"reml\"})",
       "arity": {
         "kind": "range",
         "minimum": 3,
         "maximum": 4
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_relationship",
-      "signature": "stats_relationship(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_relationship(x, y, options?) → Record{kind,pearson,spearman,slope,intercept}",
+      "category": "stats",
+      "summary": "Complete-pair counts, Pearson and Spearman association, and a regression line.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "x",
+        "y",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_relationship(x, y)  # → Pearson, Spearman and a fitted line",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_relationship_plot",
-      "signature": "stats_relationship_plot(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_relationship_plot(x, y, options?) → Str",
+      "category": "stats",
+      "summary": "Scatterplot and fitted line, in SVG or ASCII.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "x",
+        "y",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Str",
+      "example": "stats_relationship_plot(x, y)  # → scatterplot and fitted line",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_report",
-      "signature": "stats_report(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_report(table, options?) → Record{format,content,provenance}",
+      "category": "stats",
+      "summary": "Self-contained HTML or Markdown data-health report with provenance.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_report(trial, {format: \"html\"})  # → .content, .mime_type, .provenance",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_robust_linear_diagnostics",
-      "signature": "stats_robust_linear_diagnostics(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_robust_linear_diagnostics(predictors, outcome, options?) → Record{coefficients,weights,converged}",
+      "category": "stats",
+      "summary": "Huber regression as an explicit sensitivity check against the ordinary fit.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "predictors",
+        "outcome",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_robust_linear_diagnostics(predictors, y)  # Huber, as an explicit sensitivity check",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_scan",
-      "signature": "stats_scan(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_scan(table, options?) → Record{profile,associations,recommendations}",
+      "category": "stats",
+      "summary": "One-command profile, association screen and prioritised next steps.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_scan(trial)  # profile, association screen and prioritised next steps",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_shape",
-      "signature": "stats_shape(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_shape(values, options?) → Record{kind,evidence,sensitivity}",
+      "category": "stats",
+      "summary": "Skewness, kurtosis, histogram-peak and normal-Q-Q evidence, with no diagnosis.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_shape(values)  # → skewness, kurtosis and Q-Q evidence; no diagnosis",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_time_series_diagnostics",
-      "signature": "stats_time_series_diagnostics(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_time_series_diagnostics(values, options?) → Record{autocorrelations,ljung_box_p_value,trend_per_observation}",
+      "category": "stats",
+      "summary": "Autocorrelation, Ljung-Box and trend evidence for ordered observations.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_time_series_diagnostics(series)  # → autocorrelations, Ljung-Box, trend",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_transform_preview",
-      "signature": "stats_transform_preview(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_transform_preview(values, method, options?) → Record{before,after,input_modified}",
+      "category": "stats",
+      "summary": "Before-and-after evidence for a transform, without applying it.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "values",
+        "method",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_transform_preview(values, \"log\")  # → before and after; input unchanged",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_uncertainty",
-      "signature": "stats_uncertainty(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "stats_uncertainty(values, options?) → Record{estimate,lower,upper,seed,method}",
+      "category": "stats",
+      "summary": "Seeded bootstrap interval for a centre, spread, group difference or correlation.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "values",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_uncertainty(values, {statistic: \"median\", seed: 42})  # seeded, and the seed is returned",
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "stats_visualize",
+      "signature": "stats_visualize(report, options?) → Str",
+      "category": "stats",
+      "summary": "Render an exploration report's visual guide as SVG or terminal-safe ASCII.",
+      "parameters": [
+        "report",
+        "options?"
+      ],
+      "returnType": "Str",
+      "example": "stats_visualize(report, {format: \"ascii\"})",
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
     },
     {
       "name": "stats_weighted_summary",
-      "signature": "stats_weighted_summary(arg1, arg2, arg3?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "signature": "stats_weighted_summary(values, weights, options?) → Record{weighted_mean,effective_sample_size}",
+      "category": "stats",
+      "summary": "Weighted moments with the weighting scheme and effective sample size disclosed.",
       "parameters": [
-        "arg1",
-        "arg2",
-        "arg3?"
+        "values",
+        "weights",
+        "options?"
       ],
-      "returnType": null,
-      "example": null,
+      "returnType": "Record",
+      "example": "stats_weighted_summary(values, weights)  # → weighted mean and effective sample size",
       "arity": {
         "kind": "range",
         "minimum": 2,
         "maximum": 3
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "stdev",
@@ -16665,7 +16966,7 @@
     },
     {
       "name": "summary",
-      "signature": "summary(list) → Record{min,q1,median,mean,q3,max}",
+      "signature": "summary(list) → Record{count,min,median,mean,max,sd}",
       "category": "stats",
       "summary": "BioLang stats builtin.",
       "parameters": [
@@ -17815,17 +18116,17 @@
       "name": "ttest",
       "signature": "ttest(list1, list2) → Record{statistic,p_value,df,mean_diff}",
       "category": "stats",
-      "summary": "BioLang stats builtin.",
+      "summary": "Two-sample t test. Two arguments preserve the pooled Student form; pass {variance: \"welch\"} for Welch/R-default inference. Returns method, interval, and effect size.",
       "parameters": [
         "list1",
         "list2"
       ],
       "returnType": "Record",
-      "example": "ttest([1,2,3], [4,5,6])  # → {t, p, df}",
+      "example": "ttest([1,2,3], [4,5,9], {variance: \"welch\"})  # → method, p, CI, effect",
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 2,
-        "maximum": 2
+        "maximum": 3
       },
       "metadataQuality": "curated"
     },
@@ -17839,11 +18140,11 @@
         "mu"
       ],
       "returnType": "Record{statistic,p_value,df}",
-      "example": null,
+      "example": "ttest_one([5.1, 4.9, 5.0], 5.0)  # → Record{statistic,p_value,df}",
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 2,
-        "maximum": 2
+        "maximum": 3
       },
       "metadataQuality": "curated"
     },
@@ -17857,10 +18158,28 @@
         "list2"
       ],
       "returnType": "Record{statistic,p_value,df,mean_diff}",
-      "example": null,
+      "example": "ttest_paired([5.1, 4.9], [4.8, 4.6])  # → Record{statistic,p_value,df,mean_diff}",
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "tukey_hsd",
+      "signature": "tukey_hsd(groups, options?) → Record{comparisons,critical_value}",
+      "category": "stats",
+      "summary": "Tukey-Kramer all-pairs comparison using the studentized-range distribution and simultaneous family-wise confidence intervals.",
+      "parameters": [
+        "groups",
+        "options?"
+      ],
+      "returnType": "Record",
+      "example": "tukey_hsd(groups)  # → simultaneous all-pairs comparisons",
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
         "maximum": 2
       },
       "metadataQuality": "curated"
@@ -18386,7 +18705,7 @@
         "list"
       ],
       "returnType": "Float",
-      "example": null,
+      "example": "variance([2.0, 4.0, 4.0, 6.0])  # → 2.6667 (sample, n-1)",
       "arity": {
         "kind": "exact",
         "minimum": 1,
@@ -18520,7 +18839,7 @@
     },
     {
       "name": "velocity_estimate",
-      "signature": "velocity_estimate(spliced, unspliced) -> matrix",
+      "signature": "velocity_estimate(spliced, unspliced) → matrix",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -18752,19 +19071,38 @@
     },
     {
       "name": "wilcoxon",
-      "signature": "wilcoxon(list1, list2) → Record{u,p}",
+      "signature": "wilcoxon(list1, list2) → Record{u_statistic,p_value,effect_size}",
       "category": "stats",
-      "summary": "BioLang stats builtin.",
+      "summary": "Independent-group Mann-Whitney rank-sum test. Default: normal approximation without continuity correction; options select method: \"exact\" or continuity: true.",
       "parameters": [
         "list1",
         "list2"
       ],
-      "returnType": "Record{u,p}",
-      "example": null,
+      "returnType": "Record{u_statistic,p_value,effect_size}",
+      "example": "wilcoxon([1.0,2.0,3.0], [4.0,5.0,6.0])  # → Record{u_statistic,p_value,effect_size}",
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 2,
-        "maximum": 2
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "wilcoxon_paired",
+      "signature": "wilcoxon_paired(before, after, options?) → Record{v_statistic,p_value,effect_size}",
+      "category": "stats",
+      "summary": "Paired Wilcoxon signed-rank test on a-b differences. Default: tie-corrected normal approximation; options select method: \"exact\" or continuity: true.",
+      "parameters": [
+        "before",
+        "after",
+        "options?"
+      ],
+      "returnType": "Record{v_statistic,p_value,effect_size}",
+      "example": "wilcoxon_paired(before, after, {method: \"normal\"})",
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
       },
       "metadataQuality": "curated"
     },
@@ -18825,7 +19163,7 @@
     },
     {
       "name": "wnn_graph",
-      "signature": "wnn_graph(rna_edges, protein_edges, rna_weight) -> List[Record]",
+      "signature": "wnn_graph(rna_edges, protein_edges, rna_weight) → List[Record]",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [
@@ -18844,7 +19182,7 @@
     },
     {
       "name": "write_anndata",
-      "signature": "write_anndata(zarr_path, object) -> Nil (preserves CSR sparsity)",
+      "signature": "write_anndata(zarr_path, object) → Nil (preserves CSR sparsity)",
       "category": "singlecell",
       "summary": "BioLang singlecell builtin.",
       "parameters": [

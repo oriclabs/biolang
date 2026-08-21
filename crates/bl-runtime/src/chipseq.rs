@@ -5,6 +5,7 @@
 
 use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::value::{Arity, Table, Value};
+use std::collections::HashMap;
 
 // ── Registry ─────────────────────────────────────────────────────────
 
@@ -172,11 +173,23 @@ fn builtin_consensus_peaks(args: Vec<Value>) -> Result<Value> {
 
     let n_samples = tables.len();
 
-    // Collect all peaks across all samples and merge
+    // Extract once. The old implementation called extract_peaks inside the
+    // merged-peak loop and linearly scanned every sample for every output peak,
+    // which is quadratic at scATAC scale (hundreds of thousands of peaks).
+    let mut peaks_by_sample: Vec<HashMap<String, Vec<(i64, i64)>>> =
+        Vec::with_capacity(tables.len());
+
+    // Collect all peaks across all samples and merge.
     let mut all_peaks: Vec<(String, i64, i64)> = Vec::new();
     for table in &tables {
         let peaks = extract_peaks(table, "consensus_peaks")?;
-        all_peaks.extend(peaks);
+        all_peaks.extend(peaks.iter().cloned());
+        let merged_sample = merge_intervals(peaks);
+        let mut by_chrom: HashMap<String, Vec<(i64, i64)>> = HashMap::new();
+        for (chrom, start, end, _) in merged_sample {
+            by_chrom.entry(chrom).or_default().push((start, end));
+        }
+        peaks_by_sample.push(by_chrom);
     }
     let merged = merge_intervals(all_peaks);
 
@@ -190,14 +203,15 @@ fn builtin_consensus_peaks(args: Vec<Value>) -> Result<Value> {
         .into_iter()
         .filter_map(|(chrom, start, end, _)| {
             let mut count = 0usize;
-            for table in &tables {
-                if let Ok(peaks) = extract_peaks(table, "consensus_peaks") {
-                    let overlaps = peaks
-                        .iter()
-                        .any(|(c, s, e)| c == &chrom && *e > start && *s < end);
-                    if overlaps {
-                        count += 1;
-                    }
+            for sample in &peaks_by_sample {
+                let Some(peaks) = sample.get(&chrom) else {
+                    continue;
+                };
+                // Per-sample intervals are merged and sorted. Only the last
+                // interval whose start is before `end` can overlap `start`.
+                let position = peaks.partition_point(|&(peak_start, _)| peak_start < end);
+                if position > 0 && peaks[position - 1].1 > start {
+                    count += 1;
                 }
             }
             if count >= min_overlap.min(n_samples) {

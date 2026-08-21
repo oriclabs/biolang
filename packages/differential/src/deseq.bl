@@ -174,7 +174,9 @@ fn de_wald(norm_counts, group_a_cols, group_b_cols) {
         let n_a = len(vals_a)
         let n_b = len(vals_b)
 
-        # Pooled standard error (Welch t-test)
+        # Unequal-variance standard error used by Welch's t-test.
+        # The p-value below is only a coarse lookup approximation, not a full
+        # Welch test (it does not use the Satterthwaite degrees of freedom).
         let se = sqrt(var_a / n_a + var_b / n_b)
 
         # t-statistic (0 if se is zero)

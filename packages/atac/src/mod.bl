@@ -19,15 +19,46 @@
 #
 # activity() returns the same object shape as read_10x(), so every singlecell
 # function works on it unchanged.
+#
+# Quick start — genome-scale peaks, TF-IDF/LSI, Harmony, clustering:
+#   let union = atac.consensus(sample_peak_tables, 1)
+#       |> atac.filter_peaks(20, 10000, hg38_blacklist)
+#   let obj = atac.peaks_sparse("fragments.tsv.gz", union, qc_barcodes)
+#       |> atac.tfidf() |> atac.top_features(20) |> atac.lsi(50)
+#       |> atac.select_dimensions(range(1, 30))
+#       |> atac.harmony(batch_ids)
+#       |> sc.neighbors(20) |> sc.cluster_leiden(20, 0.4) |> sc.run_umap(29)
 
-import "atac/src/qc"     as qc
+import "atac/src/qc"     as qc_impl
 import "atac/src/counts" as counts
+import "atac/src/preprocess" as prep
 
-fn sizes(lengths)                       { qc.sizes(lengths) }
-fn nfr(lengths)                         { qc.nfr(lengths) }
-fn nucleosomes(lengths)                 { qc.nucl(lengths) }
-fn tss(lengths, dists, flank=2000)      { qc.tss(lengths, dists, flank) }
+fn sizes(lengths)                       { qc_impl.sizes(lengths) }
+fn nfr(lengths)                         { qc_impl.nfr(lengths) }
+fn nucleosomes(lengths)                 { qc_impl.nucl(lengths) }
+fn tss(lengths, dists, flank=2000)      { qc_impl.tss(lengths, dists, flank) }
 fn qc(lengths)                          { atac_qc(lengths) }
+fn fragment_metrics(fragments, barcodes = nil, max_lines = nil) {
+    qc_impl.fragment_metrics(fragments, barcodes, max_lines)
+}
+fn signac_nucleosome(fragments, barcodes) {
+    qc_impl.signac_nucleosome(fragments, barcodes)
+}
+fn peak_metrics(matrix, peaks, blacklist = nil) {
+    qc_impl.peak_metrics(matrix, peaks, blacklist)
+}
+fn frip(peak_region_fragments, passed_filters) {
+    qc_impl.frip(peak_region_fragments, passed_filters)
+}
+fn tss_metrics(fragments, tss_positions, barcodes, region_extension = 1000) {
+    qc_impl.tss_metrics(fragments, tss_positions, barcodes, region_extension)
+}
+fn ngs101_part2_filter(passed, tss, frip, nucleosome, blacklist) {
+    qc_impl.ngs101_part2_filter(passed, tss, frip, nucleosome, blacklist)
+}
+fn detected_features(matrix, min_cells) {
+    qc_impl.detected_features(matrix, min_cells)
+}
 
 # ─── Quantification ───────────────────────────────────────────────────────────
 
@@ -36,5 +67,23 @@ fn activity(fragments, genes, upstream = 2000, downstream = 0, barcodes = nil) {
 }
 fn peaks(fragments, peak_table, barcodes = nil) {
     counts.peaks(fragments, peak_table, barcodes)
+}
+fn peaks_sparse(fragments, peak_table, barcodes = nil) {
+    counts.peaks_sparse(fragments, peak_table, barcodes)
+}
+fn consensus(peak_tables, min_samples = 1) { prep.consensus(peak_tables, min_samples) }
+fn merge_samples(objects, sample_ids)       { prep.merge_samples(objects, sample_ids) }
+fn filter_peaks(peaks, min_width = 20, max_width = 10000, blacklist = nil,
+                standard_chromosomes = true) {
+    prep.filter_peaks(peaks, min_width, max_width, blacklist, standard_chromosomes)
+}
+fn tfidf(obj, scale_factor = 10000)       { prep.tfidf(obj, scale_factor) }
+fn top_features(obj, min_cutoff = 20)     { prep.top_features(obj, min_cutoff) }
+fn lsi(obj, n_components = 50)            { prep.lsi(obj, n_components) }
+fn depth_cor(obj, n_components = 10)      { prep.depth_cor(obj, n_components) }
+fn mixing_score(obj, batch_ids, k = 30)   { prep.mixing_score(obj, batch_ids, k) }
+fn select_dimensions(obj, dimensions)     { prep.select_dimensions(obj, dimensions) }
+fn harmony(obj, batch_ids, theta = nil, n_clusters = nil) {
+    prep.harmony(obj, batch_ids, theta, n_clusters)
 }
 fn from_gtf(gtf_text)                   { counts.from_gtf(gtf_text) }

@@ -1,7 +1,7 @@
 [package]
 name = "atac"
 version = "0.1.0"
-description = "ATAC-seq quality control: fragment size distribution, NFR enrichment, TSS enrichment, nucleosome fractions"
+description = "Sparse scATAC-seq quantification, TF-IDF/LSI, Harmony integration, clustering inputs, and quality control"
 authors = ["BioLang"]
 
 [lib]

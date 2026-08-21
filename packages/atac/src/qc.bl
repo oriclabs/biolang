@@ -2,3 +2,65 @@ fn sizes(lengths)                    { fragment_size_dist(lengths) }
 fn nfr(lengths)                      { nfr_enrichment(lengths) }
 fn nucl(lengths)                     { nucleosome_fractions(lengths) }
 fn tss(lengths, dists, flank=2000)   { tss_enrichment_score(lengths, dists, flank) }
+
+## fragment_metrics(fragments, barcodes, max_lines) -> Table
+##
+## Per-cell fragment counts and Signac-compatible nucleosome signal. A fragment
+## is nucleosome-free below 147 bp and mononucleosomal from 147 through 294 bp;
+## the reported signal is mononucleosomal / nucleosome-free. Set max_lines to
+## len(barcodes) * 5000 to reproduce NucleosomeSignal's default sampling.
+fn fragment_metrics(fragments, barcodes = nil, max_lines = nil) {
+    atac_fragment_qc(fragments, barcodes, max_lines)
+}
+
+## signac_nucleosome(fragments, barcodes) -> Table
+##
+## Compatibility shortcut for the deprecated Signac NucleosomeSignal default
+## used by the NGS101 Part 2 article.
+fn signac_nucleosome(fragments, barcodes) {
+    fragment_metrics(fragments, barcodes, len(barcodes) * 5000)
+}
+
+## peak_metrics(matrix, peaks, blacklist) -> Table
+##
+## Per-cell nCount_peaks, nFeature_peaks, and the Signac-style fraction of peak
+## counts in features overlapping blacklist regions. Run this before removing
+## blacklist peaks or the ratio will be zero by construction.
+fn peak_metrics(matrix, peaks, blacklist = nil) {
+    atac_peak_qc(matrix, peaks, blacklist)
+}
+
+## frip(peak_region_fragments, passed_filters) -> List<Number>
+##
+## Cell Ranger/NGS101 percentage of fragments in peaks. Both input columns come
+## from singlecell.csv; this is not nCount_peaks, because overlapping peak
+## features can count one fragment more than once in the matrix.
+fn frip(peak_region_fragments, passed_filters) {
+    atac_frip(peak_region_fragments, passed_filters)
+}
+
+## tss_metrics(fragments, tss_positions, barcodes, region_extension) -> Table
+##
+## Per-cell Signac 1.17 TSSEnrichment metric matching the fast=FALSE path used
+## by NGS101 Part 2. tss_positions needs chrom plus position/tss, or 1-based
+## inclusive chrom/start/end/strand annotation columns.
+fn tss_metrics(fragments, tss_positions, barcodes, region_extension = 1000) {
+    atac_tss_qc(fragments, tss_positions, barcodes, region_extension)
+}
+
+## ngs101_part2_filter(passed, tss, frip, nucleosome, blacklist) -> Record
+##
+## Apply the article's six severe-PBMC thresholds and return retained indices
+## plus an overlapping failure audit. This profile is intentionally named after
+## the article because these thresholds are not universal ATAC defaults.
+fn ngs101_part2_filter(passed, tss, frip, nucleosome, blacklist) {
+    atac_ngs101_qc(passed, tss, frip, nucleosome, blacklist)
+}
+
+## detected_features(matrix, min_cells) -> List<Int>
+##
+## Indices of peaks detected (>0) in at least min_cells cells. NGS101 Part 2
+## uses max(10, ceil(0.005 * n_cells)) after cell and doublet filtering.
+fn detected_features(matrix, min_cells) {
+    atac_detected_features(matrix, min_cells)
+}

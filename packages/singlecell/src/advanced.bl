@@ -322,7 +322,7 @@ fn cluster_diagnostics(obj) {
     if not contains(keys(obj), "clusters") {
         error("sc.cluster_diagnostics() needs cluster labels")
     }
-    let prepared = if contains(keys(obj), "pca_scores") { obj } else { _pre.run_pca(obj) }
+    let prepared = if _pre.has_embedding(obj) { obj } else { _pre.run_pca(obj) }
     let result = _silhouette(_pre.embedding_of(prepared), prepared.clusters)
     {... result,
      clusters: prepared.clusters,

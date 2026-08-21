@@ -470,14 +470,14 @@ fn build_call_maps() -> Vec<CallMap> {
             r"\bCreateChromatinAssay\(counts\s*=\s*([^,)]+)[^)]*\)",
             "$1  # TODO: ATAC assay — store as matrix",
         ),
-        CallMap::new(r"\bRunTFIDF\(([^,)]+)[^)]*\)", "normalize_total($1) |> log1p_transform  # TF-IDF ≈ normalisation"),
+        CallMap::new(r"\bRunTFIDF\(([^,)]+)[^)]*\)", "atac.tfidf($1)"),
         CallMap::new(
             r"\bFindTopFeatures\(([^,)]+),\s*min\.cutoff\s*=\s*([^,)]+)[^)]*\)",
-            "highly_variable_genes($1)  # top accessible peaks (min.cutoff=$2)",
+            "atac.top_features($1, $2)",
         ),
-        CallMap::new(r"\bFindTopFeatures\(([^,)]+)[^)]*\)", "highly_variable_genes($1)"),
-        CallMap::new(r"\bRunSVD\(([^,)]+)[^)]*\)", "pca($1)  # LSI via SVD ≈ PCA for ATAC"),
-        CallMap::new(r"\bDepthCor\(([^,)]+)[^)]*\)", "# TODO: depth correlation plot"),
+        CallMap::new(r"\bFindTopFeatures\(([^,)]+)[^)]*\)", "atac.top_features($1)"),
+        CallMap::new(r"\bRunSVD\(([^,)]+)[^)]*\)", "atac.lsi($1)"),
+        CallMap::new(r"\bDepthCor\(([^,)]+)[^)]*\)", "atac.depth_cor($1)"),
         CallMap::new(
             r"\bLinkPeaks\(([^,)]+)[^)]*\)",
             "# TODO: peak-gene linking not in BioLang yet",
@@ -1393,7 +1393,7 @@ fn r_package_import(pkg: &str, todos: &mut usize) -> String {
         "MAST" => "# MAST: single-cell DE — use diff_expr() builtin or import \"differential\" as de".to_string(),
         "monocle3" | "monocle" => "# monocle3: use trajectory builtins + import \"singlecell\" as sc".to_string(),
         "slingshot" => "# slingshot: use diffusion_pseudotime() builtin".to_string(),
-        "Signac" => "# Signac: ATAC-seq — normalize_total, pca, knn_graph, leiden patterns converted; peak-gene linking needs manual review".to_string(),
+        "Signac" => "import \"atac\" as atac  # TF-IDF, LSI, depth correlation, fragment counting".to_string(),
         "ChIPseeker" => "# ChIPseeker: peak_annotation(), consensus_peaks() are builtins — import \"chipseq\" as chip".to_string(),
         "DiffBind" => "# DiffBind: frip_score(), merge_peaks(), consensus_peaks(), diff_expr() are builtins — import \"chipseq\" as chip".to_string(),
         "minfi" | "methylKit" => { *todos += 1; "# TODO: methylation analysis not yet in BioLang".to_string() }

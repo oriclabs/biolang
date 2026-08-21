@@ -275,6 +275,28 @@ fn matrix_to_value(mat: Vec<Vec<f64>>) -> Value {
     )
 }
 
+/// Store a native numeric result without boxing every number as a language
+/// value. This matters for ATAC LSI loadings, where hundreds of thousands of
+/// peaks times 50 components are otherwise represented by millions of heap-
+/// heavy `Value::Float` entries.
+fn matrix_to_compact_value(mat: Vec<Vec<f64>>, func: &str) -> Result<Value> {
+    let nrow = mat.len();
+    let ncol = mat.first().map(Vec::len).unwrap_or(0);
+    if mat.iter().any(|row| row.len() != ncol) {
+        return Err(BioLangError::type_error(
+            format!("{func}(): internal matrix rows have unequal length"),
+            None,
+        ));
+    }
+    let mut data = Vec::with_capacity(nrow.saturating_mul(ncol));
+    for row in mat {
+        data.extend(row);
+    }
+    let matrix = bl_core::matrix::Matrix::new(data, nrow, ncol)
+        .map_err(|error| BioLangError::type_error(format!("{func}(): {error}"), None))?;
+    Ok(Value::Matrix(matrix.into()))
+}
+
 // â”€â”€ select_cols(matrix, indices) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Subset a matrix to the given column indices, in Rust. Replaces the
 // interpreted `mat |> map(|row| idx |> map(|j| row[j]))` double-loop that
@@ -758,7 +780,19 @@ fn jacobi_eigen_symmetric(input: &[Vec<f64>]) -> (Vec<Vec<f64>>, Vec<f64>) {
 /// element through interpreted nested maps.
 fn builtin_sc_scale(args: Vec<Value>) -> Result<Value> {
     let matrix = singlecell_matrix(&args[0], "sc_scale")?;
-    let clip = args.get(1).and_then(to_f64).unwrap_or(10.0).abs();
+    // Omitted means the historical BioLang default of 10. Explicit nil means
+    // no clipping, matching Signac RunSVD(scale.max = NULL).
+    let clip = match args.get(1) {
+        None => Some(10.0),
+        Some(Value::Nil) => None,
+        Some(value) => Some(
+            to_f64(value)
+                .ok_or_else(|| {
+                    BioLangError::type_error("sc_scale() clip must be a Number or nil", None)
+                })?
+                .abs(),
+        ),
+    };
     let (rows, columns) = matrix.dimensions();
     if rows == 0 || columns == 0 {
         return Ok(Value::Matrix(
@@ -781,10 +815,11 @@ fn builtin_sc_scale(args: Vec<Value>) -> Result<Value> {
     let mut scaled = Vec::with_capacity(rows * columns);
     for row in 0..rows {
         for column in 0..columns {
-            scaled.push(
-                ((matrix.value_at(row, column) - means[column]) / deviations[column])
-                    .clamp(-clip, clip),
-            );
+            let value = (matrix.value_at(row, column) - means[column]) / deviations[column];
+            scaled.push(match clip {
+                Some(limit) => value.clamp(-limit, limit),
+                None => value,
+            });
         }
     }
     let output = bl_core::matrix::Matrix::new(scaled, rows, columns)
@@ -1418,15 +1453,37 @@ fn builtin_sc_pca_matrix_lanczos(
             })
         })
         .collect::<Vec<_>>();
+    let compact = matches!(opts.get("compact"), Some(Value::Bool(true)));
+    let scores_value = if compact {
+        matrix_to_compact_value(scores, "sc_pca")?
+    } else {
+        matrix_to_value(scores)
+    };
+    let loadings_value = if compact {
+        matrix_to_compact_value(loadings, "sc_pca")?
+    } else {
+        matrix_to_value(loadings)
+    };
     Ok(Value::Record(
         HashMap::from([
-            ("scores".to_string(), matrix_to_value(scores)),
-            ("loadings".to_string(), matrix_to_value(loadings)),
+            ("scores".to_string(), scores_value),
+            ("loadings".to_string(), loadings_value),
             (
                 "explained_variance".to_string(),
                 Value::List(
                     explained_variance
                         .into_iter()
+                        .map(Value::Float)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ),
+            (
+                "singular_values".to_string(),
+                Value::List(
+                    singular
+                        .iter()
+                        .copied()
                         .map(Value::Float)
                         .collect::<Vec<_>>()
                         .into(),
@@ -2385,9 +2442,35 @@ fn builtin_sc_merge_objects(args: Vec<Value>) -> Result<Value> {
         }
         result.insert("layers".to_string(), Value::Record(layers.into()));
     }
-    let mut batch_ids = Vec::with_capacity(left_cells + right_cells);
-    batch_ids.extend((0..left_cells).map(|_| args[2].clone()));
-    batch_ids.extend((0..right_cells).map(|_| args[3].clone()));
+    let labels_for = |object: &HashMap<String, Value>,
+                      cells: usize,
+                      supplied: &Value,
+                      side: &str|
+     -> Result<Vec<Value>> {
+        if !matches!(supplied, Value::Nil) {
+            return Ok((0..cells).map(|_| supplied.clone()).collect());
+        }
+        match object.get("batch_ids") {
+            Some(Value::List(existing)) if existing.len() == cells => {
+                Ok(existing.iter().cloned().collect())
+            }
+            Some(Value::List(existing)) => Err(BioLangError::type_error(
+                format!(
+                    "sc_merge_objects() {side} object has {} batch_ids for {cells} cells",
+                    existing.len()
+                ),
+                None,
+            )),
+            _ => Err(BioLangError::type_error(
+                format!(
+                    "sc_merge_objects() nil {side} batch label requires an existing batch_ids list"
+                ),
+                None,
+            )),
+        }
+    };
+    let mut batch_ids = labels_for(left, left_cells, &args[2], "left")?;
+    batch_ids.extend(labels_for(right, right_cells, &args[3], "right")?);
     result.insert("batch_ids".to_string(), Value::List(batch_ids.into()));
     result.insert(
         "n_cells".to_string(),
@@ -5327,12 +5410,17 @@ fn builtin_harmony_integrate(args: Vec<Value>) -> Result<Value> {
     let sigma = number("sigma", 0.1).max(1e-6);
     let ridge = number("lambda", 1.0);
     let max_iter = number("max_iter", 10.0).max(1.0) as usize;
+    let compact = matches!(opts.get("compact"), Some(Value::Bool(true)));
 
     let embedding = require_matrix(&args[0], "harmony_integrate")?;
     let n_cells = embedding.len();
     let n_dims = embedding.first().map(|row| row.len()).unwrap_or(0);
     if n_cells == 0 || n_dims == 0 {
-        return Ok(matrix_to_value(embedding));
+        return if compact {
+            matrix_to_compact_value(embedding, "harmony_integrate")
+        } else {
+            Ok(matrix_to_value(embedding))
+        };
     }
 
     let labels: Vec<String> = match &args[1] {
@@ -5371,7 +5459,11 @@ fn builtin_harmony_integrate(args: Vec<Value>) -> Result<Value> {
     let n_batches = batch_order.len();
     if n_batches < 2 {
         // One batch is nothing to correct, and the regression would be singular.
-        return Ok(matrix_to_value(embedding));
+        return if compact {
+            matrix_to_compact_value(embedding, "harmony_integrate")
+        } else {
+            Ok(matrix_to_value(embedding))
+        };
     }
     let batch_sizes: Vec<f64> = (0..n_batches)
         .map(|b| batch_of.iter().filter(|&&x| x == b).count() as f64)
@@ -5433,7 +5525,14 @@ fn builtin_harmony_integrate(args: Vec<Value>) -> Result<Value> {
         }
     }
 
-    Ok(flat_matrix_to_value(&corrected, n_dims))
+    if compact {
+        let matrix = bl_core::matrix::Matrix::new(corrected, n_cells, n_dims).map_err(|error| {
+            BioLangError::type_error(format!("harmony_integrate(): {error}"), None)
+        })?;
+        Ok(Value::Matrix(matrix.into()))
+    } else {
+        Ok(flat_matrix_to_value(&corrected, n_dims))
+    }
 }
 
 /// A row-major flat matrix as the nested-list `Value` the language expects.
@@ -6444,7 +6543,7 @@ fn rp_tree_candidates(
 /// Deterministic random-projection-forest search for HBC-scale datasets.
 /// Candidate distances are evaluated exactly. Small inputs retain all-pairs
 /// search so existing fixtures and small analyses do not change.
-fn neighbour_rows_metric(
+pub(crate) fn neighbour_rows_metric(
     embeddings: &[Vec<f64>],
     k: usize,
     metric: &str,
@@ -7413,11 +7512,13 @@ fn read_10x_impl(args: Vec<Value>, sparse: bool) -> Result<Value> {
         "features.tsv",
         "genes.tsv.gz",
         "genes.tsv",
+        "peaks.bed.gz",
+        "peaks.bed",
     ])
     .ok_or_else(|| {
         BioLangError::runtime(
             ErrorKind::IOError,
-            format!("read_10x(): features.tsv not found in {dir_str}"),
+            format!("read_10x(): features.tsv or peaks.bed not found in {dir_str}"),
             None,
         )
     })?;
@@ -7434,13 +7535,20 @@ fn read_10x_impl(args: Vec<Value>, sparse: bool) -> Result<Value> {
         .filter(|l| !l.is_empty())
         .collect();
 
+    let is_peak_bed = features_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.starts_with("peaks.bed"));
+
     // features.tsv is `gene_id \t gene_symbol \t feature_type`. Default to the
     // symbol, matching Seurat's Read10X(gene.column = 2) and scanpy's
     // read_10x_mtx(var_names="gene_symbols"). Downstream steps match on symbols
     // â€” the "MT-" prefix for percent-mito, marker panels, DE output â€” so
     // reading the Ensembl ID here makes percent-mito silently zero.
     // Pass gene_column = 1 to get Ensembl IDs instead.
-    let gene_column = if args.len() > 1 {
+    let gene_column = if is_peak_bed {
+        1
+    } else if args.len() > 1 {
         match &args[1] {
             Value::Int(n) if *n == 1 || *n == 2 => *n as usize,
             Value::Int(n) => {
@@ -7461,22 +7569,60 @@ fn read_10x_impl(args: Vec<Value>, sparse: bool) -> Result<Value> {
         2
     };
 
-    let mut genes: Vec<String> = read_lines_from_path(&features_path)?
-        .into_iter()
-        .filter(|l| !l.is_empty())
-        .map(|l| {
-            let cols: Vec<&str> = l.split('\t').collect();
-            let pick = cols.get(gene_column - 1).map(|s| s.trim()).unwrap_or("");
-            if pick.is_empty() {
-                // old-style genes.tsv, or a single-column features file
-                cols.first().map(|s| s.trim()).unwrap_or("").to_string()
-            } else {
-                pick.to_string()
-            }
-        })
-        .collect();
+    let feature_lines = read_lines_from_path(&features_path)?;
+    let peak_ranges: Option<Vec<(String, i64, i64)>> = is_peak_bed.then(|| {
+        feature_lines
+            .iter()
+            .filter(|line| !line.is_empty() && !line.starts_with('#'))
+            .filter_map(|line| {
+                let mut columns = line.split('\t');
+                let chrom = columns.next()?.trim().to_string();
+                let start = columns.next()?.trim().parse::<i64>().ok()?;
+                let end = columns.next()?.trim().parse::<i64>().ok()?;
+                Some((chrom, start, end))
+            })
+            .collect()
+    });
+    let mut genes: Vec<String> = if let Some(ranges) = &peak_ranges {
+        ranges
+            .iter()
+            .map(|(chrom, start, end)| format!("{chrom}:{start}-{end}"))
+            .collect()
+    } else {
+        feature_lines
+            .into_iter()
+            .filter(|line| !line.is_empty())
+            .map(|line| {
+                let columns: Vec<&str> = line.split('\t').collect();
+                let pick = columns
+                    .get(gene_column - 1)
+                    .map(|value| value.trim())
+                    .unwrap_or("");
+                if pick.is_empty() {
+                    columns
+                        .first()
+                        .map(|value| value.trim())
+                        .unwrap_or("")
+                        .to_string()
+                } else {
+                    pick.to_string()
+                }
+            })
+            .collect()
+    };
 
     let (n_genes_mtx, n_cells_mtx, entries) = parse_mtx_streaming(&matrix_path)?;
+
+    if is_peak_bed && genes.len() != n_genes_mtx {
+        return Err(BioLangError::runtime(
+            ErrorKind::IOError,
+            format!(
+                "read_10x(): peaks.bed has {} rows but matrix.mtx has {n_genes_mtx} features",
+                genes.len()
+            ),
+            None,
+        ));
+    }
 
     let n_g = genes.len().max(n_genes_mtx);
     let n_c = barcodes.len().max(n_cells_mtx);
@@ -7514,14 +7660,37 @@ fn read_10x_impl(args: Vec<Value>, sparse: bool) -> Result<Value> {
             .map(|barcode| vec![Value::Str(barcode)])
             .collect(),
     );
-    let var = Table::new(
-        vec!["gene".to_string()],
-        genes
-            .iter()
-            .cloned()
-            .map(|gene| vec![Value::Str(gene)])
-            .collect(),
-    );
+    let var = if let Some(ranges) = &peak_ranges {
+        Table::new(
+            vec![
+                "gene".to_string(),
+                "chrom".to_string(),
+                "start".to_string(),
+                "end".to_string(),
+            ],
+            ranges
+                .iter()
+                .zip(genes.iter())
+                .map(|((chrom, start, end), name)| {
+                    vec![
+                        Value::Str(name.clone()),
+                        Value::Str(chrom.clone()),
+                        Value::Int(*start),
+                        Value::Int(*end),
+                    ]
+                })
+                .collect(),
+        )
+    } else {
+        Table::new(
+            vec!["gene".to_string()],
+            genes
+                .iter()
+                .cloned()
+                .map(|gene| vec![Value::Str(gene)])
+                .collect(),
+        )
+    };
     let mut layers = HashMap::new();
     layers.insert("counts".to_string(), matrix_value.clone());
 
@@ -7543,6 +7712,21 @@ fn read_10x_impl(args: Vec<Value>, sparse: bool) -> Result<Value> {
     );
     rec.insert("obs".to_string(), Value::Table(obs));
     rec.insert("var".to_string(), Value::Table(var));
+    if let Some(ranges) = peak_ranges {
+        rec.insert(
+            "peaks".to_string(),
+            Value::Table(Table::new(
+                vec!["chrom".into(), "start".into(), "end".into()],
+                ranges
+                    .into_iter()
+                    .map(|(chrom, start, end)| {
+                        vec![Value::Str(chrom), Value::Int(start), Value::Int(end)]
+                    })
+                    .collect(),
+            )),
+        );
+        rec.insert("feature_type".to_string(), Value::Str("peaks".into()));
+    }
     rec.insert("layers".to_string(), Value::Record(layers.into()));
     rec.insert("n_cells".to_string(), Value::Int(n_c as i64));
     rec.insert("n_genes".to_string(), Value::Int(n_g as i64));

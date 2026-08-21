@@ -1,0 +1,15 @@
+import "atac" as atac
+
+let frip_values = atac.frip([60, 30], [100, 60])
+assert frip_values[0] == 60.0, "first Cell Ranger FRiP percentage is wrong"
+assert frip_values[1] == 50.0, "second Cell Ranger FRiP percentage is wrong"
+
+let nucleosome_fractions = atac.nucleosomes([100, 200])
+assert nucleosome_fractions.nfr == 0.5, "QC helper module alias is broken"
+assert atac.qc([100, 200]).n_fragments == 2, "public atac.qc wrapper is broken"
+
+let filtered = atac.ngs101_part2_filter(
+    [5000, 3000], [3.0, 3.0], [20.0, 20.0], [1.0, 1.0], [0.01, 0.01]
+)
+assert filtered.n_before == 2 and filtered.n_after == 1,
+       "NGS101 Part 2 threshold profile is wrong"

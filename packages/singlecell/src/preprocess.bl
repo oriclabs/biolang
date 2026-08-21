@@ -222,7 +222,20 @@ fn embedding_of(obj) {
     if contains(keys(obj), "integrated_embedding") {
         return obj.integrated_embedding
     }
+    if contains(keys(obj), "analysis_embedding") {
+        return obj.analysis_embedding
+    }
+    if contains(keys(obj), "lsi_scores") {
+        return obj.lsi_scores
+    }
     obj.pca_scores
+}
+
+fn has_embedding(obj) {
+    contains(keys(obj), "pca_scores") or
+    contains(keys(obj), "analysis_embedding") or
+    contains(keys(obj), "lsi_scores") or
+    contains(keys(obj), "integrated_embedding")
 }
 
 ## neighbors(obj, k, snn) → Record
@@ -242,9 +255,11 @@ fn embedding_of(obj) {
 ## It is faster and worse, and it is kept so that results produced before the
 ## SNN graph existed can still be reproduced.
 ##
-## Exact search, so cost is quadratic in n_cells.
+## Search is exact for small data. Larger native Euclidean runs use Annoy;
+## other builds use GPU exact search when available or a projection forest.
+## Approximate backends can choose different neighbours when distances tie.
 fn neighbors(obj, k = 20, snn = true, n_dims = 10) {
-    let prepared = if contains(keys(obj), "pca_scores") {
+    let prepared = if has_embedding(obj) {
         obj
     } else {
         run_pca(obj)
@@ -288,7 +303,7 @@ fn neighbors(obj, k = 20, snn = true, n_dims = 10) {
 ##
 ## Adds obj.clusters (List<Int>) and obj.cluster_inertia (Float).
 fn cluster(obj, k = 0) {
-    let prepared = if contains(keys(obj), "pca_scores") { obj } else { run_pca(obj) }
+    let prepared = if has_embedding(obj) { obj } else { run_pca(obj) }
     let embed = embedding_of(prepared)
     let n_c   = len(embed)
     let k_act = if k > 0 then k
@@ -336,7 +351,7 @@ fn cluster_louvain(obj, k = 20, resolution = 0.8) {
 
 ## Compute and store a UMAP reduction with the defaults used by Seurat 5.5.1.
 fn run_umap(obj, n_dims = 10, n_neighbors = 30, min_dist = 0.3, seed = 42) {
-    let prepared = if contains(keys(obj), "pca_scores") { obj } else { run_pca(obj) }
+    let prepared = if has_embedding(obj) { obj } else { run_pca(obj) }
     let full = embedding_of(prepared)
     let width = if is_matrix(full) {
         let shape = dim(full)

@@ -1,0 +1,159 @@
+# atac/src/preprocess.bl — sparse TF-IDF, LSI, and depth-aware embeddings
+
+import "singlecell" as sc
+
+## consensus(peak_tables, min_samples) -> Table
+##
+## Merge overlapping peaks across samples. min_samples=1 is the union used by
+## the NGS101 workflow; larger values require support from multiple samples.
+fn consensus(peak_tables, min_samples = 1) {
+    consensus_peaks(peak_tables, min_samples)
+}
+
+## merge_samples(objects, sample_ids) -> Record
+##
+## Merge any number of peak matrices that share the exact consensus-peak axis.
+## Existing sample labels are retained across the fold, unlike repeatedly
+## replacing the left-hand label in a two-object merge.
+fn merge_samples(objects, sample_ids) {
+    if len(objects) == 0 { error("atac.merge_samples needs at least one object") }
+    if len(objects) != len(sample_ids) {
+        error("atac.merge_samples needs one sample_id per object")
+    }
+    let labelled = range(0, len(objects)) |> map(|index| {
+        let labels = range(0, objects[index].n_cells) |> map(|_| sample_ids[index])
+        {... objects[index], batch_ids: labels}
+    })
+    labelled |> reduce(|left, right| sc.merge(left, right, nil, nil))
+}
+
+## filter_peaks(peaks, min_width, max_width, blacklist, standard_chromosomes)
+##
+## Retain widths strictly between the bounds, optionally remove any peak that
+## overlaps a blacklist interval, and by default keep human chr1-22/X/Y/M only.
+fn filter_peaks(peaks, min_width = 20, max_width = 10000, blacklist = nil,
+                standard_chromosomes = true) {
+    atac_filter_peaks(peaks, min_width, max_width, blacklist, standard_chromosomes)
+}
+
+## tfidf(obj, scale_factor) -> Record
+##
+## Signac RunTFIDF method 1 on the sparse cell x peak count matrix:
+## log1p((count / cell total) * (number of cells / peak total) * scale_factor).
+## The zeros stay implicit, so memory remains proportional to non-zero counts.
+fn tfidf(obj, scale_factor = 10000) {
+    let normalized = atac_tfidf(obj.matrix, scale_factor)
+    let layers = if contains(keys(obj), "layers") { obj.layers } else { ({}) }
+    {... obj,
+        norm_matrix: normalized,
+        norm_method: "tfidf_method_1",
+        tfidf_scale_factor: scale_factor,
+        layers: {... layers, data: normalized}
+    }
+}
+
+## top_features(obj, min_cutoff) -> Record
+##
+## Match FindTopFeatures(min.cutoff = n): retain peaks with total counts > n.
+## This is deliberately count-based, not an RNA-style variance ranking and not
+## the number of cells in which a peak was detected.
+fn top_features(obj, min_cutoff = 20) {
+    let prepared = if contains(keys(obj), "norm_matrix") { obj } else { tfidf(obj) }
+    let selected = atac_top_features(prepared.matrix, min_cutoff)
+    let selected_names = selected |> map(|index| prepared.genes[index])
+    {... prepared,
+        hvg: selected,
+        hvg_genes: selected_names,
+        hvg_matrix: select_cols(prepared.norm_matrix, selected),
+        top_feature_min_cutoff: min_cutoff,
+        n_top_features: len(selected)
+    }
+}
+
+## lsi(obj, n_components) -> Record
+##
+## Partial uncentered SVD of the TF-IDF matrix followed by component-wise mean
+## centering and sample-SD scaling without clipping, matching RunSVD defaults.
+## compact=true keeps scores and large peak loadings in native numeric matrices.
+fn lsi(obj, n_components = 50) {
+    let prepared = if contains(keys(obj), "hvg_matrix") { obj } else { top_features(obj) }
+    let fit = sc_pca(prepared.hvg_matrix, n_components, false, {
+        solver: "lanczos", tolerance: 0.00001, compact: true, seed: 42
+    })
+    let embedding = sc_scale(fit.scores, nil)
+    let reductions = if contains(keys(prepared), "reductions") { prepared.reductions } else { ({}) }
+    {... prepared,
+        lsi_scores: embedding,
+        analysis_embedding: embedding,
+        lsi_loadings: fit.loadings,
+        lsi_singular_values: fit.singular_values,
+        lsi_converged: fit.converged,
+        lsi_sweeps: fit.sweeps,
+        reductions: {... reductions, lsi: {
+            embeddings: embedding, loadings: fit.loadings,
+            key: "LSI_", n_components: fit.n_components,
+            compute_method: fit.compute_method
+        }}
+    }
+}
+
+## depth_cor(obj, n_components) -> Record
+##
+## Pearson correlation between each LSI component and per-cell total peak
+## counts—the numbers plotted by Signac DepthCor.
+fn depth_cor(obj, n_components = 10) {
+    let prepared = if contains(keys(obj), "lsi_scores") { obj } else { lsi(obj) }
+    atac_depth_cor(prepared.matrix, prepared.lsi_scores, n_components)
+}
+
+## mixing_score(obj, batch_ids, k) -> Record
+##
+## Match the article's metric: for each cell, compute the fraction of its
+## k-neighbour result belonging to another sample after dropping the self hit.
+## Also returns the imbalance-aware random ceiling, 1 - sum(p_sample^2).
+fn mixing_score(obj, batch_ids, k = 30) {
+    let embedding = if contains(keys(obj), "integrated_embedding") {
+        obj.integrated_embedding
+    } else {
+        if contains(keys(obj), "analysis_embedding") {
+            obj.analysis_embedding
+        } else {
+            obj.lsi_scores
+        }
+    }
+    atac_batch_mixing(embedding, batch_ids, k)
+}
+
+## select_dimensions(obj, dimensions) -> Record
+##
+## Choose the zero-based LSI components used by UMAP/neighbours/integration.
+## The tutorial's R dims 2:30 are range(1, 30) in BioLang.
+fn select_dimensions(obj, dimensions) {
+    let prepared = if contains(keys(obj), "lsi_scores") { obj } else { lsi(obj) }
+    {... prepared,
+        analysis_embedding: select_cols(prepared.lsi_scores, dimensions),
+        analysis_dimensions: dimensions
+    }
+}
+
+## harmony(obj, batch_ids, theta, n_clusters) -> Record
+##
+## Run native Harmony on the selected LSI embedding and make the corrected
+## result the embedding consumed by sc.neighbors() and sc.run_umap().
+fn harmony(obj, batch_ids, theta = nil, n_clusters = nil) {
+    let prepared = if contains(keys(obj), "analysis_embedding") { obj } else { lsi(obj) }
+    let options = if n_clusters == nil {
+        {theta: if theta == nil { 2.0 } else { theta }, compact: true}
+    } else {
+        {theta: if theta == nil { 2.0 } else { theta }, n_clusters: n_clusters,
+         compact: true}
+    }
+    let corrected = harmony_integrate(prepared.analysis_embedding, batch_ids, options)
+    let reductions = if contains(keys(prepared), "reductions") { prepared.reductions } else { ({}) }
+    {... prepared,
+        integrated_embedding: corrected,
+        analysis_embedding: corrected,
+        batch_ids: batch_ids,
+        reductions: {... reductions, harmony: {embeddings: corrected, key: "harmony_"}}
+    }
+}

@@ -59,7 +59,7 @@
     {
       "name": "atac",
       "version": "0.1.0",
-      "description": "ATAC-seq quality control: fragment size distribution, NFR enrichment, TSS enrichment, nucleosome fractions",
+      "description": "Sparse scATAC-seq quantification, TF-IDF/LSI, Harmony integration, clustering inputs, and quality control",
       "exports": [
         {
           "name": "activity",
@@ -68,7 +68,60 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/atac/src/mod.bl",
-          "line": 34
+          "line": 65
+        },
+        {
+          "name": "consensus",
+          "signature": "consensus(peak_tables, min_samples = 1) -> Table",
+          "summary": "BioLang package function consensus.",
+          "returnType": "Table",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 74
+        },
+        {
+          "name": "depth_cor",
+          "signature": "depth_cor(obj, n_components = 10) -> Record",
+          "summary": "BioLang package function depth_cor.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 83
+        },
+        {
+          "name": "detected_features",
+          "signature": "detected_features(matrix, min_cells) -> List<Int>",
+          "summary": "BioLang package function detected_features.",
+          "returnType": "List<Int>",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 59
+        },
+        {
+          "name": "filter_peaks",
+          "signature": "filter_peaks(peaks, min_width = 20, max_width = 10000, blacklist = nil, standard_chromosomes = true)",
+          "summary": "BioLang package function filter_peaks.",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 76
+        },
+        {
+          "name": "fragment_metrics",
+          "signature": "fragment_metrics(fragments, barcodes = nil, max_lines = nil) -> Table",
+          "summary": "BioLang package function fragment_metrics.",
+          "returnType": "Table",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 41
+        },
+        {
+          "name": "frip",
+          "signature": "frip(peak_region_fragments, passed_filters) -> List<Number>",
+          "summary": "BioLang package function frip.",
+          "returnType": "List<Number>",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 50
         },
         {
           "name": "from_gtf",
@@ -77,7 +130,59 @@
           "returnType": "Table",
           "fields": [],
           "sourcePath": "packages/atac/src/mod.bl",
-          "line": 40
+          "line": 89
+        },
+        {
+          "name": "harmony",
+          "signature": "harmony(obj, batch_ids, theta = nil, n_clusters = nil) -> Record",
+          "summary": "BioLang package function harmony.",
+          "returnType": "Record",
+          "fields": [
+            "integrated_embedding",
+            "analysis_embedding",
+            "batch_ids",
+            "reductions"
+          ],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 86
+        },
+        {
+          "name": "lsi",
+          "signature": "lsi(obj, n_components = 50) -> Record",
+          "summary": "BioLang package function lsi.",
+          "returnType": "Record",
+          "fields": [
+            "lsi_scores",
+            "analysis_embedding",
+            "lsi_loadings",
+            "lsi_singular_values",
+            "lsi_converged",
+            "lsi_sweeps",
+            "reductions",
+            "embeddings",
+            "key",
+            "compute_method"
+          ],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 82
+        },
+        {
+          "name": "merge_samples",
+          "signature": "merge_samples(objects, sample_ids) -> Record",
+          "summary": "BioLang package function merge_samples.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 75
+        },
+        {
+          "name": "mixing_score",
+          "signature": "mixing_score(obj, batch_ids, k = 30) -> Record",
+          "summary": "BioLang package function mixing_score.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 84
         },
         {
           "name": "nfr",
@@ -85,7 +190,16 @@
           "summary": "BioLang package function nfr.",
           "fields": [],
           "sourcePath": "packages/atac/src/mod.bl",
-          "line": 27
+          "line": 37
+        },
+        {
+          "name": "ngs101_part2_filter",
+          "signature": "ngs101_part2_filter(passed, tss, frip, nucleosome, blacklist) -> Record",
+          "summary": "BioLang package function ngs101_part2_filter.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 56
         },
         {
           "name": "nucleosomes",
@@ -93,7 +207,16 @@
           "summary": "BioLang package function nucleosomes.",
           "fields": [],
           "sourcePath": "packages/atac/src/mod.bl",
-          "line": 28
+          "line": 38
+        },
+        {
+          "name": "peak_metrics",
+          "signature": "peak_metrics(matrix, peaks, blacklist = nil) -> Table",
+          "summary": "BioLang package function peak_metrics.",
+          "returnType": "Table",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 47
         },
         {
           "name": "peaks",
@@ -102,7 +225,16 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/atac/src/mod.bl",
-          "line": 37
+          "line": 68
+        },
+        {
+          "name": "peaks_sparse",
+          "signature": "peaks_sparse(fragments, peak_table, barcodes = nil) -> Record",
+          "summary": "BioLang package function peaks_sparse.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 71
         },
         {
           "name": "qc",
@@ -110,7 +242,28 @@
           "summary": "BioLang package function qc.",
           "fields": [],
           "sourcePath": "packages/atac/src/mod.bl",
-          "line": 30
+          "line": 40
+        },
+        {
+          "name": "select_dimensions",
+          "signature": "select_dimensions(obj, dimensions) -> Record",
+          "summary": "BioLang package function select_dimensions.",
+          "returnType": "Record",
+          "fields": [
+            "analysis_embedding",
+            "analysis_dimensions"
+          ],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 85
+        },
+        {
+          "name": "signac_nucleosome",
+          "signature": "signac_nucleosome(fragments, barcodes) -> Table",
+          "summary": "BioLang package function signac_nucleosome.",
+          "returnType": "Table",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 44
         },
         {
           "name": "sizes",
@@ -118,7 +271,36 @@
           "summary": "BioLang package function sizes.",
           "fields": [],
           "sourcePath": "packages/atac/src/mod.bl",
-          "line": 26
+          "line": 36
+        },
+        {
+          "name": "tfidf",
+          "signature": "tfidf(obj, scale_factor = 10000) -> Record",
+          "summary": "BioLang package function tfidf.",
+          "returnType": "Record",
+          "fields": [
+            "norm_matrix",
+            "norm_method",
+            "tfidf_scale_factor",
+            "layers"
+          ],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 80
+        },
+        {
+          "name": "top_features",
+          "signature": "top_features(obj, min_cutoff = 20) -> Record",
+          "summary": "BioLang package function top_features.",
+          "returnType": "Record",
+          "fields": [
+            "hvg",
+            "hvg_genes",
+            "hvg_matrix",
+            "top_feature_min_cutoff",
+            "n_top_features"
+          ],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 81
         },
         {
           "name": "tss",
@@ -126,7 +308,16 @@
           "summary": "BioLang package function tss.",
           "fields": [],
           "sourcePath": "packages/atac/src/mod.bl",
-          "line": 29
+          "line": 39
+        },
+        {
+          "name": "tss_metrics",
+          "signature": "tss_metrics(fragments, tss_positions, barcodes, region_extension = 1000) -> Table",
+          "summary": "BioLang package function tss_metrics.",
+          "returnType": "Table",
+          "fields": [],
+          "sourcePath": "packages/atac/src/mod.bl",
+          "line": 53
         }
       ]
     },

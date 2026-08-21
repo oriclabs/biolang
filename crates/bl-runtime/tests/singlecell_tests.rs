@@ -117,6 +117,62 @@ fn sparse_matrix(rows: Vec<Vec<f64>>) -> Value {
     Value::SparseMatrix(std::sync::Arc::new(SparseMatrix::from_dense(&rows)))
 }
 
+#[test]
+fn sc_scale_explicit_nil_disables_clipping() {
+    let mut values = vec![vec![0.0]; 101];
+    values.push(vec![1000.0]);
+    let unclipped =
+        call_singlecell_builtin("sc_scale", vec![matrix(values.clone()), Value::Nil]).unwrap();
+    let clipped = call_singlecell_builtin("sc_scale", vec![matrix(values)]).unwrap();
+    let Value::Matrix(unclipped) = unclipped else {
+        panic!("unclipped scale result is not compact")
+    };
+    let Value::Matrix(clipped) = clipped else {
+        panic!("clipped scale result is not compact")
+    };
+    assert!(unclipped.data[101] > 10.0);
+    assert_eq!(clipped.data[101], 10.0);
+}
+
+#[test]
+fn lanczos_pca_compact_option_returns_native_matrices() {
+    let opts = Value::Record(
+        HashMap::from([
+            ("solver".to_string(), Value::Str("lanczos".to_string())),
+            ("compact".to_string(), Value::Bool(true)),
+        ])
+        .into(),
+    );
+    let result = call_singlecell_builtin(
+        "sc_pca",
+        vec![
+            matrix(vec![
+                vec![3.0, 0.0, 1.0],
+                vec![2.0, 1.0, 0.0],
+                vec![0.0, 3.0, 1.0],
+                vec![1.0, 2.0, 3.0],
+                vec![4.0, 1.0, 2.0],
+            ]),
+            Value::Int(2),
+            Value::Bool(false),
+            opts,
+        ],
+    )
+    .unwrap();
+    let Value::Record(result) = result else {
+        panic!("PCA result is not a record")
+    };
+    assert!(
+        matches!(result.get("scores"), Some(Value::Matrix(matrix)) if matrix.nrow == 5 && matrix.ncol == 2)
+    );
+    assert!(
+        matches!(result.get("loadings"), Some(Value::Matrix(matrix)) if matrix.nrow == 3 && matrix.ncol == 2)
+    );
+    assert!(
+        matches!(result.get("singular_values"), Some(Value::List(values)) if values.len() == 2)
+    );
+}
+
 fn sparse_single_cell_object(counts: Vec<Vec<f64>>, genes: &[&str], barcodes: &[&str]) -> Value {
     let matrix = sparse_matrix(counts);
     let obs = Value::Table(Table::new(
@@ -191,6 +247,39 @@ fn sparse_object_merge_keeps_layers_annotations_and_batches_in_sync() {
         }
         other => panic!("expected Record, got {other:?}"),
     }
+}
+
+#[test]
+fn merge_can_preserve_existing_batch_ids_for_multi_sample_folds() {
+    let with_batches = |value: Value, labels: &[&str]| {
+        let Value::Record(object) = value else {
+            unreachable!()
+        };
+        let mut object = object.as_ref().clone();
+        object.insert("batch_ids".to_string(), str_list(labels));
+        Value::Record(object.into())
+    };
+    let left = with_batches(
+        sparse_single_cell_object(vec![vec![1.0], vec![2.0]], &["A"], &["L1", "L2"]),
+        &["sample-a", "sample-a"],
+    );
+    let right = with_batches(
+        sparse_single_cell_object(vec![vec![3.0]], &["A"], &["R1"]),
+        &["sample-b"],
+    );
+    let merged = call_singlecell_builtin(
+        "sc_merge_objects",
+        vec![left, right, Value::Nil, Value::Nil],
+    )
+    .unwrap();
+    assert_eq!(
+        get_list(&merged, "batch_ids"),
+        vec![
+            Value::Str("sample-a".into()),
+            Value::Str("sample-a".into()),
+            Value::Str("sample-b".into()),
+        ]
+    );
 }
 
 #[test]
@@ -668,6 +757,56 @@ fn test_read_10x_from_temp_dir() {
 }
 
 // ─── cell_cycle_score ────────────────────────────────────────────────────────
+
+#[test]
+fn test_read_10x_sparse_accepts_cell_ranger_atac_peaks_bed() {
+    use std::io::Write;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path();
+
+    let mut file = std::fs::File::create(path.join("barcodes.tsv")).unwrap();
+    writeln!(file, "CELL-A").unwrap();
+    writeln!(file, "CELL-B").unwrap();
+
+    let mut file = std::fs::File::create(path.join("peaks.bed")).unwrap();
+    writeln!(file, "# reference=GRCh38").unwrap();
+    writeln!(file, "chr1\t100\t200").unwrap();
+    writeln!(file, "chr2\t300\t450").unwrap();
+
+    let mut file = std::fs::File::create(path.join("matrix.mtx")).unwrap();
+    writeln!(file, "%%MatrixMarket matrix coordinate integer general").unwrap();
+    writeln!(file, "2 2 2").unwrap();
+    writeln!(file, "1 1 3").unwrap();
+    writeln!(file, "2 2 4").unwrap();
+
+    let value = call_singlecell_builtin(
+        "read_10x_sparse",
+        vec![Value::Str(path.to_string_lossy().into_owned())],
+    )
+    .expect("Cell Ranger ATAC MEX should load");
+    let Value::Record(object) = value else {
+        panic!("ATAC MEX did not return an object")
+    };
+    assert_eq!(
+        object.get("feature_type"),
+        Some(&Value::Str("peaks".into()))
+    );
+    let Some(Value::List(features)) = object.get("genes") else {
+        panic!("missing peak feature names")
+    };
+    assert_eq!(features[0], Value::Str("chr1:100-200".into()));
+    let Some(Value::Table(peaks)) = object.get("peaks") else {
+        panic!("missing parsed peak table")
+    };
+    assert_eq!(peaks.columns, vec!["chrom", "start", "end"]);
+    assert_eq!(peaks.rows[1][0], Value::Str("chr2".into()));
+    let Some(Value::SparseMatrix(matrix)) = object.get("matrix") else {
+        panic!("ATAC MEX was not sparse")
+    };
+    assert_eq!((matrix.nrow, matrix.ncol, matrix.nnz()), (2, 2, 2));
+    assert_eq!(matrix.get(0, 0), 3.0);
+    assert_eq!(matrix.get(1, 1), 4.0);
+}
 
 #[test]
 fn test_cell_cycle_score_s_phase() {

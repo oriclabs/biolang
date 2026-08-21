@@ -27,10 +27,19 @@ fn activity(fragments, genes, upstream = 2000, downstream = 0, barcodes = nil) {
 ## Count fragments per peak. Peaks need chrom/start/end; a name/peak/peak_id
 ## column is used for labels if present, otherwise labels are "chrom:start-end".
 ##
-## Note this matrix is dense, so a genome-wide peak set will be refused — subset
-## the peaks first, or use activity() when you want to feed the sc pipeline.
+## This compatibility path is dense, so a genome-wide peak set is refused.
+## Use peaks_sparse() for normal scATAC preprocessing.
 fn peaks(fragments, peak_table, barcodes = nil) {
     peak_matrix(fragments, peak_table, barcodes)
+}
+
+## peaks_sparse(fragments, peaks, barcodes) -> Record
+##
+## Count fragments into a CSR SparseMatrix. This is the genome-scale path: a
+## 185,581 peak x 30,571 cell tutorial object stays proportional to observed
+## fragment/peak overlaps instead of allocating 5.7 billion zeroes.
+fn peaks_sparse(fragments, peak_table, barcodes = nil) {
+    peak_matrix_sparse(fragments, peak_table, barcodes)
 }
 
 ## from_gtf(gtf_text) -> Table
