@@ -463,6 +463,20 @@ pub(crate) fn get_opt_str<'a>(
     opts.get(key).and_then(|v| v.as_str()).unwrap_or(default)
 }
 
+/// The label for an axis: the caller's `xlabel`/`ylabel` when they gave one,
+/// otherwise whatever the plot worked out for itself.
+///
+/// The worked-out defaults ("Value", "Count", a column name) are fine for a
+/// quick look at data and useless in a figure meant to teach or to publish,
+/// where the whole job of an axis is to say what was measured and in what unit.
+/// Every plot here that draws an axis honours these two options.
+pub(crate) fn axis_label(opts: &HashMap<String, Value>, key: &str, default: &str) -> String {
+    opts.get(key)
+        .and_then(|value| value.as_str())
+        .unwrap_or(default)
+        .to_string()
+}
+
 pub(crate) fn get_opt_f64(opts: &HashMap<String, Value>, key: &str, default: f64) -> f64 {
     opts.get(key).and_then(|v| v.as_float()).unwrap_or(default)
 }
@@ -694,8 +708,8 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
         domain: (y_min, y_max),
         range: (y_min, y_max),
     };
-    canvas.draw_x_axis(&d_x_scale, &x_col);
-    canvas.draw_y_axis(&d_y_scale, &y_col);
+    canvas.draw_x_axis(&d_x_scale, &axis_label(&opts, "xlabel", &x_col));
+    canvas.draw_y_axis(&d_y_scale, &axis_label(&opts, "ylabel", &y_col));
     if !title.is_empty() {
         canvas.draw_title(&title);
     }
@@ -1280,8 +1294,8 @@ fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
         domain: (0.0, max_count as f64),
         range: (0.0, max_count as f64),
     };
-    canvas.draw_x_axis(&d_x_scale, "Value");
-    canvas.draw_y_axis(&d_y_scale, "Count");
+    canvas.draw_x_axis(&d_x_scale, &axis_label(&opts, "xlabel", "Value"));
+    canvas.draw_y_axis(&d_y_scale, &axis_label(&opts, "ylabel", "Count"));
     canvas.draw_title(&title);
 
     Ok(Value::Str(canvas.render()))
@@ -1368,8 +1382,14 @@ fn builtin_volcano(args: Vec<Value>) -> Result<Value> {
         domain: (0.0, y_max),
         range: (0.0, y_max),
     };
-    canvas.draw_x_axis(&d_x_scale, &format!("log2(FC) [{fc_col}]"));
-    canvas.draw_y_axis(&d_y_scale, &format!("-log10(p) [{p_col}]"));
+    canvas.draw_x_axis(
+        &d_x_scale,
+        &axis_label(&opts, "xlabel", &format!("log2(FC) [{fc_col}]")),
+    );
+    canvas.draw_y_axis(
+        &d_y_scale,
+        &axis_label(&opts, "ylabel", &format!("-log10(p) [{p_col}]")),
+    );
     canvas.draw_title("Volcano Plot");
 
     Ok(Value::Str(canvas.render()))
@@ -1433,8 +1453,14 @@ fn builtin_ma_plot(args: Vec<Value>) -> Result<Value> {
         domain: (-y_abs, y_abs),
         range: (-y_abs, y_abs),
     };
-    canvas.draw_x_axis(&d_x_scale, &format!("A (log2 {a_col})"));
-    canvas.draw_y_axis(&d_y_scale, &format!("M ({m_col})"));
+    canvas.draw_x_axis(
+        &d_x_scale,
+        &axis_label(&opts, "xlabel", &format!("A (log2 {a_col})")),
+    );
+    canvas.draw_y_axis(
+        &d_y_scale,
+        &axis_label(&opts, "ylabel", &format!("M ({m_col})")),
+    );
     canvas.draw_title("MA Plot");
 
     Ok(Value::Str(canvas.render()))
@@ -1714,7 +1740,7 @@ fn builtin_genome_track(args: Vec<Value>) -> Result<Value> {
         domain: (global_start, global_end),
         range: (global_start, global_end),
     };
-    canvas.draw_x_axis(&d_x_scale, "Position");
+    canvas.draw_x_axis(&d_x_scale, &axis_label(&opts, "xlabel", "Position"));
     canvas.draw_title(&title);
 
     Ok(Value::Str(canvas.render()))
@@ -1786,5 +1812,72 @@ mod palette_tests {
     fn rendered_svg_has_a_default_accessible_label() {
         let canvas = SvgCanvas::new(320.0, 180.0);
         assert!(canvas.render().contains("aria-label=\"BioLang plot\""));
+    }
+}
+
+#[cfg(test)]
+mod axis_label_tests {
+    use super::{axis_label, call_plot_builtin};
+    use bl_core::value::Value;
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    // The defaults ("Value", "Count") are what a histogram draws when nobody
+    // says otherwise. They were previously the only thing it could draw: an
+    // xlabel in the options record was accepted and silently ignored, so a
+    // figure asking for "minutes until the next eruption" got "Value" and no
+    // warning. Anything building teaching or publication figures had to
+    // string-replace the rendered SVG afterwards.
+
+    fn options(pairs: &[(&str, &str)]) -> HashMap<String, Value> {
+        pairs
+            .iter()
+            .map(|(k, v)| ((*k).to_string(), Value::Str((*v).into())))
+            .collect()
+    }
+
+    #[test]
+    fn an_explicit_label_replaces_the_default() {
+        let opts = options(&[("xlabel", "minutes until the next eruption")]);
+        assert_eq!(
+            axis_label(&opts, "xlabel", "Value"),
+            "minutes until the next eruption"
+        );
+    }
+
+    #[test]
+    fn the_default_is_used_when_no_label_is_given() {
+        assert_eq!(axis_label(&HashMap::new(), "xlabel", "Value"), "Value");
+    }
+
+    #[test]
+    fn a_histogram_renders_the_labels_it_was_given() {
+        let values = Value::List(Arc::new(
+            (1..=40).map(|n| Value::Float(f64::from(n))).collect(),
+        ));
+        let mut opts = HashMap::new();
+        opts.insert("xlabel".to_string(), Value::Str("waiting (minutes)".into()));
+        opts.insert("ylabel".to_string(), Value::Str("eruptions".into()));
+
+        let svg = match call_plot_builtin("histogram", vec![values, Value::Record(Arc::new(opts))])
+            .expect("histogram renders")
+        {
+            Value::Str(svg) => svg.to_string(),
+            other => panic!("histogram should return SVG, got {other:?}"),
+        };
+
+        assert!(
+            svg.contains(">waiting (minutes)<"),
+            "x label missing: {svg:.400}"
+        );
+        assert!(svg.contains(">eruptions<"), "y label missing");
+        assert!(
+            !svg.contains(">Value<"),
+            "the default x label should be gone"
+        );
+        assert!(
+            !svg.contains(">Count<"),
+            "the default y label should be gone"
+        );
     }
 }
