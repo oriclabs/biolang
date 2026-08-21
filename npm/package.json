@@ -1,6 +1,6 @@
 {
   "name": "biolang",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "BioLang's sequence, statistics and alignment core for Node and the browser, compiled to WebAssembly. No toolchain required.",
   "type": "module",
   "license": "MIT",

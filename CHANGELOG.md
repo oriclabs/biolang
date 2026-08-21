@@ -9,6 +9,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-21
+
 ### Added
 - `ecdf_plot(list, opts?)` and `density_plot(list, opts?)`. Both show a
   distribution without a histogram's bin width deciding what it looks like: the
