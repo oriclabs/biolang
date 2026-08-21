@@ -26,6 +26,20 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   comparison the figure exists to make is the one thing it cannot show.
 
 ### Fixed
+- **Inference builtins no longer ignore options they do not read.**
+  `ttest(a, b, {welch: true})` returned the pooled-variance result with no
+  warning, and so did a mistyped `{varianse: "welch"}` — a call that reads as
+  deliberate, runs, and answers a different question. (Welch was available the
+  whole time as `{variance: "welch"}`, and agrees with R exactly.) Each of the
+  nine inference builtins now declares the keys it reads; anything else is
+  refused by name, with the accepted list and a "did you mean" for a near miss.
+  The lists differ per builtin — `anova` reads neither `alternative` nor
+  `confidence` — because accepting them everywhere would put the silence back.
+- **Errors printed every explicit hint twice.** `format_with_source` started
+  from the `Display` rendering, which prints the suggestions itself, and then
+  printed them again after the source excerpt — so a "did you mean" appeared
+  once above the file location and once below it. Both renderings now share a
+  header helper, and the hint appears once, below the excerpt.
 - **A bar chart's y axis now includes zero.** It scaled to the range of the
   data, so counts of 100 and 104 were drawn as a bar of nothing beside a
   full-height one. A bar's length is read as the quantity; anchoring it

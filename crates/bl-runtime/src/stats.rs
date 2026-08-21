@@ -1407,14 +1407,52 @@ fn builtin_random_int(args: Vec<Value>) -> Result<Value> {
 
 // ── Statistical testing (wraps bio_core::stats_ops) ─────────────
 
+/// The options record for an inference builtin, checked against the keys that
+/// builtin actually reads.
+///
+/// Unknown keys used to be dropped in silence, which is the worst way to be
+/// wrong: `ttest(a, b, {welch: true})` returned the pooled-variance result with
+/// no indication that the request had gone nowhere, and so did a mistyped
+/// `{varianse: "welch"}`. The call looks deliberate and correct on the page and
+/// answers a different question. Welch was available the whole time, spelled
+/// `{variance: "welch"}`.
+///
+/// `known` is every key this builtin reads, including the ones the shared
+/// helpers read on its behalf, because they differ from builtin to builtin --
+/// `anova` takes neither `alternative` nor `confidence`, and accepting them
+/// there would put the silence back.
 fn inference_options<'a>(
     args: &'a [Value],
     index: usize,
     function: &str,
+    known: &[&str],
 ) -> Result<Option<&'a HashMap<String, Value>>> {
     match args.get(index) {
         None => Ok(None),
-        Some(Value::Record(options)) => Ok(Some(options)),
+        Some(Value::Record(options)) => {
+            for key in options.keys() {
+                if known.contains(&key.as_str()) {
+                    continue;
+                }
+                let mut error = BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!(
+                        "{function}() does not take an option called '{key}' - it accepts {}",
+                        known
+                            .iter()
+                            .map(|k| format!("'{k}'"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    None,
+                );
+                if let Some(nearest) = nearest_option(key, known) {
+                    error = error.with_suggestion(format!("did you mean '{nearest}'?"));
+                }
+                return Err(error);
+            }
+            Ok(Some(options))
+        }
         Some(other) => Err(BioLangError::type_error(
             format!(
                 "{function}() options must be Record, got {}",
@@ -1423,6 +1461,17 @@ fn inference_options<'a>(
             None,
         )),
     }
+}
+
+/// The accepted option closest to what was written, if one is close enough.
+fn nearest_option(given: &str, known: &[&str]) -> Option<String> {
+    let limit = (given.len() / 3).max(2);
+    known
+        .iter()
+        .map(|candidate| (candidate, crate::builtins::levenshtein(given, candidate)))
+        .filter(|(_, distance)| *distance <= limit)
+        .min_by_key(|(_, distance)| *distance)
+        .map(|(candidate, _)| (*candidate).to_string())
 }
 
 fn inference_alternative(
@@ -1512,7 +1561,12 @@ fn standardized_effect(estimate: f64, standard_deviation: f64) -> Value {
 fn builtin_ttest(args: Vec<Value>) -> Result<Value> {
     let a = require_num_list(&args[0], "ttest")?;
     let b = require_num_list(&args[1], "ttest")?;
-    let options = inference_options(&args, 2, "ttest")?;
+    let options = inference_options(
+        &args,
+        2,
+        "ttest",
+        &["alternative", "confidence", "variance"],
+    )?;
     let alternative = inference_alternative(options, "ttest")?;
     let confidence = inference_confidence(options, "ttest")?;
     let variance_method = options
@@ -1598,7 +1652,7 @@ fn builtin_ttest_paired(args: Vec<Value>) -> Result<Value> {
             None,
         ));
     }
-    let options = inference_options(&args, 2, "ttest_paired")?;
+    let options = inference_options(&args, 2, "ttest_paired", &["alternative", "confidence"])?;
     let alternative = inference_alternative(options, "ttest_paired")?;
     let confidence = inference_confidence(options, "ttest_paired")?;
     let diffs: Vec<f64> = a.iter().zip(b.iter()).map(|(x, y)| x - y).collect();
@@ -1645,7 +1699,7 @@ fn builtin_ttest_one(args: Vec<Value>) -> Result<Value> {
             None,
         ));
     }
-    let options = inference_options(&args, 2, "ttest_one")?;
+    let options = inference_options(&args, 2, "ttest_one", &["alternative", "confidence"])?;
     let alternative = inference_alternative(options, "ttest_one")?;
     let confidence = inference_confidence(options, "ttest_one")?;
     let n = data.len() as f64;
@@ -1742,7 +1796,7 @@ fn integer_values(values: &[usize]) -> Value {
 
 fn builtin_anova(args: Vec<Value>) -> Result<Value> {
     let groups = require_numeric_groups(&args[0], "anova")?;
-    let options = inference_options(&args, 1, "anova")?;
+    let options = inference_options(&args, 1, "anova", &["variance"])?;
     let variance = options
         .and_then(|values| values.get("variance"))
         .and_then(Value::as_str)
@@ -1812,7 +1866,7 @@ fn builtin_kruskal_wallis(args: Vec<Value>) -> Result<Value> {
 
 fn builtin_tukey_hsd(args: Vec<Value>) -> Result<Value> {
     let groups = require_numeric_groups(&args[0], "tukey_hsd")?;
-    let options = inference_options(&args, 1, "tukey_hsd")?;
+    let options = inference_options(&args, 1, "tukey_hsd", &["confidence"])?;
     let confidence = inference_confidence(options, "tukey_hsd")?;
     let res = bl_core::bio_core::stats_ops::tukey_hsd(&groups, confidence)
         .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None))?;
@@ -1894,7 +1948,12 @@ fn builtin_pairwise_ttest(args: Vec<Value>) -> Result<Value> {
             None,
         ));
     }
-    let options = inference_options(&args, 1, "pairwise_ttest")?;
+    let options = inference_options(
+        &args,
+        1,
+        "pairwise_ttest",
+        &["alternative", "adjust", "variance"],
+    )?;
     let variance = options
         .and_then(|values| values.get("variance"))
         .and_then(Value::as_str)
@@ -2007,7 +2066,7 @@ fn builtin_fisher_exact(args: Vec<Value>) -> Result<Value> {
     let b = require_num(&args[1], "fisher_exact")? as u64;
     let c = require_num(&args[2], "fisher_exact")? as u64;
     let d = require_num(&args[3], "fisher_exact")? as u64;
-    let options = inference_options(&args, 4, "fisher_exact")?;
+    let options = inference_options(&args, 4, "fisher_exact", &["confidence"])?;
     let confidence = inference_confidence(options, "fisher_exact")?;
     let table = vec![vec![a as f64, b as f64], vec![c as f64, d as f64]];
     let res = bl_core::bio_core::stats_ops::fishers_exact_test_with_confidence(&table, confidence)
@@ -2042,7 +2101,12 @@ fn builtin_fisher_exact(args: Vec<Value>) -> Result<Value> {
 fn builtin_wilcoxon(args: Vec<Value>) -> Result<Value> {
     let a = require_num_list(&args[0], "wilcoxon")?;
     let b = require_num_list(&args[1], "wilcoxon")?;
-    let options = inference_options(&args, 2, "wilcoxon")?;
+    let options = inference_options(
+        &args,
+        2,
+        "wilcoxon",
+        &["alternative", "continuity", "method"],
+    )?;
     let alternative = inference_alternative(options, "wilcoxon")?;
     let method = options
         .and_then(|values| values.get("method"))
@@ -2100,7 +2164,12 @@ fn builtin_wilcoxon(args: Vec<Value>) -> Result<Value> {
 fn builtin_wilcoxon_paired(args: Vec<Value>) -> Result<Value> {
     let a = require_num_list(&args[0], "wilcoxon_paired")?;
     let b = require_num_list(&args[1], "wilcoxon_paired")?;
-    let options = inference_options(&args, 2, "wilcoxon_paired")?;
+    let options = inference_options(
+        &args,
+        2,
+        "wilcoxon_paired",
+        &["alternative", "continuity", "method"],
+    )?;
     let alternative = inference_alternative(options, "wilcoxon_paired")?;
     let method = options
         .and_then(|values| values.get("method"))
@@ -5436,4 +5505,148 @@ fn builtin_lcp_array(args: Vec<Value>) -> Result<Value> {
     Ok(Value::List(std::sync::Arc::new(
         lcp.into_iter().map(|n| Value::Int(n as i64)).collect(),
     )))
+}
+
+#[cfg(test)]
+mod option_rejection_tests {
+    use super::*;
+    use std::sync::Arc;
+
+    // An option a builtin does not read used to be dropped in silence, which
+    // is the worst way to be wrong: the call reads as deliberate and correct
+    // and answers a different question. `ttest(a, b, {welch: true})` returned
+    // the pooled-variance result with nothing to say the request had gone
+    // nowhere -- and Welch was available the whole time, as
+    // `{variance: "welch"}`.
+
+    fn numbers(values: &[f64]) -> Value {
+        Value::List(Arc::new(values.iter().copied().map(Value::Float).collect()))
+    }
+
+    fn record(pairs: &[(&str, Value)]) -> Value {
+        Value::Record(Arc::new(
+            pairs
+                .iter()
+                .map(|(key, value)| ((*key).to_string(), value.clone()))
+                .collect(),
+        ))
+    }
+
+    fn groups() -> (Value, Value) {
+        (
+            numbers(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]),
+            numbers(&[20.0, 5.0, 35.0, 1.0, 40.0, 12.0, 28.0, 3.0, 50.0, 18.0]),
+        )
+    }
+
+    fn ttest(options: Option<Value>) -> Result<Value> {
+        let (a, b) = groups();
+        let mut args = vec![a, b];
+        if let Some(options) = options {
+            args.push(options);
+        }
+        call_stats_builtin("ttest", args)
+    }
+
+    fn field(result: &Value, name: &str) -> String {
+        match result {
+            Value::Record(fields) => format!("{:?}", fields.get(name).expect("field")),
+            other => panic!("expected a Record, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn an_option_the_builtin_does_not_read_is_refused() {
+        let error = ttest(Some(record(&[("welch", Value::Bool(true))])))
+            .expect_err("welch is not an option ttest reads");
+        let message = error.to_string();
+        assert!(
+            message.contains("'welch'"),
+            "the message should name the option: {message}"
+        );
+        assert!(
+            message.contains("'variance'"),
+            "and list what is accepted: {message}"
+        );
+        // And no guess: "welch" is not a misspelling of anything ttest reads,
+        // and a wrong suggestion sends someone down a blind alley that costs
+        // more than the silence it replaced.
+        assert!(
+            !message.contains("did you mean"),
+            "guessed at an option nothing resembles: {message}"
+        );
+    }
+
+    #[test]
+    fn a_near_miss_gets_the_name_it_probably_meant() {
+        let error = ttest(Some(record(&[("varianse", Value::Str("welch".into()))])))
+            .expect_err("a typo is still not an option");
+        assert!(
+            error.to_string().contains("did you mean 'variance'?"),
+            "no suggestion: {error}"
+        );
+    }
+
+    #[test]
+    fn the_option_that_does_exist_still_works() {
+        // The point of refusing the others: this is the spelling that works,
+        // and Welch really is a different test rather than a different label.
+        let student = ttest(None).expect("no options is fine");
+        let welch = ttest(Some(record(&[("variance", Value::Str("welch".into()))])))
+            .expect("variance is an option ttest reads");
+        assert_eq!(
+            field(&student, "method"),
+            field(
+                &ttest(Some(record(&[("variance", Value::Str("pooled".into()))]))).unwrap(),
+                "method"
+            )
+        );
+        assert_ne!(field(&student, "p_value"), field(&welch, "p_value"));
+        assert_ne!(field(&student, "df"), field(&welch, "df"));
+    }
+
+    #[test]
+    fn the_accepted_keys_differ_from_builtin_to_builtin() {
+        // `anova` reads neither `alternative` nor `confidence`. Accepting them
+        // everywhere would be easier and would put the silence straight back.
+        let groups = Value::List(Arc::new(vec![
+            numbers(&[1.0, 2.0, 3.0]),
+            numbers(&[4.0, 5.0, 6.0]),
+        ]));
+        let error = call_stats_builtin(
+            "anova",
+            vec![groups, record(&[("confidence", Value::Float(0.9))])],
+        )
+        .expect_err("anova does not read confidence");
+        assert!(
+            error.to_string().contains("'confidence'"),
+            "unhelpful: {error}"
+        );
+    }
+
+    #[test]
+    fn wilcoxon_keeps_its_own_options() {
+        let (a, b) = groups();
+        for key in ["continuity", "method", "alternative"] {
+            let value = if key == "continuity" {
+                Value::Bool(true)
+            } else if key == "method" {
+                Value::Str("normal".into())
+            } else {
+                Value::Str("two_sided".into())
+            };
+            call_stats_builtin(
+                "wilcoxon",
+                vec![a.clone(), b.clone(), record(&[(key, value)])],
+            )
+            .unwrap_or_else(|error| panic!("wilcoxon should accept '{key}': {error}"));
+        }
+    }
+
+    #[test]
+    fn options_still_have_to_be_a_record() {
+        let error = ttest(Some(Value::Str("welch".into())))
+            .expect_err("a bare string is not an options record");
+        assert!(error.to_string().contains("must be Record"), "{error}");
+    }
 }

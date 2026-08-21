@@ -121,8 +121,13 @@ impl BioLangError {
     }
 
     /// Format error with source context.
+    ///
+    /// Deliberately not built on `Display`, which prints the suggestions
+    /// itself: starting from it and then appending them again below the source
+    /// excerpt printed every "did you mean" twice, once above the location and
+    /// once below it.
     pub fn format_with_source(&self, source: &str) -> String {
-        let mut result = format!("{self}");
+        let mut result = format!("{}: {}", self.kind_label(), self.message);
         if let Some(span) = self.span {
             let (line, col) = offset_to_line_col(source, span.start);
             result.push_str(&format!("\n  at line {line}, column {col}"));
@@ -191,9 +196,10 @@ impl BioLangError {
     }
 }
 
-impl fmt::Display for BioLangError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let kind = match &self.kind {
+impl BioLangError {
+    /// The name a reader sees for this kind of error.
+    fn kind_label(&self) -> &'static str {
+        match &self.kind {
             ErrorKind::UnexpectedChar => "SyntaxError",
             ErrorKind::UnterminatedString => "SyntaxError",
             ErrorKind::InvalidNumber => "SyntaxError",
@@ -214,8 +220,13 @@ impl fmt::Display for BioLangError {
             ErrorKind::ImportError => "ImportError",
             ErrorKind::PluginError => "PluginError",
             ErrorKind::RecursionLimit => "RecursionLimit",
-        };
-        write!(f, "{kind}: {}", self.message)?;
+        }
+    }
+}
+
+impl fmt::Display for BioLangError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.kind_label(), self.message)?;
         for s in &self.suggestions {
             write!(f, "\n  hint: {s}")?;
         }
@@ -294,5 +305,71 @@ mod line_col_tests {
         let source = "let a = 1\n";
         let (line, _) = offset_to_line_col(source, 9_999);
         assert_eq!(line, 2);
+    }
+}
+
+#[cfg(test)]
+mod suggestion_rendering_tests {
+    use super::*;
+
+    // `format_with_source` used to start from the `Display` output, which
+    // prints the suggestions itself, and then print them again after the source
+    // excerpt. Every "did you mean" therefore appeared twice with the file
+    // location wedged between them.
+
+    fn errored() -> BioLangError {
+        BioLangError::new(ErrorKind::NameError, "undefined variable 'nrows'", None)
+            .with_suggestion("did you mean 'nrow'?")
+    }
+
+    #[test]
+    fn a_suggestion_is_printed_once_with_source_context() {
+        let error = errored();
+        let rendered = error.format_with_source("println(nrows(t))\n");
+        assert_eq!(
+            rendered.matches("did you mean 'nrow'?").count(),
+            1,
+            "rendered twice:\n{rendered}"
+        );
+    }
+
+    #[test]
+    fn a_suggestion_is_printed_once_without_source_context() {
+        assert_eq!(
+            format!("{}", errored())
+                .matches("did you mean 'nrow'?")
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn the_kind_and_message_survive_both_ways() {
+        let error = errored();
+        for rendered in [format!("{error}"), error.format_with_source("x\n")] {
+            assert!(
+                rendered.starts_with("NameError: undefined variable 'nrows'"),
+                "lost the header: {rendered}"
+            );
+        }
+    }
+
+    #[test]
+    fn several_suggestions_are_each_printed_once() {
+        let error = BioLangError::new(ErrorKind::TypeError, "two ways to fix this", None)
+            .with_suggestion("first")
+            .with_suggestion("second");
+        let rendered = error.format_with_source("x\n");
+        assert_eq!(rendered.matches("hint: first").count(), 1);
+        assert_eq!(rendered.matches("hint: second").count(), 1);
+    }
+
+    #[test]
+    fn a_derived_hint_still_appears_when_nothing_explicit_was_attached() {
+        // With no explicit suggestion the central hints table is consulted, and
+        // that path must not have been broken by moving the explicit one.
+        let rendered = BioLangError::new(ErrorKind::ArityError, "ttest() expected 2, got 4", None)
+            .format_with_source("ttest(a, b, c, d)\n");
+        assert!(rendered.contains("hint: "), "no derived hint: {rendered}");
     }
 }
