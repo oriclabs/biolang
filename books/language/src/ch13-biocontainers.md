@@ -368,3 +368,8 @@ them to discover tools, pin container images for reproducibility, audit
 existing pipelines, and explore new analysis domains. Combined with BioLang's
 pipes and collection operations, a few lines of code replace manual registry
 browsing and ad hoc version tracking.
+
+Discovery and execution are separate concerns. To safely run a curated tool
+from the command line, with explicit installation, mounts, resource limits,
+and a provenance report, continue to
+[BL Convert: Files and External Tools](./ch13a-bl-convert.md).

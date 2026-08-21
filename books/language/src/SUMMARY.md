@@ -27,6 +27,7 @@
 - [Pipelines](./ch11-pipelines.md)
 - [nf-core Integration](./ch12-nfcore.md)
 - [BioContainers](./ch13-biocontainers.md)
+- [BL Convert: Files & External Tools](./ch13a-bl-convert.md)
 - [Galaxy ToolShed & Workflow Parsing](./ch13b-galaxy.md)
 - [Statistics & Linear Algebra](./ch14-statistics-linalg.md)
 - [Omics Packages](./ch15b-omics-packages.md)

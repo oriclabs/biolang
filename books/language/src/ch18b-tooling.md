@@ -137,6 +137,32 @@ bl notebook study.bln --export html > study.html
 
 Notebook cells share one session and execute in document order.
 
+## Convert Biological and Tabular Files
+
+The optional `bl-convert` companion safely converts CSV, TSV, JSON, BED, VCF,
+GFF/GTF, FASTA, and FASTQ files without adding converter dependencies to the
+`bl` executable:
+
+```bash
+bl-convert inspect variants.vcf.gz
+bl-convert convert variants.vcf.gz variants.bed.gz
+
+# Equivalent when both executables are installed
+bl convert variants.vcf.gz variants.bed.gz
+```
+
+It can also register an existing local or WSL bioinformatics program, or
+explicitly install a pinned BioContainers image. Full upstream parameters go
+after `--`:
+
+```bash
+bl-convert tool register samtools --local
+bl-convert tool run samtools --workdir ./analysis -- view -b reads.sam
+```
+
+See [BL Convert: Files and External Tools](./ch13a-bl-convert.md) for format
+rules, backend selection, mounts, resource controls, and provenance reports.
+
 ## Environment and Editor Integration
 
 Run the environment doctor before relying on native tools, containers, or

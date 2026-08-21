@@ -19,6 +19,7 @@ members = [
     "crates/bl-qc",
     "crates/bl-refs",
     "crates/bl-wasm",
+    "crates/bl-convert",
 ]
 
 [workspace.package]
@@ -39,7 +40,7 @@ bio-core = { path = "crates/bio-core" }
 bl-core = { path = "crates/bl-core" }
 bl-lexer = { path = "crates/bl-lexer" }
 bl-parser = { path = "crates/bl-parser" }
-bl-runtime = { path = "crates/bl-runtime" }
+bl-runtime = { path = "crates/bl-runtime", default-features = false }
 bl-seurat-compat = { path = "crates/bl-seurat-compat" }
 bl-bio = { path = "crates/bl-bio" }
 bl-apis = { path = "crates/bl-apis" }

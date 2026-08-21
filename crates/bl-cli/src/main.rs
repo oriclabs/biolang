@@ -7,6 +7,7 @@ mod update;
 
 use bl_import as import;
 use clap::{Parser, Subcommand};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process;
 use std::time::Instant;
@@ -175,6 +176,12 @@ enum Commands {
         /// Emit the full import result (content + validation) as JSON on stdout
         #[arg(long)]
         json: bool,
+    },
+    /// Convert biological data files with the optional bl-convert executable
+    Convert {
+        /// BL Convert arguments; INPUT OUTPUT implies the `convert` operation
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        arguments: Vec<OsString>,
     },
     /// Check the environment and per-capability readiness (native vs container)
     Doctor,
@@ -345,6 +352,7 @@ fn main() {
                     validate,
                     json,
                 ),
+                Some(Commands::Convert { arguments }) => cmd_convert(arguments),
                 Some(Commands::Doctor) => print!("{}", bl_runtime::capabilities::doctor_report()),
                 Some(Commands::Completions { shell }) => {
                     let mut cmd = <Cli as clap::CommandFactory>::command();
@@ -365,6 +373,37 @@ fn main() {
         })
         .expect("failed to spawn main thread");
     handler.join().expect("main thread panicked");
+}
+
+fn cmd_convert(mut arguments: Vec<OsString>) {
+    let direct_commands = ["convert", "formats", "inspect", "doctor", "tool", "help"];
+    let direct = arguments
+        .first()
+        .and_then(|argument| argument.to_str())
+        .is_some_and(|argument| direct_commands.contains(&argument));
+    if !direct && !arguments.is_empty() {
+        arguments.insert(0, OsString::from("convert"));
+    }
+
+    let sibling = std::env::current_exe()
+        .ok()
+        .and_then(|executable| executable.parent().map(Path::to_path_buf))
+        .map(|directory| directory.join(format!("bl-convert{}", std::env::consts::EXE_SUFFIX)))
+        .filter(|candidate| candidate.is_file());
+    let executable = sibling.unwrap_or_else(|| PathBuf::from("bl-convert"));
+    match process::Command::new(&executable).args(arguments).status() {
+        Ok(status) => process::exit(status.code().unwrap_or(1)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            eprintln!("BL Convert is not installed.");
+            eprintln!("Install it from a BioLang checkout with:");
+            eprintln!("  cargo install --path crates/bl-convert");
+            process::exit(2);
+        }
+        Err(error) => {
+            eprintln!("Could not start '{}': {error}", executable.display());
+            process::exit(2);
+        }
+    }
 }
 
 fn cmd_metadata(format: &str) {
