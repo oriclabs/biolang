@@ -28,6 +28,8 @@ this file is not a claim of statistical parity with R or Python.
 | `violin_data`, `violin`, `violin_plot` | violin/KDE geometry | `plot.rs`, `bio_plots.rs` | geometry `Record`; SVG/ASCII | Yes | All runtime violin/density paths now share the validated Gaussian KDE and `bw.nrd0` bandwidth rule. |
 | `density_plot`, `density` | distinct compatibility surfaces sharing KDE | `plot.rs`, `bio_plots.rs` | SVG `Str`; `density` also has terminal output | Via `violin_data` KDE | Not aliases: `density_plot` is a single-list 256-point line; `density` supports multiple table-column groups, filled curves and ASCII. Both now use Gaussian `bw.nrd0` geometry. |
 | `linear_fit_data`; `stats_relationship_plot(..., {interval: ...})` | `linear_fit_data` geometry | `plot.rs`, `stats_explore.rs` | geometry `Record`; guided SVG/ASCII | Yes | OLS fitted means, confidence intervals and prediction intervals independently match R and statsmodels on real data. |
+| `categorical_data`; `stats_categorical_plot` | categorical frequency geometry | `plot.rs`, `stats_explore.rs` | geometry `Record`; guided SVG/ASCII | Yes | Counts and proportions retain first-observed category order; missing values are reported separately. |
+| `missingness_data`; `stats_missingness_plot` | missingness geometry | `plot.rs`, `stats_explore.rs` | geometry `Record`; guided SVG/ASCII | Yes | Full-data counts use every cell; deterministic row/column strides bound only the rendered grid. Nil and non-finite numbers are missing. |
 | `heatmap`, `clustered_heatmap`, `hic_map` | distinct until audited | `plot.rs`, `bio_plots.rs` | SVG `Str` | No | Similar marks but different statistical transformations and domain meaning. |
 | `volcano`, `volcano_plot` | `volcano_plot` | `plot.rs`, `bio_plots.rs` | SVG `Str` | No | Duplicate public concepts with potentially different thresholds/options. |
 | `ma_plot` | `ma_plot` | `plot.rs` | SVG `Str` | No | Point-heavy path; candidate for selective raster marks. |
@@ -69,7 +71,7 @@ These are registered in `crates/bl-runtime/src/viz.rs`.
 
 | Package | Public functions | Current representation | Priority |
 |---|---|---|---|
-| `statistics` | `distribution_plot`, `normal_qq_plot`, `group_plot`, `relationship_plot`, `categorical_plot`, `missingness_plot`, `linear_diagnostic_plot`, `normal_diagram`, `visualize`, plus ASCII summaries | records, SVG and ASCII assembled by guided-statistics builtins | Distribution histograms, normal Q-Q, grouped boxes, relationship fits/bands and residual Q-Q now consume shared geometry. Categorical and missingness plots remain local geometry. |
+| `statistics` | `distribution_plot`, `normal_qq_plot`, `group_plot`, `relationship_plot`, `categorical_plot`, `missingness_plot`, `linear_diagnostic_plot`, `normal_diagram`, `visualize`, plus ASCII summaries | records, SVG and ASCII assembled by guided-statistics builtins | Distribution histograms, normal Q-Q, grouped boxes, relationship fits/bands, residual Q-Q, categorical frequencies and missingness grids now consume shared geometry. |
 | `singlecell` | `plot_umap`, `plot_pca`, `dim_plot`, `plot_feature`, `feature_plot`, `plot_violin`, `vln_plot`, `plot_markers`, `plot_elbow`, `plot_proportions`, `expr_dotplot`, `dot_plot`, `do_heatmap` | BioLang code; some paths call runtime plots and some build raw SVG | Replace raw SVG only after equivalent geometry and snapshots exist. |
 | `singlecell` advanced | QC, embedding, split-feature, heatmap, differential-expression, pseudobulk, composition, enrichment and stability plots in `advanced_plots.bl` | hand-built SVG | High maintenance risk; migrate by plot family, not with a mechanical rewrite. |
 
@@ -91,3 +93,6 @@ These are registered in `crates/bl-runtime/src/viz.rs`.
 8. Real `airquality` ozone values now gate box, ECDF, Q-Q and KDE geometry, and
    ozone-by-month gates OLS confidence/prediction coordinates against R and
    statsmodels.
+9. Categorical frequencies and missingness grids expose stable geometry, and
+   SVG/standalone HTML output has structural accessibility tests for titles,
+   descriptions, controls and the Canvas fallback.

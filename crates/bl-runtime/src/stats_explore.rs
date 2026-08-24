@@ -7,7 +7,8 @@
 //! calculations fast, deterministic, and identical in native and WASM builds.
 
 use crate::plot::{
-    box_geometry, histogram_geometry, linear_fit_geometry, normal_qq_geometry, Scale, SvgCanvas,
+    box_geometry, categorical_geometry, histogram_geometry, linear_fit_geometry,
+    missingness_geometry, normal_qq_geometry, Scale, SvgCanvas,
 };
 use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::value::{Table, Value};
@@ -4584,48 +4585,12 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
     Ok(text(canvas.render()))
 }
 
-fn category_counts(value: &Value, function: &str) -> Result<(Vec<String>, Vec<usize>, usize)> {
-    let Value::List(items) = value else {
-        return Err(BioLangError::type_error(
-            format!("{function}() requires a List, got {}", value.type_of()),
-            None,
-        ));
-    };
-    let mut labels = Vec::<String>::new();
-    let mut counts = Vec::<usize>::new();
-    let mut positions = HashMap::<String, usize>::new();
-    let mut missing = 0usize;
-    for item in items.iter() {
-        let Some(label) = category_label(item) else {
-            if matches!(item, Value::Nil) {
-                missing += 1;
-                continue;
-            }
-            return Err(BioLangError::type_error(
-                format!("{function}() categories must be scalar values or Nil"),
-                None,
-            ));
-        };
-        let position = *positions.entry(label.clone()).or_insert_with(|| {
-            labels.push(label);
-            counts.push(0);
-            labels.len() - 1
-        });
-        counts[position] += 1;
-    }
-    Ok((labels, counts, missing))
-}
-
 fn categorical_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
-    let (labels, counts, missing) = category_counts(&args[0], "stats_categorical_plot")?;
+    let geometry = categorical_geometry(&args[0], "stats_categorical_plot")?;
+    let labels = &geometry.labels;
+    let counts = &geometry.counts;
+    let missing = geometry.missing;
     let opts = options(&args, 1, "stats_categorical_plot")?;
-    if labels.is_empty() {
-        return Err(BioLangError::runtime(
-            ErrorKind::TypeError,
-            "stats_categorical_plot() has no observed categories",
-            None,
-        ));
-    }
     let maximum = counts.iter().copied().max().unwrap_or(1);
     if plot_format(&opts) == "ascii" {
         let width = opts
@@ -4635,7 +4600,7 @@ fn categorical_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
             .clamp(10, 80) as usize;
         let label_width = labels.iter().map(String::len).max().unwrap_or(5).min(24);
         let mut output = String::from("Categorical frequency diagnostic (ASCII)\n");
-        for (label, count) in labels.iter().zip(&counts) {
+        for (label, count) in labels.iter().zip(counts) {
             let bar = ((*count as f64 / maximum as f64) * width as f64)
                 .round()
                 .max(1.0) as usize;
@@ -4662,12 +4627,26 @@ fn categorical_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         .unwrap_or(480.0)
         .max(340.0);
     let mut canvas = SvgCanvas::new(width, height);
+    let category_word = if labels.len() == 1 {
+        "category"
+    } else {
+        "categories"
+    };
+    let missing_clause = if missing == 1 {
+        "1 value is".to_string()
+    } else {
+        format!("{missing} values are")
+    };
+    canvas.set_accessible_description(format!(
+        "Bar chart of {} observed {} from {} values; {} missing. Categories retain first-observed order.",
+        labels.len(), category_word, geometry.n_total, missing_clause
+    ));
     canvas.margin.left = 70.0;
     canvas.margin.right = 25.0;
     canvas.margin.top = 45.0;
     canvas.margin.bottom = 80.0;
     let step = canvas.plot_width() / labels.len() as f64;
-    for (index, (label, count)) in labels.iter().zip(&counts).enumerate() {
+    for (index, (label, count)) in labels.iter().zip(counts).enumerate() {
         let bar_height = *count as f64 / maximum as f64 * canvas.plot_height();
         let x = canvas.margin.left + step * index as f64 + step * 0.12;
         canvas.add_rect(
@@ -4714,20 +4693,11 @@ fn missingness_plot(args: Vec<Value>) -> Result<Value> {
         .and_then(Value::as_int)
         .unwrap_or(40)
         .clamp(2, 100) as usize;
-    let row_stride = table.rows.len().div_ceil(max_rows).max(1);
-    let column_stride = table.columns.len().div_ceil(max_columns).max(1);
-    let displayed_rows = (0..table.rows.len())
-        .step_by(row_stride)
-        .collect::<Vec<_>>();
-    let displayed_columns = (0..table.columns.len())
-        .step_by(column_stride)
-        .collect::<Vec<_>>();
-    let is_missing =
-        |row: usize, column: usize| match table.rows[row].get(column).unwrap_or(&Value::Nil) {
-            Value::Nil => true,
-            Value::Float(value) => !value.is_finite(),
-            _ => false,
-        };
+    let geometry = missingness_geometry(table, max_rows, max_columns);
+    let displayed_rows = &geometry.displayed_rows;
+    let displayed_columns = &geometry.displayed_columns;
+    let row_stride = geometry.row_stride;
+    let column_stride = geometry.column_stride;
     if plot_format(&opts) == "ascii" {
         let mut output =
             String::from("Missingness map (ASCII): X=missing/non-finite, .=observed\n");
@@ -4740,10 +4710,11 @@ fn missingness_plot(args: Vec<Value>) -> Result<Value> {
                 .join(" | "),
         );
         output.push('\n');
-        for row in &displayed_rows {
+        for (display_row, row) in displayed_rows.iter().enumerate() {
             output.push_str(&format!("{:>6} |", row));
-            for column in &displayed_columns {
-                output.push(if is_missing(*row, *column) { 'X' } else { '.' });
+            for display_column in 0..displayed_columns.len() {
+                let cell = &geometry.cells[display_row * displayed_columns.len() + display_column];
+                output.push(if cell.missing { 'X' } else { '.' });
             }
             output.push_str("|\n");
         }
@@ -4754,22 +4725,26 @@ fn missingness_plot(args: Vec<Value>) -> Result<Value> {
     let width = (displayed_columns.len() as f64 * cell + 130.0).max(480.0);
     let height = (displayed_rows.len() as f64 * cell + 120.0).max(320.0);
     let mut canvas = SvgCanvas::new(width, height);
+    canvas.set_accessible_description(format!(
+        "Missingness grid displaying {} of {} rows and {} of {} columns. Full-data missing count is {} cells; display strides are row {} and column {}.",
+        displayed_rows.len(),
+        geometry.n_rows,
+        displayed_columns.len(),
+        geometry.n_columns,
+        geometry.missing_cells,
+        row_stride,
+        column_stride
+    ));
     canvas.margin.left = 80.0;
     canvas.margin.top = 55.0;
-    for (display_row, row) in displayed_rows.iter().enumerate() {
-        for (display_column, column) in displayed_columns.iter().enumerate() {
-            canvas.add_rect(
-                80.0 + display_column as f64 * cell,
-                55.0 + display_row as f64 * cell,
-                cell - 1.0,
-                cell - 1.0,
-                if is_missing(*row, *column) {
-                    "#dc2626"
-                } else {
-                    "#e2e8f0"
-                },
-            );
-        }
+    for point in &geometry.cells {
+        canvas.add_rect(
+            80.0 + point.display_column as f64 * cell,
+            55.0 + point.display_row as f64 * cell,
+            cell - 1.0,
+            cell - 1.0,
+            if point.missing { "#dc2626" } else { "#e2e8f0" },
+        );
     }
     for (display_column, column) in displayed_columns.iter().enumerate() {
         canvas.add_text_rotated(

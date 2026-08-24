@@ -501,6 +501,33 @@ fn diagnostic_visuals_have_ascii_and_svg_paths() {
 }
 
 #[test]
+fn categorical_and_missingness_svg_descriptions_disclose_the_geometry() {
+    let categories = Value::List(
+        vec![
+            Value::Str("case".into()),
+            Value::Nil,
+            Value::Str("control".into()),
+            Value::Str("case".into()),
+        ]
+        .into(),
+    );
+    let categorical = call_stats_builtin("stats_categorical_plot", vec![categories]).unwrap();
+    assert!(matches!(categorical, Value::Str(ref svg)
+        if svg.contains("<desc>Bar chart of 2 observed categories from 4 values; 1 value is missing. Categories retain first-observed order.</desc>")));
+
+    let table = Value::Table(Table::new(
+        vec!["a".into(), "b".into()],
+        vec![
+            vec![Value::Int(1), Value::Nil],
+            vec![Value::Float(f64::NAN), Value::Int(2)],
+        ],
+    ));
+    let missingness = call_stats_builtin("stats_missingness_plot", vec![table]).unwrap();
+    assert!(matches!(missingness, Value::Str(ref svg)
+        if svg.contains("<desc>Missingness grid displaying 2 of 2 rows and 2 of 2 columns. Full-data missing count is 2 cells; display strides are row 1 and column 1.</desc>")));
+}
+
+#[test]
 fn normalization_guidance_audits_the_complete_matrix_without_applying_it() {
     let matrix = Value::List(
         vec![

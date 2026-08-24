@@ -128,10 +128,13 @@ Braille, and standalone HTML containing the original SVG plus an optional
 Canvas/PNG fallback. The default remains an SVG `Str`, preserving redirected
 CLI output and existing notebook compatibility.
 
-`boxplot_data`, `ecdf_data`, `normal_qq_data`, `violin_data`, `linear_fit_data`, and
-`histogram_data` return `biolang.plot.geometry/v1` Records/Tables with stable
-rows, method labels and exclusions. These values can be written to JSON/CSV for
-validation; renderers do not need to infer the statistics from pixels.
+`boxplot_data`, `ecdf_data`, `normal_qq_data`, `violin_data`, `linear_fit_data`,
+`histogram_data`, `categorical_data`, and `missingness_data` return
+`biolang.plot.geometry/v1` Records/Tables with stable rows, method labels and
+exclusions. These values can be written to JSON/CSV for validation; renderers
+do not need to infer the statistics from pixels. Categorical geometry retains
+first-observed order. Missingness geometry reports counts from the full table
+while exposing a separately bounded, deterministic display grid.
 
 `linear_fit_data(x, y, {confidence: 0.95, at: [...]})` keeps uncertainty
 explicit: `confidence_lower/upper` describe uncertainty in the fitted mean,

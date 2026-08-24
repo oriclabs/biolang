@@ -75,6 +75,23 @@ let fit = linear_fit_data(x, y, {confidence: 0.95})
 fit.data
 ```
 
+Frequency and missingness plots are inspectable in the same way:
+
+```biolang
+# Stable first-observed labels, counts, proportions, and missing total.
+let frequencies = categorical_data(stages)
+frequencies.data
+
+# Full-table missing counts plus a bounded grid for any renderer.
+let missing = missingness_data(data, {max_rows: 100, max_columns: 40})
+missing.column_summary
+missing.cells
+```
+
+The `max_rows` and `max_columns` limits change only the display grid. They do
+not change `missing_cells` or `column_summary`, which always inspect the full
+table.
+
 ## Multi-group inference
 
 The inference builtins use explicit method labels and return effect sizes:

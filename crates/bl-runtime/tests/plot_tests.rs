@@ -347,6 +347,185 @@ fn linear_fit_geometry_distinguishes_confidence_and_prediction_intervals() {
 }
 
 #[test]
+fn categorical_geometry_preserves_first_observed_order_and_missing_counts() {
+    let values = Value::List(
+        vec![
+            Value::Str("b".into()),
+            Value::Str("a".into()),
+            Value::Str("b".into()),
+            Value::Nil,
+            Value::Bool(true),
+        ]
+        .into(),
+    );
+    let result = call_plot_builtin("categorical_data", vec![values]).unwrap();
+    assert!(
+        matches!(record_field(&result, "schema"), Value::Str(value) if value == "biolang.plot.geometry/v1")
+    );
+    assert!(
+        matches!(record_field(&result, "ordering"), Value::Str(value) if value == "first_observed")
+    );
+    assert_eq!(record_field(&result, "n_total"), &Value::Int(5));
+    assert_eq!(record_field(&result, "n_observed"), &Value::Int(4));
+    assert_eq!(record_field(&result, "missing"), &Value::Int(1));
+
+    let data = match record_field(&result, "data") {
+        Value::Table(table) => table,
+        other => panic!("expected categorical data Table, got {other:?}"),
+    };
+    let label = data.col_index("label").unwrap();
+    let count = data.col_index("count").unwrap();
+    let proportion = data.col_index("proportion").unwrap();
+    assert_eq!(data.num_rows(), 3);
+    assert_eq!(data.rows[0][label], Value::Str("b".into()));
+    assert_eq!(data.rows[1][label], Value::Str("a".into()));
+    assert_eq!(data.rows[2][label], Value::Str("true".into()));
+    assert_eq!(data.rows[0][count], Value::Int(2));
+    assert_eq!(data.rows[1][count], Value::Int(1));
+    assert_eq!(data.rows[2][count], Value::Int(1));
+    let total = data
+        .rows
+        .iter()
+        .map(|row| row[proportion].as_float().unwrap())
+        .sum::<f64>();
+    assert!((total - 1.0).abs() < 1e-12);
+}
+
+#[test]
+fn categorical_geometry_rejects_unobserved_and_non_scalar_categories() {
+    assert!(call_plot_builtin(
+        "categorical_data",
+        vec![Value::List(vec![Value::Nil, Value::Nil].into())]
+    )
+    .is_err());
+    assert!(call_plot_builtin(
+        "categorical_data",
+        vec![Value::List(
+            vec![Value::List(vec![Value::Int(1)].into())].into()
+        )]
+    )
+    .is_err());
+}
+
+#[test]
+fn missingness_geometry_separates_full_counts_from_bounded_display_cells() {
+    let table = make_table(
+        vec!["a", "b", "c", "d"],
+        vec![
+            vec![
+                Value::Int(1),
+                Value::Nil,
+                Value::Float(f64::NAN),
+                Value::Int(4),
+            ],
+            vec![
+                Value::Nil,
+                Value::Int(2),
+                Value::Int(3),
+                Value::Float(f64::INFINITY),
+            ],
+            vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)],
+            vec![Value::Nil, Value::Nil, Value::Int(3), Value::Int(4)],
+            vec![Value::Int(1), Value::Int(2), Value::Nil, Value::Int(4)],
+        ],
+    );
+    let options = Value::Record(
+        HashMap::from([
+            ("max_rows".into(), Value::Int(2)),
+            ("max_columns".into(), Value::Int(2)),
+        ])
+        .into(),
+    );
+    let result = call_plot_builtin("missingness_data", vec![table, options]).unwrap();
+    assert_eq!(record_field(&result, "n_rows"), &Value::Int(5));
+    assert_eq!(record_field(&result, "n_columns"), &Value::Int(4));
+    assert_eq!(record_field(&result, "missing_cells"), &Value::Int(7));
+    assert_eq!(record_field(&result, "row_stride"), &Value::Int(3));
+    assert_eq!(record_field(&result, "column_stride"), &Value::Int(2));
+
+    let summary = match record_field(&result, "column_summary") {
+        Value::Table(table) => table,
+        other => panic!("expected column summary Table, got {other:?}"),
+    };
+    let missing_count = summary.col_index("missing_count").unwrap();
+    assert_eq!(
+        summary
+            .rows
+            .iter()
+            .map(|row| row[missing_count].as_int().unwrap())
+            .collect::<Vec<_>>(),
+        vec![2, 2, 2, 1]
+    );
+
+    let cells = match record_field(&result, "cells") {
+        Value::Table(table) => table,
+        other => panic!("expected missingness cells Table, got {other:?}"),
+    };
+    assert_eq!(cells.num_rows(), 4);
+    let source_row = cells.col_index("source_row").unwrap();
+    let source_column = cells.col_index("source_column").unwrap();
+    let missing = cells.col_index("missing").unwrap();
+    let observed = cells
+        .rows
+        .iter()
+        .map(|row| {
+            (
+                row[source_row].as_int().unwrap(),
+                row[source_column].as_int().unwrap(),
+                matches!(row[missing], Value::Bool(true)),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        observed,
+        vec![(0, 0, false), (0, 2, true), (3, 0, true), (3, 2, false)]
+    );
+}
+
+#[test]
+fn missingness_geometry_rejects_invalid_display_limits() {
+    let table = make_table(vec!["a"], vec![vec![Value::Nil]]);
+    for invalid in [Value::Int(0), Value::Float(1.5), Value::Str("many".into())] {
+        let options = Value::Record(HashMap::from([("max_rows".into(), invalid)]).into());
+        assert!(call_plot_builtin("missingness_data", vec![table.clone(), options]).is_err());
+    }
+}
+
+#[test]
+fn svg_and_html_renderers_expose_accessible_structure() {
+    let table = make_table(
+        vec!["x", "y"],
+        vec![
+            vec![Value::Int(1), Value::Int(2)],
+            vec![Value::Int(2), Value::Int(4)],
+        ],
+    );
+    let options =
+        Value::Record(HashMap::from([("title".into(), Value::Str("A & B".into()))]).into());
+    let spec = call_plot_builtin("plot_spec", vec![table, options]).unwrap();
+    let svg = call_plot_builtin("render_plot", vec![spec.clone()]).unwrap();
+    assert!(matches!(svg, Value::Str(ref text)
+        if text.contains("role=\"img\"")
+            && text.contains("focusable=\"false\"")
+            && text.contains("aria-label=\"A &amp; B\"")
+            && text.contains("<title>A &amp; B</title>")
+            && text.contains("<desc>scatter plot with 1 series and 2 rendered marks; 0 non-finite rows were excluded.</desc>")));
+
+    let html_options =
+        Value::Record(HashMap::from([("format".into(), Value::Str("html".into()))]).into());
+    let html = call_plot_builtin("render_plot", vec![spec, html_options]).unwrap();
+    assert!(matches!(html, Value::Str(ref text)
+        if text.contains("<title>A &amp; B</title>")
+            && text.contains("<figure id=\"bl-figure\" aria-labelledby=\"bl-caption\">")
+            && text.contains("<figcaption id=\"bl-caption\"")
+            && text.contains("type=\"button\" id=\"bl-toggle\"")
+            && text.contains("aria-controls=\"bl-svg bl-canvas\"")
+            && text.contains("aria-pressed=\"false\"")
+            && text.contains("aria-label=\"A &amp; B canvas fallback\"")
+            && text.contains("s.id='bl-svg'")));
+}
+
+#[test]
 fn interval_plot_rejects_missing_or_reversed_bounds() {
     let table = make_table(
         vec!["x", "y", "low", "high"],

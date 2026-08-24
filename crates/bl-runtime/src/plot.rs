@@ -15,6 +15,8 @@ pub fn plot_builtin_list() -> Vec<(&'static str, Arity)> {
         ("normal_qq_data", Arity::Range(1, 2)),
         ("violin_data", Arity::Range(1, 2)),
         ("linear_fit_data", Arity::Range(2, 3)),
+        ("categorical_data", Arity::Exact(1)),
+        ("missingness_data", Arity::Range(1, 2)),
         ("ecdf_plot", Arity::Range(1, 2)),
         ("density_plot", Arity::Range(1, 2)),
         ("volcano", Arity::Range(1, 2)),
@@ -40,6 +42,8 @@ pub fn is_plot_builtin(name: &str) -> bool {
             | "normal_qq_data"
             | "violin_data"
             | "linear_fit_data"
+            | "categorical_data"
+            | "missingness_data"
             | "ecdf_plot"
             | "density_plot"
             | "volcano"
@@ -94,6 +98,8 @@ pub fn call_plot_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "normal_qq_data" => builtin_normal_qq_data(args),
         "violin_data" => builtin_violin_data(args),
         "linear_fit_data" => builtin_linear_fit_data(args),
+        "categorical_data" => builtin_categorical_data(args),
+        "missingness_data" => builtin_missingness_data(args),
         "ecdf_plot" => builtin_ecdf_plot(args),
         "density_plot" => builtin_density_plot(args),
         "volcano" => builtin_volcano(args),
@@ -253,6 +259,7 @@ pub(crate) struct SvgCanvas {
     pub(crate) margin: Margin,
     pub(crate) elements: Vec<String>,
     accessible_label: Option<String>,
+    accessible_description: Option<String>,
 }
 
 pub(crate) struct Margin {
@@ -301,6 +308,7 @@ impl SvgCanvas {
             margin: Margin::default(),
             elements: Vec::new(),
             accessible_label: None,
+            accessible_description: None,
         }
     }
 
@@ -545,18 +553,27 @@ impl SvgCanvas {
         self.add_text(self.width / 2.0, 25.0, title, "middle", 16.0);
     }
 
+    pub(crate) fn set_accessible_description(&mut self, description: impl Into<String>) {
+        self.accessible_description = Some(description.into());
+    }
+
     pub(crate) fn render(&self) -> String {
-        let label = self
-            .accessible_label
-            .as_deref()
-            .unwrap_or("BioLang plot")
-            .replace('&', "&amp;")
-            .replace('<', "&lt;")
-            .replace('>', "&gt;")
-            .replace('"', "&quot;");
+        let escape = |value: &str| {
+            value
+                .replace('&', "&amp;")
+                .replace('<', "&lt;")
+                .replace('>', "&gt;")
+                .replace('"', "&quot;")
+        };
+        let label = escape(self.accessible_label.as_deref().unwrap_or("BioLang plot"));
+        let description = escape(
+            self.accessible_description
+                .as_deref()
+                .unwrap_or("BioLang data visualization."),
+        );
         let mut svg = format!(
-            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="{}" viewBox="0 0 {} {}" role="img" aria-label="{}">"#,
-            self.width, self.height, self.width, self.height, label
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="{}" viewBox="0 0 {} {}" role="img" aria-label="{}" focusable="false"><title>{}</title><desc>{}</desc>"#,
+            self.width, self.height, self.width, self.height, label, label, description
         );
         svg.push_str(&format!(
             r#"<rect width="{}" height="{}" fill="white" />"#,
@@ -1183,6 +1200,18 @@ fn plot_spec_from_value(value: &Value) -> Result<CartesianPlotSpec> {
 
 fn render_cartesian_plot_spec(spec: &CartesianPlotSpec) -> Result<String> {
     let mut canvas = SvgCanvas::new(spec.width, spec.height);
+    let point_count = spec
+        .series
+        .iter()
+        .map(|series| series.points.len())
+        .sum::<usize>();
+    canvas.set_accessible_description(format!(
+        "{} plot with {} series and {} rendered marks; {} non-finite rows were excluded.",
+        spec.kind,
+        spec.series.len(),
+        point_count,
+        spec.dropped_non_finite
+    ));
     let x_scale = Scale {
         domain: spec.x_domain,
         range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
@@ -1300,9 +1329,19 @@ fn render_cartesian_plot_spec(spec: &CartesianPlotSpec) -> Result<String> {
     Ok(canvas.render())
 }
 
-fn standalone_plot_html(svg: &str) -> String {
+fn standalone_plot_html(svg: &str, title: &str) -> String {
+    let title = if title.trim().is_empty() {
+        "BioLang plot"
+    } else {
+        title
+    };
+    let escaped_title = title
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;");
     format!(
-        r#"<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>BioLang plot</title><style>body{{margin:0;padding:1rem;font-family:system-ui,sans-serif}}figure{{margin:0;overflow:auto}}svg,canvas{{max-width:100%;height:auto}}button{{margin:0 0 .5rem .35rem}}</style></head><body><figure id="bl-figure"><button id="bl-toggle" disabled>Use canvas</button><button id="bl-download" disabled>Download PNG</button>{svg}<canvas id="bl-canvas" hidden role="img" aria-label="BioLang plot canvas fallback"></canvas></figure><script>(function(){{const f=document.getElementById('bl-figure'),s=f.querySelector('svg'),c=document.getElementById('bl-canvas'),t=document.getElementById('bl-toggle'),d=document.getElementById('bl-download');const v=s.viewBox.baseVal,w=v.width||+s.getAttribute('width')||800,h=v.height||+s.getAttribute('height')||600,scale=Math.min(devicePixelRatio||1,2);c.width=Math.round(w*scale);c.height=Math.round(h*scale);c.style.width=w+'px';const blob=new Blob([new XMLSerializer().serializeToString(s)],{{type:'image/svg+xml'}}),u=URL.createObjectURL(blob),i=new Image;i.onload=()=>{{const x=c.getContext('2d');x.setTransform(scale,0,0,scale,0,0);x.drawImage(i,0,0,w,h);URL.revokeObjectURL(u);t.disabled=false;d.disabled=false}};i.onerror=()=>URL.revokeObjectURL(u);i.src=u;t.onclick=()=>{{const show=c.hidden;c.hidden=!show;s.hidden=show;t.textContent=show?'Use SVG':'Use canvas'}};d.onclick=()=>{{const a=document.createElement('a');a.download='biolang-plot.png';a.href=c.toDataURL('image/png');a.click()}}}})();</script></body></html>"#
+        r#"<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{escaped_title}</title><style>body{{margin:0;padding:1rem;font-family:system-ui,sans-serif}}figure{{margin:0;overflow:auto}}svg,canvas{{max-width:100%;height:auto}}button{{margin:0 0 .5rem .35rem}}</style></head><body><figure id="bl-figure" aria-labelledby="bl-caption"><figcaption id="bl-caption" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">{escaped_title}</figcaption><button type="button" id="bl-toggle" aria-controls="bl-svg bl-canvas" aria-pressed="false" disabled>Use canvas</button><button type="button" id="bl-download" aria-controls="bl-canvas" disabled>Download PNG</button>{svg}<canvas id="bl-canvas" hidden role="img" aria-label="{escaped_title} canvas fallback"></canvas></figure><script>(function(){{const f=document.getElementById('bl-figure'),s=f.querySelector('svg'),c=document.getElementById('bl-canvas'),t=document.getElementById('bl-toggle'),d=document.getElementById('bl-download');s.id='bl-svg';const v=s.viewBox.baseVal,w=v.width||+s.getAttribute('width')||800,h=v.height||+s.getAttribute('height')||600,scale=Math.min(devicePixelRatio||1,2);c.width=Math.round(w*scale);c.height=Math.round(h*scale);c.style.width=w+'px';const blob=new Blob([new XMLSerializer().serializeToString(s)],{{type:'image/svg+xml'}}),u=URL.createObjectURL(blob),i=new Image;i.onload=()=>{{const x=c.getContext('2d');x.setTransform(scale,0,0,scale,0,0);x.drawImage(i,0,0,w,h);URL.revokeObjectURL(u);t.disabled=false;d.disabled=false}};i.onerror=()=>URL.revokeObjectURL(u);i.src=u;t.onclick=()=>{{const show=c.hidden;c.hidden=!show;s.hidden=show;t.setAttribute('aria-pressed',String(show));t.textContent=show?'Use SVG':'Use canvas'}};d.onclick=()=>{{const a=document.createElement('a');a.download='biolang-plot.png';a.href=c.toDataURL('image/png');a.click()}}}})();</script></body></html>"#
     )
 }
 
@@ -1323,7 +1362,7 @@ fn render_plot_spec_value(
         "unicode" | "braille" => render_svg_terminal(&svg, 80, 24, TerminalPlotStyle::Braille)
             .map(Value::Str)
             .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None)),
-        "html" | "canvas" => Ok(Value::Str(standalone_plot_html(&svg).into())),
+        "html" | "canvas" => Ok(Value::Str(standalone_plot_html(&svg, &spec.title).into())),
         _ => Err(BioLangError::runtime(
             ErrorKind::TypeError,
             format!(
@@ -3375,6 +3414,357 @@ fn builtin_linear_fit_data(args: Vec<Value>) -> Result<Value> {
     ))
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct CategoricalGeometry {
+    pub(crate) labels: Vec<String>,
+    pub(crate) counts: Vec<usize>,
+    pub(crate) n_total: usize,
+    pub(crate) n_observed: usize,
+    pub(crate) missing: usize,
+}
+
+fn categorical_label(value: &Value) -> Option<String> {
+    match value {
+        Value::Str(value) => Some(value.to_string()),
+        Value::Int(value) => Some(value.to_string()),
+        Value::Float(value) if value.is_finite() => Some(value.to_string()),
+        Value::Bool(value) => Some(value.to_string()),
+        _ => None,
+    }
+}
+
+/// First-observed categorical frequencies. The order is part of the geometry:
+/// silently sorting labels changes which bar a reader associates with a group.
+pub(crate) fn categorical_geometry(value: &Value, who: &str) -> Result<CategoricalGeometry> {
+    let Value::List(items) = value else {
+        return Err(BioLangError::type_error(
+            format!("{who}() requires a List, got {}", value.type_of()),
+            None,
+        ));
+    };
+    let mut labels = Vec::new();
+    let mut counts = Vec::new();
+    let mut positions = HashMap::<String, usize>::new();
+    let mut missing = 0usize;
+    for item in items.iter() {
+        if matches!(item, Value::Nil) {
+            missing += 1;
+            continue;
+        }
+        let Some(label) = categorical_label(item) else {
+            return Err(BioLangError::type_error(
+                format!("{who}() categories must be finite scalar values or Nil"),
+                None,
+            ));
+        };
+        let position = *positions.entry(label.clone()).or_insert_with(|| {
+            labels.push(label);
+            counts.push(0);
+            labels.len() - 1
+        });
+        counts[position] += 1;
+    }
+    if labels.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{who}() has no observed categories"),
+            None,
+        ));
+    }
+    Ok(CategoricalGeometry {
+        labels,
+        counts,
+        n_total: items.len(),
+        n_observed: items.len() - missing,
+        missing,
+    })
+}
+
+fn builtin_categorical_data(args: Vec<Value>) -> Result<Value> {
+    let geometry = categorical_geometry(&args[0], "categorical_data")?;
+    let rows = geometry
+        .labels
+        .iter()
+        .zip(&geometry.counts)
+        .enumerate()
+        .map(|(index, (label, count))| {
+            vec![
+                Value::Int(index as i64),
+                Value::Str(label.clone().into()),
+                Value::Int(*count as i64),
+                Value::Float(*count as f64 / geometry.n_observed as f64),
+            ]
+        })
+        .collect();
+    Ok(Value::Record(
+        HashMap::from([
+            (
+                "schema".into(),
+                Value::Str("biolang.plot.geometry/v1".into()),
+            ),
+            ("kind".into(), Value::Str("categorical".into())),
+            ("ordering".into(), Value::Str("first_observed".into())),
+            ("n_total".into(), Value::Int(geometry.n_total as i64)),
+            ("n_observed".into(), Value::Int(geometry.n_observed as i64)),
+            ("missing".into(), Value::Int(geometry.missing as i64)),
+            (
+                "data".into(),
+                Value::Table(Table::new(
+                    vec![
+                        "category_index".into(),
+                        "label".into(),
+                        "count".into(),
+                        "proportion".into(),
+                    ],
+                    rows,
+                )),
+            ),
+        ])
+        .into(),
+    ))
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct MissingnessCell {
+    pub(crate) display_row: usize,
+    pub(crate) display_column: usize,
+    pub(crate) source_row: usize,
+    pub(crate) source_column: usize,
+    pub(crate) missing: bool,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct MissingnessGeometry {
+    pub(crate) n_rows: usize,
+    pub(crate) n_columns: usize,
+    pub(crate) missing_cells: usize,
+    pub(crate) row_stride: usize,
+    pub(crate) column_stride: usize,
+    pub(crate) displayed_rows: Vec<usize>,
+    pub(crate) displayed_columns: Vec<usize>,
+    pub(crate) column_missing: Vec<usize>,
+    pub(crate) cells: Vec<MissingnessCell>,
+}
+
+pub(crate) fn value_is_missing(value: &Value) -> bool {
+    matches!(value, Value::Nil) || matches!(value, Value::Float(number) if !number.is_finite())
+}
+
+/// Full missing counts plus a deterministic, bounded display grid. Counts use
+/// every table cell; strides affect only the cells handed to a renderer.
+pub(crate) fn missingness_geometry(
+    table: &Table,
+    max_rows: usize,
+    max_columns: usize,
+) -> MissingnessGeometry {
+    let row_stride = table.rows.len().div_ceil(max_rows.max(1)).max(1);
+    let column_stride = table.columns.len().div_ceil(max_columns.max(1)).max(1);
+    let displayed_rows = (0..table.rows.len())
+        .step_by(row_stride)
+        .collect::<Vec<_>>();
+    let displayed_columns = (0..table.columns.len())
+        .step_by(column_stride)
+        .collect::<Vec<_>>();
+    let mut column_missing = vec![0usize; table.columns.len()];
+    for row in &table.rows {
+        for (column, missing) in column_missing.iter_mut().enumerate() {
+            if value_is_missing(row.get(column).unwrap_or(&Value::Nil)) {
+                *missing += 1;
+            }
+        }
+    }
+    let missing_cells = column_missing.iter().sum();
+    let cells = displayed_rows
+        .iter()
+        .enumerate()
+        .flat_map(|(display_row, source_row)| {
+            displayed_columns
+                .iter()
+                .enumerate()
+                .map(move |(display_column, source_column)| MissingnessCell {
+                    display_row,
+                    display_column,
+                    source_row: *source_row,
+                    source_column: *source_column,
+                    missing: value_is_missing(
+                        table.rows[*source_row]
+                            .get(*source_column)
+                            .unwrap_or(&Value::Nil),
+                    ),
+                })
+        })
+        .collect();
+    MissingnessGeometry {
+        n_rows: table.rows.len(),
+        n_columns: table.columns.len(),
+        missing_cells,
+        row_stride,
+        column_stride,
+        displayed_rows,
+        displayed_columns,
+        column_missing,
+        cells,
+    }
+}
+
+fn builtin_missingness_data(args: Vec<Value>) -> Result<Value> {
+    let table = require_table(&args[0], "missingness_data")?;
+    let opts = parse_options(&args);
+    let max_rows = geometry_limit(&opts, "max_rows", 100, 10_000)?;
+    let max_columns = geometry_limit(&opts, "max_columns", 40, 1_000)?;
+    let geometry = missingness_geometry(table, max_rows, max_columns);
+    let row_rows = geometry
+        .displayed_rows
+        .iter()
+        .enumerate()
+        .map(|(display_row, source_row)| {
+            vec![
+                Value::Int(display_row as i64),
+                Value::Int(*source_row as i64),
+            ]
+        })
+        .collect();
+    let column_rows = geometry
+        .displayed_columns
+        .iter()
+        .enumerate()
+        .map(|(display_column, source_column)| {
+            vec![
+                Value::Int(display_column as i64),
+                Value::Int(*source_column as i64),
+                Value::Str(table.columns[*source_column].clone().into()),
+            ]
+        })
+        .collect();
+    let summary_rows = table
+        .columns
+        .iter()
+        .enumerate()
+        .map(|(source_column, name)| {
+            let count = geometry.column_missing[source_column];
+            vec![
+                Value::Int(source_column as i64),
+                Value::Str(name.clone().into()),
+                Value::Int(count as i64),
+                Value::Float(if geometry.n_rows == 0 {
+                    0.0
+                } else {
+                    count as f64 / geometry.n_rows as f64
+                }),
+            ]
+        })
+        .collect();
+    let cell_rows = geometry
+        .cells
+        .iter()
+        .map(|cell| {
+            vec![
+                Value::Int(cell.display_row as i64),
+                Value::Int(cell.display_column as i64),
+                Value::Int(cell.source_row as i64),
+                Value::Int(cell.source_column as i64),
+                Value::Bool(cell.missing),
+            ]
+        })
+        .collect();
+    Ok(Value::Record(
+        HashMap::from([
+            (
+                "schema".into(),
+                Value::Str("biolang.plot.geometry/v1".into()),
+            ),
+            ("kind".into(), Value::Str("missingness".into())),
+            ("n_rows".into(), Value::Int(geometry.n_rows as i64)),
+            ("n_columns".into(), Value::Int(geometry.n_columns as i64)),
+            (
+                "missing_cells".into(),
+                Value::Int(geometry.missing_cells as i64),
+            ),
+            ("row_stride".into(), Value::Int(geometry.row_stride as i64)),
+            (
+                "column_stride".into(),
+                Value::Int(geometry.column_stride as i64),
+            ),
+            (
+                "displayed_rows".into(),
+                Value::Table(Table::new(
+                    vec!["display_row".into(), "source_row".into()],
+                    row_rows,
+                )),
+            ),
+            (
+                "displayed_columns".into(),
+                Value::Table(Table::new(
+                    vec![
+                        "display_column".into(),
+                        "source_column".into(),
+                        "column".into(),
+                    ],
+                    column_rows,
+                )),
+            ),
+            (
+                "column_summary".into(),
+                Value::Table(Table::new(
+                    vec![
+                        "source_column".into(),
+                        "column".into(),
+                        "missing_count".into(),
+                        "missing_fraction".into(),
+                    ],
+                    summary_rows,
+                )),
+            ),
+            (
+                "cells".into(),
+                Value::Table(Table::new(
+                    vec![
+                        "display_row".into(),
+                        "display_column".into(),
+                        "source_row".into(),
+                        "source_column".into(),
+                        "missing".into(),
+                    ],
+                    cell_rows,
+                )),
+            ),
+        ])
+        .into(),
+    ))
+}
+
+fn geometry_limit(
+    opts: &HashMap<String, Value>,
+    key: &str,
+    default: usize,
+    maximum: usize,
+) -> Result<usize> {
+    let Some(value) = opts.get(key) else {
+        return Ok(default);
+    };
+    let number = match value {
+        Value::Int(value) if *value > 0 => *value as usize,
+        Value::Float(value) if value.is_finite() && *value >= 1.0 && value.fract() == 0.0 => {
+            *value as usize
+        }
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("missingness_data() option '{key}' must be a positive whole number"),
+                None,
+            ))
+        }
+    };
+    if number > maximum {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("missingness_data() option '{key}' exceeds the safety limit of {maximum}"),
+            None,
+        ));
+    }
+    Ok(number)
+}
+
 /// The empirical cumulative distribution: for each value, the fraction of the
 /// data at or below it.
 ///
@@ -4283,16 +4673,23 @@ mod palette_tests {
     fn rendered_svg_uses_the_title_as_its_accessible_label() {
         let mut canvas = SvgCanvas::new(320.0, 180.0);
         canvas.draw_title("A & B");
+        canvas.set_accessible_description("Values < reference & finite");
 
         let svg = canvas.render();
         assert!(svg.contains("role=\"img\""));
+        assert!(svg.contains("focusable=\"false\""));
         assert!(svg.contains("aria-label=\"A &amp; B\""));
+        assert!(svg.contains("<title>A &amp; B</title>"));
+        assert!(svg.contains("<desc>Values &lt; reference &amp; finite</desc>"));
     }
 
     #[test]
     fn rendered_svg_has_a_default_accessible_label() {
         let canvas = SvgCanvas::new(320.0, 180.0);
-        assert!(canvas.render().contains("aria-label=\"BioLang plot\""));
+        let svg = canvas.render();
+        assert!(svg.contains("aria-label=\"BioLang plot\""));
+        assert!(svg.contains("<title>BioLang plot</title>"));
+        assert!(svg.contains("<desc>BioLang data visualization.</desc>"));
     }
 }
 

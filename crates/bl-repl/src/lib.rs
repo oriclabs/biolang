@@ -3512,6 +3512,16 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
         "plot",
     ),
     (
+        "categorical_data",
+        "categorical_data(values) -> ordered frequency/proportion geometry Record",
+        "plot",
+    ),
+    (
+        "missingness_data",
+        "missingness_data(table, opts?) -> full counts plus bounded display geometry Record",
+        "plot",
+    ),
+    (
         "plot",
         "plot(table, opts?) → Str (SVG); opts.y may name several columns",
         "plot",

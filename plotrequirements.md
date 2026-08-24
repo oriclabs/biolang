@@ -1,6 +1,6 @@
 # BioLang Statistical Plotting Requirements
 
-Status: planning document only; intentionally untracked
+Status: implementation requirements and progress record
 
 ## 1. Purpose and decision
 
@@ -1027,9 +1027,17 @@ bandwidth implementation. Guided distribution, grouped-box, normal-Q-Q,
 relationship and residual-Q-Q renderers now consume shared statistical
 geometry, and fitted confidence/prediction coordinates have independent R and
 statsmodels gates. Real `airquality` values exercise box, ECDF, Q-Q, KDE and
-linear-fit geometry. The alias audit keeps genomic versus normal Q-Q, wide
-versus long-form violin, and single versus grouped/ASCII density contracts
-distinct. The next bounded action is categorical/missingness geometry and
-snapshot accessibility coverage. A new core `Value::Plot`, BLN file-format
-migration, crate split, direct Canvas scientific engine, or GPU renderer remains
-deferred until that compatibility work demonstrates a concrete need.
+linear-fit geometry. Categorical counts now retain first-observed order in a
+shared inspectable geometry, while missingness exposes full-data counts and a
+separately bounded deterministic display grid. SVG and standalone HTML have
+structural accessibility coverage for titles, descriptions, controls and the
+Canvas fallback. The alias audit keeps genomic versus normal Q-Q, wide versus
+long-form violin, and single versus grouped/ASCII density contracts distinct.
+
+The next bounded action is to migrate one high-value biological plot family
+onto the shared specification only after freezing its current semantics and
+adding geometry tests. UMAP/feature plots are the best candidate because their
+large point layers already have measured raster behaviour. A new core
+`Value::Plot`, BLN file-format migration, crate split, direct Canvas scientific
+engine, or GPU renderer remains deferred until that compatibility work
+demonstrates a concrete need.
