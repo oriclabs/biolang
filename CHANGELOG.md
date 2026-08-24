@@ -9,6 +9,28 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Terminal plot previews instead of raw SVG dumps.** The CLI recognises a
+  complete SVG plot whether it is the final value or passed to `println`, and
+  renders a compact Braille/Unicode preview in an interactive terminal. Plain
+  ASCII, automatic SVG files, opening in the platform viewer, suppression and
+  raw markup are explicit `--plot` / `:plot` modes, selectable per run
+  (`--plot`, `--plot-dir`) or per session (`:plot`). The original SVG remains
+  the value, so `save_plot` and structured notebook/event clients are
+  unaffected.
+
+### Changed
+
+- **Plot status lines now go to standard error.** Where a figure was saved, why
+  a preview could not be drawn, and that display is suppressed are diagnostics,
+  not data. Standard output carries only the figure itself, so
+  `bl run figure.bl --print-result > figure.svg` still writes an SVG: the
+  default `auto` mode draws terminal graphics only when standard output is a
+  terminal, and passes a redirected stream through untouched. Ask for `unicode`
+  or `ascii` explicitly to draw into a redirected stream, or `raw` to force SVG
+  onto a terminal.
+
 ## [1.5.0] - 2026-08-21
 
 ### Added

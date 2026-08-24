@@ -1,0 +1,143 @@
+﻿{
+    "schema":  "biolang.plot.dense-benchmark/v1",
+    "generated_utc":  "2026-08-24T01:11:52.5785441Z",
+    "platform":  "Microsoft Windows NT 10.0.26200.0",
+    "architecture":  "X64",
+    "processor":  "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+    "build":  "release",
+    "renderer":  "umap_plot SVG with vector or embedded tiny-skia PNG point layer",
+    "default_raster_threshold":  20000,
+    "repetitions_per_process":  3,
+    "timing":  "median render-only elapsed time; input generation excluded",
+    "memory":  "maximum sampled process working set; includes prepared input and renderer",
+    "cases":  [
+                  {
+                      "elapsed_ms":  [
+                                         0.6189,
+                                         0.6686,
+                                         0.7255
+                                     ],
+                      "median_elapsed_ms":  0.6686,
+                      "point_circles":  1012,
+                      "raster":  "off",
+                      "raster_layers":  0,
+                      "repeats":  3,
+                      "size":  1000,
+                      "svg_bytes":  73621,
+                      "svg_elements":  1082,
+                      "peak_working_set_bytes":  null
+                  },
+                  {
+                      "elapsed_ms":  [
+                                         22.375200000000003,
+                                         22.6653,
+                                         22.7251
+                                     ],
+                      "median_elapsed_ms":  22.6653,
+                      "point_circles":  12,
+                      "raster":  "on",
+                      "raster_layers":  1,
+                      "repeats":  3,
+                      "size":  1000,
+                      "svg_bytes":  275972,
+                      "svg_elements":  83,
+                      "peak_working_set_bytes":  16392192
+                  },
+                  {
+                      "elapsed_ms":  [
+                                         2.8967,
+                                         3.0423,
+                                         3.2958000000000003
+                                     ],
+                      "median_elapsed_ms":  3.0423,
+                      "point_circles":  5012,
+                      "raster":  "off",
+                      "raster_layers":  0,
+                      "repeats":  3,
+                      "size":  5000,
+                      "svg_bytes":  349332,
+                      "svg_elements":  5082,
+                      "peak_working_set_bytes":  5844992
+                  },
+                  {
+                      "elapsed_ms":  [
+                                         47.706199999999995,
+                                         47.9034,
+                                         49.5124
+                                     ],
+                      "median_elapsed_ms":  47.9034,
+                      "point_circles":  12,
+                      "raster":  "on",
+                      "raster_layers":  1,
+                      "repeats":  3,
+                      "size":  5000,
+                      "svg_bytes":  574260,
+                      "svg_elements":  83,
+                      "peak_working_set_bytes":  23072768
+                  },
+                  {
+                      "elapsed_ms":  [
+                                         12.4394,
+                                         12.4425,
+                                         12.7291
+                                     ],
+                      "median_elapsed_ms":  12.4425,
+                      "point_circles":  20012,
+                      "raster":  "off",
+                      "raster_layers":  0,
+                      "repeats":  3,
+                      "size":  20000,
+                      "svg_bytes":  1383264,
+                      "svg_elements":  20082,
+                      "peak_working_set_bytes":  33792000
+                  },
+                  {
+                      "elapsed_ms":  [
+                                         115.5237,
+                                         116.46130000000001,
+                                         117.74990000000001
+                                     ],
+                      "median_elapsed_ms":  116.46130000000001,
+                      "point_circles":  12,
+                      "raster":  "on",
+                      "raster_layers":  1,
+                      "repeats":  3,
+                      "size":  20000,
+                      "svg_bytes":  450584,
+                      "svg_elements":  83,
+                      "peak_working_set_bytes":  42356736
+                  },
+                  {
+                      "elapsed_ms":  [
+                                         61.9693,
+                                         63.0216,
+                                         63.1399
+                                     ],
+                      "median_elapsed_ms":  63.0216,
+                      "point_circles":  100012,
+                      "raster":  "off",
+                      "raster_layers":  0,
+                      "repeats":  3,
+                      "size":  100000,
+                      "svg_bytes":  6897563,
+                      "svg_elements":  100082,
+                      "peak_working_set_bytes":  156237824
+                  },
+                  {
+                      "elapsed_ms":  [
+                                         467.1008,
+                                         468.69280000000003,
+                                         468.9351
+                                     ],
+                      "median_elapsed_ms":  468.69280000000003,
+                      "point_circles":  12,
+                      "raster":  "on",
+                      "raster_layers":  1,
+                      "repeats":  3,
+                      "size":  100000,
+                      "svg_bytes":  391640,
+                      "svg_elements":  83,
+                      "peak_working_set_bytes":  147070976
+                  }
+              ]
+}

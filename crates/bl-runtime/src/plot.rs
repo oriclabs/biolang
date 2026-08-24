@@ -5,8 +5,16 @@ use std::collections::HashMap;
 pub fn plot_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
         ("plot", Arity::Range(1, 2)),
+        ("plot_spec", Arity::Range(1, 2)),
+        ("render_plot", Arity::Range(1, 2)),
         ("heatmap", Arity::Range(1, 2)),
         ("histogram", Arity::Range(1, 2)),
+        ("histogram_data", Arity::Range(1, 2)),
+        ("boxplot_data", Arity::Range(1, 2)),
+        ("ecdf_data", Arity::Range(1, 2)),
+        ("normal_qq_data", Arity::Range(1, 2)),
+        ("violin_data", Arity::Range(1, 2)),
+        ("linear_fit_data", Arity::Range(2, 3)),
         ("ecdf_plot", Arity::Range(1, 2)),
         ("density_plot", Arity::Range(1, 2)),
         ("volcano", Arity::Range(1, 2)),
@@ -22,8 +30,16 @@ pub fn is_plot_builtin(name: &str) -> bool {
     matches!(
         name,
         "plot"
+            | "plot_spec"
+            | "render_plot"
             | "heatmap"
             | "histogram"
+            | "histogram_data"
+            | "boxplot_data"
+            | "ecdf_data"
+            | "normal_qq_data"
+            | "violin_data"
+            | "linear_fit_data"
             | "ecdf_plot"
             | "density_plot"
             | "volcano"
@@ -58,11 +74,26 @@ fn normalize_plot_args(args: Vec<Value>) -> Vec<Value> {
 }
 
 pub fn call_plot_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
-    let args = normalize_plot_args(args);
+    // A plot specification deliberately contains a `data` table. It is the
+    // object render_plot() consumes, not the single-record convenience form
+    // that normalize_plot_args() expands for ordinary plotting calls.
+    let args = if name == "render_plot" {
+        args
+    } else {
+        normalize_plot_args(args)
+    };
     match name {
         "plot" => builtin_plot(args),
+        "plot_spec" => builtin_plot_spec(args),
+        "render_plot" => builtin_render_plot(args),
         "heatmap" => builtin_heatmap(args),
         "histogram" => builtin_histogram(args),
+        "histogram_data" => builtin_histogram_data(args),
+        "boxplot_data" => builtin_boxplot_data(args),
+        "ecdf_data" => builtin_ecdf_data(args),
+        "normal_qq_data" => builtin_normal_qq_data(args),
+        "violin_data" => builtin_violin_data(args),
+        "linear_fit_data" => builtin_linear_fit_data(args),
         "ecdf_plot" => builtin_ecdf_plot(args),
         "density_plot" => builtin_density_plot(args),
         "volcano" => builtin_volcano(args),
@@ -171,10 +202,48 @@ impl Scale {
     }
 
     pub(crate) fn nice_ticks(&self, count: usize) -> Vec<f64> {
-        let step = (self.domain.1 - self.domain.0) / count as f64;
-        (0..=count)
-            .map(|i| self.domain.0 + step * i as f64)
-            .collect()
+        if count == 0 || !self.domain.0.is_finite() || !self.domain.1.is_finite() {
+            return Vec::new();
+        }
+        let reversed = self.domain.0 > self.domain.1;
+        let lo = self.domain.0.min(self.domain.1);
+        let hi = self.domain.0.max(self.domain.1);
+        let span = hi - lo;
+        if span <= f64::EPSILON {
+            return vec![lo];
+        }
+
+        // Human-readable 1/2/5 × 10^k spacing, bounded to the data domain.
+        // This avoids labels such as 1.4, 2.8, 4.2 on a 0..7 axis while not
+        // moving marks or expanding the plotting domain.
+        let raw_step = span / count as f64;
+        let magnitude = 10.0_f64.powf(raw_step.log10().floor());
+        let fraction = raw_step / magnitude;
+        let nice_fraction = if fraction <= 1.0 {
+            1.0
+        } else if fraction <= 2.0 {
+            2.0
+        } else if fraction <= 5.0 {
+            5.0
+        } else {
+            10.0
+        };
+        let step = nice_fraction * magnitude;
+        let first = (lo / step).ceil() * step;
+        let last = (hi / step).floor() * step;
+        let mut ticks = Vec::new();
+        let mut tick = first;
+        while tick <= last + step * 1e-10 && ticks.len() <= count.saturating_mul(2) + 2 {
+            ticks.push(if tick.abs() < step * 1e-12 { 0.0 } else { tick });
+            tick += step;
+        }
+        if ticks.is_empty() {
+            ticks.extend([lo, hi]);
+        }
+        if reversed {
+            ticks.reverse();
+        }
+        ticks
     }
 }
 
@@ -290,6 +359,7 @@ impl SvgCanvas {
         points: &[(f64, f64, [u8; 4])],
         radius: f64,
         area: (f64, f64, f64, f64),
+        raster_scale: f64,
     ) {
         use base64::{engine::general_purpose::STANDARD, Engine};
 
@@ -299,9 +369,9 @@ impl SvgCanvas {
         }
         // Supersampled, so a 3-point dot does not turn into a hard square and
         // the raster survives being viewed at 2x.
-        const SCALE: f64 = 2.0;
-        let pixel_width = (width * SCALE).ceil().max(1.0) as u32;
-        let pixel_height = (height * SCALE).ceil().max(1.0) as u32;
+        let scale = raster_scale.clamp(1.0, 4.0);
+        let pixel_width = (width * scale).ceil().max(1.0) as u32;
+        let pixel_height = (height * scale).ceil().max(1.0) as u32;
         let Some(mut pixmap) = tiny_skia::Pixmap::new(pixel_width, pixel_height) else {
             return;
         };
@@ -313,9 +383,9 @@ impl SvgCanvas {
         for &(px, py, [r, g, b, a]) in points {
             // Into the pixmap's own coordinates: the raster covers the plot
             // area only, so subtract its origin.
-            let cx = ((px - x) * SCALE) as f32;
-            let cy = ((py - y) * SCALE) as f32;
-            let Some(circle) = tiny_skia::PathBuilder::from_circle(cx, cy, (radius * SCALE) as f32)
+            let cx = ((px - x) * scale) as f32;
+            let cy = ((py - y) * scale) as f32;
+            let Some(circle) = tiny_skia::PathBuilder::from_circle(cx, cy, (radius * scale) as f32)
             else {
                 continue;
             };
@@ -662,11 +732,622 @@ fn draw_legend(canvas: &mut SvgCanvas, names: &[String]) {
 /// the numbers printed beside it disagreed about the same data; on the ten
 /// values 1 to 10 the two rules give 3 and 8 against 3.25 and 7.75. Expects
 /// `sorted` already sorted and non-empty.
-fn quantile_type7(sorted: &[f64], p: f64) -> f64 {
+pub(crate) fn quantile_type7(sorted: &[f64], p: f64) -> f64 {
     let h = (sorted.len() - 1) as f64 * p;
     let lower = h.floor() as usize;
     let upper = (lower + 1).min(sorted.len() - 1);
     sorted[lower] + (h - h.floor()) * (sorted[upper] - sorted[lower])
+}
+
+const PLOT_SPEC_SCHEMA: &str = "biolang.plot.spec/v1";
+
+#[derive(Clone, Debug)]
+struct CartesianPoint {
+    source_row: usize,
+    x: f64,
+    y: f64,
+    lower: Option<f64>,
+    upper: Option<f64>,
+}
+
+#[derive(Clone, Debug)]
+struct CartesianSeries {
+    name: String,
+    colour: String,
+    points: Vec<CartesianPoint>,
+}
+
+#[derive(Clone, Debug)]
+struct CartesianPlotSpec {
+    kind: String,
+    width: f64,
+    height: f64,
+    title: String,
+    x_label: String,
+    y_label: String,
+    x_domain: (f64, f64),
+    y_domain: (f64, f64),
+    series: Vec<CartesianSeries>,
+    dropped_non_finite: usize,
+    x_column: String,
+    y_columns: Vec<String>,
+    lower_column: Option<String>,
+    upper_column: Option<String>,
+}
+
+fn interval_column(opts: &HashMap<String, Value>, primary: &str, alias: &str) -> Option<String> {
+    opts.get(primary)
+        .or_else(|| opts.get(alias))
+        .and_then(Value::as_str)
+        .map(str::to_string)
+}
+
+fn build_cartesian_plot_spec(
+    table: &Table,
+    opts: &HashMap<String, Value>,
+    who: &str,
+) -> Result<CartesianPlotSpec> {
+    if table.num_cols() < 2 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{who}() requires table with at least 2 columns"),
+            None,
+        ));
+    }
+    let kind = get_opt_str(opts, "type", "scatter").to_ascii_lowercase();
+    if !matches!(
+        kind.as_str(),
+        "scatter" | "line" | "errorbar" | "confidence"
+    ) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{who}() specification type '{kind}' is unsupported; expected scatter/line/errorbar/confidence"
+            ),
+            None,
+        ));
+    }
+    let x_column = get_opt_str(opts, "x", &table.columns[0]).to_string();
+    let y_columns = series_columns(opts, &table.columns[1]);
+    let lower_column = interval_column(opts, "ymin", "lower");
+    let upper_column = interval_column(opts, "ymax", "upper");
+    if matches!(kind.as_str(), "errorbar" | "confidence")
+        && (lower_column.is_none() || upper_column.is_none())
+    {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{who}() type '{kind}' requires ymin/ymax (or lower/upper) column names"),
+            None,
+        ));
+    }
+
+    let xs = extract_table_col(table, &x_column)?;
+    let lowers = lower_column
+        .as_deref()
+        .map(|column| extract_table_col(table, column))
+        .transpose()?;
+    let uppers = upper_column
+        .as_deref()
+        .map(|column| extract_table_col(table, column))
+        .transpose()?;
+    let mut dropped_non_finite = 0usize;
+    let mut series = Vec::with_capacity(y_columns.len());
+    for (series_index, column) in y_columns.iter().enumerate() {
+        let ys = extract_table_col(table, column)?;
+        let mut points = Vec::with_capacity(xs.len().min(ys.len()));
+        for row in 0..xs.len().min(ys.len()) {
+            let x = xs[row];
+            let y = ys[row];
+            let lower = lowers.as_ref().and_then(|values| values.get(row)).copied();
+            let upper = uppers.as_ref().and_then(|values| values.get(row)).copied();
+            let interval_is_valid = match (lower, upper) {
+                (Some(lo), Some(hi)) => lo.is_finite() && hi.is_finite() && lo <= hi,
+                (None, None) => true,
+                _ => false,
+            };
+            if !x.is_finite() || !y.is_finite() || !interval_is_valid {
+                dropped_non_finite += 1;
+                continue;
+            }
+            points.push(CartesianPoint {
+                source_row: row,
+                x,
+                y,
+                lower,
+                upper,
+            });
+        }
+        series.push(CartesianSeries {
+            name: column.clone(),
+            colour: PALETTE[series_index % PALETTE.len()].to_string(),
+            points,
+        });
+    }
+    if series.iter().all(|item| item.points.is_empty()) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{who}() received no complete finite observations"),
+            None,
+        ));
+    }
+
+    let mut x_values = Vec::new();
+    let mut y_values = Vec::new();
+    for item in &series {
+        for point in &item.points {
+            x_values.push(point.x);
+            y_values.push(point.lower.unwrap_or(point.y));
+            y_values.push(point.upper.unwrap_or(point.y));
+        }
+    }
+    let default_y_label = if y_columns.len() == 1 {
+        y_columns[0].as_str()
+    } else {
+        ""
+    };
+    Ok(CartesianPlotSpec {
+        kind,
+        width: get_opt_f64(opts, "width", 800.0).max(1.0),
+        height: get_opt_f64(opts, "height", 600.0).max(1.0),
+        title: get_opt_str(opts, "title", "").to_string(),
+        x_label: axis_label(opts, "xlabel", &x_column),
+        y_label: axis_label(opts, "ylabel", default_y_label),
+        x_domain: col_range(&x_values),
+        y_domain: col_range(&y_values),
+        series,
+        dropped_non_finite,
+        x_column,
+        y_columns,
+        lower_column,
+        upper_column,
+    })
+}
+
+fn optional_number(value: Option<&Value>) -> Option<f64> {
+    value
+        .and_then(Value::as_float)
+        .filter(|number| number.is_finite())
+}
+
+fn plot_spec_to_value(spec: &CartesianPlotSpec) -> Value {
+    let mut rows = Vec::new();
+    for item in &spec.series {
+        for point in &item.points {
+            rows.push(vec![
+                Value::Int(point.source_row as i64),
+                Value::Str(item.name.clone().into()),
+                Value::Str(item.colour.clone().into()),
+                Value::Float(point.x),
+                Value::Float(point.y),
+                point.lower.map(Value::Float).unwrap_or(Value::Nil),
+                point.upper.map(Value::Float).unwrap_or(Value::Nil),
+            ]);
+        }
+    }
+    let data = Value::Table(Table::new(
+        vec![
+            "source_row".into(),
+            "series".into(),
+            "colour".into(),
+            "x".into(),
+            "y".into(),
+            "lower".into(),
+            "upper".into(),
+        ],
+        rows,
+    ));
+    let provenance = Value::Record(
+        HashMap::from([
+            ("x_column".into(), Value::Str(spec.x_column.clone().into())),
+            (
+                "y_columns".into(),
+                Value::List(
+                    spec.y_columns
+                        .iter()
+                        .map(|name| Value::Str(name.clone().into()))
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ),
+            (
+                "lower_column".into(),
+                spec.lower_column
+                    .as_ref()
+                    .map(|name| Value::Str(name.clone().into()))
+                    .unwrap_or(Value::Nil),
+            ),
+            (
+                "upper_column".into(),
+                spec.upper_column
+                    .as_ref()
+                    .map(|name| Value::Str(name.clone().into()))
+                    .unwrap_or(Value::Nil),
+            ),
+        ])
+        .into(),
+    );
+    Value::Record(
+        HashMap::from([
+            ("schema".into(), Value::Str(PLOT_SPEC_SCHEMA.into())),
+            ("kind".into(), Value::Str(spec.kind.clone().into())),
+            ("width".into(), Value::Float(spec.width)),
+            ("height".into(), Value::Float(spec.height)),
+            ("title".into(), Value::Str(spec.title.clone().into())),
+            ("xlabel".into(), Value::Str(spec.x_label.clone().into())),
+            ("ylabel".into(), Value::Str(spec.y_label.clone().into())),
+            (
+                "x_domain".into(),
+                Value::List(
+                    vec![Value::Float(spec.x_domain.0), Value::Float(spec.x_domain.1)].into(),
+                ),
+            ),
+            (
+                "y_domain".into(),
+                Value::List(
+                    vec![Value::Float(spec.y_domain.0), Value::Float(spec.y_domain.1)].into(),
+                ),
+            ),
+            ("data".into(), data),
+            (
+                "dropped_non_finite".into(),
+                Value::Int(spec.dropped_non_finite as i64),
+            ),
+            ("provenance".into(), provenance),
+            ("warnings".into(), Value::List(Vec::<Value>::new().into())),
+        ])
+        .into(),
+    )
+}
+
+fn required_record_string(map: &HashMap<String, Value>, key: &str) -> Result<String> {
+    map.get(key)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("render_plot() specification field '{key}' must be Str"),
+                None,
+            )
+        })
+}
+
+fn valid_spec_colour(colour: &str) -> bool {
+    colour.len() == 7
+        && colour.starts_with('#')
+        && colour[1..]
+            .chars()
+            .all(|character| character.is_ascii_hexdigit())
+}
+
+fn record_domain(map: &HashMap<String, Value>, key: &str) -> Result<(f64, f64)> {
+    let values = match map.get(key) {
+        Some(Value::List(values)) if values.len() == 2 => values,
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("render_plot() specification field '{key}' must contain two numbers"),
+                None,
+            ))
+        }
+    };
+    match (values[0].as_float(), values[1].as_float()) {
+        (Some(lo), Some(hi)) if lo.is_finite() && hi.is_finite() => Ok((lo, hi)),
+        _ => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("render_plot() specification field '{key}' contains a non-finite value"),
+            None,
+        )),
+    }
+}
+
+fn plot_spec_from_value(value: &Value) -> Result<CartesianPlotSpec> {
+    let map = match value {
+        Value::Record(map) => map,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "render_plot() requires plot specification Record, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    if !matches!(map.get("schema"), Some(Value::Str(schema)) if schema == PLOT_SPEC_SCHEMA) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("render_plot() requires schema '{PLOT_SPEC_SCHEMA}'"),
+            None,
+        ));
+    }
+    let kind = required_record_string(map, "kind")?;
+    let table = match map.get("data") {
+        Some(Value::Table(table)) => table,
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() specification field 'data' must be Table",
+                None,
+            ))
+        }
+    };
+    let indexes = ["source_row", "series", "colour", "x", "y", "lower", "upper"].map(|column| {
+        table.col_index(column).ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("render_plot() specification data is missing '{column}'"),
+                None,
+            )
+        })
+    });
+    let [source_index, series_index, colour_index, x_index, y_index, lower_index, upper_index] = [
+        indexes[0].clone()?,
+        indexes[1].clone()?,
+        indexes[2].clone()?,
+        indexes[3].clone()?,
+        indexes[4].clone()?,
+        indexes[5].clone()?,
+        indexes[6].clone()?,
+    ];
+    let mut series: Vec<CartesianSeries> = Vec::new();
+    for row in &table.rows {
+        let name = row[series_index].as_str().ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() data series must be Str",
+                None,
+            )
+        })?;
+        let colour = row[colour_index]
+            .as_str()
+            .unwrap_or(PALETTE[series.len() % PALETTE.len()]);
+        if !valid_spec_colour(colour) {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() data colour must be a #rrggbb value",
+                None,
+            ));
+        }
+        let x = optional_number(row.get(x_index)).ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() data x must be finite",
+                None,
+            )
+        })?;
+        let y = optional_number(row.get(y_index)).ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() data y must be finite",
+                None,
+            )
+        })?;
+        let source_row = row[source_index].as_float().unwrap_or(0.0).max(0.0) as usize;
+        let position = series.iter().position(|item| item.name == name);
+        let target = match position {
+            Some(index) => &mut series[index],
+            None => {
+                series.push(CartesianSeries {
+                    name: name.to_string(),
+                    colour: colour.to_string(),
+                    points: Vec::new(),
+                });
+                series.last_mut().unwrap()
+            }
+        };
+        target.points.push(CartesianPoint {
+            source_row,
+            x,
+            y,
+            lower: optional_number(row.get(lower_index)),
+            upper: optional_number(row.get(upper_index)),
+        });
+    }
+    if series.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "render_plot() specification contains no marks",
+            None,
+        ));
+    }
+    let provenance = match map.get("provenance") {
+        Some(Value::Record(record)) => Some(record),
+        _ => None,
+    };
+    let x_column = provenance
+        .and_then(|record| record.get("x_column"))
+        .and_then(Value::as_str)
+        .unwrap_or("x")
+        .to_string();
+    let y_columns = series.iter().map(|item| item.name.clone()).collect();
+    Ok(CartesianPlotSpec {
+        kind,
+        width: optional_number(map.get("width")).unwrap_or(800.0).max(1.0),
+        height: optional_number(map.get("height")).unwrap_or(600.0).max(1.0),
+        title: required_record_string(map, "title")?,
+        x_label: required_record_string(map, "xlabel")?,
+        y_label: required_record_string(map, "ylabel")?,
+        x_domain: record_domain(map, "x_domain")?,
+        y_domain: record_domain(map, "y_domain")?,
+        series,
+        dropped_non_finite: optional_number(map.get("dropped_non_finite"))
+            .unwrap_or(0.0)
+            .max(0.0) as usize,
+        x_column,
+        y_columns,
+        lower_column: None,
+        upper_column: None,
+    })
+}
+
+fn render_cartesian_plot_spec(spec: &CartesianPlotSpec) -> Result<String> {
+    let mut canvas = SvgCanvas::new(spec.width, spec.height);
+    let x_scale = Scale {
+        domain: spec.x_domain,
+        range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
+    };
+    let y_scale = Scale {
+        domain: spec.y_domain,
+        range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
+    };
+    for item in &spec.series {
+        match spec.kind.as_str() {
+            "scatter" => {
+                for point in &item.points {
+                    canvas.add_circle(
+                        x_scale.map(point.x),
+                        y_scale.map(point.y),
+                        4.0,
+                        &item.colour,
+                    );
+                }
+            }
+            "line" => {
+                let points = item
+                    .points
+                    .iter()
+                    .map(|point| format!("{:.1},{:.1}", x_scale.map(point.x), y_scale.map(point.y)))
+                    .collect::<Vec<_>>();
+                if !points.is_empty() {
+                    canvas.elements.push(format!(
+                        r#"<polyline points="{}" fill="none" stroke="{}" stroke-width="2" />"#,
+                        points.join(" "),
+                        item.colour
+                    ));
+                }
+            }
+            "errorbar" => {
+                for point in &item.points {
+                    let (Some(lower), Some(upper)) = (point.lower, point.upper) else {
+                        continue;
+                    };
+                    let x = x_scale.map(point.x);
+                    let top = y_scale.map(upper);
+                    let bottom = y_scale.map(lower);
+                    canvas.add_line(x, top, x, bottom, &item.colour, 1.5);
+                    canvas.add_line(x - 5.0, top, x + 5.0, top, &item.colour, 1.5);
+                    canvas.add_line(x - 5.0, bottom, x + 5.0, bottom, &item.colour, 1.5);
+                    canvas.add_circle(x, y_scale.map(point.y), 3.5, &item.colour);
+                }
+            }
+            "confidence" => {
+                let upper = item.points.iter().filter_map(|point| {
+                    point.upper.map(|value| {
+                        format!("{:.1},{:.1}", x_scale.map(point.x), y_scale.map(value))
+                    })
+                });
+                let lower = item.points.iter().rev().filter_map(|point| {
+                    point.lower.map(|value| {
+                        format!("{:.1},{:.1}", x_scale.map(point.x), y_scale.map(value))
+                    })
+                });
+                let band = upper.chain(lower).collect::<Vec<_>>();
+                if band.len() >= 4 {
+                    canvas.elements.push(format!(
+                        r#"<polygon points="{}" fill="{}" fill-opacity="0.18" stroke="none" />"#,
+                        band.join(" "),
+                        item.colour
+                    ));
+                }
+                let centre = item
+                    .points
+                    .iter()
+                    .map(|point| format!("{:.1},{:.1}", x_scale.map(point.x), y_scale.map(point.y)))
+                    .collect::<Vec<_>>();
+                if !centre.is_empty() {
+                    canvas.elements.push(format!(
+                        r#"<polyline points="{}" fill="none" stroke="{}" stroke-width="2" />"#,
+                        centre.join(" "),
+                        item.colour
+                    ));
+                }
+            }
+            other => {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("render_plot() unsupported specification kind '{other}'"),
+                    None,
+                ))
+            }
+        }
+    }
+    draw_legend(
+        &mut canvas,
+        &spec
+            .series
+            .iter()
+            .map(|item| item.name.clone())
+            .collect::<Vec<_>>(),
+    );
+    canvas.draw_x_axis(
+        &Scale {
+            domain: spec.x_domain,
+            range: spec.x_domain,
+        },
+        &spec.x_label,
+    );
+    canvas.draw_y_axis(
+        &Scale {
+            domain: spec.y_domain,
+            range: spec.y_domain,
+        },
+        &spec.y_label,
+    );
+    if !spec.title.is_empty() {
+        canvas.draw_title(&spec.title);
+    }
+    Ok(canvas.render())
+}
+
+fn standalone_plot_html(svg: &str) -> String {
+    format!(
+        r#"<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>BioLang plot</title><style>body{{margin:0;padding:1rem;font-family:system-ui,sans-serif}}figure{{margin:0;overflow:auto}}svg,canvas{{max-width:100%;height:auto}}button{{margin:0 0 .5rem .35rem}}</style></head><body><figure id="bl-figure"><button id="bl-toggle" disabled>Use canvas</button><button id="bl-download" disabled>Download PNG</button>{svg}<canvas id="bl-canvas" hidden role="img" aria-label="BioLang plot canvas fallback"></canvas></figure><script>(function(){{const f=document.getElementById('bl-figure'),s=f.querySelector('svg'),c=document.getElementById('bl-canvas'),t=document.getElementById('bl-toggle'),d=document.getElementById('bl-download');const v=s.viewBox.baseVal,w=v.width||+s.getAttribute('width')||800,h=v.height||+s.getAttribute('height')||600,scale=Math.min(devicePixelRatio||1,2);c.width=Math.round(w*scale);c.height=Math.round(h*scale);c.style.width=w+'px';const blob=new Blob([new XMLSerializer().serializeToString(s)],{{type:'image/svg+xml'}}),u=URL.createObjectURL(blob),i=new Image;i.onload=()=>{{const x=c.getContext('2d');x.setTransform(scale,0,0,scale,0,0);x.drawImage(i,0,0,w,h);URL.revokeObjectURL(u);t.disabled=false;d.disabled=false}};i.onerror=()=>URL.revokeObjectURL(u);i.src=u;t.onclick=()=>{{const show=c.hidden;c.hidden=!show;s.hidden=show;t.textContent=show?'Use SVG':'Use canvas'}};d.onclick=()=>{{const a=document.createElement('a');a.download='biolang-plot.png';a.href=c.toDataURL('image/png');a.click()}}}})();</script></body></html>"#
+    )
+}
+
+fn render_plot_spec_value(
+    spec: &CartesianPlotSpec,
+    opts: &HashMap<String, Value>,
+) -> Result<Value> {
+    let format = get_opt_str(opts, "format", "svg").to_ascii_lowercase();
+    if format == "spec" || format == "data" {
+        return Ok(plot_spec_to_value(spec));
+    }
+    let svg = render_cartesian_plot_spec(spec)?;
+    match format.as_str() {
+        "svg" | "raw" => Ok(Value::Str(svg.into())),
+        "ascii" => render_svg_terminal(&svg, 80, 24, TerminalPlotStyle::Ascii)
+            .map(Value::Str)
+            .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None)),
+        "unicode" | "braille" => render_svg_terminal(&svg, 80, 24, TerminalPlotStyle::Braille)
+            .map(Value::Str)
+            .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None)),
+        "html" | "canvas" => Ok(Value::Str(standalone_plot_html(&svg).into())),
+        _ => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "render_plot() unknown format '{format}', expected svg/ascii/unicode/html/spec"
+            ),
+            None,
+        )),
+    }
+}
+
+fn builtin_plot_spec(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let table = require_table(&args[0], "plot_spec")?;
+    Ok(plot_spec_to_value(&build_cartesian_plot_spec(
+        table,
+        &opts,
+        "plot_spec",
+    )?))
+}
+
+fn builtin_render_plot(args: Vec<Value>) -> Result<Value> {
+    let spec = plot_spec_from_value(&args[0])?;
+    let opts = parse_options(&args);
+    render_plot_spec_value(&spec, &opts)
 }
 
 fn builtin_plot(args: Vec<Value>) -> Result<Value> {
@@ -718,6 +1399,17 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
         ));
     }
 
+    // These plot families now have one renderer-neutral specification. The
+    // SVG, terminal preview and standalone HTML/canvas fallback all originate
+    // from this object; none of those display paths recomputes statistics.
+    if matches!(
+        plot_type.to_ascii_lowercase().as_str(),
+        "scatter" | "line" | "errorbar" | "confidence"
+    ) {
+        let spec = build_cartesian_plot_spec(table, &opts, "plot")?;
+        return render_plot_spec_value(&spec, &opts);
+    }
+
     let x_col = get_opt_str(&opts, "x", &table.columns[0]).to_string();
     let y_cols = series_columns(&opts, &table.columns[1]);
 
@@ -733,6 +1425,19 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
         let (series_lo, series_hi) = col_range(ys);
         (lo.min(series_lo), hi.max(series_hi))
     });
+    if plot_type == "box" {
+        // Every numeric column becomes a group. The former scale came only
+        // from the default y column, so a wider first or later column could be
+        // clipped even though its geometry was still drawn.
+        (y_min, y_max) = table.columns.iter().try_fold(
+            (f64::INFINITY, f64::NEG_INFINITY),
+            |(low, high), column| {
+                let values = extract_table_col(table, column)?;
+                let (column_low, column_high) = col_range(&values);
+                Ok::<_, BioLangError>((low.min(column_low), high.max(column_high)))
+            },
+        )?;
+    }
     if plot_type == "bar" {
         // A bar says "this much", and the reader takes its length as the
         // quantity. Starting the axis at the smallest value instead of zero
@@ -817,30 +1522,14 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
             // Box plot per numeric column
             for (ci, col) in table.columns.iter().enumerate() {
                 let vals = extract_table_col(table, col)?;
-                let mut sorted: Vec<f64> = vals.into_iter().filter(|v| v.is_finite()).collect();
-                if sorted.is_empty() {
+                if !vals.iter().any(|value| value.is_finite()) {
                     continue;
                 }
-                sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                let q1 = quantile_type7(&sorted, 0.25);
-                let med = quantile_type7(&sorted, 0.5);
-                let q3 = quantile_type7(&sorted, 0.75);
-                // Tukey whiskers: out to the furthest point within 1.5 IQR of
-                // the box, with anything beyond drawn as its own mark. Reaching
-                // to the extremes instead makes every dataset look as though it
-                // has none, which is the one thing a box plot is for.
-                let fence = 1.5 * (q3 - q1);
-                let lo = sorted
-                    .iter()
-                    .copied()
-                    .find(|v| *v >= q1 - fence)
-                    .unwrap_or(sorted[0]);
-                let hi = sorted
-                    .iter()
-                    .copied()
-                    .rev()
-                    .find(|v| *v <= q3 + fence)
-                    .unwrap_or(sorted[sorted.len() - 1]);
+                // The renderer consumes the same inspectable geometry exposed
+                // by boxplot_data(), including its type-7 quartiles and Tukey
+                // whisker coefficient. No summary statistic is recalculated in
+                // screen coordinates.
+                let geometry = box_geometry(col, &vals, "type7", 1.5);
 
                 let bx = canvas.margin.left
                     + (ci as f64 + 0.2) * canvas.plot_width() / table.num_cols() as f64;
@@ -848,29 +1537,36 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
 
                 canvas.add_rect(
                     bx,
-                    y_scale.map(q3),
+                    y_scale.map(geometry.q3),
                     bw,
-                    (y_scale.map(q1) - y_scale.map(q3)).abs(),
+                    (y_scale.map(geometry.q1) - y_scale.map(geometry.q3)).abs(),
                     PALETTE[ci % PALETTE.len()],
                 );
-                canvas.add_line(bx, y_scale.map(med), bx + bw, y_scale.map(med), "#333", 2.0);
+                canvas.add_line(
+                    bx,
+                    y_scale.map(geometry.median),
+                    bx + bw,
+                    y_scale.map(geometry.median),
+                    "#333",
+                    2.0,
+                );
                 canvas.add_line(
                     bx + bw / 2.0,
-                    y_scale.map(q3),
+                    y_scale.map(geometry.q3),
                     bx + bw / 2.0,
-                    y_scale.map(hi),
+                    y_scale.map(geometry.whisker_high),
                     "#333",
                     1.0,
                 );
                 canvas.add_line(
                     bx + bw / 2.0,
-                    y_scale.map(q1),
+                    y_scale.map(geometry.q1),
                     bx + bw / 2.0,
-                    y_scale.map(lo),
+                    y_scale.map(geometry.whisker_low),
                     "#333",
                     1.0,
                 );
-                for value in sorted.iter().filter(|v| **v < lo || **v > hi) {
+                for (_, value) in &geometry.outliers {
                     canvas.add_circle(bx + bw / 2.0, y_scale.map(*value), 3.0, "#333");
                 }
             }
@@ -1414,82 +2110,484 @@ fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Str(canvas.render()))
 }
 
-fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
-    let opts = parse_options(&args);
-    let width = get_opt_f64(&opts, "width", 800.0);
-    let height = get_opt_f64(&opts, "height", 600.0);
-    let bins = get_opt_f64(&opts, "bins", 20.0) as usize;
-    let title = get_opt_str(&opts, "title", "Histogram").to_string();
+const HISTOGRAM_SCHEMA: &str = "biolang.plot.geometry/v1";
+const MAX_HISTOGRAM_BINS: usize = 100_000;
 
-    let nums = match &args[0] {
-        Value::List(items) => {
-            let mut v = Vec::new();
-            for item in items.iter() {
-                match item {
-                    Value::Int(n) => v.push(*n as f64),
-                    Value::Float(f) => v.push(*f),
-                    Value::Str(s) => {
-                        if let Ok(f) = s.parse::<f64>() {
-                            v.push(f);
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            v
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum HistogramClosure {
+    Left,
+    Right,
+}
+
+impl HistogramClosure {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Left => "left",
+            Self::Right => "right",
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct HistogramGeometry {
+    pub(crate) edges: Vec<f64>,
+    pub(crate) counts: Vec<usize>,
+    method: String,
+    closure: HistogramClosure,
+    include_lowest: bool,
+    n_total: usize,
+    n_finite: usize,
+    n_included: usize,
+    dropped_invalid: usize,
+    dropped_non_finite: usize,
+    dropped_outside: usize,
+}
+
+fn histogram_bool_option(opts: &HashMap<String, Value>, key: &str, default: bool) -> bool {
+    match opts.get(key) {
+        Some(Value::Bool(value)) => *value,
+        _ => default,
+    }
+}
+
+fn histogram_values(value: &Value, who: &str) -> Result<(Vec<f64>, usize, usize, usize)> {
+    let items = match value {
+        Value::List(items) => items,
         _ => {
             return Err(BioLangError::type_error(
-                "histogram() requires List of numbers",
+                format!("{who}() requires List of numbers"),
                 None,
             ))
         }
     };
 
-    if nums.is_empty() {
-        return Err(BioLangError::runtime(ErrorKind::TypeError, "histogram() received no numeric values — check that your data contains numbers, not strings", None));
+    let mut values = Vec::with_capacity(items.len());
+    let mut invalid = 0usize;
+    let mut non_finite = 0usize;
+    for item in items.iter() {
+        let parsed = match item {
+            Value::Int(value) => Some(*value as f64),
+            Value::Float(value) => Some(*value),
+            Value::Str(value) => value.parse::<f64>().ok(),
+            _ => None,
+        };
+        match parsed {
+            Some(value) if value.is_finite() => values.push(value),
+            Some(_) => non_finite += 1,
+            None => invalid += 1,
+        }
+    }
+    if values.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{who}() received no finite numeric values - check the input and missing-value encoding"
+            ),
+            None,
+        ));
+    }
+    Ok((values, items.len(), invalid, non_finite))
+}
+
+fn histogram_bin_count(value: f64, option: &str) -> Result<usize> {
+    if !value.is_finite() || value < 1.0 || value.fract() != 0.0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("histogram() option '{option}' must be a positive whole number"),
+            None,
+        ));
+    }
+    let bins = value as usize;
+    if bins > MAX_HISTOGRAM_BINS {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("histogram() requested {bins} bins; the safety limit is {MAX_HISTOGRAM_BINS}"),
+            None,
+        ));
+    }
+    Ok(bins)
+}
+
+fn histogram_quantile(sorted: &[f64], probability: f64) -> f64 {
+    if sorted.len() == 1 {
+        return sorted[0];
+    }
+    let position = probability.clamp(0.0, 1.0) * (sorted.len() - 1) as f64;
+    let lower = position.floor() as usize;
+    let upper = position.ceil() as usize;
+    let fraction = position - lower as f64;
+    sorted[lower] + fraction * (sorted[upper] - sorted[lower])
+}
+
+fn histogram_automatic_bin_count(values: &[f64], method: &str) -> usize {
+    let n = values.len().max(1) as f64;
+    let sturges = (n.log2() + 1.0).ceil().max(1.0) as usize;
+    let (lo, hi) = col_range(values);
+    let span = hi - lo;
+    if span <= f64::EPSILON {
+        return 1;
     }
 
-    let (lo, hi) = col_range(&nums);
-    let bin_w = if (hi - lo).abs() < f64::EPSILON {
-        1.0
-    } else {
-        (hi - lo) / bins as f64
-    };
-    let mut counts = vec![0usize; bins];
-    for &v in &nums {
-        let mut idx = ((v - lo) / bin_w) as usize;
-        if idx >= bins {
-            idx = bins - 1;
+    let width = match method {
+        "freedman-diaconis" => {
+            let mut sorted = values.to_vec();
+            sorted.sort_by(|a, b| a.total_cmp(b));
+            let iqr = histogram_quantile(&sorted, 0.75) - histogram_quantile(&sorted, 0.25);
+            2.0 * iqr / n.cbrt()
         }
-        counts[idx] += 1;
+        "scott" => {
+            let mean = values.iter().sum::<f64>() / n;
+            let variance = if values.len() > 1 {
+                values
+                    .iter()
+                    .map(|value| (value - mean).powi(2))
+                    .sum::<f64>()
+                    / (n - 1.0)
+            } else {
+                0.0
+            };
+            3.5 * variance.sqrt() / n.cbrt()
+        }
+        _ => return sturges,
+    };
+    if !width.is_finite() || width <= f64::EPSILON {
+        sturges
+    } else {
+        ((span / width).ceil() as usize).clamp(1, MAX_HISTOGRAM_BINS)
     }
-    let max_count = *counts.iter().max().unwrap_or(&1);
+}
+
+fn histogram_equal_edges(values: &[f64], bins: usize) -> Vec<f64> {
+    let (mut lo, mut hi) = col_range(values);
+    if (hi - lo).abs() < f64::EPSILON {
+        let padding = (lo.abs() * 0.01).max(0.5);
+        lo -= padding;
+        hi += padding;
+    }
+    let width = (hi - lo) / bins as f64;
+    (0..=bins)
+        .map(|index| {
+            if index == bins {
+                hi
+            } else {
+                lo + index as f64 * width
+            }
+        })
+        .collect()
+}
+
+fn histogram_explicit_edges(items: &[Value]) -> Result<Vec<f64>> {
+    let mut edges = Vec::with_capacity(items.len());
+    for item in items {
+        let edge = match item {
+            Value::Int(value) => *value as f64,
+            Value::Float(value) => *value,
+            Value::Str(value) => value.parse::<f64>().map_err(|_| {
+                BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "histogram() explicit breaks must all be numeric",
+                    None,
+                )
+            })?,
+            _ => {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "histogram() explicit breaks must all be numeric",
+                    None,
+                ))
+            }
+        };
+        if !edge.is_finite() {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "histogram() explicit breaks must be finite",
+                None,
+            ));
+        }
+        edges.push(edge);
+    }
+    if edges.len() < 2 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "histogram() explicit breaks require at least two edges",
+            None,
+        ));
+    }
+    if edges.len() - 1 > MAX_HISTOGRAM_BINS {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("histogram() explicit breaks exceed the {MAX_HISTOGRAM_BINS}-bin limit"),
+            None,
+        ));
+    }
+    if edges.windows(2).any(|pair| pair[0] >= pair[1]) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "histogram() explicit breaks must be strictly increasing",
+            None,
+        ));
+    }
+    Ok(edges)
+}
+
+pub(crate) fn histogram_geometry(args: &[Value], who: &str) -> Result<HistogramGeometry> {
+    let opts = parse_options(args);
+    let (values, n_total, dropped_invalid, dropped_non_finite) = histogram_values(&args[0], who)?;
+    let closure = match opts.get("closed").and_then(Value::as_str) {
+        Some("left") => HistogramClosure::Left,
+        Some("right") => HistogramClosure::Right,
+        Some(other) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("histogram() option 'closed' must be 'left' or 'right', got '{other}'"),
+                None,
+            ))
+        }
+        None if histogram_bool_option(&opts, "right", false) => HistogramClosure::Right,
+        None => HistogramClosure::Left,
+    };
+    let include_lowest = histogram_bool_option(&opts, "include_lowest", true);
+
+    let (edges, method) = match opts.get("breaks") {
+        Some(Value::List(items)) => (histogram_explicit_edges(items)?, "explicit".to_string()),
+        Some(Value::Int(value)) => {
+            let bins = histogram_bin_count(*value as f64, "breaks")?;
+            (
+                histogram_equal_edges(&values, bins),
+                format!("equal-width:{bins}"),
+            )
+        }
+        Some(Value::Float(value)) => {
+            let bins = histogram_bin_count(*value, "breaks")?;
+            (
+                histogram_equal_edges(&values, bins),
+                format!("equal-width:{bins}"),
+            )
+        }
+        Some(Value::Str(value)) => {
+            let method = match value.to_ascii_lowercase().as_str() {
+                "sturges" => "sturges",
+                "fd" | "freedman-diaconis" | "freedman_diaconis" => "freedman-diaconis",
+                "scott" => "scott",
+                _ => {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        format!(
+                            "histogram() unknown break rule '{value}'; use 'sturges', 'freedman-diaconis', 'scott', a bin count, or an explicit List"
+                        ),
+                        None,
+                    ))
+                }
+            };
+            let bins = histogram_automatic_bin_count(&values, method);
+            (
+                histogram_equal_edges(&values, bins),
+                format!("{method}:equal-width:{bins}"),
+            )
+        }
+        Some(_) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "histogram() option 'breaks' must be a rule name, bin count, or List of edges",
+                None,
+            ))
+        }
+        None => {
+            let bins = match opts.get("bins") {
+                Some(Value::Int(value)) => histogram_bin_count(*value as f64, "bins")?,
+                Some(Value::Float(value)) => histogram_bin_count(*value, "bins")?,
+                Some(_) => {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "histogram() option 'bins' must be a positive whole number",
+                        None,
+                    ))
+                }
+                None => 20,
+            };
+            (
+                histogram_equal_edges(&values, bins),
+                format!("equal-width:{bins}"),
+            )
+        }
+    };
+
+    let bins = edges.len() - 1;
+    let first = edges[0];
+    let last = edges[bins];
+    let mut counts = vec![0usize; bins];
+    let mut dropped_outside = 0usize;
+    for value in &values {
+        let index = match closure {
+            HistogramClosure::Left => {
+                if *value < first || *value > last || (*value == last && !include_lowest) {
+                    None
+                } else if *value == last {
+                    Some(bins - 1)
+                } else {
+                    let upper = edges.partition_point(|edge| *edge <= *value);
+                    Some(upper.saturating_sub(1).min(bins - 1))
+                }
+            }
+            HistogramClosure::Right => {
+                if *value < first || *value > last || (*value == first && !include_lowest) {
+                    None
+                } else if *value == first {
+                    Some(0)
+                } else {
+                    let lower = edges.partition_point(|edge| *edge < *value);
+                    Some(lower.saturating_sub(1).min(bins - 1))
+                }
+            }
+        };
+        if let Some(index) = index {
+            counts[index] += 1;
+        } else {
+            dropped_outside += 1;
+        }
+    }
+    let n_included = counts.iter().sum();
+
+    Ok(HistogramGeometry {
+        edges,
+        counts,
+        method,
+        closure,
+        include_lowest,
+        n_total,
+        n_finite: values.len(),
+        n_included,
+        dropped_invalid,
+        dropped_non_finite,
+        dropped_outside,
+    })
+}
+
+fn histogram_geometry_value(geometry: &HistogramGeometry) -> Value {
+    let mut cumulative = 0usize;
+    let rows = geometry
+        .counts
+        .iter()
+        .enumerate()
+        .map(|(index, count)| {
+            cumulative += count;
+            let left = geometry.edges[index];
+            let right = geometry.edges[index + 1];
+            let width = right - left;
+            let density = if geometry.n_included == 0 || width <= 0.0 {
+                0.0
+            } else {
+                *count as f64 / (geometry.n_included as f64 * width)
+            };
+            let cumulative_fraction = if geometry.n_included == 0 {
+                0.0
+            } else {
+                cumulative as f64 / geometry.n_included as f64
+            };
+            let left_closed = geometry.closure == HistogramClosure::Left
+                || (index == 0 && geometry.include_lowest);
+            let right_closed = geometry.closure == HistogramClosure::Right
+                || (index + 1 == geometry.counts.len() && geometry.include_lowest);
+            vec![
+                Value::Int(index as i64),
+                Value::Float(left),
+                Value::Float(right),
+                Value::Bool(left_closed),
+                Value::Bool(right_closed),
+                Value::Int(*count as i64),
+                Value::Float(density),
+                Value::Int(cumulative as i64),
+                Value::Float(cumulative_fraction),
+            ]
+        })
+        .collect();
+    let table = Table::new(
+        [
+            "bin",
+            "left",
+            "right",
+            "left_closed",
+            "right_closed",
+            "count",
+            "density",
+            "cumulative_count",
+            "cumulative_fraction",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect(),
+        rows,
+    );
+    let record = HashMap::from([
+        ("schema".into(), Value::Str(HISTOGRAM_SCHEMA.into())),
+        ("kind".into(), Value::Str("histogram".into())),
+        ("method".into(), Value::Str(geometry.method.clone())),
+        ("closure".into(), Value::Str(geometry.closure.name().into())),
+        (
+            "include_lowest".into(),
+            Value::Bool(geometry.include_lowest),
+        ),
+        ("n_total".into(), Value::Int(geometry.n_total as i64)),
+        ("n_finite".into(), Value::Int(geometry.n_finite as i64)),
+        ("n_included".into(), Value::Int(geometry.n_included as i64)),
+        (
+            "dropped_invalid".into(),
+            Value::Int(geometry.dropped_invalid as i64),
+        ),
+        (
+            "dropped_non_finite".into(),
+            Value::Int(geometry.dropped_non_finite as i64),
+        ),
+        (
+            "dropped_outside".into(),
+            Value::Int(geometry.dropped_outside as i64),
+        ),
+        ("bins".into(), Value::Table(table)),
+    ]);
+    Value::Record(record.into())
+}
+
+fn builtin_histogram_data(args: Vec<Value>) -> Result<Value> {
+    let geometry = histogram_geometry(&args, "histogram_data")?;
+    Ok(histogram_geometry_value(&geometry))
+}
+
+fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let width = get_opt_f64(&opts, "width", 800.0);
+    let height = get_opt_f64(&opts, "height", 600.0);
+    let title = get_opt_str(&opts, "title", "Histogram").to_string();
+    let geometry = histogram_geometry(&args, "histogram")?;
+    let max_count = geometry.counts.iter().copied().max().unwrap_or(0).max(1);
 
     let mut canvas = SvgCanvas::new(width, height);
+    let x_scale = Scale {
+        domain: (geometry.edges[0], *geometry.edges.last().unwrap()),
+        range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
+    };
     let y_scale = Scale {
         domain: (0.0, max_count as f64),
         range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
     };
 
-    let rect_w = canvas.plot_width() / bins as f64;
-    for (i, &count) in counts.iter().enumerate() {
-        let x = canvas.margin.left + i as f64 * rect_w;
-        let y = y_scale.map(count as f64);
-        let h = canvas.margin.top + canvas.plot_height() - y;
-        canvas.add_rect(x, y, rect_w - 1.0, h, PALETTE[0]);
+    for (index, count) in geometry.counts.iter().enumerate() {
+        let x = x_scale.map(geometry.edges[index]);
+        let right = x_scale.map(geometry.edges[index + 1]);
+        let y = y_scale.map(*count as f64);
+        let height = canvas.margin.top + canvas.plot_height() - y;
+        canvas.add_rect(x, y, (right - x - 1.0).max(0.0), height, PALETTE[0]);
     }
 
-    let d_x_scale = Scale {
-        domain: (lo, hi),
-        range: (lo, hi),
+    let data_x_scale = Scale {
+        domain: x_scale.domain,
+        range: x_scale.domain,
     };
-    let d_y_scale = Scale {
+    let data_y_scale = Scale {
         domain: (0.0, max_count as f64),
         range: (0.0, max_count as f64),
     };
-    canvas.draw_x_axis(&d_x_scale, &axis_label(&opts, "xlabel", "Value"));
-    canvas.draw_y_axis(&d_y_scale, &axis_label(&opts, "ylabel", "Count"));
+    canvas.draw_x_axis(&data_x_scale, &axis_label(&opts, "xlabel", "Value"));
+    canvas.draw_y_axis(&data_y_scale, &axis_label(&opts, "ylabel", "Count"));
     canvas.draw_title(&title);
 
     Ok(Value::Str(canvas.render()))
@@ -1534,6 +2632,749 @@ fn numeric_list(value: &Value, who: &str) -> Result<Vec<f64>> {
     Ok(numbers)
 }
 
+fn finite_numeric_list(value: &Value, who: &str) -> Result<(Vec<f64>, usize)> {
+    let numbers = numeric_list(value, who)?;
+    let original_len = numbers.len();
+    let finite = numbers
+        .into_iter()
+        .filter(|number| number.is_finite())
+        .collect::<Vec<_>>();
+    if finite.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{who}() received no finite numeric values"),
+            None,
+        ));
+    }
+    let dropped = original_len - finite.len();
+    Ok((finite, dropped))
+}
+
+fn median_sorted(sorted: &[f64]) -> f64 {
+    let middle = sorted.len() / 2;
+    if sorted.len() % 2 == 0 {
+        (sorted[middle - 1] + sorted[middle]) / 2.0
+    } else {
+        sorted[middle]
+    }
+}
+
+fn tukey_hinges(sorted: &[f64]) -> (f64, f64) {
+    let half = sorted.len().div_ceil(2);
+    (
+        median_sorted(&sorted[..half]),
+        median_sorted(&sorted[sorted.len() - half..]),
+    )
+}
+
+#[derive(Clone)]
+pub(crate) struct BoxGeometry {
+    pub(crate) group: String,
+    pub(crate) n: usize,
+    pub(crate) q1: f64,
+    pub(crate) median: f64,
+    pub(crate) q3: f64,
+    pub(crate) whisker_low: f64,
+    pub(crate) whisker_high: f64,
+    pub(crate) outliers: Vec<(usize, f64)>,
+    pub(crate) dropped: usize,
+}
+
+pub(crate) fn box_geometry(
+    name: &str,
+    values: &[f64],
+    method: &str,
+    coefficient: f64,
+) -> BoxGeometry {
+    let mut indexed = values
+        .iter()
+        .copied()
+        .enumerate()
+        .filter(|(_, value)| value.is_finite())
+        .collect::<Vec<_>>();
+    let dropped = values.len() - indexed.len();
+    indexed.sort_by(|left, right| left.1.total_cmp(&right.1));
+    let sorted = indexed.iter().map(|(_, value)| *value).collect::<Vec<_>>();
+    let (q1, q3) = if method == "tukey" {
+        tukey_hinges(&sorted)
+    } else {
+        (quantile_type7(&sorted, 0.25), quantile_type7(&sorted, 0.75))
+    };
+    let median = median_sorted(&sorted);
+    let iqr = q3 - q1;
+    let low_fence = q1 - coefficient * iqr;
+    let high_fence = q3 + coefficient * iqr;
+    let whisker_low = sorted
+        .iter()
+        .copied()
+        .find(|value| *value >= low_fence)
+        .unwrap_or(sorted[0]);
+    let whisker_high = sorted
+        .iter()
+        .copied()
+        .rev()
+        .find(|value| *value <= high_fence)
+        .unwrap_or(sorted[sorted.len() - 1]);
+    let outliers = indexed
+        .iter()
+        .filter(|(_, value)| *value < whisker_low || *value > whisker_high)
+        .copied()
+        .collect();
+    BoxGeometry {
+        group: name.to_string(),
+        n: sorted.len(),
+        q1,
+        median,
+        q3,
+        whisker_low,
+        whisker_high,
+        outliers,
+        dropped,
+    }
+}
+
+fn builtin_boxplot_data(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let method = get_opt_str(&opts, "method", "type7").to_ascii_lowercase();
+    if !matches!(method.as_str(), "type7" | "tukey") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "boxplot_data() method must be 'type7' or 'tukey'",
+            None,
+        ));
+    }
+    let coefficient = get_opt_f64(&opts, "coef", 1.5);
+    if !coefficient.is_finite() || coefficient < 0.0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "boxplot_data() coef must be a finite non-negative number",
+            None,
+        ));
+    }
+    let groups = match &args[0] {
+        Value::List(_) => {
+            let (values, dropped) = finite_numeric_list(&args[0], "boxplot_data")?;
+            let mut geometry = box_geometry("values", &values, &method, coefficient);
+            geometry.dropped += dropped;
+            vec![geometry]
+        }
+        Value::Table(table) => {
+            let mut groups = Vec::new();
+            for column in &table.columns {
+                let values = extract_table_col(table, column)?;
+                if values.iter().any(|value| value.is_finite()) {
+                    groups.push(box_geometry(column, &values, &method, coefficient));
+                }
+            }
+            if groups.is_empty() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "boxplot_data() table contains no numeric columns",
+                    None,
+                ));
+            }
+            groups
+        }
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "boxplot_data() requires List or Table, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    let group_rows = groups
+        .iter()
+        .enumerate()
+        .map(|(index, group)| {
+            vec![
+                Value::Int(index as i64),
+                Value::Str(group.group.clone().into()),
+                Value::Int(group.n as i64),
+                Value::Float(group.q1),
+                Value::Float(group.median),
+                Value::Float(group.q3),
+                Value::Float(group.q3 - group.q1),
+                Value::Float(group.whisker_low),
+                Value::Float(group.whisker_high),
+                Value::Int(group.outliers.len() as i64),
+                Value::Int(group.dropped as i64),
+            ]
+        })
+        .collect();
+    let outlier_rows = groups
+        .iter()
+        .enumerate()
+        .flat_map(|(group_index, group)| {
+            group.outliers.iter().map(move |(source_row, value)| {
+                vec![
+                    Value::Int(group_index as i64),
+                    Value::Str(group.group.clone().into()),
+                    Value::Int(*source_row as i64),
+                    Value::Float(*value),
+                ]
+            })
+        })
+        .collect();
+    Ok(Value::Record(
+        HashMap::from([
+            (
+                "schema".into(),
+                Value::Str("biolang.plot.geometry/v1".into()),
+            ),
+            ("kind".into(), Value::Str("boxplot".into())),
+            ("method".into(), Value::Str(method.into())),
+            ("coefficient".into(), Value::Float(coefficient)),
+            (
+                "groups".into(),
+                Value::Table(Table::new(
+                    vec![
+                        "group_index".into(),
+                        "group".into(),
+                        "n".into(),
+                        "q1".into(),
+                        "median".into(),
+                        "q3".into(),
+                        "iqr".into(),
+                        "whisker_low".into(),
+                        "whisker_high".into(),
+                        "outlier_count".into(),
+                        "dropped_non_finite".into(),
+                    ],
+                    group_rows,
+                )),
+            ),
+            (
+                "outliers".into(),
+                Value::Table(Table::new(
+                    vec![
+                        "group_index".into(),
+                        "group".into(),
+                        "source_row".into(),
+                        "value".into(),
+                    ],
+                    outlier_rows,
+                )),
+            ),
+        ])
+        .into(),
+    ))
+}
+
+#[derive(Clone)]
+struct EcdfPoint {
+    row: usize,
+    x: f64,
+    count: usize,
+    cumulative: usize,
+    fraction_before: f64,
+    fraction: f64,
+}
+
+fn ecdf_geometry(value: &Value, who: &str) -> Result<(Vec<EcdfPoint>, usize, usize)> {
+    let (mut values, dropped) = finite_numeric_list(value, who)?;
+    values.sort_by(f64::total_cmp);
+    let n = values.len();
+    let mut points = Vec::new();
+    let mut start = 0usize;
+    while start < n {
+        let x = values[start];
+        let mut end = start + 1;
+        while end < n && values[end] == x {
+            end += 1;
+        }
+        points.push(EcdfPoint {
+            row: points.len(),
+            x,
+            count: end - start,
+            cumulative: end,
+            fraction_before: start as f64 / n as f64,
+            fraction: end as f64 / n as f64,
+        });
+        start = end;
+    }
+    Ok((points, n, dropped))
+}
+
+fn builtin_ecdf_data(args: Vec<Value>) -> Result<Value> {
+    let (points, n, dropped) = ecdf_geometry(&args[0], "ecdf_data")?;
+    let rows = points
+        .into_iter()
+        .map(|point| {
+            vec![
+                Value::Int(point.row as i64),
+                Value::Float(point.x),
+                Value::Int(point.count as i64),
+                Value::Int(point.cumulative as i64),
+                Value::Float(point.fraction_before),
+                Value::Float(point.fraction),
+            ]
+        })
+        .collect();
+    Ok(Value::Record(
+        HashMap::from([
+            (
+                "schema".into(),
+                Value::Str("biolang.plot.geometry/v1".into()),
+            ),
+            ("kind".into(), Value::Str("ecdf".into())),
+            ("n".into(), Value::Int(n as i64)),
+            ("dropped_non_finite".into(), Value::Int(dropped as i64)),
+            (
+                "data".into(),
+                Value::Table(Table::new(
+                    vec![
+                        "row".into(),
+                        "x".into(),
+                        "count".into(),
+                        "cumulative_count".into(),
+                        "fraction_before".into(),
+                        "fraction".into(),
+                    ],
+                    rows,
+                )),
+            ),
+        ])
+        .into(),
+    ))
+}
+
+fn refined_normal_quantile(probability: f64) -> f64 {
+    let mut estimate = bl_core::bio_core::stats_ops::normal_quantile(probability);
+    // One Newton correction removes the final few ulps left by the fast
+    // rational approximation used by the general qnorm builtin. Plotting
+    // positions are deterministic and only O(n), so the extra CDF evaluation
+    // is preferable to visibly asymmetric or oracle-dependent Q-Q tails.
+    for _ in 0..2 {
+        let density = (-0.5 * estimate * estimate).exp() / (2.0 * std::f64::consts::PI).sqrt();
+        if density <= f64::MIN_POSITIVE {
+            break;
+        }
+        estimate -= (bl_core::bio_core::stats_ops::normal_cdf(estimate) - probability) / density;
+    }
+    estimate
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct NormalQqGeometry {
+    pub(crate) probabilities: Vec<f64>,
+    pub(crate) theoretical: Vec<f64>,
+    pub(crate) sample: Vec<f64>,
+    pub(crate) line_intercept: f64,
+    pub(crate) line_slope: f64,
+    pub(crate) dropped: usize,
+}
+
+/// Renderer-independent normal Q-Q coordinates using R's `ppoints()` rule and
+/// the quartile line drawn by `qqline()`. Keeping this here makes the guided
+/// statistics plot, diagnostics, and public geometry builtin use one declared
+/// convention instead of three subtly different approximations.
+pub(crate) fn normal_qq_geometry(values: &[f64]) -> Result<NormalQqGeometry> {
+    let mut sample = values
+        .iter()
+        .copied()
+        .filter(|value| value.is_finite())
+        .collect::<Vec<_>>();
+    let dropped = values.len() - sample.len();
+    if sample.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "normal Q-Q geometry requires at least one finite value",
+            None,
+        ));
+    }
+    sample.sort_by(f64::total_cmp);
+    let n = sample.len();
+    let offset = if n <= 10 { 0.375 } else { 0.5 };
+    let denominator = n as f64 + 1.0 - 2.0 * offset;
+    let probabilities = (0..n)
+        .map(|index| (index as f64 + 1.0 - offset) / denominator)
+        .collect::<Vec<_>>();
+    let theoretical = probabilities
+        .iter()
+        .map(|probability| refined_normal_quantile(*probability))
+        .collect::<Vec<_>>();
+    let sample_q1 = quantile_type7(&sample, 0.25);
+    let sample_q3 = quantile_type7(&sample, 0.75);
+    let theoretical_q1 = refined_normal_quantile(0.25);
+    let theoretical_q3 = refined_normal_quantile(0.75);
+    let line_slope = (sample_q3 - sample_q1) / (theoretical_q3 - theoretical_q1);
+    let line_intercept = sample_q1 - line_slope * theoretical_q1;
+    Ok(NormalQqGeometry {
+        probabilities,
+        theoretical,
+        sample,
+        line_intercept,
+        line_slope,
+        dropped,
+    })
+}
+
+fn builtin_normal_qq_data(args: Vec<Value>) -> Result<Value> {
+    let (values, separately_dropped) = finite_numeric_list(&args[0], "normal_qq_data")?;
+    let geometry = normal_qq_geometry(&values)?;
+    let rows = geometry
+        .sample
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            vec![
+                Value::Int(index as i64),
+                Value::Float(geometry.probabilities[index]),
+                Value::Float(geometry.theoretical[index]),
+                Value::Float(*value),
+            ]
+        })
+        .collect();
+    Ok(Value::Record(
+        HashMap::from([
+            (
+                "schema".into(),
+                Value::Str("biolang.plot.geometry/v1".into()),
+            ),
+            ("kind".into(), Value::Str("normal_qq".into())),
+            ("plotting_position".into(), Value::Str("R_ppoints".into())),
+            ("n".into(), Value::Int(geometry.sample.len() as i64)),
+            (
+                "dropped_non_finite".into(),
+                Value::Int((separately_dropped + geometry.dropped) as i64),
+            ),
+            (
+                "line_intercept".into(),
+                Value::Float(geometry.line_intercept),
+            ),
+            ("line_slope".into(), Value::Float(geometry.line_slope)),
+            (
+                "data".into(),
+                Value::Table(Table::new(
+                    vec![
+                        "row".into(),
+                        "probability".into(),
+                        "theoretical".into(),
+                        "sample".into(),
+                    ],
+                    rows,
+                )),
+            ),
+        ])
+        .into(),
+    ))
+}
+
+fn builtin_violin_data(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let (mut values, dropped) = finite_numeric_list(&args[0], "violin_data")?;
+    values.sort_by(f64::total_cmp);
+    let adjust = get_opt_f64(&opts, "adjust", 1.0);
+    if !adjust.is_finite() || adjust <= 0.0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "violin_data() adjust must be a positive finite number",
+            None,
+        ));
+    }
+    let points_number = get_opt_f64(&opts, "points", 256.0);
+    if !points_number.is_finite()
+        || points_number.fract() != 0.0
+        || !(16.0..=4096.0).contains(&points_number)
+    {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "violin_data() points must be a whole number from 16 to 4096",
+            None,
+        ));
+    }
+    let points = points_number as usize;
+    let bandwidth = match opts.get("bandwidth") {
+        Some(value) => value
+            .as_float()
+            .filter(|number| number.is_finite() && *number > 0.0)
+            .ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "violin_data() bandwidth must be a positive finite number",
+                    None,
+                )
+            })?,
+        None => silverman_bandwidth(&values) * adjust,
+    };
+    let density = gaussian_kde(&values, bandwidth, points);
+    let peak = density.iter().map(|(_, value)| *value).fold(0.0, f64::max);
+    let rows = density
+        .into_iter()
+        .enumerate()
+        .map(|(index, (x, value))| {
+            vec![
+                Value::Int(index as i64),
+                Value::Float(x),
+                Value::Float(value),
+                Value::Float(if peak > 0.0 { value / peak } else { 0.0 }),
+            ]
+        })
+        .collect();
+    Ok(Value::Record(
+        HashMap::from([
+            (
+                "schema".into(),
+                Value::Str("biolang.plot.geometry/v1".into()),
+            ),
+            ("kind".into(), Value::Str("violin".into())),
+            ("kernel".into(), Value::Str("gaussian".into())),
+            ("bandwidth_method".into(), Value::Str("bw.nrd0".into())),
+            ("bandwidth".into(), Value::Float(bandwidth)),
+            ("n".into(), Value::Int(values.len() as i64)),
+            ("dropped_non_finite".into(), Value::Int(dropped as i64)),
+            (
+                "data".into(),
+                Value::Table(Table::new(
+                    vec!["row".into(), "x".into(), "density".into(), "scaled".into()],
+                    rows,
+                )),
+            ),
+        ])
+        .into(),
+    ))
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct LinearFitPoint {
+    pub(crate) x: f64,
+    pub(crate) fitted: f64,
+    pub(crate) confidence_lower: f64,
+    pub(crate) confidence_upper: f64,
+    pub(crate) prediction_lower: f64,
+    pub(crate) prediction_upper: f64,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct LinearFitGeometry {
+    pub(crate) n: usize,
+    pub(crate) slope: f64,
+    pub(crate) intercept: f64,
+    pub(crate) degrees_of_freedom: usize,
+    pub(crate) residual_mse: f64,
+    pub(crate) residual_standard_error: f64,
+    pub(crate) confidence_level: f64,
+    pub(crate) critical_value: f64,
+    pub(crate) points: Vec<LinearFitPoint>,
+}
+
+/// Ordinary least-squares line geometry with intervals for the mean response
+/// and for a new observation. These are deliberately distinct: a prediction
+/// band contains the irreducible residual variance and must therefore be wider.
+pub(crate) fn linear_fit_geometry(
+    xs: &[f64],
+    ys: &[f64],
+    at: &[f64],
+    confidence_level: f64,
+) -> Result<LinearFitGeometry> {
+    if xs.len() != ys.len() || xs.len() < 3 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "linear fit geometry requires at least three paired values",
+            None,
+        ));
+    }
+    if !confidence_level.is_finite() || !(0.0..1.0).contains(&confidence_level) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "linear_fit_data() confidence must be between 0 and 1",
+            None,
+        ));
+    }
+    if xs
+        .iter()
+        .chain(ys)
+        .chain(at)
+        .any(|value| !value.is_finite())
+    {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "linear fit geometry requires finite numeric values",
+            None,
+        ));
+    }
+    let n = xs.len();
+    let mean_x = xs.iter().sum::<f64>() / n as f64;
+    let mean_y = ys.iter().sum::<f64>() / n as f64;
+    let sum_xx = xs.iter().map(|x| (x - mean_x).powi(2)).sum::<f64>();
+    if sum_xx <= f64::EPSILON {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "linear_fit_data() requires variation in x",
+            None,
+        ));
+    }
+    let sum_xy = xs
+        .iter()
+        .zip(ys)
+        .map(|(x, y)| (x - mean_x) * (y - mean_y))
+        .sum::<f64>();
+    let slope = sum_xy / sum_xx;
+    let intercept = mean_y - slope * mean_x;
+    let residual_sum_squares = xs
+        .iter()
+        .zip(ys)
+        .map(|(x, y)| (y - (intercept + slope * x)).powi(2))
+        .sum::<f64>();
+    let degrees_of_freedom = n - 2;
+    let residual_mse = residual_sum_squares / degrees_of_freedom as f64;
+    let residual_standard_error = residual_mse.sqrt();
+    let critical_value = bl_core::bio_core::stats_ops::students_t_quantile(
+        0.5 + confidence_level / 2.0,
+        degrees_of_freedom as f64,
+    );
+    let points = at
+        .iter()
+        .map(|x| {
+            let fitted = intercept + slope * x;
+            let mean_leverage = 1.0 / n as f64 + (x - mean_x).powi(2) / sum_xx;
+            let confidence_margin = critical_value * (residual_mse * mean_leverage).sqrt();
+            let prediction_margin = critical_value * (residual_mse * (1.0 + mean_leverage)).sqrt();
+            LinearFitPoint {
+                x: *x,
+                fitted,
+                confidence_lower: fitted - confidence_margin,
+                confidence_upper: fitted + confidence_margin,
+                prediction_lower: fitted - prediction_margin,
+                prediction_upper: fitted + prediction_margin,
+            }
+        })
+        .collect();
+    Ok(LinearFitGeometry {
+        n,
+        slope,
+        intercept,
+        degrees_of_freedom,
+        residual_mse,
+        residual_standard_error,
+        confidence_level,
+        critical_value,
+        points,
+    })
+}
+
+fn paired_finite_lists(x: &Value, y: &Value, who: &str) -> Result<(Vec<f64>, Vec<f64>, usize)> {
+    let (Value::List(x_items), Value::List(y_items)) = (x, y) else {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{who}() requires two Lists"),
+            None,
+        ));
+    };
+    if x_items.len() != y_items.len() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{who}() x and y must have equal length"),
+            None,
+        ));
+    }
+    let mut xs = Vec::with_capacity(x_items.len());
+    let mut ys = Vec::with_capacity(y_items.len());
+    let mut dropped = 0usize;
+    for (x, y) in x_items.iter().zip(y_items.iter()) {
+        match (x.as_float(), y.as_float()) {
+            (Some(x), Some(y)) if x.is_finite() && y.is_finite() => {
+                xs.push(x);
+                ys.push(y);
+            }
+            _ => dropped += 1,
+        }
+    }
+    Ok((xs, ys, dropped))
+}
+
+fn builtin_linear_fit_data(args: Vec<Value>) -> Result<Value> {
+    let opts = match args.get(2) {
+        None | Some(Value::Nil) => HashMap::new(),
+        Some(Value::Record(values)) => values.as_ref().clone(),
+        Some(_) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "linear_fit_data() options must be a Record",
+                None,
+            ))
+        }
+    };
+    let (xs, ys, dropped) = paired_finite_lists(&args[0], &args[1], "linear_fit_data")?;
+    let confidence = get_opt_f64(&opts, "confidence", 0.95);
+    let mut at = match opts.get("at") {
+        Some(value) => finite_numeric_list(value, "linear_fit_data")?.0,
+        None => {
+            let mut values = xs.clone();
+            values.sort_by(f64::total_cmp);
+            values.dedup_by(|left, right| *left == *right);
+            values
+        }
+    };
+    at.sort_by(f64::total_cmp);
+    let geometry = linear_fit_geometry(&xs, &ys, &at, confidence)?;
+    let rows = geometry
+        .points
+        .iter()
+        .enumerate()
+        .map(|(index, point)| {
+            vec![
+                Value::Int(index as i64),
+                Value::Float(point.x),
+                Value::Float(point.fitted),
+                Value::Float(point.confidence_lower),
+                Value::Float(point.confidence_upper),
+                Value::Float(point.prediction_lower),
+                Value::Float(point.prediction_upper),
+            ]
+        })
+        .collect();
+    Ok(Value::Record(
+        HashMap::from([
+            (
+                "schema".into(),
+                Value::Str("biolang.plot.geometry/v1".into()),
+            ),
+            ("kind".into(), Value::Str("linear_fit".into())),
+            ("n".into(), Value::Int(geometry.n as i64)),
+            ("dropped_incomplete".into(), Value::Int(dropped as i64)),
+            ("slope".into(), Value::Float(geometry.slope)),
+            ("intercept".into(), Value::Float(geometry.intercept)),
+            (
+                "degrees_of_freedom".into(),
+                Value::Int(geometry.degrees_of_freedom as i64),
+            ),
+            ("residual_mse".into(), Value::Float(geometry.residual_mse)),
+            (
+                "residual_standard_error".into(),
+                Value::Float(geometry.residual_standard_error),
+            ),
+            (
+                "confidence_level".into(),
+                Value::Float(geometry.confidence_level),
+            ),
+            (
+                "critical_value".into(),
+                Value::Float(geometry.critical_value),
+            ),
+            (
+                "data".into(),
+                Value::Table(Table::new(
+                    vec![
+                        "row".into(),
+                        "x".into(),
+                        "fitted".into(),
+                        "confidence_lower".into(),
+                        "confidence_upper".into(),
+                        "prediction_lower".into(),
+                        "prediction_upper".into(),
+                    ],
+                    rows,
+                )),
+            ),
+        ])
+        .into(),
+    ))
+}
+
 /// The empirical cumulative distribution: for each value, the fraction of the
 /// data at or below it.
 ///
@@ -1547,11 +3388,9 @@ fn builtin_ecdf_plot(args: Vec<Value>) -> Result<Value> {
     let height = get_opt_f64(&opts, "height", 600.0);
     let title = get_opt_str(&opts, "title", "Empirical CDF").to_string();
 
-    let mut values = numeric_list(&args[0], "ecdf_plot")?;
-    values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-    let n = values.len() as f64;
-
-    let (lo, hi) = col_range(&values);
+    let (geometry, _, _) = ecdf_geometry(&args[0], "ecdf_plot")?;
+    let x_values = geometry.iter().map(|point| point.x).collect::<Vec<_>>();
+    let (lo, hi) = col_range(&x_values);
     let span = if (hi - lo).abs() < f64::EPSILON {
         1.0
     } else {
@@ -1572,19 +3411,19 @@ fn builtin_ecdf_plot(args: Vec<Value>) -> Result<Value> {
     // One polyline rather than two line elements per observation: the same
     // picture, and a tenth of the file for a column of a few hundred values,
     // which matters when the SVG is inlined into a page.
-    let mut points = Vec::with_capacity(2 * values.len() + 2);
+    let mut points = Vec::with_capacity(2 * geometry.len() + 2);
     points.push(format!(
         "{:.1},{:.1}",
-        x_scale.map(values[0]),
+        x_scale.map(geometry[0].x),
         y_scale.map(0.0)
     ));
-    for (index, value) in values.iter().enumerate() {
-        let x = x_scale.map(*value);
-        let y = y_scale.map((index + 1) as f64 / n);
+    for (index, point) in geometry.iter().enumerate() {
+        let x = x_scale.map(point.x);
+        let y = y_scale.map(point.fraction);
         // The riser at the observation, then the flat run to the next one.
         points.push(format!("{x:.1},{y:.1}"));
-        let next_x = match values.get(index + 1) {
-            Some(next) => x_scale.map(*next),
+        let next_x = match geometry.get(index + 1) {
+            Some(next) => x_scale.map(next.x),
             None => right_edge,
         };
         points.push(format!("{next_x:.1},{y:.1}"));
@@ -1621,7 +3460,7 @@ fn builtin_ecdf_plot(args: Vec<Value>) -> Result<Value> {
 /// from inflating the standard deviation and oversmoothing everything else,
 /// and the IQR falls back to the sd when the middle half of the data is a
 /// single repeated value. Expects `values` already sorted.
-fn silverman_bandwidth(values: &[f64]) -> f64 {
+pub(crate) fn silverman_bandwidth(values: &[f64]) -> f64 {
     let n = values.len() as f64;
     let mean = values.iter().sum::<f64>() / n;
     let sd = if values.len() > 1 {
@@ -1655,6 +3494,29 @@ fn silverman_bandwidth(values: &[f64]) -> f64 {
     0.9 * spread * n.powf(-0.2)
 }
 
+pub(crate) fn gaussian_kde(values: &[f64], bandwidth: f64, steps: usize) -> Vec<(f64, f64)> {
+    let bandwidth = bandwidth.max(f64::MIN_POSITIVE);
+    let steps = steps.max(2);
+    let (data_lo, data_hi) = col_range(values);
+    let lo = data_lo - 3.0 * bandwidth;
+    let hi = data_hi + 3.0 * bandwidth;
+    let normaliser = 1.0 / (values.len() as f64 * bandwidth * (2.0 * std::f64::consts::PI).sqrt());
+    (0..steps)
+        .map(|step| {
+            let x = lo + (hi - lo) * step as f64 / (steps - 1) as f64;
+            let density = values
+                .iter()
+                .map(|value| {
+                    let z = (x - value) / bandwidth;
+                    (-0.5 * z * z).exp()
+                })
+                .sum::<f64>()
+                * normaliser;
+            (x, density)
+        })
+        .collect()
+}
+
 /// A Gaussian kernel density estimate: a smooth stand-in for a histogram that
 /// does not depend on where the bin edges happen to fall.
 ///
@@ -1671,31 +3533,14 @@ fn builtin_density_plot(args: Vec<Value>) -> Result<Value> {
 
     let mut values = numeric_list(&args[0], "density_plot")?;
     values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-    let n = values.len() as f64;
 
     let bandwidth =
         get_opt_f64(&opts, "bandwidth", silverman_bandwidth(&values)).max(f64::MIN_POSITIVE);
 
-    // Reach three bandwidths past the data so the tails are not cut off.
-    let (data_lo, data_hi) = col_range(&values);
-    let lo = data_lo - 3.0 * bandwidth;
-    let hi = data_hi + 3.0 * bandwidth;
-
     let steps = 256usize;
-    let normaliser = 1.0 / (n * bandwidth * (2.0 * std::f64::consts::PI).sqrt());
-    let mut densities = Vec::with_capacity(steps);
-    for step in 0..steps {
-        let x = lo + (hi - lo) * step as f64 / (steps - 1) as f64;
-        let density = values
-            .iter()
-            .map(|v| {
-                let z = (x - v) / bandwidth;
-                (-0.5 * z * z).exp()
-            })
-            .sum::<f64>()
-            * normaliser;
-        densities.push((x, density));
-    }
+    let densities = gaussian_kde(&values, bandwidth, steps);
+    let lo = densities[0].0;
+    let hi = densities[densities.len() - 1].0;
     let peak = densities
         .iter()
         .map(|(_, d)| *d)
@@ -2041,26 +3886,161 @@ fn configure_generic_font_families(db: &mut resvg::usvg::fontdb::Database) {
     }
 }
 
+/// Character set used when an SVG plot is previewed in a terminal.
+///
+/// Braille keeps two-by-four subpixels in each character and is the most useful
+/// interactive preview. ASCII is lower resolution but survives restricted
+/// terminals and plain-text logs.
+#[cfg(feature = "native")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TerminalPlotStyle {
+    Braille,
+    Ascii,
+}
+
+#[cfg(feature = "native")]
+fn svg_font_database() -> std::sync::Arc<resvg::usvg::fontdb::Database> {
+    use resvg::usvg;
+
+    // Both PNG export and terminal previews use this cache. Loading the system
+    // font database for every plot makes a quick REPL preview feel needlessly
+    // slow and can also make two render paths choose different fallback fonts.
+    static FONTS: std::sync::OnceLock<std::sync::Arc<usvg::fontdb::Database>> =
+        std::sync::OnceLock::new();
+    FONTS
+        .get_or_init(|| {
+            let mut db = usvg::fontdb::Database::new();
+            db.load_system_fonts();
+            configure_generic_font_families(&mut db);
+            std::sync::Arc::new(db)
+        })
+        .clone()
+}
+
+/// Rasterise a complete SVG document into a compact terminal preview.
+///
+/// This deliberately consumes the SVG that every plot builtin already
+/// produces. It therefore cannot disagree with the saved figure about scales,
+/// points, labels, or clipping. The result contains no ANSI escapes, so callers
+/// may safely colour it or place it in a plain-text log.
+#[cfg(feature = "native")]
+pub fn render_svg_terminal(
+    svg: &str,
+    columns: usize,
+    max_rows: usize,
+    style: TerminalPlotStyle,
+) -> std::result::Result<String, String> {
+    use resvg::{tiny_skia, usvg};
+
+    let options = usvg::Options {
+        fontdb: svg_font_database(),
+        ..Default::default()
+    };
+    let tree = usvg::Tree::from_str(svg, &options)
+        .map_err(|error| format!("could not parse SVG: {error}"))?;
+    let size = tree.size();
+    let source_width = size.width().max(1.0);
+    let source_height = size.height().max(1.0);
+
+    let columns = columns.clamp(12, 160);
+    let max_rows = max_rows.clamp(4, 60);
+    // One character covers a 2x4 pixel cell in either style: Braille encodes
+    // exactly that grid, and matching it for ASCII keeps both previews the same
+    // shape at the same requested width.
+    let cell_width = 2usize;
+    let cell_height = 4usize;
+    let target_width = (columns * cell_width) as f32;
+    let target_height = (max_rows * cell_height) as f32;
+    let scale = (target_width / source_width)
+        .min(target_height / source_height)
+        .max(0.001);
+    let pixel_width = (source_width * scale).ceil().max(1.0) as u32;
+    let pixel_height = (source_height * scale).ceil().max(1.0) as u32;
+    let mut pixmap = tiny_skia::Pixmap::new(pixel_width, pixel_height)
+        .ok_or_else(|| "could not allocate terminal plot raster".to_string())?;
+    resvg::render(
+        &tree,
+        tiny_skia::Transform::from_scale(scale, scale),
+        &mut pixmap.as_mut(),
+    );
+
+    // resvg stores premultiplied RGBA. Composite each channel over white before
+    // measuring darkness so an untouched transparent pixel remains blank.
+    let ink_at = |x: u32, y: u32| -> f32 {
+        let Some(pixel) = pixmap.pixel(x, y) else {
+            return 0.0;
+        };
+        let transparent = 255u16.saturating_sub(pixel.alpha() as u16);
+        let red = (pixel.red() as u16 + transparent).min(255) as f32;
+        let green = (pixel.green() as u16 + transparent).min(255) as f32;
+        let blue = (pixel.blue() as u16 + transparent).min(255) as f32;
+        255.0 - (0.2126 * red + 0.7152 * green + 0.0722 * blue)
+    };
+
+    let output_columns = (pixel_width as usize).div_ceil(cell_width);
+    let output_rows = (pixel_height as usize).div_ceil(cell_height);
+    let mut lines = Vec::with_capacity(output_rows);
+    for row in 0..output_rows {
+        let mut line = String::with_capacity(output_columns);
+        for column in 0..output_columns {
+            let x0 = column * cell_width;
+            let y0 = row * cell_height;
+            match style {
+                TerminalPlotStyle::Braille => {
+                    const DOTS: [[u8; 2]; 4] =
+                        [[0x01, 0x08], [0x02, 0x10], [0x04, 0x20], [0x40, 0x80]];
+                    let mut bits = 0u8;
+                    for dy in 0..cell_height {
+                        for dx in 0..cell_width {
+                            if ink_at((x0 + dx) as u32, (y0 + dy) as u32) >= 28.0 {
+                                bits |= DOTS[dy][dx];
+                            }
+                        }
+                    }
+                    line.push(char::from_u32(0x2800 + bits as u32).unwrap_or(' '));
+                }
+                TerminalPlotStyle::Ascii => {
+                    const LEVELS: &[u8] = b" .:-=+*#%@";
+                    let mut total = 0.0f32;
+                    let mut peak = 0.0f32;
+                    for dy in 0..cell_height {
+                        for dx in 0..cell_width {
+                            let ink = ink_at((x0 + dx) as u32, (y0 + dy) as u32);
+                            total += ink;
+                            peak = peak.max(ink);
+                        }
+                    }
+                    let average = total / (cell_width * cell_height) as f32;
+                    // Thin axes and lines would disappear under a pure average;
+                    // retain their peak while still giving solid areas weight.
+                    let density = (0.65 * peak + 0.35 * average) / 255.0;
+                    let index = (density * (LEVELS.len() - 1) as f32).round() as usize;
+                    line.push(LEVELS[index.min(LEVELS.len() - 1)] as char);
+                }
+            }
+        }
+        lines.push(line.trim_end().to_string());
+    }
+    while lines.first().is_some_and(|line| line.is_empty()) {
+        lines.remove(0);
+    }
+    while lines.last().is_some_and(|line| line.is_empty()) {
+        lines.pop();
+    }
+    if lines.is_empty() {
+        return Err("SVG rendered as an empty terminal preview".to_string());
+    }
+    Ok(lines.join("\n"))
+}
+
 #[cfg(feature = "native")]
 fn render_png(svg: &str, path: &str, scale: f64) -> Result<()> {
     use resvg::{tiny_skia, usvg};
 
     let png_error = |message: String| BioLangError::runtime(ErrorKind::IOError, message, None);
 
-    // Loading system fonts costs tens of milliseconds, and a script that writes
-    // a figure per chapter would pay it once per call. One database, built on
-    // first use, shared by every later call.
-    static FONTS: std::sync::OnceLock<std::sync::Arc<usvg::fontdb::Database>> =
-        std::sync::OnceLock::new();
-    let fontdb = FONTS.get_or_init(|| {
-        let mut db = usvg::fontdb::Database::new();
-        db.load_system_fonts();
-        configure_generic_font_families(&mut db);
-        std::sync::Arc::new(db)
-    });
-
     let options = usvg::Options {
-        fontdb: fontdb.clone(),
+        fontdb: svg_font_database(),
         ..Default::default()
     };
     let tree = usvg::Tree::from_str(svg, &options)
@@ -2188,7 +4168,9 @@ fn builtin_genome_track(args: Vec<Value>) -> Result<Value> {
 
 #[cfg(test)]
 mod palette_tests {
-    use super::{SvgCanvas, PALETTE};
+    #[cfg(feature = "native")]
+    use super::{render_svg_terminal, TerminalPlotStyle};
+    use super::{Scale, SvgCanvas, PALETTE};
     use std::collections::HashSet;
 
     // Callers index PALETTE modulo its length, so a plot with more groups than
@@ -2205,6 +4187,19 @@ mod palette_tests {
         );
     }
 
+    #[cfg(feature = "native")]
+    #[test]
+    fn terminal_renderers_turn_svg_into_text_without_leaking_markup() {
+        let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" fill="white"/><line x1="5" y1="70" x2="115" y2="10" stroke="black" stroke-width="5"/></svg>"#;
+        for style in [TerminalPlotStyle::Braille, TerminalPlotStyle::Ascii] {
+            let preview = render_svg_terminal(svg, 40, 12, style).expect("terminal preview");
+            assert!(!preview.trim().is_empty());
+            assert!(!preview.contains("<svg"));
+            assert!(preview.lines().count() <= 12);
+            assert!(preview.lines().all(|line| line.chars().count() <= 40));
+        }
+    }
+
     #[test]
     fn palette_entries_are_distinct() {
         let unique: HashSet<&&str> = PALETTE.iter().collect();
@@ -2212,6 +4207,52 @@ mod palette_tests {
             unique.len(),
             PALETTE.len(),
             "palette repeats a colour, so two groups share one"
+        );
+    }
+
+    #[test]
+    fn axis_ticks_use_readable_one_two_five_steps() {
+        let ticks = Scale {
+            domain: (0.0, 7.0),
+            range: (0.0, 700.0),
+        }
+        .nice_ticks(5);
+        assert_eq!(ticks, vec![0.0, 2.0, 4.0, 6.0]);
+
+        let crossing_zero = Scale {
+            domain: (-3.0, 7.0),
+            range: (0.0, 700.0),
+        }
+        .nice_ticks(5);
+        assert_eq!(crossing_zero, vec![-2.0, 0.0, 2.0, 4.0, 6.0]);
+    }
+
+    #[test]
+    fn axis_ticks_handle_small_constant_and_reversed_domains() {
+        let small = Scale {
+            domain: (0.0012, 0.0019),
+            range: (0.0, 1.0),
+        }
+        .nice_ticks(5);
+        assert_eq!(small.len(), 4);
+        for (actual, expected) in small.iter().zip([0.0012, 0.0014, 0.0016, 0.0018]) {
+            assert!((actual - expected).abs() < 1e-12);
+        }
+        assert_eq!(
+            Scale {
+                domain: (3.0, 3.0),
+                range: (0.0, 1.0)
+            }
+            .nice_ticks(5),
+            vec![3.0]
+        );
+        assert_eq!(
+            Scale {
+                domain: (7.0, 0.0),
+                range: (0.0, 1.0)
+            }
+            .nice_ticks(5),
+            vec![6.0, 4.0, 2.0, 0.0]
         );
     }
 

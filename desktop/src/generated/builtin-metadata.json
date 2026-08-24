@@ -1526,6 +1526,24 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "boxplot_data",
+      "signature": "boxplot_data(list_or_table, {method: \"type7|tukey\"}) -> geometry Record",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "list_or_table",
+        "{method: \"type7|tukey\"}"
+      ],
+      "returnType": "geometry Record",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "bp",
       "signature": "bp(n) → Record{value, unit} (base pairs)",
       "category": "bio",
@@ -4442,6 +4460,23 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "ecdf_data",
+      "signature": "ecdf_data(list) -> tie-aware empirical CDF geometry Record",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "list"
+      ],
+      "returnType": "tie-aware empirical CDF geometry Record",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "ecdf_plot",
       "signature": "ecdf_plot(list, opts?) → Str (SVG)",
       "category": "plot",
@@ -7116,6 +7151,24 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "histogram_data",
+      "signature": "histogram_data(list, opts?) → inspectable bin geometry Record",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "list",
+        "opts?"
+      ],
+      "returnType": "inspectable bin geometry Record",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "hmac_sha256",
       "signature": "hmac_sha256(data, key) → Str (hex)",
       "category": "hash",
@@ -9214,6 +9267,25 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "linear_fit_data",
+      "signature": "linear_fit_data(x, y, opts?) -> OLS line plus confidence/prediction geometry Record",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "x",
+        "y",
+        "opts?"
+      ],
+      "returnType": "OLS line plus confidence/prediction geometry Record",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "linear_spectrum",
       "signature": "linear_spectrum(arg1)",
       "category": "runtime",
@@ -10998,6 +11070,23 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "normal_qq_data",
+      "signature": "normal_qq_data(list) -> R-compatible normal Q-Q geometry Record",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "list"
+      ],
+      "returnType": "R-compatible normal Q-Q geometry Record",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "normal_qq_plot",
       "signature": "normal_qq_plot(arg1, arg2?)",
       "category": "runtime",
@@ -12304,6 +12393,24 @@
         "opts?"
       ],
       "returnType": "Str (SVG); opts.y may name several columns",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "plot_spec",
+      "signature": "plot_spec(table, opts?) -> renderer-neutral biolang.plot.spec/v1 Record",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "table",
+        "opts?"
+      ],
+      "returnType": "renderer-neutral biolang.plot.spec/v1 Record",
       "example": null,
       "arity": {
         "kind": "range",
@@ -13985,6 +14092,24 @@
       "arity": {
         "kind": "exact",
         "minimum": 2,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "render_plot",
+      "signature": "render_plot(spec, {format: \"svg|ascii|unicode|html\"}) -> Str",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "spec",
+        "{format: \"svg|ascii|unicode|html\"}"
+      ],
+      "returnType": "Str",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
         "maximum": 2
       },
       "metadataQuality": "curated"
@@ -18956,6 +19081,24 @@
         "opts?"
       ],
       "returnType": "Str (SVG)",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "violin_data",
+      "signature": "violin_data(list, opts?) -> Gaussian KDE/violin geometry Record",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "list",
+        "opts?"
+      ],
+      "returnType": "Gaussian KDE/violin geometry Record",
       "example": null,
       "arity": {
         "kind": "range",

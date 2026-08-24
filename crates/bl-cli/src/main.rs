@@ -6,11 +6,36 @@ mod testing;
 mod update;
 
 use bl_import as import;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process;
 use std::time::Instant;
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum PlotModeArg {
+    Auto,
+    Unicode,
+    Ascii,
+    File,
+    Open,
+    Raw,
+    None,
+}
+
+impl PlotModeArg {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Unicode => "unicode",
+            Self::Ascii => "ascii",
+            Self::File => "file",
+            Self::Open => "open",
+            Self::Raw => "raw",
+            Self::None => "none",
+        }
+    }
+}
 
 #[derive(Parser)]
 #[command(
@@ -25,6 +50,12 @@ struct Cli {
     /// Enable GPU auto-detection explicitly (this is the default)
     #[arg(long, global = true, conflicts_with = "no_gpu")]
     gpu: bool,
+    /// Display SVG plots as terminal graphics, files, raw markup, or not at all
+    #[arg(long, global = true, value_enum)]
+    plot: Option<PlotModeArg>,
+    /// Directory used by --plot file and --plot open
+    #[arg(long, global = true, value_name = "DIR")]
+    plot_dir: Option<PathBuf>,
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -234,6 +265,12 @@ fn main() {
                 std::env::set_var("BIOLANG_GPU", "off");
             } else if cli.gpu {
                 std::env::set_var("BIOLANG_GPU", "on");
+            }
+            if let Some(mode) = cli.plot {
+                std::env::set_var("BIOLANG_PLOT", mode.as_str());
+            }
+            if let Some(directory) = cli.plot_dir {
+                std::env::set_var("BIOLANG_PLOT_DIR", directory);
             }
 
             // Background update check for interactive commands
@@ -644,6 +681,10 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
                 "value": events::value_to_json(value),
             }));
         })));
+    } else {
+        // A script may either return an SVG or explicitly print one. Both
+        // should obey the same CLI plot policy; normal text is unchanged.
+        bl_runtime::builtins::set_output_sink(Some(std::sync::Arc::new(bl_repl::write_cli_output)));
     }
     match interpreter.run(&program) {
         Ok(value) => {
@@ -669,8 +710,9 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
                 }));
             } else {
                 bl_runtime::builtins::flush_trailing_newline();
+                bl_runtime::builtins::set_output_sink(None);
                 if print_result && !matches!(value, bl_core::value::Value::Nil) {
-                    println!("{value}");
+                    bl_repl::print_cli_value(&value);
                 }
                 let elapsed = start.elapsed();
                 eprintln!("\x1b[2m✓ done in {elapsed:.2?}\x1b[0m");
@@ -694,6 +736,7 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
                 }));
             } else {
                 bl_runtime::builtins::flush_trailing_newline();
+                bl_runtime::builtins::set_output_sink(None);
                 eprintln!("{}", e.format_with_source(&source));
             }
             bl_runtime::tempfiles::cleanup_all();

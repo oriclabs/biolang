@@ -1,0 +1,174 @@
+# BioLang side of the explicit-break histogram geometry comparison.
+
+let edge_values = [0, 1, 1.5, 2, 3]
+let edge_breaks = [0, 1, 2, 3]
+let edge_right = histogram_data(edge_values, {
+    breaks: edge_breaks,
+    right: true,
+    include_lowest: true
+})
+let edge_left = histogram_data(edge_values, {
+    breaks: edge_breaks,
+    closed: "left",
+    include_lowest: true
+})
+let edge_right_open = histogram_data(edge_values, {
+    breaks: edge_breaks,
+    right: true,
+    include_lowest: false
+})
+let edge_left_open = histogram_data(edge_values, {
+    breaks: edge_breaks,
+    closed: "left",
+    include_lowest: false
+})
+
+let air = read_csv("packages/statistics/validation/results/airquality.csv")
+let air_histogram = histogram_data(air |> col("ozone"), {
+    breaks: [0, 25, 50, 75, 100, 125, 150, 175],
+    right: true,
+    include_lowest: true
+})
+let air_histogram_left = histogram_data(air |> col("ozone"), {
+    breaks: [0, 25, 50, 75, 100, 125, 150, 175],
+    closed: "left",
+    include_lowest: true
+})
+
+let shape_values = [1, 2, 2, 3, 4, 100]
+let box_type7 = boxplot_data(shape_values, {method: "type7"})
+let box_tukey = boxplot_data(shape_values, {method: "tukey"})
+let ecdf = ecdf_data(shape_values)
+let normal_qq = normal_qq_data(shape_values)
+let violin = violin_data(shape_values, {points: 256})
+let air_box_type7 = boxplot_data(air |> col("ozone"), {method: "type7"})
+let air_box_tukey = boxplot_data(air |> col("ozone"), {method: "tukey"})
+let air_ecdf = ecdf_data(air |> col("ozone"))
+let air_normal_qq = normal_qq_data(air |> col("ozone"))
+let air_violin = violin_data(air |> col("ozone"), {points: 256})
+let air_linear_fit = linear_fit_data(
+    air |> col("month"),
+    air |> col("ozone"),
+    {at: [5, 6, 7, 8, 9], confidence: 0.95}
+)
+
+let type7_low = box_type7.groups |> col("whisker_low")
+let type7_q1 = box_type7.groups |> col("q1")
+let type7_median = box_type7.groups |> col("median")
+let type7_q3 = box_type7.groups |> col("q3")
+let type7_high = box_type7.groups |> col("whisker_high")
+let tukey_low = box_tukey.groups |> col("whisker_low")
+let tukey_q1 = box_tukey.groups |> col("q1")
+let tukey_median = box_tukey.groups |> col("median")
+let tukey_q3 = box_tukey.groups |> col("q3")
+let tukey_high = box_tukey.groups |> col("whisker_high")
+let air_type7_low = air_box_type7.groups |> col("whisker_low")
+let air_type7_q1 = air_box_type7.groups |> col("q1")
+let air_type7_median = air_box_type7.groups |> col("median")
+let air_type7_q3 = air_box_type7.groups |> col("q3")
+let air_type7_high = air_box_type7.groups |> col("whisker_high")
+let air_tukey_low = air_box_tukey.groups |> col("whisker_low")
+let air_tukey_q1 = air_box_tukey.groups |> col("q1")
+let air_tukey_median = air_box_tukey.groups |> col("median")
+let air_tukey_q3 = air_box_tukey.groups |> col("q3")
+let air_tukey_high = air_box_tukey.groups |> col("whisker_high")
+
+write_json({
+    edge_right: {
+        left: edge_right.bins |> col("left"),
+        right: edge_right.bins |> col("right"),
+        counts: edge_right.bins |> col("count"),
+        density: edge_right.bins |> col("density")
+    },
+    edge_left: {
+        left: edge_left.bins |> col("left"),
+        right: edge_left.bins |> col("right"),
+        counts: edge_left.bins |> col("count"),
+        density: edge_left.bins |> col("density")
+    },
+    edge_right_open: {
+        left: edge_right_open.bins |> col("left"),
+        right: edge_right_open.bins |> col("right"),
+        counts: edge_right_open.bins |> col("count"),
+        density: edge_right_open.bins |> col("density")
+    },
+    edge_left_open: {
+        left: edge_left_open.bins |> col("left"),
+        right: edge_left_open.bins |> col("right"),
+        counts: edge_left_open.bins |> col("count"),
+        density: edge_left_open.bins |> col("density")
+    },
+    airquality: {
+        left: air_histogram.bins |> col("left"),
+        right: air_histogram.bins |> col("right"),
+        counts: air_histogram.bins |> col("count"),
+        density: air_histogram.bins |> col("density")
+    },
+    airquality_left: {
+        left: air_histogram_left.bins |> col("left"),
+        right: air_histogram_left.bins |> col("right"),
+        counts: air_histogram_left.bins |> col("count"),
+        density: air_histogram_left.bins |> col("density")
+    },
+    box_type7: {
+        summary: [type7_low[0], type7_q1[0], type7_median[0], type7_q3[0], type7_high[0]],
+        outliers: box_type7.outliers |> col("value")
+    },
+    box_tukey: {
+        summary: [tukey_low[0], tukey_q1[0], tukey_median[0], tukey_q3[0], tukey_high[0]],
+        outliers: box_tukey.outliers |> col("value")
+    },
+    ecdf: {
+        x: ecdf.data |> col("x"),
+        counts: ecdf.data |> col("count"),
+        cumulative: ecdf.data |> col("cumulative_count"),
+        fraction: ecdf.data |> col("fraction")
+    },
+    normal_qq: {
+        theoretical: normal_qq.data |> col("theoretical"),
+        sample: normal_qq.data |> col("sample"),
+        line: [normal_qq.line_intercept, normal_qq.line_slope]
+    },
+    violin: {
+        bandwidth: violin.bandwidth,
+        x: violin.data |> col("x"),
+        density: violin.data |> col("density"),
+        scaled: violin.data |> col("scaled")
+    },
+    air_box_type7: {
+        summary: [air_type7_low[0], air_type7_q1[0], air_type7_median[0], air_type7_q3[0], air_type7_high[0]],
+        outliers: air_box_type7.outliers |> col("value")
+    },
+    air_box_tukey: {
+        summary: [air_tukey_low[0], air_tukey_q1[0], air_tukey_median[0], air_tukey_q3[0], air_tukey_high[0]],
+        outliers: air_box_tukey.outliers |> col("value")
+    },
+    air_ecdf: {
+        x: air_ecdf.data |> col("x"),
+        counts: air_ecdf.data |> col("count"),
+        cumulative: air_ecdf.data |> col("cumulative_count"),
+        fraction: air_ecdf.data |> col("fraction")
+    },
+    air_normal_qq: {
+        theoretical: air_normal_qq.data |> col("theoretical"),
+        sample: air_normal_qq.data |> col("sample"),
+        line: [air_normal_qq.line_intercept, air_normal_qq.line_slope]
+    },
+    air_violin: {
+        bandwidth: air_violin.bandwidth,
+        x: air_violin.data |> col("x"),
+        density: air_violin.data |> col("density"),
+        scaled: air_violin.data |> col("scaled")
+    },
+    linear_fit_air: {
+        slope: air_linear_fit.slope,
+        intercept: air_linear_fit.intercept,
+        residual_mse: air_linear_fit.residual_mse,
+        x: air_linear_fit.data |> col("x"),
+        fitted: air_linear_fit.data |> col("fitted"),
+        confidence_lower: air_linear_fit.data |> col("confidence_lower"),
+        confidence_upper: air_linear_fit.data |> col("confidence_upper"),
+        prediction_lower: air_linear_fit.data |> col("prediction_lower"),
+        prediction_upper: air_linear_fit.data |> col("prediction_upper")
+    }
+}, "packages/statistics/validation/results/biolang-plot.json")

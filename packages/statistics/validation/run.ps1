@@ -1,8 +1,10 @@
 param(
     [string]$BioLangExe = "",
     [string]$RscriptPath = "",
+    [string]$PythonPath = "",
     [ValidateRange(1, 20)][int]$BenchmarkRepeats = 3,
-    [switch]$RequireR
+    [switch]$RequireR,
+    [switch]$RequirePython
 )
 
 $ErrorActionPreference = "Stop"
@@ -101,6 +103,29 @@ if (-not $rscriptExe) {
     exit 2
 }
 
+$pythonExe = ""
+if ($PythonPath) {
+    if (-not (Test-Path -LiteralPath $PythonPath -PathType Leaf)) {
+        throw "Python was not found at the requested path: $PythonPath"
+    }
+    $pythonExe = (Resolve-Path -LiteralPath $PythonPath).Path
+}
+else {
+    $python = Get-Command python -ErrorAction SilentlyContinue
+    if ($python) { $pythonExe = $python.Source }
+}
+if ($pythonExe) {
+    & $pythonExe -c "import numpy, statsmodels"
+    if ($LASTEXITCODE -ne 0) {
+        if ($RequirePython) { throw "Python is available but NumPy/statsmodels is not installed" }
+        Write-Warning "NumPy or statsmodels is unavailable; the supplemental Python plot oracle will be skipped."
+        $pythonExe = ""
+    }
+}
+elseif ($RequirePython) {
+    throw "Python is unavailable; the supplemental NumPy plot oracle cannot run."
+}
+
 Push-Location $repoRoot
 try {
     $usingRepositoryBuild = -not $BioLangExe
@@ -119,6 +144,7 @@ try {
         $rRuns = @(
             Invoke-ValidationProcess $rscriptExe @("packages/statistics/validation/reference.R")
             Invoke-ValidationProcess $rscriptExe @("packages/statistics/validation/inference_reference.R")
+            Invoke-ValidationProcess $rscriptExe @("packages/statistics/validation/plot_reference.R")
         )
         if (@($rRuns | Where-Object { $_.exit_code -ne 0 }).Count -gt 0) {
             throw "R reference run failed on repetition $repeat"
@@ -132,6 +158,7 @@ try {
         $blRuns = @(
             Invoke-ValidationProcess $BioLangExe @("run", "packages/statistics/validation/biolang_reference.bl")
             Invoke-ValidationProcess $BioLangExe @("run", "packages/statistics/validation/biolang_inference.bl")
+            Invoke-ValidationProcess $BioLangExe @("run", "packages/statistics/validation/biolang_plot_reference.bl")
         )
         if (@($blRuns | Where-Object { $_.exit_code -ne 0 }).Count -gt 0) {
             throw "BioLang reference run failed on repetition $repeat"
@@ -141,6 +168,11 @@ try {
             elapsed_seconds = ($blRuns | Measure-Object -Property elapsed_seconds -Sum).Sum
             peak_working_set_bytes = ($blRuns | Measure-Object -Property peak_working_set_bytes -Maximum).Maximum
         })
+    }
+    $numpyPlotRun = $null
+    if ($pythonExe) {
+        $numpyPlotRun = Invoke-ValidationProcess $pythonExe @("packages/statistics/validation/plot_reference.py")
+        if ($numpyPlotRun.exit_code -ne 0) { throw "NumPy plot reference run failed" }
     }
 
     $expected = Get-Content "packages/statistics/validation/results/r-reference.json" -Raw | ConvertFrom-Json
@@ -155,6 +187,11 @@ try {
     $actualCox = Get-Content "packages/statistics/validation/results/biolang-cox.json" -Raw | ConvertFrom-Json
     $expectedInference = Get-Content "packages/statistics/validation/results/r-inference-reference.json" -Raw | ConvertFrom-Json
     $actualInference = Get-Content "packages/statistics/validation/results/biolang-inference.json" -Raw | ConvertFrom-Json
+    $expectedPlot = Get-Content "packages/statistics/validation/results/r-plot-reference.json" -Raw | ConvertFrom-Json
+    $actualPlot = Get-Content "packages/statistics/validation/results/biolang-plot.json" -Raw | ConvertFrom-Json
+    $expectedNumpyPlot = if ($pythonExe) {
+        Get-Content "packages/statistics/validation/results/numpy-plot-reference.json" -Raw | ConvertFrom-Json
+    } else { $null }
     $checks = @(
         @("descriptive.mean", $expected.descriptive.mean, $actual.descriptive.mean, 1e-12),
         @("descriptive.median", $expected.descriptive.median, $actual.descriptive.median, 1e-12),
@@ -425,6 +462,133 @@ try {
             $checks += ,@("edge.p_adjust_boundary.$method.$index", $referenceBoundary[$index], $observedBoundary[$index], 1e-12)
         }
     }
+    foreach ($fixture in @("edge_right", "edge_left", "edge_right_open", "edge_left_open", "airquality")) {
+        foreach ($field in @("left", "right", "counts", "density")) {
+            $referenceValues = @($expectedPlot.$fixture.$field)
+            $observedValues = @($actualPlot.$fixture.$field)
+            if ($referenceValues.Count -ne $observedValues.Count) {
+                throw "Histogram geometry length mismatch for $fixture.$field"
+            }
+            for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+                $tolerance = if ($field -eq "density") { 1e-12 } else { 0 }
+                $checks += ,@("plot.histogram.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], $tolerance)
+            }
+        }
+    }
+    foreach ($fixture in @("box_type7", "box_tukey", "air_box_type7", "air_box_tukey")) {
+        foreach ($field in @("summary", "outliers")) {
+            $referenceValues = @($expectedPlot.$fixture.$field)
+            $observedValues = @($actualPlot.$fixture.$field)
+            if ($referenceValues.Count -ne $observedValues.Count) {
+                throw "Box geometry length mismatch for $fixture.$field"
+            }
+            for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+                $checks += ,@("plot.boxplot.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], 1e-12)
+            }
+        }
+    }
+    foreach ($fixture in @("ecdf", "air_ecdf")) {
+        foreach ($field in @("x", "counts", "cumulative", "fraction")) {
+            $referenceValues = @($expectedPlot.$fixture.$field)
+            $observedValues = @($actualPlot.$fixture.$field)
+            if ($referenceValues.Count -ne $observedValues.Count) {
+                throw "ECDF geometry length mismatch for $fixture.$field"
+            }
+            for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+                $tolerance = if ($field -in @("counts", "cumulative")) { 0 } else { 1e-12 }
+                $checks += ,@("plot.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], $tolerance)
+            }
+        }
+    }
+    foreach ($fixture in @("normal_qq", "air_normal_qq")) {
+        foreach ($field in @("theoretical", "sample", "line")) {
+            $referenceValues = @($expectedPlot.$fixture.$field)
+            $observedValues = @($actualPlot.$fixture.$field)
+            if ($referenceValues.Count -ne $observedValues.Count) {
+                throw "Normal Q-Q geometry length mismatch for $fixture.$field"
+            }
+            for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+                $checks += ,@("plot.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], 1e-9)
+            }
+        }
+    }
+    foreach ($fixture in @("violin", "air_violin")) {
+        foreach ($field in @("bandwidth", "x", "density", "scaled")) {
+            $referenceValues = @($expectedPlot.$fixture.$field)
+            $observedValues = @($actualPlot.$fixture.$field)
+            if ($referenceValues.Count -ne $observedValues.Count) {
+                throw "Violin geometry length mismatch for $fixture.$field"
+            }
+            for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+                $checks += ,@("plot.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], 1e-10)
+            }
+        }
+    }
+    foreach ($field in @("slope", "intercept", "residual_mse", "x", "fitted", "confidence_lower", "confidence_upper", "prediction_lower", "prediction_upper")) {
+        $referenceValues = @($expectedPlot.linear_fit_air.$field)
+        $observedValues = @($actualPlot.linear_fit_air.$field)
+        if ($referenceValues.Count -ne $observedValues.Count) {
+            throw "Linear-fit geometry length mismatch for $field"
+        }
+        for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+            $checks += ,@("plot.linear_fit_air.$field.$index", $referenceValues[$index], $observedValues[$index], 2e-9)
+        }
+    }
+    if ($expectedNumpyPlot) {
+        foreach ($fixture in @("edge_left", "airquality_left")) {
+            foreach ($field in @("left", "right", "counts", "density")) {
+                $referenceValues = @($expectedNumpyPlot.$fixture.$field)
+                $observedValues = @($actualPlot.$fixture.$field)
+                if ($referenceValues.Count -ne $observedValues.Count) {
+                    throw "NumPy histogram geometry length mismatch for $fixture.$field"
+                }
+                for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+                    $tolerance = if ($field -eq "density") { 1e-12 } else { 0 }
+                    $checks += ,@("plot.numpy_histogram.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], $tolerance)
+                }
+            }
+        }
+        foreach ($fixture in @("box_type7", "air_box_type7")) {
+            foreach ($field in @("summary", "outliers")) {
+                $referenceValues = @($expectedNumpyPlot.$fixture.$field)
+                $observedValues = @($actualPlot.$fixture.$field)
+                if ($referenceValues.Count -ne $observedValues.Count) {
+                    throw "NumPy box geometry length mismatch for $fixture.$field"
+                }
+                for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+                    $checks += ,@("plot.numpy_boxplot.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], 1e-12)
+                }
+            }
+        }
+        foreach ($fixture in @("ecdf", "normal_qq", "violin", "air_ecdf", "air_normal_qq", "air_violin")) {
+            $fields = switch ($fixture) {
+                { $_ -in @("ecdf", "air_ecdf") } { @("x", "counts", "cumulative", "fraction"); break }
+                { $_ -in @("normal_qq", "air_normal_qq") } { @("theoretical", "sample", "line"); break }
+                { $_ -in @("violin", "air_violin") } { @("bandwidth", "x", "density", "scaled"); break }
+            }
+            foreach ($field in $fields) {
+                $referenceValues = @($expectedNumpyPlot.$fixture.$field)
+                $observedValues = @($actualPlot.$fixture.$field)
+                if ($referenceValues.Count -ne $observedValues.Count) {
+                    throw "NumPy $fixture geometry length mismatch for $field"
+                }
+                for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+                    $tolerance = if ($field -in @("counts", "cumulative")) { 0 } else { 1e-9 }
+                    $checks += ,@("plot.numpy_$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], $tolerance)
+                }
+            }
+        }
+        foreach ($field in @("slope", "intercept", "residual_mse", "x", "fitted", "confidence_lower", "confidence_upper", "prediction_lower", "prediction_upper")) {
+            $referenceValues = @($expectedNumpyPlot.linear_fit_air.$field)
+            $observedValues = @($actualPlot.linear_fit_air.$field)
+            if ($referenceValues.Count -ne $observedValues.Count) {
+                throw "statsmodels linear-fit geometry length mismatch for $field"
+            }
+            for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+                $checks += ,@("plot.statsmodels_linear_fit.$field.$index", $referenceValues[$index], $observedValues[$index], 2e-9)
+            }
+        }
+    }
 
     $failures = @()
     $outcomes = foreach ($check in $checks) {
@@ -559,8 +723,10 @@ try {
         generated_utc = [DateTime]::UtcNow.ToString("o")
         r_version = (& $rscriptExe --version 2>&1 | Out-String).Trim()
         biolang_version = (& $BioLangExe --version 2>&1 | Out-String).Trim()
+        numpy_version = if ($pythonExe) { (& $pythonExe -c "import numpy; print(numpy.__version__)" | Out-String).Trim() } else { $null }
+        statsmodels_version = if ($pythonExe) { (& $pythonExe -c "import statsmodels; print(statsmodels.__version__)" | Out-String).Trim() } else { $null }
         measurement = [ordered]@{
-            scope = "Two fresh processes per backend: guided/model/real-data suite plus classic-inference suite"
+            scope = "Three fresh R and BioLang processes; one supplemental NumPy/statsmodels plot-reference process when available"
             memory_metric = "Maximum aggregate working set of same-named backend processes started in the invocation window"
             repetitions = $BenchmarkRepeats
             elapsed_summary = "median of repetitions"
@@ -571,6 +737,7 @@ try {
             biolang_peak_working_set_bytes = [long]$blPeakBytes
             r_repetitions = $rSuites
             biolang_repetitions = $blSuites
+            numpy_plot_reference = $numpyPlotRun
         }
         metrics = $outcomes
         classification_counts = $classificationCounts
@@ -610,7 +777,7 @@ try {
         ("| R | {0:N3} | {1:N1} |" -f $rElapsedSeconds, ($rPeakBytes / 1MB)),
         ("| BioLang | {0:N3} | {1:N1} |" -f $blElapsedSeconds, ($blPeakBytes / 1MB)),
         "",
-        "Each backend is run $BenchmarkRepeats times. Elapsed time is the median full-suite time; memory is the maximum sampled peak. The full suite starts two fresh processes per backend, and R's launcher and worker are included.",
+        "Each backend is run $BenchmarkRepeats times. Elapsed time is the median full-suite time; memory is the maximum sampled peak. The full suite starts three fresh processes per backend, and R's launcher and worker are included. The supplemental NumPy oracle runs once and is excluded from backend timing.",
         "",
         "## Scale-sensitive accuracy",
         "",

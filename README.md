@@ -179,6 +179,11 @@ bl run analysis.bl
 # Interactive REPL
 bl repl
 
+# Plot previews: auto, unicode, ascii, file, open, raw, or none
+# `auto` draws in a terminal and leaves redirected output as SVG
+bl --plot ascii
+bl --plot file --plot-dir results
+
 # Start language server (for editor integration)
 bl lsp
 

@@ -3,8 +3,11 @@
 #
 # Run with: bl run examples/tutorials/visualization.bl
 #
-# Note: Plot functions generate SVG output. Use save_svg() to
-# write plots to disk.
+# Plot functions retain SVG output for publication-quality export. The CLI
+# previews a returned SVG as Unicode/ASCII in a terminal instead of dumping its
+# markup; redirected output still receives the SVG.
+# Use save_svg()/save_plot() to write the original figure, or select a display
+# policy with --plot auto|unicode|ascii|file|open|raw|none.
 
 # ── 1. Scatter & Line Plots ──────────────────────────────────
 

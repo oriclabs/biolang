@@ -1,7 +1,7 @@
 use bl_core::value::{Table, Value};
 use bl_lexer::Lexer;
 use bl_parser::Parser;
-use bl_runtime::builtins::{all_builtin_names, flush_trailing_newline};
+use bl_runtime::builtins::{all_builtin_names, flush_trailing_newline, set_output_sink};
 use bl_runtime::Interpreter;
 use rustyline::completion::{Completer, Pair};
 use rustyline::error::ReadlineError;
@@ -15,11 +15,15 @@ use sha2::{Digest, Sha256};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io::{IsTerminal, Write};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 use std::time::{Duration, Instant, SystemTime};
 
 const PROMPT: &str = "bl> ";
 const CONTINUATION: &str = "+   ";
+const PLOT_MODE_ENV: &str = "BIOLANG_PLOT";
+const PLOT_DIR_ENV: &str = "BIOLANG_PLOT_DIR";
 
 // ANSI color codes
 const RED: &str = "\x1b[31m";
@@ -81,8 +85,95 @@ const REPL_COMMAND_HINTS: &[(&str, &str)] = &[
     (":clear", "Clear the screen"),
     (":cls", "Clear the screen"),
     (":history", "Show command history [n] or search [text]"),
-    (":plot", "ASCII plot of last result [bins]"),
+    (
+        ":plot",
+        "Plot display mode, or histogram of last result [mode|bins]",
+    ),
 ];
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u8)]
+enum PlotDisplayMode {
+    Auto = 0,
+    Unicode = 1,
+    Ascii = 2,
+    File = 3,
+    Open = 4,
+    Raw = 5,
+    None = 6,
+}
+
+/// Cache behind `PlotDisplayMode::current()`.
+///
+/// The mode is consulted once per `print` call, and `std::env::var` allocates a
+/// fresh `String` every time it is asked. `UNSEEDED` means the environment has
+/// not been read yet; after the first call this is a relaxed atomic load on the
+/// output hot path. It also stops `:plot` from writing process-wide environment
+/// state as the only way to publish a mode change.
+const UNSEEDED_PLOT_MODE: u8 = u8::MAX;
+static PLOT_MODE_CACHE: AtomicU8 = AtomicU8::new(UNSEEDED_PLOT_MODE);
+
+impl PlotDisplayMode {
+    fn from_name(name: &str) -> Option<Self> {
+        match name.trim().to_ascii_lowercase().as_str() {
+            "auto" => Some(Self::Auto),
+            "unicode" | "braille" => Some(Self::Unicode),
+            "ascii" => Some(Self::Ascii),
+            "file" => Some(Self::File),
+            "open" => Some(Self::Open),
+            "raw" | "svg" => Some(Self::Raw),
+            "none" | "off" => Some(Self::None),
+            _ => None,
+        }
+    }
+
+    fn from_code(code: u8) -> Option<Self> {
+        match code {
+            0 => Some(Self::Auto),
+            1 => Some(Self::Unicode),
+            2 => Some(Self::Ascii),
+            3 => Some(Self::File),
+            4 => Some(Self::Open),
+            5 => Some(Self::Raw),
+            6 => Some(Self::None),
+            _ => None,
+        }
+    }
+
+    fn current() -> Self {
+        if let Some(mode) = Self::from_code(PLOT_MODE_CACHE.load(Ordering::Relaxed)) {
+            return mode;
+        }
+        let mode = std::env::var(PLOT_MODE_ENV)
+            .ok()
+            .as_deref()
+            .and_then(Self::from_name)
+            .unwrap_or(Self::Auto);
+        PLOT_MODE_CACHE.store(mode as u8, Ordering::Relaxed);
+        mode
+    }
+
+    /// Select the mode for the rest of the session.
+    ///
+    /// The environment variable stays the interface a child process or a
+    /// notebook backend reads, so it is kept in step with the cache.
+    fn make_current(self) {
+        std::env::set_var(PLOT_MODE_ENV, self.name());
+        PLOT_MODE_CACHE.store(self as u8, Ordering::Relaxed);
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Unicode => "unicode",
+            Self::Ascii => "ascii",
+            Self::File => "file",
+            Self::Open => "open",
+            Self::Raw => "raw",
+            Self::None => "none",
+        }
+    }
+}
 
 const KEYWORDS: &[&str] = &[
     "and", "else", "enum", "false", "fn", "for", "if", "import", "in", "into", "let", "match",
@@ -705,6 +796,11 @@ impl Repl {
 
         print_banner();
 
+        // `println(plot(...))` is output rather than a trailing value, so route
+        // it through the same policy as a bare plot expression. Ordinary text
+        // passes through byte-for-byte.
+        set_output_sink(Some(std::sync::Arc::new(write_cli_output)));
+
         // Clean up stale temp files from previous crashed sessions
         bl_runtime::tempfiles::cleanup_stale();
 
@@ -861,15 +957,7 @@ impl Repl {
                             ":history" => {
                                 cmd_history(arg, rl.history());
                             }
-                            ":plot" => {
-                                let bins = arg.parse::<usize>().ok();
-                                let expr = if let Some(b) = bins {
-                                    format!("_ |> hist({b})")
-                                } else {
-                                    "_ |> hist()".to_string()
-                                };
-                                self.eval_and_print(&expr);
-                            }
+                            ":plot" => self.cmd_plot(arg),
                             ":profile" => {
                                 if arg.is_empty() {
                                     eprintln!("{RED}Usage: :profile <expression>{RESET}");
@@ -995,6 +1083,8 @@ impl Repl {
             let _ = rl.save_history(path);
         }
 
+        set_output_sink(None);
+
         // Clean up any temp files from disk-backed operations (kmer_count, etc.)
         bl_runtime::tempfiles::cleanup_all();
 
@@ -1045,7 +1135,7 @@ impl Repl {
                     self.interpreter
                         .env_mut()
                         .define("_".to_string(), value.clone());
-                    print_colored_value(&value);
+                    print_cli_value(&value);
                 }
             }
             Err(e) => {
@@ -1057,7 +1147,7 @@ impl Repl {
                         self.interpreter
                             .env_mut()
                             .define("_".to_string(), val.clone());
-                        print_colored_value(&val);
+                        print_cli_value(&val);
                         return;
                     }
                 }
@@ -1084,7 +1174,9 @@ impl Repl {
             "  {CYAN}:save{RESET}  <file>        Export last result (.csv/.tsv/.fasta/.json/.bl)"
         );
         println!("  {CYAN}:time{RESET}  <expr>        Evaluate and show elapsed time");
-        println!("  {CYAN}:plot{RESET}  [bins]        ASCII histogram of last result");
+        println!(
+            "  {CYAN}:plot{RESET}  [mode|bins]   Plot display: auto, unicode, ascii, file, open, raw, none"
+        );
         println!("  {CYAN}:reset{RESET}               Clear all user-defined state");
         println!("  {CYAN}:plugins{RESET}             List installed plugins");
         println!("  {CYAN}:profile{RESET} <expr>       Profile function calls in expression");
@@ -1113,6 +1205,58 @@ impl Repl {
         println!("  |> to_string()               {DIM}# pipe from last result{RESET}");
         println!("  dna\"ATCG\" |> reverse_complement()  {DIM}# → CGAT{RESET}");
         println!("  :builtins stats              {DIM}# list stats functions{RESET}");
+    }
+
+    fn cmd_plot(&mut self, arg: &str) {
+        if arg.is_empty() {
+            match self.interpreter.env().get("_", None) {
+                Ok(Value::Str(svg)) if is_svg_document(svg) => print_cli_value(
+                    self.interpreter
+                        .env()
+                        .get("_", None)
+                        .expect("last value was just read"),
+                ),
+                Ok(Value::List(_) | Value::Quality(_)) => self.eval_and_print("_ |> hist()"),
+                Ok(value) => eprintln!(
+                    "{YELLOW}:plot can redraw an SVG or histogram a List/Quality; `_` is {}.{RESET}",
+                    value.type_of()
+                ),
+                Err(_) => eprintln!(
+                    "{YELLOW}No previous value to plot. Evaluate a plot or numeric list first.{RESET}"
+                ),
+            }
+            return;
+        }
+        if let Ok(bins) = arg.parse::<usize>() {
+            self.eval_and_print(&format!("_ |> hist({bins})"));
+            return;
+        }
+        if arg.eq_ignore_ascii_case("status") {
+            println!(
+                "{DIM}Plot display: {}; directory: {}{RESET}",
+                PlotDisplayMode::current().name(),
+                std::env::var(PLOT_DIR_ENV).unwrap_or_else(|_| "biolang-plots".to_string())
+            );
+            return;
+        }
+        let Some(mode) = PlotDisplayMode::from_name(arg) else {
+            eprintln!(
+                "{RED}Usage: :plot [auto|unicode|ascii|file|open|raw|none|status|BINS]{RESET}"
+            );
+            return;
+        };
+        mode.make_current();
+        println!("{DIM}Plot display set to {}.{RESET}", mode.name());
+
+        // Redraw the last plot immediately. `:plot 20` keeps the older
+        // histogram-of-last-result behaviour for lists and numeric values.
+        if mode != PlotDisplayMode::None {
+            if let Ok(value) = self.interpreter.env().get("_", None) {
+                if matches!(value, Value::Str(svg) if is_svg_document(svg)) {
+                    print_cli_value(value);
+                }
+            }
+        }
     }
 
     /// :save with format-aware export
@@ -1386,7 +1530,7 @@ impl Repl {
             Ok(value) => {
                 let elapsed = start.elapsed();
                 if !matches!(value, Value::Nil) {
-                    print_colored_value(&value);
+                    print_cli_value(&value);
                 }
                 println!("{DIM}(elapsed: {elapsed:.3?}){RESET}");
             }
@@ -1483,7 +1627,7 @@ impl Repl {
         match result {
             Ok(value) => {
                 if !matches!(value, Value::Nil) {
-                    print_colored_value(&value);
+                    print_cli_value(&value);
                 }
             }
             Err(e) => {
@@ -3333,12 +3477,52 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     // Plot
     (
+        "plot_spec",
+        "plot_spec(table, opts?) -> renderer-neutral biolang.plot.spec/v1 Record",
+        "plot",
+    ),
+    (
+        "render_plot",
+        "render_plot(spec, {format: \"svg|ascii|unicode|html\"}) -> Str",
+        "plot",
+    ),
+    (
+        "boxplot_data",
+        "boxplot_data(list_or_table, {method: \"type7|tukey\"}) -> geometry Record",
+        "plot",
+    ),
+    (
+        "ecdf_data",
+        "ecdf_data(list) -> tie-aware empirical CDF geometry Record",
+        "plot",
+    ),
+    (
+        "normal_qq_data",
+        "normal_qq_data(list) -> R-compatible normal Q-Q geometry Record",
+        "plot",
+    ),
+    (
+        "violin_data",
+        "violin_data(list, opts?) -> Gaussian KDE/violin geometry Record",
+        "plot",
+    ),
+    (
+        "linear_fit_data",
+        "linear_fit_data(x, y, opts?) -> OLS line plus confidence/prediction geometry Record",
+        "plot",
+    ),
+    (
         "plot",
         "plot(table, opts?) → Str (SVG); opts.y may name several columns",
         "plot",
     ),
     ("heatmap", "heatmap(table, opts?) → Str (SVG)", "plot"),
     ("histogram", "histogram(list, opts?) → Str (SVG)", "plot"),
+    (
+        "histogram_data",
+        "histogram_data(list, opts?) → inspectable bin geometry Record",
+        "plot",
+    ),
     ("ecdf_plot", "ecdf_plot(list, opts?) → Str (SVG)", "plot"),
     (
         "density_plot",
@@ -4572,10 +4756,340 @@ const MAX_COL_WIDTH: usize = 40;
 /// Maximum rows shown before truncation.
 const MAX_TABLE_ROWS: usize = 20;
 
-fn print_colored_value(value: &Value) {
+static PLOT_FILE_SEQUENCE: AtomicUsize = AtomicUsize::new(1);
+
+fn is_svg_document(text: &str) -> bool {
+    let trimmed = text.trim();
+    trimmed.starts_with("<svg") && trimmed.ends_with("</svg>")
+}
+
+fn decode_svg_text(text: &str) -> String {
+    text.replace("&quot;", "\"")
+        .replace("&apos;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+}
+
+/// The opening `<svg ...>` tag, without its closing angle bracket.
+///
+/// Quote-aware, so an attribute value containing `>` cannot end the tag early.
+fn root_svg_tag(svg: &str) -> &str {
+    let Some(start) = svg.find("<svg") else {
+        return "";
+    };
+    let rest = &svg[start..];
+    let mut inside_quotes = false;
+    for (index, character) in rest.char_indices() {
+        match character {
+            '"' => inside_quotes = !inside_quotes,
+            '>' if !inside_quotes => return &rest[..index],
+            _ => {}
+        }
+    }
+    rest
+}
+
+/// The plot's accessible name, taken from the root `<svg>` element.
+///
+/// Scoped to the root tag rather than the whole document: searching the whole
+/// document picks up an `aria-label` on an inner group and captions the preview
+/// with one part of the figure instead of the figure.
+fn svg_plot_label(svg: &str) -> String {
+    if let Some((_, after)) = root_svg_tag(svg).split_once("aria-label=\"") {
+        if let Some(label) = after.split('"').next() {
+            if !label.trim().is_empty() {
+                return decode_svg_text(label.trim());
+            }
+        }
+    }
+    if let Some(title_start) = svg.find("<title") {
+        if let Some(content_start) = svg[title_start..].find('>') {
+            let content = &svg[title_start + content_start + 1..];
+            if let Some(content_end) = content.find("</title>") {
+                let title = content[..content_end].trim();
+                if !title.is_empty() {
+                    return decode_svg_text(title);
+                }
+            }
+        }
+    }
+    "BioLang plot".to_string()
+}
+
+fn save_cli_plot(svg: &str) -> std::result::Result<PathBuf, String> {
+    let directory = std::env::var_os(PLOT_DIR_ENV)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("biolang-plots"));
+    std::fs::create_dir_all(&directory).map_err(|error| {
+        format!(
+            "cannot create plot directory '{}': {error}",
+            directory.display()
+        )
+    })?;
+    loop {
+        let sequence = PLOT_FILE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let path = directory.join(format!("plot-{sequence:03}.svg"));
+        let file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path);
+        match file {
+            Ok(mut file) => {
+                file.write_all(svg.as_bytes())
+                    .map_err(|error| format!("cannot write plot '{}': {error}", path.display()))?;
+                return Ok(path);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(format!("cannot create plot '{}': {error}", path.display())),
+        }
+    }
+}
+
+fn open_cli_plot(path: &std::path::Path) -> std::result::Result<(), String> {
+    #[cfg(any(target_os = "windows", target_os = "macos", unix))]
+    {
+        #[cfg(target_os = "windows")]
+        let child = std::process::Command::new("explorer.exe").arg(path).spawn();
+        #[cfg(target_os = "macos")]
+        let child = std::process::Command::new("open").arg(path).spawn();
+        #[cfg(all(unix, not(target_os = "macos")))]
+        let child = std::process::Command::new("xdg-open").arg(path).spawn();
+
+        child
+            .map(|_| ())
+            .map_err(|error| format!("could not open '{}': {error}", path.display()))
+    }
+    // Written as its own block rather than an early `return`, so this arm is
+    // syntactically complete on a target that reaches it instead of falling
+    // through to a `child` binding that was never created there.
+    #[cfg(not(any(target_os = "windows", target_os = "macos", unix)))]
+    {
+        let _ = path;
+        Err("opening plots is not supported on this platform; use :plot file".to_string())
+    }
+}
+
+fn strip_cli_style(text: String, keep_style: bool) -> String {
+    // The SVG itself travels through here, and it never carries escapes, so the
+    // ten passes below are worth skipping rather than running over a document.
+    if keep_style || !text.contains('\x1b') {
+        return text;
+    }
+    [
+        RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, DIM, BOLD, UNDERLINE, RESET,
+    ]
+    .into_iter()
+    .fold(text, |plain, code| plain.replace(code, ""))
+}
+
+/// What the CLI writes for one plot, split by stream.
+///
+/// `stdout` carries the chosen representation of the figure -- terminal art, or
+/// the SVG itself. `stderr` carries status and diagnostics: where a file was
+/// written, why a preview could not be drawn, that display is suppressed.
+/// Keeping them apart is what lets `bl run figure.bl --print-result > out.svg`
+/// go on producing an SVG while an interactive terminal gets a picture.
+#[derive(Debug)]
+struct PlotRender {
+    stdout: String,
+    stderr: String,
+}
+
+fn emit_plot_render(rendered: &PlotRender) {
+    if !rendered.stdout.is_empty() {
+        println!("{}", rendered.stdout);
+    }
+    if !rendered.stderr.is_empty() {
+        eprintln!("{}", rendered.stderr);
+    }
+}
+
+fn render_cli_plot(
+    svg: &str,
+    mode: PlotDisplayMode,
+    stdout_is_terminal: bool,
+    stderr_is_terminal: bool,
+) -> PlotRender {
+    let label = svg_plot_label(svg);
+    // `auto` means "make a terminal readable", not "change what a pipeline
+    // receives". Redirected output therefore keeps the SVG it has always had,
+    // so a script that writes a figure to a file is unaffected by this feature.
+    let effective = match mode {
+        PlotDisplayMode::Auto if stdout_is_terminal => PlotDisplayMode::Unicode,
+        PlotDisplayMode::Auto => PlotDisplayMode::Raw,
+        other => other,
+    };
+    let (out, err) = match effective {
+        PlotDisplayMode::Unicode | PlotDisplayMode::Ascii => {
+            let style = if effective == PlotDisplayMode::Unicode {
+                bl_runtime::plot::TerminalPlotStyle::Braille
+            } else {
+                bl_runtime::plot::TerminalPlotStyle::Ascii
+            };
+            match bl_runtime::plot::render_svg_terminal(
+                svg,
+                term_width().saturating_sub(2).min(96),
+                28,
+                style,
+            ) {
+                Ok(preview) => (
+                    format!(
+                        "{BOLD}{label}{RESET}\n{preview}\n{DIM}SVG kept in `_`; use save_plot(_, \"plot.svg\").{RESET}"
+                    ),
+                    String::new(),
+                ),
+                // A renderer failure must not destroy the figure. The SVG goes
+                // out unchanged and the reason goes to stderr, so the worst
+                // case is the old behaviour plus an explanation.
+                Err(error) => (
+                    svg.to_string(),
+                    format!("{YELLOW}[plot: {label}; terminal preview unavailable: {error}]{RESET}"),
+                ),
+            }
+        }
+        PlotDisplayMode::File | PlotDisplayMode::Open => match save_cli_plot(svg) {
+            Ok(path) => {
+                let opened = if effective == PlotDisplayMode::Open {
+                    open_cli_plot(&path)
+                } else {
+                    Ok(())
+                };
+                let message = match opened {
+                    Ok(()) => {
+                        let action = if effective == PlotDisplayMode::Open {
+                            "Opened"
+                        } else {
+                            "Saved"
+                        };
+                        format!("{GREEN}{action} {label}: {}{RESET}", path.display())
+                    }
+                    Err(error) => format!(
+                        "{YELLOW}Saved plot to {} but could not open it: {error}{RESET}",
+                        path.display()
+                    ),
+                };
+                (String::new(), message)
+            }
+            Err(error) => (
+                String::new(),
+                format!("{RED}Plot export failed: {error}{RESET}"),
+            ),
+        },
+        PlotDisplayMode::Raw => (svg.to_string(), String::new()),
+        // Suppressed, but not silent: a REPL that printed nothing at all for a
+        // plot expression looks broken rather than quiet. The acknowledgement
+        // is on stderr so a redirected stdout still receives nothing.
+        PlotDisplayMode::None => (
+            String::new(),
+            format!("{DIM}[plot: {label}; display suppressed]{RESET}"),
+        ),
+        PlotDisplayMode::Auto => unreachable!("auto mode was resolved above"),
+    };
+    PlotRender {
+        stdout: strip_cli_style(out, stdout_is_terminal),
+        stderr: strip_cli_style(err, stderr_is_terminal),
+    }
+}
+
+/// Print a final CLI or REPL value with terminal-aware plot handling.
+pub fn print_cli_value(value: &Value) {
     match value {
         Value::Table(t) => print_table(t),
+        Value::Str(svg) if is_svg_document(svg) => {
+            emit_plot_render(&render_cli_plot(
+                svg,
+                PlotDisplayMode::current(),
+                std::io::stdout().is_terminal(),
+                std::io::stderr().is_terminal(),
+            ));
+        }
         _ => println!("{}", colorize_value(value)),
+    }
+}
+
+/// Rewrite printed text according to the plot policy.
+///
+/// Returns what belongs on stdout -- borrowed when nothing had to change, which
+/// is every ordinary line a script prints -- and the diagnostics that belong on
+/// stderr.
+fn transform_cli_output<'a>(
+    text: &'a str,
+    mode: PlotDisplayMode,
+    stdout_is_terminal: bool,
+    stderr_is_terminal: bool,
+) -> (Cow<'a, str>, String) {
+    // `raw`, and `auto` with stdout redirected, both hand the SVG through
+    // untouched, so there is nothing to scan for and nothing to copy.
+    let passes_through =
+        mode == PlotDisplayMode::Raw || (mode == PlotDisplayMode::Auto && !stdout_is_terminal);
+    if passes_through || !text.contains("<svg") {
+        return (Cow::Borrowed(text), String::new());
+    }
+
+    let mut output = String::new();
+    let mut diagnostics = String::new();
+    let mut cursor = 0usize;
+    let mut found_plot = false;
+    while let Some(relative_start) = text[cursor..].find("<svg") {
+        let start = cursor + relative_start;
+        let Some(relative_end) = text[start..].find("</svg>") else {
+            break;
+        };
+        let end = start + relative_end + "</svg>".len();
+        let prefix = &text[cursor..start];
+        if !prefix.is_empty() && !prefix.ends_with('\n') && !prefix.ends_with('\r') {
+            output.push_str(
+                prefix.trim_end_matches(|character| character == ' ' || character == '\t'),
+            );
+            output.push('\n');
+        } else {
+            output.push_str(prefix);
+        }
+        let rendered = render_cli_plot(
+            &text[start..end],
+            mode,
+            stdout_is_terminal,
+            stderr_is_terminal,
+        );
+        if !rendered.stdout.is_empty() {
+            output.push_str(&rendered.stdout);
+            output.push('\n');
+        }
+        if !rendered.stderr.is_empty() {
+            diagnostics.push_str(&rendered.stderr);
+            diagnostics.push('\n');
+        }
+        cursor = end;
+        if text[cursor..].starts_with("\r\n") {
+            cursor += 2;
+        } else if text[cursor..].starts_with('\n') {
+            cursor += 1;
+        }
+        found_plot = true;
+    }
+    if !found_plot {
+        return (Cow::Borrowed(text), String::new());
+    }
+    output.push_str(&text[cursor..]);
+    (Cow::Owned(output), diagnostics)
+}
+
+/// Route text printed by a script through the same plot display policy.
+/// Ordinary text is byte-for-byte unchanged and is not copied. Complete SVG
+/// documents are replaced even when a caller writes a label beside one, so
+/// `println("QC", plot(...))` cannot leak markup into a terminal either.
+pub fn write_cli_output(text: &str) {
+    let (transformed, diagnostics) = transform_cli_output(
+        text,
+        PlotDisplayMode::current(),
+        std::io::stdout().is_terminal(),
+        std::io::stderr().is_terminal(),
+    );
+    print!("{transformed}");
+    let _ = std::io::stdout().flush();
+    if !diagnostics.is_empty() {
+        eprint!("{diagnostics}");
     }
 }
 
@@ -4993,6 +5507,121 @@ fn dirs_history_path() -> Option<String> {
 mod tests {
     use super::*;
     use std::collections::HashSet;
+
+    const TEST_SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80" role="img" aria-label="Dose &amp; response"><rect width="120" height="80" fill="white"/><circle cx="60" cy="40" r="20" fill="black"/></svg>"#;
+
+    #[test]
+    fn plot_modes_are_explicit_and_keep_raw_svg_opt_in() {
+        assert_eq!(
+            PlotDisplayMode::from_name("braille"),
+            Some(PlotDisplayMode::Unicode)
+        );
+        assert_eq!(
+            PlotDisplayMode::from_name("off"),
+            Some(PlotDisplayMode::None)
+        );
+        assert_eq!(PlotDisplayMode::from_name("surprise"), None);
+
+        // Every mode must survive the round trip through the atomic cache, or
+        // `:plot` would silently reset the session to `auto`.
+        for name in ["auto", "unicode", "ascii", "file", "open", "raw", "none"] {
+            let mode = PlotDisplayMode::from_name(name).expect("known mode");
+            assert_eq!(PlotDisplayMode::from_code(mode as u8), Some(mode));
+        }
+
+        let raw = render_cli_plot(TEST_SVG, PlotDisplayMode::Raw, true, true);
+        assert_eq!(raw.stdout, TEST_SVG);
+        assert!(raw.stderr.is_empty());
+    }
+
+    #[test]
+    fn redirected_automatic_output_still_delivers_the_original_svg() {
+        // The guarantee that keeps `bl run figure.bl --print-result > out.svg`
+        // working: `auto` prettifies a terminal and changes nothing else.
+        let rendered = render_cli_plot(TEST_SVG, PlotDisplayMode::Auto, false, true);
+        assert_eq!(rendered.stdout, TEST_SVG);
+        assert!(rendered.stderr.is_empty());
+
+        let (piped, diagnostics) =
+            transform_cli_output(TEST_SVG, PlotDisplayMode::Auto, false, true);
+        assert!(matches!(piped, Cow::Borrowed(_)), "redirected auto copies");
+        assert_eq!(piped, TEST_SVG);
+        assert!(diagnostics.is_empty());
+    }
+
+    #[test]
+    fn ascii_plot_preview_is_text_and_retains_the_accessible_label() {
+        let rendered = render_cli_plot(TEST_SVG, PlotDisplayMode::Ascii, true, true);
+        assert!(rendered.stdout.contains("Dose & response"));
+        assert!(rendered.stdout.contains("save_plot"));
+        assert!(!rendered.stdout.contains("<svg"));
+        assert!(rendered.stdout.lines().count() > 3);
+        assert!(rendered.stderr.is_empty());
+
+        let redirected = render_cli_plot(TEST_SVG, PlotDisplayMode::Ascii, false, false);
+        assert!(!redirected.stdout.contains('\x1b'));
+    }
+
+    #[test]
+    fn labelled_print_output_replaces_embedded_svg_and_none_reports_on_stderr() {
+        let labelled = format!("QC figure: {TEST_SVG}\ndone\n");
+        let (output, diagnostics) =
+            transform_cli_output(&labelled, PlotDisplayMode::Ascii, true, true);
+        assert!(output.starts_with("QC figure:\n"));
+        assert!(output.contains("Dose & response"));
+        assert!(output.ends_with("done\n"));
+        assert!(!output.contains("<svg"));
+        assert!(diagnostics.is_empty());
+
+        // Suppressed means nothing on stdout, but the REPL still says so, or a
+        // plot expression looks like it did nothing at all.
+        let (hidden, note) = transform_cli_output(TEST_SVG, PlotDisplayMode::None, true, true);
+        assert!(hidden.is_empty());
+        assert!(note.contains("Dose & response"));
+        assert!(note.contains("suppressed"));
+    }
+
+    #[test]
+    fn ordinary_printed_text_is_passed_through_without_copying() {
+        for mode in [
+            PlotDisplayMode::Auto,
+            PlotDisplayMode::Unicode,
+            PlotDisplayMode::Ascii,
+            PlotDisplayMode::None,
+        ] {
+            let (output, diagnostics) = transform_cli_output("chr1\t100\t200\n", mode, true, true);
+            assert!(
+                matches!(output, Cow::Borrowed(_)),
+                "{mode:?} copied ordinary output"
+            );
+            assert_eq!(output, "chr1\t100\t200\n");
+            assert!(diagnostics.is_empty());
+        }
+    }
+
+    #[test]
+    fn the_plot_label_comes_from_the_root_element_not_an_inner_group() {
+        let nested = r#"<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80" aria-label="Survival by arm"><g aria-label="legend swatch"><rect width="4" height="4"/></g></svg>"#;
+        assert_eq!(svg_plot_label(nested), "Survival by arm");
+
+        // A `>` inside an attribute value must not be mistaken for the end of
+        // the opening tag.
+        let awkward = r#"<svg xmlns="http://www.w3.org/2000/svg" data-note="a > b" aria-label="Fold change"><rect width="4" height="4"/></svg>"#;
+        assert_eq!(svg_plot_label(awkward), "Fold change");
+
+        let untitled = r#"<svg xmlns="http://www.w3.org/2000/svg"><title>Read depth</title></svg>"#;
+        assert_eq!(svg_plot_label(untitled), "Read depth");
+    }
+
+    #[test]
+    fn a_failed_preview_falls_back_to_the_svg_rather_than_dropping_it() {
+        // Nothing to rasterise, so the terminal renderer refuses. Losing the
+        // figure over a preview failure would be worse than not previewing.
+        let empty = r#"<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"></svg>"#;
+        let rendered = render_cli_plot(empty, PlotDisplayMode::Ascii, true, true);
+        assert_eq!(rendered.stdout, empty);
+        assert!(rendered.stderr.contains("preview unavailable"));
+    }
 
     #[test]
     fn console_requests_retain_state_and_report_user_environment() {

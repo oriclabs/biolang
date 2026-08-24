@@ -199,6 +199,72 @@ fn the_raster_option_overrides_the_threshold_either_way() {
 }
 
 #[test]
+fn named_raster_modes_and_custom_threshold_are_explicit() {
+    let forced_on = render(points(10), vec![("raster", Value::Str("on".into()))]);
+    assert!(forced_on.contains("<image"));
+
+    let forced_off = render(points(6_000), vec![("raster", Value::Str("off".into()))]);
+    assert!(!forced_off.contains("<image"));
+
+    let below_custom = render(
+        points(6_000),
+        vec![
+            ("raster", Value::Str("auto".into())),
+            ("raster_threshold", Value::Int(10_000)),
+        ],
+    );
+    assert!(!below_custom.contains("<image"));
+
+    let above_custom = render(
+        points(400),
+        vec![
+            ("raster", Value::Str("auto".into())),
+            ("raster_threshold", Value::Int(100)),
+        ],
+    );
+    assert!(above_custom.contains("<image"));
+}
+
+#[test]
+fn raster_scale_controls_pixel_density_without_moving_the_layer() {
+    let scale_one = render(
+        points(400),
+        vec![
+            ("raster", Value::Bool(true)),
+            ("raster_scale", Value::Int(1)),
+        ],
+    );
+    let scale_two = render(
+        points(400),
+        vec![
+            ("raster", Value::Bool(true)),
+            ("raster_scale", Value::Int(2)),
+        ],
+    );
+    let (x1, y1, width1, height1, pixmap1) = raster(&scale_one);
+    let (x2, y2, width2, height2, pixmap2) = raster(&scale_two);
+    assert_eq!((x1, y1, width1, height1), (x2, y2, width2, height2));
+    assert_eq!(pixmap2.width(), pixmap1.width() * 2);
+    assert_eq!(pixmap2.height(), pixmap1.height() * 2);
+}
+
+#[test]
+fn invalid_raster_options_fail_instead_of_silently_changing_the_plot() {
+    for options in [
+        vec![("raster", Value::Str("sometimes".into()))],
+        vec![("raster_threshold", Value::Int(0))],
+        vec![("raster_scale", Value::Int(8))],
+    ] {
+        let map: HashMap<String, Value> = options
+            .into_iter()
+            .map(|(key, value)| (key.to_string(), value))
+            .collect();
+        let args = vec![points(10), Value::Record(map.into())];
+        assert!(call_bio_plots_builtin("umap_plot", args).is_err());
+    }
+}
+
+#[test]
 fn axes_and_labels_stay_vector() {
     // The whole point of rasterising only the points: text must not become
     // pixels, or the figure stops being publication quality.

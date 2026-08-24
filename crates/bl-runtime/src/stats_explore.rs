@@ -6,7 +6,9 @@
 //! `packages/statistics` provide the friendly API; the builtins here keep the
 //! calculations fast, deterministic, and identical in native and WASM builds.
 
-use crate::plot::{Scale, SvgCanvas};
+use crate::plot::{
+    box_geometry, histogram_geometry, linear_fit_geometry, normal_qq_geometry, Scale, SvgCanvas,
+};
 use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::value::{Table, Value};
 use std::collections::{HashMap, HashSet};
@@ -1925,27 +1927,31 @@ fn distribution_plot(args: Vec<Value>) -> Result<Value> {
     canvas.margin.top = 50.0;
     canvas.margin.bottom = 55.0;
 
-    let mut counts = vec![0usize; bins];
-    for value in &data.values {
-        let position = if span <= f64::EPSILON {
-            bins / 2
-        } else {
-            (((value - summary.min) / span) * bins as f64)
-                .floor()
-                .clamp(0.0, (bins - 1) as f64) as usize
-        };
-        counts[position] += 1;
-    }
-    let max_count = counts.iter().copied().max().unwrap_or(1).max(1);
+    let histogram = histogram_geometry(
+        &[
+            Value::List(
+                data.values
+                    .iter()
+                    .copied()
+                    .map(Value::Float)
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+            Value::Record(HashMap::from([("bins".into(), Value::Int(bins as i64))]).into()),
+        ],
+        "stats_distribution_plot",
+    )?;
+    let max_count = histogram.counts.iter().copied().max().unwrap_or(1).max(1);
     let hist_top = 65.0;
     let hist_bottom = height * 0.49;
-    let bin_width = (width - 90.0) / bins as f64;
-    for (index, count) in counts.iter().enumerate() {
+    for (index, count) in histogram.counts.iter().enumerate() {
         let bar_height = (*count as f64 / max_count as f64) * (hist_bottom - hist_top);
+        let left = x_scale.map(histogram.edges[index]);
+        let right = x_scale.map(histogram.edges[index + 1]);
         canvas.add_rect(
-            60.0 + index as f64 * bin_width,
+            left,
             hist_bottom - bar_height,
-            (bin_width - 1.0).max(1.0),
+            (right - left - 1.0).max(1.0),
             bar_height,
             "#bfdbfe",
         );
@@ -4130,16 +4136,9 @@ fn ascii_scatter(
 }
 
 fn normal_qq_values(data: &NumericData) -> (Vec<f64>, Vec<f64>) {
-    let mut observed = data.values.clone();
-    observed.sort_by(f64::total_cmp);
-    let expected = (0..observed.len())
-        .map(|index| {
-            bl_core::bio_core::stats_ops::normal_quantile(
-                (index as f64 + 0.5) / observed.len() as f64,
-            )
-        })
-        .collect();
-    (expected, observed)
+    normal_qq_geometry(&data.values)
+        .map(|geometry| (geometry.theoretical, geometry.sample))
+        .unwrap_or_default()
 }
 
 fn normal_qq_plot(args: Vec<Value>) -> Result<Value> {
@@ -4152,11 +4151,13 @@ fn normal_qq_plot(args: Vec<Value>) -> Result<Value> {
         ));
     }
     let opts = options(&args, 1, "stats_normal_qq_plot")?;
-    let (expected, observed) = normal_qq_values(&data);
+    let geometry = normal_qq_geometry(&data.values)?;
+    let expected = &geometry.theoretical;
+    let observed = &geometry.sample;
     if plot_format(&opts) == "ascii" {
         return Ok(text(ascii_scatter(
-            &expected,
-            &observed,
+            expected,
+            observed,
             opts.get("width")
                 .and_then(Value::as_int)
                 .unwrap_or(56)
@@ -4194,7 +4195,6 @@ fn normal_qq_plot(args: Vec<Value>) -> Result<Value> {
         domain: y_domain,
         range: (height - 60.0, 45.0),
     };
-    let summary = summarize(&data);
     let mut canvas = SvgCanvas::new(width, height);
     canvas.margin.left = 65.0;
     canvas.margin.right = 30.0;
@@ -4202,14 +4202,14 @@ fn normal_qq_plot(args: Vec<Value>) -> Result<Value> {
     canvas.margin.bottom = 60.0;
     canvas.add_line(
         x_scale.map(x_domain.0),
-        y_scale.map(summary.mean + summary.sd.unwrap_or(0.0) * x_domain.0),
+        y_scale.map(geometry.line_intercept + geometry.line_slope * x_domain.0),
         x_scale.map(x_domain.1),
-        y_scale.map(summary.mean + summary.sd.unwrap_or(0.0) * x_domain.1),
+        y_scale.map(geometry.line_intercept + geometry.line_slope * x_domain.1),
         "#94a3b8",
         2.0,
     );
     let stride = expected.len().div_ceil(5_000).max(1);
-    for (x, y) in expected.iter().zip(&observed).step_by(stride) {
+    for (x, y) in expected.iter().zip(observed.iter()).step_by(stride) {
         canvas.add_circle(x_scale.map(*x), y_scale.map(*y), 3.0, "#2563eb");
     }
     canvas.draw_x_axis(&x_scale, "theoretical normal quantile");
@@ -4228,6 +4228,49 @@ fn normal_qq_plot(args: Vec<Value>) -> Result<Value> {
 fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
     let (xs, ys, excluded) = complete_pairs(&args[0], &args[1], "stats_relationship_plot")?;
     let opts = options(&args, 2, "stats_relationship_plot")?;
+    let interval = opts
+        .get("interval")
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    if !matches!(interval, "none" | "confidence" | "prediction") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "stats_relationship_plot() interval must be none, confidence, or prediction",
+            None,
+        ));
+    }
+    let confidence = opts
+        .get("confidence")
+        .and_then(Value::as_float)
+        .unwrap_or(0.95);
+    let observed_min_x = xs.iter().copied().min_by(f64::total_cmp).unwrap();
+    let observed_max_x = xs.iter().copied().max_by(f64::total_cmp).unwrap();
+    let fit_at = (0..=100)
+        .map(|index| observed_min_x + (observed_max_x - observed_min_x) * index as f64 / 100.0)
+        .collect::<Vec<_>>();
+    if interval != "none" && xs.len() < 3 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "stats_relationship_plot() interval bands require at least three complete pairs",
+            None,
+        ));
+    }
+    let fit = if xs.len() >= 3 {
+        Some(linear_fit_geometry(&xs, &ys, &fit_at, confidence)?)
+    } else {
+        None
+    };
+    let (_, fallback_slope, fallback_intercept) = pearson(&xs, &ys).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            "stats_relationship_plot() requires variation in both x and y",
+            None,
+        )
+    })?;
+    let slope = fit.as_ref().map_or(fallback_slope, |value| value.slope);
+    let intercept = fit
+        .as_ref()
+        .map_or(fallback_intercept, |value| value.intercept);
     if plot_format(&opts) == "ascii" {
         let mut chart = ascii_scatter(
             &xs,
@@ -4261,14 +4304,21 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         .and_then(Value::as_float)
         .unwrap_or(500.0)
         .max(360.0);
-    let x_domain = padded_domain(
-        xs.iter().copied().min_by(f64::total_cmp).unwrap(),
-        xs.iter().copied().max_by(f64::total_cmp).unwrap(),
-    );
-    let y_domain = padded_domain(
-        ys.iter().copied().min_by(f64::total_cmp).unwrap(),
-        ys.iter().copied().max_by(f64::total_cmp).unwrap(),
-    );
+    let x_domain = padded_domain(observed_min_x, observed_max_x);
+    let mut observed_min_y = ys.iter().copied().min_by(f64::total_cmp).unwrap();
+    let mut observed_max_y = ys.iter().copied().max_by(f64::total_cmp).unwrap();
+    if interval != "none" {
+        for point in &fit.as_ref().expect("interval fit was checked").points {
+            let (lower, upper) = if interval == "prediction" {
+                (point.prediction_lower, point.prediction_upper)
+            } else {
+                (point.confidence_lower, point.confidence_upper)
+            };
+            observed_min_y = observed_min_y.min(lower);
+            observed_max_y = observed_max_y.max(upper);
+        }
+    }
+    let y_domain = padded_domain(observed_min_y, observed_max_y);
     let x_scale = Scale {
         domain: x_domain,
         range: (65.0, width - 30.0),
@@ -4282,20 +4332,45 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
     canvas.margin.right = 30.0;
     canvas.margin.top = 45.0;
     canvas.margin.bottom = 60.0;
+    if interval != "none" {
+        let fit = fit.as_ref().expect("interval fit was checked");
+        let mut band = fit
+            .points
+            .iter()
+            .map(|point| {
+                let upper = if interval == "prediction" {
+                    point.prediction_upper
+                } else {
+                    point.confidence_upper
+                };
+                format!("{:.1},{:.1}", x_scale.map(point.x), y_scale.map(upper))
+            })
+            .collect::<Vec<_>>();
+        band.extend(fit.points.iter().rev().map(|point| {
+            let lower = if interval == "prediction" {
+                point.prediction_lower
+            } else {
+                point.confidence_lower
+            };
+            format!("{:.1},{:.1}", x_scale.map(point.x), y_scale.map(lower))
+        }));
+        canvas.elements.push(format!(
+            r##"<polygon points="{}" fill="#bfdbfe" fill-opacity="0.55" stroke="none" />"##,
+            band.join(" ")
+        ));
+    }
     let stride = xs.len().div_ceil(10_000).max(1);
     for (x, y) in xs.iter().zip(&ys).step_by(stride) {
         canvas.add_circle(x_scale.map(*x), y_scale.map(*y), 3.0, "#2563eb");
     }
-    if let Some((_, slope, intercept)) = pearson(&xs, &ys) {
-        canvas.add_line(
-            x_scale.map(x_domain.0),
-            y_scale.map(intercept + slope * x_domain.0),
-            x_scale.map(x_domain.1),
-            y_scale.map(intercept + slope * x_domain.1),
-            "#dc2626",
-            2.0,
-        );
-    }
+    canvas.add_line(
+        x_scale.map(observed_min_x),
+        y_scale.map(intercept + slope * observed_min_x),
+        x_scale.map(observed_max_x),
+        y_scale.map(intercept + slope * observed_max_x),
+        "#dc2626",
+        2.0,
+    );
     canvas.draw_x_axis(
         &x_scale,
         opts.get("x_label").and_then(Value::as_str).unwrap_or("x"),
@@ -4313,9 +4388,14 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         68.0,
         height - 38.0,
         &format!(
-            "{} complete pairs; {} excluded. Red line: least-squares fit.",
+            "{} complete pairs; {} excluded. Red line: least-squares fit{}.",
             xs.len(),
-            excluded
+            excluded,
+            if interval == "none" {
+                "".to_string()
+            } else {
+                format!("; blue: {:.0}% {interval} band", confidence * 100.0)
+            }
         ),
         "start",
         10.0,
@@ -4401,32 +4481,30 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
             fmt_number(maximum)
         );
         for (name, values) in &groups {
-            let data = NumericData {
-                values: values.clone(),
-                original_indices: (0..values.len()).collect(),
-                total: values.len(),
-                missing: 0,
-                non_finite: 0,
-            };
-            let summary = summarize(&data);
+            let geometry = box_geometry(name, values, "type7", 1.5);
             let mut line = vec![' '; width];
             for cell in line
                 .iter_mut()
-                .take(position(summary.q3) + 1)
-                .skip(position(summary.q1))
+                .take(position(geometry.q3) + 1)
+                .skip(position(geometry.q1))
             {
                 *cell = '=';
             }
-            line[position(summary.max)] = '|';
-            line[position(summary.min)] = '|';
-            line[position(summary.q1)] = '[';
-            line[position(summary.q3)] = ']';
-            line[position(summary.median)] = 'M';
+            line[position(geometry.whisker_high)] = '|';
+            line[position(geometry.whisker_low)] = '|';
+            line[position(geometry.q1)] = '[';
+            line[position(geometry.q3)] = ']';
+            line[position(geometry.median)] = 'M';
+            for (_, value) in &geometry.outliers {
+                line[position(*value)] = 'o';
+            }
             output.push_str(&format!("{:>name_width$} |", name));
             output.extend(line);
             output.push_str(&format!("| n={}\n", values.len()));
         }
-        output.push_str("M=median, [ ]=IQR, outer |=range; all finite observations contribute.");
+        output.push_str(
+            "M=median, [ ]=IQR, outer |=1.5 IQR whiskers, o=review flag; type-7 quartiles.",
+        );
         return Ok(text(output));
     }
     let width = opts
@@ -4452,28 +4530,29 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
     let step = canvas.plot_width() / groups.len() as f64;
     for (group_index, (name, values)) in groups.iter().enumerate() {
         let x = canvas.margin.left + step * (group_index as f64 + 0.5);
-        let data = NumericData {
-            values: values.clone(),
-            original_indices: (0..values.len()).collect(),
-            total: values.len(),
-            missing: 0,
-            non_finite: 0,
-        };
-        let summary = summarize(&data);
+        let geometry = box_geometry(name, values, "type7", 1.5);
+        canvas.add_line(
+            x,
+            y_scale.map(geometry.whisker_low),
+            x,
+            y_scale.map(geometry.whisker_high),
+            "#1e3a8a",
+            1.5,
+        );
         canvas.add_rect(
             x - step * 0.22,
-            y_scale.map(summary.q3),
+            y_scale.map(geometry.q3),
             step * 0.44,
-            (y_scale.map(summary.q1) - y_scale.map(summary.q3))
+            (y_scale.map(geometry.q1) - y_scale.map(geometry.q3))
                 .abs()
                 .max(1.0),
             "#bfdbfe",
         );
         canvas.add_line(
             x - step * 0.22,
-            y_scale.map(summary.median),
+            y_scale.map(geometry.median),
             x + step * 0.22,
-            y_scale.map(summary.median),
+            y_scale.map(geometry.median),
             "#1e3a8a",
             2.0,
         );

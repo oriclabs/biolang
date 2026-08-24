@@ -178,6 +178,53 @@ bl> :type {chrom: "chr1", start: 100, end: 200}
 Record{chrom: Str, start: Int, end: Int}
 ```
 
+#### `:plot` -- Choose how plots appear
+
+A plot expression keeps its full SVG value, but the REPL previews it as a
+compact Unicode chart instead of printing the SVG markup:
+
+```biolang
+bl> histogram([2, 3, 3, 4, 7, 8, 8, 9])
+Histogram
+  ⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀
+  ⠀⢀⣀⣀⣸⣿⣀⣀⡀⠀
+SVG kept in `_`; use save_plot(_, "plot.svg").
+```
+
+Use `:plot` with a mode to change later plots and redraw the last plot:
+
+```text
+:plot auto       # Unicode in a terminal; original SVG when output is redirected
+:plot unicode    # high-resolution Braille preview
+:plot ascii      # portable ASCII preview
+:plot file       # write biolang-plots/plot-NNN.svg
+:plot open       # write the SVG and open it with the platform viewer
+:plot raw        # print the original SVG markup explicitly
+:plot none       # suppress the plot (a note goes to standard error)
+:plot status     # show the current mode and output directory
+```
+
+With no argument, `:plot` redraws the last SVG plot. For compatibility,
+`:plot 20` draws a 20-bin ASCII histogram when the last result is a numeric
+list or quality vector. The same display policy can be selected before starting
+BioLang:
+
+```bash
+bl --plot ascii
+bl --plot file --plot-dir results
+bl run analysis.bl --print-result --plot unicode
+```
+
+When standard output is redirected, `auto` writes the original SVG, exactly as
+earlier versions did, so `bl run figure.bl --print-result > figure.svg` keeps
+working unchanged. Terminal graphics appear only when standard output is a
+terminal, which is the only place they can be read.
+
+Status lines -- where `:plot file` wrote a figure, why a preview could not be
+drawn, that `:plot none` suppressed one -- go to standard error, so they never
+mix into redirected output. Choosing `unicode` or `ascii` explicitly does draw
+into a redirected stream, on the grounds that you asked for it.
+
 #### `:plugins` -- List available plugins
 
 ```

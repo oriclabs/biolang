@@ -467,6 +467,20 @@ fn diagnostic_visuals_have_ascii_and_svg_paths() {
     )
     .unwrap();
     assert!(matches!(relationship, Value::Str(ref chart) if chart.contains("complete pairs")));
+    let relationship_band = call_stats_builtin(
+        "stats_relationship_plot",
+        vec![
+            numbers(&[1.0, 2.0, 3.0, 4.0]),
+            numbers(&[2.1, 3.9, 6.2, 7.8]),
+            Value::Record(
+                HashMap::from([("interval".into(), Value::Str("prediction".into()))]).into(),
+            ),
+        ],
+    )
+    .unwrap();
+    assert!(
+        matches!(relationship_band, Value::Str(ref svg) if svg.contains("<polygon") && svg.contains("prediction band"))
+    );
     let categories = call_stats_builtin(
         "stats_categorical_plot",
         vec![strings(&["a", "b", "a"]), ascii_options],

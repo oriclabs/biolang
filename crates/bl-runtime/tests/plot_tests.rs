@@ -122,6 +122,255 @@ fn test_plot_unknown_type_error() {
     assert!(result.is_err());
 }
 
+fn record_field<'a>(value: &'a Value, field: &str) -> &'a Value {
+    match value {
+        Value::Record(record) => record
+            .get(field)
+            .unwrap_or_else(|| panic!("missing Record field {field}")),
+        other => panic!("expected Record, got {other:?}"),
+    }
+}
+
+#[test]
+fn plot_spec_is_versioned_inspectable_and_stable() {
+    let table = make_table(
+        vec!["time", "mean", "low", "high"],
+        vec![
+            vec![
+                Value::Float(1.0),
+                Value::Float(4.0),
+                Value::Float(3.0),
+                Value::Float(5.0),
+            ],
+            vec![
+                Value::Float(2.0),
+                Value::Float(6.0),
+                Value::Float(5.0),
+                Value::Float(7.0),
+            ],
+            vec![
+                Value::Float(f64::NAN),
+                Value::Float(8.0),
+                Value::Float(7.0),
+                Value::Float(9.0),
+            ],
+        ],
+    );
+    let opts = Value::Record(
+        HashMap::from([
+            ("type".into(), Value::Str("confidence".into())),
+            ("x".into(), Value::Str("time".into())),
+            ("y".into(), Value::Str("mean".into())),
+            ("ymin".into(), Value::Str("low".into())),
+            ("ymax".into(), Value::Str("high".into())),
+            ("title".into(), Value::Str("Estimate".into())),
+        ])
+        .into(),
+    );
+    let spec = call_plot_builtin("plot_spec", vec![table, opts]).unwrap();
+    assert!(
+        matches!(record_field(&spec, "schema"), Value::Str(value) if value == "biolang.plot.spec/v1")
+    );
+    assert!(matches!(record_field(&spec, "kind"), Value::Str(value) if value == "confidence"));
+    assert!(matches!(
+        record_field(&spec, "dropped_non_finite"),
+        Value::Int(1)
+    ));
+    let data = match record_field(&spec, "data") {
+        Value::Table(table) => table,
+        other => panic!("expected data Table, got {other:?}"),
+    };
+    assert_eq!(data.num_rows(), 2);
+    assert_eq!(
+        data.columns,
+        vec!["source_row", "series", "colour", "x", "y", "lower", "upper"]
+    );
+    assert!(matches!(data.rows[1][0], Value::Int(1)));
+}
+
+#[test]
+fn plot_and_render_plot_use_the_same_specification() {
+    let table = make_table(
+        vec!["x", "y"],
+        vec![
+            vec![Value::Float(1.0), Value::Float(2.0)],
+            vec![Value::Float(2.0), Value::Float(3.0)],
+            vec![Value::Float(3.0), Value::Float(5.0)],
+        ],
+    );
+    let options = Value::Record(
+        HashMap::from([
+            ("type".into(), Value::Str("line".into())),
+            ("title".into(), Value::Str("Shared".into())),
+        ])
+        .into(),
+    );
+    let direct = call_plot_builtin("plot", vec![table.clone(), options.clone()]).unwrap();
+    let spec = call_plot_builtin("plot_spec", vec![table, options]).unwrap();
+    let rendered = call_plot_builtin("render_plot", vec![spec.clone()]).unwrap();
+    assert_eq!(direct, rendered);
+
+    let ascii_options =
+        Value::Record(HashMap::from([("format".into(), Value::Str("ascii".into()))]).into());
+    let ascii = call_plot_builtin("render_plot", vec![spec.clone(), ascii_options]).unwrap();
+    assert!(
+        matches!(ascii, Value::Str(text) if !text.contains("<svg") && text.lines().count() > 5)
+    );
+
+    let html_options =
+        Value::Record(HashMap::from([("format".into(), Value::Str("html".into()))]).into());
+    let html = call_plot_builtin("render_plot", vec![spec, html_options]).unwrap();
+    assert!(
+        matches!(html, Value::Str(text) if text.contains("<canvas") && text.contains("Use canvas") && text.contains("<svg"))
+    );
+}
+
+#[test]
+fn error_bars_and_confidence_bands_render_from_explicit_bounds() {
+    let table = make_table(
+        vec!["x", "estimate", "lower", "upper"],
+        vec![
+            vec![
+                Value::Float(1.0),
+                Value::Float(2.0),
+                Value::Float(1.5),
+                Value::Float(2.5),
+            ],
+            vec![
+                Value::Float(2.0),
+                Value::Float(3.0),
+                Value::Float(2.1),
+                Value::Float(3.9),
+            ],
+        ],
+    );
+    for (kind, expected) in [("errorbar", "<circle"), ("confidence", "<polygon")] {
+        let opts = Value::Record(
+            HashMap::from([
+                ("type".into(), Value::Str(kind.into())),
+                ("y".into(), Value::Str("estimate".into())),
+                ("ymin".into(), Value::Str("lower".into())),
+                ("ymax".into(), Value::Str("upper".into())),
+            ])
+            .into(),
+        );
+        let value = call_plot_builtin("plot", vec![table.clone(), opts]).unwrap();
+        assert!(matches!(value, Value::Str(svg) if svg.contains(expected)));
+    }
+}
+
+#[test]
+fn statistical_geometry_exposes_box_ecdf_qq_and_violin_values() {
+    let values = Value::List(
+        vec![1.0, 2.0, 2.0, 3.0, 4.0, 100.0]
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    );
+
+    let boxes = call_plot_builtin("boxplot_data", vec![values.clone()]).unwrap();
+    let groups = match record_field(&boxes, "groups") {
+        Value::Table(table) => table,
+        other => panic!("expected box groups Table, got {other:?}"),
+    };
+    assert_eq!(groups.num_rows(), 1);
+    let outlier_count = groups.col_index("outlier_count").unwrap();
+    assert!(matches!(groups.rows[0][outlier_count], Value::Int(1)));
+
+    let ecdf = call_plot_builtin("ecdf_data", vec![values.clone()]).unwrap();
+    let ecdf_table = match record_field(&ecdf, "data") {
+        Value::Table(table) => table,
+        other => panic!("expected ECDF data Table, got {other:?}"),
+    };
+    assert_eq!(ecdf_table.num_rows(), 5, "ties share one ECDF jump");
+    let count = ecdf_table.col_index("count").unwrap();
+    assert!(matches!(ecdf_table.rows[1][count], Value::Int(2)));
+
+    let qq = call_plot_builtin("normal_qq_data", vec![values.clone()]).unwrap();
+    assert!(
+        matches!(record_field(&qq, "plotting_position"), Value::Str(value) if value == "R_ppoints")
+    );
+    assert!(matches!(record_field(&qq, "line_slope"), Value::Float(value) if value.is_finite()));
+
+    let violin = call_plot_builtin("violin_data", vec![values]).unwrap();
+    let density = match record_field(&violin, "data") {
+        Value::Table(table) => table,
+        other => panic!("expected violin density Table, got {other:?}"),
+    };
+    assert_eq!(density.num_rows(), 256);
+    let scaled = density.col_index("scaled").unwrap();
+    let peak = density
+        .rows
+        .iter()
+        .filter_map(|row| row[scaled].as_float())
+        .fold(0.0, f64::max);
+    assert!((peak - 1.0).abs() < 1e-12);
+}
+
+#[test]
+fn linear_fit_geometry_distinguishes_confidence_and_prediction_intervals() {
+    let x = Value::List(
+        (1..=6)
+            .map(|value| Value::Float(value as f64))
+            .collect::<Vec<_>>()
+            .into(),
+    );
+    let y = Value::List(
+        [2.1, 3.9, 6.2, 7.8, 10.4, 11.7]
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    );
+    let result = call_plot_builtin("linear_fit_data", vec![x, y]).unwrap();
+    assert!(matches!(record_field(&result, "n"), Value::Int(6)));
+    assert!(matches!(
+        record_field(&result, "degrees_of_freedom"),
+        Value::Int(4)
+    ));
+    let table = match record_field(&result, "data") {
+        Value::Table(table) => table,
+        other => panic!("expected linear fit data Table, got {other:?}"),
+    };
+    let confidence_lower = table.col_index("confidence_lower").unwrap();
+    let confidence_upper = table.col_index("confidence_upper").unwrap();
+    let prediction_lower = table.col_index("prediction_lower").unwrap();
+    let prediction_upper = table.col_index("prediction_upper").unwrap();
+    for row in &table.rows {
+        let confidence_width =
+            row[confidence_upper].as_float().unwrap() - row[confidence_lower].as_float().unwrap();
+        let prediction_width =
+            row[prediction_upper].as_float().unwrap() - row[prediction_lower].as_float().unwrap();
+        assert!(prediction_width > confidence_width);
+    }
+}
+
+#[test]
+fn interval_plot_rejects_missing_or_reversed_bounds() {
+    let table = make_table(
+        vec!["x", "y", "low", "high"],
+        vec![vec![
+            Value::Float(1.0),
+            Value::Float(2.0),
+            Value::Float(3.0),
+            Value::Float(1.0),
+        ]],
+    );
+    let missing =
+        Value::Record(HashMap::from([("type".into(), Value::Str("errorbar".into()))]).into());
+    assert!(call_plot_builtin("plot_spec", vec![table.clone(), missing]).is_err());
+    let reversed = Value::Record(
+        HashMap::from([
+            ("type".into(), Value::Str("errorbar".into())),
+            ("ymin".into(), Value::Str("low".into())),
+            ("ymax".into(), Value::Str("high".into())),
+        ])
+        .into(),
+    );
+    assert!(call_plot_builtin("plot_spec", vec![table, reversed]).is_err());
+}
+
 // ── Histogram tests ─────────────────────────────────────────────
 
 #[test]
@@ -188,6 +437,201 @@ fn test_histogram_empty_list_error() {
 fn test_histogram_wrong_type() {
     let result = call_plot_builtin("histogram", vec![Value::Int(42)]);
     assert!(result.is_err());
+}
+
+fn histogram_counts(result: Value) -> Vec<i64> {
+    let record = match result {
+        Value::Record(record) => record,
+        other => panic!("expected histogram geometry Record, got {other:?}"),
+    };
+    assert!(matches!(
+        record.get("schema"),
+        Some(Value::Str(schema)) if schema == "biolang.plot.geometry/v1"
+    ));
+    let bins = match record.get("bins") {
+        Some(Value::Table(table)) => table,
+        other => panic!("expected bins Table, got {other:?}"),
+    };
+    assert_eq!(
+        bins.columns,
+        vec![
+            "bin",
+            "left",
+            "right",
+            "left_closed",
+            "right_closed",
+            "count",
+            "density",
+            "cumulative_count",
+            "cumulative_fraction"
+        ]
+    );
+    let count_column = bins.col_index("count").unwrap();
+    bins.rows
+        .iter()
+        .map(|row| match row[count_column] {
+            Value::Int(value) => value,
+            ref other => panic!("expected integer count, got {other:?}"),
+        })
+        .collect()
+}
+
+#[test]
+fn test_histogram_data_matches_right_closed_endpoint_rules() {
+    let values = Value::List(
+        vec![0.0, 1.0, 1.5, 2.0, 3.0]
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    );
+    let breaks = Value::List(
+        vec![0.0, 1.0, 2.0, 3.0]
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    );
+    let opts = Value::Record(
+        HashMap::from([
+            ("breaks".into(), breaks),
+            ("right".into(), Value::Bool(true)),
+            ("include_lowest".into(), Value::Bool(true)),
+        ])
+        .into(),
+    );
+    let result = call_plot_builtin("histogram_data", vec![values, opts]).unwrap();
+    assert_eq!(histogram_counts(result), vec![2, 2, 1]);
+}
+
+#[test]
+fn test_histogram_data_matches_left_closed_endpoint_rules() {
+    let values = Value::List(
+        vec![0.0, 1.0, 1.5, 2.0, 3.0]
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    );
+    let opts = Value::Record(
+        HashMap::from([
+            (
+                "breaks".into(),
+                Value::List(
+                    vec![0.0, 1.0, 2.0, 3.0]
+                        .into_iter()
+                        .map(Value::Float)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ),
+            ("closed".into(), Value::Str("left".into())),
+        ])
+        .into(),
+    );
+    let result = call_plot_builtin("histogram_data", vec![values, opts]).unwrap();
+    assert_eq!(histogram_counts(result), vec![1, 2, 2]);
+}
+
+#[test]
+fn test_histogram_data_include_lowest_controls_the_outer_endpoint() {
+    let values = Value::List(
+        vec![0.0, 1.0, 1.5, 2.0, 3.0]
+            .into_iter()
+            .map(Value::Float)
+            .collect::<Vec<_>>()
+            .into(),
+    );
+    let breaks = || {
+        Value::List(
+            vec![0.0, 1.0, 2.0, 3.0]
+                .into_iter()
+                .map(Value::Float)
+                .collect::<Vec<_>>()
+                .into(),
+        )
+    };
+    let right = call_plot_builtin(
+        "histogram_data",
+        vec![
+            values.clone(),
+            Value::Record(
+                HashMap::from([
+                    ("breaks".into(), breaks()),
+                    ("right".into(), Value::Bool(true)),
+                    ("include_lowest".into(), Value::Bool(false)),
+                ])
+                .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    let left = call_plot_builtin(
+        "histogram_data",
+        vec![
+            values,
+            Value::Record(
+                HashMap::from([
+                    ("breaks".into(), breaks()),
+                    ("closed".into(), Value::Str("left".into())),
+                    ("include_lowest".into(), Value::Bool(false)),
+                ])
+                .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    assert_eq!(histogram_counts(right), vec![1, 2, 1]);
+    assert_eq!(histogram_counts(left), vec![1, 2, 1]);
+}
+
+#[test]
+fn test_histogram_data_reports_dropped_values() {
+    let values = Value::List(
+        vec![
+            Value::Float(-1.0),
+            Value::Float(0.5),
+            Value::Str("bad".into()),
+            Value::Float(f64::NAN),
+            Value::Nil,
+            Value::Float(4.0),
+        ]
+        .into(),
+    );
+    let opts = Value::Record(
+        HashMap::from([(
+            "breaks".into(),
+            Value::List(vec![Value::Float(0.0), Value::Float(1.0), Value::Float(2.0)].into()),
+        )])
+        .into(),
+    );
+    let result = call_plot_builtin("histogram_data", vec![values, opts]).unwrap();
+    let record = match result {
+        Value::Record(record) => record,
+        _ => unreachable!(),
+    };
+    assert!(matches!(record.get("n_total"), Some(Value::Int(6))));
+    assert!(matches!(record.get("n_finite"), Some(Value::Int(3))));
+    assert!(matches!(record.get("n_included"), Some(Value::Int(1))));
+    assert!(matches!(record.get("dropped_invalid"), Some(Value::Int(2))));
+    assert!(matches!(
+        record.get("dropped_non_finite"),
+        Some(Value::Int(1))
+    ));
+    assert!(matches!(record.get("dropped_outside"), Some(Value::Int(2))));
+}
+
+#[test]
+fn test_histogram_data_rejects_invalid_breaks_and_bin_counts() {
+    let values = Value::List(vec![Value::Int(1), Value::Int(2)].into());
+    for breaks in [
+        Value::List(vec![Value::Int(0)].into()),
+        Value::List(vec![Value::Int(0), Value::Int(2), Value::Int(1)].into()),
+        Value::Int(0),
+    ] {
+        let opts = Value::Record(HashMap::from([("breaks".into(), breaks)]).into());
+        assert!(call_plot_builtin("histogram_data", vec![values.clone(), opts]).is_err());
+    }
 }
 
 // ── Heatmap tests ───────────────────────────────────────────────

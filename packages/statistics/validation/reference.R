@@ -14,7 +14,7 @@ sample_totals <- rowSums(counts)
 fitted_values <- fitted(fit)
 residual_values <- residuals(fit)
 residual_mse <- sum(residual_values^2) / (length(x) - 2)
-qq_expected <- qnorm((seq_along(residual_values) - 0.5) / length(residual_values))
+qq_expected <- qnorm(ppoints(length(residual_values)))
 qq_correlation <- cor(qq_expected, sort(residual_values))
 scale_correlation <- cor(fitted_values, abs(residual_values))
 curvature_correlation <- cor((x - mean(x))^2, residual_values)
@@ -66,7 +66,7 @@ multiple_residuals <- residuals(multiple_fit)
 multiple_fitted <- fitted(multiple_fit)
 multiple_mse <- sum(multiple_residuals^2) / df.residual(multiple_fit)
 multiple_qq <- cor(
-  qnorm((seq_along(multiple_residuals) - 0.5) / length(multiple_residuals)),
+  qnorm(ppoints(length(multiple_residuals))),
   sort(multiple_residuals)
 )
 multiple_scale <- cor(multiple_fitted, abs(multiple_residuals))

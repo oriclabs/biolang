@@ -4,8 +4,9 @@ use std::collections::{HashMap, HashSet};
 
 use crate::builtins::write_output;
 use crate::plot::{
-    col_range, extract_table_col, get_opt_f64, get_opt_str, hex_to_rgba, parse_options,
-    sequential_color, seurat_feature_color, Scale, SvgCanvas, PALETTE, SEURAT_PALETTE,
+    col_range, extract_table_col, gaussian_kde, get_opt_f64, get_opt_str, hex_to_rgba,
+    parse_options, quantile_type7, sequential_color, seurat_feature_color, silverman_bandwidth,
+    Scale, SvgCanvas, PALETTE, SEURAT_PALETTE,
 };
 use crate::viz::{get_opt_usize, nums_from_value, spark_str};
 
@@ -260,35 +261,11 @@ fn require_table_bp<'a>(val: &'a Value, func: &str) -> Result<&'a Table> {
 }
 
 fn kde(data: &[f64], bw: f64, n: usize) -> (Vec<f64>, Vec<f64>) {
-    let (lo, hi) = col_range(data);
-    let m = bw * 3.0;
-    let step = (hi - lo + 2.0 * m) / (n - 1).max(1) as f64;
-    let xs: Vec<f64> = (0..n).map(|i| (lo - m) + step * i as f64).collect();
-    let norm = 1.0 / (data.len() as f64 * bw * (2.0 * std::f64::consts::PI).sqrt());
-    let ys: Vec<f64> = xs
-        .iter()
-        .map(|&x| {
-            data.iter()
-                .map(|&d| {
-                    let z = (x - d) / bw;
-                    (-0.5 * z * z).exp()
-                })
-                .sum::<f64>()
-                * norm
-        })
-        .collect();
-    (xs, ys)
+    gaussian_kde(data, bw, n).into_iter().unzip()
 }
 
 fn silverman_bw(data: &[f64]) -> f64 {
-    let n = data.len() as f64;
-    if n < 2.0 {
-        return 1.0;
-    }
-    let mean = data.iter().sum::<f64>() / n;
-    let var = data.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / (n - 1.0);
-    let sd = var.sqrt().max(0.01);
-    1.06 * sd * n.powf(-0.2)
+    silverman_bandwidth(data)
 }
 
 fn trapz_auc(xs: &[f64], ys: &[f64]) -> f64 {
@@ -3894,9 +3871,9 @@ fn builtin_elbow_plot(args: Vec<Value>) -> Result<Value> {
 /// MSMB companion measures exactly that blind spot); a violin draws the whole
 /// density, which is the point.
 ///
-/// Density is estimated by binning and smoothing rather than a kernel: at the
-/// widths a violin is drawn the two are indistinguishable, and this has no
-/// bandwidth parameter to pick wrongly.
+/// Density is estimated with the same Gaussian KDE and `bw.nrd0` bandwidth
+/// convention exposed by `violin_data()`. The long-form input contract remains
+/// distinct from `violin()`, which treats numeric table columns as groups.
 fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
     let seurat_theme = get_opt_str(&opts, "theme", "") == "seurat";
@@ -3918,6 +3895,9 @@ fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
     let mut order: Vec<String> = Vec::new();
     let mut groups: HashMap<String, Vec<f64>> = HashMap::new();
     let mut push = |group: String, value: f64| {
+        if !value.is_finite() {
+            return;
+        }
         if !groups.contains_key(&group) {
             order.push(group.clone());
         }
@@ -3978,60 +3958,56 @@ fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
     let height = get_opt_f64(&opts, "height", 420.0);
     let mut canvas = SvgCanvas::new(width, height);
 
-    let all: Vec<f64> = order
+    let shapes = order
         .iter()
-        .flat_map(|g| groups[g].iter().copied())
-        .collect();
-    let (lo, hi) = col_range(&all);
-    let pad = (hi - lo) * 0.05 + 1e-9;
+        .map(|name| {
+            let values = &groups[name];
+            gaussian_kde(values, silverman_bandwidth(values), 128)
+        })
+        .collect::<Vec<_>>();
+    let lo = shapes
+        .iter()
+        .filter_map(|shape| shape.first().map(|point| point.0))
+        .fold(f64::INFINITY, f64::min);
+    let hi = shapes
+        .iter()
+        .filter_map(|shape| shape.last().map(|point| point.0))
+        .fold(f64::NEG_INFINITY, f64::max);
 
     let y_scale = Scale {
-        domain: (lo - pad, hi + pad),
+        domain: (lo, hi),
         range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
     };
     let slot = canvas.plot_width() / order.len() as f64;
-    const BINS: usize = 24;
 
     for (gi, name) in order.iter().enumerate() {
         let values = &groups[name];
         let centre = canvas.margin.left + slot * (gi as f64 + 0.5);
-
-        // Density by binning, then a three-point smooth so the outline is not
-        // a staircase.
-        let mut counts = vec![0.0_f64; BINS];
-        for v in values {
-            let t = (v - (lo - pad)) / ((hi + pad) - (lo - pad));
-            let bin = ((t * BINS as f64) as usize).min(BINS - 1);
-            counts[bin] += 1.0;
-        }
-        let smoothed: Vec<f64> = (0..BINS)
-            .map(|i| {
-                let left = if i == 0 { counts[0] } else { counts[i - 1] };
-                let right = if i + 1 == BINS {
-                    counts[i]
-                } else {
-                    counts[i + 1]
-                };
-                (left + 2.0 * counts[i] + right) / 4.0
-            })
-            .collect();
-        let peak = smoothed.iter().cloned().fold(f64::MIN, f64::max).max(1e-9);
+        let shape = &shapes[gi];
+        let peak = shape
+            .iter()
+            .map(|(_, density)| *density)
+            .fold(f64::MIN, f64::max)
+            .max(1e-9);
         let half = slot * 0.42;
 
-        // Outline up the right edge and back down the left, so one filled
-        // polygon gives the mirrored shape.
+        // The same Gaussian KDE exposed by violin_data(), mirrored around the
+        // group centre. Rendering changes width into pixels but never changes
+        // the scientific grid or bandwidth.
         let mut outline: Vec<String> = Vec::new();
-        for (i, density) in smoothed.iter().enumerate() {
-            let frac = (i as f64 + 0.5) / BINS as f64;
-            let value = (lo - pad) + frac * ((hi + pad) - (lo - pad));
-            let y = y_scale.map(value);
-            outline.push(format!("{:.1},{:.1}", centre + density / peak * half, y));
+        for (value, density) in shape {
+            outline.push(format!(
+                "{:.1},{:.1}",
+                centre + density / peak * half,
+                y_scale.map(*value)
+            ));
         }
-        for (i, density) in smoothed.iter().enumerate().rev() {
-            let frac = (i as f64 + 0.5) / BINS as f64;
-            let value = (lo - pad) + frac * ((hi + pad) - (lo - pad));
-            let y = y_scale.map(value);
-            outline.push(format!("{:.1},{:.1}", centre - density / peak * half, y));
+        for (value, density) in shape.iter().rev() {
+            outline.push(format!(
+                "{:.1},{:.1}",
+                centre - density / peak * half,
+                y_scale.map(*value)
+            ));
         }
         let colour = if seurat_theme {
             SEURAT_PALETTE[gi % SEURAT_PALETTE.len()]
@@ -4048,7 +4024,7 @@ fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
         // The median, so the violin still carries the summary a boxplot would.
         let mut sorted = values.clone();
         sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-        let median = sorted[sorted.len() / 2];
+        let median = quantile_type7(&sorted, 0.5);
         let my = y_scale.map(median);
         canvas.add_line(
             centre - half * 0.5,
@@ -4765,10 +4741,58 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
         // 65 MB string and a million DOM nodes, measured. So the default
         // switches over at a size where SVG is still comfortable, and `raster`
         // forces either behaviour for a caller who knows better.
-        const RASTER_ABOVE: usize = 5_000;
+        // The checked-in release benchmark shows that at 5,000 points the PNG
+        // is both slower and larger than vector SVG. At 20,000 it cuts output
+        // from about 1.38 MB / 20,082 elements to 0.45 MB / 83 elements. Use
+        // that measured boundary; callers can move it for their browser or
+        // force either representation explicitly.
+        const DEFAULT_RASTER_THRESHOLD: usize = 20_000;
+        let raster_threshold = match opts.get("raster_threshold") {
+            None => DEFAULT_RASTER_THRESHOLD,
+            Some(Value::Int(value)) if *value > 0 => *value as usize,
+            Some(Value::Float(value)) if value.is_finite() && *value >= 1.0 => *value as usize,
+            Some(_) => {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "umap_plot() option 'raster_threshold' must be a positive number",
+                    None,
+                ))
+            }
+        };
         let raster = match opts.get("raster") {
-            Some(value) => value.is_truthy(),
-            None => xs.len() > RASTER_ABOVE,
+            None => xs.len() >= raster_threshold,
+            Some(Value::Bool(value)) => *value,
+            Some(Value::Str(value)) => match value.to_ascii_lowercase().as_str() {
+                "auto" => xs.len() >= raster_threshold,
+                "on" | "true" => true,
+                "off" | "false" => false,
+                _ => {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "umap_plot() option 'raster' must be 'auto', 'on', 'off', or Bool",
+                        None,
+                    ))
+                }
+            },
+            Some(_) => {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "umap_plot() option 'raster' must be 'auto', 'on', 'off', or Bool",
+                    None,
+                ))
+            }
+        };
+        let raster_scale = match opts.get("raster_scale") {
+            None => 2.0,
+            Some(Value::Int(value)) if (1..=4).contains(value) => *value as f64,
+            Some(Value::Float(value)) if value.is_finite() && (1.0..=4.0).contains(value) => *value,
+            Some(_) => {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "umap_plot() option 'raster_scale' must be between 1 and 4",
+                    None,
+                ))
+            }
         };
 
         let point_color = |i: usize| -> String {
@@ -4819,6 +4843,7 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
                     plot_right - c.margin.left,
                     c.plot_height(),
                 ),
+                raster_scale,
             );
         } else {
             for i in 0..xs.len() {

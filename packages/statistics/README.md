@@ -38,7 +38,7 @@ stat.distribution_plot(values)
 | `stat.shape(values, options?)` | Skewness, kurtosis, histogram-peak, and normal-Q-Q evidence without a diagnosis |
 | `stat.normal_qq_plot(values, options?)` | Normal-distribution Q-Q diagnostic, distinct from genomic `qq_plot()` |
 | `stat.group_plot(values, groups, options?)` | Group observations and robust summaries in SVG or ASCII |
-| `stat.relationship_plot(x, y, options?)` | Scatterplot and fitted line in SVG or ASCII |
+| `stat.relationship_plot(x, y, options?)` | Scatterplot and fitted line in SVG or ASCII; optional confidence or prediction band |
 | `stat.categorical_plot(values, options?)` | Frequency bars in SVG or ASCII |
 | `stat.missingness_plot(table, options?)` | Missingness map in SVG or ASCII |
 | `stat.normalization_guide(matrix, options?)` | Dense/sparse matrix audit and domain-aware normalization alternatives |
@@ -60,6 +60,20 @@ stat.distribution_plot(values)
 Suggestions are deterministic heuristics, not automatic scientific decisions.
 The package never removes observations or applies a transformation. It also does
 not infer pairing, independence, experimental units, batches, or confounding.
+
+For a fitted relationship, choose the band that answers the question:
+
+```biolang
+# Uncertainty around the estimated average response.
+stat.relationship_plot(x, y, {interval: "confidence", confidence: 0.95})
+
+# Wider uncertainty for one future observation.
+stat.relationship_plot(x, y, {interval: "prediction", confidence: 0.95})
+
+# Inspect or export the exact coordinates without reading pixels.
+let fit = linear_fit_data(x, y, {confidence: 0.95})
+fit.data
+```
 
 ## Multi-group inference
 

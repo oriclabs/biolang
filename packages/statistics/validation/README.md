@@ -41,8 +41,17 @@ rank tests, rank-biserial effects, and labelled Fisher odds-ratio intervals. The
 multi-group extension independently checks classical and Welch ANOVA, raw sums
 of squares, eta/omega squared, tie-corrected Kruskal-Wallis with epsilon
 squared, every Tukey-Kramer contrast and simultaneous interval, and pairwise
-Welch tests with Holm correction. The current suite compares 268 numeric metrics: 264 numerical
-equivalences and four deliberately documented differences from R defaults.
+Welch tests with Holm correction. Plot geometry adds 2,209 scale-sensitive checks
+against base R: explicit histogram edges, counts, densities, closure and
+endpoint handling; type-7 and Tukey-hinge box summaries; tied ECDF jumps;
+normal Q-Q plotting positions and reference line; and the complete 256-point
+Gaussian violin/KDE grid. Box, ECDF, Q-Q and KDE geometry are all repeated on
+the real, skewed `airquality` ozone fixture. Ordinary least-squares fitted
+values, confidence bands and wider prediction bands are checked on ozone by
+month against both `predict.lm` and statsmodels. This gives 2,477 R/BioLang
+metrics: 2,473 intended numerical equivalences and four documented convention
+differences. When Python, NumPy and statsmodels are available, 2,160 further
+geometry checks run independently, for 4,637 metrics in total.
 Finite edge cases include a three-observation t-test, tied ranks, zero/one and
 tied p-values, a zero-heavy count distribution, and an extreme regression
 outlier.
@@ -103,10 +112,32 @@ outputs remain under the ignored `validation/results/` directory. They are
 oracle inputs, not bundled runtime dependencies or project datasets.
 
 Scalar arithmetic generally uses a `1e-12 * max(1, abs(reference))` gate.
-Normal-Q-Q correlation uses a `1e-9` gate because R and BioLang deliberately
-use independent inverse-normal quantile approximations; integer flag counts
-must match exactly. Model-fit and distribution-tail tolerances are declared per
-metric in `run.ps1` and recorded as absolute limits in the manifest.
+Normal-Q-Q model diagnostics use a `1e-9` gate. The renderer-neutral Q-Q
+geometry applies two Newton refinements to its independent inverse-normal
+approximation and is checked against both R and Python at the same strict gate;
+integer membership and count fields must match exactly. Model-fit and
+distribution-tail tolerances are declared per metric in `run.ps1` and recorded
+as absolute limits in the manifest.
+
+## Renderer-neutral plot data
+
+`plot_spec(table, options)` returns a `biolang.plot.spec/v1` Record. Scatter,
+line, error-bar and confidence-band calls to `plot()` render this same object.
+`render_plot(spec, {format: ...})` supports SVG, portable ASCII, Unicode
+Braille, and standalone HTML containing the original SVG plus an optional
+Canvas/PNG fallback. The default remains an SVG `Str`, preserving redirected
+CLI output and existing notebook compatibility.
+
+`boxplot_data`, `ecdf_data`, `normal_qq_data`, `violin_data`, `linear_fit_data`, and
+`histogram_data` return `biolang.plot.geometry/v1` Records/Tables with stable
+rows, method labels and exclusions. These values can be written to JSON/CSV for
+validation; renderers do not need to infer the statistics from pixels.
+
+`linear_fit_data(x, y, {confidence: 0.95, at: [...]})` keeps uncertainty
+explicit: `confidence_lower/upper` describe uncertainty in the fitted mean,
+while `prediction_lower/upper` describe a new observation and are therefore
+wider. `stat.relationship_plot()` consumes the same geometry when its
+`interval` option is `"confidence"` or `"prediction"`.
 
 The four `expected_convention_difference` rows are not loose passes. BioLang's
 pooled t-test is separately compared with `t.test(var.equal = TRUE)`, its
@@ -120,3 +151,23 @@ documentation are reviewed together.
 Exit code `2` means R was unavailable and validation was not run. It must never
 be presented as a pass. `-RequireR` converts that condition into a terminating
 error for CI.
+
+## Dense plot benchmark
+
+`plot_benchmark.ps1` builds the dedicated release-mode probe and compares the
+vector and embedded-raster point layers at 1,000, 5,000, 20,000 and 100,000
+points. It records render time, SVG bytes, element count and sampled peak
+working set in `plot-benchmark.json`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  packages/statistics/validation/plot_benchmark.ps1
+```
+
+The checked result is machine-specific evidence, not a universal speed claim.
+On the recorded Windows x64 run, rasterising 5,000 points was slower and made a
+larger file. At 20,000 it reduced approximately 20,082 SVG elements to 83 and
+1.38 MB to 0.45 MB, so `umap_plot` now switches at 20,000 points. Rasterisation
+is intended to bound browser/DOM and encoded-output cost; it is not claimed to
+make figure generation faster. Users can set `raster: "auto"`, `"on"`, or
+`"off"`, adjust `raster_threshold`, and choose `raster_scale` from 1 through 4.
