@@ -1356,12 +1356,25 @@ fn render_plot_spec_value(
     let svg = render_cartesian_plot_spec(spec)?;
     match format.as_str() {
         "svg" | "raw" => Ok(Value::Str(svg.into())),
+        // The terminal preview rasterises through resvg, which the browser
+        // build deliberately leaves out. Guard the arms rather than the
+        // function so a WASM caller asking for one gets a real message.
+        #[cfg(feature = "native")]
         "ascii" => render_svg_terminal(&svg, 80, 24, TerminalPlotStyle::Ascii)
             .map(Value::Str)
             .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None)),
+        #[cfg(feature = "native")]
         "unicode" | "braille" => render_svg_terminal(&svg, 80, 24, TerminalPlotStyle::Braille)
             .map(Value::Str)
             .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None)),
+        #[cfg(not(feature = "native"))]
+        "ascii" | "unicode" | "braille" => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "render_plot() format '{format}' needs the native build; this runtime can emit svg/html/spec"
+            ),
+            None,
+        )),
         "html" | "canvas" => Ok(Value::Str(standalone_plot_html(&svg, &spec.title).into())),
         _ => Err(BioLangError::runtime(
             ErrorKind::TypeError,
