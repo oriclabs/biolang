@@ -69,6 +69,21 @@ fn table_for(plot: &str, count: usize) -> Value {
                 })
                 .collect(),
         ),
+        // The bio_plots volcano reads the same two columns as the plot-module one.
+        "volcano_plot" => {
+            return table_for("volcano", count);
+        }
+        "rainfall" => (
+            vec!["chrom".into(), "pos".into()],
+            (0..count)
+                .map(|i| {
+                    vec![
+                        Value::Str(format!("chr{}", (i % 22) + 1).into()),
+                        Value::Int(((i % 250_000) * 1000) as i64),
+                    ]
+                })
+                .collect(),
+        ),
         "manhattan" => (
             vec!["chrom".into(), "pos".into(), "pvalue".into()],
             (0..count)
@@ -113,10 +128,16 @@ fn main() {
     let mode = argument("--raster", "auto");
     let repeats: usize = argument("--repeats", "5").parse().expect("valid --repeats");
     let plot = argument("--plot", "umap_plot");
-    let data = if plot == "umap_plot" {
-        points(count)
-    } else {
-        table_for(&plot, count)
+    let data = match plot.as_str() {
+        "umap_plot" => points(count),
+        // qq_plot reads a bare numeric list rather than a table.
+        "qq_plot" => Value::List(
+            (0..count)
+                .map(|i| Value::Float(1.0 / (1.0 + (i % 9973) as f64)))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
+        _ => table_for(&plot, count),
     };
     let mut option_pairs: Vec<(String, Value)> = vec![
         ("raster".into(), Value::Str(mode.clone().into())),
@@ -131,7 +152,10 @@ fn main() {
     for _ in 0..repeats {
         let started = Instant::now();
         let arguments = vec![data.clone(), options.clone()];
-        let produced = if plot == "umap_plot" || plot == "manhattan" {
+        let produced = if matches!(
+            plot.as_str(),
+            "umap_plot" | "manhattan" | "qq_plot" | "rainfall" | "volcano_plot"
+        ) {
             call_bio_plots_builtin(&plot, arguments)
         } else {
             call_plot_builtin(&plot, arguments)

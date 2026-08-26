@@ -463,9 +463,13 @@ fn builtin_qq_plot(args: Vec<Value>) -> Result<Value> {
             "#ccc",
             1.0,
         );
-        for i in 0..n {
-            c.add_circle(xs.map(expected[i]), ys.map(observed[i]), 3.0, PALETTE[0]);
-        }
+        // A genome-wide Q-Q carries one point per test.
+        let raster = raster_choice(&opts, "qq_plot", n)?;
+        let points: Vec<(f64, f64, &str)> = (0..n)
+            .map(|i| (xs.map(expected[i]), ys.map(observed[i]), PALETTE[0]))
+            .collect();
+        let area = c.point_area();
+        c.add_scatter(&points, 3.0, area, raster);
         let d = Scale {
             domain: range,
             range,
@@ -638,16 +642,23 @@ fn builtin_rainfall(args: Vec<Value>) -> Result<Value> {
             domain: yr,
             range: (c.margin.top + c.plot_height(), c.margin.top),
         };
-        for i in 0..dists.len() {
-            let color = if dists[i] < 3.0 {
-                "#e15759"
-            } else if dists[i] < 5.0 {
-                "#f28e2b"
-            } else {
-                "#76b7b2"
-            };
-            c.add_circle(xs.map(gx_all[i]), ys.map(dists[i]), 2.5, color);
-        }
+        // One point per mutation across the genome; a somatic catalogue runs to
+        // hundreds of thousands.
+        let raster = raster_choice(&opts, "rainfall", dists.len())?;
+        let points: Vec<(f64, f64, &str)> = (0..dists.len())
+            .map(|i| {
+                let color = if dists[i] < 3.0 {
+                    "#e15759"
+                } else if dists[i] < 5.0 {
+                    "#f28e2b"
+                } else {
+                    "#76b7b2"
+                };
+                (xs.map(gx_all[i]), ys.map(dists[i]), color)
+            })
+            .collect();
+        let area = c.point_area();
+        c.add_scatter(&points, 2.5, area, raster);
         let dy = Scale {
             domain: yr,
             range: yr,
@@ -1669,6 +1680,7 @@ fn builtin_pca_plot(args: Vec<Value>) -> Result<Value> {
         };
         let mut cm: HashMap<String, usize> = HashMap::new();
         let mut next_ci = 0;
+        let mut points: Vec<(f64, f64, &str)> = Vec::with_capacity(pc1.len());
         for j in 0..pc1.len() {
             let ci = labels
                 .as_ref()
@@ -1681,14 +1693,21 @@ fn builtin_pca_plot(args: Vec<Value>) -> Result<Value> {
                     *e
                 })
                 .unwrap_or(0);
-            c.add_circle(
+            points.push((
                 x_scale.map(pc1[j]),
                 y_scale.map(pc2[j]),
-                4.0,
                 PALETTE[ci % PALETTE.len()],
-            );
-            if show_labels {
-                if let Some(ref rn) = row_names {
+            ));
+        }
+        // Points first, then every label, rather than alternating: a later
+        // point used to be able to bury an earlier label, and one raster cannot
+        // interleave with text at all.
+        let raster = raster_choice(&opts, "pca_plot", pc1.len())?;
+        let area = c.point_area();
+        c.add_scatter(&points, 4.0, area, raster);
+        if show_labels {
+            if let Some(ref rn) = row_names {
+                for j in 0..pc1.len() {
                     c.add_text(
                         x_scale.map(pc1[j]) + 6.0,
                         y_scale.map(pc2[j]) - 4.0,
@@ -2990,6 +3009,7 @@ fn builtin_volcano_plot(args: Vec<Value>) -> Result<Value> {
 
         // Collect top hits for labeling
         let mut top_hits: Vec<(usize, f64)> = Vec::new();
+        let mut points: Vec<(f64, f64, &str)> = Vec::with_capacity(fcs.len());
         for i in 0..fcs.len() {
             let color = if neg_log_p[i] > neg_log_p_cutoff && fcs[i] > fc_cutoff {
                 "#e15759"
@@ -2998,11 +3018,16 @@ fn builtin_volcano_plot(args: Vec<Value>) -> Result<Value> {
             } else {
                 "#999"
             };
-            c.add_circle(x_scale.map(fcs[i]), y_scale.map(neg_log_p[i]), 3.0, color);
+            points.push((x_scale.map(fcs[i]), y_scale.map(neg_log_p[i]), color));
             if neg_log_p[i] > neg_log_p_cutoff && fcs[i].abs() > fc_cutoff {
                 top_hits.push((i, neg_log_p[i]));
             }
         }
+        // One point per gene, so a whole-transcriptome result is tens of
+        // thousands. The labels below stay vector; there are only ten.
+        let raster = raster_choice(&opts, "volcano_plot", fcs.len())?;
+        let area = c.point_area();
+        c.add_scatter(&points, 3.0, area, raster);
 
         // Label top 10 most significant hits
         if let Some(ref names) = gene_names {
@@ -4246,21 +4271,28 @@ fn builtin_variable_feature_plot(args: Vec<Value>) -> Result<Value> {
         range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
     };
 
-    // Unselected first, so the selection is never buried under the cloud.
-    for (i, gene) in genes.iter().enumerate() {
-        if !gene.selected {
-            canvas.add_circle(x_scale.map(xs[i]), y_scale.map(ys[i]), 1.6, "#bbbbbb");
-        }
-    }
-    let mut n_variable = 0;
-    for (i, gene) in genes.iter().enumerate() {
-        if gene.selected {
-            n_variable += 1;
-            // Red on grey, as Seurat draws it - the selection has to read at a
-            // glance against a cloud of tens of thousands of points.
-            canvas.add_circle(x_scale.map(xs[i]), y_scale.map(ys[i]), 2.4, PALETTE[2]);
-        }
-    }
+    // Unselected first, so the selection is never buried under the cloud. The
+    // two layers raster separately because they are drawn at different radii,
+    // which still leaves two elements instead of tens of thousands.
+    let raster = raster_choice(&opts, "variable_feature_plot", genes.len())?;
+    let area = canvas.point_area();
+    let background: Vec<(f64, f64, &str)> = genes
+        .iter()
+        .enumerate()
+        .filter(|(_, gene)| !gene.selected)
+        .map(|(i, _)| (x_scale.map(xs[i]), y_scale.map(ys[i]), "#bbbbbb"))
+        .collect();
+    canvas.add_scatter(&background, 1.6, area, raster);
+    // Red on grey, as Seurat draws it - the selection has to read at a glance
+    // against a cloud of tens of thousands of points.
+    let selected: Vec<(f64, f64, &str)> = genes
+        .iter()
+        .enumerate()
+        .filter(|(_, gene)| gene.selected)
+        .map(|(i, _)| (x_scale.map(xs[i]), y_scale.map(ys[i]), PALETTE[2]))
+        .collect();
+    let n_variable = selected.len();
+    canvas.add_scatter(&selected, 2.4, area, raster);
 
     // Label the strongest few. Any more and the labels cover the cloud they are
     // meant to explain.
