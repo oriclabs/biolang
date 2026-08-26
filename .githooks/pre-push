@@ -12,7 +12,22 @@
 
 set -e
 
-node scripts/check-generated.mjs
+# The help index is built from `bl metadata`, the builtin appendix, examples/
+# and the packs. A push touching none of those cannot have invalidated it, and
+# regenerating costs a metadata call plus a walk of every example in the tree.
+# The version comparison is two file reads, so it runs either way.
+#
+# Scoped the same way the WASM check below already is. Without it, a push that
+# changes neither the runtime nor the desktop app still blocks whenever the
+# working tree has unrelated edits to any of these sources -- which is how two
+# commits touching only a docs file and a table printer came to be held up
+# behind unfinished plotting work.
+HELP_SOURCES="crates books/language/src/appendix-builtins.md examples packs desktop"
+if ! git diff --quiet HEAD origin/main -- $HELP_SOURCES 2>/dev/null; then
+    node scripts/check-generated.mjs
+else
+    node scripts/check-generated.mjs --version-only
+fi
 
 # Only when the runtime changed: rebuilding WASM is the expensive fix, and a
 # push that touches no Rust cannot have invalidated the module.

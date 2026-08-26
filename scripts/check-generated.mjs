@@ -44,15 +44,25 @@ async function dirtyPaths(paths) {
   return stdout.split("\n").map((line) => line.trim()).filter(Boolean);
 }
 
+/**
+ * `--version-only` runs the version comparison and skips the help index.
+ *
+ * The pre-push hook passes it when the push touches none of the index's
+ * sources. Regenerating costs a `bl metadata` call and a walk of every example
+ * in the tree, and a push that changed none of those cannot have invalidated
+ * it. The version check is two file reads, so it always runs.
+ */
+const versionOnly = process.argv.includes("--version-only");
+
 const failures = [];
 
-// 1. Workbench help index.
+// 1. Workbench help index. Skipped under --version-only.
 //
 // Built from the packs and `bl metadata`. generate-help falls back
 // to the committed metadata snapshot when the CLI is missing and still reports
 // success, so an unbuilt binary would quietly produce a degraded index and this
 // check would blame the wrong thing. Require the binary instead.
-{
+if (!versionOnly) {
   try {
     await access(cli, constants.X_OK);
   } catch {
@@ -60,14 +70,22 @@ const failures = [];
     console.error("Run `cargo build -p bl-cli`, or set BIOLANG_CLI to a built binary.");
     process.exit(1);
   }
+  // Whether the artifact was already modified before regenerating. If it was,
+  // the difference below may belong to work in progress rather than to
+  // anything being pushed, and saying "you forgot to regenerate" would send
+  // the reader looking for a mistake they have not made.
+  const dirtyBefore = await dirtyPaths(["desktop/src/generated"]);
   await run("node", ["scripts/generate-help.mjs"], path.join(repositoryRoot, "desktop"));
   const dirty = await dirtyPaths(["desktop/src/generated"]);
   if (dirty.length) {
     failures.push({
       what: "workbench help index",
-      fix: "cd desktop && npm run generate:help",
+      fix: dirtyBefore.length
+        ? "the index is regenerated from your working tree, which has uncommitted changes to its sources; commit those and the index together"
+        : "cd desktop && npm run generate:help",
       files: dirty,
       corrected: true,
+      fromWorkingTree: dirtyBefore.length > 0,
     });
   }
 }
@@ -124,10 +142,26 @@ if (failures.length) {
     const names = corrected.map((failure) => failure.what).join(" and ");
     console.error(`Already corrected in your working tree - commit them: ${names}.`);
   }
+  // Worth separating, because the two cases want different actions: one is a
+  // step you skipped, the other is a push arriving in the middle of unrelated
+  // work that happens to feed the same artifact.
+  if (failures.some((failure) => failure.fromWorkingTree)) {
+    console.error(
+      "Note: the index was already modified before this check regenerated it,",
+    );
+    console.error(
+      "so the difference may come from uncommitted work rather than from the",
+    );
+    console.error("commits being pushed.");
+  }
   console.error("To push anyway: git push --no-verify\n");
   process.exit(1);
 }
 
+// Name what was actually checked. Reporting the help index as current when it
+// was skipped would be the same kind of false pass this script exists to catch.
 console.log(
-  "Generated files are current: workbench help index and npm version.",
+  versionOnly
+    ? "npm version matches the workspace. Help index not checked: this push touches none of its sources."
+    : "Generated files are current: workbench help index and npm version.",
 );
