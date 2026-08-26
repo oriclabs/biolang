@@ -1,4 +1,4 @@
-use bl_core::value::{Table, Value};
+use bl_core::value::{single_line_cell, Table, Value};
 use bl_lexer::Lexer;
 use bl_parser::Parser;
 use bl_runtime::builtins::{all_builtin_names, flush_trailing_newline, set_output_sink};
@@ -5266,7 +5266,9 @@ fn print_table(t: &Table) {
         cells.push(t.columns[ci].clone());
         for ri in 0..show_rows {
             let val = t.rows[ri].get(ci).cloned().unwrap_or(Value::Nil);
-            cells.push(format!("{val}"));
+            // Widths are measured from these strings and the cells are padded
+            // to match, so the newlines have to go before either happens.
+            cells.push(single_line_cell(&format!("{val}")));
         }
         col_cells.push(cells);
     }
@@ -5381,7 +5383,7 @@ fn print_table(t: &Table) {
         let row_cells: Vec<String> = (0..ncols)
             .map(|ci| {
                 let val = t.rows[ri].get(ci).cloned().unwrap_or(Value::Nil);
-                let raw = format!("{val}");
+                let raw = single_line_cell(&format!("{val}"));
                 let padded = pad(&raw, widths[ci], is_numeric[ci]);
                 colorize_cell(&val, &padded)
             })

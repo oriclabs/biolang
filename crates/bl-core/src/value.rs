@@ -536,6 +536,31 @@ fn list_of_records_as_table(items: &[Value]) -> Option<Table> {
     Some(Table::new(first_keys, rows))
 }
 
+/// Flatten a value string so it occupies exactly one line of a table cell.
+///
+/// A table row is one line. A cell holding a newline does not merely look
+/// untidy -- it splits the row in two and every column after it loses its
+/// alignment, including the rows below. Width arithmetic goes wrong at the
+/// same time, because a newline counts as one character while occupying none.
+///
+/// This is ordinary data, not an edge case: BioContainers descriptions from
+/// Quay are Markdown, GFF attributes carry embedded newlines, and any CSV
+/// field quoted across lines does too. Carriage returns and tabs are replaced
+/// for the same reason -- both move the cursor and neither is one column wide.
+///
+/// Substitution is one character for one character, so a caller that has
+/// already measured the string does not have to measure it again.
+pub fn single_line_cell(value: &str) -> String {
+    const BREAKS: [char; 3] = ['\n', '\r', '\t'];
+    if !value.contains(BREAKS) {
+        return value.to_string();
+    }
+    value
+        .chars()
+        .map(|c| if BREAKS.contains(&c) { ' ' } else { c })
+        .collect()
+}
+
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -596,7 +621,7 @@ impl fmt::Display for Value {
                 for row in &t.rows[..show] {
                     for (i, val) in row.iter().enumerate() {
                         if i < widths.len() {
-                            let s = format!("{val}");
+                            let s = single_line_cell(&format!("{val}"));
                             widths[i] = widths[i].max(s.chars().count());
                         }
                     }
@@ -656,7 +681,7 @@ impl fmt::Display for Value {
                         .iter()
                         .enumerate()
                         .map(|(i, v)| {
-                            let s = format!("{v}");
+                            let s = single_line_cell(&format!("{v}"));
                             let w = widths.get(i).copied().unwrap_or(0);
                             let slen = s.chars().count();
                             if slen > w {
@@ -955,6 +980,71 @@ mod table_type_tests {
         assert!(
             lines[2].contains("<bool>"),
             "type row misplaced:\n{rendered}"
+        );
+    }
+}
+
+#[cfg(test)]
+mod single_line_cell_tests {
+    use super::{single_line_cell, Table, Value};
+
+    // A table row is one line. These pin that a value carrying a newline is
+    // flattened before it is measured or padded, because the failure is not
+    // cosmetic: the row splits in two and every column after it, on every
+    // later row, loses its alignment.
+
+    #[test]
+    fn text_without_breaks_is_returned_unchanged() {
+        assert_eq!(single_line_cell("plain one-liner"), "plain one-liner");
+    }
+
+    #[test]
+    fn newlines_carriage_returns_and_tabs_become_spaces() {
+        assert_eq!(single_line_cell("a\nb\r\nc\td"), "a b  c d");
+    }
+
+    #[test]
+    fn the_substitution_preserves_length() {
+        // Callers measure with chars().count() and pad to match. If flattening
+        // changed the count, the padding would be computed against a different
+        // string from the one printed.
+        let raw = "# Samtools\n\n> Tools for dealing with sam\tfiles";
+        assert_eq!(single_line_cell(raw).chars().count(), raw.chars().count());
+    }
+
+    #[test]
+    fn a_rendered_table_stays_on_one_line_per_row() {
+        // The reported case: Quay returns Markdown descriptions, and the table
+        // came out with rows split across three lines.
+        let table = Table::new(
+            vec!["name".to_string(), "note".to_string()],
+            vec![
+                vec![
+                    Value::Str("samtools".into()),
+                    Value::Str("# Samtools\n\n> Tools for dealing with sam".into()),
+                ],
+                vec![
+                    Value::Str("bcftools".into()),
+                    Value::Str("plain one-liner".into()),
+                ],
+            ],
+        );
+        let rendered = format!("{}", Value::Table(table.into()));
+        let body: Vec<&str> = rendered
+            .lines()
+            .filter(|line| line.starts_with(" samtools") || line.starts_with(" bcftools"))
+            .collect();
+        assert_eq!(body.len(), 2, "expected one line per row in:\n{rendered}");
+
+        // Both rows must be the same width, or the columns do not line up.
+        assert_eq!(
+            body[0].chars().count(),
+            body[1].chars().count(),
+            "rows are ragged:\n{rendered}"
+        );
+        assert!(
+            !rendered.contains("\n\n>"),
+            "a raw newline survived into the table:\n{rendered}"
         );
     }
 }
