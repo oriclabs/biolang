@@ -1723,10 +1723,10 @@ fn builtin_plot(args: Vec<Value>) -> Result<Value> {
     }
 
     let mut canvas = SvgCanvas::new(width, height);
-    let x_scale = Scale {
-        domain: (x_min, x_max),
-        range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
-    };
+    // No x_scale here: bar positions come from the category layout below and
+    // box positions from the column index, so only the vertical scale is
+    // shared. The scatter and line arms that needed one now build their own
+    // spec and return above.
     let y_scale = Scale {
         domain: (y_min, y_max),
         range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
