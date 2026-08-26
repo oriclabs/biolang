@@ -174,3 +174,57 @@ larger file. At 20,000 it reduced approximately 20,082 SVG elements to 83 and
 is intended to bound browser/DOM and encoded-output cost; it is not claimed to
 make figure generation faster. Users can set `raster: "auto"`, `"on"`, or
 `"off"`, adjust `raster_threshold`, and choose `raster_scale` from 1 through 4.
+
+### Point thinning
+
+`manhattan` accepts `thin: true`, which keeps at most one variant per device
+pixel and drops the rest, choosing the survivor by significance so the strongest
+signal in each pixel is the one that is drawn. It is off by default. When it
+removes anything, the figure says so in both a visible note and the SVG
+`<desc>`, because a reader has no other way to know a figure is not showing
+every variant.
+
+Measured with `plot_dense_benchmark` on the same Windows x64 machine, using a
+worst case in which many variants share a position:
+
+| n | raster | thin | SVG bytes | median ms |
+|---|---|---|---|---|
+| 60,000 | off | off | 4,109,860 | 51 |
+| 60,000 | off | on | 1,554,368 | 42 |
+| 60,000 | on | off | 1,329,727 | 295 |
+| 60,000 | on | on | 1,349,326 | 213 |
+| 500,000 | off | off | 34,229,736 | 424 |
+| 500,000 | off | on | 7,273,573 | 316 |
+| 500,000 | on | off | 1,426,891 | 2,886 |
+| 500,000 | on | on | 1,488,970 | 948 |
+
+Read that as two separate effects rather than one. On the vector path thinning
+is a size measure: 4.7x smaller at 500,000 variants. On the raster path it is a
+time measure and **not** a size measure -- 3x faster at 500,000 variants, while
+the PNG grows about 4%. Removing overdraw leaves isolated anti-aliased discs
+where there had been saturated blobs, and the blobs compressed better.
+
+The cost is what thinning removes. Comparing the rendered raster layers at
+60,000 variants with thinning off and on, 54 of 687,514 painted pixels were
+lost (0.008%, all anti-aliased disc edges) and none were gained; where both
+were painted, the median pixel did not change opacity at all, the 95th
+percentile moved by 3 of 255, and the densest pileups moved by 138. So the
+outline of the figure survives and its shading does not: density stops being
+readable as shade. That is why it is opt-in and why the figure discloses it.
+
+For comparison, `raster_scale` is the blunter instrument for the same problem
+and needs no such disclaimer, since it changes only resolution:
+
+| plot | scale 1 | scale 2 (default) | scale 3 |
+|---|---|---|---|
+| manhattan | 419,935 | 1,329,727 | 2,423,171 |
+| pca_plot | 345,013 | 910,173 | 1,514,861 |
+| volcano_plot | 164,730 | 489,082 | 902,686 |
+
+Indexed-colour PNG was measured and rejected. It needs 256 or fewer distinct
+pixel values, and these layers carry 1,452 (`pca_plot`) to 29,914
+(`manhattan`), because anti-aliased points at alpha 0.7 overlapping each other
+produce a continuum of blends. Only `qq_plot` (12 values) and `rainfall` (33)
+would qualify, and both already encode to about 13 KB. Lossless recompression
+at zlib level 9 was also measured: 1% to 10% on the large layers, which does
+not justify replacing `tiny_skia::Pixmap::encode_png`.

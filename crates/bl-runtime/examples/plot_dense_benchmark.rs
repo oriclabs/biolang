@@ -147,6 +147,11 @@ fn extra_options(plot: &str) -> Vec<(String, Value)> {
             ("y".into(), Value::Str("y".into())),
             ("type".into(), Value::Str("scatter".into())),
         ],
+        // Without an explicit `n` this plot highlights nothing -- a table
+        // carrying no `variable` column is not assumed to be a selection. The
+        // second raster layer would then be blank, and the probe would report
+        // two layers while measuring one.
+        "variable_feature_plot" => vec![("n".into(), Value::Int(2000))],
         _ => Vec::new(),
     }
 }
@@ -172,6 +177,19 @@ fn main() {
         ("width".into(), Value::Int(800)),
         ("height".into(), Value::Int(600)),
     ];
+    // Supersampling multiplier. Left off the option record entirely when not
+    // given, so the run measures the builtin's own default rather than this
+    // harness's idea of it.
+    // Opt-in point thinning, for the plots that offer it.
+    let thin = argument("--thin", "");
+    if !thin.is_empty() {
+        option_pairs.push(("thin".into(), Value::Str(thin.into())));
+    }
+    let scale = argument("--scale", "");
+    if !scale.is_empty() {
+        let scale: f64 = scale.parse().expect("valid --scale");
+        option_pairs.push(("raster_scale".into(), Value::Float(scale)));
+    }
     option_pairs.extend(extra_options(&plot));
     let options = Value::Record(HashMap::from_iter(option_pairs).into());
 
@@ -202,6 +220,14 @@ fn main() {
     }
     elapsed_ms.sort_by(f64::total_cmp);
     let median_ms = elapsed_ms[elapsed_ms.len() / 2];
+    // `--out` writes the document itself, so a run can be inspected rather
+    // than only counted -- decoding the raster layer, say, to check what the
+    // encoder actually produced.
+    let out = argument("--out", "");
+    if !out.is_empty() {
+        std::fs::write(&out, svg.as_bytes()).expect("write --out");
+    }
+
     let svg_elements = svg.matches('<').count().saturating_sub(1);
     let point_circles = svg.matches("<circle").count();
     let raster_layers = svg.matches("<image").count();
