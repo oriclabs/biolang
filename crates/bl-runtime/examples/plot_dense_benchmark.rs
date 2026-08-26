@@ -4,8 +4,9 @@
 //! PowerShell harness in `packages/statistics/validation/plot_benchmark.ps1`
 //! adds peak-working-set measurements and writes a machine-readable manifest.
 
-use bl_core::value::Value;
+use bl_core::value::{Table, Value};
 use bl_runtime::bio_plots::call_bio_plots_builtin;
+use bl_runtime::plot::call_plot_builtin;
 use serde_json::json;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -40,27 +41,105 @@ fn points(count: usize) -> Value {
     Value::List(rows.into())
 }
 
+
+/// A table of the shape one plot reads, sized to `count`.
+///
+/// The columns carry the names each builtin expects and values in a plausible
+/// range, cycled deterministically. Nothing here is a measurement of anything
+/// biological -- it exists so the renderer has the stated number of points to
+/// draw, and only bytes and element counts are read back.
+fn table_for(plot: &str, count: usize) -> Value {
+    let (columns, rows): (Vec<String>, Vec<Vec<Value>>) = match plot {
+        "volcano" => (
+            vec!["log2fc".into(), "pvalue".into()],
+            (0..count)
+                .map(|i| {
+                    let fc = ((i % 801) as f64 - 400.0) / 80.0;
+                    let p = 1.0 / (1.0 + (i % 9973) as f64);
+                    vec![Value::Float(fc), Value::Float(p)]
+                })
+                .collect(),
+        ),
+        "ma_plot" => (
+            vec!["baseMean".into(), "log2fc".into()],
+            (0..count)
+                .map(|i| {
+                    let base = 1.0 + (i % 5003) as f64;
+                    let m = ((i % 601) as f64 - 300.0) / 75.0;
+                    vec![Value::Float(base), Value::Float(m)]
+                })
+                .collect(),
+        ),
+        "manhattan" => (
+            vec!["chrom".into(), "pos".into(), "pvalue".into()],
+            (0..count)
+                .map(|i| {
+                    let chrom = format!("chr{}", (i % 22) + 1);
+                    let pos = ((i % 250_000) * 1000) as i64;
+                    let p = 1.0 / (1.0 + (i % 9973) as f64);
+                    vec![Value::Str(chrom.into()), Value::Int(pos), Value::Float(p)]
+                })
+                .collect(),
+        ),
+        "plot" => (
+            vec!["x".into(), "y".into()],
+            (0..count)
+                .map(|i| {
+                    vec![
+                        Value::Float((i % 977) as f64 / 977.0),
+                        Value::Float((i % 613) as f64 / 613.0),
+                    ]
+                })
+                .collect(),
+        ),
+        other => panic!("unknown --plot {other}"),
+    };
+    Value::Table(Table::new(columns, rows).into())
+}
+
+/// Options each plot needs beyond the shared raster and size settings.
+fn extra_options(plot: &str) -> Vec<(String, Value)> {
+    match plot {
+        "plot" => vec![
+            ("x".into(), Value::Str("x".into())),
+            ("y".into(), Value::Str("y".into())),
+            ("type".into(), Value::Str("scatter".into())),
+        ],
+        _ => Vec::new(),
+    }
+}
+
 fn main() {
     let count: usize = argument("--size", "20000").parse().expect("valid --size");
     let mode = argument("--raster", "auto");
     let repeats: usize = argument("--repeats", "5").parse().expect("valid --repeats");
-    let data = points(count);
-    let options = Value::Record(
-        HashMap::from([
-            ("raster".into(), Value::Str(mode.clone())),
-            ("width".into(), Value::Int(800)),
-            ("height".into(), Value::Int(600)),
-        ])
-        .into(),
-    );
+    let plot = argument("--plot", "umap_plot");
+    let data = if plot == "umap_plot" {
+        points(count)
+    } else {
+        table_for(&plot, count)
+    };
+    let mut option_pairs: Vec<(String, Value)> = vec![
+        ("raster".into(), Value::Str(mode.clone().into())),
+        ("width".into(), Value::Int(800)),
+        ("height".into(), Value::Int(600)),
+    ];
+    option_pairs.extend(extra_options(&plot));
+    let options = Value::Record(HashMap::from_iter(option_pairs).into());
 
     let mut elapsed_ms = Vec::with_capacity(repeats);
     let mut svg = String::new();
     for _ in 0..repeats {
         let started = Instant::now();
-        svg = match call_bio_plots_builtin("umap_plot", vec![data.clone(), options.clone()]) {
+        let arguments = vec![data.clone(), options.clone()];
+        let produced = if plot == "umap_plot" || plot == "manhattan" {
+            call_bio_plots_builtin(&plot, arguments)
+        } else {
+            call_plot_builtin(&plot, arguments)
+        };
+        svg = match produced {
             Ok(Value::Str(svg)) => svg,
-            other => panic!("umap_plot failed: {other:?}"),
+            other => panic!("{plot} failed: {other:?}"),
         };
         elapsed_ms.push(started.elapsed().as_secs_f64() * 1000.0);
     }
@@ -72,6 +151,7 @@ fn main() {
     println!(
         "{}",
         serde_json::to_string(&json!({
+            "plot": plot,
             "size": count,
             "raster": mode,
             "repeats": repeats,

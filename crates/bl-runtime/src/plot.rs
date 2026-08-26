@@ -175,6 +175,89 @@ pub(crate) fn hex_to_rgba(hex: &str, alpha: f64) -> [u8; 4] {
     ]
 }
 
+/// The opacity `add_circle` writes into every point. The raster path applies it
+/// as an alpha byte instead, so a plot looks the same either side of the
+/// threshold.
+pub(crate) const POINT_ALPHA: f64 = 0.7;
+
+/// Vector circles are one DOM node each. They are ruinous in quantity: at
+/// 200,000 points a scatter measures 13.8 MB and 200,012 elements, against
+/// 892 KB and 12 for the same figure rasterised. The raster is flat in the
+/// point count -- it is bounded by the pixels of the plot area, not the data --
+/// so the crossover is a size, not a ratio.
+///
+/// Below the threshold vector wins on both size and speed, which is why this is
+/// a threshold rather than a mode.
+pub(crate) const DEFAULT_RASTER_THRESHOLD: usize = 20_000;
+
+/// Whether a scatter draws as circles or as one image, and at what
+/// supersampling.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct RasterChoice {
+    pub(crate) enabled: bool,
+    pub(crate) scale: f64,
+}
+
+/// Read the shared `raster`, `raster_threshold` and `raster_scale` options.
+///
+/// Every scatter-like plot takes the same three, spelled the same way and
+/// erroring the same way, so a caller who learns them on one plot knows them on
+/// all of them. `builtin` only names the plot in those errors.
+pub(crate) fn raster_choice(
+    opts: &HashMap<String, Value>,
+    builtin: &str,
+    count: usize,
+) -> Result<RasterChoice> {
+    let threshold = match opts.get("raster_threshold") {
+        None => DEFAULT_RASTER_THRESHOLD,
+        Some(Value::Int(value)) if *value > 0 => *value as usize,
+        Some(Value::Float(value)) if value.is_finite() && *value >= 1.0 => *value as usize,
+        Some(_) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("{builtin}() option 'raster_threshold' must be a positive number"),
+                None,
+            ))
+        }
+    };
+    let enabled = match opts.get("raster") {
+        None => count >= threshold,
+        Some(Value::Bool(value)) => *value,
+        Some(Value::Str(value)) => match value.to_ascii_lowercase().as_str() {
+            "auto" => count >= threshold,
+            "on" | "true" => true,
+            "off" | "false" => false,
+            _ => {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("{builtin}() option 'raster' must be 'auto', 'on', 'off', or Bool"),
+                    None,
+                ))
+            }
+        },
+        Some(_) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("{builtin}() option 'raster' must be 'auto', 'on', 'off', or Bool"),
+                None,
+            ))
+        }
+    };
+    let scale = match opts.get("raster_scale") {
+        None => 2.0,
+        Some(Value::Int(value)) if (1..=4).contains(value) => *value as f64,
+        Some(Value::Float(value)) if value.is_finite() && (1.0..=4.0).contains(value) => *value,
+        Some(_) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("{builtin}() option 'raster_scale' must be between 1 and 4"),
+                None,
+            ))
+        }
+    };
+    Ok(RasterChoice { enabled, scale })
+}
+
 pub(crate) fn sequential_color(t: f64) -> String {
     let t = t.clamp(0.0, 1.0);
     let r = (64.0 + t * 191.0) as u8;
@@ -417,6 +500,44 @@ impl SvgCanvas {
             STANDARD.encode(png)
         ));
     }
+
+    /// Draw a scatter as vector circles or as one raster image.
+    ///
+    /// The choice is the caller's; this exists so every plot makes it the same
+    /// way and so the two paths cannot drift apart in appearance. Colours stay
+    /// strings on the vector path -- converting them to bytes and back would
+    /// silently blacken any named colour, since `hex_to_rgba` only understands
+    /// hex.
+    pub(crate) fn add_scatter<S: AsRef<str>>(
+        &mut self,
+        points: &[(f64, f64, S)],
+        radius: f64,
+        area: (f64, f64, f64, f64),
+        choice: RasterChoice,
+    ) {
+        if choice.enabled {
+            let dots: Vec<(f64, f64, [u8; 4])> = points
+                .iter()
+                .map(|(x, y, fill)| (*x, *y, hex_to_rgba(fill.as_ref(), POINT_ALPHA)))
+                .collect();
+            self.add_point_raster(&dots, radius, area, choice.scale);
+            return;
+        }
+        for (x, y, fill) in points {
+            self.add_circle(*x, *y, radius, fill.as_ref());
+        }
+    }
+
+    /// The rectangle a scatter's points occupy, for `add_scatter`.
+    pub(crate) fn point_area(&self) -> (f64, f64, f64, f64) {
+        (
+            self.margin.left,
+            self.margin.top,
+            self.plot_width(),
+            self.plot_height(),
+        )
+    }
+
 
     pub(crate) fn add_text(&mut self, x: f64, y: f64, text: &str, anchor: &str, size: f64) {
         let escaped = text
@@ -1198,7 +1319,7 @@ fn plot_spec_from_value(value: &Value) -> Result<CartesianPlotSpec> {
     })
 }
 
-fn render_cartesian_plot_spec(spec: &CartesianPlotSpec) -> Result<String> {
+fn render_cartesian_plot_spec(spec: &CartesianPlotSpec, raster: RasterChoice) -> Result<String> {
     let mut canvas = SvgCanvas::new(spec.width, spec.height);
     let point_count = spec
         .series
@@ -1223,14 +1344,19 @@ fn render_cartesian_plot_spec(spec: &CartesianPlotSpec) -> Result<String> {
     for item in &spec.series {
         match spec.kind.as_str() {
             "scatter" => {
-                for point in &item.points {
-                    canvas.add_circle(
-                        x_scale.map(point.x),
-                        y_scale.map(point.y),
-                        4.0,
-                        &item.colour,
-                    );
-                }
+                let points: Vec<(f64, f64, &str)> = item
+                    .points
+                    .iter()
+                    .map(|point| {
+                        (
+                            x_scale.map(point.x),
+                            y_scale.map(point.y),
+                            item.colour.as_str(),
+                        )
+                    })
+                    .collect();
+                let area = canvas.point_area();
+                canvas.add_scatter(&points, 4.0, area, raster);
             }
             "line" => {
                 let points = item
@@ -1353,7 +1479,15 @@ fn render_plot_spec_value(
     if format == "spec" || format == "data" {
         return Ok(plot_spec_to_value(spec));
     }
-    let svg = render_cartesian_plot_spec(spec)?;
+    // Counted across every series: they share the plot area, so they share the
+    // one raster, and the threshold is about how many marks land in it.
+    let point_count = spec
+        .series
+        .iter()
+        .map(|series| series.points.len())
+        .sum::<usize>();
+    let raster = raster_choice(opts, "plot", point_count)?;
+    let svg = render_cartesian_plot_spec(spec, raster)?;
     match format.as_str() {
         "svg" | "raw" => Ok(Value::Str(svg.into())),
         // The terminal preview rasterises through resvg, which the browser
@@ -4049,18 +4183,25 @@ fn builtin_volcano(args: Vec<Value>) -> Result<Value> {
         1.0,
     );
 
-    for i in 0..fcs.len() {
-        let color = if neg_log_p[i] > neg_log_p_thresh && fcs[i].abs() > fc_thresh {
-            if fcs[i] > 0.0 {
-                "#e15759"
+    // A differential expression volcano carries one point per gene, so twenty
+    // thousand is an ordinary result rather than a large one.
+    let raster = raster_choice(&opts, "volcano", fcs.len())?;
+    let points: Vec<(f64, f64, &str)> = (0..fcs.len())
+        .map(|i| {
+            let color = if neg_log_p[i] > neg_log_p_thresh && fcs[i].abs() > fc_thresh {
+                if fcs[i] > 0.0 {
+                    "#e15759"
+                } else {
+                    "#4e79a7"
+                }
             } else {
-                "#4e79a7"
-            }
-        } else {
-            "#999"
-        };
-        canvas.add_circle(x_scale.map(fcs[i]), y_scale.map(neg_log_p[i]), 3.0, color);
-    }
+                "#999"
+            };
+            (x_scale.map(fcs[i]), y_scale.map(neg_log_p[i]), color)
+        })
+        .collect();
+    let area = canvas.point_area();
+    canvas.add_scatter(&points, 3.0, area, raster);
 
     let d_x_scale = Scale {
         domain: (-x_abs, x_abs),
@@ -4124,14 +4265,20 @@ fn builtin_ma_plot(args: Vec<Value>) -> Result<Value> {
         1.0,
     );
 
-    for i in 0..a_log.len() {
-        let color = if m_vals[i].abs() > 1.0 {
-            "#e15759"
-        } else {
-            "#999"
-        };
-        canvas.add_circle(x_scale.map(a_log[i]), y_scale.map(m_vals[i]), 3.0, color);
-    }
+    // One point per gene, as with the volcano beside it.
+    let raster = raster_choice(&opts, "ma_plot", a_log.len())?;
+    let points: Vec<(f64, f64, &str)> = (0..a_log.len())
+        .map(|i| {
+            let color = if m_vals[i].abs() > 1.0 {
+                "#e15759"
+            } else {
+                "#999"
+            };
+            (x_scale.map(a_log[i]), y_scale.map(m_vals[i]), color)
+        })
+        .collect();
+    let area = canvas.point_area();
+    canvas.add_scatter(&points, 3.0, area, raster);
 
     let d_x_scale = Scale {
         domain: (x_min, x_max),

@@ -4,9 +4,9 @@ use std::collections::{HashMap, HashSet};
 
 use crate::builtins::write_output;
 use crate::plot::{
-    col_range, extract_table_col, gaussian_kde, get_opt_f64, get_opt_str, hex_to_rgba,
-    parse_options, quantile_type7, sequential_color, seurat_feature_color, silverman_bandwidth,
-    Scale, SvgCanvas, PALETTE, SEURAT_PALETTE,
+    col_range, extract_table_col, gaussian_kde, get_opt_f64, get_opt_str,
+    parse_options, quantile_type7, raster_choice, sequential_color, seurat_feature_color,
+    silverman_bandwidth, Scale, SvgCanvas, PALETTE, SEURAT_PALETTE,
 };
 use crate::viz::{get_opt_usize, nums_from_value, spark_str};
 
@@ -360,14 +360,23 @@ fn builtin_manhattan(args: Vec<Value>) -> Result<Value> {
             "#e15759",
             1.0,
         );
-        for (i, &y) in nlp.iter().enumerate() {
-            let ci = boundaries
-                .iter()
-                .position(|b| b.0 == chroms[i])
-                .unwrap_or(0);
-            let color = PALETTE[ci % PALETTE.len()];
-            c.add_circle(xs.map(gx[i]), ys.map(y), 2.5, color);
-        }
+        // The worst case in the catalogue: a GWAS carries one point per variant,
+        // and whole-genome studies run to millions. Vector circles cannot
+        // represent that in a browser at all.
+        let raster = raster_choice(&opts, "manhattan", nlp.len())?;
+        let points: Vec<(f64, f64, &str)> = nlp
+            .iter()
+            .enumerate()
+            .map(|(i, &y)| {
+                let ci = boundaries
+                    .iter()
+                    .position(|b| b.0 == chroms[i])
+                    .unwrap_or(0);
+                (xs.map(gx[i]), ys.map(y), PALETTE[ci % PALETTE.len()])
+            })
+            .collect();
+        let area = c.point_area();
+        c.add_scatter(&points, 2.5, area, raster);
         let dy = Scale {
             domain: yr,
             range: yr,
@@ -4733,67 +4742,12 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
             range: (c.margin.top + c.plot_height(), c.margin.top),
         };
 
-        // One <circle> per cell, or one embedded raster for the lot.
-        //
-        // Vector points are better when there are few: they hover, they select,
-        // they scale to any zoom, and they are what every existing figure is
-        // made of. They are ruinous when there are many - a million cells is a
-        // 65 MB string and a million DOM nodes, measured. So the default
-        // switches over at a size where SVG is still comfortable, and `raster`
-        // forces either behaviour for a caller who knows better.
-        // The checked-in release benchmark shows that at 5,000 points the PNG
-        // is both slower and larger than vector SVG. At 20,000 it cuts output
-        // from about 1.38 MB / 20,082 elements to 0.45 MB / 83 elements. Use
-        // that measured boundary; callers can move it for their browser or
-        // force either representation explicitly.
-        const DEFAULT_RASTER_THRESHOLD: usize = 20_000;
-        let raster_threshold = match opts.get("raster_threshold") {
-            None => DEFAULT_RASTER_THRESHOLD,
-            Some(Value::Int(value)) if *value > 0 => *value as usize,
-            Some(Value::Float(value)) if value.is_finite() && *value >= 1.0 => *value as usize,
-            Some(_) => {
-                return Err(BioLangError::runtime(
-                    ErrorKind::TypeError,
-                    "umap_plot() option 'raster_threshold' must be a positive number",
-                    None,
-                ))
-            }
-        };
-        let raster = match opts.get("raster") {
-            None => xs.len() >= raster_threshold,
-            Some(Value::Bool(value)) => *value,
-            Some(Value::Str(value)) => match value.to_ascii_lowercase().as_str() {
-                "auto" => xs.len() >= raster_threshold,
-                "on" | "true" => true,
-                "off" | "false" => false,
-                _ => {
-                    return Err(BioLangError::runtime(
-                        ErrorKind::TypeError,
-                        "umap_plot() option 'raster' must be 'auto', 'on', 'off', or Bool",
-                        None,
-                    ))
-                }
-            },
-            Some(_) => {
-                return Err(BioLangError::runtime(
-                    ErrorKind::TypeError,
-                    "umap_plot() option 'raster' must be 'auto', 'on', 'off', or Bool",
-                    None,
-                ))
-            }
-        };
-        let raster_scale = match opts.get("raster_scale") {
-            None => 2.0,
-            Some(Value::Int(value)) if (1..=4).contains(value) => *value as f64,
-            Some(Value::Float(value)) if value.is_finite() && (1.0..=4.0).contains(value) => *value,
-            Some(_) => {
-                return Err(BioLangError::runtime(
-                    ErrorKind::TypeError,
-                    "umap_plot() option 'raster_scale' must be between 1 and 4",
-                    None,
-                ))
-            }
-        };
+        // One <circle> per cell, or one embedded raster for the lot. Vector
+        // points are better when there are few: they hover, they select, they
+        // scale to any zoom. The threshold and the reasoning behind it live
+        // with `raster_choice`, so every scatter switches over at the same
+        // size and explains itself the same way.
+        let raster = raster_choice(&opts, "umap_plot", xs.len())?;
 
         let point_color = |i: usize| -> String {
             if has_feature {
@@ -4821,40 +4775,22 @@ fn builtin_umap_plot(args: Vec<Value>) -> Result<Value> {
             }
         };
 
-        if raster {
-            // add_circle's own opacity, so a plot does not change appearance
-            // when it crosses the threshold.
-            const POINT_ALPHA: f64 = 0.7;
-            let dots: Vec<(f64, f64, [u8; 4])> = (0..xs.len())
-                .map(|i| {
-                    (
-                        x_scale.map(xs[i]),
-                        y_scale.map(ys[i]),
-                        hex_to_rgba(&point_color(i), POINT_ALPHA),
-                    )
-                })
-                .collect();
-            c.add_point_raster(
-                &dots,
-                point_radius,
-                (
-                    c.margin.left,
-                    c.margin.top,
-                    plot_right - c.margin.left,
-                    c.plot_height(),
-                ),
-                raster_scale,
-            );
-        } else {
-            for i in 0..xs.len() {
-                c.add_circle(
-                    x_scale.map(xs[i]),
-                    y_scale.map(ys[i]),
-                    point_radius,
-                    &point_color(i),
-                );
-            }
-        }
+        let points: Vec<(f64, f64, String)> = (0..xs.len())
+            .map(|i| (x_scale.map(xs[i]), y_scale.map(ys[i]), point_color(i)))
+            .collect();
+        // Not point_area(): the legend takes the right-hand strip, so the
+        // points stop at plot_right rather than the full plot width.
+        c.add_scatter(
+            &points,
+            point_radius,
+            (
+                c.margin.left,
+                c.margin.top,
+                plot_right - c.margin.left,
+                c.plot_height(),
+            ),
+            raster,
+        );
 
         // Point labels stay vector in both modes - they are text, and there are
         // never many of them.
