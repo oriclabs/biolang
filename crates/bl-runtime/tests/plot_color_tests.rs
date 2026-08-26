@@ -297,9 +297,14 @@ fn width_peaks(svg: &str, index: usize) -> usize {
 #[test]
 fn a_violin_shows_bimodality_a_boxplot_would_hide() {
     let mut rows: Vec<(&str, f64)> = Vec::new();
-    // Unimodal: a single tight cluster.
-    for i in 0..200 {
-        rows.push(("uni", 10.0 + ((i % 20) as f64 - 10.0) * 0.15));
+    // Unimodal: counts fall away from a single centre. Cycling i % 20 would
+    // spread the sample evenly instead, and the density of an even spread is a
+    // plateau -- flat to within a part in 10,000, so which point on top counts
+    // as the maximum comes down to how the polygon coordinates round.
+    for offset in -10..=10i32 {
+        for _ in 0..(11 - offset.abs()) * 2 {
+            rows.push(("uni", 10.0 + f64::from(offset) * 0.1));
+        }
     }
     // Bimodal: two clusters far apart.
     for i in 0..100 {
