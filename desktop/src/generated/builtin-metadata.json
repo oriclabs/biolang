@@ -1598,6 +1598,23 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "categorical_data",
+      "signature": "categorical_data(values) -> ordered frequency/proportion geometry Record",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "values"
+      ],
+      "returnType": "ordered frequency/proportion geometry Record",
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "cbio_clinical",
       "signature": "cbio_clinical(arg1)",
       "category": "runtime",
@@ -10271,6 +10288,24 @@
         "kind": "exact",
         "minimum": 3,
         "maximum": 3
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "missingness_data",
+      "signature": "missingness_data(table, opts?) -> full counts plus bounded display geometry Record",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "table",
+        "opts?"
+      ],
+      "returnType": "full counts plus bounded display geometry Record",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
       },
       "metadataQuality": "curated"
     },

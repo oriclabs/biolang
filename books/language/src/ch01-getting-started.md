@@ -183,7 +183,7 @@ Record{chrom: Str, start: Int, end: Int}
 A plot expression keeps its full SVG value, but the REPL previews it as a
 compact Unicode chart instead of printing the SVG markup:
 
-```biolang
+```text
 bl> histogram([2, 3, 3, 4, 7, 8, 8, 9])
 Histogram
   ⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀
