@@ -106,6 +106,34 @@ fn table_for(plot: &str, count: usize) -> Value {
                 })
                 .collect(),
         ),
+        // pca_plot reads samples as rows and every numeric column as a
+        // feature. Eight features keeps the covariance step real without
+        // letting it dominate the render being measured.
+        "pca_plot" => (
+            (0..8).map(|f| format!("feature{}", f + 1)).collect(),
+            (0..count)
+                .map(|i| {
+                    (0..8)
+                        .map(|f| {
+                            let phase = (i % (211 + f * 13)) as f64 / 211.0;
+                            Value::Float(phase + (i % 7) as f64 * 0.25)
+                        })
+                        .collect()
+                })
+                .collect(),
+        ),
+        "variable_feature_plot" => (
+            vec!["gene".into(), "mean".into(), "dispersion".into()],
+            (0..count)
+                .map(|i| {
+                    vec![
+                        Value::Str(format!("gene{i}").into()),
+                        Value::Float(0.01 + (i % 4001) as f64 / 400.0),
+                        Value::Float(0.5 + (i % 997) as f64 / 300.0),
+                    ]
+                })
+                .collect(),
+        ),
         other => panic!("unknown --plot {other}"),
     };
     Value::Table(Table::new(columns, rows).into())
@@ -154,7 +182,13 @@ fn main() {
         let arguments = vec![data.clone(), options.clone()];
         let produced = if matches!(
             plot.as_str(),
-            "umap_plot" | "manhattan" | "qq_plot" | "rainfall" | "volcano_plot"
+            "umap_plot"
+                | "manhattan"
+                | "qq_plot"
+                | "rainfall"
+                | "volcano_plot"
+                | "pca_plot"
+                | "variable_feature_plot"
         ) {
             call_bio_plots_builtin(&plot, arguments)
         } else {
