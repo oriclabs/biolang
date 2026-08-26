@@ -19,11 +19,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { requireSiteRoot } from "./lib/site-root.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CASES = path.join(ROOT, "benchmarks", "correctness", "oneliners", "cases.tsv");
 const RESULTS = path.join(ROOT, "benchmarks", "correctness", "results", "oneliners.json");
-const OUT = path.join(ROOT, "website", "docs", "examples", "equivalents.html");
+const OUT = path.join(requireSiteRoot(ROOT), "docs", "examples", "equivalents.html");
+const EVIDENCE_URL =
+  "https://github.com/oriclabs/biolang/blob/main/benchmarks/correctness/results/oneliners.md";
 
 const escape = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -123,7 +126,9 @@ function tabs(row, verdict) {
 
   const differ = (row.expect || "").trim() === "differ";
   const note = differ ? "conventions differ - see note" : "verified identical";
-  const href = differ ? "#conventions" : "../../../benchmarks/correctness/results/oneliners.md";
+  // The evidence file lives in this repository and the page lives in another,
+  // so the link has to leave the site rather than climb out of it.
+  const href = differ ? "#conventions" : EVIDENCE_URL;
 
   const body = panes.map(([label, lang, code]) =>
     `        <div class="code-tab-pane" data-lang="${escape(label)}">

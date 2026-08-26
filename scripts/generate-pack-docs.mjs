@@ -18,6 +18,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { listPackIds, packCounts, readPack, repositoryRoot } from "./lib/pack-manifest.mjs";
 import { createZip } from "./lib/zip.mjs";
+import { siteRoot } from "./lib/site-root.mjs";
 
 const outIndex = process.argv.indexOf("--out");
 const outputRoot = path.resolve(
@@ -77,7 +78,7 @@ const groupTitle = (group) =>
  * guessed at.
  */
 async function browserBuiltins() {
-  const catalog = path.join(repositoryRoot, "website", "wasm", "builtins.json");
+  const catalog = path.join(siteRoot(repositoryRoot), "wasm", "builtins.json");
   const raw = await readFile(catalog, "utf8").catch(() => "");
   if (!raw) return null;
   return new Set(JSON.parse(raw).builtins ?? []);
@@ -550,7 +551,7 @@ for (const packId of packIds) {
   const linkSites = [
     { file: path.join(outputRoot, "index.html"), what: "a card in the examples gallery" },
     {
-      file: path.join(repositoryRoot, "website", "components", "nav.html"),
+      file: path.join(siteRoot(repositoryRoot), "components", "nav.html"),
       what: "an entry in the sidebar nav",
     },
   ];
