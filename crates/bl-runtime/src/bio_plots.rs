@@ -6,7 +6,7 @@ use crate::builtins::write_output;
 use crate::plot::{
     col_range, extract_table_col, gaussian_kde, get_opt_f64, get_opt_str, parse_options,
     quantile_type7, raster_choice, sequential_color, seurat_feature_color, silverman_bandwidth,
-    Scale, SvgCanvas, PALETTE, SEURAT_PALETTE,
+    thin_requested, thin_to_pixel_grid, Scale, SvgCanvas, PALETTE, SEURAT_PALETTE,
 };
 use crate::viz::{get_opt_usize, nums_from_value, spark_str};
 
@@ -376,13 +376,48 @@ fn builtin_manhattan(args: Vec<Value>) -> Result<Value> {
             })
             .collect();
         let area = c.point_area();
-        c.add_scatter(&points, 2.5, area, raster);
+        // A whole-genome study paints the same pixel hundreds of times over,
+        // and that accumulated alpha is most of what the PNG has to encode.
+        // Thinning is opt-in because it trades away density-as-shade; see
+        // thin_to_pixel_grid for exactly what it drops.
+        let thin = thin_requested(&opts, "manhattan")?;
+        let drawn = if thin {
+            let coords: Vec<(f64, f64)> = points.iter().map(|&(x, y, _)| (x, y)).collect();
+            // Vector output has no device pixel of its own, so a thinned
+            // vector plot thins at nominal size.
+            let grid = if raster.enabled { raster.scale } else { 1.0 };
+            let kept = thin_to_pixel_grid(&coords, area, grid, &nlp);
+            let survivors: Vec<(f64, f64, &str)> = kept.iter().map(|&i| points[i]).collect();
+            c.add_scatter(&survivors, 2.5, area, raster);
+            survivors.len()
+        } else {
+            c.add_scatter(&points, 2.5, area, raster);
+            points.len()
+        };
         let dy = Scale {
             domain: yr,
             range: yr,
         };
         c.draw_y_axis(&dy, "-log10(p)");
         c.draw_title("Manhattan Plot");
+        // The figure has to say so itself: someone reading the SVG later has no
+        // other way to know it is not showing every variant.
+        if drawn < points.len() {
+            c.set_accessible_description(format!(
+                "Manhattan plot, thinned to one variant per pixel: {drawn} of {} variants drawn,                  the most significant in each pixel. Point density does not indicate variant count.",
+                points.len()
+            ));
+            c.add_text(
+                c.margin.left,
+                c.height - 6.0,
+                &format!(
+                    "thinned: {drawn} of {} variants drawn (most significant per pixel)",
+                    points.len()
+                ),
+                "start",
+                9.0,
+            );
+        }
         // chrom labels
         for (ci, (name, start, end)) in boundaries.iter().enumerate() {
             let mid = xs.map((start + end) / 2.0);

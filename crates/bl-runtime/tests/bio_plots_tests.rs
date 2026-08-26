@@ -1917,3 +1917,126 @@ fn whole_number_axes_do_not_carry_a_pointless_decimal() {
         "expected undecorated integer ticks, got {labels:?}"
     );
 }
+
+// ── manhattan: thinning ─────────────────────────────────────────
+//
+// Thinning drops variants. A figure that does that without saying so is a
+// figure a reader will misread, so these pin the disclosure as tightly as the
+// arithmetic.
+
+fn crowded_gwas(n: usize) -> Value {
+    // The axis auto-fits its data, so merely bunching the positions up proves
+    // nothing -- the scale would spread them back out across the panel. Real
+    // collisions need more variants than the panel has pixels, so these cycle
+    // through 50 positions at one p-value: whatever the scale does, 50 columns
+    // have to share it. The one genome-wide hit is planted at a known index.
+    let rows: Vec<Vec<Value>> = (0..n)
+        .map(|i| {
+            let p = if i == 7 { 1e-30 } else { 0.5 };
+            vec![
+                Value::Str("chr1".into()),
+                Value::Float(1000.0 + (i % 50) as f64),
+                Value::Float(p),
+            ]
+        })
+        .collect();
+    make_table(vec!["chrom", "pos", "pvalue"], rows)
+}
+
+fn svg_of(value: &Value) -> String {
+    match value {
+        Value::Str(s) => s.clone(),
+        other => panic!("expected SVG, got {:?}", other.type_of()),
+    }
+}
+
+#[test]
+fn manhattan_does_not_thin_unless_asked() {
+    let plot = call_bio_plots_builtin("manhattan", vec![crowded_gwas(5000), svg_opts()]).unwrap();
+    let svg = svg_of(&plot);
+    assert!(
+        !svg.contains("thinned"),
+        "a plot nobody asked to thin must not announce thinning"
+    );
+    assert_eq!(
+        svg.matches("<circle").count(),
+        5000,
+        "every variant should still be drawn by default"
+    );
+}
+
+#[test]
+fn manhattan_thinning_says_so_in_the_figure_and_the_description() {
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("thin", Value::Bool(true)),
+        ("raster", Value::Str("off".into())),
+    ]);
+    let svg = svg_of(&call_bio_plots_builtin("manhattan", vec![crowded_gwas(5000), opts]).unwrap());
+
+    let drawn = svg.matches("<circle").count();
+    assert!(drawn < 5000, "thinning should have removed something");
+    assert!(drawn > 0, "thinning should not empty the plot");
+
+    // Both the visible note and the accessible description carry the counts,
+    // so the disclosure survives being read by eye or by screen reader.
+    assert!(
+        svg.contains(&format!("thinned: {drawn} of 5000 variants drawn")),
+        "the visible note should give both counts; got:\n{svg}"
+    );
+    assert!(
+        svg.contains("<desc>Manhattan plot, thinned to one variant per pixel"),
+        "the description should record the thinning"
+    );
+    assert!(
+        svg.contains("Point density does not indicate variant count."),
+        "the description should warn that density is no longer meaningful"
+    );
+}
+
+#[test]
+fn manhattan_thinning_keeps_the_genome_wide_hit() {
+    // The one thing that must never be thinned away. Its y position is far
+    // above every other point, so it owns its pixel row outright -- but only
+    // if the survivor is chosen by significance rather than by input order.
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("thin", Value::Bool(true)),
+        ("raster", Value::Str("off".into())),
+    ]);
+    let plain =
+        svg_of(&call_bio_plots_builtin("manhattan", vec![crowded_gwas(5000), svg_opts()]).unwrap());
+    let thinned =
+        svg_of(&call_bio_plots_builtin("manhattan", vec![crowded_gwas(5000), opts]).unwrap());
+
+    let highest = |svg: &str| {
+        svg.match_indices("<circle")
+            .filter_map(|(at, _)| {
+                let tag = &svg[at..svg[at..].find("/>").map(|e| at + e).unwrap_or(svg.len())];
+                let cy = tag.find("cy=\"")? + 4;
+                let end = tag[cy..].find('"')? + cy;
+                tag[cy..end].parse::<f64>().ok()
+            })
+            .fold(f64::MAX, f64::min)
+    };
+    // Smaller y is higher on the page.
+    assert!(
+        (highest(&plain) - highest(&thinned)).abs() < 0.05,
+        "the top of the plot moved: {} -> {}",
+        highest(&plain),
+        highest(&thinned)
+    );
+}
+
+#[test]
+fn manhattan_rejects_a_thin_option_it_cannot_read() {
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("thin", Value::Int(3)),
+    ]);
+    let err = call_bio_plots_builtin("manhattan", vec![crowded_gwas(50), opts]).unwrap_err();
+    assert!(
+        format!("{err}").contains("'thin' must be"),
+        "expected a message naming the option; got {err}"
+    );
+}
