@@ -538,7 +538,6 @@ impl SvgCanvas {
         )
     }
 
-
     pub(crate) fn add_text(&mut self, x: f64, y: f64, text: &str, anchor: &str, size: f64) {
         let escaped = text
             .replace('&', "&amp;")

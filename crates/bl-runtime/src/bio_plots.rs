@@ -4,9 +4,9 @@ use std::collections::{HashMap, HashSet};
 
 use crate::builtins::write_output;
 use crate::plot::{
-    col_range, extract_table_col, gaussian_kde, get_opt_f64, get_opt_str,
-    parse_options, quantile_type7, raster_choice, sequential_color, seurat_feature_color,
-    silverman_bandwidth, Scale, SvgCanvas, PALETTE, SEURAT_PALETTE,
+    col_range, extract_table_col, gaussian_kde, get_opt_f64, get_opt_str, parse_options,
+    quantile_type7, raster_choice, sequential_color, seurat_feature_color, silverman_bandwidth,
+    Scale, SvgCanvas, PALETTE, SEURAT_PALETTE,
 };
 use crate::viz::{get_opt_usize, nums_from_value, spark_str};
 

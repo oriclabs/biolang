@@ -41,7 +41,6 @@ fn points(count: usize) -> Value {
     Value::List(rows.into())
 }
 
-
 /// A table of the shape one plot reads, sized to `count`.
 ///
 /// The columns carry the names each builtin expects and values in a plausible
