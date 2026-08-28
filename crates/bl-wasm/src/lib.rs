@@ -259,60 +259,598 @@ pub fn list_variables() -> String {
             return "[]".to_string();
         };
         let vars = interp.env().list_global_vars();
-        let entries: Vec<serde_json::Value> = vars
+        let mut entries: Vec<serde_json::Value> = vars
             .into_iter()
-            .filter(|(_, v)| !matches!(v, Value::NativeFunction { .. }))
+            .filter(|(name, v)| {
+                *name != "_"
+                    && !name.starts_with("__const_")
+                    && !matches!(v, Value::NativeFunction { .. })
+            })
             .map(|(name, val)| {
+                let (length, rows, columns) = value_shape(val);
+                let type_name = val.type_of().to_string();
+                let (members, members_truncated) = value_members(val);
                 serde_json::json!({
                     "name": name,
-                    "type": val.type_of().to_string(),
-                    "preview": format_value(val),
-                    "members": value_members(val),
+                    // `type` remains for older browser-console consumers.
+                    "type": type_name,
+                    "typeName": type_name,
+                    "preview": value_preview(val),
+                    "sizeBytes": approximate_value_bytes(val),
+                    "sizeApproximate": value_size_is_approximate(val),
+                    "length": length,
+                    "rows": rows,
+                    "columns": columns,
+                    "members": members,
+                    "membersTruncated": members_truncated,
                 })
             })
             .collect();
+        entries.sort_by(|left, right| {
+            left.get("name")
+                .and_then(serde_json::Value::as_str)
+                .cmp(&right.get("name").and_then(serde_json::Value::as_str))
+        });
         serde_json::Value::Array(entries).to_string()
     })
 }
 
-fn value_members(value: &Value) -> Vec<String> {
-    let mut members = match value {
-        Value::Record(fields) | Value::Map(fields) => fields.keys().cloned().collect(),
-        Value::Table(table) => table.columns.clone(),
-        Value::Gene { .. } => vec![
-            "symbol",
-            "gene_id",
-            "chrom",
-            "start",
-            "end",
-            "strand",
-            "biotype",
-            "description",
-        ]
-        .into_iter()
-        .map(str::to_string)
-        .collect(),
-        Value::Variant { .. } => vec![
-            "chrom",
-            "pos",
-            "id",
-            "ref_allele",
-            "alt_allele",
-            "quality",
-            "filter",
-            "info",
-        ]
-        .into_iter()
-        .map(str::to_string)
-        .collect(),
-        Value::Genome { .. } => vec!["name", "species", "assembly", "chromosomes"]
+/// Return one bounded page of a variable. Container values are never formatted
+/// wholesale: at most 100 rows and 50 columns cross the WASM boundary per call.
+#[wasm_bindgen]
+pub fn inspect_variable(name: &str, offset: usize, limit: usize) -> String {
+    const MAX_ROWS: usize = 100;
+    INTERPRETER.with(|cell| {
+        let slot = cell.borrow();
+        let Some(interpreter) = slot.as_ref() else {
+            return serde_json::json!({ "ok": false, "error": "The browser interpreter is not initialized." }).to_string();
+        };
+        let Some(value) = interpreter.env().lookup(name) else {
+            return serde_json::json!({ "ok": false, "error": format!("Variable '{name}' no longer exists.") }).to_string();
+        };
+        let page = variable_page(name, value, offset, limit.clamp(1, MAX_ROWS));
+        serde_json::json!({ "ok": true, "page": page }).to_string()
+    })
+}
+
+/// Serialize one variable exactly, stopping before the response can exceed the
+/// caller's byte cap. Large native exports use the streaming path in
+/// `bl_runtime::value_export` instead of crossing this in-memory boundary.
+#[wasm_bindgen]
+pub fn export_variable(name: &str, format: &str, maximum_bytes: usize) -> Result<Vec<u8>, JsValue> {
+    let format = bl_runtime::value_export::ValueExportFormat::parse(format)
+        .map_err(|error| JsValue::from_str(&error))?;
+    INTERPRETER.with(|cell| {
+        let slot = cell.borrow();
+        let interpreter = slot
+            .as_ref()
+            .ok_or_else(|| JsValue::from_str("The browser interpreter is not initialized."))?;
+        let value = interpreter
+            .env()
+            .lookup(name)
+            .ok_or_else(|| JsValue::from_str(&format!("Variable '{name}' no longer exists.")))?;
+        bl_runtime::value_export::export_value_capped(value, format, maximum_bytes)
+            .map_err(|error| JsValue::from_str(&error))
+    })
+}
+
+fn variable_page(name: &str, value: &Value, offset: usize, limit: usize) -> serde_json::Value {
+    const MAX_COLUMNS: usize = 50;
+    let type_name = value.type_of().to_string();
+    match value {
+        Value::Table(table) => {
+            let end = offset.saturating_add(limit).min(table.rows.len());
+            let shown_columns = table.columns.len().min(MAX_COLUMNS);
+            let mut columns = vec!["#".to_string()];
+            columns.extend(table.columns.iter().take(shown_columns).cloned());
+            let rows = table
+                .rows
+                .get(offset..end)
+                .unwrap_or(&[])
+                .iter()
+                .enumerate()
+                .map(|(index, row)| {
+                    let mut cells = vec![serde_json::json!(offset + index + 1)];
+                    cells.extend(row.iter().take(shown_columns).map(variable_cell));
+                    cells
+                })
+                .collect::<Vec<_>>();
+            page_json(
+                name,
+                &type_name,
+                "table",
+                offset,
+                table.rows.len(),
+                columns,
+                rows,
+                table.columns.len() > shown_columns,
+            )
+        }
+        Value::Matrix(matrix) => matrix_page(
+            name,
+            &type_name,
+            "matrix",
+            offset,
+            limit,
+            matrix.nrow,
+            matrix.ncol,
+            matrix.row_names.as_ref(),
+            matrix.col_names.as_ref(),
+            |row, column| serde_json::json!(matrix.get(row, column)),
+        ),
+        Value::SparseMatrix(matrix) => matrix_page(
+            name,
+            &type_name,
+            "sparse-matrix",
+            offset,
+            limit,
+            matrix.nrow,
+            matrix.ncol,
+            matrix.row_names.as_ref(),
+            matrix.col_names.as_ref(),
+            |row, column| serde_json::json!(matrix.get(row, column)),
+        ),
+        Value::List(items) => collection_page(name, &type_name, items, offset, limit),
+        Value::Set(items) | Value::Tuple(items) => {
+            collection_page(name, &type_name, items, offset, limit)
+        }
+        Value::Map(fields) | Value::Record(fields) => {
+            // Hash-map iteration is stable while the value is unchanged. Avoid
+            // allocating and sorting every key merely to show one small page.
+            let rows = fields
+                .iter()
+                .skip(offset)
+                .take(limit)
+                .map(|(key, item)| {
+                    vec![
+                        serde_json::json!(key),
+                        serde_json::json!(item.type_of().to_string()),
+                        variable_cell(item),
+                    ]
+                })
+                .collect::<Vec<_>>();
+            page_json(
+                name,
+                &type_name,
+                "record",
+                offset,
+                fields.len(),
+                vec!["Field".into(), "Type".into(), "Value".into()],
+                rows,
+                false,
+            )
+        }
+        Value::Str(text) => text_page(name, &type_name, "text", text, offset, limit, 240),
+        Value::DNA(sequence) | Value::RNA(sequence) | Value::Protein(sequence) => text_page(
+            name,
+            &type_name,
+            "sequence",
+            &sequence.data,
+            offset,
+            limit,
+            120,
+        ),
+        Value::Quality(scores) => {
+            let end = offset.saturating_add(limit).min(scores.len());
+            let rows = scores
+                .get(offset..end)
+                .unwrap_or(&[])
+                .iter()
+                .enumerate()
+                .map(|(index, score)| {
+                    vec![
+                        serde_json::json!(offset + index + 1),
+                        serde_json::json!(score),
+                    ]
+                })
+                .collect();
+            page_json(
+                name,
+                &type_name,
+                "quality",
+                offset,
+                scores.len(),
+                vec!["Position".into(), "Score".into()],
+                rows,
+                false,
+            )
+        }
+        _ => page_json(
+            name,
+            &type_name,
+            "scalar",
+            0,
+            1,
+            vec!["Value".into()],
+            vec![vec![variable_cell(value)]],
+            false,
+        ),
+    }
+}
+
+fn collection_page(
+    name: &str,
+    type_name: &str,
+    items: &[Value],
+    offset: usize,
+    limit: usize,
+) -> serde_json::Value {
+    let end = offset.saturating_add(limit).min(items.len());
+    let rows = items
+        .get(offset..end)
+        .unwrap_or(&[])
+        .iter()
+        .enumerate()
+        .map(|(index, item)| {
+            vec![
+                serde_json::json!(offset + index + 1),
+                serde_json::json!(item.type_of().to_string()),
+                variable_cell(item),
+            ]
+        })
+        .collect::<Vec<_>>();
+    page_json(
+        name,
+        type_name,
+        "collection",
+        offset,
+        items.len(),
+        vec!["#".into(), "Type".into(), "Value".into()],
+        rows,
+        false,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn matrix_page(
+    name: &str,
+    type_name: &str,
+    kind: &str,
+    offset: usize,
+    limit: usize,
+    nrow: usize,
+    ncol: usize,
+    row_names: Option<&Vec<String>>,
+    column_names: Option<&Vec<String>>,
+    value_at: impl Fn(usize, usize) -> serde_json::Value,
+) -> serde_json::Value {
+    const MAX_COLUMNS: usize = 50;
+    let shown_columns = ncol.min(MAX_COLUMNS);
+    let end = offset.saturating_add(limit).min(nrow);
+    let mut columns = vec!["Row".to_string()];
+    columns.extend((0..shown_columns).map(|column| {
+        column_names
+            .and_then(|names| names.get(column))
+            .cloned()
+            .unwrap_or_else(|| (column + 1).to_string())
+    }));
+    let rows = (offset..end)
+        .map(|row| {
+            let mut cells = vec![serde_json::json!(row_names
+                .and_then(|names| names.get(row))
+                .cloned()
+                .unwrap_or_else(|| (row + 1).to_string()))];
+            cells.extend((0..shown_columns).map(|column| value_at(row, column)));
+            cells
+        })
+        .collect();
+    page_json(
+        name,
+        type_name,
+        kind,
+        offset,
+        nrow,
+        columns,
+        rows,
+        ncol > shown_columns,
+    )
+}
+
+fn text_page(
+    name: &str,
+    type_name: &str,
+    kind: &str,
+    text: &str,
+    offset: usize,
+    limit: usize,
+    chunk: usize,
+) -> serde_json::Value {
+    let character_count = text.chars().count();
+    let total = character_count.div_ceil(chunk);
+    let end = offset.saturating_add(limit).min(total);
+    let mut characters = text.chars().skip(offset.saturating_mul(chunk));
+    let rows = (offset..end)
+        .map(|index| {
+            vec![
+                serde_json::json!(index + 1),
+                serde_json::json!(characters.by_ref().take(chunk).collect::<String>()),
+            ]
+        })
+        .collect();
+    page_json(
+        name,
+        type_name,
+        kind,
+        offset,
+        total,
+        vec!["Chunk".into(), "Value".into()],
+        rows,
+        false,
+    )
+}
+
+fn page_json(
+    name: &str,
+    type_name: &str,
+    kind: &str,
+    offset: usize,
+    total: usize,
+    columns: Vec<String>,
+    rows: Vec<Vec<serde_json::Value>>,
+    columns_truncated: bool,
+) -> serde_json::Value {
+    let next_offset = offset.saturating_add(rows.len());
+    serde_json::json!({
+        "name": name, "typeName": type_name, "kind": kind, "offset": offset,
+        "nextOffset": next_offset, "total": total, "columns": columns, "rows": rows,
+        "truncated": next_offset < total, "columnsTruncated": columns_truncated,
+    })
+}
+
+fn variable_cell(value: &Value) -> serde_json::Value {
+    match value {
+        Value::Nil => serde_json::Value::Null,
+        Value::Bool(value) => serde_json::Value::Bool(*value),
+        Value::Int(value) => serde_json::json!(value),
+        Value::Float(value) if value.is_finite() => serde_json::json!(value),
+        Value::Float(value) => serde_json::json!(value.to_string()),
+        Value::Str(value) => serde_json::json!(truncate_chars(value, 240)),
+        _ => serde_json::json!(value_preview(value)),
+    }
+}
+
+fn truncate_chars(value: &str, maximum: usize) -> String {
+    if value.chars().count() <= maximum {
+        return value.to_string();
+    }
+    let mut shortened = value
+        .chars()
+        .take(maximum.saturating_sub(1))
+        .collect::<String>();
+    shortened.push('…');
+    shortened
+}
+
+fn value_preview(value: &Value) -> String {
+    match value {
+        Value::Nil => "nil".into(),
+        Value::Bool(value) => value.to_string(),
+        Value::Int(value) => value.to_string(),
+        Value::Float(value) => value.to_string(),
+        Value::Str(value) => format!("\"{}\"", truncate_chars(value, 60)),
+        Value::List(values) => format!("[{} items]", values.len()),
+        Value::Map(values) => format!("{{{} entries}}", values.len()),
+        Value::Record(values) => format!("{{{} fields}}", values.len()),
+        Value::Table(table) => format!("[{} × {}]", table.num_rows(), table.num_cols()),
+        Value::Matrix(matrix) => format!("Matrix({} × {})", matrix.nrow, matrix.ncol),
+        Value::SparseMatrix(matrix) => format!(
+            "Sparse({} × {}, {} non-zero)",
+            matrix.nrow,
+            matrix.ncol,
+            matrix.nnz()
+        ),
+        Value::DNA(sequence) => format!("{} bp", sequence.data.len()),
+        Value::RNA(sequence) => format!("{} nt", sequence.data.len()),
+        Value::Protein(sequence) => format!("{} aa", sequence.data.len()),
+        Value::Quality(values) => format!("Quality({} scores)", values.len()),
+        Value::Set(values) => format!("Set({} items)", values.len()),
+        Value::Tuple(values) => format!("Tuple({} items)", values.len()),
+        Value::Function { params, .. } => format!("fn({} parameters)", params.len()),
+        Value::NativeFunction { name, .. } => format!("<builtin {name}>"),
+        Value::Formula(_) => "~expression".into(),
+        Value::Stream(stream) => format!("Stream({})", truncate_chars(&stream.label, 60)),
+        Value::Interval(interval) => truncate_chars(&interval.to_string(), 80),
+        Value::Range {
+            start,
+            end,
+            inclusive,
+        } => {
+            if *inclusive {
+                format!("{start}..={end}")
+            } else {
+                format!("{start}..{end}")
+            }
+        }
+        Value::EnumValue {
+            enum_name,
+            variant,
+            fields,
+            ..
+        } => format!("{enum_name}::{variant}({} fields)", fields.len()),
+        Value::PluginFunction {
+            plugin_name,
+            operation,
+            ..
+        } => format!("<plugin:{plugin_name}.{operation}>"),
+        Value::Regex { pattern, flags } => format!("/{}/{flags}", truncate_chars(pattern, 60)),
+        Value::Future(_) => "<future>".into(),
+        Value::Kmer(kmer) => format!("Kmer({})", kmer.decode()),
+        Value::CompiledClosure(_) => "<compiled function>".into(),
+        Value::Gene { symbol, .. } => format!("Gene({})", truncate_chars(symbol, 60)),
+        Value::Variant { chrom, pos, .. } => {
+            format!("Variant({}:{pos})", truncate_chars(chrom, 50))
+        }
+        Value::Genome { name, .. } => format!("Genome({})", truncate_chars(name, 60)),
+        Value::AlignedRead(read) => format!(
+            "AlignedRead({} {}:{})",
+            truncate_chars(&read.qname, 30),
+            truncate_chars(&read.rname, 30),
+            read.pos
+        ),
+    }
+}
+
+fn value_shape(value: &Value) -> (Option<usize>, Option<usize>, Option<usize>) {
+    match value {
+        Value::List(values) => (Some(values.len()), None, None),
+        Value::Set(values) | Value::Tuple(values) => (Some(values.len()), None, None),
+        Value::Map(values) | Value::Record(values) => (Some(values.len()), None, None),
+        Value::Table(table) => (None, Some(table.num_rows()), Some(table.num_cols())),
+        Value::Matrix(matrix) => (None, Some(matrix.nrow), Some(matrix.ncol)),
+        Value::SparseMatrix(matrix) => (None, Some(matrix.nrow), Some(matrix.ncol)),
+        Value::Str(value) => (Some(value.chars().count()), None, None),
+        Value::DNA(sequence) | Value::RNA(sequence) | Value::Protein(sequence) => {
+            (Some(sequence.data.len()), None, None)
+        }
+        Value::Quality(values) => (Some(values.len()), None, None),
+        _ => (None, None, None),
+    }
+}
+
+fn value_size_is_approximate(value: &Value) -> bool {
+    matches!(
+        value,
+        Value::List(_)
+            | Value::Map(_)
+            | Value::Record(_)
+            | Value::Table(_)
+            | Value::Set(_)
+            | Value::Tuple(_)
+    )
+}
+
+fn approximate_value_bytes(value: &Value) -> usize {
+    const SAMPLE: usize = 32;
+    let base = std::mem::size_of::<Value>();
+    let extrapolate = |sample: usize, measured: usize, total: usize| {
+        if sample == 0 {
+            base
+        } else {
+            base.saturating_add(measured.saturating_mul(total).div_ceil(sample))
+        }
+    };
+    match value {
+        Value::Str(value) => base + value.len(),
+        Value::List(values) => {
+            let sample = values.len().min(SAMPLE);
+            extrapolate(
+                sample,
+                values
+                    .iter()
+                    .take(sample)
+                    .map(approximate_value_bytes)
+                    .sum(),
+                values.len(),
+            )
+        }
+        Value::Map(values) | Value::Record(values) => {
+            let sample = values.len().min(SAMPLE);
+            extrapolate(
+                sample,
+                values
+                    .iter()
+                    .take(sample)
+                    .map(|(key, value)| key.len() + approximate_value_bytes(value))
+                    .sum(),
+                values.len(),
+            )
+        }
+        Value::Table(table) => {
+            let sample = table.rows.len().min(SAMPLE);
+            let measured = table
+                .rows
+                .iter()
+                .take(sample)
+                .flatten()
+                .map(approximate_value_bytes)
+                .sum();
+            table
+                .columns
+                .iter()
+                .map(String::len)
+                .sum::<usize>()
+                .saturating_add(extrapolate(sample, measured, table.rows.len()))
+        }
+        Value::DNA(sequence) | Value::RNA(sequence) | Value::Protein(sequence) => {
+            base + sequence.data.len()
+        }
+        Value::Matrix(matrix) => base + matrix.data.len() * std::mem::size_of::<f64>(),
+        Value::SparseMatrix(matrix) => {
+            base + matrix.data.len() * std::mem::size_of::<f64>()
+                + matrix.indices.len() * std::mem::size_of::<usize>()
+                + matrix.indptr.len() * std::mem::size_of::<usize>()
+        }
+        Value::Set(values) | Value::Tuple(values) => {
+            let sample = values.len().min(SAMPLE);
+            extrapolate(
+                sample,
+                values
+                    .iter()
+                    .take(sample)
+                    .map(approximate_value_bytes)
+                    .sum(),
+                values.len(),
+            )
+        }
+        Value::Quality(values) => base + values.len(),
+        _ => base,
+    }
+}
+
+fn value_members(value: &Value) -> (Vec<String>, bool) {
+    const MAX_MEMBERS: usize = 50;
+    let (mut members, total) = match value {
+        Value::Record(fields) | Value::Map(fields) => (
+            fields.keys().take(MAX_MEMBERS).cloned().collect(),
+            fields.len(),
+        ),
+        Value::Table(table) => (
+            table.columns.iter().take(MAX_MEMBERS).cloned().collect(),
+            table.columns.len(),
+        ),
+        Value::Gene { .. } => (
+            vec![
+                "symbol",
+                "gene_id",
+                "chrom",
+                "start",
+                "end",
+                "strand",
+                "biotype",
+                "description",
+            ]
             .into_iter()
             .map(str::to_string)
             .collect(),
-        _ => Vec::new(),
+            8,
+        ),
+        Value::Variant { .. } => (
+            vec![
+                "chrom",
+                "pos",
+                "id",
+                "ref_allele",
+                "alt_allele",
+                "quality",
+                "filter",
+                "info",
+            ]
+            .into_iter()
+            .map(str::to_string)
+            .collect(),
+            8,
+        ),
+        Value::Genome { .. } => (
+            vec!["name", "species", "assembly", "chromosomes"]
+                .into_iter()
+                .map(str::to_string)
+                .collect(),
+            4,
+        ),
+        _ => (Vec::new(), 0),
     };
     members.sort();
-    members
+    (members, total > MAX_MEMBERS)
 }
 
 /// Tokenize source code for syntax highlighting. Returns JSON array of token spans.
@@ -586,5 +1124,57 @@ pub fn qc_metrics(kind: &str, text: &str) -> String {
     match bl_qc::metrics_for(kind, text) {
         Some(metrics) => serde_json::to_string(&metrics).unwrap_or_else(|_| "null".into()),
         None => "null".into(),
+    }
+}
+
+#[cfg(test)]
+mod variable_inspector_tests {
+    use super::*;
+    use bl_core::value::Table;
+
+    #[test]
+    fn table_pages_are_bounded_and_report_the_next_offset() {
+        let table = Value::Table(Table::new(
+            vec!["value".into()],
+            (0..250).map(|value| vec![Value::Int(value)]).collect(),
+        ));
+        let page = variable_page("observations", &table, 40, 20);
+        assert_eq!(page["rows"].as_array().unwrap().len(), 20);
+        assert_eq!(page["nextOffset"], 60);
+        assert_eq!(page["total"], 250);
+        assert_eq!(page["truncated"], true);
+    }
+
+    #[test]
+    fn wide_matrices_never_cross_more_than_fifty_columns() {
+        let matrix = bl_core::matrix::Matrix::zeros(2, 75);
+        let page = variable_page("wide", &Value::Matrix(matrix.into()), 0, 20);
+        // One row-label column plus fifty data columns.
+        assert_eq!(page["columns"].as_array().unwrap().len(), 51);
+        assert_eq!(page["columnsTruncated"], true);
+    }
+
+    #[test]
+    fn collection_summary_does_not_format_all_items() {
+        let items = Value::List((0..10_000).map(Value::Int).collect::<Vec<_>>().into());
+        assert_eq!(value_preview(&items), "[10000 items]");
+        assert!(value_size_is_approximate(&items));
+        assert!(approximate_value_bytes(&items) > 10_000);
+    }
+
+    #[test]
+    fn member_summaries_and_text_pages_stay_bounded() {
+        let table = Value::Table(Table::new(
+            (0..75).map(|index| format!("column_{index}")).collect(),
+            Vec::new(),
+        ));
+        let (members, truncated) = value_members(&table);
+        assert_eq!(members.len(), 50);
+        assert!(truncated);
+
+        let text = "A".repeat(1_000_000);
+        let page = variable_page("sequence", &Value::Str(text), 0, 2);
+        assert_eq!(page["rows"].as_array().unwrap().len(), 2);
+        assert_eq!(page["rows"][0][1].as_str().unwrap().len(), 240);
     }
 }

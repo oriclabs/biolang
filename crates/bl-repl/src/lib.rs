@@ -42,6 +42,7 @@ const REPL_COMMANDS: &[&str] = &[
     ":clear",
     ":cls",
     ":env",
+    ":export",
     ":exit",
     ":paste",
     ":fns",
@@ -71,6 +72,7 @@ const REPL_COMMAND_HINTS: &[(&str, &str)] = &[
     (":q", "Exit the REPL"),
     (":exit", "Exit the REPL"),
     (":env", "Show user-defined variables"),
+    (":export", "Stream a named variable to a file <name> <file>"),
     (":builtins", "List built-in functions [category]"),
     (":fns", "List built-in functions [category]"),
     (":type", "Show expression type <expr>"),
@@ -422,6 +424,9 @@ struct ConsoleRequest {
     id: u64,
     command: String,
     source: Option<String>,
+    name: Option<String>,
+    path: Option<String>,
+    format: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -535,6 +540,56 @@ pub fn run_console_protocol() -> Result<(), Box<dyn std::error::Error>> {
                 duration_ms: 0,
                 environment: console_environment(&interpreter),
             },
+            "export" => {
+                let started = Instant::now();
+                let result = (|| {
+                    let name = request
+                        .name
+                        .as_deref()
+                        .filter(|value| !value.is_empty())
+                        .ok_or_else(|| "Console export requires a variable name".to_string())?;
+                    let path = request
+                        .path
+                        .as_deref()
+                        .filter(|value| !value.is_empty())
+                        .ok_or_else(|| "Console export requires a destination path".to_string())?;
+                    let format = bl_runtime::value_export::ValueExportFormat::parse(
+                        request.format.as_deref().unwrap_or("json"),
+                    )?;
+                    let value = interpreter
+                        .env()
+                        .get(name, None)
+                        .map_err(|_| format!("Variable '{name}' is not defined"))?;
+                    bl_runtime::value_export::export_value_to_path(
+                        value,
+                        std::path::Path::new(path),
+                        format,
+                    )
+                    .map(|summary| summary.bytes)
+                })();
+                match result {
+                    Ok(bytes) => ConsoleResponse {
+                        protocol: CONSOLE_PROTOCOL,
+                        id: request.id,
+                        status: "ok",
+                        output: format!("Exported {bytes} bytes"),
+                        value: None,
+                        error: None,
+                        duration_ms: started.elapsed().as_millis(),
+                        environment: console_environment(&interpreter),
+                    },
+                    Err(error) => ConsoleResponse {
+                        protocol: CONSOLE_PROTOCOL,
+                        id: request.id,
+                        status: "error",
+                        output: String::new(),
+                        value: None,
+                        error: Some(error),
+                        duration_ms: started.elapsed().as_millis(),
+                        environment: console_environment(&interpreter),
+                    },
+                }
+            }
             command => ConsoleResponse {
                 protocol: CONSOLE_PROTOCOL,
                 id: request.id,
@@ -933,6 +988,13 @@ impl Repl {
                                     self.cmd_save(arg, &session_inputs);
                                 }
                             }
+                            ":export" => {
+                                if arg.is_empty() {
+                                    eprintln!("{RED}Usage: :export <variable> <file.json|csv|tsv|txt>{RESET}");
+                                } else {
+                                    self.cmd_export(arg);
+                                }
+                            }
                             ":time" => {
                                 if arg.is_empty() {
                                     eprintln!("{RED}Usage: :time <expression>{RESET}");
@@ -1173,6 +1235,9 @@ impl Repl {
         println!(
             "  {CYAN}:save{RESET}  <file>        Export last result (.csv/.tsv/.fasta/.json/.bl)"
         );
+        println!(
+            "  {CYAN}:export{RESET} <name> <file> Stream a named variable (.csv/.tsv/.json/.txt)"
+        );
         println!("  {CYAN}:time{RESET}  <expr>        Evaluate and show elapsed time");
         println!(
             "  {CYAN}:plot{RESET}  [mode|bins]   Plot display: auto, unicode, ascii, file, open, raw, none"
@@ -1278,38 +1343,10 @@ impl Repl {
                     Err(e) => eprintln!("{RED}Cannot write '{path}': {e}{RESET}"),
                 }
             }
-            "csv" => {
-                let expr = format!("_ |> write_csv(\"{path}\")");
-                self.eval_and_print(&expr);
-            }
-            "tsv" => {
-                let expr = format!("_ |> write_tsv(\"{path}\")");
-                self.eval_and_print(&expr);
-            }
+            "csv" | "tsv" | "json" | "txt" => self.export_named_value("_", path),
             "fasta" | "fa" => {
                 let expr = format!("_ |> write_fasta(\"{path}\")");
                 self.eval_and_print(&expr);
-            }
-            "json" => {
-                // Direct serialize via serde_json
-                let last = self.interpreter.env().get("_", None);
-                match last {
-                    Ok(val) => {
-                        if matches!(val, Value::Nil) {
-                            eprintln!("{DIM}No result to save.{RESET}");
-                        } else {
-                            let json = value_to_json(val);
-                            match std::fs::write(
-                                path,
-                                serde_json::to_string_pretty(&json).unwrap_or_default(),
-                            ) {
-                                Ok(()) => println!("{DIM}Saved to '{path}'.{RESET}"),
-                                Err(e) => eprintln!("{RED}Cannot write '{path}': {e}{RESET}"),
-                            }
-                        }
-                    }
-                    Err(_) => eprintln!("{DIM}No result to save.{RESET}"),
-                }
             }
             _ => {
                 // Default: save session inputs
@@ -1326,6 +1363,55 @@ impl Repl {
                     Err(e) => eprintln!("{RED}Cannot write '{path}': {e}{RESET}"),
                 }
             }
+        }
+    }
+
+    fn cmd_export(&self, arguments: &str) {
+        let mut parts = arguments.trim().splitn(2, char::is_whitespace);
+        let name = parts.next().unwrap_or("").trim();
+        let path = parts.next().unwrap_or("").trim();
+        if name.is_empty() || path.is_empty() {
+            eprintln!("{RED}Usage: :export <variable> <file.json|csv|tsv|txt>{RESET}");
+            return;
+        }
+        let path = path
+            .strip_prefix('"')
+            .and_then(|value| value.strip_suffix('"'))
+            .or_else(|| {
+                path.strip_prefix('\'')
+                    .and_then(|value| value.strip_suffix('\''))
+            })
+            .unwrap_or(path);
+        self.export_named_value(name, path);
+    }
+
+    fn export_named_value(&self, name: &str, path: &str) {
+        let destination = std::path::Path::new(path);
+        let format = match bl_runtime::value_export::ValueExportFormat::from_path(destination) {
+            Ok(format) => format,
+            Err(error) => {
+                eprintln!("{RED}{error}. Use .json, .csv, .tsv, or .txt.{RESET}");
+                return;
+            }
+        };
+        let value = match self.interpreter.env().get(name, None) {
+            Ok(value) if !matches!(value, Value::Nil) => value,
+            Ok(_) => {
+                eprintln!("{DIM}'{name}' is nil; there is no value to export.{RESET}");
+                return;
+            }
+            Err(error) => {
+                eprintln!("{RED}{}{RESET}", error.message);
+                return;
+            }
+        };
+        match bl_runtime::value_export::export_value_to_path(value, destination, format) {
+            Ok(summary) => println!(
+                "{DIM}Streamed '{name}' to '{}' ({} bytes).{RESET}",
+                destination.display(),
+                summary.bytes
+            ),
+            Err(error) => eprintln!("{RED}Cannot export '{name}': {error}{RESET}"),
         }
     }
 
@@ -5951,5 +6037,25 @@ fn g() {"
             "let a = 1  # note {
 let b = 2"
         ));
+    }
+
+    #[test]
+    fn named_export_writes_the_selected_variable() {
+        let mut repl = Repl::new();
+        repl.interpreter.env_mut().define(
+            "selected".into(),
+            Value::List(vec![Value::Int(2), Value::Int(3)].into()),
+        );
+        let destination = std::env::temp_dir().join(format!(
+            "biolang-repl-export-{}-{}.json",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        repl.export_named_value("selected", destination.to_str().unwrap());
+        assert_eq!(std::fs::read_to_string(&destination).unwrap(), "[2,3]");
+        std::fs::remove_file(destination).unwrap();
     }
 }

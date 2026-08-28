@@ -1,3 +1,5 @@
+/* @ts-self-types="./bl_wasm.d.ts" */
+
 /**
  * Evaluate BioLang source code. Returns JSON: `{ok, value, type, output, error}`
  * @param {string} source
@@ -16,6 +18,29 @@ export function evaluate(source) {
     } finally {
         wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
     }
+}
+
+/**
+ * Serialize one variable exactly, stopping before the response can exceed the
+ * caller's byte cap. Large native exports use the streaming path in
+ * `bl_runtime::value_export` instead of crossing this in-memory boundary.
+ * @param {string} name
+ * @param {string} format
+ * @param {number} maximum_bytes
+ * @returns {Uint8Array}
+ */
+export function export_variable(name, format, maximum_bytes) {
+    const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(format, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.export_variable(ptr0, len0, ptr1, len1, maximum_bytes);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v3;
 }
 
 /**
@@ -74,6 +99,29 @@ export function import_source(source, format, filename) {
  */
 export function init() {
     wasm.init();
+}
+
+/**
+ * Return one bounded page of a variable. Container values are never formatted
+ * wholesale: at most 100 rows and 50 columns cross the WASM boundary per call.
+ * @param {string} name
+ * @param {number} offset
+ * @param {number} limit
+ * @returns {string}
+ */
+export function inspect_variable(name, offset, limit) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.inspect_variable(ptr0, len0, offset, limit);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
 }
 
 /**
@@ -257,6 +305,11 @@ function __wbg_get_imports() {
             const ret = window.__blFetch.sync(getStringFromWasm0(arg0, arg1));
             return ret;
         },
+        __wbindgen_cast_0000000000000001: function(arg0, arg1) {
+            // Cast intrinsic for `Ref(String) -> Externref`.
+            const ret = getStringFromWasm0(arg0, arg1);
+            return ret;
+        },
         __wbindgen_init_externref_table: function() {
             const table = wasm.__wbindgen_externrefs;
             const offset = table.grow(4);
@@ -271,6 +324,11 @@ function __wbg_get_imports() {
         __proto__: null,
         "./bl_wasm_bg.js": import0,
     };
+}
+
+function getArrayU8FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
 }
 
 let cachedDataViewMemory0 = null;
@@ -332,6 +390,12 @@ function passStringToWasm0(arg, malloc, realloc) {
 
     WASM_VECTOR_LEN = offset;
     return ptr;
+}
+
+function takeFromExternrefTable0(idx) {
+    const value = wasm.__wbindgen_externrefs.get(idx);
+    wasm.__externref_table_dealloc(idx);
+    return value;
 }
 
 let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });

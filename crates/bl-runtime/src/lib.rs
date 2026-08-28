@@ -50,6 +50,7 @@ pub mod structure;
 pub mod table_ops;
 pub mod tempfiles;
 pub mod text_ops;
+pub mod value_export;
 pub mod variants;
 pub mod viz;
 

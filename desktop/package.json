@@ -12,6 +12,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "studio:dev": "tauri dev --config src-tauri/studio.conf.json",
+    "studio:build": "tauri build --config src-tauri/studio.conf.json",
+    "test:studio-stress": "cargo test --manifest-path src-tauri/Cargo.toml --lib tests::studio_one_gib_copy_and_hash_remains_streamed -- --ignored --exact --nocapture",
     "pretest": "npm run generate:help && npm run check:help && npm run check:examples",
     "test": "playwright test",
     "test:e2e": "playwright test"

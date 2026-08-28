@@ -44,6 +44,14 @@ struct ConsoleProcess {
     child: Mutex<Child>,
 }
 
+struct StudioKernelProcess {
+    namespace: String,
+    console: Arc<ConsoleProcess>,
+    root: PathBuf,
+    environment_root: PathBuf,
+    bl: PathBuf,
+}
+
 struct SomerTunnel {
     child: Arc<Mutex<Child>>,
     local_url: String,
@@ -55,6 +63,7 @@ struct AppState {
     jobs: Mutex<HashMap<u64, Arc<Mutex<Child>>>>,
     terminals: Mutex<HashMap<u64, Arc<TerminalSession>>>,
     console: Mutex<Option<Arc<ConsoleProcess>>>,
+    studio_kernel: Mutex<Option<StudioKernelProcess>>,
     lsp: Mutex<Option<LspProcess>>,
     somer_tunnels: Mutex<HashMap<String, SomerTunnel>>,
     next_id: AtomicU64,
@@ -68,6 +77,7 @@ impl AppState {
             jobs: Mutex::new(HashMap::new()),
             terminals: Mutex::new(HashMap::new()),
             console: Mutex::new(None),
+            studio_kernel: Mutex::new(None),
             lsp: Mutex::new(None),
             somer_tunnels: Mutex::new(HashMap::new()),
             next_id: AtomicU64::new(1),
@@ -735,7 +745,10 @@ struct RestoreReport {
 /// Installed package versions, read from the workspace package directories.
 fn installed_package_versions(root: &Path) -> HashMap<String, String> {
     let mut versions = HashMap::new();
-    for directory in [root.join("packages"), root.join(".biolang").join("packages")] {
+    for directory in [
+        root.join("packages"),
+        root.join(".biolang").join("packages"),
+    ] {
         let Ok(entries) = fs::read_dir(&directory) else {
             continue;
         };
@@ -748,8 +761,12 @@ fn installed_package_versions(root: &Path) -> HashMap<String, String> {
             };
             let package = parsed.get("package");
             if let (Some(name), Some(version)) = (
-                package.and_then(|value| value.get("name")).and_then(|v| v.as_str()),
-                package.and_then(|value| value.get("version")).and_then(|v| v.as_str()),
+                package
+                    .and_then(|value| value.get("name"))
+                    .and_then(|v| v.as_str()),
+                package
+                    .and_then(|value| value.get("version"))
+                    .and_then(|v| v.as_str()),
             ) {
                 versions.insert(name.to_string(), version.to_string());
             }
@@ -792,13 +809,17 @@ fn compare_run_environment(
     if let Some(recorded) = request.biolang_version.as_deref() {
         let current = find_binary(&root, "bl")
             .and_then(|bl| {
-                Command::new(bl).arg("--version").output().ok().map(|output| {
-                    String::from_utf8_lossy(&output.stdout)
-                        .split_whitespace()
-                        .last()
-                        .unwrap_or("unknown")
-                        .to_string()
-                })
+                Command::new(bl)
+                    .arg("--version")
+                    .output()
+                    .ok()
+                    .map(|output| {
+                        String::from_utf8_lossy(&output.stdout)
+                            .split_whitespace()
+                            .last()
+                            .unwrap_or("unknown")
+                            .to_string()
+                    })
             })
             .unwrap_or_else(|| "unknown".to_string());
         if current != recorded {
@@ -1226,11 +1247,7 @@ fn git_commit(message: String, state: State<'_, AppState>) -> Result<String, Str
 
 /// Unified diff for one file, staged or unstaged.
 #[tauri::command]
-fn git_diff(
-    path: String,
-    staged: bool,
-    state: State<'_, AppState>,
-) -> Result<String, String> {
+fn git_diff(path: String, staged: bool, state: State<'_, AppState>) -> Result<String, String> {
     let root = workspace_root(&state)?;
     let mut args = vec!["diff"];
     if staged {
@@ -1249,7 +1266,10 @@ fn git_diff(
         return Ok(String::new());
     };
     let lines: Vec<&str> = content.lines().collect();
-    let mut rendered = format!("--- /dev/null\n+++ b/{path}\n@@ -0,0 +1,{} @@\n", lines.len());
+    let mut rendered = format!(
+        "--- /dev/null\n+++ b/{path}\n@@ -0,0 +1,{} @@\n",
+        lines.len()
+    );
     for line in lines {
         rendered.push('+');
         rendered.push_str(line);
@@ -1437,7 +1457,11 @@ fn move_entry(
 ///
 /// Used by Explorer OS drag-and-drop imports into `data/` (and other folders).
 #[tauri::command]
-fn write_new_file(path: String, content: Vec<u8>, state: State<'_, AppState>) -> Result<String, String> {
+fn write_new_file(
+    path: String,
+    content: Vec<u8>,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
     let root = workspace_root(&state)?;
     let target = root.join(&path);
     let parent = target
@@ -2688,11 +2712,7 @@ fn save_run_history(jobs: Vec<Value>, app: AppHandle) -> Result<(), String> {
             .get("startedAt")
             .and_then(Value::as_i64)
             .unwrap_or_default();
-        let pinned = i64::from(
-            job.get("pinned")
-                .and_then(Value::as_bool)
-                .unwrap_or(false),
-        );
+        let pinned = i64::from(job.get("pinned").and_then(Value::as_bool).unwrap_or(false));
         let payload = serde_json::to_string(job)
             .map_err(|error| format!("Cannot serialize run history: {error}"))?;
         transaction
@@ -2802,7 +2822,9 @@ fn read_jsonl_page(
     let resolved = resolve_existing_path(&root, &path)?;
     let file = fs::File::open(&resolved)
         .map_err(|error| format!("Cannot open result data {path}: {error}"))?;
-    let search = search.map(|value| value.trim().to_lowercase()).filter(|value| !value.is_empty());
+    let search = search
+        .map(|value| value.trim().to_lowercase())
+        .filter(|value| !value.is_empty());
     let offset = offset;
     let limit = limit.clamp(1, 1_000);
     let mut total_rows = 0_usize;
@@ -2815,7 +2837,10 @@ fn read_jsonl_page(
             continue;
         }
         total_rows += 1;
-        if search.as_deref().is_some_and(|needle| !line.to_lowercase().contains(needle)) {
+        if search
+            .as_deref()
+            .is_some_and(|needle| !line.to_lowercase().contains(needle))
+        {
             continue;
         }
         let row = serde_json::from_str::<Vec<Value>>(&line)
@@ -2831,10 +2856,11 @@ fn read_jsonl_page(
     }
     if let (Some(column), Some(mut rows)) = (sort_column, sortable) {
         rows.sort_by(|left, right| {
-            let scalar = |row: &Vec<Value>| row
-                .get(column)
-                .map(|value| value.get("value").unwrap_or(value))
-                .cloned();
+            let scalar = |row: &Vec<Value>| {
+                row.get(column)
+                    .map(|value| value.get("value").unwrap_or(value))
+                    .cloned()
+            };
             let left_value = scalar(left);
             let right_value = scalar(right);
             let ordering = match (
@@ -2842,9 +2868,15 @@ fn read_jsonl_page(
                 right_value.as_ref().and_then(Value::as_f64),
             ) {
                 (Some(left), Some(right)) => left.total_cmp(&right),
-                _ => left_value.map(|value| value.to_string()).cmp(&right_value.map(|value| value.to_string())),
+                _ => left_value
+                    .map(|value| value.to_string())
+                    .cmp(&right_value.map(|value| value.to_string())),
             };
-            if descending { ordering.reverse() } else { ordering }
+            if descending {
+                ordering.reverse()
+            } else {
+                ordering
+            }
         });
         filtered_rows = rows.len();
         page = rows.into_iter().skip(offset).take(limit).collect();
@@ -3007,7 +3039,11 @@ fn stream_reader<R: Read + Send + 'static>(
                                             .to_string();
                                         let _ = app.emit(
                                             "job-output",
-                                            JobOutput { job_id, stream, data },
+                                            JobOutput {
+                                                job_id,
+                                                stream,
+                                                data,
+                                            },
                                         );
                                     }
                                     Some("result") => {
@@ -3119,7 +3155,8 @@ fn spawn_biolang_job(
     let mut process = Command::new(&bl);
     configure_biolang_command(&mut process, &root, &bl);
     let structured = command == "run";
-    process.arg(command)
+    process
+        .arg(command)
         .arg(&script)
         .args(structured.then_some("--events"))
         .current_dir(&root)
@@ -3127,10 +3164,7 @@ fn spawn_biolang_job(
         .stderr(Stdio::piped())
         .stdin(Stdio::null());
     if structured {
-        process.env(
-            "BIOLANG_RESULT_DIR",
-            format!("results/run-{job_id}"),
-        );
+        process.env("BIOLANG_RESULT_DIR", format!("results/run-{job_id}"));
     }
     let child = process.spawn();
     let mut child = match child {
@@ -3185,10 +3219,7 @@ fn spawn_biolang_job(
                     cleanup_path.as_deref().unwrap_or(&script),
                 );
                 if !artifacts.is_empty() {
-                    let _ = handle.emit(
-                        "job-artifacts",
-                        JobArtifacts { job_id, artifacts },
-                    );
+                    let _ = handle.emit("job-artifacts", JobArtifacts { job_id, artifacts });
                 }
                 let _ = handle.emit(
                     "job-finished",
@@ -3789,8 +3820,16 @@ fn spawn_console(root: &Path) -> Result<Arc<ConsoleProcess>, String> {
     let bl = find_binary(root, "bl").ok_or_else(|| {
         "BioLang executable not found. Build BioLang or set BIOLANG_BIN.".to_string()
     })?;
-    let mut command = Command::new(&bl);
-    configure_biolang_command(&mut command, root, &bl);
+    spawn_console_with_binary(root, root, &bl)
+}
+
+fn spawn_console_with_binary(
+    root: &Path,
+    environment_root: &Path,
+    bl: &Path,
+) -> Result<Arc<ConsoleProcess>, String> {
+    let mut command = Command::new(bl);
+    configure_biolang_command(&mut command, environment_root, bl);
     let mut child = command
         .args(["repl", "--json"])
         .current_dir(root)
@@ -3843,15 +3882,26 @@ fn send_console_request(
     command: &str,
     source: Option<&str>,
 ) -> Result<Value, String> {
+    send_console_payload(
+        process,
+        id,
+        serde_json::json!({
+            "id": id,
+            "command": command,
+            "source": source,
+        }),
+    )
+}
+
+fn send_console_payload(
+    process: &ConsoleProcess,
+    id: u64,
+    request: Value,
+) -> Result<Value, String> {
     let _request = process
         .io
         .lock()
         .map_err(|_| "Console request state is unavailable")?;
-    let request = serde_json::json!({
-        "id": id,
-        "command": command,
-        "source": source,
-    });
     {
         let mut stdin = process
             .stdin
@@ -3943,6 +3993,984 @@ fn stop_console(state: State<'_, AppState>) -> Result<(), String> {
 #[tauri::command]
 fn close_console(state: State<'_, AppState>) -> Result<(), String> {
     stop_console(state)
+}
+
+const MAX_STUDIO_NATIVE_DATA_BYTES: u64 = 20 * 1024 * 1024 * 1024;
+const MAX_STUDIO_DOCUMENT_BYTES: u64 = 64 * 1024 * 1024;
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StudioAttachedFile {
+    path: String,
+    contents: String,
+    #[allow(dead_code)]
+    size: u64,
+    sha256: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StudioNativeFile {
+    path: String,
+    size: u64,
+    sha256: String,
+    media_type: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StudioRemoteRequest {
+    url: String,
+    path: String,
+    media_type: String,
+    expected_bytes: Option<u64>,
+    expected_sha256: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StudioRemoteResult {
+    path: String,
+    size: u64,
+    sha256: String,
+    media_type: String,
+    source_bytes: u64,
+    source_sha256: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StudioExportResult {
+    path: String,
+    bytes: u64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StudioDocument {
+    path: String,
+    filename: String,
+    contents: String,
+    size: u64,
+    sha256: String,
+    modified_ms: u64,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StudioDocumentSaveRequest {
+    kind: String,
+    path: Option<String>,
+    suggested_name: String,
+    contents: String,
+    expected_sha256: Option<String>,
+    overwrite: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StudioDocumentSaveResult {
+    status: &'static str,
+    path: String,
+    document: Option<StudioDocument>,
+    current_sha256: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StudioDocumentStatus {
+    exists: bool,
+    changed: bool,
+    current_sha256: Option<String>,
+    modified_ms: Option<u64>,
+}
+
+fn valid_studio_namespace(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+}
+
+fn studio_kernel_target(root: &Path, relative: &str) -> Result<PathBuf, String> {
+    let path = Path::new(relative);
+    if relative.is_empty()
+        || path.is_absolute()
+        || path.components().any(|component| {
+            matches!(
+                component,
+                std::path::Component::ParentDir
+                    | std::path::Component::RootDir
+                    | std::path::Component::Prefix(_)
+            )
+        })
+    {
+        return Err("Studio data path must be a safe relative path".into());
+    }
+    let target = root.join(path);
+    let parent = target
+        .parent()
+        .ok_or_else(|| "Studio data path has no parent directory".to_string())?;
+    fs::create_dir_all(parent)
+        .map_err(|error| format!("Cannot create Studio data directory: {error}"))?;
+    let canonical_parent = parent
+        .canonicalize()
+        .map_err(|error| format!("Cannot access Studio data directory: {error}"))?;
+    if !canonical_parent.starts_with(root) {
+        return Err("Studio data path escapes its private notebook directory".into());
+    }
+    if target.exists() {
+        let canonical_target = target
+            .canonicalize()
+            .map_err(|error| format!("Cannot inspect Studio data path: {error}"))?;
+        if !canonical_target.starts_with(root) {
+            return Err("Studio data path resolves outside its private notebook directory".into());
+        }
+    }
+    Ok(target)
+}
+
+fn studio_kernel_console(
+    state: &State<'_, AppState>,
+    namespace: &str,
+) -> Result<(Arc<ConsoleProcess>, PathBuf), String> {
+    let kernel = state
+        .studio_kernel
+        .lock()
+        .map_err(|_| "Studio kernel state is unavailable")?;
+    let kernel = kernel
+        .as_ref()
+        .ok_or_else(|| "Studio native kernel is not initialized".to_string())?;
+    if kernel.namespace != namespace {
+        return Err("This notebook's native kernel is no longer active".into());
+    }
+    Ok((kernel.console.clone(), kernel.root.clone()))
+}
+
+fn studio_file(
+    path: &Path,
+    relative: &str,
+    media_type: Option<&str>,
+) -> Result<StudioNativeFile, String> {
+    let metadata = fs::metadata(path)
+        .map_err(|error| format!("Cannot inspect {}: {error}", path.display()))?;
+    Ok(StudioNativeFile {
+        path: relative_display(Path::new(relative)),
+        size: metadata.len(),
+        sha256: sha256_file(path)?,
+        media_type: media_type
+            .map(str::to_string)
+            .or_else(|| desktop_media_type(path).map(str::to_string))
+            .unwrap_or_else(|| "application/octet-stream".to_string()),
+    })
+}
+
+fn atomic_copy_into(source: &Path, destination: &Path) -> Result<(), String> {
+    let filename = destination
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("data");
+    let temporary = destination.with_file_name(format!(
+        ".{filename}.part-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos()
+    ));
+    let result = (|| {
+        fs::copy(source, &temporary)
+            .map_err(|error| format!("Cannot copy {}: {error}", source.display()))?;
+        if destination.exists() {
+            if sha256_file(&temporary)? == sha256_file(destination)? {
+                fs::remove_file(&temporary).map_err(|error| error.to_string())?;
+                return Ok(());
+            }
+            return Err(format!(
+                "{} already contains different data",
+                destination.display()
+            ));
+        }
+        fs::rename(&temporary, destination)
+            .map_err(|error| format!("Cannot finish {}: {error}", destination.display()))
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+    result
+}
+
+fn studio_document_filter(kind: &str) -> Result<(&'static str, &'static [&'static str]), String> {
+    match kind {
+        "notebook" => Ok(("BioLang notebook", &["bln", "md"])),
+        "workspace" => Ok(("BioLang workspace", &["blw"])),
+        _ => Err(format!("Unsupported Studio document kind '{kind}'")),
+    }
+}
+
+fn validate_studio_document_path(path: &Path, kind: &str) -> Result<(), String> {
+    let (_, extensions) = studio_document_filter(kind)?;
+    if !path.is_absolute() {
+        return Err("Studio document paths must be absolute".into());
+    }
+    let filename = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "Studio document name is not valid UTF-8".to_string())?;
+    if !extensions.iter().any(|extension| {
+        filename
+            .to_ascii_lowercase()
+            .ends_with(&format!(".{extension}"))
+    }) {
+        return Err(format!("{filename} is not a supported {kind} file"));
+    }
+    Ok(())
+}
+
+fn studio_modified_ms(metadata: &fs::Metadata) -> u64 {
+    metadata
+        .modified()
+        .ok()
+        .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
+        .map(|value| value.as_millis().min(u64::MAX as u128) as u64)
+        .unwrap_or_default()
+}
+
+fn read_studio_document(path: &Path, kind: &str) -> Result<StudioDocument, String> {
+    validate_studio_document_path(path, kind)?;
+    let metadata = fs::metadata(path)
+        .map_err(|error| format!("Cannot inspect {}: {error}", path.display()))?;
+    if !metadata.is_file() {
+        return Err(format!("{} is not a file", path.display()));
+    }
+    if metadata.len() > MAX_STUDIO_DOCUMENT_BYTES {
+        return Err("Studio notebooks and workspaces are limited to 64 MB".into());
+    }
+    let bytes =
+        fs::read(path).map_err(|error| format!("Cannot read {}: {error}", path.display()))?;
+    let contents =
+        String::from_utf8(bytes).map_err(|_| format!("{} is not valid UTF-8", path.display()))?;
+    Ok(StudioDocument {
+        path: path.display().to_string(),
+        filename: path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or("document")
+            .to_string(),
+        size: metadata.len(),
+        sha256: sha256_file(path)?,
+        modified_ms: studio_modified_ms(&metadata),
+        contents,
+    })
+}
+
+fn atomic_write_studio_document(path: &Path, contents: &str) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Studio document has no parent directory".to_string())?;
+    if !parent.is_dir() {
+        return Err(format!("{} does not exist", parent.display()));
+    }
+    let filename = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("document");
+    let temporary = parent.join(format!(
+        ".{filename}.part-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos()
+    ));
+    let result = (|| {
+        let mut output = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|error| format!("Cannot create temporary document: {error}"))?;
+        output
+            .write_all(contents.as_bytes())
+            .and_then(|_| output.sync_all())
+            .map_err(|error| format!("Cannot write temporary document: {error}"))?;
+        fs::rename(&temporary, path)
+            .map_err(|error| format!("Cannot atomically replace {}: {error}", path.display()))
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+    result
+}
+
+fn save_studio_document_to_path(
+    request: StudioDocumentSaveRequest,
+    selected: PathBuf,
+) -> Result<StudioDocumentSaveResult, String> {
+    validate_studio_document_path(&selected, &request.kind)?;
+    let current_sha256 = if selected.is_file() {
+        Some(sha256_file(&selected)?)
+    } else {
+        None
+    };
+    let changed = match request.expected_sha256.as_deref() {
+        Some(expected) => match current_sha256.as_deref() {
+            Some(current) => !current.eq_ignore_ascii_case(expected),
+            None => true,
+        },
+        None => current_sha256.is_some(),
+    };
+    if changed && !request.overwrite {
+        return Ok(StudioDocumentSaveResult {
+            status: "conflict",
+            path: selected.display().to_string(),
+            document: None,
+            current_sha256,
+        });
+    }
+    atomic_write_studio_document(&selected, &request.contents)?;
+    Ok(StudioDocumentSaveResult {
+        status: "saved",
+        path: selected.display().to_string(),
+        document: Some(read_studio_document(&selected, &request.kind)?),
+        current_sha256: None,
+    })
+}
+
+#[tauri::command]
+async fn studio_open_document(
+    kind: String,
+    path: Option<String>,
+) -> Result<Option<StudioDocument>, String> {
+    let (title, extensions) = studio_document_filter(&kind)?;
+    let selected = if let Some(path) = path {
+        Some(PathBuf::from(path))
+    } else {
+        rfd::FileDialog::new()
+            .add_filter(title, extensions)
+            .pick_file()
+    };
+    let Some(selected) = selected else {
+        return Ok(None);
+    };
+    let document =
+        tauri::async_runtime::spawn_blocking(move || read_studio_document(&selected, &kind))
+            .await
+            .map_err(|error| format!("Studio document worker failed: {error}"))??;
+    Ok(Some(document))
+}
+
+#[tauri::command]
+async fn studio_save_document(
+    request: StudioDocumentSaveRequest,
+) -> Result<Option<StudioDocumentSaveResult>, String> {
+    if request.contents.len() as u64 > MAX_STUDIO_DOCUMENT_BYTES {
+        return Err("Studio notebooks and workspaces are limited to 64 MB".into());
+    }
+    let (title, extensions) = studio_document_filter(&request.kind)?;
+    let selected = if let Some(path) = request.path.as_deref() {
+        Some(PathBuf::from(path))
+    } else {
+        rfd::FileDialog::new()
+            .add_filter(title, extensions)
+            .set_file_name(&request.suggested_name)
+            .save_file()
+    };
+    let Some(selected) = selected else {
+        return Ok(None);
+    };
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        save_studio_document_to_path(request, selected)
+    })
+    .await
+    .map_err(|error| format!("Studio save worker failed: {error}"))??;
+    Ok(Some(result))
+}
+
+#[tauri::command]
+async fn studio_document_status(
+    path: String,
+    expected_sha256: String,
+) -> Result<StudioDocumentStatus, String> {
+    let path = PathBuf::from(path);
+    if !path.is_absolute() {
+        return Err("Studio document paths must be absolute".into());
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        if !path.is_file() {
+            return Ok(StudioDocumentStatus {
+                exists: false,
+                changed: true,
+                current_sha256: None,
+                modified_ms: None,
+            });
+        }
+        let metadata = fs::metadata(&path)
+            .map_err(|error| format!("Cannot inspect {}: {error}", path.display()))?;
+        let current_sha256 = sha256_file(&path)?;
+        Ok(StudioDocumentStatus {
+            exists: true,
+            changed: !current_sha256.eq_ignore_ascii_case(&expected_sha256),
+            current_sha256: Some(current_sha256),
+            modified_ms: Some(studio_modified_ms(&metadata)),
+        })
+    })
+    .await
+    .map_err(|error| format!("Studio document-status worker failed: {error}"))?
+}
+
+#[tauri::command]
+fn kernel_initialize(
+    namespace: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<Value, String> {
+    if !valid_studio_namespace(&namespace) {
+        return Err("Studio notebook identity is invalid".into());
+    }
+    let mut active = state
+        .studio_kernel
+        .lock()
+        .map_err(|_| "Studio kernel state is unavailable")?;
+    if let Some(previous) = active.take() {
+        if let Ok(mut child) = previous.console.child.lock() {
+            let _ = child.kill();
+        }
+    }
+    let base = app
+        .path()
+        .app_cache_dir()
+        .map_err(|error| format!("Cannot locate Studio cache: {error}"))?
+        .join("studio-kernels");
+    fs::create_dir_all(&base).map_err(|error| format!("Cannot create Studio cache: {error}"))?;
+    let root = base.join(&namespace);
+    fs::create_dir_all(&root)
+        .map_err(|error| format!("Cannot create private notebook directory: {error}"))?;
+    let root = root
+        .canonicalize()
+        .map_err(|error| format!("Cannot access private notebook directory: {error}"))?;
+    let environment_root = state
+        .workspace
+        .lock()
+        .ok()
+        .and_then(|guard| guard.clone())
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."));
+    let bl = find_binary(&environment_root, "bl").ok_or_else(|| {
+        "BioLang executable not found. Build BioLang or set BIOLANG_BIN.".to_string()
+    })?;
+    let console = spawn_console_with_binary(&root, &environment_root, &bl)?;
+    let response = send_console_request(&console, state.id(), "ping", None)?;
+    *active = Some(StudioKernelProcess {
+        namespace,
+        console,
+        root,
+        environment_root,
+        bl,
+    });
+    Ok(response)
+}
+
+#[tauri::command]
+async fn kernel_execute(
+    namespace: String,
+    source: String,
+    state: State<'_, AppState>,
+) -> Result<Value, String> {
+    if source.trim().is_empty() {
+        return Err("Enter BioLang code to run".into());
+    }
+    let (console, _) = studio_kernel_console(&state, &namespace)?;
+    let id = state.id();
+    tauri::async_runtime::spawn_blocking(move || {
+        send_console_request(&console, id, "evaluate", Some(&source))
+    })
+    .await
+    .map_err(|error| format!("Studio execution worker failed: {error}"))?
+}
+
+#[tauri::command]
+async fn kernel_reset(namespace: String, state: State<'_, AppState>) -> Result<Value, String> {
+    let (console, _) = studio_kernel_console(&state, &namespace)?;
+    let id = state.id();
+    tauri::async_runtime::spawn_blocking(move || send_console_request(&console, id, "reset", None))
+        .await
+        .map_err(|error| format!("Studio reset worker failed: {error}"))?
+}
+
+#[tauri::command]
+async fn kernel_variables(namespace: String, state: State<'_, AppState>) -> Result<Value, String> {
+    let (console, _) = studio_kernel_console(&state, &namespace)?;
+    let id = state.id();
+    tauri::async_runtime::spawn_blocking(move || {
+        send_console_request(&console, id, "inspect", None)
+    })
+    .await
+    .map_err(|error| format!("Studio inspection worker failed: {error}"))?
+}
+
+#[tauri::command]
+fn kernel_attach(
+    namespace: String,
+    file: StudioAttachedFile,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let (_, root) = studio_kernel_console(&state, &namespace)?;
+    let destination = studio_kernel_target(&root, &file.path)?;
+    let bytes = file.contents.as_bytes();
+    let actual = format!("{:x}", Sha256::digest(bytes));
+    if file
+        .sha256
+        .as_deref()
+        .is_some_and(|expected| !expected.eq_ignore_ascii_case(&actual))
+    {
+        return Err(format!("{} failed its SHA-256 check", file.path));
+    }
+    if destination.exists() && sha256_file(&destination)? != actual {
+        return Err(format!("{} already contains different data", file.path));
+    }
+    if !destination.exists() {
+        let filename = destination
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or("data");
+        let temporary = destination.with_file_name(format!(
+            ".{filename}.part-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        ));
+        fs::write(&temporary, bytes)
+            .map_err(|error| format!("Cannot attach {}: {error}", file.path))?;
+        if let Err(error) = fs::rename(&temporary, &destination) {
+            let _ = fs::remove_file(&temporary);
+            return Err(format!("Cannot finish attaching {}: {error}", file.path));
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn kernel_clear_files(namespace: String, state: State<'_, AppState>) -> Result<(), String> {
+    let (_, root) = studio_kernel_console(&state, &namespace)?;
+    for entry in fs::read_dir(&root)
+        .map_err(|error| format!("Cannot inspect private notebook data: {error}"))?
+    {
+        let path = entry
+            .map_err(|error| format!("Cannot inspect private notebook data: {error}"))?
+            .path();
+        let canonical = path
+            .canonicalize()
+            .map_err(|error| format!("Cannot verify private notebook data: {error}"))?;
+        if !canonical.starts_with(&root) {
+            return Err("Refusing to clear a path outside the private notebook directory".into());
+        }
+        if canonical.is_dir() {
+            fs::remove_dir_all(&canonical)
+                .map_err(|error| format!("Cannot clear native notebook data: {error}"))?;
+        } else {
+            fs::remove_file(&canonical)
+                .map_err(|error| format!("Cannot clear native notebook data: {error}"))?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn kernel_import_files(
+    namespace: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<StudioNativeFile>, String> {
+    let (_, root) = studio_kernel_console(&state, &namespace)?;
+    let selected = rfd::FileDialog::new().pick_files().unwrap_or_default();
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut imported = Vec::new();
+        for source in selected {
+            if !source.is_file() {
+                continue;
+            }
+            let name = source
+                .file_name()
+                .and_then(|value| value.to_str())
+                .ok_or_else(|| "Selected file name is not valid UTF-8".to_string())?;
+            let destination = studio_kernel_target(&root, name)?;
+            atomic_copy_into(&source, &destination)?;
+            imported.push(studio_file(&destination, name, None)?);
+        }
+        Ok(imported)
+    })
+    .await
+    .map_err(|error| format!("Studio file-import worker failed: {error}"))?
+}
+
+fn ensure_studio_attachment(root: PathBuf, path: String, sha256: String) -> Result<bool, String> {
+    let target = studio_kernel_target(&root, &path)?;
+    if target.is_file() {
+        return Ok(sha256_file(&target)?.eq_ignore_ascii_case(&sha256));
+    }
+
+    // A workspace-scoped attachment may already exist in another notebook's
+    // private directory. The UI only asks about attachments in scope for this
+    // notebook, so reuse the exact checksum-pinned file without exposing any
+    // unrelated path. Hard links avoid duplicating large data where supported.
+    let base = root
+        .parent()
+        .ok_or_else(|| "Studio kernel directory has no shared cache root".to_string())?
+        .canonicalize()
+        .map_err(|error| format!("Cannot inspect Studio kernel cache: {error}"))?;
+    for entry in fs::read_dir(&base)
+        .map_err(|error| format!("Cannot inspect Studio kernel cache: {error}"))?
+    {
+        let directory = entry
+            .map_err(|error| format!("Cannot inspect Studio kernel cache: {error}"))?
+            .path();
+        if directory == root || !directory.is_dir() {
+            continue;
+        }
+        let canonical_directory = match directory.canonicalize() {
+            Ok(directory) if directory.starts_with(&base) => directory,
+            _ => continue,
+        };
+        let candidate = canonical_directory.join(&path);
+        if !candidate.is_file() {
+            continue;
+        }
+        let canonical_candidate = match candidate.canonicalize() {
+            Ok(candidate) if candidate.starts_with(&canonical_directory) => candidate,
+            _ => continue,
+        };
+        if !sha256_file(&canonical_candidate)?.eq_ignore_ascii_case(&sha256) {
+            continue;
+        }
+        if fs::hard_link(&canonical_candidate, &target).is_err() {
+            atomic_copy_into(&canonical_candidate, &target)?;
+        }
+        return Ok(true);
+    }
+    Ok(false)
+}
+
+#[tauri::command]
+async fn kernel_has_attachment(
+    namespace: String,
+    path: String,
+    sha256: String,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
+    let (_, root) = studio_kernel_console(&state, &namespace)?;
+    tauri::async_runtime::spawn_blocking(move || ensure_studio_attachment(root, path, sha256))
+        .await
+        .map_err(|error| format!("Studio attachment worker failed: {error}"))?
+}
+
+fn download_studio_url(
+    request: StudioRemoteRequest,
+    root: PathBuf,
+) -> Result<StudioRemoteResult, String> {
+    let parsed = reqwest::Url::parse(request.url.trim())
+        .map_err(|error| format!("Enter a valid data URL: {error}"))?;
+    if parsed.scheme() != "https" {
+        return Err("Native Studio data URLs must use HTTPS".into());
+    }
+    let destination = studio_kernel_target(&root, &request.path)?;
+    let client = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(60 * 60))
+        .user_agent("BioLang-Studio/0.1")
+        .build()
+        .map_err(|error| format!("Cannot initialize native downloader: {error}"))?;
+    let mut response = client
+        .get(parsed)
+        .send()
+        .and_then(reqwest::blocking::Response::error_for_status)
+        .map_err(|error| format!("Cannot download {}: {error}", request.url))?;
+    if response.url().scheme() != "https" {
+        return Err("The source redirected to a non-HTTPS location".into());
+    }
+    if response
+        .content_length()
+        .is_some_and(|length| length > MAX_STUDIO_NATIVE_DATA_BYTES)
+    {
+        return Err("The source exceeds Studio Desktop's 20 GB safety limit".into());
+    }
+    let filename = destination
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("data");
+    let temporary = destination.with_file_name(format!(
+        ".{filename}.part-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos()
+    ));
+    let result = (|| {
+        let mut output = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|error| format!("Cannot create native download: {error}"))?;
+        let mut digest = Sha256::new();
+        let mut received = 0_u64;
+        let mut buffer = [0_u8; 256 * 1024];
+        loop {
+            let read = response
+                .read(&mut buffer)
+                .map_err(|error| format!("Cannot read native download: {error}"))?;
+            if read == 0 {
+                break;
+            }
+            received = received.saturating_add(read as u64);
+            if received > MAX_STUDIO_NATIVE_DATA_BYTES {
+                return Err("Download exceeded Studio Desktop's 20 GB safety limit".into());
+            }
+            output
+                .write_all(&buffer[..read])
+                .map_err(|error| format!("Cannot write native download: {error}"))?;
+            digest.update(&buffer[..read]);
+        }
+        output.sync_all().map_err(|error| error.to_string())?;
+        if request
+            .expected_bytes
+            .is_some_and(|expected| expected != received)
+        {
+            return Err(format!(
+                "Expected {} bytes, but the source returned {received}",
+                request.expected_bytes.unwrap_or_default()
+            ));
+        }
+        let actual = format!("{:x}", digest.finalize());
+        if request
+            .expected_sha256
+            .as_deref()
+            .is_some_and(|expected| !expected.eq_ignore_ascii_case(&actual))
+        {
+            return Err("Native download failed its expected SHA-256 check".into());
+        }
+        if destination.exists() {
+            if sha256_file(&destination)? == actual {
+                fs::remove_file(&temporary).map_err(|error| error.to_string())?;
+            } else {
+                return Err(format!("{} already contains different data", request.path));
+            }
+        } else {
+            fs::rename(&temporary, &destination)
+                .map_err(|error| format!("Cannot finish native download: {error}"))?;
+        }
+        Ok(StudioRemoteResult {
+            path: relative_display(Path::new(&request.path)),
+            size: received,
+            sha256: actual.clone(),
+            media_type: request.media_type,
+            source_bytes: received,
+            source_sha256: actual,
+        })
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+    result
+}
+
+#[tauri::command]
+async fn kernel_fetch_url(
+    namespace: String,
+    request: StudioRemoteRequest,
+    state: State<'_, AppState>,
+) -> Result<StudioRemoteResult, String> {
+    let (_, root) = studio_kernel_console(&state, &namespace)?;
+    tauri::async_runtime::spawn_blocking(move || download_studio_url(request, root))
+        .await
+        .map_err(|error| format!("Studio download worker failed: {error}"))?
+}
+
+#[tauri::command]
+async fn kernel_export_variable(
+    namespace: String,
+    name: String,
+    format: String,
+    state: State<'_, AppState>,
+) -> Result<Option<StudioExportResult>, String> {
+    let (console, root) = studio_kernel_console(&state, &namespace)?;
+    let extension = match format.as_str() {
+        "json" | "csv" | "tsv" => format.as_str(),
+        "text" => "txt",
+        _ => return Err(format!("Unsupported variable export format '{format}'")),
+    };
+    let safe_name = Path::new(&name)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .filter(|value| !value.is_empty())
+        .unwrap_or("value");
+    let selected = rfd::FileDialog::new()
+        .set_directory(&root)
+        .set_file_name(format!("{safe_name}.{extension}"))
+        .save_file();
+    let Some(destination) = selected else {
+        return Ok(None);
+    };
+    let id = state.id();
+    let export_destination = destination.clone();
+    let response = tauri::async_runtime::spawn_blocking(move || {
+        send_console_payload(
+            &console,
+            id,
+            serde_json::json!({
+                "id": id,
+                "command": "export",
+                "name": name,
+                "path": export_destination.display().to_string(),
+                "format": format,
+            }),
+        )
+    })
+    .await
+    .map_err(|error| format!("Studio export worker failed: {error}"))??;
+    if response.get("status").and_then(Value::as_str) != Some("ok") {
+        return Err(response
+            .get("error")
+            .and_then(Value::as_str)
+            .unwrap_or("BioLang variable export failed")
+            .to_string());
+    }
+    let bytes = fs::metadata(&destination)
+        .map_err(|error| format!("Cannot inspect exported file: {error}"))?
+        .len();
+    Ok(Some(StudioExportResult {
+        path: destination.display().to_string(),
+        bytes,
+    }))
+}
+
+#[tauri::command]
+async fn kernel_publish_variable(
+    namespace: String,
+    name: String,
+    format: String,
+    path: String,
+    state: State<'_, AppState>,
+) -> Result<StudioNativeFile, String> {
+    let (console, root) = studio_kernel_console(&state, &namespace)?;
+    let media_type = match format.as_str() {
+        "json" => "application/json",
+        "csv" => "text/csv",
+        "tsv" => "text/tab-separated-values",
+        "text" => "text/plain",
+        _ => return Err(format!("Unsupported variable export format '{format}'")),
+    };
+    let destination = studio_kernel_target(&root, &path)?;
+    let filename = destination
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("output");
+    let temporary = destination.with_file_name(format!(
+        ".{filename}.publish-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos()
+    ));
+    let export_destination = temporary.clone();
+    let id = state.id();
+    let response = tauri::async_runtime::spawn_blocking(move || {
+        send_console_payload(
+            &console,
+            id,
+            serde_json::json!({
+                "id": id,
+                "command": "export",
+                "name": name,
+                "path": export_destination.display().to_string(),
+                "format": format,
+            }),
+        )
+    })
+    .await
+    .map_err(|error| format!("Studio output worker failed: {error}"))??;
+    if response.get("status").and_then(Value::as_str) != Some("ok") {
+        let _ = fs::remove_file(&temporary);
+        return Err(response
+            .get("error")
+            .and_then(Value::as_str)
+            .unwrap_or("BioLang output publication failed")
+            .to_string());
+    }
+
+    let result = (|| {
+        let actual = sha256_file(&temporary)?;
+        if destination.exists() {
+            if sha256_file(&destination)?.eq_ignore_ascii_case(&actual) {
+                fs::remove_file(&temporary).map_err(|error| error.to_string())?;
+            } else {
+                return Err(format!(
+                    "{} already contains a different published output",
+                    relative_display(Path::new(&path))
+                ));
+            }
+        } else {
+            fs::rename(&temporary, &destination)
+                .map_err(|error| format!("Cannot publish {}: {error}", relative_display(Path::new(&path))))?;
+        }
+        studio_file(&destination, &path, Some(media_type))
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+    result
+}
+
+#[tauri::command]
+fn kernel_cancel(namespace: String, state: State<'_, AppState>) -> Result<(), String> {
+    let mut active = state
+        .studio_kernel
+        .lock()
+        .map_err(|_| "Studio kernel state is unavailable")?;
+    if active
+        .as_ref()
+        .is_some_and(|process| process.namespace != namespace)
+    {
+        return Err("This notebook's native kernel is no longer active".into());
+    }
+    if let Some(process) = active.take() {
+        process
+            .console
+            .child
+            .lock()
+            .map_err(|_| "Studio kernel process is unavailable")?
+            .kill()
+            .map_err(|error| format!("Cannot stop Studio kernel: {error}"))?;
+        let console =
+            spawn_console_with_binary(&process.root, &process.environment_root, &process.bl)?;
+        *active = Some(StudioKernelProcess { console, ..process });
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn kernel_dispose(namespace: String, state: State<'_, AppState>) -> Result<(), String> {
+    let mut active = state
+        .studio_kernel
+        .lock()
+        .map_err(|_| "Studio kernel state is unavailable")?;
+    if active
+        .as_ref()
+        .is_some_and(|process| process.namespace != namespace)
+    {
+        return Ok(());
+    }
+    if let Some(process) = active.take() {
+        process
+            .console
+            .child
+            .lock()
+            .map_err(|_| "Studio kernel process is unavailable")?
+            .kill()
+            .map_err(|error| format!("Cannot close Studio kernel: {error}"))?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -4194,6 +5222,13 @@ fn shutdown_processes(state: &AppState) {
             }
         }
     }
+    if let Ok(mut studio) = state.studio_kernel.lock() {
+        if let Some(process) = studio.take() {
+            if let Ok(mut child) = process.console.child.lock() {
+                let _ = child.kill();
+            }
+        }
+    }
     if let Ok(mut lsp) = state.lsp.lock() {
         if let Some(process) = lsp.take() {
             if let Ok(mut child) = process.child.lock() {
@@ -4284,6 +5319,22 @@ pub fn run() {
             reset_console,
             stop_console,
             close_console,
+            studio_open_document,
+            studio_save_document,
+            studio_document_status,
+            kernel_initialize,
+            kernel_execute,
+            kernel_reset,
+            kernel_variables,
+            kernel_attach,
+            kernel_clear_files,
+            kernel_import_files,
+            kernel_has_attachment,
+            kernel_fetch_url,
+            kernel_export_variable,
+            kernel_publish_variable,
+            kernel_cancel,
+            kernel_dispose,
             start_terminal,
             terminal_write,
             terminal_resize,
@@ -4306,9 +5357,152 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::{
-        preview_delimited, preview_fasta, workflow_source, WorkflowDocument, WorkflowEdge,
-        WorkflowNode,
+        atomic_copy_into, ensure_studio_attachment, preview_delimited, preview_fasta,
+        save_studio_document_to_path, sha256_file, studio_kernel_target, valid_studio_namespace,
+        workflow_source,
+        StudioDocumentSaveRequest, WorkflowDocument, WorkflowEdge, WorkflowNode,
     };
+
+    fn studio_test_root(label: &str) -> std::path::PathBuf {
+        let root = std::env::temp_dir().join(format!(
+            "biolang-studio-{label}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        root.canonicalize().unwrap()
+    }
+
+    #[test]
+    fn studio_namespaces_and_paths_cannot_escape_the_private_root() {
+        assert!(valid_studio_namespace("notebook-123_ab"));
+        assert!(!valid_studio_namespace("../notebook"));
+        assert!(!valid_studio_namespace("notebook/child"));
+
+        let root = std::env::temp_dir().join(format!(
+            "biolang-studio-path-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let root = root.canonicalize().unwrap();
+        assert_eq!(
+            studio_kernel_target(&root, "data/counts.csv").unwrap(),
+            root.join("data/counts.csv")
+        );
+        assert!(studio_kernel_target(&root, "../outside.csv").is_err());
+        let absolute = root.parent().unwrap().join("outside.csv");
+        assert!(studio_kernel_target(&root, absolute.to_str().unwrap()).is_err());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn studio_document_save_detects_external_changes_before_atomic_overwrite() {
+        let root = studio_test_root("document-save");
+        let destination = root.join("analysis.bln");
+        std::fs::write(&destination, "let value = 1\n").unwrap();
+        let expected = sha256_file(&destination).unwrap();
+        std::fs::write(&destination, "let value = 2\n").unwrap();
+
+        let request = |overwrite| StudioDocumentSaveRequest {
+            kind: "notebook".into(),
+            path: Some(destination.display().to_string()),
+            suggested_name: "analysis.bln".into(),
+            contents: "let value = 3\n".into(),
+            expected_sha256: Some(expected.clone()),
+            overwrite,
+        };
+        let conflict = save_studio_document_to_path(request(false), destination.clone()).unwrap();
+        assert_eq!(conflict.status, "conflict");
+        assert_eq!(
+            std::fs::read_to_string(&destination).unwrap(),
+            "let value = 2\n"
+        );
+
+        let saved = save_studio_document_to_path(request(true), destination.clone()).unwrap();
+        assert_eq!(saved.status, "saved");
+        assert_eq!(
+            std::fs::read_to_string(&destination).unwrap(),
+            "let value = 3\n"
+        );
+        assert!(std::fs::read_dir(&root).unwrap().all(|entry| {
+            !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .contains(".part-")
+        }));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn verified_native_attachment_is_reused_offline_across_notebooks() {
+        let base = studio_test_root("shared-data");
+        let first = base.join("notebook-one");
+        let second = base.join("notebook-two");
+        std::fs::create_dir_all(first.join("data")).unwrap();
+        std::fs::create_dir_all(&second).unwrap();
+        let source = first.join("data/counts.tsv");
+        std::fs::write(&source, "gene\tcount\nTP53\t7\n").unwrap();
+        let digest = sha256_file(&source).unwrap();
+
+        assert!(!ensure_studio_attachment(
+            second.clone(),
+            "data/counts.tsv".into(),
+            "0".repeat(64)
+        )
+        .unwrap());
+        assert!(
+            ensure_studio_attachment(second.clone(), "data/counts.tsv".into(), digest).unwrap()
+        );
+        assert_eq!(
+            std::fs::read_to_string(second.join("data/counts.tsv")).unwrap(),
+            "gene\tcount\nTP53\t7\n"
+        );
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    #[ignore = "1 GiB native I/O stress test"]
+    fn studio_one_gib_copy_and_hash_remains_streamed() {
+        let root = studio_test_root("one-gib-streaming");
+        let source = root.join("source.bin");
+        let destination = root.join("destination.bin");
+        let result = (|| -> Result<(), String> {
+            let file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&source)
+                .map_err(|error| error.to_string())?;
+            file.set_len(1024 * 1024 * 1024)
+                .map_err(|error| error.to_string())?;
+
+            let started = std::time::Instant::now();
+            atomic_copy_into(&source, &destination)?;
+            let source_digest = sha256_file(&source)?;
+            let destination_digest = sha256_file(&destination)?;
+            if source_digest != destination_digest {
+                return Err("streamed copy digest does not match its source".into());
+            }
+            if std::fs::metadata(&destination)
+                .map_err(|error| error.to_string())?
+                .len()
+                != 1024 * 1024 * 1024
+            {
+                return Err("streamed copy has the wrong length".into());
+            }
+            eprintln!("one_gib_elapsed_ms={}", started.elapsed().as_millis());
+            Ok(())
+        })();
+        let _ = std::fs::remove_dir_all(&root);
+        result.unwrap();
+    }
 
     #[test]
     fn fasta_preview_lists_records_and_keeps_first_sequence() {

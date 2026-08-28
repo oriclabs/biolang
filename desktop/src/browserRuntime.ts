@@ -25,8 +25,10 @@ interface WasmEvaluation {
 
 interface WasmVariable {
   name: string;
-  type: string;
+  type?: string;
+  typeName?: string;
   preview: string;
+  sizeBytes?: number;
   members?: string[];
 }
 
@@ -152,9 +154,9 @@ export async function validateBrowserImport(
 function consoleEnvironment(variables: WasmVariable[]): ConsoleEnvironment {
   const mapped = variables.map((variable) => ({
     name: variable.name,
-    typeName: variable.type,
+    typeName: variable.typeName ?? variable.type ?? "Value",
     preview: variable.preview,
-    sizeBytes: new TextEncoder().encode(variable.preview).byteLength,
+    sizeBytes: variable.sizeBytes ?? new TextEncoder().encode(variable.preview).byteLength,
     members: variable.members ?? [],
   }));
   return {
