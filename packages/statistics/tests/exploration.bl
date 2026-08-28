@@ -333,6 +333,13 @@ fn test_normal_diagram_and_report_visualizer_support_terminal_and_notebook_outpu
     let report = stat.explore(values)
     assert starts_with(stat.visualize(report), "<svg")
     assert contains(stat.visualize(report, {format: "ascii"}), "CENTRE + SPREAD + SCALE")
+
+    let terminal_report = stat.show(report, {detail: "quick", format: "ascii"})
+    assert contains(terminal_report, "usable observation")
+    assert contains(terminal_report, "CENTRE + SPREAD + SCALE")
+    assert starts_with(stat.show(report, {detail: "quick", format: "svg"}), "<svg")
+    assert stat.show(report, {format: "raw"}).kind == "numeric"
+    assert contains(stat.show(report, {charts: false}), "Data used")
 }
 
 fn test_glm_diagnostics_expose_residual_influence_and_calibration_clues() {

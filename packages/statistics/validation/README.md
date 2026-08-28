@@ -41,17 +41,30 @@ rank tests, rank-biserial effects, and labelled Fisher odds-ratio intervals. The
 multi-group extension independently checks classical and Welch ANOVA, raw sums
 of squares, eta/omega squared, tie-corrected Kruskal-Wallis with epsilon
 squared, every Tukey-Kramer contrast and simultaneous interval, and pairwise
-Welch tests with Holm correction. Plot geometry adds 2,209 scale-sensitive checks
+Welch tests with Holm correction. Plot geometry adds 2,536 scale-sensitive checks
 against base R: explicit histogram edges, counts, densities, closure and
 endpoint handling; type-7 and Tukey-hinge box summaries; tied ECDF jumps;
 normal Q-Q plotting positions and reference line; and the complete 256-point
 Gaussian violin/KDE grid. Box, ECDF, Q-Q and KDE geometry are all repeated on
 the real, skewed `airquality` ozone fixture. Ordinary least-squares fitted
 values, confidence bands and wider prediction bands are checked on ozone by
-month against both `predict.lm` and statsmodels. This gives 2,477 R/BioLang
-metrics: 2,473 intended numerical equivalences and four documented convention
-differences. When Python, NumPy and statsmodels are available, 2,160 further
-geometry checks run independently, for 4,637 metrics in total.
+month against both `predict.lm` and statsmodels. Clinical geometry is checked
+independently too: Kaplan-Meier time, risk, event and censor sets, product-limit
+survival and Greenwood standard errors against `survival::survfit`; tied-score
+ROC AUC against an explicit Mann-Whitney calculation; and frozen forest-plot
+estimates, confidence limits and weights against base-R fixtures. This gives
+independent genomic gates too: cumulative Manhattan offsets and p-value
+transforms; genetic Q-Q plotting positions, exact beta order-statistic bounds
+and λGC; and stable within-chromosome rainfall distances with explicit
+duplicate-position floors. Cytoband order and chromosome lengths, CNV genomic
+segment bounds and threshold states, half-open coverage overlap/clipping,
+regional feature lanes, lollipop domains and count-scaled splice arcs are also
+checked independently. Circular-genome validation independently checks
+chromosome-length-weighted angles, line/CNV track radii, interval endpoints,
+ribbon angles and count-scaled link widths. This gives 2,804 R/BioLang metrics: 2,800 intended
+numerical equivalences and four documented convention differences. When Python,
+NumPy and statsmodels are available, 2,160 further geometry checks run
+independently, for 4,964 metrics in total.
 Finite edge cases include a three-observation t-test, tied ranks, zero/one and
 tied p-values, a zero-heavy count distribution, and an extreme regression
 outlier.

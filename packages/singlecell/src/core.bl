@@ -21,7 +21,7 @@ fn load(path) {
 ## Legacy top-level fields remain available for older BioLang packages.
 fn _with_contract(obj) {
     let layers = if contains(keys(obj), "layers") { obj.layers } else { {counts: obj.matrix} }
-    {... obj,
+    let result = {... obj,
         profile: "biolang",
         active_assay: "RNA",
         assays: {RNA: {layers: layers, variable_features: []}},
@@ -29,6 +29,10 @@ fn _with_contract(obj) {
         graphs: {},
         idents: []
     }
+    # Constructors fail at the boundary instead of allowing a mislabeled axis
+    # to travel into normalization, PCA, markers, or plots.
+    sc_validate_object(result, true)
+    result
 }
 
 ## Rows of a dense matrix as List<List<Float>>.
@@ -62,6 +66,23 @@ fn from_matrix(matrix, genes, barcodes) {
         layers:    {counts: rows},
         is_sparse: false
     })
+}
+
+## validate(obj, strict) -> Record
+##
+## Check matrix dimensions and, more importantly, cell/feature identity across
+## names, layers, assays, selected features, annotations, and reductions.
+## The default returns a structured report. Pass true to stop on the first
+## invalid object boundary.
+fn validate(obj, strict = false) {
+    sc_validate_object(obj, strict)
+}
+
+## assert_valid(obj) -> Record
+## Validate strictly, then return the original object for use in a pipeline.
+fn assert_valid(obj) {
+    sc_validate_object(obj, true)
+    obj
 }
 
 ## n_cells(obj) → Int

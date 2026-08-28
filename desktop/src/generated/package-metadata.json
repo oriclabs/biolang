@@ -2221,13 +2221,22 @@
       "description": "Single-cell RNA-seq analysis, donor-aware statistics, diagnostics, and publication-ready visualization",
       "exports": [
         {
+          "name": "assert_valid",
+          "signature": "assert_valid(obj) -> Record",
+          "summary": "Validate strictly and return obj, suitable for a pipeline boundary.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 61
+        },
+        {
           "name": "cell_cycle",
           "signature": "cell_cycle(obj, s_genes, g2m_genes) -> Record",
           "summary": "BioLang package function cell_cycle.",
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 94
+          "line": 98
         },
         {
           "name": "center_batches",
@@ -2236,7 +2245,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 153
+          "line": 157
         },
         {
           "name": "cluster",
@@ -2245,7 +2254,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 85
+          "line": 89
         },
         {
           "name": "cluster_diagnostics",
@@ -2256,7 +2265,7 @@
             "n_clusters"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 142
+          "line": 146
         },
         {
           "name": "cluster_leiden",
@@ -2265,7 +2274,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 86
+          "line": 90
         },
         {
           "name": "cluster_louvain",
@@ -2274,7 +2283,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 87
+          "line": 91
         },
         {
           "name": "cluster_stability",
@@ -2283,7 +2292,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 144
+          "line": 148
         },
         {
           "name": "composition_table",
@@ -2292,7 +2301,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 131
+          "line": 135
         },
         {
           "name": "dim_plot",
@@ -2301,7 +2310,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 203
+          "line": 207
         },
         {
           "name": "do_heatmap",
@@ -2309,7 +2318,7 @@
           "summary": "BioLang package function do_heatmap.",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 209
+          "line": 213
         },
         {
           "name": "donor_gene_table",
@@ -2318,7 +2327,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 123
+          "line": 127
         },
         {
           "name": "dot_plot",
@@ -2326,7 +2335,7 @@
           "summary": "BioLang package function dot_plot.",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 208
+          "line": 212
         },
         {
           "name": "doublets",
@@ -2335,7 +2344,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 96
+          "line": 100
         },
         {
           "name": "expr_dotplot",
@@ -2344,7 +2353,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 199
+          "line": 203
         },
         {
           "name": "feature_plot",
@@ -2353,7 +2362,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 206
+          "line": 210
         },
         {
           "name": "filter_cells",
@@ -2362,7 +2371,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 73
+          "line": 77
         },
         {
           "name": "filter_genes",
@@ -2371,7 +2380,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 76
+          "line": 80
         },
         {
           "name": "find_all_markers",
@@ -2379,7 +2388,7 @@
           "summary": "BioLang package function find_all_markers.",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 105
+          "line": 109
         },
         {
           "name": "find_integration_anchors",
@@ -2397,7 +2406,7 @@
             "compute_backend"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 164
+          "line": 168
         },
         {
           "name": "find_markers",
@@ -2405,7 +2414,7 @@
           "summary": "BioLang package function find_markers.",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 101
+          "line": 105
         },
         {
           "name": "flag_doublets",
@@ -2414,7 +2423,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 97
+          "line": 101
         },
         {
           "name": "from_matrix",
@@ -2432,7 +2441,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 95
+          "line": 99
         },
         {
           "name": "get_barcodes",
@@ -2441,7 +2450,7 @@
           "returnType": "List<Str>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 63
+          "line": 67
         },
         {
           "name": "get_clusters",
@@ -2450,7 +2459,7 @@
           "returnType": "List<Int>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 65
+          "line": 69
         },
         {
           "name": "get_doublet_scores",
@@ -2459,7 +2468,7 @@
           "returnType": "List<Float>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 67
+          "line": 71
         },
         {
           "name": "get_genes",
@@ -2468,7 +2477,7 @@
           "returnType": "List<Str>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 62
+          "line": 66
         },
         {
           "name": "get_hvg_genes",
@@ -2477,7 +2486,7 @@
           "returnType": "List<Str>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 64
+          "line": 68
         },
         {
           "name": "get_matrix",
@@ -2486,7 +2495,7 @@
           "returnType": "List<List<Float>>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 60
+          "line": 64
         },
         {
           "name": "get_norm_matrix",
@@ -2495,7 +2504,7 @@
           "returnType": "List<List<Float>>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 61
+          "line": 65
         },
         {
           "name": "get_pseudotime",
@@ -2504,7 +2513,7 @@
           "returnType": "List<Float>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 66
+          "line": 70
         },
         {
           "name": "harmony",
@@ -2513,7 +2522,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 155
+          "line": 159
         },
         {
           "name": "integrate",
@@ -2521,7 +2530,7 @@
           "summary": "BioLang package function integrate.",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 152
+          "line": 156
         },
         {
           "name": "integrate_data",
@@ -2547,7 +2556,7 @@
             "key"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 172
+          "line": 176
         },
         {
           "name": "integrate_from_column",
@@ -2556,7 +2565,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 154
+          "line": 158
         },
         {
           "name": "load",
@@ -2574,7 +2583,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 98
+          "line": 102
         },
         {
           "name": "merge",
@@ -2583,7 +2592,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 158
+          "line": 162
         },
         {
           "name": "n_cells",
@@ -2592,7 +2601,7 @@
           "returnType": "Int",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 58
+          "line": 62
         },
         {
           "name": "n_genes",
@@ -2601,7 +2610,7 @@
           "returnType": "Int",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 59
+          "line": 63
         },
         {
           "name": "neighbors",
@@ -2613,7 +2622,7 @@
             "graphs"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 84
+          "line": 88
         },
         {
           "name": "normalize",
@@ -2627,7 +2636,7 @@
             "assays"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 77
+          "line": 81
         },
         {
           "name": "order_by_pseudotime",
@@ -2636,7 +2645,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 180
+          "line": 184
         },
         {
           "name": "paired_composition_test",
@@ -2645,7 +2654,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 135
+          "line": 139
         },
         {
           "name": "paired_pseudobulk_de",
@@ -2654,7 +2663,7 @@
           "returnType": "List<Record>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 115
+          "line": 119
         },
         {
           "name": "plot_cluster_stability",
@@ -2663,7 +2672,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 273
+          "line": 277
         },
         {
           "name": "plot_composition",
@@ -2672,7 +2681,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 259
+          "line": 263
         },
         {
           "name": "plot_de_overlap",
@@ -2681,7 +2690,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 264
+          "line": 268
         },
         {
           "name": "plot_donor_expression",
@@ -2690,7 +2699,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 244
+          "line": 248
         },
         {
           "name": "plot_elbow",
@@ -2699,7 +2708,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 197
+          "line": 201
         },
         {
           "name": "plot_embedding",
@@ -2708,7 +2717,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 223
+          "line": 227
         },
         {
           "name": "plot_enrichment",
@@ -2717,7 +2726,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 269
+          "line": 273
         },
         {
           "name": "plot_feature",
@@ -2726,7 +2735,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 194
+          "line": 198
         },
         {
           "name": "plot_feature_split",
@@ -2735,7 +2744,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 227
+          "line": 231
         },
         {
           "name": "plot_group_heatmap",
@@ -2744,7 +2753,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 231
+          "line": 235
         },
         {
           "name": "plot_ma",
@@ -2753,7 +2762,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 240
+          "line": 244
         },
         {
           "name": "plot_markers",
@@ -2762,7 +2771,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 196
+          "line": 200
         },
         {
           "name": "plot_pca",
@@ -2771,7 +2780,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 193
+          "line": 197
         },
         {
           "name": "plot_proportions",
@@ -2780,7 +2789,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 198
+          "line": 202
         },
         {
           "name": "plot_pseudobulk_pca",
@@ -2789,7 +2798,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 252
+          "line": 256
         },
         {
           "name": "plot_qc_dashboard",
@@ -2798,7 +2807,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 219
+          "line": 223
         },
         {
           "name": "plot_qc_scatter",
@@ -2807,7 +2816,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 215
+          "line": 219
         },
         {
           "name": "plot_qc_violin",
@@ -2816,7 +2825,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 211
+          "line": 215
         },
         {
           "name": "plot_silhouette",
@@ -2825,7 +2834,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 277
+          "line": 281
         },
         {
           "name": "plot_umap",
@@ -2834,7 +2843,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 192
+          "line": 196
         },
         {
           "name": "plot_violin",
@@ -2843,7 +2852,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 195
+          "line": 199
         },
         {
           "name": "plot_volcano",
@@ -2852,7 +2861,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 235
+          "line": 239
         },
         {
           "name": "pseudobulk",
@@ -2861,7 +2870,7 @@
           "returnType": "Table",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 109
+          "line": 113
         },
         {
           "name": "pseudobulk_profiles",
@@ -2875,7 +2884,7 @@
             "genes"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 111
+          "line": 115
         },
         {
           "name": "pseudotime",
@@ -2884,7 +2893,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 179
+          "line": 183
         },
         {
           "name": "pseudotime_bins",
@@ -2893,7 +2902,7 @@
           "returnType": "List<Int>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 181
+          "line": 185
         },
         {
           "name": "qc",
@@ -2902,7 +2911,7 @@
           "returnType": "Record",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 72
+          "line": 76
         },
         {
           "name": "ranked_genes",
@@ -2911,7 +2920,7 @@
           "returnType": "Table{gene, score}",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 148
+          "line": 152
         },
         {
           "name": "run_pca",
@@ -2930,7 +2939,7 @@
             "key"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 83
+          "line": 87
         },
         {
           "name": "run_umap",
@@ -2943,7 +2952,7 @@
             "min_dist"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 88
+          "line": 92
         },
         {
           "name": "scale",
@@ -2955,7 +2964,7 @@
             "assays"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 82
+          "line": 86
         },
         {
           "name": "sctransform",
@@ -2983,7 +2992,7 @@
             "covariates_regressed"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 78
+          "line": 82
         },
         {
           "name": "select_integration_features",
@@ -2992,7 +3001,7 @@
           "returnType": "List<Int>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 161
+          "line": 165
         },
         {
           "name": "smooth_along_pseudotime",
@@ -3001,20 +3010,14 @@
           "returnType": "List<Float>",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 182
+          "line": 186
         },
         {
           "name": "standard",
           "signature": "standard(obj, resolution = nil, n_hvg = nil, k = nil, min_genes = nil, max_genes = nil, max_pct_mito = nil, min_cells = nil, target = nil, quiet = false, profile = \"seurat_5_5_1\") -> Record",
           "summary": "BioLang package function standard.",
           "returnType": "Record",
-          "fields": [
-            "profile",
-            "idents",
-            "decisions",
-            "n_clusters",
-            "warnings"
-          ],
+          "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
           "line": 43
         },
@@ -3036,7 +3039,7 @@
             "has_pseudotime"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 68
+          "line": 72
         },
         {
           "name": "sweep",
@@ -3046,6 +3049,15 @@
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
           "line": 50
+        },
+        {
+          "name": "validate",
+          "signature": "validate(obj, strict = false) -> Record",
+          "summary": "Validate dimensions and cell/feature identity mappings; strict=true raises.",
+          "returnType": "Record",
+          "fields": [],
+          "sourcePath": "packages/singlecell/src/mod.bl",
+          "line": 59
         },
         {
           "name": "variable_genes",
@@ -3058,7 +3070,7 @@
             "assays"
           ],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 81
+          "line": 85
         },
         {
           "name": "vln_plot",
@@ -3067,7 +3079,7 @@
           "returnType": "Str (SVG)",
           "fields": [],
           "sourcePath": "packages/singlecell/src/mod.bl",
-          "line": 207
+          "line": 211
         }
       ]
     },

@@ -153,6 +153,7 @@ fn append_ledger(capability: &str, backend: &str, reason: &str, warnings: &[Stri
 
     entries.push(serde_json::json!({
         "ts": now_millis(),
+        "process_id": std::process::id(),
         "capability": capability,
         "backend": backend,
         "reason": reason,

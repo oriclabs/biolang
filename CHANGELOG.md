@@ -11,6 +11,170 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Native contingency-table mosaic plots.** `mosaic_plot()` draws category
+  rectangles whose area is exactly proportional to observed counts, while
+  `mosaic_data()` exposes replayable counts, expected values, proportions,
+  Pearson residuals, colours and rectangle boundaries. Count/row/column/total
+  labels, residual shading, SVG, HTML/Canvas and terminal output share the same
+  renderer-neutral specification.
+
+- **Verified dataset registry client.** `bl data search`, `info`, `fetch`, and
+  `path` consume versioned dataset/provider entries from the separate BioLang
+  Registry. Downloads are explicit, size-bounded, SHA-256 verified, cached
+  outside the executable, and activated atomically. Verified manifests are
+  cached with their digest so warm fetches avoid registry round trips and
+  `bl data path` works fully offline. Cache identity/version segments are
+  traversal-safe, malformed registry entries are isolated, versions use one
+  semantic ordering, and cross-origin redirects are refused. Manifests disclose
+  source, licence, citation, access conditions, formats, and suggested BioLang
+  readers.
+
+- **Reproducible recorded CLI runs.** `bl run --record` writes a versioned JSON
+  manifest with SHA-256 hashes for the script, imported modules, executable,
+  package manifest, declared inputs and declared outputs; typed `--param`
+  values exposed through `run_param()`; random seed; CPU/GPU decision; elapsed
+  time; and peak resident memory. Missing inputs fail before execution and
+  missing expected outputs fail the postflight check.
+
+- **Single-cell object and axis validation.** `sc.validate()` returns a
+  structured report and `sc.assert_valid()` stops at invalid object boundaries.
+  Checks cover matrix dimensions, exact HVG/ranked-feature identity mappings,
+  layers, assays, active assay, annotations, cell-aligned values, reductions,
+  and graph endpoints. Constructors and `sc.standard()` now validate
+  automatically, including compatible foreign objects using `cells` rather
+  than `barcodes`.
+
+- **Opt-in publication plotting theme.** Generic Cartesian plots, UMAP,
+  FeaturePlot, violin and density plots, PCA, single-cell dot plots, heatmaps,
+  clustered marker panels, Hi-C maps, OncoPrints, Venn/UpSet diagrams, sequence
+  logos and phylogenetic trees accept `theme: "publication"`, which adds deterministic
+  text-aware margins, consistent typography, subtle grids, external legends,
+  subtitles and captions without changing the historical default theme. UMAP
+  uses equal coordinate units in this theme; FeaturePlot adds a perceptually
+  ordered continuous scale, explicit missing-value colour, high-values-on-top
+  draw order, and numeric or `q05`/`q95` cutoffs. Violin labels adapt to narrow
+  figures without changing KDE geometry. Dot plots use area for detection rate
+  and a zero-centred diverging scale for expression z-scores. Both are checked
+  at notebook, 85 mm and 180 mm logical widths.
+
+- **Generated biological plot gallery.** The website catalogue is generated
+  by executing all 21 documented biological plot examples in the current WASM
+  runtime. Every preview records the renderer's actual theme, links to its
+  builtin documentation, opens in a keyboard-accessible large preview, and
+  provides SVG plus high-resolution PNG downloads. Structural and browser
+  tests reject missing, stale, blank or low-resolution gallery artifacts.
+
+- **Publication heatmaps without analytical drift.** Generic heatmaps retain
+  input order, or their documented row-mean order with `cluster: true`.
+  `clustered_heatmap` retains its deterministic nearest-neighbour traversal and
+  now discloses it in accessible metadata. Publication heatmaps add adaptive
+  row/column labels, subtitles, captions, named colour guides, automatic
+  zero-centred diverging colour for signed data, and perceptually ordered
+  sequential colour otherwise. Single-cell marker helpers now pass explicitly
+  named numeric matrices instead of mixing a gene-name string column into the
+  heatmap values.
+
+- **Explicit R-validated hierarchical heatmaps.** `clustered_heatmap` now
+  accepts `order: "hierarchical"` with Euclidean or Manhattan distance,
+  complete/average/single/Ward D2 linkage and selectable row, column or both
+  dendrograms. The default nearest-neighbour order is unchanged. Leaf order and
+  merge heights are checked against base R 4.5.2 for all four linkages, and SVG
+  metadata records the exact method and geometry. An in-place cluster-slot
+  distance grid uses roughly one quarter of the memory of a `2n × 2n` design.
+
+- **Inspectable UMAP and FeaturePlot specifications.** Both embedding plots can
+  return `biolang.plot.spec/v1` with `format: "spec"`. The specification keeps
+  every source coordinate, group, point label and feature value together with
+  resolved quantile cutoffs, publication draw rank, aspect choice and raster
+  decision. `render_plot()` replays it to byte-identical SVG or standalone
+  HTML/Canvas, while dense embeddings retain the bounded embedded-PNG point
+  layer. Non-finite coordinate pairs are disclosed and excluded from rendered
+  geometry instead of emitting invalid SVG coordinates.
+
+- **Replayable PCA, volcano and MA specifications.** `pca_plot()`, `volcano()`
+  and `ma_plot()` now accept `format: "spec"` and replay through
+  `render_plot()`. PCA stores the computed PC1/PC2 scores, groups, labels and
+  explained-variance percentages, so replay never recomputes the decomposition.
+  Differential-expression specs retain raw and transformed coordinates, gene
+  labels, resolved thresholds and per-row classification. Direct and replayed
+  SVGs are byte-identical, dense gene clouds retain their bounded raster mark
+  layer, and non-finite geometry is reported rather than written into SVG. PCA
+  now identifies genuinely numeric table columns, so text sample or group
+  columns can no longer silently become NaN scores, and rejects non-finite
+  numeric input explicitly.
+
+- **Inspectable violin, dot and heatmap specifications.** `violin()`,
+  `violin_plot()`, `dot_plot()`, `heatmap()` and `clustered_heatmap()` accept
+  `format: "spec"` and replay through `render_plot()`. Violin specifications
+  retain the resolved KDE grid, bandwidth, sample count and median. Dot plots
+  expose mean expression, detected-cell fraction and clipped per-gene z-score
+  for every gene-cluster pair. Heatmaps retain source and display order,
+  resolved colour domains and, for hierarchical clustering, every merge and
+  height. SVG replay is byte-identical and HTML includes the Canvas fallback.
+
+- **Inspectable survival, diagnostic and effect-size specifications.**
+  `kaplan_meier()`, `roc_curve()` and `forest_plot()` accept `format: "spec"`
+  and replay through `render_plot()`. Kaplan-Meier records each tied risk set,
+  event/censor count, product-limit estimate and Greenwood standard error. ROC
+  records one point per distinct score threshold with TP/FP/TN/FN counts and a
+  frozen trapezoidal AUC, removing the previous input-order dependence for tied
+  scores. Forest plots retain every estimate, interval, weight, reference line,
+  linear/log scale and resolved display domain. Dense survival and ROC curves
+  use bounded SVG path elements, and HTML includes the Canvas fallback.
+
+- **Inspectable genomic-association specifications.** `manhattan()`, the
+  genetic `qq_plot()` and `rainfall()` now accept `format: "spec"` and replay
+  through `render_plot()`. Manhattan records first-observed chromosome order,
+  cumulative offsets, raw/transformed p-values, resolved significance and
+  optional highlighting. Genetic Q-Q records expected plotting positions,
+  observed p-values, genomic inflation factor λGC and an opt-in exact beta
+  order-statistic confidence envelope. Rainfall records stable
+  within-chromosome ordering, raw and plotted distances, and duplicate-position
+  floors separately. Dense marks rasterise without discarding analytical rows.
+
+- **Inspectable genomic-track specifications.** `ideogram()`, `cnv_plot()` and
+  `coverage_track()` now accept `format: "spec"` and replay through
+  `render_plot()`. Ideograms retain cytobands and standard stain classes on one
+  shared chromosome-length scale. CNV profiles retain real genomic segment
+  bounds, log2 ratios, thresholds and gain/loss states. Coverage tracks preserve
+  point versus interval geometry, require an explicit chromosome for mixed
+  inputs and clip half-open overlapping intervals to requested regions. Dense
+  inputs use bounded path layers without dropping analytical rows; coordinate
+  geometry is checked independently against base R.
+
+- **Replayable regional annotation and splicing plots.** `genome_track()`,
+  `lollipop()` and `sashimi()` now accept `format: "spec"` and replay through
+  `render_plot()`. Genome features retain original and region-clipped bounds
+  and use deterministic non-overlapping lanes. Lollipop plots honour `length`
+  as the full sequence domain and freeze collision-limited labels. Sashimi
+  plots retain sorted coverage, complete splice junctions, read-count scaling
+  and reproducible arc lanes. Dense inputs stay complete in the specification
+  while bounded path layers keep SVG documents responsive.
+
+- **Deterministic multi-track circular genomes.** `circos()` now uses
+  chromosome-length-weighted arcs, interval ribbons or point links, and typed
+  line, bar, point, heatmap, CNV and annotation tracks. Its PlotSpec freezes
+  every chromosome, mark, link, angular coordinate and radial coordinate for
+  byte-identical replay. Dense inputs retain all analytical rows while grouped
+  paths bound SVG complexity. Independent base-R formulas check 83 circular
+  coordinate and scaling values, including link widths and track radii.
+
+- **Replayable multi-panel figures.** `plot_grid()` composes SVG plots and
+  PlotSpecs into deterministic equal-size cells with spreadsheet-style panel
+  tags, figure titles/captions, shared outer labels and an explicit shared
+  legend. Child SVG is screened for active content, the complete composition
+  can be stored as `biolang.plot.spec/v1`, and SVG replay is byte-identical.
+  Standalone HTML retains the Canvas fallback.
+
+- **Publication export controls.** `save_svg()` accepts a publication profile,
+  controlled font stacks and paired physical `width_mm`/`height_mm` dimensions
+  while preserving vector viewBox geometry. `save_png()` accepts exact `dpi`
+  as an alternative to `scale` and rejects ambiguous requests containing both.
+  Both exporters accept a PlotSpec directly and replay it internally, avoiding
+  a separate `render_plot()` step in analysis scripts.
+  The browser workbench continues to expose SVG, screen PNG, 300-DPI PNG and
+  print/PDF controls.
+
 - **Terminal plot previews instead of raw SVG dumps.** The CLI recognises a
   complete SVG plot whether it is the final value or passed to `println`, and
   renders a compact Braille/Unicode preview in an interactive terminal. Plain

@@ -44,6 +44,35 @@ fn visualize(report, options = ({})) {
     stats_visualize(report, options)
 }
 
+# Present a guided report in the form that best fits the current front end.
+# `auto` returns SVG: notebooks and desktop clients render it directly, while
+# the CLI's `:plot` setting converts it to terminal graphics or a file.  The
+# explanation is printed first so the visual never hides the evidence behind
+# the suggestions.  No calculation is repeated and the report is not changed.
+fn show(report, options = ({})) {
+    let option_names = keys(options)
+    let detail = if contains(option_names, "detail") { options.detail } else { "learning" }
+    let format = if contains(option_names, "format") { options.format } else { "auto" }
+    let charts = if contains(option_names, "charts") { options.charts } else { true }
+    let explanation = stats_explain(report, detail)
+
+    if format == "raw" {
+        report
+    } else if not charts {
+        explanation
+    } else if format == "ascii" {
+        explanation + "\n\n" + stats_visualize(report, {format: "ascii"})
+    } else if format == "auto" {
+        println(explanation)
+        stats_visualize(report, {format: "svg"})
+    } else if format == "svg" {
+        println(explanation)
+        stats_visualize(report, {format: "svg"})
+    } else {
+        error("stat.show(): format must be auto, ascii, svg, or raw")
+    }
+}
+
 fn preprocessing(values, options = ({})) {
     stats_preprocess(values, options)
 }

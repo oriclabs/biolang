@@ -21,6 +21,7 @@ this file is not a claim of statistical parity with R or Python.
 | Current name(s) | Canonical name | Source | Return | Shared geometry | Status / main risk |
 |---|---|---|---|---|---|
 | `plot`, `plot_spec`, `render_plot` | `plot` | `crates/bl-runtime/src/plot.rs` | SVG/text/HTML `Str`; spec `Record` | Yes for scatter, line, error bar and confidence band: `biolang.plot.spec/v1` | Bar remains legacy; box drawing now consumes shared box geometry. |
+| `plot_grid` | `plot_grid` | `crates/bl-runtime/src/plot.rs` | SVG/text/HTML `Str`; spec `Record` | Yes, `biolang.plot.spec/v1` | Equal-size panel cells, tags, outer labels and explicit shared legends are frozen. Child SVG rejects active content; semantic axis alignment remains a future scene-level capability. |
 | `histogram`, `histogram_data` | `histogram` | `crates/bl-runtime/src/plot.rs` | SVG `Str`; geometry `Record` | Yes, `biolang.plot.geometry/v1` | Explicit edges, closure, endpoint handling, counts and density have an independent base-R gate. Automatic rule parity remains separate. |
 | `ecdf_plot`, `ecdf_data` | `ecdf_plot` | `crates/bl-runtime/src/plot.rs` | SVG `Str`; geometry `Record` | Yes | Ties collapse into one jump and match base R/NumPy reference geometry. |
 | `boxplot_data` and `plot(..., {type: "box"})` | box plot | `crates/bl-runtime/src/plot.rs` | SVG `Str`; geometry `Record` | Yes | Type-7 summaries and optional base-R Tukey hinges are separately declared and validated. |
@@ -30,12 +31,21 @@ this file is not a claim of statistical parity with R or Python.
 | `linear_fit_data`; `stats_relationship_plot(..., {interval: ...})` | `linear_fit_data` geometry | `plot.rs`, `stats_explore.rs` | geometry `Record`; guided SVG/ASCII | Yes | OLS fitted means, confidence intervals and prediction intervals independently match R and statsmodels on real data. |
 | `categorical_data`; `stats_categorical_plot` | categorical frequency geometry | `plot.rs`, `stats_explore.rs` | geometry `Record`; guided SVG/ASCII | Yes | Counts and proportions retain first-observed category order; missing values are reported separately. |
 | `missingness_data`; `stats_missingness_plot` | missingness geometry | `plot.rs`, `stats_explore.rs` | geometry `Record`; guided SVG/ASCII | Yes | Full-data counts use every cell; deterministic row/column strides bound only the rendered grid. Nil and non-finite numbers are missing. |
-| `heatmap`, `clustered_heatmap`, `hic_map` | distinct until audited | `plot.rs`, `bio_plots.rs` | SVG `Str` | No | Similar marks but different statistical transformations and domain meaning. |
+| `kaplan_meier` | Kaplan-Meier survival | `crates/bl-runtime/src/bio_plots.rs` | SVG/terminal/HTML `Str`; spec `Record` | Yes, `biolang.plot.spec/v1` | Tied event/censor risk sets, product-limit survival and Greenwood standard errors match independent `survival::survfit` output. |
+| `roc_curve` | receiver operating characteristic | `crates/bl-runtime/src/bio_plots.rs` | SVG/terminal/HTML `Str`; spec `Record` | Yes, `biolang.plot.spec/v1` | Equal scores are advanced as one threshold; confusion counts and trapezoidal AUC are frozen and independently validated. |
+| `forest_plot` | confidence-interval forest plot | `crates/bl-runtime/src/bio_plots.rs` | SVG/terminal/HTML `Str`; spec `Record` | Yes, `biolang.plot.spec/v1` | Linear/log domains, reference line, row provenance and marker-area weights are frozen; interval fields match the R fixture. |
+| `manhattan` | genome-wide association Manhattan plot | `crates/bl-runtime/src/bio_plots.rs` | SVG/terminal/HTML `Str`; spec `Record` | Yes, `biolang.plot.spec/v1` | First-observed chromosome order, cumulative offsets, raw/transformed p-values and significance are frozen and independently checked against base R. |
+| `qq_plot` | genetic p-value Q-Q plot | `crates/bl-runtime/src/bio_plots.rs` | SVG/terminal/HTML `Str`; spec `Record` | Yes, `biolang.plot.spec/v1` | Distinct from normal Q-Q: freezes `(rank - 0.5) / n`, λGC and an opt-in exact beta order-statistic envelope, all checked against base R. |
+| `rainfall` | inter-variant distance rainfall plot | `crates/bl-runtime/src/bio_plots.rs` | SVG/terminal/HTML `Str`; spec `Record` | Yes, `biolang.plot.spec/v1` | Stable within-chromosome sorting and raw/plotted/log distances retain duplicate positions explicitly and match the R fixture. |
+| `ideogram` | chromosome cytoband ideogram | `crates/bl-runtime/src/bio_plots.rs` | SVG/terminal/HTML `Str`; spec `Record` | Yes, `biolang.plot.spec/v1` | Cytobands, stains and first-observed chromosome order are frozen; every chromosome uses the same length scale and geometry matches the R fixture. |
+| `cnv_plot` | copy-number segment profile | `crates/bl-runtime/src/bio_plots.rs` | SVG/terminal/HTML `Str`; spec `Record` | Yes, `biolang.plot.spec/v1` | Actual segment bounds, cumulative offsets, log2 ratios, thresholds and gain/loss states are frozen and independently checked. |
+| `coverage_track` | regional point/interval coverage | `crates/bl-runtime/src/bio_plots.rs` | SVG/terminal/HTML `Str`; spec `Record` | Yes, `biolang.plot.spec/v1` | Point and interval geometry remain distinct; half-open overlaps are clipped to the requested single-chromosome region and independently checked. |
+| `heatmap`, `clustered_heatmap`, `hic_map` | distinct until audited | `plot.rs`, `bio_plots.rs` | SVG `Str` | No | Similar marks but different statistical transformations and domain meaning. All three now honour the shared publication presentation tokens; this does not make their analytical geometry interchangeable. |
 | `volcano`, `volcano_plot` | `volcano_plot` | `plot.rs`, `bio_plots.rs` | SVG `Str` | No | Duplicate public concepts with potentially different thresholds/options. |
 | `ma_plot` | `ma_plot` | `plot.rs` | SVG `Str` | No | Point-heavy path; candidate for selective raster marks. |
-| `genome_track`, `coverage_track`, `coverage` | distinct until audited | `plot.rs`, `bio_plots.rs`, `viz.rs` | SVG or text | No | Names overlap but inputs and biological meanings differ. |
-| `save_svg`, `save_plot` | `save_svg` | `plot.rs` | path/result value | N/A | True aliases. `save_plot` should remain compatibility-only. |
-| `save_png` | `save_png` | `plot.rs` | path/result value | N/A | Uses SVG-to-PNG conversion; no direct scene/geometry input. |
+| `genome_track`, `coverage` | distinct concepts | `plot.rs`, `viz.rs` | SVG/terminal/HTML `Str`; genome spec `Record` | `genome_track`: yes | `coverage` is a terminal depth summary; `genome_track` freezes clipped named intervals, strand and deterministic non-overlapping lanes. |
+| `save_svg`, `save_plot` | `save_svg` | `plot.rs` | path/result value | N/A | SVG strings and PlotSpecs are accepted. Optional publication metadata, controlled font stacks and paired physical millimetre dimensions retain the vector viewBox. `save_plot` should remain compatibility-only. |
+| `save_png` | `save_png` | `plot.rs` | path/result value | N/A | SVG strings and PlotSpecs are accepted; conversion uses explicit scale or exact DPI. |
 
 ## Bio plot API
 
@@ -45,11 +55,11 @@ different result.
 
 | Family | Current names | Canonicalisation / risk |
 |---|---|---|
-| Association and diagnostic | `manhattan`, `qq_plot`, `roc_curve`, `pca_plot` | Keep distinct. `qq_plot` needs a declared reference distribution and line convention in conformance tests. |
-| Genomic coordinate | `ideogram`, `rainfall`, `cnv_plot`, `lollipop`, `circos`, `circos_plot`, `sashimi`, `coverage_track` | `circos`/`circos_plot` are duplicate concepts to audit. Coordinate clipping and ordering need tests. |
-| Distribution and survival | `violin`, `violin_plot`, `density`, `kaplan_meier`, `forest_plot` | `violin` and `violin_plot` are not aliases: wide table columns versus long-form group/value input. They share KDE geometry. Survival estimates should be validated independently of pixels. |
-| Matrix and set | `clustered_heatmap`, `oncoprint`, `venn`, `upset`, `upset_plot`, `hic_map` | `upset`/`upset_plot` overlap. Clustering/reordering must be separated from drawing. |
-| Sequence and tree | `sequence_logo`, `phylo_tree`, `alignment_view` | `alignment_view` also exists in `viz.rs`; dispatch ownership must be made unambiguous. |
+| Association and diagnostic | `manhattan`, `qq_plot`, `roc_curve`, `pca_plot` | Keep distinct. Manhattan, genetic Q-Q and ROC now have frozen, independently validated specifications. Genetic `qq_plot` is not the normal-data Q-Q diagnostic. |
+| Genomic coordinate | `ideogram`, `rainfall`, `cnv_plot`, `lollipop`, `circos`, `circos_plot`, `sashimi`, `coverage_track` | Ideogram, rainfall, CNV, coverage, lollipop, sashimi and the multi-track `circos` API now freeze and independently validate coordinate geometry. `circos_plot` remains a separate legacy/default-human-chromosome surface pending compatibility migration. |
+| Distribution and survival | `violin`, `violin_plot`, `density`, `kaplan_meier`, `forest_plot` | `violin` and `violin_plot` are not aliases: wide table columns versus long-form group/value input. They share KDE geometry. Kaplan-Meier and forest geometry now have frozen specifications and independent R gates. |
+| Matrix and set | `clustered_heatmap`, `oncoprint`, `venn`, `upset`, `upset_plot`, `hic_map` | `upset`/`upset_plot` overlap. Clustering/reordering must be separated from drawing. The primary gallery paths now honour publication theme/title/subtitle/caption options consistently. |
+| Sequence and tree | `sequence_logo`, `phylo_tree`, `alignment_view` | `sequence_logo` and `phylo_tree` now honour the publication presentation layer. `alignment_view` also exists in `viz.rs`; dispatch ownership must be made unambiguous. |
 | Single-cell | `umap_plot`, `feature_plot`, `elbow_plot`, `variable_feature_plot`, `dot_plot` | High-value parity targets. Large embeddings need selective raster marks without changing axes/text. |
 
 ## Terminal visual API
@@ -96,3 +106,21 @@ These are registered in `crates/bl-runtime/src/viz.rs`.
 9. Categorical frequencies and missingness grids expose stable geometry, and
    SVG/standalone HTML output has structural accessibility tests for titles,
    descriptions, controls and the Canvas fallback.
+10. Kaplan-Meier, ROC and forest plots now expose validated frozen
+    specifications, replay through every renderer, and keep dense curves in
+    bounded SVG paths rather than one element per observation.
+11. Manhattan, genetic Q-Q and rainfall plots now freeze genomic ordering,
+    transforms and diagnostic metadata; independent base-R gates include exact
+    beta order-statistic bounds and duplicate-position rainfall distances.
+12. Ideogram, CNV and coverage-track specifications now freeze cytobands,
+    chromosome lengths, segment bounds, threshold states and half-open region
+    clipping; dense SVGs use bounded path layers and base-R gates cover the
+    numeric geometry.
+13. Genome-track, lollipop and sashimi specifications now freeze regional
+    clipping, greedy interval lanes, sequence domains, coverage order and
+    count-scaled splice arcs; direct/replay output is byte-identical and dense
+    marks use bounded path layers.
+14. Multi-track circos specifications now freeze length-weighted chromosome
+    angles, typed track radii, ribbons and link weights; 83 independent base-R
+    comparisons gate the numeric geometry, while dense SVG layers remain
+    bounded without dropping specification rows.

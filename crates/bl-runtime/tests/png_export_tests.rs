@@ -140,6 +140,44 @@ fn scale_multiplies_the_pixels_and_leaves_the_drawing_alone() {
 }
 
 #[test]
+fn dpi_is_an_exact_alternative_to_scale() {
+    let dir = tempfile::tempdir().unwrap();
+    let svg = a_plot();
+    let at_96 = dir.path().join("96.png");
+    let at_288 = dir.path().join("288.png");
+    save(&svg, &at_96, vec![("dpi", Value::Float(96.0))]).unwrap();
+    save(&svg, &at_288, vec![("dpi", Value::Float(288.0))]).unwrap();
+    assert_eq!(decode(&at_288).width(), decode(&at_96).width() * 3);
+    assert_eq!(decode(&at_288).height(), decode(&at_96).height() * 3);
+    assert!(save(
+        &svg,
+        &dir.path().join("ambiguous.png"),
+        vec![("dpi", Value::Float(300.0)), ("scale", Value::Float(2.0))],
+    )
+    .is_err());
+}
+
+#[test]
+fn save_png_accepts_a_plot_spec_without_manual_replay() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("spec.png");
+    let data = Value::Table(bl_core::value::Table::new(
+        vec!["x".into(), "y".into()],
+        vec![
+            vec![Value::Float(1.0), Value::Float(2.0)],
+            vec![Value::Float(2.0), Value::Float(4.0)],
+        ],
+    ));
+    let spec = call_plot_builtin("plot_spec", vec![data]).unwrap();
+    call_plot_builtin(
+        "save_png",
+        vec![spec, Value::Str(path.to_string_lossy().into())],
+    )
+    .unwrap();
+    assert!(decode(&path).width() > 0);
+}
+
+#[test]
 fn the_default_scale_is_a_sharp_one() {
     let dir = tempfile::tempdir().unwrap();
     let svg = a_plot();

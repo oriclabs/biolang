@@ -1,7 +1,9 @@
+mod data_registry;
 mod events;
 mod notebook;
 #[cfg(feature = "notebook-server")]
 mod notebook_server;
+mod run_manifest;
 mod testing;
 mod update;
 
@@ -21,6 +23,94 @@ enum PlotModeArg {
     Open,
     Raw,
     None,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum DataKindArg {
+    Lesson,
+    Package,
+    Workflow,
+    Tool,
+    Dataset,
+    Provider,
+    All,
+}
+
+impl DataKindArg {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Lesson => "lesson",
+            Self::Package => "package",
+            Self::Workflow => "workflow",
+            Self::Tool => "tool",
+            Self::Dataset => "dataset",
+            Self::Provider => "provider",
+            Self::All => "all",
+        }
+    }
+}
+
+#[derive(Subcommand)]
+enum DataCommands {
+    /// Search registered datasets or providers without downloading them
+    Search {
+        /// Words matched against identity, title, description, category, and tags
+        query: Option<String>,
+        /// Require this registry category slug
+        #[arg(long)]
+        category: Option<String>,
+        /// Search one registry kind, or all kinds
+        #[arg(long, value_enum, default_value_t = DataKindArg::Dataset)]
+        kind: DataKindArg,
+        /// Emit registry entries as JSON
+        #[arg(long)]
+        json: bool,
+        /// Use a compatible registry index instead of the official registry
+        #[arg(long, value_name = "URL")]
+        registry: Option<String>,
+    },
+    /// Show a dataset's source, rights, files, sizes, and suggested readers
+    Info {
+        /// Dataset publisher/name, optionally followed by @version
+        dataset: String,
+        /// Emit the verified dataset manifest as JSON
+        #[arg(long)]
+        json: bool,
+        /// Use a compatible registry index instead of the official registry
+        #[arg(long, value_name = "URL")]
+        registry: Option<String>,
+    },
+    /// Explicitly download and verify a registered dataset
+    Fetch {
+        /// Dataset publisher/name, optionally followed by @version
+        dataset: String,
+        /// Fetch only one declared file ID
+        #[arg(long)]
+        file: Option<String>,
+        /// Confirm that source terms disclosed by the manifest were accepted
+        #[arg(long)]
+        accept_terms: bool,
+        /// Redownload even when a matching verified cache entry exists
+        #[arg(long)]
+        force: bool,
+        /// Emit downloaded paths and integrity metadata as JSON
+        #[arg(long)]
+        json: bool,
+        /// Use a compatible registry index instead of the official registry
+        #[arg(long, value_name = "URL")]
+        registry: Option<String>,
+    },
+    /// Print verified local paths for an already downloaded dataset
+    Path {
+        /// Dataset publisher/name, optionally followed by @version
+        dataset: String,
+        /// Print only one declared file ID
+        #[arg(long)]
+        file: Option<String>,
+        /// Emit paths and integrity metadata as JSON
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 impl PlotModeArg {
@@ -75,6 +165,21 @@ enum Commands {
         /// Print the script's final non-nil value
         #[arg(long)]
         print_result: bool,
+        /// Save a reproducible JSON run record (biolang.run/v1)
+        #[arg(long, value_name = "FILE")]
+        record: Option<PathBuf>,
+        /// Declare an input file or directory to hash in the run record
+        #[arg(long, value_name = "PATH")]
+        input: Vec<PathBuf>,
+        /// Declare an expected output file or directory to hash after the run
+        #[arg(long, value_name = "PATH")]
+        output: Vec<PathBuf>,
+        /// Provide a typed non-secret parameter; recorded verbatim and read with run_param()
+        #[arg(long, value_name = "NAME=VALUE")]
+        param: Vec<String>,
+        /// Seed BioLang's runtime random stream and record the value
+        #[arg(long)]
+        seed: Option<u64>,
     },
     /// Parse BioLang files without executing them
     Check {
@@ -214,6 +319,11 @@ enum Commands {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         arguments: Vec<OsString>,
     },
+    /// Discover and explicitly download checksum-verified registered data
+    Data {
+        #[command(subcommand)]
+        command: DataCommands,
+    },
     /// Check the environment and per-capability readiness (native vs container)
     Doctor,
     /// Print a shell completion script
@@ -289,7 +399,22 @@ fn main() {
                     verbose,
                     events,
                     print_result,
-                }) => run_file(&file, verbose, events, print_result),
+                    record,
+                    input,
+                    output,
+                    param,
+                    seed,
+                }) => run_file(
+                    &file,
+                    verbose,
+                    events,
+                    print_result,
+                    record,
+                    input,
+                    output,
+                    param,
+                    seed,
+                ),
                 Some(Commands::Check { files }) => check_files(&files),
                 Some(Commands::Test { files, events }) => run_tests(&files, events),
                 Some(Commands::Fmt {
@@ -390,6 +515,52 @@ fn main() {
                     json,
                 ),
                 Some(Commands::Convert { arguments }) => cmd_convert(arguments),
+                Some(Commands::Data { command }) => {
+                    let result = match command {
+                        DataCommands::Search {
+                            query,
+                            category,
+                            kind,
+                            json,
+                            registry,
+                        } => data_registry::search(
+                            query.as_deref(),
+                            category.as_deref(),
+                            kind.as_str(),
+                            json,
+                            registry.as_deref(),
+                        ),
+                        DataCommands::Info {
+                            dataset,
+                            json,
+                            registry,
+                        } => data_registry::info(&dataset, json, registry.as_deref()),
+                        DataCommands::Fetch {
+                            dataset,
+                            file,
+                            accept_terms,
+                            force,
+                            json,
+                            registry,
+                        } => data_registry::fetch(
+                            &dataset,
+                            file.as_deref(),
+                            accept_terms,
+                            force,
+                            json,
+                            registry.as_deref(),
+                        ),
+                        DataCommands::Path {
+                            dataset,
+                            file,
+                            json,
+                        } => data_registry::path(&dataset, file.as_deref(), json),
+                    };
+                    if let Err(error) = result {
+                        eprintln!("Data error: {error}");
+                        process::exit(1);
+                    }
+                }
                 Some(Commands::Doctor) => print!("{}", bl_runtime::capabilities::doctor_report()),
                 Some(Commands::Completions { shell }) => {
                     let mut cmd = <Cli as clap::CommandFactory>::command();
@@ -457,7 +628,12 @@ fn cmd_metadata(format: &str) {
     }
 }
 
-fn fail_run(message: String, structured_events: bool, start: &Instant) -> ! {
+fn fail_run(
+    message: String,
+    structured_events: bool,
+    start: &Instant,
+    recorder: Option<&run_manifest::RunRecorder>,
+) -> ! {
     if structured_events {
         events::emit(serde_json::json!({
             "protocol": "biolang.events/v1",
@@ -473,6 +649,15 @@ fn fail_run(message: String, structured_events: bool, start: &Instant) -> ! {
     } else {
         eprintln!("{message}");
     }
+    if let Some(recorder) = recorder {
+        if let Err(error) = recorder.finish("failed", start.elapsed().as_millis(), Some(&message)) {
+            eprintln!(
+                "Could not write run record '{}': {error}",
+                recorder.destination().display()
+            );
+        }
+    }
+    bl_runtime::builtins::clear_run_parameters();
     process::exit(1);
 }
 
@@ -573,8 +758,60 @@ fn edit_distance(a: &str, b: &str) -> usize {
     prev[b.len()]
 }
 
-fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bool) {
+#[allow(clippy::too_many_arguments)]
+fn run_file(
+    path: &str,
+    verbose: bool,
+    structured_events: bool,
+    print_result: bool,
+    record_path: Option<PathBuf>,
+    inputs: Vec<PathBuf>,
+    outputs: Vec<PathBuf>,
+    raw_parameters: Vec<String>,
+    seed: Option<u64>,
+) {
     let start = Instant::now();
+    let (parameters, runtime_parameters) = match run_manifest::parse_parameters(&raw_parameters) {
+        Ok(parameters) => parameters,
+        Err(error) => fail_run(error, structured_events, &start, None),
+    };
+    bl_runtime::builtins::set_run_parameters(runtime_parameters);
+    if let Some(seed) = seed {
+        bl_runtime::stats::set_random_seed(seed);
+    }
+    let compute_backend = bl_runtime::gpu::execution_summary();
+    let run_options = run_manifest::RunOptions {
+        verbose,
+        events: structured_events,
+        print_result,
+        seed,
+        parameters,
+        plot_mode: std::env::var("BIOLANG_PLOT").unwrap_or_else(|_| "auto".to_string()),
+    };
+    let recorder = record_path.map(|destination| {
+        run_manifest::RunRecorder::new(
+            destination,
+            Path::new(path),
+            &inputs,
+            &outputs,
+            run_options,
+            compute_backend.clone(),
+        )
+    });
+    if let Some(error) = recorder
+        .as_ref()
+        .and_then(run_manifest::RunRecorder::preflight_error)
+    {
+        let safe_recorder = recorder
+            .as_ref()
+            .filter(|recorder| recorder.can_write_safely());
+        fail_run(
+            format!("Run-record preflight failed:\n{error}"),
+            structured_events,
+            &start,
+            safe_recorder,
+        );
+    }
     let source = match std::fs::read_to_string(path) {
         Ok(s) => s,
         Err(error) => fail_run(
@@ -584,6 +821,7 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
             ),
             structured_events,
             &start,
+            recorder.as_ref(),
         ),
     };
 
@@ -594,30 +832,41 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
         .map(|f| f.to_string_lossy().to_string())
         .unwrap_or_else(|| path.to_string());
     if structured_events {
-        let compute_backend = bl_runtime::gpu::execution_summary();
         events::emit(serde_json::json!({
             "protocol": "biolang.events/v1",
             "event": "started",
             "path": path,
             "file": filename,
             "computeBackend": compute_backend,
+            "randomSeed": seed,
+            "recordPath": recorder.as_ref().map(|record| record.destination().to_string_lossy()),
         }));
     } else {
         eprintln!("\x1b[2m▶ running {filename}\x1b[0m");
-        eprintln!(
-            "\x1b[2m  compute backend: {}\x1b[0m",
-            bl_runtime::gpu::execution_summary()
-        );
+        eprintln!("\x1b[2m  compute backend: {}\x1b[0m", compute_backend);
+        if let Some(seed) = seed {
+            eprintln!("\x1b[2m  random seed: {seed}\x1b[0m");
+        }
     }
 
     let tokens = match bl_lexer::Lexer::new(&source).tokenize() {
         Ok(t) => t,
-        Err(error) => fail_run(error.format_with_source(&source), structured_events, &start),
+        Err(error) => fail_run(
+            error.format_with_source(&source),
+            structured_events,
+            &start,
+            recorder.as_ref(),
+        ),
     };
 
     let parse_result = match bl_parser::Parser::new(tokens).parse() {
         Ok(r) => r,
-        Err(error) => fail_run(error.format_with_source(&source), structured_events, &start),
+        Err(error) => fail_run(
+            error.format_with_source(&source),
+            structured_events,
+            &start,
+            recorder.as_ref(),
+        ),
     };
     if parse_result.has_errors() {
         fail_run(
@@ -629,6 +878,7 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
                 .join("\n"),
             structured_events,
             &start,
+            recorder.as_ref(),
         );
     }
     let program = parse_result.program;
@@ -688,6 +938,7 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
     }
     match interpreter.run(&program) {
         Ok(value) => {
+            let loaded_modules = interpreter.loaded_module_paths();
             if structured_events {
                 bl_runtime::builtins::flush_trailing_newline();
                 bl_runtime::builtins::set_output_sink(None);
@@ -702,24 +953,91 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
                         "value": events::value_to_json(&value),
                     }));
                 }
-                events::emit(serde_json::json!({
-                    "protocol": "biolang.events/v1",
-                    "event": "finished",
-                    "status": "succeeded",
-                    "durationMs": start.elapsed().as_millis(),
-                }));
             } else {
                 bl_runtime::builtins::flush_trailing_newline();
                 bl_runtime::builtins::set_output_sink(None);
                 if print_result && !matches!(value, bl_core::value::Value::Nil) {
                     bl_repl::print_cli_value(&value);
                 }
+            }
+            if let Some(recorder) = &recorder {
+                if let Some(error) = recorder.postflight_error() {
+                    let message = format!("Run-record postflight failed:\n{error}");
+                    let _ = recorder.finish_with_dependencies(
+                        "failed",
+                        start.elapsed().as_millis(),
+                        Some(&message),
+                        &loaded_modules,
+                    );
+                    if structured_events {
+                        events::emit(serde_json::json!({
+                            "protocol": "biolang.events/v1",
+                            "event": "error",
+                            "message": message,
+                        }));
+                        events::emit(serde_json::json!({
+                            "protocol": "biolang.events/v1",
+                            "event": "finished",
+                            "status": "failed",
+                            "durationMs": start.elapsed().as_millis(),
+                            "recordPath": recorder.destination().to_string_lossy(),
+                        }));
+                    } else {
+                        eprintln!("{message}");
+                    }
+                    bl_runtime::builtins::clear_run_parameters();
+                    bl_runtime::tempfiles::cleanup_all();
+                    process::exit(1);
+                }
+                if let Err(error) = recorder.finish_with_dependencies(
+                    "succeeded",
+                    start.elapsed().as_millis(),
+                    None,
+                    &loaded_modules,
+                ) {
+                    if structured_events {
+                        events::emit(serde_json::json!({
+                            "protocol": "biolang.events/v1",
+                            "event": "error",
+                            "message": format!("run record could not be written: {error}"),
+                        }));
+                        events::emit(serde_json::json!({
+                            "protocol": "biolang.events/v1",
+                            "event": "finished",
+                            "status": "failed",
+                            "durationMs": start.elapsed().as_millis(),
+                        }));
+                    } else {
+                        eprintln!(
+                            "Analysis succeeded, but run record '{}' could not be written: {error}",
+                            recorder.destination().display()
+                        );
+                    }
+                    bl_runtime::builtins::clear_run_parameters();
+                    bl_runtime::tempfiles::cleanup_all();
+                    process::exit(1);
+                }
+            }
+            if structured_events {
+                events::emit(serde_json::json!({
+                    "protocol": "biolang.events/v1",
+                    "event": "finished",
+                    "status": "succeeded",
+                    "durationMs": start.elapsed().as_millis(),
+                    "recordPath": recorder.as_ref().map(|record| record.destination().to_string_lossy()),
+                }));
+            } else {
                 let elapsed = start.elapsed();
                 eprintln!("\x1b[2m✓ done in {elapsed:.2?}\x1b[0m");
+                if let Some(recorder) = &recorder {
+                    eprintln!("  run record: {}", recorder.destination().display());
+                }
             }
+            bl_runtime::builtins::clear_run_parameters();
             bl_runtime::tempfiles::cleanup_all();
         }
         Err(e) => {
+            let loaded_modules = interpreter.loaded_module_paths();
             if structured_events {
                 bl_runtime::builtins::set_output_sink(None);
                 bl_runtime::builtins::set_display_sink(None);
@@ -739,6 +1057,21 @@ fn run_file(path: &str, verbose: bool, structured_events: bool, print_result: bo
                 bl_runtime::builtins::set_output_sink(None);
                 eprintln!("{}", e.format_with_source(&source));
             }
+            let formatted_error = e.format_with_source(&source);
+            if let Some(recorder) = &recorder {
+                if let Err(error) = recorder.finish_with_dependencies(
+                    "failed",
+                    start.elapsed().as_millis(),
+                    Some(&formatted_error),
+                    &loaded_modules,
+                ) {
+                    eprintln!(
+                        "Could not write run record '{}': {error}",
+                        recorder.destination().display()
+                    );
+                }
+            }
+            bl_runtime::builtins::clear_run_parameters();
             bl_runtime::tempfiles::cleanup_all();
             process::exit(1);
         }
@@ -1173,6 +1506,23 @@ fn cmd_install(source: Option<&str>, git: Option<&str>, branch: Option<&str>) {
         }
     } else if let Some(path) = source {
         let src = PathBuf::from(path);
+        if !src.exists() {
+            if let Some(url) = bl_runtime::package::registry_git_url(path) {
+                match bl_runtime::package::install_git_dep(path, url, branch) {
+                    Ok(p) => println!("Installed {path} to {}", p.display()),
+                    Err(e) => {
+                        eprintln!("Error: {e}");
+                        process::exit(1);
+                    }
+                }
+                return;
+            }
+            eprintln!(
+                "Error: package '{path}' is not a known package or an existing local path\n\
+                 hint: install a Git package with `bl install <name> --git <url>`"
+            );
+            process::exit(1);
+        }
         let name = src
             .file_name()
             .map(|n| n.to_string_lossy().to_string())

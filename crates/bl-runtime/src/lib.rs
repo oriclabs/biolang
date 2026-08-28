@@ -29,6 +29,7 @@ pub mod matrix;
 pub mod metabolomics;
 pub mod methylation;
 pub mod microbiome;
+mod mosaic_plot;
 pub mod motif;
 pub mod ncbi_wasm;
 pub mod network;

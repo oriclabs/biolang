@@ -1990,6 +1990,8 @@ fn cmd_history(arg: &str, history: &dyn History) {
 /// taken from packages/statistics/README.md, so the reference and the package
 /// documentation say the same thing.
 const BUILTIN_SUMMARIES: &[(&str, &str)] = &[
+    ("mosaic_plot", "Contingency-table rectangles whose area is exactly proportional to observed count; optional Pearson-residual shading."),
+    ("mosaic_data", "Replayable mosaic geometry with observed and expected counts, proportions, Pearson residuals, colours and rectangle boundaries."),
     ("stats_explore", "Centre, spread, shape, missingness, transformation candidates and review flags for one numeric variable."),
     ("stats_compare", "Per-group evidence and the analyses appropriate to it, without choosing one."),
     ("stats_relationship", "Complete-pair counts, Pearson and Spearman association, and a regression line."),
@@ -3117,6 +3119,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("euler", "euler() → 2.71828...", "math"),
     ("random", "random() → Float [0,1)", "math"),
     ("random_int", "random_int(lo, hi) → Int [lo,hi)", "math"),
+    (
+        "run_param",
+        "run_param(name, default?) → Value (from bl run --param NAME=VALUE)",
+        "core",
+    ),
     ("is_nan", "is_nan(n) → Bool", "math"),
     ("is_finite", "is_finite(n) → Bool", "math"),
     // Stats
@@ -3487,6 +3494,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
         "plot",
     ),
     (
+        "plot_grid",
+        "plot_grid(plots, opts?) -> SVG/PlotSpec; equal-cell multi-panel figure with tags, shared labels and legend",
+        "plot",
+    ),
+    (
         "boxplot_data",
         "boxplot_data(list_or_table, {method: \"type7|tukey\"}) -> geometry Record",
         "plot",
@@ -3523,11 +3535,25 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "plot",
-        "plot(table, opts?) → Str (SVG); opts.y may name several columns",
+        "plot(table, opts?) → Str (SVG); theme: \"publication\" adds adaptive layout",
         "plot",
     ),
-    ("heatmap", "heatmap(table, opts?) → Str (SVG)", "plot"),
+    (
+        "heatmap",
+        "heatmap(table, opts?) → SVG/PlotSpec; format: \"spec\" freezes order and colour domain",
+        "plot",
+    ),
     ("histogram", "histogram(list, opts?) → Str (SVG)", "plot"),
+    (
+        "mosaic_plot",
+        "mosaic_plot(table, opts?) -> SVG | PlotSpec",
+        "plot",
+    ),
+    (
+        "mosaic_data",
+        "mosaic_data(table, opts?) -> PlotSpec",
+        "plot",
+    ),
     (
         "histogram_data",
         "histogram_data(list, opts?) → inspectable bin geometry Record",
@@ -3539,20 +3565,39 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
         "density_plot(list, opts?) → Str (SVG)",
         "plot",
     ),
-    ("volcano", "volcano(table, opts?) → Str (SVG)", "plot"),
-    ("ma_plot", "ma_plot(table, opts?) → Str (SVG)", "plot"),
-    ("save_svg", "save_svg(svg, path)", "plot"),
+    ("volcano", "volcano(table, opts?) → SVG/PlotSpec", "plot"),
+    ("ma_plot", "ma_plot(table, opts?) → SVG/PlotSpec", "plot"),
+    (
+        "save_svg",
+        "save_svg(svg_or_spec, path, {profile: \"screen|publication\", width_mm?, height_mm?, font?}) -> Str",
+        "plot",
+    ),
     (
         "save_png",
-        "save_png(svg, path, opts?) → Str (path)",
+        "save_png(svg_or_spec, path, {scale?|dpi?}) -> Str (path)",
         "plot",
     ),
     (
         "genome_track",
-        "genome_track(table, opts?) → Str (SVG)",
+        "genome_track(table, opts?) → SVG/PlotSpec; freezes clipping and non-overlapping feature lanes",
+        "plot",
+    ),
+    (
+        "lollipop",
+        "lollipop(table, opts?) → SVG/PlotSpec; length fixes the full sequence domain",
+        "plot",
+    ),
+    (
+        "sashimi",
+        "sashimi(junctions_or_record, opts?) → SVG/PlotSpec; Record may include coverage and junctions Tables",
         "plot",
     ),
     ("hist", "hist(list, bins?) → Str (ASCII)", "plot"),
+    (
+        "circos",
+        "circos({segments, links?, tracks?}, opts?) -> SVG/PlotSpec; length-weighted circular genome with typed tracks and ribbons",
+        "plot",
+    ),
     // SVG, not ASCII: scatter builds the same document plot() does. The comment
     // below claims these were verified against the implementations; this one was
     // not, and the wrong return type is the sort of thing a reader only
@@ -3561,14 +3606,18 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     // Signatures verified against each implementation's argument handling.
     // Without these the metadata falls back to `name(arg1, arg2?)`, which made
     // the whole plot family undocumentable and invisible to the arity checker.
-    ("umap_plot", "umap_plot(points, opts?) → Str (SVG)", "plot"),
-    ("pca_plot", "pca_plot(points, opts?) → Str (SVG)", "plot"),
+    (
+        "umap_plot",
+        "umap_plot(points, opts?) → SVG/PlotSpec",
+        "plot",
+    ),
+    ("pca_plot", "pca_plot(points, opts?) → SVG/PlotSpec", "plot"),
     // The single-cell figures. Each was added without an entry here, so each
     // was documented as `name(arg1, arg2?)` - which is how the whole plot
     // family became undocumentable the first time.
     (
         "feature_plot",
-        "feature_plot(points, opts?) → Str (SVG)",
+        "feature_plot(points, opts?) → SVG/PlotSpec",
         "plot",
     ),
     (
@@ -3578,7 +3627,7 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "violin_plot",
-        "violin_plot(data, opts?) → Str (SVG)",
+        "violin_plot(data, opts?) → SVG/PlotSpec; format: \"spec\" freezes KDE geometry",
         "plot",
     ),
     (
@@ -3588,13 +3637,62 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "dot_plot",
-        "dot_plot(matrix, clusters, opts?) → Str (SVG)",
+        "dot_plot(matrix, clusters, opts?) → SVG/PlotSpec; spec includes means, detection and scaling",
         "plot",
     ),
-    ("violin", "violin(data, opts?) → Str (SVG)", "plot"),
+    (
+        "violin",
+        "violin(data, opts?) → SVG/PlotSpec; format: \"spec\" freezes KDE geometry",
+        "plot",
+    ),
     (
         "clustered_heatmap",
-        "clustered_heatmap(data, opts?) → Str (SVG)",
+        "clustered_heatmap(data, opts?) → SVG/PlotSpec; spec freezes order, dendrograms and colour domain",
+        "plot",
+    ),
+    (
+        "manhattan",
+        "manhattan(table, opts?) → SVG/PlotSpec; spec freezes chromosome order, genomic positions, p-values and thresholds",
+        "plot",
+    ),
+    (
+        "qq_plot",
+        "qq_plot(pvalues, opts?) → SVG/PlotSpec; genetic Q-Q with λGC and optional exact beta envelope",
+        "plot",
+    ),
+    (
+        "rainfall",
+        "rainfall(table, opts?) → SVG/PlotSpec; spec freezes within-chromosome distances and duplicate handling",
+        "plot",
+    ),
+    (
+        "ideogram",
+        "ideogram(table, opts?) → SVG/PlotSpec; shared chromosome scale with frozen cytoband intervals and stains",
+        "plot",
+    ),
+    (
+        "cnv_plot",
+        "cnv_plot(table, opts?) → SVG/PlotSpec; freezes genomic segment bounds, log2 ratios and gain/loss thresholds",
+        "plot",
+    ),
+    (
+        "coverage_track",
+        "coverage_track(data, opts?) → SVG/PlotSpec; preserves point or interval geometry and clips overlapping intervals",
+        "plot",
+    ),
+    (
+        "kaplan_meier",
+        "kaplan_meier(table, opts?) → SVG/PlotSpec; spec freezes risk sets, events, censoring and Greenwood SE",
+        "plot",
+    ),
+    (
+        "roc_curve",
+        "roc_curve(table, opts?) → SVG/PlotSpec; spec freezes tied thresholds, confusion counts and AUC",
+        "plot",
+    ),
+    (
+        "forest_plot",
+        "forest_plot(table, opts?) → SVG/PlotSpec; spec freezes intervals, weights, scale and reference",
         "plot",
     ),
     ("density", "density(data, opts?) → Str (SVG)", "plot"),
@@ -4274,6 +4372,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     (
         "sc_merge_objects",
         "sc_merge_objects(left, right, left_batch, right_batch) → Record",
+        "singlecell",
+    ),
+    (
+        "sc_validate_object",
+        "sc_validate_object(object, strict?) → validation Record (axes, dimensions, errors, warnings)",
         "singlecell",
     ),
     (

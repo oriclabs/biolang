@@ -332,7 +332,14 @@ fn plot_markers(obj, n_per_cluster = 5) {
         let vals = ids |> map(|c| mean(_cells_in(obj, c) |> map(|i| matrix_at(m, i, gi))))
         {... _record_of(ids |> map(|c| _cluster_label(c)), vals), gene: g}
     })
-    clustered_heatmap(table(rows), {title: "top markers per cluster"})
+    let cluster_labels = ids |> map(|c| _cluster_label(c))
+    let marker_matrix = matrix_from_table(table(rows), cluster_labels)
+    clustered_heatmap(marker_matrix, {
+        title: "Top markers per cluster", subtitle: "Mean expression by cluster",
+        caption: "Rows and columns use deterministic nearest-neighbour ordering",
+        legend_title: "mean expression", row_labels: picked,
+        col_labels: cluster_labels, theme: "publication"
+    })
 }
 
 ## Ordered ASCII bars. bar_chart() takes a Record, and records are unordered

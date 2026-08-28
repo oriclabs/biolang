@@ -1034,10 +1034,143 @@ structural accessibility coverage for titles, descriptions, controls and the
 Canvas fallback. The alias audit keeps genomic versus normal Q-Q, wide versus
 long-form violin, and single versus grouped/ASCII density contracts distinct.
 
-The next bounded action is to migrate one high-value biological plot family
-onto the shared specification only after freezing its current semantics and
-adding geometry tests. UMAP/feature plots are the best candidate because their
-large point layers already have measured raster behaviour. A new core
-`Value::Plot`, BLN file-format migration, crate split, direct Canvas scientific
-engine, or GPU renderer remains deferred until that compatibility work
-demonstrates a concrete need.
+UMAP and FeaturePlot are now the first biological family on the shared
+`biolang.plot.spec/v1` contract. `format: "spec"` exposes source row,
+coordinates, group, point label, continuous feature value and resolved
+publication draw rank. Replay also freezes numeric/quantile cutoffs, equal/free
+aspect and the vector/raster choice. Direct and replayed UMAP and FeaturePlot
+SVGs have byte-equivalence tests; 20,000-point replay retains the bounded
+embedded-PNG mark layer, while standalone HTML supplies the Canvas fallback.
+Non-finite coordinate pairs remain visible in provenance/warnings but are not
+sent to SVG or terminal geometry.
+
+PCA, volcano and MA now use the same inspectable contract. PCA specifications
+store the computed scores and explained-variance percentages rather than the
+matrix that would require a second decomposition. Volcano and MA specifications
+keep raw values beside their displayed transforms, resolved thresholds, gene
+labels and the classification assigned to every row. Exact replay, malformed
+specification, non-finite geometry and 20,000-gene raster tests cover the three
+paths without changing their default SVG figures.
+
+Violin, dot plot and heatmap now use the inspectable contract. Both wide- and
+long-form violin specifications expose the frozen KDE grid, bandwidth, sample
+count and median without merging their input contracts. Single-cell dot plots
+retain mean expression, detected-cell fraction and clipped per-gene z-score for
+every gene-cluster pair. Generic heatmaps expose source/display row order and
+the resolved colour domain; clustered heatmaps additionally retain column
+order, dendrogram topology and merge heights, so replay never reclusters.
+Direct and replayed SVGs have byte-equivalence tests, and malformed or
+non-finite matrix data has explicit coverage.
+
+Kaplan-Meier, ROC and forest plots now use the inspectable contract.
+Kaplan-Meier freezes each distinct-time risk set, simultaneous event/censor
+counts, product-limit probability and Greenwood standard error, including
+first-seen group order and median survival. ROC groups tied raw scores before
+updating TP/FP/TN/FN counts, making the empirical curve and trapezoidal AUC
+independent of input order; precomputed curves must be finite, bounded and
+monotone. Forest plots retain raw intervals, optional positive weights, the
+reference line, linear/log scale and resolved display domain. Direct and replay
+SVGs are byte-identical. Survival steps use one SVG path per group and dense ROC
+points use one polyline, so thousands of analytical rows do not create
+thousands of DOM elements.
+
+Manhattan, genetic Q-Q and rainfall plots now use the inspectable contract.
+Manhattan freezes first-observed chromosome order, cumulative offsets, raw and
+transformed p-values, resolved significance, highlighting and raster/thinning
+choices. Genetic Q-Q freezes sorted p-values, `(rank - 0.5) / n` positions,
+λGC and an opt-in exact beta order-statistic confidence envelope. Rainfall
+freezes stable within-chromosome ordering, raw distances, log display values
+and duplicate-position floors. Exact replay, malformed-specification and dense
+raster tests cover all three paths.
+
+Ideogram, CNV and coverage tracks now use the inspectable contract. Ideograms
+retain every cytoband, standard stain class and first-observed chromosome order,
+and draw all chromosomes on one shared length scale. CNV profiles freeze actual
+genomic segment starts and ends, cumulative offsets, ratios, gain/loss thresholds
+and classifications instead of reconstructing widths around offset midpoints.
+Coverage tracks distinguish point samples from half-open intervals, require an
+explicit chromosome for multi-chromosome input, and clip overlapping intervals
+to a requested region instead of filtering their midpoints. Dense inputs remain
+complete in the specification while fixed path layers bound SVG element counts.
+All three replay exactly and their numeric geometry passes independent base-R
+gates.
+
+Regional annotation and splicing now use the inspectable contract.
+`genome_track` freezes original and region-clipped feature bounds, strand,
+stable source order, label decisions and greedy non-overlapping lanes.
+`lollipop` freezes the sequence domain (including the previously ignored
+`length` option), stem heights and collision-limited label lanes. `sashimi`
+freezes sorted coverage, complete in-region junctions, greedy arc lanes,
+square-root count scaling and quantised stroke widths. Direct and replayed SVGs
+are byte-identical; dense marks are grouped into bounded path layers without
+dropping analytical rows.
+
+Multi-track circular genomes now use the inspectable contract too. `circos`
+freezes chromosome-length-weighted arcs, typed radial tracks, point and interval
+endpoints, chord/ribbon geometry, label decisions and count-scaled link widths.
+The renderer groups dense links and marks into bounded paths while keeping every
+source row in the specification. Direct/replay SVG is byte-identical, malformed
+or tampered angular/radial coordinates are rejected, and 83 scale-sensitive
+values pass independently calculated base-R gates.
+
+`plot_grid` is the first explicit figure-composition contract. It freezes equal
+panel cells, spreadsheet-style tags, shared outer labels, captions and explicit
+legends while retaining each safe child SVG. It does not claim semantic axis
+alignment inside arbitrary child plots; that remains a scene-level capability.
+Publication export now supports physical SVG dimensions, controlled font stacks
+and exact-DPI PNG output. A new core `Value::Plot`, BLN file-format migration,
+embedded font files, direct Canvas scientific engine, native vector PDF, crate
+split or GPU renderer remains deferred until compatibility work demonstrates a
+concrete need.
+
+### Publication-theme milestone
+
+The first presentation layer is now implemented as an opt-in path. Generic
+Cartesian plots, UMAP and FeaturePlot share publication typography, adaptive
+margins, grid/axis tokens, title/subtitle/caption placement and external legend
+space. UMAP expands its coordinate domains to preserve equal x/y units without
+distorting the embedding. FeaturePlot uses a perceptually ordered continuous
+ramp, exposes missing-value colour and numeric or quantile cutoffs, and draws
+high feature values last. The legacy and Seurat palette paths remain compatible;
+`theme: "publication"` is explicit while its visual regressions mature.
+
+Violin and dot plots now use the same opt-in publication presentation layer.
+Violin plots preserve the Gaussian KDE grid, bandwidth and median geometry
+while adding horizontal guides and adaptive category labels. Dot plots preserve
+their detection-rate and per-gene z-score calculations, add a gridded matrix,
+and use a perceptually balanced diverging scale whose neutral midpoint is zero.
+Structural gallery tests render both at 800 px notebook, 321 px (85 mm) and
+680 px (180 mm) logical widths and reject missing labels, guides, metadata or
+non-finite SVG coordinates. PNG visual inspection remains a release check; it
+does not replace geometry assertions.
+
+Heatmaps and annotated marker panels now use the opt-in publication layer. The
+generic heatmap still preserves input order, or sorts rows by mean only when
+`cluster: true` is explicit. `clustered_heatmap` retains its existing
+deterministic nearest-neighbour traversal from the first row and column by
+default; tests freeze both row and column order. `order: "hierarchical"` opts
+into actual agglomerative clustering and row/column dendrograms, with explicit
+Euclidean or Manhattan distance and complete, average, single or Ward D2
+linkage. The renderer adds adaptive labels, named colour guides,
+missing-value handling, subtitles/captions and automatic
+zero-centred diverging colour for signed data. Structural checks cover notebook,
+85 mm and 180 mm widths. Single-cell marker helpers pass numeric matrices with
+explicit gene and group labels, so annotation text never enters clustering
+distance calculations.
+
+Hierarchical mode is deliberately opt-in: the historical default is not
+silently reinterpreted. Its leaf order and scale-sensitive merge heights are
+validated against base R `hclust(dist(x))` fixtures for complete, average,
+single and Ward D2 linkage. The SVG records distance, linkage, dendrogram mode,
+row/column leaf order and every merge height in machine-readable metadata.
+Distance storage reuses merged cluster slots, bounding the clustering grid at
+`n x n` values instead of allocating a `2n x 2n` grid.
+
+The publication presentation option is now enforced across the complete
+website biological-plot gallery rather than only the newer specification
+renderers. `hic_map`, `oncoprint`, wide `violin`, grouped `density`, `pca_plot`,
+`sequence_logo`, `phylo_tree`, `venn`, and `upset` previously accepted the
+option but silently constructed a legacy canvas. They now use the requested
+theme and preserve custom title, subtitle, and caption text. Renderer tests
+freeze this contract, and the gallery generator records the theme read from
+each produced SVG so stale or ignored options fail validation.

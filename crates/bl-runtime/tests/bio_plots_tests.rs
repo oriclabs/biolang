@@ -26,6 +26,16 @@ fn svg_opts() -> Value {
     make_opts(vec![("format", Value::Str("svg".into()))])
 }
 
+fn publication_svg_opts() -> Value {
+    make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("theme", Value::Str("publication".into())),
+        ("title", Value::Str("Measured result".into())),
+        ("subtitle", Value::Str("Independent samples".into())),
+        ("caption", Value::Str("BioLang test fixture".into())),
+    ])
+}
+
 fn assert_svg(val: &Value) {
     if let Value::Str(s) = val {
         assert!(s.contains("<svg"), "output should contain <svg tag");
@@ -35,6 +45,15 @@ fn assert_svg(val: &Value) {
             val.type_of()
         );
     }
+}
+
+fn assert_publication_svg(val: &Value) {
+    assert_svg(val);
+    let Value::Str(svg) = val else { unreachable!() };
+    assert!(svg.contains("data-biolang-theme=\"publication\""), "{svg}");
+    assert!(svg.contains(">Measured result<"), "{svg}");
+    assert!(svg.contains(">Independent samples<"), "{svg}");
+    assert!(svg.contains(">BioLang test fixture<"), "{svg}");
 }
 
 // ── 1. manhattan ────────────────────────────────────────────────
@@ -385,8 +404,8 @@ fn test_violin_svg() {
             vec![Value::Str("B".into()), Value::Float(7.0)],
         ],
     );
-    let r = call_bio_plots_builtin("violin", vec![t, svg_opts()]).unwrap();
-    assert_svg(&r);
+    let r = call_bio_plots_builtin("violin", vec![t, publication_svg_opts()]).unwrap();
+    assert_publication_svg(&r);
 }
 
 #[test]
@@ -438,8 +457,8 @@ fn test_density_svg() {
         ])
         .into(),
     );
-    let r = call_bio_plots_builtin("density", vec![vals, svg_opts()]).unwrap();
-    assert_svg(&r);
+    let r = call_bio_plots_builtin("density", vec![vals, publication_svg_opts()]).unwrap();
+    assert_publication_svg(&r);
 }
 
 #[test]
@@ -677,6 +696,249 @@ fn test_clustered_heatmap_wrong_type() {
     assert!(r.is_err());
 }
 
+#[test]
+fn clustered_heatmap_freezes_nearest_neighbour_row_and_column_order() {
+    let matrix = Value::Matrix(
+        Matrix {
+            data: vec![0.0, 100.0, 1.0, 10.0, 100.0, 11.0, 1.0, 100.0, 2.0],
+            nrow: 3,
+            ncol: 3,
+            row_names: Some(vec!["r0".into(), "r1".into(), "r2".into()]),
+            col_names: Some(vec!["c0".into(), "c1".into(), "c2".into()]),
+        }
+        .into(),
+    );
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("theme", Value::Str("publication".into())),
+    ]);
+    let Value::Str(svg) =
+        call_bio_plots_builtin("clustered_heatmap", vec![matrix, opts]).expect("clustered heatmap")
+    else {
+        panic!("expected SVG")
+    };
+    assert!(svg.find(">r0<").unwrap() < svg.find(">r2<").unwrap());
+    assert!(svg.find(">r2<").unwrap() < svg.find(">r1<").unwrap());
+    assert!(svg.find(">c0<").unwrap() < svg.find(">c2<").unwrap());
+    assert!(svg.find(">c2<").unwrap() < svg.find(">c1<").unwrap());
+}
+
+#[test]
+fn hierarchical_heatmap_matches_base_r_hclust_leaf_order_and_heights() {
+    // Oracle: base R 4.5.2, hclust(dist(x), method = ...). These assertions
+    // are scale-sensitive: correlation alone cannot hide wrong merge heights.
+    let matrix = || {
+        Value::Matrix(
+            Matrix {
+                data: vec![
+                    0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 1.0, 1.0, 1.0, 9.0, 9.0, 9.0, 4.0, 5.0, 4.0,
+                ],
+                nrow: 5,
+                ncol: 3,
+                row_names: Some((0..5).map(|index| format!("r{index}")).collect()),
+                col_names: Some((0..3).map(|index| format!("c{index}")).collect()),
+            }
+            .into(),
+        )
+    };
+    let expected = [
+        (
+            "complete",
+            "1.732050807569,1.732050807569,7.549834435271,17.320508075689",
+        ),
+        (
+            "average",
+            "1.732050807569,1.732050807569,6.690393165058,13.387787546485",
+        ),
+        (
+            "single",
+            "1.732050807569,1.732050807569,5.830951894845,8.124038404636",
+        ),
+        (
+            "ward.D2",
+            "1.732050807569,1.732050807569,7.724420150838,20.725185966194",
+        ),
+    ];
+    for (linkage, heights) in expected {
+        let opts = make_opts(vec![
+            ("format", Value::Str("svg".into())),
+            ("theme", Value::Str("publication".into())),
+            ("order", Value::Str("hierarchical".into())),
+            ("distance", Value::Str("euclidean".into())),
+            ("linkage", Value::Str(linkage.into())),
+            ("dendrogram", Value::Str("both".into())),
+        ]);
+        let Value::Str(svg) =
+            call_bio_plots_builtin("clustered_heatmap", vec![matrix(), opts]).unwrap()
+        else {
+            panic!("expected SVG")
+        };
+        assert!(svg.contains("data-biolang-clustering=\"hierarchical\""));
+        assert!(svg.contains("data-row-order=\"1,3,4,0,2\""));
+        assert!(
+            svg.contains(&format!("data-row-heights=\"{heights}\"")),
+            "{linkage} heights differed from base R: {svg}"
+        );
+        assert!(svg.contains(&format!("data-linkage=\"{linkage}\"")));
+        assert!(!svg.contains("NaN"));
+        assert!(!svg.contains("inf"));
+    }
+}
+
+#[test]
+fn hierarchical_heatmap_validates_options_and_ward_distance() {
+    let matrix = || {
+        Value::Matrix(
+            Matrix {
+                data: vec![0.0, 1.0, 2.0, 3.0],
+                nrow: 2,
+                ncol: 2,
+                row_names: None,
+                col_names: None,
+            }
+            .into(),
+        )
+    };
+    for opts in [
+        make_opts(vec![("order", Value::Str("mystery".into()))]),
+        make_opts(vec![
+            ("order", Value::Str("hierarchical".into())),
+            ("linkage", Value::Str("centroid".into())),
+        ]),
+        make_opts(vec![
+            ("order", Value::Str("hierarchical".into())),
+            ("distance", Value::Str("cosine".into())),
+        ]),
+        make_opts(vec![
+            ("order", Value::Str("hierarchical".into())),
+            ("linkage", Value::Str("ward.D2".into())),
+            ("distance", Value::Str("manhattan".into())),
+        ]),
+        make_opts(vec![("dendrogram", Value::Str("both".into()))]),
+    ] {
+        assert!(call_bio_plots_builtin("clustered_heatmap", vec![matrix(), opts]).is_err());
+    }
+}
+
+#[test]
+fn hierarchical_heatmap_survives_notebook_and_journal_widths() {
+    for width in [321_i64, 680, 800] {
+        let matrix = Value::Matrix(
+            Matrix {
+                data: vec![-2.0, 0.0, 1.0, 2.0, -1.0, 0.5, 1.5, 2.5, -0.5],
+                nrow: 3,
+                ncol: 3,
+                row_names: Some(vec!["TP53".into(), "BRCA1".into(), "EGFR".into()]),
+                col_names: Some(vec!["control".into(), "treated".into(), "recovery".into()]),
+            }
+            .into(),
+        );
+        let opts = make_opts(vec![
+            ("format", Value::Str("svg".into())),
+            ("theme", Value::Str("publication".into())),
+            ("width", Value::Int(width)),
+            ("height", Value::Int(400)),
+            ("order", Value::Str("hierarchical".into())),
+            ("linkage", Value::Str("complete".into())),
+            ("dendrogram", Value::Str("both".into())),
+        ]);
+        let Value::Str(svg) =
+            call_bio_plots_builtin("clustered_heatmap", vec![matrix, opts]).unwrap()
+        else {
+            panic!("expected SVG")
+        };
+        assert!(svg.contains(&format!("width=\"{width}\"")));
+        assert!(svg.contains("data-dendrogram=\"both\""));
+        assert!(svg.matches("<line ").count() >= 12);
+        assert!(!svg.contains("NaN"));
+        assert!(!svg.contains("inf"));
+    }
+}
+
+#[test]
+fn publication_clustered_heatmap_survives_notebook_and_journal_widths() {
+    let matrix = || {
+        Value::Matrix(
+            Matrix {
+                data: vec![-2.0, 0.0, 1.0, 2.0, -1.0, 0.5, 1.5, 2.5, -0.5],
+                nrow: 3,
+                ncol: 3,
+                row_names: Some(vec!["TP53".into(), "BRCA1".into(), "EGFR".into()]),
+                col_names: Some(vec!["control".into(), "treated".into(), "recovery".into()]),
+            }
+            .into(),
+        )
+    };
+    for width in [321_i64, 680, 800] {
+        let opts = Value::Record(
+            HashMap::from([
+                ("format".into(), Value::Str("svg".into())),
+                ("theme".into(), Value::Str("publication".into())),
+                ("width".into(), Value::Int(width)),
+                ("height".into(), Value::Int(400)),
+                ("title".into(), Value::Str("Marker panel".into())),
+                ("subtitle".into(), Value::Str("Mean expression".into())),
+                (
+                    "caption".into(),
+                    Value::Str("Nearest-neighbour order disclosed".into()),
+                ),
+                ("legend_title".into(), Value::Str("z-score".into())),
+                ("center".into(), Value::Float(0.0)),
+            ])
+            .into(),
+        );
+        let Value::Str(svg) = call_bio_plots_builtin("clustered_heatmap", vec![matrix(), opts])
+            .expect("publication clustered heatmap")
+        else {
+            panic!("expected SVG")
+        };
+        assert!(svg.contains(&format!("width=\"{width}\"")));
+        assert!(svg.contains("data-biolang-theme=\"publication\""));
+        assert!(svg.contains(">Mean expression<"));
+        assert!(svg.contains(">Nearest-neighbour order disclosed<"));
+        assert!(svg.contains(">TP53<"));
+        assert!(svg.contains(">treated<"));
+        assert!(svg.contains("#3b4cc0"));
+        assert!(svg.contains("#b40426"));
+        assert!(!svg.contains("NaN"));
+        assert!(!svg.contains("inf"));
+    }
+}
+
+#[test]
+fn clustered_heatmap_accepts_a_gene_annotation_column() {
+    let table = make_table(
+        vec!["gene", "cluster 0", "cluster 1"],
+        vec![
+            vec![
+                Value::Str("CD3D".into()),
+                Value::Float(3.0),
+                Value::Float(0.1),
+            ],
+            vec![
+                Value::Str("MS4A1".into()),
+                Value::Float(0.2),
+                Value::Float(4.0),
+            ],
+        ],
+    );
+    let opts = Value::Record(
+        HashMap::from([
+            ("format".into(), Value::Str("svg".into())),
+            ("theme".into(), Value::Str("publication".into())),
+        ])
+        .into(),
+    );
+    let Value::Str(svg) = call_bio_plots_builtin("clustered_heatmap", vec![table, opts]).unwrap()
+    else {
+        panic!("expected SVG")
+    };
+    assert!(svg.contains(">CD3D<"));
+    assert!(svg.contains(">MS4A1<"));
+    assert!(svg.contains(">cluster 0<"));
+    assert!(svg.contains(">cluster 1<"));
+}
+
 // ── 12. pca_plot ────────────────────────────────────────────────
 
 #[test]
@@ -706,8 +968,8 @@ fn test_pca_plot_svg() {
             vec![Value::Float(-1.0), Value::Float(-0.5)],
         ],
     );
-    let r = call_bio_plots_builtin("pca_plot", vec![t, svg_opts()]).unwrap();
-    assert_svg(&r);
+    let r = call_bio_plots_builtin("pca_plot", vec![t, publication_svg_opts()]).unwrap();
+    assert_publication_svg(&r);
 }
 
 #[test]
@@ -764,8 +1026,8 @@ fn test_oncoprint_svg() {
             Value::Str("missense".into()),
         ]],
     );
-    let r = call_bio_plots_builtin("oncoprint", vec![t, svg_opts()]).unwrap();
-    assert_svg(&r);
+    let r = call_bio_plots_builtin("oncoprint", vec![t, publication_svg_opts()]).unwrap();
+    assert_publication_svg(&r);
 }
 
 #[test]
@@ -810,8 +1072,8 @@ fn test_venn_svg() {
         ]))
         .into(),
     );
-    let r = call_bio_plots_builtin("venn", vec![rec, svg_opts()]).unwrap();
-    assert_svg(&r);
+    let r = call_bio_plots_builtin("venn", vec![rec, publication_svg_opts()]).unwrap();
+    assert_publication_svg(&r);
 }
 
 #[test]
@@ -920,8 +1182,8 @@ fn test_upset_svg() {
         ]))
         .into(),
     );
-    let r = call_bio_plots_builtin("upset", vec![rec, svg_opts()]).unwrap();
-    assert_svg(&r);
+    let r = call_bio_plots_builtin("upset", vec![rec, publication_svg_opts()]).unwrap();
+    assert_publication_svg(&r);
 }
 
 #[test]
@@ -958,8 +1220,8 @@ fn test_sequence_logo_ascii() {
 #[test]
 fn test_sequence_logo_svg() {
     let seqs = Value::List((vec![Value::Str("ACGT".into()), Value::Str("ACGT".into())]).into());
-    let r = call_bio_plots_builtin("sequence_logo", vec![seqs, svg_opts()]).unwrap();
-    assert_svg(&r);
+    let r = call_bio_plots_builtin("sequence_logo", vec![seqs, publication_svg_opts()]).unwrap();
+    assert_publication_svg(&r);
 }
 
 #[test]
@@ -1001,8 +1263,8 @@ fn test_phylo_tree_ascii() {
 #[test]
 fn test_phylo_tree_svg() {
     let newick = Value::Str("((A:0.1,B:0.2):0.3,C:0.4);".into());
-    let r = call_bio_plots_builtin("phylo_tree", vec![newick, svg_opts()]).unwrap();
-    assert_svg(&r);
+    let r = call_bio_plots_builtin("phylo_tree", vec![newick, publication_svg_opts()]).unwrap();
+    assert_publication_svg(&r);
 }
 
 #[test]
@@ -1110,8 +1372,8 @@ fn test_hic_map_svg() {
         }
         .into(),
     );
-    let r = call_bio_plots_builtin("hic_map", vec![m, svg_opts()]).unwrap();
-    assert_svg(&r);
+    let r = call_bio_plots_builtin("hic_map", vec![m, publication_svg_opts()]).unwrap();
+    assert_publication_svg(&r);
 }
 
 #[test]

@@ -10,6 +10,7 @@ materializes only compact PCA scores, and stores analysis results in one record.
 import "singlecell" as sc
 
 let cells = sc.load("filtered_feature_bc_matrix")
+let cells = sc.assert_valid(cells)
 let result = cells
     |> sc.filter_genes(3)
     |> sc.filter_cells(200, 5000, 20.0)
@@ -24,6 +25,15 @@ let result = cells
 println(sc.summary(result))
 write_text("umap.svg", sc.dim_plot(result, nil, "UMAP", true))
 ```
+
+`sc.validate(obj)` returns a structured report without changing the object.
+It checks both dimensions and identity mappings across the raw cell/gene axes,
+layers, assays, selected features, annotation tables, and reductions. This
+catches a shifted feature axis even when every matrix still has a plausible
+shape. `sc.assert_valid(obj)` performs the same checks strictly and returns the
+object, so it can be placed at package or file boundaries. Objects from other
+packages may use `cells` in place of `barcodes`; the validator accepts that
+alias and reports a warning so the choice remains visible.
 
 ## R-familiar plots
 

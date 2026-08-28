@@ -138,6 +138,23 @@ export function qc_metrics(kind, text) {
 }
 
 /**
+ * Register an optional in-memory package supplied by the embedding page.
+ *
+ * Modules supplied through this function remain outside the BioLang WASM
+ * artifact. The default browser interpreter separately embeds the small core
+ * statistics modules that are available without registration.
+ * @param {string} path
+ * @param {string} source
+ */
+export function register_module(path, source) {
+    const ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    wasm.register_module(ptr0, len0, ptr1, len1);
+}
+
+/**
  * Reset the interpreter state.
  */
 export function reset() {

@@ -11,7 +11,8 @@ does in pandas: the value on the left becomes the first argument on the right.
 ```biolang
 let summary = read_csv("counts.csv")
     |> filter(|row| row.padj < 0.05)
-    |> mutate(|row| {gene: row.gene, lfc: row.log2FoldChange})
+    |> select("gene", "log2FoldChange")
+    |> rename("log2FoldChange", "lfc")
     |> arrange("-lfc")
     |> head(20)
 ```

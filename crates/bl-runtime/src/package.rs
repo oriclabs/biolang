@@ -114,17 +114,23 @@ pub fn install_path_dep(name: &str, source_path: &Path) -> Result<PathBuf, Strin
 /// Install a dependency by git URL.
 pub fn install_git_dep(name: &str, url: &str, branch: Option<&str>) -> Result<PathBuf, String> {
     let target = packages_dir().join(name);
-    if target.exists() {
-        std::fs::remove_dir_all(&target)
-            .map_err(|e| format!("Cannot remove existing {}: {e}", target.display()))?;
-    }
+    let parent = target
+        .parent()
+        .ok_or_else(|| format!("Cannot resolve package directory for {name}"))?;
+    std::fs::create_dir_all(parent)
+        .map_err(|e| format!("Cannot create {}: {e}", parent.display()))?;
+    let staging = tempfile::Builder::new()
+        .prefix(&format!(".{name}-install-"))
+        .tempdir_in(parent)
+        .map_err(|e| format!("Cannot create package staging directory: {e}"))?;
+    let checkout = staging.path().join("checkout");
 
     let mut cmd = std::process::Command::new("git");
     cmd.arg("clone").arg("--depth").arg("1");
     if let Some(b) = branch {
         cmd.arg("--branch").arg(b);
     }
-    cmd.arg(url).arg(&target);
+    cmd.arg(url).arg(&checkout);
 
     let output = cmd.output().map_err(|e| format!("git clone failed: {e}"))?;
     if !output.status.success() {
@@ -132,7 +138,62 @@ pub fn install_git_dep(name: &str, url: &str, branch: Option<&str>) -> Result<Pa
         return Err(format!("git clone failed: {stderr}"));
     }
 
+    let source = package_source_in_checkout(&checkout, name)?;
+    let manifest = read_manifest(&source)?;
+    if manifest.package.name != name {
+        return Err(format!(
+            "Package manifest names '{}' but it was installed as '{name}'",
+            manifest.package.name
+        ));
+    }
+
+    // Copy and validate before replacing an existing install. A network error,
+    // an invalid repository, or a malformed package therefore leaves the
+    // user's working version untouched.
+    let prepared = staging.path().join("prepared");
+    copy_dir_recursive(&source, &prepared)
+        .map_err(|e| format!("Cannot prepare package '{name}': {e}"))?;
+    resolve_library_entry(&prepared)?;
+
+    let backup = staging.path().join("previous");
+    let had_previous = target.exists();
+    if had_previous {
+        std::fs::rename(&target, &backup)
+            .map_err(|e| format!("Cannot prepare to replace {}: {e}", target.display()))?;
+    }
+    if let Err(error) = std::fs::rename(&prepared, &target) {
+        if had_previous {
+            let _ = std::fs::rename(&backup, &target);
+        }
+        return Err(format!(
+            "Cannot activate package at {}: {error}",
+            target.display()
+        ));
+    }
     Ok(target)
+}
+
+/// Built-in package sources used by `bl install <name>` when `<name>` is not
+/// a local path. Releases bundle these packages, but source or Cargo installs
+/// can fetch them without requiring BIOLANG_PATH.
+pub fn registry_git_url(name: &str) -> Option<&'static str> {
+    match name {
+        "statistics" => Some("https://github.com/oriclabs/biolang.git"),
+        _ => None,
+    }
+}
+
+fn package_source_in_checkout(checkout: &Path, name: &str) -> Result<PathBuf, String> {
+    if checkout.join("biolang.toml").is_file() {
+        return Ok(checkout.to_path_buf());
+    }
+    let monorepo_package = checkout.join("packages").join(name);
+    if monorepo_package.join("biolang.toml").is_file() {
+        return Ok(monorepo_package);
+    }
+    Err(format!(
+        "Git repository does not contain biolang.toml at its root or packages/{name}/biolang.toml"
+    ))
 }
 
 /// Resolve a package name to its install path.
@@ -274,6 +335,9 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(dst)?;
     for entry in std::fs::read_dir(src)? {
         let entry = entry?;
+        if entry.file_name() == ".git" {
+            continue;
+        }
         let ty = entry.file_type()?;
         let dest_path = dst.join(entry.file_name());
         if ty.is_dir() {
@@ -287,7 +351,10 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{copy_examples, list_examples};
+    use super::{
+        copy_dir_recursive, copy_examples, list_examples, package_source_in_checkout,
+        registry_git_url,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -314,6 +381,28 @@ mod tests {
     }
 
     #[test]
+    fn package_copy_excludes_git_metadata_at_any_depth() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("source");
+        let destination = temp.path().join("destination");
+        std::fs::create_dir_all(source.join(".git").join("objects")).unwrap();
+        std::fs::create_dir_all(source.join("nested").join(".git")).unwrap();
+        std::fs::write(source.join("biolang.toml"), "[package]\nname='demo'\n").unwrap();
+        std::fs::write(source.join(".git").join("HEAD"), "ref: refs/heads/main\n").unwrap();
+        std::fs::write(
+            source.join("nested").join(".git").join("HEAD"),
+            "metadata\n",
+        )
+        .unwrap();
+
+        copy_dir_recursive(&source, &destination).unwrap();
+
+        assert!(destination.join("biolang.toml").is_file());
+        assert!(!destination.join(".git").exists());
+        assert!(!destination.join("nested").join(".git").exists());
+    }
+
+    #[test]
     fn refuses_to_merge_examples_into_a_nonempty_directory() {
         let temp = tempfile::tempdir().unwrap();
         let package = temp.path().join("demo");
@@ -328,6 +417,28 @@ mod tests {
         assert_eq!(
             std::fs::read_to_string(destination.join("keep.txt")).unwrap(),
             "keep"
+        );
+    }
+
+    #[test]
+    fn resolves_named_registry_and_monorepo_package_without_network() {
+        assert_eq!(
+            registry_git_url("statistics"),
+            Some("https://github.com/oriclabs/biolang.git")
+        );
+        assert_eq!(registry_git_url("unknown"), None);
+
+        let temp = tempfile::tempdir().unwrap();
+        let package = temp.path().join("packages").join("statistics");
+        std::fs::create_dir_all(&package).unwrap();
+        std::fs::write(
+            package.join("biolang.toml"),
+            "[package]\nname='statistics'\nversion='0.1.0'\n",
+        )
+        .unwrap();
+        assert_eq!(
+            package_source_in_checkout(temp.path(), "statistics").unwrap(),
+            package
         );
     }
 }

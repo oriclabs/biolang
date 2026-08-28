@@ -32,7 +32,7 @@ administrator rights and is added to your user `PATH` for you. Set
 
 ### With Cargo
 
-If you already have Rust 1.75 or newer:
+If you already have Rust 1.82 or newer:
 
 ```bash
 cargo install --git https://github.com/oriclabs/biolang bl-cli

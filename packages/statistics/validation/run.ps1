@@ -103,6 +103,29 @@ if (-not $rscriptExe) {
     exit 2
 }
 
+function Compare-Geometry {
+    param(
+        [Parameter(Mandatory = $true)][string]$Section,
+        [Parameter(Mandatory = $true)][object]$Expected,
+        [Parameter(Mandatory = $true)][object]$Actual,
+        [Parameter(Mandatory = $true)][string[]]$Fields,
+        [string[]]$ExactFields = @(),
+        [double]$Tolerance = 1e-12
+    )
+
+    foreach ($field in $Fields) {
+        $referenceValues = @($Expected.$field)
+        $observedValues = @($Actual.$field)
+        if ($referenceValues.Count -ne $observedValues.Count) {
+            throw "$Section geometry length mismatch for $field"
+        }
+        $fieldTolerance = if ($field -in $ExactFields) { 0 } else { $Tolerance }
+        for ($index = 0; $index -lt $referenceValues.Count; $index++) {
+            $script:checks += ,@("$Section.$field.$index", $referenceValues[$index], $observedValues[$index], $fieldTolerance)
+        }
+    }
+}
+
 $pythonExe = ""
 if ($PythonPath) {
     if (-not (Test-Path -LiteralPath $PythonPath -PathType Leaf)) {
@@ -463,77 +486,65 @@ try {
         }
     }
     foreach ($fixture in @("edge_right", "edge_left", "edge_right_open", "edge_left_open", "airquality")) {
-        foreach ($field in @("left", "right", "counts", "density")) {
-            $referenceValues = @($expectedPlot.$fixture.$field)
-            $observedValues = @($actualPlot.$fixture.$field)
-            if ($referenceValues.Count -ne $observedValues.Count) {
-                throw "Histogram geometry length mismatch for $fixture.$field"
-            }
-            for ($index = 0; $index -lt $referenceValues.Count; $index++) {
-                $tolerance = if ($field -eq "density") { 1e-12 } else { 0 }
-                $checks += ,@("plot.histogram.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], $tolerance)
-            }
-        }
+        Compare-Geometry "plot.histogram.$fixture" $expectedPlot.$fixture $actualPlot.$fixture `
+            @("left", "right", "counts", "density") @("left", "right", "counts") 1e-12
     }
     foreach ($fixture in @("box_type7", "box_tukey", "air_box_type7", "air_box_tukey")) {
-        foreach ($field in @("summary", "outliers")) {
-            $referenceValues = @($expectedPlot.$fixture.$field)
-            $observedValues = @($actualPlot.$fixture.$field)
-            if ($referenceValues.Count -ne $observedValues.Count) {
-                throw "Box geometry length mismatch for $fixture.$field"
-            }
-            for ($index = 0; $index -lt $referenceValues.Count; $index++) {
-                $checks += ,@("plot.boxplot.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], 1e-12)
-            }
-        }
+        Compare-Geometry "plot.boxplot.$fixture" $expectedPlot.$fixture $actualPlot.$fixture `
+            @("summary", "outliers") @() 1e-12
     }
     foreach ($fixture in @("ecdf", "air_ecdf")) {
-        foreach ($field in @("x", "counts", "cumulative", "fraction")) {
-            $referenceValues = @($expectedPlot.$fixture.$field)
-            $observedValues = @($actualPlot.$fixture.$field)
-            if ($referenceValues.Count -ne $observedValues.Count) {
-                throw "ECDF geometry length mismatch for $fixture.$field"
-            }
-            for ($index = 0; $index -lt $referenceValues.Count; $index++) {
-                $tolerance = if ($field -in @("counts", "cumulative")) { 0 } else { 1e-12 }
-                $checks += ,@("plot.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], $tolerance)
-            }
-        }
+        Compare-Geometry "plot.$fixture" $expectedPlot.$fixture $actualPlot.$fixture `
+            @("x", "counts", "cumulative", "fraction") @("counts", "cumulative") 1e-12
     }
     foreach ($fixture in @("normal_qq", "air_normal_qq")) {
-        foreach ($field in @("theoretical", "sample", "line")) {
-            $referenceValues = @($expectedPlot.$fixture.$field)
-            $observedValues = @($actualPlot.$fixture.$field)
-            if ($referenceValues.Count -ne $observedValues.Count) {
-                throw "Normal Q-Q geometry length mismatch for $fixture.$field"
-            }
-            for ($index = 0; $index -lt $referenceValues.Count; $index++) {
-                $checks += ,@("plot.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], 1e-9)
-            }
-        }
+        Compare-Geometry "plot.$fixture" $expectedPlot.$fixture $actualPlot.$fixture `
+            @("theoretical", "sample", "line") @() 1e-9
     }
     foreach ($fixture in @("violin", "air_violin")) {
-        foreach ($field in @("bandwidth", "x", "density", "scaled")) {
-            $referenceValues = @($expectedPlot.$fixture.$field)
-            $observedValues = @($actualPlot.$fixture.$field)
-            if ($referenceValues.Count -ne $observedValues.Count) {
-                throw "Violin geometry length mismatch for $fixture.$field"
-            }
-            for ($index = 0; $index -lt $referenceValues.Count; $index++) {
-                $checks += ,@("plot.$fixture.$field.$index", $referenceValues[$index], $observedValues[$index], 1e-10)
-            }
-        }
+        Compare-Geometry "plot.$fixture" $expectedPlot.$fixture $actualPlot.$fixture `
+            @("bandwidth", "x", "density", "scaled") @() 1e-10
     }
-    foreach ($field in @("slope", "intercept", "residual_mse", "x", "fitted", "confidence_lower", "confidence_upper", "prediction_lower", "prediction_upper")) {
-        $referenceValues = @($expectedPlot.linear_fit_air.$field)
-        $observedValues = @($actualPlot.linear_fit_air.$field)
-        if ($referenceValues.Count -ne $observedValues.Count) {
-            throw "Linear-fit geometry length mismatch for $field"
-        }
-        for ($index = 0; $index -lt $referenceValues.Count; $index++) {
-            $checks += ,@("plot.linear_fit_air.$field.$index", $referenceValues[$index], $observedValues[$index], 2e-9)
-        }
-    }
+    Compare-Geometry "plot.linear_fit_air" $expectedPlot.linear_fit_air $actualPlot.linear_fit_air `
+        @("slope", "intercept", "residual_mse", "x", "fitted", "confidence_lower", "confidence_upper", "prediction_lower", "prediction_upper") @() 2e-9
+    Compare-Geometry "plot.clinical_survival" $expectedPlot.clinical_survival $actualPlot.clinical_survival `
+        @("time", "n_risk", "n_event", "n_censor", "survival", "std_error") @("time", "n_risk", "n_event", "n_censor") 1e-12
+    $checks += ,@("plot.clinical_roc.auc", $expectedPlot.clinical_roc.auc, $actualPlot.clinical_roc.auc, 1e-12)
+    Compare-Geometry "plot.clinical_forest" $expectedPlot.clinical_forest $actualPlot.clinical_forest `
+        @("estimate", "lower", "upper", "weight") @() 1e-12
+    Compare-Geometry "plot.genomic_manhattan" $expectedPlot.genomic_manhattan $actualPlot.genomic_manhattan `
+        @("chromosome_index", "offset", "genome_position", "neg_log10_p", "significant") @("chromosome_index", "significant") 1e-12
+    Compare-Geometry "plot.genetic_qq" $expectedPlot.genetic_qq $actualPlot.genetic_qq `
+        @("rank", "p_value", "expected_p", "expected_neg_log10_p", "observed_neg_log10_p", "envelope_lower", "envelope_upper", "lambda_gc") @("rank") 2e-9
+    Compare-Geometry "plot.genomic_rainfall" $expectedPlot.genomic_rainfall $actualPlot.genomic_rainfall `
+        @("source_row", "position", "previous_position", "distance", "plotted_distance", "log10_distance", "duplicate_position") @("source_row", "duplicate_position") 1e-12
+    Compare-Geometry "plot.genomic_ideogram" $expectedPlot.genomic_ideogram $actualPlot.genomic_ideogram `
+        @("chromosome_length", "source_row", "chromosome_index", "start", "end", "length") @("source_row", "chromosome_index") 1e-12
+    Compare-Geometry "plot.genomic_cnv" $expectedPlot.genomic_cnv $actualPlot.genomic_cnv `
+        @("chromosome_offset", "source_row", "chromosome_index", "start", "end", "genome_start", "genome_end", "genome_midpoint", "log2ratio", "state") @("source_row", "chromosome_index", "state") 1e-12
+    Compare-Geometry "plot.genomic_coverage" $expectedPlot.genomic_coverage $actualPlot.genomic_coverage `
+        @("source_row", "original_start", "original_end", "start", "end", "position", "value", "clipped") @("source_row", "clipped") 1e-12
+    Compare-Geometry "plot.regional_genome" $expectedPlot.regional_genome $actualPlot.regional_genome `
+        @("source_row", "original_start", "original_end", "start", "end", "length", "lane", "clipped") @("source_row", "lane", "clipped") 1e-12
+    Compare-Geometry "plot.regional_lollipop" $expectedPlot.regional_lollipop $actualPlot.regional_lollipop `
+        @("source_row", "position", "height", "domain", "y_max") @("source_row") 1e-12
+    Compare-Geometry "plot.regional_sashimi" $expectedPlot.regional_sashimi $actualPlot.regional_sashimi `
+        @("coverage_source_row", "coverage_position", "coverage_depth", "junction_source_row", "junction_start", "junction_end", "junction_span", "junction_count", "junction_lane", "arc_fraction", "stroke_width", "max_count", "max_depth") @("coverage_source_row", "junction_source_row", "junction_lane") 1e-12
+    Compare-Geometry "plot.circular_circos" $expectedPlot.circular_circos $actualPlot.circular_circos @(
+        "segment_chromosome_index", "segment_source_row", "segment_start", "segment_end",
+        "segment_size", "segment_angle_start", "segment_angle_end",
+        "track_index", "track_point_index", "track_source_row", "track_chromosome_index",
+        "track_start", "track_end", "track_value", "track_angle_start", "track_angle_end",
+        "track_radial_inner", "track_radial_outer",
+        "link_index", "link_source_row", "link_source_chromosome_index", "link_source_start",
+        "link_source_end", "link_target_chromosome_index", "link_target_start", "link_target_end",
+        "link_source_angle_start", "link_source_angle_end", "link_target_angle_start",
+        "link_target_angle_end", "link_weight", "link_stroke_width"
+    ) @(
+        "segment_chromosome_index", "segment_source_row", "track_index", "track_point_index",
+        "track_source_row", "track_chromosome_index", "link_index", "link_source_row",
+        "link_source_chromosome_index", "link_target_chromosome_index"
+    ) 1e-12
     if ($expectedNumpyPlot) {
         foreach ($fixture in @("edge_left", "airquality_left")) {
             foreach ($field in @("left", "right", "counts", "density")) {

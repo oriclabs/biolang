@@ -104,6 +104,8 @@ assert contains(sc.feature_plot(plot_obj, "C"), "#d3d3d3"),
 assert contains(sc.vln_plot(plot_obj, "C"), "<svg"), "VlnPlot wrapper failed"
 assert contains(sc.dot_plot(plot_obj, ["C"]), "scaled average expression"),
     "DotPlot does not disclose Seurat-style colour semantics"
+assert contains(sc.plot_markers(plot_obj, 1), "data-biolang-theme=\"publication\""),
+    "marker heatmap did not use the labelled publication renderer"
 
 let ordered = result |> sc.pseudotime(0) |> sc.order_by_pseudotime()
 assert ordered.n_cells == 12, "pseudotime ordering changed cell count"

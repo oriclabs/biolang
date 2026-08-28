@@ -41,6 +41,8 @@ fn standard(obj, resolution = nil, n_hvg = nil, k = nil,
             min_cells = nil, target = nil, quiet = false,
             profile = "seurat_5_5_1") {
 
+    let checked_input = sc_validate_object(obj, true)
+
     let r_res  = _or(resolution, 0.8)
     let r_hvg  = _or(n_hvg, 2000)
     let r_k    = _or(k, 20)
@@ -87,13 +89,15 @@ fn standard(obj, resolution = nil, n_hvg = nil, k = nil,
     let warnings = check(out, obj, n_before, r_ming)
     for w in warnings { println("  WARNING: " + w) }
 
-    {... out,
+    let result = {... out,
         profile: profile,
         idents: out.clusters,
         decisions: decisions,
         n_clusters: n_clusters,
         warnings: warnings
     }
+    let checked_output = sc_validate_object(result, true)
+    result
 }
 
 ## check(out, obj, n_before, min_genes) -> List<Str>
@@ -170,6 +174,7 @@ fn report(obj, decisions, n_before, n_clusters) {
 ## expensive prep (normalize, HVG, kNN) happens once and only the clustering
 ## is repeated, so a sweep costs barely more than a single run.
 fn sweep(obj, resolutions = [0.1, 0.3, 0.5, 0.7, 1.0], n_hvg = nil, k = nil) {
+    let checked_input = sc_validate_object(obj, true)
     let r_hvg = _or(n_hvg, 2000)
     let r_k   = _or(k, 20)
 

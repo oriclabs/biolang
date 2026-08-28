@@ -2007,21 +2007,23 @@
     },
     {
       "name": "circos",
-      "signature": "circos(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "circos({segments, links?, tracks?}, opts?) -> SVG/PlotSpec; length-weighted circular genome with typed tracks and ribbons",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "{segments",
+        "links?",
+        "tracks?}",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; length-weighted circular genome with typed tracks and ribbons",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "circos_plot",
@@ -2257,14 +2259,14 @@
     },
     {
       "name": "clustered_heatmap",
-      "signature": "clustered_heatmap(data, opts?) → Str (SVG)",
+      "signature": "clustered_heatmap(data, opts?) → SVG/PlotSpec; spec freezes order, dendrograms and colour domain",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "data",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "SVG/PlotSpec; spec freezes order, dendrograms and colour domain",
       "example": null,
       "arity": {
         "kind": "range",
@@ -2293,21 +2295,21 @@
     },
     {
       "name": "cnv_plot",
-      "signature": "cnv_plot(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "cnv_plot(table, opts?) → SVG/PlotSpec; freezes genomic segment bounds, log2 ratios and gain/loss thresholds",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; freezes genomic segment bounds, log2 ratios and gain/loss thresholds",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "cnv_segment",
@@ -3206,21 +3208,21 @@
     },
     {
       "name": "coverage_track",
-      "signature": "coverage_track(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "coverage_track(data, opts?) → SVG/PlotSpec; preserves point or interval geometry and clips overlapping intervals",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "data",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; preserves point or interval geometry and clips overlapping intervals",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "cox_ph",
@@ -4276,7 +4278,7 @@
     },
     {
       "name": "dot_plot",
-      "signature": "dot_plot(matrix, clusters, opts?) → Str (SVG)",
+      "signature": "dot_plot(matrix, clusters, opts?) → SVG/PlotSpec; spec includes means, detection and scaling",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
@@ -4284,7 +4286,7 @@
         "clusters",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "SVG/PlotSpec; spec includes means, detection and scaling",
       "example": null,
       "arity": {
         "kind": "range",
@@ -5164,14 +5166,14 @@
     },
     {
       "name": "feature_plot",
-      "signature": "feature_plot(points, opts?) → Str (SVG)",
+      "signature": "feature_plot(points, opts?) → SVG/PlotSpec",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "points",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "SVG/PlotSpec",
       "example": null,
       "arity": {
         "kind": "range",
@@ -5613,21 +5615,21 @@
     },
     {
       "name": "forest_plot",
-      "signature": "forest_plot(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "forest_plot(table, opts?) → SVG/PlotSpec; spec freezes intervals, weights, scale and reference",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; spec freezes intervals, weights, scale and reference",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "format",
@@ -6209,14 +6211,14 @@
     },
     {
       "name": "genome_track",
-      "signature": "genome_track(table, opts?) → Str (SVG)",
+      "signature": "genome_track(table, opts?) → SVG/PlotSpec; freezes clipping and non-overlapping feature lanes",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "table",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "SVG/PlotSpec; freezes clipping and non-overlapping feature lanes",
       "example": null,
       "arity": {
         "kind": "range",
@@ -7027,14 +7029,14 @@
     },
     {
       "name": "heatmap",
-      "signature": "heatmap(table, opts?) → Str (SVG)",
+      "signature": "heatmap(table, opts?) → SVG/PlotSpec; format: \"spec\" freezes order and colour domain",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "table",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "SVG/PlotSpec; format: \"spec\" freezes order and colour domain",
       "example": null,
       "arity": {
         "kind": "range",
@@ -7446,21 +7448,21 @@
     },
     {
       "name": "ideogram",
-      "signature": "ideogram(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "ideogram(table, opts?) → SVG/PlotSpec; shared chromosome scale with frozen cytoband intervals and stains",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; shared chromosome scale with frozen cytoband intervals and stains",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "impute_minvalue",
@@ -8656,21 +8658,21 @@
     },
     {
       "name": "kaplan_meier",
-      "signature": "kaplan_meier(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "kaplan_meier(table, opts?) → SVG/PlotSpec; spec freezes risk sets, events, censoring and Greenwood SE",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; spec freezes risk sets, events, censoring and Greenwood SE",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "kb",
@@ -9602,21 +9604,21 @@
     },
     {
       "name": "lollipop",
-      "signature": "lollipop(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "lollipop(table, opts?) → SVG/PlotSpec; length fixes the full sequence domain",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; length fixes the full sequence domain",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "louvain_cluster",
@@ -9713,14 +9715,14 @@
     },
     {
       "name": "ma_plot",
-      "signature": "ma_plot(table, opts?) → Str (SVG)",
+      "signature": "ma_plot(table, opts?) → SVG/PlotSpec",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "table",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "SVG/PlotSpec",
       "example": null,
       "arity": {
         "kind": "range",
@@ -9768,21 +9770,21 @@
     },
     {
       "name": "manhattan",
-      "signature": "manhattan(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "manhattan(table, opts?) → SVG/PlotSpec; spec freezes chromosome order, genomic positions, p-values and thresholds",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; spec freezes chromosome order, genomic positions, p-values and thresholds",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "manhattan_data",
@@ -10375,6 +10377,42 @@
         "kind": "exact",
         "minimum": 1,
         "maximum": 1
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "mosaic_data",
+      "signature": "mosaic_data(table, opts?) -> PlotSpec",
+      "category": "plot",
+      "summary": "Replayable mosaic geometry with observed and expected counts, proportions, Pearson residuals, colours and rectangle boundaries.",
+      "parameters": [
+        "table",
+        "opts?"
+      ],
+      "returnType": "PlotSpec",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "mosaic_plot",
+      "signature": "mosaic_plot(table, opts?) -> SVG | PlotSpec",
+      "category": "plot",
+      "summary": "Contingency-table rectangles whose area is exactly proportional to observed count; optional Pearson-residual shading.",
+      "parameters": [
+        "table",
+        "opts?"
+      ],
+      "returnType": "SVG | PlotSpec",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
       },
       "metadataQuality": "curated"
     },
@@ -12009,14 +12047,14 @@
     },
     {
       "name": "pca_plot",
-      "signature": "pca_plot(points, opts?) → Str (SVG)",
+      "signature": "pca_plot(points, opts?) → SVG/PlotSpec",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "points",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "SVG/PlotSpec",
       "example": null,
       "arity": {
         "kind": "range",
@@ -12420,14 +12458,32 @@
     },
     {
       "name": "plot",
-      "signature": "plot(table, opts?) → Str (SVG); opts.y may name several columns",
+      "signature": "plot(table, opts?) → Str (SVG); theme: \"publication\" adds adaptive layout",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "table",
         "opts?"
       ],
-      "returnType": "Str (SVG); opts.y may name several columns",
+      "returnType": "Str (SVG); theme: \"publication\" adds adaptive layout",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "plot_grid",
+      "signature": "plot_grid(plots, opts?) -> SVG/PlotSpec; equal-cell multi-panel figure with tags, shared labels and legend",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
+      "parameters": [
+        "plots",
+        "opts?"
+      ],
+      "returnType": "SVG/PlotSpec; equal-cell multi-panel figure with tags, shared labels and legend",
       "example": null,
       "arity": {
         "kind": "range",
@@ -12996,21 +13052,21 @@
     },
     {
       "name": "qq_plot",
-      "signature": "qq_plot(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "qq_plot(pvalues, opts?) → SVG/PlotSpec; genetic Q-Q with λGC and optional exact beta envelope",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "pvalues",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; genetic Q-Q with λGC and optional exact beta envelope",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "quality_filter",
@@ -13161,21 +13217,21 @@
     },
     {
       "name": "rainfall",
-      "signature": "rainfall(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "rainfall(table, opts?) → SVG/PlotSpec; spec freezes within-chromosome distances and duplicate handling",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; spec freezes within-chromosome distances and duplicate handling",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "random",
@@ -14366,21 +14422,21 @@
     },
     {
       "name": "roc_curve",
-      "signature": "roc_curve(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "roc_curve(table, opts?) → SVG/PlotSpec; spec freezes tied thresholds, confusion counts and AUC",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "table",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; spec freezes tied thresholds, confusion counts and AUC",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "rolling_mean",
@@ -14564,6 +14620,24 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "run_param",
+      "signature": "run_param(name, default?) → Value (from bl run --param NAME=VALUE)",
+      "category": "core",
+      "summary": "BioLang core builtin.",
+      "parameters": [
+        "name",
+        "default?"
+      ],
+      "returnType": "Value (from bl run --param NAME=VALUE)",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "s3_download",
       "signature": "s3_download(s3_url, path?) → {path, size}",
       "category": "transfer",
@@ -14689,49 +14763,50 @@
     },
     {
       "name": "sashimi",
-      "signature": "sashimi(arg1, arg2?)",
-      "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "signature": "sashimi(junctions_or_record, opts?) → SVG/PlotSpec; Record may include coverage and junctions Tables",
+      "category": "plot",
+      "summary": "BioLang plot builtin.",
       "parameters": [
-        "arg1",
-        "arg2?"
+        "junctions_or_record",
+        "opts?"
       ],
-      "returnType": null,
+      "returnType": "SVG/PlotSpec; Record may include coverage and junctions Tables",
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
         "maximum": 2
       },
-      "metadataQuality": "runtime"
+      "metadataQuality": "curated"
     },
     {
       "name": "save_plot",
-      "signature": "save_plot(arg1, arg2)",
+      "signature": "save_plot(arg1, arg2, arg3?)",
       "category": "runtime",
       "summary": "Registered BioLang builtin accepting 2 argument(s).",
       "parameters": [
         "arg1",
-        "arg2"
+        "arg2",
+        "arg3?"
       ],
       "returnType": null,
       "example": null,
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 2,
-        "maximum": 2
+        "maximum": 3
       },
       "metadataQuality": "runtime"
     },
     {
       "name": "save_png",
-      "signature": "save_png(svg, path, opts?) → Str (path)",
+      "signature": "save_png(svg_or_spec, path, {scale?|dpi?}) -> Str (path)",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
-        "svg",
+        "svg_or_spec",
         "path",
-        "opts?"
+        "{scale?|dpi?}"
       ],
       "returnType": "Str (path)",
       "example": null,
@@ -14744,19 +14819,23 @@
     },
     {
       "name": "save_svg",
-      "signature": "save_svg(svg, path)",
+      "signature": "save_svg(svg_or_spec, path, {profile: \"screen|publication\", width_mm?, height_mm?, font?}) -> Str",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
-        "svg",
-        "path"
+        "svg_or_spec",
+        "path",
+        "{profile: \"screen|publication\"",
+        "width_mm?",
+        "height_mm?",
+        "font?}"
       ],
-      "returnType": null,
+      "returnType": "Str",
       "example": null,
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 2,
-        "maximum": 2
+        "maximum": 3
       },
       "metadataQuality": "curated"
     },
@@ -14982,6 +15061,24 @@
         "maximum": 2
       },
       "metadataQuality": "runtime"
+    },
+    {
+      "name": "sc_validate_object",
+      "signature": "sc_validate_object(object, strict?) → validation Record (axes, dimensions, errors, warnings)",
+      "category": "singlecell",
+      "summary": "BioLang singlecell builtin.",
+      "parameters": [
+        "object",
+        "strict?"
+      ],
+      "returnType": "validation Record (axes, dimensions, errors, warnings)",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
     },
     {
       "name": "scan",
@@ -18523,14 +18620,14 @@
     },
     {
       "name": "umap_plot",
-      "signature": "umap_plot(points, opts?) → Str (SVG)",
+      "signature": "umap_plot(points, opts?) → SVG/PlotSpec",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "points",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "SVG/PlotSpec",
       "example": null,
       "arity": {
         "kind": "range",
@@ -19108,14 +19205,14 @@
     },
     {
       "name": "violin",
-      "signature": "violin(data, opts?) → Str (SVG)",
+      "signature": "violin(data, opts?) → SVG/PlotSpec; format: \"spec\" freezes KDE geometry",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "data",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "SVG/PlotSpec; format: \"spec\" freezes KDE geometry",
       "example": null,
       "arity": {
         "kind": "range",
@@ -19144,14 +19241,14 @@
     },
     {
       "name": "violin_plot",
-      "signature": "violin_plot(data, opts?) → Str (SVG)",
+      "signature": "violin_plot(data, opts?) → SVG/PlotSpec; format: \"spec\" freezes KDE geometry",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "data",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "SVG/PlotSpec; format: \"spec\" freezes KDE geometry",
       "example": null,
       "arity": {
         "kind": "range",
@@ -19197,14 +19294,14 @@
     },
     {
       "name": "volcano",
-      "signature": "volcano(table, opts?) → Str (SVG)",
+      "signature": "volcano(table, opts?) → SVG/PlotSpec",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "table",
         "opts?"
       ],
-      "returnType": "Str (SVG)",
+      "returnType": "SVG/PlotSpec",
       "example": null,
       "arity": {
         "kind": "range",

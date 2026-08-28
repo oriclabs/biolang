@@ -15,7 +15,7 @@ Thank you for your interest in contributing to BioLang!
 
 ### Prerequisites
 
-- Rust 1.75+ (stable)
+- Rust 1.82+ (stable)
 - `cargo clippy` for lints
 - `cargo fmt` for formatting
 

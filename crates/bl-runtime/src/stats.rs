@@ -3850,6 +3850,13 @@ pub(crate) fn xorshift_next_u64() -> u64 {
 /// set_seed(n) — set the PRNG state for reproducible random sequences.
 fn builtin_set_seed(args: Vec<Value>) -> Result<Value> {
     let seed = require_int(&args[0], "set_seed")? as u64;
+    set_random_seed(seed);
+    Ok(Value::Nil)
+}
+
+/// Seed the runtime PRNG from a host integration such as `bl run --seed`.
+/// This uses exactly the same stream as the public `set_seed()` builtin.
+pub fn set_random_seed(seed: u64) {
     // Mix the seed through splitmix64 to avoid bad initial states
     let mut s = seed;
     s = s.wrapping_add(0x9E3779B97F4A7C15);
@@ -3860,7 +3867,6 @@ fn builtin_set_seed(args: Vec<Value>) -> Result<Value> {
         s = 1;
     } // xorshift must not be zero
     XORSHIFT_STATE.with(|state| state.set(s));
-    Ok(Value::Nil)
 }
 
 /// power_t_test(effect_size, alpha?, power?) — compute required sample size per group.

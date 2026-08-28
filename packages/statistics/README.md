@@ -4,16 +4,26 @@ The `statistics` package combines statistical tests with explainable exploratory
 analysis. Exploration functions return ordinary BioLang records: every number,
 clue, alternative, limitation, and recommendation can be inspected or reused.
 
+Release archives already include this package. If `bl` was installed by Cargo
+or copied without the companion `packages` directory, install it once with
+`bl install statistics`; it is then available from any working directory
+without setting `BIOLANG_PATH`.
+
 ```biolang
 import "statistics" as stat
 
 let values = [12.1, 12.4, 12.8, 13.0, 13.2, 13.5, 29.0]
 let report = stat.explore(values, {name: "protein concentration"})
 
-println(stat.explain(report))
-println(stat.distribution_ascii(values))
-stat.distribution_plot(values)
+# One command chooses a notebook/browser visual or terminal-safe rendering.
+stat.show(report, {detail: "learning", format: "auto"})
 ```
+
+In the CLI, choose how SVG results are handled with `:plot ascii`,
+`:plot unicode`, `:plot file`, or `:plot open`. Use
+`stat.show(report, {format: "ascii"})` when the returned value itself must be
+plain text. `format: "raw"` returns the unchanged report record for downstream
+code. The supported formats are `auto`, `ascii`, `svg`, and `raw`.
 
 ## Guided exploration API
 
@@ -25,6 +35,7 @@ stat.distribution_plot(values)
 | `stat.categorical(values, options?)` | Counts, proportions, modes, missingness, and rare-level clues |
 | `stat.guide(report, context?)` | Add an explicit scientific question and experimental unit |
 | `stat.explain(report, detail?)` | Render `quick`, `learning`, or `audit` text |
+| `stat.show(report, options?)` | Present an explanation plus an automatic, ASCII, or SVG visual; `raw` preserves the report |
 | `stat.distribution_plot(values, options?)` | Annotated histogram, observations, mean, median, IQR, SD bands, and outlier flags |
 | `stat.distribution_ascii(values, options?)` | CLI-safe histogram with mean, median, IQR, SD, exclusions, and review flags |
 | `stat.normal_diagram(values?, options?)` | Teaching bell curve with 1/2/3-SD areas, optional observed coverage and z-tail highlighting |

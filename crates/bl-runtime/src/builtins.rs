@@ -18,6 +18,18 @@ thread_local! {
     static CURRENT_OFFSET: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
     /// True when the last write_output call did not end with a newline.
     static NEEDS_NEWLINE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static RUN_PARAMETERS: std::cell::RefCell<std::collections::HashMap<String, Value>> =
+        std::cell::RefCell::new(std::collections::HashMap::new());
+}
+
+/// Install typed parameters supplied by the host (`bl run --param NAME=VALUE`).
+pub fn set_run_parameters(parameters: std::collections::HashMap<String, Value>) {
+    RUN_PARAMETERS.with(|cell| *cell.borrow_mut() = parameters);
+}
+
+/// Clear host-supplied run parameters after an execution finishes.
+pub fn clear_run_parameters() {
+    RUN_PARAMETERS.with(|cell| cell.borrow_mut().clear());
 }
 
 /// Set a thread-local output capture buffer. When set, print/println write here instead of stdout.
@@ -342,6 +354,7 @@ pub fn register_builtins(env: &mut Environment) {
 
     // Add inline utility builtins
     builtins.push(("env", Arity::Exact(1)));
+    builtins.push(("run_param", Arity::Range(1, 2)));
     builtins.push(("cwd", Arity::Exact(0)));
     builtins.push(("assert", Arity::Exact(2)));
     builtins.push(("debug", Arity::Exact(1)));
@@ -903,6 +916,7 @@ pub fn all_builtin_names() -> Vec<&'static str> {
         "is_kmer",
         "is_sparse",
         "env",
+        "run_param",
         "cwd",
         "assert",
         "debug",
@@ -2107,6 +2121,22 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 Ok(val) => Ok(Value::Str(val)),
                 Err(_) => Ok(Value::Nil),
             }
+        }
+        "run_param" => {
+            let name = match &args[0] {
+                Value::Str(name) => name,
+                other => {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "run_param() requires a parameter name (Str), got {}",
+                            other.type_of()
+                        ),
+                        None,
+                    ))
+                }
+            };
+            let value = RUN_PARAMETERS.with(|cell| cell.borrow().get(name).cloned());
+            Ok(value.unwrap_or_else(|| args.get(1).cloned().unwrap_or(Value::Nil)))
         }
         "assert" => {
             if !args[0].is_truthy() {

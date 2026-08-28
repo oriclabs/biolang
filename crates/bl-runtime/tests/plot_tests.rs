@@ -857,6 +857,96 @@ fn test_heatmap_wrong_type() {
     assert!(result.is_err());
 }
 
+#[test]
+fn heatmap_row_clustering_keeps_the_documented_mean_order() {
+    let table = make_table(
+        vec!["a", "b"],
+        vec![
+            vec![Value::Float(10.0), Value::Float(8.0)],
+            vec![Value::Float(1.0), Value::Float(0.0)],
+            vec![Value::Float(5.0), Value::Float(4.0)],
+        ],
+    );
+    let opts = Value::Record(
+        HashMap::from([
+            ("cluster".into(), Value::Bool(true)),
+            (
+                "row_labels".into(),
+                Value::List(
+                    vec![
+                        Value::Str("high".into()),
+                        Value::Str("low".into()),
+                        Value::Str("middle".into()),
+                    ]
+                    .into(),
+                ),
+            ),
+        ])
+        .into(),
+    );
+    let Value::Str(svg) = call_plot_builtin("heatmap", vec![table, opts]).unwrap() else {
+        panic!("expected SVG")
+    };
+    assert!(svg.find(">low<").unwrap() < svg.find(">middle<").unwrap());
+    assert!(svg.find(">middle<").unwrap() < svg.find(">high<").unwrap());
+}
+
+#[test]
+fn publication_heatmap_survives_notebook_and_journal_widths() {
+    let table = make_table(
+        vec!["control sample", "treated sample", "recovery sample"],
+        vec![
+            vec![Value::Float(-2.0), Value::Float(0.0), Value::Float(2.0)],
+            vec![Value::Float(-1.0), Value::Float(0.5), Value::Float(1.5)],
+            vec![Value::Float(-0.5), Value::Float(1.0), Value::Float(2.5)],
+        ],
+    );
+    for width in [321_i64, 680, 800] {
+        let opts = Value::Record(
+            HashMap::from([
+                ("theme".into(), Value::Str("publication".into())),
+                ("width".into(), Value::Int(width)),
+                ("height".into(), Value::Int(400)),
+                ("title".into(), Value::Str("Expression heatmap".into())),
+                ("subtitle".into(), Value::Str("Scaled measurements".into())),
+                (
+                    "caption".into(),
+                    Value::Str("Rows retain input order".into()),
+                ),
+                ("legend_title".into(), Value::Str("z-score".into())),
+                (
+                    "row_labels".into(),
+                    Value::List(
+                        vec![
+                            Value::Str("TP53".into()),
+                            Value::Str("BRCA1".into()),
+                            Value::Str("EGFR".into()),
+                        ]
+                        .into(),
+                    ),
+                ),
+            ])
+            .into(),
+        );
+        let Value::Str(svg) =
+            call_plot_builtin("heatmap", vec![table.clone(), opts]).expect("publication heatmap")
+        else {
+            panic!("expected SVG")
+        };
+        assert!(svg.contains(&format!("width=\"{width}\"")));
+        assert!(svg.contains("data-biolang-theme=\"publication\""));
+        assert!(svg.contains(">Scaled measurements<"));
+        assert!(svg.contains(">Rows retain input order<"));
+        assert!(svg.contains(">TP53<"));
+        assert!(svg.contains(">treated sample<"));
+        assert!(svg.contains("#3b4cc0"));
+        assert!(svg.contains("#f7f7f7"));
+        assert!(svg.contains("#b40426"));
+        assert!(!svg.contains("NaN"));
+        assert!(!svg.contains("inf"));
+    }
+}
+
 // ── Volcano tests ───────────────────────────────────────────────
 
 #[test]
@@ -961,6 +1051,56 @@ fn test_save_svg_roundtrip() {
 }
 
 #[test]
+fn publication_svg_export_records_physical_size_and_font_profile() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("journal.svg");
+    let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><text x="10" y="20">figure</text></svg>"#;
+    call_plot_builtin(
+        "save_svg",
+        vec![
+            Value::Str(svg.into()),
+            Value::Str(path.to_string_lossy().into()),
+            Value::Record(
+                HashMap::from([
+                    ("profile".into(), Value::Str("publication".into())),
+                    ("font".into(), Value::Str("serif".into())),
+                    ("width_mm".into(), Value::Float(180.0)),
+                    ("height_mm".into(), Value::Float(120.0)),
+                ])
+                .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    let written = std::fs::read_to_string(path).unwrap();
+    assert!(written.contains("data-biolang-export=\"publication\""));
+    assert!(written.contains("width=\"180mm\""));
+    assert!(written.contains("height=\"120mm\""));
+    assert!(written.contains("Times New Roman,Times,serif"));
+    assert!(written.contains("<metadata>"));
+}
+
+#[test]
+fn save_svg_accepts_a_plot_spec_without_manual_replay() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("spec.svg");
+    let data = make_table(
+        vec!["x", "y"],
+        vec![
+            vec![Value::Float(1.0), Value::Float(2.0)],
+            vec![Value::Float(2.0), Value::Float(4.0)],
+        ],
+    );
+    let spec = call_plot_builtin("plot_spec", vec![data]).unwrap();
+    call_plot_builtin(
+        "save_svg",
+        vec![spec, Value::Str(path.to_string_lossy().into())],
+    )
+    .unwrap();
+    assert!(std::fs::read_to_string(path).unwrap().starts_with("<svg"));
+}
+
+#[test]
 fn test_save_svg_wrong_type_first_arg() {
     let result = call_plot_builtin(
         "save_svg",
@@ -976,6 +1116,37 @@ fn test_save_svg_wrong_type_second_arg() {
         vec![Value::Str("<svg></svg>".into()), Value::Int(42)],
     );
     assert!(result.is_err());
+}
+
+#[test]
+fn test_save_svg_rejects_plain_text_and_profiles_compact_svg() {
+    let dir = tempfile::tempdir().unwrap();
+    let bad = dir.path().join("bad.svg");
+    assert!(call_plot_builtin(
+        "save_svg",
+        vec![
+            Value::Str("not an image".into()),
+            Value::Str(bad.to_string_lossy().into()),
+        ],
+    )
+    .is_err());
+    assert!(!bad.exists());
+
+    let compact = dir.path().join("compact.svg");
+    call_plot_builtin(
+        "save_svg",
+        vec![
+            Value::Str("<svg></svg>".into()),
+            Value::Str(compact.to_string_lossy().into()),
+            Value::Record(
+                HashMap::from([("profile".into(), Value::Str("publication".into()))]).into(),
+            ),
+        ],
+    )
+    .unwrap();
+    assert!(std::fs::read_to_string(compact)
+        .unwrap()
+        .contains("<svg data-biolang-export=\"publication\""));
 }
 
 // ── SVG output format validation ────────────────────────────────

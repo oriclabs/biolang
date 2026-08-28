@@ -1,0 +1,37 @@
+import "singlecell" as sc
+
+let obj = sc.from_matrix(
+    [[1.0, 0.0, 2.0], [0.0, 3.0, 1.0]],
+    ["G0", "G1", "G2"],
+    ["C0", "C1"]
+)
+let report = sc.validate(obj)
+assert(report.ok)
+assert(report.error_count == 0)
+assert(sc.assert_valid(obj).n_cells == 2)
+
+# Objects from other packages may use `cells`; that alias is accepted and
+# disclosed rather than silently rewritten.
+let foreign = {
+    matrix: [[1.0, 0.0], [0.0, 1.0]],
+    genes: ["A", "B"],
+    cells: ["X", "Y"],
+    n_cells: 2,
+    n_genes: 2
+}
+let foreign_report = sc.validate(foreign)
+assert(foreign_report.ok)
+assert(foreign_report.warning_count == 1)
+
+# Dimensions alone cannot reveal a shifted gene axis. The identity mapping can.
+let mislabeled = {... obj,
+    norm_matrix: [[0.1, 0.2], [0.3, 0.4]],
+    hvg_matrix: [[0.1, 0.2], [0.3, 0.4]],
+    hvg: [2, 0],
+    hvg_genes: ["G1", "G0"]
+}
+let bad_report = sc.validate(mislabeled)
+assert(not bad_report.ok)
+assert(bad_report.error_count > 0)
+
+println("singlecell object validation: ok")

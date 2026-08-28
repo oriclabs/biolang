@@ -55,8 +55,13 @@ let pca_data = table([
     {pc1: 5.0, pc2: 4.0, group: "B"},
     {pc1: 5.5, pc2: 4.5, group: "B"}
 ])
-let pp = pca_plot({data: pca_data, title: "PCA", format: "svg"})
+let pp = pca_plot(pca_data, {title: "PCA", format: "svg", group_col: "group"})
 println("PCA plot SVG:", len(pp))
+let pca_spec = pca_plot(pca_data, {
+    format: "spec", title: "PCA", group_col: "group"
+})
+let pca_replay = render_plot(pca_spec, {format: "svg"})
+println("PCA spec:", pca_spec.schema, pca_spec.kind, "exact replay:", pp == pca_replay)
 # save_svg(pp, "results/pca.svg")
 
 # ── ROC curve ──
@@ -112,8 +117,13 @@ let mutations = table([
     {position: 250, label: "V250M", height: 30},
     {position: 400, label: "G400D", height: 80}
 ])
-let lp = lollipop({data: mutations, title: "TP53 Mutations", length: 500, format: "svg"})
+let lp = lollipop(mutations, {title: "TP53 Mutations", length: 500, theme: "publication"})
+let lp_spec = lollipop(mutations, {
+    title: "TP53 Mutations", length: 500, theme: "publication", format: "spec"
+})
 println("Lollipop SVG:", len(lp))
+println("Lollipop domain:", lp_spec.options.domain_start, "to", lp_spec.options.domain_end)
+println("Lollipop exact replay:", lp == render_plot(lp_spec))
 # save_svg(lp, "results/lollipop.svg")
 
 # ── Circos plot ──
@@ -122,11 +132,37 @@ let segments = table([
     {chrom: "chr3", end: 12000}, {chrom: "chr5", end: 9000}
 ])
 let links = table([
-    {source_chr: "chr1", source_pos: 1000, target_chr: "chr3", target_pos: 5000},
-    {source_chr: "chr2", source_pos: 3000, target_chr: "chr5", target_pos: 7000}
+    {
+        source_chr: "chr1", source_start: 800, source_end: 1200,
+        target_chr: "chr3", target_start: 4800, target_end: 5300,
+        count: 24
+    },
+    {
+        source_chr: "chr2", source_start: 3000, source_end: 3000,
+        target_chr: "chr5", target_start: 7000, target_end: 7000,
+        count: 8
+    }
 ])
-let cp = circos({data: {segments: segments, links: links}, title: "Structural Variants", format: "svg"})
+let circular_depth = table([
+    {chrom: "chr1", pos: 1000, depth: 4},
+    {chrom: "chr1", pos: 6000, depth: 15},
+    {chrom: "chr2", pos: 3000, depth: 8},
+    {chrom: "chr3", pos: 7000, depth: 12}
+])
+let circular_input = {
+    segments: segments,
+    links: links,
+    tracks: [{name: "coverage", type: "line", data: circular_depth}]
+}
+let cp = circos(circular_input, {
+    title: "Structural Variants", theme: "publication"
+})
+let cp_spec = circos(circular_input, {
+    title: "Structural Variants", theme: "publication", format: "spec"
+})
 println("Circos SVG:", len(cp))
+println("Circos chromosomes:", nrow(cp_spec.segments))
+println("Circos exact replay:", cp == render_plot(cp_spec))
 # save_svg(cp, "results/circos.svg")
 
 # ── Oncoprint ──
@@ -149,13 +185,51 @@ let expr = matrix([
 ])
 let ch = clustered_heatmap({data: expr, title: "Gene Expression", format: "svg"})
 println("Clustered heatmap SVG:", len(ch))
+let ch_spec = clustered_heatmap(expr, {title: "Gene Expression", format: "spec"})
+let ch_replay = render_plot(ch_spec)
+println("Clustered heatmap spec:", ch_spec.schema, ch_spec.plot)
+println("Clustered heatmap exact replay:", ch == ch_replay)
 # save_svg(ch, "results/clustered_heatmap.svg")
 
 # ── Other plots (data-dependent) ──
+# Inspectable UMAP specification. It can be saved with a notebook and replayed
+# without recomputing the embedding. FeaturePlot uses the same contract.
+let embedding = table([
+    {x: -2.1, y:  0.2, cluster: "T cell",  LYZ: 0.1},
+    {x: -1.7, y: -0.1, cluster: "T cell",  LYZ: 0.2},
+    {x:  1.4, y:  1.1, cluster: "B cell",  LYZ: 0.4},
+    {x:  1.8, y:  0.8, cluster: "B cell",  LYZ: 0.3},
+    {x:  0.2, y: -1.8, cluster: "monocyte", LYZ: 4.8},
+    {x:  0.5, y: -2.1, cluster: "monocyte", LYZ: 5.2}
+])
+let embedding_spec = feature_plot(embedding, {
+    format: "spec", theme: "publication", feature: "LYZ",
+    min_cutoff: "q05", max_cutoff: "q95", title: "LYZ expression"
+})
+let embedding_svg = render_plot(embedding_spec, {format: "svg"})
+println("Embedding spec:", embedding_spec.schema, embedding_spec.kind)
+println("Replayed FeaturePlot SVG:", len(embedding_svg))
+
 # ideogram({data: ..., title: "Chromosome Ideogram", format: "svg"})
 # rainfall({data: ..., title: "Mutation Rainfall", format: "svg"})
 # cnv_plot({data: ..., title: "Copy Number", format: "svg"})
 # hic_map({data: ..., title: "Hi-C Contact Map", format: "svg"})
-# sashimi({data: ..., title: "Sashimi Plot", format: "svg"})
+
+# Coverage and junctions stay separate in the inspectable Sashimi specification.
+let splice_coverage = table([
+    {pos: 100, depth: 2}, {pos: 180, depth: 12},
+    {pos: 260, depth: 5}, {pos: 400, depth: 9}
+])
+let splice_junctions = table([
+    {chrom: "chr1", start: 100, end: 300, count: 80, strand: "+"},
+    {chrom: "chr1", start: 180, end: 400, count: 25, strand: "+"},
+    {chrom: "chr1", start: 400, end: 480, count: 8, strand: "+"}
+])
+let sashimi_spec = sashimi({coverage: splice_coverage, junctions: splice_junctions}, {
+    format: "spec", theme: "publication", title: "Example splice junctions"
+})
+let sashimi_svg = render_plot(sashimi_spec)
+println("Sashimi junctions:", nrow(sashimi_spec.junctions))
+println("Sashimi SVG:", len(sashimi_svg))
 
 println("\nAll 21 bio plot types demonstrated!")

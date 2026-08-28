@@ -76,6 +76,38 @@ local package directory in place of the installed name.
 Version-only registry dependencies are recognized in the manifest but the
 current CLI does not fetch them from a registry.
 
+## Registered datasets
+
+The separate BioLang Registry indexes dataset and data-provider manifests in
+the same way that a package registry indexes package metadata. Discovery does
+not download anything:
+
+```bash
+bl data search "NHANES" --category statistics
+bl data search "ENA" --kind provider
+bl data info oriclabs/nhanes-bdsr-teaching
+```
+
+`bl data fetch` is the explicit download step. The CLI streams each declared
+file into a temporary cache entry, enforces its declared size, verifies its
+SHA-256 digest, and only then activates it. A subsequent fetch reuses the file
+only after verifying it again.
+
+```bash
+bl data fetch oriclabs/nhanes-bdsr-teaching
+bl data path oriclabs/nhanes-bdsr-teaching --file nhanes
+```
+
+The output includes the suggested BioLang reader, such as `read_csv`. A fetched
+dataset's verified manifest is cached beside its files, so `bl data path` works
+offline and still verifies each file before printing it. Data is stored under
+`~/.biolang/data`; set `BIOLANG_DATA_HOME` to use another cache or
+`BIOLANG_REGISTRY_URL` to select a compatible private registry. Dataset
+manifests disclose provider, accession, source page, citation, licence, access
+conditions, exact files, formats, and reader hints. Registry provider records
+may select only adapters compiled into BioLang—they cannot inject downloader
+code or credentials.
+
 ## Packages Versus Plugins
 
 Packages contain BioLang modules and are installed under

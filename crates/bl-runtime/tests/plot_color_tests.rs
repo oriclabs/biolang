@@ -96,6 +96,22 @@ fn seurat_theme_uses_r_familiar_discrete_colours() {
     assert!(svg.contains("#7cae00"), "second ggplot-like hue is absent");
 }
 
+#[test]
+fn publication_theme_adds_adaptive_presentation_without_changing_the_default() {
+    let legacy = render(points_as_records(4), vec![("color", "cluster")]);
+    let publication = render(
+        points_as_records(4),
+        vec![("color", "cluster"), ("theme", "publication")],
+    );
+    assert!(legacy.contains("data-biolang-theme=\"biolang\""));
+    assert!(publication.contains("data-biolang-theme=\"publication\""));
+    assert!(publication.contains("Arial, Helvetica, sans-serif"));
+    assert!(
+        publication.contains("#e5e7eb"),
+        "publication grid is absent"
+    );
+}
+
 // ── continuous colouring (feature_plot) ─────────────────────────────────────
 //
 // Seurat's FeaturePlot: colour the embedding by one gene's expression. This is
@@ -146,6 +162,70 @@ fn seurat_feature_theme_runs_from_light_grey_to_blue() {
     );
     assert!(svg.contains("#d3d3d3"), "low-expression grey is absent");
     assert!(svg.contains("#0000ff"), "high-expression blue is absent");
+}
+
+#[test]
+fn publication_feature_plot_uses_a_perceptually_ordered_ramp() {
+    let svg = render(
+        points_with_feature(40),
+        vec![("feature", "LYZ"), ("theme", "publication")],
+    );
+    assert!(
+        svg.contains("#440154"),
+        "low end of publication ramp is absent"
+    );
+    assert!(
+        svg.contains("#fde725"),
+        "high end of publication ramp is absent"
+    );
+}
+
+#[test]
+fn publication_feature_plot_accepts_quantile_cutoffs() {
+    let mut map = HashMap::new();
+    map.insert("feature".to_string(), Value::Str("LYZ".to_string()));
+    map.insert("theme".to_string(), Value::Str("publication".to_string()));
+    map.insert("min_cutoff".to_string(), Value::Str("q25".to_string()));
+    map.insert("max_cutoff".to_string(), Value::Str("q75".to_string()));
+    let svg = match call_bio_plots_builtin(
+        "feature_plot",
+        vec![points_with_feature(40), Value::Record(map.into())],
+    ) {
+        Ok(Value::Str(svg)) => svg,
+        other => panic!("feature_plot returned {other:?}"),
+    };
+    // Values are 0, .15, ... 5.85, so type-7 q25/q75 are 1.46 and 4.39.
+    assert!(
+        svg.contains(">1.46<"),
+        "lower quantile is not on the colour key"
+    );
+    assert!(
+        svg.contains(">4.39<"),
+        "upper quantile is not on the colour key"
+    );
+}
+
+#[test]
+fn publication_plot_renders_subtitle_and_caption() {
+    let mut map = HashMap::new();
+    map.insert("theme".to_string(), Value::Str("publication".to_string()));
+    map.insert(
+        "subtitle".to_string(),
+        Value::Str("PBMC subset".to_string()),
+    );
+    map.insert(
+        "caption".to_string(),
+        Value::Str("BioLang analysis".to_string()),
+    );
+    let svg = match call_bio_plots_builtin(
+        "umap_plot",
+        vec![points_as_records(3), Value::Record(map.into())],
+    ) {
+        Ok(Value::Str(svg)) => svg,
+        other => panic!("umap_plot returned {other:?}"),
+    };
+    assert!(svg.contains(">PBMC subset<"));
+    assert!(svg.contains(">BioLang analysis<"));
 }
 
 #[test]
@@ -256,6 +336,10 @@ fn elbow_plot_rejects_input_it_cannot_read() {
 // rather than drawing a plausible blob.
 
 fn violin(rows: Vec<(&str, f64)>) -> String {
+    violin_with_options(rows, Vec::new())
+}
+
+fn violin_with_options(rows: Vec<(&str, f64)>, opts: Vec<(&str, Value)>) -> String {
     let items: Vec<Value> = rows
         .into_iter()
         .map(|(group, value)| {
@@ -265,7 +349,16 @@ fn violin(rows: Vec<(&str, f64)>) -> String {
             Value::Record(record.into())
         })
         .collect();
-    match call_bio_plots_builtin("violin_plot", vec![Value::List(items.into())]) {
+    let mut args = vec![Value::List(items.into())];
+    if !opts.is_empty() {
+        args.push(Value::Record(
+            opts.into_iter()
+                .map(|(key, value)| (key.to_string(), value))
+                .collect::<HashMap<_, _>>()
+                .into(),
+        ));
+    }
+    match call_bio_plots_builtin("violin_plot", args) {
         Ok(Value::Str(svg)) => svg,
         other => panic!("violin_plot returned {other:?}"),
     }
@@ -347,4 +440,57 @@ fn violin_groups_keep_a_stable_order() {
 #[test]
 fn violin_plot_rejects_input_it_cannot_read() {
     assert!(call_bio_plots_builtin("violin_plot", vec![Value::Int(1)]).is_err());
+}
+
+#[test]
+fn publication_violin_survives_notebook_and_journal_widths() {
+    let rows = vec![
+        ("untreated sample", 1.0),
+        ("untreated sample", 1.2),
+        ("untreated sample", 1.4),
+        ("treated sample", 2.1),
+        ("treated sample", 2.4),
+        ("treated sample", 2.8),
+    ];
+    for width in [321_i64, 680, 800] {
+        let svg = violin_with_options(
+            rows.clone(),
+            vec![
+                ("theme", Value::Str("publication".to_string())),
+                ("width", Value::Int(width)),
+                ("height", Value::Int(360)),
+                ("title", Value::Str("Expression distribution".to_string())),
+                ("subtitle", Value::Str("Two study groups".to_string())),
+                ("caption", Value::Str("Median shown by a line".to_string())),
+            ],
+        );
+        assert!(svg.contains(&format!("width=\"{width}\"")));
+        assert!(svg.contains("data-biolang-theme=\"publication\""));
+        assert!(svg.contains(">untreated sample<"));
+        assert!(svg.contains(">treated sample<"));
+        assert!(svg.contains(">Two study groups<"));
+        assert!(svg.contains(">Median shown by a line<"));
+        assert!(svg.contains("#e5e7eb"), "horizontal guides are absent");
+        assert!(!svg.contains("NaN"));
+        assert!(!svg.contains("inf"));
+    }
+}
+
+#[test]
+fn publication_theme_does_not_change_violin_density_sampling() {
+    let rows: Vec<(&str, f64)> = (0..40).map(|i| ("sample", (i % 11) as f64)).collect();
+    let legacy = violin(rows.clone());
+    let publication =
+        violin_with_options(rows, vec![("theme", Value::Str("publication".to_string()))]);
+    let points = |svg: &str| {
+        svg.split("<polygon points=\"")
+            .nth(1)
+            .and_then(|part| {
+                part.find('"')
+                    .map(|end| part[..end].split_whitespace().count())
+            })
+            .expect("violin polygon")
+    };
+    assert_eq!(points(&legacy), points(&publication));
+    assert_eq!(points(&legacy), 256, "the 128-point KDE should be mirrored");
 }

@@ -7,7 +7,10 @@ pub fn plot_builtin_list() -> Vec<(&'static str, Arity)> {
         ("plot", Arity::Range(1, 2)),
         ("plot_spec", Arity::Range(1, 2)),
         ("render_plot", Arity::Range(1, 2)),
+        ("plot_grid", Arity::Range(1, 2)),
         ("heatmap", Arity::Range(1, 2)),
+        ("mosaic_plot", Arity::Range(1, 2)),
+        ("mosaic_data", Arity::Range(1, 2)),
         ("histogram", Arity::Range(1, 2)),
         ("histogram_data", Arity::Range(1, 2)),
         ("boxplot_data", Arity::Range(1, 2)),
@@ -21,8 +24,8 @@ pub fn plot_builtin_list() -> Vec<(&'static str, Arity)> {
         ("density_plot", Arity::Range(1, 2)),
         ("volcano", Arity::Range(1, 2)),
         ("ma_plot", Arity::Range(1, 2)),
-        ("save_svg", Arity::Exact(2)),
-        ("save_plot", Arity::Exact(2)),
+        ("save_svg", Arity::Range(2, 3)),
+        ("save_plot", Arity::Range(2, 3)),
         ("save_png", Arity::Range(2, 3)),
         ("genome_track", Arity::Range(1, 2)),
     ]
@@ -34,7 +37,10 @@ pub fn is_plot_builtin(name: &str) -> bool {
         "plot"
             | "plot_spec"
             | "render_plot"
+            | "plot_grid"
             | "heatmap"
+            | "mosaic_plot"
+            | "mosaic_data"
             | "histogram"
             | "histogram_data"
             | "boxplot_data"
@@ -90,7 +96,10 @@ pub fn call_plot_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "plot" => builtin_plot(args),
         "plot_spec" => builtin_plot_spec(args),
         "render_plot" => builtin_render_plot(args),
+        "plot_grid" => builtin_plot_grid(args),
         "heatmap" => builtin_heatmap(args),
+        "mosaic_plot" => builtin_mosaic_plot(args),
+        "mosaic_data" => builtin_mosaic_data(args),
         "histogram" => builtin_histogram(args),
         "histogram_data" => builtin_histogram_data(args),
         "boxplot_data" => builtin_boxplot_data(args),
@@ -355,6 +364,71 @@ pub(crate) fn sequential_color(t: f64) -> String {
     format!("#{r:02x}{g:02x}{b:02x}")
 }
 
+/// Perceptually ordered blue-green-yellow ramp for publication figures.
+///
+/// Equal numerical steps should look approximately equal in the legend. The
+/// historical blue-red ramp is retained by the default theme; this ramp is
+/// intentionally opt-in because colour changes are analytically visible.
+pub(crate) fn publication_sequential_color(t: f64) -> String {
+    const STOPS: [(f64, [u8; 3]); 5] = [
+        (0.00, [68, 1, 84]),
+        (0.25, [59, 82, 139]),
+        (0.50, [33, 145, 140]),
+        (0.75, [94, 201, 98]),
+        (1.00, [253, 231, 37]),
+    ];
+    let value = t.clamp(0.0, 1.0);
+    let upper = STOPS
+        .iter()
+        .position(|(at, _)| value <= *at)
+        .unwrap_or(STOPS.len() - 1);
+    let lower = upper.saturating_sub(1);
+    let (lo_at, lo) = STOPS[lower];
+    let (hi_at, hi) = STOPS[upper];
+    let local = if (hi_at - lo_at).abs() < f64::EPSILON {
+        0.0
+    } else {
+        (value - lo_at) / (hi_at - lo_at)
+    };
+    // Work in floating point because some channels decrease between stops.
+    let channel = |index: usize| {
+        (f64::from(lo[index]) + local * (f64::from(hi[index]) - f64::from(lo[index]))).round() as u8
+    };
+    format!("#{:02x}{:02x}{:02x}", channel(0), channel(1), channel(2))
+}
+
+/// Perceptually balanced blue-white-red ramp for values centred on zero.
+///
+/// Dot plots encode a per-gene z-score, where zero has scientific meaning.
+/// A sequential ramp makes a neutral value look like an intermediate amount;
+/// this diverging ramp instead gives negative and positive departures equal
+/// visual weight. As with the other publication colours, it is opt-in so
+/// existing figures retain their historical output.
+pub(crate) fn publication_diverging_color(t: f64) -> String {
+    const STOPS: [(f64, [u8; 3]); 3] = [
+        (0.0, [59, 76, 192]),
+        (0.5, [247, 247, 247]),
+        (1.0, [180, 4, 38]),
+    ];
+    let value = t.clamp(0.0, 1.0);
+    let upper = STOPS
+        .iter()
+        .position(|(at, _)| value <= *at)
+        .unwrap_or(STOPS.len() - 1);
+    let lower = upper.saturating_sub(1);
+    let (lo_at, lo) = STOPS[lower];
+    let (hi_at, hi) = STOPS[upper];
+    let local = if (hi_at - lo_at).abs() < f64::EPSILON {
+        0.0
+    } else {
+        (value - lo_at) / (hi_at - lo_at)
+    };
+    let channel = |index: usize| {
+        (f64::from(lo[index]) + local * (f64::from(hi[index]) - f64::from(lo[index]))).round() as u8
+    };
+    format!("#{:02x}{:02x}{:02x}", channel(0), channel(1), channel(2))
+}
+
 /// Seurat FeaturePlot's familiar low-expression grey to high-expression blue.
 pub(crate) fn seurat_feature_color(t: f64) -> String {
     let t = t.clamp(0.0, 1.0);
@@ -425,11 +499,139 @@ impl Scale {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PlotThemeKind {
+    Legacy,
+    Publication,
+    Minimal,
+}
+
+/// Presentation tokens shared by runtime and biological plots.
+///
+/// Plot geometry must not know about fonts, grids, or journal sizing. Keeping
+/// those decisions here lets an existing figure retain its historical output
+/// while `{theme: "publication"}` opts into the more carefully laid-out form.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct PlotTheme {
+    pub(crate) kind: PlotThemeKind,
+    pub(crate) name: &'static str,
+    pub(crate) font_family: &'static str,
+    pub(crate) text_colour: &'static str,
+    pub(crate) axis_colour: &'static str,
+    pub(crate) grid_colour: &'static str,
+    pub(crate) panel_colour: &'static str,
+    pub(crate) background_colour: &'static str,
+    pub(crate) title_size: f64,
+    pub(crate) subtitle_size: f64,
+    pub(crate) axis_title_size: f64,
+    pub(crate) tick_size: f64,
+    pub(crate) legend_size: f64,
+    pub(crate) caption_size: f64,
+    pub(crate) axis_width: f64,
+    pub(crate) grid_width: f64,
+}
+
+impl PlotTheme {
+    pub(crate) fn from_name(name: &str) -> Self {
+        match name.to_ascii_lowercase().as_str() {
+            "publication" | "paper" => Self {
+                kind: PlotThemeKind::Publication,
+                name: "publication",
+                font_family: "Arial, Helvetica, sans-serif",
+                text_colour: "#202124",
+                axis_colour: "#303238",
+                grid_colour: "#e5e7eb",
+                panel_colour: "#ffffff",
+                background_colour: "#ffffff",
+                title_size: 17.0,
+                subtitle_size: 11.5,
+                axis_title_size: 12.0,
+                tick_size: 10.5,
+                legend_size: 10.5,
+                caption_size: 9.0,
+                axis_width: 1.0,
+                grid_width: 0.75,
+            },
+            "minimal" => Self {
+                kind: PlotThemeKind::Minimal,
+                name: "minimal",
+                font_family: "Arial, Helvetica, sans-serif",
+                text_colour: "#202124",
+                axis_colour: "#4b4f58",
+                grid_colour: "#eef0f2",
+                panel_colour: "#ffffff",
+                background_colour: "#ffffff",
+                title_size: 16.0,
+                subtitle_size: 11.0,
+                axis_title_size: 11.5,
+                tick_size: 10.0,
+                legend_size: 10.0,
+                caption_size: 8.5,
+                axis_width: 0.8,
+                grid_width: 0.65,
+            },
+            // `seurat` intentionally remains presentation-compatible with the
+            // old renderer. It changes palettes in biological plots, not the
+            // whole layout. Existing saved figures therefore do not move.
+            _ => Self {
+                kind: PlotThemeKind::Legacy,
+                name: "biolang",
+                font_family: "sans-serif",
+                text_colour: "#111111",
+                axis_colour: "#333333",
+                grid_colour: "#ffffff",
+                panel_colour: "#ffffff",
+                background_colour: "#ffffff",
+                title_size: 16.0,
+                subtitle_size: 11.0,
+                axis_title_size: 13.0,
+                tick_size: 11.0,
+                legend_size: 12.0,
+                caption_size: 9.0,
+                axis_width: 1.0,
+                grid_width: 0.0,
+            },
+        }
+    }
+
+    pub(crate) fn is_adaptive(self) -> bool {
+        self.kind != PlotThemeKind::Legacy
+    }
+}
+
+pub(crate) fn plot_theme(opts: &HashMap<String, Value>) -> PlotTheme {
+    PlotTheme::from_name(get_opt_str(opts, "theme", "biolang"))
+}
+
+/// Deterministic text-width estimate used for margins and legends.
+///
+/// SVG deliberately leaves final font shaping to the viewer. A layout engine
+/// still needs a width before a browser exists, so use character classes rather
+/// than the old fixed `characters * 6.2` rule. This is stable in the CLI, WASM,
+/// and tests, and tracks common sans-serif metrics closely enough to prevent
+/// clipping without bundling a large font/shaping dependency.
+pub(crate) fn estimate_text_width(text: &str, size: f64) -> f64 {
+    let units = text
+        .chars()
+        .map(|character| match character {
+            'i' | 'l' | 'I' | '|' | '!' | '.' | ',' | ':' | ';' | '\'' => 0.30,
+            'm' | 'w' | 'M' | 'W' | '@' | '%' => 0.90,
+            '0'..='9' => 0.56,
+            'A'..='Z' => 0.66,
+            ' ' => 0.32,
+            _ if character.is_ascii() => 0.54,
+            _ => 0.82,
+        })
+        .sum::<f64>();
+    units * size
+}
+
 pub(crate) struct SvgCanvas {
     pub(crate) width: f64,
     pub(crate) height: f64,
     pub(crate) margin: Margin,
     pub(crate) elements: Vec<String>,
+    pub(crate) theme: PlotTheme,
     accessible_label: Option<String>,
     accessible_description: Option<String>,
 }
@@ -474,11 +676,16 @@ fn tick_decimals(ticks: &[f64]) -> usize {
 
 impl SvgCanvas {
     pub(crate) fn new(width: f64, height: f64) -> Self {
+        Self::with_theme(width, height, PlotTheme::from_name("biolang"))
+    }
+
+    pub(crate) fn with_theme(width: f64, height: f64, theme: PlotTheme) -> Self {
         Self {
             width,
             height,
             margin: Margin::default(),
             elements: Vec::new(),
+            theme,
             accessible_label: None,
             accessible_description: None,
         }
@@ -628,12 +835,43 @@ impl SvgCanvas {
     }
 
     pub(crate) fn add_text(&mut self, x: f64, y: f64, text: &str, anchor: &str, size: f64) {
+        self.add_text_styled(x, y, text, anchor, size, "normal", self.theme.text_colour);
+    }
+
+    pub(crate) fn add_text_styled(
+        &mut self,
+        x: f64,
+        y: f64,
+        text: &str,
+        anchor: &str,
+        size: f64,
+        weight: &str,
+        fill: &str,
+    ) {
         let escaped = text
             .replace('&', "&amp;")
             .replace('<', "&lt;")
             .replace('>', "&gt;");
         self.elements.push(format!(
-            r#"<text x="{x:.1}" y="{y:.1}" text-anchor="{anchor}" font-size="{size}" font-family="sans-serif">{escaped}</text>"#
+            r#"<text x="{x:.1}" y="{y:.1}" text-anchor="{anchor}" font-size="{size}" font-family="{}" font-weight="{weight}" fill="{fill}">{escaped}</text>"#,
+            self.theme.font_family
+        ));
+    }
+
+    fn add_axis_title(&mut self, x: f64, y: f64, text: &str, axis: &str, angle: Option<f64>) {
+        if text.is_empty() {
+            return;
+        }
+        let escaped = text
+            .replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;");
+        let transform = angle
+            .map(|angle| format!(r#" transform="rotate({angle},{x:.1},{y:.1})""#))
+            .unwrap_or_default();
+        self.elements.push(format!(
+            r#"<text x="{x:.1}" y="{y:.1}" text-anchor="middle" font-size="{}" font-family="{}" fill="{}" data-biolang-axis-title="{axis}"{transform}>{escaped}</text>"#,
+            self.theme.axis_title_size, self.theme.font_family, self.theme.text_colour
         ));
     }
 
@@ -651,8 +889,105 @@ impl SvgCanvas {
             .replace('<', "&lt;")
             .replace('>', "&gt;");
         self.elements.push(format!(
-            r#"<text x="{x:.1}" y="{y:.1}" text-anchor="{anchor}" font-size="{size}" font-family="sans-serif" transform="rotate({angle},{x:.1},{y:.1})">{escaped}</text>"#
+            r#"<text x="{x:.1}" y="{y:.1}" text-anchor="{anchor}" font-size="{size}" font-family="{}" fill="{}" transform="rotate({angle},{x:.1},{y:.1})">{escaped}</text>"#,
+            self.theme.font_family,
+            self.theme.text_colour
         ));
+    }
+
+    /// Fit the panel around its actual labels rather than relying on one set of
+    /// margins for every data range and figure size.
+    pub(crate) fn fit_cartesian_layout(
+        &mut self,
+        x_ticks: &[f64],
+        y_ticks: &[f64],
+        x_label: &str,
+        y_label: &str,
+        title: &str,
+        subtitle: &str,
+        caption: &str,
+        right_reserve: f64,
+    ) {
+        if !self.theme.is_adaptive() {
+            return;
+        }
+        let x_decimals = tick_decimals(x_ticks);
+        let y_decimals = tick_decimals(y_ticks);
+        let widest_y = y_ticks
+            .iter()
+            .map(|tick| estimate_text_width(&format!("{tick:.y_decimals$}"), self.theme.tick_size))
+            .fold(0.0, f64::max);
+        let widest_x_half = x_ticks
+            .iter()
+            .map(|tick| {
+                estimate_text_width(&format!("{tick:.x_decimals$}"), self.theme.tick_size) / 2.0
+            })
+            .fold(0.0, f64::max);
+
+        self.margin.left = (widest_y + if y_label.is_empty() { 24.0 } else { 42.0 })
+            .max(46.0)
+            .min(self.width * 0.32);
+        self.margin.right = (18.0 + right_reserve + widest_x_half * 0.25)
+            .max(20.0)
+            .min(self.width * 0.42);
+        self.margin.top = if title.is_empty() {
+            22.0
+        } else if subtitle.is_empty() {
+            48.0
+        } else {
+            66.0
+        };
+        self.margin.bottom = 24.0
+            + if x_label.is_empty() { 10.0 } else { 24.0 }
+            + if caption.is_empty() { 0.0 } else { 20.0 };
+    }
+
+    /// Draw publication-theme grid lines before marks are added.
+    pub(crate) fn draw_cartesian_grid(&mut self, x_scale: &Scale, y_scale: &Scale) {
+        if self.theme.grid_width <= 0.0 {
+            return;
+        }
+        let left = self.margin.left;
+        let right = left + self.plot_width();
+        let top = self.margin.top;
+        let bottom = top + self.plot_height();
+        self.add_rect(
+            left,
+            top,
+            self.plot_width(),
+            self.plot_height(),
+            self.theme.panel_colour,
+        );
+        let mapped_x = Scale {
+            domain: x_scale.domain,
+            range: (left, right),
+        };
+        for tick in x_scale.nice_ticks(5) {
+            let x = mapped_x.map(tick);
+            self.add_line(
+                x,
+                top,
+                x,
+                bottom,
+                self.theme.grid_colour,
+                self.theme.grid_width,
+            );
+        }
+        let mapped_y = Scale {
+            domain: y_scale.domain,
+            range: (bottom, top),
+        };
+        for tick in y_scale.nice_ticks(5) {
+            let y = mapped_y.map(tick);
+            self.add_line(
+                left,
+                y,
+                right,
+                y,
+                self.theme.grid_colour,
+                self.theme.grid_width,
+            );
+        }
     }
 
     pub(crate) fn draw_x_axis(&mut self, scale: &Scale, label: &str) {
@@ -662,8 +997,8 @@ impl SvgCanvas {
             y,
             self.margin.left + self.plot_width(),
             y,
-            "#333",
-            1.0,
+            self.theme.axis_colour,
+            self.theme.axis_width,
         );
         let x_scale = Scale {
             domain: scale.domain,
@@ -673,15 +1008,32 @@ impl SvgCanvas {
         let decimals = tick_decimals(&ticks);
         for tick in ticks {
             let x = x_scale.map(tick);
-            self.add_line(x, y, x, y + 5.0, "#333", 1.0);
-            self.add_text(x, y + 18.0, &format!("{tick:.decimals$}"), "middle", 11.0);
+            self.add_line(
+                x,
+                y,
+                x,
+                y + 5.0,
+                self.theme.axis_colour,
+                self.theme.axis_width,
+            );
+            self.add_text(
+                x,
+                y + 18.0,
+                &format!("{tick:.decimals$}"),
+                "middle",
+                self.theme.tick_size,
+            );
         }
-        self.add_text(
+        self.add_axis_title(
             self.margin.left + self.plot_width() / 2.0,
-            self.height - 5.0,
+            if self.theme.is_adaptive() {
+                y + 36.0
+            } else {
+                self.height - 5.0
+            },
             label,
-            "middle",
-            13.0,
+            "x",
+            None,
         );
     }
 
@@ -702,8 +1054,8 @@ impl SvgCanvas {
             y,
             self.margin.left + self.plot_width(),
             y,
-            "#333",
-            1.0,
+            self.theme.axis_colour,
+            self.theme.axis_width,
         );
         if !labels.is_empty() {
             let slot = self.plot_width() / labels.len() as f64;
@@ -711,17 +1063,28 @@ impl SvgCanvas {
             let step = (46.0 / slot).ceil().max(1.0) as usize;
             for (index, label) in labels.iter().enumerate().step_by(step) {
                 let x = self.margin.left + slot * (index as f64 + 0.5);
-                self.add_line(x, y, x, y + 5.0, "#333", 1.0);
-                self.add_text(x, y + 18.0, label, "middle", 11.0);
+                self.add_line(
+                    x,
+                    y,
+                    x,
+                    y + 5.0,
+                    self.theme.axis_colour,
+                    self.theme.axis_width,
+                );
+                self.add_text(x, y + 18.0, label, "middle", self.theme.tick_size);
             }
         }
         if !axis_label.is_empty() {
-            self.add_text(
+            self.add_axis_title(
                 self.margin.left + self.plot_width() / 2.0,
-                self.height - 5.0,
+                if self.theme.is_adaptive() {
+                    y + 36.0
+                } else {
+                    self.height - 5.0
+                },
                 axis_label,
-                "middle",
-                13.0,
+                "x",
+                None,
             );
         }
     }
@@ -733,8 +1096,8 @@ impl SvgCanvas {
             self.margin.top,
             x,
             self.margin.top + self.plot_height(),
-            "#333",
-            1.0,
+            self.theme.axis_colour,
+            self.theme.axis_width,
         );
         let y_scale = Scale {
             domain: scale.domain,
@@ -744,22 +1107,82 @@ impl SvgCanvas {
         let decimals = tick_decimals(&ticks);
         for tick in ticks {
             let y = y_scale.map(tick);
-            self.add_line(x - 5.0, y, x, y, "#333", 1.0);
-            self.add_text(x - 8.0, y + 4.0, &format!("{tick:.decimals$}"), "end", 11.0);
+            self.add_line(
+                x - 5.0,
+                y,
+                x,
+                y,
+                self.theme.axis_colour,
+                self.theme.axis_width,
+            );
+            self.add_text(
+                x - 8.0,
+                y + 4.0,
+                &format!("{tick:.decimals$}"),
+                "end",
+                self.theme.tick_size,
+            );
         }
-        self.add_text_rotated(
+        self.add_axis_title(
             15.0,
             self.margin.top + self.plot_height() / 2.0,
             label,
-            -90.0,
-            "middle",
-            13.0,
+            "y",
+            Some(-90.0),
         );
     }
 
     pub(crate) fn draw_title(&mut self, title: &str) {
         self.accessible_label = Some(title.to_string());
-        self.add_text(self.width / 2.0, 25.0, title, "middle", 16.0);
+        if self.theme.is_adaptive() {
+            self.add_text_styled(
+                self.margin.left,
+                24.0,
+                title,
+                "start",
+                self.theme.title_size,
+                "600",
+                self.theme.text_colour,
+            );
+        } else {
+            self.add_text(
+                self.width / 2.0,
+                25.0,
+                title,
+                "middle",
+                self.theme.title_size,
+            );
+        }
+    }
+
+    pub(crate) fn draw_subtitle(&mut self, subtitle: &str) {
+        if subtitle.is_empty() {
+            return;
+        }
+        self.add_text_styled(
+            self.margin.left,
+            42.0,
+            subtitle,
+            "start",
+            self.theme.subtitle_size,
+            "normal",
+            "#5f6368",
+        );
+    }
+
+    pub(crate) fn draw_caption(&mut self, caption: &str) {
+        if caption.is_empty() {
+            return;
+        }
+        self.add_text_styled(
+            self.width - self.margin.right,
+            self.height - 5.0,
+            caption,
+            "end",
+            self.theme.caption_size,
+            "normal",
+            "#686d76",
+        );
     }
 
     pub(crate) fn set_accessible_description(&mut self, description: impl Into<String>) {
@@ -781,12 +1204,19 @@ impl SvgCanvas {
                 .unwrap_or("BioLang data visualization."),
         );
         let mut svg = format!(
-            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="{}" viewBox="0 0 {} {}" role="img" aria-label="{}" focusable="false"><title>{}</title><desc>{}</desc>"#,
-            self.width, self.height, self.width, self.height, label, label, description
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="{}" viewBox="0 0 {} {}" role="img" aria-label="{}" data-biolang-theme="{}" focusable="false"><title>{}</title><desc>{}</desc>"#,
+            self.width,
+            self.height,
+            self.width,
+            self.height,
+            label,
+            self.theme.name,
+            label,
+            description
         );
         svg.push_str(&format!(
-            r#"<rect width="{}" height="{}" fill="white" />"#,
-            self.width, self.height
+            r#"<rect width="{}" height="{}" fill="{}" />"#,
+            self.width, self.height, self.theme.background_colour
         ));
         for el in &self.elements {
             svg.push_str(el);
@@ -933,11 +1363,16 @@ fn draw_legend(canvas: &mut SvgCanvas, names: &[String]) {
     if names.len() < 2 {
         return;
     }
-    let right = canvas.margin.left + canvas.plot_width();
+    let panel_right = canvas.margin.left + canvas.plot_width();
+    let outside = canvas.theme.is_adaptive();
     for (index, name) in names.iter().enumerate() {
         let y = canvas.margin.top + 14.0 + 18.0 * index as f64;
-        let swatch_end = right - 8.0;
-        let swatch_start = swatch_end - 22.0;
+        let swatch_start = if outside {
+            panel_right + 14.0
+        } else {
+            panel_right - 30.0
+        };
+        let swatch_end = swatch_start + 22.0;
         canvas.add_line(
             swatch_start,
             y,
@@ -946,8 +1381,29 @@ fn draw_legend(canvas: &mut SvgCanvas, names: &[String]) {
             PALETTE[index % PALETTE.len()],
             3.0,
         );
-        canvas.add_text(swatch_start - 6.0, y + 4.0, name, "end", 12.0);
+        canvas.add_text(
+            if outside {
+                swatch_end + 6.0
+            } else {
+                swatch_start - 6.0
+            },
+            y + 4.0,
+            name,
+            if outside { "start" } else { "end" },
+            canvas.theme.legend_size,
+        );
     }
+}
+
+fn legend_reserve_width(theme: PlotTheme, names: &[String]) -> f64 {
+    if !theme.is_adaptive() || names.len() < 2 {
+        return 0.0;
+    }
+    let widest = names
+        .iter()
+        .map(|name| estimate_text_width(name, theme.legend_size))
+        .fold(0.0, f64::max);
+    (52.0 + widest).clamp(90.0, 210.0)
 }
 
 /// Type 7 quantiles — R's default, and what this runtime's `quantile()` gives.
@@ -965,7 +1421,7 @@ pub(crate) fn quantile_type7(sorted: &[f64], p: f64) -> f64 {
     sorted[lower] + (h - h.floor()) * (sorted[upper] - sorted[lower])
 }
 
-const PLOT_SPEC_SCHEMA: &str = "biolang.plot.spec/v1";
+pub(crate) const PLOT_SPEC_SCHEMA: &str = "biolang.plot.spec/v1";
 
 #[derive(Clone, Debug)]
 struct CartesianPoint {
@@ -988,7 +1444,10 @@ struct CartesianPlotSpec {
     kind: String,
     width: f64,
     height: f64,
+    theme: String,
     title: String,
+    subtitle: String,
+    caption: String,
     x_label: String,
     y_label: String,
     x_domain: (f64, f64),
@@ -1115,7 +1574,10 @@ fn build_cartesian_plot_spec(
         kind,
         width: get_opt_f64(opts, "width", 800.0).max(1.0),
         height: get_opt_f64(opts, "height", 600.0).max(1.0),
+        theme: get_opt_str(opts, "theme", "biolang").to_string(),
         title: get_opt_str(opts, "title", "").to_string(),
+        subtitle: get_opt_str(opts, "subtitle", "").to_string(),
+        caption: get_opt_str(opts, "caption", "").to_string(),
         x_label: axis_label(opts, "xlabel", &x_column),
         y_label: axis_label(opts, "ylabel", default_y_label),
         x_domain: col_range(&x_values),
@@ -1198,7 +1660,10 @@ fn plot_spec_to_value(spec: &CartesianPlotSpec) -> Value {
             ("kind".into(), Value::Str(spec.kind.clone().into())),
             ("width".into(), Value::Float(spec.width)),
             ("height".into(), Value::Float(spec.height)),
+            ("theme".into(), Value::Str(spec.theme.clone().into())),
             ("title".into(), Value::Str(spec.title.clone().into())),
+            ("subtitle".into(), Value::Str(spec.subtitle.clone().into())),
+            ("caption".into(), Value::Str(spec.caption.clone().into())),
             ("xlabel".into(), Value::Str(spec.x_label.clone().into())),
             ("ylabel".into(), Value::Str(spec.y_label.clone().into())),
             (
@@ -1391,7 +1856,22 @@ fn plot_spec_from_value(value: &Value) -> Result<CartesianPlotSpec> {
         kind,
         width: optional_number(map.get("width")).unwrap_or(800.0).max(1.0),
         height: optional_number(map.get("height")).unwrap_or(600.0).max(1.0),
+        theme: map
+            .get("theme")
+            .and_then(Value::as_str)
+            .unwrap_or("biolang")
+            .to_string(),
         title: required_record_string(map, "title")?,
+        subtitle: map
+            .get("subtitle")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
+        caption: map
+            .get("caption")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string(),
         x_label: required_record_string(map, "xlabel")?,
         y_label: required_record_string(map, "ylabel")?,
         x_domain: record_domain(map, "x_domain")?,
@@ -1408,7 +1888,8 @@ fn plot_spec_from_value(value: &Value) -> Result<CartesianPlotSpec> {
 }
 
 fn render_cartesian_plot_spec(spec: &CartesianPlotSpec, raster: RasterChoice) -> Result<String> {
-    let mut canvas = SvgCanvas::new(spec.width, spec.height);
+    let mut canvas =
+        SvgCanvas::with_theme(spec.width, spec.height, PlotTheme::from_name(&spec.theme));
     let point_count = spec
         .series
         .iter()
@@ -1421,6 +1902,30 @@ fn render_cartesian_plot_spec(spec: &CartesianPlotSpec, raster: RasterChoice) ->
         point_count,
         spec.dropped_non_finite
     ));
+    let domain_x = Scale {
+        domain: spec.x_domain,
+        range: spec.x_domain,
+    };
+    let domain_y = Scale {
+        domain: spec.y_domain,
+        range: spec.y_domain,
+    };
+    let series_names = spec
+        .series
+        .iter()
+        .map(|item| item.name.clone())
+        .collect::<Vec<_>>();
+    canvas.fit_cartesian_layout(
+        &domain_x.nice_ticks(5),
+        &domain_y.nice_ticks(5),
+        &spec.x_label,
+        &spec.y_label,
+        &spec.title,
+        &spec.subtitle,
+        &spec.caption,
+        legend_reserve_width(canvas.theme, &series_names),
+    );
+    canvas.draw_cartesian_grid(&domain_x, &domain_y);
     let x_scale = Scale {
         domain: spec.x_domain,
         range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
@@ -1515,14 +2020,7 @@ fn render_cartesian_plot_spec(spec: &CartesianPlotSpec, raster: RasterChoice) ->
             }
         }
     }
-    draw_legend(
-        &mut canvas,
-        &spec
-            .series
-            .iter()
-            .map(|item| item.name.clone())
-            .collect::<Vec<_>>(),
-    );
+    draw_legend(&mut canvas, &series_names);
     canvas.draw_x_axis(
         &Scale {
             domain: spec.x_domain,
@@ -1540,10 +2038,12 @@ fn render_cartesian_plot_spec(spec: &CartesianPlotSpec, raster: RasterChoice) ->
     if !spec.title.is_empty() {
         canvas.draw_title(&spec.title);
     }
+    canvas.draw_subtitle(&spec.subtitle);
+    canvas.draw_caption(&spec.caption);
     Ok(canvas.render())
 }
 
-fn standalone_plot_html(svg: &str, title: &str) -> String {
+pub(crate) fn standalone_plot_html(svg: &str, title: &str) -> String {
     let title = if title.trim().is_empty() {
         "BioLang plot"
     } else {
@@ -1557,6 +2057,668 @@ fn standalone_plot_html(svg: &str, title: &str) -> String {
     format!(
         r#"<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{escaped_title}</title><style>body{{margin:0;padding:1rem;font-family:system-ui,sans-serif}}figure{{margin:0;overflow:auto}}svg,canvas{{max-width:100%;height:auto}}button{{margin:0 0 .5rem .35rem}}</style></head><body><figure id="bl-figure" aria-labelledby="bl-caption"><figcaption id="bl-caption" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">{escaped_title}</figcaption><button type="button" id="bl-toggle" aria-controls="bl-svg bl-canvas" aria-pressed="false" disabled>Use canvas</button><button type="button" id="bl-download" aria-controls="bl-canvas" disabled>Download PNG</button>{svg}<canvas id="bl-canvas" hidden role="img" aria-label="{escaped_title} canvas fallback"></canvas></figure><script>(function(){{const f=document.getElementById('bl-figure'),s=f.querySelector('svg'),c=document.getElementById('bl-canvas'),t=document.getElementById('bl-toggle'),d=document.getElementById('bl-download');s.id='bl-svg';const v=s.viewBox.baseVal,w=v.width||+s.getAttribute('width')||800,h=v.height||+s.getAttribute('height')||600,scale=Math.min(devicePixelRatio||1,2);c.width=Math.round(w*scale);c.height=Math.round(h*scale);c.style.width=w+'px';const blob=new Blob([new XMLSerializer().serializeToString(s)],{{type:'image/svg+xml'}}),u=URL.createObjectURL(blob),i=new Image;i.onload=()=>{{const x=c.getContext('2d');x.setTransform(scale,0,0,scale,0,0);x.drawImage(i,0,0,w,h);URL.revokeObjectURL(u);t.disabled=false;d.disabled=false}};i.onerror=()=>URL.revokeObjectURL(u);i.src=u;t.onclick=()=>{{const show=c.hidden;c.hidden=!show;s.hidden=show;t.setAttribute('aria-pressed',String(show));t.textContent=show?'Use SVG':'Use canvas'}};d.onclick=()=>{{const a=document.createElement('a');a.download='biolang-plot.png';a.href=c.toDataURL('image/png');a.click()}}}})();</script></body></html>"#
     )
+}
+
+fn xml_escape(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+fn svg_dimensions(svg: &str) -> Result<(f64, f64)> {
+    let opening = svg.find('>').map(|index| &svg[..=index]).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            "plot_grid() received malformed SVG",
+            None,
+        )
+    })?;
+    let attribute = |name: &str| -> Option<f64> {
+        let pattern = regex::Regex::new(&format!(r#"\b{name}="([0-9]+(?:\.[0-9]+)?)""#)).ok()?;
+        pattern
+            .captures(opening)
+            .and_then(|capture| capture.get(1))
+            .and_then(|value| value.as_str().parse::<f64>().ok())
+            .filter(|value| value.is_finite() && *value > 0.0)
+    };
+    if let (Some(width), Some(height)) = (attribute("width"), attribute("height")) {
+        return Ok((width, height));
+    }
+    let viewbox = regex::Regex::new(
+        r#"\bviewBox="[-+0-9.eE]+\s+[-+0-9.eE]+\s+([-+0-9.eE]+)\s+([-+0-9.eE]+)""#,
+    )
+    .unwrap();
+    let Some(capture) = viewbox.captures(opening) else {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "plot_grid() SVG needs numeric width/height or a viewBox",
+            None,
+        ));
+    };
+    let width = capture[1].parse::<f64>().unwrap_or(f64::NAN);
+    let height = capture[2].parse::<f64>().unwrap_or(f64::NAN);
+    if !width.is_finite() || !height.is_finite() || width <= 0.0 || height <= 0.0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "plot_grid() SVG viewBox must have positive dimensions",
+            None,
+        ));
+    }
+    Ok((width, height))
+}
+
+fn safe_nested_svg(svg: &str) -> Result<()> {
+    let trimmed = svg.trim();
+    let lowered = trimmed.to_ascii_lowercase();
+    if !trimmed.starts_with("<svg") || !trimmed.ends_with("</svg>") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "plot_grid() accepts SVG plot strings or PlotSpec records",
+            None,
+        ));
+    }
+    if lowered.contains("<script")
+        || lowered.contains("<foreignobject")
+        || lowered.contains("javascript:")
+        || regex::Regex::new(r#"\son[a-z]+\s*="#)
+            .unwrap()
+            .is_match(&lowered)
+    {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "plot_grid() refuses active content inside SVG panels",
+            None,
+        ));
+    }
+    Ok(())
+}
+
+fn without_child_axis_title(svg: &str, axis: &str) -> String {
+    let pattern = regex::Regex::new(&format!(
+        r#"(?i)<text\b[^>]*\bdata-biolang-axis-title="{axis}"[^>]*>[^<]*</text>"#
+    ))
+    .unwrap();
+    pattern.replace_all(svg, "").into_owned()
+}
+
+fn spreadsheet_panel_tag(mut index: usize) -> String {
+    let mut tag = String::new();
+    loop {
+        tag.insert(0, (b'A' + (index % 26) as u8) as char);
+        if index < 26 {
+            break;
+        }
+        index = index / 26 - 1;
+    }
+    tag
+}
+
+fn is_plot_grid_spec(value: &Value) -> bool {
+    matches!(value, Value::Record(map)
+        if matches!(map.get("schema"), Some(Value::Str(schema)) if schema == PLOT_SPEC_SCHEMA)
+            && matches!(map.get("plot"), Some(Value::Str(plot)) if plot == "plot-grid"))
+}
+
+fn plot_grid_spec_value(value: &Value, opts: &HashMap<String, Value>) -> Result<Value> {
+    let Value::List(items) = value else {
+        return Err(BioLangError::type_error(
+            format!(
+                "plot_grid() requires a List of plots, got {}",
+                value.type_of()
+            ),
+            None,
+        ));
+    };
+    if items.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "plot_grid() requires at least one plot",
+            None,
+        ));
+    }
+    let columns = get_opt_f64(opts, "columns", (items.len() as f64).sqrt().ceil()) as usize;
+    if columns == 0 || columns > items.len().max(1) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "plot_grid() columns must be an integer between 1 and the panel count",
+            None,
+        ));
+    }
+    if get_opt_f64(opts, "columns", columns as f64).fract() != 0.0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "plot_grid() columns must be an integer",
+            None,
+        ));
+    }
+    let rows = items.len().div_ceil(columns);
+    let gap = get_opt_f64(opts, "gap", 18.0);
+    let panel_width = get_opt_f64(opts, "panel_width", 420.0);
+    let panel_height = get_opt_f64(opts, "panel_height", 330.0);
+    let title = get_opt_str(opts, "title", "");
+    let subtitle = get_opt_str(opts, "subtitle", "");
+    let caption = get_opt_str(opts, "caption", "");
+    let shared_xlabel = get_opt_str(opts, "shared_xlabel", "");
+    let shared_ylabel = get_opt_str(opts, "shared_ylabel", "");
+    let header = if title.is_empty() {
+        16.0
+    } else if subtitle.is_empty() {
+        46.0
+    } else {
+        64.0
+    };
+    let footer = 14.0
+        + if shared_xlabel.is_empty() { 0.0 } else { 24.0 }
+        + if caption.is_empty() { 0.0 } else { 18.0 };
+    let legend_width = if opts.contains_key("legend") {
+        140.0
+    } else {
+        0.0
+    };
+    let calculated_width = 20.0
+        + columns as f64 * panel_width
+        + columns.saturating_sub(1) as f64 * gap
+        + legend_width
+        + 20.0;
+    let calculated_height =
+        header + rows as f64 * panel_height + rows.saturating_sub(1) as f64 * gap + footer;
+    let width = get_opt_f64(opts, "width", calculated_width);
+    let height = get_opt_f64(opts, "height", calculated_height);
+    if ![gap, panel_width, panel_height, width, height]
+        .iter()
+        .all(|value| value.is_finite() && *value > 0.0)
+    {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "plot_grid() dimensions must be finite and positive",
+            None,
+        ));
+    }
+    let labels = match opts.get("panel_labels") {
+        Some(Value::List(labels)) if labels.len() == items.len() => labels
+            .iter()
+            .map(|label| {
+                label.as_str().map(str::to_string).ok_or_else(|| {
+                    BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "plot_grid() panel_labels must contain strings",
+                        None,
+                    )
+                })
+            })
+            .collect::<Result<Vec<_>>>()?,
+        Some(Value::List(_)) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "plot_grid() panel_labels length must equal the panel count",
+                None,
+            ))
+        }
+        Some(_) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "plot_grid() panel_labels must be a List",
+                None,
+            ))
+        }
+        None => (0..items.len()).map(spreadsheet_panel_tag).collect(),
+    };
+    let mut panel_rows = Vec::with_capacity(items.len());
+    for (index, item) in items.iter().enumerate() {
+        let mut svg = match item {
+            Value::Str(svg) => svg.to_string(),
+            Value::Record(_) => match builtin_render_plot(vec![item.clone()])? {
+                Value::Str(svg) => svg.to_string(),
+                other => {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        format!(
+                            "plot_grid() PlotSpec rendered as {}, expected SVG",
+                            other.type_of()
+                        ),
+                        None,
+                    ))
+                }
+            },
+            other => {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!(
+                        "plot_grid() panel {} is {}, expected SVG or PlotSpec",
+                        index + 1,
+                        other.type_of()
+                    ),
+                    None,
+                ))
+            }
+        };
+        safe_nested_svg(&svg)?;
+        if !shared_xlabel.is_empty() {
+            svg = without_child_axis_title(&svg, "x");
+        }
+        if !shared_ylabel.is_empty() {
+            svg = without_child_axis_title(&svg, "y");
+        }
+        let (source_width, source_height) = svg_dimensions(&svg)?;
+        let row = index / columns;
+        let column = index % columns;
+        panel_rows.push(vec![
+            Value::Int(index as i64),
+            Value::Int(row as i64),
+            Value::Int(column as i64),
+            Value::Str(labels[index].clone().into()),
+            Value::Float(20.0 + column as f64 * (panel_width + gap)),
+            Value::Float(header + row as f64 * (panel_height + gap)),
+            Value::Float(panel_width),
+            Value::Float(panel_height),
+            Value::Float(source_width),
+            Value::Float(source_height),
+            Value::Str(svg.into()),
+        ]);
+    }
+    let legend = match opts.get("legend") {
+        None => Table::new(vec!["label".into(), "color".into()], Vec::new()),
+        Some(Value::Table(table)) => {
+            let label = table.col_index("label").ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "plot_grid() legend needs label and color columns",
+                    None,
+                )
+            })?;
+            let color = table
+                .col_index("color")
+                .or_else(|| table.col_index("colour"))
+                .ok_or_else(|| {
+                    BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "plot_grid() legend needs label and color columns",
+                        None,
+                    )
+                })?;
+            let mut rows = Vec::new();
+            for row in &table.rows {
+                let label = row[label].as_str().ok_or_else(|| {
+                    BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "plot_grid() legend labels must be strings",
+                        None,
+                    )
+                })?;
+                let color = row[color]
+                    .as_str()
+                    .filter(|color| valid_spec_colour(color))
+                    .ok_or_else(|| {
+                        BioLangError::runtime(
+                            ErrorKind::TypeError,
+                            "plot_grid() legend colors must be #rrggbb",
+                            None,
+                        )
+                    })?;
+                rows.push(vec![Value::Str(label.into()), Value::Str(color.into())]);
+            }
+            Table::new(vec!["label".into(), "color".into()], rows)
+        }
+        Some(_) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "plot_grid() legend must be a Table with label and color columns",
+                None,
+            ))
+        }
+    };
+    Ok(Value::Record(
+        HashMap::from([
+            ("schema".into(), Value::Str(PLOT_SPEC_SCHEMA.into())),
+            ("kind".into(), Value::Str("figure-composition".into())),
+            ("plot".into(), Value::Str("plot-grid".into())),
+            ("title".into(), Value::Str(title.into())),
+            ("subtitle".into(), Value::Str(subtitle.into())),
+            ("caption".into(), Value::Str(caption.into())),
+            ("shared_xlabel".into(), Value::Str(shared_xlabel.into())),
+            ("shared_ylabel".into(), Value::Str(shared_ylabel.into())),
+            (
+                "panels".into(),
+                Value::Table(Table::new(
+                    vec![
+                        "panel_index".into(),
+                        "row".into(),
+                        "column".into(),
+                        "tag".into(),
+                        "x".into(),
+                        "y".into(),
+                        "width".into(),
+                        "height".into(),
+                        "source_width".into(),
+                        "source_height".into(),
+                        "svg".into(),
+                    ],
+                    panel_rows,
+                )),
+            ),
+            ("legend".into(), Value::Table(legend)),
+            (
+                "options".into(),
+                Value::Record(
+                    HashMap::from([
+                        ("width".into(), Value::Float(width)),
+                        ("height".into(), Value::Float(height)),
+                        ("columns".into(), Value::Int(columns as i64)),
+                        ("rows".into(), Value::Int(rows as i64)),
+                        ("gap".into(), Value::Float(gap)),
+                        ("panel_width".into(), Value::Float(panel_width)),
+                        ("panel_height".into(), Value::Float(panel_height)),
+                        ("header".into(), Value::Float(header)),
+                        ("footer".into(), Value::Float(footer)),
+                        ("legend_width".into(), Value::Float(legend_width)),
+                        (
+                            "theme".into(),
+                            Value::Str(get_opt_str(opts, "theme", "publication").into()),
+                        ),
+                    ])
+                    .into(),
+                ),
+            ),
+            (
+                "provenance".into(),
+                Value::Record(
+                    HashMap::from([
+                        ("panel_count".into(), Value::Int(items.len() as i64)),
+                        ("layout".into(), Value::Str("equal_cells".into())),
+                        ("child_svg_frozen".into(), Value::Bool(true)),
+                    ])
+                    .into(),
+                ),
+            ),
+            ("warnings".into(), Value::List(Vec::<Value>::new().into())),
+        ])
+        .into(),
+    ))
+}
+
+fn render_plot_grid_spec_value(
+    value: &Value,
+    render_options: &HashMap<String, Value>,
+) -> Result<Value> {
+    let Value::Record(map) = value else {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "render_plot() requires a plot-grid PlotSpec",
+            None,
+        ));
+    };
+    if !is_plot_grid_spec(value) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "render_plot() requires a biolang.plot.spec/v1 plot-grid Record",
+            None,
+        ));
+    }
+    let panels = match map.get("panels") {
+        Some(Value::Table(table)) => table,
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() plot-grid panels must be a Table",
+                None,
+            ))
+        }
+    };
+    let legend = match map.get("legend") {
+        Some(Value::Table(table)) => table,
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() plot-grid legend must be a Table",
+                None,
+            ))
+        }
+    };
+    let options = match map.get("options") {
+        Some(Value::Record(options)) => options,
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() plot-grid options must be a Record",
+                None,
+            ))
+        }
+    };
+    for column in [
+        "panel_index",
+        "row",
+        "column",
+        "tag",
+        "x",
+        "y",
+        "width",
+        "height",
+        "source_width",
+        "source_height",
+        "svg",
+    ] {
+        if panels.col_index(column).is_none() {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("render_plot() plot-grid panels are missing '{column}'"),
+                None,
+            ));
+        }
+    }
+    let width = options
+        .get("width")
+        .and_then(Value::as_float)
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() plot-grid width is invalid",
+                None,
+            )
+        })?;
+    let height = options
+        .get("height")
+        .and_then(Value::as_float)
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() plot-grid height is invalid",
+                None,
+            )
+        })?;
+    let theme = PlotTheme::from_name(
+        options
+            .get("theme")
+            .and_then(Value::as_str)
+            .unwrap_or("publication"),
+    );
+    let mut canvas = SvgCanvas::with_theme(width, height, theme);
+    let index_column = panels.col_index("panel_index").unwrap();
+    let x_column = panels.col_index("x").unwrap();
+    let y_column = panels.col_index("y").unwrap();
+    let width_column = panels.col_index("width").unwrap();
+    let height_column = panels.col_index("height").unwrap();
+    let source_width_column = panels.col_index("source_width").unwrap();
+    let source_height_column = panels.col_index("source_height").unwrap();
+    let tag_column = panels.col_index("tag").unwrap();
+    let svg_column = panels.col_index("svg").unwrap();
+    for (index, row) in panels.rows.iter().enumerate() {
+        if row[index_column].as_float() != Some(index as f64) {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() plot-grid panel indexes are inconsistent",
+                None,
+            ));
+        }
+        let values = [
+            x_column,
+            y_column,
+            width_column,
+            height_column,
+            source_width_column,
+            source_height_column,
+        ]
+        .map(|column| row[column].as_float().unwrap_or(f64::NAN));
+        if values
+            .iter()
+            .any(|value| !value.is_finite() || *value <= 0.0)
+            || values[0] + values[2] > width + 1e-8
+            || values[1] + values[3] > height + 1e-8
+        {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() plot-grid panel geometry is inconsistent",
+                None,
+            ));
+        }
+        let svg = row[svg_column].as_str().ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() plot-grid panel SVG must be a string",
+                None,
+            )
+        })?;
+        safe_nested_svg(svg)?;
+        let measured = svg_dimensions(svg)?;
+        if (measured.0 - values[4]).abs() > 1e-8 || (measured.1 - values[5]).abs() > 1e-8 {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() plot-grid source dimensions were altered",
+                None,
+            ));
+        }
+        canvas.elements.push(format!(
+            r#"<svg x="{:.2}" y="{:.2}" width="{:.2}" height="{:.2}" viewBox="0 0 {:.2} {:.2}" preserveAspectRatio="xMidYMid meet" data-panel-index="{index}">{svg}</svg>"#,
+            values[0], values[1], values[2], values[3], values[4], values[5]
+        ));
+        let tag = row[tag_column].as_str().unwrap_or("");
+        canvas.add_text_styled(
+            values[0] + 6.0,
+            values[1] + 18.0,
+            tag,
+            "start",
+            15.0,
+            "bold",
+            theme.text_colour,
+        );
+    }
+    let title = map.get("title").and_then(Value::as_str).unwrap_or("");
+    let subtitle = map.get("subtitle").and_then(Value::as_str).unwrap_or("");
+    let caption = map.get("caption").and_then(Value::as_str).unwrap_or("");
+    let shared_xlabel = map
+        .get("shared_xlabel")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let shared_ylabel = map
+        .get("shared_ylabel")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    canvas.margin.left = 20.0;
+    canvas.margin.right = 20.0;
+    canvas.draw_title(title);
+    canvas.draw_subtitle(subtitle);
+    canvas.draw_caption(caption);
+    if !shared_xlabel.is_empty() {
+        canvas.add_text(
+            width / 2.0,
+            height - if caption.is_empty() { 8.0 } else { 22.0 },
+            shared_xlabel,
+            "middle",
+            theme.axis_title_size,
+        );
+    }
+    if !shared_ylabel.is_empty() {
+        canvas.add_text_rotated(
+            12.0,
+            height / 2.0,
+            shared_ylabel,
+            -90.0,
+            "middle",
+            theme.axis_title_size,
+        );
+    }
+    if !legend.rows.is_empty() {
+        let label_column = legend.col_index("label").ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() plot-grid legend is missing label",
+                None,
+            )
+        })?;
+        let color_column = legend.col_index("color").ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() plot-grid legend is missing color",
+                None,
+            )
+        })?;
+        let legend_width = options
+            .get("legend_width")
+            .and_then(Value::as_float)
+            .unwrap_or(140.0);
+        let mut y = options
+            .get("header")
+            .and_then(Value::as_float)
+            .unwrap_or(48.0)
+            + 12.0;
+        let x = width - legend_width + 12.0;
+        for row in &legend.rows {
+            let label = row[label_column].as_str().unwrap_or("");
+            let color = row[color_column]
+                .as_str()
+                .filter(|color| valid_spec_colour(color))
+                .ok_or_else(|| {
+                    BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "render_plot() plot-grid legend color is invalid",
+                        None,
+                    )
+                })?;
+            canvas.add_rect(x, y - 9.0, 10.0, 10.0, color);
+            canvas.add_text(x + 15.0, y, label, "start", theme.legend_size);
+            y += 17.0;
+        }
+    }
+    canvas.set_accessible_description(format!(
+        "Multi-panel BioLang figure containing {} panels and {} shared legend entries.",
+        panels.rows.len(),
+        legend.rows.len()
+    ));
+    let svg = canvas.render();
+    let format = get_opt_str(render_options, "format", "svg").to_ascii_lowercase();
+    match format.as_str() {
+        "spec" | "data" => Ok(value.clone()),
+        "svg" | "raw" => Ok(Value::Str(svg.into())),
+        "html" | "canvas" => Ok(Value::Str(standalone_plot_html(&svg, title).into())),
+        #[cfg(feature = "native")]
+        "ascii" => render_svg_terminal(&svg, 100, 32, TerminalPlotStyle::Ascii)
+            .map(Value::Str)
+            .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None)),
+        #[cfg(feature = "native")]
+        "unicode" | "braille" => render_svg_terminal(&svg, 100, 32, TerminalPlotStyle::Braille)
+            .map(Value::Str)
+            .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None)),
+        #[cfg(not(feature = "native"))]
+        "ascii" | "unicode" | "braille" => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "render_plot() terminal plot-grid output needs the native build",
+            None,
+        )),
+        _ => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("render_plot() unknown plot-grid format '{format}'"),
+            None,
+        )),
+    }
+}
+
+fn builtin_plot_grid(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let spec = plot_grid_spec_value(&args[0], &opts)?;
+    render_plot_grid_spec_value(&spec, &opts)
 }
 
 fn render_plot_spec_value(
@@ -1618,10 +2780,94 @@ fn builtin_plot_spec(args: Vec<Value>) -> Result<Value> {
     )?))
 }
 
-fn builtin_render_plot(args: Vec<Value>) -> Result<Value> {
-    let spec = plot_spec_from_value(&args[0])?;
+fn builtin_mosaic_data(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
-    render_plot_spec_value(&spec, &opts)
+    crate::mosaic_plot::specification(require_table(&args[0], "mosaic_data")?, &opts)
+}
+
+fn builtin_mosaic_plot(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let specification =
+        crate::mosaic_plot::specification(require_table(&args[0], "mosaic_plot")?, &opts)?;
+    if matches!(
+        get_opt_str(&opts, "format", "svg")
+            .to_ascii_lowercase()
+            .as_str(),
+        "spec" | "data"
+    ) {
+        Ok(specification)
+    } else {
+        crate::mosaic_plot::render(&specification, &opts)
+    }
+}
+
+fn builtin_render_plot(args: Vec<Value>) -> Result<Value> {
+    let opts = parse_options(&args);
+    let map = match &args[0] {
+        Value::Record(map) => map,
+        other => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "render_plot() requires plot specification Record, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    if !matches!(map.get("schema"), Some(Value::Str(schema)) if schema == PLOT_SPEC_SCHEMA) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("render_plot() requires schema '{PLOT_SPEC_SCHEMA}'"),
+            None,
+        ));
+    }
+    let kind = map.get("kind").and_then(Value::as_str).unwrap_or("");
+    let plot = map.get("plot").and_then(Value::as_str).unwrap_or("");
+    match (kind, plot) {
+        (_, "plot-grid") => render_plot_grid_spec_value(&args[0], &opts),
+        ("manhattan", _) => crate::bio_plots::render_manhattan_plot_spec_value(&args[0], &opts),
+        ("genetic_qq", _) => crate::bio_plots::render_genetic_qq_plot_spec_value(&args[0], &opts),
+        ("rainfall", _) => crate::bio_plots::render_rainfall_plot_spec_value(&args[0], &opts),
+        ("ideogram", _) => crate::bio_plots::render_ideogram_plot_spec_value(&args[0], &opts),
+        ("cnv", _) => crate::bio_plots::render_cnv_plot_spec_value(&args[0], &opts),
+        ("coverage_track", _) => {
+            crate::bio_plots::render_coverage_track_plot_spec_value(&args[0], &opts)
+        }
+        ("genome_track", _) => {
+            crate::bio_plots::render_genome_track_plot_spec_value(&args[0], &opts)
+        }
+        ("lollipop", _) => crate::bio_plots::render_lollipop_plot_spec_value(&args[0], &opts),
+        ("sashimi", _) => crate::bio_plots::render_sashimi_plot_spec_value(&args[0], &opts),
+        (_, "circos") => crate::bio_plots::render_circos_plot_spec_value(&args[0], &opts),
+        ("survival", _) => crate::bio_plots::render_survival_plot_spec_value(&args[0], &opts),
+        ("forest", _) => crate::bio_plots::render_forest_plot_spec_value(&args[0], &opts),
+        ("roc", _) => crate::bio_plots::render_roc_plot_spec_value(&args[0], &opts),
+        ("heatmap", "clustered_heatmap") => {
+            crate::bio_plots::render_clustered_heatmap_spec_value(&args[0], &opts)
+        }
+        ("heatmap", _) => render_heatmap_plot_spec_value(&args[0], &opts),
+        ("mosaic", _) => crate::mosaic_plot::render(&args[0], &opts),
+        ("violin", _) => crate::bio_plots::render_violin_plot_spec_value(&args[0], &opts),
+        ("dot_plot", _) => crate::bio_plots::render_dot_plot_spec_value(&args[0], &opts),
+        ("embedding", _) => crate::bio_plots::render_embedding_plot_spec_value(&args[0], &opts),
+        ("pca", _) => crate::bio_plots::render_pca_plot_spec_value(&args[0], &opts),
+        ("differential_expression", _) => render_differential_plot_spec_value(&args[0], &opts),
+        ("scatter" | "line" | "errorbar" | "confidence", _) => {
+            let spec = plot_spec_from_value(&args[0])?;
+            render_plot_spec_value(&spec, &opts)
+        }
+        ("", _) => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "render_plot() specification field 'kind' must be Str",
+            None,
+        )),
+        (unknown, _) => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("render_plot() unknown plot kind '{unknown}'"),
+            None,
+        )),
+    }
 }
 
 fn builtin_plot(args: Vec<Value>) -> Result<Value> {
@@ -1996,7 +3242,7 @@ fn heatmap_text_color(t: f64, scheme: &str) -> &'static str {
 }
 
 /// Simple row clustering by sorting rows by their mean value.
-fn cluster_rows(row_data: &mut Vec<Vec<f64>>, row_labels: &mut Vec<String>) {
+fn cluster_rows(row_data: &mut Vec<Vec<f64>>, row_labels: &mut Vec<String>) -> Vec<usize> {
     let mut indices: Vec<usize> = (0..row_data.len()).collect();
     indices.sort_by(|&a, &b| {
         let mean_a: f64 = row_data[a]
@@ -2023,13 +3269,675 @@ fn cluster_rows(row_data: &mut Vec<Vec<f64>>, row_labels: &mut Vec<String>) {
             row_labels[new_i] = orig_labels[old_i].clone();
         }
     }
+    indices
+}
+
+fn render_heatmap_geometry_svg(
+    row_data: &[Vec<f64>],
+    row_labels: &[String],
+    col_labels: &[String],
+    scale_min: f64,
+    scale_max: f64,
+    use_diverging: bool,
+    scheme_explicit: bool,
+    opts: &HashMap<String, Value>,
+) -> Result<String> {
+    let width = get_opt_f64(opts, "width", 800.0);
+    let height = get_opt_f64(opts, "height", 600.0);
+    let title = get_opt_str(opts, "title", "Heatmap").to_string();
+    let subtitle = get_opt_str(opts, "subtitle", "").to_string();
+    let caption = get_opt_str(opts, "caption", "").to_string();
+    let legend_title = get_opt_str(opts, "legend_title", "value").to_string();
+    let na_colour = get_opt_str(opts, "na_color", "#cccccc").to_string();
+    let theme = plot_theme(opts);
+    let publication_theme = theme.kind == PlotThemeKind::Publication;
+    let scheme = get_opt_str(opts, "colors", "viridis").to_string();
+    let show_values = opts
+        .get("show_values")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let do_cluster = opts
+        .get("cluster")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let nrows = row_data.len();
+    let ncols = row_data.first().map(Vec::len).unwrap_or(0);
+    if nrows == 0 || ncols == 0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "render_plot() heatmap specification is empty",
+            None,
+        ));
+    }
+    let cell_colour = |t: f64| {
+        if publication_theme && !scheme_explicit {
+            if use_diverging {
+                publication_diverging_color(t)
+            } else {
+                publication_sequential_color(t)
+            }
+        } else {
+            heatmap_color(t, &scheme)
+        }
+    };
+    let max_row_label_len = row_labels.iter().map(String::len).max().unwrap_or(0);
+    let left_margin = 40.0 + (max_row_label_len as f64 * 7.0).min(120.0);
+    let legend_width = 60.0;
+    let mut canvas = SvgCanvas::with_theme(width, height, theme);
+    if theme.is_adaptive() {
+        let widest_row = row_labels
+            .iter()
+            .map(|label| estimate_text_width(label, theme.tick_size))
+            .fold(0.0, f64::max);
+        let widest_col = col_labels
+            .iter()
+            .take(ncols)
+            .map(|label| estimate_text_width(label, theme.tick_size))
+            .fold(0.0, f64::max);
+        let legend_label = [scale_min, (scale_min + scale_max) / 2.0, scale_max]
+            .iter()
+            .map(|value| estimate_text_width(&format!("{value:.2}"), theme.legend_size))
+            .fold(0.0, f64::max);
+        canvas.margin.left = (widest_row + 12.0).clamp(48.0, width * 0.31);
+        canvas.margin.right = (42.0
+            + legend_label.max(estimate_text_width(&legend_title, theme.legend_size)))
+        .clamp(76.0, width * 0.31);
+        canvas.margin.top = if title.is_empty() {
+            20.0
+        } else if subtitle.is_empty() {
+            48.0
+        } else {
+            66.0
+        };
+        canvas.margin.bottom = (widest_col * 0.72 + 18.0).clamp(48.0, height * 0.28)
+            + if caption.is_empty() { 0.0 } else { 18.0 };
+    } else {
+        canvas.margin.left = left_margin;
+        canvas.margin.bottom = 70.0;
+        canvas.margin.right = 20.0 + legend_width;
+        canvas.margin.top = if title.is_empty() { 20.0 } else { 45.0 };
+    }
+    let plot_w = canvas.plot_width();
+    let plot_h = canvas.plot_height();
+    let cell_w = plot_w / ncols as f64;
+    let cell_h = plot_h / nrows as f64;
+    for (ri, row) in row_data.iter().enumerate() {
+        for (ci, &value) in row.iter().enumerate() {
+            let t = if (scale_max - scale_min).abs() < f64::EPSILON {
+                0.5
+            } else {
+                (value - scale_min) / (scale_max - scale_min)
+            };
+            let colour = if value.is_finite() {
+                cell_colour(t)
+            } else {
+                na_colour.clone()
+            };
+            let x = canvas.margin.left + ci as f64 * cell_w;
+            let y = canvas.margin.top + ri as f64 * cell_h;
+            canvas.add_rect(x, y, cell_w, cell_h, &colour);
+            if !theme.is_adaptive() || cell_w.min(cell_h) >= 4.0 {
+                canvas.elements.push(format!(
+                    "<rect x=\"{:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{:.1}\" fill=\"none\" stroke=\"{}\" stroke-width=\"0.5\" />",
+                    x,
+                    y,
+                    cell_w,
+                    cell_h,
+                    if theme.is_adaptive() { theme.grid_colour } else { "#eee" }
+                ));
+            }
+            if show_values && value.is_finite() {
+                let text_colour = heatmap_text_color(t, &scheme);
+                let label = if value.abs() >= 100.0 || value == 0.0 {
+                    format!("{value:.0}")
+                } else if value.abs() >= 1.0 {
+                    format!("{value:.1}")
+                } else {
+                    format!("{value:.2}")
+                };
+                let font_size = (cell_w.min(cell_h) * 0.35).clamp(7.0, 14.0);
+                canvas.elements.push(format!(
+                    r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" dominant-baseline="central" font-size="{:.1}" font-family="{}" fill="{}">{}</text>"#,
+                    x + cell_w / 2.0,
+                    y + cell_h / 2.0,
+                    font_size,
+                    theme.font_family,
+                    text_colour,
+                    label.replace('&', "&amp;").replace('<', "&lt;")
+                ));
+            }
+        }
+    }
+    let col_step = if theme.is_adaptive() {
+        (10.0 / cell_w.max(1.0)).ceil().max(1.0) as usize
+    } else {
+        1
+    };
+    for (ci, label) in col_labels.iter().enumerate().step_by(col_step) {
+        if ci < ncols {
+            canvas.add_text_rotated(
+                canvas.margin.left + (ci as f64 + 0.5) * cell_w,
+                canvas.margin.top + plot_h + 10.0,
+                label,
+                45.0,
+                "start",
+                if theme.is_adaptive() {
+                    theme.tick_size
+                } else {
+                    10.0
+                },
+            );
+        }
+    }
+    let row_step = if theme.is_adaptive() {
+        (10.0 / cell_h.max(1.0)).ceil().max(1.0) as usize
+    } else {
+        1
+    };
+    for (ri, label) in row_labels.iter().enumerate().step_by(row_step) {
+        if ri < nrows {
+            canvas.add_text(
+                canvas.margin.left - 6.0,
+                canvas.margin.top + (ri as f64 + 0.5) * cell_h + 4.0,
+                label,
+                "end",
+                if theme.is_adaptive() {
+                    theme.tick_size
+                } else {
+                    10.0
+                },
+            );
+        }
+    }
+    let legend_x = canvas.margin.left + plot_w + 15.0;
+    let legend_top = canvas.margin.top;
+    let legend_h = plot_h.min(200.0);
+    let legend_bar_w = 15.0;
+    let legend_steps = 50usize;
+    let step_h = legend_h / legend_steps as f64;
+    if theme.is_adaptive() && !legend_title.is_empty() {
+        canvas.add_text(
+            legend_x,
+            legend_top - 8.0,
+            &legend_title,
+            "start",
+            theme.legend_size,
+        );
+    }
+    for i in 0..legend_steps {
+        let t = 1.0 - i as f64 / (legend_steps - 1) as f64;
+        canvas.elements.push(format!(
+            r#"<rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}" />"#,
+            legend_x,
+            legend_top + i as f64 * step_h,
+            legend_bar_w,
+            step_h + 0.5,
+            cell_colour(t)
+        ));
+    }
+    canvas.elements.push(format!(
+        "<rect x=\"{:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{:.1}\" fill=\"none\" stroke=\"#333\" stroke-width=\"0.5\" />",
+        legend_x, legend_top, legend_bar_w, legend_h
+    ));
+    let label_x = legend_x + legend_bar_w + 5.0;
+    canvas.add_text(
+        label_x,
+        legend_top + 4.0,
+        &format!("{scale_max:.2}"),
+        "start",
+        9.0,
+    );
+    canvas.add_text(
+        label_x,
+        legend_top + legend_h / 2.0 + 3.0,
+        &format!("{:.2}", (scale_min + scale_max) / 2.0),
+        "start",
+        9.0,
+    );
+    canvas.add_text(
+        label_x,
+        legend_top + legend_h + 3.0,
+        &format!("{scale_min:.2}"),
+        "start",
+        9.0,
+    );
+    canvas.set_accessible_description(format!(
+        "Heatmap with {nrows} rows and {ncols} columns. Rows are {}.",
+        if do_cluster {
+            "sorted by their mean value"
+        } else {
+            "shown in input order"
+        }
+    ));
+    if !title.is_empty() {
+        canvas.draw_title(&title);
+    }
+    if theme.is_adaptive() {
+        canvas.draw_subtitle(&subtitle);
+        canvas.draw_caption(&caption);
+    }
+    Ok(canvas.render())
+}
+
+fn heatmap_plot_spec_value(
+    row_data: &[Vec<f64>],
+    row_labels: &[String],
+    col_labels: &[String],
+    row_order: &[usize],
+    value_min: f64,
+    value_max: f64,
+    scale_min: f64,
+    scale_max: f64,
+    use_diverging: bool,
+    scheme_explicit: bool,
+    opts: &HashMap<String, Value>,
+) -> Value {
+    let cells = row_data
+        .iter()
+        .enumerate()
+        .flat_map(|(display_row, row)| {
+            row.iter().enumerate().map(move |(display_col, &value)| {
+                vec![
+                    Value::Int(display_row as i64),
+                    Value::Int(row_order[display_row] as i64),
+                    Value::Int(display_col as i64),
+                    Value::Int(display_col as i64),
+                    Value::Float(value),
+                ]
+            })
+        })
+        .collect();
+    let row_rows = row_labels
+        .iter()
+        .enumerate()
+        .map(|(display_row, label)| {
+            vec![
+                Value::Int(display_row as i64),
+                Value::Int(row_order[display_row] as i64),
+                Value::Str(label.clone()),
+            ]
+        })
+        .collect();
+    let col_rows = col_labels
+        .iter()
+        .enumerate()
+        .map(|(display_col, label)| {
+            vec![
+                Value::Int(display_col as i64),
+                Value::Int(display_col as i64),
+                Value::Str(label.clone()),
+            ]
+        })
+        .collect();
+    let non_finite = row_data
+        .iter()
+        .flat_map(|row| row.iter())
+        .filter(|value| !value.is_finite())
+        .count();
+    let options = HashMap::from([
+        ("plot".into(), Value::Str("heatmap".into())),
+        (
+            "title".into(),
+            Value::Str(get_opt_str(opts, "title", "Heatmap").into()),
+        ),
+        (
+            "subtitle".into(),
+            Value::Str(get_opt_str(opts, "subtitle", "").into()),
+        ),
+        (
+            "caption".into(),
+            Value::Str(get_opt_str(opts, "caption", "").into()),
+        ),
+        (
+            "legend_title".into(),
+            Value::Str(get_opt_str(opts, "legend_title", "value").into()),
+        ),
+        (
+            "na_color".into(),
+            Value::Str(get_opt_str(opts, "na_color", "#cccccc").into()),
+        ),
+        (
+            "theme".into(),
+            Value::Str(get_opt_str(opts, "theme", "").into()),
+        ),
+        (
+            "colors".into(),
+            Value::Str(get_opt_str(opts, "colors", "viridis").into()),
+        ),
+        ("colors_explicit".into(), Value::Bool(scheme_explicit)),
+        (
+            "show_values".into(),
+            Value::Bool(
+                opts.get("show_values")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false),
+            ),
+        ),
+        (
+            "cluster".into(),
+            Value::Bool(
+                opts.get("cluster")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false),
+            ),
+        ),
+        ("value_min".into(), Value::Float(value_min)),
+        ("value_max".into(), Value::Float(value_max)),
+        (
+            "center".into(),
+            opts.get("center").cloned().unwrap_or(Value::Nil),
+        ),
+        ("scale_min".into(), Value::Float(scale_min)),
+        ("scale_max".into(), Value::Float(scale_max)),
+        ("diverging".into(), Value::Bool(use_diverging)),
+        (
+            "width".into(),
+            Value::Float(get_opt_f64(opts, "width", 800.0)),
+        ),
+        (
+            "height".into(),
+            Value::Float(get_opt_f64(opts, "height", 600.0)),
+        ),
+    ]);
+    Value::Record(
+        HashMap::from([
+            ("schema".into(), Value::Str(PLOT_SPEC_SCHEMA.into())),
+            ("kind".into(), Value::Str("heatmap".into())),
+            ("plot".into(), Value::Str("heatmap".into())),
+            (
+                "title".into(),
+                Value::Str(get_opt_str(opts, "title", "Heatmap").into()),
+            ),
+            (
+                "data".into(),
+                Value::Table(Table::new(
+                    [
+                        "display_row",
+                        "source_row",
+                        "display_col",
+                        "source_col",
+                        "value",
+                    ]
+                    .into_iter()
+                    .map(str::to_string)
+                    .collect(),
+                    cells,
+                )),
+            ),
+            (
+                "rows".into(),
+                Value::Table(Table::new(
+                    ["display_row", "source_row", "label"]
+                        .into_iter()
+                        .map(str::to_string)
+                        .collect(),
+                    row_rows,
+                )),
+            ),
+            (
+                "columns".into(),
+                Value::Table(Table::new(
+                    ["display_col", "source_col", "label"]
+                        .into_iter()
+                        .map(str::to_string)
+                        .collect(),
+                    col_rows,
+                )),
+            ),
+            ("options".into(), Value::Record(options.into())),
+            (
+                "provenance".into(),
+                Value::Record(
+                    HashMap::from([
+                        ("builtin".into(), Value::Str("heatmap".into())),
+                        ("input_rows".into(), Value::Int(row_data.len() as i64)),
+                        (
+                            "input_columns".into(),
+                            Value::Int(row_data.first().map(Vec::len).unwrap_or(0) as i64),
+                        ),
+                        ("non_finite_cells".into(), Value::Int(non_finite as i64)),
+                    ])
+                    .into(),
+                ),
+            ),
+            (
+                "warnings".into(),
+                Value::List(
+                    if non_finite == 0 {
+                        Vec::new()
+                    } else {
+                        vec![Value::Str(format!(
+                            "{non_finite} heatmap cells are non-finite and use na_color"
+                        ))]
+                    }
+                    .into(),
+                ),
+            ),
+        ])
+        .into(),
+    )
+}
+
+fn is_heatmap_plot_spec(value: &Value) -> bool {
+    matches!(
+        value,
+        Value::Record(map)
+            if matches!(map.get("schema"), Some(Value::Str(schema)) if schema == PLOT_SPEC_SCHEMA)
+                && matches!(map.get("kind"), Some(Value::Str(kind)) if kind == "heatmap")
+                && matches!(map.get("plot"), Some(Value::Str(plot)) if plot == "heatmap")
+    )
+}
+
+fn render_heatmap_plot_spec_value(
+    value: &Value,
+    render_options: &HashMap<String, Value>,
+) -> Result<Value> {
+    let map = match value {
+        Value::Record(map) if is_heatmap_plot_spec(value) => map,
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() requires a biolang.plot.spec/v1 heatmap Record",
+                None,
+            ))
+        }
+    };
+    let table_field = |name: &str| -> Result<&Table> {
+        match map.get(name) {
+            Some(Value::Table(table)) => Ok(table),
+            _ => Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("render_plot() heatmap specification field '{name}' must be Table"),
+                None,
+            )),
+        }
+    };
+    let cells = table_field("data")?;
+    let rows = table_field("rows")?;
+    let columns = table_field("columns")?;
+    for required in [
+        "display_row",
+        "source_row",
+        "display_col",
+        "source_col",
+        "value",
+    ] {
+        if cells.col_index(required).is_none() {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("render_plot() heatmap data is missing '{required}'"),
+                None,
+            ));
+        }
+    }
+    for (table, axis, required) in [
+        (rows, "row", ["display_row", "source_row", "label"]),
+        (columns, "column", ["display_col", "source_col", "label"]),
+    ] {
+        for field in required {
+            if table.col_index(field).is_none() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!("render_plot() heatmap {axis} metadata is missing '{field}'"),
+                    None,
+                ));
+            }
+        }
+    }
+    if rows.num_rows() == 0 || columns.num_rows() == 0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "render_plot() heatmap specification is empty",
+            None,
+        ));
+    }
+    let labels = |table: &Table| {
+        let index = table.col_index("label").unwrap();
+        table
+            .rows
+            .iter()
+            .map(|row| format!("{}", row[index]))
+            .collect::<Vec<_>>()
+    };
+    let row_labels = labels(rows);
+    let col_labels = labels(columns);
+    let expected = rows.num_rows() * columns.num_rows();
+    if cells.num_rows() != expected {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "render_plot() heatmap data must contain one cell per displayed row and column",
+            None,
+        ));
+    }
+    let ri = cells.col_index("display_row").unwrap();
+    let ci = cells.col_index("display_col").unwrap();
+    let vi = cells.col_index("value").unwrap();
+    let mut row_data = vec![vec![f64::NAN; columns.num_rows()]; rows.num_rows()];
+    for (expected_index, row) in cells.rows.iter().enumerate() {
+        let display_row = row[ri]
+            .as_float()
+            .map(|value| value as usize)
+            .ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "render_plot() heatmap display_row must be numeric",
+                    None,
+                )
+            })?;
+        let display_col = row[ci]
+            .as_float()
+            .map(|value| value as usize)
+            .ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "render_plot() heatmap display_col must be numeric",
+                    None,
+                )
+            })?;
+        if display_row >= rows.num_rows()
+            || display_col >= columns.num_rows()
+            || expected_index != display_row * columns.num_rows() + display_col
+        {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() heatmap cells must be complete and ordered by display row and column",
+                None,
+            ));
+        }
+        row_data[display_row][display_col] = row[vi].as_float().ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() heatmap cell values must be numeric",
+                None,
+            )
+        })?;
+    }
+    let mut options = match map.get("options") {
+        Some(Value::Record(options)) => options.as_ref().clone(),
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() heatmap specification field 'options' must be Record",
+                None,
+            ))
+        }
+    };
+    let number = |name: &str| -> Result<f64> {
+        options.get(name).and_then(Value::as_float).ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("render_plot() heatmap options are missing numeric '{name}'"),
+                None,
+            )
+        })
+    };
+    let scale_min = number("scale_min")?;
+    let scale_max = number("scale_max")?;
+    let use_diverging = options.get("diverging").is_some_and(Value::is_truthy);
+    let scheme_explicit = options.get("colors_explicit").is_some_and(Value::is_truthy);
+    let format = get_opt_str(render_options, "format", "svg").to_ascii_lowercase();
+    if matches!(format.as_str(), "spec" | "data") {
+        return Ok(value.clone());
+    }
+    for key in ["width", "height"] {
+        if let Some(override_value) = render_options.get(key) {
+            options.insert(key.into(), override_value.clone());
+        }
+    }
+    let svg = render_heatmap_geometry_svg(
+        &row_data,
+        &row_labels,
+        &col_labels,
+        scale_min,
+        scale_max,
+        use_diverging,
+        scheme_explicit,
+        &options,
+    )?;
+    let title = map
+        .get("title")
+        .and_then(Value::as_str)
+        .unwrap_or("Heatmap");
+    match format.as_str() {
+        "svg" | "raw" => Ok(Value::Str(svg)),
+        "html" | "canvas" => Ok(Value::Str(standalone_plot_html(&svg, title))),
+        #[cfg(feature = "native")]
+        "ascii" => render_svg_terminal(&svg, 80, 24, TerminalPlotStyle::Ascii)
+            .map(Value::Str)
+            .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None)),
+        #[cfg(feature = "native")]
+        "unicode" | "braille" => render_svg_terminal(&svg, 80, 24, TerminalPlotStyle::Braille)
+            .map(Value::Str)
+            .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None)),
+        #[cfg(not(feature = "native"))]
+        "ascii" | "unicode" | "braille" => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "render_plot() terminal heatmap output needs the native build",
+            None,
+        )),
+        _ => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "render_plot() unknown heatmap format '{format}', expected svg/ascii/unicode/html/spec"
+            ),
+            None,
+        )),
+    }
 }
 
 fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
+    let format = get_opt_str(&opts, "format", "svg").to_ascii_lowercase();
     let width = get_opt_f64(&opts, "width", 800.0);
     let height = get_opt_f64(&opts, "height", 600.0);
     let title = get_opt_str(&opts, "title", "Heatmap").to_string();
+    let subtitle = get_opt_str(&opts, "subtitle", "").to_string();
+    let caption = get_opt_str(&opts, "caption", "").to_string();
+    let legend_title = get_opt_str(&opts, "legend_title", "value").to_string();
+    let na_colour = get_opt_str(&opts, "na_color", "#cccccc").to_string();
+    let theme = plot_theme(&opts);
+    let publication_theme = theme.kind == PlotThemeKind::Publication;
+    let scheme_explicit = opts.contains_key("colors");
     let scheme = get_opt_str(&opts, "colors", "viridis").to_string();
     let show_values = opts
         .get("show_values")
@@ -2210,9 +4118,11 @@ fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
     }
 
     // Optional clustering (sort rows by mean)
-    if do_cluster {
-        cluster_rows(&mut row_data, &mut row_labels);
-    }
+    let row_order = if do_cluster {
+        cluster_rows(&mut row_data, &mut row_labels)
+    } else {
+        (0..nrows).collect()
+    };
 
     // Compute global min/max
     let mut all_vals = Vec::new();
@@ -2224,17 +4134,111 @@ fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
         }
     }
     let (vmin, vmax) = col_range(&all_vals);
+    let requested_centre = opts.get("center").and_then(Value::as_float);
+    let use_diverging = publication_theme
+        && !scheme_explicit
+        && (requested_centre.is_some() || (vmin < 0.0 && vmax > 0.0));
+    let (scale_min, scale_max) = if use_diverging {
+        let centre = requested_centre.unwrap_or(0.0);
+        let radius = (vmin - centre)
+            .abs()
+            .max((vmax - centre).abs())
+            .max(f64::EPSILON);
+        (centre - radius, centre + radius)
+    } else {
+        (vmin, vmax)
+    };
+
+    if matches!(format.as_str(), "spec" | "data" | "html" | "canvas") {
+        if row_data.iter().any(|row| row.len() != ncols) || col_labels.len() < ncols {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "heatmap() inspectable output requires rectangular data and one label per column",
+                None,
+            ));
+        }
+        let spec = heatmap_plot_spec_value(
+            &row_data,
+            &row_labels,
+            &col_labels[..ncols],
+            &row_order,
+            vmin,
+            vmax,
+            scale_min,
+            scale_max,
+            use_diverging,
+            scheme_explicit,
+            &opts,
+        );
+        if matches!(format.as_str(), "spec" | "data") {
+            return Ok(spec);
+        }
+        return render_heatmap_plot_spec_value(&spec, &opts);
+    }
+    if matches!(format.as_str(), "svg" | "raw") {
+        return render_heatmap_geometry_svg(
+            &row_data,
+            &row_labels,
+            &col_labels,
+            scale_min,
+            scale_max,
+            use_diverging,
+            scheme_explicit,
+            &opts,
+        )
+        .map(Value::Str);
+    }
+    let cell_colour = |t: f64| {
+        if publication_theme && !scheme_explicit {
+            if use_diverging {
+                publication_diverging_color(t)
+            } else {
+                publication_sequential_color(t)
+            }
+        } else {
+            heatmap_color(t, &scheme)
+        }
+    };
 
     // Compute margins based on label lengths
     let max_row_label_len = row_labels.iter().map(|s| s.len()).max().unwrap_or(0);
     let left_margin = 40.0 + (max_row_label_len as f64 * 7.0).min(120.0);
     let legend_width = 60.0;
 
-    let mut canvas = SvgCanvas::new(width, height);
-    canvas.margin.left = left_margin;
-    canvas.margin.bottom = 70.0;
-    canvas.margin.right = 20.0 + legend_width;
-    canvas.margin.top = if title.is_empty() { 20.0 } else { 45.0 };
+    let mut canvas = SvgCanvas::with_theme(width, height, theme);
+    if theme.is_adaptive() {
+        let widest_row = row_labels
+            .iter()
+            .map(|label| estimate_text_width(label, theme.tick_size))
+            .fold(0.0, f64::max);
+        let widest_col = col_labels
+            .iter()
+            .take(ncols)
+            .map(|label| estimate_text_width(label, theme.tick_size))
+            .fold(0.0, f64::max);
+        let legend_label = [scale_min, (scale_min + scale_max) / 2.0, scale_max]
+            .iter()
+            .map(|value| estimate_text_width(&format!("{value:.2}"), theme.legend_size))
+            .fold(0.0, f64::max);
+        canvas.margin.left = (widest_row + 12.0).clamp(48.0, width * 0.31);
+        canvas.margin.right = (42.0
+            + legend_label.max(estimate_text_width(&legend_title, theme.legend_size)))
+        .clamp(76.0, width * 0.31);
+        canvas.margin.top = if title.is_empty() {
+            20.0
+        } else if subtitle.is_empty() {
+            48.0
+        } else {
+            66.0
+        };
+        canvas.margin.bottom = (widest_col * 0.72 + 18.0).clamp(48.0, height * 0.28)
+            + if caption.is_empty() { 0.0 } else { 18.0 };
+    } else {
+        canvas.margin.left = left_margin;
+        canvas.margin.bottom = 70.0;
+        canvas.margin.right = 20.0 + legend_width;
+        canvas.margin.top = if title.is_empty() { 20.0 } else { 45.0 };
+    }
 
     let plot_w = canvas.plot_width();
     let plot_h = canvas.plot_height();
@@ -2244,25 +4248,31 @@ fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
     // Draw cells
     for (ri, row) in row_data.iter().enumerate() {
         for (ci, &v) in row.iter().enumerate() {
-            let t = if (vmax - vmin).abs() < f64::EPSILON {
+            let t = if (scale_max - scale_min).abs() < f64::EPSILON {
                 0.5
             } else {
-                (v - vmin) / (vmax - vmin)
+                (v - scale_min) / (scale_max - scale_min)
             };
             let color = if v.is_finite() {
-                heatmap_color(t, &scheme)
+                cell_colour(t)
             } else {
-                "#cccccc".to_string()
+                na_colour.clone()
             };
             let x = canvas.margin.left + ci as f64 * cell_w;
             let y = canvas.margin.top + ri as f64 * cell_h;
             canvas.add_rect(x, y, cell_w, cell_h, &color);
 
             // Cell border for visual separation
-            canvas.elements.push(format!(
-                "<rect x=\"{:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{:.1}\" fill=\"none\" stroke=\"#eee\" stroke-width=\"0.5\" />",
-                x, y, cell_w, cell_h
-            ));
+            if !theme.is_adaptive() || cell_w.min(cell_h) >= 4.0 {
+                canvas.elements.push(format!(
+                    "<rect x=\"{:.1}\" y=\"{:.1}\" width=\"{:.1}\" height=\"{:.1}\" fill=\"none\" stroke=\"{}\" stroke-width=\"0.5\" />",
+                    x,
+                    y,
+                    cell_w,
+                    cell_h,
+                    if theme.is_adaptive() { theme.grid_colour } else { "#eee" }
+                ));
+            }
 
             // Show numeric value in cell
             if show_values && v.is_finite() {
@@ -2276,8 +4286,9 @@ fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
                 };
                 let font_size = (cell_w.min(cell_h) * 0.35).clamp(7.0, 14.0);
                 canvas.elements.push(format!(
-                    r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" dominant-baseline="central" font-size="{:.1}" font-family="sans-serif" fill="{}">{}</text>"#,
-                    x + cell_w / 2.0, y + cell_h / 2.0, font_size, txt_color,
+                    r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" dominant-baseline="central" font-size="{:.1}" font-family="{}" fill="{}">{}</text>"#,
+                    x + cell_w / 2.0, y + cell_h / 2.0, font_size,
+                    theme.font_family, txt_color,
                     label.replace('&', "&amp;").replace('<', "&lt;")
                 ));
             }
@@ -2285,19 +4296,50 @@ fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
     }
 
     // Column labels (rotated at bottom)
-    for (ci, col) in col_labels.iter().enumerate() {
+    let col_step = if theme.is_adaptive() {
+        (10.0 / cell_w.max(1.0)).ceil().max(1.0) as usize
+    } else {
+        1
+    };
+    for (ci, col) in col_labels.iter().enumerate().step_by(col_step) {
         if ci < ncols {
             let x = canvas.margin.left + (ci as f64 + 0.5) * cell_w;
             let y = canvas.margin.top + plot_h + 10.0;
-            canvas.add_text_rotated(x, y, col, 45.0, "start", 10.0);
+            canvas.add_text_rotated(
+                x,
+                y,
+                col,
+                45.0,
+                "start",
+                if theme.is_adaptive() {
+                    theme.tick_size
+                } else {
+                    10.0
+                },
+            );
         }
     }
 
     // Row labels (on the left)
-    for (ri, label) in row_labels.iter().enumerate() {
+    let row_step = if theme.is_adaptive() {
+        (10.0 / cell_h.max(1.0)).ceil().max(1.0) as usize
+    } else {
+        1
+    };
+    for (ri, label) in row_labels.iter().enumerate().step_by(row_step) {
         if ri < nrows {
             let y = canvas.margin.top + (ri as f64 + 0.5) * cell_h + 4.0;
-            canvas.add_text(canvas.margin.left - 6.0, y, label, "end", 10.0);
+            canvas.add_text(
+                canvas.margin.left - 6.0,
+                y,
+                label,
+                "end",
+                if theme.is_adaptive() {
+                    theme.tick_size
+                } else {
+                    10.0
+                },
+            );
         }
     }
 
@@ -2308,9 +4350,18 @@ fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
     let legend_bar_w = 15.0;
     let legend_steps = 50usize;
     let step_h = legend_h / legend_steps as f64;
+    if theme.is_adaptive() && !legend_title.is_empty() {
+        canvas.add_text(
+            legend_x,
+            legend_top - 8.0,
+            &legend_title,
+            "start",
+            theme.legend_size,
+        );
+    }
     for i in 0..legend_steps {
         let t = 1.0 - (i as f64 / (legend_steps - 1) as f64); // top = max
-        let color = heatmap_color(t, &scheme);
+        let color = cell_colour(t);
         let y = legend_top + i as f64 * step_h;
         canvas.elements.push(format!(
             r#"<rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}" />"#,
@@ -2331,28 +4382,40 @@ fn builtin_heatmap(args: Vec<Value>) -> Result<Value> {
     canvas.add_text(
         label_x,
         legend_top + 4.0,
-        &format!("{vmax:.2}"),
+        &format!("{scale_max:.2}"),
         "start",
         9.0,
     );
     canvas.add_text(
         label_x,
         legend_top + legend_h / 2.0 + 3.0,
-        &format!("{:.2}", (vmin + vmax) / 2.0),
+        &format!("{:.2}", (scale_min + scale_max) / 2.0),
         "start",
         9.0,
     );
     canvas.add_text(
         label_x,
         legend_top + legend_h + 3.0,
-        &format!("{vmin:.2}"),
+        &format!("{scale_min:.2}"),
         "start",
         9.0,
     );
 
     // Title
+    canvas.set_accessible_description(format!(
+        "Heatmap with {nrows} rows and {ncols} columns. Rows are {}.",
+        if do_cluster {
+            "sorted by their mean value"
+        } else {
+            "shown in input order"
+        }
+    ));
     if !title.is_empty() {
         canvas.draw_title(&title);
+    }
+    if theme.is_adaptive() {
+        canvas.draw_subtitle(&subtitle);
+        canvas.draw_caption(&caption);
     }
 
     Ok(Value::Str(canvas.render()))
@@ -4185,28 +6248,24 @@ fn builtin_density_plot(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Str(canvas.render()))
 }
 
-fn builtin_volcano(args: Vec<Value>) -> Result<Value> {
-    let table = require_table(&args[0], "volcano")?;
-    let opts = parse_options(&args);
-    let width = get_opt_f64(&opts, "width", 800.0);
-    let height = get_opt_f64(&opts, "height", 600.0);
-    let fc_col = get_opt_str(&opts, "fc", "log2fc").to_string();
-    let p_col = get_opt_str(&opts, "p", "pvalue").to_string();
-    let fc_thresh = get_opt_f64(&opts, "fc_threshold", 1.0);
-    let p_thresh = get_opt_f64(&opts, "p_threshold", 0.05);
-
-    let fcs = extract_table_col(table, &fc_col)?;
-    let pvals = extract_table_col(table, &p_col)?;
-
+fn render_volcano_svg(
+    fcs: &[f64],
+    pvals: &[f64],
+    fc_thresh: f64,
+    p_thresh: f64,
+    opts: &HashMap<String, Value>,
+) -> Result<String> {
+    let width = get_opt_f64(opts, "width", 800.0);
+    let height = get_opt_f64(opts, "height", 600.0);
+    let fc_col = get_opt_str(opts, "fc", "log2fc");
+    let p_col = get_opt_str(opts, "p", "pvalue");
     let neg_log_p: Vec<f64> = pvals
         .iter()
         .map(|&p| if p > 0.0 { -(p.log10()) } else { 0.0 })
         .collect();
-
-    let (x_min, x_max) = col_range(&fcs);
+    let (x_min, x_max) = col_range(fcs);
     let x_abs = x_min.abs().max(x_max.abs());
     let (_, y_max) = col_range(&neg_log_p);
-
     let mut canvas = SvgCanvas::new(width, height);
     let x_scale = Scale {
         domain: (-x_abs, x_abs),
@@ -4216,10 +6275,7 @@ fn builtin_volcano(args: Vec<Value>) -> Result<Value> {
         domain: (0.0, y_max),
         range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
     };
-
     let neg_log_p_thresh = -(p_thresh.log10());
-
-    // Threshold lines
     canvas.add_line(
         x_scale.map(-fc_thresh),
         canvas.margin.top,
@@ -4244,14 +6300,15 @@ fn builtin_volcano(args: Vec<Value>) -> Result<Value> {
         "#ccc",
         1.0,
     );
-
-    // A differential expression volcano carries one point per gene, so twenty
-    // thousand is an ordinary result rather than a large one.
-    let raster = raster_choice(&opts, "volcano", fcs.len())?;
-    let points: Vec<(f64, f64, &str)> = (0..fcs.len())
-        .map(|i| {
-            let color = if neg_log_p[i] > neg_log_p_thresh && fcs[i].abs() > fc_thresh {
-                if fcs[i] > 0.0 {
+    let renderable = (0..fcs.len().min(neg_log_p.len()))
+        .filter(|&index| fcs[index].is_finite() && neg_log_p[index].is_finite())
+        .collect::<Vec<_>>();
+    let raster = raster_choice(opts, "volcano", renderable.len())?;
+    let points: Vec<(f64, f64, &str)> = renderable
+        .iter()
+        .map(|&index| {
+            let colour = if neg_log_p[index] > neg_log_p_thresh && fcs[index].abs() > fc_thresh {
+                if fcs[index] > 0.0 {
                     "#e15759"
                 } else {
                     "#4e79a7"
@@ -4259,54 +6316,55 @@ fn builtin_volcano(args: Vec<Value>) -> Result<Value> {
             } else {
                 "#999"
             };
-            (x_scale.map(fcs[i]), y_scale.map(neg_log_p[i]), color)
+            (
+                x_scale.map(fcs[index]),
+                y_scale.map(neg_log_p[index]),
+                colour,
+            )
         })
         .collect();
     let area = canvas.point_area();
     canvas.add_scatter(&points, 3.0, area, raster);
-
-    let d_x_scale = Scale {
-        domain: (-x_abs, x_abs),
-        range: (-x_abs, x_abs),
-    };
-    let d_y_scale = Scale {
-        domain: (0.0, y_max),
-        range: (0.0, y_max),
-    };
     canvas.draw_x_axis(
-        &d_x_scale,
-        &axis_label(&opts, "xlabel", &format!("log2(FC) [{fc_col}]")),
+        &Scale {
+            domain: (-x_abs, x_abs),
+            range: (-x_abs, x_abs),
+        },
+        &axis_label(opts, "xlabel", &format!("log2(FC) [{fc_col}]")),
     );
     canvas.draw_y_axis(
-        &d_y_scale,
-        &axis_label(&opts, "ylabel", &format!("-log10(p) [{p_col}]")),
+        &Scale {
+            domain: (0.0, y_max),
+            range: (0.0, y_max),
+        },
+        &axis_label(opts, "ylabel", &format!("-log10(p) [{p_col}]")),
     );
     canvas.draw_title("Volcano Plot");
-
-    Ok(Value::Str(canvas.render()))
+    canvas.set_accessible_description(format!(
+        "Volcano plot with {} rendered of {} rows; fold-change threshold {fc_thresh} and p-value threshold {p_thresh}.",
+        renderable.len(),
+        fcs.len().min(pvals.len())
+    ));
+    Ok(canvas.render())
 }
 
-fn builtin_ma_plot(args: Vec<Value>) -> Result<Value> {
-    let table = require_table(&args[0], "ma_plot")?;
-    let opts = parse_options(&args);
-    let width = get_opt_f64(&opts, "width", 800.0);
-    let height = get_opt_f64(&opts, "height", 600.0);
-    let a_col = get_opt_str(&opts, "a", "baseMean").to_string();
-    let m_col = get_opt_str(&opts, "m", "log2fc").to_string();
-
-    let a_vals = extract_table_col(table, &a_col)?;
-    let m_vals = extract_table_col(table, &m_col)?;
-
-    // A = log2(mean), M = log2(fc) — assume already in log space if column name suggests
+fn render_ma_svg(
+    a_vals: &[f64],
+    m_vals: &[f64],
+    m_threshold: f64,
+    opts: &HashMap<String, Value>,
+) -> Result<String> {
+    let width = get_opt_f64(opts, "width", 800.0);
+    let height = get_opt_f64(opts, "height", 600.0);
+    let a_col = get_opt_str(opts, "a", "baseMean");
+    let m_col = get_opt_str(opts, "m", "log2fc");
     let a_log: Vec<f64> = a_vals
         .iter()
-        .map(|&v| if v > 0.0 { v.log2() } else { 0.0 })
+        .map(|&value| if value > 0.0 { value.log2() } else { 0.0 })
         .collect();
-
     let (x_min, x_max) = col_range(&a_log);
-    let (y_min, y_max) = col_range(&m_vals);
+    let (y_min, y_max) = col_range(m_vals);
     let y_abs = y_min.abs().max(y_max.abs());
-
     let mut canvas = SvgCanvas::new(width, height);
     let x_scale = Scale {
         domain: (x_min, x_max),
@@ -4316,8 +6374,6 @@ fn builtin_ma_plot(args: Vec<Value>) -> Result<Value> {
         domain: (-y_abs, y_abs),
         range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
     };
-
-    // Zero line
     canvas.add_line(
         canvas.margin.left,
         y_scale.map(0.0),
@@ -4326,51 +6382,471 @@ fn builtin_ma_plot(args: Vec<Value>) -> Result<Value> {
         "#ccc",
         1.0,
     );
-
-    // One point per gene, as with the volcano beside it.
-    let raster = raster_choice(&opts, "ma_plot", a_log.len())?;
-    let points: Vec<(f64, f64, &str)> = (0..a_log.len())
-        .map(|i| {
-            let color = if m_vals[i].abs() > 1.0 {
+    let renderable = (0..a_log.len().min(m_vals.len()))
+        .filter(|&index| a_log[index].is_finite() && m_vals[index].is_finite())
+        .collect::<Vec<_>>();
+    let raster = raster_choice(opts, "ma_plot", renderable.len())?;
+    let points: Vec<(f64, f64, &str)> = renderable
+        .iter()
+        .map(|&index| {
+            let colour = if m_vals[index].abs() > m_threshold {
                 "#e15759"
             } else {
                 "#999"
             };
-            (x_scale.map(a_log[i]), y_scale.map(m_vals[i]), color)
+            (
+                x_scale.map(a_log[index]),
+                y_scale.map(m_vals[index]),
+                colour,
+            )
         })
         .collect();
     let area = canvas.point_area();
     canvas.add_scatter(&points, 3.0, area, raster);
-
-    let d_x_scale = Scale {
-        domain: (x_min, x_max),
-        range: (x_min, x_max),
-    };
-    let d_y_scale = Scale {
-        domain: (-y_abs, y_abs),
-        range: (-y_abs, y_abs),
-    };
     canvas.draw_x_axis(
-        &d_x_scale,
-        &axis_label(&opts, "xlabel", &format!("A (log2 {a_col})")),
+        &Scale {
+            domain: (x_min, x_max),
+            range: (x_min, x_max),
+        },
+        &axis_label(opts, "xlabel", &format!("A (log2 {a_col})")),
     );
     canvas.draw_y_axis(
-        &d_y_scale,
-        &axis_label(&opts, "ylabel", &format!("M ({m_col})")),
+        &Scale {
+            domain: (-y_abs, y_abs),
+            range: (-y_abs, y_abs),
+        },
+        &axis_label(opts, "ylabel", &format!("M ({m_col})")),
     );
     canvas.draw_title("MA Plot");
+    canvas.set_accessible_description(format!(
+        "MA plot with {} rendered of {} rows; absolute log2 fold-change threshold {m_threshold}.",
+        renderable.len(),
+        a_vals.len().min(m_vals.len())
+    ));
+    Ok(canvas.render())
+}
 
-    Ok(Value::Str(canvas.render()))
+fn differential_plot_spec_value(
+    plot_kind: &str,
+    raw_x: &[f64],
+    raw_y: &[f64],
+    labels: &[String],
+    x_column: &str,
+    y_column: &str,
+    fc_threshold: f64,
+    p_threshold: Option<f64>,
+    opts: &HashMap<String, Value>,
+) -> Result<Value> {
+    let point_count = raw_x.len().min(raw_y.len());
+    let transformed_y = if plot_kind == "volcano" {
+        raw_y
+            .iter()
+            .map(|&value| if value > 0.0 { -(value.log10()) } else { 0.0 })
+            .collect::<Vec<_>>()
+    } else {
+        raw_y.to_vec()
+    };
+    let transformed_x = if plot_kind == "ma" {
+        raw_x
+            .iter()
+            .map(|&value| if value > 0.0 { value.log2() } else { 0.0 })
+            .collect::<Vec<_>>()
+    } else {
+        raw_x.to_vec()
+    };
+    let rendered_points = (0..point_count)
+        .filter(|&index| transformed_x[index].is_finite() && transformed_y[index].is_finite())
+        .count();
+    let raster = raster_choice(
+        opts,
+        if plot_kind == "volcano" {
+            "volcano"
+        } else {
+            "ma_plot"
+        },
+        rendered_points,
+    )?;
+    let neg_log_p_threshold = p_threshold.map(|value| -(value.log10()));
+    let rows = (0..point_count)
+        .map(|index| {
+            let status = if !transformed_x[index].is_finite() || !transformed_y[index].is_finite() {
+                "not_rendered"
+            } else if plot_kind == "volcano" {
+                if transformed_y[index] > neg_log_p_threshold.unwrap_or(f64::INFINITY)
+                    && raw_x[index].abs() > fc_threshold
+                {
+                    if raw_x[index] > 0.0 {
+                        "up"
+                    } else {
+                        "down"
+                    }
+                } else {
+                    "not_significant"
+                }
+            } else if raw_y[index].abs() > fc_threshold {
+                "changed"
+            } else {
+                "not_changed"
+            };
+            vec![
+                Value::Int(index as i64),
+                Value::Float(raw_x[index]),
+                Value::Float(raw_y[index]),
+                Value::Float(transformed_x[index]),
+                Value::Float(transformed_y[index]),
+                labels
+                    .get(index)
+                    .filter(|value| !value.is_empty())
+                    .map(|value| Value::Str(value.clone()))
+                    .unwrap_or(Value::Nil),
+                Value::Str(status.into()),
+            ]
+        })
+        .collect::<Vec<_>>();
+    let title = if plot_kind == "volcano" {
+        "Volcano Plot"
+    } else {
+        "MA Plot"
+    };
+    let mut spec_options = HashMap::from([
+        ("plot".into(), Value::Str(plot_kind.into())),
+        (
+            "width".into(),
+            Value::Float(get_opt_f64(opts, "width", 800.0)),
+        ),
+        (
+            "height".into(),
+            Value::Float(get_opt_f64(opts, "height", 600.0)),
+        ),
+        ("x_column".into(), Value::Str(x_column.into())),
+        ("y_column".into(), Value::Str(y_column.into())),
+        ("fold_change_threshold".into(), Value::Float(fc_threshold)),
+        ("raster".into(), Value::Bool(raster.enabled)),
+        ("raster_scale".into(), Value::Float(raster.scale)),
+    ]);
+    if let Some(value) = p_threshold {
+        spec_options.insert("p_value_threshold".into(), Value::Float(value));
+    }
+    let default_x_label = if plot_kind == "volcano" {
+        format!("log2(FC) [{x_column}]")
+    } else {
+        format!("A (log2 {x_column})")
+    };
+    let default_y_label = if plot_kind == "volcano" {
+        format!("-log10(p) [{y_column}]")
+    } else {
+        format!("M ({y_column})")
+    };
+    spec_options.insert(
+        "xlabel".into(),
+        Value::Str(axis_label(opts, "xlabel", &default_x_label)),
+    );
+    spec_options.insert(
+        "ylabel".into(),
+        Value::Str(axis_label(opts, "ylabel", &default_y_label)),
+    );
+    spec_options.insert(
+        if plot_kind == "volcano" { "fc" } else { "a" }.into(),
+        Value::Str(x_column.into()),
+    );
+    spec_options.insert(
+        if plot_kind == "volcano" { "p" } else { "m" }.into(),
+        Value::Str(y_column.into()),
+    );
+    let non_finite_coordinates = point_count - rendered_points;
+    let warnings = if non_finite_coordinates == 0 {
+        Vec::new()
+    } else {
+        vec![Value::Str(format!(
+            "{non_finite_coordinates} rows have non-finite plot coordinates"
+        ))]
+    };
+    Ok(Value::Record(
+        HashMap::from([
+            ("schema".into(), Value::Str(PLOT_SPEC_SCHEMA.into())),
+            ("kind".into(), Value::Str("differential_expression".into())),
+            ("plot".into(), Value::Str(plot_kind.into())),
+            ("title".into(), Value::Str(title.into())),
+            (
+                "data".into(),
+                Value::Table(Table::new(
+                    ["source_row", "raw_x", "raw_y", "x", "y", "label", "status"]
+                        .into_iter()
+                        .map(str::to_string)
+                        .collect(),
+                    rows,
+                )),
+            ),
+            ("options".into(), Value::Record(spec_options.into())),
+            (
+                "provenance".into(),
+                Value::Record(
+                    HashMap::from([
+                        (
+                            "builtin".into(),
+                            Value::Str(if plot_kind == "volcano" {
+                                "volcano".into()
+                            } else {
+                                "ma_plot".into()
+                            }),
+                        ),
+                        ("input_rows".into(), Value::Int(point_count as i64)),
+                        ("rendered_points".into(), Value::Int(rendered_points as i64)),
+                        (
+                            "non_finite_coordinates".into(),
+                            Value::Int(non_finite_coordinates as i64),
+                        ),
+                    ])
+                    .into(),
+                ),
+            ),
+            ("warnings".into(), Value::List(warnings.into())),
+        ])
+        .into(),
+    ))
+}
+
+fn is_differential_plot_spec(value: &Value) -> bool {
+    matches!(
+        value,
+        Value::Record(map)
+            if matches!(map.get("schema"), Some(Value::Str(schema)) if schema == PLOT_SPEC_SCHEMA)
+                && matches!(map.get("kind"), Some(Value::Str(kind)) if kind == "differential_expression")
+    )
+}
+
+fn render_differential_plot_spec_value(
+    value: &Value,
+    render_options: &HashMap<String, Value>,
+) -> Result<Value> {
+    let map = match value {
+        Value::Record(map) if is_differential_plot_spec(value) => map,
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() requires a biolang.plot.spec/v1 differential-expression Record",
+                None,
+            ))
+        }
+    };
+    let table = match map.get("data") {
+        Some(Value::Table(table)) => table,
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() differential-expression field 'data' must be Table",
+                None,
+            ))
+        }
+    };
+    for required in ["source_row", "raw_x", "raw_y", "x", "y", "label", "status"] {
+        if table.col_index(required).is_none() {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("render_plot() differential-expression data is missing '{required}'"),
+                None,
+            ));
+        }
+    }
+    let mut options = match map.get("options") {
+        Some(Value::Record(options)) => options.as_ref().clone(),
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() differential-expression field 'options' must be Record",
+                None,
+            ))
+        }
+    };
+    let format = get_opt_str(render_options, "format", "svg").to_ascii_lowercase();
+    if matches!(format.as_str(), "spec" | "data") {
+        return Ok(value.clone());
+    }
+    for key in [
+        "raster",
+        "raster_threshold",
+        "raster_scale",
+        "width",
+        "height",
+    ] {
+        if let Some(override_value) = render_options.get(key) {
+            options.insert(key.into(), override_value.clone());
+        }
+    }
+    let raw_x = extract_table_col(table, "raw_x")?;
+    let raw_y = extract_table_col(table, "raw_y")?;
+    let plot_kind = map.get("plot").and_then(Value::as_str).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            "render_plot() differential-expression specification is missing 'plot'",
+            None,
+        )
+    })?;
+    let threshold = options
+        .get("fold_change_threshold")
+        .and_then(Value::as_float)
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "render_plot() differential-expression options are missing numeric 'fold_change_threshold'",
+                None,
+            )
+        })?;
+    let svg = match plot_kind {
+        "volcano" => {
+            let p_threshold = options
+                .get("p_value_threshold")
+                .and_then(Value::as_float)
+                .ok_or_else(|| {
+                    BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        "render_plot() volcano options are missing numeric 'p_value_threshold'",
+                        None,
+                    )
+                })?;
+            render_volcano_svg(&raw_x, &raw_y, threshold, p_threshold, &options)?
+        }
+        "ma" => render_ma_svg(&raw_x, &raw_y, threshold, &options)?,
+        other => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("render_plot() unknown differential-expression plot '{other}'"),
+                None,
+            ))
+        }
+    };
+    let title = map.get("title").and_then(Value::as_str).unwrap_or("Plot");
+    match format.as_str() {
+        "svg" | "raw" => Ok(Value::Str(svg)),
+        "html" | "canvas" => Ok(Value::Str(standalone_plot_html(&svg, title))),
+        #[cfg(feature = "native")]
+        "ascii" => render_svg_terminal(&svg, 80, 24, TerminalPlotStyle::Ascii)
+            .map(Value::Str)
+            .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None)),
+        #[cfg(feature = "native")]
+        "unicode" | "braille" => render_svg_terminal(&svg, 80, 24, TerminalPlotStyle::Braille)
+            .map(Value::Str)
+            .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None)),
+        #[cfg(not(feature = "native"))]
+        "ascii" | "unicode" | "braille" => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "render_plot() terminal differential-expression output needs the native build",
+            None,
+        )),
+        _ => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "render_plot() unknown differential-expression format '{format}', expected svg/ascii/unicode/html/spec"
+            ),
+            None,
+        )),
+    }
+}
+
+fn extract_optional_plot_labels(table: &Table) -> Vec<String> {
+    ["gene", "name", "id"]
+        .iter()
+        .find_map(|column| {
+            let index = table.col_index(column)?;
+            Some(
+                table
+                    .rows
+                    .iter()
+                    .map(|row| match &row[index] {
+                        Value::Str(value) => value.clone(),
+                        Value::Nil => String::new(),
+                        other => format!("{other}"),
+                    })
+                    .collect(),
+            )
+        })
+        .unwrap_or_else(|| vec![String::new(); table.num_rows()])
+}
+
+fn builtin_volcano(args: Vec<Value>) -> Result<Value> {
+    let table = require_table(&args[0], "volcano")?;
+    let opts = parse_options(&args);
+    let fc_col = get_opt_str(&opts, "fc", "log2fc").to_string();
+    let p_col = get_opt_str(&opts, "p", "pvalue").to_string();
+    let fc_thresh = get_opt_f64(&opts, "fc_threshold", 1.0);
+    let p_thresh = get_opt_f64(&opts, "p_threshold", 0.05);
+    let fcs = extract_table_col(table, &fc_col)?;
+    let pvals = extract_table_col(table, &p_col)?;
+    let format = get_opt_str(&opts, "format", "svg").to_ascii_lowercase();
+    if matches!(format.as_str(), "spec" | "data" | "html" | "canvas") {
+        let labels = extract_optional_plot_labels(table);
+        let spec = differential_plot_spec_value(
+            "volcano",
+            &fcs,
+            &pvals,
+            &labels,
+            &fc_col,
+            &p_col,
+            fc_thresh,
+            Some(p_thresh),
+            &opts,
+        )?;
+        if matches!(format.as_str(), "spec" | "data") {
+            return Ok(spec);
+        }
+        return render_differential_plot_spec_value(&spec, &opts);
+    }
+    render_volcano_svg(&fcs, &pvals, fc_thresh, p_thresh, &opts).map(Value::Str)
+}
+
+fn builtin_ma_plot(args: Vec<Value>) -> Result<Value> {
+    let table = require_table(&args[0], "ma_plot")?;
+    let opts = parse_options(&args);
+    let a_col = get_opt_str(&opts, "a", "baseMean").to_string();
+    let m_col = get_opt_str(&opts, "m", "log2fc").to_string();
+
+    let a_vals = extract_table_col(table, &a_col)?;
+    let m_vals = extract_table_col(table, &m_col)?;
+
+    // Preserve the legacy MA classification boundary exactly.
+    const M_THRESHOLD: f64 = 1.0;
+    let format = get_opt_str(&opts, "format", "svg").to_ascii_lowercase();
+    if matches!(format.as_str(), "spec" | "data" | "html" | "canvas") {
+        let labels = extract_optional_plot_labels(table);
+        let spec = differential_plot_spec_value(
+            "ma",
+            &a_vals,
+            &m_vals,
+            &labels,
+            &a_col,
+            &m_col,
+            M_THRESHOLD,
+            None,
+            &opts,
+        )?;
+        if matches!(format.as_str(), "spec" | "data") {
+            return Ok(spec);
+        }
+        return render_differential_plot_spec_value(&spec, &opts);
+    }
+    render_ma_svg(&a_vals, &m_vals, M_THRESHOLD, &opts).map(Value::Str)
 }
 
 fn builtin_save_svg(args: Vec<Value>) -> Result<Value> {
     let svg = match &args[0] {
-        Value::Str(s) => s,
+        Value::Str(s) => s.to_string(),
+        Value::Record(_) => match builtin_render_plot(vec![args[0].clone()])? {
+            Value::Str(svg) if svg.trim_start().starts_with("<svg") => svg.to_string(),
+            other => {
+                return Err(BioLangError::type_error(
+                    format!(
+                        "save_svg() rendered PlotSpec as {}, expected SVG",
+                        other.type_of()
+                    ),
+                    None,
+                ))
+            }
+        },
         Value::Nil => return Err(BioLangError::type_error(
             "save_svg()/save_plot() received Nil — the plot function before the pipe likely failed or returned nothing".to_string(), None,
         )),
         other => return Err(BioLangError::type_error(
-            format!("save_svg() requires Str (SVG), got {}", other.type_of()), None,
+            format!("save_svg() requires SVG Str or PlotSpec Record, got {}", other.type_of()), None,
         )),
     };
     let path = match &args[1] {
@@ -4382,7 +6858,84 @@ fn builtin_save_svg(args: Vec<Value>) -> Result<Value> {
             ))
         }
     };
-    std::fs::write(path, svg).map_err(|e| {
+    let opts = parse_options(&args[1..]);
+    let profile = get_opt_str(&opts, "profile", "screen").to_ascii_lowercase();
+    if !matches!(profile.as_str(), "screen" | "publication" | "journal") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "save_svg() profile must be screen or publication",
+            None,
+        ));
+    }
+    let mut output = svg;
+    let svg_start = output.find("<svg").ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            "save_svg() requires an SVG document or PlotSpec",
+            None,
+        )
+    })?;
+    if matches!(profile.as_str(), "publication" | "journal") {
+        let font = match get_opt_str(&opts, "font", "sans")
+            .to_ascii_lowercase()
+            .as_str()
+        {
+            "sans" | "sans-serif" | "arial" | "helvetica" => "Arial,Helvetica,sans-serif",
+            "serif" | "times" => "Times New Roman,Times,serif",
+            "mono" | "monospace" => "Courier New,monospace",
+            _ => {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "save_svg() publication font must be sans, serif, or mono",
+                    None,
+                ))
+            }
+        };
+        let metadata = format!(
+            "<metadata>BioLang publication figure; vector text; font profile: {}</metadata><style>text{{font-family:{font}}}</style>",
+            xml_escape(font)
+        );
+        let opening = output[svg_start..]
+            .find('>')
+            .map(|offset| svg_start + offset)
+            .ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    "save_svg() received malformed SVG",
+                    None,
+                )
+            })?;
+        output.insert_str(opening + 1, &metadata);
+        output.insert_str(svg_start + 4, " data-biolang-export=\"publication\"");
+    }
+    let width_mm = opts.get("width_mm").and_then(Value::as_float);
+    let height_mm = opts.get("height_mm").and_then(Value::as_float);
+    match (width_mm, height_mm) {
+        (None, None) => {}
+        (Some(width_mm), Some(height_mm))
+            if width_mm.is_finite()
+                && height_mm.is_finite()
+                && width_mm > 0.0
+                && height_mm > 0.0 =>
+        {
+            let width_pattern = regex::Regex::new(r#"\bwidth="[^"]+""#).unwrap();
+            let height_pattern = regex::Regex::new(r#"\bheight="[^"]+""#).unwrap();
+            output = width_pattern
+                .replacen(&output, 1, format!("width=\"{width_mm}mm\""))
+                .into_owned();
+            output = height_pattern
+                .replacen(&output, 1, format!("height=\"{height_mm}mm\""))
+                .into_owned();
+        }
+        _ => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "save_svg() width_mm and height_mm must be supplied together as positive numbers",
+                None,
+            ))
+        }
+    }
+    std::fs::write(path, output).map_err(|e| {
         BioLangError::runtime(
             ErrorKind::IOError,
             format!("save_svg() write failed: {e}"),
@@ -4399,13 +6952,28 @@ fn builtin_save_svg(args: Vec<Value>) -> Result<Value> {
 /// written, so a PNG cannot disagree with its SVG - and every existing plot got
 /// PNG support the moment this landed, including the ones added after it.
 ///
-/// `scale` multiplies the pixel dimensions without changing the drawing: the
-/// figure is the same size in inches and simply carries more pixels, which is
+/// `scale` multiplies the pixel dimensions without changing the drawing. The
+/// equivalent `dpi` option uses the SVG/CSS baseline of 96 dpi, so `{dpi: 300}`
+/// produces exactly 300/96 times the source pixels. Give one, not both.
+///
+/// The figure is the same size in inches and simply carries more pixels, which is
 /// what a journal asking for 300 dpi wants. Default 2, because a 1x raster of a
 /// 600-point figure looks soft on any modern display.
 fn builtin_save_png(args: Vec<Value>) -> Result<Value> {
     let svg = match &args[0] {
-        Value::Str(s) => s,
+        Value::Str(s) => s.to_string(),
+        Value::Record(_) => match builtin_render_plot(vec![args[0].clone()])? {
+            Value::Str(svg) if svg.trim_start().starts_with("<svg") => svg.to_string(),
+            other => {
+                return Err(BioLangError::type_error(
+                    format!(
+                        "save_png() rendered PlotSpec as {}, expected SVG",
+                        other.type_of()
+                    ),
+                    None,
+                ))
+            }
+        },
         Value::Nil => {
             return Err(BioLangError::type_error(
                 "save_png() received Nil — the plot function before the pipe likely failed or returned nothing".to_string(),
@@ -4414,7 +6982,7 @@ fn builtin_save_png(args: Vec<Value>) -> Result<Value> {
         }
         other => {
             return Err(BioLangError::type_error(
-                format!("save_png() requires Str (SVG), got {}", other.type_of()),
+                format!("save_png() requires SVG Str or PlotSpec Record, got {}", other.type_of()),
                 None,
             ))
         }
@@ -4432,7 +7000,25 @@ fn builtin_save_png(args: Vec<Value>) -> Result<Value> {
     // parse_options() always reads args[1], so calling it would have silently
     // ignored every option and left `scale` at its default.
     let opts = parse_options(&args[1..]);
-    let scale = get_opt_f64(&opts, "scale", 2.0);
+    if opts.contains_key("scale") && opts.contains_key("dpi") {
+        return Err(BioLangError::type_error(
+            "save_png() accepts either scale or dpi, not both",
+            None,
+        ));
+    }
+    let scale = match opts.get("dpi") {
+        Some(value) => {
+            let dpi = value.as_float().unwrap_or(f64::NAN);
+            if !dpi.is_finite() || dpi <= 0.0 {
+                return Err(BioLangError::type_error(
+                    format!("save_png() dpi must be a positive number, got {dpi}"),
+                    None,
+                ));
+            }
+            dpi / 96.0
+        }
+        None => get_opt_f64(&opts, "scale", 2.0),
+    };
     if !(scale.is_finite() && scale > 0.0) {
         return Err(BioLangError::type_error(
             format!("save_png() scale must be a positive number, got {scale}"),
@@ -4440,7 +7026,7 @@ fn builtin_save_png(args: Vec<Value>) -> Result<Value> {
         ));
     }
 
-    render_png(svg, &path, scale)?;
+    render_png(&svg, &path, scale)?;
     Ok(Value::Str(path))
 }
 
@@ -4694,95 +7280,14 @@ fn render_png(_svg: &str, _path: &str, _scale: f64) -> Result<()> {
 }
 
 fn builtin_genome_track(args: Vec<Value>) -> Result<Value> {
-    let table = require_table(&args[0], "genome_track")?;
-    let opts = parse_options(&args);
-    let width = get_opt_f64(&opts, "width", 1000.0);
-    let height = get_opt_f64(&opts, "height", 300.0);
-    let title = get_opt_str(&opts, "title", "Genome Track").to_string();
-
-    // Expect columns: chrom, start, end, [name], [strand]
-    let starts = extract_table_col(table, "start")?;
-    let ends = extract_table_col(table, "end")?;
-
-    let name_idx = table.col_index("name");
-    let strand_idx = table.col_index("strand");
-
-    let global_start = starts.iter().cloned().fold(f64::INFINITY, f64::min);
-    let global_end = ends.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-
-    let mut canvas = SvgCanvas::new(width, height);
-    canvas.margin.top = 50.0;
-    canvas.margin.bottom = 40.0;
-
-    let x_scale = Scale {
-        domain: (global_start, global_end),
-        range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
-    };
-
-    // Draw backbone
-    let track_y = canvas.margin.top + canvas.plot_height() / 2.0;
-    canvas.add_line(
-        canvas.margin.left,
-        track_y,
-        canvas.margin.left + canvas.plot_width(),
-        track_y,
-        "#ccc",
-        2.0,
-    );
-
-    // Draw features
-    let feature_h = 16.0;
-    for i in 0..starts.len() {
-        let x1 = x_scale.map(starts[i]);
-        let x2 = x_scale.map(ends[i]);
-        let w = (x2 - x1).max(2.0);
-        let color = PALETTE[i % PALETTE.len()];
-
-        // Alternate vertical position to avoid overlap
-        let y_off = if i % 2 == 0 { -feature_h - 2.0 } else { 4.0 };
-        canvas.add_rect(x1, track_y + y_off, w, feature_h, color);
-
-        // Direction arrow if strand info exists
-        if let Some(si) = strand_idx {
-            if let Value::Str(s) = &table.rows[i][si] {
-                let arrow_x = if s == "+" { x2 } else { x1 };
-                let arrow_y = track_y + y_off + feature_h / 2.0;
-                let dx = if s == "+" { 6.0 } else { -6.0 };
-                canvas.elements.push(format!(
-                    r#"<polygon points="{:.1},{:.1} {:.1},{:.1} {:.1},{:.1}" fill="{color}" />"#,
-                    arrow_x,
-                    arrow_y,
-                    arrow_x + dx,
-                    arrow_y - 4.0,
-                    arrow_x + dx,
-                    arrow_y + 4.0
-                ));
-            }
-        }
-
-        // Label
-        if let Some(ni) = name_idx {
-            if let Value::Str(name) = &table.rows[i][ni] {
-                canvas.add_text(x1, track_y + y_off - 2.0, name, "start", 9.0);
-            }
-        }
-    }
-
-    let d_x_scale = Scale {
-        domain: (global_start, global_end),
-        range: (global_start, global_end),
-    };
-    canvas.draw_x_axis(&d_x_scale, &axis_label(&opts, "xlabel", "Position"));
-    canvas.draw_title(&title);
-
-    Ok(Value::Str(canvas.render()))
+    crate::bio_plots::builtin_genome_track(args)
 }
 
 #[cfg(test)]
 mod palette_tests {
+    use super::{estimate_text_width, PlotTheme, Scale, SvgCanvas, PALETTE};
     #[cfg(feature = "native")]
     use super::{render_svg_terminal, TerminalPlotStyle};
-    use super::{Scale, SvgCanvas, PALETTE};
     use std::collections::HashSet;
 
     // Callers index PALETTE modulo its length, so a plot with more groups than
@@ -4912,6 +7417,40 @@ mod palette_tests {
         assert!(svg.contains("aria-label=\"BioLang plot\""));
         assert!(svg.contains("<title>BioLang plot</title>"));
         assert!(svg.contains("<desc>BioLang data visualization.</desc>"));
+    }
+
+    #[test]
+    fn publication_theme_is_opt_in_and_structurally_identified() {
+        let legacy = SvgCanvas::new(320.0, 180.0).render();
+        let publication =
+            SvgCanvas::with_theme(320.0, 180.0, PlotTheme::from_name("publication")).render();
+        assert!(legacy.contains("data-biolang-theme=\"biolang\""));
+        assert!(publication.contains("data-biolang-theme=\"publication\""));
+        assert!(!legacy.contains("Arial, Helvetica"));
+    }
+
+    #[test]
+    fn adaptive_layout_reserves_room_for_wide_tick_labels() {
+        let theme = PlotTheme::from_name("publication");
+        let mut short = SvgCanvas::with_theme(500.0, 320.0, theme);
+        short.fit_cartesian_layout(&[0.0, 1.0], &[0.0, 1.0], "x", "y", "t", "", "", 0.0);
+        let mut wide = SvgCanvas::with_theme(500.0, 320.0, theme);
+        wide.fit_cartesian_layout(
+            &[0.0, 1.0],
+            &[10_000_000.0, 90_000_000.0],
+            "x",
+            "y",
+            "t",
+            "",
+            "",
+            0.0,
+        );
+        assert!(wide.margin.left > short.margin.left);
+    }
+
+    #[test]
+    fn text_measurement_distinguishes_narrow_and_wide_labels() {
+        assert!(estimate_text_width("MMMM", 12.0) > estimate_text_width("iiii", 12.0) * 2.0);
     }
 }
 

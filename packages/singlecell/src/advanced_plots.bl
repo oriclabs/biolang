@@ -222,7 +222,13 @@ fn plot_group_heatmap(obj, genes, groups, title = "Mean expression by group") {
         })
         {... _base._record_of(levels, values), gene: gene}
     })
-    clustered_heatmap(table(rows), {title: title})
+    let grouped_matrix = matrix_from_table(table(rows), levels)
+    clustered_heatmap(grouped_matrix, {
+        title: title, subtitle: "Mean expression by group",
+        caption: "Rows and columns use deterministic nearest-neighbour ordering",
+        legend_title: "mean expression", row_labels: present,
+        col_labels: levels, theme: "publication"
+    })
 }
 
 fn _de_xy_svg(data, xs, ys, title, x_label, y_label, fc_cutoff, padj_cutoff) {

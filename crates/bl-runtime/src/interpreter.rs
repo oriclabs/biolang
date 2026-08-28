@@ -29,6 +29,10 @@ use std::sync::Arc;
 /// Raising this without also raising the stack size reintroduces the crash.
 const MAX_CALL_DEPTH: usize = 600;
 
+fn virtual_module_path(key: &str) -> PathBuf {
+    PathBuf::from(format!("<virtual>/{key}.bl"))
+}
+
 /// Iterator adapter that receives values from a generator thread via mpsc channel.
 struct GeneratorIterator {
     rx: std::sync::mpsc::Receiver<Value>,
@@ -53,6 +57,8 @@ pub struct Interpreter {
     declared_const: bool,
     /// Cache of loaded modules: canonical path → exported (name, value) pairs
     loaded_modules: HashMap<PathBuf, HashMap<String, Value>>,
+    /// Source modules supplied by an embedding front end without a filesystem.
+    virtual_modules: HashMap<String, String>,
     /// Set of modules currently being loaded (for circular import detection)
     loading_modules: HashSet<PathBuf>,
     /// Path of the currently executing file (for relative import resolution)
@@ -129,6 +135,7 @@ impl Interpreter {
             env,
             declared_const: false,
             loaded_modules: HashMap::new(),
+            virtual_modules: HashMap::new(),
             loading_modules: HashSet::new(),
             current_file: None,
             output_buffer: None,
@@ -146,6 +153,7 @@ impl Interpreter {
             env,
             declared_const: false,
             loaded_modules: HashMap::new(),
+            virtual_modules: HashMap::new(),
             loading_modules: HashSet::new(),
             current_file: None,
             output_buffer: None,
@@ -164,6 +172,31 @@ impl Interpreter {
 
     pub fn env_mut(&mut self) -> &mut Environment {
         &mut self.env
+    }
+
+    /// Canonical source paths imported by this interpreter run.
+    /// The CLI hashes these paths in reproducible run records.
+    pub fn loaded_module_paths(&self) -> Vec<PathBuf> {
+        let mut paths = self
+            .loaded_modules
+            .keys()
+            .filter(|path| {
+                !path
+                    .to_string_lossy()
+                    .replace('\\', "/")
+                    .starts_with("<virtual>/")
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        paths.sort();
+        paths
+    }
+
+    /// Register an in-memory BioLang module. Registrations survive `reset`;
+    /// evaluated exports and user variables do not.
+    pub fn register_virtual_module(&mut self, path: &str, source: &str) {
+        self.virtual_modules
+            .insert(path.replace('\\', "/"), source.to_string());
     }
 
     /// Reset the interpreter to a fresh state (re-register builtins, clear user vars).
@@ -568,45 +601,45 @@ impl Interpreter {
             Stmt::Import { path, alias } => {
                 #[cfg(feature = "native")]
                 {
-                    match self.resolve_module_path(path, Some(stmt.span)) {
-                        Ok(resolved) => {
-                            let exports = self.load_module(&resolved, Some(stmt.span))?;
-                            if let Some(alias_name) = alias {
-                                self.env
-                                    .define(alias_name.clone(), Value::Record((exports).into()));
-                            } else {
-                                for (name, value) in exports {
-                                    self.env.define(name, value);
+                    let virtual_key = path.replace('\\', "/");
+                    let exports = if self.virtual_modules.contains_key(&virtual_key) {
+                        self.load_virtual_module(path, Some(stmt.span))?
+                    } else {
+                        match self.resolve_module_path(path, Some(stmt.span)) {
+                            Ok(resolved) => self.load_module(&resolved, Some(stmt.span))?,
+                            Err(_) => {
+                                // Fall back to plugin resolution.
+                                let exports = crate::plugins::load_plugin(path)?;
+                                if exports.is_empty() {
+                                    return Err(BioLangError::import_error(
+                                        format!("module or plugin '{path}' not found"),
+                                        Some(stmt.span),
+                                    ));
                                 }
+                                exports
                             }
                         }
-                        Err(_) => {
-                            // Fall back to plugin resolution
-                            let exports = crate::plugins::load_plugin(path)?;
-                            if exports.is_empty() {
-                                return Err(BioLangError::import_error(
-                                    format!("module or plugin '{path}' not found"),
-                                    Some(stmt.span),
-                                ));
-                            }
-                            if let Some(alias_name) = alias {
-                                self.env
-                                    .define(alias_name.clone(), Value::Record((exports).into()));
-                            } else {
-                                for (name, value) in exports {
-                                    self.env.define(name, value);
-                                }
-                            }
+                    };
+                    if let Some(alias_name) = alias {
+                        self.env
+                            .define(alias_name.clone(), Value::Record((exports).into()));
+                    } else {
+                        for (name, value) in exports {
+                            self.env.define(name, value);
                         }
                     }
                 }
                 #[cfg(not(feature = "native"))]
                 {
-                    let _ = (path, alias);
-                    return Err(BioLangError::import_error(
-                        "import is not available in browser mode",
-                        Some(stmt.span),
-                    ));
+                    let exports = self.load_virtual_module(path, Some(stmt.span))?;
+                    if let Some(alias_name) = alias {
+                        self.env
+                            .define(alias_name.clone(), Value::Record((exports).into()));
+                    } else {
+                        for (name, value) in exports {
+                            self.env.define(name, value);
+                        }
+                    }
                 }
                 #[allow(unreachable_code)]
                 Ok(Value::Nil)
@@ -930,7 +963,12 @@ impl Interpreter {
                 // Re-load from cache and bind only the requested names.
                 #[cfg(feature = "native")]
                 {
-                    let canonical = self.resolve_module_path(path, Some(stmt.span))?;
+                    let virtual_key = path.replace('\\', "/");
+                    let canonical = if self.virtual_modules.contains_key(&virtual_key) {
+                        virtual_module_path(&virtual_key)
+                    } else {
+                        self.resolve_module_path(path, Some(stmt.span))?
+                    };
                     if let Some(exports) = self.loaded_modules.get(&canonical).cloned() {
                         for name in names {
                             if let Some(val) = exports.get(name) {
@@ -1311,6 +1349,72 @@ impl Interpreter {
         self.loaded_modules
             .insert(resolved.clone(), exports.clone());
 
+        Ok(exports)
+    }
+
+    /// Load a module registered by an embedding without consulting the
+    /// filesystem. Native and WASM hosts share this path.
+    fn load_virtual_module(
+        &mut self,
+        import_path: &str,
+        span: Option<bl_core::span::Span>,
+    ) -> Result<HashMap<String, Value>> {
+        let key = import_path.replace('\\', "/");
+        let resolved = virtual_module_path(&key);
+        if let Some(exports) = self.loaded_modules.get(&resolved) {
+            return Ok(exports.clone());
+        }
+        if self.loading_modules.contains(&resolved) {
+            return Err(BioLangError::import_error(
+                format!("circular import detected: '{key}'"),
+                span,
+            ));
+        }
+        let source = self.virtual_modules.get(&key).cloned().ok_or_else(|| {
+            BioLangError::import_error(
+                format!("module '{import_path}' is not registered in this embedded interpreter"),
+                span,
+            )
+        })?;
+
+        self.loading_modules.insert(resolved.clone());
+        let result = (|| -> Result<HashMap<String, Value>> {
+            let tokens = bl_lexer::Lexer::new(&source).tokenize().map_err(|error| {
+                BioLangError::import_error(
+                    format!("in virtual module '{key}': {}", error.message),
+                    span,
+                )
+            })?;
+            let parsed = bl_parser::Parser::new(tokens).parse().map_err(|error| {
+                BioLangError::import_error(
+                    format!("in virtual module '{key}': {}", error.message),
+                    span,
+                )
+            })?;
+            if let Some(error) = parsed.errors.first() {
+                return Err(BioLangError::import_error(
+                    format!("in virtual module '{key}': {}", error.message),
+                    span,
+                ));
+            }
+
+            let previous_file = self.current_file.take();
+            self.current_file = Some(resolved.clone());
+            let previous_scope = self.env.push_scope();
+            let run_result = self.run(&parsed.program);
+            let exports = self.env.list_current_scope_vars();
+            self.env.pop_scope(previous_scope);
+            self.current_file = previous_file;
+            run_result?;
+
+            Ok(exports
+                .into_iter()
+                .filter(|(_, value)| !matches!(value, Value::NativeFunction { .. }))
+                .collect())
+        })();
+        self.loading_modules.remove(&resolved);
+        let exports = result?;
+        self.loaded_modules.insert(resolved, exports.clone());
         Ok(exports)
     }
 

@@ -18,8 +18,29 @@ thread_local! {
     /// example on a docs page broke every Run button after it until reload.
     /// With the value taken out, a panic just leaves `None` and the next call
     /// starts from a fresh interpreter.
-    static INTERPRETER: RefCell<Option<Interpreter>> = RefCell::new(Some(Interpreter::new()));
+    static INTERPRETER: RefCell<Option<Interpreter>> = RefCell::new(Some(browser_interpreter()));
     static OUTPUT_BUF: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
+}
+
+fn browser_interpreter() -> Interpreter {
+    let mut interpreter = Interpreter::new();
+    interpreter.register_virtual_module(
+        "statistics",
+        include_str!("../../../packages/statistics/src/mod.bl"),
+    );
+    interpreter.register_virtual_module(
+        "statistics/src/tests",
+        include_str!("../../../packages/statistics/src/tests.bl"),
+    );
+    interpreter.register_virtual_module(
+        "statistics/src/correction",
+        include_str!("../../../packages/statistics/src/correction.bl"),
+    );
+    interpreter.register_virtual_module(
+        "statistics/src/explore",
+        include_str!("../../../packages/statistics/src/explore.bl"),
+    );
+    interpreter
 }
 
 // JavaScript binding for synchronous XHR fetch
@@ -63,12 +84,26 @@ pub fn init() {
     install_fetch_hooks();
 }
 
+/// Register an optional in-memory package supplied by the embedding page.
+///
+/// Modules supplied through this function remain outside the BioLang WASM
+/// artifact. The default browser interpreter separately embeds the small core
+/// statistics modules that are available without registration.
+#[wasm_bindgen]
+pub fn register_module(path: &str, source: &str) {
+    INTERPRETER.with(|cell| {
+        let mut slot = cell.borrow_mut();
+        let interpreter = slot.get_or_insert_with(browser_interpreter);
+        interpreter.register_virtual_module(path, source);
+    });
+}
+
 /// Take the interpreter out of thread-local storage, creating a fresh one if a
 /// previous call panicked and never put it back.
 fn take_interpreter() -> Interpreter {
     INTERPRETER
         .with(|c| c.borrow_mut().take())
-        .unwrap_or_default()
+        .unwrap_or_else(browser_interpreter)
 }
 
 fn put_interpreter(interp: Interpreter) {
@@ -210,7 +245,7 @@ pub fn reset() {
         let mut slot = c.borrow_mut();
         match slot.as_mut() {
             Some(i) => i.reset(),
-            None => *slot = Some(Interpreter::new()),
+            None => *slot = Some(browser_interpreter()),
         }
     });
 }

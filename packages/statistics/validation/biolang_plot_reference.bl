@@ -52,6 +52,116 @@ let air_linear_fit = linear_fit_data(
     {at: [5, 6, 7, 8, 9], confidence: 0.95}
 )
 
+let clinical_survival_input = table([
+    {time: 1, event: 1, arm: "control"},
+    {time: 2, event: 0, arm: "control"},
+    {time: 2, event: 1, arm: "control"},
+    {time: 1, event: 0, arm: "treated"},
+    {time: 3, event: 1, arm: "treated"},
+    {time: 4, event: 0, arm: "treated"}
+])
+let clinical_survival_spec = kaplan_meier(clinical_survival_input, {
+    group: "arm", format: "spec"
+})
+let clinical_survival_steps = clinical_survival_spec.data
+    |> filter(|row| row.step_index > 0)
+let clinical_roc_spec = roc_curve(table([
+    {score: 0.9, label: 1}, {score: 0.8, label: 1},
+    {score: 0.8, label: 0}, {score: 0.1, label: 0}
+]), {format: "spec"})
+let clinical_forest_spec = forest_plot(table([
+    {study: "Trial A", ratio: 0.72, lower: 0.51, upper: 1.01, precision: 4},
+    {study: "Trial B", ratio: 1.18, lower: 0.94, upper: 1.49, precision: 9}
+]), {
+    label: "study", estimate: "ratio", weight: "precision",
+    scale: "log", format: "spec"
+})
+
+let genomic_manhattan_spec = manhattan(table([
+    {chrom: "chr2", pos: 200, pvalue: 0.01},
+    {chrom: "chr1", pos: 100, pvalue: 1e-9},
+    {chrom: "chr2", pos: 50, pvalue: 0.5}
+]), {format: "spec"})
+let genetic_qq_spec = qq_plot([0.5, 0.01, 1e-5, 0.2], {
+    confidence: 0.95, envelope: true, format: "spec"
+})
+let genomic_rainfall_spec = rainfall(table([
+    {chrom: "chr2", pos: 100},
+    {chrom: "chr1", pos: 10},
+    {chrom: "chr2", pos: 100},
+    {chrom: "chr2", pos: 400},
+    {chrom: "chr1", pos: 30}
+]), {format: "spec"})
+let genomic_ideogram_spec = ideogram(table([
+    {chrom: "chr2", start: 50, end: 100, band: "q11", stain: "gpos75"},
+    {chrom: "chr1", start: 0, end: 200, band: "p11", stain: "acen"},
+    {chrom: "chr2", start: 0, end: 50, band: "p11", stain: "gneg"}
+]), {format: "spec"})
+let genomic_cnv_spec = cnv_plot(table([
+    {chrom: "chr2", start: 100, end: 200, log2ratio: 0.7},
+    {chrom: "chr1", start: 0, end: 50, log2ratio: -0.4},
+    {chrom: "chr2", start: 0, end: 100, log2ratio: 0.05}
+]), {loss_threshold: -0.25, gain_threshold: 0.25, format: "spec"})
+let genomic_coverage_spec = coverage_track(table([
+    {chrom: "chr1", start: 20, end: 40, coverage: 8},
+    {chrom: "chr1", start: 0, end: 20, coverage: 3},
+    {chrom: "chr1", start: 40, end: 80, coverage: 5}
+]), {region_start: 10, region_end: 60, format: "spec"})
+
+let regional_genome_spec = genome_track(table([
+    {chrom: "chr1", start: 100, end: 200, name: "B", strand: "+"},
+    {chrom: "chr1", start: 50, end: 120, name: "A", strand: "-"},
+    {chrom: "chr1", start: 200, end: 250, name: "C", strand: "."}
+]), {region_start: 75, region_end: 225, format: "spec"})
+let regional_lollipop_spec = lollipop(table([
+    {position: 300, count: 4, label: "C"},
+    {position: 100, count: 9, label: "A"},
+    {position: 200, count: 1, label: "B"}
+]), {length: 500, format: "spec"})
+let regional_sashimi_spec = sashimi({
+    coverage: table([
+        {pos: 250, depth: 4}, {pos: 100, depth: 1}, {pos: 400, depth: 8}
+    ]),
+    junctions: table([
+        {chrom: "chr1", start: 200, end: 450, count: 25},
+        {chrom: "chr1", start: 100, end: 300, count: 100},
+        {chrom: "chr1", start: 450, end: 500, count: 4}
+    ])
+}, {format: "spec"})
+
+let circular_circos_spec = circos({
+    segments: table([
+        {chrom: "chr1", end: 100},
+        {chrom: "chr2", end: 50}
+    ]),
+    tracks: [
+        {
+            name: "coverage",
+            type: "line",
+            data: table([
+                {chrom: "chr1", pos: 10, depth: 2},
+                {chrom: "chr1", pos: 50, depth: 9},
+                {chrom: "chr2", pos: 20, depth: 4}
+            ])
+        },
+        {
+            name: "copy number",
+            type: "cnv",
+            data: table([
+                {chrom: "chr1", start: 0, end: 30, log2ratio: -0.6},
+                {chrom: "chr2", start: 5, end: 40, log2ratio: 0.8}
+            ])
+        }
+    ],
+    links: table([
+        {
+            source_chr: "chr1", source_start: 10, source_end: 20,
+            target_chr: "chr2", target_start: 30, target_end: 35,
+            count: 16
+        }
+    ])
+}, {format: "spec", gap_degrees: 3})
+
 let type7_low = box_type7.groups |> col("whisker_low")
 let type7_q1 = box_type7.groups |> col("q1")
 let type7_median = box_type7.groups |> col("median")
@@ -170,5 +280,144 @@ write_json({
         confidence_upper: air_linear_fit.data |> col("confidence_upper"),
         prediction_lower: air_linear_fit.data |> col("prediction_lower"),
         prediction_upper: air_linear_fit.data |> col("prediction_upper")
+    },
+    clinical_survival: {
+        time: clinical_survival_steps |> col("time"),
+        n_risk: clinical_survival_steps |> col("n_risk"),
+        n_event: clinical_survival_steps |> col("n_event"),
+        n_censor: clinical_survival_steps |> col("n_censor"),
+        survival: clinical_survival_steps |> col("survival"),
+        std_error: clinical_survival_steps |> col("std_error")
+    },
+    clinical_roc: {
+        auc: clinical_roc_spec.options.auc
+    },
+    clinical_forest: {
+        estimate: clinical_forest_spec.data |> col("estimate"),
+        lower: clinical_forest_spec.data |> col("lower"),
+        upper: clinical_forest_spec.data |> col("upper"),
+        weight: clinical_forest_spec.data |> col("weight")
+    },
+    genomic_manhattan: {
+        chromosome_index: genomic_manhattan_spec.data |> col("chromosome_index"),
+        offset: genomic_manhattan_spec.chromosomes |> col("offset"),
+        genome_position: genomic_manhattan_spec.data |> col("genome_position"),
+        neg_log10_p: genomic_manhattan_spec.data |> col("neg_log10_p"),
+        significant: genomic_manhattan_spec.data |> col("significant")
+    },
+    genetic_qq: {
+        rank: genetic_qq_spec.data |> col("rank"),
+        p_value: genetic_qq_spec.data |> col("p_value"),
+        expected_p: genetic_qq_spec.data |> col("expected_p"),
+        expected_neg_log10_p: genetic_qq_spec.data |> col("expected_neg_log10_p"),
+        observed_neg_log10_p: genetic_qq_spec.data |> col("observed_neg_log10_p"),
+        envelope_lower: genetic_qq_spec.data |> col("envelope_lower"),
+        envelope_upper: genetic_qq_spec.data |> col("envelope_upper"),
+        lambda_gc: genetic_qq_spec.options.lambda_gc
+    },
+    genomic_rainfall: {
+        source_row: genomic_rainfall_spec.data |> col("source_row"),
+        position: genomic_rainfall_spec.data |> col("position"),
+        previous_position: genomic_rainfall_spec.data |> col("previous_position"),
+        distance: genomic_rainfall_spec.data |> col("distance"),
+        plotted_distance: genomic_rainfall_spec.data |> col("plotted_distance"),
+        log10_distance: genomic_rainfall_spec.data |> col("log10_distance"),
+        duplicate_position: genomic_rainfall_spec.data |> col("duplicate_position")
+    },
+    genomic_ideogram: {
+        chromosome_length: genomic_ideogram_spec.chromosomes |> col("length"),
+        source_row: genomic_ideogram_spec.data |> col("source_row"),
+        chromosome_index: genomic_ideogram_spec.data |> col("chromosome_index"),
+        start: genomic_ideogram_spec.data |> col("start"),
+        end: genomic_ideogram_spec.data |> col("end"),
+        length: genomic_ideogram_spec.data |> col("length")
+    },
+    genomic_cnv: {
+        chromosome_offset: genomic_cnv_spec.chromosomes |> col("offset"),
+        source_row: genomic_cnv_spec.data |> col("source_row"),
+        chromosome_index: genomic_cnv_spec.data |> col("chromosome_index"),
+        start: genomic_cnv_spec.data |> col("start"),
+        end: genomic_cnv_spec.data |> col("end"),
+        genome_start: genomic_cnv_spec.data |> col("genome_start"),
+        genome_end: genomic_cnv_spec.data |> col("genome_end"),
+        genome_midpoint: genomic_cnv_spec.data |> col("genome_midpoint"),
+        log2ratio: genomic_cnv_spec.data |> col("log2ratio"),
+        state: genomic_cnv_spec.data |> col("state") |> map(|state| if state == "gain" { 1 } else if state == "loss" { -1 } else { 0 })
+    },
+    genomic_coverage: {
+        source_row: genomic_coverage_spec.data |> col("source_row"),
+        original_start: genomic_coverage_spec.data |> col("original_start"),
+        original_end: genomic_coverage_spec.data |> col("original_end"),
+        start: genomic_coverage_spec.data |> col("start"),
+        end: genomic_coverage_spec.data |> col("end"),
+        position: genomic_coverage_spec.data |> col("position"),
+        value: genomic_coverage_spec.data |> col("value"),
+        clipped: genomic_coverage_spec.data |> col("clipped")
+    },
+    regional_genome: {
+        source_row: regional_genome_spec.data |> col("source_row"),
+        original_start: regional_genome_spec.data |> col("original_start"),
+        original_end: regional_genome_spec.data |> col("original_end"),
+        start: regional_genome_spec.data |> col("start"),
+        end: regional_genome_spec.data |> col("end"),
+        length: regional_genome_spec.data |> col("length"),
+        lane: regional_genome_spec.data |> col("lane"),
+        clipped: regional_genome_spec.data |> col("clipped")
+    },
+    regional_lollipop: {
+        source_row: regional_lollipop_spec.data |> col("source_row"),
+        position: regional_lollipop_spec.data |> col("position"),
+        height: regional_lollipop_spec.data |> col("height"),
+        domain: [regional_lollipop_spec.options.domain_start, regional_lollipop_spec.options.domain_end],
+        y_max: regional_lollipop_spec.options.y_max
+    },
+    regional_sashimi: {
+        coverage_source_row: regional_sashimi_spec.coverage |> col("source_row"),
+        coverage_position: regional_sashimi_spec.coverage |> col("position"),
+        coverage_depth: regional_sashimi_spec.coverage |> col("depth"),
+        junction_source_row: regional_sashimi_spec.junctions |> col("source_row"),
+        junction_start: regional_sashimi_spec.junctions |> col("start"),
+        junction_end: regional_sashimi_spec.junctions |> col("end"),
+        junction_span: regional_sashimi_spec.junctions |> col("span"),
+        junction_count: regional_sashimi_spec.junctions |> col("count"),
+        junction_lane: regional_sashimi_spec.junctions |> col("lane"),
+        arc_fraction: regional_sashimi_spec.junctions |> col("arc_fraction"),
+        stroke_width: regional_sashimi_spec.junctions |> col("stroke_width"),
+        max_count: regional_sashimi_spec.options.max_count,
+        max_depth: regional_sashimi_spec.options.max_depth
+    },
+    circular_circos: {
+        segment_chromosome_index: circular_circos_spec.segments |> col("chromosome_index"),
+        segment_source_row: circular_circos_spec.segments |> col("source_row"),
+        segment_start: circular_circos_spec.segments |> col("start"),
+        segment_end: circular_circos_spec.segments |> col("end"),
+        segment_size: circular_circos_spec.segments |> col("size"),
+        segment_angle_start: circular_circos_spec.segments |> col("angle_start"),
+        segment_angle_end: circular_circos_spec.segments |> col("angle_end"),
+        track_index: circular_circos_spec.tracks |> col("track_index"),
+        track_point_index: circular_circos_spec.tracks |> col("point_index"),
+        track_source_row: circular_circos_spec.tracks |> col("source_row"),
+        track_chromosome_index: circular_circos_spec.tracks |> col("chromosome_index"),
+        track_start: circular_circos_spec.tracks |> col("start"),
+        track_end: circular_circos_spec.tracks |> col("end"),
+        track_value: circular_circos_spec.tracks |> col("value"),
+        track_angle_start: circular_circos_spec.tracks |> col("angle_start"),
+        track_angle_end: circular_circos_spec.tracks |> col("angle_end"),
+        track_radial_inner: circular_circos_spec.tracks |> col("radial_inner"),
+        track_radial_outer: circular_circos_spec.tracks |> col("radial_outer"),
+        link_index: circular_circos_spec.links |> col("link_index"),
+        link_source_row: circular_circos_spec.links |> col("source_row"),
+        link_source_chromosome_index: circular_circos_spec.links |> col("source_chromosome_index"),
+        link_source_start: circular_circos_spec.links |> col("source_start"),
+        link_source_end: circular_circos_spec.links |> col("source_end"),
+        link_target_chromosome_index: circular_circos_spec.links |> col("target_chromosome_index"),
+        link_target_start: circular_circos_spec.links |> col("target_start"),
+        link_target_end: circular_circos_spec.links |> col("target_end"),
+        link_source_angle_start: circular_circos_spec.links |> col("source_angle_start"),
+        link_source_angle_end: circular_circos_spec.links |> col("source_angle_end"),
+        link_target_angle_start: circular_circos_spec.links |> col("target_angle_start"),
+        link_target_angle_end: circular_circos_spec.links |> col("target_angle_end"),
+        link_weight: circular_circos_spec.links |> col("weight"),
+        link_stroke_width: circular_circos_spec.links |> col("stroke_width")
     }
 }, "packages/statistics/validation/results/biolang-plot.json")

@@ -51,6 +51,7 @@ pub fn singlecell_builtin_list() -> Vec<(&'static str, Arity)> {
         ("sc_subset_cells", Arity::Exact(2)),
         ("sc_subset_genes", Arity::Exact(2)),
         ("sc_merge_objects", Arity::Exact(4)),
+        ("sc_validate_object", Arity::Range(1, 2)),
         ("sc_pca", Arity::Range(1, 4)),
         ("sc_scale", Arity::Range(1, 2)),
         ("doublet_score", Arity::Range(1, 2)),
@@ -113,6 +114,7 @@ pub fn is_singlecell_builtin(name: &str) -> bool {
             | "sc_subset_cells"
             | "sc_subset_genes"
             | "sc_merge_objects"
+            | "sc_validate_object"
             | "sc_pca"
             | "sc_scale"
             | "doublet_score"
@@ -166,6 +168,7 @@ pub fn call_singlecell_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "sc_subset_cells" => builtin_sc_subset_cells(args),
         "sc_subset_genes" => builtin_sc_subset_genes(args),
         "sc_merge_objects" => builtin_sc_merge_objects(args),
+        "sc_validate_object" => builtin_sc_validate_object(args),
         "sc_pca" => builtin_sc_pca(args),
         "sc_scale" => builtin_sc_scale(args),
         "doublet_score" => builtin_doublet_score(args),
@@ -205,6 +208,896 @@ fn to_f64(v: &Value) -> Option<f64> {
         Value::Int(n) => Some(*n as f64),
         _ => None,
     }
+}
+
+#[derive(Debug)]
+struct ObjectValidationIssue {
+    code: &'static str,
+    path: String,
+    message: String,
+}
+
+#[derive(Default)]
+struct ObjectValidation {
+    errors: Vec<ObjectValidationIssue>,
+    warnings: Vec<ObjectValidationIssue>,
+    checked_fields: Vec<String>,
+}
+
+impl ObjectValidation {
+    fn error(&mut self, code: &'static str, path: impl Into<String>, message: impl Into<String>) {
+        self.errors.push(ObjectValidationIssue {
+            code,
+            path: path.into(),
+            message: message.into(),
+        });
+    }
+
+    fn warning(&mut self, code: &'static str, path: impl Into<String>, message: impl Into<String>) {
+        self.warnings.push(ObjectValidationIssue {
+            code,
+            path: path.into(),
+            message: message.into(),
+        });
+    }
+
+    fn checked(&mut self, path: impl Into<String>) {
+        self.checked_fields.push(path.into());
+    }
+}
+
+fn validation_issue_value(issue: ObjectValidationIssue) -> Value {
+    Value::Record(
+        HashMap::from([
+            ("code".to_string(), Value::Str(issue.code.to_string())),
+            ("path".to_string(), Value::Str(issue.path)),
+            ("message".to_string(), Value::Str(issue.message)),
+        ])
+        .into(),
+    )
+}
+
+/// Read dimensions without materialising or copying a potentially huge count matrix.
+fn validation_matrix_shape(value: &Value) -> std::result::Result<(usize, usize), String> {
+    match value {
+        Value::Matrix(matrix) => Ok((matrix.nrow, matrix.ncol)),
+        Value::SparseMatrix(matrix) => Ok((matrix.nrow, matrix.ncol)),
+        Value::List(rows) => {
+            let Some(first) = rows.first() else {
+                return Ok((0, 0));
+            };
+            let Value::List(first_cells) = first else {
+                return Err("matrix rows must be Lists".to_string());
+            };
+            let columns = first_cells.len();
+            for (row_index, row) in rows.iter().enumerate() {
+                let Value::List(cells) = row else {
+                    return Err(format!("row {row_index} is not a List"));
+                };
+                if cells.len() != columns {
+                    return Err(format!(
+                        "row {row_index} has {} columns; expected {columns}",
+                        cells.len()
+                    ));
+                }
+                if let Some(column_index) = cells.iter().position(|cell| to_f64(cell).is_none()) {
+                    return Err(format!("cell [{row_index}, {column_index}] is not numeric"));
+                }
+            }
+            Ok((rows.len(), columns))
+        }
+        _ => Err("expected Matrix, SparseMatrix, or List<List<Number>>".to_string()),
+    }
+}
+
+fn validation_nonnegative_int(
+    object: &HashMap<String, Value>,
+    field: &str,
+    validation: &mut ObjectValidation,
+) -> Option<usize> {
+    validation.checked(field);
+    match object.get(field) {
+        Some(Value::Int(value)) if *value >= 0 => Some(*value as usize),
+        Some(_) => {
+            validation.error(
+                "invalid_count",
+                field,
+                format!("{field} must be a non-negative Int"),
+            );
+            None
+        }
+        None => {
+            validation.error(
+                "missing_field",
+                field,
+                format!("single-cell object is missing required field `{field}`"),
+            );
+            None
+        }
+    }
+}
+
+fn validation_string_axis(
+    value: Option<&Value>,
+    path: &str,
+    validation: &mut ObjectValidation,
+) -> Option<Vec<String>> {
+    validation.checked(path);
+    match value {
+        Some(Value::List(values)) => {
+            let mut result = Vec::with_capacity(values.len());
+            for (index, value) in values.iter().enumerate() {
+                match value {
+                    Value::Str(value) => result.push(value.clone()),
+                    _ => {
+                        validation.error(
+                            "invalid_axis",
+                            path,
+                            format!("{path}[{index}] must be a Str"),
+                        );
+                        return None;
+                    }
+                }
+            }
+            Some(result)
+        }
+        Some(_) => {
+            validation.error("invalid_axis", path, format!("{path} must be a List<Str>"));
+            None
+        }
+        None => None,
+    }
+}
+
+fn validation_duplicate_count(values: &[String]) -> usize {
+    let mut seen = HashSet::with_capacity(values.len());
+    values
+        .iter()
+        .filter(|value| !seen.insert(value.as_str()))
+        .count()
+}
+
+fn validation_check_matrix(
+    value: &Value,
+    path: &str,
+    expected_rows: Option<usize>,
+    allowed_columns: &[usize],
+    validation: &mut ObjectValidation,
+) -> Option<(usize, usize)> {
+    validation.checked(path);
+    match validation_matrix_shape(value) {
+        Ok((rows, columns)) => {
+            if let Some(expected) = expected_rows {
+                if rows != expected {
+                    validation.error(
+                        "cell_axis_mismatch",
+                        path,
+                        format!("{path} has {rows} rows; cell axis has {expected}"),
+                    );
+                }
+            }
+            if !allowed_columns.is_empty() && !allowed_columns.contains(&columns) {
+                let expected = allowed_columns
+                    .iter()
+                    .map(usize::to_string)
+                    .collect::<Vec<_>>()
+                    .join(" or ");
+                validation.error(
+                    "feature_axis_mismatch",
+                    path,
+                    format!("{path} has {columns} columns; expected {expected}"),
+                );
+            }
+            Some((rows, columns))
+        }
+        Err(message) => {
+            validation.error("invalid_matrix", path, format!("{path}: {message}"));
+            None
+        }
+    }
+}
+
+fn validation_list_len(value: &Value) -> Option<usize> {
+    match value {
+        Value::List(values) => Some(values.len()),
+        _ => None,
+    }
+}
+
+fn validation_check_cell_vector(
+    object: &HashMap<String, Value>,
+    field: &str,
+    n_cells: Option<usize>,
+    validation: &mut ObjectValidation,
+) {
+    let Some(value) = object.get(field) else {
+        return;
+    };
+    validation.checked(field);
+    match validation_list_len(value) {
+        Some(0) if field == "idents" => {}
+        Some(length) if n_cells.is_some_and(|expected| length != expected) => validation.error(
+            "cell_axis_mismatch",
+            field,
+            format!(
+                "{field} has {length} values; cell axis has {}",
+                n_cells.unwrap_or_default()
+            ),
+        ),
+        Some(_) => {}
+        None => validation.error(
+            "invalid_cell_field",
+            field,
+            format!("{field} must be a cell-aligned List"),
+        ),
+    }
+}
+
+fn validation_check_graph(
+    value: &Value,
+    path: &str,
+    n_cells: Option<usize>,
+    validation: &mut ObjectValidation,
+) {
+    validation.checked(path);
+    let Value::List(edges) = value else {
+        validation.error(
+            "invalid_graph",
+            path,
+            format!("{path} must be a List of edge Records"),
+        );
+        return;
+    };
+    for (position, edge) in edges.iter().enumerate() {
+        let Value::Record(edge) = edge else {
+            validation.error(
+                "invalid_graph_edge",
+                path,
+                format!("{path}[{position}] must be a Record"),
+            );
+            return;
+        };
+        for endpoint in ["source", "target"] {
+            match edge.get(endpoint) {
+                Some(Value::Int(index))
+                    if *index >= 0 && n_cells.is_some_and(|count| (*index as usize) < count) => {}
+                Some(Value::Int(index)) => {
+                    validation.error(
+                        "cell_index_out_of_bounds",
+                        path,
+                        format!("{path}[{position}].{endpoint}={index} is outside the cell axis"),
+                    );
+                    return;
+                }
+                _ => {
+                    validation.error(
+                        "invalid_graph_edge",
+                        path,
+                        format!("{path}[{position}].{endpoint} must be an Int"),
+                    );
+                    return;
+                }
+            }
+        }
+    }
+}
+
+fn validation_options(args: &[Value]) -> Result<bool> {
+    match args.get(1) {
+        None | Some(Value::Nil) => Ok(false),
+        Some(Value::Bool(strict)) => Ok(*strict),
+        Some(Value::Record(options)) => match options.get("strict") {
+            None | Some(Value::Nil) => Ok(false),
+            Some(Value::Bool(strict)) => Ok(*strict),
+            Some(_) => Err(BioLangError::type_error(
+                "sc_validate_object() option `strict` must be Bool",
+                None,
+            )),
+        },
+        Some(_) => Err(BioLangError::type_error(
+            "sc_validate_object() second argument must be Bool or Record",
+            None,
+        )),
+    }
+}
+
+fn builtin_sc_validate_object(args: Vec<Value>) -> Result<Value> {
+    let strict = validation_options(&args)?;
+    let Value::Record(object) = &args[0] else {
+        return Err(BioLangError::type_error(
+            "sc_validate_object() requires a single-cell Record",
+            None,
+        ));
+    };
+    let object = object.as_ref();
+    let mut validation = ObjectValidation::default();
+    let n_cells = validation_nonnegative_int(object, "n_cells", &mut validation);
+    let n_genes = validation_nonnegative_int(object, "n_genes", &mut validation);
+
+    let raw_shape = match object.get("matrix") {
+        Some(matrix) => validation_check_matrix(
+            matrix,
+            "matrix",
+            n_cells,
+            &n_genes.into_iter().collect::<Vec<_>>(),
+            &mut validation,
+        ),
+        None => {
+            validation.error(
+                "missing_field",
+                "matrix",
+                "single-cell object is missing required field `matrix`",
+            );
+            None
+        }
+    };
+
+    let genes = validation_string_axis(object.get("genes"), "genes", &mut validation);
+    if object.get("genes").is_none() {
+        validation.error(
+            "missing_field",
+            "genes",
+            "single-cell object is missing required field `genes`",
+        );
+    }
+    if let (Some(genes), Some(expected)) = (&genes, n_genes) {
+        if genes.len() != expected {
+            validation.error(
+                "feature_axis_mismatch",
+                "genes",
+                format!(
+                    "genes has {} names; feature axis has {expected}",
+                    genes.len()
+                ),
+            );
+        }
+        let duplicates = validation_duplicate_count(genes);
+        if duplicates > 0 {
+            validation.warning(
+                "duplicate_gene_ids",
+                "genes",
+                format!("genes contains {duplicates} duplicate name(s); use stable feature IDs when names are not unique"),
+            );
+        }
+    }
+
+    let cell_axis_field = if object.contains_key("barcodes") {
+        "barcodes"
+    } else {
+        "cells"
+    };
+    let cells = validation_string_axis(
+        object.get(cell_axis_field),
+        cell_axis_field,
+        &mut validation,
+    );
+    if object.get(cell_axis_field).is_none() {
+        validation.error(
+            "missing_field",
+            "barcodes",
+            "single-cell object needs `barcodes` or the compatible alias `cells`",
+        );
+    }
+    if cell_axis_field == "cells" && cells.is_some() {
+        validation.warning(
+            "cell_axis_alias",
+            "cells",
+            "using compatible `cells` alias; BioLang singlecell objects normally call this field `barcodes`",
+        );
+    }
+    if let (Some(cells), Some(expected)) = (&cells, n_cells) {
+        if cells.len() != expected {
+            validation.error(
+                "cell_axis_mismatch",
+                cell_axis_field,
+                format!(
+                    "{cell_axis_field} has {} names; cell axis has {expected}",
+                    cells.len()
+                ),
+            );
+        }
+        let duplicates = validation_duplicate_count(cells);
+        if duplicates > 0 {
+            validation.error(
+                "duplicate_cell_ids",
+                cell_axis_field,
+                format!("{cell_axis_field} contains {duplicates} duplicate identifier(s)"),
+            );
+        }
+    }
+
+    if let Some(Value::Record(layers)) = object.get("layers") {
+        for (name, layer) in layers.iter() {
+            validation_check_matrix(
+                layer,
+                &format!("layers.{name}"),
+                n_cells,
+                &n_genes.into_iter().collect::<Vec<_>>(),
+                &mut validation,
+            );
+        }
+    } else if object.contains_key("layers") {
+        validation.error(
+            "invalid_layers",
+            "layers",
+            "layers must be a Record of matrices",
+        );
+    }
+
+    let hvg_len = object.get("hvg").and_then(validation_list_len);
+    let hvg_genes = if object.contains_key("hvg_genes") {
+        validation_string_axis(object.get("hvg_genes"), "hvg_genes", &mut validation)
+    } else {
+        None
+    };
+    let hvg_genes_len = hvg_genes.as_ref().map(Vec::len);
+    if hvg_len.is_some() && hvg_genes_len.is_none() {
+        validation.error(
+            "missing_feature_mapping",
+            "hvg_genes",
+            "hvg requires hvg_genes so selected matrix columns retain feature identity",
+        );
+    }
+    if hvg_len.is_none() && hvg_genes_len.is_some() {
+        validation.error(
+            "missing_feature_mapping",
+            "hvg",
+            "hvg_genes requires original-axis indices in hvg",
+        );
+    }
+    if let Some(Value::List(indices)) = object.get("hvg") {
+        validation.checked("hvg");
+        let mut seen = HashSet::new();
+        for (position, index) in indices.iter().enumerate() {
+            match index {
+                Value::Int(index)
+                    if *index >= 0 && n_genes.is_some_and(|n| (*index as usize) < n) =>
+                {
+                    if !seen.insert(*index) {
+                        validation.error(
+                            "duplicate_feature_index",
+                            "hvg",
+                            format!("hvg repeats feature index {index}"),
+                        );
+                    }
+                }
+                Value::Int(index) => validation.error(
+                    "feature_index_out_of_bounds",
+                    "hvg",
+                    format!("hvg[{position}]={index} is outside the raw feature axis"),
+                ),
+                _ => validation.error(
+                    "invalid_feature_index",
+                    "hvg",
+                    format!("hvg[{position}] must be an Int"),
+                ),
+            }
+        }
+    } else if object.contains_key("hvg") {
+        validation.error("invalid_feature_axis", "hvg", "hvg must be a List<Int>");
+    }
+    if let (Some(indices), Some(names)) = (hvg_len, hvg_genes_len) {
+        if indices != names {
+            validation.error(
+                "feature_mapping_mismatch",
+                "hvg_genes",
+                format!("hvg has {indices} indices but hvg_genes has {names} names"),
+            );
+        }
+    }
+    if let (Some(Value::List(indices)), Some(names), Some(raw_genes)) =
+        (object.get("hvg"), hvg_genes.as_ref(), genes.as_ref())
+    {
+        for (position, (index, name)) in indices.iter().zip(names).enumerate() {
+            let Value::Int(index) = index else {
+                continue;
+            };
+            if *index < 0 {
+                continue;
+            }
+            if let Some(expected_name) = raw_genes.get(*index as usize) {
+                if expected_name != name {
+                    validation.error(
+                        "feature_identity_mismatch",
+                        "hvg_genes",
+                        format!(
+                            "hvg_genes[{position}] is `{name}`, but hvg[{position}]={index} maps to `{expected_name}` on the raw gene axis"
+                        ),
+                    );
+                }
+            }
+        }
+    }
+
+    if object.contains_key("hvg_ranked") || object.contains_key("hvg_ranked_genes") {
+        let ranked_indices = object.get("hvg_ranked");
+        let ranked_names = validation_string_axis(
+            object.get("hvg_ranked_genes"),
+            "hvg_ranked_genes",
+            &mut validation,
+        );
+        match (ranked_indices, ranked_names.as_ref(), genes.as_ref()) {
+            (Some(Value::List(indices)), Some(names), Some(raw_genes)) => {
+                validation.checked("hvg_ranked");
+                if indices.len() != names.len() {
+                    validation.error(
+                        "feature_mapping_mismatch",
+                        "hvg_ranked_genes",
+                        format!(
+                            "hvg_ranked has {} indices but hvg_ranked_genes has {} names",
+                            indices.len(),
+                            names.len()
+                        ),
+                    );
+                }
+                let mut seen = HashSet::new();
+                for (position, (index, name)) in indices.iter().zip(names).enumerate() {
+                    match index {
+                        Value::Int(index) if *index >= 0 && (*index as usize) < raw_genes.len() => {
+                            if !seen.insert(*index) {
+                                validation.error(
+                                    "duplicate_feature_index",
+                                    "hvg_ranked",
+                                    format!("hvg_ranked repeats feature index {index}"),
+                                );
+                            }
+                            let expected = &raw_genes[*index as usize];
+                            if expected != name {
+                                validation.error(
+                                    "feature_identity_mismatch",
+                                    "hvg_ranked_genes",
+                                    format!(
+                                        "hvg_ranked_genes[{position}] is `{name}`, but index {index} maps to `{expected}`"
+                                    ),
+                                );
+                            }
+                        }
+                        Value::Int(index) => validation.error(
+                            "feature_index_out_of_bounds",
+                            "hvg_ranked",
+                            format!(
+                                "hvg_ranked[{position}]={index} is outside the raw feature axis"
+                            ),
+                        ),
+                        _ => validation.error(
+                            "invalid_feature_index",
+                            "hvg_ranked",
+                            format!("hvg_ranked[{position}] must be an Int"),
+                        ),
+                    }
+                }
+            }
+            (Some(_), None, _) => validation.error(
+                "missing_feature_mapping",
+                "hvg_ranked_genes",
+                "hvg_ranked requires hvg_ranked_genes",
+            ),
+            (None, Some(_), _) => validation.error(
+                "missing_feature_mapping",
+                "hvg_ranked",
+                "hvg_ranked_genes requires hvg_ranked",
+            ),
+            (Some(_), Some(_), _) => validation.error(
+                "invalid_feature_axis",
+                "hvg_ranked",
+                "hvg_ranked must be a List<Int>",
+            ),
+            (None, None, _) => {}
+        }
+    }
+
+    let selected_columns = match (hvg_len, hvg_genes_len) {
+        (Some(indices), Some(names)) if indices == names => Some(indices),
+        _ => None,
+    };
+    for field in ["norm_matrix", "hvg_matrix", "scaled_matrix"] {
+        let Some(matrix) = object.get(field) else {
+            continue;
+        };
+        let mut allowed = Vec::new();
+        if field != "hvg_matrix" {
+            if let Some(n_genes) = n_genes {
+                allowed.push(n_genes);
+            }
+        } else if let Some(selected) = hvg_len {
+            allowed.push(selected);
+        }
+        if let Some(selected) = selected_columns {
+            if !allowed.contains(&selected) {
+                allowed.push(selected);
+            }
+        }
+        validation_check_matrix(matrix, field, n_cells, &allowed, &mut validation);
+    }
+    if let Some(selected) = selected_columns {
+        for field in ["sct_theta", "sct_intercept", "sct_residual_variance"] {
+            let Some(value) = object.get(field) else {
+                continue;
+            };
+            validation.checked(field);
+            match value {
+                Value::List(values) if values.len() != selected => validation.error(
+                    "feature_axis_mismatch",
+                    field,
+                    format!(
+                        "{field} has {} values; selected feature axis has {selected}",
+                        values.len()
+                    ),
+                ),
+                Value::List(values) if values.iter().any(|value| to_f64(value).is_none()) => {
+                    validation.error(
+                        "invalid_feature_field",
+                        field,
+                        format!("{field} must contain only numbers"),
+                    )
+                }
+                Value::List(_) => {}
+                _ => validation.error(
+                    "invalid_feature_field",
+                    field,
+                    format!("{field} must be a feature-aligned List"),
+                ),
+            }
+        }
+    }
+
+    if let Some(Value::Record(assays)) = object.get("assays") {
+        for (assay_name, assay) in assays.iter() {
+            let Value::Record(assay) = assay else {
+                validation.error(
+                    "invalid_assay",
+                    format!("assays.{assay_name}"),
+                    "assay must be a Record",
+                );
+                continue;
+            };
+            let variable_feature_path = format!("assays.{assay_name}.variable_features");
+            let feature_count = if assay.contains_key("variable_features") {
+                validation_string_axis(
+                    assay.get("variable_features"),
+                    &variable_feature_path,
+                    &mut validation,
+                )
+                .map(|features| features.len())
+            } else {
+                None
+            };
+            if let Some(Value::Record(layers)) = assay.get("layers") {
+                for (layer_name, layer) in layers.iter() {
+                    let mut allowed = n_genes.into_iter().collect::<Vec<_>>();
+                    if let Some(feature_count) = feature_count {
+                        if !allowed.contains(&feature_count) {
+                            allowed.push(feature_count);
+                        }
+                    }
+                    validation_check_matrix(
+                        layer,
+                        &format!("assays.{assay_name}.layers.{layer_name}"),
+                        n_cells,
+                        &allowed,
+                        &mut validation,
+                    );
+                }
+            } else if assay.contains_key("layers") {
+                validation.error(
+                    "invalid_layers",
+                    format!("assays.{assay_name}.layers"),
+                    "assay layers must be a Record of matrices",
+                );
+            }
+        }
+    } else if object.contains_key("assays") {
+        validation.error("invalid_assays", "assays", "assays must be a Record");
+    }
+    if let Some(active_assay) = object.get("active_assay") {
+        validation.checked("active_assay");
+        match (active_assay, object.get("assays")) {
+            (Value::Str(name), Some(Value::Record(assays))) if assays.contains_key(name) => {}
+            (Value::Str(name), Some(Value::Record(_))) => validation.error(
+                "unknown_active_assay",
+                "active_assay",
+                format!("active_assay is `{name}`, but assays has no field with that name"),
+            ),
+            (Value::Str(_), None) => validation.error(
+                "missing_assays",
+                "active_assay",
+                "active_assay is set but assays is missing",
+            ),
+            (Value::Str(_), Some(_)) => {}
+            _ => validation.error(
+                "invalid_active_assay",
+                "active_assay",
+                "active_assay must be a Str",
+            ),
+        }
+    }
+
+    if let Some(Value::Record(reductions)) = object.get("reductions") {
+        for (name, reduction) in reductions.iter() {
+            let Value::Record(reduction) = reduction else {
+                validation.error(
+                    "invalid_reduction",
+                    format!("reductions.{name}"),
+                    "reduction must be a Record",
+                );
+                continue;
+            };
+            if let Some(embeddings) = reduction.get("embeddings") {
+                validation_check_matrix(
+                    embeddings,
+                    &format!("reductions.{name}.embeddings"),
+                    n_cells,
+                    &[],
+                    &mut validation,
+                );
+            }
+        }
+    } else if object.contains_key("reductions") {
+        validation.error(
+            "invalid_reductions",
+            "reductions",
+            "reductions must be a Record",
+        );
+    }
+    for field in [
+        "pca_scores",
+        "integrated_embedding",
+        "analysis_embedding",
+        "lsi_scores",
+    ] {
+        if let Some(matrix) = object.get(field) {
+            validation_check_matrix(matrix, field, n_cells, &[], &mut validation);
+        }
+    }
+    if let Some(Value::Record(graphs)) = object.get("graphs") {
+        for (name, graph) in graphs.iter() {
+            validation_check_graph(graph, &format!("graphs.{name}"), n_cells, &mut validation);
+        }
+    } else if object.contains_key("graphs") {
+        validation.error("invalid_graphs", "graphs", "graphs must be a Record");
+    }
+    if let Some(graph) = object.get("knn") {
+        validation_check_graph(graph, "knn", n_cells, &mut validation);
+    }
+
+    for field in [
+        "barcodes",
+        "cells",
+        "clusters",
+        "idents",
+        "batch",
+        "pseudotime",
+        "doublet_scores",
+    ] {
+        if field != cell_axis_field {
+            validation_check_cell_vector(object, field, n_cells, &mut validation);
+        }
+    }
+    for (field, expected) in [("obs", n_cells), ("var", n_genes)] {
+        if let Some(value) = object.get(field) {
+            validation.checked(field);
+            match value {
+                Value::Table(table) if expected.is_some_and(|n| table.num_rows() != n) => {
+                    validation.error(
+                        if field == "obs" {
+                            "cell_axis_mismatch"
+                        } else {
+                            "feature_axis_mismatch"
+                        },
+                        field,
+                        format!(
+                            "{field} has {} rows; expected {}",
+                            table.num_rows(),
+                            expected.unwrap_or_default()
+                        ),
+                    );
+                }
+                Value::Table(_) => {}
+                _ => validation.error(
+                    "invalid_annotation_table",
+                    field,
+                    format!("{field} must be a Table"),
+                ),
+            }
+        }
+    }
+
+    validation.checked_fields.sort();
+    validation.checked_fields.dedup();
+    let ok = validation.errors.is_empty();
+    if strict && !ok {
+        let details = validation
+            .errors
+            .iter()
+            .take(5)
+            .map(|issue| format!("{}: {}", issue.path, issue.message))
+            .collect::<Vec<_>>()
+            .join("; ");
+        return Err(BioLangError::runtime(
+            ErrorKind::AssertionFailed,
+            format!("invalid single-cell object: {details}"),
+            None,
+        ));
+    }
+
+    let dimensions = HashMap::from([
+        (
+            "matrix_rows".to_string(),
+            raw_shape.map_or(Value::Nil, |shape| Value::Int(shape.0 as i64)),
+        ),
+        (
+            "matrix_columns".to_string(),
+            raw_shape.map_or(Value::Nil, |shape| Value::Int(shape.1 as i64)),
+        ),
+        (
+            "declared_cells".to_string(),
+            n_cells.map_or(Value::Nil, |value| Value::Int(value as i64)),
+        ),
+        (
+            "declared_genes".to_string(),
+            n_genes.map_or(Value::Nil, |value| Value::Int(value as i64)),
+        ),
+    ]);
+    let axes = HashMap::from([
+        ("cells".to_string(), Value::Str(cell_axis_field.to_string())),
+        ("features".to_string(), Value::Str("genes".to_string())),
+        (
+            "selected_features".to_string(),
+            selected_columns.map_or(Value::Nil, |value| Value::Int(value as i64)),
+        ),
+    ]);
+    let error_count = validation.errors.len();
+    let warning_count = validation.warnings.len();
+    Ok(Value::Record(
+        HashMap::from([
+            (
+                "schema".to_string(),
+                Value::Str("biolang.singlecell.validation/v1".to_string()),
+            ),
+            ("ok".to_string(), Value::Bool(ok)),
+            ("error_count".to_string(), Value::Int(error_count as i64)),
+            (
+                "warning_count".to_string(),
+                Value::Int(warning_count as i64),
+            ),
+            (
+                "errors".to_string(),
+                Value::List(
+                    validation
+                        .errors
+                        .into_iter()
+                        .map(validation_issue_value)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ),
+            (
+                "warnings".to_string(),
+                Value::List(
+                    validation
+                        .warnings
+                        .into_iter()
+                        .map(validation_issue_value)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ),
+            (
+                "checked_fields".to_string(),
+                Value::List(
+                    validation
+                        .checked_fields
+                        .into_iter()
+                        .map(Value::Str)
+                        .collect::<Vec<_>>()
+                        .into(),
+                ),
+            ),
+            ("dimensions".to_string(), Value::Record(dimensions.into())),
+            ("axes".to_string(), Value::Record(axes.into())),
+        ])
+        .into(),
+    ))
 }
 
 fn require_matrix(val: &Value, func: &str) -> Result<Vec<Vec<f64>>> {

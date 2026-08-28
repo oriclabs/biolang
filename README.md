@@ -146,7 +146,7 @@ Expand-Archive biolang.zip -DestinationPath .
 
 ### From source
 
-Needs Rust 1.75 or newer.
+Needs Rust 1.82 or newer.
 
 ```bash
 cargo install --git https://github.com/oriclabs/biolang bl-cli
@@ -179,6 +179,12 @@ bl run analysis.bl
 # Interactive REPL
 bl repl
 
+# Discover and explicitly download registered data
+bl data search "single cell" --category teaching
+bl data info oriclabs/nhanes-bdsr-teaching
+bl data fetch oriclabs/nhanes-bdsr-teaching
+bl data path oriclabs/nhanes-bdsr-teaching
+
 # Plot previews: auto, unicode, ascii, file, open, raw, or none
 # `auto` draws in a terminal and leaves redirected output as SVG
 bl --plot ascii
@@ -199,6 +205,42 @@ bl version
 # Upgrade to the latest release
 bl upgrade
 ```
+
+### Reproducible recorded runs
+
+For an analysis you may need to rerun, review, or describe in a methods
+section, declare its inputs and outputs and save a machine-readable run record:
+
+```bash
+bl --no-gpu run analysis.bl \
+  --record results/run.json \
+  --input data/filtered_feature_bc_matrix \
+  --output results/clusters.tsv \
+  --param resolution=0.8 \
+  --param label=treated \
+  --seed 42
+```
+
+Parameters retain JSON types and are read inside the script without editing it:
+
+```biolang
+let resolution = run_param("resolution", 0.8)
+let label = run_param("label", "sample")
+```
+
+Recorded parameters are stored verbatim. Do not pass passwords, tokens, or
+other secrets with `--param`; use the environment or a credential provider.
+
+The `biolang.run/v1` JSON records hashes for the script, imported BioLang
+modules, executable, declared inputs, declared outputs, and nearest
+`biolang.toml`, together with typed parameters, seed, CPU/GPU decision,
+BioLang version, elapsed time, and peak resident memory. Missing declared
+inputs stop the script before it can create outputs; a missing declared output
+makes the completed run fail its postflight check.
+Input discovery is deliberately explicit: a path is tracked only when passed
+with `--input`. Keep the record beside, rather than inside, any declared input
+or output directory; otherwise writing it would invalidate that directory's
+hash and the CLI rejects the layout.
 
 ### Hello FASTQ
 

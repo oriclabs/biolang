@@ -349,3 +349,37 @@ fn dot_plot_refuses_labels_that_do_not_match() {
     let short = Value::List(vec![Value::Int(0)].into());
     assert!(call_bio_plots_builtin("dot_plot", vec![counts(), short]).is_err());
 }
+
+#[test]
+fn publication_dot_plot_survives_notebook_and_journal_widths() {
+    for width in [321_i64, 680, 800] {
+        let svg = dot_svg(vec![
+            ("theme", Value::Str("publication".to_string())),
+            ("width", Value::Int(width)),
+            ("height", Value::Int(360)),
+            ("title", Value::Str("Marker expression".to_string())),
+            ("subtitle", Value::Str("Known cell groups".to_string())),
+            ("caption", Value::Str("Area is detection rate".to_string())),
+        ]);
+        assert!(svg.contains(&format!("width=\"{width}\"")));
+        assert!(svg.contains("data-biolang-theme=\"publication\""));
+        assert!(svg.contains(">Known cell groups<"));
+        assert!(svg.contains(">Area is detection rate<"));
+        assert!(svg.contains(">% detected<"));
+        assert!(svg.contains(">z-score<"));
+        assert!(svg.contains("#e5e7eb"), "matrix guides are absent");
+        assert!(!svg.contains("NaN"));
+        assert!(!svg.contains("inf"));
+    }
+}
+
+#[test]
+fn publication_dot_plot_uses_a_zero_centred_diverging_guide() {
+    let svg = dot_svg(vec![("theme", Value::Str("publication".to_string()))]);
+    assert!(svg.contains("#3b4cc0"), "negative z-score blue is absent");
+    assert!(svg.contains("#b40426"), "positive z-score red is absent");
+    assert!(
+        svg.contains("#f7f7f7"),
+        "the neutral z-score midpoint is absent"
+    );
+}

@@ -10,6 +10,65 @@ println("=== Basic Plot ===")
 println("SVG length:", len(p), "chars")
 # save_svg(p,"results/p.svg")
 
+# ── Publication theme ──
+# The historical default remains available. Opt in when a figure needs
+# text-aware margins, a journal-style title block, subtle grids and an external
+# legend. SVG remains the source, so dense data can rasterise without turning
+# axes and labels into pixels.
+let curves = table(range(0, 25) |> map(|i| {
+    {time: i, control: 2.0 + float(i) * 0.18,
+     treated: 2.0 + float(i) * 0.29}
+}))
+let paper = plot(curves, {
+    type: "line", x: "time", y: ["control", "treated"],
+    title: "Treatment response", subtitle: "Mean signal across 25 time points",
+    caption: "BioLang example", xlabel: "Time (hours)", ylabel: "Signal (a.u.)",
+    theme: "publication", width: 720, height: 440
+})
+println("Publication SVG length:", len(paper))
+# save_svg(paper, "results/treatment-response.svg")
+
+# Publication violin: the KDE and median are the same as the default renderer;
+# the theme adds a journal-style title block, guides and adaptive group labels.
+let measurements = [
+    {group: "control", value: 1.0}, {group: "control", value: 1.2},
+    {group: "control", value: 1.4}, {group: "treated", value: 2.1},
+    {group: "treated", value: 2.4}, {group: "treated", value: 2.8}
+]
+let paper_violin = violin_plot(measurements, {
+    theme: "publication", title: "Signal distribution",
+    subtitle: "Control and treated samples", caption: "Line marks the median",
+    width: 680, height: 420
+})
+println("Publication violin SVG length:", len(paper_violin))
+let violin_spec = violin_plot(measurements, {
+    format: "spec", theme: "publication", title: "Signal distribution",
+    subtitle: "Control and treated samples", caption: "Line marks the median",
+    width: 680, height: 420
+})
+println("Violin KDE grid rows:", nrow(violin_spec.data))
+println("Violin exact replay:", paper_violin == render_plot(violin_spec))
+
+# Publication single-cell dot plot: area is the detected-cell fraction; colour
+# is the per-gene mean expression z-score, centred on neutral white at zero.
+let marker_counts = matrix([
+    [4.0, 0.0, 0.2], [3.8, 0.0, 0.3], [0.0, 4.1, 0.2],
+    [0.0, 3.9, 0.3], [0.0, 0.0, 3.5], [0.0, 0.0, 3.8]
+])
+let paper_dots = dot_plot(marker_counts, ["T", "T", "B", "B", "NK", "NK"], {
+    genes: ["CD3D", "MS4A1", "NKG7"], theme: "publication",
+    title: "Marker expression", subtitle: "Three illustrative cell groups",
+    caption: "Dot area: detection; colour: z-score", width: 680, height: 360
+})
+println("Publication dot plot SVG length:", len(paper_dots))
+let dot_spec = dot_plot(marker_counts, ["T", "T", "B", "B", "NK", "NK"], {
+    format: "spec", genes: ["CD3D", "MS4A1", "NKG7"], theme: "publication",
+    title: "Marker expression", subtitle: "Three illustrative cell groups",
+    caption: "Dot area: detection; colour: z-score", width: 680, height: 360
+})
+println("Dot-plot summary rows:", nrow(dot_spec.data))
+println("Dot plot exact replay:", paper_dots == render_plot(dot_spec))
+
 # ── Histogram ──
 # histogram(values, opts?) -> SVG
 let data = [2.1, 3.5, 2.8, 4.1, 3.2, 2.5, 3.8, 4.5, 3.0, 2.9, 3.3, 4.0]
@@ -30,6 +89,59 @@ let hm = heatmap({data: m, title: "Correlation Matrix"})
 println("\n=== Heatmap ===")
 println("SVG length:", len(hm))
 # save_svg(hm,"results/hm.svg")
+
+# Signed data automatically receives a zero-centred diverging scale in the
+# publication theme. Input order remains unchanged unless cluster: true is
+# explicitly requested (that option sorts rows by their mean).
+let signed = matrix([
+    [-2.0, -0.4, 1.5],
+    [-1.0,  0.2, 2.1],
+    [ 0.1,  1.0, 2.8]
+])
+let paper_heatmap = heatmap(signed, {
+    theme: "publication", title: "Expression changes",
+    subtitle: "Signed values share a neutral zero", caption: "Rows retain input order",
+    row_labels: ["TP53", "BRCA1", "EGFR"],
+    col_labels: ["control", "treated", "recovery"],
+    legend_title: "z-score", width: 680, height: 420
+})
+println("Publication heatmap SVG length:", len(paper_heatmap))
+let heatmap_spec = heatmap(signed, {
+    format: "spec", theme: "publication", title: "Expression changes",
+    subtitle: "Signed values share a neutral zero", caption: "Rows retain input order",
+    row_labels: ["TP53", "BRCA1", "EGFR"],
+    col_labels: ["control", "treated", "recovery"],
+    legend_title: "z-score", width: 680, height: 420
+})
+println("Heatmap colour domain:", heatmap_spec.options.scale_min, heatmap_spec.options.scale_max)
+println("Heatmap exact replay:", paper_heatmap == render_plot(heatmap_spec))
+
+# Hierarchical clustering is explicit so existing clustered_heatmap output does
+# not change silently. The SVG draws both dendrograms and records its exact
+# distance, linkage, leaf order and merge heights in machine-readable metadata.
+let hierarchy = clustered_heatmap(signed, {
+    format: "svg", theme: "publication", order: "hierarchical",
+    distance: "euclidean", linkage: "complete", dendrogram: "both",
+    title: "Hierarchical marker panel",
+    subtitle: "Complete linkage on Euclidean distances",
+    caption: "Method and merge geometry are embedded in the SVG",
+    row_labels: ["TP53", "BRCA1", "EGFR"],
+    col_labels: ["control", "treated", "recovery"],
+    legend_title: "z-score", width: 680, height: 420
+})
+println("Hierarchical heatmap SVG length:", len(hierarchy))
+let hierarchy_spec = clustered_heatmap(signed, {
+    format: "spec", theme: "publication", order: "hierarchical",
+    distance: "euclidean", linkage: "complete", dendrogram: "both",
+    title: "Hierarchical marker panel",
+    subtitle: "Complete linkage on Euclidean distances",
+    caption: "Method and merge geometry are embedded in the SVG",
+    row_labels: ["TP53", "BRCA1", "EGFR"],
+    col_labels: ["control", "treated", "recovery"],
+    legend_title: "z-score", width: 680, height: 420
+})
+println("Hierarchical row merges:", nrow(hierarchy_spec.row_merges))
+println("Hierarchical heatmap exact replay:", hierarchy == render_plot(hierarchy_spec))
 # ── Volcano plot ──
 # volcano(data, opts?) -> SVG
 let volcano_data = table([
@@ -42,6 +154,8 @@ let volcano_data = table([
 let vp = volcano({data: volcano_data, title: "Differential Expression"})
 println("\n=== Volcano Plot ===")
 println("SVG length:", len(vp))
+let volcano_spec = volcano(volcano_data, {format: "spec"})
+println("Replay SVG length:", len(render_plot(volcano_spec)))
 # save_svg(vp, "results/vp.svg")
 
 # ── MA plot ──
@@ -56,20 +170,209 @@ let ma_data = table([
 let mp = ma_plot({data: ma_data, title: "MA Plot"})
 println("\n=== MA Plot ===")
 println("SVG length:", len(mp))
+let ma_spec = ma_plot(ma_data, {format: "spec"})
+println("Replay SVG length:", len(render_plot(ma_spec)))
 # save_svg(mp, "results/maplot.svg")
 
 # ── Genome track ──
-# genome_track(data, opts?) -> SVG
+# genome_track(data, opts?) -> SVG or an inspectable/replayable PlotSpec
 let track_data = table([
-    {chrom: "chr1", start: 1000, end: 5000, name: "gene_A", score: 100},
-    {chrom: "chr1", start: 3000, end: 7000, name: "gene_B", score: 80},
-    {chrom: "chr1", start: 8000, end: 10000, name: "gene_C", score: 60}
+    {chrom: "chr1", start: 1000, end: 5000, name: "gene_A", strand: "+"},
+    {chrom: "chr1", start: 3000, end: 7000, name: "gene_B", strand: "-"},
+    {chrom: "chr1", start: 8000, end: 10000, name: "gene_C", strand: "+"}
 ])
-let gt = genome_track({data: track_data, title: "Genomic Region"})
+let gt = genome_track(track_data, {title: "Genomic Region", theme: "publication"})
+let gt_spec = genome_track(track_data, {
+    title: "Genomic Region", theme: "publication", format: "spec"
+})
 println("\n=== Genome Track ===")
 println("SVG length:", len(gt))
+println("Feature lanes:", gt_spec.options.lane_count)
+println("Exact replay:", gt == render_plot(gt_spec))
 # save_svg(gt,"results/gt.svg")
+
+# ── Inspectable genomic-association plots ──
+# Chromosome order is first-observed and frozen with cumulative offsets.
+let association_data = table([
+    {chrom: "chr2", pos: 200, pvalue: 0.01},
+    {chrom: "chr1", pos: 100, pvalue: 1e-9},
+    {chrom: "chr2", pos: 50, pvalue: 0.5}
+])
+let manhattan_svg = manhattan(association_data, {
+    theme: "publication", title: "Association scan"
+})
+let manhattan_spec = manhattan(association_data, {
+    format: "spec", theme: "publication", title: "Association scan"
+})
+println("Manhattan variants:", nrow(manhattan_spec.data))
+println("Manhattan chromosomes:", nrow(manhattan_spec.chromosomes))
+println("Manhattan exact replay:", manhattan_svg == render_plot(manhattan_spec))
+
+# This is the genetic p-value Q-Q diagnostic, not the normal-data Q-Q plot.
+# The exact beta order-statistic envelope is opt-in because it is expensive for
+# millions of tests; expected positions and lambda GC are always calculated.
+let association_p = [0.5, 0.01, 1e-5, 0.2]
+let genetic_qq_svg = qq_plot(association_p, {
+    envelope: true, theme: "publication", title: "P-value calibration"
+})
+let genetic_qq_spec = qq_plot(association_p, {
+    format: "spec", envelope: true, theme: "publication",
+    title: "P-value calibration"
+})
+println("Genetic Q-Q lambda GC:", genetic_qq_spec.options.lambda_gc)
+println("Genetic Q-Q exact replay:", genetic_qq_svg == render_plot(genetic_qq_spec))
+
+# Duplicate positions retain a raw zero distance and separately record the
+# positive display floor applied before log10.
+let mutations = table([
+    {chrom: "chr2", pos: 100}, {chrom: "chr1", pos: 10},
+    {chrom: "chr2", pos: 100}, {chrom: "chr2", pos: 400},
+    {chrom: "chr1", pos: 30}
+])
+let rainfall_svg = rainfall(mutations, {
+    theme: "publication", title: "Mutation spacing"
+})
+let rainfall_spec = rainfall(mutations, {
+    format: "spec", theme: "publication", title: "Mutation spacing"
+})
+println("Rainfall distance rows:", nrow(rainfall_spec.data))
+println("Rainfall exact replay:", rainfall_svg == render_plot(rainfall_spec))
+
+# Cytobands share one coordinate scale, so a shorter chromosome remains
+# visibly shorter. Standard stains, including the centromere, are retained.
+let cytobands = table([
+    {chrom: "chr2", start: 0, end: 50, band: "p11", stain: "gneg"},
+    {chrom: "chr2", start: 50, end: 100, band: "q11", stain: "gpos75"},
+    {chrom: "chr1", start: 0, end: 80, band: "p11", stain: "gneg"},
+    {chrom: "chr1", start: 80, end: 120, band: "cen", stain: "acen"},
+    {chrom: "chr1", start: 120, end: 200, band: "q11", stain: "gpos50"}
+])
+let ideogram_svg = ideogram(cytobands, {
+    theme: "publication", title: "Chromosome structure"
+})
+let ideogram_spec = ideogram(cytobands, {
+    format: "spec", theme: "publication", title: "Chromosome structure"
+})
+println("Ideogram bands:", nrow(ideogram_spec.data))
+println("Ideogram exact replay:", ideogram_svg == render_plot(ideogram_spec))
+
+# CNV segments retain their actual interval bounds. Thresholds classify the
+# segment for colour; they do not alter its measured log2 ratio.
+let cnv_segments = table([
+    {chrom: "chr2", start: 0, end: 100, log2ratio: 0.05},
+    {chrom: "chr2", start: 100, end: 200, log2ratio: 0.7},
+    {chrom: "chr1", start: 0, end: 50, log2ratio: -0.4}
+])
+let cnv_svg = cnv_plot(cnv_segments, {
+    theme: "publication", loss_threshold: -0.25, gain_threshold: 0.25
+})
+let cnv_spec = cnv_plot(cnv_segments, {
+    format: "spec", theme: "publication",
+    loss_threshold: -0.25, gain_threshold: 0.25
+})
+println("CNV segments:", nrow(cnv_spec.data))
+println("CNV exact replay:", cnv_svg == render_plot(cnv_spec))
+
+# Region selection uses interval overlap. The first and last intervals are
+# clipped to the requested window instead of being discarded by midpoint.
+let coverage_bins = table([
+    {chrom: "chr1", start: 0, end: 20, coverage: 3},
+    {chrom: "chr1", start: 20, end: 40, coverage: 8},
+    {chrom: "chr1", start: 40, end: 80, coverage: 5}
+])
+let coverage_svg = coverage_track(coverage_bins, {
+    theme: "publication", region_start: 10, region_end: 60
+})
+let coverage_spec = coverage_track(coverage_bins, {
+    format: "spec", theme: "publication", region_start: 10, region_end: 60
+})
+println("Coverage intervals:", nrow(coverage_spec.data))
+println("Coverage clipped intervals:", coverage_spec.provenance.clipped_rows)
+println("Coverage exact replay:", coverage_svg == render_plot(coverage_spec))
 
 # ── Save to file ──
 # save_svg(gt, "results/genome_track.svg")
 # save_svg(vp, "results/volcano.svg")
+
+# ── Inspectable clinical plots ──
+# Survival geometry records the risk set before each tied time, simultaneous
+# events/censors, product-limit survival and Greenwood standard error.
+let survival_data = table([
+    {time: 1.0, event: 1, arm: "control"},
+    {time: 2.0, event: 0, arm: "control"},
+    {time: 2.0, event: 1, arm: "control"},
+    {time: 1.0, event: 0, arm: "treated"},
+    {time: 3.0, event: 1, arm: "treated"},
+    {time: 4.0, event: 0, arm: "treated"}
+])
+let survival_svg = kaplan_meier(survival_data, {
+    group: "arm", theme: "publication", title: "Time to recovery"
+})
+let survival_spec = kaplan_meier(survival_data, {
+    format: "spec", group: "arm", theme: "publication",
+    title: "Time to recovery"
+})
+println("Survival step rows:", nrow(survival_spec.data))
+println("Survival exact replay:", survival_svg == render_plot(survival_spec))
+
+# Equal raw scores are one threshold, so their observations enter the confusion
+# matrix together and cannot change AUC when the input rows are reordered.
+let classifier = table([
+    {score: 0.9, label: 1}, {score: 0.8, label: 1},
+    {score: 0.8, label: 0}, {score: 0.1, label: 0}
+])
+let roc_svg = roc_curve(classifier, {
+    theme: "publication", title: "Classifier accuracy"
+})
+let roc_spec = roc_curve(classifier, {
+    format: "spec", theme: "publication", title: "Classifier accuracy"
+})
+println("ROC AUC:", roc_spec.options.auc)
+println("ROC threshold rows:", nrow(roc_spec.data))
+println("ROC exact replay:", roc_svg == render_plot(roc_spec))
+
+# A log scale is appropriate for positive ratios. The neutral reference is 1,
+# and marker area is proportional to the optional precision weight.
+let trials = table([
+    {study: "Trial A", ratio: 0.72, lower: 0.51, upper: 1.01, precision: 4.0},
+    {study: "Trial B", ratio: 1.18, lower: 0.94, upper: 1.49, precision: 9.0}
+])
+let forest_svg = forest_plot(trials, {
+    label: "study", estimate: "ratio", weight: "precision", scale: "log",
+    theme: "publication", title: "Treatment effect"
+})
+let forest_spec = forest_plot(trials, {
+    format: "spec", label: "study", estimate: "ratio",
+    weight: "precision", scale: "log", theme: "publication",
+    title: "Treatment effect"
+})
+println("Forest intervals:", nrow(forest_spec.data))
+println("Forest reference:", forest_spec.options.reference)
+println("Forest exact replay:", forest_svg == render_plot(forest_spec))
+
+# ── Multi-panel publication figure ──
+# plot_grid keeps each child plot intact, gives every panel the same cell size,
+# and freezes the composition so a saved figure can be replayed exactly.
+let figure_legend = table([
+    {label: "decreased", color: "#3B74B2"},
+    {label: "increased", color: "#D65F5F"}
+])
+let figure = plot_grid([vp, forest_svg], {
+    columns: 2, title: "Evidence overview", panel_labels: ["A", "B"],
+    shared_xlabel: "effect scale", legend: figure_legend,
+    width: 1100, height: 520
+})
+let figure_spec = plot_grid([vp, forest_svg], {
+    format: "spec", columns: 2, title: "Evidence overview",
+    panel_labels: ["A", "B"], shared_xlabel: "effect scale",
+    legend: figure_legend, width: 1100, height: 520
+})
+println("Composed panels:", nrow(figure_spec.panels))
+println("Composition exact replay:", figure == render_plot(figure_spec))
+
+# Publication SVG uses physical dimensions while retaining its vector viewBox.
+# PNG accepts either scale or an exact target DPI, but never both together.
+# save_svg(figure_spec, "results/evidence.svg", {
+#     profile: "publication", width_mm: 180, height_mm: 85, font: "sans"
+# })
+# save_png(figure_spec, "results/evidence-300dpi.png", {dpi: 300})
