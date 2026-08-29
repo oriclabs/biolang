@@ -355,3 +355,139 @@ fn labels_are_measured_with_real_font_metrics() {
         narrow_panel - wide_panel
     );
 }
+
+/// `geom_point()` is opaque at a 2.6px radius: `size = 1.5` with `stroke =
+/// 0.5` works out to that radius at 96dpi, and `alpha` is unset unless asked
+/// for. Both were silently changeable before this test existed.
+#[test]
+fn scatter_points_carry_the_ggplot_marker_size_and_opacity() {
+    let rendered = two_group_scatter(&[]);
+    let data_points = rendered
+        .split("<circle ")
+        .skip(1)
+        .filter(|fragment| fragment.contains("r=\"2.6\""))
+        .count();
+    assert!(
+        data_points >= 60,
+        "expected every observation drawn at r=2.6, got {data_points}"
+    );
+    assert!(
+        rendered.contains("r=\"2.6\" fill=\"#f8766d\" opacity=\"1.00\""),
+        "geom_point is opaque unless alpha is set"
+    );
+
+    // `alpha` is the escape hatch, and it has to actually reach the marks.
+    let faded = two_group_scatter(&[("alpha", Value::Float(0.35))]);
+    assert!(
+        faded.contains("opacity=\"0.35\""),
+        "the alpha option should reach the points"
+    );
+}
+
+/// ggplot2 draws points in data order, so neither group sits on top of the
+/// other where they overlap. Emitting one whole group and then the next is a
+/// different picture from the same numbers.
+#[test]
+fn points_are_drawn_in_data_order_not_grouped_by_series() {
+    // The helper alternates female/male row by row, so a data-order draw
+    // alternates colours and a grouped draw does not.
+    let rendered = two_group_scatter(&[]);
+    let fills: Vec<&str> = rendered
+        .split("<circle ")
+        .skip(1)
+        .filter(|fragment| fragment.contains("r=\"2.6\""))
+        .filter_map(|fragment| {
+            fragment
+                .split("fill=\"")
+                .nth(1)
+                .and_then(|rest| rest.split('"').next())
+        })
+        .collect();
+    assert!(fills.len() >= 60, "expected the full point cloud");
+    let changes = fills.windows(2).filter(|pair| pair[0] != pair[1]).count();
+    assert!(
+        changes > fills.len() / 2,
+        "colours should alternate with the rows ({changes} changes across {} points); \
+         one change means each group was emitted as a block",
+        fills.len()
+    );
+}
+
+/// A `fixed` facet bins every panel against one set of edges.
+///
+/// Bar pixel width cannot tell the two modes apart: under `free_x` each panel
+/// is scaled to its own domain, so ten bins fill the panel either way. What
+/// changes is how many bins a group actually occupies - and that is the point
+/// of a shared scale, that a narrow group looks narrow.
+#[test]
+fn a_fixed_facet_bins_every_panel_against_the_same_edges() {
+    // One group covering 0..79, another covering 0..790. Shared edges put the
+    // narrow group into a couple of bins at the left; per-panel edges spread
+    // it across all ten.
+    let mut values = Vec::new();
+    let mut labels = Vec::new();
+    for index in 0..80 {
+        values.push(f64::from(index));
+        labels.push("narrow");
+    }
+    for index in 0..80 {
+        values.push(f64::from(index) * 10.0);
+        labels.push("wide");
+    }
+
+    let bar_count = |scales: &str| -> usize {
+        let rendered = svg(call_stats_builtin(
+            "stats_facet_plot",
+            vec![
+                numbers(&values),
+                strings(&labels),
+                options(&[
+                    ("bins", Value::Int(10)),
+                    ("columns", Value::Int(2)),
+                    ("scales", Value::Str(scales.into())),
+                ]),
+            ],
+        )
+        .expect("facet plot failed"));
+        rendered
+            .split("<rect ")
+            .skip(1)
+            .filter(|fragment| fragment.contains("fill=\"#595959\""))
+            .count()
+    };
+
+    let fixed = bar_count("fixed");
+    let free = bar_count("free_x");
+    assert!(
+        fixed < free,
+        "a shared scale should collapse the narrow group into fewer bins \
+         ({fixed} bars) than binning each panel separately ({free} bars)"
+    );
+    assert!(
+        fixed <= 12,
+        "the narrow group should occupy only the leftmost shared bins, got {fixed} bars total"
+    );
+}
+
+/// The legacy marker opacity still governs everything that has not been moved
+/// onto an explicit alpha: the boxplot's jitter overlay, and every biological
+/// figure. Changing it silently restyles those, so it is pinned here even
+/// though it is not a ggplot2 value.
+#[test]
+fn the_legacy_marker_opacity_is_pinned_at_070() {
+    let values: Vec<f64> = (0..30).map(f64::from).collect();
+    let labels = vec!["a"; 30];
+    let rendered = svg(call_stats_builtin(
+        "stats_group_plot",
+        vec![
+            numbers(&values),
+            strings(&labels),
+            options(&[("points", Value::Str("jitter".into()))]),
+        ],
+    )
+    .expect("group plot failed"));
+    assert!(
+        rendered.contains("opacity=\"0.70\""),
+        "the jitter overlay draws through add_circle's 0.7 default"
+    );
+}
