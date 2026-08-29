@@ -89,10 +89,11 @@ const MUTATIONS = [
   {
     name: "per-group fit range",
     file: STATS,
-    find:
-      "let minimum = group.xs.iter().copied().min_by(f64::total_cmp).unwrap();\n" +
-      "        let maximum = group.xs.iter().copied().max_by(f64::total_cmp).unwrap();",
-    replace: "let minimum = 0.0_f64;\n        let maximum = 100.0_f64;",
+    // The fit must span each group's own x range unless `fullrange` asks
+    // otherwise. Making it always span the axis is fullrange = TRUE applied
+    // by accident.
+    find: "let (minimum, maximum) = if full_range {",
+    replace: "let (minimum, maximum) = if true {",
   },
   {
     name: "facet shared bins",

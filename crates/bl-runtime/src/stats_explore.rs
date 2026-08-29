@@ -4078,6 +4078,29 @@ fn plot_format(opts: &HashMap<String, Value>) -> &str {
     opts.get("format").and_then(Value::as_str).unwrap_or("svg")
 }
 
+/// An explicit axis range, as ggplot2's `xlim()`/`ylim()` give one.
+///
+/// `nil` in either slot keeps the data-driven end, which is what `xlim(0, NA)`
+/// means. The result still gets the usual 5% expansion, so the axis behaves
+/// like every other axis once the limit is applied.
+fn requested_limits(
+    opts: &HashMap<String, Value>,
+    key: &str,
+) -> Option<(Option<f64>, Option<f64>)> {
+    let Some(Value::List(items)) = opts.get(key) else {
+        return None;
+    };
+    if items.len() != 2 {
+        return None;
+    }
+    let read = |value: &Value| match value {
+        Value::Int(number) => Some(*number as f64),
+        Value::Float(number) if number.is_finite() => Some(*number),
+        _ => None,
+    };
+    Some((read(&items[0]), read(&items[1])))
+}
+
 fn padded_domain(minimum: f64, maximum: f64) -> (f64, f64) {
     let span = maximum - minimum;
     let padding = if span.abs() <= f64::EPSILON {
@@ -4249,8 +4272,24 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         .get("confidence")
         .and_then(Value::as_float)
         .unwrap_or(0.95);
-    let observed_min_x = xs.iter().copied().min_by(f64::total_cmp).unwrap();
-    let observed_max_x = xs.iter().copied().max_by(f64::total_cmp).unwrap();
+    let data_min_x = xs.iter().copied().min_by(f64::total_cmp).unwrap();
+    let data_max_x = xs.iter().copied().max_by(f64::total_cmp).unwrap();
+    let limits = requested_limits(&opts, "x_limits");
+    // `fullrange` draws the fit across the whole axis rather than the observed
+    // data, which is `geom_smooth(fullrange = TRUE)`. Combined with an explicit
+    // lower limit it reproduces the classic warning against extrapolation.
+    let (observed_min_x, observed_max_x) = if opts
+        .get("fullrange")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        (
+            limits.and_then(|(low, _)| low).unwrap_or(data_min_x),
+            limits.and_then(|(_, high)| high).unwrap_or(data_max_x),
+        )
+    } else {
+        (data_min_x, data_max_x)
+    };
     let fit_at = (0..=100)
         .map(|index| observed_min_x + (observed_max_x - observed_min_x) * index as f64 / 100.0)
         .collect::<Vec<_>>();
@@ -4310,7 +4349,10 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         .and_then(Value::as_float)
         .unwrap_or(500.0)
         .max(360.0);
-    let x_domain = padded_domain(observed_min_x, observed_max_x);
+    let x_domain = padded_domain(
+        limits.and_then(|(low, _)| low).unwrap_or(data_min_x),
+        limits.and_then(|(_, high)| high).unwrap_or(data_max_x),
+    );
     let mut observed_min_y = ys.iter().copied().min_by(f64::total_cmp).unwrap();
     let mut observed_max_y = ys.iter().copied().max_by(f64::total_cmp).unwrap();
     if interval != "none" {
@@ -4563,6 +4605,25 @@ fn grouped_relationship_diagnostic_plot(
     opts: &HashMap<String, Value>,
 ) -> Result<Value> {
     let (groups, excluded) = complete_grouped_pairs(x, y, groups)?;
+    let full_range = opts
+        .get("fullrange")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    // The axis range has to be settled before the fits, because `fullrange`
+    // fits across it.
+    let observed_low = groups
+        .iter()
+        .flat_map(|group| group.xs.iter().copied())
+        .fold(f64::INFINITY, f64::min);
+    let observed_high = groups
+        .iter()
+        .flat_map(|group| group.xs.iter().copied())
+        .fold(f64::NEG_INFINITY, f64::max);
+    let limits = requested_limits(&opts, "x_limits");
+    let axis_range = (
+        limits.and_then(|(low, _)| low).unwrap_or(observed_low),
+        limits.and_then(|(_, high)| high).unwrap_or(observed_high),
+    );
     let interval = opts
         .get("interval")
         .and_then(Value::as_str)
@@ -4595,8 +4656,18 @@ fn grouped_relationship_diagnostic_plot(
                 None,
             ));
         }
-        let minimum = group.xs.iter().copied().min_by(f64::total_cmp).unwrap();
-        let maximum = group.xs.iter().copied().max_by(f64::total_cmp).unwrap();
+        // ggplot2 fits each group across its own x range. `fullrange` opts
+        // into extending the line over the whole axis instead, which is what
+        // `geom_smooth(fullrange = TRUE)` does - and what a lesson needs in
+        // order to show why extrapolating is a bad idea.
+        let (minimum, maximum) = if full_range {
+            axis_range
+        } else {
+            (
+                group.xs.iter().copied().min_by(f64::total_cmp).unwrap(),
+                group.xs.iter().copied().max_by(f64::total_cmp).unwrap(),
+            )
+        };
         let at = (0..=100)
             .map(|index| minimum + (maximum - minimum) * index as f64 / 100.0)
             .collect::<Vec<_>>();
@@ -4689,8 +4760,12 @@ fn grouped_relationship_diagnostic_plot(
         .iter()
         .flat_map(|group| group.data.ys.iter().copied())
         .collect::<Vec<_>>();
-    let minimum_x = all_x.iter().copied().min_by(f64::total_cmp).unwrap();
-    let maximum_x = all_x.iter().copied().max_by(f64::total_cmp).unwrap();
+    let minimum_x = limits
+        .and_then(|(low, _)| low)
+        .unwrap_or_else(|| all_x.iter().copied().min_by(f64::total_cmp).unwrap());
+    let maximum_x = limits
+        .and_then(|(_, high)| high)
+        .unwrap_or_else(|| all_x.iter().copied().max_by(f64::total_cmp).unwrap());
     let mut minimum_y = all_y.iter().copied().min_by(f64::total_cmp).unwrap();
     let mut maximum_y = all_y.iter().copied().max_by(f64::total_cmp).unwrap();
     if interval != "none" {
@@ -7242,6 +7317,90 @@ fn linear_diagnostics(args: Vec<Value>) -> Result<Value> {
     Ok(linear_diagnostic_record(&facts, include_values))
 }
 
+/// The rows a diagnostic actually plotted, so an aesthetic can be lined up
+/// with them.
+///
+/// `complete_pairs` drops incomplete rows without recording which, so a colour
+/// or size list handed in whole would silently shift against the points as
+/// soon as x or y had a gap. This recomputes the same mask and the caller
+/// checks the length, turning a silent misalignment into an error.
+fn complete_pair_mask(x: &Value, y: &Value) -> Vec<bool> {
+    let (Value::List(xs), Value::List(ys)) = (x, y) else {
+        return Vec::new();
+    };
+    let finite = |value: &Value| {
+        matches!(value, Value::Int(_))
+            || matches!(value, Value::Float(number) if number.is_finite())
+    };
+    xs.iter()
+        .zip(ys.iter())
+        .map(|(left, right)| finite(left) && finite(right))
+        .collect()
+}
+
+/// Keep only the entries whose row survived `complete_pair_mask`.
+fn aesthetic_for_plotted_rows(
+    value: &Value,
+    mask: &[bool],
+    plotted: usize,
+    function: &str,
+    channel: &str,
+) -> Result<Vec<Value>> {
+    let Value::List(items) = value else {
+        return Err(BioLangError::type_error(
+            format!(
+                "{function}() {channel} must be List, got {}",
+                value.type_of()
+            ),
+            None,
+        ));
+    };
+    if items.len() != mask.len() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{function}() {channel} must have one entry per observation ({} vs {})",
+                items.len(),
+                mask.len()
+            ),
+            None,
+        ));
+    }
+    let kept = items
+        .iter()
+        .zip(mask)
+        .filter_map(|(item, keep)| keep.then(|| item.clone()))
+        .collect::<Vec<_>>();
+    if kept.len() != plotted {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{function}() cannot align {channel} with the plotted points ({} vs {plotted})",
+                kept.len()
+            ),
+            None,
+        ));
+    }
+    Ok(kept)
+}
+
+/// ggplot2's `scale_size_continuous()`: area, not radius, is proportional to
+/// the value, and the default range is 1 to 6 in ggplot's size units.
+fn area_scaled_radius(value: f64, low: f64, high: f64) -> f64 {
+    const MIN_SIZE: f64 = 1.0;
+    const MAX_SIZE: f64 = 6.0;
+    // A ggplot size of 1.5 renders at a 2.6px radius, so this is the same
+    // conversion the scatter markers use.
+    const PIXELS_PER_SIZE: f64 = 2.6 / 1.5;
+    let span = high - low;
+    let fraction = if span.abs() <= f64::EPSILON {
+        0.5
+    } else {
+        (((value - low) / span).max(0.0).min(1.0)).sqrt()
+    };
+    (MIN_SIZE + fraction * (MAX_SIZE - MIN_SIZE)) * PIXELS_PER_SIZE
+}
+
 fn linear_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
     let facts = linear_facts(&args[0], &args[1], "stats_linear_diagnostic_plot")?;
     let opts = options(&args, 2, "stats_linear_diagnostic_plot")?;
@@ -7270,6 +7429,72 @@ fn linear_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
             None,
         ));
     }
+    // `col=` and `size=` as ggplot2 maps them. Both are optional; without
+    // them the plot is unchanged.
+    let mask = complete_pair_mask(&args[0], &args[1]);
+    let plotted = facts.fitted.len();
+    let mut colour_levels: Option<Vec<String>> = None;
+    let mut colour_of: Option<Vec<String>> = None;
+    let colour_title = opts
+        .get("color_title")
+        .and_then(Value::as_str)
+        .unwrap_or("group")
+        .to_string();
+    if let Some(value) = opts.get("color").or_else(|| opts.get("colour")) {
+        let kept = aesthetic_for_plotted_rows(
+            value,
+            &mask,
+            plotted,
+            "stats_linear_diagnostic_plot",
+            "color",
+        )?;
+        let mut levels = kept.iter().filter_map(category_label).collect::<Vec<_>>();
+        levels.sort();
+        levels.dedup();
+        let palette = crate::plot::hue_palette(levels.len());
+        colour_of = Some(
+            kept.iter()
+                .map(|item| {
+                    category_label(item)
+                        .and_then(|label| levels.iter().position(|level| *level == label))
+                        .map_or_else(|| "#999999".to_string(), |at| palette[at].clone())
+                })
+                .collect(),
+        );
+        colour_levels = Some(levels);
+    }
+    let mut radius_of: Option<Vec<f64>> = None;
+    if let Some(value) = opts.get("size") {
+        let kept = aesthetic_for_plotted_rows(
+            value,
+            &mask,
+            plotted,
+            "stats_linear_diagnostic_plot",
+            "size",
+        )?;
+        let numbers = kept
+            .iter()
+            .map(|item| item.as_float().filter(|number| number.is_finite()))
+            .collect::<Vec<_>>();
+        let low = numbers
+            .iter()
+            .flatten()
+            .copied()
+            .fold(f64::INFINITY, f64::min);
+        let high = numbers
+            .iter()
+            .flatten()
+            .copied()
+            .fold(f64::NEG_INFINITY, f64::max);
+        radius_of = Some(
+            numbers
+                .iter()
+                .map(|number| number.map_or(2.6, |value| area_scaled_radius(value, low, high)))
+                .collect(),
+        );
+    }
+    let right_margin = if colour_levels.is_some() { 130.0 } else { 30.0 };
+
     if plot_format(&opts) == "ascii" {
         let mut chart = ascii_scatter(
             &facts.fitted,
@@ -7317,7 +7542,7 @@ fn linear_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         .max(0.0);
     let x_scale = Scale {
         domain: padded_domain(fitted_min, fitted_max),
-        range: (65.0, width - 30.0),
+        range: (65.0, width - right_margin),
     };
     let y_scale = Scale {
         domain: padded_domain(residual_min, residual_max),
@@ -7326,7 +7551,7 @@ fn linear_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
     let theme = crate::plot::stats_plot_theme(&opts);
     let mut canvas = SvgCanvas::with_theme(width, height, theme);
     canvas.margin.left = 65.0;
-    canvas.margin.right = 30.0;
+    canvas.margin.right = right_margin;
     canvas.margin.top = 45.0;
     canvas.margin.bottom = 60.0;
     let ggplot_like = matches!(
@@ -7343,13 +7568,37 @@ fn linear_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         ("#2563eb", 3.0)
     };
     let stride = facts.fitted.len().div_ceil(10_000).max(1);
-    for (fitted, residual) in facts.fitted.iter().zip(&facts.residuals).step_by(stride) {
-        canvas.add_circle(
-            x_scale.map(*fitted),
-            y_scale.map(*residual),
-            point_radius,
-            point_fill,
+    for (index, (fitted, residual)) in facts
+        .fitted
+        .iter()
+        .zip(&facts.residuals)
+        .enumerate()
+        .step_by(stride)
+    {
+        let fill = colour_of
+            .as_ref()
+            .map_or(point_fill, |colours| colours[index].as_str());
+        let radius = radius_of
+            .as_ref()
+            .map_or(point_radius, |radii| radii[index]);
+        canvas.add_circle(x_scale.map(*fitted), y_scale.map(*residual), radius, fill);
+    }
+    // One swatch per level, in the same order the colours were assigned.
+    if let Some(levels) = colour_levels.as_ref() {
+        let legend_x = width - canvas.margin.right + 20.0;
+        canvas.add_text(
+            legend_x,
+            canvas.margin.top + 5.0,
+            colour_title.as_str(),
+            "start",
+            theme.legend_size,
         );
+        let palette = crate::plot::hue_palette(levels.len());
+        for (index, level) in levels.iter().enumerate() {
+            let y = canvas.margin.top + 28.0 + 22.0 * index as f64;
+            canvas.add_circle_with_opacity(legend_x + 5.0, y - 3.0, 3.5, &palette[index], 1.0);
+            canvas.add_text(legend_x + 18.0, y + 1.0, level, "start", theme.legend_size);
+        }
     }
     canvas.add_line(
         x_scale.map(x_scale.domain.0),

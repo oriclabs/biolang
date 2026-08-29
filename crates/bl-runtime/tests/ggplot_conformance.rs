@@ -491,3 +491,126 @@ fn the_legacy_marker_opacity_is_pinned_at_070() {
         "the jitter overlay draws through add_circle's 0.7 default"
     );
 }
+
+/// `geom_smooth(fullrange = TRUE)` with `xlim(0, NA)` is the source chapter's
+/// own warning against extrapolation, so the lesson has to be able to draw it.
+/// It is opt-in precisely because the default must not do it.
+#[test]
+fn fullrange_and_limits_reproduce_the_extrapolation_warning() {
+    let xs: Vec<f64> = (140..=200).map(f64::from).collect();
+    let ys: Vec<f64> = xs.iter().map(|x| 0.92 * x - 73.7).collect();
+
+    let render = |extra: &[(&str, Value)]| -> String {
+        let mut pairs: Vec<(&str, Value)> = vec![("interval", Value::Str("confidence".into()))];
+        pairs.extend_from_slice(extra);
+        svg(call_stats_builtin(
+            "stats_relationship_plot",
+            vec![numbers(&xs), numbers(&ys), options(&pairs)],
+        )
+        .expect("relationship plot failed"))
+    };
+    let ticks = |svg: &str| -> Vec<f64> {
+        svg.split("text-anchor=\"middle\"")
+            .skip(1)
+            .filter_map(|fragment| fragment.split('>').nth(1))
+            .filter_map(|rest| rest.split('<').next())
+            .filter_map(|text| text.parse::<f64>().ok())
+            .collect()
+    };
+
+    let plain = render(&[]);
+    let extrapolated = render(&[
+        ("fullrange", Value::Bool(true)),
+        (
+            "x_limits",
+            Value::List(vec![Value::Float(0.0), Value::Nil].into()),
+        ),
+    ]);
+    assert_ne!(plain, extrapolated, "fullrange had no effect");
+
+    let smallest = ticks(&extrapolated)
+        .into_iter()
+        .fold(f64::INFINITY, f64::min);
+    assert!(
+        smallest <= 0.0,
+        "x_limits [0, nil] should carry the axis down to zero, smallest tick was {smallest}"
+    );
+    assert!(
+        ticks(&plain).into_iter().fold(f64::INFINITY, f64::min) > 100.0,
+        "without limits the axis should still start near the data"
+    );
+}
+
+/// `aes(col = , size = )` on a residual plot, as the source chapter's
+/// multiple-regression diagnostic uses. Size scales by area, which is how
+/// ggplot2's `scale_size_continuous()` works and the only way the eye reads a
+/// size scale correctly.
+#[test]
+fn residual_plots_map_colour_and_size_like_ggplot() {
+    let xs: Vec<f64> = (0..40).map(f64::from).collect();
+    let ys: Vec<f64> = xs.iter().map(|x| x * 1.5 + (x % 5.0)).collect();
+    let groups: Vec<&str> = (0..40)
+        .map(|index| if index % 2 == 0 { "No" } else { "Yes" })
+        .collect();
+    let ages: Vec<f64> = (0..40).map(|index| 20.0 + f64::from(index)).collect();
+
+    let rendered = svg(call_stats_builtin(
+        "stats_linear_diagnostic_plot",
+        vec![
+            numbers(&xs),
+            numbers(&ys),
+            options(&[
+                ("view", Value::Str("residuals".into())),
+                ("color", strings(&groups)),
+                ("size", numbers(&ages)),
+            ]),
+        ],
+    )
+    .expect("residual plot failed"));
+
+    // Two levels, so ggplot2's two-colour hue palette.
+    assert!(rendered.contains("#f8766d") && rendered.contains("#00bfc4"));
+
+    let radii: Vec<f64> = rendered
+        .split("<circle ")
+        .skip(1)
+        .filter_map(|fragment| {
+            fragment
+                .split("r=\"")
+                .nth(1)
+                .and_then(|rest| rest.split('"').next())
+                .and_then(|value| value.parse().ok())
+        })
+        .collect();
+    let smallest = radii.iter().copied().fold(f64::INFINITY, f64::min);
+    let largest = radii.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    assert!(
+        largest > smallest * 2.0,
+        "a mapped size should vary the markers, got {smallest} to {largest}"
+    );
+}
+
+/// An aesthetic is indexed against the rows that were actually plotted, and
+/// `complete_pairs` silently drops incomplete ones. A length that cannot line
+/// up has to be an error rather than a quietly shifted figure.
+#[test]
+fn a_misaligned_aesthetic_is_refused_rather_than_shifted() {
+    let xs = numbers(&[1.0, 2.0, 3.0, 4.0, 5.0]);
+    let ys = numbers(&[2.0, 4.0, 5.0, 8.0, 11.0]);
+    let error = call_stats_builtin(
+        "stats_linear_diagnostic_plot",
+        vec![
+            xs,
+            ys,
+            options(&[
+                ("view", Value::Str("residuals".into())),
+                ("color", strings(&["a", "b"])),
+            ]),
+        ],
+    )
+    .expect_err("a short colour list should be refused");
+    assert!(
+        format!("{error}").contains("one entry per observation"),
+        "the error should say what is wrong: {error}"
+    );
+}
