@@ -184,7 +184,79 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the value, so `save_plot` and structured notebook/event clients are
   unaffected.
 
+- **Faceting with shared scales.** `stats_facet_plot(values, facets, options?)`
+  draws one panel per level of a factor against a single domain, and for a
+  histogram against a single set of bin edges. This is what `plot_grid` cannot
+  do: it composes independently rendered figures, so every panel picks its own
+  scale and the panels cannot be compared by eye. `scales: "free"`, `"free_x"`,
+  and `"free_y"` opt back out per axis; `columns` sets the grid width; panels
+  carry ggplot2-style strip labels in alphabetical level order, and only the
+  outer panels are labelled while the scale is shared.
+
+- **`theme_classic` preset.** `{theme: "classic"}` gives a white panel, no
+  gridlines, and black axis lines, for reproducing figures drawn with
+  ggplot2's `theme_classic()`.
+
+- **Marker opacity on scatter plots.** `stats_relationship_plot` takes
+  `{alpha: 0.35}`, matching `geom_point(alpha = )`, for dense clouds that
+  overplot themselves.
+
+- **Outlier and jitter modes on grouped plots.** `stats_group_plot` takes
+  `{points: "outliers" | "jitter" | "none"}`. `outliers` is ggplot2's
+  `geom_boxplot()` behaviour, `jitter` keeps the every-observation overlay, and
+  `none` draws the five-number summary alone.
+
+- **A ggplot2 conformance suite.** Every ggplot2 behaviour BioLang claims to
+  reproduce is pinned to R's own answer: `scales::hue_pal()` at each group
+  count, the grey60 `geom_smooth()` ribbon, per-group fitted-line ranges, the
+  5% scale expansion, `theme_grey` and `theme_classic`, `geom_boxplot()`
+  defaults, `bins` semantics, and text measurement. The tests were verified by
+  mutation - each behaviour was reverted in turn and the matching test had to
+  fail. A drift away from ggplot2 is now a decision, not an accident.
+
 ### Changed
+
+- **`bins` now means what it means in ggplot2, and existing histograms will
+  redraw.** ggplot2 uses a bin width of `range / (bins - 1)` with the first bin
+  centred on the minimum; BioLang cut `[min, max]` into `bins` equal parts, the
+  matplotlib and `hist(breaks = n)` reading. Same option, different bars: on
+  the NHANES BMI column at `bins: 30`, 22 of the 30 bar heights change. The
+  ggplot rule is now the default because these plots exist to reproduce
+  analyses taught in R. Pass `{bin_rule: "span"}` to restore the previous
+  behaviour exactly.
+
+- **The statistical plots default to ggplot2's appearance.** `histogram`,
+  `stats_relationship_plot`, `stats_group_plot`, `stats_linear_diagnostic_plot`
+  and the rest of the `stats_*` family now render on `theme_grey`'s grey panel
+  with white gridlines instead of BioLang's legacy palette, since they exist to
+  reproduce analyses taught in R. Biological figures are unaffected and keep
+  their own look. Pass `{theme: "biolang"}` for the previous appearance.
+
+- **Grouped plots mark outliers rather than every observation.**
+  `stats_group_plot` previously overlaid every value as a jittered point. It now
+  marks only the points beyond the whiskers, as `geom_boxplot()` does. Pass
+  `{points: "jitter"}` to restore the overlay.
+
+- **Scatter plots draw points in data order.** Each group used to be emitted as
+  a block, so the last group sat on top of every earlier one wherever they
+  overlapped. Points are now drawn in the order their rows appear, as ggplot2
+  does, and markers are opaque at ggplot2's effective radius rather than
+  translucent. Pass `{alpha: 0.7}` for the previous translucency.
+
+- **Discrete group colours are computed, not tabulated.** The palette was a
+  fixed table copied from ggplot2's output at one group count, so it was
+  correct for two groups and wrong for every other count. Colours now come from
+  the same CIE-LUV construction `scales::hue_pal()` uses, so a three-, four- or
+  six-group figure matches R. Two-group figures are unchanged.
+
+- **Text is measured from real font metrics.** Label widths came from a
+  character-class estimate that ran up to 16% wide, which inflated every margin
+  and legend box computed from it. Widths now come from the advance-width table
+  that Arial, Helvetica and Liberation Sans share, which is the font stack every
+  BioLang plot names. Margins and legends are correspondingly tighter.
+
+- **Continuous scales expand 5% per side, not 8%.** This is ggplot2's default
+  expansion. Data now fills slightly more of the panel.
 
 - **Plot status lines now go to standard error.** Where a figure was saved, why
   a preview could not be drawn, and that display is suppressed are diagnostics,
