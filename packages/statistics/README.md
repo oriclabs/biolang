@@ -19,6 +19,53 @@ let report = stat.explore(values, {name: "protein concentration"})
 stat.show(report, {detail: "learning", format: "auto"})
 ```
 
+## Start with the question, not a test name
+
+The task-first helpers are the shortest safe route for routine analyses. They
+name the method, explain why it can answer the question, list assumptions and
+alternatives, and expose the equivalent low-level BioLang call. They do not
+guess whether observations are paired or independent and they never transform
+or remove data.
+
+```biolang
+import "statistics" as stat
+
+# Welch is explicit and is the default only for this two-independent-group task.
+let result = stat.compare_groups(control, treated, {method: "welch"})
+stat.show(result, {detail: "learning", format: "auto"})
+
+# Every decision remains inspectable.
+result.method
+result.assumptions
+result.alternatives
+result.reproducible_call
+```
+
+| Scientific question | Task-first helper | Available methods |
+|---|---|---|
+| Do two independent groups differ? | `stat.compare_groups(a, b, options?)` | Welch, pooled t, Mann-Whitney, permutation |
+| Did matched measurements change? | `stat.paired_change(before, after, options?)` | paired t, paired Wilcoxon |
+| Do several groups differ? | `stat.compare_many(groups, options?)` | Welch/classical ANOVA, Kruskal-Wallis |
+| Are categories associated? | `stat.count_association(counts, options?)` | chi-square, Fisher exact |
+| Is a common odds ratio plausible across strata? | `stat.stratified_association(strata)` | Tarone-adjusted Breslow-Day |
+| How are two numeric measurements related? | `stat.numeric_relationship(x, y, options?)` | linear/Pearson, Spearman, Kendall |
+| Is there a dose-response trend? | `stat.dose_response(dose, outcome, options?)` | linear, Spearman |
+| What is survival over time? | `stat.survival_summary(time, event, options?)` | Kaplan-Meier; optional Cox model |
+| What pooled effect is supported by studies? | `stat.meta_summary(effects, variances, options?)` | fixed or random effects |
+
+From a terminal, `bl stats` lists the same questions. It can generate a
+readable notebook whose input columns and method are stated in the code:
+
+```text
+bl stats compare measurements.csv --columns control,treated --output comparison.bln
+bl notebook comparison.bln
+```
+
+Analysts who already know R function names can separately install the optional
+`rstats` compatibility package. It is a small MIT-licensed naming façade over
+BioLang primitives, not an R interpreter; new work should prefer the
+question-oriented helpers above.
+
 In the CLI, choose how SVG results are handled with `:plot ascii`,
 `:plot unicode`, `:plot file`, or `:plot open`. Use
 `stat.show(report, {format: "ascii"})` when the returned value itself must be
@@ -49,7 +96,7 @@ code. The supported formats are `auto`, `ascii`, `svg`, and `raw`.
 | `stat.shape(values, options?)` | Skewness, kurtosis, histogram-peak, and normal-Q-Q evidence without a diagnosis |
 | `stat.normal_qq_plot(values, options?)` | Normal-distribution Q-Q diagnostic, distinct from genomic `qq_plot()` |
 | `stat.group_plot(values, groups, options?)` | Group observations and robust summaries in SVG or ASCII |
-| `stat.relationship_plot(x, y, options?)` | Scatterplot and fitted line in SVG or ASCII; optional confidence or prediction band |
+| `stat.relationship_plot(x, y, options?)` | Scatterplot and fitted line in SVG or ASCII; optional grouping and confidence or prediction bands |
 | `stat.categorical_plot(values, options?)` | Frequency bars in SVG or ASCII |
 | `stat.missingness_plot(table, options?)` | Missingness map in SVG or ASCII |
 | `stat.normalization_guide(matrix, options?)` | Dense/sparse matrix audit and domain-aware normalization alternatives |
@@ -67,6 +114,16 @@ code. The supported formats are `auto`, `ascii`, `svg`, and `raw`.
 | `stat.time_series_diagnostics(values, options?)` | Trend, ACF, Ljung-Box, and first-difference clues for an ordered regular series |
 | `stat.cluster_diagnostics(values, clusters, options?)` | One-way ICC, cluster sizes, and approximate loss of independent information |
 | `stat.means(values, options?)` | Arithmetic, geometric, harmonic, trimmed, RMS, median, and mode with compatible spread guidance |
+| `stat.compare_groups(a, b, options?)` | Explicit two-group mean, rank, paired, or permutation analysis with assumptions and alternatives |
+| `stat.compare_many(groups, options?)` | Explicit several-group ANOVA or rank analysis |
+| `stat.count_association(counts, options?)` | Explicit chi-square or Fisher analysis for count tables |
+| `stat.stratified_association(strata, options?)` | Tarone-adjusted Breslow-Day homogeneity analysis for stratified 2x2 tables |
+| `stat.numeric_relationship(x, y, options?)` | Explicit linear, Pearson, Spearman, or Kendall analysis |
+| `stat.paired_change(before, after, options?)` | Paired t or signed-rank analysis without losing the pairing |
+| `stat.dose_response(dose, outcome, options?)` | Explicit linear or rank dose-response summary |
+| `stat.survival_summary(time, event, options?)` | Kaplan-Meier summary and optional Cox model |
+| `stat.meta_summary(effects, variances, options?)` | Fixed- or random-effects meta-analysis |
+| `stat.task_catalog()` | Machine-readable task, input, and method schema for CLIs and Studio |
 
 Suggestions are deterministic heuristics, not automatic scientific decisions.
 The package never removes observations or applies a transformation. It also does
@@ -80,6 +137,16 @@ stat.relationship_plot(x, y, {interval: "confidence", confidence: 0.95})
 
 # Wider uncertainty for one future observation.
 stat.relationship_plot(x, y, {interval: "prediction", confidence: 0.95})
+
+# One colour, fitted line, and band per category. String groups are ordered
+# alphabetically, so their colours remain stable when rows are reordered.
+stat.relationship_plot(x, y, {
+    group: treatment,
+    interval: "confidence",
+    confidence: 0.95,
+    legend_title: "Treatment",
+    theme: "ggplot"
+})
 
 # Inspect or export the exact coordinates without reading pixels.
 let fit = linear_fit_data(x, y, {confidence: 0.95})

@@ -1,0 +1,18 @@
+import "statistics" as stat
+
+# Ask a scientific question and state the design before selecting a method.
+let control = [12.1, 12.4, 12.8, 13.0, 13.2]
+let treated = [13.0, 13.5, 13.9, 14.2, 14.8]
+
+let comparison = stat.compare_groups(control, treated, {
+    method: "welch",
+    confidence: 0.95
+})
+
+println(stat.explain_task(comparison))
+
+# The wrapper preserves the numerical result and discloses its decisions.
+assert comparison.method.id == "welch"
+assert comparison.automatic_test_selection == false
+assert comparison.input_modified == false
+comparison.analysis

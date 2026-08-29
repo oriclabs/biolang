@@ -481,6 +481,33 @@ fn diagnostic_visuals_have_ascii_and_svg_paths() {
     assert!(
         matches!(relationship_band, Value::Str(ref svg) if svg.contains("<polygon") && svg.contains("prediction band"))
     );
+    let grouped_relationship = call_stats_builtin(
+        "stats_relationship_plot",
+        vec![
+            numbers(&[150.0, 160.0, 170.0, 155.0, 165.0, 175.0]),
+            numbers(&[50.0, 60.0, 72.0, 58.0, 70.0, 84.0]),
+            Value::Record(
+                HashMap::from([
+                    (
+                        "group".into(),
+                        strings(&["female", "female", "female", "male", "male", "male"]),
+                    ),
+                    ("interval".into(), Value::Str("confidence".into())),
+                    ("theme".into(), Value::Str("ggplot".into())),
+                    ("legend_title".into(), Value::Str("Gender".into())),
+                ])
+                .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    assert!(matches!(grouped_relationship, Value::Str(ref svg)
+        if svg.contains("#f8766d")
+            && svg.contains("#00bfc4")
+            && svg.contains("female")
+            && svg.contains("male")
+            && svg.contains("95% confidence bands")
+            && svg.contains("#ebebeb")));
     let categories = call_stats_builtin(
         "stats_categorical_plot",
         vec![strings(&["a", "b", "a"]), ascii_options],

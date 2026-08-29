@@ -1,0 +1,19 @@
+# Optional R-style names for analysts moving existing habits to BioLang.
+# This is a deliberately small compatibility facade, not an R interpreter.
+
+import "rstats/src/compat" as compat
+
+fn t_test(x, y = nil, options = ({})) { compat.t_test(x, y, options) }
+fn chisq_test(counts, options = ({})) { compat.chisq_test(counts, options) }
+fn chisq_goodness(observed, expected) { compat.chisq_goodness(observed, expected) }
+fn fisher_test(counts, options = ({})) { compat.fisher_test(counts, options) }
+fn wilcox_test(x, y, options = ({})) { compat.wilcox_test(x, y, options) }
+fn oneway_test(groups, options = ({})) { compat.oneway_test(groups, options) }
+fn aov(groups) { compat.aov(groups) }
+fn kruskal_test(groups) { compat.kruskal_test(groups) }
+fn tukey_test(groups, options = ({})) { compat.tukey(groups, options) }
+fn lm_fit(x, y) { compat.linear_model(x, y) }
+fn cor_test(x, y, options = ({})) { compat.correlation_test(x, y, options) }
+fn adjust_p(p_values, method = "BH") { compat.adjust(p_values, method) }
+fn survfit(time, event) { compat.survival_fit(time, event) }
+fn breslow_day(strata, options = ({})) { compat.breslow_day(strata, options) }

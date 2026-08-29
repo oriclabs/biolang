@@ -78,6 +78,19 @@ pub struct ChiSquareResult {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct BreslowDayResult {
+    pub common_odds_ratio: f64,
+    pub breslow_day_statistic: f64,
+    pub breslow_day_p_value: f64,
+    pub tarone_adjustment: f64,
+    pub tarone_statistic: f64,
+    pub tarone_p_value: f64,
+    pub df: usize,
+    pub expected_exposed_cases: Vec<f64>,
+    pub variances: Vec<f64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct FishersResult {
     pub odds_ratio: f64,
     pub p_value: f64,
@@ -382,6 +395,113 @@ pub fn students_t_cdf(t: f64, df: f64) -> f64 {
     } else {
         students_t_sf(-t, df)
     }
+}
+
+/// CDF of Student's noncentral t distribution.
+///
+/// This uses the standard Poisson/incomplete-beta expansion for positive
+/// ordinates and the symmetry F(t; nu, delta) = 1 - F(-t; nu, -delta).
+/// It is independent of R's implementation and is accurate in the parameter
+/// range needed by ordinary power calculations.
+pub fn noncentral_students_t_cdf(t: f64, df: f64, noncentrality: f64) -> f64 {
+    if t.is_nan() || !df.is_finite() || df <= 0.0 || !noncentrality.is_finite() {
+        return f64::NAN;
+    }
+    if t.is_infinite() {
+        return if t.is_sign_positive() { 1.0 } else { 0.0 };
+    }
+    if t == 0.0 {
+        return normal_cdf(-noncentrality);
+    }
+    if t < 0.0 {
+        return 1.0 - noncentral_students_t_cdf(-t, df, -noncentrality);
+    }
+
+    // For enormous noncentralities the target tail is already beyond f64's
+    // useful probability resolution. Avoid an exp(-delta^2/2) underflow that
+    // would otherwise make every series weight zero.
+    if noncentrality > 40.0 {
+        return 0.0;
+    }
+    if noncentrality < -40.0 {
+        return 1.0;
+    }
+
+    let lambda = 0.5 * noncentrality * noncentrality;
+    let x = t * t / (t * t + df);
+    let mut p = (-lambda).exp();
+    let mut q = p * noncentrality * (2.0 / std::f64::consts::PI).sqrt();
+    let mut sum = 0.0;
+
+    // The weights peak around lambda. Starting at zero is stable for the
+    // power-analysis range (delta is normally near z_alpha + z_power), and
+    // this generous limit also covers much more extreme inputs.
+    for j in 0..10_000usize {
+        let jf = j as f64;
+        let beta_half = regularized_incomplete_beta(x, jf + 0.5, df / 2.0);
+        let beta_one = regularized_incomplete_beta(x, jf + 1.0, df / 2.0);
+        let contribution = p * beta_half + q * beta_one;
+        sum += contribution;
+
+        p *= lambda / (jf + 1.0);
+        q *= lambda / (jf + 1.5);
+        if j > lambda as usize + 12 && contribution.abs() < 1e-15 && (p.abs() + q.abs()) < 1e-15 {
+            break;
+        }
+    }
+
+    (normal_cdf(-noncentrality) + 0.5 * sum).clamp(0.0, 1.0)
+}
+
+/// Power of an equal-size, two-sided, two-sample t test for a standardized
+/// mean difference and a possibly non-integer sample size per group.
+pub fn two_sample_t_power(n_per_group: f64, effect_size: f64, alpha: f64) -> f64 {
+    if n_per_group <= 1.0
+        || effect_size <= 0.0
+        || !(0.0..1.0).contains(&alpha)
+        || !n_per_group.is_finite()
+        || !effect_size.is_finite()
+    {
+        return f64::NAN;
+    }
+    let df = 2.0 * (n_per_group - 1.0);
+    let critical = students_t_quantile(1.0 - alpha / 2.0, df);
+    let noncentrality = effect_size * (n_per_group / 2.0).sqrt();
+    let lower = noncentral_students_t_cdf(-critical, df, noncentrality);
+    let upper = 1.0 - noncentral_students_t_cdf(critical, df, noncentrality);
+    (lower + upper).clamp(0.0, 1.0)
+}
+
+/// Required (continuous) sample size per group for an equal-size, two-sided,
+/// two-sample t test, solved against the noncentral-t power distribution.
+pub fn two_sample_t_required_n(effect_size: f64, alpha: f64, target_power: f64) -> f64 {
+    if effect_size <= 0.0
+        || !(0.0..1.0).contains(&alpha)
+        || !(0.0..1.0).contains(&target_power)
+        || !effect_size.is_finite()
+    {
+        return f64::NAN;
+    }
+
+    let mut lower = 1.0 + 1e-7;
+    let mut upper = 2.0;
+    while two_sample_t_power(upper, effect_size, alpha) < target_power && upper < 1e9 {
+        lower = upper;
+        upper *= 2.0;
+    }
+    if upper >= 1e9 && two_sample_t_power(upper, effect_size, alpha) < target_power {
+        return f64::INFINITY;
+    }
+
+    for _ in 0..100 {
+        let midpoint = (lower + upper) / 2.0;
+        if two_sample_t_power(midpoint, effect_size, alpha) < target_power {
+            lower = midpoint;
+        } else {
+            upper = midpoint;
+        }
+    }
+    (lower + upper) / 2.0
 }
 
 /// The upper tail of Student's t: P(T > t).
@@ -1360,6 +1480,105 @@ pub fn chi_square_contingency(table: &[Vec<f64>], yates: bool) -> Result<ChiSqua
         p_value: chi_square_sf(chi_sq, df),
         df,
         expected,
+    })
+}
+
+/// Breslow-Day homogeneity test for a common odds ratio, with Tarone's
+/// efficient-score adjustment.
+///
+/// Each stratum is `[a, b, c, d]`, corresponding to `[[a, b], [c, d]]`.
+/// Margins are treated as fixed. Expected exposed-case counts are obtained
+/// from the quadratic equation under the Mantel-Haenszel common odds ratio.
+/// The adjustment follows Tarone, "On heterogeneity tests based on efficient
+/// scores", Biometrika 72(1), 1985, pp. 91-95.
+pub fn breslow_day_test(strata: &[[f64; 4]]) -> Result<BreslowDayResult, String> {
+    if strata.len() < 2 {
+        return Err("Breslow-Day test needs at least two 2x2 strata".into());
+    }
+    if strata
+        .iter()
+        .flatten()
+        .any(|count| !count.is_finite() || *count < 0.0)
+    {
+        return Err("Breslow-Day strata must contain finite non-negative counts".into());
+    }
+
+    let mut mh_numerator = 0.0;
+    let mut mh_denominator = 0.0;
+    for &[a, b, c, d] in strata {
+        let total = a + b + c + d;
+        let row_one = a + b;
+        let row_two = c + d;
+        let col_one = a + c;
+        let col_two = b + d;
+        if total <= 0.0 || row_one <= 0.0 || row_two <= 0.0 || col_one <= 0.0 || col_two <= 0.0 {
+            return Err(
+                "each Breslow-Day stratum must have positive row and column margins".into(),
+            );
+        }
+        mh_numerator += a * d / total;
+        mh_denominator += b * c / total;
+    }
+    if mh_numerator <= 0.0 || mh_denominator <= 0.0 {
+        return Err("the Mantel-Haenszel common odds ratio is zero or undefined".into());
+    }
+    let common_odds_ratio = mh_numerator / mh_denominator;
+
+    let mut expected_exposed_cases = Vec::with_capacity(strata.len());
+    let mut variances = Vec::with_capacity(strata.len());
+    let mut residual_sum = 0.0;
+    let mut variance_sum = 0.0;
+    let mut breslow_day_statistic = 0.0;
+
+    for &[observed_a, b, c, d] in strata {
+        let row_one = observed_a + b;
+        let row_two = c + d;
+        let col_one = observed_a + c;
+        let total = row_one + row_two;
+        let expected_a = if (common_odds_ratio - 1.0).abs() <= 1e-12 {
+            row_one * col_one / total
+        } else {
+            let coefficient = common_odds_ratio * (row_one + col_one) + (row_two - col_one);
+            let raw_discriminant = coefficient * coefficient
+                - 4.0 * row_one * col_one * common_odds_ratio * (common_odds_ratio - 1.0);
+            let scale = coefficient.abs().max(1.0).powi(2);
+            if raw_discriminant < -1e-12 * scale {
+                return Err("Breslow-Day fitted-count quadratic has no real solution".into());
+            }
+            (coefficient - raw_discriminant.max(0.0).sqrt()) / (2.0 * (common_odds_ratio - 1.0))
+        };
+        let expected_b = row_one - expected_a;
+        let expected_c = col_one - expected_a;
+        let expected_d = row_two - expected_c;
+        if [expected_a, expected_b, expected_c, expected_d]
+            .iter()
+            .any(|cell| !cell.is_finite() || *cell <= 0.0)
+        {
+            return Err("Breslow-Day fitted table contains a non-positive cell".into());
+        }
+        let variance =
+            1.0 / (1.0 / expected_a + 1.0 / expected_b + 1.0 / expected_c + 1.0 / expected_d);
+        let residual = observed_a - expected_a;
+        breslow_day_statistic += residual * residual / variance;
+        residual_sum += residual;
+        variance_sum += variance;
+        expected_exposed_cases.push(expected_a);
+        variances.push(variance);
+    }
+
+    let tarone_adjustment = residual_sum * residual_sum / variance_sum;
+    let tarone_statistic = (breslow_day_statistic - tarone_adjustment).max(0.0);
+    let df = strata.len() - 1;
+    Ok(BreslowDayResult {
+        common_odds_ratio,
+        breslow_day_statistic,
+        breslow_day_p_value: chi_square_sf(breslow_day_statistic, df),
+        tarone_adjustment,
+        tarone_statistic,
+        tarone_p_value: chi_square_sf(tarone_statistic, df),
+        df,
+        expected_exposed_cases,
+        variances,
     })
 }
 

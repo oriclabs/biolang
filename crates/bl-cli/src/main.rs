@@ -4,6 +4,7 @@ mod notebook;
 #[cfg(feature = "notebook-server")]
 mod notebook_server;
 mod run_manifest;
+mod stats_guide;
 mod testing;
 mod update;
 
@@ -324,6 +325,22 @@ enum Commands {
         #[command(subcommand)]
         command: DataCommands,
     },
+    /// Create an explainable, task-first statistics notebook
+    Stats {
+        /// Question type; omit it to list the available guided tasks
+        task: Option<String>,
+        /// CSV input used by the generated notebook
+        input: Option<PathBuf>,
+        /// CSV columns in task order, for example control,treated
+        #[arg(long, value_delimiter = ',', value_name = "NAME,NAME")]
+        columns: Vec<String>,
+        /// Explicit statistical method; each task lists its supported choices
+        #[arg(long)]
+        method: Option<String>,
+        /// Write a .bln notebook instead of printing it
+        #[arg(short, long, value_name = "FILE")]
+        output: Option<PathBuf>,
+    },
     /// Check the environment and per-capability readiness (native vs container)
     Doctor,
     /// Print a shell completion script
@@ -559,6 +576,27 @@ fn main() {
                     if let Err(error) = result {
                         eprintln!("Data error: {error}");
                         process::exit(1);
+                    }
+                }
+                Some(Commands::Stats { task, input, columns, method, output }) => {
+                    match (task, input) {
+                        (None, None) => stats_guide::print_catalog(),
+                        (Some(task), Some(input)) => {
+                            let result = stats_guide::generate_notebook(
+                                &task,
+                                &input,
+                                &columns,
+                                method.as_deref(),
+                            ).and_then(|source| stats_guide::write_or_print(&source, output));
+                            if let Err(error) = result {
+                                eprintln!("Statistics guide error: {error}");
+                                process::exit(2);
+                            }
+                        }
+                        _ => {
+                            eprintln!("Usage: bl stats TASK INPUT.csv --columns NAME,NAME [--method METHOD] [--output analysis.bln]");
+                            process::exit(2);
+                        }
                     }
                 }
                 Some(Commands::Doctor) => print!("{}", bl_runtime::capabilities::doctor_report()),

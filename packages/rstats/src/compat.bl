@@ -1,0 +1,102 @@
+fn option(options, name, fallback) {
+    if contains(keys(options), name) { options[name] } else { fallback }
+}
+
+fn alternative_name(value) {
+    if value == "two.sided" { "two_sided" }
+    else if value == "less" { "less" }
+    else if value == "greater" { "greater" }
+    else { value }
+}
+
+fn t_test(x, y = nil, options = ({})) {
+    let alternative = alternative_name(option(options, "alternative", "two.sided"))
+    let confidence = option(options, "conf_level", 0.95)
+    if y == nil {
+        ttest_one(x, option(options, "mu", 0.0), {
+            alternative: alternative, confidence: confidence
+        })
+    } else if option(options, "paired", false) {
+        ttest_paired(x, y, {alternative: alternative, confidence: confidence})
+    } else {
+        ttest(x, y, {
+            alternative: alternative,
+            confidence: confidence,
+            variance: if option(options, "var_equal", false) { "pooled" } else { "welch" }
+        })
+    }
+}
+
+fn chisq_test(counts, options = ({})) {
+    chi_square_contingency(counts, {correct: option(options, "correct", true)})
+}
+
+fn chisq_goodness(observed, expected) {
+    chi_square(observed, expected)
+}
+
+fn fisher_test(counts, options = ({})) {
+    assert len(counts) == 2 and len(counts[0]) == 2 and len(counts[1]) == 2, "fisher_test requires one 2x2 table"
+    fisher_exact(
+        counts[0][0], counts[0][1], counts[1][0], counts[1][1],
+        {confidence: option(options, "conf_level", 0.95)}
+    )
+}
+
+fn wilcox_test(x, y, options = ({})) {
+    let native = {
+        alternative: alternative_name(option(options, "alternative", "two.sided")),
+        method: if option(options, "exact", "auto") == "auto" { "auto" } else if option(options, "exact", false) { "exact" } else { "normal" },
+        continuity: option(options, "correct", true)
+    }
+    if option(options, "paired", false) {
+        let exact_option = option(options, "exact", "auto")
+        let absolute_differences = range(0, len(x)) |> map(|i| abs(x[i] - y[i]))
+        let nonzero = absolute_differences |> filter(|difference| difference != 0.0)
+        let can_use_exact = len(x) < 50 and len(nonzero) == len(x) and len(unique(nonzero)) == len(nonzero)
+        let paired_method = if exact_option == "auto" {
+            if can_use_exact { "exact" } else { "normal" }
+        } else if exact_option { "exact" } else { "normal" }
+        wilcoxon_paired(x, y, {... native, method: paired_method, continuity: if paired_method == "exact" { false } else { native.continuity }})
+    } else {
+        wilcoxon(x, y, native)
+    }
+}
+
+fn oneway_test(groups, options = ({})) {
+    anova(groups, {variance: if option(options, "var_equal", false) { "equal" } else { "welch" }})
+}
+
+fn aov(groups) {
+    anova(groups, {variance: "equal"})
+}
+
+fn kruskal_test(groups) {
+    kruskal_wallis(groups)
+}
+
+fn tukey(groups, options = ({})) {
+    tukey_hsd(groups, {confidence: option(options, "conf_level", 0.95)})
+}
+
+fn linear_model(x, y) { lm(x, y) }
+
+fn correlation_test(x, y, options = ({})) {
+    let method = option(options, "method", "pearson")
+    if method == "pearson" {
+        let fit = lm(x, y)
+        let estimate = cor(x, y)
+        let statistic = estimate * sqrt((len(x) - 2) / (1.0 - estimate * estimate))
+        {method: "pearson", estimate: estimate, statistic: statistic, p_value: fit.p_value, pvalue: fit.p_value, model: fit}
+    } else if method == "spearman" {
+        spearman(x, y)
+    } else if method == "kendall" {
+        kendall(x, y)
+    } else {
+        assert false, "cor_test method must be pearson, spearman, or kendall"
+    }
+}
+
+fn adjust(p_values, method = "BH") { p_adjust(p_values, method) }
+fn survival_fit(time, event) { kaplan_meier(time, event) }
+fn breslow_day(strata, options = ({})) { breslow_day_test(strata, options) }

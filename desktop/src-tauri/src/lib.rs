@@ -64,6 +64,7 @@ struct AppState {
     terminals: Mutex<HashMap<u64, Arc<TerminalSession>>>,
     console: Mutex<Option<Arc<ConsoleProcess>>>,
     studio_kernel: Mutex<Option<StudioKernelProcess>>,
+    studio_documents: Mutex<HashSet<PathBuf>>,
     lsp: Mutex<Option<LspProcess>>,
     somer_tunnels: Mutex<HashMap<String, SomerTunnel>>,
     next_id: AtomicU64,
@@ -78,6 +79,7 @@ impl AppState {
             terminals: Mutex::new(HashMap::new()),
             console: Mutex::new(None),
             studio_kernel: Mutex::new(None),
+            studio_documents: Mutex::new(HashSet::new()),
             lsp: Mutex::new(None),
             somer_tunnels: Mutex::new(HashMap::new()),
             next_id: AtomicU64::new(1),
@@ -4148,6 +4150,17 @@ fn studio_kernel_console(
     Ok((kernel.console.clone(), kernel.root.clone()))
 }
 
+fn supports_studio_console(response: &Value) -> bool {
+    response
+        .get("capabilities")
+        .and_then(Value::as_array)
+        .is_some_and(|capabilities| {
+            capabilities
+                .iter()
+                .any(|capability| capability.as_str() == Some("export-variable"))
+        })
+}
+
 fn studio_file(
     path: &Path,
     relative: &str,
@@ -4226,6 +4239,52 @@ fn validate_studio_document_path(path: &Path, kind: &str) -> Result<(), String> 
         return Err(format!("{filename} is not a supported {kind} file"));
     }
     Ok(())
+}
+
+fn canonical_studio_document_path(path: &Path, kind: &str) -> Result<PathBuf, String> {
+    validate_studio_document_path(path, kind)?;
+    if path.exists() {
+        return path
+            .canonicalize()
+            .map_err(|error| format!("Cannot resolve {}: {error}", path.display()));
+    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Studio document has no parent directory".to_string())?;
+    let parent = parent
+        .canonicalize()
+        .map_err(|error| format!("Cannot resolve {}: {error}", parent.display()))?;
+    let filename = path
+        .file_name()
+        .ok_or_else(|| "Studio document has no file name".to_string())?;
+    Ok(parent.join(filename))
+}
+
+fn authorized_studio_document_path(
+    root: &Path,
+    authorized: &HashSet<PathBuf>,
+    path: &Path,
+    kind: &str,
+) -> Result<PathBuf, String> {
+    let target = canonical_studio_document_path(path, kind)?;
+    if target.starts_with(root) || authorized.contains(&target) {
+        Ok(target)
+    } else {
+        Err("Studio document path is outside the trusted workspace and was not selected through the native file dialog".into())
+    }
+}
+
+fn studio_document_kind(path: &Path) -> Result<&'static str, String> {
+    match path
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(str::to_ascii_lowercase)
+        .as_deref()
+    {
+        Some("bln" | "md") => Ok("notebook"),
+        Some("blw") => Ok("workspace"),
+        _ => Err("Studio document must end in .bln, .md, or .blw".into()),
+    }
 }
 
 fn studio_modified_ms(metadata: &fs::Metadata) -> u64 {
@@ -4341,17 +4400,38 @@ fn save_studio_document_to_path(
 async fn studio_open_document(
     kind: String,
     path: Option<String>,
+    state: State<'_, AppState>,
 ) -> Result<Option<StudioDocument>, String> {
+    require_trusted_workspace(&state)?;
+    let root = workspace_root(&state)?;
     let (title, extensions) = studio_document_filter(&kind)?;
-    let selected = if let Some(path) = path {
-        Some(PathBuf::from(path))
+    let (selected, selected_by_dialog) = if let Some(path) = path {
+        (Some(PathBuf::from(path)), false)
     } else {
-        rfd::FileDialog::new()
-            .add_filter(title, extensions)
-            .pick_file()
+        (
+            rfd::FileDialog::new()
+                .add_filter(title, extensions)
+                .pick_file(),
+            true,
+        )
     };
     let Some(selected) = selected else {
         return Ok(None);
+    };
+    let selected = if selected_by_dialog {
+        let selected = canonical_studio_document_path(&selected, &kind)?;
+        state
+            .studio_documents
+            .lock()
+            .map_err(|_| "Studio document authorization state is unavailable")?
+            .insert(selected.clone());
+        selected
+    } else {
+        let authorized = state
+            .studio_documents
+            .lock()
+            .map_err(|_| "Studio document authorization state is unavailable")?;
+        authorized_studio_document_path(&root, &authorized, &selected, &kind)?
     };
     let document =
         tauri::async_runtime::spawn_blocking(move || read_studio_document(&selected, &kind))
@@ -4363,21 +4443,42 @@ async fn studio_open_document(
 #[tauri::command]
 async fn studio_save_document(
     request: StudioDocumentSaveRequest,
+    state: State<'_, AppState>,
 ) -> Result<Option<StudioDocumentSaveResult>, String> {
+    require_trusted_workspace(&state)?;
+    let root = workspace_root(&state)?;
     if request.contents.len() as u64 > MAX_STUDIO_DOCUMENT_BYTES {
         return Err("Studio notebooks and workspaces are limited to 64 MB".into());
     }
     let (title, extensions) = studio_document_filter(&request.kind)?;
-    let selected = if let Some(path) = request.path.as_deref() {
-        Some(PathBuf::from(path))
+    let (selected, selected_by_dialog) = if let Some(path) = request.path.as_deref() {
+        (Some(PathBuf::from(path)), false)
     } else {
-        rfd::FileDialog::new()
-            .add_filter(title, extensions)
-            .set_file_name(&request.suggested_name)
-            .save_file()
+        (
+            rfd::FileDialog::new()
+                .add_filter(title, extensions)
+                .set_file_name(&request.suggested_name)
+                .save_file(),
+            true,
+        )
     };
     let Some(selected) = selected else {
         return Ok(None);
+    };
+    let selected = if selected_by_dialog {
+        let selected = canonical_studio_document_path(&selected, &request.kind)?;
+        state
+            .studio_documents
+            .lock()
+            .map_err(|_| "Studio document authorization state is unavailable")?
+            .insert(selected.clone());
+        selected
+    } else {
+        let authorized = state
+            .studio_documents
+            .lock()
+            .map_err(|_| "Studio document authorization state is unavailable")?;
+        authorized_studio_document_path(&root, &authorized, &selected, &request.kind)?
     };
     let result = tauri::async_runtime::spawn_blocking(move || {
         save_studio_document_to_path(request, selected)
@@ -4391,11 +4492,19 @@ async fn studio_save_document(
 async fn studio_document_status(
     path: String,
     expected_sha256: String,
+    state: State<'_, AppState>,
 ) -> Result<StudioDocumentStatus, String> {
-    let path = PathBuf::from(path);
-    if !path.is_absolute() {
-        return Err("Studio document paths must be absolute".into());
-    }
+    require_trusted_workspace(&state)?;
+    let root = workspace_root(&state)?;
+    let requested = PathBuf::from(path);
+    let kind = studio_document_kind(&requested)?;
+    let path = {
+        let authorized = state
+            .studio_documents
+            .lock()
+            .map_err(|_| "Studio document authorization state is unavailable")?;
+        authorized_studio_document_path(&root, &authorized, &requested, kind)?
+    };
     tauri::async_runtime::spawn_blocking(move || {
         if !path.is_file() {
             return Ok(StudioDocumentStatus {
@@ -4461,6 +4570,15 @@ fn kernel_initialize(
     })?;
     let console = spawn_console_with_binary(&root, &environment_root, &bl)?;
     let response = send_console_request(&console, state.id(), "ping", None)?;
+    if !supports_studio_console(&response) {
+        if let Ok(mut child) = console.child.lock() {
+            let _ = child.kill();
+        }
+        return Err(format!(
+            "BioLang at {} is too old for Studio. Install the current BioLang release or set BIOLANG_BIN to a compatible bl.exe.",
+            bl.display()
+        ));
+    }
     *active = Some(StudioKernelProcess {
         namespace,
         console,
@@ -5358,10 +5476,20 @@ pub fn run() {
 mod tests {
     use super::{
         atomic_copy_into, ensure_studio_attachment, preview_delimited, preview_fasta,
-        save_studio_document_to_path, sha256_file, studio_kernel_target, valid_studio_namespace,
-        workflow_source,
+        authorized_studio_document_path, save_studio_document_to_path, sha256_file,
+        studio_kernel_target, supports_studio_console, valid_studio_namespace, workflow_source,
         StudioDocumentSaveRequest, WorkflowDocument, WorkflowEdge, WorkflowNode,
     };
+
+    #[test]
+    fn studio_console_requires_streaming_export_capability() {
+        assert!(supports_studio_console(&serde_json::json!({
+            "capabilities": ["export-variable"]
+        })));
+        assert!(!supports_studio_console(&serde_json::json!({
+            "protocol": "biolang.console/v1"
+        })));
+    }
 
     fn studio_test_root(label: &str) -> std::path::PathBuf {
         let root = std::env::temp_dir().join(format!(
@@ -5439,6 +5567,37 @@ mod tests {
                 .contains(".part-")
         }));
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn studio_document_paths_need_workspace_or_dialog_authorization() {
+        let root = studio_test_root("document-authorization");
+        let outside = studio_test_root("document-outside");
+        let inside_path = root.join("analysis.bln");
+        let outside_path = outside.join("analysis.bln");
+        let mut authorized = std::collections::HashSet::new();
+
+        assert_eq!(
+            authorized_studio_document_path(&root, &authorized, &inside_path, "notebook")
+                .unwrap(),
+            inside_path
+        );
+        assert!(authorized_studio_document_path(
+            &root,
+            &authorized,
+            &outside_path,
+            "notebook"
+        )
+        .is_err());
+        authorized.insert(outside_path.clone());
+        assert_eq!(
+            authorized_studio_document_path(&root, &authorized, &outside_path, "notebook")
+                .unwrap(),
+            outside_path
+        );
+
+        std::fs::remove_dir_all(root).unwrap();
+        std::fs::remove_dir_all(outside).unwrap();
     }
 
     #[test]

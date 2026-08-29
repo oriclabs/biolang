@@ -178,7 +178,7 @@ pub fn install_git_dep(name: &str, url: &str, branch: Option<&str>) -> Result<Pa
 /// can fetch them without requiring BIOLANG_PATH.
 pub fn registry_git_url(name: &str) -> Option<&'static str> {
     match name {
-        "statistics" => Some("https://github.com/oriclabs/biolang.git"),
+        "statistics" | "rstats" => Some("https://github.com/oriclabs/biolang.git"),
         _ => None,
     }
 }
@@ -424,6 +424,10 @@ mod tests {
     fn resolves_named_registry_and_monorepo_package_without_network() {
         assert_eq!(
             registry_git_url("statistics"),
+            Some("https://github.com/oriclabs/biolang.git")
+        );
+        assert_eq!(
+            registry_git_url("rstats"),
             Some("https://github.com/oriclabs/biolang.git")
         );
         assert_eq!(registry_git_url("unknown"), None);

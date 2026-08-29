@@ -40,6 +40,10 @@ fn browser_interpreter() -> Interpreter {
         "statistics/src/explore",
         include_str!("../../../packages/statistics/src/explore.bl"),
     );
+    interpreter.register_virtual_module(
+        "statistics/src/tasks",
+        include_str!("../../../packages/statistics/src/tasks.bl"),
+    );
     interpreter
 }
 
@@ -1034,6 +1038,13 @@ fn structured_value(value: &Value) -> Option<serde_json::Value> {
             "totalRows": matrix.nrow,
             "truncated": matrix.nrow > MAX_ROWS,
         })),
+        Value::Record(record) => Some(serde_json::json!({
+            "kind": "record",
+            "name": "Result record",
+            "value": record.iter()
+                .map(|(key, value)| (key.clone(), json_cell(value)))
+                .collect::<serde_json::Map<_, _>>(),
+        })),
         Value::List(items)
             if !items.is_empty() && items.iter().all(|item| matches!(item, Value::Record(_))) =>
         {
@@ -1071,6 +1082,16 @@ fn structured_value(value: &Value) -> Option<serde_json::Value> {
                 "truncated": items.len() > MAX_ROWS,
             }))
         }
+        Value::List(items) => Some(serde_json::json!({
+            "kind": "table",
+            "name": "Result list",
+            "columns": ["Value"],
+            "rows": items.iter().take(MAX_ROWS)
+                .map(|value| vec![json_cell(value)])
+                .collect::<Vec<_>>(),
+            "totalRows": items.len(),
+            "truncated": items.len() > MAX_ROWS,
+        })),
         _ => None,
     }
 }

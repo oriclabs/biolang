@@ -2223,6 +2223,39 @@ fn power_t_test_matches_r_sample_sizes() {
 }
 
 #[test]
+fn power_t_test_matches_r_noncentral_t_and_retains_normal_option() {
+    let effect = 1.0 / 0.7;
+    let exact = call_stats_builtin(
+        "power_t_test",
+        vec![Value::Float(effect), Value::Float(0.05), Value::Float(0.8)],
+    )
+    .unwrap();
+    assert_eq!(get_record_float(&exact, "n"), 9.0);
+    let exact_n_raw = get_record_float(&exact, "n_raw");
+    let achieved = bl_core::bio_core::stats_ops::two_sample_t_power(exact_n_raw, effect, 0.05);
+    assert!(
+        (exact_n_raw - 8.76471066481821).abs() < 2e-5,
+        "noncentral-t solver returned {exact_n_raw}"
+    );
+    assert!((achieved - 0.8).abs() < 1e-12);
+    assert_eq!(get_record_str(&exact, "method"), "noncentral_t");
+
+    let normal = call_stats_builtin(
+        "power_t_test",
+        vec![
+            Value::Float(effect),
+            Value::Float(0.05),
+            Value::Float(0.8),
+            option_record(&[("method", Value::Str("normal".into()))]),
+        ],
+    )
+    .unwrap();
+    assert_eq!(get_record_float(&normal, "n"), 8.0);
+    assert!((get_record_float(&normal, "n_raw") - 7.691902139662104).abs() < 1e-7);
+    assert_eq!(get_record_str(&normal, "method"), "normal");
+}
+
+#[test]
 fn power_t_test_needs_more_samples_for_smaller_effects() {
     let small = required_n(0.25, 0.05, 0.80);
     let large = required_n(1.0, 0.05, 0.80);
@@ -2489,6 +2522,42 @@ fn yates_never_pushes_a_deviation_past_zero() {
         relative_error(record_float(&plain, "chi2"), 0.023242630385487569) < 1e-12,
         "got {}",
         record_float(&plain, "chi2")
+    );
+}
+
+#[test]
+fn breslow_day_reports_tarones_adjusted_homogeneity_test() {
+    let strata = Value::List(
+        vec![
+            Value::List(vec![float_list(&[4.0, 5.0]), float_list(&[5.0, 103.0])].into()),
+            Value::List(vec![float_list(&[10.0, 3.0]), float_list(&[5.0, 43.0])].into()),
+        ]
+        .into(),
+    );
+    let adjusted = call_stats_builtin("breslow_day_test", vec![strata.clone()]).unwrap();
+    assert!(
+        relative_error(
+            record_float(&adjusted, "common_odds_ratio"),
+            23.00060975609756
+        ) < 1e-12
+    );
+    assert!(relative_error(record_float(&adjusted, "p_value"), 0.627420741721689) < 1e-10);
+    assert!(record_float(&adjusted, "tarone_adjustment") > 0.0);
+
+    let mut options = HashMap::new();
+    options.insert("tarone".to_string(), Value::Bool(false));
+    let unadjusted = call_stats_builtin(
+        "breslow_day_test",
+        vec![strata, Value::Record(std::sync::Arc::new(options))],
+    )
+    .unwrap();
+    assert_eq!(
+        record_float(&unadjusted, "statistic"),
+        record_float(&unadjusted, "breslow_day_statistic")
+    );
+    assert_eq!(
+        record_float(&unadjusted, "p_value"),
+        record_float(&unadjusted, "breslow_day_p_value")
     );
 }
 

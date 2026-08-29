@@ -123,7 +123,7 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("random", Arity::Exact(0)),
         ("random_int", Arity::Exact(2)),
         ("set_seed", Arity::Exact(1)),
-        ("power_t_test", Arity::Range(1, 3)),
+        ("power_t_test", Arity::Range(1, 4)),
         // ASCII plotting
         ("hist", Arity::Range(1, 2)),
         ("scatter", Arity::Exact(2)),
@@ -137,6 +137,7 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("pairwise_ttest", Arity::Range(1, 2)),
         ("chi_square", Arity::Exact(2)),
         ("chi_square_contingency", Arity::Range(1, 2)),
+        ("breslow_day_test", Arity::Range(1, 2)),
         ("fisher_exact", Arity::Range(4, 5)),
         ("wilcoxon", Arity::Range(2, 3)),
         ("wilcoxon_paired", Arity::Range(2, 3)),
@@ -315,6 +316,7 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "pairwise_ttest"
             | "chi_square"
             | "chi_square_contingency"
+            | "breslow_day_test"
             | "fisher_exact"
             | "wilcoxon"
             | "wilcoxon_paired"
@@ -487,6 +489,7 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "pairwise_ttest" => builtin_pairwise_ttest(args),
         "chi_square" => builtin_chi_square(args),
         "chi_square_contingency" => builtin_chi_square_contingency(args),
+        "breslow_day_test" => builtin_breslow_day_test(args),
         "fisher_exact" => builtin_fisher_exact(args),
         "wilcoxon" => builtin_wilcoxon(args),
         "wilcoxon_paired" => builtin_wilcoxon_paired(args),
@@ -2063,6 +2066,97 @@ fn contingency_rows(value: &Value, who: &str) -> Result<Vec<Vec<f64>>> {
         }
     };
     Ok(rows)
+}
+
+fn builtin_breslow_day_test(args: Vec<Value>) -> Result<Value> {
+    let Value::List(items) = &args[0] else {
+        return Err(BioLangError::type_error(
+            format!(
+                "breslow_day_test() requires a List of 2x2 tables, got {}",
+                args[0].type_of()
+            ),
+            None,
+        ));
+    };
+    let mut strata = Vec::with_capacity(items.len());
+    for (index, item) in items.iter().enumerate() {
+        let rows = contingency_rows(item, "breslow_day_test")?;
+        if rows.len() != 2 || rows.iter().any(|row| row.len() != 2) {
+            return Err(BioLangError::type_error(
+                format!(
+                    "breslow_day_test() stratum {} must be exactly 2x2",
+                    index + 1
+                ),
+                None,
+            ));
+        }
+        strata.push([rows[0][0], rows[0][1], rows[1][0], rows[1][1]]);
+    }
+    let options = inference_options(&args, 1, "breslow_day_test", &["tarone"])?;
+    let tarone = options
+        .and_then(|values| values.get("tarone"))
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    let result = bl_core::bio_core::stats_ops::breslow_day_test(&strata)
+        .map_err(|error| BioLangError::runtime(ErrorKind::TypeError, error, None))?;
+    let statistic = if tarone {
+        result.tarone_statistic
+    } else {
+        result.breslow_day_statistic
+    };
+    let p_value = if tarone {
+        result.tarone_p_value
+    } else {
+        result.breslow_day_p_value
+    };
+    Ok(make_record(vec![
+        (
+            "method",
+            Value::Str(if tarone {
+                "breslow_day_tarone_adjusted".into()
+            } else {
+                "breslow_day_unadjusted".into()
+            }),
+        ),
+        ("statistic", Value::Float(statistic)),
+        ("p_value", Value::Float(p_value)),
+        ("pvalue", Value::Float(p_value)),
+        ("df", Value::Int(result.df as i64)),
+        ("common_odds_ratio", Value::Float(result.common_odds_ratio)),
+        (
+            "breslow_day_statistic",
+            Value::Float(result.breslow_day_statistic),
+        ),
+        (
+            "breslow_day_p_value",
+            Value::Float(result.breslow_day_p_value),
+        ),
+        ("tarone_adjustment", Value::Float(result.tarone_adjustment)),
+        ("tarone_statistic", Value::Float(result.tarone_statistic)),
+        ("tarone_p_value", Value::Float(result.tarone_p_value)),
+        (
+            "expected_exposed_cases",
+            Value::List(
+                result
+                    .expected_exposed_cases
+                    .iter()
+                    .map(|value| Value::Float(*value))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        ),
+        (
+            "variances",
+            Value::List(
+                result
+                    .variances
+                    .iter()
+                    .map(|value| Value::Float(*value))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        ),
+    ]))
 }
 
 fn builtin_chi_square_contingency(args: Vec<Value>) -> Result<Value> {
@@ -3869,9 +3963,10 @@ pub fn set_random_seed(seed: u64) {
     XORSHIFT_STATE.with(|state| state.set(s));
 }
 
-/// power_t_test(effect_size, alpha?, power?) — compute required sample size per group.
-/// Returns a record with {n, effect_size, alpha, power}.
-/// Default alpha=0.05, power=0.80.
+/// power_t_test(effect_size, alpha?, power?, options?) — required sample size per group.
+/// Returns {n, n_raw, effect_size, alpha, power, method}. The default uses an
+/// independently implemented noncentral-t solver; pass a fourth argument
+/// {method: "normal"} to retain the earlier large-sample approximation.
 fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
     let d = require_num(&args[0], "power_t_test")?;
     let alpha = opt_float(&args, 1, 0.05);
@@ -3896,21 +3991,45 @@ fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
         ));
     }
 
-    // Samples needed PER GROUP for a two-sample comparison:
-    //
-    //     n = 2 * ((z_alpha/2 + z_beta) / d)^2
-    //
-    // The factor of 2 is the whole difference between the one-sample and
-    // two-sample cases, and it was missing. Comparing two groups estimates two
-    // means, so the difference carries twice the variance of a single mean.
-    //
-    // Without it this returned 32 per group for d = 0.5 at 80% power, where the
-    // answer is 64 - advice to run an experiment at half the size it needs,
-    // from a function whose only purpose is to stop that happening. R's
-    // power.t.test, which this is named after, is two-sample by default.
-    let z_alpha = bl_core::bio_core::stats_ops::normal_quantile(1.0 - alpha / 2.0);
-    let z_beta = bl_core::bio_core::stats_ops::normal_quantile(power);
-    let n_raw = 2.0 * ((z_alpha + z_beta) / d).powi(2);
+    let method = match args.get(3) {
+        None => "noncentral_t",
+        Some(Value::Record(options)) => match options.get("method") {
+            None => "noncentral_t",
+            Some(Value::Str(method)) => method.as_str(),
+            Some(other) => {
+                return Err(BioLangError::type_error(
+                    format!("power_t_test() method must be Str, got {}", other.type_of()),
+                    None,
+                ));
+            }
+        },
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "power_t_test() options must be Record, got {}",
+                    other.type_of()
+                ),
+                None,
+            ));
+        }
+    };
+
+    let n_raw = match method {
+        "noncentral_t" | "noncentral-t" | "exact" => {
+            bl_core::bio_core::stats_ops::two_sample_t_required_n(d, alpha, power)
+        }
+        "normal" | "approximate" => {
+            let z_alpha = bl_core::bio_core::stats_ops::normal_quantile(1.0 - alpha / 2.0);
+            let z_beta = bl_core::bio_core::stats_ops::normal_quantile(power);
+            2.0 * ((z_alpha + z_beta) / d).powi(2)
+        }
+        other => {
+            return Err(BioLangError::type_error(
+                format!("power_t_test() method must be noncentral_t or normal, got '{other}'"),
+                None,
+            ));
+        }
+    };
     let n = n_raw.ceil() as i64;
 
     let mut m = std::collections::HashMap::new();
@@ -3918,6 +4037,8 @@ fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
     m.insert("effect_size".to_string(), Value::Float(d));
     m.insert("alpha".to_string(), Value::Float(alpha));
     m.insert("power".to_string(), Value::Float(power));
+    m.insert("n_raw".to_string(), Value::Float(n_raw));
+    m.insert("method".to_string(), Value::Str(method.into()));
     Ok(Value::Record((m).into()))
 }
 

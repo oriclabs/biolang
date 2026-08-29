@@ -1,0 +1,48 @@
+import "rstats" as r
+
+fn test_r_style_t_test_defaults_to_welch() {
+    let result = r.t_test([1, 2, 3, 10], [4, 5, 6, 7])
+    assert result.method == "welch"
+    let pooled = r.t_test([1, 2, 3, 10], [4, 5, 6, 7], {var_equal: true})
+    assert pooled.method == "student_pooled"
+}
+
+fn test_r_style_one_sample_and_paired_t_tests() {
+    let one = r.t_test([8, 9, 10, 11, 12], nil, {mu: 10})
+    assert one.method == "one_sample_t"
+    let paired = r.t_test([1, 2, 3, 4], [2, 3, 5, 5], {paired: true})
+    assert paired.method == "paired_t"
+}
+
+fn test_r_style_count_and_rank_wrappers_are_explicit() {
+    let chi = r.chisq_test([[30, 24], [76, 241]], {correct: false})
+    assert chi.method == "chi_square_independence"
+    let fisher = r.fisher_test([[8, 2], [1, 5]])
+    assert fisher.conditional_odds_ratio > 1.0
+    let ranked = r.wilcox_test([1, 2, 3], [4, 5, 6], {exact: false, correct: false})
+    assert ranked.method == "mann_whitney_normal"
+    let paired = r.wilcox_test([1, 2, 3, 4], [2, 4, 6, 8], {paired: true})
+    assert contains(paired.method, "exact")
+}
+
+fn test_pearson_wrapper_reports_r_correlation_t_statistic_not_slope() {
+    let result = r.cor_test([1, 2, 3, 4, 5], [1, 2, 4, 4, 7])
+    let expected = result.estimate * sqrt(3.0 / (1.0 - result.estimate * result.estimate))
+    assert abs(result.statistic - expected) < 1e-12
+    assert abs(result.statistic - result.model.slope) > 0.1
+}
+
+fn test_r_style_multi_group_model_and_adjustment_wrappers() {
+    let groups = [[1, 2, 3], [3, 4, 5], [8, 9, 10]]
+    assert r.oneway_test(groups).method == "welch_anova"
+    assert r.aov(groups).method == "one_way_anova_equal_variance"
+    assert r.kruskal_test(groups).method == "kruskal_wallis_rank_sum"
+    assert r.lm_fit([1, 2, 3], [2, 4, 6]).r_squared > 0.999
+    assert len(r.adjust_p([0.01, 0.04, 0.2], "BH")) == 3
+}
+
+fn test_r_style_tarone_wrapper_is_not_cochran_q() {
+    let result = r.breslow_day([[[4, 5], [5, 103]], [[10, 3], [5, 43]]])
+    assert result.method == "breslow_day_tarone_adjusted"
+    assert abs(result.p_value - 0.627420741721689) < 1e-10
+}

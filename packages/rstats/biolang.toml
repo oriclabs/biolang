@@ -1,0 +1,16 @@
+[package]
+name = "rstats"
+version = "0.1.0"
+description = "Optional R-style statistical names backed by independently implemented BioLang methods"
+authors = ["BioLang"]
+license = "MIT"
+keywords = ["statistics", "r", "compatibility", "biostatistics"]
+categories = ["statistics", "teaching"]
+repository = "https://github.com/oriclabs/biolang"
+readme = "README.md"
+
+[dependencies]
+# Uses BioLang's independently implemented statistics builtins only.
+
+[lib]
+entry = "src/mod.bl"

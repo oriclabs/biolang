@@ -26,6 +26,7 @@ import path from "node:path";
 
 /** Crates in bl-wasm's dependency tree, per crates/bl-wasm/Cargo.toml. */
 export const WASM_CRATES = [
+  "bio-core",
   "bl-core",
   "bl-fmt",
   "bl-import",
@@ -33,7 +34,18 @@ export const WASM_CRATES = [
   "bl-parser",
   "bl-qc",
   "bl-runtime",
+  "bl-seurat-compat",
   "bl-wasm",
+];
+
+// BioLang modules compiled into bl-wasm with include_str! are build inputs too.
+// Keep this list aligned with browser_interpreter() in crates/bl-wasm/src/lib.rs.
+export const WASM_EMBEDDED_FILES = [
+  "packages/statistics/src/mod.bl",
+  "packages/statistics/src/tests.bl",
+  "packages/statistics/src/correction.bl",
+  "packages/statistics/src/explore.bl",
+  "packages/statistics/src/tasks.bl",
 ];
 
 function walk(directory, out) {
@@ -75,6 +87,14 @@ export function fingerprint(repositoryRoot) {
     } catch {
       // A crate that has been renamed or removed: the missing manifest changes
       // the file list, which changes the hash, which is the correct outcome.
+    }
+  }
+  for (const relative of WASM_EMBEDDED_FILES) {
+    const embedded = path.join(repositoryRoot, relative);
+    try {
+      if (statSync(embedded).isFile()) files.push(embedded);
+    } catch {
+      // Missing embedded input changes the file list and therefore the hash.
     }
   }
   const digest = createHash("sha256");

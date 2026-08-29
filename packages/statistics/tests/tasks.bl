@@ -1,0 +1,57 @@
+import "statistics" as stat
+
+fn test_task_first_group_comparison_discloses_method_and_code() {
+    let result = stat.compare_groups([4, 5, 6, 7], [7, 8, 9, 11])
+    assert result.schema == "biolang.stats.task/v1"
+    assert result.method.id == "welch"
+    assert result.analysis.method == "welch"
+    assert result.automatic_test_selection == false
+    assert contains(result.reproducible_call, "variance")
+    assert contains(stat.show(result), "Welch two-sample")
+}
+
+fn test_task_first_methods_remain_explicit() {
+    let ranked = stat.compare_groups([1, 2, 3], [4, 5, 6], {method: "mann_whitney"})
+    assert ranked.method.id == "mann_whitney"
+
+    let paired = stat.paired_change([1, 2, 3, 4], [2, 3, 5, 5])
+    assert paired.method.id == "paired_t"
+
+    let many = stat.compare_many([[1, 2, 3], [3, 4, 5], [8, 9, 10]])
+    assert many.method.id == "welch_anova"
+}
+
+fn test_task_first_categorical_and_stratified_methods_do_not_share_names() {
+    let counts = stat.count_association([[30, 24], [76, 241]], {method: "chi_square"})
+    assert counts.method.id == "chi_square"
+
+    let strata = stat.stratified_association([
+        [[4, 5], [5, 103]],
+        [[10, 3], [5, 43]]
+    ])
+    assert strata.method.id == "breslow_day_tarone_adjusted"
+    assert abs(strata.analysis.p_value - 0.627420741721689) < 1e-10
+    assert strata.alternatives |> contains("Do not substitute inverse-variance Cochran Q")
+}
+
+fn test_task_catalog_supports_guided_clients() {
+    let catalog = stat.task_catalog()
+    assert len(catalog) == 9
+    assert catalog |> map(|entry| entry.id) |> contains("survival")
+    assert catalog |> map(|entry| entry.id) |> contains("meta")
+}
+
+fn test_relationship_survival_and_meta_shortcuts() {
+    let relation = stat.numeric_relationship([1, 2, 3, 4], [2, 4, 6, 8])
+    assert relation.method.id == "linear"
+    assert relation.analysis.r_squared > 0.999
+
+    let survival = stat.survival_summary([1, 2, 3, 4], [1, 0, 1, 1])
+    assert survival.method.id == "kaplan_meier"
+    assert len(survival.analysis.kaplan_meier.times) > 0
+    assert contains(stat.explain_task(survival), "Alternatives to consider")
+
+    let meta = stat.meta_summary([0.1, 0.2, 0.0], [0.04, 0.05, 0.03])
+    assert meta.method.id == "fixed_effect_meta_analysis"
+    assert meta.analysis.n_studies == 3
+}

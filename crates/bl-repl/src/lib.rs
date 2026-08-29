@@ -417,6 +417,7 @@ pub struct Repl {
 }
 
 const CONSOLE_PROTOCOL: &str = "biolang.console/v1";
+const CONSOLE_CAPABILITIES: &[&str] = &["export-variable"];
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -462,6 +463,7 @@ struct ConsoleValue {
 #[serde(rename_all = "camelCase")]
 struct ConsoleResponse {
     protocol: &'static str,
+    capabilities: &'static [&'static str],
     id: u64,
     status: &'static str,
     output: String,
@@ -496,6 +498,7 @@ pub fn run_console_protocol() -> Result<(), Box<dyn std::error::Error>> {
             Err(error) => {
                 let response = ConsoleResponse {
                     protocol: CONSOLE_PROTOCOL,
+                    capabilities: CONSOLE_CAPABILITIES,
                     id: 0,
                     status: "error",
                     output: String::new(),
@@ -521,6 +524,7 @@ pub fn run_console_protocol() -> Result<(), Box<dyn std::error::Error>> {
                 interpreter.reset();
                 ConsoleResponse {
                     protocol: CONSOLE_PROTOCOL,
+                    capabilities: CONSOLE_CAPABILITIES,
                     id: request.id,
                     status: "ok",
                     output: String::new(),
@@ -532,6 +536,7 @@ pub fn run_console_protocol() -> Result<(), Box<dyn std::error::Error>> {
             }
             "inspect" | "ping" => ConsoleResponse {
                 protocol: CONSOLE_PROTOCOL,
+                capabilities: CONSOLE_CAPABILITIES,
                 id: request.id,
                 status: "ok",
                 output: String::new(),
@@ -570,6 +575,7 @@ pub fn run_console_protocol() -> Result<(), Box<dyn std::error::Error>> {
                 match result {
                     Ok(bytes) => ConsoleResponse {
                         protocol: CONSOLE_PROTOCOL,
+                        capabilities: CONSOLE_CAPABILITIES,
                         id: request.id,
                         status: "ok",
                         output: format!("Exported {bytes} bytes"),
@@ -580,6 +586,7 @@ pub fn run_console_protocol() -> Result<(), Box<dyn std::error::Error>> {
                     },
                     Err(error) => ConsoleResponse {
                         protocol: CONSOLE_PROTOCOL,
+                        capabilities: CONSOLE_CAPABILITIES,
                         id: request.id,
                         status: "error",
                         output: String::new(),
@@ -592,6 +599,7 @@ pub fn run_console_protocol() -> Result<(), Box<dyn std::error::Error>> {
             }
             command => ConsoleResponse {
                 protocol: CONSOLE_PROTOCOL,
+                capabilities: CONSOLE_CAPABILITIES,
                 id: request.id,
                 status: "error",
                 output: String::new(),
@@ -655,6 +663,7 @@ fn evaluate_console_request(
             };
             ConsoleResponse {
                 protocol: CONSOLE_PROTOCOL,
+                capabilities: CONSOLE_CAPABILITIES,
                 id,
                 status: "ok",
                 output,
@@ -666,6 +675,7 @@ fn evaluate_console_request(
         }
         Err(error) => ConsoleResponse {
             protocol: CONSOLE_PROTOCOL,
+            capabilities: CONSOLE_CAPABILITIES,
             id,
             status: "error",
             output,
@@ -2327,6 +2337,11 @@ const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
         "Record{chi2,p_value,df,expected}",
     ),
     (
+        "breslow_day_test",
+        "breslow_day_test([[[4,5],[5,103]], [[10,3],[5,43]]])  # Tarone-adjusted by default",
+        "Record{statistic,p_value,df,common_odds_ratio,tarone_statistic}",
+    ),
+    (
         "permutation_test",
         "permutation_test(a, b, \"mean_diff\", 10000)  # → Record{p_value,observed}",
         "Record{p_value,observed}",
@@ -3269,6 +3284,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     (
         "chi_square_contingency",
         "chi_square_contingency(table, opts?) → Record{chi2,p_value,df,expected}",
+        "stats",
+    ),
+    (
+        "breslow_day_test",
+        "breslow_day_test(strata, {tarone: true}?) → Record{statistic,p_value,df,common_odds_ratio}",
         "stats",
     ),
     (

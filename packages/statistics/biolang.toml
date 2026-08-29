@@ -3,6 +3,14 @@ name = "statistics"
 version = "0.1.0"
 description = "Explainable exploratory statistics, visual guidance, tests, resampling, and multiple-testing correction"
 authors = ["BioLang"]
+license = "MIT"
+keywords = ["statistics", "biostatistics", "exploration", "visualization"]
+categories = ["statistics", "teaching"]
+repository = "https://github.com/oriclabs/biolang"
+readme = "README.md"
+
+[dependencies]
+# Uses BioLang runtime builtins only.
 
 [lib]
 entry = "src/mod.bl"

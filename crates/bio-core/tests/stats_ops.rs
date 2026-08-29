@@ -38,6 +38,52 @@ fn test_descriptive() {
 }
 
 #[test]
+fn noncentral_t_reduces_to_central_t_and_solves_power_target() {
+    for t in [-2.5, -0.5, 0.0, 0.5, 2.5] {
+        let central = students_t_cdf(t, 12.0);
+        let noncentral = noncentral_students_t_cdf(t, 12.0, 0.0);
+        assert!((central - noncentral).abs() < 1e-12);
+    }
+
+    let effect = 1.0 / 0.7;
+    let n = two_sample_t_required_n(effect, 0.05, 0.8);
+    assert!((n - 8.764693251026905).abs() < 1e-10);
+    assert!((two_sample_t_power(n, effect, 0.05) - 0.8).abs() < 1e-12);
+}
+
+#[test]
+fn tarone_adjusted_breslow_day_matches_published_counts_and_formula_invariants() {
+    // The seven 2x2 tables are the prospective-study rows in the published
+    // collaborative reanalysis of oral contraceptive use and breast cancer
+    // (Lancet 1996; 347:1713-1727, Table 1). The paper publishes the counts,
+    // not a 16-digit Tarone statistic. The numeric expectations below are
+    // formula-derived regression values from those published inputs; they are
+    // not claimed to be values printed by the paper. Accordingly, the test
+    // checks sensible reporting precision rather than presenting sixteen
+    // implementation-derived decimal places as an external oracle.
+    let sex_strata = [[4.0, 5.0, 5.0, 103.0], [10.0, 3.0, 5.0, 43.0]];
+    let sex = breslow_day_test(&sex_strata).unwrap();
+    assert!((sex.common_odds_ratio - 23.0006).abs() < 5e-5);
+    assert!((sex.tarone_statistic - 0.23557).abs() < 5e-5);
+    assert!((sex.tarone_p_value - 0.62742).abs() < 5e-5);
+
+    let trials = [
+        [198.0, 728.0, 128.0, 576.0],
+        [96.0, 437.0, 101.0, 342.0],
+        [1105.0, 4243.0, 1645.0, 6703.0],
+        [741.0, 2905.0, 594.0, 2418.0],
+        [264.0, 1091.0, 907.0, 3671.0],
+        [105.0, 408.0, 348.0, 1248.0],
+        [138.0, 431.0, 436.0, 1576.0],
+    ];
+    let meta = breslow_day_test(&trials).unwrap();
+    assert_eq!(meta.df, trials.len() - 1);
+    assert!(meta.breslow_day_statistic + 1e-12 >= meta.tarone_statistic);
+    assert!((meta.tarone_statistic - 8.7152).abs() < 5e-5);
+    assert!((meta.tarone_p_value - 0.19024).abs() < 5e-5);
+}
+
+#[test]
 fn test_t_test() {
     let a = [2.0, 3.0, 4.0, 5.0, 6.0];
     let b = [5.0, 6.0, 7.0, 8.0, 9.0];

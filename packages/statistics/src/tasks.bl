@@ -1,0 +1,304 @@
+# Task-first statistical shortcuts.
+#
+# These helpers do not infer study design. A default method is always named in
+# the returned record, and every result carries alternatives and reproducible
+# low-level BioLang. The calculations remain the validated runtime builtins.
+
+fn option(options, name, fallback) {
+    if contains(keys(options), name) { options[name] } else { fallback }
+}
+
+fn evidence(p_value, alpha) {
+    if p_value <= alpha {
+        "The result is difficult to reconcile with the stated null model at alpha=" + str(alpha)
+    } else {
+        "The data do not provide strong evidence against the stated null model at alpha=" + str(alpha)
+    }
+}
+
+fn task_result(problem, method_id, method_label, why, analysis, interpretation, assumptions, alternatives, reproducible_call, visual = nil) {
+    {
+        schema: "biolang.stats.task/v1",
+        problem: problem,
+        method: {id: method_id, label: method_label, why: why},
+        analysis: analysis,
+        interpretation: interpretation,
+        assumptions: assumptions,
+        alternatives: alternatives,
+        reproducible_call: reproducible_call,
+        visual: visual,
+        method_disclosed: true,
+        automatic_test_selection: false,
+        input_modified: false
+    }
+}
+
+fn compare_groups(group_a, group_b, options = ({})) {
+    let method = option(options, "method", "welch")
+    let alpha = option(options, "alpha", 0.05)
+    let confidence = option(options, "confidence", 0.95)
+    let alternative = option(options, "alternative", "two_sided")
+    let repetitions = option(options, "repetitions", 10000)
+    let analysis = nil
+    let label = ""
+    let why = ""
+    let assumptions = []
+    let alternatives = []
+    let code = ""
+
+    if method == "welch" {
+        analysis = ttest(group_a, group_b, {
+            variance: "welch", alternative: alternative, confidence: confidence
+        })
+        label = "Welch two-sample t-test"
+        why = "Compares independent group means without assuming equal variances."
+        assumptions = ["Independent observational units", "A mean difference answers the scientific question", "Sampling uncertainty is reasonably represented by the Welch t model"]
+        alternatives = ["mann_whitney for a rank/distribution question", "permutation_mean for design-compatible randomization inference", "paired_t or paired_wilcoxon for paired observations"]
+        code = "ttest(group_a, group_b, {variance: \"welch\", alternative: \"" + alternative + "\", confidence: " + str(confidence) + "})"
+    } else if method == "student" {
+        analysis = ttest(group_a, group_b, {
+            variance: "pooled", alternative: alternative, confidence: confidence
+        })
+        label = "Student pooled-variance t-test"
+        why = "Compares independent group means under a shared-variance model."
+        assumptions = ["Independent observational units", "Equal population variances", "A mean difference answers the scientific question"]
+        alternatives = ["welch when equal variance is not justified", "mann_whitney for a rank/distribution question"]
+        code = "ttest(group_a, group_b, {variance: \"pooled\", alternative: \"" + alternative + "\", confidence: " + str(confidence) + "})"
+    } else if method == "paired_t" {
+        analysis = ttest_paired(group_a, group_b, {alternative: alternative, confidence: confidence})
+        label = "Paired t-test"
+        why = "Tests the mean within-pair difference rather than treating paired measurements as independent."
+        assumptions = ["Lists are correctly aligned pairs", "Pairs are independent of other pairs", "The distribution of within-pair differences supports a t model"]
+        alternatives = ["paired_wilcoxon for a signed-rank analysis"]
+        code = "ttest_paired(before, after, {alternative: \"" + alternative + "\", confidence: " + str(confidence) + "})"
+    } else if method == "mann_whitney" {
+        analysis = wilcoxon(group_a, group_b)
+        label = "Mann-Whitney rank-sum test"
+        why = "Compares independent groups through ranks; it is not automatically a test of medians."
+        assumptions = ["Independent observational units", "An ordinal/rank comparison answers the question"]
+        alternatives = ["welch for a mean difference", "paired_wilcoxon for paired observations"]
+        code = "wilcoxon(group_a, group_b)"
+    } else if method == "paired_wilcoxon" {
+        analysis = wilcoxon_paired(group_a, group_b, {method: "normal", continuity: true})
+        label = "Paired Wilcoxon signed-rank test"
+        why = "Uses signed within-pair ranks and preserves the paired design."
+        assumptions = ["Lists are correctly aligned pairs", "Pairs are independent of other pairs", "Non-zero differences have a reasonably symmetric distribution"]
+        alternatives = ["paired_t for a mean difference model"]
+        code = "wilcoxon_paired(before, after, {method: \"normal\", continuity: true})"
+    } else if method == "permutation_mean" {
+        analysis = permutation_test(group_a, group_b, "mean_diff", repetitions)
+        label = "Permutation test of the mean difference"
+        why = "Builds a reference distribution by reallocating group labels."
+        assumptions = ["Group labels are exchangeable under the null", "The resampling scheme matches the study design"]
+        alternatives = ["welch for an unequal-variance t model", "mann_whitney for a rank/distribution question"]
+        code = "permutation_test(group_a, group_b, \"mean_diff\", " + str(repetitions) + ")"
+    } else {
+        assert false, "compare_groups method must be welch, student, paired_t, mann_whitney, paired_wilcoxon, or permutation_mean"
+    }
+
+    let visual = if option(options, "plot", false) {
+        let labels = map(group_a, |_| "group A") + map(group_b, |_| "group B")
+        stats_group_plot(group_a + group_b, labels, {format: option(options, "format", "svg")})
+    } else { nil }
+    task_result(
+        "Compare two groups", method, label, why, analysis,
+        evidence(analysis.p_value, alpha), assumptions, alternatives, code, visual
+    )
+}
+
+fn compare_many(groups, options = ({})) {
+    let method = option(options, "method", "welch_anova")
+    let alpha = option(options, "alpha", 0.05)
+    let analysis = nil
+    let label = ""
+    let why = ""
+    let assumptions = []
+    let alternatives = []
+    let code = ""
+    if method == "welch_anova" {
+        analysis = anova(groups, {variance: "welch"})
+        label = "Welch one-way ANOVA"
+        why = "Compares several group means without requiring equal variances."
+        assumptions = ["Independent observational units", "A comparison of means answers the question"]
+        alternatives = ["kruskal_wallis for a rank/distribution question", "classical_anova only with a defensible shared-variance model"]
+        code = "anova(groups, {variance: \"welch\"})"
+    } else if method == "classical_anova" {
+        analysis = anova(groups, {variance: "equal"})
+        label = "Classical one-way ANOVA"
+        why = "Compares several means under a shared within-group variance model."
+        assumptions = ["Independent observational units", "Equal population variances", "A comparison of means answers the question"]
+        alternatives = ["welch_anova when equal variance is not justified", "kruskal_wallis for a rank/distribution question"]
+        code = "anova(groups, {variance: \"equal\"})"
+    } else if method == "kruskal_wallis" {
+        analysis = kruskal_wallis(groups)
+        label = "Kruskal-Wallis rank-sum test"
+        why = "Compares the rank distributions of several independent groups."
+        assumptions = ["Independent observational units", "An ordinal/rank comparison answers the question"]
+        alternatives = ["welch_anova for mean differences"]
+        code = "kruskal_wallis(groups)"
+    } else {
+        assert false, "compare_many method must be welch_anova, classical_anova, or kruskal_wallis"
+    }
+    task_result("Compare several groups", method, label, why, analysis,
+        evidence(analysis.p_value, alpha), assumptions, alternatives, code)
+}
+
+fn count_association(counts, options = ({})) {
+    let method = option(options, "method", "chi_square")
+    let alpha = option(options, "alpha", 0.05)
+    let analysis = nil
+    let label = ""
+    let why = ""
+    let assumptions = []
+    let alternatives = []
+    let code = ""
+    if method == "chi_square" {
+        let correction = option(options, "continuity", true)
+        analysis = chi_square_contingency(counts, {correct: correction})
+        label = "Chi-square test of independence"
+        why = "Compares observed counts with counts expected under independence."
+        assumptions = ["Independent count observations", "Categories are mutually exclusive", "Expected counts are adequate for the chi-square approximation"]
+        alternatives = ["fisher for a sparse independent 2x2 table", "a paired-table method for matched observations"]
+        code = "chi_square_contingency(counts, {correct: " + str(correction) + "})"
+    } else if method == "fisher" {
+        assert len(counts) == 2 and len(counts[0]) == 2 and len(counts[1]) == 2, "Fisher shortcut requires one 2x2 table"
+        analysis = fisher_exact(counts[0][0], counts[0][1], counts[1][0], counts[1][1])
+        label = "Fisher exact test"
+        why = "Uses the fixed-margin exact distribution for an independent 2x2 table."
+        assumptions = ["Independent observations", "Fixed-margin conditional inference answers the question"]
+        alternatives = ["chi_square when its approximation is adequate", "a paired-table method for matched observations"]
+        code = "fisher_exact(counts[0][0], counts[0][1], counts[1][0], counts[1][1])"
+    } else {
+        assert false, "count_association method must be chi_square or fisher"
+    }
+    task_result("Association between categorical variables", method, label, why, analysis,
+        evidence(analysis.p_value, alpha), assumptions, alternatives, code)
+}
+
+fn stratified_association(strata, options = ({})) {
+    let alpha = option(options, "alpha", 0.05)
+    let analysis = breslow_day_test(strata, {tarone: true})
+    task_result(
+        "Check a common odds ratio across stratified 2x2 tables",
+        "breslow_day_tarone_adjusted",
+        "Tarone-adjusted Breslow-Day homogeneity test",
+        "Tests whether stratum-specific odds ratios are compatible with one common Mantel-Haenszel odds ratio.",
+        analysis,
+        evidence(analysis.p_value, alpha),
+        ["Independent strata", "Independent observations within each stratum", "A common odds-ratio model is scientifically meaningful"],
+        ["Report stratum-specific odds ratios and intervals", "Model an exposure-by-stratum interaction when adjustment is required", "Do not substitute inverse-variance Cochran Q"],
+        "breslow_day_test(strata, {tarone: true})"
+    )
+}
+
+fn numeric_relationship(x, y, options = ({})) {
+    let method = option(options, "method", "linear")
+    let alpha = option(options, "alpha", 0.05)
+    let analysis = nil
+    let label = ""
+    let why = ""
+    let assumptions = []
+    let alternatives = []
+    let code = ""
+    if method == "linear" or method == "pearson" {
+        analysis = lm(x, y)
+        label = if method == "linear" { "Simple linear regression" } else { "Pearson linear association through simple regression" }
+        why = "Quantifies a linear relationship and reports its slope, uncertainty, and correlation."
+        assumptions = ["Independent observational units", "A linear relationship is an adequate summary", "Residual checks support the reported inference"]
+        alternatives = ["spearman for monotonic rank association", "kendall for concordance", "a nonlinear model when the plot curves"]
+        code = "lm(x, y)"
+    } else if method == "spearman" {
+        analysis = spearman(x, y)
+        label = "Spearman rank correlation"
+        why = "Measures monotonic association through ranks."
+        assumptions = ["Independent observational units", "A monotonic association answers the question"]
+        alternatives = ["linear for a slope and linear-model inference", "kendall for pairwise concordance"]
+        code = "spearman(x, y)"
+    } else if method == "kendall" {
+        analysis = kendall(x, y)
+        label = "Kendall rank correlation"
+        why = "Measures concordance among pairs of observations."
+        assumptions = ["Independent observational units", "Concordance answers the question"]
+        alternatives = ["spearman for rank monotonicity", "linear for a slope"]
+        code = "kendall(x, y)"
+    } else {
+        assert false, "numeric_relationship method must be linear, pearson, spearman, or kendall"
+    }
+    let visual = if option(options, "plot", false) {
+        stats_relationship_plot(x, y, {format: option(options, "format", "svg")})
+    } else { nil }
+    task_result("Relationship between two numeric measurements", method, label, why, analysis,
+        evidence(analysis.p_value, alpha), assumptions, alternatives, code, visual)
+}
+
+fn paired_change(before, after, options = ({})) {
+    let next = {... options, method: option(options, "method", "paired_t")}
+    compare_groups(before, after, next)
+}
+
+fn dose_response(dose, outcome, options = ({})) {
+    let next = {... options, method: option(options, "method", "linear")}
+    let result = numeric_relationship(dose, outcome, next)
+    {... result, problem: "Dose-response trend", limitations: ["A trend does not establish causation", "Inspect curvature, influential dose groups, group sizes, and uncertainty"]}
+}
+
+fn survival_summary(time, event, options = ({})) {
+    let curve = kaplan_meier(time, event)
+    let adjusted = contains(keys(options), "covariates")
+    let analysis = if adjusted {
+        {kaplan_meier: curve, cox_model: cox_ph(time, event, options.covariates)}
+    } else {
+        {kaplan_meier: curve}
+    }
+    task_result(
+        "Describe time-to-event outcomes",
+        if adjusted { "kaplan_meier_with_cox_ph" } else { "kaplan_meier" },
+        if adjusted { "Kaplan-Meier estimate with a Cox proportional-hazards model" } else { "Kaplan-Meier survival estimate" },
+        "Accounts for right-censored observations while estimating survival over time.", analysis,
+        "Read survival probabilities with confidence intervals and the number still at risk.",
+        ["Censoring is independent of the future event process after relevant conditioning", "Times and event indicators refer to the same observational units"],
+        ["log_rank_test for a planned unadjusted two-group comparison", "cox_ph for a covariate-adjusted proportional-hazards model"],
+        if contains(keys(options), "covariates") { "cox_ph(time, event, covariates)" } else { "kaplan_meier(time, event)" }
+    )
+}
+
+fn meta_summary(effects, variances, options = ({})) {
+    let method = option(options, "method", "fixed")
+    let analysis = meta_analysis(effects, variances, method)
+    task_result(
+        "Combine study effect estimates", method + "_effect_meta_analysis",
+        if method == "random" { "Random-effects meta-analysis (DerSimonian-Laird)" } else { "Fixed-effect inverse-variance meta-analysis" },
+        if method == "random" { "Allows estimated between-study heterogeneity." } else { "Targets one common underlying effect under inverse-variance weighting." },
+        analysis,
+        "Interpret the pooled estimate together with its interval, Cochran Q, I-squared, and study design.",
+        ["Study effect estimates and variances are correctly specified", "The selected study set and estimand are scientifically compatible"],
+        ["Use random only when its estimand and heterogeneity assumptions fit the question", "Use stratified_association for Tarone homogeneity of 2x2 strata"],
+        "meta_analysis(effects, variances, \"" + method + "\")"
+    )
+}
+
+fn task_catalog() {
+    [
+        {id: "compare", label: "Compare two groups", function: "compare_groups", required: ["group_a", "group_b"], methods: ["welch", "student", "paired_t", "mann_whitney", "paired_wilcoxon", "permutation_mean"]},
+        {id: "compare_many", label: "Compare several groups", function: "compare_many", required: ["groups"], methods: ["welch_anova", "classical_anova", "kruskal_wallis"]},
+        {id: "counts", label: "Association between categories", function: "count_association", required: ["counts"], methods: ["chi_square", "fisher"]},
+        {id: "stratified", label: "Common odds ratio across strata", function: "stratified_association", required: ["strata"], methods: ["breslow_day_tarone_adjusted"]},
+        {id: "relationship", label: "Relationship between numeric measurements", function: "numeric_relationship", required: ["x", "y"], methods: ["linear", "pearson", "spearman", "kendall"]},
+        {id: "paired", label: "Change within matched pairs", function: "paired_change", required: ["before", "after"], methods: ["paired_t", "paired_wilcoxon"]},
+        {id: "dose_response", label: "Dose-response trend", function: "dose_response", required: ["dose", "outcome"], methods: ["linear", "spearman"]},
+        {id: "survival", label: "Time-to-event summary", function: "survival_summary", required: ["time", "event"], optional: ["covariates"], methods: ["kaplan_meier", "kaplan_meier_with_cox_ph"]},
+        {id: "meta", label: "Combine study estimates", function: "meta_summary", required: ["effects", "variances"], methods: ["fixed", "random"]}
+    ]
+}
+
+fn explain_task(result) {
+    assert result.schema == "biolang.stats.task/v1", "explain_task requires a task-first statistics result"
+    "Question: " + result.problem + "\n"
+        + "Method: " + result.method.label + "\n"
+        + "Why: " + result.method.why + "\n"
+        + "Interpretation: " + result.interpretation + "\n"
+        + "Assumptions to review:\n- " + join(result.assumptions, "\n- ") + "\n"
+        + "Alternatives to consider:\n- " + join(result.alternatives, "\n- ") + "\n"
+        + "Equivalent BioLang: " + result.reproducible_call + "\n"
+        + "Result:\n" + json_pretty(json_stringify(result.analysis))
+}
