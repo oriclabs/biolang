@@ -4491,6 +4491,90 @@ struct RelationshipGroup {
     order: Vec<usize>,
 }
 
+struct PointSizeEncoding {
+    values: Vec<Option<f64>>,
+    minimum: f64,
+    maximum: f64,
+}
+
+impl PointSizeEncoding {
+    fn radius(&self, index: usize) -> Option<f64> {
+        let value = self.values.get(index).copied().flatten()?;
+        if (self.maximum - self.minimum).abs() <= f64::EPSILON {
+            return Some(4.5);
+        }
+        let position = ((value - self.minimum) / (self.maximum - self.minimum)).clamp(0.0, 1.0);
+        // A square-root scale makes circle area, rather than radius, track the
+        // mapped value. The range is close to ggplot2's default size scale.
+        Some(2.0 + 5.0 * position.sqrt())
+    }
+}
+
+fn point_size_encoding(
+    opts: &HashMap<String, Value>,
+    expected: usize,
+) -> Result<Option<PointSizeEncoding>> {
+    let Some(value) = opts.get("size") else {
+        return Ok(None);
+    };
+    let Value::List(values) = value else {
+        return Err(BioLangError::type_error(
+            format!(
+                "stats_relationship_plot() size must be List, got {}",
+                value.type_of()
+            ),
+            None,
+        ));
+    };
+    if values.len() != expected {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "stats_relationship_plot() x, y, group, and size must have equal length ({expected} vs {})",
+                values.len()
+            ),
+            None,
+        ));
+    }
+    let mut encoded = Vec::with_capacity(values.len());
+    let mut minimum = f64::INFINITY;
+    let mut maximum = f64::NEG_INFINITY;
+    for (index, value) in values.iter().enumerate() {
+        let number = match value {
+            Value::Nil => None,
+            Value::Int(value) => Some(*value as f64),
+            Value::Float(value) if value.is_finite() => Some(*value),
+            Value::Float(_) => None,
+            other => {
+                return Err(BioLangError::type_error(
+                    format!(
+                        "stats_relationship_plot() size must contain numbers or Nil; index {index} contains {}",
+                        other.type_of()
+                    ),
+                    None,
+                ))
+            }
+        };
+        if let Some(number) = number {
+            minimum = minimum.min(number);
+            maximum = maximum.max(number);
+        }
+        encoded.push(number);
+    }
+    if !minimum.is_finite() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "stats_relationship_plot() size has no usable numeric values",
+            None,
+        ));
+    }
+    Ok(Some(PointSizeEncoding {
+        values: encoded,
+        minimum,
+        maximum,
+    }))
+}
+
 fn complete_grouped_pairs(
     left: &Value,
     right: &Value,
@@ -4604,6 +4688,11 @@ fn grouped_relationship_diagnostic_plot(
     groups: &Value,
     opts: &HashMap<String, Value>,
 ) -> Result<Value> {
+    let point_count = match x {
+        Value::List(values) => values.len(),
+        _ => 0,
+    };
+    let point_sizes = point_size_encoding(opts, point_count)?;
     let (groups, excluded) = complete_grouped_pairs(x, y, groups)?;
     let full_range = opts
         .get("fullrange")
@@ -4635,6 +4724,14 @@ fn grouped_relationship_diagnostic_plot(
             None,
         ));
     }
+    let show_fit = opts.get("fit").and_then(Value::as_bool).unwrap_or(true);
+    if !show_fit && interval != "none" {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "stats_relationship_plot() interval bands require fit: true",
+            None,
+        ));
+    }
     let confidence = opts
         .get("confidence")
         .and_then(Value::as_float)
@@ -4642,11 +4739,11 @@ fn grouped_relationship_diagnostic_plot(
 
     struct FittedGroup {
         data: RelationshipGroup,
-        fit: LinearFitGeometry,
+        fit: Option<LinearFitGeometry>,
     }
     let mut fitted = Vec::with_capacity(groups.len());
     for group in groups {
-        if group.xs.len() < 3 {
+        if show_fit && group.xs.len() < 3 {
             return Err(BioLangError::runtime(
                 ErrorKind::TypeError,
                 format!(
@@ -4671,16 +4768,20 @@ fn grouped_relationship_diagnostic_plot(
         let at = (0..=100)
             .map(|index| minimum + (maximum - minimum) * index as f64 / 100.0)
             .collect::<Vec<_>>();
-        let fit = linear_fit_geometry(&group.xs, &group.ys, &at, confidence).map_err(|_| {
-            BioLangError::runtime(
-                ErrorKind::TypeError,
-                format!(
-                    "stats_relationship_plot() cannot fit group '{}'; check that x varies within the group",
-                    group.label
-                ),
-                None,
-            )
-        })?;
+        let fit = if show_fit {
+            Some(linear_fit_geometry(&group.xs, &group.ys, &at, confidence).map_err(|_| {
+                BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!(
+                        "stats_relationship_plot() cannot fit group '{}'; check that x varies within the group",
+                        group.label
+                    ),
+                    None,
+                )
+            })?)
+        } else {
+            None
+        };
         fitted.push(FittedGroup { data: group, fit });
     }
 
@@ -4744,6 +4845,19 @@ fn grouped_relationship_diagnostic_plot(
         .fold(
             estimate_text_width(legend_title, theme.legend_size),
             f64::max,
+        )
+        .max(
+            point_sizes
+                .as_ref()
+                .map(|_| {
+                    estimate_text_width(
+                        opts.get("size_legend_title")
+                            .and_then(Value::as_str)
+                            .unwrap_or("size"),
+                        theme.legend_size,
+                    )
+                })
+                .unwrap_or(0.0),
         );
     let legend_width = (55.0 + widest_legend).clamp(105.0, 220.0);
     let mut canvas = SvgCanvas::with_theme(width, height, theme);
@@ -4769,7 +4883,11 @@ fn grouped_relationship_diagnostic_plot(
     let mut minimum_y = all_y.iter().copied().min_by(f64::total_cmp).unwrap();
     let mut maximum_y = all_y.iter().copied().max_by(f64::total_cmp).unwrap();
     if interval != "none" {
-        for point in fitted.iter().flat_map(|group| group.fit.points.iter()) {
+        for point in fitted
+            .iter()
+            .filter_map(|group| group.fit.as_ref())
+            .flat_map(|fit| fit.points.iter())
+        {
             let (lower, upper) = if interval == "prediction" {
                 (point.prediction_lower, point.prediction_upper)
             } else {
@@ -4805,8 +4923,11 @@ fn grouped_relationship_diagnostic_plot(
     // whatever the group colour is.
     if interval != "none" {
         for group in &fitted {
-            let mut band = group
+            let fit = group
                 .fit
+                .as_ref()
+                .expect("intervals require fitted geometry");
+            let mut band = fit
                 .points
                 .iter()
                 .map(|point| {
@@ -4818,7 +4939,7 @@ fn grouped_relationship_diagnostic_plot(
                     format!("{:.1},{:.1}", x_scale.map(point.x), y_scale.map(upper))
                 })
                 .collect::<Vec<_>>();
-            band.extend(group.fit.points.iter().rev().map(|point| {
+            band.extend(fit.points.iter().rev().map(|point| {
                 let lower = if interval == "prediction" {
                     point.prediction_lower
                 } else {
@@ -4852,20 +4973,28 @@ fn grouped_relationship_diagnostic_plot(
         })
         .collect::<Vec<_>>();
     points.sort_unstable_by_key(|(row, _, _, _)| *row);
-    for (_, x, y, index) in points.into_iter().step_by(stride) {
+    for (row, x, y, index) in points.into_iter().step_by(stride) {
+        let radius = match &point_sizes {
+            Some(sizes) => match sizes.radius(row) {
+                Some(radius) => radius,
+                None => continue,
+            },
+            None => 2.6,
+        };
         // `size = 1.5` and `stroke = 0.5` give a 2.6px radius at 96dpi.
         canvas.add_circle_with_opacity(
             x_scale.map(x),
             y_scale.map(y),
-            2.6,
+            radius,
             &colors[index],
             point_alpha,
         );
     }
     // Fitted lines sit above every point, as `geom_smooth()` does.
     for (index, group) in fitted.iter().enumerate() {
-        let first = group.fit.points.first().unwrap();
-        let last = group.fit.points.last().unwrap();
+        let Some(fit) = &group.fit else { continue };
+        let first = fit.points.first().unwrap();
+        let last = fit.points.last().unwrap();
         canvas.add_line(
             x_scale.map(first.x),
             y_scale.map(first.fitted),
@@ -4875,6 +5004,40 @@ fn grouped_relationship_diagnostic_plot(
             // ggplot2 `linewidth = 1` is lwd 2.845 in 1/96in units.
             2.85,
         );
+    }
+    let legend_x = width - canvas.margin.right + 22.0;
+    if let Some(sizes) = &point_sizes {
+        let size_title = opts
+            .get("size_legend_title")
+            .and_then(Value::as_str)
+            .unwrap_or("size");
+        let title_y = canvas.margin.top + 52.0 + 25.0 * fitted.len() as f64;
+        canvas.add_text(legend_x, title_y, size_title, "start", theme.legend_size);
+        let values = if (sizes.maximum - sizes.minimum).abs() <= f64::EPSILON {
+            vec![sizes.minimum]
+        } else {
+            vec![
+                sizes.minimum,
+                (sizes.minimum + sizes.maximum) / 2.0,
+                sizes.maximum,
+            ]
+        };
+        for (index, value) in values.into_iter().enumerate() {
+            let y = title_y + 27.0 + 27.0 * index as f64;
+            let radius = if (sizes.maximum - sizes.minimum).abs() <= f64::EPSILON {
+                4.5
+            } else {
+                2.0 + 5.0 * ((value - sizes.minimum) / (sizes.maximum - sizes.minimum)).sqrt()
+            };
+            canvas.add_circle(legend_x + 7.0, y - 3.0, radius, "#4b5563");
+            canvas.add_text(
+                legend_x + 30.0,
+                y + 1.0,
+                &fmt_number(value),
+                "start",
+                theme.legend_size,
+            );
+        }
     }
     canvas.draw_x_axis(
         &x_scale,
@@ -4890,7 +5053,6 @@ fn grouped_relationship_diagnostic_plot(
             .unwrap_or("Relationship by group"),
     );
 
-    let legend_x = width - canvas.margin.right + 22.0;
     canvas.add_text(
         legend_x,
         canvas.margin.top + 5.0,
@@ -4902,7 +5064,9 @@ fn grouped_relationship_diagnostic_plot(
         let color = colors[index].as_str();
         let y = canvas.margin.top + 32.0 + 25.0 * index as f64;
         canvas.add_circle(legend_x + 5.0, y - 3.0, 3.5, color);
-        canvas.add_line(legend_x, y - 3.0, legend_x + 22.0, y - 3.0, color, 2.85);
+        if show_fit {
+            canvas.add_line(legend_x, y - 3.0, legend_x + 22.0, y - 3.0, color, 2.85);
+        }
         canvas.add_text(
             legend_x + 30.0,
             y + 1.0,
@@ -4911,13 +5075,31 @@ fn grouped_relationship_diagnostic_plot(
             theme.legend_size,
         );
     }
+    let geometry_note = if show_fit {
+        format!(
+            "Lines: group least-squares fits{}.",
+            if interval == "none" {
+                String::new()
+            } else {
+                format!("; shading: {:.0}% {interval} bands", confidence * 100.0)
+            }
+        )
+    } else {
+        "Points are coloured by group; no fitted model is drawn.".to_string()
+    };
+    let size_note = point_sizes
+        .as_ref()
+        .map(|_| {
+            format!(
+                " Point area is scaled by {}.",
+                opts.get("size_legend_title")
+                    .and_then(Value::as_str)
+                    .unwrap_or("size")
+            )
+        })
+        .unwrap_or_default();
     canvas.draw_caption(&format!(
-        "{pair_count} complete pairs; {excluded} excluded. Lines: group least-squares fits{}.",
-        if interval == "none" {
-            String::new()
-        } else {
-            format!("; shading: {:.0}% {interval} bands", confidence * 100.0)
-        }
+        "{pair_count} complete pairs; {excluded} excluded. {geometry_note}{size_note}"
     ));
     Ok(text(canvas.render()))
 }
@@ -5327,6 +5509,7 @@ fn grouped_values(
     values: &Value,
     groups: &Value,
     function: &str,
+    missing_label: Option<&str>,
 ) -> Result<Vec<(String, Vec<f64>)>> {
     let data = numeric_data(values, function)?;
     let Value::List(group_values) = groups else {
@@ -5342,19 +5525,39 @@ fn grouped_values(
             None,
         ));
     }
-    let mut labels = Vec::new();
     let mut positions = HashMap::new();
     let mut result = Vec::<(String, Vec<f64>)>::new();
+    let mut missing_values = Vec::new();
     for (clean_index, original_index) in data.original_indices.iter().enumerate() {
-        let Some(label) = group_values.get(*original_index).and_then(category_label) else {
+        let Some(group) = group_values.get(*original_index) else {
+            continue;
+        };
+        if matches!(group, Value::Nil) {
+            if missing_label.is_some() {
+                missing_values.push(data.values[clean_index]);
+            }
+            continue;
+        }
+        let Some(label) = category_label(group) else {
             continue;
         };
         let position = *positions.entry(label.clone()).or_insert_with(|| {
-            labels.push(label.clone());
             result.push((label, Vec::new()));
             result.len() - 1
         });
         result[position].1.push(data.values[clean_index]);
+    }
+    if let Some(label) = missing_label.filter(|_| !missing_values.is_empty()) {
+        // Discrete ggplot scales place the missing-value level after observed
+        // categories. If a real category uses the same display label, merge
+        // it rather than drawing two indistinguishable axis entries.
+        if let Some(position) = result.iter().position(|(name, _)| name == label) {
+            let (_, mut values) = result.remove(position);
+            values.extend(missing_values);
+            result.push((label.to_string(), values));
+        } else {
+            result.push((label.to_string(), missing_values));
+        }
     }
     if result.is_empty() {
         return Err(BioLangError::runtime(
@@ -5367,8 +5570,28 @@ fn grouped_values(
 }
 
 fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
-    let groups = grouped_values(&args[0], &args[1], "stats_group_plot")?;
     let opts = options(&args, 2, "stats_group_plot")?;
+    let missing_label = match opts.get("missing_label") {
+        Some(Value::Str(label)) if !label.is_empty() => Some(label.as_str()),
+        Some(Value::Str(_)) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "stats_group_plot() option 'missing_label' cannot be empty",
+                None,
+            ))
+        }
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "stats_group_plot() option 'missing_label' must be Str, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+        None => None,
+    };
+    let groups = grouped_values(&args[0], &args[1], "stats_group_plot", missing_label)?;
     let all = groups
         .iter()
         .flat_map(|(_, values)| values.iter().copied())

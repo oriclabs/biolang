@@ -83,7 +83,7 @@ pub fn table_builtin_list() -> Vec<(&'static str, Arity)> {
         ("bed_merge", Arity::Range(1, 2)),
         ("bed_closest", Arity::Exact(2)),
         // Table statistics & reshaping
-        ("cross_tab", Arity::Exact(3)),
+        ("cross_tab", Arity::Range(3, 4)),
         ("rank_col", Arity::Range(2, 3)),
         ("cumsum_col", Arity::Exact(2)),
         ("unnest", Arity::Exact(2)),
@@ -3334,11 +3334,68 @@ fn builtin_bed_merge(args: Vec<Value>) -> Result<Value> {
 
 // ── New table functions ────────────────────────────────────────────────────
 
-/// cross_tab(table, row_col, col_col) → Table (contingency table / cross-tabulation)
+fn apply_cross_tab_order(
+    observed: Vec<String>,
+    option: Option<&Value>,
+    option_name: &str,
+) -> Result<Vec<String>> {
+    let Some(option) = option else {
+        return Ok(observed);
+    };
+    let Value::List(items) = option else {
+        return Err(BioLangError::type_error(
+            format!("cross_tab() option '{option_name}' must be List"),
+            None,
+        ));
+    };
+    let mut ordered = Vec::with_capacity(observed.len());
+    for item in items.iter() {
+        let Value::Str(label) = item else {
+            return Err(BioLangError::type_error(
+                format!("cross_tab() option '{option_name}' must contain only Str labels"),
+                None,
+            ));
+        };
+        if ordered.contains(&label.to_string()) {
+            return Err(BioLangError::type_error(
+                format!("cross_tab() option '{option_name}' repeats '{label}'"),
+                None,
+            ));
+        }
+        if !observed.iter().any(|category| category == label) {
+            return Err(BioLangError::type_error(
+                format!("cross_tab() option '{option_name}' names unknown category '{label}'"),
+                None,
+            ));
+        }
+        ordered.push(label.to_string());
+    }
+    for category in observed {
+        if !ordered.contains(&category) {
+            ordered.push(category);
+        }
+    }
+    Ok(ordered)
+}
+
+/// cross_tab(table, row_col, col_col, options?) → Table (contingency table / cross-tabulation)
 fn builtin_cross_tab(args: Vec<Value>) -> Result<Value> {
     let table = require_table(&args[0], "cross_tab")?;
     let row_col = require_str(&args[1], "cross_tab")?;
     let col_col = require_str(&args[2], "cross_tab")?;
+    let opts = match args.get(3) {
+        Some(Value::Record(opts)) => Some(opts.as_ref()),
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "cross_tab() options must be Record, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+        None => None,
+    };
 
     let row_ci = table.col_index(&row_col).ok_or_else(|| {
         BioLangError::runtime(
@@ -3368,6 +3425,16 @@ fn builtin_cross_tab(args: Vec<Value>) -> Result<Value> {
             col_cats.push(ck);
         }
     }
+    row_cats = apply_cross_tab_order(
+        row_cats,
+        opts.and_then(|options| options.get("row_order")),
+        "row_order",
+    )?;
+    col_cats = apply_cross_tab_order(
+        col_cats,
+        opts.and_then(|options| options.get("col_order")),
+        "col_order",
+    )?;
 
     // Count occurrences
     let mut counts: HashMap<(String, String), i64> = HashMap::new();

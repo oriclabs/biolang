@@ -512,6 +512,10 @@ pub(super) fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
     let title = get_opt_str(&opts, "title", "Histogram").to_string();
     let geometry = histogram_geometry(&args, "histogram")?;
     let max_count = geometry.counts.iter().copied().max().unwrap_or(0).max(1);
+    // Continuous ggplot scales expand the data range by 5% at each end. Keep
+    // zero as the meaningful histogram baseline, but retain the upper 5% so
+    // the tallest bar does not merge visually with the panel border.
+    let y_max = max_count as f64 * 1.05;
 
     let theme = stats_plot_theme(&opts);
     let mut canvas = SvgCanvas::with_theme(width, height, theme);
@@ -520,7 +524,7 @@ pub(super) fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
         range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
     };
     let y_scale = Scale {
-        domain: (0.0, max_count as f64),
+        domain: (0.0, y_max),
         range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
     };
 
@@ -548,8 +552,8 @@ pub(super) fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
         range: x_scale.domain,
     };
     let data_y_scale = Scale {
-        domain: (0.0, max_count as f64),
-        range: (0.0, max_count as f64),
+        domain: (0.0, y_max),
+        range: (0.0, y_max),
     };
     canvas.draw_x_axis(&data_x_scale, &axis_label(&opts, "xlabel", "Value"));
     canvas.draw_y_axis(&data_y_scale, &axis_label(&opts, "ylabel", "Count"));

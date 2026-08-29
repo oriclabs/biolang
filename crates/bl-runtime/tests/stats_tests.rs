@@ -2279,6 +2279,51 @@ fn power_t_test_needs_more_samples_for_higher_power() {
 // documented optional fourth argument was rejected before any code that could
 // have used it ran.
 
+#[test]
+fn power_prop_test_matches_r_power_prop_test_examples() {
+    let achieved = call_stats_builtin(
+        "power_prop_test",
+        vec![
+            Value::Float(0.8),
+            Value::Float(0.2),
+            option_record(&[("n", Value::Int(5))]),
+        ],
+    )
+    .unwrap();
+    assert!((get_record_float(&achieved, "power") - 0.4688159).abs() < 1e-7);
+
+    let required = call_stats_builtin(
+        "power_prop_test",
+        vec![
+            Value::Float(0.8),
+            Value::Float(0.2),
+            option_record(&[("power", Value::Float(0.9))]),
+        ],
+    )
+    .unwrap();
+    assert!((get_record_float(&required, "n_raw") - 12.37701).abs() < 1e-5);
+    assert_eq!(get_record_float(&required, "n"), 13.0);
+}
+
+#[test]
+fn power_t_test_can_compute_achieved_power_for_a_fixed_n() {
+    let result = call_stats_builtin(
+        "power_t_test",
+        vec![
+            Value::Float(2.0 / 2.3),
+            Value::Float(0.05),
+            Value::Nil,
+            option_record(&[("n", Value::Int(20))]),
+        ],
+    )
+    .unwrap();
+    let power = get_record_float(&result, "power");
+    assert!(
+        (power - 0.7641668).abs() < 3e-6,
+        "fixed-n power was {power}"
+    );
+}
+
 fn permutation_p(args: Vec<Value>) -> f64 {
     let result = call_stats_builtin("permutation_test", args).expect("permutation_test runs");
     match result {

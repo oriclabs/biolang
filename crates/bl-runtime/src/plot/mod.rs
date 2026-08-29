@@ -1711,6 +1711,35 @@ mod axis_label_tests {
             "the default y label should be gone"
         );
     }
+
+    #[test]
+    fn a_histogram_leaves_headroom_above_the_tallest_bar() {
+        let values = Value::List(Arc::new(
+            [1.0, 1.0, 1.0, 2.0].into_iter().map(Value::Float).collect(),
+        ));
+        let opts = Value::Record(Arc::new(HashMap::from([
+            ("bins".to_string(), Value::Int(2)),
+            ("theme".to_string(), Value::Str("ggplot".into())),
+        ])));
+        let svg =
+            match call_plot_builtin("histogram", vec![values, opts]).expect("histogram renders") {
+                Value::Str(svg) => svg.to_string(),
+                other => panic!("histogram should return SVG, got {other:?}"),
+            };
+        let fill = svg.find("fill=\"#595959\"").expect("histogram bar");
+        let start = svg[..fill].rfind("<rect ").expect("bar rectangle");
+        let bar = &svg[start..fill];
+        let y = bar
+            .split(" y=\"")
+            .nth(1)
+            .and_then(|value| value.split('"').next())
+            .and_then(|value| value.parse::<f64>().ok())
+            .expect("bar y coordinate");
+        assert!(
+            y > 40.0,
+            "the tallest bar should sit below the 40px panel top: {bar}"
+        );
+    }
 }
 
 #[cfg(test)]

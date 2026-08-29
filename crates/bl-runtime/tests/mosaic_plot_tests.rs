@@ -1,5 +1,6 @@
 use bl_core::value::{Table, Value};
 use bl_runtime::plot::call_plot_builtin;
+use bl_runtime::table_ops::call_table_builtin;
 use std::collections::HashMap;
 
 fn contingency() -> Value {
@@ -20,6 +21,58 @@ fn options(items: impl IntoIterator<Item = (&'static str, Value)>) -> Value {
             .collect::<HashMap<_, _>>()
             .into(),
     )
+}
+
+#[test]
+fn cross_tab_can_pin_the_category_order_used_by_a_mosaic() {
+    let observations = Value::Table(Table::new(
+        vec!["Race".into(), "Insured".into()],
+        vec![
+            vec![Value::Str("White".into()), Value::Str("Yes".into())],
+            vec![Value::Str("Asian".into()), Value::Str("No".into())],
+            vec![Value::Str("Black".into()), Value::Str("Yes".into())],
+            vec![Value::Str("Asian".into()), Value::Str("Yes".into())],
+        ],
+    ));
+    let order = Value::List(
+        ["Asian", "Black", "White"]
+            .into_iter()
+            .map(|label| Value::Str(label.into()))
+            .collect::<Vec<_>>()
+            .into(),
+    );
+    let table = call_table_builtin(
+        "cross_tab",
+        vec![
+            observations,
+            Value::Str("Race".into()),
+            Value::Str("Insured".into()),
+            options([("row_order", order)]),
+        ],
+    )
+    .unwrap();
+    let Value::Table(table) = table else {
+        panic!("cross_tab must return a Table")
+    };
+    let labels = table
+        .rows
+        .iter()
+        .map(|row| row[0].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(labels, ["Asian", "Black", "White"]);
+
+    let Value::Record(specification) =
+        call_plot_builtin("mosaic_data", vec![Value::Table(table)]).unwrap()
+    else {
+        panic!("mosaic_data must return a Record")
+    };
+    let Value::Table(cells) = &specification["data"] else {
+        panic!("mosaic data")
+    };
+    assert_eq!(
+        cells.rows[0][cells.col_index("row_label").unwrap()].as_str(),
+        Some("Asian")
+    );
 }
 
 fn record(value: &Value) -> &HashMap<String, Value> {

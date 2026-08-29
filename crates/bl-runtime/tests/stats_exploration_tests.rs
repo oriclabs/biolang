@@ -508,6 +508,57 @@ fn diagnostic_visuals_have_ascii_and_svg_paths() {
             && svg.contains("male")
             && svg.contains("95% confidence bands")
             && svg.contains("#ebebeb")));
+    let grouped_points_only = call_stats_builtin(
+        "stats_relationship_plot",
+        vec![
+            numbers(&[150.0, 160.0, 170.0, 155.0, 165.0, 175.0]),
+            numbers(&[50.0, 60.0, 72.0, 58.0, 70.0, 84.0]),
+            Value::Record(
+                HashMap::from([
+                    (
+                        "group".into(),
+                        strings(&["female", "female", "female", "male", "male", "male"]),
+                    ),
+                    ("fit".into(), Value::Bool(false)),
+                    ("legend_title".into(), Value::Str("Gender".into())),
+                ])
+                .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    assert!(matches!(grouped_points_only, Value::Str(ref svg)
+        if svg.contains("#f8766d")
+            && svg.contains("#00bfc4")
+            && svg.contains("no fitted model is drawn")
+            && !svg.contains("group least-squares fits")));
+    let grouped_sized_points = call_stats_builtin(
+        "stats_relationship_plot",
+        vec![
+            numbers(&[1.0, 2.0, 3.0, 4.0]),
+            numbers(&[-1.0, 1.0, -2.0, 2.0]),
+            Value::Record(
+                HashMap::from([
+                    ("group".into(), strings(&["No", "Yes", "No", "Yes"])),
+                    ("size".into(), numbers(&[20.0, 40.0, 60.0, 80.0])),
+                    ("fit".into(), Value::Bool(false)),
+                    (
+                        "legend_title".into(),
+                        Value::Str("Physical activity".into()),
+                    ),
+                    ("size_legend_title".into(), Value::Str("Age".into())),
+                ])
+                .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    assert!(matches!(grouped_sized_points, Value::Str(ref svg)
+        if svg.contains("Physical activity")
+            && svg.contains("Age")
+            && svg.contains("Point area is scaled by Age")
+            && svg.contains("r=\"2.0\"")
+            && svg.contains("r=\"7.0\"")));
     let categories = call_stats_builtin(
         "stats_categorical_plot",
         vec![strings(&["a", "b", "a"]), ascii_options],
@@ -523,6 +574,37 @@ fn diagnostic_visuals_have_ascii_and_svg_paths() {
     )
     .unwrap();
     assert!(matches!(group_svg, Value::Str(ref svg) if svg.starts_with("<svg")));
+    let missing_group_svg = call_stats_builtin(
+        "stats_group_plot",
+        vec![
+            numbers(&[20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0]),
+            Value::List(
+                vec![
+                    Value::Str("Current".into()),
+                    Value::Str("Current".into()),
+                    Value::Str("Former".into()),
+                    Value::Str("Former".into()),
+                    Value::Str("Never".into()),
+                    Value::Str("Never".into()),
+                    Value::Nil,
+                    Value::Nil,
+                ]
+                .into(),
+            ),
+            Value::Record(
+                HashMap::from([
+                    ("theme".into(), Value::Str("classic".into())),
+                    ("points".into(), Value::Str("outliers".into())),
+                    ("missing_label".into(), Value::Str("NA".into())),
+                ])
+                .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    assert!(matches!(missing_group_svg, Value::Str(ref svg)
+        if svg.contains(">NA</text>")
+            && svg.matches("fill=\"#ffffff\" stroke=\"#333333\" stroke-width=\"1.42\"").count() == 4));
     let alias = call_stats_builtin("normal_qq_plot", vec![numbers(&[1.0, 2.0, 3.0, 4.0])]).unwrap();
     assert!(matches!(alias, Value::Str(ref svg) if svg.starts_with("<svg")));
 }

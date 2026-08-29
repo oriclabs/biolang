@@ -125,6 +125,7 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("random_int", Arity::Exact(2)),
         ("set_seed", Arity::Exact(1)),
         ("power_t_test", Arity::Range(1, 4)),
+        ("power_prop_test", Arity::Exact(3)),
         // ASCII plotting
         ("hist", Arity::Range(1, 2)),
         ("scatter", Arity::Exact(2)),
@@ -307,6 +308,7 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "random_int"
             | "set_seed"
             | "power_t_test"
+            | "power_prop_test"
             | "hist"
             | "scatter"
             | "ttest"
@@ -481,6 +483,7 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         "random_int" => builtin_random_int(args),
         "set_seed" => builtin_set_seed(args),
         "power_t_test" => builtin_power_t_test(args),
+        "power_prop_test" => builtin_power_prop_test(args),
         "hist" => builtin_hist(args),
         "scatter" => builtin_scatter(args),
         "ttest" => builtin_ttest(args),
@@ -3968,8 +3971,9 @@ pub fn set_random_seed(seed: u64) {
 
 /// power_t_test(effect_size, alpha?, power?, options?) — required sample size per group.
 /// Returns {n, n_raw, effect_size, alpha, power, method}. The default uses an
-/// independently implemented noncentral-t solver; pass a fourth argument
-/// {method: "normal"} to retain the earlier large-sample approximation.
+/// independently implemented noncentral-t solver. Pass `{n: 20}` as the fourth
+/// argument to calculate achieved power, or `{method: "normal"}` to request the
+/// earlier large-sample approximation.
 fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
     let d = require_num(&args[0], "power_t_test")?;
     let alpha = opt_float(&args, 1, 0.05);
@@ -3994,18 +3998,27 @@ fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
         ));
     }
 
-    let method = match args.get(3) {
-        None => "noncentral_t",
-        Some(Value::Record(options)) => match options.get("method") {
-            None => "noncentral_t",
-            Some(Value::Str(method)) => method.as_str(),
-            Some(other) => {
-                return Err(BioLangError::type_error(
-                    format!("power_t_test() method must be Str, got {}", other.type_of()),
-                    None,
-                ));
-            }
-        },
+    let (method, requested_n) = match args.get(3) {
+        None => ("noncentral_t", None),
+        Some(Value::Record(options)) => {
+            let method = match options.get("method") {
+                None => "noncentral_t",
+                Some(Value::Str(method)) => method.as_str(),
+                Some(other) => {
+                    return Err(BioLangError::type_error(
+                        format!("power_t_test() method must be Str, got {}", other.type_of()),
+                        None,
+                    ));
+                }
+            };
+            let requested_n = match options.get("n") {
+                None => None,
+                Some(value) => Some(to_f64(value).ok_or_else(|| {
+                    BioLangError::type_error("power_t_test() n must be numeric", None)
+                })?),
+            };
+            (method, requested_n)
+        }
         Some(other) => {
             return Err(BioLangError::type_error(
                 format!(
@@ -4016,6 +4029,38 @@ fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
             ));
         }
     };
+
+    if let Some(n_raw) = requested_n {
+        if n_raw <= 1.0 {
+            return Err(BioLangError::type_error(
+                "power_t_test() n must be greater than 1",
+                None,
+            ));
+        }
+        let achieved_power = match method {
+            "noncentral_t" | "noncentral-t" | "exact" => {
+                bl_core::bio_core::stats_ops::two_sample_t_power(n_raw, d, alpha)
+            }
+            "normal" | "approximate" => {
+                let z_alpha = bl_core::bio_core::stats_ops::normal_quantile(1.0 - alpha / 2.0);
+                bl_core::bio_core::stats_ops::normal_cdf(d * (n_raw / 2.0).sqrt() - z_alpha)
+            }
+            other => {
+                return Err(BioLangError::type_error(
+                    format!("power_t_test() method must be noncentral_t or normal, got '{other}'"),
+                    None,
+                ));
+            }
+        };
+        return Ok(make_record(vec![
+            ("n", Value::Float(n_raw)),
+            ("n_raw", Value::Float(n_raw)),
+            ("effect_size", Value::Float(d)),
+            ("alpha", Value::Float(alpha)),
+            ("power", Value::Float(achieved_power)),
+            ("method", Value::Str(method.into())),
+        ]));
+    }
 
     let n_raw = match method {
         "noncentral_t" | "noncentral-t" | "exact" => {
@@ -4043,6 +4088,95 @@ fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
     m.insert("n_raw".to_string(), Value::Float(n_raw));
     m.insert("method".to_string(), Value::Str(method.into()));
     Ok(Value::Record((m).into()))
+}
+
+/// power_prop_test(p1, p2, {n: ...}) computes achieved power for an equal-size
+/// two-group comparison of proportions. Replace `n` with `power` to solve for
+/// the required sample size per group. This is the unpooled normal
+/// approximation used by R's stats::power.prop.test for a two-sided test.
+fn builtin_power_prop_test(args: Vec<Value>) -> Result<Value> {
+    let p1 = require_num(&args[0], "power_prop_test")?;
+    let p2 = require_num(&args[1], "power_prop_test")?;
+    if !(0.0..=1.0).contains(&p1) || !(0.0..=1.0).contains(&p2) || p1 == p2 {
+        return Err(BioLangError::type_error(
+            "power_prop_test() p1 and p2 must be distinct probabilities in [0, 1]",
+            None,
+        ));
+    }
+    let Value::Record(options) = &args[2] else {
+        return Err(BioLangError::type_error(
+            format!(
+                "power_prop_test() options must be Record, got {}",
+                args[2].type_of()
+            ),
+            None,
+        ));
+    };
+    for name in options.keys() {
+        if !matches!(name.as_str(), "n" | "power" | "alpha") {
+            return Err(BioLangError::type_error(
+                format!("power_prop_test() unknown option '{name}'"),
+                None,
+            ));
+        }
+    }
+    let alpha = options
+        .get("alpha")
+        .and_then(Value::as_float)
+        .unwrap_or(0.05);
+    if !(0.0..1.0).contains(&alpha) {
+        return Err(BioLangError::type_error(
+            "power_prop_test() alpha must be in (0, 1)",
+            None,
+        ));
+    }
+    let n = options.get("n").and_then(Value::as_float);
+    let target_power = options.get("power").and_then(Value::as_float);
+    if n.is_some() == target_power.is_some() {
+        return Err(BioLangError::type_error(
+            "power_prop_test() provide exactly one of options 'n' or 'power'",
+            None,
+        ));
+    }
+
+    let pooled = (p1 + p2) / 2.0;
+    let null_sd = (2.0 * pooled * (1.0 - pooled)).sqrt();
+    let alternative_sd = (p1 * (1.0 - p1) + p2 * (1.0 - p2)).sqrt();
+    let difference = (p1 - p2).abs();
+    let z_alpha = bl_core::bio_core::stats_ops::normal_quantile(1.0 - alpha / 2.0);
+
+    let (n_raw, power) = if let Some(n) = n {
+        if n <= 0.0 {
+            return Err(BioLangError::type_error(
+                "power_prop_test() n must be positive",
+                None,
+            ));
+        }
+        let z = (n.sqrt() * difference - z_alpha * null_sd) / alternative_sd;
+        (n, bl_core::bio_core::stats_ops::normal_cdf(z))
+    } else {
+        let power = target_power.expect("exactly one of n or power was checked");
+        if !(0.0..1.0).contains(&power) {
+            return Err(BioLangError::type_error(
+                "power_prop_test() power must be in (0, 1)",
+                None,
+            ));
+        }
+        let z_power = bl_core::bio_core::stats_ops::normal_quantile(power);
+        let n_raw = ((z_alpha * null_sd + z_power * alternative_sd) / difference).powi(2);
+        (n_raw, power)
+    };
+
+    Ok(make_record(vec![
+        ("p1", Value::Float(p1)),
+        ("p2", Value::Float(p2)),
+        ("alpha", Value::Float(alpha)),
+        ("power", Value::Float(power)),
+        ("n_raw", Value::Float(n_raw)),
+        ("n", Value::Int(n_raw.ceil() as i64)),
+        ("method", Value::Str("two_sample_proportions_normal".into())),
+        ("note", Value::Str("n is per group".into())),
+    ]))
 }
 
 // ── Population Genetics & RNA-seq Normalization ─────────────────────────────
