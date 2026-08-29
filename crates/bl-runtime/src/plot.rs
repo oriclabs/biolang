@@ -714,27 +714,45 @@ pub(crate) fn stats_plot_theme(opts: &HashMap<String, Value>) -> PlotTheme {
     PlotTheme::from_name(get_opt_str(opts, "theme", "ggplot"))
 }
 
-/// Deterministic text-width estimate used for margins and legends.
+/// Advance widths for the Arial / Helvetica / Liberation Sans stack, in units
+/// per 1000 em, for ASCII 32 through 126.
 ///
-/// SVG deliberately leaves final font shaping to the viewer. A layout engine
-/// still needs a width before a browser exists, so use character classes rather
-/// than the old fixed `characters * 6.2` rule. This is stable in the CLI, WASM,
-/// and tests, and tracks common sans-serif metrics closely enough to prevent
-/// clipping without bundling a large font/shaping dependency.
+/// Those three faces are metric-compatible by design and are exactly the stack
+/// every BioLang plot names, so these numbers are the real ones for almost
+/// every viewer rather than an approximation of them.
+const ADVANCE_PER_MILLE: [u16; 95] = [
+    278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556,
+    556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667,
+    611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667,
+    667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500,
+    222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584,
+];
+
+/// Deterministic text width, used for margins and legends.
+///
+/// SVG leaves final shaping to the viewer, but a layout engine needs a width
+/// before a browser exists. A table of real advance widths is both exact for
+/// the named fonts and stable across the CLI, WASM, and tests, where the
+/// character-class estimate this replaces ran up to 16% wide - enough to
+/// visibly inflate margins and legend boxes.
 pub(crate) fn estimate_text_width(text: &str, size: f64) -> f64 {
-    let units = text
+    let per_mille: u32 = text
         .chars()
-        .map(|character| match character {
-            'i' | 'l' | 'I' | '|' | '!' | '.' | ',' | ':' | ';' | '\'' => 0.30,
-            'm' | 'w' | 'M' | 'W' | '@' | '%' => 0.90,
-            '0'..='9' => 0.56,
-            'A'..='Z' => 0.66,
-            ' ' => 0.32,
-            _ if character.is_ascii() => 0.54,
-            _ => 0.82,
+        .map(|character| {
+            let code = character as u32;
+            if (32..127).contains(&code) {
+                u32::from(ADVANCE_PER_MILLE[(code - 32) as usize])
+            } else if character.is_control() {
+                0
+            } else {
+                // Outside the table. Non-Latin glyphs are usually wider than
+                // the Latin mean, so err on the generous side: a slightly wide
+                // margin is survivable, a clipped label is not.
+                820
+            }
         })
-        .sum::<f64>();
-    units * size
+        .sum();
+    f64::from(per_mille) / 1000.0 * size
 }
 
 pub(crate) struct SvgCanvas {
@@ -772,7 +790,7 @@ impl Default for Margin {
 /// and it wastes a decimal on integer axes ("10.0" for a component number).
 /// The cheapest rule that fixes both is to ask for the fewest decimals at
 /// which no two labels are equal, since that is the property a reader needs.
-fn tick_decimals(ticks: &[f64]) -> usize {
+pub(crate) fn tick_decimals(ticks: &[f64]) -> usize {
     const MAX_DECIMALS: usize = 4;
     for decimals in 0..MAX_DECIMALS {
         let mut labels: Vec<String> = ticks.iter().map(|t| format!("{t:.decimals$}")).collect();
@@ -1000,7 +1018,14 @@ impl SvgCanvas {
         ));
     }
 
-    fn add_axis_title(&mut self, x: f64, y: f64, text: &str, axis: &str, angle: Option<f64>) {
+    pub(crate) fn add_axis_title(
+        &mut self,
+        x: f64,
+        y: f64,
+        text: &str,
+        axis: &str,
+        angle: Option<f64>,
+    ) {
         if text.is_empty() {
             return;
         }
@@ -4773,7 +4798,7 @@ fn histogram_equal_edges(values: &[f64], bins: usize) -> Vec<f64> {
 /// edges sit half a bin beyond the data. Cutting `[min, max]` into `n` equal
 /// parts instead — the matplotlib and `hist(breaks = n)` reading — gives
 /// different bar widths and different counts from the same `bins` value.
-fn histogram_ggplot_edges(values: &[f64], bins: usize) -> Vec<f64> {
+pub(crate) fn histogram_ggplot_edges(values: &[f64], bins: usize) -> Vec<f64> {
     let (mut lo, mut hi) = col_range(values);
     if (hi - lo).abs() < f64::EPSILON {
         let padding = (lo.abs() * 0.01).max(0.5);
@@ -8608,5 +8633,57 @@ mod ggplot_binning_tests {
             assert!((pair[1] - pair[0] - width).abs() < 1e-9, "uneven bin width");
         }
         assert!(edges[0] <= 12.88 && *edges.last().unwrap() >= 81.25);
+    }
+}
+
+#[cfg(test)]
+mod text_metric_tests {
+    use super::estimate_text_width;
+
+    /// Advance widths straight out of Arial's `hmtx` table, which matches the
+    /// Helvetica AFM values these three faces have shared since PostScript.
+    #[test]
+    fn widths_match_the_published_font_metrics() {
+        for (character, per_mille) in [
+            (' ', 278.0),
+            ('.', 278.0),
+            ('i', 222.0),
+            ('m', 833.0),
+            ('0', 556.0),
+            ('A', 667.0),
+            ('W', 944.0),
+        ] {
+            let width = estimate_text_width(&character.to_string(), 1000.0);
+            assert!(
+                (width - per_mille).abs() < 0.5,
+                "{character:?} should advance {per_mille} per em, got {width}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_string_is_the_sum_of_its_glyphs_and_scales_with_size() {
+        let label = "Height (cm)";
+        let at_ten = estimate_text_width(label, 10.0);
+        let at_twenty = estimate_text_width(label, 20.0);
+        assert!(
+            (at_twenty - 2.0 * at_ten).abs() < 1e-9,
+            "width must be linear in size"
+        );
+        // 5.167 em from the real table; the character-class rule said 5.94.
+        assert!(
+            (at_ten - 51.67).abs() < 0.05,
+            "expected 51.67px at size 10, got {at_ten}"
+        );
+    }
+
+    #[test]
+    fn characters_outside_the_table_still_get_a_width() {
+        assert!(estimate_text_width("\u{4e2d}\u{6587}", 10.0) > 0.0);
+        assert_eq!(
+            estimate_text_width("\u{7}", 10.0),
+            0.0,
+            "control characters take no space"
+        );
     }
 }

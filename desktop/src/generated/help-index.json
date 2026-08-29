@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 30,
-    "builtin": 1116,
+    "builtin": 1117,
     "tutorial": 0,
     "example": 392
   },
@@ -13230,6 +13230,20 @@
       "returnType": "Record",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "stats_explore stats_explore(values, options?) → record{kind,summary,shape,outliers,alternatives,limitations} stats centre, spread, shape, missingness, transformation candidates and review flags for one numeric variable."
+    },
+    {
+      "id": "builtin:stats_facet_plot",
+      "kind": "builtin",
+      "title": "stats_facet_plot",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "One panel per level of a factor, sharing scales across panels.",
+      "body": "# stats_facet_plot\n\nOne panel per level of a factor, sharing scales across panels.\n\n## Signature\n\n```biolang\nstats_facet_plot(values, facets, options?) → Str\n```\n\n## Example\n\n```biolang\nstats_facet_plot(values, groups, {columns: 3})  # panels share one scale\n```\n\n**Returns:** `Str`\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "stats_facet_plot(values, facets, options?) → Str",
+      "example": "stats_facet_plot(values, groups, {columns: 3})  # panels share one scale",
+      "returnType": "Str",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "stats_facet_plot stats_facet_plot(values, facets, options?) → str stats one panel per level of a factor, sharing scales across panels."
     },
     {
       "id": "builtin:stats_glm_diagnostics",

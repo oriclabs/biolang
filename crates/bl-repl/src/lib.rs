@@ -2124,6 +2124,7 @@ const BUILTIN_SUMMARIES: &[(&str, &str)] = &[
     ("stats_visualize", "Render an exploration report's visual guide as SVG or terminal-safe ASCII."),
     ("stats_normal_qq_plot", "Normal-distribution Q-Q diagnostic, distinct from the genomic qq_plot()."),
     ("stats_group_plot", "Group observations and robust summaries, in SVG or ASCII."),
+    ("stats_facet_plot", "One panel per level of a factor, sharing scales across panels."),
     ("stats_relationship_plot", "Scatterplot and fitted line, in SVG or ASCII."),
     ("stats_categorical_plot", "Frequency bars, in SVG or ASCII."),
     ("stats_missingness_plot", "Missingness map, in SVG or ASCII."),
@@ -2554,6 +2555,11 @@ const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
     (
         "stats_group_plot",
         "stats_group_plot(values, groups, {format: \"ascii\"})",
+        "Str",
+    ),
+    (
+        "stats_facet_plot",
+        "stats_facet_plot(values, groups, {columns: 3})  # panels share one scale",
         "Str",
     ),
     (
@@ -3490,6 +3496,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     (
         "stats_group_plot",
         "stats_group_plot(values, groups, options?) → Str",
+        "stats",
+    ),
+    (
+        "stats_facet_plot",
+        "stats_facet_plot(values, facets, options?) → Str",
         "stats",
     ),
     (

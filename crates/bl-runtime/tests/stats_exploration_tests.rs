@@ -1401,3 +1401,97 @@ fn design_check_treats_partial_batch_overlap_as_estimable() {
         design_issue_ids(&report)
     );
 }
+
+/// Every panel in a `fixed` facet is drawn against one domain, which is the
+/// whole reason to facet rather than compose separate plots. `plot_grid` lays
+/// out independently rendered figures and cannot do this.
+#[test]
+fn a_fixed_facet_shares_one_scale_across_panels() {
+    // Two groups whose counts differ by an order of magnitude. On a shared
+    // scale the small group's bars stay small; on a free scale it fills its
+    // own panel and the comparison is lost.
+    let mut values = Vec::new();
+    let mut labels = Vec::new();
+    for index in 0..400 {
+        values.push(f64::from(index % 20));
+        labels.push("big");
+    }
+    for index in 0..40 {
+        values.push(f64::from(index % 20));
+        labels.push("small");
+    }
+
+    let render = |scales: &str| -> String {
+        let options = Value::Record(
+            std::collections::HashMap::from([
+                ("bins".to_string(), Value::Int(10)),
+                ("scales".to_string(), Value::Str(scales.into())),
+                ("columns".to_string(), Value::Int(2)),
+            ])
+            .into(),
+        );
+        let result = call_stats_builtin(
+            "stats_facet_plot",
+            vec![numbers(&values), strings(&labels), options],
+        )
+        .expect("facet plot failed");
+        match result {
+            Value::Str(svg) => svg.to_string(),
+            other => panic!("expected Str, got {other:?}"),
+        }
+    };
+
+    let fixed = render("fixed");
+    let free = render("free_y");
+    assert!(fixed.contains("<svg"), "fixed facet produced no SVG");
+
+    // Two panels, so two facet strips.
+    assert_eq!(
+        fixed.matches("fill=\"#d5d5d5\"").count(),
+        2,
+        "expected one strip per panel"
+    );
+
+    // Under a shared scale only the leftmost panel is labelled, so the y ticks
+    // appear once. Freeing the scale gives the second panel its own.
+    let count_y_ticks = |svg: &str| svg.matches("text-anchor=\"end\"").count();
+    assert!(
+        count_y_ticks(&free) > count_y_ticks(&fixed),
+        "free_y should label more axes than fixed ({} vs {})",
+        count_y_ticks(&free),
+        count_y_ticks(&fixed)
+    );
+    assert_ne!(fixed, free, "scales option had no effect on the output");
+}
+
+#[test]
+fn a_facet_reports_its_panels_and_rejects_a_bad_scale() {
+    let values = numbers(&[1.0, 2.0, 3.0, 4.0]);
+    let labels = strings(&["a", "a", "b", "b"]);
+    let ascii = Value::Record(
+        std::collections::HashMap::from([("format".to_string(), Value::Str("ascii".into()))])
+            .into(),
+    );
+    let result = call_stats_builtin(
+        "stats_facet_plot",
+        vec![values.clone(), labels.clone(), ascii],
+    )
+    .expect("ascii facet failed");
+    let Value::Str(text) = result else {
+        panic!("expected Str");
+    };
+    assert!(text.contains("a n=2"), "missing panel a: {text}");
+    assert!(text.contains("b n=2"), "missing panel b: {text}");
+    assert!(text.contains("2 panels"), "missing panel count: {text}");
+
+    let bad = Value::Record(
+        std::collections::HashMap::from([("scales".to_string(), Value::Str("sideways".into()))])
+            .into(),
+    );
+    let error = call_stats_builtin("stats_facet_plot", vec![values, labels, bad])
+        .expect_err("an unknown scales option should be rejected");
+    assert!(
+        format!("{error}").contains("scales"),
+        "error should name the option: {error}"
+    );
+}

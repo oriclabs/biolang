@@ -16386,6 +16386,25 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "stats_facet_plot",
+      "signature": "stats_facet_plot(values, facets, options?) → Str",
+      "category": "stats",
+      "summary": "One panel per level of a factor, sharing scales across panels.",
+      "parameters": [
+        "values",
+        "facets",
+        "options?"
+      ],
+      "returnType": "Str",
+      "example": "stats_facet_plot(values, groups, {columns: 3})  # panels share one scale",
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "stats_glm_diagnostics",
       "signature": "stats_glm_diagnostics(predictors, outcome, options?) → Record{coefficients,residual_deviance,aic,converged,iterations}",
       "category": "stats",

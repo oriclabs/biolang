@@ -37,6 +37,7 @@ pub(crate) fn call(name: &str, args: Vec<Value>) -> Result<Value> {
         "stats_shape" => shape_diagnostics(args),
         "stats_normal_qq_plot" | "normal_qq_plot" => normal_qq_plot(args),
         "stats_group_plot" => group_diagnostic_plot(args),
+        "stats_facet_plot" => facet_plot(args),
         "stats_relationship_plot" => relationship_diagnostic_plot(args),
         "stats_categorical_plot" => categorical_diagnostic_plot(args),
         "stats_missingness_plot" => missingness_plot(args),
@@ -4842,6 +4843,407 @@ fn grouped_relationship_diagnostic_plot(
         } else {
             format!("; shading: {:.0}% {interval} bands", confidence * 100.0)
         }
+    ));
+    Ok(text(canvas.render()))
+}
+
+/// One panel per level of a factor, with the scales shared across panels.
+///
+/// Sharing the scale is the point, and it is what `plot_grid` cannot do: that
+/// composes independently rendered figures, so each panel picks its own domain
+/// and the panels cannot be compared by eye. Here every panel is drawn against
+/// one domain computed from the pooled data, and a faceted histogram against
+/// one set of bin edges as well.
+fn facet_plot(args: Vec<Value>) -> Result<Value> {
+    const FUNCTION: &str = "stats_facet_plot";
+    let opts = options(&args, 2, FUNCTION)?;
+    let kind = opts
+        .get("plot")
+        .and_then(Value::as_str)
+        .unwrap_or("histogram");
+    if !matches!(kind, "histogram" | "scatter") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{FUNCTION}() option 'plot' must be 'histogram' or 'scatter', got '{kind}'"),
+            None,
+        ));
+    }
+    let scales = opts
+        .get("scales")
+        .and_then(Value::as_str)
+        .unwrap_or("fixed");
+    if !matches!(scales, "fixed" | "free" | "free_x" | "free_y") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{FUNCTION}() option 'scales' must be fixed, free, free_x, or free_y, got '{scales}'"
+            ),
+            None,
+        ));
+    }
+    let free_x = matches!(scales, "free" | "free_x");
+    let free_y = matches!(scales, "free" | "free_y");
+
+    let as_number = |value: &Value| -> Option<f64> {
+        match value {
+            Value::Int(value) => Some(*value as f64),
+            Value::Float(value) if value.is_finite() => Some(*value),
+            _ => None,
+        }
+    };
+    let as_list = |value: &Value, what: &str| -> Result<Vec<Value>> {
+        match value {
+            Value::List(items) => Ok(items.iter().cloned().collect()),
+            other => Err(BioLangError::type_error(
+                format!("{FUNCTION}() {what} must be List, got {}", other.type_of()),
+                None,
+            )),
+        }
+    };
+    let values = as_list(&args[0], "values")?;
+    let facets = as_list(&args[1], "facets")?;
+    let horizontal = match opts.get("x") {
+        Some(value) => Some(as_list(value, "x")?),
+        None => None,
+    };
+    if kind == "scatter" && horizontal.is_none() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{FUNCTION}() with a scatter plot needs an 'x' list"),
+            None,
+        ));
+    }
+    if values.len() != facets.len()
+        || horizontal
+            .as_ref()
+            .is_some_and(|extra| extra.len() != values.len())
+    {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{FUNCTION}() values, facets, and x must have equal length"),
+            None,
+        ));
+    }
+
+    // (x, y) per panel. A faceted histogram bins x and ignores y.
+    let mut by_label: HashMap<String, Vec<(f64, f64)>> = HashMap::new();
+    let mut excluded = 0usize;
+    for index in 0..values.len() {
+        let label = match &facets[index] {
+            Value::Nil => None,
+            other => category_label(other),
+        };
+        let y = as_number(&values[index]);
+        let x = match &horizontal {
+            Some(extra) => as_number(&extra[index]),
+            None => y,
+        };
+        match (label, x, y) {
+            (Some(label), Some(x), Some(y)) => by_label.entry(label).or_default().push((x, y)),
+            _ => excluded += 1,
+        }
+    }
+    let mut grouped = by_label.into_iter().collect::<Vec<_>>();
+    // ggplot2 orders a character facet alphabetically.
+    grouped.sort_by(|left, right| left.0.cmp(&right.0));
+    if grouped.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{FUNCTION}() has no complete observations to facet"),
+            None,
+        ));
+    }
+
+    let bins = opts
+        .get("bins")
+        .and_then(Value::as_int)
+        .unwrap_or(30)
+        .clamp(1, 1000) as usize;
+    let pooled_x = grouped
+        .iter()
+        .flat_map(|(_, rows)| rows.iter().map(|(x, _)| *x))
+        .collect::<Vec<_>>();
+    let pooled_y = grouped
+        .iter()
+        .flat_map(|(_, rows)| rows.iter().map(|(_, y)| *y))
+        .collect::<Vec<_>>();
+    let shared_edges = crate::plot::histogram_ggplot_edges(&pooled_x, bins);
+    let shared_x = padded_domain(
+        pooled_x.iter().copied().fold(f64::INFINITY, f64::min),
+        pooled_x.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+    );
+    let shared_y = padded_domain(
+        pooled_y.iter().copied().fold(f64::INFINITY, f64::min),
+        pooled_y.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+    );
+
+    struct FacetPanel {
+        label: String,
+        rows: Vec<(f64, f64)>,
+        edges: Vec<f64>,
+        counts: Vec<usize>,
+        x_domain: (f64, f64),
+        y_domain: (f64, f64),
+    }
+    let count_into = |edges: &[f64], rows: &[(f64, f64)]| -> Vec<usize> {
+        let mut counts = vec![0usize; edges.len().saturating_sub(1)];
+        if counts.is_empty() {
+            return counts;
+        }
+        let last = counts.len() - 1;
+        for (x, _) in rows {
+            if *x < edges[0] || *x > edges[edges.len() - 1] {
+                continue;
+            }
+            let position = edges.partition_point(|edge| *edge <= *x);
+            counts[position.saturating_sub(1).min(last)] += 1;
+        }
+        counts
+    };
+
+    let mut panels = Vec::with_capacity(grouped.len());
+    for (label, rows) in grouped {
+        let edges = if kind == "histogram" && free_x {
+            let xs = rows.iter().map(|(x, _)| *x).collect::<Vec<_>>();
+            crate::plot::histogram_ggplot_edges(&xs, bins)
+        } else {
+            shared_edges.clone()
+        };
+        let counts = count_into(&edges, &rows);
+        let x_domain = if kind == "histogram" {
+            (edges[0], edges[edges.len() - 1])
+        } else if free_x {
+            let lo = rows.iter().map(|(x, _)| *x).fold(f64::INFINITY, f64::min);
+            let hi = rows
+                .iter()
+                .map(|(x, _)| *x)
+                .fold(f64::NEG_INFINITY, f64::max);
+            padded_domain(lo, hi)
+        } else {
+            shared_x
+        };
+        let y_domain = if kind == "histogram" {
+            // Resolved once every panel has been counted.
+            (0.0, 0.0)
+        } else if free_y {
+            let lo = rows.iter().map(|(_, y)| *y).fold(f64::INFINITY, f64::min);
+            let hi = rows
+                .iter()
+                .map(|(_, y)| *y)
+                .fold(f64::NEG_INFINITY, f64::max);
+            padded_domain(lo, hi)
+        } else {
+            shared_y
+        };
+        panels.push(FacetPanel {
+            label,
+            rows,
+            edges,
+            counts,
+            x_domain,
+            y_domain,
+        });
+    }
+    if kind == "histogram" {
+        let tallest = panels
+            .iter()
+            .flat_map(|panel| panel.counts.iter().copied())
+            .max()
+            .unwrap_or(1)
+            .max(1);
+        for panel in &mut panels {
+            let top = if free_y {
+                panel.counts.iter().copied().max().unwrap_or(1).max(1)
+            } else {
+                tallest
+            };
+            panel.y_domain = (0.0, top as f64 * 1.05);
+        }
+    }
+
+    let observations = panels.iter().map(|panel| panel.rows.len()).sum::<usize>();
+    if plot_format(&opts) == "ascii" {
+        let mut out = String::from("Faceted distribution (ASCII)\n");
+        for panel in &panels {
+            out.push_str(&format!("  {} n={}\n", panel.label, panel.rows.len()));
+        }
+        out.push_str(&format!(
+            "{observations} observations across {} panels; {excluded} excluded; scales: {scales}.",
+            panels.len()
+        ));
+        return Ok(text(out));
+    }
+
+    let columns = opts
+        .get("columns")
+        .and_then(Value::as_int)
+        .unwrap_or_else(|| (panels.len() as f64).sqrt().ceil() as i64)
+        .clamp(1, 12) as usize;
+    let panel_rows = panels.len().div_ceil(columns);
+    let width = opts
+        .get("width")
+        .and_then(Value::as_float)
+        .unwrap_or(240.0 * columns as f64 + 90.0)
+        .max(280.0);
+    let height = opts
+        .get("height")
+        .and_then(Value::as_float)
+        .unwrap_or(200.0 * panel_rows as f64 + 130.0)
+        .max(240.0);
+    let theme = crate::plot::stats_plot_theme(&opts);
+    let mut canvas = SvgCanvas::with_theme(width, height, theme);
+    canvas.margin.left = 66.0;
+    canvas.margin.right = 22.0;
+    canvas.margin.top = 52.0;
+    canvas.margin.bottom = 74.0;
+
+    const STRIP: f64 = 22.0;
+    const GAP: f64 = 12.0;
+    let panel_width = (canvas.plot_width() - GAP * (columns as f64 - 1.0)) / columns as f64;
+    let panel_height =
+        (canvas.plot_height() - (panel_rows as f64 - 1.0) * GAP) / panel_rows as f64 - STRIP;
+    if panel_width < 30.0 || panel_height < 30.0 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{FUNCTION}() cannot fit {} panels into {width:.0}x{height:.0}; raise width or height, or lower columns",
+                panels.len()
+            ),
+            None,
+        ));
+    }
+
+    for (index, panel) in panels.iter().enumerate() {
+        let row = index / columns;
+        let column = index % columns;
+        let left = canvas.margin.left + column as f64 * (panel_width + GAP);
+        let strip_top = canvas.margin.top + row as f64 * (panel_height + STRIP + GAP);
+        let top = strip_top + STRIP;
+        let x_scale = Scale {
+            domain: panel.x_domain,
+            range: (left, left + panel_width),
+        };
+        let y_scale = Scale {
+            domain: panel.y_domain,
+            range: (top + panel_height, top),
+        };
+
+        if theme.grid_width > 0.0 {
+            canvas.add_rect(left, top, panel_width, panel_height, theme.panel_colour);
+            for tick in y_scale.nice_ticks(4) {
+                let y = y_scale.map(tick);
+                canvas.add_line(
+                    left,
+                    y,
+                    left + panel_width,
+                    y,
+                    theme.grid_colour,
+                    theme.grid_width,
+                );
+            }
+            for tick in x_scale.nice_ticks(4) {
+                let x = x_scale.map(tick);
+                canvas.add_line(
+                    x,
+                    top,
+                    x,
+                    top + panel_height,
+                    theme.grid_colour,
+                    theme.grid_width,
+                );
+            }
+        }
+
+        // ggplot2's facet strip: a grey band carrying the level's name.
+        canvas.add_rect(left, strip_top, panel_width, STRIP, "#d5d5d5");
+        canvas.add_text(
+            left + panel_width / 2.0,
+            strip_top + STRIP - 7.0,
+            &panel.label,
+            "middle",
+            11.0,
+        );
+
+        if kind == "histogram" {
+            for (bin, count) in panel.counts.iter().enumerate() {
+                if *count == 0 {
+                    continue;
+                }
+                let bar_left = x_scale.map(panel.edges[bin]);
+                let bar_right = x_scale.map(panel.edges[bin + 1]);
+                let bar_top = y_scale.map(*count as f64);
+                canvas.add_rect(
+                    bar_left,
+                    bar_top,
+                    (bar_right - bar_left).max(0.5),
+                    (top + panel_height - bar_top).max(0.0),
+                    "#595959",
+                );
+            }
+        } else {
+            let stride = panel.rows.len().div_ceil(4_000).max(1);
+            for (x, y) in panel.rows.iter().step_by(stride) {
+                canvas.add_circle_with_opacity(
+                    x_scale.map(*x),
+                    y_scale.map(*y),
+                    2.0,
+                    "#000000",
+                    0.85,
+                );
+            }
+        }
+
+        // With a shared scale only the outer panels need their axis labelled,
+        // which is what keeps a wall of small panels readable.
+        let is_bottom_row = index + columns >= panels.len();
+        if is_bottom_row || free_x {
+            let ticks = x_scale.nice_ticks(4);
+            let decimals = crate::plot::tick_decimals(&ticks);
+            for tick in ticks {
+                canvas.add_text(
+                    x_scale.map(tick),
+                    top + panel_height + 14.0,
+                    &format!("{tick:.decimals$}"),
+                    "middle",
+                    9.5,
+                );
+            }
+        }
+        if column == 0 || free_y {
+            let ticks = y_scale.nice_ticks(4);
+            let decimals = crate::plot::tick_decimals(&ticks);
+            for tick in ticks {
+                canvas.add_text(
+                    left - 6.0,
+                    y_scale.map(tick) + 3.0,
+                    &format!("{tick:.decimals$}"),
+                    "end",
+                    9.5,
+                );
+            }
+        }
+    }
+
+    canvas.draw_title(
+        opts.get("title")
+            .and_then(Value::as_str)
+            .unwrap_or("Faceted distribution"),
+    );
+    let x_label = opts
+        .get("x_label")
+        .and_then(Value::as_str)
+        .unwrap_or(if kind == "histogram" { "value" } else { "x" });
+    let y_label = opts
+        .get("y_label")
+        .and_then(Value::as_str)
+        .unwrap_or(if kind == "histogram" { "count" } else { "y" });
+    let centre_x = canvas.margin.left + canvas.plot_width() / 2.0;
+    let centre_y = canvas.margin.top + canvas.plot_height() / 2.0;
+    canvas.add_axis_title(centre_x, height - 40.0, x_label, "x", None);
+    canvas.add_axis_title(20.0, centre_y, y_label, "y", Some(-90.0));
+    canvas.draw_caption(&format!(
+        "{observations} observations in {} panels; {excluded} excluded; scales: {scales}.",
+        panels.len()
     ));
     Ok(text(canvas.render()))
 }

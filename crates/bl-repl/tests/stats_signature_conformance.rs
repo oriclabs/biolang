@@ -160,7 +160,7 @@ fn fixture(name: &str) -> Option<Vec<Value>> {
         | "stats_relationship_plot"
         | "stats_linear_diagnostics"
         | "stats_linear_diagnostic_plot" => vec![x, y],
-        "stats_compare" | "stats_group_plot" => vec![values, groups],
+        "stats_compare" | "stats_group_plot" | "stats_facet_plot" => vec![values, groups],
         "stats_cluster_diagnostics" => vec![
             numbers(&[1.0, 1.2, 5.0, 5.2, 9.0, 9.2, 13.0, 13.2]),
             strings(&["a", "a", "b", "b", "c", "c", "d", "d"]),
