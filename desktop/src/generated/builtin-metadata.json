@@ -3369,20 +3369,21 @@
     },
     {
       "name": "cross_tab",
-      "signature": "cross_tab(arg1, arg2, arg3)",
+      "signature": "cross_tab(arg1, arg2, arg3, arg4?)",
       "category": "runtime",
       "summary": "Registered BioLang builtin accepting 3 argument(s).",
       "parameters": [
         "arg1",
         "arg2",
-        "arg3"
+        "arg3",
+        "arg4?"
       ],
       "returnType": null,
       "example": null,
       "arity": {
-        "kind": "exact",
+        "kind": "range",
         "minimum": 3,
-        "maximum": 3
+        "maximum": 4
       },
       "metadataQuality": "runtime"
     },
@@ -12599,6 +12600,25 @@
         "kind": "range",
         "minimum": 2,
         "maximum": 4
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "power_prop_test",
+      "signature": "power_prop_test(arg1, arg2, arg3)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2",
+        "arg3"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 3,
+        "maximum": 3
       },
       "metadataQuality": "runtime"
     },

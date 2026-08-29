@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 30,
-    "builtin": 1117,
+    "builtin": 1118,
     "tutorial": 0,
     "example": 392
   },
@@ -2990,12 +2990,12 @@
       "category": "runtime",
       "collection": "Runtime builtins",
       "summary": "Registered BioLang builtin accepting 3 argument(s).",
-      "body": "# cross_tab\n\nRegistered BioLang builtin accepting 3 argument(s).\n\n## Signature\n\n```biolang\ncross_tab(arg1, arg2, arg3)\n```\n\n**Arity:** exact, minimum 3, maximum 3",
-      "signature": "cross_tab(arg1, arg2, arg3)",
+      "body": "# cross_tab\n\nRegistered BioLang builtin accepting 3 argument(s).\n\n## Signature\n\n```biolang\ncross_tab(arg1, arg2, arg3, arg4?)\n```\n\n**Arity:** range, minimum 3, maximum 4",
+      "signature": "cross_tab(arg1, arg2, arg3, arg4?)",
       "example": null,
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "cross_tab cross_tab(arg1, arg2, arg3) runtime registered biolang builtin accepting 3 argument(s)."
+      "keywords": "cross_tab cross_tab(arg1, arg2, arg3, arg4?) runtime registered biolang builtin accepting 3 argument(s)."
     },
     {
       "id": "builtin:csv",
@@ -10276,6 +10276,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "power_analysis power_analysis(arg1, arg2, arg3?, arg4?) runtime registered biolang builtin accepting 2 argument(s)."
+    },
+    {
+      "id": "builtin:power_prop_test",
+      "kind": "builtin",
+      "title": "power_prop_test",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "body": "# power_prop_test\n\nRegistered BioLang builtin accepting 3 argument(s).\n\n## Signature\n\n```biolang\npower_prop_test(arg1, arg2, arg3)\n```\n\n**Arity:** exact, minimum 3, maximum 3",
+      "signature": "power_prop_test(arg1, arg2, arg3)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "power_prop_test power_prop_test(arg1, arg2, arg3) runtime registered biolang builtin accepting 3 argument(s)."
     },
     {
       "id": "builtin:power_t_test",
