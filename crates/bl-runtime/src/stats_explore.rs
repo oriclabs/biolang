@@ -7,8 +7,9 @@
 //! calculations fast, deterministic, and identical in native and WASM builds.
 
 use crate::plot::{
-    box_geometry, categorical_geometry, histogram_geometry, linear_fit_geometry,
-    missingness_geometry, normal_qq_geometry, Scale, SvgCanvas,
+    box_geometry, categorical_geometry, estimate_text_width, histogram_geometry,
+    linear_fit_geometry, missingness_geometry, normal_qq_geometry, plot_theme, LinearFitGeometry,
+    Scale, SvgCanvas,
 };
 use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::value::{Table, Value};
@@ -4081,7 +4082,7 @@ fn padded_domain(minimum: f64, maximum: f64) -> (f64, f64) {
     let padding = if span.abs() <= f64::EPSILON {
         maximum.abs().max(1.0) * 0.1
     } else {
-        span * 0.08
+        span * 0.05
     };
     (minimum - padding, maximum + padding)
 }
@@ -4227,8 +4228,11 @@ fn normal_qq_plot(args: Vec<Value>) -> Result<Value> {
 }
 
 fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
-    let (xs, ys, excluded) = complete_pairs(&args[0], &args[1], "stats_relationship_plot")?;
     let opts = options(&args, 2, "stats_relationship_plot")?;
+    if let Some(groups) = opts.get("group").or_else(|| opts.get("color")) {
+        return grouped_relationship_diagnostic_plot(&args[0], &args[1], groups, &opts);
+    }
+    let (xs, ys, excluded) = complete_pairs(&args[0], &args[1], "stats_relationship_plot")?;
     let interval = opts
         .get("interval")
         .and_then(Value::as_str)
@@ -4328,11 +4332,16 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         domain: y_domain,
         range: (height - 60.0, 45.0),
     };
-    let mut canvas = SvgCanvas::new(width, height);
+    let theme = crate::plot::stats_plot_theme(&opts);
+    let mut canvas = SvgCanvas::with_theme(width, height, theme);
     canvas.margin.left = 65.0;
     canvas.margin.right = 30.0;
     canvas.margin.top = 45.0;
     canvas.margin.bottom = 60.0;
+    let ggplot_like = !matches!(theme.kind, crate::plot::PlotThemeKind::Legacy);
+    if ggplot_like {
+        canvas.draw_cartesian_grid(&x_scale, &y_scale);
+    }
     if interval != "none" {
         let fit = fit.as_ref().expect("interval fit was checked");
         let mut band = fit
@@ -4355,22 +4364,47 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
             };
             format!("{:.1},{:.1}", x_scale.map(point.x), y_scale.map(lower))
         }));
+        // `geom_smooth()` fills its ribbon grey60 at alpha 0.4.
+        let (band_fill, band_opacity) = if ggplot_like {
+            ("#999999", "0.40")
+        } else {
+            ("#bfdbfe", "0.55")
+        };
         canvas.elements.push(format!(
-            r##"<polygon points="{}" fill="#bfdbfe" fill-opacity="0.55" stroke="none" />"##,
-            band.join(" ")
+            r#"<polygon points="{}" fill="{}" fill-opacity="{}" stroke="none" />"#,
+            band.join(" "),
+            band_fill,
+            band_opacity
         ));
     }
+    // An unmapped `geom_point()` is black; `geom_smooth()`'s line is #3366FF.
+    let (point_fill, point_radius, point_alpha) = if ggplot_like {
+        ("#000000", 2.6, 1.0)
+    } else {
+        ("#2563eb", 3.0, 0.7)
+    };
+    let (line_stroke, line_width) = if ggplot_like {
+        ("#3366ff", 2.85)
+    } else {
+        ("#dc2626", 2.0)
+    };
     let stride = xs.len().div_ceil(10_000).max(1);
     for (x, y) in xs.iter().zip(&ys).step_by(stride) {
-        canvas.add_circle(x_scale.map(*x), y_scale.map(*y), 3.0, "#2563eb");
+        canvas.add_circle_with_opacity(
+            x_scale.map(*x),
+            y_scale.map(*y),
+            point_radius,
+            point_fill,
+            point_alpha,
+        );
     }
     canvas.add_line(
         x_scale.map(observed_min_x),
         y_scale.map(intercept + slope * observed_min_x),
         x_scale.map(observed_max_x),
         y_scale.map(intercept + slope * observed_max_x),
-        "#dc2626",
-        2.0,
+        line_stroke,
+        line_width,
     );
     canvas.draw_x_axis(
         &x_scale,
@@ -4389,7 +4423,7 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         68.0,
         height - 38.0,
         &format!(
-            "{} complete pairs; {} excluded. Red line: least-squares fit{}.",
+            "{} complete pairs; {} excluded. Line: least-squares fit{}.",
             xs.len(),
             excluded,
             if interval == "none" {
@@ -4401,6 +4435,414 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         "start",
         10.0,
     );
+    Ok(text(canvas.render()))
+}
+
+#[derive(Clone)]
+struct RelationshipGroup {
+    label: String,
+    xs: Vec<f64>,
+    ys: Vec<f64>,
+    /// Row position each pair came from. ggplot2 draws points in data order,
+    /// so one group never systematically sits on top of another.
+    order: Vec<usize>,
+}
+
+fn complete_grouped_pairs(
+    left: &Value,
+    right: &Value,
+    groups: &Value,
+) -> Result<(Vec<RelationshipGroup>, usize)> {
+    let function = "stats_relationship_plot";
+    let Value::List(xs) = left else {
+        return Err(BioLangError::type_error(
+            format!("{function}() x must be List, got {}", left.type_of()),
+            None,
+        ));
+    };
+    let Value::List(ys) = right else {
+        return Err(BioLangError::type_error(
+            format!("{function}() y must be List, got {}", right.type_of()),
+            None,
+        ));
+    };
+    let Value::List(group_values) = groups else {
+        return Err(BioLangError::type_error(
+            format!("{function}() group must be List, got {}", groups.type_of()),
+            None,
+        ));
+    };
+    if xs.len() != ys.len() || xs.len() != group_values.len() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{function}() x, y, and group must have equal length ({} vs {} vs {})",
+                xs.len(),
+                ys.len(),
+                group_values.len()
+            ),
+            None,
+        ));
+    }
+
+    let numeric = |value: &Value, index: usize| match value {
+        Value::Nil => Ok(None),
+        Value::Int(value) => Ok(Some(*value as f64)),
+        Value::Float(value) if value.is_finite() => Ok(Some(*value)),
+        Value::Float(_) => Ok(None),
+        other => Err(BioLangError::type_error(
+            format!(
+                "{function}() x and y must be numeric or Nil; index {index} contains {}",
+                other.type_of()
+            ),
+            None,
+        )),
+    };
+    let mut by_label = HashMap::<String, (Vec<f64>, Vec<f64>, Vec<usize>)>::new();
+    let mut excluded = 0usize;
+    for (index, ((x, y), group)) in xs
+        .iter()
+        .zip(ys.iter())
+        .zip(group_values.iter())
+        .enumerate()
+    {
+        let label = match group {
+            Value::Nil => None,
+            Value::Str(_) | Value::Int(_) | Value::Float(_) | Value::Bool(_) => {
+                category_label(group)
+            }
+            other => {
+                return Err(BioLangError::type_error(
+                    format!(
+                        "{function}() group values must be categorical or Nil; index {index} is {}",
+                        other.type_of()
+                    ),
+                    None,
+                ))
+            }
+        };
+        match (numeric(x, index)?, numeric(y, index)?, label) {
+            (Some(x), Some(y), Some(label)) => {
+                let entry = by_label
+                    .entry(label)
+                    .or_insert_with(|| (Vec::new(), Vec::new(), Vec::new()));
+                entry.0.push(x);
+                entry.1.push(y);
+                entry.2.push(index);
+            }
+            _ => excluded += 1,
+        }
+    }
+    let mut result = by_label
+        .into_iter()
+        .map(|(label, (xs, ys, order))| RelationshipGroup {
+            label,
+            xs,
+            ys,
+            order,
+        })
+        .collect::<Vec<_>>();
+    // String categories in R/ggplot are ordered alphabetically by default.
+    // Stable ordering also prevents a file's first row from changing colours.
+    result.sort_by(|left, right| left.label.cmp(&right.label));
+    if result.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() has no complete x/y/group observations"),
+            None,
+        ));
+    }
+    Ok((result, excluded))
+}
+
+fn grouped_relationship_diagnostic_plot(
+    x: &Value,
+    y: &Value,
+    groups: &Value,
+    opts: &HashMap<String, Value>,
+) -> Result<Value> {
+    let (groups, excluded) = complete_grouped_pairs(x, y, groups)?;
+    let interval = opts
+        .get("interval")
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    if !matches!(interval, "none" | "confidence" | "prediction") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "stats_relationship_plot() interval must be none, confidence, or prediction",
+            None,
+        ));
+    }
+    let confidence = opts
+        .get("confidence")
+        .and_then(Value::as_float)
+        .unwrap_or(0.95);
+
+    struct FittedGroup {
+        data: RelationshipGroup,
+        fit: LinearFitGeometry,
+    }
+    let mut fitted = Vec::with_capacity(groups.len());
+    for group in groups {
+        if group.xs.len() < 3 {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!(
+                    "stats_relationship_plot() group '{}' needs at least three complete pairs for a fitted line",
+                    group.label
+                ),
+                None,
+            ));
+        }
+        let minimum = group.xs.iter().copied().min_by(f64::total_cmp).unwrap();
+        let maximum = group.xs.iter().copied().max_by(f64::total_cmp).unwrap();
+        let at = (0..=100)
+            .map(|index| minimum + (maximum - minimum) * index as f64 / 100.0)
+            .collect::<Vec<_>>();
+        let fit = linear_fit_geometry(&group.xs, &group.ys, &at, confidence).map_err(|_| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!(
+                    "stats_relationship_plot() cannot fit group '{}'; check that x varies within the group",
+                    group.label
+                ),
+                None,
+            )
+        })?;
+        fitted.push(FittedGroup { data: group, fit });
+    }
+
+    let pair_count = fitted
+        .iter()
+        .map(|group| group.data.xs.len())
+        .sum::<usize>();
+    if plot_format(opts) == "ascii" {
+        let xs = fitted
+            .iter()
+            .flat_map(|group| group.data.xs.iter().copied())
+            .collect::<Vec<_>>();
+        let ys = fitted
+            .iter()
+            .flat_map(|group| group.data.ys.iter().copied())
+            .collect::<Vec<_>>();
+        let mut chart = ascii_scatter(
+            &xs,
+            &ys,
+            opts.get("width")
+                .and_then(Value::as_int)
+                .unwrap_or(56)
+                .clamp(20, 100) as usize,
+            opts.get("height")
+                .and_then(Value::as_int)
+                .unwrap_or(16)
+                .clamp(8, 30) as usize,
+            "Grouped relationship diagnostic (ASCII)",
+            opts.get("x_label").and_then(Value::as_str).unwrap_or("x"),
+            opts.get("y_label").and_then(Value::as_str).unwrap_or("y"),
+        );
+        let sizes = fitted
+            .iter()
+            .map(|group| format!("{} n={}", group.data.label, group.data.xs.len()))
+            .collect::<Vec<_>>()
+            .join(", ");
+        chart.push_str(&format!(
+            "\n{pair_count} complete pairs; {excluded} excluded; groups: {sizes}. SVG shows group colours, fits, and bands."
+        ));
+        return Ok(text(chart));
+    }
+
+    let width = opts
+        .get("width")
+        .and_then(Value::as_float)
+        .unwrap_or(760.0)
+        .max(520.0);
+    let height = opts
+        .get("height")
+        .and_then(Value::as_float)
+        .unwrap_or(520.0)
+        .max(360.0);
+    let theme = crate::plot::stats_plot_theme(opts);
+    let legend_title = opts
+        .get("legend_title")
+        .and_then(Value::as_str)
+        .unwrap_or("group");
+    let widest_legend = fitted
+        .iter()
+        .map(|group| estimate_text_width(&group.data.label, theme.legend_size))
+        .fold(
+            estimate_text_width(legend_title, theme.legend_size),
+            f64::max,
+        );
+    let legend_width = (55.0 + widest_legend).clamp(105.0, 220.0);
+    let mut canvas = SvgCanvas::with_theme(width, height, theme);
+    canvas.margin.left = 65.0;
+    canvas.margin.right = 25.0 + legend_width;
+    canvas.margin.top = 45.0;
+    canvas.margin.bottom = 88.0;
+
+    let all_x = fitted
+        .iter()
+        .flat_map(|group| group.data.xs.iter().copied())
+        .collect::<Vec<_>>();
+    let all_y = fitted
+        .iter()
+        .flat_map(|group| group.data.ys.iter().copied())
+        .collect::<Vec<_>>();
+    let minimum_x = all_x.iter().copied().min_by(f64::total_cmp).unwrap();
+    let maximum_x = all_x.iter().copied().max_by(f64::total_cmp).unwrap();
+    let mut minimum_y = all_y.iter().copied().min_by(f64::total_cmp).unwrap();
+    let mut maximum_y = all_y.iter().copied().max_by(f64::total_cmp).unwrap();
+    if interval != "none" {
+        for point in fitted.iter().flat_map(|group| group.fit.points.iter()) {
+            let (lower, upper) = if interval == "prediction" {
+                (point.prediction_lower, point.prediction_upper)
+            } else {
+                (point.confidence_lower, point.confidence_upper)
+            };
+            minimum_y = minimum_y.min(lower);
+            maximum_y = maximum_y.max(upper);
+        }
+    }
+    let x_scale = Scale {
+        domain: padded_domain(minimum_x, maximum_x),
+        range: (canvas.margin.left, width - canvas.margin.right),
+    };
+    let y_scale = Scale {
+        domain: padded_domain(minimum_y, maximum_y),
+        range: (height - canvas.margin.bottom, canvas.margin.top),
+    };
+
+    canvas.draw_cartesian_grid(&x_scale, &y_scale);
+
+    // ggplot2's discrete hues, recomputed for this group count.
+    let colors = crate::plot::hue_palette(fitted.len());
+    // ggplot2's `geom_point()` is opaque by default; `alpha` restores the
+    // translucency that helps when a dense cloud overplots itself.
+    let point_alpha = opts
+        .get("alpha")
+        .and_then(Value::as_float)
+        .unwrap_or(1.0)
+        .clamp(0.0, 1.0);
+
+    // Bands go behind points and lines. `aes(col = ...)` maps colour but not
+    // fill, so ggplot2 leaves every `geom_smooth()` ribbon at grey60/0.4
+    // whatever the group colour is.
+    if interval != "none" {
+        for group in &fitted {
+            let mut band = group
+                .fit
+                .points
+                .iter()
+                .map(|point| {
+                    let upper = if interval == "prediction" {
+                        point.prediction_upper
+                    } else {
+                        point.confidence_upper
+                    };
+                    format!("{:.1},{:.1}", x_scale.map(point.x), y_scale.map(upper))
+                })
+                .collect::<Vec<_>>();
+            band.extend(group.fit.points.iter().rev().map(|point| {
+                let lower = if interval == "prediction" {
+                    point.prediction_lower
+                } else {
+                    point.confidence_lower
+                };
+                format!("{:.1},{:.1}", x_scale.map(point.x), y_scale.map(lower))
+            }));
+            canvas.elements.push(format!(
+                r#"<polygon points="{}" fill="{}" fill-opacity="0.40" stroke="none" />"#,
+                band.join(" "),
+                // ggplot2 `GeomSmooth` default fill.
+                "#999999"
+            ));
+        }
+    }
+    // Draw every group's points in original row order. Emitting one whole
+    // group and then the next would leave the later group sitting on top of
+    // the earlier one everywhere they overlap, which ggplot2 does not do.
+    let stride = pair_count.div_ceil(10_000).max(1);
+    let mut points = fitted
+        .iter()
+        .enumerate()
+        .flat_map(|(index, group)| {
+            group
+                .data
+                .order
+                .iter()
+                .zip(&group.data.xs)
+                .zip(&group.data.ys)
+                .map(move |((row, x), y)| (*row, *x, *y, index))
+        })
+        .collect::<Vec<_>>();
+    points.sort_unstable_by_key(|(row, _, _, _)| *row);
+    for (_, x, y, index) in points.into_iter().step_by(stride) {
+        // `size = 1.5` and `stroke = 0.5` give a 2.6px radius at 96dpi.
+        canvas.add_circle_with_opacity(
+            x_scale.map(x),
+            y_scale.map(y),
+            2.6,
+            &colors[index],
+            point_alpha,
+        );
+    }
+    // Fitted lines sit above every point, as `geom_smooth()` does.
+    for (index, group) in fitted.iter().enumerate() {
+        let first = group.fit.points.first().unwrap();
+        let last = group.fit.points.last().unwrap();
+        canvas.add_line(
+            x_scale.map(first.x),
+            y_scale.map(first.fitted),
+            x_scale.map(last.x),
+            y_scale.map(last.fitted),
+            &colors[index],
+            // ggplot2 `linewidth = 1` is lwd 2.845 in 1/96in units.
+            2.85,
+        );
+    }
+    canvas.draw_x_axis(
+        &x_scale,
+        opts.get("x_label").and_then(Value::as_str).unwrap_or("x"),
+    );
+    canvas.draw_y_axis(
+        &y_scale,
+        opts.get("y_label").and_then(Value::as_str).unwrap_or("y"),
+    );
+    canvas.draw_title(
+        opts.get("title")
+            .and_then(Value::as_str)
+            .unwrap_or("Relationship by group"),
+    );
+
+    let legend_x = width - canvas.margin.right + 22.0;
+    canvas.add_text(
+        legend_x,
+        canvas.margin.top + 5.0,
+        legend_title,
+        "start",
+        theme.legend_size,
+    );
+    for (index, group) in fitted.iter().enumerate() {
+        let color = colors[index].as_str();
+        let y = canvas.margin.top + 32.0 + 25.0 * index as f64;
+        canvas.add_circle(legend_x + 5.0, y - 3.0, 3.5, color);
+        canvas.add_line(legend_x, y - 3.0, legend_x + 22.0, y - 3.0, color, 2.85);
+        canvas.add_text(
+            legend_x + 30.0,
+            y + 1.0,
+            &group.data.label,
+            "start",
+            theme.legend_size,
+        );
+    }
+    canvas.draw_caption(&format!(
+        "{pair_count} complete pairs; {excluded} excluded. Lines: group least-squares fits{}.",
+        if interval == "none" {
+            String::new()
+        } else {
+            format!("; shading: {:.0}% {interval} bands", confidence * 100.0)
+        }
+    ));
     Ok(text(canvas.render()))
 }
 
@@ -4523,11 +4965,40 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         domain: y_domain,
         range: (height - 70.0, 45.0),
     };
-    let mut canvas = SvgCanvas::new(width, height);
+    let theme = crate::plot::stats_plot_theme(&opts);
+    let mut canvas = SvgCanvas::with_theme(width, height, theme);
     canvas.margin.left = 70.0;
     canvas.margin.right = 25.0;
     canvas.margin.top = 45.0;
     canvas.margin.bottom = 70.0;
+    // ggplot2 `geom_boxplot()` is a white box outlined in grey20, with the
+    // median drawn at twice the box line weight (`fatten = 2`).
+    let ggplot_like = matches!(
+        theme.kind,
+        crate::plot::PlotThemeKind::Ggplot | crate::plot::PlotThemeKind::Classic
+    );
+    let (box_stroke, box_fill, box_width, median_width) = if ggplot_like {
+        ("#333333", "#ffffff", 1.42, 2.85)
+    } else {
+        ("#1e3a8a", "#bfdbfe", 1.5, 2.0)
+    };
+    // ggplot2's boxplot shows outliers only. `{points: "jitter"}` keeps the
+    // every-observation overlay, and "none" draws the five-number summary
+    // alone.
+    let points_mode = opts
+        .get("points")
+        .and_then(Value::as_str)
+        .unwrap_or(if ggplot_like { "outliers" } else { "jitter" });
+    if !matches!(points_mode, "outliers" | "jitter" | "none") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "stats_group_plot() option 'points' must be 'outliers', 'jitter', or 'none', got '{points_mode}'"
+            ),
+            None,
+        ));
+    }
+    canvas.draw_categorical_grid(&y_scale);
     let step = canvas.plot_width() / groups.len() as f64;
     for (group_index, (name, values)) in groups.iter().enumerate() {
         let x = canvas.margin.left + step * (group_index as f64 + 0.5);
@@ -4537,30 +5008,44 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
             y_scale.map(geometry.whisker_low),
             x,
             y_scale.map(geometry.whisker_high),
-            "#1e3a8a",
-            1.5,
+            box_stroke,
+            box_width,
         );
-        canvas.add_rect(
+        canvas.add_stroked_rect(
             x - step * 0.22,
             y_scale.map(geometry.q3),
             step * 0.44,
             (y_scale.map(geometry.q1) - y_scale.map(geometry.q3))
                 .abs()
                 .max(1.0),
-            "#bfdbfe",
+            box_fill,
+            box_stroke,
+            box_width,
         );
         canvas.add_line(
             x - step * 0.22,
             y_scale.map(geometry.median),
             x + step * 0.22,
             y_scale.map(geometry.median),
-            "#1e3a8a",
-            2.0,
+            box_stroke,
+            median_width,
         );
-        let stride = values.len().div_ceil(1_000).max(1);
-        for (index, value) in values.iter().enumerate().step_by(stride) {
-            let jitter = (((index * 37) % 101) as f64 / 100.0 - 0.5) * step * 0.32;
-            canvas.add_circle(x + jitter, y_scale.map(*value), 2.5, "#475569");
+        match points_mode {
+            // ggplot2 `geom_boxplot()` marks only the points beyond the
+            // whiskers.
+            "outliers" => {
+                for (_, value) in &geometry.outliers {
+                    canvas.add_circle_with_opacity(x, y_scale.map(*value), 2.6, box_stroke, 1.0);
+                }
+            }
+            "none" => {}
+            _ => {
+                let stride = values.len().div_ceil(1_000).max(1);
+                for (index, value) in values.iter().enumerate().step_by(stride) {
+                    let jitter = (((index * 37) % 101) as f64 / 100.0 - 0.5) * step * 0.32;
+                    canvas.add_circle(x + jitter, y_scale.map(*value), 2.5, "#475569");
+                }
+            }
         }
         canvas.add_text(x, height - 42.0, name, "middle", 11.0);
         canvas.add_text(
@@ -6436,14 +6921,33 @@ fn linear_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         domain: padded_domain(residual_min, residual_max),
         range: (height - 60.0, 45.0),
     };
-    let mut canvas = SvgCanvas::new(width, height);
+    let theme = crate::plot::stats_plot_theme(&opts);
+    let mut canvas = SvgCanvas::with_theme(width, height, theme);
     canvas.margin.left = 65.0;
     canvas.margin.right = 30.0;
     canvas.margin.top = 45.0;
     canvas.margin.bottom = 60.0;
+    let ggplot_like = matches!(
+        theme.kind,
+        crate::plot::PlotThemeKind::Ggplot | crate::plot::PlotThemeKind::Classic
+    );
+    if ggplot_like {
+        canvas.draw_cartesian_grid(&x_scale, &y_scale);
+    }
+    // ggplot2 draws an unmapped `geom_point()` in black at a 2.6px radius.
+    let (point_fill, point_radius) = if ggplot_like {
+        ("#000000", 2.6)
+    } else {
+        ("#2563eb", 3.0)
+    };
     let stride = facts.fitted.len().div_ceil(10_000).max(1);
     for (fitted, residual) in facts.fitted.iter().zip(&facts.residuals).step_by(stride) {
-        canvas.add_circle(x_scale.map(*fitted), y_scale.map(*residual), 3.0, "#2563eb");
+        canvas.add_circle(
+            x_scale.map(*fitted),
+            y_scale.map(*residual),
+            point_radius,
+            point_fill,
+        );
     }
     canvas.add_line(
         x_scale.map(x_scale.domain.0),

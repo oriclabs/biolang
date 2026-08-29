@@ -2156,6 +2156,61 @@
       ]
     },
     {
+      "name": "rstats",
+      "version": "0.1.0",
+      "description": "Optional R-style statistical names backed by independently implemented BioLang methods",
+      "exports": [
+        {
+          "name": "adjust_p",
+          "signature": "adjust_p(p_values, method = \"BH\")",
+          "summary": "BioLang package function adjust_p.",
+          "fields": [],
+          "sourcePath": "packages/rstats/src/mod.bl",
+          "line": 17
+        },
+        {
+          "name": "aov",
+          "signature": "aov(groups)",
+          "summary": "BioLang package function aov.",
+          "fields": [],
+          "sourcePath": "packages/rstats/src/mod.bl",
+          "line": 12
+        },
+        {
+          "name": "chisq_goodness",
+          "signature": "chisq_goodness(observed, expected)",
+          "summary": "BioLang package function chisq_goodness.",
+          "fields": [],
+          "sourcePath": "packages/rstats/src/mod.bl",
+          "line": 8
+        },
+        {
+          "name": "kruskal_test",
+          "signature": "kruskal_test(groups)",
+          "summary": "BioLang package function kruskal_test.",
+          "fields": [],
+          "sourcePath": "packages/rstats/src/mod.bl",
+          "line": 13
+        },
+        {
+          "name": "lm_fit",
+          "signature": "lm_fit(x, y)",
+          "summary": "BioLang package function lm_fit.",
+          "fields": [],
+          "sourcePath": "packages/rstats/src/mod.bl",
+          "line": 15
+        },
+        {
+          "name": "survfit",
+          "signature": "survfit(time, event)",
+          "summary": "BioLang package function survfit.",
+          "fields": [],
+          "sourcePath": "packages/rstats/src/mod.bl",
+          "line": 18
+        }
+      ]
+    },
+    {
       "name": "scref",
       "version": "0.1.0",
       "description": "Reference single-cell methods (scanpy/scvi-tools/leidenalg) run reproducibly in containers",
@@ -3157,7 +3212,7 @@
           "summary": "BioLang package function bh.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 16
+          "line": 17
         },
         {
           "name": "bonferroni",
@@ -3165,7 +3220,7 @@
           "summary": "BioLang package function bonferroni.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 17
+          "line": 18
         },
         {
           "name": "bootstrap",
@@ -3173,7 +3228,7 @@
           "summary": "BioLang package function bootstrap.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 23
+          "line": 24
         },
         {
           "name": "chi2",
@@ -3181,7 +3236,7 @@
           "summary": "BioLang package function chi2.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 21
+          "line": 22
         },
         {
           "name": "explain",
@@ -3189,7 +3244,15 @@
           "summary": "BioLang package function explain.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 34
+          "line": 35
+        },
+        {
+          "name": "explain_task",
+          "signature": "explain_task(result)",
+          "summary": "BioLang package function explain_task.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 95
         },
         {
           "name": "fisher",
@@ -3197,7 +3260,7 @@
           "summary": "BioLang package function fisher.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 20
+          "line": 21
         },
         {
           "name": "inflation",
@@ -3205,7 +3268,7 @@
           "summary": "BioLang package function inflation.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 18
+          "line": 19
         },
         {
           "name": "pearson",
@@ -3213,7 +3276,7 @@
           "summary": "BioLang package function pearson.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 24
+          "line": 25
         },
         {
           "name": "permtest",
@@ -3221,7 +3284,7 @@
           "summary": "BioLang package function permtest.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 22
+          "line": 23
         },
         {
           "name": "significant",
@@ -3229,7 +3292,15 @@
           "summary": "BioLang package function significant.",
           "fields": [],
           "sourcePath": "packages/statistics/src/mod.bl",
-          "line": 19
+          "line": 20
+        },
+        {
+          "name": "task_catalog",
+          "signature": "task_catalog()",
+          "summary": "BioLang package function task_catalog.",
+          "fields": [],
+          "sourcePath": "packages/statistics/src/mod.bl",
+          "line": 94
         }
       ]
     },

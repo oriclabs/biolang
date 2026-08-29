@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 30,
-    "builtin": 1115,
+    "builtin": 1116,
     "tutorial": 0,
     "example": 392
   },
@@ -1554,6 +1554,20 @@
       "returnType": "Record{value, unit} (base pairs)",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "bp bp(n) → record{value, unit} (base pairs) bio identity; documents that n is in base pairs"
+    },
+    {
+      "id": "builtin:breslow_day_test",
+      "kind": "builtin",
+      "title": "breslow_day_test",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "BioLang stats builtin.",
+      "body": "# breslow_day_test\n\nBioLang stats builtin.\n\n## Signature\n\n```biolang\nbreslow_day_test(strata, {tarone: true}?) → Record{statistic,p_value,df,common_odds_ratio}\n```\n\n## Example\n\n```biolang\nbreslow_day_test([[[4,5],[5,103]], [[10,3],[5,43]]])  # Tarone-adjusted by default\n```\n\n**Returns:** `Record{statistic,p_value,df,common_odds_ratio,tarone_statistic}`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "breslow_day_test(strata, {tarone: true}?) → Record{statistic,p_value,df,common_odds_ratio}",
+      "example": "breslow_day_test([[[4,5],[5,103]], [[10,3],[5,43]]])  # Tarone-adjusted by default",
+      "returnType": "Record{statistic,p_value,df,common_odds_ratio,tarone_statistic}",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "breslow_day_test breslow_day_test(strata, {tarone: true}?) → record{statistic,p_value,df,common_odds_ratio} stats biolang stats builtin."
     },
     {
       "id": "builtin:bulk_overlaps",
@@ -10270,12 +10284,12 @@
       "category": "runtime",
       "collection": "Runtime builtins",
       "summary": "Registered BioLang builtin accepting 1 argument(s).",
-      "body": "# power_t_test\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\npower_t_test(arg1, arg2?, arg3?)\n```\n\n**Arity:** range, minimum 1, maximum 3",
-      "signature": "power_t_test(arg1, arg2?, arg3?)",
+      "body": "# power_t_test\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\npower_t_test(arg1, arg2?, arg3?, arg4?)\n```\n\n**Arity:** range, minimum 1, maximum 4",
+      "signature": "power_t_test(arg1, arg2?, arg3?, arg4?)",
       "example": null,
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "power_t_test power_t_test(arg1, arg2?, arg3?) runtime registered biolang builtin accepting 1 argument(s)."
+      "keywords": "power_t_test power_t_test(arg1, arg2?, arg3?, arg4?) runtime registered biolang builtin accepting 1 argument(s)."
     },
     {
       "id": "builtin:ppois",

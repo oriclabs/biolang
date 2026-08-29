@@ -1561,6 +1561,24 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "breslow_day_test",
+      "signature": "breslow_day_test(strata, {tarone: true}?) → Record{statistic,p_value,df,common_odds_ratio}",
+      "category": "stats",
+      "summary": "BioLang stats builtin.",
+      "parameters": [
+        "strata",
+        "{tarone: true}?"
+      ],
+      "returnType": "Record{statistic,p_value,df,common_odds_ratio,tarone_statistic}",
+      "example": "breslow_day_test([[[4,5],[5,103]], [[10,3],[5,43]]])  # Tarone-adjusted by default",
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "bulk_overlaps",
       "signature": "bulk_overlaps(arg1, arg2)",
       "category": "runtime",
@@ -12586,20 +12604,21 @@
     },
     {
       "name": "power_t_test",
-      "signature": "power_t_test(arg1, arg2?, arg3?)",
+      "signature": "power_t_test(arg1, arg2?, arg3?, arg4?)",
       "category": "runtime",
       "summary": "Registered BioLang builtin accepting 1 argument(s).",
       "parameters": [
         "arg1",
         "arg2?",
-        "arg3?"
+        "arg3?",
+        "arg4?"
       ],
       "returnType": null,
       "example": null,
       "arity": {
         "kind": "range",
         "minimum": 1,
-        "maximum": 3
+        "maximum": 4
       },
       "metadataQuality": "runtime"
     },

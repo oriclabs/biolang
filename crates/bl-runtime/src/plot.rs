@@ -160,6 +160,65 @@ pub(crate) const SEURAT_PALETTE: [&str; 24] = [
     "#1982c4", "#ff924c", "#8ac926", "#6a4c93", "#d81159", "#218380", "#fbb13c", "#5f0f40",
 ];
 
+/// R `scales::hue_pal()`, the discrete colour scale ggplot2 uses by default.
+///
+/// ggplot recomputes evenly spaced hues for each group count, so a fixed table
+/// is only correct at the single `n` it was copied from. Hues start at 15
+/// degrees and step by 360/n at chroma 100 and luminance 65 in CIE-LUV, then
+/// convert to sRGB against the D65 white point that R's `hcl()` assumes.
+pub(crate) fn hue_palette(count: usize) -> Vec<String> {
+    let count = count.max(1);
+    (0..count)
+        .map(|index| {
+            let hue = (15.0 + 360.0 * index as f64 / count as f64).to_radians();
+            luv_to_hex(65.0, 100.0 * hue.cos(), 100.0 * hue.sin())
+        })
+        .collect()
+}
+
+/// CIE-LUV to sRGB, matching R's `hcl()` including its out-of-gamut clamp.
+fn luv_to_hex(lightness: f64, u_star: f64, v_star: f64) -> String {
+    const WHITE_X: f64 = 95.047;
+    const WHITE_Y: f64 = 100.0;
+    const WHITE_Z: f64 = 108.883;
+    if lightness <= 0.0 {
+        return "#000000".to_string();
+    }
+    let denominator = WHITE_X + 15.0 * WHITE_Y + 3.0 * WHITE_Z;
+    let u = u_star / (13.0 * lightness) + 4.0 * WHITE_X / denominator;
+    let v = v_star / (13.0 * lightness) + 9.0 * WHITE_Y / denominator;
+    let y = WHITE_Y
+        * if lightness > 8.0 {
+            ((lightness + 16.0) / 116.0).powi(3)
+        } else {
+            lightness / 903.3
+        };
+    let x = y * 9.0 * u / (4.0 * v);
+    let z = y * (12.0 - 3.0 * u - 20.0 * v) / (4.0 * v);
+    let (x, y, z) = (x / 100.0, y / 100.0, z / 100.0);
+    let linear = [
+        3.240479 * x - 1.537150 * y - 0.498535 * z,
+        -0.969256 * x + 1.875992 * y + 0.041556 * z,
+        0.055648 * x - 0.204043 * y + 1.057311 * z,
+    ];
+    // `hcl(fixup = TRUE)` is R's default: clamp rather than refuse a hue that
+    // falls outside sRGB.
+    let channel = |value: f64| -> u8 {
+        let gamma = if value <= 0.003_130_8 {
+            12.92 * value
+        } else {
+            1.055 * value.powf(1.0 / 2.4) - 0.055
+        };
+        (gamma * 255.0).round().clamp(0.0, 255.0) as u8
+    };
+    format!(
+        "#{:02x}{:02x}{:02x}",
+        channel(linear[0]),
+        channel(linear[1]),
+        channel(linear[2])
+    )
+}
+
 /// `#rrggbb` to premultiplied-ready RGBA, with the alpha add_circle applies.
 ///
 /// The rastered and vector paths have to agree on colour as well as position,
@@ -504,6 +563,8 @@ pub(crate) enum PlotThemeKind {
     Legacy,
     Publication,
     Minimal,
+    Ggplot,
+    Classic,
 }
 
 /// Presentation tokens shared by runtime and biological plots.
@@ -552,6 +613,25 @@ impl PlotTheme {
                 axis_width: 1.0,
                 grid_width: 0.75,
             },
+            // ggplot2 `theme_classic()`: white panel, no grid, black axes.
+            "classic" => Self {
+                kind: PlotThemeKind::Classic,
+                name: "classic",
+                font_family: "Arial, Helvetica, sans-serif",
+                text_colour: "#333333",
+                axis_colour: "#000000",
+                grid_colour: "#ffffff",
+                panel_colour: "#ffffff",
+                background_colour: "#ffffff",
+                title_size: 16.0,
+                subtitle_size: 11.0,
+                axis_title_size: 13.0,
+                tick_size: 11.0,
+                legend_size: 12.0,
+                caption_size: 9.0,
+                axis_width: 1.0,
+                grid_width: 0.0,
+            },
             "minimal" => Self {
                 kind: PlotThemeKind::Minimal,
                 name: "minimal",
@@ -569,6 +649,27 @@ impl PlotTheme {
                 caption_size: 8.5,
                 axis_width: 0.8,
                 grid_width: 0.65,
+            },
+            // Compatibility preset for lessons that reproduce an analysis
+            // originally taught with ggplot2. This is deliberately a visual
+            // preset only; it does not change the data or plot geometry.
+            "ggplot" | "ggplot2" => Self {
+                kind: PlotThemeKind::Ggplot,
+                name: "ggplot",
+                font_family: "Arial, Helvetica, sans-serif",
+                text_colour: "#333333",
+                axis_colour: "#333333",
+                grid_colour: "#ffffff",
+                panel_colour: "#ebebeb",
+                background_colour: "#ffffff",
+                title_size: 16.0,
+                subtitle_size: 11.0,
+                axis_title_size: 13.0,
+                tick_size: 11.0,
+                legend_size: 12.0,
+                caption_size: 9.0,
+                axis_width: 0.8,
+                grid_width: 1.0,
             },
             // `seurat` intentionally remains presentation-compatible with the
             // old renderer. It changes palettes in biological plots, not the
@@ -601,6 +702,16 @@ impl PlotTheme {
 
 pub(crate) fn plot_theme(opts: &HashMap<String, Value>) -> PlotTheme {
     PlotTheme::from_name(get_opt_str(opts, "theme", "biolang"))
+}
+
+/// Theme for the statistical plot family.
+///
+/// These plots reproduce analyses that are taught in R, so they default to
+/// ggplot2's appearance rather than BioLang's legacy palette. Biological
+/// figures keep `plot_theme` and its historical look. `{theme: "..."}`
+/// overrides either.
+pub(crate) fn stats_plot_theme(opts: &HashMap<String, Value>) -> PlotTheme {
+    PlotTheme::from_name(get_opt_str(opts, "theme", "ggplot"))
 }
 
 /// Deterministic text-width estimate used for margins and legends.
@@ -704,9 +815,40 @@ impl SvgCanvas {
         ));
     }
 
-    pub(crate) fn add_circle(&mut self, cx: f64, cy: f64, r: f64, fill: &str) {
+    /// `add_rect` with an outline, as ggplot2's `geom_boxplot()` draws its box.
+    pub(crate) fn add_stroked_rect(
+        &mut self,
+        x: f64,
+        y: f64,
+        w: f64,
+        h: f64,
+        fill: &str,
+        stroke: &str,
+        stroke_width: f64,
+    ) {
         self.elements.push(format!(
-            r#"<circle cx="{cx:.1}" cy="{cy:.1}" r="{r:.1}" fill="{fill}" opacity="0.7" />"#
+            r#"<rect x="{x:.1}" y="{y:.1}" width="{w:.1}" height="{h:.1}" fill="{fill}" stroke="{stroke}" stroke-width="{stroke_width:.2}" />"#
+        ));
+    }
+
+    pub(crate) fn add_circle(&mut self, cx: f64, cy: f64, r: f64, fill: &str) {
+        self.add_circle_with_opacity(cx, cy, r, fill, 0.7);
+    }
+
+    /// `add_circle` with the point opacity chosen by the caller.
+    ///
+    /// ggplot2's `geom_point()` is opaque unless `alpha` is set, so plots that
+    /// reproduce an R figure need to override the 0.7 default.
+    pub(crate) fn add_circle_with_opacity(
+        &mut self,
+        cx: f64,
+        cy: f64,
+        r: f64,
+        fill: &str,
+        opacity: f64,
+    ) {
+        self.elements.push(format!(
+            r#"<circle cx="{cx:.1}" cy="{cy:.1}" r="{r:.1}" fill="{fill}" opacity="{opacity:.2}" />"#
         ));
     }
 
@@ -973,6 +1115,43 @@ impl SvgCanvas {
                 self.theme.grid_width,
             );
         }
+        let mapped_y = Scale {
+            domain: y_scale.domain,
+            range: (bottom, top),
+        };
+        for tick in y_scale.nice_ticks(5) {
+            let y = mapped_y.map(tick);
+            self.add_line(
+                left,
+                y,
+                right,
+                y,
+                self.theme.grid_colour,
+                self.theme.grid_width,
+            );
+        }
+    }
+
+    /// The panel and its horizontal gridlines only.
+    ///
+    /// A categorical x axis has no numeric ticks to rule against, so a plot
+    /// with groups along the bottom still needs the themed panel that
+    /// `draw_cartesian_grid` would otherwise supply.
+    pub(crate) fn draw_categorical_grid(&mut self, y_scale: &Scale) {
+        if self.theme.grid_width <= 0.0 {
+            return;
+        }
+        let left = self.margin.left;
+        let right = left + self.plot_width();
+        let top = self.margin.top;
+        let bottom = top + self.plot_height();
+        self.add_rect(
+            left,
+            top,
+            self.plot_width(),
+            self.plot_height(),
+            self.theme.panel_colour,
+        );
         let mapped_y = Scale {
             domain: y_scale.domain,
             range: (bottom, top),
@@ -4587,6 +4766,35 @@ fn histogram_equal_edges(values: &[f64], bins: usize) -> Vec<f64> {
         .collect()
 }
 
+/// ggplot2's `bin_breaks_bins()`, which is not an equal split of the range.
+///
+/// `bins = n` in ggplot2 uses a width of `range / (n - 1)` and a boundary of
+/// half a width, so the first bin is centred on the minimum and the outer
+/// edges sit half a bin beyond the data. Cutting `[min, max]` into `n` equal
+/// parts instead — the matplotlib and `hist(breaks = n)` reading — gives
+/// different bar widths and different counts from the same `bins` value.
+fn histogram_ggplot_edges(values: &[f64], bins: usize) -> Vec<f64> {
+    let (mut lo, mut hi) = col_range(values);
+    if (hi - lo).abs() < f64::EPSILON {
+        let padding = (lo.abs() * 0.01).max(0.5);
+        lo -= padding;
+        hi += padding;
+    }
+    if bins < 2 {
+        return vec![lo, hi];
+    }
+    let width = (hi - lo) / (bins - 1) as f64;
+    let boundary = width / 2.0;
+    // find_origin(): the boundary-aligned edge at or below the minimum.
+    let origin = boundary + ((lo - boundary) / width).floor() * width;
+    // ggplot2 nudges the upper limit so an exact multiple does not add a bin.
+    let limit = hi + (1.0 - 1e-8) * width;
+    let breaks = (((limit - origin) / width).floor() as i64 + 1).max(2) as usize;
+    (0..breaks)
+        .map(|index| origin + index as f64 * width)
+        .collect()
+}
+
 fn histogram_explicit_edges(items: &[Value]) -> Result<Vec<f64>> {
     let mut edges = Vec::with_capacity(items.len());
     for item in items {
@@ -4716,10 +4924,31 @@ pub(crate) fn histogram_geometry(args: &[Value], who: &str) -> Result<HistogramG
                 }
                 None => 20,
             };
-            (
-                histogram_equal_edges(&values, bins),
-                format!("equal-width:{bins}"),
-            )
+            // ggplot2's reading of `bins`; `span` keeps the equal split of
+            // the range that matplotlib and `hist(breaks = n)` use.
+            match opts
+                .get("bin_rule")
+                .and_then(Value::as_str)
+                .unwrap_or("ggplot")
+            {
+                "span" => (
+                    histogram_equal_edges(&values, bins),
+                    format!("equal-width:{bins}"),
+                ),
+                "ggplot" | "ggplot2" => (
+                    histogram_ggplot_edges(&values, bins),
+                    format!("ggplot:{bins}"),
+                ),
+                other => {
+                    return Err(BioLangError::runtime(
+                        ErrorKind::TypeError,
+                        format!(
+                        "histogram() option 'bin_rule' must be 'span' or 'ggplot', got '{other}'"
+                    ),
+                        None,
+                    ))
+                }
+            }
         }
     };
 
@@ -4871,7 +5100,8 @@ fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
     let geometry = histogram_geometry(&args, "histogram")?;
     let max_count = geometry.counts.iter().copied().max().unwrap_or(0).max(1);
 
-    let mut canvas = SvgCanvas::new(width, height);
+    let theme = stats_plot_theme(&opts);
+    let mut canvas = SvgCanvas::with_theme(width, height, theme);
     let x_scale = Scale {
         domain: (geometry.edges[0], *geometry.edges.last().unwrap()),
         range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
@@ -4881,12 +5111,23 @@ fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
         range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
     };
 
+    // The default theme keeps its historical bare panel; a named theme draws
+    // the panel and grid it implies.
+    if !matches!(theme.kind, PlotThemeKind::Legacy) {
+        canvas.draw_cartesian_grid(&x_scale, &y_scale);
+    }
+
+    // ggplot2 `geom_histogram()` fills with grey35 and draws no border, so its
+    // bars abut instead of being separated by a gap.
+    let ggplot_like = matches!(theme.kind, PlotThemeKind::Ggplot);
+    let bar_fill = if ggplot_like { "#595959" } else { PALETTE[0] };
+    let bar_gap = if ggplot_like { 0.0 } else { 1.0 };
     for (index, count) in geometry.counts.iter().enumerate() {
         let x = x_scale.map(geometry.edges[index]);
         let right = x_scale.map(geometry.edges[index + 1]);
         let y = y_scale.map(*count as f64);
         let height = canvas.margin.top + canvas.plot_height() - y;
-        canvas.add_rect(x, y, (right - x - 1.0).max(0.0), height, PALETTE[0]);
+        canvas.add_rect(x, y, (right - x - bar_gap).max(0.0), height, bar_fill);
     }
 
     let data_x_scale = Scale {
@@ -8276,5 +8517,96 @@ mod thinning_tests {
         let after: HashSet<(i64, i64)> = kept.iter().map(|&i| cell(&points[i])).collect();
         assert_eq!(before, after);
         assert!(kept.len() < points.len(), "nothing was thinned at all");
+    }
+}
+
+#[cfg(test)]
+mod hue_palette_tests {
+    use super::hue_palette;
+
+    /// Reference values printed by R: `scales::hue_pal()(n)`.
+    ///
+    /// A fixed table is only right at the one `n` it was copied from, which is
+    /// how a two-group plot could look correct while every other count was
+    /// silently off-palette.
+    #[test]
+    fn hue_palette_matches_r_scales_hue_pal() {
+        let expected: [&[&str]; 5] = [
+            &["#f8766d", "#00bfc4"],
+            &["#f8766d", "#00ba38", "#619cff"],
+            &["#f8766d", "#7cae00", "#00bfc4", "#c77cff"],
+            &["#f8766d", "#a3a500", "#00bf7d", "#00b0f6", "#e76bf3"],
+            &[
+                "#f8766d", "#b79f00", "#00ba38", "#00bfc4", "#619cff", "#f564e3",
+            ],
+        ];
+        for (index, reference) in expected.iter().enumerate() {
+            let count = index + 2;
+            assert_eq!(
+                hue_palette(count),
+                *reference,
+                "hue_pal({count}) disagrees with R"
+            );
+        }
+    }
+
+    #[test]
+    fn hue_palette_always_returns_one_colour_per_group() {
+        for count in 1..=24 {
+            let palette = hue_palette(count);
+            assert_eq!(palette.len(), count);
+            assert!(palette
+                .iter()
+                .all(|colour| colour.len() == 7 && colour.starts_with('#')));
+        }
+    }
+}
+
+#[cfg(test)]
+mod ggplot_binning_tests {
+    use super::{histogram_equal_edges, histogram_ggplot_edges};
+
+    /// `bins = n` means different things in ggplot2 and in matplotlib.
+    ///
+    /// ggplot2 centres the first bin on the minimum with width range/(n-1);
+    /// an equal split of [min, max] uses width range/n starting at the
+    /// minimum. Same `bins`, different bars.
+    #[test]
+    fn ggplot_bins_are_not_an_equal_split_of_the_range() {
+        let values: Vec<f64> = (0..100).map(|value| value as f64).collect();
+        let ggplot = histogram_ggplot_edges(&values, 30);
+        let span = histogram_equal_edges(&values, 30);
+        assert_eq!(ggplot.len(), 31, "ggplot rule must still yield 30 bins");
+        assert_eq!(span.len(), 31);
+
+        let ggplot_width = ggplot[1] - ggplot[0];
+        assert!(
+            (ggplot_width - 99.0 / 29.0).abs() < 1e-9,
+            "width must be range/(bins - 1), got {ggplot_width}"
+        );
+        assert!(
+            ggplot[0] < 0.0,
+            "the first edge sits half a bin below the minimum, got {}",
+            ggplot[0]
+        );
+        assert!(
+            *ggplot.last().unwrap() > 99.0,
+            "the last edge sits above the maximum"
+        );
+        assert!(
+            span[0].abs() < 1e-9 && (span[30] - 99.0).abs() < 1e-9,
+            "the span rule still runs edge to edge"
+        );
+    }
+
+    #[test]
+    fn ggplot_edges_are_evenly_spaced_and_cover_the_data() {
+        let values = [12.88_f64, 20.1, 33.4, 47.9, 81.25];
+        let edges = histogram_ggplot_edges(&values, 30);
+        let width = edges[1] - edges[0];
+        for pair in edges.windows(2) {
+            assert!((pair[1] - pair[0] - width).abs() < 1e-9, "uneven bin width");
+        }
+        assert!(edges[0] <= 12.88 && *edges.last().unwrap() >= 81.25);
     }
 }

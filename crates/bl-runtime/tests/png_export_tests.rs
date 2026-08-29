@@ -99,11 +99,12 @@ fn the_figure_is_actually_drawn_not_just_a_blank_canvas() {
     );
 
     // And the ink is the plot's own colour, so it is this figure that was
-    // rasterised rather than some fallback.
-    let bar = counts.get("#4e79a7").copied().unwrap_or(0);
+    // rasterised rather than some fallback. A histogram defaults to ggplot2's
+    // grey35 bars.
+    let bar = counts.get("#595959").copied().unwrap_or(0);
     assert!(
         bar > 200,
-        "the palette colour #4e79a7 covers only {bar} pixels - the bars are missing"
+        "the bar colour #595959 covers only {bar} pixels - the bars are missing"
     );
 }
 

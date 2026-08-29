@@ -1369,12 +1369,10 @@ fn test_histogram_custom_bins() {
     let result = call_plot_builtin("histogram", vec![list, opts]).unwrap();
     if let Value::Str(s) = result {
         assert!(s.contains("<svg"));
-        // With 5 bins, should have 5 rects
-        let rect_count = s.matches("<rect").count();
-        assert!(
-            (5..=6).contains(&rect_count),
-            "expected ~5 rects for 5 bins, got {rect_count}"
-        );
+        // Count the bars themselves. The background and the themed panel are
+        // rects too, so a bare `<rect` count measures chrome as well as data.
+        let bar_count = s.matches(r##"fill="#595959""##).count();
+        assert_eq!(bar_count, 5, "expected 5 bars for 5 bins, got {bar_count}");
     } else {
         panic!("expected Str");
     }
