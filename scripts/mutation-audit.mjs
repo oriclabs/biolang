@@ -22,7 +22,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const PLOT = "crates/bl-runtime/src/plot.rs";
+// plot.rs is a directory module, so each mutation names the submodule that
+// owns the behaviour it breaks. A mutation whose target has moved is
+// reported as unusable rather than silently passing.
+const CANVAS = "crates/bl-runtime/src/plot/canvas.rs";
+const THEME = "crates/bl-runtime/src/plot/theme.rs";
+const HISTOGRAM = "crates/bl-runtime/src/plot/histogram.rs";
 const STATS = "crates/bl-runtime/src/stats_explore.rs";
 
 // Each entry is a behaviour worth holding in place, expressed as the smallest
@@ -31,37 +36,37 @@ const STATS = "crates/bl-runtime/src/stats_explore.rs";
 const MUTATIONS = [
   {
     name: "hue_pal step",
-    file: PLOT,
+    file: THEME,
     find: "let hue = (15.0 + 360.0 * index as f64 / count as f64).to_radians();",
     replace: "let hue = (15.0 + 180.0 * index as f64).to_radians();",
   },
   {
     name: "histogram bar fill",
-    file: PLOT,
+    file: HISTOGRAM,
     find: 'let bar_fill = if ggplot_like { "#595959" } else { PALETTE[0] };',
     replace: "let bar_fill = PALETTE[0];",
   },
   {
     name: "bin_rule default",
-    file: PLOT,
+    file: HISTOGRAM,
     find: '.unwrap_or("ggplot")',
     replace: '.unwrap_or("span")',
   },
   {
     name: "theme_grey panel",
-    file: PLOT,
+    file: THEME,
     find: 'panel_colour: "#ebebeb",',
     replace: 'panel_colour: "#ffffff",',
   },
   {
     name: "legacy marker opacity",
-    file: PLOT,
+    file: CANVAS,
     find: "self.add_circle_with_opacity(cx, cy, r, fill, 0.7);",
     replace: "self.add_circle_with_opacity(cx, cy, r, fill, 1.0);",
   },
   {
     name: "text metrics",
-    file: PLOT,
+    file: CANVAS,
     find: "u32::from(ADVANCE_PER_MILLE[(code - 32) as usize])",
     replace: "540",
   },
