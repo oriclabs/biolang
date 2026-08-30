@@ -1,5 +1,6 @@
 mod data_registry;
 mod events;
+mod lesson_project;
 mod notebook;
 #[cfg(feature = "notebook-server")]
 mod notebook_server;
@@ -55,7 +56,7 @@ impl DataKindArg {
 enum DataCommands {
     /// Search registered datasets or providers without downloading them
     Search {
-        /// Words matched against identity, title, description, category, and tags
+        /// Words matched against identity, title, description, categories, tags, lesson problems, methods, plots, aliases, and functions
         query: Option<String>,
         /// Require this registry category slug
         #[arg(long)]
@@ -111,6 +112,52 @@ enum DataCommands {
         /// Emit paths and integrity metadata as JSON
         #[arg(long)]
         json: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum LessonCommands {
+    /// Download or verify every input declared by a Studio CLI project
+    Prepare {
+        /// Path to the exported lesson-data.json lock
+        #[arg(default_value = "lesson-data.json")]
+        lock: PathBuf,
+        /// Replace an existing input only after the new download passes verification
+        #[arg(long)]
+        force: bool,
+        /// Verify local files without making network requests
+        #[arg(long)]
+        offline: bool,
+        /// Emit prepared paths and integrity metadata as JSON
+        #[arg(long)]
+        json: bool,
+    },
+    /// Prepare declared inputs, then run the generated BioLang script
+    Run {
+        /// Path to the exported lesson-data.json lock
+        #[arg(default_value = "lesson-data.json")]
+        lock: PathBuf,
+        /// Replace an existing input only after the new download passes verification
+        #[arg(long)]
+        force: bool,
+        /// Require all inputs to be present and verified without network requests
+        #[arg(long)]
+        offline: bool,
+        /// Show each script step as it executes
+        #[arg(short, long)]
+        verbose: bool,
+        /// Emit versioned JSON Lines execution events
+        #[arg(long)]
+        events: bool,
+        /// Print the script's final non-nil value
+        #[arg(long)]
+        print_result: bool,
+        /// Save a reproducible JSON run record
+        #[arg(long, value_name = "FILE")]
+        record: Option<PathBuf>,
+        /// Seed BioLang's runtime random stream and record the value
+        #[arg(long)]
+        seed: Option<u64>,
     },
 }
 
@@ -324,6 +371,11 @@ enum Commands {
     Data {
         #[command(subcommand)]
         command: DataCommands,
+    },
+    /// Prepare or run a reproducible lesson project exported by Studio
+    Lesson {
+        #[command(subcommand)]
+        command: LessonCommands,
     },
     /// Create an explainable, task-first statistics notebook
     Stats {
@@ -578,6 +630,32 @@ fn main() {
                         process::exit(1);
                     }
                 }
+                Some(Commands::Lesson { command }) => match command {
+                    LessonCommands::Prepare { lock, force, offline, json } => {
+                        if let Err(error) = lesson_project::prepare(&lock, force, offline, json, false) {
+                            eprintln!("Lesson error: {error}");
+                            process::exit(1);
+                        }
+                    }
+                    LessonCommands::Run { lock, force, offline, verbose, events, print_result, record, seed } => {
+                        let project = match lesson_project::prepare(&lock, force, offline, false, true) {
+                            Ok(project) => project,
+                            Err(error) => {
+                                eprintln!("Lesson error: {error}");
+                                process::exit(1);
+                            }
+                        };
+                        let record = record.map(|path| if path.is_absolute() { path } else { project.root.join(path) });
+                        if let Err(error) = std::env::set_current_dir(&project.root) {
+                            eprintln!("Lesson error: cannot enter '{}': {error}", project.root.display());
+                            process::exit(1);
+                        }
+                        run_file(
+                            &project.script.to_string_lossy(), verbose, events, print_result, record,
+                            project.inputs, Vec::new(), Vec::new(), seed,
+                        );
+                    }
+                },
                 Some(Commands::Stats { task, input, columns, method, output }) => {
                     match (task, input) {
                         (None, None) => stats_guide::print_catalog(),

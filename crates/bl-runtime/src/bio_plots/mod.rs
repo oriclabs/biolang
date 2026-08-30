@@ -4,11 +4,11 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::builtins::write_output;
 use crate::plot::{
-    col_range, estimate_text_width, extract_table_col, gaussian_kde, get_opt_f64, get_opt_str,
-    parse_options, plot_theme, publication_diverging_color, publication_sequential_color,
-    quantile_type7, raster_choice, sequential_color, seurat_feature_color, silverman_bandwidth,
-    thin_requested, thin_to_pixel_grid, PlotTheme, PlotThemeKind, Scale, SvgCanvas, PALETTE,
-    SEURAT_PALETTE,
+    col_range, estimate_text_width, extract_table_col, gaussian_kde, gaussian_kde_between,
+    get_opt_f64, get_opt_str, hue_palette, parse_options, plot_theme, publication_diverging_color,
+    publication_sequential_color, quantile_type7, raster_choice, sequential_color,
+    seurat_feature_color, silverman_bandwidth, thin_requested, thin_to_pixel_grid, PlotTheme,
+    PlotThemeKind, Scale, SvgCanvas, PALETTE, SEURAT_PALETTE,
 };
 use crate::viz::{get_opt_usize, nums_from_value};
 

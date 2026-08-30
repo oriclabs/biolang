@@ -412,6 +412,70 @@ fn cox_diagnostics_match_r_coxph_breslow() {
     );
 }
 
+#[test]
+fn cox_diagnostics_match_r_coxph_efron_with_tied_events() {
+    // R 4.5.2, survival 3.8-3:
+    // coxph(Surv(time, status) ~ x + z, data = d, ties = "efron")
+    let report = call_stats_builtin(
+        "stats_cox_diagnostics",
+        vec![
+            numbers(&[1.0, 1.0, 2.0, 2.0, 3.0, 4.0, 4.0, 5.0, 6.0, 6.0, 7.0, 8.0]),
+            numbers(&[1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0]),
+            table(&[
+                (
+                    "x",
+                    &[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 2.0, 0.0, 2.0, 1.0, 1.0, 0.0],
+                ),
+                (
+                    "z",
+                    &[3.0, 2.0, 4.0, 1.0, 5.0, 3.0, 2.0, 4.0, 1.0, 3.0, 2.0, 5.0],
+                ),
+            ]),
+            options(&[("ties", Value::Str("efron".into()))]),
+        ],
+    )
+    .unwrap();
+
+    assert_eq!(field(&report, "converged"), &Value::Bool(true));
+    assert_eq!(field(&report, "ties"), &Value::Str("efron".into()));
+    assert_matches_r(
+        "efron_coef_x",
+        coefficient(&report, 0, "estimate"),
+        -0.579_439_053_576_418,
+        1e-8,
+    );
+    assert_matches_r(
+        "efron_coef_z",
+        coefficient(&report, 1, "estimate"),
+        -0.398_938_846_258_031_83,
+        1e-8,
+    );
+    assert_matches_r(
+        "efron_se_x",
+        coefficient(&report, 0, "standard_error"),
+        1.038_078_983_442_446_2,
+        1e-8,
+    );
+    assert_matches_r(
+        "efron_se_z",
+        coefficient(&report, 1, "standard_error"),
+        0.532_416_076_982_274_4,
+        1e-8,
+    );
+    assert_matches_r(
+        "efron_partial_log_likelihood",
+        float_field(&report, "partial_log_likelihood"),
+        -14.787_823_739_273_502,
+        1e-10,
+    );
+    assert_matches_r(
+        "efron_likelihood_ratio",
+        float_field(&report, "likelihood_ratio"),
+        0.588_231_955_899_907_2,
+        1e-9,
+    );
+}
+
 /// The 12-row binomial fixture in `packages/statistics/tests/exploration.bl` is
 /// perfectly separable: R reports `glm.fit: algorithm did not converge` and
 /// drives the coefficients toward infinity. IRLS used to return its final

@@ -36,11 +36,58 @@ pub struct RegistryEntry {
     pub compatibility: RegistryCompatibility,
     pub categories: Vec<String>,
     pub tags: Vec<String>,
+    pub discoverability: Option<LessonDiscoverability>,
     pub source_repository: String,
     pub licence: String,
     pub validation: String,
     pub dataset: Option<DatasetDiscovery>,
     pub provider: Option<ProviderDiscovery>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LessonDiscoverability {
+    pub problems: Vec<String>,
+    pub methods: Vec<String>,
+    pub plots: Vec<String>,
+    pub terms: Vec<String>,
+    pub aliases: Vec<String>,
+    pub functions: Vec<String>,
+}
+
+impl LessonDiscoverability {
+    fn all_terms(&self) -> impl Iterator<Item = &str> {
+        self.problems
+            .iter()
+            .chain(&self.methods)
+            .chain(&self.plots)
+            .chain(&self.terms)
+            .chain(&self.aliases)
+            .chain(&self.functions)
+            .map(String::as_str)
+    }
+
+    fn is_valid(&self) -> bool {
+        [
+            (&self.problems, true),
+            (&self.methods, true),
+            (&self.plots, false),
+            (&self.terms, true),
+            (&self.aliases, true),
+            (&self.functions, false),
+        ]
+        .into_iter()
+        .all(|(values, required)| {
+            (!required || !values.is_empty())
+                && values
+                    .iter()
+                    .all(|value| value.len() > 1 && value.trim() == value)
+                && values
+                    .iter()
+                    .collect::<std::collections::HashSet<_>>()
+                    .len()
+                    == values.len()
+        })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -295,6 +342,17 @@ fn validate_entry(entry: &RegistryEntry) -> Result<(), String> {
     }
     if entry.kind == "provider" && entry.provider.is_none() {
         return Err(format!("provider '{}' lacks discovery metadata", entry.id));
+    }
+    if entry.kind == "lesson"
+        && !entry
+            .discoverability
+            .as_ref()
+            .map_or(false, LessonDiscoverability::is_valid)
+    {
+        return Err(format!(
+            "lesson '{}' lacks complete discoverability metadata",
+            entry.id
+        ));
     }
     Ok(())
 }
@@ -796,6 +854,52 @@ fn sort_registry_entries(entries: &mut [RegistryEntry]) {
     });
 }
 
+fn registry_search_text(entry: &RegistryEntry) -> String {
+    let lesson_text = entry
+        .discoverability
+        .as_ref()
+        .map(|value| value.all_terms().collect::<Vec<_>>().join(" "))
+        .unwrap_or_default();
+    let dataset_text = entry
+        .dataset
+        .as_ref()
+        .map(|data| {
+            format!(
+                "{} {} {} {}",
+                data.provider,
+                data.formats.join(" "),
+                data.modalities.join(" "),
+                data.organisms.join(" ")
+            )
+        })
+        .unwrap_or_default();
+    let provider_text = entry
+        .provider
+        .as_ref()
+        .map(|provider| {
+            format!(
+                "{} {} {}",
+                provider.adapter,
+                provider.authentication,
+                provider.capabilities.join(" ")
+            )
+        })
+        .unwrap_or_default();
+    format!(
+        "{} {} {} {} {} {} {} {} {}",
+        entry.id,
+        entry.title,
+        entry.summary,
+        entry.publisher,
+        entry.categories.join(" "),
+        entry.tags.join(" "),
+        lesson_text,
+        dataset_text,
+        provider_text
+    )
+    .to_lowercase()
+}
+
 pub fn search(
     query: Option<&str>,
     category: Option<&str>,
@@ -821,42 +925,7 @@ pub fn search(
             })
         })
         .filter(|entry| {
-            let dataset_text = entry
-                .dataset
-                .as_ref()
-                .map(|data| {
-                    format!(
-                        "{} {} {} {}",
-                        data.provider,
-                        data.formats.join(" "),
-                        data.modalities.join(" "),
-                        data.organisms.join(" ")
-                    )
-                })
-                .unwrap_or_default();
-            let provider_text = entry
-                .provider
-                .as_ref()
-                .map(|provider| {
-                    format!(
-                        "{} {} {}",
-                        provider.adapter,
-                        provider.authentication,
-                        provider.capabilities.join(" ")
-                    )
-                })
-                .unwrap_or_default();
-            let haystack = format!(
-                "{} {} {} {} {} {} {}",
-                entry.id,
-                entry.title,
-                entry.summary,
-                entry.categories.join(" "),
-                entry.tags.join(" "),
-                dataset_text,
-                provider_text
-            )
-            .to_lowercase();
+            let haystack = registry_search_text(entry);
             terms.iter().all(|term| haystack.contains(term))
         })
         .collect::<Vec<_>>();
@@ -1037,10 +1106,11 @@ fn display_bytes(bytes: u64) -> String {
 mod tests {
     use super::{
         cache_verified_manifest, decode_index, digest_file, download_file, load_cached_manifest_at,
-        manifest_root, path as cached_path, safe_relative_path, select_entry, sha256,
-        sort_registry_entries, split_spec, temporary_path, validate_index, CachedManifest,
-        DatasetAccess, DatasetDiscovery, DatasetFile, DatasetManifest, DatasetSource,
-        RegistryEntry, RegistryIndex, VerifiedManifest, CACHED_MANIFEST_FILE,
+        manifest_root, path as cached_path, registry_search_text, safe_relative_path, select_entry,
+        sha256, sort_registry_entries, split_spec, temporary_path, validate_entry, validate_index,
+        CachedManifest, DatasetAccess, DatasetDiscovery, DatasetFile, DatasetManifest,
+        DatasetSource, LessonDiscoverability, ProviderDiscovery, RegistryEntry, RegistryIndex,
+        VerifiedManifest, CACHED_MANIFEST_FILE,
     };
     use std::fs;
     use std::io::{Read, Write};
@@ -1072,6 +1142,7 @@ mod tests {
             },
             categories: vec!["single-cell".into()],
             tags: vec!["RNA".into()],
+            discoverability: None,
             source_repository: "https://example.test/source".into(),
             licence: "CC0".into(),
             validation: "registry-verified".into(),
@@ -1128,6 +1199,73 @@ mod tests {
                 reader: "read_csv".into(),
             }],
         }
+    }
+
+    #[test]
+    fn search_text_covers_the_same_discovery_fields_as_studio() {
+        let dataset = dataset("1.0.0", "stable");
+        let dataset_text = registry_search_text(&dataset);
+        for expected in ["test", "single-cell", "rna", "homo sapiens", "test/direct"] {
+            assert!(dataset_text.contains(expected), "missing {expected}");
+        }
+
+        let mut provider = dataset;
+        provider.kind = "provider".into();
+        provider.id = "test/archive".into();
+        provider.name = "archive".into();
+        provider.dataset = None;
+        provider.provider = Some(ProviderDiscovery {
+            adapter: "http".into(),
+            authentication: "oauth".into(),
+            capabilities: vec!["download".into()],
+            api_documentation: "https://example.test/api".into(),
+        });
+        let provider_text = registry_search_text(&provider);
+        for expected in ["test", "http", "oauth", "download"] {
+            assert!(provider_text.contains(expected), "missing {expected}");
+        }
+    }
+
+    #[test]
+    fn lesson_problem_plot_alias_and_function_terms_are_searchable() {
+        let mut lesson = dataset("1.0.0", "stable");
+        lesson.kind = "lesson".into();
+        lesson.id = "test/survival".into();
+        lesson.name = "survival".into();
+        lesson.dataset = None;
+        lesson.discoverability = Some(LessonDiscoverability {
+            problems: vec!["compare time-to-event groups".into()],
+            methods: vec!["Kaplan-Meier estimator".into()],
+            plots: vec!["survival curve".into()],
+            terms: vec!["right censoring".into()],
+            aliases: vec!["KM curve".into()],
+            functions: vec!["kaplan_meier".into()],
+        });
+        validate_entry(&lesson).expect("complete lesson discovery metadata");
+        let text = registry_search_text(&lesson);
+        for expected in [
+            "compare time-to-event groups",
+            "kaplan-meier estimator",
+            "survival curve",
+            "right censoring",
+            "km curve",
+            "kaplan_meier",
+        ] {
+            assert!(text.contains(expected), "missing {expected}");
+        }
+    }
+
+    #[test]
+    fn conceptual_lessons_may_declare_no_plots_or_functions() {
+        let discovery = LessonDiscoverability {
+            problems: vec!["choose a study design".into()],
+            methods: vec!["cohort study".into()],
+            plots: Vec::new(),
+            terms: vec!["sampling frame".into()],
+            aliases: vec!["observational study".into()],
+            functions: Vec::new(),
+        };
+        assert!(discovery.is_valid());
     }
 
     #[test]

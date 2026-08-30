@@ -89,7 +89,164 @@ fn kaplan_meier_spec_freezes_tied_risk_sets_greenwood_error_and_exact_replay() {
     assert_eq!(data.rows[2][6], Value::Int(1));
     assert!((data.rows[2][7].as_float().unwrap() - 1.0 / 3.0).abs() < 1e-12);
     assert!(data.rows[2][8].as_float().unwrap().is_finite());
+    assert_eq!(data.columns[9], "confidence_lower");
+    assert_eq!(data.columns[10], "confidence_upper");
+    let event_one = &data.rows[1];
+    let expected_lower = (2.0 / 3.0) * (-1.959_963_984_540_054_f64 * (1.0 / 6.0_f64).sqrt()).exp();
+    assert!((event_one[9].as_float().unwrap() - expected_lower).abs() < 1e-12);
+    assert_eq!(event_one[10], Value::Float(1.0));
     assert_eq!(direct, render(specification));
+}
+
+#[test]
+fn kaplan_meier_renders_log_confidence_band_risk_table_p_value_and_safe_palette() {
+    let specification = call_bio_plots_builtin(
+        "kaplan_meier",
+        vec![
+            survival_input(),
+            opts(vec![
+                ("group", Value::Str("arm".into())),
+                ("confidence", Value::Bool(true)),
+                ("risk_table", Value::Bool(true)),
+                (
+                    "risk_times",
+                    Value::List(
+                        vec![Value::Float(0.0), Value::Float(2.0), Value::Float(4.0)].into(),
+                    ),
+                ),
+                ("p_value", Value::Float(0.0123)),
+                ("legend_title", Value::Str("Treatment".into())),
+                (
+                    "colors",
+                    Value::List(
+                        vec![Value::Str("#1C86EE".into()), Value::Str("#EE7AE9".into())].into(),
+                    ),
+                ),
+                ("format", Value::Str("spec".into())),
+            ]),
+        ],
+    )
+    .unwrap();
+    let Value::Str(svg) = render(specification) else {
+        panic!("expected SVG")
+    };
+    assert!(svg.contains("fill-opacity=\"0.14\""));
+    assert!(svg.contains("Number at risk"));
+    assert!(svg.contains("Log-rank p = 0.012"));
+    assert!(svg.contains("Treatment"));
+    assert!(svg.contains("#1C86EE"));
+    assert!(svg.contains("#EE7AE9"));
+}
+
+#[test]
+fn kaplan_meier_ggplot_theme_matches_r_hue_palette_and_numeric_strata_order() {
+    let input = Value::Table(Table::new(
+        vec!["time".into(), "event".into(), "nodes".into()],
+        vec![
+            vec![Value::Float(1.0), Value::Int(1), Value::Int(10)],
+            vec![Value::Float(2.0), Value::Int(0), Value::Int(2)],
+            vec![Value::Float(3.0), Value::Int(1), Value::Int(1)],
+        ],
+    ));
+    let specification = call_bio_plots_builtin(
+        "kaplan_meier",
+        vec![
+            input,
+            opts(vec![
+                ("group", Value::Str("nodes".into())),
+                ("theme", Value::Str("ggplot".into())),
+                ("format", Value::Str("spec".into())),
+            ]),
+        ],
+    )
+    .unwrap();
+    let map = record(&specification);
+    let Some(Value::Table(groups)) = map.get("groups") else {
+        panic!("survival groups are not a Table")
+    };
+    assert_eq!(groups.rows[0][1], Value::Str("1".into()));
+    assert_eq!(groups.rows[1][1], Value::Str("2".into()));
+    assert_eq!(groups.rows[2][1], Value::Str("10".into()));
+
+    let Value::Str(svg) = render(specification) else {
+        panic!("expected SVG")
+    };
+    // R: scales::hue_pal()(3), assigned to levels 1, 2 and 10.
+    assert!(svg.contains("#f8766d"));
+    assert!(svg.contains("#00ba38"));
+    assert!(svg.contains("#619cff"));
+    let first_curve = svg
+        .split("<path")
+        .find(|fragment| {
+            fragment.contains("stroke=\"#f8766d\"") && fragment.contains("stroke-width=\"2\"")
+        })
+        .expect("first ggplot survival curve");
+    // The ggplot scale expansion keeps S(0)=1 away from both the left and top
+    // axes. Without it this path began exactly at M 62.00 52.00.
+    assert!(first_curve.contains("M 82.36 67.27"), "{first_curve}");
+}
+
+#[test]
+fn kaplan_meier_stops_each_curve_at_its_own_last_follow_up() {
+    let plotted = call_bio_plots_builtin(
+        "kaplan_meier",
+        vec![
+            survival_input(),
+            opts(vec![
+                ("group", Value::Str("arm".into())),
+                ("confidence", Value::Bool(true)),
+                (
+                    "colors",
+                    Value::List(
+                        vec![Value::Str("#112233".into()), Value::Str("#445566".into())].into(),
+                    ),
+                ),
+            ]),
+        ],
+    )
+    .unwrap();
+    let Value::Str(svg) = plotted else {
+        panic!("expected SVG")
+    };
+    let control_path = svg
+        .split("<path")
+        .find(|fragment| {
+            fragment.contains("stroke=\"#112233\"") && fragment.contains("stroke-width=\"2\"")
+        })
+        .expect("control survival path");
+    // With the default 640 px canvas, time 2 maps to x=286 and the global
+    // maximum time 4 maps to x=510. The shorter control group must stop at 286.
+    assert!(control_path.contains("H 286.00"), "{control_path}");
+    assert!(!control_path.contains("H 510.00"), "{control_path}");
+    let control_band = svg
+        .split("<polygon")
+        .find(|fragment| fragment.contains("fill=\"#112233\""))
+        .expect("control confidence band");
+    assert!(!control_band.contains("510.00,"), "{control_band}");
+}
+
+#[test]
+fn kaplan_meier_rejects_palette_values_that_can_escape_svg_attributes() {
+    let result = call_bio_plots_builtin(
+        "kaplan_meier",
+        vec![
+            survival_input(),
+            opts(vec![
+                ("group", Value::Str("arm".into())),
+                (
+                    "colors",
+                    Value::List(
+                        vec![
+                            Value::Str("red\" onload=\"alert(1)".into()),
+                            Value::Str("#EE7AE9".into()),
+                        ]
+                        .into(),
+                    ),
+                ),
+            ]),
+        ],
+    );
+    assert!(result.is_err());
 }
 
 fn forest_input() -> Value {

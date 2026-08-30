@@ -63,6 +63,19 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("stats_glm_diagnostics", Arity::Range(2, 3)),
         ("stats_random_intercept_model", Arity::Range(3, 4)),
         ("stats_cox_diagnostics", Arity::Range(3, 4)),
+        // Reproducible supervised modelling and seasonal forecasting.
+        ("predictive_train", Arity::Range(1, 2)),
+        ("predictive_predict", Arity::Range(2, 3)),
+        ("predictive_compare", Arity::Exact(1)),
+        ("predictive_importance_plot", Arity::Range(1, 2)),
+        ("predictive_resample_plot", Arity::Range(1, 2)),
+        ("seasonal_forecast", Arity::Range(1, 2)),
+        ("seasonal_forecast_plot", Arity::Range(1, 2)),
+        ("seasonal_components_plot", Arity::Range(1, 2)),
+        ("grouped_density_plot", Arity::Range(2, 3)),
+        ("grouped_bar_plot", Arity::Range(2, 3)),
+        ("grouped_boxplot_plot", Arity::Range(3, 4)),
+        ("event_timeline_plot", Arity::Range(1, 2)),
         // Math
         ("sqrt", Arity::Exact(1)),
         ("pow", Arity::Exact(2)),
@@ -184,7 +197,7 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         // Advanced statistical methods
         ("mutual_information", Arity::Exact(2)),
         ("pca", Arity::Range(1, 2)),
-        ("log_rank_test", Arity::Exact(4)),
+        ("log_rank_test", Arity::Range(3, 4)),
         ("quantile_norm", Arity::Exact(1)),
         ("batch_correct", Arity::Exact(2)),
         ("bootstrap", Arity::Range(2, 3)),
@@ -254,6 +267,18 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "stats_glm_diagnostics"
             | "stats_random_intercept_model"
             | "stats_cox_diagnostics"
+            | "predictive_train"
+            | "predictive_predict"
+            | "predictive_compare"
+            | "predictive_importance_plot"
+            | "predictive_resample_plot"
+            | "seasonal_forecast"
+            | "seasonal_forecast_plot"
+            | "seasonal_components_plot"
+            | "grouped_density_plot"
+            | "grouped_bar_plot"
+            | "grouped_boxplot_plot"
+            | "event_timeline_plot"
             | "sqrt"
             | "pow"
             | "log"
@@ -429,6 +454,18 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         | "stats_glm_diagnostics"
         | "stats_random_intercept_model"
         | "stats_cox_diagnostics" => crate::stats_explore::call(name, args),
+        "predictive_train"
+        | "predictive_predict"
+        | "predictive_compare"
+        | "predictive_importance_plot"
+        | "predictive_resample_plot"
+        | "seasonal_forecast"
+        | "seasonal_forecast_plot"
+        | "seasonal_components_plot" => crate::predictive::call(name, args),
+        "grouped_density_plot"
+        | "grouped_bar_plot"
+        | "grouped_boxplot_plot"
+        | "event_timeline_plot" => crate::predictive::call(name, args),
         "sqrt" => builtin_sqrt(args),
         "pow" => builtin_pow(args),
         "log" => builtin_log(args),
@@ -4667,129 +4704,211 @@ fn builtin_pca(args: Vec<Value>) -> Result<Value> {
     ]))
 }
 
-fn builtin_log_rank_test(args: Vec<Value>) -> Result<Value> {
-    let a_times = require_num_list(&args[0], "log_rank_test")?;
-    let a_events_raw = match &args[1] {
-        Value::List(items) => items
-            .iter()
-            .map(|v| match v {
-                Value::Bool(b) => Ok(*b as u8 as f64),
-                Value::Int(n) => Ok(if *n != 0 { 1.0 } else { 0.0 }),
-                Value::Float(f) => Ok(if *f != 0.0 { 1.0 } else { 0.0 }),
-                _ => Err(BioLangError::type_error(
-                    "log_rank_test() events must be Bool or Int",
-                    None,
-                )),
-            })
-            .collect::<Result<Vec<f64>>>()?,
-        _ => {
-            return Err(BioLangError::type_error(
-                "log_rank_test() events must be a List",
-                None,
-            ))
-        }
+fn log_rank_events(value: &Value) -> Result<Vec<bool>> {
+    let Value::List(items) = value else {
+        return Err(BioLangError::type_error(
+            "log_rank_test() events must be a List",
+            None,
+        ));
     };
-    let b_times = require_num_list(&args[2], "log_rank_test")?;
-    let b_events_raw = match &args[3] {
-        Value::List(items) => items
-            .iter()
-            .map(|v| match v {
-                Value::Bool(b) => Ok(*b as u8 as f64),
-                Value::Int(n) => Ok(if *n != 0 { 1.0 } else { 0.0 }),
-                Value::Float(f) => Ok(if *f != 0.0 { 1.0 } else { 0.0 }),
-                _ => Err(BioLangError::type_error(
-                    "log_rank_test() events must be Bool or Int",
-                    None,
-                )),
-            })
-            .collect::<Result<Vec<f64>>>()?,
-        _ => {
-            return Err(BioLangError::type_error(
-                "log_rank_test() events must be a List",
+    items
+        .iter()
+        .map(|item| match item {
+            Value::Bool(value) => Ok(*value),
+            Value::Int(value) if *value == 0 || *value == 1 => Ok(*value == 1),
+            Value::Float(value) if *value == 0.0 || *value == 1.0 => Ok(*value == 1.0),
+            _ => Err(BioLangError::type_error(
+                "log_rank_test() events must contain Bool, 0, or 1",
                 None,
-            ))
-        }
-    };
+            )),
+        })
+        .collect()
+}
 
-    if a_times.len() != a_events_raw.len() || b_times.len() != b_events_raw.len() {
+fn log_rank_group_label(value: &Value) -> Result<String> {
+    match value {
+        Value::Str(value) => Ok(value.clone()),
+        Value::Int(value) => Ok(value.to_string()),
+        Value::Float(value) if value.is_finite() => Ok(value.to_string()),
+        Value::Bool(value) => Ok(value.to_string()),
+        _ => Err(BioLangError::type_error(
+            "log_rank_test() groups must contain Str, finite numbers, or Bool",
+            None,
+        )),
+    }
+}
+
+fn log_rank_groups(times: &[f64], events: &[bool], labels: &[String]) -> Result<Value> {
+    if times.len() != events.len() || times.len() != labels.len() || times.is_empty() {
         return Err(BioLangError::runtime(
             ErrorKind::TypeError,
-            "log_rank_test() times and events must have equal length per group",
+            "log_rank_test() time, event, and group lists must have the same non-zero length",
+            None,
+        ));
+    }
+    if times.iter().any(|time| !time.is_finite() || *time < 0.0) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "log_rank_test() times must be finite and non-negative",
             None,
         ));
     }
 
-    // Collect all unique event times where at least one event occurred
-    let mut event_times: Vec<f64> = a_times
+    let mut group_names = Vec::<String>::new();
+    let mut group_lookup = HashMap::<String, usize>::new();
+    let mut group_index = Vec::with_capacity(labels.len());
+    for label in labels {
+        let next = group_names.len();
+        let index = *group_lookup.entry(label.clone()).or_insert_with(|| {
+            group_names.push(label.clone());
+            next
+        });
+        group_index.push(index);
+    }
+    let groups = group_names.len();
+    if groups < 2 {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "log_rank_test() requires at least two groups",
+            None,
+        ));
+    }
+
+    let mut event_times = times
         .iter()
-        .zip(a_events_raw.iter())
-        .filter(|(_, &e)| e > 0.0)
-        .map(|(&t, _)| t)
-        .chain(
-            b_times
-                .iter()
-                .zip(b_events_raw.iter())
-                .filter(|(_, &e)| e > 0.0)
-                .map(|(&t, _)| t),
-        )
-        .collect();
-    event_times.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-    event_times.dedup_by(|a, b| (*a - *b).abs() < 1e-12);
+        .zip(events)
+        .filter_map(|(time, event)| event.then_some(*time))
+        .collect::<Vec<_>>();
+    event_times.sort_by(f64::total_cmp);
+    event_times.dedup_by(|left, right| (*left - *right).abs() <= 1e-12);
 
-    let mut o1_sum = 0.0f64;
-    let mut e1_sum = 0.0f64;
-    let mut var_sum = 0.0f64;
-
-    for &t in &event_times {
-        // At-risk counts at time t
-        let n1 = a_times.iter().filter(|&&ti| ti >= t).count() as f64;
-        let n2 = b_times.iter().filter(|&&ti| ti >= t).count() as f64;
-        let n = n1 + n2;
-        if n < 1.0 {
+    let mut observed = vec![0.0; groups];
+    let mut expected = vec![0.0; groups];
+    let mut covariance = vec![vec![0.0; groups]; groups];
+    for event_time in event_times {
+        let mut at_risk = vec![0.0; groups];
+        let mut deaths = vec![0.0; groups];
+        for index in 0..times.len() {
+            let group = group_index[index];
+            if times[index] + 1e-12 >= event_time {
+                at_risk[group] += 1.0;
+            }
+            if events[index] && (times[index] - event_time).abs() <= 1e-12 {
+                deaths[group] += 1.0;
+            }
+        }
+        let total_risk = at_risk.iter().sum::<f64>();
+        let total_deaths = deaths.iter().sum::<f64>();
+        if total_risk <= 0.0 || total_deaths <= 0.0 {
             continue;
         }
-
-        // Observed deaths at time t
-        let o1 = a_times
-            .iter()
-            .zip(a_events_raw.iter())
-            .filter(|(&ti, &ei)| (ti - t).abs() < 1e-12 && ei > 0.0)
-            .count() as f64;
-        let o2 = b_times
-            .iter()
-            .zip(b_events_raw.iter())
-            .filter(|(&ti, &ei)| (ti - t).abs() < 1e-12 && ei > 0.0)
-            .count() as f64;
-        let o = o1 + o2;
-
-        let e1 = if n > 0.0 { (n1 / n) * o } else { 0.0 };
-        o1_sum += o1;
-        e1_sum += e1;
-
-        // Variance contribution (hypergeometric)
-        if n > 1.0 {
-            let remaining = n - o;
-            let v = if remaining >= 0.0 {
-                e1 * (1.0 - n1 / n) * (remaining / (n - 1.0))
-            } else {
-                0.0
-            };
-            var_sum += v;
+        for group in 0..groups {
+            observed[group] += deaths[group];
+            expected[group] += total_deaths * at_risk[group] / total_risk;
+        }
+        if total_risk > 1.0 {
+            let finite_population = total_deaths * (total_risk - total_deaths) / (total_risk - 1.0);
+            for left in 0..groups {
+                let left_share = at_risk[left] / total_risk;
+                for right in 0..groups {
+                    let right_share = at_risk[right] / total_risk;
+                    covariance[left][right] += finite_population
+                        * left_share
+                        * if left == right {
+                            1.0 - right_share
+                        } else {
+                            -right_share
+                        };
+                }
+            }
         }
     }
 
-    let chi2 = if var_sum > 0.0 {
-        (o1_sum - e1_sum).powi(2) / var_sum
-    } else {
-        0.0
-    };
-    let p_value = bl_core::bio_core::stats_ops::chi_square_sf(chi2, 1);
+    let df = groups - 1;
+    let differences = (0..df)
+        .map(|index| observed[index] - expected[index])
+        .collect::<Vec<_>>();
+    let reduced = covariance
+        .iter()
+        .take(df)
+        .map(|row| row.iter().take(df).copied().collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+    let solved = solve_linear_system(&reduced, &differences).ok_or_else(|| {
+        BioLangError::runtime(
+            ErrorKind::TypeError,
+            "log_rank_test() covariance matrix is singular; check empty or duplicate groups",
+            None,
+        )
+    })?;
+    let chi_squared = differences
+        .iter()
+        .zip(&solved)
+        .map(|(difference, weight)| difference * weight)
+        .sum::<f64>()
+        .max(0.0);
+    let p_value = bl_core::bio_core::stats_ops::chi_square_sf(chi_squared, df);
+    let rows = (0..groups)
+        .map(|index| {
+            vec![
+                Value::Str(group_names[index].clone()),
+                Value::Int(group_index.iter().filter(|value| **value == index).count() as i64),
+                Value::Float(observed[index]),
+                Value::Float(expected[index]),
+                Value::Float(observed[index] - expected[index]),
+            ]
+        })
+        .collect();
 
     Ok(make_record(vec![
-        ("statistic", Value::Float(chi2)),
-        ("chi2", Value::Float(chi2)),
+        ("statistic", Value::Float(chi_squared)),
+        ("chi2", Value::Float(chi_squared)),
+        ("df", Value::Int(df as i64)),
         ("p_value", Value::Float(p_value)),
+        (
+            "groups",
+            Value::Table(Table::new(
+                vec![
+                    "group".into(),
+                    "n".into(),
+                    "observed".into(),
+                    "expected".into(),
+                    "observed_minus_expected".into(),
+                ],
+                rows,
+            )),
+        ),
     ]))
+}
+
+fn builtin_log_rank_test(args: Vec<Value>) -> Result<Value> {
+    if args.len() == 3 {
+        let times = require_num_list(&args[0], "log_rank_test")?;
+        let events = log_rank_events(&args[1])?;
+        let Value::List(groups) = &args[2] else {
+            return Err(BioLangError::type_error(
+                "log_rank_test() groups must be a List",
+                None,
+            ));
+        };
+        let labels = groups
+            .iter()
+            .map(log_rank_group_label)
+            .collect::<Result<Vec<_>>>()?;
+        return log_rank_groups(&times, &events, &labels);
+    }
+
+    let first_times = require_num_list(&args[0], "log_rank_test")?;
+    let first_events = log_rank_events(&args[1])?;
+    let second_times = require_num_list(&args[2], "log_rank_test")?;
+    let second_events = log_rank_events(&args[3])?;
+    let second_count = second_events.len();
+    let mut times = first_times;
+    times.extend(second_times);
+    let mut events = first_events;
+    events.extend(second_events);
+    let mut labels = vec!["group_a".to_string(); events.len() - second_count];
+    labels.extend(vec!["group_b".to_string(); second_count]);
+    log_rank_groups(&times, &events, &labels)
 }
 
 fn builtin_quantile_norm(args: Vec<Value>) -> Result<Value> {

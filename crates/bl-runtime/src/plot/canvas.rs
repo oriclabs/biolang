@@ -221,6 +221,20 @@ impl SvgCanvas {
         ));
     }
 
+    pub(crate) fn add_stroked_circle(
+        &mut self,
+        cx: f64,
+        cy: f64,
+        r: f64,
+        fill: &str,
+        stroke: &str,
+        stroke_width: f64,
+    ) {
+        self.elements.push(format!(
+            r#"<circle cx="{cx:.1}" cy="{cy:.1}" r="{r:.1}" fill="{fill}" stroke="{stroke}" stroke-width="{stroke_width:.2}" />"#
+        ));
+    }
+
     pub(crate) fn add_line(
         &mut self,
         x1: f64,
@@ -232,6 +246,67 @@ impl SvgCanvas {
     ) {
         self.elements.push(format!(
             r#"<line x1="{x1:.1}" y1="{y1:.1}" x2="{x2:.1}" y2="{y2:.1}" stroke="{stroke}" stroke-width="{width}" />"#
+        ));
+    }
+
+    /// A line with a regular dash pattern, used by R-style whiskers and
+    /// reference guides. Keeping it here preserves the shared SVG escaping
+    /// and makes the appearance consistent across native and browser output.
+    pub(crate) fn add_dashed_line(
+        &mut self,
+        x1: f64,
+        y1: f64,
+        x2: f64,
+        y2: f64,
+        stroke: &str,
+        width: f64,
+        dash: f64,
+    ) {
+        self.elements.push(format!(
+            r#"<line x1="{x1:.1}" y1="{y1:.1}" x2="{x2:.1}" y2="{y2:.1}" stroke="{stroke}" stroke-width="{width}" stroke-dasharray="{dash:.1},{dash:.1}" />"#
+        ));
+    }
+
+    /// Add a connected, unfilled path. Keeping this primitive on the shared
+    /// canvas lets forecast and diagnostic plots use the same escaping,
+    /// sizing, theme, and export path as the established plot families.
+    pub(crate) fn add_polyline(&mut self, points: &[(f64, f64)], colour: &str, width: f64) {
+        if points.len() < 2 {
+            return;
+        }
+        let points = points
+            .iter()
+            .map(|(x, y)| format!("{x:.2},{y:.2}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        self.elements.push(format!(
+            r#"<polyline points="{}" fill="none" stroke="{}" stroke-width="{:.2}" stroke-linejoin="round" stroke-linecap="round"/>"#,
+            points,
+            colour,
+            width
+        ));
+    }
+
+    /// Add a filled polygon with explicit opacity, used for confidence bands.
+    pub(crate) fn add_polygon_with_opacity(
+        &mut self,
+        points: &[(f64, f64)],
+        colour: &str,
+        opacity: f64,
+    ) {
+        if points.len() < 3 {
+            return;
+        }
+        let points = points
+            .iter()
+            .map(|(x, y)| format!("{x:.2},{y:.2}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        self.elements.push(format!(
+            r#"<polygon points="{}" fill="{}" fill-opacity="{:.3}" stroke="none"/>"#,
+            points,
+            colour,
+            opacity.clamp(0.0, 1.0)
         ));
     }
 
@@ -546,6 +621,18 @@ impl SvgCanvas {
     }
 
     pub(crate) fn draw_x_axis(&mut self, scale: &Scale, label: &str) {
+        self.draw_x_axis_with_tick_domain(scale, scale.domain, label);
+    }
+
+    /// Draw an axis using `scale` for pixel placement while choosing labels
+    /// from `tick_domain`. Plot expansion can then leave breathing room around
+    /// the data without inventing out-of-range tick labels.
+    pub(crate) fn draw_x_axis_with_tick_domain(
+        &mut self,
+        scale: &Scale,
+        tick_domain: (f64, f64),
+        label: &str,
+    ) {
         let y = self.margin.top + self.plot_height();
         self.add_line(
             self.margin.left,
@@ -559,7 +646,11 @@ impl SvgCanvas {
             domain: scale.domain,
             range: (self.margin.left, self.margin.left + self.plot_width()),
         };
-        let ticks = scale.nice_ticks(5);
+        let ticks = Scale {
+            domain: tick_domain,
+            range: tick_domain,
+        }
+        .nice_ticks(5);
         let decimals = tick_decimals(&ticks);
         for tick in ticks {
             let x = x_scale.map(tick);
@@ -645,6 +736,16 @@ impl SvgCanvas {
     }
 
     pub(crate) fn draw_y_axis(&mut self, scale: &Scale, label: &str) {
+        self.draw_y_axis_with_tick_domain(scale, scale.domain, label);
+    }
+
+    /// Y-axis counterpart to [`Self::draw_x_axis_with_tick_domain`].
+    pub(crate) fn draw_y_axis_with_tick_domain(
+        &mut self,
+        scale: &Scale,
+        tick_domain: (f64, f64),
+        label: &str,
+    ) {
         let x = self.margin.left;
         self.add_line(
             x,
@@ -658,7 +759,11 @@ impl SvgCanvas {
             domain: scale.domain,
             range: (self.margin.top + self.plot_height(), self.margin.top),
         };
-        let ticks = scale.nice_ticks(5);
+        let ticks = Scale {
+            domain: tick_domain,
+            range: tick_domain,
+        }
+        .nice_ticks(5);
         let decimals = tick_decimals(&ticks);
         for tick in ticks {
             let y = y_scale.map(tick);

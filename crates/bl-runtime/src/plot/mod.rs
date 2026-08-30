@@ -2540,6 +2540,18 @@ mod hue_palette_tests {
                 .all(|colour| colour.len() == 7 && colour.starts_with('#')));
         }
     }
+
+    #[test]
+    fn hue_palette_matches_r_for_the_twenty_four_colon_node_strata() {
+        // Printed by R 4.5.2: `scales::hue_pal()(24)`. This is the group
+        // count in the BDSR colon-cancer Cox/Kaplan-Meier counterexample.
+        let expected = [
+            "#f8766d", "#ed813e", "#de8c00", "#cd9600", "#b79f00", "#9da700", "#7cae00", "#49b500",
+            "#00ba38", "#00be67", "#00c08b", "#00c1a9", "#00bfc4", "#00bbdc", "#00b4f0", "#00a9ff",
+            "#619cff", "#9f8cff", "#c77cff", "#e36ef6", "#f564e3", "#ff61cc", "#ff64b0", "#ff6c91",
+        ];
+        assert_eq!(hue_palette(24), expected);
+    }
 }
 
 #[cfg(test)]

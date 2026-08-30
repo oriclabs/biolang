@@ -185,6 +185,13 @@ bl data info oriclabs/nhanes-bdsr-teaching
 bl data fetch oriclabs/nhanes-bdsr-teaching
 bl data path oriclabs/nhanes-bdsr-teaching
 
+# Prepare and run a CLI project exported by Studio
+bl lesson prepare lesson-data.json
+bl lesson run lesson-data.json
+
+# Verify cached project inputs and run without network access
+bl lesson run lesson-data.json --offline
+
 # Plot previews: auto, unicode, ascii, file, open, raw, or none
 # `auto` draws in a terminal and leaves redirected output as SVG
 bl --plot ascii

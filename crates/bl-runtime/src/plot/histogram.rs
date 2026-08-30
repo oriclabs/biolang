@@ -519,8 +519,16 @@ pub(super) fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
 
     let theme = stats_plot_theme(&opts);
     let mut canvas = SvgCanvas::with_theme(width, height, theme);
+    let data_x_domain = (geometry.edges[0], *geometry.edges.last().unwrap());
+    let x_span = (data_x_domain.1 - data_x_domain.0).abs().max(f64::EPSILON);
     let x_scale = Scale {
-        domain: (geometry.edges[0], *geometry.edges.last().unwrap()),
+        // Match the continuous-scale expansion used by ggplot2: the first
+        // and last bars remain visibly inside the panel outline rather than
+        // merging with it.
+        domain: (
+            data_x_domain.0 - x_span * 0.05,
+            data_x_domain.1 + x_span * 0.05,
+        ),
         range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
     };
     let y_scale = Scale {
@@ -547,16 +555,16 @@ pub(super) fn builtin_histogram(args: Vec<Value>) -> Result<Value> {
         canvas.add_rect(x, y, (right - x - bar_gap).max(0.0), height, bar_fill);
     }
 
-    let data_x_scale = Scale {
-        domain: x_scale.domain,
-        range: x_scale.domain,
-    };
-    let data_y_scale = Scale {
-        domain: (0.0, y_max),
-        range: (0.0, y_max),
-    };
-    canvas.draw_x_axis(&data_x_scale, &axis_label(&opts, "xlabel", "Value"));
-    canvas.draw_y_axis(&data_y_scale, &axis_label(&opts, "ylabel", "Count"));
+    canvas.draw_x_axis_with_tick_domain(
+        &x_scale,
+        data_x_domain,
+        &axis_label(&opts, "xlabel", "Value"),
+    );
+    canvas.draw_y_axis_with_tick_domain(
+        &y_scale,
+        (0.0, max_count as f64),
+        &axis_label(&opts, "ylabel", "Count"),
+    );
     canvas.draw_title(&title);
 
     Ok(Value::Str(canvas.render()))

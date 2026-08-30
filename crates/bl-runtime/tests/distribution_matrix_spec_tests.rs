@@ -124,7 +124,14 @@ fn long_violin_spec_preserves_first_seen_groups_and_exact_publication_replay() {
     let Some(Value::Table(data)) = map.get("data") else {
         panic!("violin KDE grid is not a Table")
     };
-    assert_eq!(data.num_rows(), 256);
+    assert_eq!(data.num_rows(), 1024);
+    // geom_violin(trim = TRUE), the ggplot2 default: each group's density
+    // begins and ends at that group's observed limits rather than growing
+    // artificial Gaussian tails.
+    assert_eq!(data.rows[0][3], Value::Float(1.0));
+    assert_eq!(data.rows[511][3], Value::Float(3.0));
+    assert_eq!(data.rows[512][3], Value::Float(4.0));
+    assert_eq!(data.rows[1023][3], Value::Float(9.0));
     assert_eq!(direct, render(specification));
 }
 

@@ -1278,10 +1278,24 @@ pub(crate) fn silverman_bandwidth(values: &[f64]) -> f64 {
 
 pub(crate) fn gaussian_kde(values: &[f64], bandwidth: f64, steps: usize) -> Vec<(f64, f64)> {
     let bandwidth = bandwidth.max(f64::MIN_POSITIVE);
-    let steps = steps.max(2);
     let (data_lo, data_hi) = col_range(values);
     let lo = data_lo - 3.0 * bandwidth;
     let hi = data_hi + 3.0 * bandwidth;
+    gaussian_kde_between(values, bandwidth, steps, lo, hi)
+}
+
+/// Evaluate the same Gaussian KDE on an explicit range. `geom_violin()` uses
+/// the observed group range when its default `trim = TRUE` is active, whereas
+/// a standalone density curve conventionally includes the kernel tails.
+pub(crate) fn gaussian_kde_between(
+    values: &[f64],
+    bandwidth: f64,
+    steps: usize,
+    lo: f64,
+    hi: f64,
+) -> Vec<(f64, f64)> {
+    let bandwidth = bandwidth.max(f64::MIN_POSITIVE);
+    let steps = steps.max(2);
     let normaliser = 1.0 / (values.len() as f64 * bandwidth * (2.0 * std::f64::consts::PI).sqrt());
     (0..steps)
         .map(|step| {

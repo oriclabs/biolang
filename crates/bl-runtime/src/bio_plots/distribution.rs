@@ -32,6 +32,18 @@ pub(super) fn violin_shape(name: String, values: &[f64], steps: usize) -> Violin
     }
 }
 
+fn trimmed_violin_shape(name: String, values: &[f64], steps: usize) -> ViolinShape {
+    let mut shape = violin_shape(name, values, steps);
+    shape.points = gaussian_kde_between(
+        values,
+        shape.bandwidth,
+        steps,
+        shape.input_min,
+        shape.input_max,
+    );
+    shape
+}
+
 pub(super) fn render_legacy_violin_svg(
     shapes: &[ViolinShape],
     opts: &HashMap<String, Value>,
@@ -114,6 +126,22 @@ pub(super) fn render_long_violin_svg(
 ) -> Result<String> {
     let theme = plot_theme(opts);
     let seurat_theme = get_opt_str(opts, "theme", "") == "seurat";
+    let ggplot_like = matches!(theme.kind, PlotThemeKind::Ggplot | PlotThemeKind::Classic);
+    let legend_enabled = match opts.get("legend") {
+        None => (ggplot_like || seurat_theme) && shapes.len() > 1,
+        Some(Value::Bool(value)) => *value && shapes.len() > 1,
+        Some(other) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!(
+                    "violin_plot() option 'legend' must be Bool, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    let legend_title = get_opt_str(opts, "legend_title", "group").to_string();
     let value_col = get_opt_str(opts, "value_label", "value").to_string();
     let title = get_opt_str(opts, "title", "Distribution").to_string();
     let subtitle = get_opt_str(opts, "subtitle", "").to_string();
@@ -157,6 +185,16 @@ pub(super) fn render_long_violin_svg(
         };
         canvas.margin.bottom = label_reserve + if caption.is_empty() { 12.0 } else { 28.0 };
     }
+    if legend_enabled {
+        let widest = shapes
+            .iter()
+            .map(|shape| estimate_text_width(&shape.name, theme.legend_size))
+            .fold(
+                estimate_text_width(&legend_title, theme.legend_size),
+                f64::max,
+            );
+        canvas.margin.right += (55.0 + widest).clamp(105.0, 220.0);
+    }
 
     let y_scale = Scale {
         domain: (lo, hi),
@@ -193,15 +231,25 @@ pub(super) fn render_long_violin_svg(
         .map(|shape| estimate_text_width(&shape.name, theme.tick_size))
         .fold(0.0, f64::max);
     let rotate_labels = theme.is_adaptive() && widest_group > slot * 0.86;
+    let shared_peak = shapes
+        .iter()
+        .flat_map(|shape| shape.points.iter().map(|point| point.1))
+        .fold(0.0_f64, f64::max)
+        .max(1e-9);
+    let ggplot_colours = ggplot_like.then(|| hue_palette(shapes.len()));
 
     for (gi, shape) in shapes.iter().enumerate() {
         let centre = canvas.margin.left + slot * (gi as f64 + 0.5);
-        let peak = shape
-            .points
-            .iter()
-            .map(|point| point.1)
-            .fold(f64::MIN, f64::max)
-            .max(1e-9);
+        let peak = if ggplot_like {
+            shared_peak
+        } else {
+            shape
+                .points
+                .iter()
+                .map(|point| point.1)
+                .fold(f64::MIN, f64::max)
+                .max(1e-9)
+        };
         let half = slot * 0.42;
         let mut outline = Vec::with_capacity(shape.points.len() * 2);
         for &(value, density) in &shape.points {
@@ -220,6 +268,8 @@ pub(super) fn render_long_violin_svg(
         }
         let colour = if seurat_theme {
             SEURAT_PALETTE[gi % SEURAT_PALETTE.len()]
+        } else if let Some(colours) = &ggplot_colours {
+            colours[gi].as_str()
         } else {
             PALETTE[gi % PALETTE.len()]
         };
@@ -263,6 +313,46 @@ pub(super) fn render_long_violin_svg(
         }
     }
     canvas.draw_y_axis(&y_scale, &value_col);
+    if legend_enabled {
+        let colours = ggplot_colours.clone().unwrap_or_else(|| {
+            (0..shapes.len())
+                .map(|index| {
+                    if seurat_theme {
+                        SEURAT_PALETTE[index % SEURAT_PALETTE.len()].to_string()
+                    } else {
+                        PALETTE[index % PALETTE.len()].to_string()
+                    }
+                })
+                .collect()
+        });
+        let legend_x = width - canvas.margin.right + 22.0;
+        canvas.add_text(
+            legend_x,
+            canvas.margin.top + 5.0,
+            &legend_title,
+            "start",
+            theme.legend_size,
+        );
+        for (index, shape) in shapes.iter().enumerate() {
+            let y = canvas.margin.top + 27.0 + 24.0 * index as f64;
+            canvas.add_stroked_rect(
+                legend_x,
+                y - 10.0,
+                13.0,
+                13.0,
+                &colours[index],
+                "#333333",
+                0.8,
+            );
+            canvas.add_text(
+                legend_x + 21.0,
+                y + 1.0,
+                &shape.name,
+                "start",
+                theme.legend_size,
+            );
+        }
+    }
     canvas.set_accessible_description(format!(
         "Violin plot of {value_col} for {} groups; each shape is a Gaussian kernel density and each horizontal mark is the group median.",
         shapes.len()
@@ -322,6 +412,11 @@ pub(super) fn violin_plot_spec_value(
     } else {
         ("Distribution", 640.0, 420.0)
     };
+    let theme = plot_theme(opts);
+    let legend_default = variant == "long"
+        && shapes.len() > 1
+        && (matches!(theme.kind, PlotThemeKind::Ggplot | PlotThemeKind::Classic)
+            || get_opt_str(opts, "theme", "") == "seurat");
     let options = HashMap::from([
         ("variant".into(), Value::Str(variant.into())),
         ("value_label".into(), Value::Str(value_label.into())),
@@ -352,6 +447,18 @@ pub(super) fn violin_plot_spec_value(
         (
             "height".into(),
             Value::Float(get_opt_f64(opts, "height", default_height)),
+        ),
+        (
+            "legend".into(),
+            Value::Bool(
+                opts.get("legend")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(legend_default),
+            ),
+        ),
+        (
+            "legend_title".into(),
+            Value::Str(get_opt_str(opts, "legend_title", "group").into()),
         ),
     ]);
     Value::Record(
@@ -964,8 +1071,10 @@ pub(super) fn builtin_elbow_plot(args: Vec<Value>) -> Result<Value> {
 /// density, which is the point.
 ///
 /// Density is estimated with the same Gaussian KDE and `bw.nrd0` bandwidth
-/// convention exposed by `violin_data()`. The long-form input contract remains
-/// distinct from `violin()`, which treats numeric table columns as groups.
+/// convention exposed by `violin_data()`. Like ggplot2's `geom_violin()`, the
+/// density is trimmed to each group's observed range and ggplot/classic themes
+/// use one shared area scale. The long-form input contract remains distinct
+/// from `violin()`, which treats numeric table columns as groups.
 pub(super) fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
     let opts = parse_options(&args);
     let format = get_opt_str(&opts, "format", "svg").to_ascii_lowercase();
@@ -1049,11 +1158,14 @@ pub(super) fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
 
     let shapes = order
         .iter()
-        .map(|name| violin_shape(name.clone(), &groups[name], 128))
+        .map(|name| trimmed_violin_shape(name.clone(), &groups[name], 512))
         .collect::<Vec<_>>();
     if matches!(format.as_str(), "spec" | "data" | "html" | "canvas") {
         let mut spec_options = opts.clone();
         spec_options.insert("value_label".into(), Value::Str(value_col.clone()));
+        spec_options
+            .entry("legend_title".into())
+            .or_insert_with(|| Value::Str(group_col.clone()));
         let spec = violin_plot_spec_value(&shapes, "long", &value_col, &spec_options);
         if matches!(format.as_str(), "spec" | "data") {
             return Ok(spec);
@@ -1063,6 +1175,9 @@ pub(super) fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
     if matches!(format.as_str(), "svg" | "raw") {
         let mut render_options = opts.clone();
         render_options.insert("value_label".into(), Value::Str(value_col.clone()));
+        render_options
+            .entry("legend_title".into())
+            .or_insert_with(|| Value::Str(group_col.clone()));
         return render_long_violin_svg(&shapes, &render_options).map(Value::Str);
     }
 
@@ -1148,16 +1263,27 @@ pub(super) fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
         .map(|label| estimate_text_width(label, theme.tick_size))
         .fold(0.0, f64::max);
     let rotate_labels = theme.is_adaptive() && widest_group > slot * 0.86;
+    let ggplot_like = matches!(theme.kind, PlotThemeKind::Ggplot | PlotThemeKind::Classic);
+    let shared_peak = shapes
+        .iter()
+        .flat_map(|shape| shape.points.iter().map(|point| point.1))
+        .fold(0.0_f64, f64::max)
+        .max(1e-9);
+    let ggplot_colours = ggplot_like.then(|| hue_palette(shapes.len()));
 
     for (gi, name) in order.iter().enumerate() {
         let values = &groups[name];
         let centre = canvas.margin.left + slot * (gi as f64 + 0.5);
         let shape = &shapes[gi].points;
-        let peak = shape
-            .iter()
-            .map(|(_, density)| *density)
-            .fold(f64::MIN, f64::max)
-            .max(1e-9);
+        let peak = if ggplot_like {
+            shared_peak
+        } else {
+            shape
+                .iter()
+                .map(|(_, density)| *density)
+                .fold(f64::MIN, f64::max)
+                .max(1e-9)
+        };
         let half = slot * 0.42;
 
         // The same Gaussian KDE exposed by violin_data(), mirrored around the
@@ -1180,6 +1306,8 @@ pub(super) fn builtin_violin_plot(args: Vec<Value>) -> Result<Value> {
         }
         let colour = if seurat_theme {
             SEURAT_PALETTE[gi % SEURAT_PALETTE.len()]
+        } else if let Some(colours) = &ggplot_colours {
+            colours[gi].as_str()
         } else {
             PALETTE[gi % PALETTE.len()]
         };

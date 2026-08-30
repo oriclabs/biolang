@@ -2113,7 +2113,7 @@ const BUILTIN_SUMMARIES: &[(&str, &str)] = &[
     ("stats_robust_linear_diagnostics", "Huber regression as an explicit sensitivity check against the ordinary fit."),
     ("stats_glm_diagnostics", "Binomial or Poisson fit with deviance, dispersion, influence and calibration clues. Check `converged` before reading anything else."),
     ("stats_random_intercept_model", "One random intercept by REML: fixed effects, variance components, ICC and partially pooled intercepts."),
-    ("stats_cox_diagnostics", "Multivariable Cox fit with Breslow ties, hazard-ratio intervals, baseline hazard and martingale residuals. The Schoenfeld screen is descriptive, not cox.zph."),
+    ("stats_cox_diagnostics", "Multivariable Cox fit with selectable Breslow or Efron ties, hazard-ratio intervals, baseline hazard and martingale residuals. The Schoenfeld screen is descriptive, not cox.zph."),
     ("stats_weighted_summary", "Weighted moments with the weighting scheme and effective sample size disclosed."),
     ("stats_time_series_diagnostics", "Autocorrelation, Ljung-Box and trend evidence for ordered observations."),
     ("stats_cluster_diagnostics", "Quantify declared non-independence without fitting a model."),
@@ -2130,6 +2130,18 @@ const BUILTIN_SUMMARIES: &[(&str, &str)] = &[
     ("stats_missingness_plot", "Missingness map, in SVG or ASCII."),
     ("stats_linear_diagnostic_plot", "Residual-versus-fitted or residual Q-Q display."),
     ("stats_overview_ascii", "Compact terminal-safe whole-table summary."),
+    ("predictive_train", "Deterministic bootstrap tuning and final fitting for random forest, gradient boosting, elastic-net logistic regression, or distance-weighted kNN."),
+    ("predictive_predict", "Class labels and/or class probabilities from a serializable model returned by predictive_train()."),
+    ("predictive_compare", "Aligned accuracy and Cohen-kappa summaries across predictive models fitted with the same bootstrap seed."),
+    ("predictive_importance_plot", "Caret-style scaled permutation-importance lollipop plot."),
+    ("predictive_resample_plot", "Side-by-side accuracy and kappa boxplots across aligned bootstrap resamples."),
+    ("seasonal_forecast", "Browser-safe additive forecast with piecewise trend, Fourier seasonality, robust residual intervals, and daily or observation-scaled periods."),
+    ("seasonal_forecast_plot", "Calendar-scaled forecast line, observed points, and uncertainty band."),
+    ("seasonal_components_plot", "Calendar trend and one-year seasonal component panels."),
+    ("grouped_density_plot", "Overlaid density curves with grouped fill and an explicit missing-value legend level."),
+    ("grouped_bar_plot", "Dodged group counts with optional small-multiple facets."),
+    ("grouped_boxplot_plot", "Dodged grouped boxplots with Tukey whiskers, outliers, and a legend."),
+    ("event_timeline_plot", "Faceted event histories connecting dated observations within an identifier and colouring by outcome."),
     // Where BioLang deliberately differs from R's default, the summary says so:
     // a reader comparing the two would otherwise conclude BioLang is wrong.
     ("ttest", "Two-sample t test. Two arguments preserve the pooled Student form; pass {variance: \"welch\"} for Welch/R-default inference. Returns method, interval, and effect size."),
@@ -2389,7 +2401,7 @@ const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
     ),
     (
         "stats_cox_diagnostics",
-        "stats_cox_diagnostics(time, event, predictors)  # Breslow ties, as survival::coxph(ties=\"breslow\")",
+        "stats_cox_diagnostics(time, event, predictors, {ties: \"efron\"})  # or ties: \"breslow\"",
         "Record",
     ),
     (
@@ -3311,6 +3323,18 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ("wilcoxon_paired", "wilcoxon_paired(before, after, options?) → Record{v_statistic,p_value,effect_size}", "stats"),
     ("p_adjust", "p_adjust(pvals, method) → List", "stats"),
     ("normalize", "normalize(list, method) → List", "stats"),
+    ("predictive_train", "predictive_train(table, {target,method,seed,resamples,...}?) → Record{parameters,metrics,tuning,resamples,importance}", "stats"),
+    ("predictive_predict", "predictive_predict(model, table, {type: \"class\"|\"prob\"|\"both\"}?) → List|Table", "stats"),
+    ("predictive_compare", "predictive_compare(models) → Record{summary,resamples,best_model}", "stats"),
+    ("predictive_importance_plot", "predictive_importance_plot(model_or_table, options?) → Str", "stats"),
+    ("predictive_resample_plot", "predictive_resample_plot(comparison_or_table, options?) → Str", "stats"),
+    ("seasonal_forecast", "seasonal_forecast(table, {date,value,periods,frequency_days,period_days,...}?) → Record{forecast,components}", "stats"),
+    ("seasonal_forecast_plot", "seasonal_forecast_plot(forecast, options?) → Str", "stats"),
+    ("seasonal_components_plot", "seasonal_components_plot(forecast, options?) → Str", "stats"),
+    ("grouped_density_plot", "grouped_density_plot(values, groups, options?) → Str", "stats"),
+    ("grouped_bar_plot", "grouped_bar_plot(categories, groups, {facets,...}?) → Str", "stats"),
+    ("grouped_boxplot_plot", "grouped_boxplot_plot(values, categories, groups, options?) → Str", "stats"),
+    ("event_timeline_plot", "event_timeline_plot(table, {id,date,value,group,facet,...}?) → Str", "stats"),
     // Guided exploration. These are the builtins the `statistics` package wraps;
     // scripts normally reach them as `stats_explore(...)` after
     // `import "statistics" as stat`. Every analysis here returns a Record
@@ -3445,7 +3469,7 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "stats_cox_diagnostics",
-        "stats_cox_diagnostics(time, event, predictors, options?) → Record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged}",
+        "stats_cox_diagnostics(time, event, predictors, {ties: \"breslow\"|\"efron\", ...}?) → Record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged}",
         "stats",
     ),
     (
@@ -3799,7 +3823,7 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     ),
     (
         "kaplan_meier",
-        "kaplan_meier(table, opts?) → SVG/PlotSpec; spec freezes risk sets, events, censoring and Greenwood SE",
+        "kaplan_meier(table, opts?) → SVG/PlotSpec; supports confidence bands, risk tables, p-values and safe palettes; spec freezes risk sets, censoring and Greenwood intervals",
         "plot",
     ),
     (

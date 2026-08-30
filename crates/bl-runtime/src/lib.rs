@@ -36,6 +36,7 @@ pub mod network;
 pub mod phylo;
 pub mod plot;
 pub mod popgen;
+mod predictive;
 pub mod proteomics;
 pub mod qpcr;
 pub mod regex_ops;

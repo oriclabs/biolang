@@ -296,6 +296,38 @@ fn boxplots_use_ggplot_defaults() {
     );
 }
 
+/// `aes(fill = group)` uses the same discrete hue scale as ggplot2. Keep this
+/// opt-in: an unmapped `geom_boxplot()` is still white, as tested above.
+#[test]
+fn mapped_boxplot_fill_uses_r_hue_colours() {
+    let rendered = svg(call_stats_builtin(
+        "stats_group_plot",
+        vec![
+            numbers(&[1.0, 2.0, 3.0, 2.0, 3.0, 4.0, 3.0, 4.0, 5.0]),
+            strings(&[
+                "BRCA", "BRCA", "BRCA", "OV", "OV", "OV", "UCEC", "UCEC", "UCEC",
+            ]),
+            options(&[
+                ("theme", Value::Str("classic".into())),
+                ("fill", Value::Str("group".into())),
+                ("legend_title", Value::Str("dataset".into())),
+                ("points", Value::Str("none".into())),
+            ]),
+        ],
+    )
+    .expect("filled group plot failed"));
+    for colour in ["#f8766d", "#00ba38", "#619cff"] {
+        assert!(
+            rendered.contains(&format!("fill=\"{colour}\"")),
+            "mapped boxplot should contain R hue {colour}"
+        );
+    }
+    assert!(
+        rendered.contains(">dataset</text>"),
+        "mapped fill should identify the grouping variable in an outside legend"
+    );
+}
+
 /// `bins = n` in ggplot2 is a width of range/(n-1) with the first bin centred
 /// on the minimum, not an equal split of [min, max].
 #[test]

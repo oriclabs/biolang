@@ -379,10 +379,24 @@ fn width_peaks(svg: &str, index: usize) -> usize {
     let right = &xs[..xs.len() / 2];
     let base = right.iter().cloned().fold(f64::MAX, f64::min);
     let widths: Vec<f64> = right.iter().map(|x| x - base).collect();
-    let tallest = widths.iter().cloned().fold(f64::MIN, f64::max);
-    (1..widths.len().saturating_sub(1))
+    // SVG coordinates are rounded to a tenth of a pixel. At the 512-point
+    // grid used by ggplot2-compatible violins that can turn one smooth summit
+    // into several one-pixel teeth. Smooth only for this visual-shape test;
+    // the renderer keeps the full density grid.
+    let radius = 6usize;
+    let smoothed: Vec<f64> = (0..widths.len())
+        .map(|i| {
+            let start = i.saturating_sub(radius);
+            let end = (i + radius + 1).min(widths.len());
+            widths[start..end].iter().sum::<f64>() / (end - start) as f64
+        })
+        .collect();
+    let tallest = smoothed.iter().cloned().fold(f64::MIN, f64::max);
+    (1..smoothed.len().saturating_sub(1))
         .filter(|&i| {
-            widths[i] > widths[i - 1] && widths[i] >= widths[i + 1] && widths[i] > 0.4 * tallest
+            smoothed[i] > smoothed[i - 1]
+                && smoothed[i] >= smoothed[i + 1]
+                && smoothed[i] > 0.4 * tallest
         })
         .count()
 }
@@ -435,6 +449,24 @@ fn violin_groups_keep_a_stable_order() {
     let first = svg.find("z").zip(svg.find('a')).zip(svg.find('m'));
     assert!(first.is_some());
     assert_eq!(svg, violin(rows), "same input rendered differently twice");
+}
+
+#[test]
+fn ggplot_violin_uses_r_group_fills() {
+    let rows: Vec<(&str, f64)> = (0..30)
+        .map(|i| (["BRCA", "OV", "UCEC"][i % 3], i as f64))
+        .collect();
+    let svg = violin_with_options(rows, vec![("theme", Value::Str("ggplot".into()))]);
+    for colour in ["#f8766d", "#00ba38", "#619cff"] {
+        assert!(
+            svg.contains(&format!("fill=\"{colour}\"")),
+            "ggplot violin should contain R hue {colour}"
+        );
+    }
+    assert!(
+        svg.contains(">group</text>"),
+        "mapped group fills should include a discrete legend"
+    );
 }
 
 #[test]
@@ -492,5 +524,9 @@ fn publication_theme_does_not_change_violin_density_sampling() {
             .expect("violin polygon")
     };
     assert_eq!(points(&legacy), points(&publication));
-    assert_eq!(points(&legacy), 256, "the 128-point KDE should be mirrored");
+    assert_eq!(
+        points(&legacy),
+        1024,
+        "the 512-point KDE should be mirrored"
+    );
 }

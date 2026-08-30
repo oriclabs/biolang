@@ -5682,6 +5682,50 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
     } else {
         ("#1e3a8a", "#bfdbfe", 1.5, 2.0)
     };
+    let fill_by_group = match opts.get("fill") {
+        None => false,
+        Some(Value::Str(value)) if value == "none" => false,
+        Some(Value::Str(value)) if matches!(value.as_str(), "group" | "groups") => true,
+        Some(other) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!(
+                    "stats_group_plot() option 'fill' must be 'group' or 'none', got {}",
+                    other
+                ),
+                None,
+            ))
+        }
+    };
+    let group_fills = fill_by_group.then(|| crate::plot::hue_palette(groups.len()));
+    let legend_enabled = match opts.get("legend") {
+        None | Some(Value::Bool(true)) => fill_by_group,
+        Some(Value::Bool(false)) => false,
+        Some(other) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!(
+                    "stats_group_plot() option 'legend' must be Bool, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    let legend_title = opts
+        .get("legend_title")
+        .and_then(Value::as_str)
+        .unwrap_or("group");
+    if legend_enabled {
+        let widest = groups
+            .iter()
+            .map(|(name, _)| estimate_text_width(name, theme.legend_size))
+            .fold(
+                estimate_text_width(legend_title, theme.legend_size),
+                f64::max,
+            );
+        canvas.margin.right += (55.0 + widest).clamp(105.0, 220.0);
+    }
     // ggplot2's boxplot shows outliers only. `{points: "jitter"}` keeps the
     // every-observation overlay, and "none" draws the five-number summary
     // alone.
@@ -5718,7 +5762,10 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
             (y_scale.map(geometry.q1) - y_scale.map(geometry.q3))
                 .abs()
                 .max(1.0),
-            box_fill,
+            group_fills
+                .as_ref()
+                .map(|fills| fills[group_index].as_str())
+                .unwrap_or(box_fill),
             box_stroke,
             box_width,
         );
@@ -5767,6 +5814,22 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
             .and_then(Value::as_str)
             .unwrap_or("Grouped distribution diagnostic"),
     );
+    if legend_enabled {
+        let legend_x = width - canvas.margin.right + 22.0;
+        canvas.add_text(
+            legend_x,
+            canvas.margin.top + 5.0,
+            legend_title,
+            "start",
+            theme.legend_size,
+        );
+        for (index, (name, _)) in groups.iter().enumerate() {
+            let y = canvas.margin.top + 27.0 + 24.0 * index as f64;
+            let colour = &group_fills.as_ref().expect("group legend requires fills")[index];
+            canvas.add_stroked_rect(legend_x, y - 10.0, 13.0, 13.0, colour, box_stroke, 0.8);
+            canvas.add_text(legend_x + 21.0, y + 1.0, name, "start", theme.legend_size);
+        }
+    }
     Ok(text(canvas.render()))
 }
 
@@ -5832,7 +5895,10 @@ fn categorical_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
     canvas.margin.bottom = 80.0;
     let step = canvas.plot_width() / labels.len() as f64;
     for (index, (label, count)) in labels.iter().zip(counts).enumerate() {
-        let bar_height = *count as f64 / maximum as f64 * canvas.plot_height();
+        // Five percent of headroom keeps the tallest category distinct from
+        // the plot edge, matching the rule used by histogram and grouped-bar
+        // renderers.
+        let bar_height = *count as f64 / (maximum as f64 * 1.05) * canvas.plot_height();
         let x = canvas.margin.left + step * index as f64 + step * 0.12;
         canvas.add_rect(
             x,
@@ -9838,11 +9904,27 @@ struct CoxEvaluation {
     information: Vec<Vec<f64>>,
 }
 
-fn evaluate_cox_breslow(
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum CoxTies {
+    Breslow,
+    Efron,
+}
+
+impl CoxTies {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Breslow => "breslow",
+            Self::Efron => "efron",
+        }
+    }
+}
+
+fn evaluate_cox(
     time: &[f64],
     event: &[bool],
     x: &[Vec<f64>],
     beta: &[f64],
+    ties: CoxTies,
 ) -> Option<CoxEvaluation> {
     let p = beta.len();
     let linear = x.iter().map(|row| dot(row, beta)).collect::<Vec<_>>();
@@ -9874,7 +9956,8 @@ fn evaluate_cox_breslow(
         let mut risk_sum = 0.0;
         let mut first_moment = vec![0.0; p];
         let mut second_moment = vec![vec![0.0; p]; p];
-        for index in risk_rows {
+        for index in &risk_rows {
+            let index = *index;
             let weight = (linear[index] - maximum_linear).exp();
             risk_sum += weight;
             for left in 0..p {
@@ -9887,16 +9970,49 @@ fn evaluate_cox_breslow(
         if risk_sum <= 0.0 || !risk_sum.is_finite() {
             return None;
         }
-        log_likelihood += event_rows.iter().map(|index| linear[*index]).sum::<f64>()
-            - event_count as f64 * (maximum_linear + risk_sum.ln());
+        let mut event_weight_sum = 0.0;
+        let mut event_first_moment = vec![0.0; p];
+        let mut event_second_moment = vec![vec![0.0; p]; p];
+        if ties == CoxTies::Efron && event_count > 1 {
+            for index in &event_rows {
+                let weight = (linear[*index] - maximum_linear).exp();
+                event_weight_sum += weight;
+                for left in 0..p {
+                    event_first_moment[left] += weight * x[*index][left];
+                    for right in 0..p {
+                        event_second_moment[left][right] +=
+                            weight * x[*index][left] * x[*index][right];
+                    }
+                }
+            }
+        }
+        log_likelihood += event_rows.iter().map(|index| linear[*index]).sum::<f64>();
         for left in 0..p {
-            let expected_left = first_moment[left] / risk_sum;
-            score[left] += event_rows.iter().map(|index| x[*index][left]).sum::<f64>()
-                - event_count as f64 * expected_left;
-            for right in 0..p {
-                information[left][right] += event_count as f64
-                    * (second_moment[left][right] / risk_sum
-                        - expected_left * first_moment[right] / risk_sum);
+            score[left] += event_rows.iter().map(|index| x[*index][left]).sum::<f64>();
+        }
+        for tied_index in 0..event_count {
+            let fraction = if ties == CoxTies::Efron {
+                tied_index as f64 / event_count as f64
+            } else {
+                0.0
+            };
+            let denominator = risk_sum - fraction * event_weight_sum;
+            if denominator <= 0.0 || !denominator.is_finite() {
+                return None;
+            }
+            log_likelihood -= maximum_linear + denominator.ln();
+            for left in 0..p {
+                let adjusted_first = first_moment[left] - fraction * event_first_moment[left];
+                let expected_left = adjusted_first / denominator;
+                score[left] -= expected_left;
+                for right in 0..p {
+                    let adjusted_second =
+                        second_moment[left][right] - fraction * event_second_moment[left][right];
+                    let adjusted_first_right =
+                        first_moment[right] - fraction * event_first_moment[right];
+                    information[left][right] += adjusted_second / denominator
+                        - expected_left * adjusted_first_right / denominator;
+                }
             }
         }
     }
@@ -9930,6 +10046,21 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
         ));
     }
     let opts = options(&args, 3, function)?;
+    let ties = match opts
+        .get("ties")
+        .and_then(Value::as_str)
+        .unwrap_or("breslow")
+    {
+        "breslow" => CoxTies::Breslow,
+        "efron" => CoxTies::Efron,
+        other => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!("{function}() ties must be 'breslow' or 'efron', got '{other}'"),
+                None,
+            ));
+        }
+    };
     let time_value = Value::List(times.clone());
     let prepared = prepare_model(predictors, &time_value, &opts, function)?;
     let mut time = Vec::new();
@@ -9955,10 +10086,10 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
             excluded_event_rows += 1;
             continue;
         };
-        if prepared.y[index] <= 0.0 {
+        if prepared.y[index] < 0.0 {
             return Err(BioLangError::runtime(
                 ErrorKind::TypeError,
-                format!("{function}() time at row {original_row} must be positive"),
+                format!("{function}() time at row {original_row} must be non-negative"),
                 None,
             ));
         }
@@ -9994,7 +10125,7 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
     let mut iterations = 0usize;
     for iteration in 0..100 {
         iterations = iteration + 1;
-        let current = evaluate_cox_breslow(&time, &event, &centred_x, &beta).ok_or_else(|| {
+        let current = evaluate_cox(&time, &event, &centred_x, &beta, ties).ok_or_else(|| {
             BioLangError::runtime(
                 ErrorKind::TypeError,
                 format!("{function}() partial likelihood became numerically unstable"),
@@ -10020,7 +10151,7 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
                 .zip(&delta)
                 .map(|(value, change)| value + step * change)
                 .collect::<Vec<_>>();
-            if let Some(evaluated) = evaluate_cox_breslow(&time, &event, &centred_x, &candidate) {
+            if let Some(evaluated) = evaluate_cox(&time, &event, &centred_x, &candidate, ties) {
                 if evaluated.log_likelihood >= current.log_likelihood - 1e-10 {
                     accepted = Some(candidate);
                     break;
@@ -10043,7 +10174,7 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
         }
     }
     let fitted_evaluation =
-        evaluate_cox_breslow(&time, &event, &centred_x, &beta).ok_or_else(|| {
+        evaluate_cox(&time, &event, &centred_x, &beta, ties).ok_or_else(|| {
             BioLangError::runtime(
                 ErrorKind::TypeError,
                 format!("{function}() could not evaluate the fitted partial likelihood"),
@@ -10058,7 +10189,7 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
                 None,
             )
         })?;
-    let null_evaluation = evaluate_cox_breslow(&time, &event, &centred_x, &vec![0.0; p])
+    let null_evaluation = evaluate_cox(&time, &event, &centred_x, &vec![0.0; p], ties)
         .expect("a validated risk set is evaluable at zero coefficients");
     let likelihood_ratio =
         2.0 * (fitted_evaluation.log_likelihood - null_evaluation.log_likelihood);
@@ -10144,7 +10275,19 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
             .collect::<Vec<_>>();
         let scaled_sum = scaled_weights.iter().sum::<f64>();
         let log_risk_sum = maximum_linear + scaled_sum.ln();
-        let increment = event_indices.len() as f64 * (-log_risk_sum).exp();
+        let event_scaled_sum = event_indices
+            .iter()
+            .map(|index| (linear_predictors[*index] - maximum_linear).exp())
+            .sum::<f64>();
+        let increment = match ties {
+            CoxTies::Breslow => event_indices.len() as f64 * (-log_risk_sum).exp(),
+            CoxTies::Efron => (0..event_indices.len())
+                .map(|index| {
+                    let fraction = index as f64 / event_indices.len() as f64;
+                    (-maximum_linear).exp() / (scaled_sum - fraction * event_scaled_sum)
+                })
+                .sum(),
+        };
         cumulative_hazard += increment;
         if baseline_rows.len() < max_baseline_rows {
             baseline_rows.push(record([
@@ -10158,11 +10301,34 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
                 ),
             ]));
         }
-        let mut expected = vec![0.0; p];
+        let mut risk_first = vec![0.0; p];
+        let mut event_first = vec![0.0; p];
         for (risk_position, row) in risk_indices.iter().enumerate() {
             for feature in 0..p {
-                expected[feature] += scaled_weights[risk_position] * x[*row][feature] / scaled_sum;
+                risk_first[feature] += scaled_weights[risk_position] * x[*row][feature];
             }
+        }
+        for row in &event_indices {
+            let weight = (linear_predictors[*row] - maximum_linear).exp();
+            for feature in 0..p {
+                event_first[feature] += weight * x[*row][feature];
+            }
+        }
+        let mut expected = vec![0.0; p];
+        for tied_index in 0..event_indices.len() {
+            let fraction = if ties == CoxTies::Efron {
+                tied_index as f64 / event_indices.len() as f64
+            } else {
+                0.0
+            };
+            let denominator = scaled_sum - fraction * event_scaled_sum;
+            for feature in 0..p {
+                expected[feature] +=
+                    (risk_first[feature] - fraction * event_first[feature]) / denominator;
+            }
+        }
+        for value in &mut expected {
+            *value /= event_indices.len() as f64;
         }
         for row in event_indices {
             schoenfeld_times.push(*event_time);
@@ -10174,25 +10340,34 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
     // Evaluate the fitted cumulative baseline hazard at every observed time.
     cumulative_hazard = 0.0;
     for event_time in &event_times {
-        let deaths = (0..n)
+        let event_indices = (0..n)
             .filter(|index| event[*index] && (time[*index] - event_time).abs() <= 1e-12)
-            .count();
-        let risk_log_values = (0..n)
-            .filter(|index| time[*index] >= *event_time)
-            .map(|index| linear_predictors[index])
             .collect::<Vec<_>>();
-        let maximum = risk_log_values
+        let risk_indices = (0..n)
+            .filter(|index| time[*index] >= *event_time)
+            .collect::<Vec<_>>();
+        let maximum = risk_indices
             .iter()
-            .copied()
+            .map(|index| linear_predictors[*index])
             .max_by(f64::total_cmp)
             .unwrap_or(0.0);
-        let log_sum = maximum
-            + risk_log_values
-                .iter()
-                .map(|value| (value - maximum).exp())
-                .sum::<f64>()
-                .ln();
-        cumulative_hazard += deaths as f64 * (-log_sum).exp();
+        let risk_sum = risk_indices
+            .iter()
+            .map(|index| (linear_predictors[*index] - maximum).exp())
+            .sum::<f64>();
+        let event_sum = event_indices
+            .iter()
+            .map(|index| (linear_predictors[*index] - maximum).exp())
+            .sum::<f64>();
+        cumulative_hazard += match ties {
+            CoxTies::Breslow => event_indices.len() as f64 * (-maximum).exp() / risk_sum,
+            CoxTies::Efron => (0..event_indices.len())
+                .map(|index| {
+                    let fraction = index as f64 / event_indices.len() as f64;
+                    (-maximum).exp() / (risk_sum - fraction * event_sum)
+                })
+                .sum(),
+        };
         for row in 0..n {
             if time[row] >= *event_time {
                 cumulative_hazard_at_row[row] = cumulative_hazard;
@@ -10319,7 +10494,8 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
         .and_then(Value::as_bool)
         .unwrap_or(false);
     let ascii = format!(
-        "Cox proportional-hazards diagnostic (n={n}, events={event_count}, predictors={p})\nBreslow ties: {tied_event_times} tied event time(s)\npartial log likelihood={}  LR chi-square={} p={}\nconcordance={} from {comparable_pairs} comparable pairs\nSchoenfeld screen chi-square={} p={} (descriptive approximation; not cox.zph)\n\nHazard ratios are conditional event-rate ratios under proportional hazards. They are not individual risk reductions or survival-time ratios.",
+        "Cox proportional-hazards diagnostic (n={n}, events={event_count}, predictors={p})\n{} ties: {tied_event_times} tied event time(s)\npartial log likelihood={}  LR chi-square={} p={}\nconcordance={} from {comparable_pairs} comparable pairs\nSchoenfeld screen chi-square={} p={} (descriptive approximation; not cox.zph)\n\nHazard ratios are conditional event-rate ratios under proportional hazards. They are not individual risk reductions or survival-time ratios.",
+        ties.name(),
         fmt_number(fitted_evaluation.log_likelihood),
         fmt_number(likelihood_ratio),
         fmt_number(likelihood_ratio_p),
@@ -10330,7 +10506,7 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
     Ok(record([
         ("schema", text("biolang.stats.cox-diagnostics/v1")),
         ("kind", text("cox_diagnostics")),
-        ("ties", text("breslow")),
+        ("ties", text(ties.name())),
         ("complete_rows", Value::Int(n as i64)),
         (
             "excluded_rows",
@@ -10389,7 +10565,10 @@ fn cox_diagnostics(args: Vec<Value>) -> Result<Value> {
         (
             "limitations",
             string_list([
-                "The fit uses the Breslow approximation for tied event times; Efron and exact partial likelihood are not implemented here.",
+                match ties {
+                    CoxTies::Breslow => "The fit uses the Breslow approximation for tied event times; select {ties: 'efron'} when Efron's approximation is required.",
+                    CoxTies::Efron => "The fit uses Efron's approximation for tied event times; exact partial likelihood is not implemented here.",
+                },
                 "The Schoenfeld screen uses raw residual correlation with event time and is explicitly not a formal cox.zph test.",
                 "Competing risks, recurrent events, left truncation, interval censoring, frailty, strata, and time-varying covariates require dedicated models.",
                 "Residual thresholds are inspection clues and never automatic deletion rules.",

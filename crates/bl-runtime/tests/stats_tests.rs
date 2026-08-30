@@ -1828,6 +1828,55 @@ fn test_kaplan_meier_int_events() {
     assert!(matches!(result, Value::Record(_)));
 }
 
+#[test]
+fn log_rank_test_supports_two_or_more_groups_and_matches_r_survdiff() {
+    let result = call_stats_builtin(
+        "log_rank_test",
+        vec![
+            float_list(&[1.0, 2.0, 3.0, 2.0, 3.0, 4.0, 3.0, 4.0, 5.0]),
+            int_list(&[1, 1, 1, 1, 1, 0, 1, 0, 0]),
+            Value::List(
+                ["A", "A", "A", "B", "B", "B", "C", "C", "C"]
+                    .into_iter()
+                    .map(|value| Value::Str(value.into()))
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    assert!((get_record_float(&result, "chi2") - 4.072_489_785_854_93).abs() < 1e-12);
+    assert!((get_record_float(&result, "p_value") - 0.130_517_900_515_179).abs() < 1e-12);
+    let Value::Record(record) = &result else {
+        panic!("expected Record")
+    };
+    assert_eq!(record.get("df"), Some(&Value::Int(2)));
+    let Some(Value::Table(groups)) = record.get("groups") else {
+        panic!("expected grouped observed/expected table")
+    };
+    assert_eq!(groups.num_rows(), 3);
+    assert_eq!(groups.rows[0][2], Value::Float(3.0));
+    assert!((groups.rows[0][3].as_float().unwrap() - 4.0 / 3.0).abs() < 1e-12);
+
+    let two_group = call_stats_builtin(
+        "log_rank_test",
+        vec![
+            float_list(&[1.0, 2.0, 3.0]),
+            int_list(&[1, 1, 1]),
+            float_list(&[2.0, 3.0, 4.0]),
+            int_list(&[1, 1, 0]),
+        ],
+    )
+    .unwrap();
+    assert_eq!(
+        match &two_group {
+            Value::Record(record) => record.get("df"),
+            _ => None,
+        },
+        Some(&Value::Int(1))
+    );
+}
+
 // ── cox_ph ──────────────────────────────────────────────────────
 
 #[test]

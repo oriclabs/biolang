@@ -60,6 +60,11 @@ resvg = { version = "0.48", optional = true, default-features = false, features 
 # dependencies, so unlike resvg it compiles for wasm32 and the browser build
 # rasterises exactly as the CLI does.
 tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "png-format", "simd"] }
+# Browser-safe supervised learning primitives used by predictive_train().
+# SmartCore is Apache-2.0 and pure Rust. The `js` feature only supplies the
+# WebAssembly randomness backend; every BioLang-facing model also receives an
+# explicit seed so teaching runs remain reproducible.
+smartcore = { version = "=0.5.2", default-features = false, features = ["std_rand", "js"] }
 # Optional cross-vendor compute acceleration. wgpu is MIT/Apache-2.0 and uses
 # the operating system's Vulkan, Metal or DirectX 12 driver; BioLang does not
 # link to CUDA, vendor SDKs, or GPL code. The runtime probes lazily and always

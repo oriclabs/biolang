@@ -135,6 +135,24 @@ pub(super) fn kaplan_meier_groups(
             steps,
         });
     }
+    // R orders numeric strata by their numeric level before ggplot2 assigns
+    // colours. Preserve first-observed order for ordinary categorical labels,
+    // but make a numeric ggplot grouping deterministic and R-compatible.
+    if get_opt_str(opts, "theme", "").eq_ignore_ascii_case("ggplot")
+        && result.iter().all(|group| group.name.parse::<f64>().is_ok())
+    {
+        result.sort_by(|left, right| {
+            left.name
+                .parse::<f64>()
+                .expect("numeric group checked above")
+                .total_cmp(
+                    &right
+                        .name
+                        .parse::<f64>()
+                        .expect("numeric group checked above"),
+                )
+        });
+    }
     Ok(result)
 }
 
@@ -148,6 +166,7 @@ pub(super) fn survival_plot_spec_value(
     let mut summaries = Vec::new();
     for (group_index, group) in groups.iter().enumerate() {
         for (step_index, step) in group.steps.iter().enumerate() {
+            let (confidence_lower, confidence_upper) = survival_log_interval(step);
             rows.push(vec![
                 Value::Int(group_index as i64),
                 Value::Str(group.name.clone()),
@@ -158,6 +177,8 @@ pub(super) fn survival_plot_spec_value(
                 Value::Int(step.n_censor as i64),
                 Value::Float(step.survival),
                 Value::Float(step.std_error),
+                Value::Float(confidence_lower),
+                Value::Float(confidence_upper),
             ]);
         }
         summaries.push(vec![
@@ -173,7 +194,7 @@ pub(super) fn survival_plot_spec_value(
         ]);
     }
     let title = get_opt_str(opts, "title", "Kaplan-Meier");
-    let options = HashMap::from([
+    let mut options = HashMap::from([
         ("title".into(), Value::Str(title.into())),
         (
             "subtitle".into(),
@@ -212,6 +233,19 @@ pub(super) fn survival_plot_spec_value(
             Value::Float(get_opt_f64(opts, "height", 440.0)),
         ),
     ]);
+    for key in [
+        "confidence",
+        "risk_table",
+        "risk_times",
+        "p_value",
+        "p_label",
+        "legend_title",
+        "colors",
+    ] {
+        if let Some(value) = opts.get(key) {
+            options.insert(key.into(), value.clone());
+        }
+    }
     Value::Record(
         HashMap::from([
             (
@@ -234,6 +268,8 @@ pub(super) fn survival_plot_spec_value(
                         "n_censor",
                         "survival",
                         "std_error",
+                        "confidence_lower",
+                        "confidence_upper",
                     ]
                     .into_iter()
                     .map(str::to_string)
@@ -311,26 +347,77 @@ pub(super) fn render_survival_svg(
         20.0
     };
     canvas.margin.top = if subtitle.is_empty() { 52.0 } else { 70.0 };
-    canvas.margin.bottom = if caption.is_empty() { 52.0 } else { 70.0 };
+    let risk_table = opts
+        .get("risk_table")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    canvas.margin.bottom = if risk_table {
+        82.0 + groups.len() as f64 * 20.0 + if caption.is_empty() { 0.0 } else { 18.0 }
+    } else if caption.is_empty() {
+        52.0
+    } else {
+        70.0
+    };
     let tmax = groups
         .iter()
         .flat_map(|group| group.steps.iter().map(|step| step.time))
         .fold(0.0, f64::max)
         .max(f64::EPSILON);
+    // ggplot2's continuous scales leave five percent of the data span around
+    // the geometry. Keep the scientific tick domain at 0..tmax and 0..1, but
+    // do not pin the first survival step and its confidence band directly to
+    // the axes.
+    let ggplot_expansion = get_opt_str(opts, "theme", "").eq_ignore_ascii_case("ggplot");
+    let x_padding = if ggplot_expansion { tmax * 0.05 } else { 0.0 };
+    let y_padding = if ggplot_expansion { 0.05 } else { 0.0 };
     let xs = Scale {
-        domain: (0.0, tmax),
+        domain: (-x_padding, tmax + x_padding),
         range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
     };
     let ys = Scale {
-        domain: (0.0, 1.0),
+        domain: (-y_padding, 1.0 + y_padding),
         range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
     };
     let censor_marks = opts
         .get("censor_marks")
         .and_then(Value::as_bool)
         .unwrap_or(true);
+    let confidence = opts
+        .get("confidence")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let colours = survival_colours(opts, groups.len())?;
     for (group_index, group) in groups.iter().enumerate() {
-        let colour = PALETTE[group_index % PALETTE.len()];
+        let colour = colours[group_index].as_str();
+        // A stratum is observed only through its own final follow-up time. Extending
+        // every curve to the plot-wide maximum implies survival information that
+        // the group does not have and differs from survival::survfit/ggsurvplot.
+        let group_tmax = group.steps.last().map(|step| step.time).unwrap_or(0.0);
+        if confidence {
+            let mut upper = Vec::<(f64, f64)>::new();
+            let mut lower = Vec::<(f64, f64)>::new();
+            for (index, step) in group.steps.iter().enumerate() {
+                let next_time = group
+                    .steps
+                    .get(index + 1)
+                    .map(|next| next.time)
+                    .unwrap_or(group_tmax);
+                let (low, high) = survival_log_interval(step);
+                upper.push((step.time, high));
+                upper.push((next_time, high));
+                lower.push((step.time, low));
+                lower.push((next_time, low));
+            }
+            let points = upper
+                .iter()
+                .chain(lower.iter().rev())
+                .map(|(time, survival)| format!("{:.2},{:.2}", xs.map(*time), ys.map(*survival)))
+                .collect::<Vec<_>>()
+                .join(" ");
+            canvas.elements.push(format!(
+                r#"<polygon points="{points}" fill="{colour}" fill-opacity="0.14" stroke="none" />"#
+            ));
+        }
         let mut previous_survival = 1.0;
         let mut path = format!("M {:.2} {:.2}", xs.map(0.0), ys.map(previous_survival));
         let mut censor_path = String::new();
@@ -354,7 +441,7 @@ pub(super) fn render_survival_svg(
             }
             previous_survival = step.survival;
         }
-        path.push_str(&format!(" H {:.2}", xs.map(tmax)));
+        path.push_str(&format!(" H {:.2}", xs.map(group_tmax)));
         canvas.elements.push(format!(
             r#"<path d="{path}" fill="none" stroke="{colour}" stroke-width="2" />"#
         ));
@@ -365,25 +452,62 @@ pub(super) fn render_survival_svg(
         }
         if groups.len() > 1 {
             let legend_x = canvas.margin.left + canvas.plot_width() + 12.0;
-            let legend_y = canvas.margin.top + 16.0 + group_index as f64 * 20.0;
+            let legend_title = get_opt_str(opts, "legend_title", "");
+            if group_index == 0 && !legend_title.is_empty() {
+                canvas.add_text(
+                    legend_x,
+                    canvas.margin.top + 4.0,
+                    legend_title,
+                    "start",
+                    10.0,
+                );
+            }
+            let legend_y = canvas.margin.top
+                + if legend_title.is_empty() { 16.0 } else { 26.0 }
+                + group_index as f64 * 20.0;
             canvas.add_line(legend_x, legend_y, legend_x + 18.0, legend_y, colour, 2.0);
             canvas.add_text(legend_x + 24.0, legend_y + 4.0, &group.name, "start", 10.0);
         }
     }
-    canvas.draw_x_axis(
-        &Scale {
-            domain: (0.0, tmax),
-            range: (0.0, tmax),
-        },
-        get_opt_str(opts, "xlabel", "Time"),
-    );
-    canvas.draw_y_axis(
-        &Scale {
-            domain: (0.0, 1.0),
-            range: (0.0, 1.0),
-        },
+    if let Some(label) = survival_p_label(opts) {
+        canvas.add_text(
+            canvas.margin.left + 8.0,
+            canvas.margin.top + 18.0,
+            &label,
+            "start",
+            11.0,
+        );
+    }
+    canvas.draw_x_axis_with_tick_domain(&xs, (0.0, tmax), get_opt_str(opts, "xlabel", "Time"));
+    canvas.draw_y_axis_with_tick_domain(
+        &ys,
+        (0.0, 1.0),
         get_opt_str(opts, "ylabel", "Survival probability"),
     );
+    if risk_table {
+        let risk_times = survival_risk_times(opts, tmax)?;
+        let table_top = canvas.margin.top + canvas.plot_height() + 46.0;
+        canvas.add_text(
+            canvas.margin.left,
+            table_top - 16.0,
+            "Number at risk",
+            "start",
+            11.0,
+        );
+        for (group_index, group) in groups.iter().enumerate() {
+            let y = table_top + group_index as f64 * 20.0;
+            canvas.add_text(canvas.margin.left - 18.0, y + 4.0, &group.name, "end", 10.0);
+            for time in &risk_times {
+                canvas.add_text(
+                    xs.map(*time),
+                    y + 4.0,
+                    &survival_at_risk(group, *time).to_string(),
+                    "middle",
+                    10.0,
+                );
+            }
+        }
+    }
     canvas.draw_title(get_opt_str(opts, "title", "Kaplan-Meier"));
     canvas.draw_subtitle(subtitle);
     canvas.draw_caption(caption);
@@ -392,6 +516,119 @@ pub(super) fn render_survival_svg(
         groups.len()
     ));
     Ok(canvas.render())
+}
+
+fn survival_log_interval(step: &SurvivalStep) -> (f64, f64) {
+    if step.std_error <= 0.0 || step.survival <= 0.0 {
+        return (step.survival, step.survival);
+    }
+    let relative_error = step.std_error / step.survival;
+    let lower = step.survival * (-1.959_963_984_540_054 * relative_error).exp();
+    let upper = step.survival * (1.959_963_984_540_054 * relative_error).exp();
+    (lower.clamp(0.0, 1.0), upper.clamp(0.0, 1.0))
+}
+
+fn survival_colours(opts: &HashMap<String, Value>, groups: usize) -> Result<Vec<String>> {
+    let Some(value) = opts.get("colors") else {
+        if get_opt_str(opts, "theme", "").eq_ignore_ascii_case("ggplot") {
+            return Ok(hue_palette(groups));
+        }
+        return Ok((0..groups)
+            .map(|index| PALETTE[index % PALETTE.len()].to_string())
+            .collect());
+    };
+    let Value::List(values) = value else {
+        return Err(BioLangError::type_error(
+            "kaplan_meier() option 'colors' must be a List of #RRGGBB strings",
+            None,
+        ));
+    };
+    if values.len() < groups {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "kaplan_meier() colors has {} value(s) for {groups} groups",
+                values.len()
+            ),
+            None,
+        ));
+    }
+    values
+        .iter()
+        .take(groups)
+        .map(|value| match value {
+            Value::Str(value)
+                if value.len() == 7
+                    && value.starts_with('#')
+                    && value[1..]
+                        .chars()
+                        .all(|character| character.is_ascii_hexdigit()) =>
+            {
+                Ok(value.clone())
+            }
+            _ => Err(BioLangError::type_error(
+                "kaplan_meier() colors must contain safe #RRGGBB strings",
+                None,
+            )),
+        })
+        .collect()
+}
+
+fn survival_p_label(opts: &HashMap<String, Value>) -> Option<String> {
+    if let Some(Value::Str(label)) = opts.get("p_label") {
+        return Some(label.clone());
+    }
+    let p_value = opts.get("p_value")?.as_float()?;
+    if !p_value.is_finite() || !(0.0..=1.0).contains(&p_value) {
+        return None;
+    }
+    Some(if p_value < 0.001 {
+        format!("Log-rank p = {p_value:.2e}")
+    } else {
+        format!("Log-rank p = {p_value:.3}")
+    })
+}
+
+fn survival_risk_times(opts: &HashMap<String, Value>, tmax: f64) -> Result<Vec<f64>> {
+    let Some(value) = opts.get("risk_times") else {
+        return Ok((0..=4).map(|index| tmax * index as f64 / 4.0).collect());
+    };
+    let Value::List(values) = value else {
+        return Err(BioLangError::type_error(
+            "kaplan_meier() option 'risk_times' must be a numeric List",
+            None,
+        ));
+    };
+    let times = values
+        .iter()
+        .map(|value| {
+            value.as_float().ok_or_else(|| {
+                BioLangError::type_error("kaplan_meier() risk_times must contain numbers", None)
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    if times.is_empty()
+        || times
+            .iter()
+            .any(|time| !time.is_finite() || *time < 0.0 || *time > tmax)
+        || times.windows(2).any(|pair| pair[0] >= pair[1])
+    {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "kaplan_meier() risk_times must be increasing values within the plotted time range",
+            None,
+        ));
+    }
+    Ok(times)
+}
+
+fn survival_at_risk(group: &SurvivalGroup, time: f64) -> usize {
+    group
+        .steps
+        .iter()
+        .find(|step| step.time + 1e-12 >= time)
+        .map(|step| step.n_risk)
+        .unwrap_or(0)
 }
 
 pub(crate) fn is_survival_plot_spec(value: &Value) -> bool {
