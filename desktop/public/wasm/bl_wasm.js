@@ -1,4 +1,116 @@
 /**
+ * A genuinely isolated browser interpreter owned by one JavaScript SDK
+ * session. Module-level functions remain available for compatibility, but
+ * new SDK sessions use this class so variables and resets never cross session
+ * boundaries within the same worker or Node process.
+ */
+export class WasmSession {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        WasmSessionFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmsession_free(ptr, 0);
+    }
+    /**
+     * @param {string} source
+     * @returns {string}
+     */
+    evaluate(source) {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.wasmsession_evaluate(this.__wbg_ptr, ptr0, len0);
+            deferred2_0 = ret[0];
+            deferred2_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * @param {string} name
+     * @param {string} format
+     * @param {number} maximum_bytes
+     * @returns {Uint8Array}
+     */
+    export_variable(name, format, maximum_bytes) {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(format, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmsession_export_variable(this.__wbg_ptr, ptr0, len0, ptr1, len1, maximum_bytes);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v3;
+    }
+    /**
+     * @param {string} name
+     * @param {number} offset
+     * @param {number} limit
+     * @returns {string}
+     */
+    inspect_variable(name, offset, limit) {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.wasmsession_inspect_variable(this.__wbg_ptr, ptr0, len0, offset, limit);
+            deferred2_0 = ret[0];
+            deferred2_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * @returns {string}
+     */
+    list_variables() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.wasmsession_list_variables(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    constructor() {
+        const ret = wasm.wasmsession_new();
+        this.__wbg_ptr = ret;
+        WasmSessionFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {string} path
+     * @param {string} source
+     */
+    register_module(path, source) {
+        const ptr0 = passStringToWasm0(path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.wasmsession_register_module(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+    }
+    reset() {
+        wasm.wasmsession_reset(this.__wbg_ptr);
+    }
+}
+if (Symbol.dispose) WasmSession.prototype[Symbol.dispose] = WasmSession.prototype.free;
+
+/**
  * Evaluate BioLang source code. Returns JSON: `{ok, value, type, output, error}`
  * @param {string} source
  * @returns {string}
@@ -430,6 +542,10 @@ function __wbg_get_imports() {
         "./bl_wasm_bg.js": import0,
     };
 }
+
+const WasmSessionFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_wasmsession_free(ptr, 1));
 
 function addToExternrefTable0(obj) {
     const idx = wasm.__externref_table_alloc();

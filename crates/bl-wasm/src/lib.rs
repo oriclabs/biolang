@@ -117,28 +117,32 @@ pub fn transpile_javascript(source: &str) -> String {
 /// statistics modules that are available without registration.
 #[wasm_bindgen]
 pub fn register_module(path: &str, source: &str) {
-    INTERPRETER.with(|cell| {
-        let mut slot = cell.borrow_mut();
-        let interpreter = slot.get_or_insert_with(browser_interpreter);
-        interpreter.register_virtual_module(path, source);
-    });
+    INTERPRETER.with(|cell| register_module_in(cell, path, source));
 }
 
-/// Take the interpreter out of thread-local storage, creating a fresh one if a
-/// previous call panicked and never put it back.
-fn take_interpreter() -> Interpreter {
-    INTERPRETER
-        .with(|c| c.borrow_mut().take())
-        .unwrap_or_else(browser_interpreter)
+fn register_module_in(cell: &RefCell<Option<Interpreter>>, path: &str, source: &str) {
+    let mut slot = cell.borrow_mut();
+    let interpreter = slot.get_or_insert_with(browser_interpreter);
+    interpreter.register_virtual_module(path, source);
 }
 
-fn put_interpreter(interp: Interpreter) {
-    INTERPRETER.with(|c| *c.borrow_mut() = Some(interp));
+/// Take an interpreter out of its slot, creating a fresh one if a previous
+/// call panicked and never put it back.
+fn take_interpreter(cell: &RefCell<Option<Interpreter>>) -> Interpreter {
+    cell.borrow_mut().take().unwrap_or_else(browser_interpreter)
+}
+
+fn put_interpreter(cell: &RefCell<Option<Interpreter>>, interp: Interpreter) {
+    *cell.borrow_mut() = Some(interp);
 }
 
 /// Evaluate BioLang source code. Returns JSON: `{ok, value, type, output, error}`
 #[wasm_bindgen]
 pub fn evaluate(source: &str) -> String {
+    INTERPRETER.with(|cell| evaluate_in(cell, source))
+}
+
+fn evaluate_in(cell: &RefCell<Option<Interpreter>>, source: &str) -> String {
     // Set up output capture
     let buf = OUTPUT_BUF.with(|b| {
         if let Ok(mut s) = b.lock() {
@@ -180,7 +184,7 @@ pub fn evaluate(source: &str) -> String {
 
     // Held as a plain local, NOT a RefCell borrow, so a panic below cannot
     // poison the module for every subsequent call.
-    let mut owned = take_interpreter();
+    let mut owned = take_interpreter(cell);
     let result = (|interp: &mut Interpreter| -> serde_json::Value {
         // Lex
         let tokens = match Lexer::new(source).tokenize() {
@@ -257,7 +261,7 @@ pub fn evaluate(source: &str) -> String {
         }
     })(&mut owned);
 
-    put_interpreter(owned);
+    put_interpreter(cell, owned);
     set_output_buffer(None);
     set_display_sink(None);
     result.to_string()
@@ -266,21 +270,27 @@ pub fn evaluate(source: &str) -> String {
 /// Reset the interpreter state.
 #[wasm_bindgen]
 pub fn reset() {
+    INTERPRETER.with(reset_in);
+}
+
+fn reset_in(cell: &RefCell<Option<Interpreter>>) {
     // Always install a working interpreter, even if a previous panic left None.
-    INTERPRETER.with(|c| {
-        let mut slot = c.borrow_mut();
-        match slot.as_mut() {
-            Some(i) => i.reset(),
-            None => *slot = Some(browser_interpreter()),
-        }
-    });
+    let mut slot = cell.borrow_mut();
+    match slot.as_mut() {
+        Some(interpreter) => interpreter.reset(),
+        None => *slot = Some(browser_interpreter()),
+    }
 }
 
 /// List all variables in the current environment. Returns JSON array.
 #[wasm_bindgen]
 pub fn list_variables() -> String {
-    INTERPRETER.with(|c| {
-        let slot = c.borrow();
+    INTERPRETER.with(list_variables_in)
+}
+
+fn list_variables_in(cell: &RefCell<Option<Interpreter>>) -> String {
+    {
+        let slot = cell.borrow();
         let Some(interp) = slot.as_ref() else {
             return "[]".to_string();
         };
@@ -318,15 +328,24 @@ pub fn list_variables() -> String {
                 .cmp(&right.get("name").and_then(serde_json::Value::as_str))
         });
         serde_json::Value::Array(entries).to_string()
-    })
+    }
 }
 
 /// Return one bounded page of a variable. Container values are never formatted
 /// wholesale: at most 100 rows and 50 columns cross the WASM boundary per call.
 #[wasm_bindgen]
 pub fn inspect_variable(name: &str, offset: usize, limit: usize) -> String {
+    INTERPRETER.with(|cell| inspect_variable_in(cell, name, offset, limit))
+}
+
+fn inspect_variable_in(
+    cell: &RefCell<Option<Interpreter>>,
+    name: &str,
+    offset: usize,
+    limit: usize,
+) -> String {
     const MAX_ROWS: usize = 100;
-    INTERPRETER.with(|cell| {
+    {
         let slot = cell.borrow();
         let Some(interpreter) = slot.as_ref() else {
             return serde_json::json!({ "ok": false, "error": "The browser interpreter is not initialized." }).to_string();
@@ -336,7 +355,7 @@ pub fn inspect_variable(name: &str, offset: usize, limit: usize) -> String {
         };
         let page = variable_page(name, value, offset, limit.clamp(1, MAX_ROWS));
         serde_json::json!({ "ok": true, "page": page }).to_string()
-    })
+    }
 }
 
 /// Serialize one variable exactly, stopping before the response can exceed the
@@ -344,9 +363,18 @@ pub fn inspect_variable(name: &str, offset: usize, limit: usize) -> String {
 /// `bl_runtime::value_export` instead of crossing this in-memory boundary.
 #[wasm_bindgen]
 pub fn export_variable(name: &str, format: &str, maximum_bytes: usize) -> Result<Vec<u8>, JsValue> {
+    INTERPRETER.with(|cell| export_variable_in(cell, name, format, maximum_bytes))
+}
+
+fn export_variable_in(
+    cell: &RefCell<Option<Interpreter>>,
+    name: &str,
+    format: &str,
+    maximum_bytes: usize,
+) -> Result<Vec<u8>, JsValue> {
     let format = bl_runtime::value_export::ValueExportFormat::parse(format)
         .map_err(|error| JsValue::from_str(&error))?;
-    INTERPRETER.with(|cell| {
+    {
         let slot = cell.borrow();
         let interpreter = slot
             .as_ref()
@@ -357,7 +385,61 @@ pub fn export_variable(name: &str, format: &str, maximum_bytes: usize) -> Result
             .ok_or_else(|| JsValue::from_str(&format!("Variable '{name}' no longer exists.")))?;
         bl_runtime::value_export::export_value_capped(value, format, maximum_bytes)
             .map_err(|error| JsValue::from_str(&error))
-    })
+    }
+}
+
+/// A genuinely isolated browser interpreter owned by one JavaScript SDK
+/// session. Module-level functions remain available for compatibility, but
+/// new SDK sessions use this class so variables and resets never cross session
+/// boundaries within the same worker or Node process.
+#[wasm_bindgen]
+pub struct WasmSession {
+    interpreter: RefCell<Option<Interpreter>>,
+}
+
+#[wasm_bindgen]
+impl WasmSession {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self {
+            interpreter: RefCell::new(Some(browser_interpreter())),
+        }
+    }
+
+    pub fn evaluate(&self, source: &str) -> String {
+        evaluate_in(&self.interpreter, source)
+    }
+
+    pub fn reset(&self) {
+        reset_in(&self.interpreter);
+    }
+
+    pub fn register_module(&self, path: &str, source: &str) {
+        register_module_in(&self.interpreter, path, source);
+    }
+
+    pub fn list_variables(&self) -> String {
+        list_variables_in(&self.interpreter)
+    }
+
+    pub fn inspect_variable(&self, name: &str, offset: usize, limit: usize) -> String {
+        inspect_variable_in(&self.interpreter, name, offset, limit)
+    }
+
+    pub fn export_variable(
+        &self,
+        name: &str,
+        format: &str,
+        maximum_bytes: usize,
+    ) -> Result<Vec<u8>, JsValue> {
+        export_variable_in(&self.interpreter, name, format, maximum_bytes)
+    }
+}
+
+impl Default for WasmSession {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 fn variable_page(name: &str, value: &Value, offset: usize, limit: usize) -> serde_json::Value {

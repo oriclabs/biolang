@@ -3540,7 +3540,7 @@
         },
         {
           "name": "in_region",
-          "signature": "in_region(table, chrom, start, end)",
+          "signature": "in_region(table, chrom, start, stop)",
           "summary": "BioLang package function in_region.",
           "fields": [],
           "sourcePath": "packages/variants/src/mod.bl",

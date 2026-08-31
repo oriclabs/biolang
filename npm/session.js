@@ -27,6 +27,7 @@ export const WASM_API_COVERAGE = Object.freeze({
   tokenize: "BioLangSession.tokenize",
   validate_import: "BioLangSession.validateImport",
   transpile_javascript: "BioLangSession.transpileJavaScript",
+  WasmSession: "BioLangSession isolated interpreter ownership",
 });
 
 export function normalizeRunResult(parsed) {
@@ -45,11 +46,21 @@ export function normalizeRunResult(parsed) {
 /** Shared session implementation for Node and browser WASM loaders. */
 export class BioLangSession {
   #wasm;
+  #session;
+  #activateBridge;
   #builtins;
+  #disposed;
 
-  constructor(wasm) {
+  constructor(wasm, session = null, activateBridge = () => {}) {
     this.#wasm = wasm;
+    // The fallback keeps custom/mock embedders using the old module-level API
+    // working. Official builds always expose WasmSession and are isolated.
+    this.#session = session ?? (
+      typeof wasm.WasmSession === "function" ? new wasm.WasmSession() : wasm
+    );
+    this.#activateBridge = activateBridge;
     this.#builtins = null;
+    this.#disposed = false;
     return new Proxy(this, {
       get(target, property) {
         if (property === "then") return undefined;
@@ -62,8 +73,19 @@ export class BioLangSession {
     });
   }
 
+  #call(callback) {
+    if (this.#disposed) throw new Error("This BioLang session has been disposed");
+    // The Rust fetch hook resolves `window.__blFetch` at call time. Reinstall
+    // this session's bridge before every operation so another session cannot
+    // silently change its cwd, network policy, or browser file provider.
+    this.#activateBridge();
+    return callback();
+  }
+
   run(source) {
-    return normalizeRunResult(JSON.parse(this.#wasm.evaluate(sourceOf(source))));
+    return normalizeRunResult(JSON.parse(
+      this.#call(() => this.#session.evaluate(sourceOf(source))),
+    ));
   }
 
   define(name, value) {
@@ -82,12 +104,12 @@ export class BioLangSession {
   matrix(value) { return matrixValue(value); }
 
   reset() {
-    this.#wasm.reset();
+    this.#call(() => this.#session.reset());
     this.#builtins = null;
   }
 
   builtins() {
-    this.#builtins ??= JSON.parse(this.#wasm.list_builtins())
+    this.#builtins ??= JSON.parse(this.#call(() => this.#wasm.list_builtins()))
       .sort((left, right) => left.name.localeCompare(right.name));
     return this.#builtins.slice();
   }
@@ -97,67 +119,73 @@ export class BioLangSession {
   }
 
   variables() {
-    return JSON.parse(this.#wasm.list_variables());
+    return JSON.parse(this.#call(() => this.#session.list_variables()));
   }
 
   inspectVariable(name, options = {}) {
     const offset = options.offset ?? 0;
     const limit = options.limit ?? 100;
-    return JSON.parse(this.#wasm.inspect_variable(name, offset, limit));
+    return JSON.parse(this.#call(
+      () => this.#session.inspect_variable(name, offset, limit),
+    ));
   }
 
   exportVariable(name, options = {}) {
     const format = options.format ?? "json";
     const maximumBytes = options.maximumBytes ?? 64 * 1024 * 1024;
-    return this.#wasm.export_variable(name, format, maximumBytes);
+    return this.#call(
+      () => this.#session.export_variable(name, format, maximumBytes),
+    );
   }
 
   registerModule(path, source) {
-    this.#wasm.register_module(path, source);
+    this.#call(() => this.#session.register_module(path, source));
   }
 
   runtimeVersion() {
     return typeof this.#wasm.runtime_version === "function"
-      ? this.#wasm.runtime_version()
+      ? this.#call(() => this.#wasm.runtime_version())
       : null;
   }
 
   format(source, indent = 4) {
-    return this.#wasm.format(source, indent);
+    return this.#call(() => this.#wasm.format(source, indent));
   }
 
   tokenize(source) {
-    return JSON.parse(this.#wasm.tokenize(source));
+    return JSON.parse(this.#call(() => this.#wasm.tokenize(source)));
   }
 
   diagnostics(source) {
-    return JSON.parse(this.#wasm.language_diagnostics(source));
+    return JSON.parse(this.#call(() => this.#wasm.language_diagnostics(source)));
   }
 
   completions(prefix = "") {
-    return JSON.parse(this.#wasm.language_completions(prefix));
+    return JSON.parse(this.#call(() => this.#wasm.language_completions(prefix)));
   }
 
   signature(name) {
-    return JSON.parse(this.#wasm.language_signature(name));
+    return JSON.parse(this.#call(() => this.#wasm.language_signature(name)));
   }
 
   transpileJavaScript(source) {
-    const result = JSON.parse(this.#wasm.transpile_javascript(source));
+    const result = JSON.parse(this.#call(() => this.#wasm.transpile_javascript(source)));
     if (!result.ok) throw new Error(result.error || "Cannot translate BioLang to JavaScript");
     return result.source;
   }
 
   import(source, format, filename = "input") {
-    return JSON.parse(this.#wasm.import_source(source, format, filename));
+    return JSON.parse(this.#call(() => this.#wasm.import_source(source, format, filename)));
   }
 
   validateImport(source, options = {}) {
-    return JSON.parse(this.#wasm.validate_import(source, options.notebook ?? false));
+    return JSON.parse(this.#call(
+      () => this.#wasm.validate_import(source, options.notebook ?? false),
+    ));
   }
 
   qcMetrics(kind, text) {
-    return JSON.parse(this.#wasm.qc_metrics(kind, text));
+    return JSON.parse(this.#call(() => this.#wasm.qc_metrics(kind, text)));
   }
 
   async connectSomer(options) {
@@ -171,5 +199,13 @@ export class BioLangSession {
 
   get raw() {
     return this.#wasm;
+  }
+
+  /** Release the Rust interpreter owned by this wrapper. */
+  dispose() {
+    if (this.#disposed) return;
+    this.#session.free?.();
+    this.#disposed = true;
+    this.#builtins = null;
   }
 }

@@ -1,6 +1,7 @@
 import type { BioExpression, BioProgram, BioStatement } from "./dsl.js";
 import type { SomerExecutor } from "./somer.js";
 import type { BioMatrix, BioSequence, BioTable } from "./objects.js";
+import type { BioLangSessionBuiltinMethods } from "./generated-session-builtins.js";
 
 export interface RunResult {
   ok: boolean;
@@ -57,8 +58,9 @@ export type BioLangSource = string | BioExpression | BioStatement | BioProgram;
 
 export declare const WASM_API_COVERAGE: Readonly<Record<string, string>>;
 
+export interface BioLangSession extends BioLangSessionBuiltinMethods {}
+
 export class BioLangSession {
-  [name: string]: any;
   constructor(wasm: unknown);
   run(source: BioLangSource): RunResult;
   define(name: string, value: import("./dsl.js").BioArgument): BioExpression;
@@ -87,4 +89,5 @@ export class BioLangSession {
   qcMetrics(kind: string, text: string): unknown;
   connectSomer(options: SomerConnectionOptions): Promise<SomerExecutor>;
   readonly raw: unknown;
+  dispose(): void;
 }

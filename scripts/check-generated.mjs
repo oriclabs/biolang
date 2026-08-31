@@ -10,7 +10,7 @@
  * how v1.2.0 was tagged with three stale artifacts at once, one of which would
  * have shipped a runtime two days older than the documentation describing it.
  *
- * A second check compares npm/package.json and the browser entry's exported
+ * A second check compares npm/package.json and the shared SDK version module
  * version against the workspace. Nothing generates those values, and the
  * manifest previously sat at 1.1.0 through two tagged releases.
  *
@@ -45,7 +45,7 @@ async function dirtyPaths(paths) {
 }
 
 /**
- * `--version-only` runs the package/browser version comparisons and skips the help index.
+ * `--version-only` runs the package/SDK version comparisons and skips the help index.
  *
  * The pre-push hook passes it when the push touches none of the index's
  * sources. Regenerating costs a `bl metadata` call and a walk of every example
@@ -90,7 +90,7 @@ if (!versionOnly) {
   }
 }
 
-// 2. npm package and browser-entry versions.
+// 2. npm package and shared SDK versions.
 //
 // npm/package.json wraps the WASM module built from this workspace, so a
 // version it does not share is a version that describes something else.
@@ -103,16 +103,16 @@ if (!versionOnly) {
 // decision, and guessing it here would let a typo in either file silently
 // rename the other.
 {
-  const [cargo, manifest, browser] = await Promise.all([
+  const [cargo, manifest, versionModule] = await Promise.all([
     readFile(path.join(repositoryRoot, "Cargo.toml"), "utf8"),
     readFile(path.join(repositoryRoot, "npm", "package.json"), "utf8"),
-    readFile(path.join(repositoryRoot, "npm", "browser.js"), "utf8"),
+    readFile(path.join(repositoryRoot, "npm", "version.js"), "utf8"),
   ]);
   const workspaceVersion = cargo
     .split(/\[workspace\.package\]/)[1]
     ?.match(/^\s*version\s*=\s*"([^"]+)"/m)?.[1];
   const npmVersion = JSON.parse(manifest).version;
-  const browserVersion = browser.match(/export const version\s*=\s*"([^"]+)"/)?.[1];
+  const sdkVersion = versionModule.match(/export const version\s*=\s*"([^"]+)"/)?.[1];
   if (!workspaceVersion) {
     failures.push({
       what: "workspace version",
@@ -127,11 +127,11 @@ if (!versionOnly) {
       files: ["npm/package.json"],
       corrected: false,
     });
-  } else if (browserVersion !== npmVersion) {
+  } else if (sdkVersion !== npmVersion) {
     failures.push({
-      what: `browser SDK version (${browserVersion ?? "missing"}) does not match npm (${npmVersion})`,
-      fix: `set browser.js export const version to "${npmVersion}"`,
-      files: ["npm/browser.js"],
+      what: `SDK version (${sdkVersion ?? "missing"}) does not match npm (${npmVersion})`,
+      fix: `set version.js export const version to "${npmVersion}"`,
+      files: ["npm/version.js"],
       corrected: false,
     });
   }
@@ -171,6 +171,6 @@ if (failures.length) {
 // was skipped would be the same kind of false pass this script exists to catch.
 console.log(
   versionOnly
-    ? "npm and browser SDK versions match the workspace. Help index not checked: this push touches none of its sources."
-    : "Generated files are current: workbench help index, npm version, and browser SDK version.",
+    ? "npm and SDK versions match the workspace. Help index not checked: this push touches none of its sources."
+    : "Generated files are current: workbench help index, npm version, and SDK version.",
 );

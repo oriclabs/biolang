@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 30,
-    "builtin": 1118,
+    "builtin": 1130,
     "tutorial": 0,
     "example": 392
   },
@@ -4230,6 +4230,20 @@
       "keywords": "eulerian_path eulerian_path(arg1) runtime registered biolang builtin accepting 1 argument(s)."
     },
     {
+      "id": "builtin:event_timeline_plot",
+      "kind": "builtin",
+      "title": "event_timeline_plot",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Faceted event histories connecting dated observations within an identifier and colouring by outcome.",
+      "body": "# event_timeline_plot\n\nFaceted event histories connecting dated observations within an identifier and colouring by outcome.\n\n## Signature\n\n```biolang\nevent_timeline_plot(table, {id,date,value,group,facet,...}?) → Str\n```\n\n**Returns:** `Str`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "event_timeline_plot(table, {id,date,value,group,facet,...}?) → Str",
+      "example": null,
+      "returnType": "Str",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "event_timeline_plot event_timeline_plot(table, {id,date,value,group,facet,...}?) → str stats faceted event histories connecting dated observations within an identifier and colouring by outcome."
+    },
+    {
       "id": "builtin:exit",
       "kind": "builtin",
       "title": "exit",
@@ -5642,6 +5656,48 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "group_stats group_stats(arg1, arg2, arg3) runtime registered biolang builtin accepting 3 argument(s)."
+    },
+    {
+      "id": "builtin:grouped_bar_plot",
+      "kind": "builtin",
+      "title": "grouped_bar_plot",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Dodged group counts with optional small-multiple facets.",
+      "body": "# grouped_bar_plot\n\nDodged group counts with optional small-multiple facets.\n\n## Signature\n\n```biolang\ngrouped_bar_plot(categories, groups, {facets,...}?) → Str\n```\n\n**Returns:** `Str`\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "grouped_bar_plot(categories, groups, {facets,...}?) → Str",
+      "example": null,
+      "returnType": "Str",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "grouped_bar_plot grouped_bar_plot(categories, groups, {facets,...}?) → str stats dodged group counts with optional small-multiple facets."
+    },
+    {
+      "id": "builtin:grouped_boxplot_plot",
+      "kind": "builtin",
+      "title": "grouped_boxplot_plot",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Dodged grouped boxplots with Tukey whiskers, outliers, and a legend.",
+      "body": "# grouped_boxplot_plot\n\nDodged grouped boxplots with Tukey whiskers, outliers, and a legend.\n\n## Signature\n\n```biolang\ngrouped_boxplot_plot(values, categories, groups, options?) → Str\n```\n\n**Returns:** `Str`\n\n**Arity:** range, minimum 3, maximum 4",
+      "signature": "grouped_boxplot_plot(values, categories, groups, options?) → Str",
+      "example": null,
+      "returnType": "Str",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "grouped_boxplot_plot grouped_boxplot_plot(values, categories, groups, options?) → str stats dodged grouped boxplots with tukey whiskers, outliers, and a legend."
+    },
+    {
+      "id": "builtin:grouped_density_plot",
+      "kind": "builtin",
+      "title": "grouped_density_plot",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Overlaid density curves with grouped fill and an explicit missing-value legend level.",
+      "body": "# grouped_density_plot\n\nOverlaid density curves with grouped fill and an explicit missing-value legend level.\n\n## Signature\n\n```biolang\ngrouped_density_plot(values, groups, options?) → Str\n```\n\n**Returns:** `Str`\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "grouped_density_plot(values, groups, options?) → Str",
+      "example": null,
+      "returnType": "Str",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "grouped_density_plot grouped_density_plot(values, groups, options?) → str stats overlaid density curves with grouped fill and an explicit missing-value legend level."
     },
     {
       "id": "builtin:gsea",
@@ -7190,12 +7246,12 @@
       "category": "plot",
       "collection": "Runtime builtins",
       "summary": "BioLang plot builtin.",
-      "body": "# kaplan_meier\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\nkaplan_meier(table, opts?) → SVG/PlotSpec; spec freezes risk sets, events, censoring and Greenwood SE\n```\n\n**Returns:** `SVG/PlotSpec; spec freezes risk sets, events, censoring and Greenwood SE`\n\n**Arity:** range, minimum 1, maximum 2",
-      "signature": "kaplan_meier(table, opts?) → SVG/PlotSpec; spec freezes risk sets, events, censoring and Greenwood SE",
+      "body": "# kaplan_meier\n\nBioLang plot builtin.\n\n## Signature\n\n```biolang\nkaplan_meier(table, opts?) → SVG/PlotSpec; supports confidence bands, risk tables, p-values and safe palettes; spec freezes risk sets, censoring and Greenwood intervals\n```\n\n**Returns:** `SVG/PlotSpec; supports confidence bands, risk tables, p-values and safe palettes; spec freezes risk sets, censoring and Greenwood intervals`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "kaplan_meier(table, opts?) → SVG/PlotSpec; supports confidence bands, risk tables, p-values and safe palettes; spec freezes risk sets, censoring and Greenwood intervals",
       "example": null,
-      "returnType": "SVG/PlotSpec; spec freezes risk sets, events, censoring and Greenwood SE",
+      "returnType": "SVG/PlotSpec; supports confidence bands, risk tables, p-values and safe palettes; spec freezes risk sets, censoring and Greenwood intervals",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "kaplan_meier kaplan_meier(table, opts?) → svg/plotspec; spec freezes risk sets, events, censoring and greenwood se plot biolang plot builtin."
+      "keywords": "kaplan_meier kaplan_meier(table, opts?) → svg/plotspec; supports confidence bands, risk tables, p-values and safe palettes; spec freezes risk sets, censoring and greenwood intervals plot biolang plot builtin."
     },
     {
       "id": "builtin:kb",
@@ -7889,13 +7945,13 @@
       "title": "log_rank_test",
       "category": "runtime",
       "collection": "Runtime builtins",
-      "summary": "Registered BioLang builtin accepting 4 argument(s).",
-      "body": "# log_rank_test\n\nRegistered BioLang builtin accepting 4 argument(s).\n\n## Signature\n\n```biolang\nlog_rank_test(arg1, arg2, arg3, arg4)\n```\n\n**Arity:** exact, minimum 4, maximum 4",
-      "signature": "log_rank_test(arg1, arg2, arg3, arg4)",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
+      "body": "# log_rank_test\n\nRegistered BioLang builtin accepting 3 argument(s).\n\n## Signature\n\n```biolang\nlog_rank_test(arg1, arg2, arg3, arg4?)\n```\n\n**Arity:** range, minimum 3, maximum 4",
+      "signature": "log_rank_test(arg1, arg2, arg3, arg4?)",
       "example": null,
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "log_rank_test log_rank_test(arg1, arg2, arg3, arg4) runtime registered biolang builtin accepting 4 argument(s)."
+      "keywords": "log_rank_test log_rank_test(arg1, arg2, arg3, arg4?) runtime registered biolang builtin accepting 3 argument(s)."
     },
     {
       "id": "builtin:log_transform",
@@ -10320,6 +10376,76 @@
       "keywords": "ppois ppois(arg1, arg2) runtime registered biolang builtin accepting 2 argument(s)."
     },
     {
+      "id": "builtin:predictive_compare",
+      "kind": "builtin",
+      "title": "predictive_compare",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Aligned accuracy and Cohen-kappa summaries across predictive models fitted with the same bootstrap seed.",
+      "body": "# predictive_compare\n\nAligned accuracy and Cohen-kappa summaries across predictive models fitted with the same bootstrap seed.\n\n## Signature\n\n```biolang\npredictive_compare(models) → Record{summary,resamples,best_model}\n```\n\n**Returns:** `Record{summary,resamples,best_model}`\n\n**Arity:** exact, minimum 1, maximum 1",
+      "signature": "predictive_compare(models) → Record{summary,resamples,best_model}",
+      "example": null,
+      "returnType": "Record{summary,resamples,best_model}",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "predictive_compare predictive_compare(models) → record{summary,resamples,best_model} stats aligned accuracy and cohen-kappa summaries across predictive models fitted with the same bootstrap seed."
+    },
+    {
+      "id": "builtin:predictive_importance_plot",
+      "kind": "builtin",
+      "title": "predictive_importance_plot",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Caret-style scaled permutation-importance lollipop plot.",
+      "body": "# predictive_importance_plot\n\nCaret-style scaled permutation-importance lollipop plot.\n\n## Signature\n\n```biolang\npredictive_importance_plot(model_or_table, options?) → Str\n```\n\n**Returns:** `Str`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "predictive_importance_plot(model_or_table, options?) → Str",
+      "example": null,
+      "returnType": "Str",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "predictive_importance_plot predictive_importance_plot(model_or_table, options?) → str stats caret-style scaled permutation-importance lollipop plot."
+    },
+    {
+      "id": "builtin:predictive_predict",
+      "kind": "builtin",
+      "title": "predictive_predict",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Class labels and/or class probabilities from a serializable model returned by predictive_train().",
+      "body": "# predictive_predict\n\nClass labels and/or class probabilities from a serializable model returned by predictive_train().\n\n## Signature\n\n```biolang\npredictive_predict(model, table, {type: \"class\"|\"prob\"|\"both\"}?) → List|Table\n```\n\n**Returns:** `List|Table`\n\n**Arity:** range, minimum 2, maximum 3",
+      "signature": "predictive_predict(model, table, {type: \"class\"|\"prob\"|\"both\"}?) → List|Table",
+      "example": null,
+      "returnType": "List|Table",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "predictive_predict predictive_predict(model, table, {type: \"class\"|\"prob\"|\"both\"}?) → list|table stats class labels and/or class probabilities from a serializable model returned by predictive_train()."
+    },
+    {
+      "id": "builtin:predictive_resample_plot",
+      "kind": "builtin",
+      "title": "predictive_resample_plot",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Side-by-side accuracy and kappa boxplots across aligned bootstrap resamples.",
+      "body": "# predictive_resample_plot\n\nSide-by-side accuracy and kappa boxplots across aligned bootstrap resamples.\n\n## Signature\n\n```biolang\npredictive_resample_plot(comparison_or_table, options?) → Str\n```\n\n**Returns:** `Str`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "predictive_resample_plot(comparison_or_table, options?) → Str",
+      "example": null,
+      "returnType": "Str",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "predictive_resample_plot predictive_resample_plot(comparison_or_table, options?) → str stats side-by-side accuracy and kappa boxplots across aligned bootstrap resamples."
+    },
+    {
+      "id": "builtin:predictive_train",
+      "kind": "builtin",
+      "title": "predictive_train",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Deterministic bootstrap tuning and final fitting for random forest, gradient boosting, elastic-net logistic regression, or distance-weighted kNN.",
+      "body": "# predictive_train\n\nDeterministic bootstrap tuning and final fitting for random forest, gradient boosting, elastic-net logistic regression, or distance-weighted kNN.\n\n## Signature\n\n```biolang\npredictive_train(table, {target,method,seed,resamples,...}?) → Record{parameters,metrics,tuning,resamples,importance}\n```\n\n**Returns:** `Record{parameters,metrics,tuning,resamples,importance}`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "predictive_train(table, {target,method,seed,resamples,...}?) → Record{parameters,metrics,tuning,resamples,importance}",
+      "example": null,
+      "returnType": "Record{parameters,metrics,tuning,resamples,importance}",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "predictive_train predictive_train(table, {target,method,seed,resamples,...}?) → record{parameters,metrics,tuning,resamples,importance} stats deterministic bootstrap tuning and final fitting for random forest, gradient boosting, elastic-net logistic regression, or distance-weighted knn."
+    },
+    {
       "id": "builtin:primer_design",
       "kind": "builtin",
       "title": "primer_design",
@@ -12322,6 +12448,48 @@
       "keywords": "scp scp(source, dest) → {source, dest} transfer biolang transfer builtin."
     },
     {
+      "id": "builtin:seasonal_components_plot",
+      "kind": "builtin",
+      "title": "seasonal_components_plot",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Calendar trend and one-year seasonal component panels.",
+      "body": "# seasonal_components_plot\n\nCalendar trend and one-year seasonal component panels.\n\n## Signature\n\n```biolang\nseasonal_components_plot(forecast, options?) → Str\n```\n\n**Returns:** `Str`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "seasonal_components_plot(forecast, options?) → Str",
+      "example": null,
+      "returnType": "Str",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "seasonal_components_plot seasonal_components_plot(forecast, options?) → str stats calendar trend and one-year seasonal component panels."
+    },
+    {
+      "id": "builtin:seasonal_forecast",
+      "kind": "builtin",
+      "title": "seasonal_forecast",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Browser-safe additive forecast with piecewise trend, Fourier seasonality, robust residual intervals, and daily or observation-scaled periods.",
+      "body": "# seasonal_forecast\n\nBrowser-safe additive forecast with piecewise trend, Fourier seasonality, robust residual intervals, and daily or observation-scaled periods.\n\n## Signature\n\n```biolang\nseasonal_forecast(table, {date,value,periods,frequency_days,period_days,...}?) → Record{forecast,components}\n```\n\n**Returns:** `Record{forecast,components}`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "seasonal_forecast(table, {date,value,periods,frequency_days,period_days,...}?) → Record{forecast,components}",
+      "example": null,
+      "returnType": "Record{forecast,components}",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "seasonal_forecast seasonal_forecast(table, {date,value,periods,frequency_days,period_days,...}?) → record{forecast,components} stats browser-safe additive forecast with piecewise trend, fourier seasonality, robust residual intervals, and daily or observation-scaled periods."
+    },
+    {
+      "id": "builtin:seasonal_forecast_plot",
+      "kind": "builtin",
+      "title": "seasonal_forecast_plot",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Calendar-scaled forecast line, observed points, and uncertainty band.",
+      "body": "# seasonal_forecast_plot\n\nCalendar-scaled forecast line, observed points, and uncertainty band.\n\n## Signature\n\n```biolang\nseasonal_forecast_plot(forecast, options?) → Str\n```\n\n**Returns:** `Str`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "seasonal_forecast_plot(forecast, options?) → Str",
+      "example": null,
+      "returnType": "Str",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "seasonal_forecast_plot seasonal_forecast_plot(forecast, options?) → str stats calendar-scaled forecast line, observed points, and uncertainty band."
+    },
+    {
       "id": "builtin:secondary_structure",
       "kind": "builtin",
       "title": "secondary_structure",
@@ -13139,13 +13307,13 @@
       "title": "stats_cox_diagnostics",
       "category": "stats",
       "collection": "Runtime builtins",
-      "summary": "Multivariable Cox fit with Breslow ties, hazard-ratio intervals, baseline hazard and martingale residuals. The Schoenfeld screen is descriptive, not cox.zph.",
-      "body": "# stats_cox_diagnostics\n\nMultivariable Cox fit with Breslow ties, hazard-ratio intervals, baseline hazard and martingale residuals. The Schoenfeld screen is descriptive, not cox.zph.\n\n## Signature\n\n```biolang\nstats_cox_diagnostics(time, event, predictors, options?) → Record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged}\n```\n\n## Example\n\n```biolang\nstats_cox_diagnostics(time, event, predictors)  # Breslow ties, as survival::coxph(ties=\"breslow\")\n```\n\n**Returns:** `Record`\n\n**Arity:** range, minimum 3, maximum 4",
-      "signature": "stats_cox_diagnostics(time, event, predictors, options?) → Record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged}",
-      "example": "stats_cox_diagnostics(time, event, predictors)  # Breslow ties, as survival::coxph(ties=\"breslow\")",
+      "summary": "Multivariable Cox fit with selectable Breslow or Efron ties, hazard-ratio intervals, baseline hazard and martingale residuals. The Schoenfeld screen is descriptive, not cox.zph.",
+      "body": "# stats_cox_diagnostics\n\nMultivariable Cox fit with selectable Breslow or Efron ties, hazard-ratio intervals, baseline hazard and martingale residuals. The Schoenfeld screen is descriptive, not cox.zph.\n\n## Signature\n\n```biolang\nstats_cox_diagnostics(time, event, predictors, {ties: \"breslow\"|\"efron\", ...}?) → Record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged}\n```\n\n## Example\n\n```biolang\nstats_cox_diagnostics(time, event, predictors, {ties: \"efron\"})  # or ties: \"breslow\"\n```\n\n**Returns:** `Record`\n\n**Arity:** range, minimum 3, maximum 4",
+      "signature": "stats_cox_diagnostics(time, event, predictors, {ties: \"breslow\"|\"efron\", ...}?) → Record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged}",
+      "example": "stats_cox_diagnostics(time, event, predictors, {ties: \"efron\"})  # or ties: \"breslow\"",
       "returnType": "Record",
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
-      "keywords": "stats_cox_diagnostics stats_cox_diagnostics(time, event, predictors, options?) → record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged} stats multivariable cox fit with breslow ties, hazard-ratio intervals, baseline hazard and martingale residuals. the schoenfeld screen is descriptive, not cox.zph."
+      "keywords": "stats_cox_diagnostics stats_cox_diagnostics(time, event, predictors, {ties: \"breslow\"|\"efron\", ...}?) → record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged} stats multivariable cox fit with selectable breslow or efron ties, hazard-ratio intervals, baseline hazard and martingale residuals. the schoenfeld screen is descriptive, not cox.zph."
     },
     {
       "id": "builtin:stats_decision_map",

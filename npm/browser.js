@@ -7,12 +7,13 @@
  * rather than being forced through HTTP.
  */
 import { BioLangSession } from "./session.js";
+import { version } from "./version.js";
 
-function installBridge(options) {
+function createBridge(options) {
   const custom = options.fetchSync;
   globalThis.window ??= globalThis;
   globalThis.__blFiles ??= {};
-  globalThis.__blFetch = {
+  const bridge = {
     sync(url) {
       if (custom) {
         try {
@@ -39,6 +40,7 @@ function installBridge(options) {
       }
     },
   };
+  return () => { globalThis.__blFetch = bridge; };
 }
 
 export class BioLang extends BioLangSession {
@@ -47,22 +49,27 @@ export class BioLang extends BioLangSession {
    *   fetchSync  synchronous reader for file and URL access
    */
   static async create(options = {}) {
-    installBridge(options);
+    const activateBridge = createBridge(options);
+    activateBridge();
     // Keep the 9 MB module out of the application's initial bundle. Browser
     // notebooks load it only when their first BioLang session is requested.
     const wasm = await import("./pkg-web/bl_wasm.js");
     await wasm.default();
     wasm.init();
-    return new BioLang(wasm);
+    return new BioLang(wasm, new wasm.WasmSession(), activateBridge);
   }
 }
 
 export async function run(source, options = {}) {
   const bl = await BioLang.create(options);
-  return bl.run(source);
+  try {
+    return bl.run(source);
+  } finally {
+    bl.dispose();
+  }
 }
 
-export const version = "1.5.0";
+export { version };
 
 // Keep the package-root surface aligned with Node: colliding names resolve to
 // generated WASM builtins; structural helpers remain under `biolang/dsl`.

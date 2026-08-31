@@ -133,7 +133,15 @@ bl.inspectVariable("values", { offset: 0, limit: 20 });
 bl.exportVariable("values", { format: "json" });
 bl.registerModule("my-package", "export let answer = 42");
 bl.reset();
+bl.dispose();
 ```
+
+Each `BioLang.create()` call owns a separate Rust interpreter. Variables,
+registered modules, and `reset()` are isolated even when several sessions run
+in the same Node process or browser Worker. File and network policies are also
+reactivated per call, so creating a second session cannot change the first
+session's `cwd` or reader. Call `dispose()` when a long-lived application no
+longer needs a session.
 
 ## SOMER
 
@@ -198,5 +206,8 @@ const bl = await BioLang.create({
 | `error` | Error message when execution failed |
 
 The raw wasm-bindgen API remains available from `biolang/raw`.
+The Node and browser loaders share one compiled WASM payload in the installed
+package; consumers do not download a second runtime for an environment they do
+not use.
 
 MIT licensed. Documentation: [lang.bio](https://lang.bio).

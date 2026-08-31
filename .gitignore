@@ -95,6 +95,7 @@ Thumbs.db
 
 # Node modules (website build)
 node_modules/
+/npm/wasm/
 
 # Optional isolated environment for Scanpy cross-validation
 /.venv-scanpy/

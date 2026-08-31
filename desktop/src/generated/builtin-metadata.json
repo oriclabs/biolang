@@ -4956,6 +4956,29 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "event_timeline_plot",
+      "signature": "event_timeline_plot(table, {id,date,value,group,facet,...}?) → Str",
+      "category": "stats",
+      "summary": "Faceted event histories connecting dated observations within an identifier and colouring by outcome.",
+      "parameters": [
+        "table",
+        "{id",
+        "date",
+        "value",
+        "group",
+        "facet",
+        "...}?"
+      ],
+      "returnType": "Str",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "exit",
       "signature": "exit(arg1?)",
       "category": "runtime",
@@ -6742,6 +6765,65 @@
         "maximum": 3
       },
       "metadataQuality": "runtime"
+    },
+    {
+      "name": "grouped_bar_plot",
+      "signature": "grouped_bar_plot(categories, groups, {facets,...}?) → Str",
+      "category": "stats",
+      "summary": "Dodged group counts with optional small-multiple facets.",
+      "parameters": [
+        "categories",
+        "groups",
+        "{facets",
+        "...}?"
+      ],
+      "returnType": "Str",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "grouped_boxplot_plot",
+      "signature": "grouped_boxplot_plot(values, categories, groups, options?) → Str",
+      "category": "stats",
+      "summary": "Dodged grouped boxplots with Tukey whiskers, outliers, and a legend.",
+      "parameters": [
+        "values",
+        "categories",
+        "groups",
+        "options?"
+      ],
+      "returnType": "Str",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 3,
+        "maximum": 4
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "grouped_density_plot",
+      "signature": "grouped_density_plot(values, groups, options?) → Str",
+      "category": "stats",
+      "summary": "Overlaid density curves with grouped fill and an explicit missing-value legend level.",
+      "parameters": [
+        "values",
+        "groups",
+        "options?"
+      ],
+      "returnType": "Str",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
     },
     {
       "name": "gsea",
@@ -8677,14 +8759,14 @@
     },
     {
       "name": "kaplan_meier",
-      "signature": "kaplan_meier(table, opts?) → SVG/PlotSpec; spec freezes risk sets, events, censoring and Greenwood SE",
+      "signature": "kaplan_meier(table, opts?) → SVG/PlotSpec; supports confidence bands, risk tables, p-values and safe palettes; spec freezes risk sets, censoring and Greenwood intervals",
       "category": "plot",
       "summary": "BioLang plot builtin.",
       "parameters": [
         "table",
         "opts?"
       ],
-      "returnType": "SVG/PlotSpec; spec freezes risk sets, events, censoring and Greenwood SE",
+      "returnType": "SVG/PlotSpec; supports confidence bands, risk tables, p-values and safe palettes; spec freezes risk sets, censoring and Greenwood intervals",
       "example": null,
       "arity": {
         "kind": "range",
@@ -9569,20 +9651,20 @@
     },
     {
       "name": "log_rank_test",
-      "signature": "log_rank_test(arg1, arg2, arg3, arg4)",
+      "signature": "log_rank_test(arg1, arg2, arg3, arg4?)",
       "category": "runtime",
-      "summary": "Registered BioLang builtin accepting 4 argument(s).",
+      "summary": "Registered BioLang builtin accepting 3 argument(s).",
       "parameters": [
         "arg1",
         "arg2",
         "arg3",
-        "arg4"
+        "arg4?"
       ],
       "returnType": null,
       "example": null,
       "arity": {
-        "kind": "exact",
-        "minimum": 4,
+        "kind": "range",
+        "minimum": 3,
         "maximum": 4
       },
       "metadataQuality": "runtime"
@@ -12661,6 +12743,100 @@
       "metadataQuality": "runtime"
     },
     {
+      "name": "predictive_compare",
+      "signature": "predictive_compare(models) → Record{summary,resamples,best_model}",
+      "category": "stats",
+      "summary": "Aligned accuracy and Cohen-kappa summaries across predictive models fitted with the same bootstrap seed.",
+      "parameters": [
+        "models"
+      ],
+      "returnType": "Record{summary,resamples,best_model}",
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "predictive_importance_plot",
+      "signature": "predictive_importance_plot(model_or_table, options?) → Str",
+      "category": "stats",
+      "summary": "Caret-style scaled permutation-importance lollipop plot.",
+      "parameters": [
+        "model_or_table",
+        "options?"
+      ],
+      "returnType": "Str",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "predictive_predict",
+      "signature": "predictive_predict(model, table, {type: \"class\"|\"prob\"|\"both\"}?) → List|Table",
+      "category": "stats",
+      "summary": "Class labels and/or class probabilities from a serializable model returned by predictive_train().",
+      "parameters": [
+        "model",
+        "table",
+        "{type: \"class\"|\"prob\"|\"both\"}?"
+      ],
+      "returnType": "List|Table",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 2,
+        "maximum": 3
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "predictive_resample_plot",
+      "signature": "predictive_resample_plot(comparison_or_table, options?) → Str",
+      "category": "stats",
+      "summary": "Side-by-side accuracy and kappa boxplots across aligned bootstrap resamples.",
+      "parameters": [
+        "comparison_or_table",
+        "options?"
+      ],
+      "returnType": "Str",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "predictive_train",
+      "signature": "predictive_train(table, {target,method,seed,resamples,...}?) → Record{parameters,metrics,tuning,resamples,importance}",
+      "category": "stats",
+      "summary": "Deterministic bootstrap tuning and final fitting for random forest, gradient boosting, elastic-net logistic regression, or distance-weighted kNN.",
+      "parameters": [
+        "table",
+        "{target",
+        "method",
+        "seed",
+        "resamples",
+        "...}?"
+      ],
+      "returnType": "Record{parameters,metrics,tuning,resamples,importance}",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "primer_design",
       "signature": "primer_design(arg1, arg2, arg3, arg4?)",
       "category": "runtime",
@@ -15227,6 +15403,65 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "seasonal_components_plot",
+      "signature": "seasonal_components_plot(forecast, options?) → Str",
+      "category": "stats",
+      "summary": "Calendar trend and one-year seasonal component panels.",
+      "parameters": [
+        "forecast",
+        "options?"
+      ],
+      "returnType": "Str",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "seasonal_forecast",
+      "signature": "seasonal_forecast(table, {date,value,periods,frequency_days,period_days,...}?) → Record{forecast,components}",
+      "category": "stats",
+      "summary": "Browser-safe additive forecast with piecewise trend, Fourier seasonality, robust residual intervals, and daily or observation-scaled periods.",
+      "parameters": [
+        "table",
+        "{date",
+        "value",
+        "periods",
+        "frequency_days",
+        "period_days",
+        "...}?"
+      ],
+      "returnType": "Record{forecast,components}",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
+      "name": "seasonal_forecast_plot",
+      "signature": "seasonal_forecast_plot(forecast, options?) → Str",
+      "category": "stats",
+      "summary": "Calendar-scaled forecast line, observed points, and uncertainty band.",
+      "parameters": [
+        "forecast",
+        "options?"
+      ],
+      "returnType": "Str",
+      "example": null,
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "secondary_structure",
       "signature": "secondary_structure(arg1)",
       "category": "runtime",
@@ -16262,17 +16497,18 @@
     },
     {
       "name": "stats_cox_diagnostics",
-      "signature": "stats_cox_diagnostics(time, event, predictors, options?) → Record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged}",
+      "signature": "stats_cox_diagnostics(time, event, predictors, {ties: \"breslow\"|\"efron\", ...}?) → Record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged}",
       "category": "stats",
-      "summary": "Multivariable Cox fit with Breslow ties, hazard-ratio intervals, baseline hazard and martingale residuals. The Schoenfeld screen is descriptive, not cox.zph.",
+      "summary": "Multivariable Cox fit with selectable Breslow or Efron ties, hazard-ratio intervals, baseline hazard and martingale residuals. The Schoenfeld screen is descriptive, not cox.zph.",
       "parameters": [
         "time",
         "event",
         "predictors",
-        "options?"
+        "{ties: \"breslow\"|\"efron\"",
+        "...}?"
       ],
       "returnType": "Record",
-      "example": "stats_cox_diagnostics(time, event, predictors)  # Breslow ties, as survival::coxph(ties=\"breslow\")",
+      "example": "stats_cox_diagnostics(time, event, predictors, {ties: \"efron\"})  # or ties: \"breslow\"",
       "arity": {
         "kind": "range",
         "minimum": 3,

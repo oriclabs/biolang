@@ -14,23 +14,21 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { BioLangSession } from "./session.js";
-
-const here = path.dirname(fileURLToPath(import.meta.url));
+import { version } from "./version.js";
 
 /**
  * The hook is synchronous because the interpreter calls it mid-evaluation and
  * cannot await. Node has no synchronous HTTP, so remote reads shell out to
  * curl. Local files — the common case — never pay that cost.
  */
-function installBridge(options) {
+function createBridge(options) {
   const allowNetwork = options.network !== false;
   const cwd = options.cwd ?? process.cwd();
 
   globalThis.window ??= globalThis;
   globalThis.__blFiles ??= {};
-  globalThis.__blFetch = {
+  const bridge = {
     sync(url) {
       try {
         if (/^https?:\/\//.test(url)) {
@@ -48,6 +46,7 @@ function installBridge(options) {
       }
     },
   };
+  return () => { globalThis.__blFetch = bridge; };
 }
 
 /** A BioLang interpreter instance. */
@@ -61,22 +60,25 @@ export class BioLang extends BioLangSession {
    *   network  allow http(s) reads (default: true)
    */
   static async create(options = {}) {
-    installBridge(options);
+    const activateBridge = createBridge(options);
+    activateBridge();
     const wasm = await import("./pkg-node/bl_wasm.js");
     wasm.init();
-    return new BioLang(wasm);
+    return new BioLang(wasm, new wasm.WasmSession(), activateBridge);
   }
 }
 
 /** Convenience: load and run once. */
 export async function run(source, options = {}) {
   const bl = await BioLang.create(options);
-  return bl.run(source);
+  try {
+    return bl.run(source);
+  } finally {
+    bl.dispose();
+  }
 }
 
-export const version = JSON.parse(
-  fs.readFileSync(path.join(here, "package.json"), "utf8"),
-).version;
+export { version };
 
 // These names also exist as structural syntax helpers in `biolang/dsl`.
 // The package root promises the generated WASM builtin surface, so resolve
