@@ -51,6 +51,10 @@
       "types": "./objects.d.ts",
       "default": "./objects.js"
     },
+    "./values": {
+      "types": "./values.d.ts",
+      "default": "./values.js"
+    },
     "./catalog": "./wasm-builtins.json",
     "./package.json": "./package.json"
   },
@@ -68,6 +72,8 @@
     "objects.d.ts",
     "somer.js",
     "somer.d.ts",
+    "values.js",
+    "values.d.ts",
     "generated-builtins.js",
     "generated-builtins.d.ts",
     "generated-session-builtins.d.ts",

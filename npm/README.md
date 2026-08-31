@@ -143,6 +143,61 @@ reactivated per call, so creating a second session cannot change the first
 session's `cwd` or reader. Call `dispose()` when a long-lived application no
 longer needs a session.
 
+## Direct values and JavaScript callbacks
+
+Use the value API when JavaScript needs the result itself rather than the
+formatted `run()` envelope. Small values are copied into ordinary JavaScript
+data; tables, matrices, sequences and quality scores retain explicit wrapper
+types so their meaning and shape are not lost.
+
+```js
+const summary = bl.evalValue('summary([12, 14, 15, 19])');
+bl.setValue("sample", { id: "S1", values: [12, 14, 15, 19] });
+
+const centre = bl.callValue("mean", [[12, 14, 15, 19]]);
+console.log(centre); // 15
+```
+
+Integers outside JavaScript's safe-number range become `bigint`. Numeric
+matrices use `Float64Array`, quality scores use `Uint8Array`, and a large value
+remains in Rust as a `BioValueHandle`. A handle can be paged, passed back into
+the same session without copying, converted to `Float64Array` when appropriate,
+and explicitly disposed:
+
+```js
+const genes = bl.evalValue("repeat([1], 1000000)", { maximumInlineBytes: 1024 });
+console.log(genes.valueType, genes.length);
+console.log(genes.page({ offset: 100, limit: 20 }));
+genes.dispose();
+```
+
+Handles are session-bound and become stale after `reset()`. Passing one to a
+different session is rejected instead of resolving an unrelated value with the
+same internal ID.
+
+Synchronous JavaScript functions can be registered for use inside BioLang,
+including higher-order operations such as `map`:
+
+```js
+const calibrate = bl.registerFunction(
+  "calibrate",
+  { parameters: ["Number"], returns: "Number" },
+  (measurement) => measurement * 1.08,
+);
+
+console.log(bl.evalValue("map([10, 20, 30], calibrate)"));
+// [10.8, 21.6, 32.4]
+
+// Or stay entirely on the direct-value API; no BioLang source is constructed.
+console.log(bl.callValue("map", [[10, 20, 30], calibrate]));
+```
+
+Callbacks must finish synchronously, cannot re-enter their owning session, and
+receive copied values up to 8 MB per argument. That keeps interpreter state and
+memory use predictable. Keep callbacks for scalar or modest record transforms;
+use `callValue()` with handles for large local values, a browser Worker for UI
+isolation, or SOMER for asynchronous I/O, remote tools and long-running work.
+
 ## SOMER
 
 Install the optional shared SOMER client when native, remote or durable

@@ -5,6 +5,7 @@ export * from "./generated-builtins.js";
 export * from "./objects.js";
 export * from "./session.js";
 export * from "./somer.js";
+export * from "./values.js";
 
 export interface BioLangOptions {
   fetchSync?: (url: string) => string;

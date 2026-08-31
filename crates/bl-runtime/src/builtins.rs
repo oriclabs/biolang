@@ -1222,6 +1222,9 @@ fn format_for_print(val: &Value) -> String {
 
 /// Execute a built-in function by name.
 pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
+    if let Some(callback) = name.strip_prefix(crate::host_callback::HOST_CALLBACK_PREFIX) {
+        return crate::host_callback::call_host_callback(callback, args);
+    }
     match name {
         "print" => {
             let parts: Vec<String> = args.iter().map(format_for_print).collect();

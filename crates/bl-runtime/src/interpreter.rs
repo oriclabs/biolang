@@ -174,6 +174,16 @@ impl Interpreter {
         &mut self.env
     }
 
+    /// Call a value already registered in the interpreter environment. This is
+    /// the non-source interop path used by WASM hosts after they have converted
+    /// JavaScript arguments into BioLang values.
+    pub fn call_named_value(&mut self, name: &str, args: Vec<Value>) -> Result<Value> {
+        let function = self.env.lookup(name).cloned().ok_or_else(|| {
+            BioLangError::name_error(format!("undefined function '{name}'"), None)
+        })?;
+        self.call_value(&function, args, bl_core::span::Span::default())
+    }
+
     /// Canonical source paths imported by this interpreter run.
     /// The CLI hashes these paths in reproducible run records.
     pub fn loaded_module_paths(&self) -> Vec<PathBuf> {

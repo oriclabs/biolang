@@ -16,6 +16,7 @@ bl-qc = { workspace = true }
 bl-parser = { workspace = true }
 bl-runtime = { path = "../bl-runtime", default-features = false }
 wasm-bindgen = "0.2"
+js-sys = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

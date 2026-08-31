@@ -1,16 +1,19 @@
 use wasm_bindgen::prelude::*;
 
-use bl_core::value::Value;
+use bl_core::error::{BioLangError, ErrorKind};
+use bl_core::value::{Arity, Value};
 use bl_lexer::Lexer;
 use bl_parser::Parser;
 use bl_runtime::builtins::{set_display_sink, set_output_buffer};
 use bl_runtime::csv::set_fetch_hook;
 use bl_runtime::Interpreter;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 mod javascript;
+mod marshalling;
 
 thread_local! {
     /// `Option` so `evaluate` can TAKE the interpreter out, run user code while
@@ -22,6 +25,26 @@ thread_local! {
     /// starts from a fresh interpreter.
     static INTERPRETER: RefCell<Option<Interpreter>> = RefCell::new(Some(browser_interpreter()));
     static OUTPUT_BUF: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
+    static NEXT_SESSION_ID: Cell<u32> = const { Cell::new(1) };
+}
+
+fn next_session_id() -> u32 {
+    NEXT_SESSION_ID.with(|next| {
+        let id = next.get();
+        next.set(id.checked_add(1).unwrap_or(1));
+        id
+    })
+}
+
+fn javascript_error_text(value: &JsValue, fallback: impl FnOnce() -> String) -> String {
+    value
+        .as_string()
+        .or_else(|| {
+            js_sys::Reflect::get(value, &JsValue::from_str("message"))
+                .ok()
+                .and_then(|message| message.as_string())
+        })
+        .unwrap_or_else(fallback)
 }
 
 fn browser_interpreter() -> Interpreter {
@@ -54,6 +77,9 @@ fn browser_interpreter() -> Interpreter {
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__blFetch"], js_name = "sync")]
     fn js_fetch_sync(url: &str) -> JsValue;
+
+    #[wasm_bindgen(catch, js_namespace = ["window", "__blCallbacks"], js_name = "call")]
+    fn js_host_callback(name: &str, args: &JsValue) -> Result<JsValue, JsValue>;
 }
 
 /// Bridge JS __blFetch.sync to a Rust closure for CSV and bio I/O.
@@ -80,6 +106,41 @@ fn install_fetch_hooks() {
     set_fetch_hook(Some(hook));
 }
 
+fn install_host_callback_hooks() {
+    let hook = Arc::new(|name: &str, args: Vec<Value>| {
+        let array = js_sys::Array::new_with_length(args.len() as u32);
+        for (index, value) in args.iter().enumerate() {
+            let converted = marshalling::value_to_js(value, 8 * 1024 * 1024).map_err(|error| {
+                BioLangError::runtime(
+                    ErrorKind::PluginError,
+                    error
+                        .as_string()
+                        .unwrap_or_else(|| "cannot marshal host callback argument".into()),
+                    None,
+                )
+            })?;
+            array.set(index as u32, converted);
+        }
+        let result = js_host_callback(name, &array.into()).map_err(|error| {
+            BioLangError::runtime(
+                ErrorKind::PluginError,
+                javascript_error_text(&error, || format!("JavaScript callback '{name}' failed")),
+                None,
+            )
+        })?;
+        marshalling::js_to_value(&result, &|_, _, _| None).map_err(|error| {
+            BioLangError::runtime(
+                ErrorKind::PluginError,
+                error.as_string().unwrap_or_else(|| {
+                    format!("JavaScript callback '{name}' returned an unsupported value")
+                }),
+                None,
+            )
+        })
+    });
+    bl_runtime::host_callback::set_host_callback_hook(Some(hook));
+}
+
 /// Initialize the WASM module (set panic hook for better error messages).
 #[wasm_bindgen]
 pub fn init() {
@@ -88,6 +149,7 @@ pub fn init() {
 
     // Install fetch hooks for CSV and bio I/O (FASTA, FASTQ, VCF, BED, GFF)
     install_fetch_hooks();
+    install_host_callback_hooks();
 }
 
 /// Version of the Rust runtime compiled into this WebAssembly module.
@@ -134,6 +196,29 @@ fn take_interpreter(cell: &RefCell<Option<Interpreter>>) -> Interpreter {
 
 fn put_interpreter(cell: &RefCell<Option<Interpreter>>, interp: Interpreter) {
     *cell.borrow_mut() = Some(interp);
+}
+
+fn execute_value_in(cell: &RefCell<Option<Interpreter>>, source: &str) -> Result<Value, String> {
+    let mut interpreter = take_interpreter(cell);
+    let result = (|| {
+        let tokens = Lexer::new(source)
+            .tokenize()
+            .map_err(|error| error.message)?;
+        let parsed = Parser::new(tokens).parse().map_err(|error| error.message)?;
+        if parsed.has_errors() {
+            return Err(parsed
+                .errors
+                .iter()
+                .map(|error| error.message.clone())
+                .collect::<Vec<_>>()
+                .join("; "));
+        }
+        interpreter
+            .run(&parsed.program)
+            .map_err(|error| error.message)
+    })();
+    put_interpreter(cell, interpreter);
+    result
 }
 
 /// Evaluate BioLang source code. Returns JSON: `{ok, value, type, output, error}`
@@ -395,6 +480,10 @@ fn export_variable_in(
 #[wasm_bindgen]
 pub struct WasmSession {
     interpreter: RefCell<Option<Interpreter>>,
+    handles: RefCell<HashMap<u32, Value>>,
+    session_id: u32,
+    generation: Cell<u32>,
+    next_handle: Cell<u32>,
 }
 
 #[wasm_bindgen]
@@ -403,6 +492,10 @@ impl WasmSession {
     pub fn new() -> Self {
         Self {
             interpreter: RefCell::new(Some(browser_interpreter())),
+            handles: RefCell::new(HashMap::new()),
+            session_id: next_session_id(),
+            generation: Cell::new(1),
+            next_handle: Cell::new(1),
         }
     }
 
@@ -412,6 +505,9 @@ impl WasmSession {
 
     pub fn reset(&self) {
         reset_in(&self.interpreter);
+        self.handles.borrow_mut().clear();
+        self.generation.set(self.generation.get().wrapping_add(1));
+        self.next_handle.set(1);
     }
 
     pub fn register_module(&self, path: &str, source: &str) {
@@ -434,6 +530,203 @@ impl WasmSession {
     ) -> Result<Vec<u8>, JsValue> {
         export_variable_in(&self.interpreter, name, format, maximum_bytes)
     }
+
+    /// Evaluate source and return the actual BioLang value as JavaScript data.
+    /// Values above `maximum_inline_bytes` stay in Rust and return a handle.
+    pub fn eval_value(
+        &self,
+        source: &str,
+        maximum_inline_bytes: usize,
+    ) -> Result<JsValue, JsValue> {
+        let value = execute_value_in(&self.interpreter, source)
+            .map_err(|error| JsValue::from_str(&error))?;
+        self.marshal_or_store(value, maximum_inline_bytes)
+    }
+
+    /// Call a BioLang function with JavaScript values without constructing or
+    /// parsing BioLang source.
+    pub fn call_value(
+        &self,
+        name: &str,
+        arguments: &JsValue,
+        maximum_inline_bytes: usize,
+    ) -> Result<JsValue, JsValue> {
+        validate_host_identifier(name)?;
+        let handles = self.handles.borrow();
+        let converted = marshalling::js_to_value(arguments, &|session, id, generation| {
+            if session != self.session_id || generation != self.generation.get() {
+                return None;
+            }
+            handles.get(&id).cloned()
+        })?;
+        drop(handles);
+        let Value::List(arguments) = converted else {
+            return Err(JsValue::from_str("callValue arguments must be an array"));
+        };
+        let mut interpreter = take_interpreter(&self.interpreter);
+        let result = interpreter
+            .call_named_value(name, arguments.as_ref().clone())
+            .map_err(|error| JsValue::from_str(&error.message));
+        put_interpreter(&self.interpreter, interpreter);
+        self.marshal_or_store(result?, maximum_inline_bytes)
+    }
+
+    /// Define a BioLang variable directly from JavaScript data.
+    pub fn set_value(&self, name: &str, value: &JsValue) -> Result<(), JsValue> {
+        validate_host_identifier(name)?;
+        let handles = self.handles.borrow();
+        let converted = marshalling::js_to_value(value, &|session, id, generation| {
+            if session != self.session_id || generation != self.generation.get() {
+                return None;
+            }
+            handles.get(&id).cloned()
+        })?;
+        drop(handles);
+        let mut slot = self.interpreter.borrow_mut();
+        let interpreter = slot.get_or_insert_with(browser_interpreter);
+        interpreter.env_mut().define(name.to_string(), converted);
+        Ok(())
+    }
+
+    /// Read a named BioLang variable as JavaScript data or a session handle.
+    pub fn get_value(&self, name: &str, maximum_inline_bytes: usize) -> Result<JsValue, JsValue> {
+        validate_host_identifier(name)?;
+        let value = self
+            .interpreter
+            .borrow()
+            .as_ref()
+            .and_then(|interpreter| interpreter.env().lookup(name).cloned())
+            .ok_or_else(|| JsValue::from_str(&format!("undefined variable '{name}'")))?;
+        self.marshal_or_store(value, maximum_inline_bytes)
+    }
+
+    /// Register a synchronous JavaScript callback as a callable BioLang native
+    /// function in this interpreter only.
+    pub fn register_host_function(
+        &self,
+        name: &str,
+        minimum_arguments: usize,
+        maximum_arguments: usize,
+    ) -> Result<(), JsValue> {
+        validate_host_identifier(name)?;
+        if maximum_arguments < minimum_arguments {
+            return Err(JsValue::from_str(
+                "maximum callback arguments cannot be below the minimum",
+            ));
+        }
+        let arity = if maximum_arguments == usize::MAX {
+            Arity::AtLeast(minimum_arguments)
+        } else if maximum_arguments == minimum_arguments {
+            Arity::Exact(minimum_arguments)
+        } else {
+            Arity::Range(minimum_arguments, maximum_arguments)
+        };
+        let mut slot = self.interpreter.borrow_mut();
+        let interpreter = slot.get_or_insert_with(browser_interpreter);
+        if let Some(existing) = interpreter.env().lookup(name) {
+            let is_same_host_slot = matches!(
+                existing,
+                Value::NativeFunction { name, .. }
+                    if name.starts_with(bl_runtime::host_callback::HOST_CALLBACK_PREFIX)
+            );
+            if !is_same_host_slot {
+                return Err(JsValue::from_str(&format!(
+                    "cannot replace existing BioLang value '{name}' with a JavaScript callback"
+                )));
+            }
+        }
+        interpreter.env_mut().define(
+            name.to_string(),
+            Value::NativeFunction {
+                name: format!(
+                    "{}{}",
+                    bl_runtime::host_callback::HOST_CALLBACK_PREFIX,
+                    name
+                ),
+                arity,
+            },
+        );
+        Ok(())
+    }
+
+    pub fn handle_page(
+        &self,
+        id: u32,
+        generation: u32,
+        offset: usize,
+        limit: usize,
+    ) -> Result<JsValue, JsValue> {
+        let handles = self.handles.borrow();
+        let value = self.valid_handle(&handles, id, generation)?;
+        marshalling::handle_page(value, offset, limit)
+    }
+
+    pub fn handle_float64(
+        &self,
+        id: u32,
+        generation: u32,
+    ) -> Result<js_sys::Float64Array, JsValue> {
+        let handles = self.handles.borrow();
+        marshalling::handle_float64(self.valid_handle(&handles, id, generation)?)
+    }
+
+    pub fn release_handle(&self, id: u32, generation: u32) -> bool {
+        if generation != self.generation.get() {
+            return false;
+        }
+        self.handles.borrow_mut().remove(&id).is_some()
+    }
+
+    pub fn handle_count(&self) -> usize {
+        self.handles.borrow().len()
+    }
+}
+
+impl WasmSession {
+    fn marshal_or_store(
+        &self,
+        value: Value,
+        maximum_inline_bytes: usize,
+    ) -> Result<JsValue, JsValue> {
+        if let Ok(inline) = marshalling::value_to_js(&value, maximum_inline_bytes) {
+            return Ok(inline);
+        }
+        let id = self.next_handle.get();
+        self.next_handle.set(id.checked_add(1).unwrap_or(1));
+        let descriptor =
+            marshalling::handle_descriptor(self.session_id, id, self.generation.get(), &value)?;
+        self.handles.borrow_mut().insert(id, value);
+        Ok(descriptor)
+    }
+
+    fn valid_handle<'a>(
+        &self,
+        handles: &'a HashMap<u32, Value>,
+        id: u32,
+        generation: u32,
+    ) -> Result<&'a Value, JsValue> {
+        if generation != self.generation.get() {
+            return Err(JsValue::from_str("BioLang handle is stale after reset"));
+        }
+        handles
+            .get(&id)
+            .ok_or_else(|| JsValue::from_str("BioLang handle was disposed or does not exist"))
+    }
+}
+
+fn validate_host_identifier(name: &str) -> Result<(), JsValue> {
+    let mut characters = name.chars();
+    let Some(first) = characters.next() else {
+        return Err(JsValue::from_str("BioLang name cannot be empty"));
+    };
+    if !(first == '_' || first.is_ascii_alphabetic())
+        || characters.any(|character| !(character == '_' || character.is_ascii_alphanumeric()))
+    {
+        return Err(JsValue::from_str(&format!(
+            "'{name}' is not a valid BioLang identifier"
+        )));
+    }
+    Ok(())
 }
 
 impl Default for WasmSession {

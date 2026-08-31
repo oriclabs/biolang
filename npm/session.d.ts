@@ -2,6 +2,7 @@ import type { BioExpression, BioProgram, BioStatement } from "./dsl.js";
 import type { SomerExecutor } from "./somer.js";
 import type { BioMatrix, BioSequence, BioTable } from "./objects.js";
 import type { BioLangSessionBuiltinMethods } from "./generated-session-builtins.js";
+import type { BioJsValue, BioValueHandle } from "./values.js";
 
 export interface RunResult {
   ok: boolean;
@@ -54,6 +55,24 @@ export interface SomerConnectionOptions {
   client?: unknown;
 }
 
+export interface BioValueOptions {
+  /** Maximum copied payload before the value remains in Rust as a handle. */
+  maximumInlineBytes?: number;
+}
+
+export type BioCallbackType = "Any" | "Nil" | "Bool" | "Boolean" | "Str" | "String"
+  | "Int" | "Integer" | "Float" | "Number" | "Numeric" | "List" | "Record"
+  | "Table" | "Matrix" | "SparseMatrix" | "DNA" | "RNA" | "Protein"
+  | "Sequence" | "Quality";
+
+export interface BioHostFunctionOptions {
+  parameters?: BioCallbackType[];
+  returns?: BioCallbackType;
+  minimumArguments?: number;
+  maximumArguments?: number;
+  variadic?: boolean;
+}
+
 export type BioLangSource = string | BioExpression | BioStatement | BioProgram;
 
 export declare const WASM_API_COVERAGE: Readonly<Record<string, string>>;
@@ -63,6 +82,19 @@ export interface BioLangSession extends BioLangSessionBuiltinMethods {}
 export class BioLangSession {
   constructor(wasm: unknown);
   run(source: BioLangSource): RunResult;
+  evalValue(source: BioLangSource, options?: BioValueOptions): BioJsValue;
+  callValue(name: string, args?: unknown[], options?: BioValueOptions): BioJsValue;
+  setValue(name: string, value: unknown): BioExpression;
+  getValue(name: string, options?: BioValueOptions): BioJsValue;
+  registerFunction(
+    name: string,
+    callback: (...args: BioJsValue[]) => unknown,
+  ): BioValueHandle;
+  registerFunction(
+    name: string,
+    options: BioHostFunctionOptions,
+    callback: (...args: BioJsValue[]) => unknown,
+  ): BioValueHandle;
   define(name: string, value: import("./dsl.js").BioArgument): BioExpression;
   ref(name: string): BioExpression;
   invoke(name: string, ...args: import("./dsl.js").BioArgument[]): RunResult;

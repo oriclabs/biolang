@@ -20,6 +20,7 @@ pub mod gwas;
 pub mod hash;
 pub mod hic;
 pub mod hmm;
+pub mod host_callback;
 pub mod immune;
 pub mod interpreter;
 pub mod json;
