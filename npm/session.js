@@ -23,6 +23,7 @@ export const WASM_API_COVERAGE = Object.freeze({
   runtime_version: "BioLangSession.runtimeVersion",
   tokenize: "BioLangSession.tokenize",
   validate_import: "BioLangSession.validateImport",
+  transpile_javascript: "BioLangSession.transpileJavaScript",
 });
 
 export function normalizeRunResult(parsed) {
@@ -104,6 +105,12 @@ export class BioLangSession {
 
   tokenize(source) {
     return JSON.parse(this.#wasm.tokenize(source));
+  }
+
+  transpileJavaScript(source) {
+    const result = JSON.parse(this.#wasm.transpile_javascript(source));
+    if (!result.ok) throw new Error(result.error || "Cannot translate BioLang to JavaScript");
+    return result.source;
   }
 
   import(source, format, filename = "input") {

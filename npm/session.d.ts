@@ -56,6 +56,7 @@ export class BioLangSession {
   runtimeVersion(): string | null;
   format(source: string, indent?: number): string;
   tokenize(source: string): unknown;
+  transpileJavaScript(source: string): string;
   import(source: string, format: string, filename?: string): unknown;
   validateImport(source: string, options?: { notebook?: boolean }): unknown;
   qcMetrics(kind: string, text: string): unknown;

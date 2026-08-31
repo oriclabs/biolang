@@ -10,6 +10,8 @@ use bl_runtime::Interpreter;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
+mod javascript;
+
 thread_local! {
     /// `Option` so `evaluate` can TAKE the interpreter out, run user code while
     /// holding no borrow, and put it back. wasm32 cannot unwind, so a panic
@@ -95,6 +97,17 @@ pub fn init() {
 #[wasm_bindgen]
 pub fn runtime_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
+}
+
+/// Convert BioLang source into structural JavaScript SDK calls.
+///
+/// The returned JavaScript never embeds or evaluates a BioLang source string.
+#[wasm_bindgen]
+pub fn transpile_javascript(source: &str) -> String {
+    match javascript::transpile(source) {
+        Ok(source) => serde_json::json!({ "ok": true, "source": source }).to_string(),
+        Err(error) => serde_json::json!({ "ok": false, "error": error }).to_string(),
+    }
 }
 
 /// Register an optional in-memory package supplied by the embedding page.

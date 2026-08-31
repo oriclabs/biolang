@@ -249,6 +249,28 @@ export function tokenize(source) {
 }
 
 /**
+ * Convert BioLang source into structural JavaScript SDK calls.
+ *
+ * The returned JavaScript never embeds or evaluates a BioLang source string.
+ * @param {string} source
+ * @returns {string}
+ */
+export function transpile_javascript(source) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.transpile_javascript(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
+/**
  * Validate a BioLang script or BioLang notebook without executing it.
  * @param {string} source
  * @param {boolean} notebook

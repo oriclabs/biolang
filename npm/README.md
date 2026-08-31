@@ -21,6 +21,16 @@ The JavaScript layer builds BioLang source and sends it through the same parser,
 interpreter and builtins used by `.bl` programs. It does not implement a second
 statistics or bioinformatics engine.
 
+Existing BioLang can also be converted into inspectable structural JavaScript;
+the result contains SDK calls, never a BioLang template string:
+
+```js
+const javascript = bl.transpileJavaScript(
+  "let measurements = [12, 14, 15]\nsummary(measurements)"
+);
+// bio.program(bio.let_(...), bio.expr_(bio.callExpr(...))).run(bl)
+```
+
 ## JavaScript objects and pipelines
 
 Builtin calls return lazy `BioExpression` objects. Nothing is calculated until

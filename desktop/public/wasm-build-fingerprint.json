@@ -1,6 +1,6 @@
 {
   "comment": "Written by scripts/build-wasm.mjs. Hash of the sources the committed module was built from; scripts/check-wasm-fresh.mjs recomputes it to detect a module that has fallen behind. Do not edit by hand.",
-  "sources": "d7f06333116a8bca28e324c6e52f193036b0575484bc42b6b58f7c59a5a0db33",
-  "fileCount": 155,
-  "builtAt": "2026-08-31T00:25:49.707Z"
+  "sources": "f82fd202c58ec94857cd55532ca2a605c30fc8286d939f652b3a74fbe12e16cb",
+  "fileCount": 156,
+  "builtAt": "2026-08-31T01:51:43.558Z"
 }

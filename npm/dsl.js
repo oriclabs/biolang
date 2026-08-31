@@ -187,7 +187,7 @@ export function assign(name, value) {
 }
 
 export function return_(value) {
-  return new BioStatement(`return ${expression(value).source}`);
+  return new BioStatement(value === undefined ? "return" : `return ${expression(value).source}`);
 }
 
 export function if_(condition, thenBranch, elseBranch) {
@@ -198,27 +198,167 @@ export function if_(condition, thenBranch, elseBranch) {
   );
 }
 
-export function for_(name, iterable, body) {
-  assertIdentifier(name, "loop variable");
-  return new BioStatement(
-    `for ${name} in ${expression(iterable).source} {\n${indent(blockSource(body))}\n}`,
-  );
-}
-
 export function while_(condition, body) {
   return new BioStatement(
     `while ${expression(condition).source} {\n${indent(blockSource(body))}\n}`,
   );
 }
 
-export function function_(name, parameters, body) {
+export function function_(name, parameters, body, options = {}) {
   assertIdentifier(name, "function");
   if (!Array.isArray(parameters)) throw new TypeError("function_() parameters must be an array");
-  parameters.forEach((parameter) => assertIdentifier(parameter, "function parameter"));
+  const prefix = `${options.async ? "async " : ""}fn${options.generator ? "*" : ""}`;
   return new BioStatement(
-    `fn ${name}(${parameters.join(", ")}) {\n${indent(blockSource(body))}\n}`,
+    `${prefix} ${name}(${parameters.map(parameterSource).join(", ")}) {\n${indent(blockSource(body))}\n}`,
   );
 }
+
+// Structural builders used by the BioLang-to-JavaScript frontend. They are
+// deliberately explicit: generated JavaScript contains no hidden BioLang
+// source string and every AST edge remains visible and inspectable.
+class BioCallArgument {
+  constructor(kind, value, name = null) { this.kind = kind; this.value = value; this.name = name; }
+}
+class BioRecordEntry {
+  constructor(kind, value, name = null) { this.kind = kind; this.value = value; this.name = name; }
+}
+class BioParameter {
+  constructor(name, options = {}) { this.name = name; this.options = options; }
+}
+
+export function expr_(value) { return new BioStatement(expression(value).source); }
+export function const_(name, value) {
+  assertIdentifier(name, "constant");
+  return new BioStatement(`const ${name} = ${expression(value).source}`);
+}
+export function indexAssign(name, indexValue, value) {
+  assertIdentifier(name, "variable");
+  return new BioStatement(`${name}[${expression(indexValue).source}] = ${expression(value).source}`);
+}
+export function break_() { return new BioStatement("break"); }
+export function continue_() { return new BioStatement("continue"); }
+export function yield_(value) { return new BioStatement(`yield ${expression(value).source}`); }
+export function defer_(value) { return new BioStatement(`defer ${expression(value).source}`); }
+export function assert_(condition, message = null) {
+  const suffix = message === null ? "" : `, ${expression(message).source}`;
+  return new BioStatement(`assert ${expression(condition).source}${suffix}`);
+}
+export function import_(path, alias = null) {
+  const suffix = alias === null ? "" : ` as ${identifierSource(alias, "module alias")}`;
+  return new BioStatement(`import ${quote(path)}${suffix}`);
+}
+export function fromImport(path, names) {
+  names.forEach((name) => assertIdentifier(name, "import name"));
+  return new BioStatement(`from ${quote(path)} import ${names.join(", ")}`);
+}
+export function nilAssign(name, value) {
+  assertIdentifier(name, "variable");
+  return new BioStatement(`${name} ?= ${expression(value).source}`);
+}
+
+export function unary(operator, value) {
+  if (!["-", "!", "not"].includes(operator)) throw new TypeError(`Unsupported unary operator '${operator}'`);
+  const operand = expression(value);
+  return new BioExpression(`${operator}${operator === "not" ? " " : ""}(${operand.source})`, [operand]);
+}
+export function binary(operator, left, right) {
+  const allowed = ["+", "-", "*", "/", "%", "**", "==", "!=", "<", ">", "<=", ">=", "&&", "||", "and", "or", "&", "^", "<<", ">>", "++"];
+  if (!allowed.includes(operator)) throw new TypeError(`Unsupported binary operator '${operator}'`);
+  const spelling = operator === "&&" ? "and" : operator === "||" ? "or" : operator;
+  const lhs = expression(left);
+  const rhs = expression(right);
+  return new BioExpression(`(${lhs.source} ${spelling} ${rhs.source})`, [lhs, rhs]);
+}
+export function pipe(left, right) { return new BioExpression(`(${expression(left).source}) |> ${expression(right).source}`); }
+export function tapPipe(left, right) { return new BioExpression(`(${expression(left).source}) |>> ${expression(right).source}`); }
+export function pipeInto(value, name) {
+  assertIdentifier(name, "pipe binding");
+  return new BioExpression(`(${expression(value).source}) |> into ${name}`);
+}
+export function field(object, name, optional = false) {
+  assertIdentifier(name, "field");
+  return new BioExpression(`(${expression(object).source})${optional ? "?." : "."}${name}`);
+}
+export function index(object, key) { return new BioExpression(`(${expression(object).source})[${expression(key).source}]`); }
+export function slice(object, start = null, end = null, step = null) {
+  const part = (value) => value === null ? "" : expression(value).source;
+  return new BioExpression(`(${expression(object).source})[${part(start)}:${part(end)}${step === null ? "" : `:${part(step)}`}]`);
+}
+export function named(name, value) {
+  assertIdentifier(name, "argument name");
+  return new BioCallArgument("named", value, name);
+}
+export function spread(value) { return new BioCallArgument("spread", value); }
+export function callExpr(name, args = []) {
+  assertIdentifier(name, "function");
+  return invokeSource(name, args);
+}
+export function invoke(callee, args = []) { return invokeSource(expression(callee).source, args); }
+export function lambdaExpr(parameters, body) {
+  const rendered = parameters.map(parameterSource);
+  return new BioExpression(`|${rendered.join(", ")}| ${expression(body).source}`);
+}
+export function blockExpr(body) { return new BioExpression(`{\n${indent(blockSource(body))}\n}`); }
+export function ifExpr(condition, thenBody, elseBody = null) {
+  const suffix = elseBody === null ? "" : ` else {\n${indent(blockSource(elseBody))}\n}`;
+  return new BioExpression(`if ${expression(condition).source} {\n${indent(blockSource(thenBody))}\n}${suffix}`);
+}
+export function fieldEntry(name, value) { return new BioRecordEntry("field", value, name); }
+export function spreadEntry(value) { return new BioRecordEntry("spread", value); }
+export function record(entries) {
+  const rendered = entries.map((entry) => {
+    if (!(entry instanceof BioRecordEntry)) throw new TypeError("record() entries must use fieldEntry() or spreadEntry()");
+    return entry.kind === "spread" ? `...${expression(entry.value).source}` : `${recordKey(entry.name)}: ${expression(entry.value).source}`;
+  });
+  return new BioExpression(`{${rendered.join(", ")}}`);
+}
+export function formula(value) { return new BioExpression(`~${expression(value).source}`); }
+export function coalesce(left, right) { return new BioExpression(`(${expression(left).source}) ?? (${expression(right).source})`); }
+export function range(start, end, options = {}) { return new BioExpression(`${expression(start).source}..${options.inclusive ? "=" : ""}${expression(end).source}`); }
+export function ternary(condition, value, fallback) { return new BioExpression(`${expression(value).source} if ${expression(condition).source} else ${expression(fallback).source}`); }
+export function in_(left, right, options = {}) { return new BioExpression(`(${expression(left).source}) ${options.negated ? "not in" : "in"} (${expression(right).source})`); }
+export function cast(value, target) { return new BioExpression(`(${expression(value).source}) as ${identifierSource(target, "type")}`); }
+export function tuple(values) { return new BioExpression(`(${values.map((value) => expression(value).source).join(", ")}${values.length === 1 ? "," : ""})`); }
+export function set(values) { return new BioExpression(`#{${values.map((value) => expression(value).source).join(", ")}}`); }
+export function dna(value) { return new BioExpression(`dna${quote(value)}`); }
+export function rna(value) { return new BioExpression(`rna${quote(value)}`); }
+export function protein(value) { return new BioExpression(`protein${quote(value)}`); }
+export function quality(value) { return new BioExpression(`qual${quote(value)}`); }
+export function param(name, options = {}) { assertIdentifier(name, "parameter"); return new BioParameter(name, options); }
+
+export function for_(pattern, iterable, body, options = {}) {
+  const guard = options.when === undefined ? "" : ` when ${expression(options.when).source}`;
+  const fallback = options.elseBody === undefined ? "" : ` else {\n${indent(blockSource(options.elseBody))}\n}`;
+  return new BioStatement(`for ${patternSource(pattern)} in ${expression(iterable).source}${guard} {\n${indent(blockSource(body))}\n}${fallback}`);
+}
+export function listPattern(names) { return { kind: "list", names }; }
+export function recordPattern(names) { return { kind: "record", names }; }
+export function tuplePattern(names) { return { kind: "tuple", names }; }
+
+function invokeSource(callee, args) {
+  const rendered = args.map((arg) => {
+    if (arg instanceof BioCallArgument) {
+      if (arg.kind === "spread") return `...${expression(arg.value).source}`;
+      return `${arg.name}: ${expression(arg.value).source}`;
+    }
+    return expression(arg).source;
+  });
+  return new BioExpression(`${callee}(${rendered.join(", ")})`);
+}
+function parameterSource(parameter) {
+  if (typeof parameter === "string") return identifierSource(parameter, "parameter");
+  if (!(parameter instanceof BioParameter)) throw new TypeError("parameters must use param()");
+  const rest = parameter.options.rest ? "..." : "";
+  const fallback = parameter.options.default === undefined ? "" : ` = ${expression(parameter.options.default).source}`;
+  return `${rest}${parameter.name}${fallback}`;
+}
+function patternSource(pattern) {
+  if (typeof pattern === "string") return identifierSource(pattern, "loop variable");
+  pattern.names.forEach((name) => assertIdentifier(name, "pattern name"));
+  const delimiters = pattern.kind === "record" ? ["{", "}"] : pattern.kind === "tuple" ? ["(", ")"] : ["[", "]"];
+  return `${delimiters[0]}${pattern.names.join(", ")}${delimiters[1]}`;
+}
+function identifierSource(value, label) { assertIdentifier(value, label); return value; }
 
 export function sourceOf(value) {
   if (typeof value === "string") return value;
@@ -270,17 +410,6 @@ function expressionProxy(target) {
       return object.field(property);
     },
   });
-}
-
-function binary(operator, left, right) {
-  const lhs = expression(left);
-  const rhs = expression(right);
-  return new BioExpression(`(${lhs.source} ${operator} ${rhs.source})`, [lhs, rhs]);
-}
-
-function unary(operator, value) {
-  const operand = expression(value);
-  return new BioExpression(`(${operator} ${operand.source})`, [operand]);
 }
 
 function visit(node, seen) {
