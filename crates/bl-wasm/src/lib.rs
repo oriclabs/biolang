@@ -88,6 +88,15 @@ pub fn init() {
     install_fetch_hooks();
 }
 
+/// Version of the Rust runtime compiled into this WebAssembly module.
+///
+/// JavaScript packages must use this value for compatibility checks rather
+/// than reporting their independently versioned package.json version.
+#[wasm_bindgen]
+pub fn runtime_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
 /// Register an optional in-memory package supplied by the embedding page.
 ///
 /// Modules supplied through this function remain outside the BioLang WASM
@@ -896,7 +905,8 @@ pub fn validate_import(source: &str, notebook: bool) -> String {
     })
 }
 
-/// List all builtin functions. Returns JSON array of {name, signature, category}.
+/// List all builtin functions available in this WASM build.
+/// Returns a JSON array of `{name, arity}` records.
 #[wasm_bindgen]
 pub fn list_builtins() -> String {
     // Return the full catalog from the REPL catalog constants embedded here

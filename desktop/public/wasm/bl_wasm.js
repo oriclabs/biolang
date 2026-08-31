@@ -123,7 +123,8 @@ export function inspect_variable(name, offset, limit) {
 }
 
 /**
- * List all builtin functions. Returns JSON array of {name, signature, category}.
+ * List all builtin functions available in this WASM build.
+ * Returns a JSON array of `{name, arity}` records.
  * @returns {string}
  */
 export function list_builtins() {
@@ -205,6 +206,26 @@ export function register_module(path, source) {
  */
 export function reset() {
     wasm.reset();
+}
+
+/**
+ * Version of the Rust runtime compiled into this WebAssembly module.
+ *
+ * JavaScript packages must use this value for compatibility checks rather
+ * than reporting their independently versioned package.json version.
+ * @returns {string}
+ */
+export function runtime_version() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.runtime_version();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
 }
 
 /**

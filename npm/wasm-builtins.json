@@ -1,0 +1,3614 @@
+{
+  "schema": 1,
+  "count": 902,
+  "builtins": [
+    {
+      "name": "abs",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "acos",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "add_chr",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "add_edge",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "add_node",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "align",
+      "arity": "Range(2, 8)"
+    },
+    {
+      "name": "aligned_read",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "alignment_view",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "all",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "allele_freq",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "allele_freq_spectrum",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "allele_specific_cn",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "alpha_diversity",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "amino_acid_masses",
+      "arity": "Exact(0)"
+    },
+    {
+      "name": "ani",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "annotate_peaks",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "anova",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "anti_join",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "any",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "argmax",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "argmin",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "arrange",
+      "arity": "AtLeast(2)"
+    },
+    {
+      "name": "ascii",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "asin",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "assert",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "atac_batch_mixing",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "atac_depth_cor",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "atac_detected_features",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "atac_filter_peaks",
+      "arity": "Range(1, 5)"
+    },
+    {
+      "name": "atac_fragment_qc",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "atac_frip",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "atac_ngs101_qc",
+      "arity": "Exact(5)"
+    },
+    {
+      "name": "atac_peak_qc",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "atac_qc",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "atac_tfidf",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "atac_top_features",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "atac_tss_qc",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "atan",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "atan2",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "auc_response",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "await_all",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "backbone_angles",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "bar_chart",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "base_counts",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "base64_decode",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "base64_encode",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "batch_correct",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "bed_closest",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "bed_intersect",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "bed_merge",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "bed_subtract",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "bench",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "beta_diversity",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "beta_to_mvalue",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "betweenness_centrality",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "bh_adjust",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "binary_search",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "bind_cols",
+      "arity": "AtLeast(2)"
+    },
+    {
+      "name": "bio_join",
+      "arity": "Range(2, 4)"
+    },
+    {
+      "name": "blast",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "blast_remote",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "bliss_synergy",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "bonferroni_adjust",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "bool",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "bootstrap",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "bootstrap_ci",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "boxplot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "boxplot_data",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "bp",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "breslow_day_test",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "bulk_overlaps",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "case_when",
+      "arity": "AtLeast(2)"
+    },
+    {
+      "name": "categorical_data",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "cbs_segment",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "cca",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "cdr3_length_dist",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "ceil",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "cell_cycle_score",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "cell_qc",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "cell_type_correlation",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "center_interval",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "char_at",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "chars",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "checkpoint",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "chi_square",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "chi_square_contingency",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "choose",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "chr",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "chunk",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "circos",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "circos_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "cite",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "clamp",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "classify_variants",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "clinvar_lookup",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "clonal_expansion",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "clonotype_diversity",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "clump",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "clustered_heatmap",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "cn_call",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "cnv_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "cnv_segment",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "cnv_summary",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "codon_usage",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "col",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "col_max",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "col_mean",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "col_means",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "col_min",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "col_stdev",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "col_sum",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "col_sums",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "col_values",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "col_width",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "collect",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "colnames",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "columns",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "compare",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "complement",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "concat",
+      "arity": "AtLeast(2)"
+    },
+    {
+      "name": "connected_components",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "consensus",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "consensus_peaks",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "contact_map",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "containment",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "contains",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "coord_bed",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "coord_check",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "coord_convert",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "coord_gff",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "coord_sam",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "coord_system",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "coord_vcf",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "cor",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "cor_matrix",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "cos",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "count",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "count_by",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "count_if",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "count_overlaps",
+      "arity": "Range(4, 4)"
+    },
+    {
+      "name": "count_where",
+      "arity": "Exact(4)"
+    },
+    {
+      "name": "cov_matrix",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "coverage",
+      "arity": "Range(1, 4)"
+    },
+    {
+      "name": "coverage_track",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "cox_ph",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "cpg_density",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "cpg_islands",
+      "arity": "Range(1, 4)"
+    },
+    {
+      "name": "crc32",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "crispr_qc",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "cross_join",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "cross_tab",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "csv",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "cummax",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "cummin",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "cumsum",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "cumsum_col",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "cut",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "cwd",
+      "arity": "Exact(0)"
+    },
+    {
+      "name": "cyclic_spectrum",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "date_add",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "date_diff",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "date_format",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "date_parse",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "day",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "dbinom",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "de_bruijn_graph",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "debug",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "deconvolve",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "degree",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "degree_centrality",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "delta_ct",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "delta_delta_ct",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "density",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "density_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "dereplicate",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "describe",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "determinant",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "dexp",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "diag",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "die",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "diff_expr",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "diff_table",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "difference",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "differential_methylation",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "diffusion_pseudotime",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "dim",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "dist_matrix",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "distance_decay",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "distinct",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "dmr_find",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "dna",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "dnorm",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "dose_response_curve",
+      "arity": "Exact(5)"
+    },
+    {
+      "name": "dot",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "dot_plot",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "dotplot",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "doublet_score",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "dpois",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "drop",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "drop_cols",
+      "arity": "AtLeast(2)"
+    },
+    {
+      "name": "drop_null",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "drug_rank",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "dunif",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "each",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "ecdf_data",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "ecdf_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "edge_count",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "edges",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "edit_distance",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "eigenvalues",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "elbow_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "ends_with",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "enrichment_score",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "entropy",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "enumerate",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "env",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "epigenetic_age",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "error",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "error_rate",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "essential_genes",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "estimate_purity",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "euler",
+      "arity": "Exact(0)"
+    },
+    {
+      "name": "eulerian_cycle",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "eulerian_path",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "event_timeline_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "exit",
+      "arity": "Range(0, 1)"
+    },
+    {
+      "name": "exp",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "expected_contacts",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "explode",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "extend_interval",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "eye",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "factorial",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "fastq_stats",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "feature_group",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "feature_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "fetch_sra",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "fill_null",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "filter",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "filter_by",
+      "arity": "Exact(4)"
+    },
+    {
+      "name": "filter_low_counts",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "find",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "find_all_markers",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "find_index",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "find_motif",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "find_orfs",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "find_pattern",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "first",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "fisher_exact",
+      "arity": "Range(4, 5)"
+    },
+    {
+      "name": "fit_ic50",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "flagstat",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "flank",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "flat_map",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "flatten",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "float",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "floor",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "forest_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "format",
+      "arity": "AtLeast(1)"
+    },
+    {
+      "name": "fragment_size_dist",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "frequencies",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "frip_score",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "from_records",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "from_table",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "fst",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "fst_weir_cockerham",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "gb",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "gc_bias",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "gc_content",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "gc_per_read",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "gc_skew",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "gen_float",
+      "arity": "Exact(0)"
+    },
+    {
+      "name": "gen_int",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "gen_str",
+      "arity": "Range(0, 1)"
+    },
+    {
+      "name": "gene",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "gene_activity",
+      "arity": "Range(2, 5)"
+    },
+    {
+      "name": "gene_bodies",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "gene_id_map",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "gene_qc",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "genome",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "genome_track",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "genomic_bins",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "genomic_inflation",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "genorm_stability",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "glimpse",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "glm",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "gnomad_freq",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "go_enrichment",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "graph",
+      "arity": "Range(0, 1)"
+    },
+    {
+      "name": "grep",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "grep_count",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "group_apply",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "group_by",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "group_stats",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "grouped_bar_plot",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "grouped_boxplot_plot",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "grouped_density_plot",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "gsea_score",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "guide_counts",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "guide_gc",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "hamming_distance",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "hardy_weinberg",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "harmony_integrate",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "has_edge",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "has_key",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "has_node",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "head",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "heatmap",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "heatmap_ascii",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "help",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "het_hom_ratio",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "hic_map",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "highly_variable_genes",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "hist",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "histogram",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "histogram_data",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "hmac_sha256",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "hmm_baum_welch",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "hmm_emission_probability",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "hmm_estimate",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "hmm_likelihood",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "hmm_path_probability",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "hmm_posterior",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "hmm_profile",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "hmm_profile_align",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "hmm_viterbi_learning",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "hwe_test",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "ice_normalize",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "ideogram",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "impute_minvalue",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "index_of",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "inner_join",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "inspect",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "insulation_score",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "int",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "intersection",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "interval",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "interval_overlap",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "interval_tree",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "into",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "inverse",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_aligned_read",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_bool",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_dna",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_enum",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_finite",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_float",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_function",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_future",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_gene",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_genome",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_het",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_hom_alt",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_hom_ref",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_indel",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_int",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_interval",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_kmer",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_list",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_map",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_matrix",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_multiallelic",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_nan",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_nil",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_num",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_protein",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_quality",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_range",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_record",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_regex",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_rna",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_set",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_snp",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_sparse",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_str",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_stream",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_subsequence",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "is_subset",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "is_superset",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "is_table",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_transition",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_transversion",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "is_variant",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "isotope_correct",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "iupac_match",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "iupac_scan",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "jaccard",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "join",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "json_keys",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "json_parse",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "json_pretty",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "json_stringify",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "kaplan_meier",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "kb",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "kendall",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "keys",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "kmeans",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "kmer_canonical",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "kmer_count",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "kmer_decode",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "kmer_distinct",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "kmer_encode",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "kmer_index",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "kmer_rc",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "kmer_spectrum",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "kmers",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "knn_graph",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "kruskal_wallis",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "ks_test",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "lag",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "lambda_gc",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "last",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "lcp_array",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "lcs",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "ld_decay",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "ld_r2",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "lead",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "left_join",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "leiden",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "leiden_cluster",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "leiden_graph",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "len",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "lfc_guides",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "liftover",
+      "arity": "Range(3, 5)"
+    },
+    {
+      "name": "linear_fit_data",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "linear_spectrum",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "lines",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "lm",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "load_maxquant",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "load_ppi",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "loewe_synergy",
+      "arity": "Exact(5)"
+    },
+    {
+      "name": "log",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "log_rank_test",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "log_transform",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "log10",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "log1p_transform",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "log2",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "log2_ratios",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "log2_transform",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "loh_detect",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "lollipop",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "louvain_cluster",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "louvain_graph",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "lower",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "lr_aggregate",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "lr_score",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "ma_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "mageck_score",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "manhattan",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "manhattan_data",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "map",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "marker_score",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "mat_add",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "mat_col",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "mat_map",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "mat_mul",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "mat_scale",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "mat_sub",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "matrix",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "matrix_at",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "matrix_from_table",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "matrix_to_table",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "max",
+      "arity": "AtLeast(1)"
+    },
+    {
+      "name": "mb",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "md5",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "mean",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "mean_phred",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "median",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "memoize",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "memory_usage",
+      "arity": "Exact(0)"
+    },
+    {
+      "name": "merge",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "merge_peaks",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "meta_analysis",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "min",
+      "arity": "AtLeast(1)"
+    },
+    {
+      "name": "min_phred",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "minimizers",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "missingness_data",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "mode",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "module_score",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "month",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "mosaic_data",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "mosaic_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "motif_consensus",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "motif_count",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "motif_enrichment",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "motif_find",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "motif_profile",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "motif_score",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "multi_filter_by",
+      "arity": "AtLeast(4)"
+    },
+    {
+      "name": "mutate",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "mutational_signature",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "mutual_information",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "mvalue_to_beta",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "mz_match",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "n50",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "ncbi_fetch",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "ncbi_gene",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "ncbi_search",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "ncbi_sequence",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "ncbi_summary",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "ncol",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "ncols",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "neighbor_joining",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "neighbors",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "network_enrichment",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "next",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "nfr_enrichment",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "nnls",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "nnz",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "node_attr",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "node_count",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "nodes",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "none",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "norm",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "normal_qq_data",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "normal_qq_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "normalize",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "normalize_chrom",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "normalize_counts",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "normalize_samples",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "normalize_sparse",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "normalize_total",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "now",
+      "arity": "Exact(0)"
+    },
+    {
+      "name": "nrow",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "nucleosome_fractions",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "nucleotide_diversity",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "nw_parse",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "nw_to_distance_matrix",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "ode_solve",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "once",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "oncoprint",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "ones",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "outer_join",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "p_adjust",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "pad_left",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "pad_right",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "pairwise_ttest",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "par_filter",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "par_map",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "parse_featurecounts",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "parse_gtf",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "parse_json",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "parse_salmon",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "parse_sumstats",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "parse_vcf_info",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "parse_vdj",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "partition",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "paste",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "pathway_enrichment",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "patristic_distance",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "pbinom",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "pca",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "pca_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "pcr_efficiency",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "pdb_parse",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "peak_annotation",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "peak_matrix",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "peak_matrix_sparse",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "pearson_correlation",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "peptide_mass",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "permutation_test",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "permutations",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "pexp",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "phylo_tree",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "pi",
+      "arity": "Exact(0)"
+    },
+    {
+      "name": "pipe_fuse",
+      "arity": "AtLeast(2)"
+    },
+    {
+      "name": "pipeline_steps",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "pivot_longer",
+      "arity": "Exact(4)"
+    },
+    {
+      "name": "pivot_wider",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "plot_grid",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "plot_spec",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "pnorm",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "pop",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "pow",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "power_analysis",
+      "arity": "Range(2, 4)"
+    },
+    {
+      "name": "power_prop_test",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "power_t_test",
+      "arity": "Range(1, 4)"
+    },
+    {
+      "name": "ppois",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "predictive_compare",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "predictive_importance_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "predictive_predict",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "predictive_resample_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "predictive_train",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "primer_design",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "print",
+      "arity": "AtLeast(0)"
+    },
+    {
+      "name": "println",
+      "arity": "AtLeast(0)"
+    },
+    {
+      "name": "profile_most_probable",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "profile_probability",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "promoters",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "prop_test",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "protein",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "protein_ttest",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "provenance",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "provenance_chain",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "pseudobulk_aggregate",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "punif",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "push",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "pwm",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "pwm_from_seqs",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "pwm_scan",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "qc_report",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "qnorm",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "qq_data",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "qq_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "quality_filter",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "quality_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "quantile",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "quantile_norm",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "quantile_normalize",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "query_nearest",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "query_overlaps",
+      "arity": "Range(4, 4)"
+    },
+    {
+      "name": "rainfall",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "random",
+      "arity": "Exact(0)"
+    },
+    {
+      "name": "random_int",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "range",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "rank",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "rank_col",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "rarefaction",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "rbinom",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "read_10x",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "read_10x_sparse",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "read_bed",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "read_csv",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "read_f64_matrix",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "read_fasta",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "read_fastq",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "read_gff",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "read_gtf",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "read_length_hist",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "read_pdf",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "read_quality_dist",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "read_tsv",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "read_vcf",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "reduce",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "reference_classify",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "reference_normalize",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "regex_captures",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "regex_find",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "regex_find_all",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "regex_match",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "regex_replace",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "regex_replace_all",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "regex_split",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "relative_abundance",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "remove_edge",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "remove_key",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "remove_node",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "rename",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "render_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "repeat",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "replace",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "resolve",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "restriction_sites",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "resume_checkpoint",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "reversal_distance",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "reverse",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "reverse_complement",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "right_join",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "rmsd",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "rna",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "rnorm",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "roc_curve",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "rolling_mean",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "rolling_sum",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "round",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "row",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "row_means",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "row_number",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "row_sums",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "rpkm",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "rpois",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "run_param",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "sample",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "sample_correlation",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "sashimi",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "save_plot",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "save_png",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "save_svg",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "sc_anchor_candidates",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "sc_find_all_markers",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "sc_find_anchors",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "sc_integrate",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "sc_integrate_anchors",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "sc_merge_objects",
+      "arity": "Exact(4)"
+    },
+    {
+      "name": "sc_pca",
+      "arity": "Range(1, 4)"
+    },
+    {
+      "name": "sc_scale",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "sc_sctransform",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "sc_subset_cells",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "sc_subset_genes",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "sc_umap",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "sc_validate_object",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "scan",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "scan_bio",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "scatter",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "scatter_by",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "score_matrix",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "seasonal_components_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "seasonal_forecast",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "seasonal_forecast_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "secondary_structure",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "select",
+      "arity": "AtLeast(2)"
+    },
+    {
+      "name": "select_cols",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "select_rows",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "semi_join",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "seq_len",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "sequence_logo",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "set",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "set_seed",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "sha1",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "sha256",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "sha512",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "shared_clones",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "shortest_path",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "sign",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "sin",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "six_frame_translate",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "size_factors",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "sketch",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "sketch_dist",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "slice",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "snn_graph",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "solve",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "sort",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "sort_by",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "sorting_reversals",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "sparkline",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "sparse_col_sums",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "sparse_get",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "sparse_matrix",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "sparse_row_sums",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "spatial_moransi",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "spatial_neighbors",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "spearman",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "spectrum_convolution",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "spectrum_score",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "splice_sites",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "split",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "sqrt",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "starts_with",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "stats_associations",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_categorical_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_categories",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_cluster_diagnostics",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_compare",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_cox_diagnostics",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "stats_decision_map",
+      "arity": "Range(0, 1)"
+    },
+    {
+      "name": "stats_design_check",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_distribution_ascii",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_distribution_clues",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_distribution_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_explain",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_explore",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_facet_plot",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_glm_diagnostics",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_group_plot",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_guide",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_linear_diagnostic_plot",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_linear_diagnostics",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_means",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_missingness",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_missingness_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_multiple_linear_diagnostics",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_normal_diagram",
+      "arity": "Range(0, 2)"
+    },
+    {
+      "name": "stats_normal_qq_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_normalization_guide",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_omics_profile",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_overview_ascii",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_preprocess",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_profile",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_random_intercept_model",
+      "arity": "Range(3, 4)"
+    },
+    {
+      "name": "stats_relationship",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_relationship_plot",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_report",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_robust_linear_diagnostics",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_scan",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_shape",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_time_series_diagnostics",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_transform_preview",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stats_uncertainty",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_visualize",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "stats_weighted_summary",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "stdev",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "str",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "str_len",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "str_repeat",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "str_replace",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "stream_batch",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "stream_chunks",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "stream_concat",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "stream_skip",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "stream_take",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "strip_chr",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "subgraph",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "subseq",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "substitution_score",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "substr",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "suffix_array",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "sum",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "summarize",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "summary",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "svd",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "swap",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "symmetric_difference",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "table",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "table_cast",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "table_col_types",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "table_schema",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "table_set_col_type",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "table_validate",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "tad_boundaries",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "tail",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "tajima_d",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "take",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "take_while",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "tan",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "tap",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "taxonomic_collapse",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "tee",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "tile_genome",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "time_it",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "timestamp",
+      "arity": "Exact(0)"
+    },
+    {
+      "name": "timestamp_ms",
+      "arity": "Exact(0)"
+    },
+    {
+      "name": "titv_ratio",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "tm",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "to_dense",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "to_html",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "to_markdown",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "to_records",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "to_sparse",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "to_stream",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "to_string",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "to_table",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "top_loci",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "topological_sort",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "tpm",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "tpm_matrix",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "trace",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "transcribe",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "translate",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "transpose",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "tree_leaves",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "trim",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "trim_left",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "trim_quality",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "trim_right",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "try_call",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "tsne",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "tss_enrichment",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "tss_enrichment_score",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "tstv_ratio",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "tsv",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "ttest",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "ttest_one",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "ttest_paired",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "tukey_hsd",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "tumor_purity",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "type",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "typeof",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "umap",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "umap_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "union",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "uniq_count",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "unique",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "unnest",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "upgma",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "upper",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "upset",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "upset_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "vaf_to_ccf",
+      "arity": "Range(2, 4)"
+    },
+    {
+      "name": "validate_seq",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "value_counts",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "values",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "variable_feature_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "variance",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "variant",
+      "arity": "Range(1, 4)"
+    },
+    {
+      "name": "variant_summary",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "variant_type",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "vcf_filter",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "vcf_parse",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "velocity_estimate",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "venn",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "violin",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "violin_data",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "violin_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "viterbi",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "vj_usage",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "volcano",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "volcano_data",
+      "arity": "Range(1, 3)"
+    },
+    {
+      "name": "volcano_plot",
+      "arity": "Range(1, 2)"
+    },
+    {
+      "name": "wc",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "weekday",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "where",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "wilcoxon",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "wilcoxon_paired",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "window",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "windows",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "with_provenance",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "wnn_graph",
+      "arity": "Exact(3)"
+    },
+    {
+      "name": "write_csv",
+      "arity": "Range(2, 3)"
+    },
+    {
+      "name": "write_tsv",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "year",
+      "arity": "Exact(1)"
+    },
+    {
+      "name": "zeros",
+      "arity": "Exact(2)"
+    },
+    {
+      "name": "zip",
+      "arity": "Exact(2)"
+    }
+  ]
+}

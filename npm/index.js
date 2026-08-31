@@ -15,6 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { BioLangSession } from "./session.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -50,12 +51,7 @@ function installBridge(options) {
 }
 
 /** A BioLang interpreter instance. */
-export class BioLang {
-  #wasm;
-
-  constructor(wasm) {
-    this.#wasm = wasm;
-  }
+export class BioLang extends BioLangSession {
 
   /**
    * Load the WebAssembly module and return an interpreter.
@@ -70,61 +66,6 @@ export class BioLang {
     wasm.init();
     return new BioLang(wasm);
   }
-
-  /**
-   * Run BioLang source.
-   *
-   * State persists between calls on the same instance, so a variable defined in
-   * one `run` is visible in the next. Call `reset()` for a clean interpreter.
-   */
-  run(source) {
-    const parsed = JSON.parse(this.#wasm.evaluate(source));
-    return {
-      ok: parsed.ok ?? false,
-      value: parsed.value ?? null,
-      type: parsed.type ?? null,
-      output: parsed.output ?? "",
-      structured: parsed.structured ?? null,
-      results: parsed.results ?? [],
-      trace: parsed.trace ?? [],
-      error: parsed.error ?? null,
-    };
-  }
-
-  /** Discard all variables and start from a fresh interpreter. */
-  reset() {
-    this.#wasm.reset();
-  }
-
-  /** Every builtin available in this build: {name, signature, category}. */
-  builtins() {
-    return JSON.parse(this.#wasm.list_builtins());
-  }
-
-  /** Variables currently defined. */
-  variables() {
-    return JSON.parse(this.#wasm.list_variables());
-  }
-
-  /** Rewrite source into the canonical layout. */
-  format(source, indent = 4) {
-    return this.#wasm.format(source, indent);
-  }
-
-  /** Tokenise source, for editors and highlighting. */
-  tokenize(source) {
-    return JSON.parse(this.#wasm.tokenize(source));
-  }
-
-  /** Convert Python, R, Jupyter or R Markdown source to BioLang. */
-  import(source, format, filename = "input") {
-    return JSON.parse(this.#wasm.import_source(source, format, filename));
-  }
-
-  /** The underlying wasm-bindgen module, for anything not wrapped here. */
-  get raw() {
-    return this.#wasm;
-  }
 }
 
 /** Convenience: load and run once. */
@@ -136,3 +77,8 @@ export async function run(source, options = {}) {
 export const version = JSON.parse(
   fs.readFileSync(path.join(here, "package.json"), "utf8"),
 ).version;
+
+export * from "./dsl.js";
+export * from "./generated-builtins.js";
+export * from "./objects.js";
+export * from "./somer.js";

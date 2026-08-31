@@ -1,119 +1,167 @@
-# biolang
+# BioLang JavaScript SDK
 
-BioLang's sequence, statistics and alignment core for Node and the browser,
-compiled to WebAssembly. No Rust toolchain, no native build step.
+Write browser or Node.js code in JavaScript while BioLang's Rust/WebAssembly
+runtime performs the biological and statistical computation.
 
 ```bash
 npm install biolang
 ```
 
 ```js
-import { BioLang } from "biolang";
+import { BioLang, mean } from "biolang";
 
 const bl = await BioLang.create();
+const result = bl.run(mean([1, 2, 3]));
 
-const result = bl.run(`
-  let seqs = read_fasta("reads.fa")
-  seqs |> filter(|r| gc_content(r.seq) > 0.5) |> count()
-`);
-
-console.log(result.value);   // "128"
-console.log(result.type);    // "Int"
-console.log(result.output);  // anything print/println wrote
+console.log(result.value);          // "2"
+console.log(bl.runtimeVersion());   // version compiled into WASM
 ```
 
-## What you get
+The JavaScript layer builds BioLang source and sends it through the same parser,
+interpreter and builtins used by `.bl` programs. It does not implement a second
+statistics or bioinformatics engine.
 
-`run()` returns an object rather than a JSON string:
+## JavaScript objects and pipelines
 
-| field | |
-|---|---|
-| `ok` | whether evaluation completed |
-| `value` | the final expression, formatted |
-| `type` | its runtime type — `Int`, `DNA`, `Table`, … |
-| `output` | everything `print` and `println` wrote |
-| `structured` | a table or chart as JSON, when the value is one |
-| `trace` | which line produced what |
-| `error` | message when `ok` is false |
+Builtin calls return lazy `BioExpression` objects. Nothing is calculated until
+the expression is passed to a session or SOMER executor.
 
-State persists between `run` calls on the same instance, so a variable defined
-in one is visible in the next. `reset()` gives a fresh interpreter.
+```js
+import { BioLang } from "biolang";
 
-Other methods: `builtins()`, `variables()`, `format(source)`, `tokenize(source)`,
-`import(source, "python" | "r" | "jupyter" | "rmd")`.
+const bl = await BioLang.create({ cwd: "./data" });
 
-## What is and is not in this build
+const analysis = bl.csv("nhanes.csv")
+  .where({ Age: { gte: 18 }, BMI: { lt: 40 } })
+  .column("BMI")
+  .mean();
 
-**791 of BioLang's 1018 builtins.** The WebAssembly build compiles the runtime
-without its native feature set, so 227 are absent. This is the honest table
-rather than a feature list:
+console.log(analysis.toBioLang());
+const result = await analysis.run(bl);
+```
 
-| Area | In this build |
-|---|---|
-| Sequences — FASTA/FASTQ/VCF/BED/GFF parsing, GC, k-mers, translation, reverse complement | **35 of 45** |
-| Alignment, edit distance, motifs, assembly graphs, phylogenetics | yes |
-| Statistics, maths, tables, lists, strings | yes |
-| Single-cell | **31 of 33** |
-| Filesystem builtins (`glob`, paths, directories) | **none** — 0 of 29 |
-| Transfer (FTP, SSH, S3) | **none** — 0 of 15 |
-| Containers / BioContainers | **none** — 0 of 10 |
-| API clients (NCBI, Ensembl, UniProt, KEGG, …) | **2 of 8** |
-| LLM (`chat`, `chat_code`) | **none** |
-| Enrichment (`enrich`, `gsea`) | **none** |
-| **Compressed input — `.gz`, `.zst`, `.lz4`** | **none** |
-| SQLite, Parquet, PDF | **none** |
+JavaScript cannot overload `===`, `>=`, `&&` or similar operators at runtime.
+The safe portable API therefore uses `.eq()`, `.gte()` and `.and()`. BioLang
+Studio can add a source transform for ordinary operator spelling without
+changing this runtime API. Unsafe Proxy coercions throw rather than silently
+dropping a scientific predicate.
 
-Two of those are worth saying twice. **Gzipped files do not work** — `flate2`
-is not compiled in, so `read_fasta("reads.fa.gz")` fails. And the **API clients
-are mostly absent**, so `ncbi_gene()` and friends are not available here even
-though the language has them.
+## Complete WASM builtin coverage
 
-If you need those, use the CLI: same language, same code, all 1018 builtins.
+Every builtin reported by the shipped WASM module has a generated JavaScript
+function and TypeScript declaration:
+
+```js
+import {
+  gc_content,
+  histogram,
+  kaplan_meier,
+  reverse_complement,
+  sc_sctransform
+} from "biolang";
+```
+
+`npm run check:coverage` compares the two name sets exactly and fails on a
+missing or stale wrapper. The current catalog is also available as
+`biolang/catalog`. `session.supports(name)` performs a runtime check.
+
+## Programs and functions
+
+Common BioLang statements have JavaScript builders:
+
+```js
+import { function_, if_, program, ref, return_ } from "biolang";
+
+const classify = program(
+  function_(
+    "classify",
+    ["x"],
+    if_(ref("x").gte(10), return_("high"), return_("low"))
+  )
+);
+
+bl.run(classify);
+```
+
+`raw(source)` is the compatibility escape hatch for a newly added language
+construct before a dedicated JavaScript builder is released.
+
+## Live sessions
+
+State persists between `run` calls. The session API also exposes what Studio
+needs to inspect and export live values:
+
+```js
+bl.run("let values = [1, 2, 3]");
+bl.variables();
+bl.inspectVariable("values", { offset: 0, limit: 20 });
+bl.exportVariable("values", { format: "json" });
+bl.registerModule("my-package", "export let answer = 42");
+bl.reset();
+```
+
+## SOMER
+
+Install the optional shared SOMER client when native, remote or durable
+execution is required:
 
 ```bash
-curl -fsSL https://lang.bio/install.sh | sh     # Linux, macOS
-iwr -useb https://lang.bio/install.ps1 | iex    # Windows
+npm install biolang @somer/client
 ```
 
-## Reading files
+```js
+const somer = await bl.connectSomer({
+  baseUrl: "https://somer.example.org",
+  token
+});
 
-The interpreter calls a synchronous hook when it reads a file or URL, because
-it cannot await mid-evaluation. This package installs one for you:
+const run = await analysis.runOn(somer, {
+  name: "NHANES BMI",
+  resources: { cpu: 4, memoryGb: 16 },
+  inputs: [{ path: "nhanes.csv", data: selectedFile }]
+});
 
-* **Node** — local paths read from disk, `http(s)` fetched through `curl`.
-  Set `cwd` to change the base for relative paths, and `network: false` to
-  refuse remote reads.
-* **Browsers and bundlers** — the fallback is a synchronous `XMLHttpRequest`,
-  which is deprecated on the main thread and unavailable in workers. Pass your
-  own `fetchSync` if you have an in-memory workspace or a cache.
+await run.events((event) => console.log(event));
+const job = await run.wait();
+```
+
+Remote execution is always explicit. The SDK never uploads data because a WASM
+capability is missing.
+
+## Node and browser files
+
+Node reads relative paths from `cwd`. Network access can be disabled:
 
 ```js
-// Node: confine it to one directory, no network
 const bl = await BioLang.create({ cwd: "./data", network: false });
-
-// Browser: serve files from memory
-const files = { "reads.fa": ">a\nACGT\n" };
-const bl = await BioLang.create({ fetchSync: (url) => files[url] ?? "ERROR:not found" });
 ```
 
-## Size
-
-The WebAssembly module is about 6 MB. It loads once per process.
-
-## Raw module
-
-`biolang/raw` exports the wasm-bindgen module directly, for anything the
-wrapper does not cover. `evaluate()` there returns a JSON string.
+Browser applications should provide a synchronous reader backed by files that
+were prepared before evaluation. Run the interpreter in a Worker so synchronous
+evaluation cannot block the page:
 
 ```js
-import * as raw from "biolang/raw";
+const files = new Map([["reads.fa", ">a\nACGT\n"]]);
+const bl = await BioLang.create({
+  fetchSync: (path) => files.get(path) ?? "ERROR:not found"
+});
 ```
 
-## Links
+## Results
 
-* [lang.bio](https://lang.bio) — documentation, and a browser workbench that
-  runs this same module
-* [Embedding guide](https://lang.bio/docs/tools/embedding.html)
-* [GitHub](https://github.com/oriclabs/biolang) — issues and source
+`run()` returns a typed result object rather than a JSON string:
 
-MIT.
+| Field | Meaning |
+|---|---|
+| `ok` | Whether evaluation completed |
+| `value` | Formatted final value |
+| `type` | BioLang runtime type |
+| `output` | Text written by `print` and `println` |
+| `structured` | Structured table or plot result |
+| `results` | All displayed structured values |
+| `trace` | Source line associated with each display |
+| `error` | Error message when execution failed |
+
+The raw wasm-bindgen API remains available from `biolang/raw`.
+
+MIT licensed. Documentation: [lang.bio](https://lang.bio).
