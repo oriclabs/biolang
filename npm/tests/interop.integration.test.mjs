@@ -6,6 +6,8 @@ import {
   BioLang,
   BioMatrixValue,
   BioQualityValue,
+  BioSequenceValue,
+  BioTableValue,
   BioValueHandle,
 } from "../index.js";
 
@@ -57,11 +59,23 @@ test("typed interop throws Error objects and builtins are not shadowed", async (
     });
   }
 
-  assert.equal(bl.table([{ x: 1 }]).ok, true);
-  assert.equal(bl.matrix([[1, 2], [3, 4]]).ok, true);
-  assert.equal(JSON.parse(bl.format("value={}", 7).value), "value=7");
-  assert.equal(bl.csv("definitely-missing.csv").ok, false);
+  assert.ok(bl.table([{ x: 1 }]) instanceof BioTableValue);
+  assert.ok(bl.matrix([[1, 2], [3, 4]]) instanceof BioMatrixValue);
+  assert.equal(bl.format("value={}", 7), "value=7");
+  assert.throws(() => bl.csv("definitely-missing.csv"), Error);
   assert.equal(typeof bl.formatSource("let   x=1"), "string");
+
+  assert.equal(bl.mean([1, 2, 3]), 2);
+  const envelope = bl.invoke("mean", [1, 2, 3]);
+  assert.equal(envelope.ok, true);
+  assert.equal(envelope.value, "2");
+  const sequence = bl.dna("ATGC");
+  assert.ok(sequence instanceof BioSequenceValue);
+  assert.equal(bl.gc_content(sequence), 0.5);
+  assert.throws(
+    () => bl.gc_contnt(sequence),
+    (error) => error instanceof TypeError && /Did you mean 'gc_content'/.test(error.message),
+  );
 });
 
 test("transpiled comments and nested direct calls remain executable", async (context) => {
@@ -74,8 +88,8 @@ println(reverse_complement(dna"AAATTC")) # typed nested result stays inside one 
   `);
   assert.match(generated, /\/\/ Explain the IUPAC rule/);
   assert.match(generated, /\/\/ true: R matches A or G/);
-  assert.match(generated, /bl\.println\(bio\.callExpr\("iupac_match"/);
-  assert.match(generated, /bl\.println\(bio\.callExpr\("reverse_complement"/);
+  assert.match(generated, /bl\.println\(await bl\.iupac_match/);
+  assert.match(generated, /bl\.println\(await bl\.reverse_complement/);
   const executable = generated.replace(
     /\nresult;\s*(?:\/\/[^\n]*)?\s*$/,
     "\nreturn result;",
@@ -83,7 +97,7 @@ println(reverse_complement(dna"AAATTC")) # typed nested result stays inside one 
   const result = await new Function(
     "bio", "bl", `return (async () => { ${executable} })()`,
   )(bio, bl);
-  assert.equal(result.ok, true, result.error ?? "Nested direct call failed");
+  assert.equal(result, null);
 });
 
 test("large values stay in Rust and handles remain session-bound", async (context) => {

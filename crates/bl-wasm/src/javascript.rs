@@ -85,13 +85,7 @@ fn emit_direct_program(
                 if !is_safe_javascript_binding(name) {
                     return Ok(None);
                 }
-                let materialize = matches!(value.node, Expr::Call { .. });
                 let value_source = emit_direct_value(value, &locals)?;
-                let value_source = if materialize {
-                    format!("await bl.evalValue({value_source})")
-                } else {
-                    value_source
-                };
                 lines.push(format!("let {name} = {value_source};"));
                 locals.insert(name.clone());
                 if last {
@@ -158,7 +152,9 @@ fn is_direct_expr(expr: &Expr) -> bool {
         }),
         Expr::Call { callee, args } => {
             matches!(&callee.node, Expr::Ident(name) if is_safe_javascript_binding(name))
-                && args.iter().all(|arg| is_direct_expr(&arg.value.node))
+                && args
+                    .iter()
+                    .all(|arg| !arg.spread && arg.name.is_none() && is_direct_expr(&arg.value.node))
         }
         Expr::Field { object, field, .. } => {
             is_safe_javascript_binding(field) && is_direct_expr(&object.node)
@@ -186,22 +182,18 @@ fn emit_direct_run(expr: &Spanned<Expr>, locals: &HashSet<String>) -> Result<Str
                     })
                 })
                 .collect::<Result<Vec<_>, String>>()?;
-            return Ok(if is_direct_session_method(name) {
-                format!("await bl.invoke({}, {})", quote(name), args.join(", "))
-            } else {
-                format!("await bl.{name}({})", args.join(", "))
-            });
+            return Ok(format!("await bl.{name}({})", args.join(", ")));
         }
     }
     match &expr.node {
         Expr::Ident(name) if !locals.contains(name) => {
-            Ok(format!("await bl.evalValue(bl.ref({}))", quote(name)))
+            Ok(format!("await bl.getValue({})", quote(name)))
         }
         _ => emit_direct_value(expr, locals),
     }
 }
 
-fn emit_direct_call_expression(
+fn emit_direct_call_value(
     callee: &Spanned<Expr>,
     args: &[Arg],
     locals: &HashSet<String>,
@@ -220,11 +212,7 @@ fn emit_direct_call_expression(
         })
         .collect::<Result<Vec<_>, String>>()?;
     match &callee.node {
-        Expr::Ident(name) => Ok(format!(
-            "bio.callExpr({}, [{}])",
-            quote(name),
-            args.join(", ")
-        )),
+        Expr::Ident(name) => Ok(format!("await bl.{name}({})", args.join(", "))),
         _ => Err("direct JavaScript calls require a named BioLang function".into()),
     }
 }
@@ -234,12 +222,14 @@ fn emit_direct_value(expr: &Spanned<Expr>, locals: &HashSet<String>) -> Result<S
         Expr::Ident(name) if locals.contains(name) && is_safe_javascript_binding(name) => {
             name.clone()
         }
-        Expr::Ident(name) => format!("bl.ref({})", quote(name)),
-        Expr::DnaLit(value) => format!("bio.dna({})", quote(value)),
-        Expr::RnaLit(value) => format!("bio.rna({})", quote(value)),
-        Expr::ProteinLit(value) => format!("bio.protein({})", quote(value)),
-        Expr::QualLit(value) => format!("bio.quality({})", quote(value)),
-        Expr::Call { callee, args } => emit_direct_call_expression(callee, args, locals)?,
+        Expr::Ident(name) => format!("await bl.getValue({})", quote(name)),
+        Expr::DnaLit(value) => format!("await bl.dna({})", quote(value)),
+        Expr::RnaLit(value) => format!("await bl.rna({})", quote(value)),
+        Expr::ProteinLit(value) => format!("await bl.protein({})", quote(value)),
+        Expr::QualLit(value) => {
+            format!("await bl.evalValue(bio.quality({}))", quote(value))
+        }
+        Expr::Call { callee, args } => emit_direct_call_value(callee, args, locals)?,
         Expr::Field {
             object,
             field,
@@ -362,37 +352,6 @@ fn unique_javascript_name(preferred: &str, locals: &HashSet<String>) -> String {
         }
         suffix += 1;
     }
-}
-
-fn is_direct_session_method(name: &str) -> bool {
-    matches!(
-        name,
-        "run"
-            | "define"
-            | "ref"
-            | "invoke"
-            | "csv"
-            | "table"
-            | "sequence"
-            | "matrix"
-            | "reset"
-            | "builtins"
-            | "supports"
-            | "variables"
-            | "inspectVariable"
-            | "exportVariable"
-            | "registerModule"
-            | "runtimeVersion"
-            | "format"
-            | "tokenize"
-            | "transpileJavaScript"
-            | "import"
-            | "validateImport"
-            | "qcMetrics"
-            | "connectSomer"
-            | "raw"
-            | "then"
-    )
 }
 
 fn emit_stmt(stmt: &Spanned<Stmt>) -> Result<String, String> {
@@ -1002,9 +961,7 @@ mod tests {
     #[test]
     fn emits_direct_calls_variables_and_dot_access_when_safe() {
         let js = transpile("let report = summary([1, 2, 3])\nreport.mean").unwrap();
-        assert!(
-            js.contains("let report = await bl.evalValue(bio.callExpr(\"summary\", [[1, 2, 3]]))")
-        );
+        assert!(js.contains("let report = await bl.summary([1, 2, 3])"));
         assert!(js.contains("(report).mean"));
         assert!(!js.contains("bl.define"));
         assert!(!js.contains("bl.run"));
@@ -1027,10 +984,10 @@ mod tests {
         )
         .unwrap();
         assert!(js.contains("// Count all 4-mers"));
-        assert!(js.contains("bio.dna(\"ATCG\")"));
+        assert!(js.contains("await bl.dna(\"ATCG\")"));
         assert!(js.contains("// the input"));
         assert!(js.contains("// R is a purine"));
-        assert!(js.contains("await bl.println(bio.callExpr(\"iupac_match\""));
+        assert!(js.contains("await bl.println(await bl.iupac_match"));
     }
 
     #[test]
@@ -1048,7 +1005,7 @@ mod tests {
     #[test]
     fn a_trailing_let_stays_direct_and_returns_biolang_nil() {
         let js = transpile("let bases = dna\"ATCG\"").unwrap();
-        assert!(js.contains("let bases = bio.dna(\"ATCG\");"));
+        assert!(js.contains("let bases = await bl.dna(\"ATCG\");"));
         assert!(js.ends_with("null;"));
         assert!(!js.contains("bio.program("));
     }

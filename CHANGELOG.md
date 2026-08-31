@@ -11,6 +11,15 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Composable JavaScript/WASM SDK.** Every WASM builtin is available through
+  an isolated `BioLang` session. Direct `bl.*` calls now return decoded values
+  and throw `Error` objects, so typed sequences, tables, matrices, handles and
+  nested calls compose normally; `run()` and `invoke()` retain the formatted
+  result envelope. Generated TypeScript declarations use builtin metadata for
+  named parameters, hover documentation and useful return types. Differential
+  checks compare readable transpiler output with BioLang execution, while
+  unknown functions report a `TypeError` with a close-name suggestion.
+
 - **Native contingency-table mosaic plots.** `mosaic_plot()` draws category
   rectangles whose area is exactly proportional to observed counts, while
   `mosaic_data()` exposes replayable counts, expected values, proportions,

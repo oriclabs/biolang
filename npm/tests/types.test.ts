@@ -1,5 +1,7 @@
 import {
   BioLang,
+  type BioSequenceValue,
+  type BioValueHandle as BioHandleType,
   BioValueHandle,
   lambda,
   mean,
@@ -19,7 +21,9 @@ const analysis: BioExpression = read_csv("nhanes.csv")
 async function execute(): Promise<RunResult> {
   const session = await BioLang.create({ cwd: ".", network: false });
   const result = session.run(analysis);
-  const directMean: RunResult = session.mean([1, 2, 3]);
+  const directMean: number = session.mean([1, 2, 3]);
+  const directSequence: BioSequenceValue | BioHandleType = session.dna("ATGC");
+  const directGc: number = session.gc_content(directSequence);
   const actualMean = session.callValue("mean", [[1, 2, 3]]);
   session.setValue("values", [1, 2, 3]);
   const actualValues = session.getValue("values");
@@ -39,6 +43,8 @@ async function execute(): Promise<RunResult> {
   await session.connectSomer({ baseUrl: "https://example.org", token: "token" });
   session.dispose();
   void directMean;
+  void directSequence;
+  void directGc;
   void actualMean;
   void actualValues;
   return result;

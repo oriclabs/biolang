@@ -9,14 +9,16 @@ import { BioLangSession } from "../session.js";
 import * as bio from "../dsl.js";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const wasmRoot = path.resolve(packageRoot, "..", "desktop", "public", "wasm");
+const wasmRoot = path.resolve(packageRoot, "pkg-web");
 
 test("generated JavaScript executes through the shipped WASM interpreter", async () => {
   globalThis.window = globalThis;
   globalThis.__blFiles = {};
   globalThis.__blFetch = { sync: () => "ERROR:offline integration test" };
   const wasm = await import(pathToFileURL(path.join(wasmRoot, "bl_wasm.js")).href);
-  await wasm.default({ module_or_path: readFileSync(path.join(wasmRoot, "bl_wasm_bg.wasm")) });
+  await wasm.default({
+    module_or_path: readFileSync(path.join(packageRoot, "wasm", "bl_wasm_bg.wasm")),
+  });
   wasm.init();
 
   const session = new BioLangSession(wasm);
@@ -26,8 +28,7 @@ test("generated JavaScript executes through the shipped WASM interpreter", async
   assert.equal(result.type, "Float");
   assert.equal(result.value, "2");
   const directResult = await session.mean([1, 2, 3]);
-  assert.equal(directResult.ok, true, directResult.error ?? "Direct API execution failed");
-  assert.equal(directResult.value, "2");
+  assert.equal(directResult, 2);
 
   const objectResult = session
     .tableExpression([{ Age: 20, BMI: 22 }, { Age: 15, BMI: 30 }, { Age: 40, BMI: 28 }])
@@ -48,8 +49,8 @@ test("generated JavaScript executes through the shipped WASM interpreter", async
   const executableGenerated = generated.replace(/\nresult;\s*$/, "\nreturn result;");
   const executeJavaScript = new Function("bio", "bl", `return (async () => { ${executableGenerated} })()`);
   const generatedResult = await executeJavaScript(bio, session);
-  assert.equal(generatedResult.ok, true, generatedResult.error ?? "Generated JavaScript execution failed");
-  assert.equal(generatedResult.type, "Record");
+  assert.equal(generatedResult.mean, 17);
+  assert.equal(generatedResult.median, 15);
 
   const pipeline = session.transpileJavaScript(
     "[1, 2, 3, 4] |> filter(|value| value >= 3) |> mean()",

@@ -13,12 +13,13 @@ import { BioLang } from "biolang";
 const bl = await BioLang.create();
 const result = await bl.mean([1, 2, 3]);
 
-console.log(result.value);          // "2"
+console.log(result);                // 2
 console.log(bl.runtimeVersion());   // version compiled into WASM
 ```
 
-The JavaScript layer builds BioLang source and sends it through the same parser,
-interpreter and builtins used by `.bl` programs. It does not implement a second
+Direct methods marshal JavaScript values into the same Rust interpreter and
+builtins used by `.bl` programs. The separate lazy-expression API builds
+BioLang source for programs and pipelines. Neither path implements a second
 statistics or bioinformatics engine.
 
 Existing BioLang can also be converted into direct JavaScript. Structural
@@ -35,8 +36,10 @@ const javascript = bl.transpileJavaScript(
 
 ## JavaScript objects and pipelines
 
-Builtin calls return lazy `BioExpression` objects. Nothing is calculated until
-the expression is passed to a session or SOMER executor.
+The standalone functions exported by `biolang` build lazy `BioExpression`
+objects. Nothing is calculated until the expression is passed to a session or
+SOMER executor. In contrast, methods on `bl` execute immediately and return
+decoded JavaScript values.
 
 ```js
 import { BioLang } from "biolang";
@@ -61,8 +64,10 @@ dropping a scientific predicate.
 The `Expression` suffix is deliberate: `csvExpression()`, `tableExpression()`
 and `matrixExpression()` build lazy pipelines. The unsuffixed `bl.csv()`,
 `bl.table()`, `bl.matrix()` and `bl.format()` names are the real BioLang
-builtins and execute immediately, returning a `RunResult`. Source formatting is
-available separately as `bl.formatSource(source)`.
+builtins and execute immediately, returning decoded values or throwing an
+`Error`. Source formatting is available separately as
+`bl.formatSource(source)`. Use `bl.run(source)` or `bl.invoke(name, ...args)`
+when the formatted `RunResult` envelope is specifically wanted.
 
 Row fields that share a name with a builder method or internal property use
 the explicit field accessor. This avoids ambiguity while keeping method calls
@@ -102,6 +107,11 @@ every generated program. The current tree passes all 626 files with no refused
 source and no invalid JavaScript. This includes interpolated and formatted
 strings, `try`/`catch`, all match-pattern forms, and legacy package lambda and
 named-argument spellings.
+
+`npm run check:equivalence` additionally executes hermetic nested-call
+fixtures through both BioLang and the generated readable JavaScript, then
+compares their decoded results. This catches composability errors that a
+JavaScript syntax check cannot detect.
 
 ## Programs and functions
 
@@ -151,10 +161,11 @@ longer needs a session.
 
 ## Direct values and JavaScript callbacks
 
-Use the value API when JavaScript needs the result itself rather than the
-formatted `run()` envelope. Small values are copied into ordinary JavaScript
-data; tables, matrices, sequences and quality scores retain explicit wrapper
-types so their meaning and shape are not lost.
+Calls such as `bl.mean(values)` and `bl.gc_content(sequence)` use the value API
+by default. `evalValue()` and `callValue()` remain useful for dynamic function
+names, generated source and custom inline-size limits. Small values are copied
+into ordinary JavaScript data; tables, matrices, sequences and quality scores
+retain explicit wrapper types so their meaning and shape are not lost.
 
 ```js
 const summary = bl.evalValue('summary([12, 14, 15, 19])');
@@ -162,6 +173,9 @@ bl.setValue("sample", { id: "S1", values: [12, 14, 15, 19] });
 
 const centre = bl.callValue("mean", [[12, 14, 15, 19]]);
 console.log(centre); // 15
+
+const sequence = bl.dna("ATGC");
+console.log(bl.gc_content(sequence)); // 0.5
 ```
 
 Integers outside JavaScript's safe-number range become `bigint`. Numeric

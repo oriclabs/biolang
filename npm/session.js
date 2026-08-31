@@ -102,9 +102,23 @@ export class BioLangSession {
           const value = Reflect.get(target, property, target);
           return typeof value === "function" ? value.bind(target) : value;
         }
-        return (...args) => target.run(call(property, ...args));
+        return (...args) => target.#callDynamic(property, args);
       },
     });
+  }
+
+  #callDynamic(name, args) {
+    try {
+      return this.callValue(name, args);
+    } catch (error) {
+      const message = String(error?.message ?? error ?? "");
+      if (!/undefined (?:variable|function)/i.test(message)) throw error;
+      const suggestion = closestBuiltin(name, this.builtins().map((builtin) => builtin.name));
+      const suffix = suggestion ? ` Did you mean '${suggestion}'?` : "";
+      throw new TypeError(`Unknown BioLang builtin or function '${name}'.${suffix}`, {
+        cause: error,
+      });
+    }
   }
 
   #call(callback) {
@@ -378,6 +392,35 @@ function validateCallbackArguments(name, args, parameters) {
       );
     }
   }
+}
+
+function closestBuiltin(name, candidates) {
+  let closest = null;
+  let distance = Number.POSITIVE_INFINITY;
+  for (const candidate of candidates) {
+    const current = editDistance(name, candidate);
+    if (current < distance || (current === distance && candidate < closest)) {
+      closest = candidate;
+      distance = current;
+    }
+  }
+  return distance <= Math.max(2, Math.floor(name.length / 3)) ? closest : null;
+}
+
+function editDistance(left, right) {
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let leftIndex = 0; leftIndex < left.length; leftIndex += 1) {
+    const current = [leftIndex + 1];
+    for (let rightIndex = 0; rightIndex < right.length; rightIndex += 1) {
+      current.push(Math.min(
+        current[rightIndex] + 1,
+        previous[rightIndex + 1] + 1,
+        previous[rightIndex] + (left[leftIndex] === right[rightIndex] ? 0 : 1),
+      ));
+    }
+    previous = current;
+  }
+  return previous[right.length];
 }
 
 function validateCallbackReturn(name, value, expected) {
