@@ -56,6 +56,7 @@ export function ref(name: string): BioExpression;
 export function literal(value: BioArgument): BioExpression;
 export function call(name: string, ...args: BioArgument[]): BioExpression;
 export function lambda(parameter: string, build: (value: BioRow) => BioExpression): BioExpression;
+/** String items are trusted raw BioLang statements; use literal() for data. */
 export function program(...items: Array<BioExpression | BioStatement | BioProgram | string | Array<BioExpression | BioStatement>>): BioProgram;
 export function let_(name: string, value: BioArgument): BioStatement;
 export function assign(name: string, value: BioArgument): BioStatement;
@@ -86,7 +87,8 @@ export function slice(object: BioArgument, start?: BioArgument, end?: BioArgumen
 export function named(name: string, value: BioArgument): object;
 export function spread(value: BioArgument): object;
 export function callExpr(name: string, args?: unknown[]): BioExpression;
-export function invoke(callee: BioArgument, args?: unknown[]): BioExpression;
+export function invoke(callee: string | BioExpression, args?: unknown[]): BioExpression;
+/** Structural frontend helper; authored callbacks should use lambda(). */
 export function lambdaExpr(parameters: unknown[], body: BioArgument): BioExpression;
 export function blockExpr(body: unknown): BioExpression;
 export function ifExpr(condition: BioArgument, thenBody: unknown, elseBody?: unknown): BioExpression;
@@ -109,4 +111,5 @@ export function param(name: string, options?: object): object;
 export function listPattern(names: string[]): object;
 export function recordPattern(names: string[]): object;
 export function tuplePattern(names: string[]): object;
+/** String values are trusted raw BioLang source; use literal() for data. */
 export function sourceOf(value: string | BioExpression | BioStatement | BioProgram): string;

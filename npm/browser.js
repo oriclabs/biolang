@@ -64,6 +64,9 @@ export async function run(source, options = {}) {
 
 export const version = "1.5.0";
 
+// Keep the package-root surface aligned with Node: colliding names resolve to
+// generated WASM builtins; structural helpers remain under `biolang/dsl`.
+export { dna, protein, range, rna, set, slice } from "./generated-builtins.js";
 export * from "./dsl.js";
 export * from "./generated-builtins.js";
 export * from "./objects.js";

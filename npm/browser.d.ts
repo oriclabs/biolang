@@ -16,3 +16,5 @@ export class BioLang extends BioLangSession {
 
 export function run(source: BioLangSource, options?: BioLangOptions): Promise<RunResult>;
 export const version: string;
+
+export { dna, protein, range, rna, set, slice } from "./generated-builtins.js";

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -6,7 +7,9 @@ import {
   for_,
   function_,
   if_,
+  invoke,
   lambda,
+  lambdaExpr,
   let_,
   literal,
   program,
@@ -14,6 +17,16 @@ import {
   return_,
 } from "../dsl.js";
 import { mean, read_csv, WASM_BUILTIN_NAMES } from "../generated-builtins.js";
+import { range as browserRange, version as browserVersion } from "../browser.js";
+
+test("browser SDK version matches the package manifest", () => {
+  const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.equal(browserVersion, manifest.version);
+});
+
+test("package-root name collisions resolve to generated WASM builtins", () => {
+  assert.equal(browserRange(1, 3).toBioLang(), "range(1, 3)");
+});
 
 test("direct builtins generate BioLang without executing JavaScript algorithms", () => {
   assert.equal(mean([1, 2, 3]).toBioLang(), "mean([1, 2, 3])");
@@ -56,6 +69,30 @@ test("lambda safety rejects JavaScript operators that silently discard expressio
     () => lambda("row", (row) => row.Age >= 18),
     /cannot use JavaScript operators directly/,
   );
+});
+
+test("lambda field collisions give a precise escape hatch", () => {
+  assert.throws(
+    () => lambda("row", (row) => row.mean.eq(5)),
+    /Column 'mean'.*\.field\("mean"\)/,
+  );
+  assert.throws(
+    () => lambda("row", (row) => row.source.eq("study")),
+    /Column 'source'.*\.field\("source"\)/,
+  );
+  assert.equal(lambda("row", (row) => row.field("mean").eq(5)).toBioLang(), "|row| ((row).mean == 5)");
+  assert.equal(lambda("row", (row) => row.mean()).toBioLang(), "|row| mean(row)");
+});
+
+test("invoke treats string callees as validated function names", () => {
+  assert.equal(invoke("mean", [[1, 2]]).toBioLang(), "mean([1, 2])");
+  assert.equal(invoke(ref("mean"), [[1, 2]]).toBioLang(), "mean([1, 2])");
+  assert.throws(() => invoke('mean\nprint', [[1, 2]]), /not a valid BioLang identifier/);
+});
+
+test("lambdaExpr preserves the structural frontend path", () => {
+  assert.equal(lambdaExpr(["value"], ref("value").gte(2)).toBioLang(), "|value| (value >= 2)");
+  assert.equal(lambdaExpr(["value"], true).toBioLang(), "|value| true");
 });
 
 test("statement helpers cover ordinary program structure", () => {

@@ -78,6 +78,10 @@ export const version = JSON.parse(
   fs.readFileSync(path.join(here, "package.json"), "utf8"),
 ).version;
 
+// These names also exist as structural syntax helpers in `biolang/dsl`.
+// The package root promises the generated WASM builtin surface, so resolve
+// star-export ambiguity explicitly in favor of those builtin wrappers.
+export { dna, protein, range, rna, set, slice } from "./generated-builtins.js";
 export * from "./dsl.js";
 export * from "./generated-builtins.js";
 export * from "./objects.js";

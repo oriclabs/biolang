@@ -289,10 +289,20 @@ export function callExpr(name, args = []) {
   assertIdentifier(name, "function");
   return invokeSource(name, args);
 }
-export function invoke(callee, args = []) { return invokeSource(expression(callee).source, args); }
+export function invoke(callee, args = []) {
+  if (typeof callee === "string") {
+    assertIdentifier(callee, "function");
+    return invokeSource(callee, args);
+  }
+  return invokeSource(expression(callee).source, args);
+}
 export function lambdaExpr(parameters, body) {
   const rendered = parameters.map(parameterSource);
-  return new BioExpression(`|${rendered.join(", ")}| ${expression(body).source}`);
+  // This is the structural transpiler path, not a JavaScript callback. There
+  // is no callback arena to audit; emit_expr has already made every AST edge
+  // explicit. Authored callback lambdas should use lambda().
+  const result = expression(body);
+  return new BioExpression(`|${rendered.join(", ")}| ${result.source}`, [result]);
 }
 export function blockExpr(body) { return new BioExpression(`{\n${indent(blockSource(body))}\n}`); }
 export function ifExpr(condition, thenBody, elseBody = null) {
@@ -332,14 +342,19 @@ export function recordPattern(names) { return { kind: "record", names }; }
 export function tuplePattern(names) { return { kind: "tuple", names }; }
 
 function invokeSource(callee, args) {
+  const children = [];
   const rendered = args.map((arg) => {
     if (arg instanceof BioCallArgument) {
-      if (arg.kind === "spread") return `...${expression(arg.value).source}`;
-      return `${arg.name}: ${expression(arg.value).source}`;
+      const value = expression(arg.value);
+      children.push(value);
+      if (arg.kind === "spread") return `...${value.source}`;
+      return `${arg.name}: ${value.source}`;
     }
-    return expression(arg).source;
+    const value = expression(arg);
+    children.push(value);
+    return value.source;
   });
-  return new BioExpression(`${callee}(${rendered.join(", ")})`);
+  return new BioExpression(`${callee}(${rendered.join(", ")})`, children);
 }
 function parameterSource(parameter) {
   if (typeof parameter === "string") return identifierSource(parameter, "parameter");
@@ -356,6 +371,10 @@ function patternSource(pattern) {
 }
 function identifierSource(value, label) { assertIdentifier(value, label); return value; }
 
+/**
+ * Return BioLang source for execution. A string is treated as trusted raw
+ * BioLang source, not as a data value; use literal() for untrusted strings.
+ */
 export function sourceOf(value) {
   if (typeof value === "string") return value;
   if (value && typeof value.toBioLang === "function") return value.toBioLang();
@@ -399,13 +418,30 @@ function expressionProxy(target) {
       if (property === Symbol.iterator) {
         throw new TypeError("BioLang expressions cannot be spread or destructured");
       }
-      if (typeof property === "symbol" || property in object) {
+      if (typeof property === "symbol") {
         const value = Reflect.get(object, property, object);
         return typeof value === "function" ? value.bind(object) : value;
+      }
+      if (property in object) {
+        const value = Reflect.get(object, property, object);
+        if (typeof value !== "function") throw fieldCollision(property);
+        const bound = value.bind(object);
+        return new Proxy(bound, {
+          get(method, member, receiver) {
+            if (typeof member === "symbol" || member in method) return Reflect.get(method, member, receiver);
+            throw fieldCollision(property);
+          },
+        });
       }
       return object.field(property);
     },
   });
+}
+
+function fieldCollision(name) {
+  return new TypeError(
+    `Column '${name}' collides with a BioLang expression builder property; use .field(${JSON.stringify(name)})`,
+  );
 }
 
 function visit(node, seen) {
@@ -417,6 +453,8 @@ function visit(node, seen) {
 function statementSource(value) {
   if (value instanceof BioStatement || value instanceof BioProgram) return value.source;
   if (value instanceof BioExpression) return value.source;
+  // Strings here are trusted BioLang statements. Data strings must first pass
+  // through literal(), call(), or another builder that applies quote().
   if (typeof value === "string") return value;
   throw new TypeError("program() accepts expressions, statements, programs, and raw source strings");
 }

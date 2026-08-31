@@ -8,10 +8,15 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const packageJson = JSON.parse(readFileSync(path.join(root, "npm", "package.json"), "utf8"));
 const cargo = readFileSync(path.join(root, "Cargo.toml"), "utf8");
+const browser = readFileSync(path.join(root, "npm", "browser.js"), "utf8");
 const workspaceVersion = cargo.match(/\[workspace\.package\][\s\S]*?\nversion\s*=\s*"([^"]+)"/)?.[1];
 if (!workspaceVersion) throw new Error("Cannot read the Rust workspace version");
 if (workspaceVersion !== packageJson.version) {
   throw new Error(`npm version ${packageJson.version} does not match Rust ${workspaceVersion}`);
+}
+const browserVersion = browser.match(/export const version\s*=\s*"([^"]+)"/)?.[1];
+if (browserVersion !== packageJson.version) {
+  throw new Error(`browser SDK version ${browserVersion ?? "missing"} does not match npm ${packageJson.version}`);
 }
 
 for (const [target, directory] of [["nodejs", "pkg-node"], ["web", "pkg-web"]]) {

@@ -58,6 +58,19 @@ Studio can add a source transform for ordinary operator spelling without
 changing this runtime API. Unsafe Proxy coercions throw rather than silently
 dropping a scientific predicate.
 
+Row fields that share a name with a builder method or internal property use
+the explicit field accessor. This avoids ambiguity while keeping method calls
+such as `row.mean()` available:
+
+```js
+lambda("row", (row) => row.field("mean").gte(5))
+lambda("row", (row) => row.field("source").eq("study-a"))
+```
+
+An accidental `row.mean.eq(5)` reports this collision and names the
+`.field("mean")` escape hatch instead of failing with an unrelated JavaScript
+“not a function” error.
+
 ## Complete WASM builtin coverage
 
 Every builtin reported by the shipped WASM module has a generated JavaScript
@@ -95,8 +108,11 @@ const classify = program(
 bl.run(classify);
 ```
 
-`raw(source)` is the compatibility escape hatch for a newly added language
-construct before a dedicated JavaScript builder is released.
+`raw(source)`, a string passed to `program()`, and a string passed directly to
+`sourceOf()` are trusted-source escape hatches for a newly added language
+construct before a dedicated JavaScript builder is released. Never place a
+user or dataset value in those strings; pass data through `literal()`, `call()`
+or another builder so BioLang quoting is applied.
 
 ## Live sessions
 
