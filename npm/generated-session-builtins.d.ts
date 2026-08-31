@@ -154,6 +154,7 @@ export interface BioLangSessionBuiltinMethods {
   "crispr_qc"(...args: BioArgument[]): RunResult;
   "cross_join"(...args: BioArgument[]): RunResult;
   "cross_tab"(...args: BioArgument[]): RunResult;
+  "csv"(...args: BioArgument[]): RunResult;
   "cummax"(...args: BioArgument[]): RunResult;
   "cummin"(...args: BioArgument[]): RunResult;
   "cumsum"(...args: BioArgument[]): RunResult;
@@ -258,6 +259,7 @@ export interface BioLangSessionBuiltinMethods {
   "float"(...args: BioArgument[]): RunResult;
   "floor"(...args: BioArgument[]): RunResult;
   "forest_plot"(...args: BioArgument[]): RunResult;
+  "format"(...args: BioArgument[]): RunResult;
   "fragment_size_dist"(...args: BioArgument[]): RunResult;
   "frequencies"(...args: BioArgument[]): RunResult;
   "frip_score"(...args: BioArgument[]): RunResult;
@@ -457,6 +459,7 @@ export interface BioLangSessionBuiltinMethods {
   "mat_mul"(...args: BioArgument[]): RunResult;
   "mat_scale"(...args: BioArgument[]): RunResult;
   "mat_sub"(...args: BioArgument[]): RunResult;
+  "matrix"(...args: BioArgument[]): RunResult;
   "matrix_at"(...args: BioArgument[]): RunResult;
   "matrix_from_table"(...args: BioArgument[]): RunResult;
   "matrix_to_table"(...args: BioArgument[]): RunResult;
@@ -802,6 +805,7 @@ export interface BioLangSessionBuiltinMethods {
   "svd"(...args: BioArgument[]): RunResult;
   "swap"(...args: BioArgument[]): RunResult;
   "symmetric_difference"(...args: BioArgument[]): RunResult;
+  "table"(...args: BioArgument[]): RunResult;
   "table_cast"(...args: BioArgument[]): RunResult;
   "table_col_types"(...args: BioArgument[]): RunResult;
   "table_schema"(...args: BioArgument[]): RunResult;

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   BioLang,
   BioMatrixValue,
+  BioQualityValue,
   BioValueHandle,
 } from "../index.js";
 
@@ -24,12 +25,42 @@ test("direct values cross the JavaScript and BioLang boundary", async (context) 
   bl.setValue("clinical", { age: 52, cohort: "case" });
   assert.equal(bl.evalValue("clinical.age"), 52);
   assert.equal(bl.getValue("clinical").cohort, "case");
+  bl.setValue("tagged_record", { __biolangType: "user-data", value: 42 });
+  assert.equal(bl.getValue("tagged_record").__biolangType, "user-data");
+
+  bl.setValue("not_a_number", Number.NaN);
+  assert.equal(Number.isNaN(bl.getValue("not_a_number")), true);
+  bl.setValue("quality", new BioQualityValue(new Uint8Array([30, 31, 32])));
+  assert.deepEqual([...bl.getValue("quality").data], [30, 31, 32]);
 
   const matrix = new BioMatrixValue({
     nrow: 2, ncol: 2, data: new Float64Array([1, 2, 3, 4]),
   });
   bl.setValue("measurements", matrix);
   assert.deepEqual([...bl.getValue("measurements").data], [1, 2, 3, 4]);
+});
+
+test("typed interop throws Error objects and builtins are not shadowed", async (context) => {
+  const bl = await BioLang.create({ network: false });
+  context.after(() => bl.dispose());
+
+  for (const operation of [
+    () => bl.getValue("missing"),
+    () => bl.evalValue("let ="),
+  ]) {
+    assert.throws(operation, (error) => {
+      assert.ok(error instanceof Error);
+      assert.equal(typeof error.message, "string");
+      assert.ok(error.stack);
+      return true;
+    });
+  }
+
+  assert.equal(bl.table([{ x: 1 }]).ok, true);
+  assert.equal(bl.matrix([[1, 2], [3, 4]]).ok, true);
+  assert.equal(JSON.parse(bl.format("value={}", 7).value), "value=7");
+  assert.equal(bl.csv("definitely-missing.csv").ok, false);
+  assert.equal(typeof bl.formatSource("let   x=1"), "string");
 });
 
 test("large values stay in Rust and handles remain session-bound", async (context) => {
@@ -49,7 +80,11 @@ test("large values stay in Rust and handles remain session-bound", async (contex
 
   const stale = first.evalValue("[5, 6, 7]", { maximumInlineBytes: 1 });
   first.reset();
-  assert.throws(() => stale.page(), /stale after reset/);
+  assert.throws(() => stale.page(), (error) => {
+    assert.ok(error instanceof Error);
+    assert.match(error.message, /stale after reset/);
+    return true;
+  });
 });
 
 test("synchronous callbacks are isolated, validated, and callable by BioLang", async (context) => {
@@ -76,7 +111,11 @@ test("synchronous callbacks are isolated, validated, and callable by BioLang", a
   assert.deepEqual(first.evalValue("map([1, 2, 3], js_cross_session)"), [2, 3, 4]);
 
   first.registerFunction("js_async", async (value) => value);
-  assert.throws(() => first.evalValue("js_async(1)"), /must be synchronous/);
+  assert.throws(() => first.evalValue("js_async(1)"), (error) => {
+    assert.match(error.message, /must be synchronous/);
+    assert.equal((error.message.match(/JavaScript host callback 'js_async'/g) ?? []).length, 1);
+    return true;
+  });
   first.registerFunction("js_reenter", () => first.evalValue("1"));
   assert.throws(() => first.evalValue("js_reenter()"), /cannot re-enter/);
   assert.throws(

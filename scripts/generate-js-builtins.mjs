@@ -53,9 +53,10 @@ const dts = [
   "",
 ];
 const sessionMethodNames = new Set([
-  "then", "run", "define", "ref", "invoke", "csv", "table", "sequence", "matrix",
+  "then", "run", "define", "ref", "invoke", "csvExpression", "tableExpression",
+  "sequence", "matrixExpression",
   "reset", "builtins", "supports", "variables", "inspectVariable", "exportVariable",
-  "registerModule", "runtimeVersion", "format", "tokenize", "diagnostics", "completions",
+  "registerModule", "runtimeVersion", "formatSource", "tokenize", "diagnostics", "completions",
   "signature", "transpileJavaScript", "import", "validateImport", "qcMetrics",
   "connectSomer", "raw", "dispose",
   "evalValue", "callValue", "setValue", "getValue", "registerFunction",

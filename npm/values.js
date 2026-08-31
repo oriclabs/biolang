@@ -259,7 +259,16 @@ export function encodeBioValue(value, seen = new WeakSet()) {
       data: value.data, rowNames: value.rowNames, columnNames: value.columnNames,
     };
   }
-  if (value instanceof Float64Array || value instanceof Uint8Array) return value;
+  if (value instanceof Uint8Array) {
+    throw new TypeError(
+      "Uint8Array has no unambiguous BioLang type; wrap Phred scores in BioQualityValue or pass Array.from(value)",
+    );
+  }
+  if (value instanceof Float64Array) {
+    throw new TypeError(
+      "Float64Array has no persistent BioLang vector type; pass Array.from(value) or wrap matrix data in BioMatrixValue",
+    );
+  }
   if (value instanceof RegExp) {
     return { [TYPE_KEY]: "regex", pattern: value.source, flags: value.flags };
   }

@@ -117,7 +117,15 @@ export class BioLangSession {
     // silently change its cwd, network policy, or browser file provider.
     this.#activateBridge();
     globalThis.__blCallbacks = this.#callbackBridge;
-    return callback();
+    try {
+      return callback();
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      const message = typeof error === "string"
+        ? error
+        : String(error?.message ?? error ?? "Unknown BioLang WASM error");
+      throw new Error(message, { cause: error });
+    }
   }
 
   #invokeHostCallback(name, rawArguments) {
@@ -128,7 +136,15 @@ export class BioLangSession {
     validateCallbackArguments(name, args, registration.parameters);
     this.#inCallback = true;
     try {
-      const result = registration.callback(...args);
+      let result;
+      try {
+        result = registration.callback(...args);
+      } catch (error) {
+        throw new Error(
+          `JavaScript host callback '${name}' failed: ${String(error?.message ?? error)}`,
+          { cause: error },
+        );
+      }
       if (isPromiseLike(result)) {
         throw new TypeError(
           `JavaScript host callback '${name}' returned a Promise; callbacks must be synchronous`,
@@ -136,10 +152,6 @@ export class BioLangSession {
       }
       validateCallbackReturn(name, result, registration.returns);
       return encodeBioValue(result);
-    } catch (error) {
-      throw new Error(
-        `JavaScript host callback '${name}' failed: ${String(error?.message ?? error)}`,
-      );
     } finally {
       this.#inCallback = false;
       // A callback may legitimately use a different BioLang session. Restore
@@ -243,10 +255,10 @@ export class BioLangSession {
 
   invoke(name, ...args) { return this.run(call(name, ...args)); }
 
-  csv(path, options) { return tableFromCsv(path, options); }
-  table(rows) { return tableValue(rows); }
+  csvExpression(path, options) { return tableFromCsv(path, options); }
+  tableExpression(rows) { return tableValue(rows); }
   sequence(value, kind = "dna") { return sequenceValue(value, kind); }
-  matrix(value) { return matrixValue(value); }
+  matrixExpression(value) { return matrixValue(value); }
 
   reset() {
     this.#call(() => this.#session.reset());
@@ -294,7 +306,7 @@ export class BioLangSession {
       : null;
   }
 
-  format(source, indent = 4) {
+  formatSource(source, indent = 4) {
     return this.#call(() => this.#wasm.format(source, indent));
   }
 

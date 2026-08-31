@@ -98,10 +98,10 @@ export class BioLangSession {
   define(name: string, value: import("./dsl.js").BioArgument): BioExpression;
   ref(name: string): BioExpression;
   invoke(name: string, ...args: import("./dsl.js").BioArgument[]): RunResult;
-  csv(path: string, options?: Record<string, import("./dsl.js").BioArgument>): BioTable;
-  table(rows: import("./dsl.js").BioArgument[]): BioTable;
+  csvExpression(path: string, options?: Record<string, import("./dsl.js").BioArgument>): BioTable;
+  tableExpression(rows: import("./dsl.js").BioArgument[]): BioTable;
   sequence(value: string, kind?: "dna" | "rna" | "protein"): BioSequence;
-  matrix(value: import("./dsl.js").BioArgument): BioMatrix;
+  matrixExpression(value: import("./dsl.js").BioArgument): BioMatrix;
   reset(): void;
   builtins(): Builtin[];
   supports(name: string): boolean;
@@ -110,7 +110,7 @@ export class BioLangSession {
   exportVariable(name: string, options?: VariableExportOptions): Uint8Array;
   registerModule(path: string, source: string): void;
   runtimeVersion(): string | null;
-  format(source: string, indent?: number): string;
+  formatSource(source: string, indent?: number): string;
   tokenize(source: string): unknown;
   diagnostics(source: string): LanguageDiagnostic[];
   completions(prefix?: string): LanguageCompletion[];

@@ -43,7 +43,7 @@ import { BioLang } from "biolang";
 
 const bl = await BioLang.create({ cwd: "./data" });
 
-const analysis = bl.csv("nhanes.csv")
+const analysis = bl.csvExpression("nhanes.csv")
   .where({ Age: { gte: 18 }, BMI: { lt: 40 } })
   .column("BMI")
   .mean();
@@ -57,6 +57,12 @@ The safe portable API therefore uses `.eq()`, `.gte()` and `.and()`. BioLang
 Studio can add a source transform for ordinary operator spelling without
 changing this runtime API. Unsafe Proxy coercions throw rather than silently
 dropping a scientific predicate.
+
+The `Expression` suffix is deliberate: `csvExpression()`, `tableExpression()`
+and `matrixExpression()` build lazy pipelines. The unsuffixed `bl.csv()`,
+`bl.table()`, `bl.matrix()` and `bl.format()` names are the real BioLang
+builtins and execute immediately, returning a `RunResult`. Source formatting is
+available separately as `bl.formatSource(source)`.
 
 Row fields that share a name with a builder method or internal property use
 the explicit field accessor. This avoids ambiguity while keeping method calls
@@ -260,7 +266,11 @@ const bl = await BioLang.create({
 | `trace` | Source line associated with each display |
 | `error` | Error message when execution failed |
 
-The raw wasm-bindgen API remains available from `biolang/raw`.
+The low-level wasm-bindgen API remains available from `biolang/raw`. Its legacy
+module-level `evaluate`, `reset`, `list_variables` and `export_variable`
+functions intentionally share one default interpreter. They are not isolated
+sessions. Applications handling concurrent, private or patient-derived data
+should use `BioLang.create()` (or instantiate raw `WasmSession`) instead.
 The Node and browser loaders share one compiled WASM payload in the installed
 package; consumers do not download a second runtime for an environment they do
 not use.

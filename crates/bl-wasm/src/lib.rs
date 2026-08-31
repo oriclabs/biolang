@@ -172,11 +172,14 @@ pub fn transpile_javascript(source: &str) -> String {
     }
 }
 
-/// Register an optional in-memory package supplied by the embedding page.
+/// Register an optional in-memory package in the shared legacy interpreter.
 ///
 /// Modules supplied through this function remain outside the BioLang WASM
-/// artifact. The default browser interpreter separately embeds the small core
-/// statistics modules that are available without registration.
+/// artifact. Isolated applications should call `WasmSession.register_module`.
+/// The default browser interpreter separately embeds the small core statistics
+/// modules that are available without registration.
+///
+/// @deprecated Use `WasmSession.register_module` for isolated state.
 #[wasm_bindgen]
 pub fn register_module(path: &str, source: &str) {
     INTERPRETER.with(|cell| register_module_in(cell, path, source));
@@ -221,7 +224,13 @@ fn execute_value_in(cell: &RefCell<Option<Interpreter>>, source: &str) -> Result
     result
 }
 
-/// Evaluate BioLang source code. Returns JSON: `{ok, value, type, output, error}`
+/// Evaluate BioLang source code in the legacy module-level interpreter.
+///
+/// This state is shared by every caller of the module-level API. Concurrent or
+/// security-sensitive embedders should construct `WasmSession` instead.
+/// Returns JSON: `{ok, value, type, output, error}`.
+///
+/// @deprecated Use `WasmSession.evaluate` for isolated state.
 #[wasm_bindgen]
 pub fn evaluate(source: &str) -> String {
     INTERPRETER.with(|cell| evaluate_in(cell, source))
@@ -352,7 +361,9 @@ fn evaluate_in(cell: &RefCell<Option<Interpreter>>, source: &str) -> String {
     result.to_string()
 }
 
-/// Reset the interpreter state.
+/// Reset the shared legacy module-level interpreter state.
+///
+/// @deprecated Use `WasmSession.reset` for isolated state.
 #[wasm_bindgen]
 pub fn reset() {
     INTERPRETER.with(reset_in);
@@ -367,7 +378,10 @@ fn reset_in(cell: &RefCell<Option<Interpreter>>) {
     }
 }
 
-/// List all variables in the current environment. Returns JSON array.
+/// List variables in the shared legacy module-level interpreter.
+/// Returns a JSON array.
+///
+/// @deprecated Use `WasmSession.list_variables` for isolated state.
 #[wasm_bindgen]
 pub fn list_variables() -> String {
     INTERPRETER.with(list_variables_in)
@@ -416,8 +430,11 @@ fn list_variables_in(cell: &RefCell<Option<Interpreter>>) -> String {
     }
 }
 
-/// Return one bounded page of a variable. Container values are never formatted
-/// wholesale: at most 100 rows and 50 columns cross the WASM boundary per call.
+/// Return one bounded page from the shared legacy module-level interpreter.
+/// Container values are never formatted wholesale: at most 100 rows and 50
+/// columns cross the WASM boundary per call.
+///
+/// @deprecated Use `WasmSession.inspect_variable` for isolated state.
 #[wasm_bindgen]
 pub fn inspect_variable(name: &str, offset: usize, limit: usize) -> String {
     INTERPRETER.with(|cell| inspect_variable_in(cell, name, offset, limit))
@@ -443,9 +460,12 @@ fn inspect_variable_in(
     }
 }
 
-/// Serialize one variable exactly, stopping before the response can exceed the
-/// caller's byte cap. Large native exports use the streaming path in
-/// `bl_runtime::value_export` instead of crossing this in-memory boundary.
+/// Serialize a variable from the shared legacy module-level interpreter,
+/// stopping before the response can exceed the caller's byte cap. Large native
+/// exports use the streaming path in `bl_runtime::value_export` instead of
+/// crossing this in-memory boundary.
+///
+/// @deprecated Use `WasmSession.export_variable` for isolated state.
 #[wasm_bindgen]
 pub fn export_variable(name: &str, format: &str, maximum_bytes: usize) -> Result<Vec<u8>, JsValue> {
     INTERPRETER.with(|cell| export_variable_in(cell, name, format, maximum_bytes))

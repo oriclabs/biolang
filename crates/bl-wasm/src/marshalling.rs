@@ -468,18 +468,14 @@ fn js_to_value_inner(
         return Ok(Value::List(values.into()));
     }
     if value.is_instance_of::<Float64Array>() {
-        let array = Float64Array::new(value);
-        return Ok(Value::List(
-            array
-                .to_vec()
-                .into_iter()
-                .map(Value::Float)
-                .collect::<Vec<_>>()
-                .into(),
+        return Err(error(
+            "bare Float64Array has no persistent BioLang vector type; pass a JavaScript Array or a tagged matrix",
         ));
     }
     if value.is_instance_of::<Uint8Array>() {
-        return Ok(Value::Quality(Uint8Array::new(value).to_vec()));
+        return Err(error(
+            "bare Uint8Array is ambiguous; pass a JavaScript Array or a tagged Quality value",
+        ));
     }
     if !value.is_object() {
         return Err(error("unsupported JavaScript value"));
@@ -642,9 +638,6 @@ fn object_to_map(
             .get(index)
             .as_string()
             .ok_or_else(|| error("object key is not a string"))?;
-        if key == TYPE_KEY {
-            continue;
-        }
         let item = Reflect::get(value, &JsValue::from_str(&key))?;
         result.insert(key, js_to_value_inner(&item, handle_lookup, depth + 1)?);
     }

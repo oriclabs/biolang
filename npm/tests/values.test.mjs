@@ -62,4 +62,6 @@ test("value codec refuses cycles and arbitrary class instances", () => {
   cyclic.self = cyclic;
   assert.throws(() => encodeBioValue(cyclic), /cyclic/);
   assert.throws(() => encodeBioValue(new Date()), /Date/);
+  assert.throws(() => encodeBioValue(new Uint8Array([30, 31])), /BioQualityValue/);
+  assert.throws(() => encodeBioValue(new Float64Array([1, 2])), /Array.from/);
 });

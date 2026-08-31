@@ -32,9 +32,9 @@ async function execute(): Promise<RunResult> {
   );
   // @ts-expect-error misspelled builtin names must not bypass generated types
   session.summry([1, 2, 3]);
-  const objectResult = session.csv("nhanes.csv").where({ Age: { gte: 18 } }).column("BMI").mean();
+  const objectResult = session.csvExpression("nhanes.csv").where({ Age: { gte: 18 } }).column("BMI").mean();
   session.run(objectResult);
-  session.run(session.table([{ Age: 20, BMI: 22 }]).column("BMI").mean());
+  session.run(session.tableExpression([{ Age: 20, BMI: 22 }]).column("BMI").mean());
   session.inspectVariable("nh", { offset: 0, limit: 20 });
   await session.connectSomer({ baseUrl: "https://example.org", token: "token" });
   session.dispose();

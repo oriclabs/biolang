@@ -57,7 +57,7 @@ test("session creates typed lazy JavaScript data objects", () => {
   const wasm = fakeWasm();
   const session = new BioLangSession(wasm);
   const analysis = session
-    .csv("nhanes.csv")
+    .csvExpression("nhanes.csv")
     .where({ Age: { gte: 18 }, BMI: { lt: 40 } })
     .column("BMI")
     .mean();

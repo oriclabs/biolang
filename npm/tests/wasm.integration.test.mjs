@@ -30,7 +30,7 @@ test("generated JavaScript executes through the shipped WASM interpreter", async
   assert.equal(directResult.value, "2");
 
   const objectResult = session
-    .table([{ Age: 20, BMI: 22 }, { Age: 15, BMI: 30 }, { Age: 40, BMI: 28 }])
+    .tableExpression([{ Age: 20, BMI: 22 }, { Age: 15, BMI: 30 }, { Age: 40, BMI: 28 }])
     .where({ Age: { gte: 18 }, BMI: { lt: 25 } })
     .column("BMI")
     .mean()
