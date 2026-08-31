@@ -42,16 +42,18 @@ fn emit_program(program: &Program) -> Result<String, String> {
 }
 
 fn emit_direct_program(program: &Program) -> Result<Option<String>, String> {
-    if program.stmts.is_empty()
-        || !program.stmts.iter().all(|stmt| match &stmt.node {
-            Stmt::Let { value, .. } | Stmt::Expr(value) => is_direct_expr(&value.node),
-            _ => false,
-        })
-        || !matches!(
-            program.stmts.last().map(|stmt| &stmt.node),
-            Some(Stmt::Expr(_))
-        )
-    {
+    if program.stmts.is_empty() {
+        return Ok(Some(
+            "// Direct JavaScript API; computation still runs in BioLang WASM.\nnull;".into(),
+        ));
+    }
+    if !program.stmts.iter().all(|stmt| match &stmt.node {
+        Stmt::Let { value, .. } | Stmt::Expr(value) => is_direct_expr(&value.node),
+        _ => false,
+    }) || !matches!(
+        program.stmts.last().map(|stmt| &stmt.node),
+        Some(Stmt::Expr(_))
+    ) {
         return Ok(None);
     }
 
@@ -729,5 +731,15 @@ mod tests {
         assert!(js.contains("(report).mean"));
         assert!(!js.contains("bl.define"));
         assert!(!js.contains("bl.run"));
+    }
+
+    #[test]
+    fn emits_an_editable_direct_cell_for_empty_or_comment_only_source() {
+        for source in ["", "# BioLang code"] {
+            let js = transpile(source).unwrap();
+            assert!(js.starts_with("// Direct JavaScript API;"));
+            assert!(js.ends_with("null;"));
+            assert!(!js.contains("bio.program("));
+        }
     }
 }
