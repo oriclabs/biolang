@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 [dependencies]
 bl-core = { workspace = true }
 bl-import = { workspace = true }
+bl-language = { workspace = true }
 bl-lexer = { workspace = true }
 bl-fmt = { workspace = true }
 bl-qc = { workspace = true }

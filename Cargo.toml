@@ -13,6 +13,7 @@ members = [
     "crates/bl-jit",
     "crates/bl-repl",
     "crates/bl-lsp",
+    "crates/bl-language",
     "crates/bl-import",
     "crates/bl-cli",
     "crates/bl-fmt",
@@ -48,6 +49,7 @@ bl-compiler = { path = "crates/bl-compiler" }
 bl-jit = { path = "crates/bl-jit" }
 bl-repl = { path = "crates/bl-repl" }
 bl-lsp = { path = "crates/bl-lsp" }
+bl-language = { path = "crates/bl-language" }
 bl-import = { path = "crates/bl-import" }
 bl-cli = { path = "crates/bl-cli" }
 bl-fmt = { path = "crates/bl-fmt" }

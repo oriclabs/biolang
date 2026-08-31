@@ -900,6 +900,37 @@ pub fn tokenize(source: &str) -> String {
     }
 }
 
+/// Return parser diagnostics with byte offsets and line/column locations.
+/// This is intentionally filesystem-free so browser and native editors agree.
+#[wasm_bindgen]
+pub fn language_diagnostics(source: &str) -> String {
+    serde_json::to_string(&bl_language::diagnose(source)).unwrap_or_else(|error| {
+        serde_json::json!([{
+            "severity": "error",
+            "message": error.to_string(),
+            "start": 0,
+            "end": 1,
+            "line": 0,
+            "column": 0,
+            "endLine": 0,
+            "endColumn": 1
+        }])
+        .to_string()
+    })
+}
+
+/// Return builtin and keyword completions matching a prefix.
+#[wasm_bindgen]
+pub fn language_completions(prefix: &str) -> String {
+    serde_json::to_string(&bl_language::completions(prefix)).unwrap_or_else(|_| "[]".into())
+}
+
+/// Return a compact builtin signature, or JSON null when the name is unknown.
+#[wasm_bindgen]
+pub fn language_signature(name: &str) -> String {
+    serde_json::to_string(&bl_language::builtin_signature(name)).unwrap_or_else(|_| "null".into())
+}
+
 /// Convert Python, R, Jupyter, or R Markdown and return a structured validation result.
 #[wasm_bindgen]
 pub fn import_source(source: &str, format: &str, filename: &str) -> String {

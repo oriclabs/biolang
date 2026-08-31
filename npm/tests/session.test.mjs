@@ -27,6 +27,9 @@ function fakeWasm() {
     runtime_version() { return "1.5.0"; },
     format(source) { return source; },
     tokenize() { return "[]"; },
+    language_diagnostics() { return JSON.stringify([{ severity: "error", message: "expected expression" }]); },
+    language_completions(prefix) { return JSON.stringify([{ label: `${prefix}an`, kind: "function", detail: "mean(arg1)", insertText: "mean" }]); },
+    language_signature(name) { return JSON.stringify(name === "mean" ? "mean(arg1)" : null); },
     import_source() { return JSON.stringify({ ok: true }); },
     validate_import(source, notebook) {
       calls.push(["validate", source, notebook]);
@@ -89,4 +92,12 @@ test("session exposes import validation and QC utilities", () => {
     ["validate", "let x = 1", true],
     ["qc", "fastq", "@read\nAC\n+\nII"],
   ]);
+});
+
+test("session exposes shared browser language services", () => {
+  const session = new BioLangSession(fakeWasm());
+  assert.equal(session.diagnostics("let x =")[0].message, "expected expression");
+  assert.equal(session.completions("me")[0].label, "mean");
+  assert.equal(session.signature("mean"), "mean(arg1)");
+  assert.equal(session.signature("missing"), null);
 });

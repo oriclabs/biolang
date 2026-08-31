@@ -15,6 +15,9 @@ export const WASM_API_COVERAGE = Object.freeze({
   format: "BioLangSession.format",
   import_source: "BioLangSession.import",
   inspect_variable: "BioLangSession.inspectVariable",
+  language_completions: "BioLangSession.completions",
+  language_diagnostics: "BioLangSession.diagnostics",
+  language_signature: "BioLangSession.signature",
   list_builtins: "BioLangSession.builtins/supports",
   list_variables: "BioLangSession.variables",
   qc_metrics: "BioLangSession.qcMetrics",
@@ -125,6 +128,18 @@ export class BioLangSession {
 
   tokenize(source) {
     return JSON.parse(this.#wasm.tokenize(source));
+  }
+
+  diagnostics(source) {
+    return JSON.parse(this.#wasm.language_diagnostics(source));
+  }
+
+  completions(prefix = "") {
+    return JSON.parse(this.#wasm.language_completions(prefix));
+  }
+
+  signature(name) {
+    return JSON.parse(this.#wasm.language_signature(name));
   }
 
   transpileJavaScript(source) {

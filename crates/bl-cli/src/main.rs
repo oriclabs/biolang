@@ -175,6 +175,23 @@ impl PlotModeArg {
     }
 }
 
+fn is_notebook_path(path: &str) -> bool {
+    let path = path.to_ascii_lowercase();
+    path.ends_with(".bln") || path.ends_with(".bl.md")
+}
+
+#[cfg(test)]
+mod notebook_path_tests {
+    use super::is_notebook_path;
+
+    #[test]
+    fn recognizes_notebook_extensions_case_insensitively() {
+        assert!(is_notebook_path("lesson.bln"));
+        assert!(is_notebook_path("lesson.BL.MD"));
+        assert!(!is_notebook_path("analysis.bl"));
+    }
+}
+
 #[derive(Parser)]
 #[command(
     name = "bl",
@@ -200,9 +217,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Run a BioLang script file
+    /// Run a BioLang script or notebook
     Run {
-        /// Path to the .bl script file
+        /// Path to a .bl script or .bln/.bl.md notebook
         file: String,
         /// Show each step as it executes
         #[arg(short, long)]
@@ -473,17 +490,35 @@ fn main() {
                     output,
                     param,
                     seed,
-                }) => run_file(
-                    &file,
-                    verbose,
-                    events,
-                    print_result,
-                    record,
-                    input,
-                    output,
-                    param,
-                    seed,
-                ),
+                }) => {
+                    if is_notebook_path(&file) {
+                        if verbose
+                            || events
+                            || print_result
+                            || record.is_some()
+                            || !input.is_empty()
+                            || !output.is_empty()
+                            || !param.is_empty()
+                            || seed.is_some()
+                        {
+                            eprintln!("Error: `bl run` notebook auto-detection currently accepts no run-record or script flags. Use `bl notebook {file}` for an interactive terminal run.");
+                            process::exit(2);
+                        }
+                        notebook::run_notebook(&file);
+                    } else {
+                        run_file(
+                            &file,
+                            verbose,
+                            events,
+                            print_result,
+                            record,
+                            input,
+                            output,
+                            param,
+                            seed,
+                        );
+                    }
+                }
                 Some(Commands::Check { files }) => check_files(&files),
                 Some(Commands::Test { files, events }) => run_tests(&files, events),
                 Some(Commands::Fmt {

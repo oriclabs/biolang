@@ -1,0 +1,15 @@
+[package]
+name = "bl-language"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Shared browser and native language services for BioLang"
+
+[dependencies]
+bl-core = { workspace = true }
+bl-lexer = { workspace = true }
+bl-parser = { workspace = true }
+bl-runtime = { workspace = true, default-features = false }
+serde = { workspace = true }

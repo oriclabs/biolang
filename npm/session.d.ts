@@ -18,6 +18,24 @@ export interface Builtin {
   arity: string;
 }
 
+export interface LanguageDiagnostic {
+  severity: "error" | "warning" | "information";
+  message: string;
+  start: number;
+  end: number;
+  line: number;
+  column: number;
+  endLine: number;
+  endColumn: number;
+}
+
+export interface LanguageCompletion {
+  label: string;
+  kind: "function" | "keyword";
+  detail: string;
+  insertText: string;
+}
+
 export interface VariableInspectionOptions {
   offset?: number;
   limit?: number;
@@ -60,6 +78,9 @@ export class BioLangSession {
   runtimeVersion(): string | null;
   format(source: string, indent?: number): string;
   tokenize(source: string): unknown;
+  diagnostics(source: string): LanguageDiagnostic[];
+  completions(prefix?: string): LanguageCompletion[];
+  signature(name: string): string | null;
   transpileJavaScript(source: string): string;
   import(source: string, format: string, filename?: string): unknown;
   validateImport(source: string, options?: { notebook?: boolean }): unknown;
