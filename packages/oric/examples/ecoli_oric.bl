@@ -6,7 +6,7 @@
 import "oric" as oric
 
 # Load genome (first FASTA record)
-let genome = fasta("ecoli_k12_mg1655.fa") |> first() |> .seq
+let genome = (fasta("ecoli_k12_mg1655.fa") |> first()).seq
 println("Genome length:", seq_len(genome), "bp")
 
 # Predict oriC

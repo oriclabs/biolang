@@ -170,7 +170,7 @@ fn plot_enrichment(gsea_result, pathway_name) {
         println(f"  {y_label:>5} ┤  {bar_char}")
     }
 
-    println(f"  {'─' * 8}┼{'─' * 50}")
+    println(f"  {\"─\" * 8}┼{\"─\" * 50}")
     println(f"  0       Ranked gene position →    {len(hit.leading_edge_genes)}/{n_overlap} in leading edge")
     println("")
     println(f"  Leading edge genes: {join(hit.leading_edge_genes |> take(10), \", \")}...")

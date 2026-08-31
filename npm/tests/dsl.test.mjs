@@ -12,9 +12,18 @@ import {
   lambdaExpr,
   let_,
   literal,
+  literalPattern,
+  matchArm,
+  matchExpr,
   program,
   ref,
   return_,
+  stringFormatted,
+  stringInterp,
+  stringText,
+  stringValue,
+  tryCatch,
+  wildcardPattern,
 } from "../dsl.js";
 import { mean, read_csv, WASM_BUILTIN_NAMES } from "../generated-builtins.js";
 import { range as browserRange, version as browserVersion } from "../browser.js";
@@ -93,6 +102,33 @@ test("invoke treats string callees as validated function names", () => {
 test("lambdaExpr preserves the structural frontend path", () => {
   assert.equal(lambdaExpr(["value"], ref("value").gte(2)).toBioLang(), "|value| (value >= 2)");
   assert.equal(lambdaExpr(["value"], true).toBioLang(), "|value| true");
+});
+
+test("interpolated strings preserve runtime formatting and literal braces", () => {
+  const source = stringInterp([
+    stringText("mean={"),
+    stringFormatted(ref("mu"), ".2f"),
+    stringText("}"),
+    stringValue(ref("suffix")),
+  ]).toBioLang();
+  assert.equal(source, '("mean={") ++ (f"{mu:.2f}") ++ ("}") ++ (f"{suffix}")');
+  assert.throws(() => stringFormatted(ref("mu"), "wat"), /format spec/);
+});
+
+test("try/catch is represented as BioLang rather than executed by JavaScript", () => {
+  assert.equal(
+    tryCatch([call("fail", "bad")], "err", [ref("err")]).toBioLang(),
+    'try {\n  fail("bad")\n} catch err {\n  err\n}',
+  );
+});
+
+test("match expressions keep patterns, guards, and bodies structural", () => {
+  const source = matchExpr(ref("base"), [
+    matchArm(literalPattern("A"), "adenine"),
+    matchArm(wildcardPattern(), "other"),
+  ]).toBioLang();
+  assert.equal(source, 'match base {\n  "A" => "adenine",\n  _ => "other"\n}');
+  assert.throws(() => literalPattern(ref("not_a_literal")), /requires nil, a boolean, a number, or a string/);
 });
 
 test("statement helpers cover ordinary program structure", () => {

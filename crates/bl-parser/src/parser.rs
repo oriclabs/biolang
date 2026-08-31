@@ -1392,6 +1392,10 @@ impl Parser {
             // binary operator, so meeting one where an expression must start
             // can only be an empty parameter list.
             TokenKind::Or => self.parse_lambda(),
+            // Compatibility with packages written before lambdas adopted the
+            // compact `|x| expr` spelling. Keep accepting `fn(x) -> expr` at
+            // expression sites, but emitters use the canonical bar form.
+            TokenKind::Fn => self.parse_legacy_lambda(),
             TokenKind::Tilde => self.parse_formula(),
             TokenKind::If => self.parse_if_expr(),
             TokenKind::Match => self.parse_match_expr(),
@@ -1761,6 +1765,21 @@ impl Parser {
 
         self.expect(TokenKind::Bar)?;
 
+        self.finish_lambda(start, params)
+    }
+
+    /// Parse the legacy anonymous-function spelling `fn(x) -> expr`.
+    ///
+    /// Named function declarations are consumed by `parse_stmt` before the
+    /// expression parser is entered, so an `fn` in prefix position is
+    /// unambiguously an anonymous function.
+    fn parse_legacy_lambda(&mut self) -> Result<Spanned<Expr>> {
+        let start = self.current_span();
+        self.expect(TokenKind::Fn)?;
+        self.expect(TokenKind::LParen)?;
+        let params = self.parse_params()?;
+        self.expect(TokenKind::RParen)?;
+        self.expect(TokenKind::Arrow)?;
         self.finish_lambda(start, params)
     }
 
@@ -2551,14 +2570,20 @@ impl Parser {
             });
         }
 
-        // Check if this is a named argument: ident : expr
+        // Check if this is a named argument: `ident: expr`. `ident = expr`
+        // remains accepted for packages authored before the colon spelling
+        // became canonical. Assignment is a statement, not an expression, so
+        // the compatibility form is unambiguous inside a call argument list.
         if let TokenKind::Ident(name) = self.current_kind() {
             if self.pos + 1 < self.tokens.len()
-                && matches!(self.tokens[self.pos + 1].kind, TokenKind::Colon)
+                && matches!(
+                    self.tokens[self.pos + 1].kind,
+                    TokenKind::Colon | TokenKind::Eq
+                )
             {
                 let name = name.clone();
                 self.advance(); // ident
-                self.advance(); // :
+                self.advance(); // : or legacy =
                 let value = self.parse_expr()?;
                 return Ok(Arg {
                     name: Some(name),

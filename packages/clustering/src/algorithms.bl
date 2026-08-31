@@ -339,7 +339,7 @@ fn cut_tree(dendrogram, k) {
     let unique_labels = labels |> sort() |> unique()
     let label_map = {}
     for i in range(0, len(unique_labels)) {
-        label_map = {... label_map, [str(unique_labels[i])]: i}
+        label_map = label_map |> set_field(str(unique_labels[i]), i)
     }
     labels |> map(|lbl| label_map[str(lbl)])
 }
@@ -486,7 +486,7 @@ fn leiden(adjacency, resolution = 1.0, seed = 42) {
             for nb in neighbors {
                 let nb_label = str(labels[nb.neighbor])
                 let w_existing = if comm_weights[nb_label] != nil then comm_weights[nb_label] else 0.0
-                comm_weights = {... comm_weights, [nb_label]: w_existing + nb.weight}
+                comm_weights = comm_weights |> set_field(nb_label, w_existing + nb.weight)
                 total_weight = total_weight + nb.weight
             }
 
@@ -518,7 +518,7 @@ fn leiden(adjacency, resolution = 1.0, seed = 42) {
     let unique_labels = labels |> sort() |> unique()
     let label_map = {}
     for i in range(0, len(unique_labels)) {
-        label_map = {... label_map, [str(unique_labels[i])]: i}
+        label_map = label_map |> set_field(str(unique_labels[i]), i)
     }
 
     labels |> map(|lbl| label_map[str(lbl)])

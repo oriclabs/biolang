@@ -2306,3 +2306,28 @@ fn ordinary_names_are_still_accepted() {
         );
     }
 }
+
+#[test]
+fn legacy_package_lambda_is_accepted_as_an_ast_lambda() {
+    let prog = parse("map([1, 2], fn(value) -> value + 1)");
+    let Stmt::Expr(call) = &prog.stmts[0].node else {
+        panic!("expected expression statement");
+    };
+    let Expr::Call { args, .. } = &call.node else {
+        panic!("expected call");
+    };
+    assert!(matches!(args[1].value.node, Expr::Lambda { .. }));
+}
+
+#[test]
+fn legacy_package_named_argument_is_accepted() {
+    let prog = parse("sort_by(rows, descending = true)");
+    let Stmt::Expr(call) = &prog.stmts[0].node else {
+        panic!("expected expression statement");
+    };
+    let Expr::Call { args, .. } = &call.node else {
+        panic!("expected call");
+    };
+    assert_eq!(args[1].name.as_deref(), Some("descending"));
+    assert_eq!(args[1].value.node, Expr::Bool(true));
+}

@@ -101,8 +101,8 @@ println(f"  Significant (FDR<5%): {len(ora_sig)}")
 println("")
 println("Step 6: Top 20 Pathways from GSEA")
 println("─────────────────────────────────────────────────────────────────")
-println(f"  {'Pathway':<42} {'NES':>7} {'padj':>8} {'Overlap':>8}")
-println(f"  {'─' * 70}")
+println(f"  {\"Pathway\":<42} {\"NES\":>7} {\"padj\":>8} {\"Overlap\":>8}")
+println(f"  {\"─\" * 70}")
 
 let top20_gsea = pw.top_pathways(gsea_results, 20)
 for r in top20_gsea {
@@ -115,8 +115,8 @@ println(f"  (* = FDR < 0.25)")
 println("")
 println("Top 20 Pathways from ORA (upregulated genes)")
 println("─────────────────────────────────────────────────────────────────")
-println(f"  {'Pathway':<42} {'OR':>7} {'padj':>8} {'Overlap':>8}")
-println(f"  {'─' * 70}")
+println(f"  {\"Pathway\":<42} {\"OR\":>7} {\"padj\":>8} {\"Overlap\":>8}")
+println(f"  {\"─\" * 70}")
 
 let top20_ora = pw.top_pathways(ora_results, 20)
 for r in top20_ora {

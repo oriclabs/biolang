@@ -170,9 +170,9 @@ fn bubble_plot(result, n = 15) {
     let bar_width = 40
 
     println("Pathway Enrichment Bubble Plot  [x = -log10(FDR)]")
-    println(f"{'─' * 75}")
-    println(f"  {'Pathway':<35}  {'─log10(FDR)':>12}  Overlap  OR")
-    println(f"  {'─' * 70}")
+    println(f"{\"─\" * 75}")
+    println(f"  {\"Pathway\":<35}  {\"─log10(FDR)\":>12}  Overlap  OR")
+    println(f"  {\"─\" * 70}")
 
     let i = 0
     for r in top {
@@ -188,6 +188,6 @@ fn bubble_plot(result, n = 15) {
         i = i + 1
     }
 
-    println(f"{'─' * 75}")
+    println(f"{\"─\" * 75}")
     println(f"  Showing top {len(top)} significant pathways (FDR < 0.05)")
 }

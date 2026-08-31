@@ -18,7 +18,7 @@ fn filter(table, min_qual=0.0, require_pass=false)              { vcf_filter(tab
 fn snps_only(table)                                             { parse.snps_only(table) }
 fn indels_only(table)                                           { parse.indels_only(table) }
 fn by_chrom(table, chrom)                                       { parse.by_chrom(table, chrom) }
-fn in_region(table, chrom, start, end)                          { parse.in_region(table, chrom, start, end) }
+fn in_region(table, chrom, start, stop)                         { parse.in_region(table, chrom, start, stop) }
 fn summary(table)                                               { stats.summary(table) }
 fn titv(table)                                                  { stats.titv(table) }
 fn afs(table, field="AF")                                       { stats.afs(table, field) }

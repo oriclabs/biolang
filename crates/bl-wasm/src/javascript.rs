@@ -4,7 +4,10 @@
 //! constructs the same AST through the public `biolang` builder API; the
 //! resulting program is still evaluated by the Rust runtime.
 
-use bl_core::ast::{Arg, BinaryOp, Expr, ForPattern, Param, Program, RecordEntry, Stmt, UnaryOp};
+use bl_core::ast::{
+    Arg, BinaryOp, Expr, ForPattern, FormatSpec, MatchArm, Param, Pattern, Program, RecordEntry,
+    Stmt, StringPart, UnaryOp,
+};
 use bl_core::span::Spanned;
 use bl_lexer::Lexer;
 use bl_parser::Parser;
@@ -471,6 +474,25 @@ fn emit_expr(expr: &Spanned<Expr>) -> Result<String, String> {
                 None => "null".into(),
             }
         ),
+        Expr::TryCatch {
+            body,
+            error_var,
+            catch_body,
+        } => format!(
+            "bio.tryCatch([{}], {}, [{}])",
+            emit_stmts(body)?,
+            option_string(error_var.as_ref()),
+            emit_stmts(catch_body)?
+        ),
+        Expr::Match { expr, arms } => format!(
+            "bio.matchExpr({}, [{}])",
+            emit_expr(expr)?,
+            arms.iter()
+                .map(emit_match_arm)
+                .collect::<Result<Vec<_>, _>>()?
+                .join(", ")
+        ),
+        Expr::StringInterp(parts) => emit_string_interp(parts)?,
         Expr::List(values) => format!("[{}]", emit_exprs(values)?),
         Expr::TupleLit(values) => format!("bio.tuple([{}])", emit_exprs(values)?),
         Expr::SetLiteral(values) => format!("bio.set([{}])", emit_exprs(values)?),
@@ -569,6 +591,81 @@ fn emit_record(entries: &[RecordEntry]) -> Result<String, String> {
         })
         .collect::<Result<Vec<_>, String>>()?;
     Ok(format!("bio.record([{}])", values.join(", ")))
+}
+
+fn emit_string_interp(parts: &[StringPart]) -> Result<String, String> {
+    let values = parts
+        .iter()
+        .map(|part| {
+            Ok(match part {
+                StringPart::Lit(value) => format!("bio.stringText({})", quote(value)),
+                StringPart::Expr(value) => format!("bio.stringValue({})", emit_expr(value)?),
+                StringPart::Formatted(value, spec) => format!(
+                    "bio.stringFormatted({}, {})",
+                    emit_expr(value)?,
+                    quote(&format_spec_source(spec))
+                ),
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    Ok(format!("bio.stringInterp([{}])", values.join(", ")))
+}
+
+fn emit_match_arm(arm: &MatchArm) -> Result<String, String> {
+    Ok(format!(
+        "bio.matchArm({}, {}, {})",
+        emit_pattern(&arm.pattern)?,
+        emit_expr(&arm.body)?,
+        option_expr(arm.guard.as_deref())?
+    ))
+}
+
+fn emit_pattern(pattern: &Spanned<Pattern>) -> Result<String, String> {
+    Ok(match &pattern.node {
+        Pattern::Wildcard => "bio.wildcardPattern()".into(),
+        Pattern::Literal(value) => format!("bio.literalPattern({})", emit_expr(value)?),
+        Pattern::Ident(name) => format!("bio.identPattern({})", quote(name)),
+        Pattern::EnumVariant { variant, bindings } => format!(
+            "bio.enumPattern({}, [{}])",
+            quote(variant),
+            bindings
+                .iter()
+                .map(|binding| quote(binding))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        Pattern::TypePattern { type_name, binding } => format!(
+            "bio.typePattern({}, {})",
+            quote(type_name),
+            option_string(binding.as_ref())
+        ),
+        Pattern::Or(values) => format!(
+            "bio.orPattern([{}])",
+            values
+                .iter()
+                .map(emit_pattern)
+                .collect::<Result<Vec<_>, _>>()?
+                .join(", ")
+        ),
+    })
+}
+
+fn format_spec_source(spec: &FormatSpec) -> String {
+    let mut value = String::new();
+    if let Some(align) = spec.align {
+        value.push(align);
+    }
+    if let Some(width) = spec.width {
+        value.push_str(&width.to_string());
+    }
+    if let Some(precision) = spec.precision {
+        value.push('.');
+        value.push_str(&precision.to_string());
+    }
+    if let Some(kind) = spec.kind {
+        value.push(kind);
+    }
+    value
 }
 
 fn emit_params(params: &[Param]) -> Result<String, String> {
@@ -689,7 +786,12 @@ fn binary_name(op: BinaryOp) -> &'static str {
 }
 
 fn quote(value: &str) -> String {
-    serde_json::to_string(value).expect("strings always serialize")
+    // JSON strings are valid JavaScript strings. Escaping every HTML end-tag
+    // opener as `<\/` additionally keeps generated source safe if a consumer
+    // later embeds it in a script element instead of loading it as a module.
+    serde_json::to_string(value)
+        .expect("strings always serialize")
+        .replace("</", "<\\/")
 }
 fn indent_join(items: &[String]) -> String {
     items
@@ -722,6 +824,44 @@ mod tests {
         assert!(js.contains("bio.lambdaExpr"));
         assert!(js.contains("bio.record"));
         assert!(js.contains("bio.named(\"format\", \"svg\")"));
+    }
+
+    #[test]
+    fn legacy_package_syntax_transpiles_to_canonical_builders() {
+        let js = transpile("rows |> sort_by(fn(row) -> row.score, descending = true)").unwrap();
+        assert!(js.contains("bio.lambdaExpr"));
+        assert!(js.contains("bio.named(\"descending\", true)"));
+    }
+
+    #[test]
+    fn emits_interpolated_strings_format_specs_and_try_catch_structurally() {
+        let js = transpile(
+            "let mu = 12.3456\ntry { f\"mean={mu:.2f}\" } catch err { f\"failed: {err}\" }",
+        )
+        .unwrap();
+        assert!(js.contains("bio.tryCatch"));
+        assert!(js.contains("bio.stringText(\"mean=\")"));
+        assert!(js.contains("bio.stringFormatted(bio.ref(\"mu\"), \".2f\")"));
+        assert!(js.contains("bio.stringValue(bio.ref(\"err\"))"));
+    }
+
+    #[test]
+    fn emits_match_patterns_guards_and_bodies_structurally() {
+        let js = transpile(
+            "match base { \"A\" => \"adenine\", value if value == \"T\" => \"thymine\", _ => \"other\" }",
+        )
+        .unwrap();
+        assert!(js.contains("bio.matchExpr"));
+        assert!(js.contains("bio.literalPattern(\"A\")"));
+        assert!(js.contains("bio.identPattern(\"value\")"));
+        assert!(js.contains("bio.wildcardPattern()"));
+    }
+
+    #[test]
+    fn generated_javascript_strings_are_safe_for_script_embedding() {
+        let js = transpile("print(\"</script><SCRIPT>\")").unwrap();
+        assert!(js.contains("<\\/script><SCRIPT>"));
+        assert!(!js.contains("</script>"));
     }
 
     #[test]

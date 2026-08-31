@@ -183,7 +183,7 @@ let gene_major = []
 for g_idx in range(0, n_genes) {
     let row = {gene: gene_cols[g_idx]}
     for c_idx in range(0, n_filtered) {
-        row = {... row, [f"cell_{c_idx}"]: log_matrix[c_idx][g_idx]}
+        row = row |> set_field(f"cell_{c_idx}", log_matrix[c_idx][g_idx])
     }
     gene_major = append(gene_major, row)
 }

@@ -203,8 +203,8 @@ fn marker_genes(matrix, cluster_labels, top_n = 50) {
         # Compute AUROC for each top marker
         let rank = 1
         for g in scored {
-            let vals_in = in_cluster |> map(|i| matrix |> filter(|row| row.gene == g.gene) |> first() |> .[ cell_cols[i]])
-            let vals_out = out_cluster |> map(|i| matrix |> filter(|row| row.gene == g.gene) |> first() |> .[cell_cols[i]])
+            let vals_in = in_cluster |> map(|i| (matrix |> filter(|row| row.gene == g.gene) |> first())[cell_cols[i]])
+            let vals_out = out_cluster |> map(|i| (matrix |> filter(|row| row.gene == g.gene) |> first())[cell_cols[i]])
             let auc = auroc(vals_out, vals_in)
 
             all_markers = append(all_markers, {

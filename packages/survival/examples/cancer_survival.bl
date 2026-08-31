@@ -129,8 +129,8 @@ for i in range(0, n_patients) {
 let uni_results = surv.cox_univariate(times, events, cov_table)
 
 println("")
-println(f"  {'Covariate':<14} {'HR':>7} {'95% CI':>18} {'p-value':>10}  Sig")
-println(f"  {'─' * 55}")
+println(f"  {\"Covariate\":<14} {\"HR\":>7} {\"95% CI\":>18} {\"p-value\":>10}  Sig")
+println(f"  {\"─\" * 55}")
 for r in uni_results {
     let ci_str = f"{r.hr_lower_ci} – {r.hr_upper_ci}"
     println(f"  {r.covariate:<14} {r.hr:>7} {ci_str:>18} {r.pvalue:>10}  {r.stars}")
@@ -151,8 +151,8 @@ let multi_cox = surv.cox(
 let hr_table = surv.hazard_ratio_table(multi_cox)
 
 println("")
-println(f"  {'Covariate':<20} {'HR':>7} {'95% CI':>18} {'p-value':>10}  Sig")
-println(f"  {'─' * 63}")
+println(f"  {\"Covariate\":<20} {\"HR\":>7} {\"95% CI\":>18} {\"p-value\":>10}  Sig")
+println(f"  {\"─\" * 63}")
 for r in hr_table {
     let ci_str = f"{r.lower_95ci} – {r.upper_95ci}"
     println(f"  {r.covariate:<20} {r.hr:>7} {ci_str:>18} {r.pvalue:>10}  {r.stars}")
@@ -179,8 +179,8 @@ let log_min = log2(min_hr + 0.001)
 let log_max = log2(max_hr + 0.001)
 let plot_width = 40
 
-println(f"  {'Covariate':<20}  {'Forest plot (log HR scale)'}")
-println(f"  {'─' * 65}")
+println(f"  {\"Covariate\":<20}  {\"Forest plot (log HR scale)\"}")
+println(f"  {\"─\" * 65}")
 
 for r in hr_table {
     let log_hr  = log2(r.hr + 0.001)

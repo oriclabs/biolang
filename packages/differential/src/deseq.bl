@@ -87,7 +87,7 @@ fn deseq2_norm(count_matrix) {
         for s in sample_cols {
             let sf_val = sf[i]
             let norm_count = if sf_val > 0.0 then round(row[s] / sf_val, 2) else 0.0
-            normed = {... normed, [s]: norm_count}
+            normed = normed |> set_field(s, norm_count)
             i = i + 1
         }
         normed
@@ -130,7 +130,7 @@ fn pseudo_bulk(matrix, cell_labels, sample_labels) {
                 }
                 c_idx = c_idx + 1
             }
-            agg = {... agg, [sample_id]: total}
+            agg = agg |> set_field(sample_id, total)
             s_idx = s_idx + 1
         }
         agg

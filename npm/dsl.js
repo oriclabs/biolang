@@ -221,6 +221,15 @@ class BioRecordEntry {
 class BioParameter {
   constructor(name, options = {}) { this.name = name; this.options = options; }
 }
+class BioStringPart {
+  constructor(kind, value, spec = null) { this.kind = kind; this.value = value; this.spec = spec; }
+}
+class BioMatchPattern {
+  constructor(kind, value = null, bindings = []) { this.kind = kind; this.value = value; this.bindings = bindings; }
+}
+class BioMatchArm {
+  constructor(pattern, body, guard = null) { this.pattern = pattern; this.body = body; this.guard = guard; }
+}
 
 export function expr_(value) { return new BioStatement(expression(value).source); }
 export function const_(name, value) {
@@ -309,6 +318,83 @@ export function ifExpr(condition, thenBody, elseBody = null) {
   const suffix = elseBody === null ? "" : ` else {\n${indent(blockSource(elseBody))}\n}`;
   return new BioExpression(`if ${expression(condition).source} {\n${indent(blockSource(thenBody))}\n}${suffix}`);
 }
+export function tryCatch(body, errorVariable, catchBody) {
+  const binding = errorVariable === null ? "" : ` ${identifierSource(errorVariable, "catch variable")}`;
+  return new BioExpression(
+    `try {\n${indent(blockSource(body))}\n} catch${binding} {\n${indent(blockSource(catchBody))}\n}`,
+  );
+}
+export function stringText(value) {
+  if (typeof value !== "string") throw new TypeError("stringText() requires a string");
+  return new BioStringPart("text", value);
+}
+export function stringValue(value) { return new BioStringPart("value", value); }
+export function stringFormatted(value, spec) {
+  assertFormatSpec(spec);
+  return new BioStringPart("formatted", value, spec);
+}
+export function stringInterp(parts) {
+  if (!Array.isArray(parts)) throw new TypeError("stringInterp() parts must be an array");
+  const children = [];
+  const rendered = parts.map((part) => {
+    if (!(part instanceof BioStringPart)) {
+      throw new TypeError("stringInterp() parts must use stringText(), stringValue(), or stringFormatted()");
+    }
+    if (part.kind === "text") return quote(part.value);
+    const value = expression(part.value);
+    children.push(value);
+    return part.kind === "formatted"
+      ? `f"{${value.source}:${part.spec}}"`
+      : `f"{${value.source}}"`;
+  });
+  if (!rendered.length) return new BioExpression('""');
+  return new BioExpression(rendered.map((part) => `(${part})`).join(" ++ "), children);
+}
+export function wildcardPattern() { return new BioMatchPattern("wildcard"); }
+export function literalPattern(value) {
+  if (value !== null && typeof value !== "string" && typeof value !== "boolean" && typeof value !== "number") {
+    throw new TypeError("literalPattern() requires nil, a boolean, a number, or a string");
+  }
+  if (typeof value === "number" && !Number.isFinite(value)) {
+    throw new TypeError("literalPattern() requires a finite number");
+  }
+  return new BioMatchPattern("literal", value);
+}
+export function identPattern(name) {
+  assertIdentifier(name, "pattern binding");
+  return new BioMatchPattern("ident", name);
+}
+export function enumPattern(name, bindings = []) {
+  assertIdentifier(name, "enum variant");
+  bindings.forEach((binding) => assertIdentifier(binding, "pattern binding"));
+  return new BioMatchPattern("enum", name, bindings);
+}
+export function typePattern(name, binding = null) {
+  assertIdentifier(name, "type pattern");
+  if (binding !== null) assertIdentifier(binding, "pattern binding");
+  return new BioMatchPattern("type", name, binding === null ? [] : [binding]);
+}
+export function orPattern(patterns) { return new BioMatchPattern("or", null, patterns); }
+export function matchArm(pattern, body, guard = null) { return new BioMatchArm(pattern, body, guard); }
+export function matchExpr(value, arms) {
+  if (!Array.isArray(arms) || arms.some((arm) => !(arm instanceof BioMatchArm))) {
+    throw new TypeError("matchExpr() arms must use matchArm()");
+  }
+  const subject = expression(value);
+  const children = [subject];
+  const rendered = arms.map((arm) => {
+    const body = expression(arm.body);
+    children.push(body);
+    let guard = "";
+    if (arm.guard !== null) {
+      const condition = expression(arm.guard);
+      children.push(condition);
+      guard = ` if ${condition.source}`;
+    }
+    return `${matchPatternSource(arm.pattern)}${guard} => ${body.source}`;
+  });
+  return new BioExpression(`match ${subject.source} {\n${indent(rendered.join(",\n"))}\n}`, children);
+}
 export function fieldEntry(name, value) { return new BioRecordEntry("field", value, name); }
 export function spreadEntry(value) { return new BioRecordEntry("spread", value); }
 export function record(entries) {
@@ -368,6 +454,22 @@ function patternSource(pattern) {
   pattern.names.forEach((name) => assertIdentifier(name, "pattern name"));
   const delimiters = pattern.kind === "record" ? ["{", "}"] : pattern.kind === "tuple" ? ["(", ")"] : ["[", "]"];
   return `${delimiters[0]}${pattern.names.join(", ")}${delimiters[1]}`;
+}
+function matchPatternSource(pattern) {
+  if (!(pattern instanceof BioMatchPattern)) {
+    throw new TypeError("match patterns must use a pattern builder");
+  }
+  switch (pattern.kind) {
+    case "wildcard": return "_";
+    case "literal": return expression(pattern.value).source;
+    case "ident": return pattern.value;
+    case "enum": return pattern.bindings.length
+      ? `${pattern.value}(${pattern.bindings.join(", ")})`
+      : pattern.value;
+    case "type": return `${pattern.value}(${pattern.bindings[0] ?? "_"})`;
+    case "or": return pattern.bindings.map(matchPatternSource).join(" | ");
+    default: throw new TypeError(`unknown match pattern '${pattern.kind}'`);
+  }
 }
 function identifierSource(value, label) { assertIdentifier(value, label); return value; }
 
@@ -494,6 +596,14 @@ function quote(value) {
 function assertIdentifier(value, label) {
   if (typeof value !== "string" || !IDENTIFIER.test(value)) {
     throw new TypeError(`${label} name '${String(value)}' is not a valid BioLang identifier`);
+  }
+}
+
+function assertFormatSpec(value) {
+  if (typeof value !== "string"
+      || !/^[<>^]?(?:\d+)?(?:\.\d+)?[fe%]?$/.test(value)
+      || value.length === 0) {
+    throw new TypeError(`format spec '${String(value)}' is not supported`);
   }
 }
 

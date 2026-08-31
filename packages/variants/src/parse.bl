@@ -20,6 +20,6 @@ fn by_chrom(table, chrom) {
   table |> filter(fn(r) -> r.chrom == chrom)
 }
 
-fn in_region(table, chrom, start, end) {
-  table |> filter(fn(r) -> r.chrom == chrom & r.pos >= start & r.pos <= end)
+fn in_region(table, chrom, start, stop) {
+  table |> filter(fn(r) -> r.chrom == chrom & r.pos >= start & r.pos <= stop)
 }

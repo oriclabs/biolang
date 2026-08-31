@@ -85,9 +85,10 @@
     "build": "node ../scripts/build-npm.mjs",
     "generate": "node ../scripts/generate-js-builtins.mjs",
     "check:coverage": "node ../scripts/check-js-builtins.mjs",
+    "check:corpus": "node ../scripts/check-js-corpus.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:types": "tsc -p tsconfig.types.json",
-    "prepack": "npm run build && npm test && npm run check:coverage"
+    "prepack": "npm run build && npm test && npm run check:coverage && npm run check:corpus"
   },
   "peerDependencies": {
     "@somer/client": ">=0.1.3 <1"

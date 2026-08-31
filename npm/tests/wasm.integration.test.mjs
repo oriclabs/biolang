@@ -57,4 +57,25 @@ test("generated JavaScript executes through the shipped WASM interpreter", async
   const pipelineResult = await new Function("bio", "bl", `return (async () => { ${pipeline} })()`)(bio, session);
   assert.equal(pipelineResult.ok, true, pipelineResult.error ?? "Generated pipeline execution failed");
   assert.equal(pipelineResult.value, "3.5");
+
+  const languageFeatures = session.transpileJavaScript(`
+let mu = 12.3456
+let base = "A"
+{
+  formatted: f"mean={mu:.2f}",
+  label: match base { "A" => "adenine", _ => "other" },
+  recovered: try { assert false, "boom" } catch err { "caught" },
+  legacy: map([1, 2], fn(value) -> value + 1)
+}
+  `).replace(/\nresult;\s*$/, "\nreturn result;");
+  const featureResult = await new Function(
+    "bio",
+    "bl",
+    `return (async () => { ${languageFeatures} })()`,
+  )(bio, session);
+  assert.equal(featureResult.ok, true, featureResult.error ?? "Generated language features failed");
+  assert.match(featureResult.value, /mean=12\.35/);
+  assert.match(featureResult.value, /adenine/);
+  assert.match(featureResult.value, /caught/);
+  assert.match(featureResult.value, /\[2, 3\]/);
 });

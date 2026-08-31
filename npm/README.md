@@ -90,6 +90,13 @@ import {
 missing or stale wrapper. The current catalog is also available as
 `biolang/catalog`. `session.supports(name)` performs a runtime check.
 
+The source frontend is gated separately with `npm run check:corpus`. It parses
+and transpiles every tracked `.bl` file, then asks JavaScript's parser to compile
+every generated program. The current tree passes all 626 files with no refused
+source and no invalid JavaScript. This includes interpolated and formatted
+strings, `try`/`catch`, all match-pattern forms, and legacy package lambda and
+named-argument spellings.
+
 ## Programs and functions
 
 Common BioLang statements have JavaScript builders:
