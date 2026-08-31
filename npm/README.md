@@ -8,10 +8,10 @@ npm install biolang
 ```
 
 ```js
-import { BioLang, mean } from "biolang";
+import { BioLang } from "biolang";
 
 const bl = await BioLang.create();
-const result = bl.run(mean([1, 2, 3]));
+const result = await bl.mean([1, 2, 3]);
 
 console.log(result.value);          // "2"
 console.log(bl.runtimeVersion());   // version compiled into WASM
@@ -21,14 +21,16 @@ The JavaScript layer builds BioLang source and sends it through the same parser,
 interpreter and builtins used by `.bl` programs. It does not implement a second
 statistics or bioinformatics engine.
 
-Existing BioLang can also be converted into inspectable structural JavaScript;
-the result contains SDK calls, never a BioLang template string:
+Existing BioLang can also be converted into direct JavaScript. Structural
+builders appear only when a BioLang-only language construct needs them:
 
 ```js
 const javascript = bl.transpileJavaScript(
   "let measurements = [12, 14, 15]\nsummary(measurements)"
 );
-// bio.program(bio.let_(...), bio.expr_(bio.callExpr(...))).run(bl)
+// let measurements = [12, 14, 15];
+// let result = await bl.summary(measurements);
+// result;
 ```
 
 ## JavaScript objects and pipelines

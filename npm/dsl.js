@@ -131,11 +131,7 @@ export function literal(value) {
 
 export function call(name, ...args) {
   assertIdentifier(name, "builtin");
-  const values = args.map(expression);
-  return new BioExpression(
-    `${name}(${values.map((value) => value.source).join(", ")})`,
-    values,
-  );
+  return invokeSource(name, args);
 }
 
 export function lambda(parameter, build) {

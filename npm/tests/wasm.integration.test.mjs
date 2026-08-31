@@ -25,6 +25,9 @@ test("generated JavaScript executes through the shipped WASM interpreter", async
   assert.equal(result.ok, true, result.error ?? "WASM execution failed");
   assert.equal(result.type, "Float");
   assert.equal(result.value, "2");
+  const directResult = await session.mean([1, 2, 3]);
+  assert.equal(directResult.ok, true, directResult.error ?? "Direct API execution failed");
+  assert.equal(directResult.value, "2");
 
   const objectResult = session
     .table([{ Age: 20, BMI: 22 }, { Age: 15, BMI: 30 }, { Age: 40, BMI: 28 }])
@@ -38,7 +41,9 @@ test("generated JavaScript executes through the shipped WASM interpreter", async
   const generated = session.transpileJavaScript(
     "let measurements = [12, 14, 15, 15, 16, 19, 28]\nsummary(measurements)",
   );
-  assert.match(generated, /bio\.let_\("measurements", \[12, 14, 15/);
+  assert.match(generated, /let measurements = \[12, 14, 15/);
+  assert.match(generated, /await bl\.summary\(measurements\)/);
+  assert.doesNotMatch(generated, /bl\.define|bl\.run/);
   assert.doesNotMatch(generated, /`let measurements/);
   const executableGenerated = generated.replace(/\nresult;\s*$/, "\nreturn result;");
   const executeJavaScript = new Function("bio", "bl", `return (async () => { ${executableGenerated} })()`);

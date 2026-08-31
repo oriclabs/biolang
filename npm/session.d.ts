@@ -40,8 +40,12 @@ export type BioLangSource = string | BioExpression | BioStatement | BioProgram;
 export declare const WASM_API_COVERAGE: Readonly<Record<string, string>>;
 
 export class BioLangSession {
+  [name: string]: any;
   constructor(wasm: unknown);
   run(source: BioLangSource): RunResult;
+  define(name: string, value: import("./dsl.js").BioArgument): BioExpression;
+  ref(name: string): BioExpression;
+  invoke(name: string, ...args: import("./dsl.js").BioArgument[]): RunResult;
   csv(path: string, options?: Record<string, import("./dsl.js").BioArgument>): BioTable;
   table(rows: import("./dsl.js").BioArgument[]): BioTable;
   sequence(value: string, kind?: "dna" | "rna" | "protein"): BioSequence;

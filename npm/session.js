@@ -1,4 +1,4 @@
-import { sourceOf } from "./dsl.js";
+import { call, let_, program, ref, sourceOf } from "./dsl.js";
 import { matrixValue, sequenceValue, tableFromCsv, tableValue } from "./objects.js";
 
 /**
@@ -47,11 +47,31 @@ export class BioLangSession {
   constructor(wasm) {
     this.#wasm = wasm;
     this.#builtins = null;
+    return new Proxy(this, {
+      get(target, property) {
+        if (property === "then") return undefined;
+        if (typeof property !== "string" || property in target) {
+          const value = Reflect.get(target, property, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        }
+        return (...args) => target.run(call(property, ...args));
+      },
+    });
   }
 
   run(source) {
     return normalizeRunResult(JSON.parse(this.#wasm.evaluate(sourceOf(source))));
   }
+
+  define(name, value) {
+    const result = this.run(program(let_(name, value)));
+    if (!result.ok) throw new Error(result.error || `Cannot define ${name}`);
+    return ref(name);
+  }
+
+  ref(name) { return ref(name); }
+
+  invoke(name, ...args) { return this.run(call(name, ...args)); }
 
   csv(path, options) { return tableFromCsv(path, options); }
   table(rows) { return tableValue(rows); }

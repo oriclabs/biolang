@@ -8,6 +8,7 @@ use bl_core::ast::{Arg, BinaryOp, Expr, ForPattern, Param, Program, RecordEntry,
 use bl_core::span::Spanned;
 use bl_lexer::Lexer;
 use bl_parser::Parser;
+use std::collections::HashSet;
 
 pub fn transpile(source: &str) -> Result<String, String> {
     let tokens = Lexer::new(source)
@@ -26,6 +27,9 @@ pub fn transpile(source: &str) -> Result<String, String> {
 }
 
 fn emit_program(program: &Program) -> Result<String, String> {
+    if let Some(source) = emit_direct_program(program)? {
+        return Ok(source);
+    }
     let items = program
         .stmts
         .iter()
@@ -35,6 +39,261 @@ fn emit_program(program: &Program) -> Result<String, String> {
         "// `bl` is the persistent BioLang session; `bio` is the JavaScript SDK.\nconst result = await bio.program(\n{}\n).run(bl);\nresult;",
         indent_join(&items)
     ))
+}
+
+fn emit_direct_program(program: &Program) -> Result<Option<String>, String> {
+    if program.stmts.is_empty()
+        || !program.stmts.iter().all(|stmt| match &stmt.node {
+            Stmt::Let { value, .. } | Stmt::Expr(value) => is_direct_expr(&value.node),
+            _ => false,
+        })
+        || !matches!(
+            program.stmts.last().map(|stmt| &stmt.node),
+            Some(Stmt::Expr(_))
+        )
+    {
+        return Ok(None);
+    }
+
+    let mut locals = HashSet::new();
+    let mut lines =
+        vec!["// Direct JavaScript API; computation still runs in BioLang WASM.".into()];
+    for (index, stmt) in program.stmts.iter().enumerate() {
+        let last = index + 1 == program.stmts.len();
+        match &stmt.node {
+            Stmt::Let { name, value, .. } => {
+                if !is_safe_javascript_binding(name) {
+                    return Ok(None);
+                }
+                let value = emit_direct_value(value, &locals)?;
+                lines.push(format!("let {name} = {value};"));
+                locals.insert(name.clone());
+            }
+            Stmt::Expr(value) => {
+                let expression = emit_direct_run(value, &locals)?;
+                if last {
+                    let result_name = unique_javascript_name("result", &locals);
+                    lines.push(format!("let {result_name} = {expression};"));
+                    lines.push(format!("{result_name};"));
+                } else {
+                    lines.push(format!("{expression};"));
+                }
+            }
+            _ => return Ok(None),
+        }
+    }
+    Ok(Some(lines.join("\n")))
+}
+
+fn is_direct_expr(expr: &Expr) -> bool {
+    match expr {
+        Expr::Nil | Expr::Bool(_) | Expr::Int(_) | Expr::Float(_) | Expr::Str(_) => true,
+        Expr::Ident(name) => is_safe_javascript_binding(name),
+        Expr::List(values) | Expr::TupleLit(values) => {
+            values.iter().all(|value| is_direct_expr(&value.node))
+        }
+        Expr::Record(entries) => entries.iter().all(|entry| match entry {
+            RecordEntry::Field(_, value) => is_direct_expr(&value.node),
+            RecordEntry::Spread(_) => false,
+        }),
+        Expr::Call { callee, args } => {
+            matches!(&callee.node, Expr::Ident(name) if is_safe_javascript_binding(name))
+                && args.iter().all(|arg| is_direct_expr(&arg.value.node))
+        }
+        Expr::Field { object, field, .. } => {
+            is_safe_javascript_binding(field) && is_direct_expr(&object.node)
+        }
+        Expr::Index { object, index } => {
+            is_direct_expr(&object.node) && is_direct_expr(&index.node)
+        }
+        _ => false,
+    }
+}
+
+fn emit_direct_run(expr: &Spanned<Expr>, locals: &HashSet<String>) -> Result<String, String> {
+    if let Expr::Call { callee, args } = &expr.node {
+        if let Expr::Ident(name) = &callee.node {
+            let args = args
+                .iter()
+                .map(|arg| {
+                    let value = emit_direct_value(&arg.value, locals)?;
+                    Ok(if arg.spread {
+                        format!("bio.spread({value})")
+                    } else if let Some(name) = &arg.name {
+                        format!("bio.named({}, {value})", quote(name))
+                    } else {
+                        value
+                    })
+                })
+                .collect::<Result<Vec<_>, String>>()?;
+            return Ok(if is_direct_session_method(name) {
+                format!("await bl.invoke({}, {})", quote(name), args.join(", "))
+            } else {
+                format!("await bl.{name}({})", args.join(", "))
+            });
+        }
+    }
+    emit_direct_value(expr, locals)
+}
+
+fn emit_direct_value(expr: &Spanned<Expr>, locals: &HashSet<String>) -> Result<String, String> {
+    Ok(match &expr.node {
+        Expr::Ident(name) if is_safe_javascript_binding(name) => name.clone(),
+        Expr::Ident(name) => format!("bl.ref({})", quote(name)),
+        Expr::Call { .. } => emit_direct_run(expr, locals)?,
+        Expr::Field {
+            object,
+            field,
+            optional,
+        } if is_safe_javascript_binding(field) => format!(
+            "({}){}{}",
+            emit_direct_value(object, locals)?,
+            if *optional { "?." } else { "." },
+            field
+        ),
+        Expr::Index { object, index } => format!(
+            "({})[{}]",
+            emit_direct_value(object, locals)?,
+            emit_direct_value(index, locals)?
+        ),
+        Expr::List(values) => format!(
+            "[{}]",
+            values
+                .iter()
+                .map(|value| emit_direct_value(value, locals))
+                .collect::<Result<Vec<_>, _>>()?
+                .join(", ")
+        ),
+        Expr::Record(entries)
+            if entries
+                .iter()
+                .all(|entry| matches!(entry, RecordEntry::Field(_, _))) =>
+        {
+            let fields = entries
+                .iter()
+                .map(|entry| match entry {
+                    RecordEntry::Field(name, value) => Ok(format!(
+                        "{}: {}",
+                        if is_javascript_identifier(name) {
+                            name.clone()
+                        } else {
+                            quote(name)
+                        },
+                        emit_direct_value(value, locals)?
+                    )),
+                    RecordEntry::Spread(_) => unreachable!(),
+                })
+                .collect::<Result<Vec<_>, String>>()?;
+            format!("{{ {} }}", fields.join(", "))
+        }
+        _ => emit_expr(expr)?,
+    })
+}
+
+fn is_javascript_identifier(value: &str) -> bool {
+    let mut chars = value.chars();
+    matches!(chars.next(), Some(first) if first == '_' || first == '$' || first.is_ascii_alphabetic())
+        && chars.all(|ch| ch == '_' || ch == '$' || ch.is_ascii_alphanumeric())
+}
+
+fn is_safe_javascript_binding(value: &str) -> bool {
+    is_javascript_identifier(value)
+        && !matches!(
+            value,
+            "await"
+                | "break"
+                | "case"
+                | "catch"
+                | "class"
+                | "const"
+                | "continue"
+                | "debugger"
+                | "default"
+                | "delete"
+                | "do"
+                | "else"
+                | "enum"
+                | "export"
+                | "extends"
+                | "false"
+                | "finally"
+                | "for"
+                | "function"
+                | "if"
+                | "implements"
+                | "import"
+                | "in"
+                | "instanceof"
+                | "interface"
+                | "let"
+                | "new"
+                | "null"
+                | "package"
+                | "private"
+                | "protected"
+                | "public"
+                | "return"
+                | "static"
+                | "super"
+                | "switch"
+                | "this"
+                | "throw"
+                | "true"
+                | "try"
+                | "typeof"
+                | "var"
+                | "void"
+                | "while"
+                | "with"
+                | "yield"
+                | "bio"
+                | "bl"
+        )
+}
+
+fn unique_javascript_name(preferred: &str, locals: &HashSet<String>) -> String {
+    if !locals.contains(preferred) {
+        return preferred.into();
+    }
+    let mut suffix = 2;
+    loop {
+        let candidate = format!("{preferred}{suffix}");
+        if !locals.contains(&candidate) {
+            return candidate;
+        }
+        suffix += 1;
+    }
+}
+
+fn is_direct_session_method(name: &str) -> bool {
+    matches!(
+        name,
+        "run"
+            | "define"
+            | "ref"
+            | "invoke"
+            | "csv"
+            | "table"
+            | "sequence"
+            | "matrix"
+            | "reset"
+            | "builtins"
+            | "supports"
+            | "variables"
+            | "inspectVariable"
+            | "exportVariable"
+            | "registerModule"
+            | "runtimeVersion"
+            | "format"
+            | "tokenize"
+            | "transpileJavaScript"
+            | "import"
+            | "validateImport"
+            | "qcMetrics"
+            | "connectSomer"
+            | "raw"
+            | "then"
+    )
 }
 
 fn emit_stmt(stmt: &Spanned<Stmt>) -> Result<String, String> {
@@ -445,9 +704,10 @@ mod tests {
     #[test]
     fn emits_structural_javascript_without_embedding_source() {
         let js = transpile("let measurements = [12, 14, 15]\nsummary(measurements)").unwrap();
-        assert!(js.contains("bio.let_(\"measurements\", [12, 14, 15])"));
-        assert!(js.contains("bio.callExpr(\"summary\", [bio.ref(\"measurements\")])"));
-        assert!(!js.contains("let measurements = [12, 14, 15]"));
+        assert!(js.contains("let measurements = [12, 14, 15]"));
+        assert!(js.contains("await bl.summary(measurements)"));
+        assert!(!js.contains("bl.define"));
+        assert!(!js.contains("bl.run"));
     }
 
     #[test]
@@ -460,5 +720,14 @@ mod tests {
         assert!(js.contains("bio.lambdaExpr"));
         assert!(js.contains("bio.record"));
         assert!(js.contains("bio.named(\"format\", \"svg\")"));
+    }
+
+    #[test]
+    fn emits_direct_calls_variables_and_dot_access_when_safe() {
+        let js = transpile("let report = summary([1, 2, 3])\nreport.mean").unwrap();
+        assert!(js.contains("let report = await bl.summary([1, 2, 3])"));
+        assert!(js.contains("(report).mean"));
+        assert!(!js.contains("bl.define"));
+        assert!(!js.contains("bl.run"));
     }
 }
