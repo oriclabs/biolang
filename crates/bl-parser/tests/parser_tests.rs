@@ -1543,6 +1543,27 @@ fn test_trait_definition() {
 }
 
 #[test]
+fn test_regular_comments_survive_as_non_executable_trivia() {
+    let tokens = Lexer::new("# explain\nlet xs = [\n  # first value\n  1, 2\n] # measured")
+        .tokenize()
+        .unwrap();
+    let result = Parser::new(tokens).parse().unwrap();
+    assert!(
+        !result.has_errors(),
+        "unexpected errors: {:?}",
+        result.errors
+    );
+    assert_eq!(result.program.stmts.len(), 1);
+    assert_eq!(result.comments.len(), 3);
+    assert_eq!(result.comments[0].text, "explain");
+    assert!(!result.comments[0].inline);
+    assert_eq!(result.comments[1].text, "first value");
+    assert!(!result.comments[1].inline);
+    assert_eq!(result.comments[2].text, "measured");
+    assert!(result.comments[2].inline);
+}
+
+#[test]
 fn test_pipeline_statement() {
     let prog = parse(r#"pipeline "my_pipe" { let x = 1 }"#);
     match &prog.stmts[0].node {

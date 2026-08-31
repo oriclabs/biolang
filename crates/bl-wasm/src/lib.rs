@@ -1565,7 +1565,7 @@ fn token_kind_class(kind: &bl_lexer::TokenKind) -> &'static str {
         RegexLit(_, _) => "string",
         LParen | RParen | LBrace | RBrace | LBracket | RBracket | Bar | HashLBrace => "delimiter",
         Colon | Comma => "punctuation",
-        DocComment(_) => "comment",
+        DocComment(_) | Comment { .. } => "comment",
         Newline | Eof => "whitespace",
     }
 }

@@ -140,6 +140,10 @@ fn test_comment() {
             TokenKind::Ident("x".into()),
             TokenKind::Eq,
             TokenKind::Int(1),
+            TokenKind::Comment {
+                text: "this is a comment".into(),
+                inline: true,
+            },
             TokenKind::Newline,
             TokenKind::Let,
             TokenKind::Ident("y".into()),
@@ -1236,6 +1240,10 @@ fn test_comment_at_end_of_line() {
             TokenKind::Ident("x".into()),
             TokenKind::Eq,
             TokenKind::Int(1),
+            TokenKind::Comment {
+                text: "assign".into(),
+                inline: true,
+            },
         ]
     );
 }
@@ -1243,7 +1251,13 @@ fn test_comment_at_end_of_line() {
 #[test]
 fn test_comment_only_line() {
     let tokens = lex("# just a comment");
-    assert_eq!(tokens, vec![]);
+    assert_eq!(
+        tokens,
+        vec![TokenKind::Comment {
+            text: "just a comment".into(),
+            inline: false,
+        }]
+    );
 }
 
 #[test]

@@ -209,6 +209,14 @@ export function function_(name, parameters, body, options = {}) {
   );
 }
 
+export function pipeline_(name, parameters, body) {
+  assertIdentifier(name, "pipeline");
+  if (!Array.isArray(parameters)) throw new TypeError("pipeline_() parameters must be an array");
+  return new BioStatement(
+    `pipeline ${name}(${parameters.map(parameterSource).join(", ")}) {\n${indent(blockSource(body))}\n}`,
+  );
+}
+
 // Structural builders used by the BioLang-to-JavaScript frontend. They are
 // deliberately explicit: generated JavaScript contains no hidden BioLang
 // source string and every AST edge remains visible and inspectable.

@@ -10,7 +10,7 @@ use bl_core::ast::{
 };
 use bl_core::span::Spanned;
 use bl_lexer::Lexer;
-use bl_parser::Parser;
+use bl_parser::{Parser, SourceComment};
 use std::collections::HashSet;
 
 pub fn transpile(source: &str) -> Result<String, String> {
@@ -21,58 +21,82 @@ pub fn transpile(source: &str) -> Result<String, String> {
     if parsed.has_errors() {
         return Err(parsed
             .errors
-            .into_iter()
-            .map(|error| error.message)
+            .iter()
+            .map(|error| error.message.clone())
             .collect::<Vec<_>>()
             .join("; "));
     }
-    emit_program(&parsed.program)
+    emit_program(&parsed.program, &parsed.comments)
 }
 
-fn emit_program(program: &Program) -> Result<String, String> {
-    if let Some(source) = emit_direct_program(program)? {
+fn emit_program(program: &Program, comments: &[SourceComment]) -> Result<String, String> {
+    if let Some(source) = emit_direct_program(program, comments)? {
         return Ok(source);
     }
-    let items = program
-        .stmts
-        .iter()
-        .map(emit_stmt)
-        .collect::<Result<Vec<_>, _>>()?;
     Ok(format!(
         "// `bl` is the persistent BioLang session; `bio` is the JavaScript SDK.\nconst result = await bio.program(\n{}\n).run(bl);\nresult;",
-        indent_join(&items)
+        indent_join_with_comments(&program.stmts, comments)?
     ))
 }
 
-fn emit_direct_program(program: &Program) -> Result<Option<String>, String> {
+fn emit_direct_program(
+    program: &Program,
+    comments: &[SourceComment],
+) -> Result<Option<String>, String> {
     if program.stmts.is_empty() {
-        return Ok(Some(
-            "// Direct JavaScript API; computation still runs in BioLang WASM.\nnull;".into(),
-        ));
+        let mut lines =
+            vec!["// Direct JavaScript API; computation still runs in BioLang WASM.".into()];
+        for comment in comments {
+            lines.push(js_line_comment(comment));
+        }
+        lines.push("null;".into());
+        return Ok(Some(lines.join("\n")));
     }
     if !program.stmts.iter().all(|stmt| match &stmt.node {
         Stmt::Let { value, .. } | Stmt::Expr(value) => is_direct_expr(&value.node),
         _ => false,
-    }) || !matches!(
-        program.stmts.last().map(|stmt| &stmt.node),
-        Some(Stmt::Expr(_))
+    }) {
+        return Ok(None);
+    }
+
+    let last_value = program.stmts.len().checked_sub(1);
+    if !matches!(
+        last_value.map(|index| &program.stmts[index].node),
+        Some(Stmt::Let { .. } | Stmt::Expr(_))
     ) {
         return Ok(None);
     }
 
     let mut locals = HashSet::new();
-    let mut lines =
+    let mut lines: Vec<String> =
         vec!["// Direct JavaScript API; computation still runs in BioLang WASM.".into()];
+    let mut comment_index = 0;
     for (index, stmt) in program.stmts.iter().enumerate() {
-        let last = index + 1 == program.stmts.len();
+        while comments
+            .get(comment_index)
+            .is_some_and(|comment| comment.span.start < stmt.span.start)
+        {
+            push_direct_comment(&mut lines, &comments[comment_index]);
+            comment_index += 1;
+        }
+        let last = Some(index) == last_value;
         match &stmt.node {
             Stmt::Let { name, value, .. } => {
                 if !is_safe_javascript_binding(name) {
                     return Ok(None);
                 }
-                let value = emit_direct_value(value, &locals)?;
-                lines.push(format!("let {name} = {value};"));
+                let materialize = matches!(value.node, Expr::Call { .. });
+                let value_source = emit_direct_value(value, &locals)?;
+                let value_source = if materialize {
+                    format!("await bl.evalValue({value_source})")
+                } else {
+                    value_source
+                };
+                lines.push(format!("let {name} = {value_source};"));
                 locals.insert(name.clone());
+                if last {
+                    lines.push("null;".into());
+                }
             }
             Stmt::Expr(value) => {
                 let expression = emit_direct_run(value, &locals)?;
@@ -87,12 +111,43 @@ fn emit_direct_program(program: &Program) -> Result<Option<String>, String> {
             _ => return Ok(None),
         }
     }
+    for comment in &comments[comment_index..] {
+        push_direct_comment(&mut lines, comment);
+    }
     Ok(Some(lines.join("\n")))
+}
+
+fn js_line_comment(comment: &SourceComment) -> String {
+    format!(
+        "//{}{}",
+        if comment.text.is_empty() { "" } else { " " },
+        comment.text
+    )
+}
+
+fn push_direct_comment(lines: &mut Vec<String>, comment: &SourceComment) {
+    let rendered = js_line_comment(comment);
+    if comment.inline && lines.len() > 1 {
+        if let Some(previous) = lines.last_mut() {
+            previous.push(' ');
+            previous.push_str(&rendered);
+        }
+    } else {
+        lines.push(rendered);
+    }
 }
 
 fn is_direct_expr(expr: &Expr) -> bool {
     match expr {
-        Expr::Nil | Expr::Bool(_) | Expr::Int(_) | Expr::Float(_) | Expr::Str(_) => true,
+        Expr::Nil
+        | Expr::Bool(_)
+        | Expr::Int(_)
+        | Expr::Float(_)
+        | Expr::Str(_)
+        | Expr::DnaLit(_)
+        | Expr::RnaLit(_)
+        | Expr::ProteinLit(_)
+        | Expr::QualLit(_) => true,
         Expr::Ident(name) => is_safe_javascript_binding(name),
         Expr::List(values) | Expr::TupleLit(values) => {
             values.iter().all(|value| is_direct_expr(&value.node))
@@ -138,14 +193,53 @@ fn emit_direct_run(expr: &Spanned<Expr>, locals: &HashSet<String>) -> Result<Str
             });
         }
     }
-    emit_direct_value(expr, locals)
+    match &expr.node {
+        Expr::Ident(name) if !locals.contains(name) => {
+            Ok(format!("await bl.evalValue(bl.ref({}))", quote(name)))
+        }
+        _ => emit_direct_value(expr, locals),
+    }
+}
+
+fn emit_direct_call_expression(
+    callee: &Spanned<Expr>,
+    args: &[Arg],
+    locals: &HashSet<String>,
+) -> Result<String, String> {
+    let args = args
+        .iter()
+        .map(|arg| {
+            let value = emit_direct_value(&arg.value, locals)?;
+            Ok(if arg.spread {
+                format!("bio.spread({value})")
+            } else if let Some(name) = &arg.name {
+                format!("bio.named({}, {value})", quote(name))
+            } else {
+                value
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    match &callee.node {
+        Expr::Ident(name) => Ok(format!(
+            "bio.callExpr({}, [{}])",
+            quote(name),
+            args.join(", ")
+        )),
+        _ => Err("direct JavaScript calls require a named BioLang function".into()),
+    }
 }
 
 fn emit_direct_value(expr: &Spanned<Expr>, locals: &HashSet<String>) -> Result<String, String> {
     Ok(match &expr.node {
-        Expr::Ident(name) if is_safe_javascript_binding(name) => name.clone(),
+        Expr::Ident(name) if locals.contains(name) && is_safe_javascript_binding(name) => {
+            name.clone()
+        }
         Expr::Ident(name) => format!("bl.ref({})", quote(name)),
-        Expr::Call { .. } => emit_direct_run(expr, locals)?,
+        Expr::DnaLit(value) => format!("bio.dna({})", quote(value)),
+        Expr::RnaLit(value) => format!("bio.rna({})", quote(value)),
+        Expr::ProteinLit(value) => format!("bio.protein({})", quote(value)),
+        Expr::QualLit(value) => format!("bio.quality({})", quote(value)),
+        Expr::Call { callee, args } => emit_direct_call_expression(callee, args, locals)?,
         Expr::Field {
             object,
             field,
@@ -377,6 +471,12 @@ fn emit_stmt(stmt: &Spanned<Stmt>) -> Result<String, String> {
             "bio.assert_({}, {})",
             emit_expr(condition)?,
             option_expr(message.as_ref())?
+        ),
+        Stmt::Pipeline { name, params, body } => format!(
+            "bio.pipeline_({}, [{}], [{}])",
+            quote(name),
+            emit_params(params)?,
+            emit_stmts(body)?
         ),
         Stmt::Import { path, alias } => format!(
             "bio.import_({}, {})",
@@ -793,12 +893,47 @@ fn quote(value: &str) -> String {
         .expect("strings always serialize")
         .replace("</", "<\\/")
 }
-fn indent_join(items: &[String]) -> String {
-    items
-        .iter()
-        .map(|item| format!("  {item},"))
-        .collect::<Vec<_>>()
-        .join("\n")
+fn indent_join_with_comments(
+    statements: &[Spanned<Stmt>],
+    comments: &[SourceComment],
+) -> Result<String, String> {
+    let mut lines = Vec::new();
+    let mut comment_index = 0;
+
+    for (statement_index, statement) in statements.iter().enumerate() {
+        while comments
+            .get(comment_index)
+            .is_some_and(|comment| comment.span.start < statement.span.start)
+        {
+            lines.push(format!("  {}", js_line_comment(&comments[comment_index])));
+            comment_index += 1;
+        }
+
+        let next_start = statements
+            .get(statement_index + 1)
+            .map_or(usize::MAX, |next| next.span.start);
+        let mut rendered = format!("  {},", emit_stmt(statement)?);
+        while comments
+            .get(comment_index)
+            .is_some_and(|comment| comment.span.start < next_start)
+        {
+            let comment = &comments[comment_index];
+            if comment.inline {
+                rendered.push(' ');
+                rendered.push_str(&js_line_comment(comment));
+            } else {
+                lines.push(rendered);
+                rendered = format!("  {}", js_line_comment(comment));
+            }
+            comment_index += 1;
+        }
+        lines.push(rendered);
+    }
+
+    for comment in &comments[comment_index..] {
+        lines.push(format!("  {}", js_line_comment(comment)));
+    }
+    Ok(lines.join("\n"))
 }
 
 #[cfg(test)]
@@ -867,7 +1002,9 @@ mod tests {
     #[test]
     fn emits_direct_calls_variables_and_dot_access_when_safe() {
         let js = transpile("let report = summary([1, 2, 3])\nreport.mean").unwrap();
-        assert!(js.contains("let report = await bl.summary([1, 2, 3])"));
+        assert!(
+            js.contains("let report = await bl.evalValue(bio.callExpr(\"summary\", [[1, 2, 3]]))")
+        );
         assert!(js.contains("(report).mean"));
         assert!(!js.contains("bl.define"));
         assert!(!js.contains("bl.run"));
@@ -881,5 +1018,45 @@ mod tests {
             assert!(js.ends_with("null;"));
             assert!(!js.contains("bio.program("));
         }
+    }
+
+    #[test]
+    fn preserves_standalone_inline_and_nested_expression_comments() {
+        let js = transpile(
+            "# Count all 4-mers\nlet seq = dna\"ATCG\" # the input\nprintln(iupac_match(seq, \"RAATTC\")) # R is a purine",
+        )
+        .unwrap();
+        assert!(js.contains("// Count all 4-mers"));
+        assert!(js.contains("bio.dna(\"ATCG\")"));
+        assert!(js.contains("// the input"));
+        assert!(js.contains("// R is a purine"));
+        assert!(js.contains("await bl.println(bio.callExpr(\"iupac_match\""));
+    }
+
+    #[test]
+    fn keeps_comments_beside_structural_fallback_statements() {
+        let js =
+            transpile("# Keep only adults\nrows |> filter(|row| row.age >= 18) # used by the plot")
+                .unwrap();
+        let note = js.find("// Keep only adults").unwrap();
+        let pipe = js.find("bio.pipe(").unwrap();
+        let inline = js.find("// used by the plot").unwrap();
+        assert!(note < pipe && pipe < inline);
+        assert!(js.contains("bio.program("));
+    }
+
+    #[test]
+    fn a_trailing_let_stays_direct_and_returns_biolang_nil() {
+        let js = transpile("let bases = dna\"ATCG\"").unwrap();
+        assert!(js.contains("let bases = bio.dna(\"ATCG\");"));
+        assert!(js.ends_with("null;"));
+        assert!(!js.contains("bio.program("));
+    }
+
+    #[test]
+    fn pipeline_statements_have_a_structural_javascript_builder() {
+        let js = transpile("pipeline qc(sample) { return len(sample) }").unwrap();
+        assert!(js.contains("bio.pipeline_(\"qc\""));
+        assert!(!js.contains("does not yet support statement"));
     }
 }

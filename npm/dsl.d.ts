@@ -65,6 +65,7 @@ export function if_(condition: BioArgument, thenBranch: unknown, elseBranch?: un
 export function for_(pattern: string | object, iterable: BioArgument, body: unknown, options?: object): BioStatement;
 export function while_(condition: BioArgument, body: unknown): BioStatement;
 export function function_(name: string, parameters: Array<string | object>, body: unknown, options?: object): BioStatement;
+export function pipeline_(name: string, parameters: Array<string | object>, body: unknown): BioStatement;
 export function expr_(value: BioArgument): BioStatement;
 export function const_(name: string, value: BioArgument): BioStatement;
 export function indexAssign(name: string, index: BioArgument, value: BioArgument): BioStatement;

@@ -1,3 +1,3 @@
 pub mod parser;
 
-pub use parser::{ParseResult, Parser};
+pub use parser::{ParseResult, Parser, SourceComment};

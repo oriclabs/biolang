@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import * as bio from "../dsl.js";
 
 import {
   BioLang,
@@ -61,6 +62,28 @@ test("typed interop throws Error objects and builtins are not shadowed", async (
   assert.equal(JSON.parse(bl.format("value={}", 7).value), "value=7");
   assert.equal(bl.csv("definitely-missing.csv").ok, false);
   assert.equal(typeof bl.formatSource("let   x=1"), "string");
+});
+
+test("transpiled comments and nested direct calls remain executable", async (context) => {
+  const bl = await BioLang.create({ network: false });
+  context.after(() => bl.dispose());
+  const generated = bl.transpileJavaScript(`
+# Explain the IUPAC rule
+println(iupac_match(dna"AAATTC", "RAATTC")) # true: R matches A or G
+println(reverse_complement(dna"AAATTC")) # typed nested result stays inside one BioLang expression
+  `);
+  assert.match(generated, /\/\/ Explain the IUPAC rule/);
+  assert.match(generated, /\/\/ true: R matches A or G/);
+  assert.match(generated, /bl\.println\(bio\.callExpr\("iupac_match"/);
+  assert.match(generated, /bl\.println\(bio\.callExpr\("reverse_complement"/);
+  const executable = generated.replace(
+    /\nresult;\s*(?:\/\/[^\n]*)?\s*$/,
+    "\nreturn result;",
+  );
+  const result = await new Function(
+    "bio", "bl", `return (async () => { ${executable} })()`,
+  )(bio, bl);
+  assert.equal(result.ok, true, result.error ?? "Nested direct call failed");
 });
 
 test("large values stay in Rust and handles remain session-bound", async (context) => {

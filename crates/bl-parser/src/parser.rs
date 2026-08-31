@@ -7,6 +7,17 @@ use bl_lexer::token::{Token, TokenKind};
 pub struct ParseResult {
     pub program: Program,
     pub errors: Vec<BioLangError>,
+    /// Regular `# ...` comments retained as source trivia. They are removed
+    /// from the grammar token stream, so comments remain legal anywhere
+    /// whitespace is legal without becoming executable statements.
+    pub comments: Vec<SourceComment>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceComment {
+    pub text: String,
+    pub inline: bool,
+    pub span: Span,
 }
 
 impl ParseResult {
@@ -19,6 +30,7 @@ pub struct Parser {
     tokens: Vec<Token>,
     pos: usize,
     errors: Vec<BioLangError>,
+    comments: Vec<SourceComment>,
 }
 
 /// Operator precedence levels (higher = tighter binding).
@@ -45,10 +57,26 @@ enum Precedence {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
+        let mut comments = Vec::new();
+        let tokens = tokens
+            .into_iter()
+            .filter_map(|token| match token.kind {
+                TokenKind::Comment { text, inline } => {
+                    comments.push(SourceComment {
+                        text,
+                        inline,
+                        span: token.span,
+                    });
+                    None
+                }
+                _ => Some(token),
+            })
+            .collect();
         Self {
             tokens,
             pos: 0,
             errors: Vec::new(),
+            comments,
         }
     }
 
@@ -75,6 +103,7 @@ impl Parser {
         Ok(ParseResult {
             program: Program { stmts },
             errors: self.errors,
+            comments: self.comments,
         })
     }
 

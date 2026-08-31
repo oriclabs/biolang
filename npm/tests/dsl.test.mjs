@@ -15,6 +15,7 @@ import {
   literalPattern,
   matchArm,
   matchExpr,
+  pipeline_,
   program,
   ref,
   return_,
@@ -141,4 +142,8 @@ test("statement helpers cover ordinary program structure", () => {
   assert.match(source, /^fn classify\(x\)/);
   assert.match(source, /if \(x >= 10\)/);
   assert.match(source, /for value in \[5, 15\]/);
+  assert.match(
+    pipeline_("qc", ["sample"], return_(call("len", ref("sample")))).toBioLang(),
+    /^pipeline qc\(sample\)/,
+  );
 });

@@ -85,6 +85,9 @@ pub enum TokenKind {
     // Doc comment: ## ...
     DocComment(String),
 
+    // Regular source comment: # ...
+    Comment { text: String, inline: bool },
+
     // Operators
     Plus,             // +
     Minus,            // -
@@ -255,6 +258,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Into => write!(f, "into"),
             TokenKind::RegexLit(pat, flags) => write!(f, "/{pat}/{flags}"),
             TokenKind::DocComment(s) => write!(f, "##{s}"),
+            TokenKind::Comment { text, .. } => write!(f, "#{text}"),
             TokenKind::FStr(s) => write!(f, "f\"{s}\""),
             TokenKind::DotDot => write!(f, ".."),
             TokenKind::DotDotEq => write!(f, "..="),

@@ -82,10 +82,31 @@ impl Lexer {
                             Span::new(start, self.pos),
                         ));
                     } else {
-                        // Regular line comment
+                        // Regular line comment. Preserve it as trivia so
+                        // source-to-source frontends can retain explanatory
+                        // notes. `inline` distinguishes `value # note` from a
+                        // standalone comment line without changing execution.
+                        let inline = self.source[..start]
+                            .iter()
+                            .rev()
+                            .take_while(|ch| **ch != '\n' && **ch != '\r')
+                            .any(|ch| !ch.is_whitespace());
+                        if !self.is_at_end() && self.current() == ' ' {
+                            self.advance();
+                        }
+                        let comment_start = self.pos;
                         while !self.is_at_end() && self.current() != '\n' {
                             self.advance();
                         }
+                        let text: String = self.source[comment_start..self.pos]
+                            .iter()
+                            .collect::<String>()
+                            .trim_end_matches('\r')
+                            .to_owned();
+                        self.tokens.push(Token::new(
+                            TokenKind::Comment { text, inline },
+                            Span::new(start, self.pos),
+                        ));
                     }
                 }
                 '"' => self.string()?,
