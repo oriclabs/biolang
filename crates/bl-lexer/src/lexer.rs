@@ -439,8 +439,22 @@ impl Lexer {
     }
 
     fn last_suppresses_newline(&self) -> bool {
+        // Comments are trivia: the parser drops them before it sees the
+        // grammar. Look past them, or a comment placed inside a continued
+        // expression would end the continuation that the operator started —
+        //   (a > 0) ||
+        //     # note
+        //     (a < 5)
+        // used to lex as one expression and, once comments became tokens,
+        // started emitting a newline after the comment and failing to parse.
+        let last = self
+            .tokens
+            .iter()
+            .rev()
+            .find(|token| !matches!(token.kind, TokenKind::Comment { .. }))
+            .map(|token| &token.kind);
         matches!(
-            self.tokens.last().map(|t| &t.kind),
+            last,
             Some(
                 TokenKind::PipeOp
                     | TokenKind::TapPipe
