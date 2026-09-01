@@ -17,7 +17,11 @@ list_url = "https://rosalind.info/problems/list-view/"
 requires = ">=0.4"
 
 license = "MIT"
-statements_license = "Problem statements © rosalind.info — paraphrased and linked, not reproduced."
+# Rosalind asks that solutions not be posted outside their site. The docs
+# pages and the published pack bundle both honour that; CI still builds and
+# runs every file, and `packs/` is unchanged.
+publish_source = false
+statements_license = "Problem statements © rosalind.info — paraphrased, not reproduced. Titles, published sample datasets and expected answers are reproduced only as far as verification needs them. Every problem links to its rosalind.info page."
 
 [[problem]]
 id = "DNA"

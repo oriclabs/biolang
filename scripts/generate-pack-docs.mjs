@@ -11,6 +11,10 @@
  * The coverage table is generated too, including the `blocked_on` reasons, so
  * "partial" is visible to a reader rather than buried in a manifest.
  *
+ * `statements_license` is rendered for the same reason. It was declared in
+ * every pack.toml and read by nothing, so the one statement about whose work
+ * the problems are reached no reader.
+ *
  * Usage: node scripts/generate-pack-docs.mjs [--out dist/docs/examples]
  */
 
@@ -27,6 +31,34 @@ const outputRoot = path.resolve(
     ? process.argv[outIndex + 1]
     : path.join("dist", "docs", "examples"),
 );
+
+/**
+ * Whether a pack's pages carry its solution source.
+ *
+ * Declared per pack as `publish_source` in its `pack.toml`, so the decision
+ * travels with the pack rather than living in this script.
+ *
+ * Rosalind's FAQ asks, under "Can I post my solutions somewhere?": "please do
+ * not publish your code outside of the Rosalind website." That is a request
+ * rather than a licence term - the solutions are original work under this
+ * repository's MIT licence - but the site leans on Rosalind as an independent
+ * marker of correctness, and citing someone for credibility while disregarding
+ * their one stated request is not a trade worth making.
+ *
+ * So the pages keep everything the claim actually rests on: coverage, status,
+ * `blocked_on` reasons, where each problem runs, and a link to the problem
+ * itself. They stop shipping the code. Nothing is deleted - `packs/` is
+ * untouched, every CI gate still runs all 278 files, and flipping this back to
+ * back to `true` in `pack.toml` restores that pack's pages exactly as they were.
+ */
+// A pack that withholds its source has no runnable blocks, so its pages do not
+// load `playground.js`. That saves an unused runtime fetch, and it keeps the
+// run-button end-to-end suite correct: that suite picks pages by whether they
+// load the script, then waits for Run buttons to appear.
+function publishesSource(manifest) {
+  return manifest.pack.publish_source !== false;
+}
+
 
 const escape = (text) =>
   String(text ?? "")
@@ -296,11 +328,14 @@ async function problemSection(pack, problem, available) {
           <p class="mb-3 flex items-center gap-3 text-sm">
             ${badge(problem.status)}${runsBadge(problem, source, available)}
             <a href="${escape(problem.url)}" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Problem statement</a>
+${publishesSource(pack.manifest) ? `
             <a href="${escape(workbench)}" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">Open in the workbench</a>
             <a href="${escape(download)}" download class="text-violet-400 hover:text-violet-300">Download .bl</a>
+` : ""}
           </p>
 ${notes.join("\n")}
-          <pre data-standalone><code class="language-biolang">${escape(source.trim())}</code></pre>
+${publishesSource(pack.manifest) ? `
+          <pre data-standalone><code class="language-biolang">${escape(source.trim())}</code></pre>` : ""}
         </section>`;
 }
 
@@ -375,7 +410,7 @@ ${sections.join("\n\n")}
   <div data-component="footer" data-base-path="../../.."></div>
   <script src="../../../js/main.js"></script>
   <script src="../../../js/copy-code.js"></script>
-  <script src="../../../js/playground.js"></script>
+  ${publishesSource(pack.manifest) ? `<script src="../../../js/playground.js"></script>` : ""}
 </body>
 </html>
 `;
@@ -468,11 +503,17 @@ async function renderPack(packId, available) {
         Press <strong>Run</strong> on any block to execute it in your browser, or
         <a href="/workbench/?pack=${escape(packId)}" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">open the whole pack in the workbench</a>.</p>
 
-        <p class="text-sm text-slate-500 mb-8">Take it with you:
+        ${manifest.pack.statements_license ? `<p class="text-sm text-slate-500 mb-8">${escape(manifest.pack.statements_license)}</p>
+
+        ` : ""}${publishesSource(manifest) ? `<p class="text-sm text-slate-500 mb-8">Take it with you:
         <a href="${escape(packId)}.bln" download class="text-violet-400 hover:text-violet-300">download this page as a notebook</a>
         (<code>.bln</code> — run it with <code>bl notebook</code>, or export it to HTML, PDF or Jupyter),
         <a href="${escape(packId)}.zip" download class="text-violet-400 hover:text-violet-300">every problem as a zip</a>,
-        or grab a single problem with the <strong>Download .bl</strong> link in its section.</p>
+        or grab a single problem with the <strong>Download .bl</strong> link in its section.</p>` : `<p class="text-sm text-slate-500 mb-8">The solutions themselves are not published here.
+        Rosalind asks that solutions not be posted outside their site, and this page cites Rosalind
+        as an independent check on BioLang, so it reports what was verified rather than showing the
+        code. Every problem below links to its own page on
+        <a href="https://rosalind.info/" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">rosalind.info</a>.</p>`}
 
         <h2 class="text-2xl font-bold text-white mt-10 mb-2">Sections</h2>
         <p class="text-sm text-slate-500 mb-4">Or read
@@ -493,7 +534,7 @@ ${coverageTable(manifest, packId, sources, available)}
   <div data-component="footer" data-base-path="../.."></div>
   <script src="../../js/main.js"></script>
   <script src="../../js/copy-code.js"></script>
-  <script src="../../js/playground.js"></script>
+  ${publishesSource(manifest) ? `<script src="../../js/playground.js"></script>` : ""}
 </body>
 </html>
 `;
@@ -517,8 +558,12 @@ for (const packId of packIds) {
     await writeFile(path.join(sectionDir, `${group}.html`), page);
   }
 
-  // The page as a runnable notebook.
-  await writeFile(path.join(outputRoot, `${packId}.bln`), notebook);
+  // The notebook, the per-problem .bl files and the zip all carry the source,
+  // so they are only written when the pages publish it. `packs/` keeps them
+  // either way; this only decides what the site serves.
+  if (publishesSource(manifest)) {
+    // The page as a runnable notebook.
+    await writeFile(path.join(outputRoot, `${packId}.bln`), notebook);
 
   // One .bl per problem. Offered here and not on the tutorial pages because a
   // Rosalind problem is a whole program, while a tutorial block is not.
@@ -542,7 +587,8 @@ for (const packId of packIds) {
       sources.get(problem.id),
     ]),
   ]);
-  await writeFile(path.join(outputRoot, `${packId}.zip`), archive);
+    await writeFile(path.join(outputRoot, `${packId}.zip`), archive);
+  }
 
   // Two hand-written places link to a pack page: the examples gallery and the
   // shared sidebar. Both were missed for the Stronghold — generating the page
@@ -568,8 +614,9 @@ for (const packId of packIds) {
 
   console.log(
     `${packId} -> ${path.relative(repositoryRoot, target).replaceAll("\\", "/")} ` +
-      `(${(Buffer.byteLength(html) / 1024).toFixed(1)} KiB index, ${groupPages.size} sections, ` +
-      `${(Buffer.byteLength(notebook) / 1024).toFixed(1)} KiB bln, ` +
-      `${manifest.problem.length} .bl)`,
+      `(${(Buffer.byteLength(html) / 1024).toFixed(1)} KiB index, ${groupPages.size} sections` +
+      (publishesSource(manifest)
+        ? `, ${(Buffer.byteLength(notebook) / 1024).toFixed(1)} KiB bln, ${manifest.problem.length} .bl)`
+        : `, ${manifest.problem.length} problems, source not published)`),
   );
 }

@@ -17,7 +17,12 @@
  * The catalog carries a sha256 per bundle so `bl packs add` can verify what it
  * downloaded instead of trusting the transport.
  *
- * Usage: node scripts/build-packs.mjs [--out dist/packs] [--base-url URL]
+ * A bundle inlines every file in the pack, so it publishes the sources as
+ * surely as an HTML page does. `--public` therefore skips any pack whose
+ * `pack.toml` sets `publish_source = false`. CI builds without the flag, so it
+ * still bundles everything and remains a real gate; only the deploy passes it.
+ *
+ * Usage: node scripts/build-packs.mjs [--out dist/packs] [--base-url URL] [--public]
  */
 
 import { createHash } from "node:crypto";
@@ -69,11 +74,20 @@ if (packIds.length === 0) {
   process.exit(1);
 }
 
+const publicOnly = process.argv.includes("--public");
+
 const catalog = [];
+const withheld = [];
 
 for (const packId of packIds) {
   const pack = await readPack(packId);
   const { manifest } = pack;
+  if (publicOnly && manifest.pack.publish_source === false) {
+    // Listing it without a bundle would be worse than omitting it: a client
+    // would offer the pack and then fail to open it.
+    withheld.push(packId);
+    continue;
+  }
   const version = String(manifest.pack.version);
   const files = await bundleFiles(pack);
   const counts = packCounts(manifest);
@@ -140,5 +154,7 @@ await writeFile(path.join(outputRoot, "index.json"), `${JSON.stringify(index, nu
 
 console.log(
   `\nWrote ${catalog.length} pack bundle(s) and index.json to ` +
-    `${path.relative(repositoryRoot, outputRoot).replaceAll("\\", "/")}/`,
+    `${path.relative(repositoryRoot, outputRoot).replaceAll("\\", "/")}/` +
+    (withheld.length ? `
+Withheld (publish_source = false): ${withheld.join(", ")}` : ""),
 );

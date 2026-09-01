@@ -66,3 +66,29 @@ installs it, BioLang may launch it as a separate process and exchange neutral
 files. Distribution of that executable must include its corresponding GPL
 source and notices. BioLang's native, paper-derived SCTransform implementation
 remains available without that provider.
+
+## Rosalind problem sets
+
+The four example packs under `packs/rosalind-*` work through the problem tracks
+published at [rosalind.info](https://rosalind.info/). The problems, their titles
+and their published answers are Rosalind's; the BioLang solutions are original
+work under this repository's MIT licence.
+
+Rosalind publishes no licence or terms-of-use document. What it does state, in
+its FAQ under "Can I post my solutions somewhere?", is:
+
+> Once you have solved a problem, then we encourage you to post your code to the
+> problem's comments section (which can be seen only by users who have also
+> solved the problem). However, please do not publish your code outside of the
+> Rosalind website.
+
+Accordingly, the packs are written to take as little as verification requires:
+
+- problem statements are paraphrased, never copied;
+- no dataset files are distributed — the small published sample datasets appear
+  inline only where an example needs an input to run;
+- expected answers appear only as test assertions;
+- every problem links to its own rosalind.info page.
+
+Publishing the solutions themselves remains in tension with the request quoted
+above. It is recorded here rather than left implicit.
