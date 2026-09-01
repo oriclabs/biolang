@@ -3329,7 +3329,23 @@ fn get_seq_data(val: &Value, func: &str) -> Result<String> {
 fn validate_dna(s: &str) -> Result<()> {
     if !bl_core::bio_core::seq_ops::is_valid_dna(s) {
         for (i, c) in s.chars().enumerate() {
-            if !matches!(c.to_ascii_uppercase(), 'A' | 'T' | 'G' | 'C' | 'N') {
+            if !matches!(
+                c.to_ascii_uppercase(),
+                'A' | 'C'
+                    | 'G'
+                    | 'T'
+                    | 'R'
+                    | 'Y'
+                    | 'S'
+                    | 'W'
+                    | 'K'
+                    | 'M'
+                    | 'B'
+                    | 'D'
+                    | 'H'
+                    | 'V'
+                    | 'N'
+            ) {
                 return Err(BioLangError::runtime(
                     ErrorKind::TypeError,
                     format!("invalid DNA base '{c}' at position {i}"),
@@ -3344,7 +3360,23 @@ fn validate_dna(s: &str) -> Result<()> {
 fn validate_rna(s: &str) -> Result<()> {
     if !bl_core::bio_core::seq_ops::is_valid_rna(s) {
         for (i, c) in s.chars().enumerate() {
-            if !matches!(c.to_ascii_uppercase(), 'A' | 'U' | 'G' | 'C' | 'N') {
+            if !matches!(
+                c.to_ascii_uppercase(),
+                'A' | 'C'
+                    | 'G'
+                    | 'U'
+                    | 'R'
+                    | 'Y'
+                    | 'S'
+                    | 'W'
+                    | 'K'
+                    | 'M'
+                    | 'B'
+                    | 'D'
+                    | 'H'
+                    | 'V'
+                    | 'N'
+            ) {
                 return Err(BioLangError::runtime(
                     ErrorKind::TypeError,
                     format!("invalid RNA base '{c}' at position {i}"),
