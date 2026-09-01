@@ -21,6 +21,28 @@ test("generated JavaScript executes through the shipped WASM interpreter", async
   });
   wasm.init();
 
+  // Keep the Rust boundary defensive even when a caller bypasses the public
+  // JavaScript encoder and invokes the generated WASM class directly.
+  const rawSession = new wasm.WasmSession();
+  for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+    assert.throws(
+      () => rawSession.set_value("nonfinite", value),
+      /non-finite JavaScript numbers are not supported/,
+    );
+  }
+  assert.throws(
+    () => rawSession.set_value("matrix", {
+      __biolangType: "matrix",
+      nrow: 1,
+      ncol: 2,
+      data: new Float64Array([1, Number.NaN]),
+      rowNames: null,
+      columnNames: null,
+    }),
+    /matrix data contains a non-finite JavaScript number/,
+  );
+  rawSession.free();
+
   const session = new BioLangSession(wasm);
   assert.equal(session.runtimeVersion(), "1.5.0");
   const result = session.run(mean([1, 2, 3]));
@@ -43,7 +65,7 @@ test("generated JavaScript executes through the shipped WASM interpreter", async
     "let measurements = [12, 14, 15, 15, 16, 19, 28]\nsummary(measurements)",
   );
   assert.match(generated, /let measurements = \[12, 14, 15/);
-  assert.match(generated, /await bl\.summary\(measurements\)/);
+  assert.match(generated, /bl\.summary\(measurements\)/);
   assert.doesNotMatch(generated, /bl\.define|bl\.run/);
   assert.doesNotMatch(generated, /`let measurements/);
   const executableGenerated = generated.replace(/\nresult;\s*$/, "\nreturn result;");
@@ -52,12 +74,45 @@ test("generated JavaScript executes through the shipped WASM interpreter", async
   assert.equal(generatedResult.mean, 17);
   assert.equal(generatedResult.median, 15);
 
+  const directTable = session.table([{ name: "Alice", score: 92 }, { name: "Bob", score: 78 }]);
+  assert.deepEqual([...directTable].map(row => row.name), ["Alice", "Bob"]);
+  assert.deepEqual(directTable.name, ["Alice", "Bob"]);
+  assert.deepEqual(session.addValues(["a"], ["b"]), ["a", "b"]);
+  assert.equal(session.equalValues([1, { value: 2 }], [1, { value: 2 }]), true);
+  assert.equal(session.indexValue(["a", "b"], -1), "b");
+  assert.equal(session.indexValue("ATGC", -1), "C");
+
   const pipeline = session.transpileJavaScript(
     "[1, 2, 3, 4] |> filter(|value| value >= 3) |> mean()",
   ).replace(/\nresult;\s*$/, "\nreturn result;");
   const pipelineResult = await new Function("bio", "bl", `return (async () => { ${pipeline} })()`)(bio, session);
-  assert.equal(pipelineResult.ok, true, pipelineResult.error ?? "Generated pipeline execution failed");
-  assert.equal(pipelineResult.value, "3.5");
+  assert.equal(pipelineResult, 3.5, "Generated pipeline execution failed");
+
+  const builtinReference = session.transpileJavaScript(
+    'filter([dna"ATGC", rna"AUGC", dna"NNNN"], is_dna)',
+  ).replace(/\nresult;\s*$/, "\nreturn result;");
+  assert.match(builtinReference, /bl\.filter\(/);
+  assert.match(builtinReference, /, bl\.isDna\)/);
+  const validDna = await new Function(
+    "bio", "bl", `return (async () => { ${builtinReference} })()`,
+  )(bio, session);
+  assert.deepEqual(validDna.map((sequence) => sequence.data), ["ATGC", "NNNN"]);
+
+  const builtinAsValue = session.transpileJavaScript("type(len)")
+    .replace(/\nresult;\s*$/, "\nreturn result;");
+  assert.match(builtinAsValue, /bl\.type\(bl\.len\)/);
+  assert.equal(
+    await new Function("bio", "bl", `return (async () => { ${builtinAsValue} })()`)(bio, session),
+    "Function",
+  );
+
+  const inheritedName = session.transpileJavaScript('to_string(protein"MKT")')
+    .replace(/\nresult;\s*$/, "\nreturn result;");
+  assert.match(inheritedName, /bl\.toString\(bl\.protein/);
+  assert.equal(
+    await new Function("bio", "bl", `return (async () => { ${inheritedName} })()`)(bio, session),
+    "MKT",
+  );
 
   const languageFeatures = session.transpileJavaScript(`
 let mu = 12.3456
@@ -65,7 +120,7 @@ let base = "A"
 {
   formatted: f"mean={mu:.2f}",
   label: match base { "A" => "adenine", _ => "other" },
-  recovered: try { assert false, "boom" } catch err { "caught" },
+  recovered: try { assert false, "boom" } catch err { err },
   legacy: map([1, 2], fn(value) -> value + 1)
 }
   `).replace(/\nresult;\s*$/, "\nreturn result;");
@@ -74,9 +129,8 @@ let base = "A"
     "bl",
     `return (async () => { ${languageFeatures} })()`,
   )(bio, session);
-  assert.equal(featureResult.ok, true, featureResult.error ?? "Generated language features failed");
-  assert.match(featureResult.value, /mean=12\.35/);
-  assert.match(featureResult.value, /adenine/);
-  assert.match(featureResult.value, /caught/);
-  assert.match(featureResult.value, /\[2, 3\]/);
+  assert.equal(featureResult.formatted, "mean=12.35");
+  assert.equal(featureResult.label, "adenine");
+  assert.match(featureResult.recovered, /boom/);
+  assert.deepEqual(featureResult.legacy, [2, 3]);
 });

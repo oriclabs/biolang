@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
 const require = createRequire(import.meta.url);
@@ -46,7 +47,14 @@ for (const [name, count] of [...refusals].sort((left, right) => right[1] - left[
   }
 }
 
-if (refused > 0 || invalid > 0) process.exitCode = 1;
+if (refused > 0 || invalid > 0) {
+  process.exitCode = 1;
+} else {
+  execFileSync(process.execPath, [fileURLToPath(new URL("check-js-equivalence.mjs", import.meta.url))], {
+    cwd: new URL("..", import.meta.url),
+    stdio: "inherit",
+  });
+}
 
 function refusalName(message) {
   const unsupported = message.match(/does not yet support (?:expression|statement) ([A-Za-z]+)/);

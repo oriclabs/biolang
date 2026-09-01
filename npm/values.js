@@ -5,9 +5,22 @@ export class BioTableValue {
   constructor(columns, rows) {
     this.columns = Object.freeze([...columns]);
     this.rows = rows.map((row) => [...row]);
+    for (const column of this.columns) {
+      if (typeof column === "string" && !(column in this)) {
+        Object.defineProperty(this, column, {
+          configurable: false,
+          enumerable: false,
+          get: () => this.column(column),
+        });
+      }
+    }
   }
 
   get length() { return this.rows.length; }
+
+  *[Symbol.iterator]() {
+    yield* this.toRows();
+  }
 
   toRows() {
     return this.rows.map((row) => Object.fromEntries(
@@ -58,6 +71,18 @@ export class BioQualityValue {
   get length() { return this.data.length; }
 }
 
+/** A compact immutable k-mer copied losslessly from BioLang. */
+export class BioKmerValue {
+  constructor(data) {
+    if (typeof data !== "string" || !/^[ACGT]{1,32}$/.test(data)) {
+      throw new TypeError("k-mer data must contain 1 to 32 A/C/G/T bases");
+    }
+    this.data = data;
+  }
+  get length() { return this.data.length; }
+  toString() { return this.data; }
+}
+
 /** A BioLang integer range. */
 export class BioRangeValue {
   constructor(start, end, inclusive = false) {
@@ -101,10 +126,26 @@ export class BioValueHandle {
     this.columns = descriptor.columns ?? null;
     this.nonZero = descriptor.nonZero ?? null;
     this.#host = host;
+    return new Proxy(this, {
+      get(target, property) {
+        if (property === "then") return undefined;
+        if (typeof property !== "string" || hasValueMember(target, property)) {
+          const value = Reflect.get(target, property, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        }
+        return target.field(property);
+      },
+    });
   }
 
   get disposed() { return this.#disposed; }
   get shape() { return this.rows == null ? null : [this.rows, this.columns]; }
+
+  /** Read a field from the session-bound value without copying the whole value. */
+  field(name) {
+    this.#assertLive();
+    return this.#host.decode(this.#host.field(this, name));
+  }
 
   page(options = {}) {
     this.#assertLive();
@@ -163,6 +204,7 @@ export function decodeBioValue(value, host = null) {
     });
     case "sequence": return new BioSequenceValue(value.sequenceKind, value.data);
     case "quality": return new BioQualityValue(value.data);
+    case "kmer": return new BioKmerValue(value.data);
     case "record": {
       const result = Object.create(null);
       for (const [key, item] of Object.entries(value.entries)) {
@@ -207,7 +249,15 @@ export function decodeBioValue(value, host = null) {
 /** Convert supported JavaScript data into the explicit WASM interop schema. */
 export function encodeBioValue(value, seen = new WeakSet()) {
   if (value === null || value === undefined) return null;
-  if (["string", "boolean", "number"].includes(typeof value)) return value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new TypeError(
+        `Cannot marshal non-finite JavaScript number ${String(value)}; BioLang Float values must be finite`,
+      );
+    }
+    return value;
+  }
+  if (["string", "boolean"].includes(typeof value)) return value;
   if (typeof value === "bigint") return { [TYPE_KEY]: "int64", value: value.toString() };
   if (typeof value === "function" || typeof value === "symbol") {
     throw new TypeError(`Cannot marshal JavaScript ${typeof value} as a BioLang value`);
@@ -221,6 +271,9 @@ export function encodeBioValue(value, seen = new WeakSet()) {
   }
   if (value instanceof BioQualityValue) {
     return { [TYPE_KEY]: "quality", data: value.data };
+  }
+  if (value instanceof BioKmerValue) {
+    return { [TYPE_KEY]: "kmer", data: value.data };
   }
   if (value instanceof BioRangeValue) {
     return {
@@ -254,6 +307,11 @@ export function encodeBioValue(value, seen = new WeakSet()) {
     return encoded;
   }
   if (value instanceof BioMatrixValue) {
+    if (value.data.some(item => !Number.isFinite(item))) {
+      throw new TypeError(
+        "Cannot marshal matrix data containing a non-finite JavaScript number; BioLang Float values must be finite",
+      );
+    }
     return {
       [TYPE_KEY]: "matrix", nrow: value.nrow, ncol: value.ncol,
       data: value.data, rowNames: value.rowNames, columnNames: value.columnNames,
@@ -265,9 +323,7 @@ export function encodeBioValue(value, seen = new WeakSet()) {
     );
   }
   if (value instanceof Float64Array) {
-    throw new TypeError(
-      "Float64Array has no persistent BioLang vector type; pass Array.from(value) or wrap matrix data in BioMatrixValue",
-    );
+    return Array.from(value, item => encodeBioValue(item, seen));
   }
   if (value instanceof RegExp) {
     return { [TYPE_KEY]: "regex", pattern: value.source, flags: value.flags };
@@ -302,6 +358,15 @@ export function encodeBioValue(value, seen = new WeakSet()) {
   for (const [key, item] of Object.entries(value)) entries[key] = encodeBioValue(item, seen);
   seen.delete(value);
   return { [TYPE_KEY]: "record", entries };
+}
+
+function hasValueMember(target, property) {
+  let owner = target;
+  while (owner && owner !== Object.prototype) {
+    if (Object.prototype.hasOwnProperty.call(owner, property)) return true;
+    owner = Object.getPrototypeOf(owner);
+  }
+  return false;
 }
 
 export function isPromiseLike(value) {

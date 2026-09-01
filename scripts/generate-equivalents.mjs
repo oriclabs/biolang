@@ -2,7 +2,12 @@
 /**
  * Generate the verified-equivalents page.
  *
- * The page shows the same computation in BioLang, Python and R as three tabs.
+ * The page shows the same computation in BioLang, JavaScript, Python and R.
+ * The JavaScript pane is not written by hand: it is produced by the shipped
+ * transpiler from the BioLang column, and is emitted only when running it
+ * through the SDK returns the same decoded value that BioLang returns. A case
+ * whose JavaScript needs structural builders, or whose result does not match,
+ * simply gets no JavaScript tab rather than an unverified one.
  * Every trio on it comes from benchmarks/correctness/oneliners/cases.tsv, which
  * the correctness suite runs in all three languages and compares — so a tabbed
  * block here is one that CI has shown produces identical values, not a
@@ -19,6 +24,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
+import { BioLang } from "../npm/index.js";
 import { requireSiteRoot } from "./lib/site-root.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -27,6 +34,8 @@ const RESULTS = path.join(ROOT, "benchmarks", "correctness", "results", "oneline
 const OUT = path.join(requireSiteRoot(ROOT), "docs", "examples", "equivalents.html");
 const EVIDENCE_URL =
   "https://github.com/oriclabs/biolang/blob/main/benchmarks/correctness/results/oneliners.md";
+
+const NL = "\n";
 
 const escape = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -91,6 +100,54 @@ function pythonSetup(expr) {
   return lines;
 }
 
+// The JavaScript pane is generated, then proved. `transpileJavaScript` gives the
+// readable direct-API form; anything that still needs structural builders is not
+// something to put beside a two-line Python snippet, so those cases get no tab.
+// The generated code is then executed through the SDK and its decoded result
+// compared with BioLang's, which is the same check `check-js-equivalence.mjs`
+// runs in CI. A pane only reaches the page if that comparison passes.
+const JS_PREAMBLE = ['import { BioLang } from "biolang";', "const bl = await BioLang.create();", ""];
+
+function readableJavaScript(source) {
+  const generated = bl.transpileJavaScript(source);
+  if (generated.includes("bio.program(")) return null;
+  return generated
+    .split(NL)
+    .filter((line) => !line.startsWith("// Direct JavaScript API;"))
+    .join(NL)
+    .trim();
+}
+
+async function javascriptPane(expr) {
+  let expected;
+  try {
+    expected = bl.evalValue(expr);
+  } catch {
+    return null;           // needs I/O or runtime state we cannot reproduce here
+  }
+  const checkable = readableJavaScript(expr);
+  const display = readableJavaScript(`println(${expr})`);
+  if (!checkable || !display) return null;
+  let actual;
+  try {
+    const body = checkable.replace(/\n([A-Za-z_$][\w$]*);\s*$/, "\nreturn $1;");
+    actual = await new Function("bl", `return (async () => {\n${body}\n})();`)(bl);
+  } catch {
+    return null;
+  }
+  if (!isDeepStrictEqual(actual, expected)) return null;
+  // The transpiler ends a program by binding the final value and echoing the
+  // binding, which is how a REPL reports a result. A documentation pane wants
+  // the call itself, so drop the echo and the binding it exists to name.
+  const lines = display.split(NL);
+  const echoed = lines.at(-1).trim().replace(/;$/, "");
+  const statements = /^[A-Za-z_$][\w$]*$/.test(echoed)
+    ? lines.slice(0, -1).map((line) =>
+        line.startsWith(`let ${echoed} = `) ? line.slice(`let ${echoed} = `.length) : line)
+    : lines;
+  return JS_PREAMBLE.concat(statements).join(NL);
+}
+
 function rSetup(expr) {
   const lines = [];
   if (/DNAString|RNAString|reverseComplement|translate\(|complement\(/.test(expr)) {
@@ -99,11 +156,13 @@ function rSetup(expr) {
   return lines;
 }
 
-const NL = "\n";
 
 function paneCode(lang, expr) {
   const body = expr.trim();
   if (lang === "biolang") return `println(${body})`;
+  // The JavaScript pane arrives ready to render: it was generated and executed
+  // before it got here, so there is nothing left to wrap.
+  if (lang === "javascript") return body;
   if (lang === "python") return pythonSetup(body).concat([`print(${body})`]).join(NL);
   return rSetup(body).concat([`print(${body})`]).join(NL);
 }
@@ -120,6 +179,7 @@ const CATEGORY_TITLES = {
 function tabs(row, verdict) {
   const panes = [
     ["BioLang", "biolang", row.biolang],
+    ["JavaScript", "javascript", row.javascript],
     ["Python", "python", row.python],
     ["R", "r", row.r],
   ].filter(([, , code]) => code && code.trim());
@@ -152,9 +212,11 @@ ${body}
 ${values}`;
 }
 
-function main() {
+async function main() {
   const rows = loadCases();
   const results = loadResults();
+  for (const row of rows) row.javascript = await javascriptPane(row.biolang);
+  const withJavaScript = rows.filter((row) => row.javascript).length;
   const byCategory = new Map();
   for (const row of rows) {
     const key = row.category || "other";
@@ -209,7 +271,7 @@ ${differing.map((r) => {
   <script>if(localStorage.getItem("theme")==="light")document.documentElement.classList.remove("dark")</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verified Equivalents &mdash; BioLang</title>
-  <meta name="description" content="The same computation in BioLang, Python and R, with every trio checked by the correctness suite.">
+  <meta name="description" content="The same computation in BioLang, JavaScript, Python and R, with every case checked rather than asserted.">
   <link rel="icon" href="../../assets/favicon.svg">
   <link rel="stylesheet" href="../../assets/styles.css">
   <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -238,15 +300,21 @@ ${differing.map((r) => {
     <main class="flex-1 min-w-0 px-6 py-10 max-w-4xl">
       <h1 class="text-4xl font-bold text-white mb-3">Verified equivalents</h1>
       <p class="text-lg text-slate-400 mb-4">
-        The same computation in BioLang, Python and R. Every trio on this page is
-        run in all three languages by the correctness suite and compared &mdash;
-        floats to 1e-9, integers and strings exactly &mdash; so these are checked
+        The same computation in BioLang, JavaScript, Python and R. Every case on
+        this page is run and compared rather than eyeballed &mdash; floats to
+        1e-9, integers and strings exactly &mdash; so these are checked
         translations rather than plausible ones.
       </p>
       <p class="text-slate-400 mb-8">
-        ${counted} cases. Only the BioLang tab has a Run button, because only
-        BioLang runs in the browser; every tab can be copied. Add a case by
-        adding one row to
+        ${counted} cases. The Python and R panes are written by hand and checked
+        by the correctness suite. The JavaScript panes are not written at all:
+        the shipped transpiler generates each one from the BioLang beside it, and
+        a pane only appears if running it through the
+        <a href="../tools/javascript.html" class="text-violet-400 hover:text-violet-300">JavaScript SDK</a>
+        returns the same decoded value BioLang returns &mdash; ${withJavaScript}
+        of ${counted} do.
+        Only the BioLang tab has a Run button, because only BioLang runs in this
+        page; every tab can be copied. Add a case by adding one row to
         <code>benchmarks/correctness/oneliners/cases.tsv</code>, and it appears
         here once it passes.
       </p>
@@ -267,8 +335,14 @@ ${conventions}
   fs.writeFileSync(OUT, html, "utf8");
   const differCount = differing.length;
   console.log(`equivalents: ${counted} cases across ${byCategory.size} categories `
-    + `(${differCount} recorded as convention differences) -> `
+    + `(${differCount} recorded as convention differences, `
+    + `${withJavaScript} with a verified JavaScript pane) -> `
     + `${path.relative(ROOT, OUT).replace(/\\/g, "/")}`);
 }
 
-main();
+const bl = await BioLang.create({ network: false });
+try {
+  await main();
+} finally {
+  bl.dispose();
+}

@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 
+use bl_core::ast::FormatSpec;
 use bl_core::error::{BioLangError, ErrorKind};
 use bl_core::value::{Arity, Value};
 use bl_lexer::Lexer;
@@ -161,8 +162,10 @@ pub fn runtime_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
-/// Convert BioLang source into structural JavaScript SDK calls.
+/// Convert BioLang source into readable direct JavaScript SDK calls.
 ///
+/// Ordinary code uses native JavaScript syntax and direct `bl.*` calls. Rare
+/// declarations without a natural JavaScript form use structural SDK helpers.
 /// The returned JavaScript never embeds or evaluates a BioLang source string.
 #[wasm_bindgen]
 pub fn transpile_javascript(source: &str) -> String {
@@ -221,6 +224,42 @@ fn execute_value_in(cell: &RefCell<Option<Interpreter>>, source: &str) -> Result
             .map_err(|error| error.message)
     })();
     put_interpreter(cell, interpreter);
+    result
+}
+
+fn field_value_in(
+    interpreter: &mut Interpreter,
+    value: Value,
+    field: &str,
+    optional: bool,
+) -> Result<Value, String> {
+    let previous_scope = interpreter.env_mut().push_scope();
+    interpreter
+        .env_mut()
+        .define("__js_field_target".into(), value);
+    let source = format!(
+        "__js_field_target{}{}",
+        if optional { "?." } else { "." },
+        field
+    );
+    let result = (|| {
+        let tokens = Lexer::new(&source)
+            .tokenize()
+            .map_err(|error| error.message)?;
+        let parsed = Parser::new(tokens).parse().map_err(|error| error.message)?;
+        if parsed.has_errors() {
+            return Err(parsed
+                .errors
+                .iter()
+                .map(|error| error.message.clone())
+                .collect::<Vec<_>>()
+                .join("; "));
+        }
+        interpreter
+            .run(&parsed.program)
+            .map_err(|error| error.message)
+    })();
+    interpreter.env_mut().pop_scope(previous_scope);
     result
 }
 
@@ -587,6 +626,90 @@ impl WasmSession {
         let result = interpreter
             .call_named_value(name, arguments.as_ref().clone())
             .map_err(|error| JsValue::from_str(&error.message));
+        put_interpreter(&self.interpreter, interpreter);
+        self.marshal_or_store(result?, maximum_inline_bytes)
+    }
+
+    /// Call a BioLang function with separate positional and named JavaScript
+    /// values. This keeps notebook JavaScript readable without serializing a
+    /// call back into BioLang source.
+    pub fn call_value_named(
+        &self,
+        name: &str,
+        positional: &JsValue,
+        named: &JsValue,
+        maximum_inline_bytes: usize,
+    ) -> Result<JsValue, JsValue> {
+        validate_host_identifier(name)?;
+        let handles = self.handles.borrow();
+        let resolve = |session, id, generation| {
+            if session != self.session_id || generation != self.generation.get() {
+                return None;
+            }
+            handles.get(&id).cloned()
+        };
+        let positional = marshalling::js_to_value(positional, &resolve)?;
+        let named = marshalling::js_to_value(named, &resolve)?;
+        drop(handles);
+        let Value::List(positional) = positional else {
+            return Err(JsValue::from_str(
+                "callNamed positional arguments must be an array",
+            ));
+        };
+        let named = match named {
+            Value::Record(values) | Value::Map(values) => values
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone()))
+                .collect(),
+            _ => {
+                return Err(JsValue::from_str(
+                    "callNamed named arguments must be an object",
+                ))
+            }
+        };
+        let mut interpreter = take_interpreter(&self.interpreter);
+        let result = interpreter
+            .call_named_value_with_named(name, positional.as_ref().clone(), named)
+            .map_err(|error| JsValue::from_str(&error.message));
+        put_interpreter(&self.interpreter, interpreter);
+        self.marshal_or_store(result?, maximum_inline_bytes)
+    }
+
+    /// Format one JavaScript value with BioLang's f-string mini-language.
+    pub fn format_value(&self, value: &JsValue, spec: &str) -> Result<String, JsValue> {
+        let handles = self.handles.borrow();
+        let converted = marshalling::js_to_value(value, &|session, id, generation| {
+            if session != self.session_id || generation != self.generation.get() {
+                return None;
+            }
+            handles.get(&id).cloned()
+        })?;
+        let spec = FormatSpec::parse(spec).map_err(|message| JsValue::from_str(&message))?;
+        Ok(bl_runtime::interpreter::format_interpolated_value(
+            &converted, &spec,
+        ))
+    }
+
+    /// Read a field without copying an opaque value out of its owning session.
+    pub fn field_value(
+        &self,
+        value: &JsValue,
+        field: &str,
+        optional: bool,
+        maximum_inline_bytes: usize,
+    ) -> Result<JsValue, JsValue> {
+        validate_host_identifier(field)?;
+        let handles = self.handles.borrow();
+        let converted = marshalling::js_to_value(value, &|session, id, generation| {
+            if session != self.session_id || generation != self.generation.get() {
+                return None;
+            }
+            handles.get(&id).cloned()
+        })?;
+        drop(handles);
+        let mut interpreter = take_interpreter(&self.interpreter);
+        let result = field_value_in(&mut interpreter, converted, field, optional)
+            .map_err(|error| JsValue::from_str(&error));
         put_interpreter(&self.interpreter, interpreter);
         self.marshal_or_store(result?, maximum_inline_bytes)
     }
@@ -1023,8 +1146,7 @@ fn variable_cell(value: &Value) -> serde_json::Value {
         Value::Nil => serde_json::Value::Null,
         Value::Bool(value) => serde_json::Value::Bool(*value),
         Value::Int(value) => serde_json::json!(value),
-        Value::Float(value) if value.is_finite() => serde_json::json!(value),
-        Value::Float(value) => serde_json::json!(value.to_string()),
+        Value::Float(value) => json_float(*value),
         Value::Str(value) => serde_json::json!(truncate_chars(value, 240)),
         _ => serde_json::json!(value_preview(value)),
     }
@@ -1398,7 +1520,7 @@ fn json_cell(value: &Value) -> serde_json::Value {
         Value::Nil => serde_json::Value::Null,
         Value::Bool(value) => serde_json::Value::Bool(*value),
         Value::Int(value) => serde_json::json!(value),
-        Value::Float(value) => serde_json::json!(value),
+        Value::Float(value) => json_float(*value),
         Value::Str(value) => serde_json::Value::String(value.clone()),
         _ => serde_json::Value::String(format_value(value)),
     }
@@ -1482,7 +1604,7 @@ fn structured_value(value: &Value) -> Option<serde_json::Value> {
                 (0..matrix.ncol).map(|column| format!("C{}", column + 1)).collect()
             }),
             "rows": (0..matrix.nrow.min(MAX_ROWS))
-                .map(|row| matrix.row(row))
+                .map(|row| matrix.row(row).into_iter().map(json_float).collect::<Vec<_>>())
                 .collect::<Vec<_>>(),
             "totalRows": matrix.nrow,
             "truncated": matrix.nrow > MAX_ROWS,
@@ -1543,6 +1665,16 @@ fn structured_value(value: &Value) -> Option<serde_json::Value> {
         })),
         _ => None,
     }
+}
+
+/// JSON has no representation for NaN or infinities. BioLang evaluation
+/// rejects their creation, but keep result formatting defensive if an internal
+/// numerical routine ever supplies one.
+fn json_float(value: f64) -> serde_json::Value {
+    if value.is_finite() {
+        return serde_json::json!(value);
+    }
+    serde_json::Value::String(value.to_string())
 }
 
 fn token_kind_class(kind: &bl_lexer::TokenKind) -> &'static str {

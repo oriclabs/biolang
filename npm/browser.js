@@ -70,12 +70,5 @@ export async function run(source, options = {}) {
 }
 
 export { version };
-
-// Keep the package-root surface aligned with Node: colliding names resolve to
-// generated WASM builtins; structural helpers remain under `biolang/dsl`.
-export { dna, protein, range, rna, set, slice } from "./generated-builtins.js";
-export * from "./dsl.js";
-export * from "./generated-builtins.js";
-export * from "./objects.js";
 export * from "./somer.js";
 export * from "./values.js";

@@ -9,6 +9,10 @@ const npmRoot = path.join(root, "npm");
 const packageJson = JSON.parse(readFileSync(path.join(npmRoot, "package.json"), "utf8"));
 const required = "wasm/bl_wasm_bg.wasm";
 const forbidden = ["pkg-node/bl_wasm_bg.wasm", "pkg-web/bl_wasm_bg.wasm"];
+const packageScopes = [
+  ["pkg-node/package.json", "commonjs"],
+  ["pkg-web/package.json", "module"],
+];
 
 if (!packageJson.files.includes(required)) {
   throw new Error(`npm files[] does not include ${required}`);
@@ -20,6 +24,19 @@ for (const item of forbidden) {
 }
 if (!existsSync(path.join(npmRoot, required))) {
   throw new Error(`shared WASM payload is missing at ${required}; run npm run build`);
+}
+for (const [item, expectedType] of packageScopes) {
+  if (!packageJson.files.includes(item)) {
+    throw new Error(`npm files[] does not include the required ${item} package scope`);
+  }
+  const location = path.join(npmRoot, item);
+  if (!existsSync(location)) {
+    throw new Error(`required ${item} package scope is missing; run npm run build`);
+  }
+  const scope = JSON.parse(readFileSync(location, "utf8"));
+  if (scope.type !== expectedType) {
+    throw new Error(`${item} must declare type=${expectedType}, found ${scope.type ?? "missing"}`);
+  }
 }
 if (existsSync(path.join(npmRoot, "pkg-bundler"))) {
   throw new Error("orphan npm/pkg-bundler output must not be retained");
@@ -34,4 +51,4 @@ if (!webGlue.includes("../wasm/bl_wasm_bg.wasm")) {
   throw new Error("browser loader does not reference the shared WASM payload");
 }
 
-console.log("npm package layout contains one shared WASM payload and two target loaders.");
+console.log("npm package layout contains one shared WASM payload and explicit Node/browser module scopes.");

@@ -2,7 +2,7 @@ export type BioInteropScalar = null | boolean | number | bigint | string;
 export type BioJsValue = BioInteropScalar | BioJsValue[] | { [key: string]: BioJsValue }
   | Map<string, BioJsValue> | Set<BioJsValue> | BioTableValue | BioMatrixValue
   | BioSequenceValue | BioQualityValue | BioRangeValue | BioIntervalValue
-  | BioEnumValue | BioValueHandle;
+  | BioKmerValue | BioEnumValue | BioValueHandle;
 
 export class BioTableValue {
   readonly columns: readonly string[];
@@ -42,6 +42,13 @@ export class BioQualityValue {
   readonly length: number;
 }
 
+export class BioKmerValue {
+  readonly data: string;
+  constructor(data: string);
+  readonly length: number;
+  toString(): string;
+}
+
 export class BioRangeValue {
   readonly start: number | bigint;
   readonly end: number | bigint;
@@ -77,6 +84,7 @@ export class BioValueHandle {
   readonly nonZero: number | null;
   readonly disposed: boolean;
   readonly shape: [number, number] | null;
+  field(name: string): BioJsValue;
   page(options?: BioValuePageOptions): BioJsValue;
   toFloat64Array(): Float64Array;
   dispose(): boolean;

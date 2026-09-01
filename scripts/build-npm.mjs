@@ -35,6 +35,17 @@ for (const [target, directory] of [["nodejs", "pkg-node"], ["web", "pkg-web"]]) 
 }
 
 const npmRoot = path.join(root, "npm");
+// The package root is ESM, while wasm-pack's Node loader is CommonJS. Preserve
+// explicit nested package scopes in the published tarball instead of relying
+// on wasm-pack's generated metadata or the consumer's package type.
+writeFileSync(
+  path.join(npmRoot, "pkg-node", "package.json"),
+  `${JSON.stringify({ type: "commonjs" }, null, 2)}\n`,
+);
+writeFileSync(
+  path.join(npmRoot, "pkg-web", "package.json"),
+  `${JSON.stringify({ type: "module" }, null, 2)}\n`,
+);
 const nodeWasm = path.join(npmRoot, "pkg-node", "bl_wasm_bg.wasm");
 const webWasm = path.join(npmRoot, "pkg-web", "bl_wasm_bg.wasm");
 const digest = (file) => createHash("sha256").update(readFileSync(file)).digest("hex");

@@ -27,15 +27,21 @@ import {
   wildcardPattern,
 } from "../dsl.js";
 import { mean, read_csv, WASM_BUILTIN_NAMES } from "../generated-builtins.js";
-import { range as browserRange, version as browserVersion } from "../browser.js";
+import * as browser from "../browser.js";
+import * as nodeRoot from "../index.js";
+import { range as expressionRange } from "../expressions.js";
 
 test("browser SDK version matches the package manifest", () => {
   const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-  assert.equal(browserVersion, manifest.version);
+  assert.equal(browser.version, manifest.version);
 });
 
-test("package-root name collisions resolve to generated WASM builtins", () => {
-  assert.equal(browserRange(1, 3).toBioLang(), "range(1, 3)");
+test("package root does not mix structural builders with executable sessions", () => {
+  assert.equal("range" in browser, false);
+  assert.equal("mean" in browser, false);
+  assert.equal("range" in nodeRoot, false);
+  assert.equal("mean" in nodeRoot, false);
+  assert.equal(expressionRange(1, 3).toBioLang(), "range(1, 3)");
 });
 
 test("direct builtins generate BioLang without executing JavaScript algorithms", () => {

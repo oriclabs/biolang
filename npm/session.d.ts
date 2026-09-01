@@ -84,6 +84,12 @@ export class BioLangSession {
   run(source: BioLangSource): RunResult;
   evalValue(source: BioLangSource, options?: BioValueOptions): BioJsValue;
   callValue(name: string, args?: unknown[], options?: BioValueOptions): BioJsValue;
+  callNamed(name: string, positional?: unknown[], named?: Record<string, unknown>, options?: BioValueOptions): BioJsValue;
+  callNamedFunction(callable: (...args: unknown[]) => unknown, positional?: unknown[], named?: Record<string, unknown>): unknown;
+  addValues(left: unknown, right: unknown): unknown;
+  equalValues(left: unknown, right: unknown): boolean;
+  indexValue(target: unknown, index: unknown): unknown;
+  formatValue(value: unknown, spec?: string): string;
   setValue(name: string, value: unknown): BioExpression;
   getValue(name: string, options?: BioValueOptions): BioJsValue;
   registerFunction(

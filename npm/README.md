@@ -36,10 +36,12 @@ const javascript = bl.transpileJavaScript(
 
 ## JavaScript objects and pipelines
 
-The standalone functions exported by `biolang` build lazy `BioExpression`
-objects. Nothing is calculated until the expression is passed to a session or
-SOMER executor. In contrast, methods on `bl` execute immediately and return
-decoded JavaScript values.
+The package root is execution-only: methods on `bl` run immediately and return
+decoded JavaScript values. Structural functions from `biolang/expressions`
+build lazy `BioExpression` objects; nothing is calculated until an expression
+is passed to a session or SOMER executor. Keeping the two surfaces separate
+means `bl.mean(values)` always executes and `mean(values)` from the explicit
+expressions subpath always constructs source.
 
 ```js
 import { BioLang } from "biolang";
@@ -94,7 +96,7 @@ import {
   kaplan_meier,
   reverse_complement,
   sc_sctransform
-} from "biolang";
+} from "biolang/expressions";
 ```
 
 `npm run check:coverage` compares the two name sets exactly and fails on a
@@ -118,7 +120,7 @@ JavaScript syntax check cannot detect.
 Common BioLang statements have JavaScript builders:
 
 ```js
-import { function_, if_, program, ref, return_ } from "biolang";
+import { function_, if_, program, ref, return_ } from "biolang/expressions";
 
 const classify = program(
   function_(
@@ -161,7 +163,7 @@ longer needs a session.
 
 ## Direct values and JavaScript callbacks
 
-Calls such as `bl.mean(values)` and `bl.gc_content(sequence)` use the value API
+Calls such as `bl.mean(values)` and `bl.gcContent(sequence)` use the value API
 by default. `evalValue()` and `callValue()` remain useful for dynamic function
 names, generated source and custom inline-size limits. Small values are copied
 into ordinary JavaScript data; tables, matrices, sequences and quality scores
@@ -175,7 +177,7 @@ const centre = bl.callValue("mean", [[12, 14, 15, 19]]);
 console.log(centre); // 15
 
 const sequence = bl.dna("ATGC");
-console.log(bl.gc_content(sequence)); // 0.5
+console.log(bl.gcContent(sequence)); // 0.5
 ```
 
 Integers outside JavaScript's safe-number range become `bigint`. Numeric

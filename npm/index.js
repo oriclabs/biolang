@@ -79,13 +79,5 @@ export async function run(source, options = {}) {
 }
 
 export { version };
-
-// These names also exist as structural syntax helpers in `biolang/dsl`.
-// The package root promises the generated WASM builtin surface, so resolve
-// star-export ambiguity explicitly in favor of those builtin wrappers.
-export { dna, protein, range, rna, set, slice } from "./generated-builtins.js";
-export * from "./dsl.js";
-export * from "./generated-builtins.js";
-export * from "./objects.js";
 export * from "./somer.js";
 export * from "./values.js";

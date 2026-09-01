@@ -1,5 +1,5 @@
 use bl_core::matrix::Matrix;
-use bl_core::value::{BioSequence, GenomicInterval, Strand, Table, Value};
+use bl_core::value::{BioSequence, GenomicInterval, Kmer, Strand, Table, Value};
 use js_sys::{Array, Float64Array, Object, Reflect, Uint8Array};
 use std::collections::HashMap;
 use wasm_bindgen::{JsCast, JsValue};
@@ -301,6 +301,13 @@ fn value_to_js_inner(value: &Value, budget: &mut usize, depth: usize) -> Result<
             set(&object, "data", &Uint8Array::from(scores.as_slice()).into())?;
             Ok(object.into())
         }
+        Value::Kmer(kmer) => {
+            let data = kmer.decode();
+            consume(budget, data.len())?;
+            let object = tagged("kmer")?;
+            set(&object, "data", &JsValue::from_str(&data))?;
+            Ok(object.into())
+        }
         Value::Range {
             start,
             end,
@@ -442,10 +449,15 @@ fn js_to_value_inner(
         return Ok(Value::Bool(value));
     }
     if let Some(value) = value.as_f64() {
-        if value.is_finite() && value.fract() == 0.0 && value.abs() <= 9_007_199_254_740_991.0 {
+        if !value.is_finite() {
+            return Err(error(
+                "non-finite JavaScript numbers are not supported; BioLang Float values must be finite",
+            ));
+        }
+        if value.fract() == 0.0 && value.abs() <= 9_007_199_254_740_991.0 {
             return Ok(Value::Int(value as i64));
         }
-        if value.is_finite() && value.fract() == 0.0 {
+        if value.fract() == 0.0 {
             return Err(error(
                 "unsafe JavaScript integer; pass a bigint to preserve it exactly",
             ));
@@ -512,6 +524,13 @@ fn js_to_value_inner(
                 return Err(error("quality data must be Uint8Array"));
             }
             Ok(Value::Quality(Uint8Array::new(&data).to_vec()))
+        }
+        Some("kmer") => {
+            let data = property_string_required(value, "data")?;
+            let k = u8::try_from(data.len()).map_err(|_| error("k-mer length exceeds 255"))?;
+            Kmer::from_str(&data, k)
+                .map(Value::Kmer)
+                .ok_or_else(|| error("invalid k-mer data"))
         }
         Some("table") => js_table_to_value(value, handle_lookup, depth),
         Some("matrix") => js_matrix_to_value(value),
@@ -613,7 +632,13 @@ fn js_matrix_to_value(value: &JsValue) -> Result<Value, JsValue> {
     if !data.is_instance_of::<Float64Array>() {
         return Err(error("matrix data must be Float64Array"));
     }
-    let mut matrix = Matrix::new(Float64Array::new(&data).to_vec(), nrow, ncol).map_err(error)?;
+    let values = Float64Array::new(&data).to_vec();
+    if values.iter().any(|value| !value.is_finite()) {
+        return Err(error(
+            "matrix data contains a non-finite JavaScript number; BioLang Float values must be finite",
+        ));
+    }
+    let mut matrix = Matrix::new(values, nrow, ncol).map_err(error)?;
     let row_names = Reflect::get(value, &JsValue::from_str("rowNames"))?;
     if !row_names.is_undefined() && !row_names.is_null() {
         matrix.row_names = Some(strings_from_array(&row_names)?);

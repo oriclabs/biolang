@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  BioKmerValue,
   BioMatrixValue,
   BioQualityValue,
   BioRangeValue,
@@ -29,6 +30,7 @@ test("typed biological wrappers round-trip without losing their shape", () => {
     new BioMatrixValue({ nrow: 2, ncol: 2, data: new Float64Array([1, 2, 3, 4]) }),
     new BioSequenceValue("dna", "ACGT"),
     new BioQualityValue(new Uint8Array([30, 31, 32])),
+    new BioKmerValue("ACGTTGC"),
   ];
   const decoded = decodeBioValue(encodeBioValue(values));
   assert.deepEqual(decoded[0].toRows(), [
@@ -39,11 +41,29 @@ test("typed biological wrappers round-trip without losing their shape", () => {
   assert.deepEqual([...decoded[1].row(1)], [3, 4]);
   assert.equal(decoded[2].toString(), "ACGT");
   assert.deepEqual([...decoded[3].data], [30, 31, 32]);
+  assert.equal(decoded[4].toString(), "ACGTTGC");
 
   const range = decodeBioValue(encodeBioValue(new BioRangeValue(1n, 10n, true)));
   assert.equal(range.start, 1n);
   assert.equal(range.end, 10n);
   assert.equal(range.inclusive, true);
+});
+
+test("the JavaScript value codec rejects non-finite numbers", () => {
+  for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+    assert.throws(() => encodeBioValue(value), /BioLang Float values must be finite/);
+    assert.throws(() => encodeBioValue([1, value]), /BioLang Float values must be finite/);
+    assert.throws(
+      () => encodeBioValue(new Float64Array([1, value])),
+      /BioLang Float values must be finite/,
+    );
+  }
+  assert.throws(
+    () => encodeBioValue(new BioMatrixValue({
+      nrow: 1, ncol: 2, data: new Float64Array([1, Number.NaN]),
+    })),
+    /matrix data containing a non-finite JavaScript number/,
+  );
 });
 
 test("record protocol tags cannot collide with user fields", () => {
@@ -63,5 +83,5 @@ test("value codec refuses cycles and arbitrary class instances", () => {
   assert.throws(() => encodeBioValue(cyclic), /cyclic/);
   assert.throws(() => encodeBioValue(new Date()), /Date/);
   assert.throws(() => encodeBioValue(new Uint8Array([30, 31])), /BioQualityValue/);
-  assert.throws(() => encodeBioValue(new Float64Array([1, 2])), /Array.from/);
+  assert.deepEqual(encodeBioValue(new Float64Array([1, 2])), [1, 2]);
 });

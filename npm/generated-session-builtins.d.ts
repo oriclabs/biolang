@@ -19,19 +19,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `add_chr(arg1)`
    * @category runtime
    */
-  "add_chr"(arg1: unknown): BioJsValue;
+  "addChr"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `add_edge(arg1, arg2, arg3, arg4?)`
    * @category runtime
    */
-  "add_edge"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
+  "addEdge"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `add_node(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "add_node"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "addNode"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `align(seq1, seq2, mode?, match?, mismatch?, gap?) → Record`
@@ -44,13 +44,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `aligned_read(arg1)`
    * @category runtime
    */
-  "aligned_read"(arg1: unknown): BioJsValue;
+  "alignedRead"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `alignment_view(arg1, arg2?)`
    * @category runtime
    */
-  "alignment_view"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "alignmentView"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang hof builtin.
    * BioLang: `all(list, fn) → Bool`
@@ -62,31 +62,31 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `allele_freq(arg1, arg2?)`
    * @category runtime
    */
-  "allele_freq"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "alleleFreq"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `allele_freq_spectrum(arg1, arg2?)`
    * @category runtime
    */
-  "allele_freq_spectrum"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "alleleFreqSpectrum"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `allele_specific_cn(arg1, arg2)`
    * @category runtime
    */
-  "allele_specific_cn"(arg1: unknown, arg2: unknown): BioJsValue;
+  "alleleSpecificCn"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `alpha_diversity(arg1, arg2?)`
    * @category runtime
    */
-  "alpha_diversity"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "alphaDiversity"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 0 argument(s).
    * BioLang: `amino_acid_masses()`
    * @category runtime
    */
-  "amino_acid_masses"(): BioJsValue;
+  "aminoAcidMasses"(): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `ani(arg1, arg2)`
@@ -98,7 +98,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `annotate_peaks(arg1, arg2)`
    * @category runtime
    */
-  "annotate_peaks"(arg1: unknown, arg2: unknown): BioJsValue;
+  "annotatePeaks"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * One-way analysis of means. One argument preserves classical equal-variance ANOVA; pass {variance: "welch"} for unequal variances. Returns method, effect sizes, and sums of squares.
    * BioLang: `anova(groups, options?) → Record{method,f_statistic,p_value,df_between,df_within,eta_squared,omega_squared}`
@@ -111,7 +111,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `anti_join(arg1, arg2, arg3)`
    * @category runtime
    */
-  "anti_join"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "antiJoin"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang hof builtin.
    * BioLang: `any(list, fn) → Bool`
@@ -159,73 +159,73 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `atac_batch_mixing(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "atac_batch_mixing"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "atacBatchMixing"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `atac_depth_cor(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "atac_depth_cor"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "atacDepthCor"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `atac_detected_features(arg1, arg2)`
    * @category runtime
    */
-  "atac_detected_features"(arg1: unknown, arg2: unknown): BioJsValue;
+  "atacDetectedFeatures"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `atac_filter_peaks(arg1, arg2?, arg3?, arg4?, arg5?)`
    * @category runtime
    */
-  "atac_filter_peaks"(arg1: unknown, arg2?: unknown, arg3?: unknown, arg4?: unknown, arg5?: unknown): BioJsValue;
+  "atacFilterPeaks"(arg1: unknown, arg2?: unknown, arg3?: unknown, arg4?: unknown, arg5?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `atac_fragment_qc(arg1, arg2?, arg3?)`
    * @category runtime
    */
-  "atac_fragment_qc"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
+  "atacFragmentQc"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `atac_frip(arg1, arg2)`
    * @category runtime
    */
-  "atac_frip"(arg1: unknown, arg2: unknown): BioJsValue;
+  "atacFrip"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 5 argument(s).
    * BioLang: `atac_ngs101_qc(arg1, arg2, arg3, arg4, arg5)`
    * @category runtime
    */
-  "atac_ngs101_qc"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown, arg5: unknown): BioJsValue;
+  "atacNgs101Qc"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown, arg5: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `atac_peak_qc(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "atac_peak_qc"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "atacPeakQc"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `atac_qc(arg1)`
    * @category runtime
    */
-  "atac_qc"(arg1: unknown): BioJsValue;
+  "atacQc"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `atac_tfidf(arg1, arg2?)`
    * @category runtime
    */
-  "atac_tfidf"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "atacTfidf"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `atac_top_features(arg1, arg2?)`
    * @category runtime
    */
-  "atac_top_features"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "atacTopFeatures"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `atac_tss_qc(arg1, arg2, arg3, arg4?)`
    * @category runtime
    */
-  "atac_tss_qc"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
+  "atacTssQc"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `atan(x) → Float`
@@ -243,73 +243,73 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `auc_response(arg1, arg2)`
    * @category runtime
    */
-  "auc_response"(arg1: unknown, arg2: unknown): BioJsValue;
+  "aucResponse"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang hof builtin.
    * BioLang: `await_all(futures) → List (resolve all)`
    * @category hof
    */
-  "await_all"(futures: unknown): BioJsValue[] | BioValueHandle;
+  "awaitAll"(futures: unknown): BioJsValue[] | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `backbone_angles(arg1)`
    * @category runtime
    */
-  "backbone_angles"(arg1: unknown): BioJsValue;
+  "backboneAngles"(arg1: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `bar_chart(labels_to_values) → Nil (prints ASCII)`
    * @category plot
    */
-  "bar_chart"(labels_to_values: unknown, arg2?: unknown): null;
+  "barChart"(labels_to_values: unknown, arg2?: unknown): null;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `base_counts(arg1)`
    * @category runtime
    */
-  "base_counts"(arg1: unknown): BioJsValue;
+  "baseCounts"(arg1: unknown): BioJsValue;
   /**
    * BioLang hash builtin.
    * BioLang: `base64_decode(str) → Str`
    * @category hash
    */
-  "base64_decode"(str: unknown): string;
+  "base64Decode"(str: unknown): string;
   /**
    * BioLang hash builtin.
    * BioLang: `base64_encode(str) → Str`
    * @category hash
    */
-  "base64_encode"(str: unknown): string;
+  "base64Encode"(str: unknown): string;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `batch_correct(arg1, arg2)`
    * @category runtime
    */
-  "batch_correct"(arg1: unknown, arg2: unknown): BioJsValue;
+  "batchCorrect"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `bed_closest(arg1, arg2)`
    * @category runtime
    */
-  "bed_closest"(arg1: unknown, arg2: unknown): BioJsValue;
+  "bedClosest"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `bed_intersect(arg1, arg2)`
    * @category runtime
    */
-  "bed_intersect"(arg1: unknown, arg2: unknown): BioJsValue;
+  "bedIntersect"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `bed_merge(arg1, arg2?)`
    * @category runtime
    */
-  "bed_merge"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "bedMerge"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `bed_subtract(arg1, arg2)`
    * @category runtime
    */
-  "bed_subtract"(arg1: unknown, arg2: unknown): BioJsValue;
+  "bedSubtract"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang hof builtin.
    * BioLang: `bench(fn, args, n) → Record{mean_ns, min_ns, max_ns, iterations}`
@@ -321,43 +321,43 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `beta_diversity(arg1, arg2?)`
    * @category runtime
    */
-  "beta_diversity"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "betaDiversity"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `beta_to_mvalue(arg1)`
    * @category runtime
    */
-  "beta_to_mvalue"(arg1: unknown): BioJsValue;
+  "betaToMvalue"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `betweenness_centrality(arg1)`
    * @category runtime
    */
-  "betweenness_centrality"(arg1: unknown): BioJsValue;
+  "betweennessCentrality"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `bh_adjust(arg1)`
    * @category runtime
    */
-  "bh_adjust"(arg1: unknown): BioJsValue;
+  "bhAdjust"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `binary_search(arg1, arg2)`
    * @category runtime
    */
-  "binary_search"(arg1: unknown, arg2: unknown): BioJsValue;
+  "binarySearch"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `bind_cols(arg1, arg2, ...)`
    * @category runtime
    */
-  "bind_cols"(arg1: unknown, arg2: unknown, ...rest: unknown[]): BioJsValue;
+  "bindCols"(arg1: unknown, arg2: unknown, ...rest: unknown[]): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `bio_join(arg1, arg2, arg3?, arg4?)`
    * @category runtime
    */
-  "bio_join"(arg1: unknown, arg2: unknown, arg3?: unknown, arg4?: unknown): BioJsValue;
+  "bioJoin"(arg1: unknown, arg2: unknown, arg3?: unknown, arg4?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `blast(arg1, arg2?)`
@@ -369,19 +369,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `blast_remote(arg1, arg2?)`
    * @category runtime
    */
-  "blast_remote"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "blastRemote"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `bliss_synergy(arg1, arg2, arg3)`
    * @category runtime
    */
-  "bliss_synergy"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "blissSynergy"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `bonferroni_adjust(arg1)`
    * @category runtime
    */
-  "bonferroni_adjust"(arg1: unknown): BioJsValue;
+  "bonferroniAdjust"(arg1: unknown): BioJsValue;
   /**
    * BioLang core builtin.
    * BioLang: `bool(value) → Bool`
@@ -399,7 +399,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `bootstrap_ci(arg1, arg2?, arg3?)`
    * @category runtime
    */
-  "bootstrap_ci"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
+  "bootstrapCi"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `boxplot(data, opts?) → Str (ASCII)`
@@ -411,7 +411,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `boxplot_data(list_or_table, {method: "type7|tukey"}) -> geometry Record`
    * @category plot
    */
-  "boxplot_data"(list_or_table: unknown, arg2?: unknown): BioJsValue;
+  "boxplotData"(list_or_table: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `bp(n) → Record{value, unit} (base pairs)`
@@ -424,31 +424,31 @@ export interface BioLangSessionBuiltinMethods {
    * @category stats
    * @example breslow_day_test([[[4,5],[5,103]], [[10,3],[5,43]]])  # Tarone-adjusted by default
    */
-  "breslow_day_test"(strata: unknown, arg2?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "breslowDayTest"(strata: unknown, arg2?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `bulk_overlaps(arg1, arg2)`
    * @category runtime
    */
-  "bulk_overlaps"(arg1: unknown, arg2: unknown): BioJsValue;
+  "bulkOverlaps"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `case_when(arg1, arg2, ...)`
    * @category runtime
    */
-  "case_when"(arg1: unknown, arg2: unknown, ...rest: unknown[]): BioJsValue;
+  "caseWhen"(arg1: unknown, arg2: unknown, ...rest: unknown[]): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `categorical_data(values) -> ordered frequency/proportion geometry Record`
    * @category plot
    */
-  "categorical_data"(values: unknown): BioJsValue;
+  "categoricalData"(values: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `cbs_segment(arg1)`
    * @category runtime
    */
-  "cbs_segment"(arg1: unknown): BioJsValue;
+  "cbsSegment"(arg1: unknown): BioJsValue;
   /**
    * BioLang singlecell builtin.
    * BioLang: `cca(matrix1, matrix2, opts?) → Record{u, v, d} (shared axes; cells x cells, so small inputs only)`
@@ -460,7 +460,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `cdr3_length_dist(arg1)`
    * @category runtime
    */
-  "cdr3_length_dist"(arg1: unknown): BioJsValue;
+  "cdr3LengthDist"(arg1: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `ceil(n) → Int`
@@ -472,32 +472,32 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `cell_cycle_score(matrix, s_gene_indices, g2m_gene_indices) → List[Record]`
    * @category singlecell
    */
-  "cell_cycle_score"(matrix: unknown, s_gene_indices: unknown, g2m_gene_indices: unknown): BioJsValue[] | BioValueHandle;
+  "cellCycleScore"(matrix: unknown, s_gene_indices: unknown, g2m_gene_indices: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `cell_qc(matrix, gene_names?, mito_prefix?) → Table`
    * @category singlecell
    * @example cell_qc(cells.matrix, cells.genes)  # -> Table
    */
-  "cell_qc"(matrix: unknown, gene_names?: unknown, mito_prefix?: unknown): BioTableValue | BioValueHandle;
+  "cellQc"(matrix: unknown, gene_names?: unknown, mito_prefix?: unknown): BioTableValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `cell_type_correlation(arg1)`
    * @category runtime
    */
-  "cell_type_correlation"(arg1: unknown): BioJsValue;
+  "cellTypeCorrelation"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `center_interval(arg1)`
    * @category runtime
    */
-  "center_interval"(arg1: unknown): BioJsValue;
+  "centerInterval"(arg1: unknown): BioJsValue;
   /**
    * BioLang string builtin.
    * BioLang: `char_at(str, index) → Str|Nil`
    * @category string
    */
-  "char_at"(str: unknown, index: unknown): string | null;
+  "charAt"(str: unknown, index: unknown): string | null;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `chars(arg1)`
@@ -516,14 +516,14 @@ export interface BioLangSessionBuiltinMethods {
    * @category stats
    * @example chi_square([10, 20, 30], [20, 20, 20])  # → Record{chi2,p_value,df}
    */
-  "chi_square"(obs: unknown, exp: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "chiSquare"(obs: unknown, exp: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang stats builtin.
    * BioLang: `chi_square_contingency(table, opts?) → Record{chi2,p_value,df,expected}`
    * @category stats
    * @example chi_square_contingency([[10, 20], [30, 40]])  # → Record{chi2,p_value,df}
    */
-  "chi_square_contingency"(table: unknown, opts?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "chiSquareContingency"(table: unknown, opts?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `choose(arg1, arg2)`
@@ -553,7 +553,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `circos_plot(arg1, arg2?)`
    * @category runtime
    */
-  "circos_plot"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "circosPlot"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `cite(arg1, arg2?)`
@@ -571,25 +571,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `classify_variants(arg1)`
    * @category runtime
    */
-  "classify_variants"(arg1: unknown): BioJsValue;
+  "classifyVariants"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `clinvar_lookup(arg1)`
    * @category runtime
    */
-  "clinvar_lookup"(arg1: unknown): BioJsValue;
+  "clinvarLookup"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `clonal_expansion(arg1, arg2?)`
    * @category runtime
    */
-  "clonal_expansion"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "clonalExpansion"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `clonotype_diversity(arg1)`
    * @category runtime
    */
-  "clonotype_diversity"(arg1: unknown): BioJsValue;
+  "clonotypeDiversity"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `clump(arg1, arg2?, arg3?)`
@@ -601,37 +601,37 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `clustered_heatmap(data, opts?) → SVG/PlotSpec; spec freezes order, dendrograms and colour domain`
    * @category plot
    */
-  "clustered_heatmap"(data: unknown, opts?: unknown): BioJsValue;
+  "clusteredHeatmap"(data: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `cn_call(arg1, arg2)`
    * @category runtime
    */
-  "cn_call"(arg1: unknown, arg2: unknown): BioJsValue;
+  "cnCall"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `cnv_plot(table, opts?) → SVG/PlotSpec; freezes genomic segment bounds, log2 ratios and gain/loss thresholds`
    * @category plot
    */
-  "cnv_plot"(table: unknown, opts?: unknown): BioJsValue;
+  "cnvPlot"(table: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `cnv_segment(arg1, arg2?)`
    * @category runtime
    */
-  "cnv_segment"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "cnvSegment"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `cnv_summary(arg1)`
    * @category runtime
    */
-  "cnv_summary"(arg1: unknown): BioJsValue;
+  "cnvSummary"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `codon_usage(arg1)`
    * @category runtime
    */
-  "codon_usage"(arg1: unknown): BioJsValue;
+  "codonUsage"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `col(arg1, arg2)`
@@ -643,55 +643,55 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `col_max(arg1, arg2)`
    * @category runtime
    */
-  "col_max"(arg1: unknown, arg2: unknown): BioJsValue;
+  "colMax"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `col_mean(arg1, arg2)`
    * @category runtime
    */
-  "col_mean"(arg1: unknown, arg2: unknown): BioJsValue;
+  "colMean"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `col_means(arg1)`
    * @category runtime
    */
-  "col_means"(arg1: unknown): BioJsValue;
+  "colMeans"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `col_min(arg1, arg2)`
    * @category runtime
    */
-  "col_min"(arg1: unknown, arg2: unknown): BioJsValue;
+  "colMin"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `col_stdev(arg1, arg2)`
    * @category runtime
    */
-  "col_stdev"(arg1: unknown, arg2: unknown): BioJsValue;
+  "colStdev"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `col_sum(arg1, arg2)`
    * @category runtime
    */
-  "col_sum"(arg1: unknown, arg2: unknown): BioJsValue;
+  "colSum"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `col_sums(arg1)`
    * @category runtime
    */
-  "col_sums"(arg1: unknown): BioJsValue;
+  "colSums"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `col_values(arg1, arg2)`
    * @category runtime
    */
-  "col_values"(arg1: unknown, arg2: unknown): BioJsValue;
+  "colValues"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `col_width(arg1, arg2)`
    * @category runtime
    */
-  "col_width"(arg1: unknown, arg2: unknown): BioJsValue;
+  "colWidth"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang table builtin.
    * BioLang: `collect(stream) → List`
@@ -733,7 +733,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `connected_components(arg1)`
    * @category runtime
    */
-  "connected_components"(arg1: unknown): BioJsValue;
+  "connectedComponents"(arg1: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `consensus(sequences) → Str`
@@ -745,13 +745,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `consensus_peaks(arg1, arg2?)`
    * @category runtime
    */
-  "consensus_peaks"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "consensusPeaks"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `contact_map(arg1, arg2?)`
    * @category runtime
    */
-  "contact_map"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "contactMap"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `containment(arg1, arg2)`
@@ -769,43 +769,43 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `coord_bed(val) → Record with __coord_system: 'bed'`
    * @category coord
    */
-  "coord_bed"(val: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "coordBed"(val: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang coord builtin.
    * BioLang: `coord_check(a, b) → Bool (are coord systems compatible?)`
    * @category coord
    */
-  "coord_check"(a: unknown, b: unknown): boolean;
+  "coordCheck"(a: unknown, b: unknown): boolean;
   /**
    * BioLang coord builtin.
    * BioLang: `coord_convert(val, to_system) → Record (converted coordinates)`
    * @category coord
    */
-  "coord_convert"(val: unknown, to_system: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "coordConvert"(val: unknown, to_system: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang coord builtin.
    * BioLang: `coord_gff(val) → Record with __coord_system: 'gff'`
    * @category coord
    */
-  "coord_gff"(val: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "coordGff"(val: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang coord builtin.
    * BioLang: `coord_sam(val) → Record with __coord_system: 'sam'`
    * @category coord
    */
-  "coord_sam"(val: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "coordSam"(val: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang coord builtin.
    * BioLang: `coord_system(val) → Str (current coord system)`
    * @category coord
    */
-  "coord_system"(val: unknown): string;
+  "coordSystem"(val: unknown): string;
   /**
    * BioLang coord builtin.
    * BioLang: `coord_vcf(val) → Record with __coord_system: 'vcf'`
    * @category coord
    */
-  "coord_vcf"(val: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "coordVcf"(val: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Pearson correlation. Undefined when either input is constant, and NaN is returned; stats_relationship reports the same case as absent.
    * BioLang: `cor(list1, list2) → Float`
@@ -818,7 +818,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `cor_matrix(matrix) → Matrix`
    * @category matrix
    */
-  "cor_matrix"(matrix: unknown): BioMatrixValue | BioValueHandle;
+  "corMatrix"(matrix: unknown): BioMatrixValue | BioValueHandle;
   /**
    * BioLang math builtin.
    * BioLang: `cos(radians) → Float`
@@ -836,31 +836,31 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `count_by(arg1, arg2)`
    * @category runtime
    */
-  "count_by"(arg1: unknown, arg2: unknown): BioJsValue;
+  "countBy"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `count_if(arg1, arg2)`
    * @category runtime
    */
-  "count_if"(arg1: unknown, arg2: unknown): BioJsValue;
+  "countIf"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 4 argument(s).
    * BioLang: `count_overlaps(arg1, arg2, arg3, arg4)`
    * @category runtime
    */
-  "count_overlaps"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown): BioJsValue;
+  "countOverlaps"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 4 argument(s).
    * BioLang: `count_where(arg1, arg2, arg3, arg4)`
    * @category runtime
    */
-  "count_where"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown): BioJsValue;
+  "countWhere"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `cov_matrix(arg1)`
    * @category runtime
    */
-  "cov_matrix"(arg1: unknown): BioJsValue;
+  "covMatrix"(arg1: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `coverage(tree) → Table{chrom, start, end, depth}`
@@ -872,25 +872,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `coverage_track(data, opts?) → SVG/PlotSpec; preserves point or interval geometry and clips overlapping intervals`
    * @category plot
    */
-  "coverage_track"(data: unknown, opts?: unknown): BioJsValue;
+  "coverageTrack"(data: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `cox_ph(arg1, arg2, arg3)`
    * @category runtime
    */
-  "cox_ph"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "coxPh"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `cpg_density(arg1)`
    * @category runtime
    */
-  "cpg_density"(arg1: unknown): BioJsValue;
+  "cpgDensity"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `cpg_islands(arg1, arg2?, arg3?, arg4?)`
    * @category runtime
    */
-  "cpg_islands"(arg1: unknown, arg2?: unknown, arg3?: unknown, arg4?: unknown): BioJsValue;
+  "cpgIslands"(arg1: unknown, arg2?: unknown, arg3?: unknown, arg4?: unknown): BioJsValue;
   /**
    * BioLang hash builtin.
    * BioLang: `crc32(str) → Int`
@@ -902,19 +902,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `crispr_qc(arg1)`
    * @category runtime
    */
-  "crispr_qc"(arg1: unknown): BioJsValue;
+  "crisprQc"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `cross_join(arg1, arg2)`
    * @category runtime
    */
-  "cross_join"(arg1: unknown, arg2: unknown): BioJsValue;
+  "crossJoin"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `cross_tab(arg1, arg2, arg3, arg4?)`
    * @category runtime
    */
-  "cross_tab"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
+  "crossTab"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `csv(arg1, arg2?)`
@@ -945,7 +945,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `cumsum_col(arg1, arg2)`
    * @category runtime
    */
-  "cumsum_col"(arg1: unknown, arg2: unknown): BioJsValue;
+  "cumsumCol"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang text builtin.
    * BioLang: `cut(text, delimiter, fields) → List`
@@ -963,31 +963,31 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `cyclic_spectrum(arg1)`
    * @category runtime
    */
-  "cyclic_spectrum"(arg1: unknown): BioJsValue;
+  "cyclicSpectrum"(arg1: unknown): BioJsValue;
   /**
    * BioLang datetime builtin.
    * BioLang: `date_add(date_str, amount, unit) → Str`
    * @category datetime
    */
-  "date_add"(date_str: unknown, amount: unknown, unit: unknown): string;
+  "dateAdd"(date_str: unknown, amount: unknown, unit: unknown): string;
   /**
    * BioLang datetime builtin.
    * BioLang: `date_diff(date1, date2, unit) → Int`
    * @category datetime
    */
-  "date_diff"(date1: unknown, date2: unknown, unit: unknown): number | bigint;
+  "dateDiff"(date1: unknown, date2: unknown, unit: unknown): number | bigint;
   /**
    * BioLang datetime builtin.
    * BioLang: `date_format(date_str, fmt) → Str`
    * @category datetime
    */
-  "date_format"(date_str: unknown, fmt: unknown): string;
+  "dateFormat"(date_str: unknown, fmt: unknown): string;
   /**
    * BioLang datetime builtin.
    * BioLang: `date_parse(str, fmt) → Str (ISO 8601)`
    * @category datetime
    */
-  "date_parse"(str: unknown, fmt: unknown): string;
+  "dateParse"(str: unknown, fmt: unknown): string;
   /**
    * BioLang datetime builtin.
    * BioLang: `day(date_str) → Int`
@@ -1005,7 +1005,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `de_bruijn_graph(sequences, k) → Record{nodes, edges}`
    * @category bio
    */
-  "de_bruijn_graph"(sequences: unknown, k: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "deBruijnGraph"(sequences: unknown, k: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang core builtin.
    * BioLang: `debug(value)`
@@ -1029,19 +1029,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `degree_centrality(arg1)`
    * @category runtime
    */
-  "degree_centrality"(arg1: unknown): BioJsValue;
+  "degreeCentrality"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `delta_ct(arg1, arg2)`
    * @category runtime
    */
-  "delta_ct"(arg1: unknown, arg2: unknown): BioJsValue;
+  "deltaCt"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `delta_delta_ct(arg1, arg2)`
    * @category runtime
    */
-  "delta_delta_ct"(arg1: unknown, arg2: unknown): BioJsValue;
+  "deltaDeltaCt"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `density(data, opts?) → Str (SVG)`
@@ -1053,7 +1053,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `density_plot(list, opts?) → Str (SVG)`
    * @category plot
    */
-  "density_plot"(list: unknown, opts?: unknown): string;
+  "densityPlot"(list: unknown, opts?: unknown): string;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `dereplicate(arg1, arg2)`
@@ -1096,13 +1096,13 @@ export interface BioLangSessionBuiltinMethods {
    * @category bio
    * @example diff_expr(counts, ["A","A","B","B"])  # → DE results
    */
-  "diff_expr"(counts: unknown, groups: unknown): BioTableValue | BioValueHandle;
+  "diffExpr"(counts: unknown, groups: unknown): BioTableValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `diff_table(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "diff_table"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "diffTable"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * BioLang list builtin.
    * BioLang: `difference(set1, set2) → Set`
@@ -1114,13 +1114,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `differential_methylation(arg1, arg2, arg3)`
    * @category runtime
    */
-  "differential_methylation"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "differentialMethylation"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang singlecell builtin.
    * BioLang: `diffusion_pseudotime(embedding, edges, start_cell) → List[Float]`
    * @category singlecell
    */
-  "diffusion_pseudotime"(embedding: unknown, edges: unknown, start_cell: unknown): number[] | BioValueHandle;
+  "diffusionPseudotime"(embedding: unknown, edges: unknown, start_cell: unknown): number[] | BioValueHandle;
   /**
    * BioLang matrix builtin.
    * BioLang: `dim(matrix) → [nrow, ncol]`
@@ -1132,13 +1132,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `dist_matrix(arg1, arg2)`
    * @category runtime
    */
-  "dist_matrix"(arg1: unknown, arg2: unknown): BioJsValue;
+  "distMatrix"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `distance_decay(arg1)`
    * @category runtime
    */
-  "distance_decay"(arg1: unknown): BioJsValue;
+  "distanceDecay"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `distinct(arg1, arg2?)`
@@ -1150,7 +1150,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `dmr_find(arg1, arg2, arg3, arg4?)`
    * @category runtime
    */
-  "dmr_find"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
+  "dmrFind"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `dna"ATCG" → DNA sequence`
@@ -1168,7 +1168,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `dose_response_curve(arg1, arg2, arg3, arg4, arg5)`
    * @category runtime
    */
-  "dose_response_curve"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown, arg5: unknown): BioJsValue;
+  "doseResponseCurve"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown, arg5: unknown): BioJsValue;
   /**
    * BioLang matrix builtin.
    * BioLang: `dot(a, b) → Matrix (matmul)`
@@ -1181,7 +1181,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `dot_plot(matrix, clusters, opts?) → SVG/PlotSpec; spec includes means, detection and scaling`
    * @category plot
    */
-  "dot_plot"(matrix: unknown, clusters: unknown, opts?: unknown): BioJsValue;
+  "dotPlot"(matrix: unknown, clusters: unknown, opts?: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `dotplot(seq1, seq2, opts?) → Str (sequence dot-matrix)`
@@ -1193,7 +1193,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `doublet_score(matrix, n_simulated?) → List[Float]`
    * @category singlecell
    */
-  "doublet_score"(matrix: unknown, n_simulated?: unknown): number[] | BioValueHandle;
+  "doubletScore"(matrix: unknown, n_simulated?: unknown): number[] | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `dpois(arg1, arg2)`
@@ -1211,19 +1211,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `drop_cols(arg1, arg2, ...)`
    * @category runtime
    */
-  "drop_cols"(arg1: unknown, arg2: unknown, ...rest: unknown[]): BioJsValue;
+  "dropCols"(arg1: unknown, arg2: unknown, ...rest: unknown[]): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `drop_null(arg1, arg2?)`
    * @category runtime
    */
-  "drop_null"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "dropNull"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `drug_rank(arg1, arg2?)`
    * @category runtime
    */
-  "drug_rank"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "drugRank"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `dunif(arg1, arg2?, arg3?)`
@@ -1241,19 +1241,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `ecdf_data(list) -> tie-aware empirical CDF geometry Record`
    * @category plot
    */
-  "ecdf_data"(list: unknown, arg2?: unknown): BioJsValue;
+  "ecdfData"(list: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `ecdf_plot(list, opts?) → Str (SVG)`
    * @category plot
    */
-  "ecdf_plot"(list: unknown, opts?: unknown): string;
+  "ecdfPlot"(list: unknown, opts?: unknown): string;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `edge_count(arg1)`
    * @category runtime
    */
-  "edge_count"(arg1: unknown): BioJsValue;
+  "edgeCount"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `edges(arg1)`
@@ -1265,7 +1265,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `edit_distance(s1, s2) → Int`
    * @category bio
    */
-  "edit_distance"(s1: unknown, s2: unknown): number | bigint;
+  "editDistance"(s1: unknown, s2: unknown): number | bigint;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `eigenvalues(arg1)`
@@ -1277,19 +1277,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `elbow_plot(variance_ratios, opts?) → Str (SVG)`
    * @category plot
    */
-  "elbow_plot"(variance_ratios: unknown, opts?: unknown): string;
+  "elbowPlot"(variance_ratios: unknown, opts?: unknown): string;
   /**
    * BioLang string builtin.
    * BioLang: `ends_with(str, suffix) → Bool`
    * @category string
    */
-  "ends_with"(str: unknown, suffix: unknown): boolean;
+  "endsWith"(str: unknown, suffix: unknown): boolean;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `enrichment_score(arg1, arg2)`
    * @category runtime
    */
-  "enrichment_score"(arg1: unknown, arg2: unknown): BioJsValue;
+  "enrichmentScore"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `entropy(arg1, arg2?, arg3?)`
@@ -1313,7 +1313,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `epigenetic_age(arg1, arg2)`
    * @category runtime
    */
-  "epigenetic_age"(arg1: unknown, arg2: unknown): BioJsValue;
+  "epigeneticAge"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang core builtin.
    * BioLang: `error(message) → raises error`
@@ -1325,19 +1325,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `error_rate(arg1)`
    * @category runtime
    */
-  "error_rate"(arg1: unknown): BioJsValue;
+  "errorRate"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `essential_genes(arg1, arg2?)`
    * @category runtime
    */
-  "essential_genes"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "essentialGenes"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `estimate_purity(arg1, arg2)`
    * @category runtime
    */
-  "estimate_purity"(arg1: unknown, arg2: unknown): BioJsValue;
+  "estimatePurity"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `euler() → 2.71828...`
@@ -1349,19 +1349,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `eulerian_cycle(arg1, arg2?)`
    * @category runtime
    */
-  "eulerian_cycle"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "eulerianCycle"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `eulerian_path(arg1)`
    * @category runtime
    */
-  "eulerian_path"(arg1: unknown): BioJsValue;
+  "eulerianPath"(arg1: unknown): BioJsValue;
   /**
    * Faceted event histories connecting dated observations within an identifier and colouring by outcome.
    * BioLang: `event_timeline_plot(table, {id,date,value,group,facet,...}?) → Str`
    * @category stats
    */
-  "event_timeline_plot"(table: unknown, arg2?: unknown): string;
+  "eventTimelinePlot"(table: unknown, arg2?: unknown): string;
   /**
    * Registered BioLang builtin accepting 0 argument(s).
    * BioLang: `exit(arg1?)`
@@ -1379,7 +1379,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `expected_contacts(arg1)`
    * @category runtime
    */
-  "expected_contacts"(arg1: unknown): BioJsValue;
+  "expectedContacts"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `explode(arg1, arg2)`
@@ -1391,7 +1391,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `extend_interval(arg1, arg2, arg3)`
    * @category runtime
    */
-  "extend_interval"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "extendInterval"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang matrix builtin.
    * BioLang: `eye(n) → Matrix (identity)`
@@ -1409,31 +1409,31 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `fastq_stats(arg1)`
    * @category runtime
    */
-  "fastq_stats"(arg1: unknown): BioJsValue;
+  "fastqStats"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `feature_group(arg1, arg2?, arg3?)`
    * @category runtime
    */
-  "feature_group"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
+  "featureGroup"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `feature_plot(points, opts?) → SVG/PlotSpec`
    * @category plot
    */
-  "feature_plot"(points: unknown, opts?: unknown): BioJsValue;
+  "featurePlot"(points: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `fetch_sra(arg1)`
    * @category runtime
    */
-  "fetch_sra"(arg1: unknown): BioJsValue;
+  "fetchSra"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `fill_null(arg1, arg2)`
    * @category runtime
    */
-  "fill_null"(arg1: unknown, arg2: unknown): BioJsValue;
+  "fillNull"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang hof builtin.
    * BioLang: `filter(list|table, fn) → List|Table`
@@ -1446,13 +1446,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `filter_by(arg1, arg2, arg3, arg4)`
    * @category runtime
    */
-  "filter_by"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown): BioJsValue;
+  "filterBy"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `filter_low_counts(arg1, arg2?, arg3?)`
    * @category runtime
    */
-  "filter_low_counts"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
+  "filterLowCounts"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
   /**
    * BioLang hof builtin.
    * BioLang: `find(list, fn) → Value|Nil`
@@ -1464,31 +1464,31 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `find_all_markers(matrix, clusters, opts?) → List[Record] (gene, cluster, p_value, p_adj, avg_log2fc, pct_1, pct_2)`
    * @category singlecell
    */
-  "find_all_markers"(matrix: unknown, clusters: unknown, opts?: unknown): BioJsValue[] | BioValueHandle;
+  "findAllMarkers"(matrix: unknown, clusters: unknown, opts?: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang hof builtin.
    * BioLang: `find_index(list, fn) → Int (-1 if not found)`
    * @category hof
    */
-  "find_index"(list: unknown, fn: unknown): number | bigint;
+  "findIndex"(list: unknown, fn: unknown): number | bigint;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `find_motif(arg1, arg2)`
    * @category runtime
    */
-  "find_motif"(arg1: unknown, arg2: unknown): BioJsValue;
+  "findMotif"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `find_orfs(arg1, arg2?)`
    * @category runtime
    */
-  "find_orfs"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "findOrfs"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `find_pattern(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "find_pattern"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "findPattern"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `first(arg1)`
@@ -1501,13 +1501,13 @@ export interface BioLangSessionBuiltinMethods {
    * @category stats
    * @example fisher_exact(8, 2, 1, 5)  # → Record{p_value,odds_ratio,confidence_interval}
    */
-  "fisher_exact"(a: unknown, b: unknown, c: unknown, d: unknown, arg5?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "fisherExact"(a: unknown, b: unknown, c: unknown, d: unknown, arg5?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `fit_ic50(arg1, arg2)`
    * @category runtime
    */
-  "fit_ic50"(arg1: unknown, arg2: unknown): BioJsValue;
+  "fitIc50"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `flagstat(arg1)`
@@ -1525,7 +1525,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `flat_map(arg1, arg2)`
    * @category runtime
    */
-  "flat_map"(arg1: unknown, arg2: unknown): BioJsValue;
+  "flatMap"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang list builtin.
    * BioLang: `flatten(list) → List`
@@ -1549,7 +1549,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `forest_plot(table, opts?) → SVG/PlotSpec; spec freezes intervals, weights, scale and reference`
    * @category plot
    */
-  "forest_plot"(table: unknown, opts?: unknown): BioJsValue;
+  "forestPlot"(table: unknown, opts?: unknown): BioJsValue;
   /**
    * BioLang string builtin.
    * BioLang: `format(template, args...) → Str`
@@ -1561,7 +1561,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `fragment_size_dist(arg1)`
    * @category runtime
    */
-  "fragment_size_dist"(arg1: unknown): BioJsValue;
+  "fragmentSizeDist"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `frequencies(arg1)`
@@ -1573,19 +1573,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `frip_score(arg1, arg2, arg3)`
    * @category runtime
    */
-  "frip_score"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "fripScore"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `from_records(arg1)`
    * @category runtime
    */
-  "from_records"(arg1: unknown): BioJsValue;
+  "fromRecords"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `from_table(arg1)`
    * @category runtime
    */
-  "from_table"(arg1: unknown): BioJsValue;
+  "fromTable"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `fst(arg1, arg2)`
@@ -1597,7 +1597,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `fst_weir_cockerham(arg1, arg2)`
    * @category runtime
    */
-  "fst_weir_cockerham"(arg1: unknown, arg2: unknown): BioJsValue;
+  "fstWeirCockerham"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `gb(n) → Record{value, unit} (gigabases)`
@@ -1609,44 +1609,44 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `gc_bias(arg1)`
    * @category runtime
    */
-  "gc_bias"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "gcBias"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `gc_content(seq) → Float`
    * @category bio
    * @example dna"ATCGCG" |> gc_content()  # → 0.667
    */
-  "gc_content"(seq: unknown): number;
+  "gcContent"(seq: unknown): number;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `gc_per_read(arg1)`
    * @category runtime
    */
-  "gc_per_read"(arg1: unknown): BioJsValue;
+  "gcPerRead"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `gc_skew(arg1, arg2?)`
    * @category runtime
    */
-  "gc_skew"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "gcSkew"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang core builtin.
    * BioLang: `gen_float() → Float in [0, 1)`
    * @category core
    */
-  "gen_float"(): number;
+  "genFloat"(): number;
   /**
    * BioLang core builtin.
    * BioLang: `gen_int(max | min, max?, seed?) → Int`
    * @category core
    */
-  "gen_int"(arg1: unknown, max?: unknown, seed?: unknown): number | bigint;
+  "genInt"(arg1: unknown, max?: unknown, seed?: unknown): number | bigint;
   /**
    * BioLang core builtin.
    * BioLang: `gen_str(len?) → Str (random lowercase)`
    * @category core
    */
-  "gen_str"(len?: unknown): string;
+  "genStr"(len?: unknown): string;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `gene(arg1)`
@@ -1658,25 +1658,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `gene_activity(arg1, arg2, arg3?, arg4?, arg5?)`
    * @category runtime
    */
-  "gene_activity"(arg1: unknown, arg2: unknown, arg3?: unknown, arg4?: unknown, arg5?: unknown): BioJsValue;
+  "geneActivity"(arg1: unknown, arg2: unknown, arg3?: unknown, arg4?: unknown, arg5?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `gene_bodies(arg1)`
    * @category runtime
    */
-  "gene_bodies"(arg1: unknown): BioJsValue;
+  "geneBodies"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `gene_id_map(arg1)`
    * @category runtime
    */
-  "gene_id_map"(arg1: unknown): BioJsValue;
+  "geneIdMap"(arg1: unknown): BioJsValue;
   /**
    * BioLang singlecell builtin.
    * BioLang: `gene_qc(matrix, gene_names?) → Table`
    * @category singlecell
    */
-  "gene_qc"(matrix: unknown, gene_names?: unknown): BioTableValue | BioValueHandle;
+  "geneQc"(matrix: unknown, gene_names?: unknown): BioTableValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `genome(arg1)`
@@ -1688,25 +1688,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `genome_track(table, opts?) → SVG/PlotSpec; freezes clipping and non-overlapping feature lanes`
    * @category plot
    */
-  "genome_track"(table: unknown, opts?: unknown): BioJsValue;
+  "genomeTrack"(table: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `genomic_bins(arg1, arg2)`
    * @category runtime
    */
-  "genomic_bins"(arg1: unknown, arg2: unknown): BioJsValue;
+  "genomicBins"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `genomic_inflation(arg1)`
    * @category runtime
    */
-  "genomic_inflation"(arg1: unknown): BioJsValue;
+  "genomicInflation"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `genorm_stability(arg1, arg2)`
    * @category runtime
    */
-  "genorm_stability"(arg1: unknown, arg2: unknown): BioJsValue;
+  "genormStability"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `glimpse(arg1)`
@@ -1724,13 +1724,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `gnomad_freq(arg1)`
    * @category runtime
    */
-  "gnomad_freq"(arg1: unknown): BioJsValue;
+  "gnomadFreq"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `go_enrichment(arg1, arg2?)`
    * @category runtime
    */
-  "go_enrichment"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "goEnrichment"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 0 argument(s).
    * BioLang: `graph(arg1?)`
@@ -1748,97 +1748,97 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `grep_count(input, pattern) → Int`
    * @category text
    */
-  "grep_count"(input: unknown, pattern: unknown): number | bigint;
+  "grepCount"(input: unknown, pattern: unknown): number | bigint;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `group_apply(arg1, arg2, arg3)`
    * @category runtime
    */
-  "group_apply"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "groupApply"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `group_by(arg1, arg2)`
    * @category runtime
    */
-  "group_by"(arg1: unknown, arg2: unknown): BioJsValue;
+  "groupBy"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `group_stats(arg1, arg2, arg3)`
    * @category runtime
    */
-  "group_stats"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "groupStats"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Dodged group counts with optional small-multiple facets.
    * BioLang: `grouped_bar_plot(categories, groups, {facets,...}?) → Str`
    * @category stats
    */
-  "grouped_bar_plot"(categories: unknown, groups: unknown, arg3?: unknown): string;
+  "groupedBarPlot"(categories: unknown, groups: unknown, arg3?: unknown): string;
   /**
    * Dodged grouped boxplots with Tukey whiskers, outliers, and a legend.
    * BioLang: `grouped_boxplot_plot(values, categories, groups, options?) → Str`
    * @category stats
    */
-  "grouped_boxplot_plot"(values: unknown, categories: unknown, groups: unknown, options?: unknown): string;
+  "groupedBoxplotPlot"(values: unknown, categories: unknown, groups: unknown, options?: unknown): string;
   /**
    * Overlaid density curves with grouped fill and an explicit missing-value legend level.
    * BioLang: `grouped_density_plot(values, groups, options?) → Str`
    * @category stats
    */
-  "grouped_density_plot"(values: unknown, groups: unknown, options?: unknown): string;
+  "groupedDensityPlot"(values: unknown, groups: unknown, options?: unknown): string;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `gsea_score(arg1, arg2)`
    * @category runtime
    */
-  "gsea_score"(arg1: unknown, arg2: unknown): BioJsValue;
+  "gseaScore"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `guide_counts(arg1)`
    * @category runtime
    */
-  "guide_counts"(arg1: unknown): BioJsValue;
+  "guideCounts"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `guide_gc(arg1)`
    * @category runtime
    */
-  "guide_gc"(arg1: unknown): BioJsValue;
+  "guideGc"(arg1: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `hamming_distance(s1, s2) → Int`
    * @category bio
    */
-  "hamming_distance"(s1: unknown, s2: unknown): number | bigint;
+  "hammingDistance"(s1: unknown, s2: unknown): number | bigint;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `hardy_weinberg(arg1, arg2, arg3)`
    * @category runtime
    */
-  "hardy_weinberg"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "hardyWeinberg"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang singlecell builtin.
    * BioLang: `harmony_integrate(embedding, batches, opts?) → matrix (batch-corrected, per-cluster)`
    * @category singlecell
    */
-  "harmony_integrate"(embedding: unknown, batches: unknown, opts?: unknown): BioMatrixValue | BioValueHandle;
+  "harmonyIntegrate"(embedding: unknown, batches: unknown, opts?: unknown): BioMatrixValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `has_edge(arg1, arg2, arg3)`
    * @category runtime
    */
-  "has_edge"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "hasEdge"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang map builtin.
    * BioLang: `has_key(map, key) → Bool`
    * @category map
    */
-  "has_key"(map: unknown, key: unknown): boolean;
+  "hasKey"(map: unknown, key: unknown): boolean;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `has_node(arg1, arg2)`
    * @category runtime
    */
-  "has_node"(arg1: unknown, arg2: unknown): BioJsValue;
+  "hasNode"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang list builtin.
    * BioLang: `head(list, n?) → List`
@@ -1856,7 +1856,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `heatmap_ascii(table, opts?) → Str (ASCII)`
    * @category plot
    */
-  "heatmap_ascii"(table: unknown, opts?: unknown): string;
+  "heatmapAscii"(table: unknown, opts?: unknown): string;
   /**
    * BioLang core builtin.
    * BioLang: `help(fn) → Nil (print function docs)`
@@ -1868,19 +1868,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `het_hom_ratio(arg1)`
    * @category runtime
    */
-  "het_hom_ratio"(arg1: unknown): BioJsValue;
+  "hetHomRatio"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `hic_map(arg1, arg2?)`
    * @category runtime
    */
-  "hic_map"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "hicMap"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang singlecell builtin.
    * BioLang: `highly_variable_genes(matrix, n?) → List[Int] (dispersion-ranked columns)`
    * @category singlecell
    */
-  "highly_variable_genes"(matrix: unknown, n?: unknown, arg3?: unknown): BioJsValue[] | BioValueHandle;
+  "highlyVariableGenes"(matrix: unknown, n?: unknown, arg3?: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang plot builtin.
    * BioLang: `hist(list, bins?) → Str (ASCII)`
@@ -1899,79 +1899,79 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `histogram_data(list, opts?) → inspectable bin geometry Record`
    * @category plot
    */
-  "histogram_data"(list: unknown, opts?: unknown): BioJsValue;
+  "histogramData"(list: unknown, opts?: unknown): BioJsValue;
   /**
    * BioLang hash builtin.
    * BioLang: `hmac_sha256(data, key) → Str (hex)`
    * @category hash
    */
-  "hmac_sha256"(data: unknown, key: unknown): string;
+  "hmacSha256"(data: unknown, key: unknown): string;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `hmm_baum_welch(arg1, arg2, arg3)`
    * @category runtime
    */
-  "hmm_baum_welch"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "hmmBaumWelch"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `hmm_emission_probability(arg1, arg2, arg3)`
    * @category runtime
    */
-  "hmm_emission_probability"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "hmmEmissionProbability"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `hmm_estimate(arg1, arg2, arg3)`
    * @category runtime
    */
-  "hmm_estimate"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "hmmEstimate"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `hmm_likelihood(arg1, arg2)`
    * @category runtime
    */
-  "hmm_likelihood"(arg1: unknown, arg2: unknown): BioJsValue;
+  "hmmLikelihood"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `hmm_path_probability(arg1, arg2)`
    * @category runtime
    */
-  "hmm_path_probability"(arg1: unknown, arg2: unknown): BioJsValue;
+  "hmmPathProbability"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `hmm_posterior(arg1, arg2)`
    * @category runtime
    */
-  "hmm_posterior"(arg1: unknown, arg2: unknown): BioJsValue;
+  "hmmPosterior"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `hmm_profile(arg1, arg2, arg3, arg4?)`
    * @category runtime
    */
-  "hmm_profile"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
+  "hmmProfile"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `hmm_profile_align(arg1, arg2)`
    * @category runtime
    */
-  "hmm_profile_align"(arg1: unknown, arg2: unknown): BioJsValue;
+  "hmmProfileAlign"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `hmm_viterbi_learning(arg1, arg2, arg3)`
    * @category runtime
    */
-  "hmm_viterbi_learning"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "hmmViterbiLearning"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `hwe_test(arg1, arg2, arg3)`
    * @category runtime
    */
-  "hwe_test"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "hweTest"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `ice_normalize(arg1)`
    * @category runtime
    */
-  "ice_normalize"(arg1: unknown): BioJsValue;
+  "iceNormalize"(arg1: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `ideogram(table, opts?) → SVG/PlotSpec; shared chromosome scale with frozen cytoband intervals and stains`
@@ -1983,19 +1983,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `impute_minvalue(arg1, arg2?)`
    * @category runtime
    */
-  "impute_minvalue"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "imputeMinvalue"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang string builtin.
    * BioLang: `index_of(str, sub) → Int (-1 if not found)`
    * @category string
    */
-  "index_of"(str: unknown, sub: unknown): number | bigint;
+  "indexOf"(str: unknown, sub: unknown): number | bigint;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `inner_join(arg1, arg2, arg3)`
    * @category runtime
    */
-  "inner_join"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "innerJoin"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `inspect(arg1, arg2)`
@@ -2007,7 +2007,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `insulation_score(arg1, arg2)`
    * @category runtime
    */
-  "insulation_score"(arg1: unknown, arg2: unknown): BioJsValue;
+  "insulationScore"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang core builtin.
    * BioLang: `int(value) → Int`
@@ -2031,13 +2031,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `interval_overlap(arg1, arg2)`
    * @category runtime
    */
-  "interval_overlap"(arg1: unknown, arg2: unknown): BioJsValue;
+  "intervalOverlap"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `interval_tree(table) → Record (sorted intervals per chrom)`
    * @category bio
    */
-  "interval_tree"(table: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "intervalTree"(table: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `into(arg1, arg2)`
@@ -2055,271 +2055,271 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `is_aligned_read(arg1)`
    * @category runtime
    */
-  "is_aligned_read"(arg1: unknown): BioJsValue;
+  "isAlignedRead"(arg1: unknown): BioJsValue;
   /**
    * BioLang type builtin.
    * BioLang: `is_bool(value) → Bool`
    * @category type
    */
-  "is_bool"(value: unknown): boolean;
+  "isBool"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_dna(value) → Bool`
    * @category type
    */
-  "is_dna"(value: unknown): boolean;
+  "isDna"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_enum(value) → Bool`
    * @category type
    */
-  "is_enum"(value: unknown): boolean;
+  "isEnum"(value: unknown): boolean;
   /**
    * BioLang math builtin.
    * BioLang: `is_finite(n) → Bool`
    * @category math
    */
-  "is_finite"(n: unknown): boolean;
+  "isFinite"(n: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_float(value) → Bool`
    * @category type
    */
-  "is_float"(value: unknown): boolean;
+  "isFloat"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_function(value) → Bool`
    * @category type
    */
-  "is_function"(value: unknown): boolean;
+  "isFunction"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_future(value) → Bool`
    * @category type
    */
-  "is_future"(value: unknown): boolean;
+  "isFuture"(value: unknown): boolean;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_gene(arg1)`
    * @category runtime
    */
-  "is_gene"(arg1: unknown): BioJsValue;
+  "isGene"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_genome(arg1)`
    * @category runtime
    */
-  "is_genome"(arg1: unknown): BioJsValue;
+  "isGenome"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_het(arg1)`
    * @category runtime
    */
-  "is_het"(arg1: unknown): BioJsValue;
+  "isHet"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_hom_alt(arg1)`
    * @category runtime
    */
-  "is_hom_alt"(arg1: unknown): BioJsValue;
+  "isHomAlt"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_hom_ref(arg1)`
    * @category runtime
    */
-  "is_hom_ref"(arg1: unknown): BioJsValue;
+  "isHomRef"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_indel(arg1)`
    * @category runtime
    */
-  "is_indel"(arg1: unknown): BioJsValue;
+  "isIndel"(arg1: unknown): BioJsValue;
   /**
    * BioLang type builtin.
    * BioLang: `is_int(value) → Bool`
    * @category type
    */
-  "is_int"(value: unknown): boolean;
+  "isInt"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_interval(value) → Bool`
    * @category type
    */
-  "is_interval"(value: unknown): boolean;
+  "isInterval"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_kmer(value) → Bool`
    * @category type
    */
-  "is_kmer"(value: unknown): boolean;
+  "isKmer"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_list(value) → Bool`
    * @category type
    */
-  "is_list"(value: unknown): boolean;
+  "isList"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_map(value) → Bool`
    * @category type
    */
-  "is_map"(value: unknown): boolean;
+  "isMap"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_matrix(value) → Bool`
    * @category type
    */
-  "is_matrix"(value: unknown): boolean;
+  "isMatrix"(value: unknown): boolean;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_multiallelic(arg1)`
    * @category runtime
    */
-  "is_multiallelic"(arg1: unknown): BioJsValue;
+  "isMultiallelic"(arg1: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `is_nan(n) → Bool`
    * @category math
    */
-  "is_nan"(n: unknown): boolean;
+  "isNan"(n: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_nil(value) → Bool`
    * @category type
    */
-  "is_nil"(value: unknown): boolean;
+  "isNil"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_num(value) → Bool`
    * @category type
    */
-  "is_num"(value: unknown): boolean;
+  "isNum"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_protein(value) → Bool`
    * @category type
    */
-  "is_protein"(value: unknown): boolean;
+  "isProtein"(value: unknown): boolean;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_quality(arg1)`
    * @category runtime
    */
-  "is_quality"(arg1: unknown): BioJsValue;
+  "isQuality"(arg1: unknown): BioJsValue;
   /**
    * BioLang type builtin.
    * BioLang: `is_range(value) → Bool`
    * @category type
    */
-  "is_range"(value: unknown): boolean;
+  "isRange"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_record(value) → Bool`
    * @category type
    */
-  "is_record"(value: unknown): boolean;
+  "isRecord"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_regex(value) → Bool`
    * @category type
    */
-  "is_regex"(value: unknown): boolean;
+  "isRegex"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_rna(value) → Bool`
    * @category type
    */
-  "is_rna"(value: unknown): boolean;
+  "isRna"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_set(value) → Bool`
    * @category type
    */
-  "is_set"(value: unknown): boolean;
+  "isSet"(value: unknown): boolean;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_snp(arg1)`
    * @category runtime
    */
-  "is_snp"(arg1: unknown): BioJsValue;
+  "isSnp"(arg1: unknown): BioJsValue;
   /**
    * BioLang type builtin.
    * BioLang: `is_sparse(value) → Bool`
    * @category type
    */
-  "is_sparse"(value: unknown): boolean;
+  "isSparse"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_str(value) → Bool`
    * @category type
    */
-  "is_str"(value: unknown): boolean;
+  "isStr"(value: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_stream(value) → Bool`
    * @category type
    */
-  "is_stream"(value: unknown): boolean;
+  "isStream"(value: unknown): boolean;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `is_subsequence(arg1, arg2)`
    * @category runtime
    */
-  "is_subsequence"(arg1: unknown, arg2: unknown): BioJsValue;
+  "isSubsequence"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang list builtin.
    * BioLang: `is_subset(a, b) → Bool`
    * @category list
    */
-  "is_subset"(a: unknown, b: unknown): boolean;
+  "isSubset"(a: unknown, b: unknown): boolean;
   /**
    * BioLang list builtin.
    * BioLang: `is_superset(a, b) → Bool`
    * @category list
    */
-  "is_superset"(a: unknown, b: unknown): boolean;
+  "isSuperset"(a: unknown, b: unknown): boolean;
   /**
    * BioLang type builtin.
    * BioLang: `is_table(value) → Bool`
    * @category type
    */
-  "is_table"(value: unknown): boolean;
+  "isTable"(value: unknown): boolean;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_transition(arg1)`
    * @category runtime
    */
-  "is_transition"(arg1: unknown): BioJsValue;
+  "isTransition"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_transversion(arg1)`
    * @category runtime
    */
-  "is_transversion"(arg1: unknown): BioJsValue;
+  "isTransversion"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `is_variant(arg1)`
    * @category runtime
    */
-  "is_variant"(arg1: unknown): BioJsValue;
+  "isVariant"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `isotope_correct(arg1, arg2)`
    * @category runtime
    */
-  "isotope_correct"(arg1: unknown, arg2: unknown): BioJsValue;
+  "isotopeCorrect"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `iupac_match(arg1, arg2)`
    * @category runtime
    */
-  "iupac_match"(arg1: unknown, arg2: unknown): BioJsValue;
+  "iupacMatch"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `iupac_scan(arg1, arg2)`
    * @category runtime
    */
-  "iupac_scan"(arg1: unknown, arg2: unknown): BioJsValue;
+  "iupacScan"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `jaccard(arg1, arg2)`
@@ -2338,31 +2338,31 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `json_keys(arg1)`
    * @category runtime
    */
-  "json_keys"(arg1: unknown): BioJsValue;
+  "jsonKeys"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `json_parse(arg1)`
    * @category runtime
    */
-  "json_parse"(arg1: unknown): BioJsValue;
+  "jsonParse"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `json_pretty(arg1)`
    * @category runtime
    */
-  "json_pretty"(arg1: unknown): BioJsValue;
+  "jsonPretty"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `json_stringify(arg1)`
    * @category runtime
    */
-  "json_stringify"(arg1: unknown): BioJsValue;
+  "jsonStringify"(arg1: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `kaplan_meier(table, opts?) → SVG/PlotSpec; supports confidence bands, risk tables, p-values and safe palettes; spec freezes risk sets, censoring and Greenwood intervals`
    * @category plot
    */
-  "kaplan_meier"(table: unknown, opts?: unknown): BioJsValue;
+  "kaplanMeier"(table: unknown, opts?: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `kb(n) → Record{value, unit} (kilobases)`
@@ -2392,50 +2392,50 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `kmer_canonical(kmer) → Kmer (canonical form)`
    * @category kmer
    */
-  "kmer_canonical"(kmer: unknown): BioJsValue;
+  "kmerCanonical"(kmer: unknown): BioJsValue;
   /**
    * BioLang kmer builtin.
    * BioLang: `kmer_count(seq, k, top_n?) → Table|Stream{kmer, count}`
    * @category kmer
    * @example dna"ATCGATCG" |> kmer_count(3)  # → k-mer frequency table
    */
-  "kmer_count"(seq: unknown, k: unknown, top_n?: unknown): BioTableValue | BioValueHandle;
+  "kmerCount"(seq: unknown, k: unknown, top_n?: unknown): BioTableValue | BioValueHandle;
   /**
    * BioLang kmer builtin.
    * BioLang: `kmer_decode(kmer) → Str`
    * @category kmer
    */
-  "kmer_decode"(kmer: unknown): string;
+  "kmerDecode"(kmer: unknown): string;
   /**
    * BioLang kmer builtin.
    * BioLang: `kmer_distinct(seq, k) → Int (distinct k-mer count)`
    * @category kmer
    */
-  "kmer_distinct"(seq: unknown, k: unknown): number | bigint;
+  "kmerDistinct"(seq: unknown, k: unknown): number | bigint;
   /**
    * BioLang kmer builtin.
    * BioLang: `kmer_encode(seq, k) → Kmer or List[Kmer]`
    * @category kmer
    */
-  "kmer_encode"(seq: unknown, k: unknown): BioJsValue;
+  "kmerEncode"(seq: unknown, k: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `kmer_index(arg1, arg2)`
    * @category runtime
    */
-  "kmer_index"(arg1: unknown, arg2: unknown): BioJsValue;
+  "kmerIndex"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang kmer builtin.
    * BioLang: `kmer_rc(kmer) → Kmer (reverse complement)`
    * @category kmer
    */
-  "kmer_rc"(kmer: unknown): BioJsValue;
+  "kmerRc"(kmer: unknown): BioJsValue;
   /**
    * BioLang kmer builtin.
    * BioLang: `kmer_spectrum(counts) → Table{frequency, count}`
    * @category kmer
    */
-  "kmer_spectrum"(counts: unknown): BioTableValue | BioValueHandle;
+  "kmerSpectrum"(counts: unknown): BioTableValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `kmers(arg1, arg2)`
@@ -2448,20 +2448,20 @@ export interface BioLangSessionBuiltinMethods {
    * @category singlecell
    * @example let edges = knn_graph(pcs.scores, 15)
    */
-  "knn_graph"(embedding: unknown, k?: unknown): BioJsValue[] | BioValueHandle;
+  "knnGraph"(embedding: unknown, k?: unknown): BioJsValue[] | BioValueHandle;
   /**
    * Independent-group Kruskal-Wallis rank-sum test with tie correction and epsilon-squared effect size.
    * BioLang: `kruskal_wallis(groups) → Record{h_statistic,p_value,epsilon_squared}`
    * @category stats
    * @example kruskal_wallis(groups)  # → H, p, tie correction, epsilon²
    */
-  "kruskal_wallis"(groups: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "kruskalWallis"(groups: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `ks_test(arg1, arg2)`
    * @category runtime
    */
-  "ks_test"(arg1: unknown, arg2: unknown): BioJsValue;
+  "ksTest"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `lag(arg1, arg2, arg3?)`
@@ -2473,7 +2473,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `lambda_gc(arg1)`
    * @category runtime
    */
-  "lambda_gc"(arg1: unknown): BioJsValue;
+  "lambdaGc"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `last(arg1)`
@@ -2485,7 +2485,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `lcp_array(arg1)`
    * @category runtime
    */
-  "lcp_array"(arg1: unknown): BioJsValue;
+  "lcpArray"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `lcs(arg1, arg2)`
@@ -2497,13 +2497,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `ld_decay(arg1, arg2?)`
    * @category runtime
    */
-  "ld_decay"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "ldDecay"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `ld_r2(arg1, arg2)`
    * @category runtime
    */
-  "ld_r2"(arg1: unknown, arg2: unknown): BioJsValue;
+  "ldR2"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `lead(arg1, arg2, arg3?)`
@@ -2515,7 +2515,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `left_join(arg1, arg2, arg3)`
    * @category runtime
    */
-  "left_join"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "leftJoin"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `leiden(adjacency, resolution?) → List[Int] (cluster assignments)`
@@ -2527,14 +2527,14 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `leiden_cluster(embedding, k, resolution?) → List[Int]`
    * @category singlecell
    */
-  "leiden_cluster"(embedding: unknown, k: unknown, resolution?: unknown): BioJsValue[] | BioValueHandle;
+  "leidenCluster"(embedding: unknown, k: unknown, resolution?: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `leiden_graph(edges, n_nodes, resolution) → List[Int]`
    * @category singlecell
    * @example leiden_graph(edges, cells.n_cells, 0.5)
    */
-  "leiden_graph"(edges: unknown, n_nodes: unknown, resolution: unknown): BioJsValue[] | BioValueHandle;
+  "leidenGraph"(edges: unknown, n_nodes: unknown, resolution: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang core builtin.
    * BioLang: `len(collection) → Int`
@@ -2547,7 +2547,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `lfc_guides(arg1, arg2, arg3)`
    * @category runtime
    */
-  "lfc_guides"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "lfcGuides"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `liftover(arg1, arg2, arg3, arg4?, arg5?)`
@@ -2559,13 +2559,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `linear_fit_data(x, y, opts?) -> OLS line plus confidence/prediction geometry Record`
    * @category plot
    */
-  "linear_fit_data"(x: unknown, y: unknown, opts?: unknown): BioJsValue;
+  "linearFitData"(x: unknown, y: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `linear_spectrum(arg1)`
    * @category runtime
    */
-  "linear_spectrum"(arg1: unknown): BioJsValue;
+  "linearSpectrum"(arg1: unknown): BioJsValue;
   /**
    * BioLang text builtin.
    * BioLang: `lines(text) → List[Str]`
@@ -2584,19 +2584,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `load_maxquant(arg1, arg2?)`
    * @category runtime
    */
-  "load_maxquant"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "loadMaxquant"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `load_ppi(arg1, arg2?)`
    * @category runtime
    */
-  "load_ppi"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "loadPpi"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 5 argument(s).
    * BioLang: `loewe_synergy(arg1, arg2, arg3, arg4, arg5)`
    * @category runtime
    */
-  "loewe_synergy"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown, arg5: unknown): BioJsValue;
+  "loeweSynergy"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown, arg5: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `log(n) → Float (natural)`
@@ -2608,13 +2608,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `log_rank_test(arg1, arg2, arg3, arg4?)`
    * @category runtime
    */
-  "log_rank_test"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
+  "logRankTest"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `log_transform(arg1)`
    * @category runtime
    */
-  "log_transform"(arg1: unknown): BioJsValue;
+  "logTransform"(arg1: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `log10(n) → Float`
@@ -2626,7 +2626,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `log1p_transform(matrix) → matrix (preserves CSR sparsity)`
    * @category singlecell
    */
-  "log1p_transform"(matrix: unknown): BioMatrixValue | BioValueHandle;
+  "log1pTransform"(matrix: unknown): BioMatrixValue | BioValueHandle;
   /**
    * BioLang math builtin.
    * BioLang: `log2(n) → Float`
@@ -2638,19 +2638,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `log2_ratios(arg1, arg2)`
    * @category runtime
    */
-  "log2_ratios"(arg1: unknown, arg2: unknown): BioJsValue;
+  "log2Ratios"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `log2_transform(arg1)`
    * @category runtime
    */
-  "log2_transform"(arg1: unknown): BioJsValue;
+  "log2Transform"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `loh_detect(arg1)`
    * @category runtime
    */
-  "loh_detect"(arg1: unknown): BioJsValue;
+  "lohDetect"(arg1: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `lollipop(table, opts?) → SVG/PlotSpec; length fixes the full sequence domain`
@@ -2662,13 +2662,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `louvain_cluster(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "louvain_cluster"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "louvainCluster"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `louvain_graph(arg1, arg2, arg3, arg4?)`
    * @category runtime
    */
-  "louvain_graph"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
+  "louvainGraph"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
   /**
    * BioLang string builtin.
    * BioLang: `lower(str) → Str`
@@ -2680,25 +2680,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `lr_aggregate(scores, pathway_map) → List[Record]`
    * @category singlecell
    */
-  "lr_aggregate"(scores: unknown, pathway_map: unknown): BioJsValue[] | BioValueHandle;
+  "lrAggregate"(scores: unknown, pathway_map: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `lr_score(matrix, labels, ligand_receptor_pairs) → List[Record]`
    * @category singlecell
    */
-  "lr_score"(matrix: unknown, labels: unknown, ligand_receptor_pairs: unknown): BioJsValue[] | BioValueHandle;
+  "lrScore"(matrix: unknown, labels: unknown, ligand_receptor_pairs: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang plot builtin.
    * BioLang: `ma_plot(table, opts?) → SVG/PlotSpec`
    * @category plot
    */
-  "ma_plot"(table: unknown, opts?: unknown): BioJsValue;
+  "maPlot"(table: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `mageck_score(arg1, arg2, arg3)`
    * @category runtime
    */
-  "mageck_score"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "mageckScore"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `manhattan(table, opts?) → SVG/PlotSpec; spec freezes chromosome order, genomic positions, p-values and thresholds`
@@ -2710,7 +2710,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `manhattan_data(arg1)`
    * @category runtime
    */
-  "manhattan_data"(arg1: unknown): BioJsValue;
+  "manhattanData"(arg1: unknown): BioJsValue;
   /**
    * BioLang hof builtin.
    * BioLang: `map(list|table, fn) → List`
@@ -2723,43 +2723,43 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `marker_score(arg1, arg2)`
    * @category runtime
    */
-  "marker_score"(arg1: unknown, arg2: unknown): BioJsValue;
+  "markerScore"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `mat_add(arg1, arg2)`
    * @category runtime
    */
-  "mat_add"(arg1: unknown, arg2: unknown): BioJsValue;
+  "matAdd"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `mat_col(arg1, arg2)`
    * @category runtime
    */
-  "mat_col"(arg1: unknown, arg2: unknown): BioJsValue;
+  "matCol"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `mat_map(arg1, arg2)`
    * @category runtime
    */
-  "mat_map"(arg1: unknown, arg2: unknown): BioJsValue;
+  "matMap"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `mat_mul(arg1, arg2)`
    * @category runtime
    */
-  "mat_mul"(arg1: unknown, arg2: unknown): BioJsValue;
+  "matMul"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `mat_scale(arg1, arg2)`
    * @category runtime
    */
-  "mat_scale"(arg1: unknown, arg2: unknown): BioJsValue;
+  "matScale"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `mat_sub(arg1, arg2)`
    * @category runtime
    */
-  "mat_sub"(arg1: unknown, arg2: unknown): BioJsValue;
+  "matSub"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang matrix builtin.
    * BioLang: `matrix(nested_lists) → Matrix`
@@ -2772,19 +2772,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `matrix_at(matrix, row, column) → Value`
    * @category singlecell
    */
-  "matrix_at"(matrix: unknown, row: unknown, column: unknown): BioJsValue;
+  "matrixAt"(matrix: unknown, row: unknown, column: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `matrix_from_table(arg1, arg2)`
    * @category runtime
    */
-  "matrix_from_table"(arg1: unknown, arg2: unknown): BioJsValue;
+  "matrixFromTable"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `matrix_to_table(arg1)`
    * @category runtime
    */
-  "matrix_to_table"(arg1: unknown): BioJsValue;
+  "matrixToTable"(arg1: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `max(list|args...) → number`
@@ -2816,7 +2816,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `mean_phred(arg1)`
    * @category runtime
    */
-  "mean_phred"(arg1: unknown): BioJsValue;
+  "meanPhred"(arg1: unknown): BioJsValue;
   /**
    * BioLang stats builtin.
    * BioLang: `median(list) → Float`
@@ -2835,7 +2835,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `memory_usage() → Record{heap_bytes, ...}`
    * @category stream
    */
-  "memory_usage"(): Record<string, BioJsValue> | BioValueHandle;
+  "memoryUsage"(): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang map builtin.
    * BioLang: `merge(a, b) → Map|Record`
@@ -2847,13 +2847,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `merge_peaks(arg1)`
    * @category runtime
    */
-  "merge_peaks"(arg1: unknown): BioJsValue;
+  "mergePeaks"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `meta_analysis(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "meta_analysis"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "metaAnalysis"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `min(list|args...) → number`
@@ -2865,7 +2865,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `min_phred(arg1)`
    * @category runtime
    */
-  "min_phred"(arg1: unknown): BioJsValue;
+  "minPhred"(arg1: unknown): BioJsValue;
   /**
    * BioLang kmer builtin.
    * BioLang: `minimizers(seq, k, w) → List[{kmer, pos}]`
@@ -2877,7 +2877,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `missingness_data(table, opts?) -> full counts plus bounded display geometry Record`
    * @category plot
    */
-  "missingness_data"(table: unknown, opts?: unknown): BioJsValue;
+  "missingnessData"(table: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `mode(arg1)`
@@ -2889,7 +2889,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `module_score(matrix, gene_indices) → List[Float]`
    * @category singlecell
    */
-  "module_score"(matrix: unknown, gene_indices: unknown): number[] | BioValueHandle;
+  "moduleScore"(matrix: unknown, gene_indices: unknown): number[] | BioValueHandle;
   /**
    * BioLang datetime builtin.
    * BioLang: `month(date_str) → Int`
@@ -2901,55 +2901,55 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `mosaic_data(table, opts?) -> PlotSpec`
    * @category plot
    */
-  "mosaic_data"(table: unknown, opts?: unknown): BioJsValue;
+  "mosaicData"(table: unknown, opts?: unknown): BioJsValue;
   /**
    * Contingency-table rectangles whose area is exactly proportional to observed count; optional Pearson-residual shading.
    * BioLang: `mosaic_plot(table, opts?) -> SVG | PlotSpec`
    * @category plot
    */
-  "mosaic_plot"(table: unknown, opts?: unknown): BioJsValue;
+  "mosaicPlot"(table: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `motif_consensus(arg1)`
    * @category runtime
    */
-  "motif_consensus"(arg1: unknown): BioJsValue;
+  "motifConsensus"(arg1: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `motif_count(seq, iupac_pattern) → Int`
    * @category bio
    */
-  "motif_count"(seq: unknown, iupac_pattern: unknown): number | bigint;
+  "motifCount"(seq: unknown, iupac_pattern: unknown): number | bigint;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `motif_enrichment(arg1, arg2, arg3)`
    * @category runtime
    */
-  "motif_enrichment"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "motifEnrichment"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `motif_find(seq, iupac_pattern) → List[{start, end, match}]`
    * @category bio
    */
-  "motif_find"(seq: unknown, iupac_pattern: unknown): BioJsValue[] | BioValueHandle;
+  "motifFind"(seq: unknown, iupac_pattern: unknown): BioJsValue[] | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `motif_profile(arg1, arg2?)`
    * @category runtime
    */
-  "motif_profile"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "motifProfile"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `motif_score(arg1)`
    * @category runtime
    */
-  "motif_score"(arg1: unknown): BioJsValue;
+  "motifScore"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 4 argument(s).
    * BioLang: `multi_filter_by(arg1, arg2, arg3, arg4, ...)`
    * @category runtime
    */
-  "multi_filter_by"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown, ...rest: unknown[]): BioJsValue;
+  "multiFilterBy"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown, ...rest: unknown[]): BioJsValue;
   /**
    * BioLang hof builtin.
    * BioLang: `mutate(table, col, fn) → Table`
@@ -2961,25 +2961,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `mutational_signature(arg1)`
    * @category runtime
    */
-  "mutational_signature"(arg1: unknown): BioJsValue;
+  "mutationalSignature"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `mutual_information(arg1, arg2)`
    * @category runtime
    */
-  "mutual_information"(arg1: unknown, arg2: unknown): BioJsValue;
+  "mutualInformation"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `mvalue_to_beta(arg1)`
    * @category runtime
    */
-  "mvalue_to_beta"(arg1: unknown): BioJsValue;
+  "mvalueToBeta"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `mz_match(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "mz_match"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "mzMatch"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `n50(arg1)`
@@ -2991,33 +2991,33 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `ncbi_fetch(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "ncbi_fetch"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "ncbiFetch"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * BioLang api builtin.
    * BioLang: `ncbi_gene(query) → Record`
    * @category api
    * @example ncbi_gene("BRCA1")  # → gene info record
    */
-  "ncbi_gene"(query: unknown, arg2?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "ncbiGene"(query: unknown, arg2?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang api builtin.
    * BioLang: `ncbi_search(db, query, max?) → List[Record]`
    * @category api
    * @example ncbi_search("gene", "TP53")  # → search results
    */
-  "ncbi_search"(db: unknown, query: unknown, max?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "ncbiSearch"(db: unknown, query: unknown, max?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `ncbi_sequence(arg1)`
    * @category runtime
    */
-  "ncbi_sequence"(arg1: unknown): BioJsValue;
+  "ncbiSequence"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `ncbi_summary(arg1, arg2)`
    * @category runtime
    */
-  "ncbi_summary"(arg1: unknown, arg2: unknown): BioJsValue;
+  "ncbiSummary"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `ncol(arg1)`
@@ -3035,7 +3035,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `neighbor_joining(distance_matrix) → List[{name, distance, children}]`
    * @category bio
    */
-  "neighbor_joining"(distance_matrix: unknown): BioJsValue[] | BioValueHandle;
+  "neighborJoining"(distance_matrix: unknown): BioJsValue[] | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `neighbors(arg1, arg2)`
@@ -3047,7 +3047,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `network_enrichment(arg1, arg2, arg3)`
    * @category runtime
    */
-  "network_enrichment"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "networkEnrichment"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang table builtin.
    * BioLang: `next(stream) → Value|Nil`
@@ -3059,7 +3059,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `nfr_enrichment(arg1)`
    * @category runtime
    */
-  "nfr_enrichment"(arg1: unknown): BioJsValue;
+  "nfrEnrichment"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `nnls(arg1, arg2)`
@@ -3077,13 +3077,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `node_attr(arg1, arg2)`
    * @category runtime
    */
-  "node_attr"(arg1: unknown, arg2: unknown): BioJsValue;
+  "nodeAttr"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `node_count(arg1)`
    * @category runtime
    */
-  "node_count"(arg1: unknown): BioJsValue;
+  "nodeCount"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `nodes(arg1)`
@@ -3107,13 +3107,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `normal_qq_data(list) -> R-compatible normal Q-Q geometry Record`
    * @category plot
    */
-  "normal_qq_data"(list: unknown, arg2?: unknown): BioJsValue;
+  "normalQqData"(list: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `normal_qq_plot(arg1, arg2?)`
    * @category runtime
    */
-  "normal_qq_plot"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "normalQqPlot"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang stats builtin.
    * BioLang: `normalize(list, method) → List`
@@ -3126,32 +3126,32 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `normalize_chrom(arg1)`
    * @category runtime
    */
-  "normalize_chrom"(arg1: unknown): BioJsValue;
+  "normalizeChrom"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `normalize_counts(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "normalize_counts"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "normalizeCounts"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `normalize_samples(arg1, arg2?)`
    * @category runtime
    */
-  "normalize_samples"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "normalizeSamples"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang sparse builtin.
    * BioLang: `normalize_sparse(m, method) → SparseMatrix ('log1p_cpm'|'scale')`
    * @category sparse
    */
-  "normalize_sparse"(m: unknown, method: unknown): BioMatrixValue | BioValueHandle;
+  "normalizeSparse"(m: unknown, method: unknown): BioMatrixValue | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `normalize_total(matrix, target?) → matrix (row library-size normalization)`
    * @category singlecell
    * @example normalize_total(cells.matrix, 10000.0) |> log1p_transform()
    */
-  "normalize_total"(matrix: unknown, target?: unknown): BioMatrixValue | BioValueHandle;
+  "normalizeTotal"(matrix: unknown, target?: unknown): BioMatrixValue | BioValueHandle;
   /**
    * BioLang datetime builtin.
    * BioLang: `now() → Str (ISO 8601 UTC)`
@@ -3170,31 +3170,31 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `nucleosome_fractions(arg1)`
    * @category runtime
    */
-  "nucleosome_fractions"(arg1: unknown): BioJsValue;
+  "nucleosomeFractions"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `nucleotide_diversity(arg1)`
    * @category runtime
    */
-  "nucleotide_diversity"(arg1: unknown): BioJsValue;
+  "nucleotideDiversity"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `nw_parse(arg1)`
    * @category runtime
    */
-  "nw_parse"(arg1: unknown): BioJsValue;
+  "nwParse"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `nw_to_distance_matrix(arg1)`
    * @category runtime
    */
-  "nw_to_distance_matrix"(arg1: unknown): BioJsValue;
+  "nwToDistanceMatrix"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `ode_solve(arg1, arg2, arg3)`
    * @category runtime
    */
-  "ode_solve"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "odeSolve"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang hof builtin.
    * BioLang: `once(fn) → fn (execute only first call)`
@@ -3218,87 +3218,87 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `outer_join(arg1, arg2, arg3)`
    * @category runtime
    */
-  "outer_join"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "outerJoin"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang stats builtin.
    * BioLang: `p_adjust(pvals, method) → List`
    * @category stats
    * @example p_adjust([0.01, 0.04, 0.5], "bh")  # → adjusted p-values
    */
-  "p_adjust"(pvals: unknown, method: unknown): BioJsValue[] | BioValueHandle;
+  "pAdjust"(pvals: unknown, method: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang string builtin.
    * BioLang: `pad_left(str, width, char) → Str`
    * @category string
    */
-  "pad_left"(str: unknown, width: unknown, char: unknown): string;
+  "padLeft"(str: unknown, width: unknown, char: unknown): string;
   /**
    * BioLang string builtin.
    * BioLang: `pad_right(str, width, char) → Str`
    * @category string
    */
-  "pad_right"(str: unknown, width: unknown, char: unknown): string;
+  "padRight"(str: unknown, width: unknown, char: unknown): string;
   /**
    * Explicit pairwise t-tests. Defaults to Welch tests with Holm correction; options select variance and adjustment.
    * BioLang: `pairwise_ttest(groups, options?) → Record{adjustment,comparisons}`
    * @category stats
    * @example pairwise_ttest(groups, {variance: "welch", adjust: "holm"})
    */
-  "pairwise_ttest"(groups: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "pairwiseTtest"(groups: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang hof builtin.
    * BioLang: `par_filter(list, fn) → List (parallel filter)`
    * @category hof
    */
-  "par_filter"(list: unknown, fn: unknown): BioJsValue[] | BioValueHandle;
+  "parFilter"(list: unknown, fn: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang hof builtin.
    * BioLang: `par_map(list, fn) → List (parallel map)`
    * @category hof
    */
-  "par_map"(list: unknown, fn: unknown): BioJsValue[] | BioValueHandle;
+  "parMap"(list: unknown, fn: unknown): BioJsValue[] | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `parse_featurecounts(arg1)`
    * @category runtime
    */
-  "parse_featurecounts"(arg1: unknown): BioJsValue;
+  "parseFeaturecounts"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `parse_gtf(arg1)`
    * @category runtime
    */
-  "parse_gtf"(arg1: unknown): BioJsValue;
+  "parseGtf"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `parse_json(arg1)`
    * @category runtime
    */
-  "parse_json"(arg1: unknown): BioJsValue;
+  "parseJson"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `parse_salmon(arg1)`
    * @category runtime
    */
-  "parse_salmon"(arg1: unknown): BioJsValue;
+  "parseSalmon"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `parse_sumstats(arg1)`
    * @category runtime
    */
-  "parse_sumstats"(arg1: unknown): BioJsValue;
+  "parseSumstats"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `parse_vcf_info(arg1)`
    * @category runtime
    */
-  "parse_vcf_info"(arg1: unknown): BioJsValue;
+  "parseVcfInfo"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `parse_vdj(arg1)`
    * @category runtime
    */
-  "parse_vdj"(arg1: unknown): BioJsValue;
+  "parseVdj"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `partition(arg1, arg2)`
@@ -3316,13 +3316,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `pathway_enrichment(arg1, arg2)`
    * @category runtime
    */
-  "pathway_enrichment"(arg1: unknown, arg2: unknown): BioJsValue;
+  "pathwayEnrichment"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `patristic_distance(arg1, arg2, arg3)`
    * @category runtime
    */
-  "patristic_distance"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "patristicDistance"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `pbinom(arg1, arg2, arg3)`
@@ -3341,56 +3341,56 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `pca_plot(points, opts?) → SVG/PlotSpec`
    * @category plot
    */
-  "pca_plot"(points: unknown, opts?: unknown): BioJsValue;
+  "pcaPlot"(points: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `pcr_efficiency(arg1, arg2)`
    * @category runtime
    */
-  "pcr_efficiency"(arg1: unknown, arg2: unknown): BioJsValue;
+  "pcrEfficiency"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `pdb_parse(arg1)`
    * @category runtime
    */
-  "pdb_parse"(arg1: unknown): BioJsValue;
+  "pdbParse"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `peak_annotation(arg1, arg2)`
    * @category runtime
    */
-  "peak_annotation"(arg1: unknown, arg2: unknown): BioJsValue;
+  "peakAnnotation"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `peak_matrix(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "peak_matrix"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "peakMatrix"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `peak_matrix_sparse(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "peak_matrix_sparse"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "peakMatrixSparse"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `pearson_correlation(arg1, arg2)`
    * @category runtime
    */
-  "pearson_correlation"(arg1: unknown, arg2: unknown): BioJsValue;
+  "pearsonCorrelation"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `peptide_mass(arg1)`
    * @category runtime
    */
-  "peptide_mass"(arg1: unknown): BioJsValue;
+  "peptideMass"(arg1: unknown): BioJsValue;
   /**
    * BioLang stats builtin.
    * BioLang: `permutation_test(a, b, statistic, n?) → Record; statistic is one of mean_diff, median_diff, ks, t`
    * @category stats
    * @example permutation_test(a, b, "mean_diff", 10000)  # → Record{p_value,observed}
    */
-  "permutation_test"(a: unknown, b: unknown, statistic: unknown, n?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "permutationTest"(a: unknown, b: unknown, statistic: unknown, n?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `permutations(arg1)`
@@ -3408,7 +3408,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `phylo_tree(arg1, arg2?)`
    * @category runtime
    */
-  "phylo_tree"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "phyloTree"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `pi() → 3.14159...`
@@ -3420,25 +3420,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `pipe_fuse(list, ops...) → List (explicit fused pipeline)`
    * @category hof
    */
-  "pipe_fuse"(list: unknown, arg2: unknown, ...rest: unknown[]): BioJsValue[] | BioValueHandle;
+  "pipeFuse"(list: unknown, arg2: unknown, ...rest: unknown[]): BioJsValue[] | BioValueHandle;
   /**
    * BioLang bio builtin.
    * BioLang: `pipeline_steps(pipeline) → Table{step, name, plugin, params, depends_on}`
    * @category bio
    */
-  "pipeline_steps"(pipeline: unknown): BioTableValue | BioValueHandle;
+  "pipelineSteps"(pipeline: unknown): BioTableValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 4 argument(s).
    * BioLang: `pivot_longer(arg1, arg2, arg3, arg4)`
    * @category runtime
    */
-  "pivot_longer"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown): BioJsValue;
+  "pivotLonger"(arg1: unknown, arg2: unknown, arg3: unknown, arg4: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `pivot_wider(arg1, arg2, arg3)`
    * @category runtime
    */
-  "pivot_wider"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "pivotWider"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `plot(table, opts?) → Str (SVG); theme: "publication" adds adaptive layout`
@@ -3450,13 +3450,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `plot_grid(plots, opts?) -> SVG/PlotSpec; equal-cell multi-panel figure with tags, shared labels and legend`
    * @category plot
    */
-  "plot_grid"(plots: unknown, opts?: unknown): BioJsValue;
+  "plotGrid"(plots: unknown, opts?: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `plot_spec(table, opts?) -> renderer-neutral biolang.plot.spec/v1 Record`
    * @category plot
    */
-  "plot_spec"(table: unknown, opts?: unknown): BioJsValue;
+  "plotSpec"(table: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `pnorm(arg1, arg2?, arg3?)`
@@ -3480,19 +3480,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `power_analysis(arg1, arg2, arg3?, arg4?)`
    * @category runtime
    */
-  "power_analysis"(arg1: unknown, arg2: unknown, arg3?: unknown, arg4?: unknown): BioJsValue;
+  "powerAnalysis"(arg1: unknown, arg2: unknown, arg3?: unknown, arg4?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `power_prop_test(arg1, arg2, arg3)`
    * @category runtime
    */
-  "power_prop_test"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "powerPropTest"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `power_t_test(arg1, arg2?, arg3?, arg4?)`
    * @category runtime
    */
-  "power_t_test"(arg1: unknown, arg2?: unknown, arg3?: unknown, arg4?: unknown): BioJsValue;
+  "powerTTest"(arg1: unknown, arg2?: unknown, arg3?: unknown, arg4?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `ppois(arg1, arg2)`
@@ -3504,37 +3504,37 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `predictive_compare(models) → Record{summary,resamples,best_model}`
    * @category stats
    */
-  "predictive_compare"(models: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "predictiveCompare"(models: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Caret-style scaled permutation-importance lollipop plot.
    * BioLang: `predictive_importance_plot(model_or_table, options?) → Str`
    * @category stats
    */
-  "predictive_importance_plot"(model_or_table: unknown, options?: unknown): string;
+  "predictiveImportancePlot"(model_or_table: unknown, options?: unknown): string;
   /**
    * Class labels and/or class probabilities from a serializable model returned by predictive_train().
    * BioLang: `predictive_predict(model, table, {type: "class"|"prob"|"both"}?) → List|Table`
    * @category stats
    */
-  "predictive_predict"(model: unknown, table: unknown, arg3?: unknown): BioJsValue[] | BioValueHandle;
+  "predictivePredict"(model: unknown, table: unknown, arg3?: unknown): BioJsValue[] | BioValueHandle;
   /**
    * Side-by-side accuracy and kappa boxplots across aligned bootstrap resamples.
    * BioLang: `predictive_resample_plot(comparison_or_table, options?) → Str`
    * @category stats
    */
-  "predictive_resample_plot"(comparison_or_table: unknown, options?: unknown): string;
+  "predictiveResamplePlot"(comparison_or_table: unknown, options?: unknown): string;
   /**
    * Deterministic bootstrap tuning and final fitting for random forest, gradient boosting, elastic-net logistic regression, or distance-weighted kNN.
    * BioLang: `predictive_train(table, {target,method,seed,resamples,...}?) → Record{parameters,metrics,tuning,resamples,importance}`
    * @category stats
    */
-  "predictive_train"(table: unknown, arg2?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "predictiveTrain"(table: unknown, arg2?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `primer_design(arg1, arg2, arg3, arg4?)`
    * @category runtime
    */
-  "primer_design"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
+  "primerDesign"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
   /**
    * BioLang core builtin.
    * BioLang: `print(values...)`
@@ -3552,13 +3552,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `profile_most_probable(arg1, arg2, arg3)`
    * @category runtime
    */
-  "profile_most_probable"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "profileMostProbable"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `profile_probability(arg1, arg2)`
    * @category runtime
    */
-  "profile_probability"(arg1: unknown, arg2: unknown): BioJsValue;
+  "profileProbability"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `promoters(arg1, arg2?, arg3?)`
@@ -3570,7 +3570,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `prop_test(property_fn, generator_fn, iters) → Record`
    * @category hof
    */
-  "prop_test"(property_fn: unknown, generator_fn: unknown, iters: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "propTest"(property_fn: unknown, generator_fn: unknown, iters: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `protein(arg1)`
@@ -3582,7 +3582,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `protein_ttest(arg1, arg2, arg3)`
    * @category runtime
    */
-  "protein_ttest"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "proteinTtest"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang provenance builtin.
    * BioLang: `provenance(wrapped) → Record or Nil (extract provenance)`
@@ -3594,13 +3594,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `provenance_chain(wrapped) → List (walk parent chain)`
    * @category provenance
    */
-  "provenance_chain"(wrapped: unknown): BioJsValue[] | BioValueHandle;
+  "provenanceChain"(wrapped: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `pseudobulk_aggregate(matrix, sample_ids, groups) → Record`
    * @category singlecell
    */
-  "pseudobulk_aggregate"(matrix: unknown, sample_ids: unknown, groups: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "pseudobulkAggregate"(matrix: unknown, sample_ids: unknown, groups: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `punif(arg1, arg2?, arg3?)`
@@ -3624,19 +3624,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `pwm_from_seqs(arg1)`
    * @category runtime
    */
-  "pwm_from_seqs"(arg1: unknown): BioJsValue;
+  "pwmFromSeqs"(arg1: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `pwm_scan(seq, pwm, threshold?) → List[{pos, score}]`
    * @category bio
    */
-  "pwm_scan"(seq: unknown, pwm: unknown, threshold?: unknown): BioJsValue[] | BioValueHandle;
+  "pwmScan"(seq: unknown, pwm: unknown, threshold?: unknown): BioJsValue[] | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `qc_report(arg1)`
    * @category runtime
    */
-  "qc_report"(arg1: unknown): BioJsValue;
+  "qcReport"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `qnorm(arg1, arg2?, arg3?)`
@@ -3648,25 +3648,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `qq_data(arg1)`
    * @category runtime
    */
-  "qq_data"(arg1: unknown): BioJsValue;
+  "qqData"(arg1: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `qq_plot(pvalues, opts?) → SVG/PlotSpec; genetic Q-Q with λGC and optional exact beta envelope`
    * @category plot
    */
-  "qq_plot"(pvalues: unknown, opts?: unknown): BioJsValue;
+  "qqPlot"(pvalues: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `quality_filter(arg1, arg2, arg3)`
    * @category runtime
    */
-  "quality_filter"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "qualityFilter"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `quality_plot(quality, opts?) → Str (ASCII)`
    * @category plot
    */
-  "quality_plot"(quality: unknown, opts?: unknown): string;
+  "qualityPlot"(quality: unknown, opts?: unknown): string;
   /**
    * BioLang stats builtin.
    * BioLang: `quantile(list, q) → Float`
@@ -3679,25 +3679,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `quantile_norm(arg1)`
    * @category runtime
    */
-  "quantile_norm"(arg1: unknown): BioJsValue;
+  "quantileNorm"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `quantile_normalize(arg1)`
    * @category runtime
    */
-  "quantile_normalize"(arg1: unknown): BioJsValue;
+  "quantileNormalize"(arg1: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `query_nearest(tree, chrom, pos, k?) → Table`
    * @category bio
    */
-  "query_nearest"(tree: unknown, chrom: unknown, pos: unknown, k?: unknown): BioTableValue | BioValueHandle;
+  "queryNearest"(tree: unknown, chrom: unknown, pos: unknown, k?: unknown): BioTableValue | BioValueHandle;
   /**
    * BioLang bio builtin.
    * BioLang: `query_overlaps(tree, chrom, start, end) → Table`
    * @category bio
    */
-  "query_overlaps"(tree: unknown, chrom: unknown, start: unknown, end: unknown): BioTableValue | BioValueHandle;
+  "queryOverlaps"(tree: unknown, chrom: unknown, start: unknown, end: unknown): BioTableValue | BioValueHandle;
   /**
    * BioLang plot builtin.
    * BioLang: `rainfall(table, opts?) → SVG/PlotSpec; spec freezes within-chromosome distances and duplicate handling`
@@ -3715,7 +3715,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `random_int(lo, hi) → Int [lo,hi)`
    * @category math
    */
-  "random_int"(lo: unknown, hi: unknown): number | bigint;
+  "randomInt"(lo: unknown, hi: unknown): number | bigint;
   /**
    * BioLang core builtin.
    * BioLang: `range(start?, end, step?) → List`
@@ -3733,7 +3733,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `rank_col(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "rank_col"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "rankCol"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `rarefaction(arg1, arg2)`
@@ -3751,85 +3751,85 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `read_10x(path, gene_column?) → Record (dense)`
    * @category singlecell
    */
-  "read_10x"(path: unknown, gene_column?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "read10x"(path: unknown, gene_column?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `read_10x_sparse(path, gene_column?) → Record (CSR counts, obs, var, layers)`
    * @category singlecell
    * @example let cells = read_10x_sparse("filtered_feature_bc_matrix")
    */
-  "read_10x_sparse"(path: unknown, gene_column?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "read10xSparse"(path: unknown, gene_column?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang bio builtin.
    * BioLang: `read_bed(path) → Table`
    * @category bio
    * @example read_bed("regions.bed")  # → Table
    */
-  "read_bed"(path: unknown): BioTableValue | BioValueHandle;
+  "readBed"(path: unknown): BioTableValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `read_csv(arg1, arg2?)`
    * @category runtime
    */
-  "read_csv"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "readCsv"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `read_f64_matrix(arg1)`
    * @category runtime
    */
-  "read_f64_matrix"(arg1: unknown): BioJsValue;
+  "readF64Matrix"(arg1: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `read_fasta(path) → Table`
    * @category bio
    * @example read_fasta("seqs.fa")  # → Table[id, description, seq, length]
    */
-  "read_fasta"(path: unknown): BioTableValue | BioValueHandle;
+  "readFasta"(path: unknown): BioTableValue | BioValueHandle;
   /**
    * BioLang bio builtin.
    * BioLang: `read_fastq(path) → Table`
    * @category bio
    * @example read_fastq("reads.fq")  # → Table[id, description, seq, length, quality]
    */
-  "read_fastq"(path: unknown): BioTableValue | BioValueHandle;
+  "readFastq"(path: unknown): BioTableValue | BioValueHandle;
   /**
    * BioLang bio builtin.
    * BioLang: `read_gff(path) → Table`
    * @category bio
    */
-  "read_gff"(path: unknown): BioTableValue | BioValueHandle;
-  "read_gtf"(arg1: unknown): BioJsValue;
+  "readGff"(path: unknown): BioTableValue | BioValueHandle;
+  "readGtf"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `read_length_hist(arg1, arg2?)`
    * @category runtime
    */
-  "read_length_hist"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "readLengthHist"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `read_pdf(arg1)`
    * @category runtime
    */
-  "read_pdf"(arg1: unknown): BioJsValue;
+  "readPdf"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `read_quality_dist(arg1)`
    * @category runtime
    */
-  "read_quality_dist"(arg1: unknown): BioJsValue;
+  "readQualityDist"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `read_tsv(arg1)`
    * @category runtime
    */
-  "read_tsv"(arg1: unknown): BioJsValue;
+  "readTsv"(arg1: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `read_vcf(path) → List[Variant]`
    * @category bio
    * @example read_vcf("variants.vcf")  # → List[Variant]
    */
-  "read_vcf"(path: unknown): BioJsValue[] | BioValueHandle;
+  "readVcf"(path: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang hof builtin.
    * BioLang: `reduce(list, fn, init?) → Value`
@@ -3842,79 +3842,79 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `reference_classify(query, reference_profiles, labels) → List[Record]`
    * @category singlecell
    */
-  "reference_classify"(query: unknown, reference_profiles: unknown, labels: unknown): BioJsValue[] | BioValueHandle;
+  "referenceClassify"(query: unknown, reference_profiles: unknown, labels: unknown): BioJsValue[] | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `reference_normalize(arg1, arg2)`
    * @category runtime
    */
-  "reference_normalize"(arg1: unknown, arg2: unknown): BioJsValue;
+  "referenceNormalize"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `regex_captures(arg1, arg2)`
    * @category runtime
    */
-  "regex_captures"(arg1: unknown, arg2: unknown): BioJsValue;
+  "regexCaptures"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `regex_find(arg1, arg2)`
    * @category runtime
    */
-  "regex_find"(arg1: unknown, arg2: unknown): BioJsValue;
+  "regexFind"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `regex_find_all(arg1, arg2)`
    * @category runtime
    */
-  "regex_find_all"(arg1: unknown, arg2: unknown): BioJsValue;
+  "regexFindAll"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `regex_match(arg1, arg2)`
    * @category runtime
    */
-  "regex_match"(arg1: unknown, arg2: unknown): BioJsValue;
+  "regexMatch"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `regex_replace(arg1, arg2, arg3)`
    * @category runtime
    */
-  "regex_replace"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "regexReplace"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `regex_replace_all(arg1, arg2, arg3)`
    * @category runtime
    */
-  "regex_replace_all"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "regexReplaceAll"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `regex_split(arg1, arg2)`
    * @category runtime
    */
-  "regex_split"(arg1: unknown, arg2: unknown): BioJsValue;
+  "regexSplit"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `relative_abundance(arg1)`
    * @category runtime
    */
-  "relative_abundance"(arg1: unknown): BioJsValue;
+  "relativeAbundance"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `remove_edge(arg1, arg2, arg3)`
    * @category runtime
    */
-  "remove_edge"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "removeEdge"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang map builtin.
    * BioLang: `remove_key(map, key) → Map|Record`
    * @category map
    */
-  "remove_key"(map: unknown, key: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "removeKey"(map: unknown, key: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `remove_node(arg1, arg2)`
    * @category runtime
    */
-  "remove_node"(arg1: unknown, arg2: unknown): BioJsValue;
+  "removeNode"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `rename(arg1, arg2, arg3)`
@@ -3926,7 +3926,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `render_plot(spec, {format: "svg|ascii|unicode|html"}) -> Str`
    * @category plot
    */
-  "render_plot"(spec: unknown, arg2?: unknown): string;
+  "renderPlot"(spec: unknown, arg2?: unknown): string;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `repeat(arg1, arg2)`
@@ -3950,19 +3950,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `restriction_sites(arg1, arg2)`
    * @category runtime
    */
-  "restriction_sites"(arg1: unknown, arg2: unknown): BioJsValue;
+  "restrictionSites"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang provenance builtin.
    * BioLang: `resume_checkpoint(name) → value or Nil`
    * @category provenance
    */
-  "resume_checkpoint"(name: unknown): BioJsValue;
+  "resumeCheckpoint"(name: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `reversal_distance(arg1, arg2)`
    * @category runtime
    */
-  "reversal_distance"(arg1: unknown, arg2: unknown): BioJsValue;
+  "reversalDistance"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang list builtin.
    * BioLang: `reverse(list) → List`
@@ -3975,13 +3975,13 @@ export interface BioLangSessionBuiltinMethods {
    * @category bio
    * @example dna"ATCG" |> reverse_complement()  # → DNA(CGAT)
    */
-  "reverse_complement"(seq: unknown): BioSequenceValue | BioValueHandle;
+  "reverseComplement"(seq: unknown): BioSequenceValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `right_join(arg1, arg2, arg3)`
    * @category runtime
    */
-  "right_join"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "rightJoin"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `rmsd(arg1, arg2)`
@@ -4005,19 +4005,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `roc_curve(table, opts?) → SVG/PlotSpec; spec freezes tied thresholds, confusion counts and AUC`
    * @category plot
    */
-  "roc_curve"(table: unknown, opts?: unknown): BioJsValue;
+  "rocCurve"(table: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `rolling_mean(arg1, arg2, arg3)`
    * @category runtime
    */
-  "rolling_mean"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "rollingMean"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `rolling_sum(arg1, arg2, arg3)`
    * @category runtime
    */
-  "rolling_sum"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "rollingSum"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `round(n, digits?) → Float`
@@ -4035,19 +4035,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `row_means(arg1)`
    * @category runtime
    */
-  "row_means"(arg1: unknown): BioJsValue;
+  "rowMeans"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `row_number(arg1)`
    * @category runtime
    */
-  "row_number"(arg1: unknown): BioJsValue;
+  "rowNumber"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `row_sums(arg1)`
    * @category runtime
    */
-  "row_sums"(arg1: unknown): BioJsValue;
+  "rowSums"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `rpkm(arg1, arg2, arg3?)`
@@ -4065,7 +4065,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `run_param(name, default?) → Value (from bl run --param NAME=VALUE)`
    * @category core
    */
-  "run_param"(name: unknown, arg2?: unknown): BioJsValue;
+  "runParam"(name: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang list builtin.
    * BioLang: `sample(list, n) → List`
@@ -4077,7 +4077,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `sample_correlation(arg1)`
    * @category runtime
    */
-  "sample_correlation"(arg1: unknown): BioJsValue;
+  "sampleCorrelation"(arg1: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `sashimi(junctions_or_record, opts?) → SVG/PlotSpec; Record may include coverage and junctions Tables`
@@ -4089,98 +4089,98 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `save_plot(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "save_plot"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "savePlot"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `save_png(svg_or_spec, path, {scale?|dpi?}) -> Str (path)`
    * @category plot
    */
-  "save_png"(svg_or_spec: unknown, path: unknown, arg3?: unknown): string;
+  "savePng"(svg_or_spec: unknown, path: unknown, arg3?: unknown): string;
   /**
    * BioLang plot builtin.
    * BioLang: `save_svg(svg_or_spec, path, {profile: "screen|publication", width_mm?, height_mm?, font?}) -> Str`
    * @category plot
    */
-  "save_svg"(svg_or_spec: unknown, path: unknown, arg3?: unknown): string;
+  "saveSvg"(svg_or_spec: unknown, path: unknown, arg3?: unknown): string;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `sc_anchor_candidates(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "sc_anchor_candidates"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "scAnchorCandidates"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `sc_find_all_markers(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "sc_find_all_markers"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "scFindAllMarkers"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `sc_find_anchors(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "sc_find_anchors"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "scFindAnchors"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * BioLang singlecell builtin.
    * BioLang: `sc_integrate(embedding, batch_ids) → matrix`
    * @category singlecell
    */
-  "sc_integrate"(embedding: unknown, batch_ids: unknown): BioMatrixValue | BioValueHandle;
+  "scIntegrate"(embedding: unknown, batch_ids: unknown): BioMatrixValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `sc_integrate_anchors(arg1, arg2, arg3, arg4?)`
    * @category runtime
    */
-  "sc_integrate_anchors"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
+  "scIntegrateAnchors"(arg1: unknown, arg2: unknown, arg3: unknown, arg4?: unknown): BioJsValue;
   /**
    * BioLang singlecell builtin.
    * BioLang: `sc_merge_objects(left, right, left_batch, right_batch) → Record`
    * @category singlecell
    */
-  "sc_merge_objects"(left: unknown, right: unknown, left_batch: unknown, right_batch: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "scMergeObjects"(left: unknown, right: unknown, left_batch: unknown, right_batch: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `sc_pca(matrix, n_components?) → {scores, loadings, explained_variance_ratio, ...}`
    * @category singlecell
    * @example let pcs = sc_pca(log_counts, 30)  # pcs.scores is cells x components
    */
-  "sc_pca"(matrix: unknown, n_components?: unknown, arg3?: unknown, arg4?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "scPca"(matrix: unknown, n_components?: unknown, arg3?: unknown, arg4?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `sc_scale(arg1, arg2?)`
    * @category runtime
    */
-  "sc_scale"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "scScale"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang singlecell builtin.
    * BioLang: `sc_sctransform(matrix, n_variable_features?) → matrix | {matrix, genes}`
    * @category singlecell
    */
-  "sc_sctransform"(matrix: unknown, n_variable_features?: unknown, arg3?: unknown): BioMatrixValue | BioValueHandle;
+  "scSctransform"(matrix: unknown, n_variable_features?: unknown, arg3?: unknown): BioMatrixValue | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `sc_subset_cells(object, indices) → Record (synchronized metadata/layers)`
    * @category singlecell
    */
-  "sc_subset_cells"(object: unknown, indices: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "scSubsetCells"(object: unknown, indices: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `sc_subset_genes(object, indices) → Record (invalidates reductions)`
    * @category singlecell
    */
-  "sc_subset_genes"(object: unknown, indices: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "scSubsetGenes"(object: unknown, indices: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `sc_umap(arg1, arg2?)`
    * @category runtime
    */
-  "sc_umap"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "scUmap"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang singlecell builtin.
    * BioLang: `sc_validate_object(object, strict?) → validation Record (axes, dimensions, errors, warnings)`
    * @category singlecell
    */
-  "sc_validate_object"(object: unknown, strict?: unknown): BioJsValue;
+  "scValidateObject"(object: unknown, strict?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `scan(arg1, arg2, arg3)`
@@ -4192,7 +4192,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `scan_bio(arg1)`
    * @category runtime
    */
-  "scan_bio"(arg1: unknown): BioJsValue;
+  "scanBio"(arg1: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `scatter(list1, list2) → Str (SVG)`
@@ -4205,37 +4205,37 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `scatter_by(list, key_fn) → Map{key → List}`
    * @category hof
    */
-  "scatter_by"(list: unknown, key_fn: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "scatterBy"(list: unknown, key_fn: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `score_matrix(arg1)`
    * @category runtime
    */
-  "score_matrix"(arg1: unknown): BioJsValue;
+  "scoreMatrix"(arg1: unknown): BioJsValue;
   /**
    * Calendar trend and one-year seasonal component panels.
    * BioLang: `seasonal_components_plot(forecast, options?) → Str`
    * @category stats
    */
-  "seasonal_components_plot"(forecast: unknown, options?: unknown): string;
+  "seasonalComponentsPlot"(forecast: unknown, options?: unknown): string;
   /**
    * Browser-safe additive forecast with piecewise trend, Fourier seasonality, robust residual intervals, and daily or observation-scaled periods.
    * BioLang: `seasonal_forecast(table, {date,value,periods,frequency_days,period_days,...}?) → Record{forecast,components}`
    * @category stats
    */
-  "seasonal_forecast"(table: unknown, arg2?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "seasonalForecast"(table: unknown, arg2?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Calendar-scaled forecast line, observed points, and uncertainty band.
    * BioLang: `seasonal_forecast_plot(forecast, options?) → Str`
    * @category stats
    */
-  "seasonal_forecast_plot"(forecast: unknown, options?: unknown): string;
+  "seasonalForecastPlot"(forecast: unknown, options?: unknown): string;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `secondary_structure(arg1)`
    * @category runtime
    */
-  "secondary_structure"(arg1: unknown): BioJsValue;
+  "secondaryStructure"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `select(arg1, arg2, ...)`
@@ -4247,31 +4247,31 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `select_cols(matrix, indices) → matrix`
    * @category singlecell
    */
-  "select_cols"(matrix: unknown, indices: unknown): BioMatrixValue | BioValueHandle;
+  "selectCols"(matrix: unknown, indices: unknown): BioMatrixValue | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `select_rows(matrix|table, indices) → matrix|table`
    * @category singlecell
    */
-  "select_rows"(arg1: unknown, indices: unknown): BioMatrixValue | BioValueHandle;
+  "selectRows"(arg1: unknown, indices: unknown): BioMatrixValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `semi_join(arg1, arg2, arg3)`
    * @category runtime
    */
-  "semi_join"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "semiJoin"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `seq_len(arg1)`
    * @category runtime
    */
-  "seq_len"(arg1: unknown): BioJsValue;
+  "seqLen"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `sequence_logo(arg1, arg2?)`
    * @category runtime
    */
-  "sequence_logo"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "sequenceLogo"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang list builtin.
    * BioLang: `set(list) → Set (deduped)`
@@ -4283,7 +4283,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `set_seed(arg1)`
    * @category runtime
    */
-  "set_seed"(arg1: unknown): BioJsValue;
+  "setSeed"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `sha1(arg1)`
@@ -4307,13 +4307,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `shared_clones(arg1)`
    * @category runtime
    */
-  "shared_clones"(arg1: unknown): BioJsValue;
+  "sharedClones"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `shortest_path(arg1, arg2, arg3)`
    * @category runtime
    */
-  "shortest_path"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "shortestPath"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `sign(n) → -1|0|1`
@@ -4331,13 +4331,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `six_frame_translate(arg1)`
    * @category runtime
    */
-  "six_frame_translate"(arg1: unknown): BioJsValue;
+  "sixFrameTranslate"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `size_factors(arg1)`
    * @category runtime
    */
-  "size_factors"(arg1: unknown): BioJsValue;
+  "sizeFactors"(arg1: unknown): BioJsValue;
   /**
    * BioLang hash builtin.
    * BioLang: `sketch(seq, k?, n?) → List (MinHash sketch)`
@@ -4349,7 +4349,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `sketch_dist(a, b) → Float (Jaccard distance 0–1)`
    * @category hash
    */
-  "sketch_dist"(a: unknown, b: unknown): number;
+  "sketchDist"(a: unknown, b: unknown): number;
   /**
    * BioLang list builtin.
    * BioLang: `slice(list|str, start, end?) → List|Str`
@@ -4361,7 +4361,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `snn_graph(arg1, arg2?, arg3?)`
    * @category runtime
    */
-  "snn_graph"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
+  "snnGraph"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `solve(arg1, arg2)`
@@ -4380,13 +4380,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `sort_by(arg1, arg2)`
    * @category runtime
    */
-  "sort_by"(arg1: unknown, arg2: unknown): BioJsValue;
+  "sortBy"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `sorting_reversals(arg1, arg2)`
    * @category runtime
    */
-  "sorting_reversals"(arg1: unknown, arg2: unknown): BioJsValue;
+  "sortingReversals"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `sparkline(data) → Str (ASCII)`
@@ -4398,37 +4398,37 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `sparse_col_sums(m) → List[Float]`
    * @category sparse
    */
-  "sparse_col_sums"(m: unknown): number[] | BioValueHandle;
+  "sparseColSums"(m: unknown): number[] | BioValueHandle;
   /**
    * BioLang sparse builtin.
    * BioLang: `sparse_get(m, i, j) → Float`
    * @category sparse
    */
-  "sparse_get"(m: unknown, i: unknown, j: unknown): number;
+  "sparseGet"(m: unknown, i: unknown, j: unknown): number;
   /**
    * BioLang sparse builtin.
    * BioLang: `sparse_matrix(data | nrow, ncol, entries) → SparseMatrix`
    * @category sparse
    */
-  "sparse_matrix"(arg1: unknown, ncol?: unknown, entries?: unknown): BioMatrixValue | BioValueHandle;
+  "sparseMatrix"(arg1: unknown, ncol?: unknown, entries?: unknown): BioMatrixValue | BioValueHandle;
   /**
    * BioLang sparse builtin.
    * BioLang: `sparse_row_sums(m) → List[Float]`
    * @category sparse
    */
-  "sparse_row_sums"(m: unknown): number[] | BioValueHandle;
+  "sparseRowSums"(m: unknown): number[] | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `spatial_moransi(expression, edges) → Float`
    * @category singlecell
    */
-  "spatial_moransi"(expression: unknown, edges: unknown): number;
+  "spatialMoransi"(expression: unknown, edges: unknown): number;
   /**
    * BioLang singlecell builtin.
    * BioLang: `spatial_neighbors(coordinates, k?) → List[Record]`
    * @category singlecell
    */
-  "spatial_neighbors"(coordinates: unknown, k?: unknown): BioJsValue[] | BioValueHandle;
+  "spatialNeighbors"(coordinates: unknown, k?: unknown): BioJsValue[] | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `spearman(arg1, arg2)`
@@ -4440,19 +4440,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `spectrum_convolution(arg1)`
    * @category runtime
    */
-  "spectrum_convolution"(arg1: unknown): BioJsValue;
+  "spectrumConvolution"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `spectrum_score(arg1, arg2)`
    * @category runtime
    */
-  "spectrum_score"(arg1: unknown, arg2: unknown): BioJsValue;
+  "spectrumScore"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `splice_sites(arg1)`
    * @category runtime
    */
-  "splice_sites"(arg1: unknown): BioJsValue;
+  "spliceSites"(arg1: unknown): BioJsValue;
   /**
    * BioLang list builtin.
    * BioLang: `split(str, sep) → List`
@@ -4471,301 +4471,301 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `starts_with(str, prefix) → Bool`
    * @category string
    */
-  "starts_with"(str: unknown, prefix: unknown): boolean;
+  "startsWith"(str: unknown, prefix: unknown): boolean;
   /**
    * Bounded Pearson, Spearman, Cramer's V and categorical-numeric effect sizes.
    * BioLang: `stats_associations(table, options?) → Record{pairs,high_association_pairs,threshold}`
    * @category stats
    * @example stats_associations(trial)  # → bounded effect sizes; no hypothesis tests
    */
-  "stats_associations"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsAssociations"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Frequency bars, in SVG or ASCII.
    * BioLang: `stats_categorical_plot(values, options?) → Str`
    * @category stats
    * @example stats_categorical_plot(labels)  # → frequency bars
    */
-  "stats_categorical_plot"(values: unknown, options?: unknown): string;
+  "statsCategoricalPlot"(values: unknown, options?: unknown): string;
   /**
    * Counts, proportions, modes, missingness and rare-level clues for a categorical variable.
    * BioLang: `stats_categories(values, options?) → Record{kind,levels,modes,rare_levels}`
    * @category stats
    * @example stats_categories(["red", "blue", "red"])  # → levels, modes, rare-level clues
    */
-  "stats_categories"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsCategories"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Quantify declared non-independence without fitting a model.
    * BioLang: `stats_cluster_diagnostics(values, clusters, options?) → Record{intraclass_correlation,approximate_unequal_independence_design_effect}`
    * @category stats
    * @example stats_cluster_diagnostics(values, clusters)  # → ICC and design effect
    */
-  "stats_cluster_diagnostics"(values: unknown, clusters: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsClusterDiagnostics"(values: unknown, clusters: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Per-group evidence and the analyses appropriate to it, without choosing one.
    * BioLang: `stats_compare(values, groups, options?) → Record{kind,groups,alternatives,limitations}`
    * @category stats
    * @example stats_compare(values, groups)  # → per-group evidence; no test is chosen
    */
-  "stats_compare"(values: unknown, groups: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsCompare"(values: unknown, groups: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Multivariable Cox fit with selectable Breslow or Efron ties, hazard-ratio intervals, baseline hazard and martingale residuals. The Schoenfeld screen is descriptive, not cox.zph.
    * BioLang: `stats_cox_diagnostics(time, event, predictors, {ties: "breslow"|"efron", ...}?) → Record{coefficients,partial_log_likelihood,likelihood_ratio,baseline_hazard,converged}`
    * @category stats
    * @example stats_cox_diagnostics(time, event, predictors, {ties: "efron"})  # or ties: "breslow"
    */
-  "stats_cox_diagnostics"(time: unknown, event: unknown, predictors: unknown, arg4?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsCoxDiagnostics"(time: unknown, event: unknown, predictors: unknown, arg4?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * The questions that narrow a method, with `automatic_choice` false.
    * BioLang: `stats_decision_map(options?) → Record{paths,automatic_choice}`
    * @category stats
    * @example stats_decision_map()  # → centre/spread/scale/uncertainty paths; chooses nothing
    */
-  "stats_decision_map"(options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsDecisionMap"(options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Repeated units, imbalance, and batch or group confounding.
    * BioLang: `stats_design_check(table, options?) → Record{groups,repeated_subjects,design_clues,issues}`
    * @category stats
    * @example stats_design_check(trial, {group_column: "arm", batch_column: "run"})  # blocking if every batch is one arm
    */
-  "stats_design_check"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsDesignCheck"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Terminal-safe histogram, with exclusions and review flags stated.
    * BioLang: `stats_distribution_ascii(values, options?) → Str`
    * @category stats
    * @example stats_distribution_ascii(values)  # → terminal-safe histogram
    */
-  "stats_distribution_ascii"(values: unknown, options?: unknown): string;
+  "statsDistributionAscii"(values: unknown, options?: unknown): string;
   /**
    * Scale-sensitive normal, log-normal, Poisson and negative-binomial fit clues.
    * BioLang: `stats_distribution_clues(values, options?) → Record{candidates,model_selected}`
    * @category stats
    * @example stats_distribution_clues(counts)  # → four candidate families, none selected
    */
-  "stats_distribution_clues"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsDistributionClues"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Annotated histogram: observations, mean, median, IQR, SD bands and outlier flags.
    * BioLang: `stats_distribution_plot(values, options?) → Str`
    * @category stats
    * @example stats_distribution_plot(values)  # → SVG histogram with mean, median, IQR and SD bands
    */
-  "stats_distribution_plot"(values: unknown, options?: unknown): string;
+  "statsDistributionPlot"(values: unknown, options?: unknown): string;
   /**
    * Render a report as quick, learning or audit text.
    * BioLang: `stats_explain(report, detail?) → Str`
    * @category stats
    * @example stats_explain(report, "audit")  # detail: "quick", "learning" or "audit"
    */
-  "stats_explain"(report: unknown, detail?: unknown): string;
+  "statsExplain"(report: unknown, detail?: unknown): string;
   /**
    * Centre, spread, shape, missingness, transformation candidates and review flags for one numeric variable.
    * BioLang: `stats_explore(values, options?) → Record{kind,summary,shape,outliers,alternatives,limitations}`
    * @category stats
    * @example stats_explore([12.1, 12.4, 13.0, 29.0])  # → Record{kind: "numeric", ...}
    */
-  "stats_explore"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsExplore"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * One panel per level of a factor, sharing scales across panels.
    * BioLang: `stats_facet_plot(values, facets, options?) → Str`
    * @category stats
    * @example stats_facet_plot(values, groups, {columns: 3})  # panels share one scale
    */
-  "stats_facet_plot"(values: unknown, facets: unknown, options?: unknown): string;
+  "statsFacetPlot"(values: unknown, facets: unknown, options?: unknown): string;
   /**
    * Binomial or Poisson fit with deviance, dispersion, influence and calibration clues. Check `converged` before reading anything else.
    * BioLang: `stats_glm_diagnostics(predictors, outcome, options?) → Record{coefficients,residual_deviance,aic,converged,iterations}`
    * @category stats
    * @example stats_glm_diagnostics(predictors, outcome, {family: "binomial"})  # check .converged first
    */
-  "stats_glm_diagnostics"(predictors: unknown, outcome: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsGlmDiagnostics"(predictors: unknown, outcome: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Group observations and robust summaries, in SVG or ASCII.
    * BioLang: `stats_group_plot(values, groups, options?) → Str`
    * @category stats
    * @example stats_group_plot(values, groups, {format: "ascii"})
    */
-  "stats_group_plot"(values: unknown, groups: unknown, options?: unknown): string;
+  "statsGroupPlot"(values: unknown, groups: unknown, options?: unknown): string;
   /**
    * Attach an explicit scientific question and experimental unit to a report.
    * BioLang: `stats_guide(report, context?) → Record`
    * @category stats
    * @example stats_guide(report, {question: "Does dose shift the median?", experimental_unit: "patient"})
    */
-  "stats_guide"(report: unknown, context?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsGuide"(report: unknown, context?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Residual-versus-fitted or residual Q-Q display.
    * BioLang: `stats_linear_diagnostic_plot(x, y, options?) → Str`
    * @category stats
    * @example stats_linear_diagnostic_plot(x, y, {view: "qq"})  # view: "residuals" or "qq"
    */
-  "stats_linear_diagnostic_plot"(x: unknown, y: unknown, options?: unknown): string;
+  "statsLinearDiagnosticPlot"(x: unknown, y: unknown, options?: unknown): string;
   /**
    * Residual form, spread, Q-Q, order and influence clues for a simple linear model.
    * BioLang: `stats_linear_diagnostics(x, y, options?) → Record{residual_mse,normal_qq_correlation,cook_distances}`
    * @category stats
    * @example stats_linear_diagnostics(x, y)  # → residual clues and Cook distances
    */
-  "stats_linear_diagnostics"(x: unknown, y: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsLinearDiagnostics"(x: unknown, y: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Every mean paired with a compatible spread, so neither is quoted alone.
    * BioLang: `stats_means(values, options?) → Record{arithmetic_mean,geometric_mean,harmonic_mean,median,centre_spread_pairs}`
    * @category stats
    * @example stats_means([2.0, 4.0, 8.0])  # → every mean paired with a compatible spread
    */
-  "stats_means"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsMeans"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Missingness by row, column, pair and optional group.
    * BioLang: `stats_missingness(table, options?) → Record{columns,missing_by_row,co_missing}`
    * @category stats
    * @example stats_missingness(trial, {group_column: "arm"})  # → by column, row, pair and group
    */
-  "stats_missingness"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsMissingness"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Missingness map, in SVG or ASCII.
    * BioLang: `stats_missingness_plot(table, options?) → Str`
    * @category stats
    * @example stats_missingness_plot(trial, {format: "ascii"})
    */
-  "stats_missingness_plot"(table: unknown, options?: unknown): string;
+  "statsMissingnessPlot"(table: unknown, options?: unknown): string;
   /**
    * Categorical encoding, interactions, VIF, influence and deterministic held-out error.
    * BioLang: `stats_multiple_linear_diagnostics(predictors, outcome, options?) → Record{coefficients,maximum_vif,validation_rmse}`
    * @category stats
    * @example stats_multiple_linear_diagnostics(predictors, y, {validation_folds: 4})
    */
-  "stats_multiple_linear_diagnostics"(predictors: unknown, outcome: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsMultipleLinearDiagnostics"(predictors: unknown, outcome: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Normal-curve teaching diagram with 1/2/3-SD regions, optional observed coverage and z-tail highlighting.
    * BioLang: `stats_normal_diagram(values?, options?) → Str`
    * @category stats
    * @example stats_normal_diagram()  # → teaching curve with 1/2/3-SD regions
    */
-  "stats_normal_diagram"(values?: unknown, options?: unknown): string;
+  "statsNormalDiagram"(values?: unknown, options?: unknown): string;
   /**
    * Normal-distribution Q-Q diagnostic, distinct from the genomic qq_plot().
    * BioLang: `stats_normal_qq_plot(values, options?) → Str`
    * @category stats
    * @example stats_normal_qq_plot(values)  # distinct from the genomic qq_plot()
    */
-  "stats_normal_qq_plot"(values: unknown, options?: unknown): string;
+  "statsNormalQqPlot"(values: unknown, options?: unknown): string;
   /**
    * Dense or sparse matrix audit and domain-aware normalisation alternatives.
    * BioLang: `stats_normalization_guide(matrix, options?) → Record{data_type,suggestions,automatic_changes}`
    * @category stats
    * @example stats_normalization_guide(counts_matrix)  # → audit and alternatives; nothing applied
    */
-  "stats_normalization_guide"(matrix: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsNormalizationGuide"(matrix: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Modality-aware matrix profile that preserves sparse semantics.
    * BioLang: `stats_omics_profile(matrix, options?) → Record{modality,suggestions,automatic_changes}`
    * @category stats
    * @example stats_omics_profile(counts_matrix, {modality: "single_cell"})  # sparse stays sparse
    */
-  "stats_omics_profile"(matrix: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsOmicsProfile"(matrix: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Compact terminal-safe whole-table summary.
    * BioLang: `stats_overview_ascii(table, options?) → Str`
    * @category stats
    * @example stats_overview_ascii(trial)  # → terminal-safe whole-table summary
    */
-  "stats_overview_ascii"(table: unknown, options?: unknown): string;
+  "statsOverviewAscii"(table: unknown, options?: unknown): string;
   /**
    * Observable data-quality issues and non-applied normalisation alternatives.
    * BioLang: `stats_preprocess(values, options?) → Record{issues,suggestions,automatic_changes}`
    * @category stats
    * @example stats_preprocess(values)  # → issues and suggestions; nothing is applied
    */
-  "stats_preprocess"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsPreprocess"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Whole-table types, summaries, missingness, duplicates and design clues.
    * BioLang: `stats_profile(table, options?) → Record{columns,missingness,duplicate_rows,design}`
    * @category stats
    * @example stats_profile(trial, {subject_column: "patient"})  # → columns, missingness, design
    */
-  "stats_profile"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsProfile"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * One random intercept by REML: fixed effects, variance components, ICC and partially pooled intercepts.
    * BioLang: `stats_random_intercept_model(predictors, outcome, clusters, options?) → Record{fixed_effects,random_intercept_variance,residual_variance,intraclass_correlation}`
    * @category stats
    * @example stats_random_intercept_model(predictors, outcome, subject_ids, {method: "reml"})
    */
-  "stats_random_intercept_model"(predictors: unknown, outcome: unknown, clusters: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsRandomInterceptModel"(predictors: unknown, outcome: unknown, clusters: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Complete-pair counts, Pearson and Spearman association, and a regression line.
    * BioLang: `stats_relationship(x, y, options?) → Record{kind,pearson,spearman,slope,intercept}`
    * @category stats
    * @example stats_relationship(x, y)  # → Pearson, Spearman and a fitted line
    */
-  "stats_relationship"(x: unknown, y: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsRelationship"(x: unknown, y: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Scatterplot and fitted line, in SVG or ASCII.
    * BioLang: `stats_relationship_plot(x, y, options?) → Str`
    * @category stats
    * @example stats_relationship_plot(x, y)  # → scatterplot and fitted line
    */
-  "stats_relationship_plot"(x: unknown, y: unknown, options?: unknown): string;
+  "statsRelationshipPlot"(x: unknown, y: unknown, options?: unknown): string;
   /**
    * Self-contained HTML or Markdown data-health report with provenance.
    * BioLang: `stats_report(table, options?) → Record{format,content,provenance}`
    * @category stats
    * @example stats_report(trial, {format: "html"})  # → .content, .mime_type, .provenance
    */
-  "stats_report"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsReport"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Huber regression as an explicit sensitivity check against the ordinary fit.
    * BioLang: `stats_robust_linear_diagnostics(predictors, outcome, options?) → Record{coefficients,weights,converged}`
    * @category stats
    * @example stats_robust_linear_diagnostics(predictors, y)  # Huber, as an explicit sensitivity check
    */
-  "stats_robust_linear_diagnostics"(predictors: unknown, outcome: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsRobustLinearDiagnostics"(predictors: unknown, outcome: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * One-command profile, association screen and prioritised next steps.
    * BioLang: `stats_scan(table, options?) → Record{profile,associations,recommendations}`
    * @category stats
    * @example stats_scan(trial)  # profile, association screen and prioritised next steps
    */
-  "stats_scan"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsScan"(table: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Skewness, kurtosis, histogram-peak and normal-Q-Q evidence, with no diagnosis.
    * BioLang: `stats_shape(values, options?) → Record{kind,evidence,sensitivity}`
    * @category stats
    * @example stats_shape(values)  # → skewness, kurtosis and Q-Q evidence; no diagnosis
    */
-  "stats_shape"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsShape"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Autocorrelation, Ljung-Box and trend evidence for ordered observations.
    * BioLang: `stats_time_series_diagnostics(values, options?) → Record{autocorrelations,ljung_box_p_value,trend_per_observation}`
    * @category stats
    * @example stats_time_series_diagnostics(series)  # → autocorrelations, Ljung-Box, trend
    */
-  "stats_time_series_diagnostics"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsTimeSeriesDiagnostics"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Before-and-after evidence for a transform, without applying it.
    * BioLang: `stats_transform_preview(values, method, options?) → Record{before,after,input_modified}`
    * @category stats
    * @example stats_transform_preview(values, "log")  # → before and after; input unchanged
    */
-  "stats_transform_preview"(values: unknown, method: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsTransformPreview"(values: unknown, method: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Seeded bootstrap interval for a centre, spread, group difference or correlation.
    * BioLang: `stats_uncertainty(values, options?) → Record{estimate,lower,upper,seed,method}`
    * @category stats
    * @example stats_uncertainty(values, {statistic: "median", seed: 42})  # seeded, and the seed is returned
    */
-  "stats_uncertainty"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsUncertainty"(values: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Render an exploration report's visual guide as SVG or terminal-safe ASCII.
    * BioLang: `stats_visualize(report, options?) → Str`
    * @category stats
    * @example stats_visualize(report, {format: "ascii"})
    */
-  "stats_visualize"(report: unknown, options?: unknown): string;
+  "statsVisualize"(report: unknown, options?: unknown): string;
   /**
    * Weighted moments with the weighting scheme and effective sample size disclosed.
    * BioLang: `stats_weighted_summary(values, weights, options?) → Record{weighted_mean,effective_sample_size}`
    * @category stats
    * @example stats_weighted_summary(values, weights)  # → weighted mean and effective sample size
    */
-  "stats_weighted_summary"(values: unknown, weights: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "statsWeightedSummary"(values: unknown, weights: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang stats builtin.
    * BioLang: `stdev(list) → Float`
@@ -4784,55 +4784,55 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `str_len(str) → Int (char count)`
    * @category string
    */
-  "str_len"(str: unknown): number | bigint;
+  "strLen"(str: unknown): number | bigint;
   /**
    * BioLang string builtin.
    * BioLang: `str_repeat(str, n) → Str`
    * @category string
    */
-  "str_repeat"(str: unknown, n: unknown): string;
+  "strRepeat"(str: unknown, n: unknown): string;
   /**
    * BioLang string builtin.
    * BioLang: `str_replace(str, from, to) → Str`
    * @category string
    */
-  "str_replace"(str: unknown, from: unknown, to: unknown): string;
+  "strReplace"(str: unknown, from: unknown, to: unknown): string;
   /**
    * BioLang stream builtin.
    * BioLang: `stream_batch(stream, n, fn) → List (process in batches)`
    * @category stream
    */
-  "stream_batch"(stream: unknown, n: unknown, fn: unknown): BioJsValue[] | BioValueHandle;
+  "streamBatch"(stream: unknown, n: unknown, fn: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang stream builtin.
    * BioLang: `stream_chunks(stream, n) → Stream of List (chunks of n)`
    * @category stream
    */
-  "stream_chunks"(stream: unknown, n: unknown): BioJsValue;
+  "streamChunks"(stream: unknown, n: unknown): BioJsValue;
   /**
    * BioLang text builtin.
    * BioLang: `stream_concat(a, b) → Stream (lazy concat)`
    * @category text
    */
-  "stream_concat"(a: unknown, b: unknown): BioJsValue;
+  "streamConcat"(a: unknown, b: unknown): BioJsValue;
   /**
    * BioLang stream builtin.
    * BioLang: `stream_skip(stream, n) → Stream (skip first n)`
    * @category stream
    */
-  "stream_skip"(stream: unknown, n: unknown): BioJsValue;
+  "streamSkip"(stream: unknown, n: unknown): BioJsValue;
   /**
    * BioLang stream builtin.
    * BioLang: `stream_take(stream, n) → List (first n items)`
    * @category stream
    */
-  "stream_take"(stream: unknown, n: unknown): BioJsValue[] | BioValueHandle;
+  "streamTake"(stream: unknown, n: unknown): BioJsValue[] | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `strip_chr(arg1)`
    * @category runtime
    */
-  "strip_chr"(arg1: unknown): BioJsValue;
+  "stripChr"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `subgraph(arg1, arg2)`
@@ -4850,7 +4850,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `substitution_score(arg1, arg2, arg3)`
    * @category runtime
    */
-  "substitution_score"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "substitutionScore"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * BioLang string builtin.
    * BioLang: `substr(str, start, len?) → Str`
@@ -4862,7 +4862,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `suffix_array(arg1)`
    * @category runtime
    */
-  "suffix_array"(arg1: unknown): BioJsValue;
+  "suffixArray"(arg1: unknown): BioJsValue;
   /**
    * BioLang stats builtin.
    * BioLang: `sum(list) → Float`
@@ -4900,7 +4900,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `symmetric_difference(set1, set2) → Set`
    * @category list
    */
-  "symmetric_difference"(set1: unknown, set2: unknown): Set<BioJsValue> | BioValueHandle;
+  "symmetricDifference"(set1: unknown, set2: unknown): Set<BioJsValue> | BioValueHandle;
   /**
    * BioLang table builtin.
    * BioLang: `table(records) → Table`
@@ -4913,37 +4913,37 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `table_cast(table, col, type) → Table (coerce column)`
    * @category table
    */
-  "table_cast"(table: unknown, col: unknown, type: unknown): BioTableValue | BioValueHandle;
+  "tableCast"(table: unknown, col: unknown, type: unknown): BioTableValue | BioValueHandle;
   /**
    * BioLang table builtin.
    * BioLang: `table_col_types(table) → Record{col → type_str}`
    * @category table
    */
-  "table_col_types"(table: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "tableColTypes"(table: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang table builtin.
    * BioLang: `table_schema(table) → Record{columns, types, nrow, ncol}`
    * @category table
    */
-  "table_schema"(table: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "tableSchema"(table: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang table builtin.
    * BioLang: `table_set_col_type(table, col, type) → Record{table, schema}`
    * @category table
    */
-  "table_set_col_type"(table: unknown, col: unknown, type: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "tableSetColType"(table: unknown, col: unknown, type: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang table builtin.
    * BioLang: `table_validate(schema_record) → Record{valid, errors}`
    * @category table
    */
-  "table_validate"(schema_record: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "tableValidate"(schema_record: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `tad_boundaries(arg1, arg2)`
    * @category runtime
    */
-  "tad_boundaries"(arg1: unknown, arg2: unknown): BioJsValue;
+  "tadBoundaries"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang list builtin.
    * BioLang: `tail(list, n?) → List`
@@ -4955,7 +4955,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `tajima_d(arg1, arg2)`
    * @category runtime
    */
-  "tajima_d"(arg1: unknown, arg2: unknown): BioJsValue;
+  "tajimaD"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang table builtin.
    * BioLang: `take(stream|list, n) → List`
@@ -4967,7 +4967,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `take_while(arg1, arg2)`
    * @category runtime
    */
-  "take_while"(arg1: unknown, arg2: unknown): BioJsValue;
+  "takeWhile"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang math builtin.
    * BioLang: `tan(radians) → Float`
@@ -4985,7 +4985,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `taxonomic_collapse(arg1, arg2)`
    * @category runtime
    */
-  "taxonomic_collapse"(arg1: unknown, arg2: unknown): BioJsValue;
+  "taxonomicCollapse"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang text builtin.
    * BioLang: `tee(value, path) → value (writes to file)`
@@ -4997,13 +4997,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `tile_genome(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "tile_genome"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "tileGenome"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * BioLang hof builtin.
    * BioLang: `time_it(fn) → fn (prints elapsed time)`
    * @category hof
    */
-  "time_it"(fn: unknown): BioJsValue;
+  "timeIt"(fn: unknown): BioJsValue;
   /**
    * BioLang datetime builtin.
    * BioLang: `timestamp() → Int (Unix epoch seconds)`
@@ -5015,13 +5015,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `timestamp_ms() → Int (Unix epoch ms)`
    * @category datetime
    */
-  "timestamp_ms"(): number | bigint;
+  "timestampMs"(): number | bigint;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `titv_ratio(arg1)`
    * @category runtime
    */
-  "titv_ratio"(arg1: unknown): BioJsValue;
+  "titvRatio"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `tm(arg1)`
@@ -5033,61 +5033,61 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `to_dense(sparse) → Matrix`
    * @category sparse
    */
-  "to_dense"(sparse: unknown): BioMatrixValue | BioValueHandle;
+  "toDense"(sparse: unknown): BioMatrixValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `to_html(arg1)`
    * @category runtime
    */
-  "to_html"(arg1: unknown): BioJsValue;
+  "toHtml"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `to_markdown(arg1)`
    * @category runtime
    */
-  "to_markdown"(arg1: unknown): BioJsValue;
+  "toMarkdown"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `to_records(arg1)`
    * @category runtime
    */
-  "to_records"(arg1: unknown): BioJsValue;
+  "toRecords"(arg1: unknown): BioJsValue;
   /**
    * BioLang sparse builtin.
    * BioLang: `to_sparse(matrix) → SparseMatrix`
    * @category sparse
    */
-  "to_sparse"(matrix: unknown): BioMatrixValue | BioValueHandle;
+  "toSparse"(matrix: unknown): BioMatrixValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `to_stream(arg1)`
    * @category runtime
    */
-  "to_stream"(arg1: unknown): BioJsValue;
+  "toStream"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `to_string(arg1)`
    * @category runtime
    */
-  "to_string"(arg1: unknown): BioJsValue;
+  "toString"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `to_table(arg1)`
    * @category runtime
    */
-  "to_table"(arg1: unknown): BioJsValue;
+  "toTable"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `top_loci(arg1, arg2?)`
    * @category runtime
    */
-  "top_loci"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "topLoci"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `topological_sort(arg1)`
    * @category runtime
    */
-  "topological_sort"(arg1: unknown): BioJsValue;
+  "topologicalSort"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `tpm(arg1, arg2)`
@@ -5099,7 +5099,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `tpm_matrix(arg1, arg2)`
    * @category runtime
    */
-  "tpm_matrix"(arg1: unknown, arg2: unknown): BioJsValue;
+  "tpmMatrix"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `trace(arg1)`
@@ -5131,7 +5131,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `tree_leaves(arg1)`
    * @category runtime
    */
-  "tree_leaves"(arg1: unknown): BioJsValue;
+  "treeLeaves"(arg1: unknown): BioJsValue;
   /**
    * BioLang string builtin.
    * BioLang: `trim(str) → Str`
@@ -5143,25 +5143,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `trim_left(str) → Str`
    * @category string
    */
-  "trim_left"(str: unknown): string;
+  "trimLeft"(str: unknown): string;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `trim_quality(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "trim_quality"(arg1: unknown, arg2: unknown): BioJsValue;
+  "trimQuality"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang string builtin.
    * BioLang: `trim_right(str) → Str`
    * @category string
    */
-  "trim_right"(str: unknown): string;
+  "trimRight"(str: unknown): string;
   /**
    * BioLang core builtin.
    * BioLang: `try_call(fn) → {ok, value, error}`
    * @category core
    */
-  "try_call"(fn: unknown): BioJsValue;
+  "tryCall"(fn: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `tsne(matrix, n_components, opts?) → Matrix (embeddings)`
@@ -5173,19 +5173,19 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `tss_enrichment(arg1, arg2)`
    * @category runtime
    */
-  "tss_enrichment"(arg1: unknown, arg2: unknown): BioJsValue;
+  "tssEnrichment"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 3 argument(s).
    * BioLang: `tss_enrichment_score(arg1, arg2, arg3)`
    * @category runtime
    */
-  "tss_enrichment_score"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
+  "tssEnrichmentScore"(arg1: unknown, arg2: unknown, arg3: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `tstv_ratio(arg1)`
    * @category runtime
    */
-  "tstv_ratio"(arg1: unknown): BioJsValue;
+  "tstvRatio"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `tsv(arg1)`
@@ -5205,27 +5205,27 @@ export interface BioLangSessionBuiltinMethods {
    * @category stats
    * @example ttest_one([5.1, 4.9, 5.0], 5.0)  # → Record{statistic,p_value,df}
    */
-  "ttest_one"(list: unknown, mu: unknown, arg3?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "ttestOne"(list: unknown, mu: unknown, arg3?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang stats builtin.
    * BioLang: `ttest_paired(list1, list2) → Record{statistic,p_value,df,mean_diff}`
    * @category stats
    * @example ttest_paired([5.1, 4.9], [4.8, 4.6])  # → Record{statistic,p_value,df,mean_diff}
    */
-  "ttest_paired"(list1: unknown, list2: unknown, arg3?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "ttestPaired"(list1: unknown, list2: unknown, arg3?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Tukey-Kramer all-pairs comparison using the studentized-range distribution and simultaneous family-wise confidence intervals.
    * BioLang: `tukey_hsd(groups, options?) → Record{comparisons,critical_value}`
    * @category stats
    * @example tukey_hsd(groups)  # → simultaneous all-pairs comparisons
    */
-  "tukey_hsd"(groups: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "tukeyHsd"(groups: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `tumor_purity(arg1)`
    * @category runtime
    */
-  "tumor_purity"(arg1: unknown): BioJsValue;
+  "tumorPurity"(arg1: unknown): BioJsValue;
   /**
    * BioLang core builtin.
    * BioLang: `type(value) → Str`
@@ -5249,7 +5249,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `umap_plot(points, opts?) → SVG/PlotSpec`
    * @category plot
    */
-  "umap_plot"(points: unknown, opts?: unknown): BioJsValue;
+  "umapPlot"(points: unknown, opts?: unknown): BioJsValue;
   /**
    * BioLang list builtin.
    * BioLang: `union(set1, set2) → Set`
@@ -5261,7 +5261,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `uniq_count(list) → List[{value, count}]`
    * @category text
    */
-  "uniq_count"(list: unknown): BioJsValue[] | BioValueHandle;
+  "uniqCount"(list: unknown): BioJsValue[] | BioValueHandle;
   /**
    * BioLang list builtin.
    * BioLang: `unique(list) → List`
@@ -5298,25 +5298,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `upset_plot(arg1, arg2?)`
    * @category runtime
    */
-  "upset_plot"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "upsetPlot"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `vaf_to_ccf(arg1, arg2, arg3?, arg4?)`
    * @category runtime
    */
-  "vaf_to_ccf"(arg1: unknown, arg2: unknown, arg3?: unknown, arg4?: unknown): BioJsValue;
+  "vafToCcf"(arg1: unknown, arg2: unknown, arg3?: unknown, arg4?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `validate_seq(arg1)`
    * @category runtime
    */
-  "validate_seq"(arg1: unknown): BioJsValue;
+  "validateSeq"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `value_counts(arg1, arg2)`
    * @category runtime
    */
-  "value_counts"(arg1: unknown, arg2: unknown): BioJsValue;
+  "valueCounts"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang map builtin.
    * BioLang: `values(map|record) → List`
@@ -5328,7 +5328,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `variable_feature_plot(matrix, opts?) → Str (SVG)`
    * @category plot
    */
-  "variable_feature_plot"(matrix: unknown, opts?: unknown): string;
+  "variableFeaturePlot"(matrix: unknown, opts?: unknown): string;
   /**
    * BioLang stats builtin.
    * BioLang: `variance(list) → Float`
@@ -5347,31 +5347,31 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `variant_summary(arg1)`
    * @category runtime
    */
-  "variant_summary"(arg1: unknown): BioJsValue;
+  "variantSummary"(arg1: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `variant_type(arg1)`
    * @category runtime
    */
-  "variant_type"(arg1: unknown): BioJsValue;
+  "variantType"(arg1: unknown): BioJsValue;
   /**
    * BioLang bio builtin.
    * BioLang: `vcf_filter(path, expr) → Table (e.g. "QUAL > 30 && DP > 10")`
    * @category bio
    */
-  "vcf_filter"(path: unknown, expr?: unknown, arg3?: unknown): BioTableValue | BioValueHandle;
+  "vcfFilter"(path: unknown, expr?: unknown, arg3?: unknown): BioTableValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `vcf_parse(arg1)`
    * @category runtime
    */
-  "vcf_parse"(arg1: unknown): BioJsValue;
+  "vcfParse"(arg1: unknown): BioJsValue;
   /**
    * BioLang singlecell builtin.
    * BioLang: `velocity_estimate(spliced, unspliced) → matrix`
    * @category singlecell
    */
-  "velocity_estimate"(spliced: unknown, unspliced: unknown): BioMatrixValue | BioValueHandle;
+  "velocityEstimate"(spliced: unknown, unspliced: unknown): BioMatrixValue | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `venn(arg1, arg2?)`
@@ -5389,13 +5389,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `violin_data(list, opts?) -> Gaussian KDE/violin geometry Record`
    * @category plot
    */
-  "violin_data"(list: unknown, opts?: unknown): BioJsValue;
+  "violinData"(list: unknown, opts?: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `violin_plot(data, opts?) → SVG/PlotSpec; format: "spec" freezes KDE geometry`
    * @category plot
    */
-  "violin_plot"(data: unknown, opts?: unknown): BioJsValue;
+  "violinPlot"(data: unknown, opts?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `viterbi(arg1, arg2)`
@@ -5407,7 +5407,7 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `vj_usage(arg1)`
    * @category runtime
    */
-  "vj_usage"(arg1: unknown): BioJsValue;
+  "vjUsage"(arg1: unknown): BioJsValue;
   /**
    * BioLang plot builtin.
    * BioLang: `volcano(table, opts?) → SVG/PlotSpec`
@@ -5419,13 +5419,13 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `volcano_data(arg1, arg2?, arg3?)`
    * @category runtime
    */
-  "volcano_data"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
+  "volcanoData"(arg1: unknown, arg2?: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `volcano_plot(arg1, arg2?)`
    * @category runtime
    */
-  "volcano_plot"(arg1: unknown, arg2?: unknown): BioJsValue;
+  "volcanoPlot"(arg1: unknown, arg2?: unknown): BioJsValue;
   /**
    * BioLang text builtin.
    * BioLang: `wc(input) → {lines, words, chars, bytes}`
@@ -5457,7 +5457,7 @@ export interface BioLangSessionBuiltinMethods {
    * @category stats
    * @example wilcoxon_paired(before, after, {method: "normal"})
    */
-  "wilcoxon_paired"(before: unknown, after: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "wilcoxonPaired"(before: unknown, after: unknown, options?: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `window(arg1, arg2)`
@@ -5475,25 +5475,25 @@ export interface BioLangSessionBuiltinMethods {
    * BioLang: `with_provenance(value, meta) → Record{__value, __provenance}`
    * @category provenance
    */
-  "with_provenance"(value: unknown, meta: unknown): Record<string, BioJsValue> | BioValueHandle;
+  "withProvenance"(value: unknown, meta: unknown): Record<string, BioJsValue> | BioValueHandle;
   /**
    * BioLang singlecell builtin.
    * BioLang: `wnn_graph(rna_edges, protein_edges, rna_weight) → List[Record]`
    * @category singlecell
    */
-  "wnn_graph"(rna_edges: unknown, protein_edges: unknown, rna_weight: unknown): BioJsValue[] | BioValueHandle;
+  "wnnGraph"(rna_edges: unknown, protein_edges: unknown, rna_weight: unknown): BioJsValue[] | BioValueHandle;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `write_csv(arg1, arg2, arg3?)`
    * @category runtime
    */
-  "write_csv"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
+  "writeCsv"(arg1: unknown, arg2: unknown, arg3?: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 2 argument(s).
    * BioLang: `write_tsv(arg1, arg2)`
    * @category runtime
    */
-  "write_tsv"(arg1: unknown, arg2: unknown): BioJsValue;
+  "writeTsv"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang datetime builtin.
    * BioLang: `year(date_str) → Int`

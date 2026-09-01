@@ -16,6 +16,58 @@ export class WasmSession {
         wasm.__wbg_wasmsession_free(ptr, 0);
     }
     /**
+     * Call a BioLang function with JavaScript values without constructing or
+     * parsing BioLang source.
+     * @param {string} name
+     * @param {any} _arguments
+     * @param {number} maximum_inline_bytes
+     * @returns {any}
+     */
+    call_value(name, _arguments, maximum_inline_bytes) {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmsession_call_value(this.__wbg_ptr, ptr0, len0, _arguments, maximum_inline_bytes);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
+     * Call a BioLang function with separate positional and named JavaScript
+     * values. This keeps notebook JavaScript readable without serializing a
+     * call back into BioLang source.
+     * @param {string} name
+     * @param {any} positional
+     * @param {any} named
+     * @param {number} maximum_inline_bytes
+     * @returns {any}
+     */
+    call_value_named(name, positional, named, maximum_inline_bytes) {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmsession_call_value_named(this.__wbg_ptr, ptr0, len0, positional, named, maximum_inline_bytes);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
+     * Evaluate source and return the actual BioLang value as JavaScript data.
+     * Values above `maximum_inline_bytes` stay in Rust and return a handle.
+     * @param {string} source
+     * @param {number} maximum_inline_bytes
+     * @returns {any}
+     */
+    eval_value(source, maximum_inline_bytes) {
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmsession_eval_value(this.__wbg_ptr, ptr0, len0, maximum_inline_bytes);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
      * @param {string} source
      * @returns {string}
      */
@@ -51,6 +103,97 @@ export class WasmSession {
         var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
         return v3;
+    }
+    /**
+     * Read a field without copying an opaque value out of its owning session.
+     * @param {any} value
+     * @param {string} field
+     * @param {boolean} optional
+     * @param {number} maximum_inline_bytes
+     * @returns {any}
+     */
+    field_value(value, field, optional, maximum_inline_bytes) {
+        const ptr0 = passStringToWasm0(field, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmsession_field_value(this.__wbg_ptr, value, ptr0, len0, optional, maximum_inline_bytes);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
+     * Format one JavaScript value with BioLang's f-string mini-language.
+     * @param {any} value
+     * @param {string} spec
+     * @returns {string}
+     */
+    format_value(value, spec) {
+        let deferred3_0;
+        let deferred3_1;
+        try {
+            const ptr0 = passStringToWasm0(spec, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.wasmsession_format_value(this.__wbg_ptr, value, ptr0, len0);
+            var ptr2 = ret[0];
+            var len2 = ret[1];
+            if (ret[3]) {
+                ptr2 = 0; len2 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred3_0 = ptr2;
+            deferred3_1 = len2;
+            return getStringFromWasm0(ptr2, len2);
+        } finally {
+            wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        }
+    }
+    /**
+     * Read a named BioLang variable as JavaScript data or a session handle.
+     * @param {string} name
+     * @param {number} maximum_inline_bytes
+     * @returns {any}
+     */
+    get_value(name, maximum_inline_bytes) {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmsession_get_value(this.__wbg_ptr, ptr0, len0, maximum_inline_bytes);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
+     * @returns {number}
+     */
+    handle_count() {
+        const ret = wasm.wasmsession_handle_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} id
+     * @param {number} generation
+     * @returns {Float64Array}
+     */
+    handle_float64(id, generation) {
+        const ret = wasm.wasmsession_handle_float64(this.__wbg_ptr, id, generation);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
+     * @param {number} id
+     * @param {number} generation
+     * @param {number} offset
+     * @param {number} limit
+     * @returns {any}
+     */
+    handle_page(id, generation, offset, limit) {
+        const ret = wasm.wasmsession_handle_page(this.__wbg_ptr, id, generation, offset, limit);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
     }
     /**
      * @param {string} name
@@ -94,6 +237,21 @@ export class WasmSession {
         return this;
     }
     /**
+     * Register a synchronous JavaScript callback as a callable BioLang native
+     * function in this interpreter only.
+     * @param {string} name
+     * @param {number} minimum_arguments
+     * @param {number} maximum_arguments
+     */
+    register_host_function(name, minimum_arguments, maximum_arguments) {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmsession_register_host_function(this.__wbg_ptr, ptr0, len0, minimum_arguments, maximum_arguments);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
      * @param {string} path
      * @param {string} source
      */
@@ -104,14 +262,42 @@ export class WasmSession {
         const len1 = WASM_VECTOR_LEN;
         wasm.wasmsession_register_module(this.__wbg_ptr, ptr0, len0, ptr1, len1);
     }
+    /**
+     * @param {number} id
+     * @param {number} generation
+     * @returns {boolean}
+     */
+    release_handle(id, generation) {
+        const ret = wasm.wasmsession_release_handle(this.__wbg_ptr, id, generation);
+        return ret !== 0;
+    }
     reset() {
         wasm.wasmsession_reset(this.__wbg_ptr);
+    }
+    /**
+     * Define a BioLang variable directly from JavaScript data.
+     * @param {string} name
+     * @param {any} value
+     */
+    set_value(name, value) {
+        const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmsession_set_value(this.__wbg_ptr, ptr0, len0, value);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
     }
 }
 if (Symbol.dispose) WasmSession.prototype[Symbol.dispose] = WasmSession.prototype.free;
 
 /**
- * Evaluate BioLang source code. Returns JSON: `{ok, value, type, output, error}`
+ * Evaluate BioLang source code in the legacy module-level interpreter.
+ *
+ * This state is shared by every caller of the module-level API. Concurrent or
+ * security-sensitive embedders should construct `WasmSession` instead.
+ * Returns JSON: `{ok, value, type, output, error}`.
+ *
+ * @deprecated Use `WasmSession.evaluate` for isolated state.
  * @param {string} source
  * @returns {string}
  */
@@ -131,9 +317,12 @@ export function evaluate(source) {
 }
 
 /**
- * Serialize one variable exactly, stopping before the response can exceed the
- * caller's byte cap. Large native exports use the streaming path in
- * `bl_runtime::value_export` instead of crossing this in-memory boundary.
+ * Serialize a variable from the shared legacy module-level interpreter,
+ * stopping before the response can exceed the caller's byte cap. Large native
+ * exports use the streaming path in `bl_runtime::value_export` instead of
+ * crossing this in-memory boundary.
+ *
+ * @deprecated Use `WasmSession.export_variable` for isolated state.
  * @param {string} name
  * @param {string} format
  * @param {number} maximum_bytes
@@ -212,8 +401,11 @@ export function init() {
 }
 
 /**
- * Return one bounded page of a variable. Container values are never formatted
- * wholesale: at most 100 rows and 50 columns cross the WASM boundary per call.
+ * Return one bounded page from the shared legacy module-level interpreter.
+ * Container values are never formatted wholesale: at most 100 rows and 50
+ * columns cross the WASM boundary per call.
+ *
+ * @deprecated Use `WasmSession.inspect_variable` for isolated state.
  * @param {string} name
  * @param {number} offset
  * @param {number} limit
@@ -314,7 +506,10 @@ export function list_builtins() {
 }
 
 /**
- * List all variables in the current environment. Returns JSON array.
+ * List variables in the shared legacy module-level interpreter.
+ * Returns a JSON array.
+ *
+ * @deprecated Use `WasmSession.list_variables` for isolated state.
  * @returns {string}
  */
 export function list_variables() {
@@ -358,11 +553,14 @@ export function qc_metrics(kind, text) {
 }
 
 /**
- * Register an optional in-memory package supplied by the embedding page.
+ * Register an optional in-memory package in the shared legacy interpreter.
  *
  * Modules supplied through this function remain outside the BioLang WASM
- * artifact. The default browser interpreter separately embeds the small core
- * statistics modules that are available without registration.
+ * artifact. Isolated applications should call `WasmSession.register_module`.
+ * The default browser interpreter separately embeds the small core statistics
+ * modules that are available without registration.
+ *
+ * @deprecated Use `WasmSession.register_module` for isolated state.
  * @param {string} path
  * @param {string} source
  */
@@ -375,7 +573,9 @@ export function register_module(path, source) {
 }
 
 /**
- * Reset the interpreter state.
+ * Reset the shared legacy module-level interpreter state.
+ *
+ * @deprecated Use `WasmSession.reset` for isolated state.
  */
 export function reset() {
     wasm.reset();
@@ -422,8 +622,10 @@ export function tokenize(source) {
 }
 
 /**
- * Convert BioLang source into structural JavaScript SDK calls.
+ * Convert BioLang source into readable direct JavaScript SDK calls.
  *
+ * Ordinary code uses native JavaScript syntax and direct `bl.*` calls. Rare
+ * declarations without a natural JavaScript form use structural SDK helpers.
  * The returned JavaScript never embeds or evaluates a BioLang source string.
  * @param {string} source
  * @returns {string}
@@ -466,13 +668,29 @@ export function validate_import(source, notebook) {
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbg___wbindgen_boolean_get_fa956cfa2d1bd751: function(arg0) {
+            const v = arg0;
+            const ret = typeof(v) === 'boolean' ? v : undefined;
+            return isLikeNone(ret) ? 0xFFFFFF : ret ? 1 : 0;
+        },
         __wbg___wbindgen_is_null_ea9085d691f535d3: function(arg0) {
             const ret = arg0 === null;
+            return ret;
+        },
+        __wbg___wbindgen_is_object_a27215656b807791: function(arg0) {
+            const val = arg0;
+            const ret = typeof(val) === 'object' && val !== null;
             return ret;
         },
         __wbg___wbindgen_is_undefined_c05833b95a3cf397: function(arg0) {
             const ret = arg0 === undefined;
             return ret;
+        },
+        __wbg___wbindgen_number_get_394265ed1e1b84ee: function(arg0, arg1) {
+            const obj = arg1;
+            const ret = typeof(obj) === 'number' ? obj : undefined;
+            getDataViewMemory0().setFloat64(arg0 + 8 * 1, isLikeNone(ret) ? 0 : ret, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, !isLikeNone(ret), true);
         },
         __wbg___wbindgen_string_get_b0ca35b86a603356: function(arg0, arg1) {
             const obj = arg1;
@@ -485,6 +703,14 @@ function __wbg_get_imports() {
         __wbg___wbindgen_throw_344f42d3211c4765: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
+        __wbg_call_159eb9590236ae2b: function() { return handleError(function (arg0, arg1, arg2) {
+            const ret = window.__blCallbacks.call(getStringFromWasm0(arg0, arg1), arg2);
+            return ret;
+        }, arguments); },
+        __wbg_create_8dbb796b6159a8e4: function(arg0) {
+            const ret = Object.create(arg0);
+            return ret;
+        },
         __wbg_error_a6fa202b58aa1cd3: function(arg0, arg1) {
             let deferred0_0;
             let deferred0_1;
@@ -496,11 +722,63 @@ function __wbg_get_imports() {
                 wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
             }
         },
+        __wbg_from_13e323c65fc8f464: function(arg0) {
+            const ret = Array.from(arg0);
+            return ret;
+        },
         __wbg_getRandomValues_cc7f052a444bb2ce: function() { return handleError(function (arg0, arg1) {
             globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
         }, arguments); },
         __wbg_getTime_d6f070c088c9b5ed: function(arg0) {
             const ret = arg0.getTime();
+            return ret;
+        },
+        __wbg_get_507a50627bffa49b: function(arg0, arg1) {
+            const ret = arg0[arg1 >>> 0];
+            return ret;
+        },
+        __wbg_get_78f252d074a84d0b: function() { return handleError(function (arg0, arg1) {
+            const ret = Reflect.get(arg0, arg1);
+            return ret;
+        }, arguments); },
+        __wbg_instanceof_Float64Array_92032ec8f216bceb: function(arg0) {
+            let result;
+            try {
+                result = arg0 instanceof Float64Array;
+            } catch (_) {
+                result = false;
+            }
+            const ret = result;
+            return ret;
+        },
+        __wbg_instanceof_Uint8Array_309b927aaf7a3fc7: function(arg0) {
+            let result;
+            try {
+                result = arg0 instanceof Uint8Array;
+            } catch (_) {
+                result = false;
+            }
+            const ret = result;
+            return ret;
+        },
+        __wbg_isArray_0677c962b281d01a: function(arg0) {
+            const ret = Array.isArray(arg0);
+            return ret;
+        },
+        __wbg_keys_58421f8f96795607: function(arg0) {
+            const ret = Object.keys(arg0);
+            return ret;
+        },
+        __wbg_length_0133fa10e3234c57: function(arg0) {
+            const ret = arg0.length;
+            return ret;
+        },
+        __wbg_length_1f0964f4a5e2c6d8: function(arg0) {
+            const ret = arg0.length;
+            return ret;
+        },
+        __wbg_length_370319915dc99107: function(arg0) {
+            const ret = arg0.length;
             return ret;
         },
         __wbg_new_0_3da9e97f24fc69be: function() {
@@ -510,6 +788,43 @@ function __wbg_get_imports() {
         __wbg_new_227d7c05414eb861: function() {
             const ret = new Error();
             return ret;
+        },
+        __wbg_new_80efd62ef570c5de: function(arg0) {
+            const ret = new Float64Array(arg0);
+            return ret;
+        },
+        __wbg_new_cd45aabdf6073e84: function(arg0) {
+            const ret = new Uint8Array(arg0);
+            return ret;
+        },
+        __wbg_new_da52cf8fe3429cb2: function() {
+            const ret = new Object();
+            return ret;
+        },
+        __wbg_new_from_slice_77cdfb7977362f3c: function(arg0, arg1) {
+            const ret = new Uint8Array(getArrayU8FromWasm0(arg0, arg1));
+            return ret;
+        },
+        __wbg_new_from_slice_7e254b47c77fb8cc: function(arg0, arg1) {
+            const ret = new Float64Array(getArrayF64FromWasm0(arg0, arg1));
+            return ret;
+        },
+        __wbg_new_with_length_f8cbc3a5b9ff9368: function(arg0) {
+            const ret = new Array(arg0 >>> 0);
+            return ret;
+        },
+        __wbg_prototypesetcall_21a175a0a8157491: function(arg0, arg1, arg2) {
+            Float64Array.prototype.set.call(getArrayF64FromWasm0(arg0, arg1), arg2);
+        },
+        __wbg_prototypesetcall_4770620bbe4688a0: function(arg0, arg1, arg2) {
+            Uint8Array.prototype.set.call(getArrayU8FromWasm0(arg0, arg1), arg2);
+        },
+        __wbg_set_8535240470bf2500: function() { return handleError(function (arg0, arg1, arg2) {
+            const ret = Reflect.set(arg0, arg1, arg2);
+            return ret;
+        }, arguments); },
+        __wbg_set_8a16b38e4805b298: function(arg0, arg1, arg2) {
+            arg0[arg1 >>> 0] = arg2;
         },
         __wbg_stack_3b0d974bbf31e44f: function(arg0, arg1) {
             const ret = arg1.stack;
@@ -522,7 +837,12 @@ function __wbg_get_imports() {
             const ret = window.__blFetch.sync(getStringFromWasm0(arg0, arg1));
             return ret;
         },
-        __wbindgen_cast_0000000000000001: function(arg0, arg1) {
+        __wbindgen_cast_0000000000000001: function(arg0) {
+            // Cast intrinsic for `F64 -> Externref`.
+            const ret = arg0;
+            return ret;
+        },
+        __wbindgen_cast_0000000000000002: function(arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
             return ret;
@@ -553,6 +873,11 @@ function addToExternrefTable0(obj) {
     return idx;
 }
 
+function getArrayF64FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getFloat64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
+}
+
 function getArrayU8FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
@@ -564,6 +889,14 @@ function getDataViewMemory0() {
         cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
     }
     return cachedDataViewMemory0;
+}
+
+let cachedFloat64ArrayMemory0 = null;
+function getFloat64ArrayMemory0() {
+    if (cachedFloat64ArrayMemory0 === null || cachedFloat64ArrayMemory0.byteLength === 0) {
+        cachedFloat64ArrayMemory0 = new Float64Array(wasm.memory.buffer);
+    }
+    return cachedFloat64ArrayMemory0;
 }
 
 function getStringFromWasm0(ptr, len) {
@@ -669,6 +1002,7 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     wasmModule = module;
     cachedDataViewMemory0 = null;
+    cachedFloat64ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;

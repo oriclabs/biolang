@@ -3,6 +3,9 @@ import {
   type BioSequenceValue,
   type BioValueHandle as BioHandleType,
   BioValueHandle,
+  type RunResult,
+} from "../index.js";
+import {
   lambda,
   mean,
   program,
@@ -10,8 +13,7 @@ import {
   ref,
   return_,
   type BioExpression,
-  type RunResult,
-} from "../index.js";
+} from "../expressions.js";
 
 const analysis: BioExpression = read_csv("nhanes.csv")
   .filter(lambda("row", (row) => row.Age.gte(18)))
@@ -23,7 +25,7 @@ async function execute(): Promise<RunResult> {
   const result = session.run(analysis);
   const directMean: number = session.mean([1, 2, 3]);
   const directSequence: BioSequenceValue | BioHandleType = session.dna("ATGC");
-  const directGc: number = session.gc_content(directSequence);
+  const directGc: number = session.gcContent(directSequence);
   const actualMean = session.callValue("mean", [[1, 2, 3]]);
   session.setValue("values", [1, 2, 3]);
   const actualValues = session.getValue("values");
