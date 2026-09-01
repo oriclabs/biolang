@@ -592,11 +592,19 @@ impl fmt::Display for Value {
                 write!(f, "]")
             }
             Value::Map(map) | Value::Record(map) => {
+                // A HashMap iterates in a different order every run, so the
+                // same record printed twice used to come back with its fields
+                // rearranged — the homepage example rendered six different ways
+                // across twelve clicks. Sort, matching `keys()`, `values()` and
+                // `table()`, so a printed record is stable and diffable.
+                let mut keys: Vec<&String> = map.keys().collect();
+                keys.sort_unstable();
                 write!(f, "{{")?;
-                for (i, (k, v)) in map.iter().enumerate() {
+                for (i, k) in keys.into_iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
+                    let v = &map[k];
                     write!(f, "{k}: {v}")?;
                 }
                 write!(f, "}}")

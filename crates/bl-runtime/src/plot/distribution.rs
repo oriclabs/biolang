@@ -1241,8 +1241,12 @@ pub(super) fn builtin_ecdf_plot(args: Vec<Value>) -> Result<Value> {
 /// `0.9 * min(sd, IQR/1.34) * n^(-1/5)`. The `min` is what keeps a long tail
 /// from inflating the standard deviation and oversmoothing everything else,
 /// and the IQR falls back to the sd when the middle half of the data is a
-/// single repeated value. Expects `values` already sorted.
+/// single repeated value. Input order must not affect a density estimate, so
+/// this function sorts its own copy before taking quartiles.
 pub(crate) fn silverman_bandwidth(values: &[f64]) -> f64 {
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let values = sorted.as_slice();
     let n = values.len() as f64;
     let mean = values.iter().sum::<f64>() / n;
     let sd = if values.len() > 1 {

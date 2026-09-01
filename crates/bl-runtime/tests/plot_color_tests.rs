@@ -452,6 +452,26 @@ fn violin_groups_keep_a_stable_order() {
 }
 
 #[test]
+fn violin_geometry_is_independent_of_value_order() {
+    let rows = vec![
+        ("group", 1.0),
+        ("group", 1.1),
+        ("group", 1.4),
+        ("group", 3.0),
+        ("group", 8.0),
+        ("group", 13.0),
+        ("group", 21.0),
+    ];
+    let mut reversed = rows.clone();
+    reversed.reverse();
+    assert_eq!(
+        violin(rows),
+        violin(reversed),
+        "the same values in another row order changed violin geometry"
+    );
+}
+
+#[test]
 fn ggplot_violin_uses_r_group_fills() {
     let rows: Vec<(&str, f64)> = (0..30)
         .map(|i| (["BRCA", "OV", "UCEC"][i % 3], i as f64))

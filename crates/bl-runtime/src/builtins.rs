@@ -1467,6 +1467,17 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             } else {
                 require_int(&args[0], "exit")? as i32
             };
+            #[cfg(target_arch = "wasm32")]
+            {
+                return Err(BioLangError::runtime(
+                    ErrorKind::IOError,
+                    format!(
+                        "exit({code}) requested, but a browser or WASM session cannot terminate its host process"
+                    ),
+                    None,
+                ));
+            }
+            #[cfg(not(target_arch = "wasm32"))]
             std::process::exit(code);
         }
         // Stop because something is wrong, and say so.
@@ -1481,8 +1492,19 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 Value::Str(s) => s.to_string(),
                 other => other.to_string(),
             };
-            eprintln!("{message}");
-            std::process::exit(1);
+            #[cfg(target_arch = "wasm32")]
+            {
+                return Err(BioLangError::runtime(
+                    ErrorKind::AssertionFailed,
+                    message,
+                    None,
+                ));
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                eprintln!("{message}");
+                std::process::exit(1);
+            }
         }
         "into" => {
             let target = match &args[1] {
@@ -1522,7 +1544,10 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                     Value::List(items) => {
                         // List of Records -> Table
                         if let Some(Value::Record(first)) = items.first() {
-                            let columns: Vec<String> = first.keys().cloned().collect();
+                            // Same reason as `table()` above: sorted, so the
+                            // column order does not change between runs.
+                            let mut columns: Vec<String> = first.keys().cloned().collect();
+                            columns.sort();
                             let mut rows = Vec::new();
                             for item in items.iter() {
                                 if let Value::Record(map) = item {
@@ -1626,13 +1651,21 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 None,
             )),
         },
+        // A Map is a HashMap, so raw iteration order varies between runs and
+        // even between two calls on the same value. Both of these sort by key:
+        // that makes each one reproducible, and it makes `keys()` and
+        // `values()` line up positionally, which callers already assume.
         "keys" => match &args[0] {
-            Value::Map(m) | Value::Record(m) => Ok(Value::List(
-                m.keys()
-                    .map(|k| Value::Str(k.clone()))
-                    .collect::<Vec<_>>()
-                    .into(),
-            )),
+            Value::Map(m) | Value::Record(m) => {
+                let mut keys: Vec<&String> = m.keys().collect();
+                keys.sort_unstable();
+                Ok(Value::List(
+                    keys.into_iter()
+                        .map(|k| Value::Str(k.clone()))
+                        .collect::<Vec<_>>()
+                        .into(),
+                ))
+            }
             other => Err(BioLangError::type_error(
                 format!("keys() requires Map or Record, got {}", other.type_of()),
                 None,
@@ -1640,7 +1673,14 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         },
         "values" => match &args[0] {
             Value::Map(m) | Value::Record(m) => {
-                Ok(Value::List(m.values().cloned().collect::<Vec<_>>().into()))
+                let mut keys: Vec<&String> = m.keys().collect();
+                keys.sort_unstable();
+                Ok(Value::List(
+                    keys.into_iter()
+                        .map(|k| m[k].clone())
+                        .collect::<Vec<_>>()
+                        .into(),
+                ))
             }
             other => Err(BioLangError::type_error(
                 format!("values() requires Map or Record, got {}", other.type_of()),
@@ -1990,7 +2030,16 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
                 }
                 // table({a: [1,2], b: [3,4]}) — Record of Lists (column-oriented, Polars-style)
                 Value::Record(map) | Value::Map(map) => {
-                    let columns: Vec<String> = map.keys().cloned().collect();
+                    // A Record is a HashMap, so its key order varies between
+                    // runs. Taking columns straight from it made the same
+                    // `table({...})` produce a different column order every
+                    // time, and everything downstream inherited it — a violin
+                    // plot drew its groups in a random order, and two runs of
+                    // one script could not be diffed. Sort, as
+                    // `Table::from_records` already does, so the same record
+                    // always builds the same table.
+                    let mut columns: Vec<String> = map.keys().cloned().collect();
+                    columns.sort();
                     if columns.is_empty() {
                         return Ok(Value::Table(Table::new(vec![], vec![])));
                     }

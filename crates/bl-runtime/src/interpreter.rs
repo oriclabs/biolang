@@ -127,6 +127,13 @@ fn render_with_spec(value: &Value, spec: &bl_core::ast::FormatSpec) -> String {
     }
 }
 
+/// Format one already-evaluated value exactly as BioLang string interpolation
+/// would. Embedders use this to keep direct JavaScript notebook cells readable
+/// without reimplementing BioLang's formatting rules in JavaScript.
+pub fn format_interpolated_value(value: &Value, spec: &bl_core::ast::FormatSpec) -> String {
+    spec.pad(render_with_spec(value, spec))
+}
+
 impl Interpreter {
     pub fn new() -> Self {
         let mut env = Environment::new();
@@ -182,6 +189,44 @@ impl Interpreter {
             BioLangError::name_error(format!("undefined function '{name}'"), None)
         })?;
         self.call_value(&function, args, bl_core::span::Span::default())
+    }
+
+    /// Call a registered function with already-evaluated positional and named
+    /// values. This is the source-free host interop equivalent of `f(x,
+    /// option: value)` and deliberately preserves the interpreter's own named
+    /// argument rules.
+    pub fn call_named_value_with_named(
+        &mut self,
+        name: &str,
+        positional: Vec<Value>,
+        named: Vec<(String, Value)>,
+    ) -> Result<Value> {
+        let function = self.env.lookup(name).cloned().ok_or_else(|| {
+            BioLangError::name_error(format!("undefined function '{name}'"), None)
+        })?;
+        let span = bl_core::span::Span::default();
+        match &function {
+            Value::NativeFunction { .. } if named.is_empty() => {
+                self.call_value(&function, positional, span)
+            }
+            Value::NativeFunction { .. } => Err(BioLangError::type_error(
+                format!(
+                    "{name}() takes positional arguments only, but got `{}:`. Pass the value positionally instead.",
+                    named[0].0
+                ),
+                Some(span),
+            )),
+            Value::Function {
+                params,
+                body,
+                closure_env,
+                ..
+            } => self.call_function(params, body, closure_env, positional, named, span),
+            _ => Err(BioLangError::type_error(
+                format!("'{name}' is not callable"),
+                Some(span),
+            )),
+        }
     }
 
     /// Canonical source paths imported by this interpreter run.
@@ -1665,7 +1710,7 @@ impl Interpreter {
                         }
                         StringPart::Formatted(e, spec) => {
                             let val = self.eval_expr(e)?;
-                            result.push_str(&spec.pad(render_with_spec(&val, spec)));
+                            result.push_str(&format_interpolated_value(&val, spec));
                         }
                     }
                 }
@@ -4149,8 +4194,18 @@ impl Interpreter {
                 };
                 let func = args[1].clone();
 
+                // `group_by` returns a Map, and a Map is a HashMap, so its
+                // iteration order varies between runs. Summarising in that order
+                // made the same script emit differently ordered rows each time,
+                // which breaks diffs, snapshot tests and anyone re-running an
+                // analysis to reproduce a figure. Sort by group key instead —
+                // deterministic, and the order dplyr and pandas already give.
+                let mut keys: Vec<&String> = groups.keys().collect();
+                keys.sort_unstable();
+
                 let mut records: Vec<HashMap<String, Value>> = Vec::new();
-                for (key, subtable) in groups.iter() {
+                for key in keys {
+                    let subtable = &groups[key];
                     let result = self.call_value(
                         &func,
                         vec![Value::Str(key.clone()), subtable.clone()],
@@ -5091,6 +5146,15 @@ impl Interpreter {
                 // Detect if it's a 2-arg comparator or 1-arg key function
                 let is_comparator = match &func {
                     Value::Function { params, .. } => params.len() >= 2,
+                    Value::NativeFunction { name, arity }
+                        if name.starts_with(crate::host_callback::HOST_CALLBACK_PREFIX) =>
+                    {
+                        match arity {
+                            Arity::Exact(count) => *count >= 2,
+                            Arity::Range(_, maximum) => *maximum >= 2,
+                            Arity::AtLeast(minimum) => *minimum >= 2,
+                        }
+                    }
                     _ => false,
                 };
 
