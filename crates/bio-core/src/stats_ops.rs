@@ -456,6 +456,18 @@ pub fn noncentral_students_t_cdf(t: f64, df: f64, noncentrality: f64) -> f64 {
 /// Power of an equal-size, two-sided, two-sample t test for a standardized
 /// mean difference and a possibly non-integer sample size per group.
 pub fn two_sample_t_power(n_per_group: f64, effect_size: f64, alpha: f64) -> f64 {
+    two_sample_t_power_strict(n_per_group, effect_size, alpha, true)
+}
+
+/// Power of an equal-size, two-sided, two-sample t test. When `strict` is
+/// false, only rejection in the direction of the supplied positive effect is
+/// counted, matching the default behavior of R's `power.t.test()`.
+pub fn two_sample_t_power_strict(
+    n_per_group: f64,
+    effect_size: f64,
+    alpha: f64,
+    strict: bool,
+) -> f64 {
     if n_per_group <= 1.0
         || effect_size <= 0.0
         || !(0.0..1.0).contains(&alpha)
@@ -469,12 +481,23 @@ pub fn two_sample_t_power(n_per_group: f64, effect_size: f64, alpha: f64) -> f64
     let noncentrality = effect_size * (n_per_group / 2.0).sqrt();
     let lower = noncentral_students_t_cdf(-critical, df, noncentrality);
     let upper = 1.0 - noncentral_students_t_cdf(critical, df, noncentrality);
-    (lower + upper).clamp(0.0, 1.0)
+    (if strict { lower + upper } else { upper }).clamp(0.0, 1.0)
 }
 
 /// Required (continuous) sample size per group for an equal-size, two-sided,
 /// two-sample t test, solved against the noncentral-t power distribution.
 pub fn two_sample_t_required_n(effect_size: f64, alpha: f64, target_power: f64) -> f64 {
+    two_sample_t_required_n_strict(effect_size, alpha, target_power, true)
+}
+
+/// Required sample size using the same `strict` tail convention as
+/// [`two_sample_t_power_strict`].
+pub fn two_sample_t_required_n_strict(
+    effect_size: f64,
+    alpha: f64,
+    target_power: f64,
+    strict: bool,
+) -> f64 {
     if effect_size <= 0.0
         || !(0.0..1.0).contains(&alpha)
         || !(0.0..1.0).contains(&target_power)
@@ -485,17 +508,18 @@ pub fn two_sample_t_required_n(effect_size: f64, alpha: f64, target_power: f64) 
 
     let mut lower = 1.0 + 1e-7;
     let mut upper = 2.0;
-    while two_sample_t_power(upper, effect_size, alpha) < target_power && upper < 1e9 {
+    while two_sample_t_power_strict(upper, effect_size, alpha, strict) < target_power && upper < 1e9
+    {
         lower = upper;
         upper *= 2.0;
     }
-    if upper >= 1e9 && two_sample_t_power(upper, effect_size, alpha) < target_power {
+    if upper >= 1e9 && two_sample_t_power_strict(upper, effect_size, alpha, strict) < target_power {
         return f64::INFINITY;
     }
 
     for _ in 0..100 {
         let midpoint = (lower + upper) / 2.0;
-        if two_sample_t_power(midpoint, effect_size, alpha) < target_power {
+        if two_sample_t_power_strict(midpoint, effect_size, alpha, strict) < target_power {
             lower = midpoint;
         } else {
             upper = midpoint;

@@ -4038,8 +4038,8 @@ fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
         ));
     }
 
-    let (method, requested_n) = match args.get(3) {
-        None => ("noncentral_t", None),
+    let (method, requested_n, strict) = match args.get(3) {
+        None => ("noncentral_t", None, true),
         Some(Value::Record(options)) => {
             let method = match options.get("method") {
                 None => "noncentral_t",
@@ -4057,7 +4057,20 @@ fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
                     BioLangError::type_error("power_t_test() n must be numeric", None)
                 })?),
             };
-            (method, requested_n)
+            let strict = match options.get("strict") {
+                None => true,
+                Some(Value::Bool(value)) => *value,
+                Some(other) => {
+                    return Err(BioLangError::type_error(
+                        format!(
+                            "power_t_test() strict must be Bool, got {}",
+                            other.type_of()
+                        ),
+                        None,
+                    ));
+                }
+            };
+            (method, requested_n, strict)
         }
         Some(other) => {
             return Err(BioLangError::type_error(
@@ -4079,7 +4092,7 @@ fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
         }
         let achieved_power = match method {
             "noncentral_t" | "noncentral-t" | "exact" => {
-                bl_core::bio_core::stats_ops::two_sample_t_power(n_raw, d, alpha)
+                bl_core::bio_core::stats_ops::two_sample_t_power_strict(n_raw, d, alpha, strict)
             }
             "normal" | "approximate" => {
                 let z_alpha = bl_core::bio_core::stats_ops::normal_quantile(1.0 - alpha / 2.0);
@@ -4099,12 +4112,13 @@ fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
             ("alpha", Value::Float(alpha)),
             ("power", Value::Float(achieved_power)),
             ("method", Value::Str(method.into())),
+            ("strict", Value::Bool(strict)),
         ]));
     }
 
     let n_raw = match method {
         "noncentral_t" | "noncentral-t" | "exact" => {
-            bl_core::bio_core::stats_ops::two_sample_t_required_n(d, alpha, power)
+            bl_core::bio_core::stats_ops::two_sample_t_required_n_strict(d, alpha, power, strict)
         }
         "normal" | "approximate" => {
             let z_alpha = bl_core::bio_core::stats_ops::normal_quantile(1.0 - alpha / 2.0);
@@ -4127,6 +4141,7 @@ fn builtin_power_t_test(args: Vec<Value>) -> Result<Value> {
     m.insert("power".to_string(), Value::Float(power));
     m.insert("n_raw".to_string(), Value::Float(n_raw));
     m.insert("method".to_string(), Value::Str(method.into()));
+    m.insert("strict".to_string(), Value::Bool(strict));
     Ok(Value::Record((m).into()))
 }
 

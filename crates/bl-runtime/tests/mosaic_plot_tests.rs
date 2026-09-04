@@ -154,6 +154,33 @@ fn mosaic_spec_replays_exactly_and_has_browser_and_terminal_fallbacks() {
 }
 
 #[test]
+fn mosaic_base_layout_matches_unshaded_base_r_structure() {
+    let Value::Str(svg) = call_plot_builtin(
+        "mosaic_plot",
+        vec![
+            contingency(),
+            options([
+                ("layout", Value::Str("base".into())),
+                ("title", Value::Str("".into())),
+                ("subtitle", Value::Str("".into())),
+                ("x_label", Value::Str("group".into())),
+                ("y_label", Value::Str("outcome".into())),
+                ("fill", Value::Str("#BEBEBE".into())),
+                ("show_values", Value::Bool(false)),
+            ]),
+        ],
+    )
+    .unwrap() else {
+        panic!("mosaic SVG was not a string")
+    };
+    assert_eq!(svg.matches("data-biolang-mosaic-cell=\"true\"").count(), 4);
+    assert_eq!(svg.matches("fill=\"#BEBEBE\"").count(), 4);
+    assert!(svg.contains(">group</text>"));
+    assert!(svg.contains(">outcome</text>"));
+    assert!(svg.contains("rotate(-90"));
+}
+
+#[test]
 fn mosaic_discloses_missing_cells_keeps_zero_cells_and_rejects_negative_counts() {
     let table = Value::Table(Table::new(
         vec!["group".into(), "yes".into(), "no".into()],

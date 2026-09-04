@@ -45,6 +45,15 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   labels, residual shading, SVG, HTML/Canvas and terminal output share the same
   renderer-neutral specification.
 
+- **Base-R mosaic layout.** `mosaic_plot(..., {layout: "base"})` adds the
+  unshaded grey, gapped, outer-labelled layout used by base R's
+  `mosaicplot(..., main=NA)`, with configurable axis labels and fill while
+  preserving inspectable count-area geometry.
+
+- **R-compatible t-test power tails.** `power_t_test()` accepts
+  `{strict: false}` to reproduce the default `strict=FALSE` convention of
+  R's `power.t.test()` for fixed-power and required-sample-size calculations.
+
 - **Verified dataset registry client.** `bl data search`, `info`, `fetch`, and
   `path` consume versioned dataset/provider entries from the separate BioLang
   Registry. Downloads are explicit, size-bounded, SHA-256 verified, cached

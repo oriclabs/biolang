@@ -264,6 +264,13 @@ pub(crate) fn specification(table: &Table, opts: &HashMap<String, Value>) -> Res
         .get("show_values")
         .and_then(Value::as_bool)
         .unwrap_or(data.num_rows() <= 20);
+    let layout = get_opt_str(opts, "layout", "standard").to_ascii_lowercase();
+    if !matches!(layout.as_str(), "standard" | "base") {
+        return Err(BioLangError::type_error(
+            "mosaic_plot() option 'layout' must be standard or base",
+            None,
+        ));
+    }
     Ok(Value::Record(
         HashMap::from([
             ("schema".into(), Value::Str(PLOT_SPEC_SCHEMA.into())),
@@ -312,6 +319,31 @@ pub(crate) fn specification(table: &Table, opts: &HashMap<String, Value>) -> Res
                         ("view".into(), Value::Str(view.into())),
                         ("shade".into(), Value::Str(shade.into())),
                         ("show_values".into(), Value::Bool(show_values)),
+                        ("layout".into(), Value::Str(layout.into())),
+                        (
+                            "x_label".into(),
+                            Value::Str(get_opt_str(opts, "x_label", "").into()),
+                        ),
+                        (
+                            "y_label".into(),
+                            Value::Str(get_opt_str(opts, "y_label", "").into()),
+                        ),
+                        (
+                            "fill".into(),
+                            Value::Str(get_opt_str(opts, "fill", "").into()),
+                        ),
+                        (
+                            "stroke".into(),
+                            Value::Str(get_opt_str(opts, "stroke", "").into()),
+                        ),
+                        (
+                            "gap_x".into(),
+                            Value::Float(get_opt_f64(opts, "gap_x", 0.0)),
+                        ),
+                        (
+                            "gap_y".into(),
+                            Value::Float(get_opt_f64(opts, "gap_y", 0.0)),
+                        ),
                     ])
                     .into(),
                 ),
@@ -397,11 +429,19 @@ pub(crate) fn render(value: &Value, render_opts: &HashMap<String, Value>) -> Res
     let view = get_opt_str(&opts, "view", "count");
     let shade = get_opt_str(&opts, "shade", "column");
     let show_values = opts.get("show_values").is_some_and(Value::is_truthy);
+    let layout = get_opt_str(&opts, "layout", "standard");
+    let base_layout = layout == "base";
     let mut canvas = SvgCanvas::with_theme(width, height, plot_theme(&opts));
-    canvas.margin.top = if subtitle.is_empty() { 48.0 } else { 64.0 };
-    canvas.margin.left = 38.0;
-    canvas.margin.right = 150.0;
-    canvas.margin.bottom = 72.0;
+    canvas.margin.top = if base_layout {
+        54.0
+    } else if subtitle.is_empty() {
+        48.0
+    } else {
+        64.0
+    };
+    canvas.margin.left = if base_layout { 92.0 } else { 38.0 };
+    canvas.margin.right = if base_layout { 24.0 } else { 150.0 };
+    canvas.margin.bottom = if base_layout { 72.0 } else { 72.0 };
     canvas.draw_title(title);
     canvas.draw_subtitle(subtitle);
     canvas.draw_caption(caption);
@@ -439,6 +479,28 @@ pub(crate) fn render(value: &Value, render_opts: &HashMap<String, Value>) -> Res
     };
     let mut seen_rows = BTreeSet::new();
     let mut seen_columns = BTreeSet::new();
+    let row_count = data
+        .rows
+        .iter()
+        .filter_map(|row| row[ri].as_float())
+        .map(|value| value as usize + 1)
+        .max()
+        .unwrap_or(1);
+    let column_count = data
+        .rows
+        .iter()
+        .filter_map(|row| row[ci].as_float())
+        .map(|value| value as usize + 1)
+        .max()
+        .unwrap_or(1);
+    let gap_x = get_opt_f64(&opts, "gap_x", if base_layout { 8.0 } else { 0.0 }).max(0.0);
+    let gap_y = get_opt_f64(&opts, "gap_y", if base_layout { 5.0 } else { 0.0 }).max(0.0);
+    let fixed_fill = get_opt_str(&opts, "fill", "");
+    let fixed_stroke = get_opt_str(
+        &opts,
+        "stroke",
+        if base_layout { "#202020" } else { "#ffffff" },
+    );
     for row in &data.rows {
         let number = |index: usize| {
             row[index]
@@ -472,15 +534,44 @@ pub(crate) fn render(value: &Value, render_opts: &HashMap<String, Value>) -> Res
                 None,
             ));
         }
-        let x = plot_x + x0 * plot_width;
-        let y = plot_y + (1.0 - y1) * plot_height;
-        let cell_width = (x1 - x0) * plot_width;
-        let cell_height = (y1 - y0) * plot_height;
-        let fill = row[fi].as_str().unwrap_or("#cccccc");
+        let mut x = plot_x + x0 * plot_width;
+        let mut x_end = plot_x + x1 * plot_width;
+        let mut y = if base_layout {
+            plot_y + y0 * plot_height
+        } else {
+            plot_y + (1.0 - y1) * plot_height
+        };
+        let mut y_end = if base_layout {
+            plot_y + y1 * plot_height
+        } else {
+            y + (y1 - y0) * plot_height
+        };
+        if base_layout {
+            if row_index > 0 {
+                x += gap_x / 2.0;
+            }
+            if row_index + 1 < row_count {
+                x_end -= gap_x / 2.0;
+            }
+            if column_index > 0 {
+                y += gap_y / 2.0;
+            }
+            if column_index + 1 < column_count {
+                y_end -= gap_y / 2.0;
+            }
+        }
+        let cell_width = (x_end - x).max(0.0);
+        let cell_height = (y_end - y).max(0.0);
+        let data_fill = row[fi].as_str().unwrap_or("#cccccc");
+        let fill = if fixed_fill.is_empty() {
+            data_fill
+        } else {
+            fixed_fill
+        };
         let tooltip = format!("{row_label} × {column_label}: observed {observed:.3}, expected {expected:.3}, Pearson residual {residual:.3}");
         canvas.elements.push(format!(
-            r##"<rect data-biolang-mosaic-cell="true" x="{x:.2}" y="{y:.2}" width="{cell_width:.2}" height="{cell_height:.2}" fill="{}" stroke="#ffffff" stroke-width="1"><title>{}</title></rect>"##,
-            escape(fill), escape(&tooltip)));
+            r##"<rect data-biolang-mosaic-cell="true" x="{x:.2}" y="{y:.2}" width="{cell_width:.2}" height="{cell_height:.2}" fill="{}" stroke="{}" stroke-width="1"><title>{}</title></rect>"##,
+            escape(fill), escape(&fixed_stroke), escape(&tooltip)));
         if show_values && cell_width >= 34.0 && cell_height >= 22.0 {
             let label = match view {
                 "row" => format!("{:.1}%", number(row_pi)? * 100.0),
@@ -499,13 +590,25 @@ pub(crate) fn render(value: &Value, render_opts: &HashMap<String, Value>) -> Res
         if seen_rows.insert(row_index) {
             canvas.add_text(
                 x + cell_width / 2.0,
-                plot_y + plot_height + 20.0,
+                if base_layout {
+                    plot_y - 12.0
+                } else {
+                    plot_y + plot_height + 20.0
+                },
                 &row_label,
                 "middle",
                 10.0,
             );
         }
-        if shade != "residual" && seen_columns.insert(column_index) {
+        if base_layout && row_index == 0 && seen_columns.insert(column_index) {
+            canvas.add_text(
+                plot_x - 16.0,
+                y + cell_height / 2.0 + 4.0,
+                &column_label,
+                "end",
+                10.0,
+            );
+        } else if !base_layout && shade != "residual" && seen_columns.insert(column_index) {
             let legend_y = plot_y + 8.0 + column_index as f64 * 22.0;
             canvas.add_rect(
                 plot_x + plot_width + 18.0,
@@ -523,7 +626,7 @@ pub(crate) fn render(value: &Value, render_opts: &HashMap<String, Value>) -> Res
             );
         }
     }
-    if shade == "residual" {
+    if !base_layout && shade == "residual" {
         canvas.add_text(
             plot_x + plot_width + 18.0,
             plot_y + 5.0,
@@ -550,22 +653,44 @@ pub(crate) fn render(value: &Value, render_opts: &HashMap<String, Value>) -> Res
             );
         }
     }
-    canvas.add_line(
-        plot_x,
-        plot_y,
-        plot_x + plot_width,
-        plot_y,
-        canvas.theme.axis_colour,
-        1.0,
-    );
-    canvas.add_line(
-        plot_x,
-        plot_y + plot_height,
-        plot_x + plot_width,
-        plot_y + plot_height,
-        canvas.theme.axis_colour,
-        1.0,
-    );
+    if base_layout {
+        let x_label = get_opt_str(&opts, "x_label", "");
+        let y_label = get_opt_str(&opts, "y_label", "");
+        if !x_label.is_empty() {
+            canvas.add_text(
+                plot_x + plot_width / 2.0,
+                plot_y + plot_height + 42.0,
+                &x_label,
+                "middle",
+                14.0,
+            );
+        }
+        if !y_label.is_empty() {
+            let x = plot_x - 66.0;
+            let y = plot_y + plot_height / 2.0;
+            canvas.elements.push(format!(
+                r#"<text x="{x:.2}" y="{y:.2}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" transform="rotate(-90 {x:.2} {y:.2})">{}</text>"#,
+                escape(&y_label)
+            ));
+        }
+    } else {
+        canvas.add_line(
+            plot_x,
+            plot_y,
+            plot_x + plot_width,
+            plot_y,
+            canvas.theme.axis_colour,
+            1.0,
+        );
+        canvas.add_line(
+            plot_x,
+            plot_y + plot_height,
+            plot_x + plot_width,
+            plot_y + plot_height,
+            canvas.theme.axis_colour,
+            1.0,
+        );
+    }
     let svg = canvas.render();
     match format.as_str() {
         "svg" | "raw" => Ok(Value::Str(svg)),

@@ -2373,6 +2373,34 @@ fn power_t_test_can_compute_achieved_power_for_a_fixed_n() {
     );
 }
 
+#[test]
+fn power_t_test_can_match_r_default_non_strict_two_sided_power() {
+    let achieved = call_stats_builtin(
+        "power_t_test",
+        vec![
+            Value::Float(1.0 / 0.7),
+            Value::Float(0.05),
+            Value::Nil,
+            option_record(&[("n", Value::Int(3)), ("strict", Value::Bool(false))]),
+        ],
+    )
+    .unwrap();
+    assert!((get_record_float(&achieved, "power") - 0.2709095).abs() < 1e-7);
+
+    let required = call_stats_builtin(
+        "power_t_test",
+        vec![
+            Value::Float(1.0 / 0.7),
+            Value::Float(0.05),
+            Value::Float(0.8),
+            option_record(&[("strict", Value::Bool(false))]),
+        ],
+    )
+    .unwrap();
+    let n_raw = get_record_float(&required, "n_raw");
+    assert!((n_raw - 8.76471066481821).abs() < 1e-6, "n_raw={n_raw}");
+}
+
 fn permutation_p(args: Vec<Value>) -> f64 {
     let result = call_stats_builtin("permutation_test", args).expect("permutation_test runs");
     match result {
