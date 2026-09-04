@@ -1,0 +1,79 @@
+name: Deploy Workbench
+
+# The workbench is the browser build of the desktop app in desktop/. It used to
+# be published as a subdirectory of lang.bio, which meant the website repository
+# had to run a full npm ci, tsc and Vite build of a Monaco/NGL app just to
+# assemble its own site. It owns workbench.lang.bio instead, from the repository
+# that owns its source.
+#
+# Nothing here depends on lang.bio: vite.config.ts sets base "./", the generated
+# service worker resolves against its own registration scope, and the WASM module
+# ships inside the bundle, so the same dist/ works at an origin root.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - desktop/**
+      - packs/**
+      - crates/**
+      - scripts/build-packs.mjs
+      - .github/workflows/workbench-pages.yml
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: workbench-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/configure-pages@v5
+
+      - name: Build the workbench
+        working-directory: desktop
+        run: |
+          npm ci
+          npx tsc
+          npx vite build
+
+      # The pack catalog is fetched from /packs/index.json at the origin root, so
+      # it has to exist here rather than on lang.bio. --public is what the site
+      # deploy passes: packs declaring publish_source = false are withheld, so
+      # this publishes no solution source. CI still bundles all of them without
+      # the flag, so the gate is unaffected.
+      - name: Build the public pack catalog
+        run: node scripts/build-packs.mjs --out desktop/dist/packs --public
+
+      - name: Verify the custom-domain artifact
+        working-directory: desktop
+        run: |
+          test "$(cat dist/CNAME)" = "workbench.lang.bio"
+          test -f dist/index.html
+          test -f dist/wasm/bl_wasm_bg.wasm
+          test -f dist/packs/index.json
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: desktop/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
