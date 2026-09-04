@@ -57,6 +57,7 @@ fn uncertainty(values, options = ({}))           { eda.uncertainty(values, optio
 fn shape(values, options = ({}))                 { eda.shape(values, options) }
 fn normal_qq_plot(values, options = ({}))        { eda.normal_qq_plot(values, options) }
 fn group_plot(values, groups, options = ({}))    { eda.group_plot(values, groups, options) }
+fn facet_plot(values, facets, options = ({}))    { eda.facet_plot(values, facets, options) }
 fn relationship_plot(x, y, options = ({}))       { eda.relationship_plot(x, y, options) }
 fn categorical_plot(values, options = ({}))      { eda.categorical_plot(values, options) }
 fn missingness_plot(data, options = ({}))        { eda.missingness_plot(data, options) }

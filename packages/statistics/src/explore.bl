@@ -109,6 +109,10 @@ fn group_plot(values, groups, options = ({})) {
     stats_group_plot(values, groups, options)
 }
 
+fn facet_plot(values, facets, options = ({})) {
+    stats_facet_plot(values, facets, options)
+}
+
 fn relationship_plot(x, y, options = ({})) {
     stats_relationship_plot(x, y, options)
 }
