@@ -82,6 +82,25 @@ jobs:
         # set, because `bl test packs` would also run the ones that fetch from NCBI.
         run: ./target/debug/bl test $(node scripts/verify-packs.mjs --hermetic-files)
 
+      # The four network-dependent answers, replayed from responses recorded
+      # from the live services, so they are gated like every other answer
+      # instead of riding in an advisory job nobody blocks on. need and mprt
+      # carry the assertions; frmt and gbk assert nothing by design, so they
+      # only have to run. A missing fixture is a 504, never a silent fall back
+      # to the network. See scripts/api-fixtures.mjs.
+      - name: Run network-dependent answers from recorded fixtures
+        run: |
+          node scripts/api-fixtures.mjs --serve &
+          server=$!
+          trap "kill $server" EXIT
+          sleep 2
+          export BIOLANG_NCBI_URL=http://127.0.0.1:8787/ncbi/entrez/eutils
+          export BIOLANG_UNIPROT_URL=http://127.0.0.1:8787/uniprot
+          ./target/debug/bl test packs/rosalind-armory/examples/need.bl \
+                                 packs/rosalind-stronghold/examples/mprt.bl
+          ./target/debug/bl run packs/rosalind-armory/examples/frmt.bl
+          ./target/debug/bl run packs/rosalind-armory/examples/gbk.bl
+
       # Every other check runs an example on its own. A workbench session or a
       # REPL keeps state between runs, so a top-level `let` in one example
       # outlives it — BINS bound `keys` and MAJ then failed on `keys(counts)`
@@ -100,6 +119,10 @@ jobs:
     runs-on: ubuntu-latest
     # Never gates a pull request. Remote services rate-limit and go down, and a
     # red X for that trains people to ignore red X's.
+    #
+    # Since the recorded fixtures gate these same four answers in the packs job,
+    # this job's remaining purpose is drift: it is how we learn that a recording
+    # no longer matches what NCBI or UniProt actually return.
     continue-on-error: true
     if: github.event_name != 'pull_request'
     steps:

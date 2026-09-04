@@ -1,0 +1,6 @@
+{
+  "key": "ncbi /entrez/eutils/esearch.fcgi?db=nucleotide&retmax=20&retmode=json&term=Anthoxanthum[Organism] AND (\"2003/07/25\"[PDAT] : \"2005/12/27\"[PDAT])&usehistory=y",
+  "status": 200,
+  "contentType": "application/json; charset=UTF-8",
+  "body": "{\"header\":{\"type\":\"esearch\",\"version\":\"0.3\"},\"esearchresult\":{\"count\":\"11\",\"retmax\":\"11\",\"retstart\":\"0\",\"querykey\":\"1\",\"webenv\":\"MCID_6a9a64023fefe5042b092c1d\",\"idlist\":[\"51493519\",\"52631901\",\"52631900\",\"52631899\",\"33413983\",\"33413982\",\"33413981\",\"33413980\",\"71056585\",\"57283843\",\"57283791\"],\"translationset\":[{\"from\":\"Anthoxanthum[Organism]\",\"to\":\"\\\"Anthoxanthum\\\"[Organism]\"}],\"translationstack\":[{\"term\":\"\\\"Anthoxanthum\\\"[Organism]\",\"field\":\"Organism\",\"count\":\"85458\",\"explode\":\"Y\"},{\"term\":\"\\\"2003/07/25\\\"[PDAT]\",\"field\":\"PDAT\",\"count\":\"0\",\"explode\":\"N\"},{\"term\":\"\\\"2005/12/27\\\"[PDAT]\",\"field\":\"PDAT\",\"count\":\"0\",\"explode\":\"N\"},\"RANGE\",\"GROUP\",\"AND\"],\"querytranslation\":\"\\\"Anthoxanthum\\\"[Organism] AND (\\\"2003/07/25\\\"[PDAT] : \\\"2005/12/27\\\"[PDAT])\"}}\n"
+}
