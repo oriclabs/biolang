@@ -30,8 +30,11 @@ else
 fi
 
 # Only when the runtime changed: rebuilding WASM is the expensive fix, and a
-# push that touches no Rust cannot have invalidated the module.
-if ! git diff --quiet HEAD origin/main -- crates 2>/dev/null; then
+# push that touches neither the Rust nor the statistics package cannot have
+# invalidated the module. packages/statistics/src belongs here because
+# browser_interpreter() embeds those .bl files, so they are fingerprinted too --
+# omitting them let cc70ce6 push a stale module and turn CI red.
+if ! git diff --quiet HEAD origin/main -- crates packages/statistics/src 2>/dev/null; then
     node scripts/check-wasm-fresh.mjs
 fi
 
