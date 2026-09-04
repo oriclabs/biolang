@@ -2126,6 +2126,7 @@ const BUILTIN_SUMMARIES: &[(&str, &str)] = &[
     ("stats_group_plot", "Group observations and robust summaries, in SVG or ASCII."),
     ("stats_facet_plot", "One panel per level of a factor, sharing scales across panels."),
     ("stats_relationship_plot", "Scatterplot and fitted line, in SVG or ASCII."),
+    ("scatterplot_matrix", "Shared-scale scatterplot matrix with diagonal densities, optional boxed panels, and parameterized margin, panel gap, and padding."),
     ("stats_categorical_plot", "Frequency bars, in SVG or ASCII."),
     ("stats_missingness_plot", "Missingness map, in SVG or ASCII."),
     ("stats_linear_diagnostic_plot", "Residual-versus-fitted or residual Q-Q display."),
@@ -2577,6 +2578,11 @@ const BUILTIN_EXAMPLES: &[(&str, &str, &str)] = &[
     (
         "stats_relationship_plot",
         "stats_relationship_plot(x, y)  # → scatterplot and fitted line",
+        "Str",
+    ),
+    (
+        "scatterplot_matrix",
+        "scatterplot_matrix(table, {boxed_panels: true, panel_gap: 8, margin: 45, padding: 5})",
         "Str",
     ),
     (
@@ -3530,6 +3536,11 @@ const BUILTIN_CATALOG: &[(&str, &str, &str)] = &[
     (
         "stats_relationship_plot",
         "stats_relationship_plot(x, y, options?) → Str",
+        "stats",
+    ),
+    (
+        "scatterplot_matrix",
+        "scatterplot_matrix(table, options?) → Str",
         "stats",
     ),
     (

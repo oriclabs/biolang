@@ -143,6 +143,7 @@ pub(super) fn render_long_violin_svg(
     };
     let legend_title = get_opt_str(opts, "legend_title", "group").to_string();
     let value_col = get_opt_str(opts, "value_label", "value").to_string();
+    let x_label = get_opt_str(opts, "xlab", "").to_string();
     let title = get_opt_str(opts, "title", "Distribution").to_string();
     let subtitle = get_opt_str(opts, "subtitle", "").to_string();
     let caption = get_opt_str(opts, "caption", "").to_string();
@@ -183,7 +184,9 @@ pub(super) fn render_long_violin_svg(
         } else {
             28.0
         };
-        canvas.margin.bottom = label_reserve + if caption.is_empty() { 12.0 } else { 28.0 };
+        canvas.margin.bottom = label_reserve
+            + if x_label.is_empty() { 12.0 } else { 30.0 }
+            + if caption.is_empty() { 0.0 } else { 16.0 };
     }
     if legend_enabled {
         let widest = shapes
@@ -313,6 +316,15 @@ pub(super) fn render_long_violin_svg(
         }
     }
     canvas.draw_y_axis(&y_scale, &value_col);
+    if !x_label.is_empty() {
+        canvas.add_text(
+            canvas.margin.left + canvas.plot_width() / 2.0,
+            height - 8.0,
+            &x_label,
+            "middle",
+            theme.axis_title_size,
+        );
+    }
     if legend_enabled {
         let colours = ggplot_colours.clone().unwrap_or_else(|| {
             (0..shapes.len())
@@ -439,6 +451,10 @@ pub(super) fn violin_plot_spec_value(
         (
             "ylab".into(),
             Value::Str(get_opt_str(opts, "ylab", "Value").into()),
+        ),
+        (
+            "xlab".into(),
+            Value::Str(get_opt_str(opts, "xlab", "").into()),
         ),
         (
             "width".into(),
@@ -1023,7 +1039,74 @@ pub(super) fn builtin_elbow_plot(args: Vec<Value>) -> Result<Value> {
     let title = get_opt_str(&opts, "title", "Scree plot").to_string();
     let width = get_opt_f64(&opts, "width", 600.0);
     let height = get_opt_f64(&opts, "height", 400.0);
-    let mut canvas = SvgCanvas::new(width, height);
+    let mut canvas = SvgCanvas::with_theme(width, height, plot_theme(&opts));
+
+    let option_numbers = |key: &str| -> Result<Option<Vec<f64>>> {
+        let Some(value) = opts.get(key) else {
+            return Ok(None);
+        };
+        let Value::List(items) = value else {
+            return Err(BioLangError::type_error(
+                format!("elbow_plot() option '{key}' must be List"),
+                None,
+            ));
+        };
+        items
+            .iter()
+            .enumerate()
+            .map(|(index, value)| {
+                value.as_float().filter(|value| value.is_finite()).ok_or_else(|| {
+                    BioLangError::type_error(
+                        format!(
+                            "elbow_plot() option '{key}' must contain finite numbers; index {index} is {}",
+                            value.type_of()
+                        ),
+                        None,
+                    )
+                })
+            })
+            .collect::<Result<Vec<_>>>()
+            .map(Some)
+    };
+    let option_labels = |key: &str| -> Result<Option<Vec<String>>> {
+        let Some(value) = opts.get(key) else {
+            return Ok(None);
+        };
+        let Value::List(items) = value else {
+            return Err(BioLangError::type_error(
+                format!("elbow_plot() option '{key}' must be List"),
+                None,
+            ));
+        };
+        items
+            .iter()
+            .enumerate()
+            .map(|(index, value)| {
+                value.as_str().map(str::to_string).ok_or_else(|| {
+                    BioLangError::type_error(
+                        format!(
+                            "elbow_plot() option '{key}' must contain strings; index {index} is {}",
+                            value.type_of()
+                        ),
+                        None,
+                    )
+                })
+            })
+            .collect::<Result<Vec<_>>>()
+            .map(Some)
+    };
+    let x_breaks = option_numbers("x_breaks")?;
+    let x_labels = option_labels("x_labels")?;
+    if let (Some(breaks), Some(labels)) = (&x_breaks, &x_labels) {
+        if breaks.len() != labels.len() {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                "elbow_plot() x_breaks and x_labels must have equal length",
+                None,
+            ));
+        }
+    }
+    let y_breaks = option_numbers("y_breaks")?;
 
     let highest = values.iter().cloned().fold(f64::MIN, f64::max);
     let x_scale = Scale {
@@ -1042,23 +1125,58 @@ pub(super) fn builtin_elbow_plot(args: Vec<Value>) -> Result<Value> {
         .enumerate()
         .map(|(i, v)| format!("{:.1},{:.1}", x_scale.map(i as f64 + 1.0), y_scale.map(*v)))
         .collect();
+    let colour = get_opt_str(&opts, "color", PALETTE[0]);
+    let line_width = get_opt_f64(&opts, "line_width", 2.0).max(0.0);
     canvas.elements.push(format!(
-        r#"<polyline points="{}" fill="none" stroke="{}" stroke-width="2" />"#,
+        r#"<polyline points="{}" fill="none" stroke="{}" stroke-width="{:.2}" />"#,
         points.join(" "),
-        PALETTE[0]
+        colour,
+        line_width
     ));
+    let open_points = get_opt_str(&opts, "point_style", "filled") == "open";
+    let point_radius = get_opt_f64(&opts, "point_radius", 4.0).max(0.0);
     for (i, v) in values.iter().enumerate() {
-        canvas.add_circle(
-            x_scale.map(i as f64 + 1.0),
-            y_scale.map(*v),
-            4.0,
-            PALETTE[0],
-        );
+        let x = x_scale.map(i as f64 + 1.0);
+        let y = y_scale.map(*v);
+        if open_points {
+            canvas.add_stroked_circle(x, y, point_radius, "#FFFFFF", colour, 1.0);
+        } else {
+            canvas.add_circle(x, y, point_radius, colour);
+        }
     }
 
-    canvas.draw_x_axis(&x_scale, "component");
-    canvas.draw_y_axis(&y_scale, "variance explained");
-    canvas.add_text(width / 2.0, 22.0, &title, "middle", 14.0);
+    let x_label = get_opt_str(&opts, "x_label", "component");
+    let y_label = get_opt_str(&opts, "y_label", "variance explained");
+    if let Some(breaks) = &x_breaks {
+        let ticks = breaks
+            .iter()
+            .enumerate()
+            .map(|(index, value)| {
+                (
+                    *value,
+                    x_labels
+                        .as_ref()
+                        .and_then(|labels| labels.get(index).cloned())
+                        .unwrap_or_else(|| format!("{value}")),
+                )
+            })
+            .collect::<Vec<_>>();
+        canvas.draw_x_axis_with_ticks(&x_scale, &ticks, x_label);
+    } else {
+        canvas.draw_x_axis(&x_scale, x_label);
+    }
+    if let Some(breaks) = &y_breaks {
+        let ticks = breaks
+            .iter()
+            .map(|value| (*value, format!("{value}")))
+            .collect::<Vec<_>>();
+        canvas.draw_y_axis_with_ticks(&y_scale, &ticks, y_label);
+    } else {
+        canvas.draw_y_axis(&y_scale, y_label);
+    }
+    if !title.is_empty() {
+        canvas.draw_title(&title);
+    }
 
     Ok(Value::Str(canvas.render()))
 }

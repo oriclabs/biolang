@@ -42,6 +42,7 @@ pub fn stats_builtin_list() -> Vec<(&'static str, Arity)> {
         ("stats_group_plot", Arity::Range(2, 3)),
         ("stats_facet_plot", Arity::Range(2, 3)),
         ("stats_relationship_plot", Arity::Range(2, 3)),
+        ("scatterplot_matrix", Arity::Range(1, 2)),
         ("stats_categorical_plot", Arity::Range(1, 2)),
         ("stats_missingness_plot", Arity::Range(1, 2)),
         ("stats_normalization_guide", Arity::Range(1, 2)),
@@ -246,6 +247,7 @@ pub fn is_stats_builtin(name: &str) -> bool {
             | "stats_group_plot"
             | "stats_facet_plot"
             | "stats_relationship_plot"
+            | "scatterplot_matrix"
             | "stats_categorical_plot"
             | "stats_missingness_plot"
             | "stats_normalization_guide"
@@ -433,6 +435,7 @@ pub fn call_stats_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
         | "stats_group_plot"
         | "stats_facet_plot"
         | "stats_relationship_plot"
+        | "scatterplot_matrix"
         | "stats_categorical_plot"
         | "stats_missingness_plot"
         | "stats_normalization_guide"

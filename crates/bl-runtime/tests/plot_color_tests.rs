@@ -300,6 +300,38 @@ fn elbow_plot_draws_one_point_per_component() {
 }
 
 #[test]
+fn elbow_plot_can_reproduce_base_r_scree_markers_and_labels() {
+    let mut options = HashMap::new();
+    options.insert("point_style".to_string(), Value::Str("open".to_string()));
+    options.insert("color".to_string(), Value::Str("#000000".to_string()));
+    options.insert(
+        "x_breaks".to_string(),
+        Value::List(vec![Value::Int(1), Value::Int(3), Value::Int(5)].into()),
+    );
+    options.insert(
+        "x_labels".to_string(),
+        Value::List(
+            ["Comp.1", "Comp.3", "Comp.5"]
+                .into_iter()
+                .map(|label| Value::Str(label.to_string()))
+                .collect::<Vec<_>>()
+                .into(),
+        ),
+    );
+    options.insert("title".to_string(), Value::Str(String::new()));
+    let svg = match call_bio_plots_builtin(
+        "elbow_plot",
+        vec![ratio_list(), Value::Record(options.into())],
+    ) {
+        Ok(Value::Str(svg)) => svg,
+        other => panic!("elbow_plot returned {other:?}"),
+    };
+    assert!(svg.contains("fill=\"#FFFFFF\" stroke=\"#000000\""));
+    assert!(svg.contains("Comp.1") && svg.contains("Comp.3") && svg.contains("Comp.5"));
+    assert!(svg.contains("<polyline") && svg.contains("stroke=\"#000000\""));
+}
+
+#[test]
 fn elbow_plot_accepts_the_record_sc_pca_returns() {
     // Passing the pca result straight through is what a reader tries first.
     let mut record = HashMap::new();

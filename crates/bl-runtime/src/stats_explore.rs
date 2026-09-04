@@ -7,9 +7,9 @@
 //! calculations fast, deterministic, and identical in native and WASM builds.
 
 use crate::plot::{
-    box_geometry, categorical_geometry, estimate_text_width, histogram_geometry,
-    linear_fit_geometry, missingness_geometry, normal_qq_geometry, plot_theme, LinearFitGeometry,
-    Scale, SvgCanvas,
+    box_geometry, categorical_geometry, estimate_text_width, gaussian_kde_between,
+    histogram_geometry, linear_fit_geometry, missingness_geometry, normal_qq_geometry, plot_theme,
+    silverman_bandwidth, LinearFitGeometry, Scale, SvgCanvas,
 };
 use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::value::{Table, Value};
@@ -39,6 +39,7 @@ pub(crate) fn call(name: &str, args: Vec<Value>) -> Result<Value> {
         "stats_group_plot" => group_diagnostic_plot(args),
         "stats_facet_plot" => facet_plot(args),
         "stats_relationship_plot" => relationship_diagnostic_plot(args),
+        "scatterplot_matrix" => scatterplot_matrix(args),
         "stats_categorical_plot" => categorical_diagnostic_plot(args),
         "stats_missingness_plot" => missingness_plot(args),
         "stats_normalization_guide" => normalization_guide(args),
@@ -312,6 +313,198 @@ fn fmt_number(value: f64) -> String {
             .trim_end_matches('.')
             .to_string()
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum DiagnosticAxisScale {
+    Linear,
+    Log10,
+}
+
+impl DiagnosticAxisScale {
+    fn transform(self, value: f64, function: &str, axis: &str) -> Result<f64> {
+        match self {
+            Self::Linear => Ok(value),
+            Self::Log10 if value > 0.0 => Ok(value.log10()),
+            Self::Log10 => Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!(
+                    "{function}() {axis}_scale: \"log10\" requires positive values; got {}",
+                    fmt_number(value)
+                ),
+                None,
+            )),
+        }
+    }
+}
+
+fn diagnostic_axis_scale(
+    opts: &HashMap<String, Value>,
+    axis: &str,
+    function: &str,
+) -> Result<DiagnosticAxisScale> {
+    let key = format!("{axis}_scale");
+    match opts.get(&key) {
+        None => Ok(DiagnosticAxisScale::Linear),
+        Some(Value::Str(value)) if value == "linear" => Ok(DiagnosticAxisScale::Linear),
+        Some(Value::Str(value)) if matches!(value.as_str(), "log" | "log10") => {
+            Ok(DiagnosticAxisScale::Log10)
+        }
+        Some(Value::Str(value)) => Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() option '{key}' must be linear or log10, got '{value}'"),
+            None,
+        )),
+        Some(value) => Err(BioLangError::type_error(
+            format!(
+                "{function}() option '{key}' must be Str, got {}",
+                value.type_of()
+            ),
+            None,
+        )),
+    }
+}
+
+fn scientific_axis_label(value: f64) -> String {
+    if value == 0.0 {
+        return "0e+00".to_string();
+    }
+    let exponent = value.abs().log10().floor() as i32;
+    let coefficient = value / 10.0_f64.powi(exponent);
+    format!("{coefficient:.0}e{exponent:+03}")
+}
+
+fn explicit_axis_ticks(
+    opts: &HashMap<String, Value>,
+    axis: &str,
+    axis_scale: DiagnosticAxisScale,
+    scale: &Scale,
+    function: &str,
+) -> Result<Option<Vec<(f64, String)>>> {
+    let breaks_key = format!("{axis}_breaks");
+    let labels_key = format!("{axis}_labels");
+    let format_key = format!("{axis}_tick_format");
+    let tick_format = opts.get(&format_key).and_then(Value::as_str).unwrap_or(
+        if axis_scale == DiagnosticAxisScale::Log10 {
+            "scientific"
+        } else {
+            "plain"
+        },
+    );
+    if !matches!(tick_format, "plain" | "scientific") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{function}() option '{format_key}' must be plain or scientific, got '{tick_format}'"
+            ),
+            None,
+        ));
+    }
+
+    let raw_breaks = match opts.get(&breaks_key) {
+        Some(Value::List(values)) => Some(
+            values
+                .iter()
+                .enumerate()
+                .map(|(index, value)| match value {
+                    Value::Int(value) => Ok(*value as f64),
+                    Value::Float(value) if value.is_finite() => Ok(*value),
+                    other => Err(BioLangError::type_error(
+                        format!(
+                            "{function}() option '{breaks_key}' must contain finite numbers; index {index} is {}",
+                            other.type_of()
+                        ),
+                        None,
+                    )),
+                })
+                .collect::<Result<Vec<_>>>()?,
+        ),
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "{function}() option '{breaks_key}' must be List, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+        None if axis_scale == DiagnosticAxisScale::Log10 => {
+            let first = scale.domain.0.ceil() as i32;
+            let last = scale.domain.1.floor() as i32;
+            let step = if last - first > 4 { 2 } else { 1 };
+            Some(
+                (first..=last)
+                    .step_by(step)
+                    .map(|exponent| 10.0_f64.powi(exponent))
+                    .collect(),
+            )
+        }
+        None if tick_format == "scientific" => Some(scale.nice_ticks(5)),
+        None => None,
+    };
+
+    let Some(raw_breaks) = raw_breaks else {
+        return Ok(None);
+    };
+    let labels = match opts.get(&labels_key) {
+        Some(Value::List(values)) => {
+            if values.len() != raw_breaks.len() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!(
+                        "{function}() options '{breaks_key}' and '{labels_key}' must have equal length"
+                    ),
+                    None,
+                ));
+            }
+            Some(
+                values
+                    .iter()
+                    .enumerate()
+                    .map(|(index, value)| {
+                        value.as_str().map(str::to_string).ok_or_else(|| {
+                            BioLangError::type_error(
+                                format!(
+                                    "{function}() option '{labels_key}' must contain strings; index {index} is {}",
+                                    value.type_of()
+                                ),
+                                None,
+                            )
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>()?,
+            )
+        }
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "{function}() option '{labels_key}' must be List, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+        None => None,
+    };
+    let mut ticks = Vec::with_capacity(raw_breaks.len());
+    for (index, raw) in raw_breaks.into_iter().enumerate() {
+        let position = axis_scale.transform(raw, function, axis)?;
+        if position < scale.domain.0 - f64::EPSILON || position > scale.domain.1 + f64::EPSILON {
+            continue;
+        }
+        let label = labels
+            .as_ref()
+            .and_then(|labels| labels.get(index).cloned())
+            .unwrap_or_else(|| {
+                if tick_format == "scientific" {
+                    scientific_axis_label(raw)
+                } else {
+                    fmt_number(raw)
+                }
+            });
+        ticks.push((position, label));
+    }
+    Ok(Some(ticks))
 }
 
 fn shape_label(summary: &NumericSummary) -> (&'static str, &'static str) {
@@ -4251,12 +4444,531 @@ fn normal_qq_plot(args: Vec<Value>) -> Result<Value> {
     Ok(text(canvas.render()))
 }
 
+fn matrix_column_names(
+    table: &Table,
+    opts: &HashMap<String, Value>,
+    function: &str,
+) -> Result<Vec<String>> {
+    let names = match opts.get("columns") {
+        None => table.columns.clone(),
+        Some(Value::List(values)) => values
+            .iter()
+            .enumerate()
+            .map(|(index, value)| match value {
+                Value::Str(name) => Ok(name.clone()),
+                other => Err(BioLangError::type_error(
+                    format!(
+                        "{function}() option 'columns' must contain strings; index {index} is {}",
+                        other.type_of()
+                    ),
+                    None,
+                )),
+            })
+            .collect::<Result<Vec<_>>>()?,
+        Some(other) => {
+            return Err(BioLangError::type_error(
+                format!(
+                    "{function}() option 'columns' must be List, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    if !(2..=12).contains(&names.len()) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() requires between 2 and 12 columns"),
+            None,
+        ));
+    }
+    for name in &names {
+        checked_column(table, name, function)?;
+    }
+    Ok(names)
+}
+
+fn matrix_ticks(
+    opts: &HashMap<String, Value>,
+    column: &str,
+    function: &str,
+) -> Result<Option<Vec<f64>>> {
+    let Some(value) = opts.get("ticks") else {
+        return Ok(None);
+    };
+    let Value::Record(ticks) = value else {
+        return Err(BioLangError::type_error(
+            format!(
+                "{function}() option 'ticks' must be Record, got {}",
+                value.type_of()
+            ),
+            None,
+        ));
+    };
+    let Some(values) = ticks.get(column) else {
+        return Ok(None);
+    };
+    let Value::List(values) = values else {
+        return Err(BioLangError::type_error(
+            format!(
+                "{function}() ticks.{column} must be List, got {}",
+                values.type_of()
+            ),
+            None,
+        ));
+    };
+    let parsed = values
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            value.as_float().filter(|value| value.is_finite()).ok_or_else(|| {
+                BioLangError::type_error(
+                    format!(
+                        "{function}() ticks.{column} must contain finite numbers; index {index} is {}",
+                        value.type_of()
+                    ),
+                    None,
+                )
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    Ok(Some(parsed))
+}
+
+fn matrix_loess_at(points: &[(f64, f64)], x: f64, span: f64) -> Option<f64> {
+    if points.len() < 3 {
+        return None;
+    }
+    let window = ((span * points.len() as f64).ceil() as usize).clamp(3, points.len());
+    let mut nearest = points
+        .iter()
+        .map(|&(px, py)| ((px - x).abs(), px, py))
+        .collect::<Vec<_>>();
+    nearest.sort_by(|a, b| a.0.total_cmp(&b.0));
+    let bandwidth = nearest[window - 1].0.max(1e-12);
+    let mut ata = [[0.0; 3]; 3];
+    let mut atb = [0.0; 3];
+    let mut weight_sum = 0.0;
+    let mut weighted_y = 0.0;
+    for &(distance, px, py) in nearest.iter().take(window) {
+        let u = (distance / bandwidth).min(1.0);
+        let weight = (1.0 - u.powi(3)).powi(3);
+        if weight <= 0.0 {
+            continue;
+        }
+        weight_sum += weight;
+        weighted_y += weight * py;
+        let dx = px - x;
+        let basis = [1.0, dx, dx * dx];
+        for row in 0..3 {
+            for column in 0..3 {
+                ata[row][column] += weight * basis[row] * basis[column];
+            }
+            atb[row] += weight * basis[row] * py;
+        }
+    }
+    matrix_solve3(&mut ata, &mut atb)
+        .filter(|value| value.is_finite())
+        .or_else(|| (weight_sum > 0.0).then_some(weighted_y / weight_sum))
+}
+
+fn matrix_solve3(matrix: &mut [[f64; 3]; 3], right: &mut [f64; 3]) -> Option<f64> {
+    for column in 0..3 {
+        let pivot = (column..3).max_by(|&left, &right_index| {
+            matrix[left][column]
+                .abs()
+                .total_cmp(&matrix[right_index][column].abs())
+        })?;
+        if matrix[pivot][column].abs() < 1e-12 {
+            return None;
+        }
+        matrix.swap(column, pivot);
+        right.swap(column, pivot);
+        let divisor = matrix[column][column];
+        for cell in column..3 {
+            matrix[column][cell] /= divisor;
+        }
+        right[column] /= divisor;
+        for row in 0..3 {
+            if row == column {
+                continue;
+            }
+            let factor = matrix[row][column];
+            for cell in column..3 {
+                matrix[row][cell] -= factor * matrix[column][cell];
+            }
+            right[row] -= factor * right[column];
+        }
+    }
+    Some(right[0])
+}
+
+fn matrix_curve(
+    points: &[(f64, f64)],
+    domain: (f64, f64),
+    span: f64,
+    steps: usize,
+) -> Vec<(f64, f64)> {
+    (0..steps)
+        .filter_map(|index| {
+            let x = domain.0 + (domain.1 - domain.0) * index as f64 / (steps - 1) as f64;
+            matrix_loess_at(points, x, span).map(|y| (x, y))
+        })
+        .collect()
+}
+
+fn matrix_map_curve(points: &[(f64, f64)], x_scale: &Scale, y_scale: &Scale) -> Vec<(f64, f64)> {
+    points
+        .iter()
+        .map(|&(x, y)| (x_scale.map(x), y_scale.map(y)))
+        .collect()
+}
+
+fn matrix_add_dashed_curve(canvas: &mut SvgCanvas, points: &[(f64, f64)], colour: &str) {
+    if points.len() < 2 {
+        return;
+    }
+    let points = points
+        .iter()
+        .map(|(x, y)| format!("{x:.2},{y:.2}"))
+        .collect::<Vec<_>>()
+        .join(" ");
+    canvas.elements.push(format!(
+        r#"<polyline points="{points}" fill="none" stroke="{colour}" stroke-width="1.00" stroke-dasharray="4,4" stroke-linejoin="round" stroke-linecap="butt"/>"#
+    ));
+}
+
+/// A single-SVG scatterplot matrix with shared variable scales.
+///
+/// Panels keep a visible gap whether or not their borders are drawn. The
+/// independent `square_panels` and `panel_borders` switches remain available
+/// when only one of those visual properties is wanted. `margin`, `panel_gap`,
+/// and `padding` independently control the outer whitespace, space between
+/// panels, and data inset inside every panel.
+fn scatterplot_matrix(args: Vec<Value>) -> Result<Value> {
+    let function = "scatterplot_matrix";
+    let table = require_table(&args[0], function)?;
+    let opts = options(&args, 1, function)?;
+    let names = matrix_column_names(table, &opts, function)?;
+    let column_indices = names
+        .iter()
+        .map(|name| checked_column(table, name, function))
+        .collect::<Result<Vec<_>>>()?;
+    let data = column_indices
+        .iter()
+        .map(|&index| column_numeric_data(table, index).values)
+        .collect::<Vec<_>>();
+    if data.iter().any(|values| values.len() < 3) {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{function}() requires at least three finite numeric values per column"),
+            None,
+        ));
+    }
+
+    let explicit_ticks = names
+        .iter()
+        .map(|name| matrix_ticks(&opts, name, function))
+        .collect::<Result<Vec<_>>>()?;
+    let domains = data
+        .iter()
+        .zip(&explicit_ticks)
+        .map(|(values, ticks)| {
+            let mut low = values.iter().copied().min_by(f64::total_cmp).unwrap();
+            let mut high = values.iter().copied().max_by(f64::total_cmp).unwrap();
+            if let Some(ticks) = ticks {
+                if let Some(tick_low) = ticks.iter().copied().min_by(f64::total_cmp) {
+                    low = low.min(tick_low);
+                }
+                if let Some(tick_high) = ticks.iter().copied().max_by(f64::total_cmp) {
+                    high = high.max(tick_high);
+                }
+            }
+            let padding = ((high - low) * 0.04).max(f64::EPSILON);
+            (low - padding, high + padding)
+        })
+        .collect::<Vec<_>>();
+
+    let boxed = opts
+        .get("boxed_panels")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let square = opts
+        .get("square_panels")
+        .and_then(Value::as_bool)
+        .unwrap_or(boxed);
+    let borders = opts
+        .get("panel_borders")
+        .and_then(Value::as_bool)
+        .unwrap_or(boxed);
+    let gap = opts
+        .get("panel_gap")
+        .and_then(Value::as_float)
+        .unwrap_or(8.0)
+        .max(0.0);
+    let outer = opts
+        .get("margin")
+        .or_else(|| opts.get("outer_margin"))
+        .and_then(Value::as_float)
+        .unwrap_or(45.0)
+        .max(0.0);
+    let padding = opts
+        .get("padding")
+        .or_else(|| opts.get("panel_padding"))
+        .and_then(Value::as_float)
+        .unwrap_or(5.0)
+        .clamp(0.0, 24.0);
+    let panel_size = opts
+        .get("panel_size")
+        .and_then(Value::as_float)
+        .unwrap_or(150.0)
+        .max(60.0);
+    let panel_width = if square {
+        panel_size
+    } else {
+        opts.get("panel_width")
+            .and_then(Value::as_float)
+            .unwrap_or(170.0)
+            .max(60.0)
+    };
+    let panel_height = if square {
+        panel_size
+    } else {
+        opts.get("panel_height")
+            .and_then(Value::as_float)
+            .unwrap_or(130.0)
+            .max(60.0)
+    };
+    let show_regression = opts
+        .get("regression")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    let show_smooth = opts.get("smooth").and_then(Value::as_bool).unwrap_or(true);
+    let show_spread = opts.get("spread").and_then(Value::as_bool).unwrap_or(true);
+    let span = opts
+        .get("span")
+        .and_then(Value::as_float)
+        .unwrap_or(0.5)
+        .clamp(0.1, 1.0);
+    let title = opts
+        .get("title")
+        .and_then(Value::as_str)
+        .unwrap_or("Scatterplot matrix");
+    let title_height = if title.is_empty() { 0.0 } else { 38.0 };
+    let count = names.len();
+    let width = outer * 2.0 + panel_width * count as f64 + gap * (count - 1) as f64;
+    let height =
+        title_height + outer * 2.0 + panel_height * count as f64 + gap * (count - 1) as f64;
+    let theme = crate::plot::stats_plot_theme(&opts);
+    let mut canvas = SvgCanvas::with_theme(width, height, theme);
+    canvas.set_accessible_description(format!(
+        "Scatterplot matrix for {} numeric variables with densities on the diagonal.",
+        count
+    ));
+    if !title.is_empty() {
+        canvas.draw_title_centered(title);
+    }
+    let origin_x = outer;
+    let origin_y = title_height + outer;
+    let black = "#000000";
+    let green = "#00CD00";
+    let red = "#FF0000";
+
+    for row in 0..count {
+        for column in 0..count {
+            let left = origin_x + column as f64 * (panel_width + gap);
+            let top = origin_y + row as f64 * (panel_height + gap);
+            canvas.add_rect(left, top, panel_width, panel_height, "#FFFFFF");
+            let clip_id = format!("scatterplot-matrix-{row}-{column}");
+            canvas.elements.push(format!(
+                r#"<defs><clipPath id="{clip_id}"><rect x="{left:.1}" y="{top:.1}" width="{panel_width:.1}" height="{panel_height:.1}" /></clipPath></defs><g clip-path="url(#{clip_id})">"#
+            ));
+            let x_scale = Scale {
+                domain: domains[column],
+                range: (left + padding, left + panel_width - padding),
+            };
+            let y_scale = Scale {
+                domain: domains[row],
+                range: (top + panel_height - padding, top + padding),
+            };
+
+            if row == column {
+                let bandwidth = silverman_bandwidth(&data[column]);
+                let density = gaussian_kde_between(
+                    &data[column],
+                    bandwidth,
+                    100,
+                    domains[column].0,
+                    domains[column].1,
+                );
+                let maximum = density
+                    .iter()
+                    .map(|(_, value)| *value)
+                    .max_by(f64::total_cmp)
+                    .unwrap_or(1.0)
+                    .max(f64::MIN_POSITIVE);
+                let density_scale = Scale {
+                    domain: (0.0, maximum * 1.08),
+                    range: (top + panel_height - padding - 1.0, top + padding + 1.0),
+                };
+                let mapped = density
+                    .iter()
+                    .map(|&(x, y)| (x_scale.map(x), density_scale.map(y)))
+                    .collect::<Vec<_>>();
+                canvas.add_polyline(&mapped, black, 1.2);
+                canvas.add_text(
+                    left + panel_width / 2.0,
+                    top + panel_height / 2.0 + 5.0,
+                    &names[column],
+                    "middle",
+                    15.0,
+                );
+            } else {
+                let pairs = table
+                    .rows
+                    .iter()
+                    .filter_map(|record| {
+                        let x = record.get(column_indices[column])?.as_float()?;
+                        let y = record.get(column_indices[row])?.as_float()?;
+                        (x.is_finite() && y.is_finite()).then_some((x, y))
+                    })
+                    .collect::<Vec<_>>();
+                for &(x, y) in &pairs {
+                    canvas.add_stroked_circle(
+                        x_scale.map(x),
+                        y_scale.map(y),
+                        1.7,
+                        "none",
+                        black,
+                        0.65,
+                    );
+                }
+                if show_regression {
+                    if let Some((_, slope, intercept)) = pearson(
+                        &pairs.iter().map(|pair| pair.0).collect::<Vec<_>>(),
+                        &pairs.iter().map(|pair| pair.1).collect::<Vec<_>>(),
+                    ) {
+                        let x1 = domains[column].0;
+                        let x2 = domains[column].1;
+                        canvas.add_line(
+                            x_scale.map(x1),
+                            y_scale.map(intercept + slope * x1),
+                            x_scale.map(x2),
+                            y_scale.map(intercept + slope * x2),
+                            green,
+                            1.2,
+                        );
+                    }
+                }
+                let smooth = if show_smooth || show_spread {
+                    matrix_curve(&pairs, domains[column], span, 80)
+                } else {
+                    Vec::new()
+                };
+                if show_spread && !smooth.is_empty() {
+                    let residuals = pairs
+                        .iter()
+                        .filter_map(|&(x, y)| {
+                            matrix_loess_at(&pairs, x, span).map(|fit| (x, y - fit))
+                        })
+                        .collect::<Vec<_>>();
+                    let positive = residuals
+                        .iter()
+                        .filter(|(_, residual)| *residual >= 0.0)
+                        .map(|&(x, residual)| (x, residual * residual))
+                        .collect::<Vec<_>>();
+                    let negative = residuals
+                        .iter()
+                        .filter(|(_, residual)| *residual < 0.0)
+                        .map(|&(x, residual)| (x, residual * residual))
+                        .collect::<Vec<_>>();
+                    let mut upper = Vec::new();
+                    let mut lower = Vec::new();
+                    for &(x, mean) in &smooth {
+                        if let Some(variance) = matrix_loess_at(&positive, x, span) {
+                            upper.push((x, mean + variance.max(0.0).sqrt()));
+                        }
+                        if let Some(variance) = matrix_loess_at(&negative, x, span) {
+                            lower.push((x, mean - variance.max(0.0).sqrt()));
+                        }
+                    }
+                    for curve in [&upper, &lower] {
+                        matrix_add_dashed_curve(
+                            &mut canvas,
+                            &matrix_map_curve(curve, &x_scale, &y_scale),
+                            red,
+                        );
+                    }
+                }
+                if show_smooth {
+                    canvas.add_polyline(&matrix_map_curve(&smooth, &x_scale, &y_scale), red, 1.2);
+                }
+            }
+            canvas.elements.push("</g>".into());
+            if borders {
+                canvas.add_stroked_rect(left, top, panel_width, panel_height, "none", black, 1.0);
+            }
+        }
+    }
+
+    // Matrix axes are shared by variable, so only the outer edge is labelled.
+    for column in 0..count {
+        let left = origin_x + column as f64 * (panel_width + gap);
+        let scale = Scale {
+            domain: domains[column],
+            range: (left + padding, left + panel_width - padding),
+        };
+        let ticks = explicit_ticks[column].clone().unwrap_or_else(|| {
+            Scale {
+                domain: domains[column],
+                range: (0.0, 1.0),
+            }
+            .nice_ticks(6)
+        });
+        let bottom = origin_y + count as f64 * panel_height + (count - 1) as f64 * gap;
+        for tick in ticks {
+            let x = scale.map(tick);
+            canvas.add_line(x, bottom, x, bottom + 4.0, black, 0.8);
+            canvas.add_text(x, bottom + 17.0, &fmt_number(tick), "middle", 10.0);
+        }
+    }
+    for row in 0..count {
+        let top = origin_y + row as f64 * (panel_height + gap);
+        let scale = Scale {
+            domain: domains[row],
+            range: (top + panel_height - padding, top + padding),
+        };
+        let ticks = explicit_ticks[row].clone().unwrap_or_else(|| {
+            Scale {
+                domain: domains[row],
+                range: (0.0, 1.0),
+            }
+            .nice_ticks(6)
+        });
+        for tick in ticks {
+            let y = scale.map(tick);
+            canvas.add_line(origin_x - 4.0, y, origin_x, y, black, 0.8);
+            canvas.add_text(origin_x - 7.0, y + 3.5, &fmt_number(tick), "end", 10.0);
+        }
+    }
+
+    Ok(Value::Str(canvas.render()))
+}
+
 fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
     let opts = options(&args, 2, "stats_relationship_plot")?;
     if let Some(groups) = opts.get("group").or_else(|| opts.get("color")) {
         return grouped_relationship_diagnostic_plot(&args[0], &args[1], groups, &opts);
     }
-    let (xs, ys, excluded) = complete_pairs(&args[0], &args[1], "stats_relationship_plot")?;
+    let (mut xs, mut ys, excluded) = complete_pairs(&args[0], &args[1], "stats_relationship_plot")?;
+    let x_axis_scale = diagnostic_axis_scale(&opts, "x", "stats_relationship_plot")?;
+    let y_axis_scale = diagnostic_axis_scale(&opts, "y", "stats_relationship_plot")?;
+    for value in &mut xs {
+        *value = x_axis_scale.transform(*value, "stats_relationship_plot", "x")?;
+    }
+    for value in &mut ys {
+        *value = y_axis_scale.transform(*value, "stats_relationship_plot", "y")?;
+    }
     let interval = opts
         .get("interval")
         .and_then(Value::as_str)
@@ -4268,13 +4980,30 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
             None,
         ));
     }
+    let show_fit = opts.get("fit").and_then(Value::as_bool).unwrap_or(true);
+    if !show_fit && interval != "none" {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "stats_relationship_plot() interval bands require fit: true",
+            None,
+        ));
+    }
     let confidence = opts
         .get("confidence")
         .and_then(Value::as_float)
         .unwrap_or(0.95);
     let data_min_x = xs.iter().copied().min_by(f64::total_cmp).unwrap();
     let data_max_x = xs.iter().copied().max_by(f64::total_cmp).unwrap();
-    let limits = requested_limits(&opts, "x_limits");
+    let limits = requested_limits(&opts, "x_limits")
+        .map(|(low, high)| -> Result<_> {
+            Ok((
+                low.map(|value| x_axis_scale.transform(value, "stats_relationship_plot", "x"))
+                    .transpose()?,
+                high.map(|value| x_axis_scale.transform(value, "stats_relationship_plot", "x"))
+                    .transpose()?,
+            ))
+        })
+        .transpose()?;
     // `fullrange` draws the fit across the whole axis rather than the observed
     // data, which is `geom_smooth(fullrange = TRUE)`. Combined with an explicit
     // lower limit it reproduces the classic warning against extrapolation.
@@ -4300,22 +5029,27 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
             None,
         ));
     }
-    let fit = if xs.len() >= 3 {
+    let fit = if show_fit && xs.len() >= 3 {
         Some(linear_fit_geometry(&xs, &ys, &fit_at, confidence)?)
     } else {
         None
     };
-    let (_, fallback_slope, fallback_intercept) = pearson(&xs, &ys).ok_or_else(|| {
-        BioLangError::runtime(
-            ErrorKind::TypeError,
-            "stats_relationship_plot() requires variation in both x and y",
-            None,
+    let (slope, intercept) = if show_fit {
+        let (_, fallback_slope, fallback_intercept) = pearson(&xs, &ys).ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "stats_relationship_plot() requires variation in both x and y for fit: true",
+                None,
+            )
+        })?;
+        (
+            fit.as_ref().map_or(fallback_slope, |value| value.slope),
+            fit.as_ref()
+                .map_or(fallback_intercept, |value| value.intercept),
         )
-    })?;
-    let slope = fit.as_ref().map_or(fallback_slope, |value| value.slope);
-    let intercept = fit
-        .as_ref()
-        .map_or(fallback_intercept, |value| value.intercept);
+    } else {
+        (0.0, 0.0)
+    };
     if plot_format(&opts) == "ascii" {
         let mut chart = ascii_scatter(
             &xs,
@@ -4375,6 +5109,20 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         domain: y_domain,
         range: (height - 60.0, 45.0),
     };
+    let x_ticks = explicit_axis_ticks(
+        &opts,
+        "x",
+        x_axis_scale,
+        &x_scale,
+        "stats_relationship_plot",
+    )?;
+    let y_ticks = explicit_axis_ticks(
+        &opts,
+        "y",
+        y_axis_scale,
+        &y_scale,
+        "stats_relationship_plot",
+    )?;
     let theme = crate::plot::stats_plot_theme(&opts);
     let mut canvas = SvgCanvas::with_theme(width, height, theme);
     canvas.margin.left = 65.0;
@@ -4383,7 +5131,25 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
     canvas.margin.bottom = 60.0;
     let ggplot_like = !matches!(theme.kind, crate::plot::PlotThemeKind::Legacy);
     if ggplot_like {
-        canvas.draw_cartesian_grid(&x_scale, &y_scale);
+        let x_grid_ticks = x_ticks
+            .as_ref()
+            .map(|ticks| {
+                ticks
+                    .iter()
+                    .map(|(position, _)| *position)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_else(|| x_scale.nice_ticks(5));
+        let y_grid_ticks = y_ticks
+            .as_ref()
+            .map(|ticks| {
+                ticks
+                    .iter()
+                    .map(|(position, _)| *position)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_else(|| y_scale.nice_ticks(5));
+        canvas.draw_cartesian_grid_with_ticks(&x_scale, &y_scale, &x_grid_ticks, &y_grid_ticks);
     }
     if interval != "none" {
         let fit = fit.as_ref().expect("interval fit was checked");
@@ -4431,7 +5197,12 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
     } else {
         ("#dc2626", 2.0)
     };
-    let stride = xs.len().div_ceil(10_000).max(1);
+    let max_points = opts
+        .get("max_points")
+        .and_then(Value::as_int)
+        .unwrap_or(10_000)
+        .clamp(100, 1_000_000) as usize;
+    let stride = xs.len().div_ceil(max_points).max(1);
     for (x, y) in xs.iter().zip(&ys).step_by(stride) {
         canvas.add_circle_with_opacity(
             x_scale.map(*x),
@@ -4441,43 +5212,59 @@ fn relationship_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
             point_alpha,
         );
     }
-    canvas.add_line(
-        x_scale.map(observed_min_x),
-        y_scale.map(intercept + slope * observed_min_x),
-        x_scale.map(observed_max_x),
-        y_scale.map(intercept + slope * observed_max_x),
-        line_stroke,
-        line_width,
-    );
-    canvas.draw_x_axis(
-        &x_scale,
-        opts.get("x_label").and_then(Value::as_str).unwrap_or("x"),
-    );
-    canvas.draw_y_axis(
-        &y_scale,
-        opts.get("y_label").and_then(Value::as_str).unwrap_or("y"),
-    );
+    if show_fit {
+        canvas.add_line(
+            x_scale.map(observed_min_x),
+            y_scale.map(intercept + slope * observed_min_x),
+            x_scale.map(observed_max_x),
+            y_scale.map(intercept + slope * observed_max_x),
+            line_stroke,
+            line_width,
+        );
+    }
+    let x_label = opts.get("x_label").and_then(Value::as_str).unwrap_or("x");
+    let y_label = opts.get("y_label").and_then(Value::as_str).unwrap_or("y");
+    if let Some(ticks) = &x_ticks {
+        canvas.draw_x_axis_with_ticks(&x_scale, ticks, x_label);
+    } else {
+        canvas.draw_x_axis(&x_scale, x_label);
+    }
+    if let Some(ticks) = &y_ticks {
+        canvas.draw_y_axis_with_ticks(&y_scale, ticks, y_label);
+    } else {
+        canvas.draw_y_axis(&y_scale, y_label);
+    }
     canvas.draw_title(
         opts.get("title")
             .and_then(Value::as_str)
             .unwrap_or("Relationship diagnostic"),
     );
-    canvas.add_text(
-        68.0,
-        height - 38.0,
-        &format!(
-            "{} complete pairs; {} excluded. Line: least-squares fit{}.",
-            xs.len(),
-            excluded,
-            if interval == "none" {
-                "".to_string()
+    if opts.get("note").and_then(Value::as_bool).unwrap_or(true) {
+        canvas.add_text(
+            68.0,
+            height - 38.0,
+            &if show_fit {
+                format!(
+                    "{} complete pairs; {} excluded. Line: least-squares fit{}.",
+                    xs.len(),
+                    excluded,
+                    if interval == "none" {
+                        "".to_string()
+                    } else {
+                        format!("; blue: {:.0}% {interval} band", confidence * 100.0)
+                    }
+                )
             } else {
-                format!("; blue: {:.0}% {interval} band", confidence * 100.0)
-            }
-        ),
-        "start",
-        10.0,
-    );
+                format!(
+                    "{} complete pairs; {} excluded. Points only; no fitted model is drawn.",
+                    xs.len(),
+                    excluded
+                )
+            },
+            "start",
+            10.0,
+        );
+    }
     Ok(text(canvas.render()))
 }
 
@@ -4495,6 +5282,52 @@ struct PointSizeEncoding {
     values: Vec<Option<f64>>,
     minimum: f64,
     maximum: f64,
+}
+
+fn point_labels(
+    opts: &HashMap<String, Value>,
+    expected: usize,
+) -> Result<Option<Vec<Option<String>>>> {
+    let Some(value) = opts.get("labels") else {
+        return Ok(None);
+    };
+    let Value::List(values) = value else {
+        return Err(BioLangError::type_error(
+            format!(
+                "stats_relationship_plot() labels must be List, got {}",
+                value.type_of()
+            ),
+            None,
+        ));
+    };
+    if values.len() != expected {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "stats_relationship_plot() x, y, group, and labels must have equal length ({expected} vs {})",
+                values.len()
+            ),
+            None,
+        ));
+    }
+    values
+        .iter()
+        .enumerate()
+        .map(|(index, value)| match value {
+            Value::Nil => Ok(None),
+            Value::Str(_) | Value::Int(_) | Value::Float(_) | Value::Bool(_) => {
+                Ok(category_label(value))
+            }
+            other => Err(BioLangError::type_error(
+                format!(
+                    "stats_relationship_plot() labels must contain scalar values or Nil; index {index} is {}",
+                    other.type_of()
+                ),
+                None,
+            )),
+        })
+        .collect::<Result<Vec<_>>>()
+        .map(Some)
 }
 
 impl PointSizeEncoding {
@@ -4693,7 +5526,27 @@ fn grouped_relationship_diagnostic_plot(
         _ => 0,
     };
     let point_sizes = point_size_encoding(opts, point_count)?;
-    let (groups, excluded) = complete_grouped_pairs(x, y, groups)?;
+    let point_labels = point_labels(opts, point_count)?;
+    let (mut groups, excluded) = complete_grouped_pairs(x, y, groups)?;
+    let x_axis_scale = diagnostic_axis_scale(opts, "x", "stats_relationship_plot")?;
+    let y_axis_scale = diagnostic_axis_scale(opts, "y", "stats_relationship_plot")?;
+    for group in &mut groups {
+        for value in &mut group.xs {
+            *value = x_axis_scale.transform(*value, "stats_relationship_plot", "x")?;
+        }
+        for value in &mut group.ys {
+            *value = y_axis_scale.transform(*value, "stats_relationship_plot", "y")?;
+        }
+    }
+    if let Some(Value::List(requested)) = opts.get("group_order") {
+        let order = requested
+            .iter()
+            .filter_map(Value::as_str)
+            .enumerate()
+            .map(|(index, label)| (label.to_string(), index))
+            .collect::<HashMap<_, _>>();
+        groups.sort_by_key(|group| order.get(&group.label).copied().unwrap_or(usize::MAX));
+    }
     let full_range = opts
         .get("fullrange")
         .and_then(Value::as_bool)
@@ -4708,7 +5561,26 @@ fn grouped_relationship_diagnostic_plot(
         .iter()
         .flat_map(|group| group.xs.iter().copied())
         .fold(f64::NEG_INFINITY, f64::max);
-    let limits = requested_limits(&opts, "x_limits");
+    let limits = requested_limits(opts, "x_limits")
+        .map(|(low, high)| -> Result<_> {
+            Ok((
+                low.map(|value| x_axis_scale.transform(value, "stats_relationship_plot", "x"))
+                    .transpose()?,
+                high.map(|value| x_axis_scale.transform(value, "stats_relationship_plot", "x"))
+                    .transpose()?,
+            ))
+        })
+        .transpose()?;
+    let y_limits = requested_limits(opts, "y_limits")
+        .map(|(low, high)| -> Result<_> {
+            Ok((
+                low.map(|value| y_axis_scale.transform(value, "stats_relationship_plot", "y"))
+                    .transpose()?,
+                high.map(|value| y_axis_scale.transform(value, "stats_relationship_plot", "y"))
+                    .transpose()?,
+            ))
+        })
+        .transpose()?;
     let axis_range = (
         limits.and_then(|(low, _)| low).unwrap_or(observed_low),
         limits.and_then(|(_, high)| high).unwrap_or(observed_high),
@@ -4839,6 +5711,7 @@ fn grouped_relationship_diagnostic_plot(
         .get("legend_title")
         .and_then(Value::as_str)
         .unwrap_or("group");
+    let show_legend = opts.get("legend").and_then(Value::as_bool).unwrap_or(true);
     let widest_legend = fitted
         .iter()
         .map(|group| estimate_text_width(&group.data.label, theme.legend_size))
@@ -4859,12 +5732,21 @@ fn grouped_relationship_diagnostic_plot(
                 })
                 .unwrap_or(0.0),
         );
-    let legend_width = (55.0 + widest_legend).clamp(105.0, 220.0);
+    let legend_width = if show_legend {
+        (55.0 + widest_legend).clamp(105.0, 220.0)
+    } else {
+        0.0
+    };
+    let show_note = opts.get("note").and_then(Value::as_bool).unwrap_or(true);
     let mut canvas = SvgCanvas::with_theme(width, height, theme);
     canvas.margin.left = 65.0;
-    canvas.margin.right = 25.0 + legend_width;
+    canvas.margin.right = if show_legend {
+        25.0 + legend_width
+    } else {
+        30.0
+    };
     canvas.margin.top = 45.0;
-    canvas.margin.bottom = 88.0;
+    canvas.margin.bottom = if show_note { 88.0 } else { 60.0 };
 
     let all_x = fitted
         .iter()
@@ -4880,8 +5762,12 @@ fn grouped_relationship_diagnostic_plot(
     let maximum_x = limits
         .and_then(|(_, high)| high)
         .unwrap_or_else(|| all_x.iter().copied().max_by(f64::total_cmp).unwrap());
-    let mut minimum_y = all_y.iter().copied().min_by(f64::total_cmp).unwrap();
-    let mut maximum_y = all_y.iter().copied().max_by(f64::total_cmp).unwrap();
+    let mut minimum_y = y_limits
+        .and_then(|(low, _)| low)
+        .unwrap_or_else(|| all_y.iter().copied().min_by(f64::total_cmp).unwrap());
+    let mut maximum_y = y_limits
+        .and_then(|(_, high)| high)
+        .unwrap_or_else(|| all_y.iter().copied().max_by(f64::total_cmp).unwrap());
     if interval != "none" {
         for point in fitted
             .iter()
@@ -4905,11 +5791,66 @@ fn grouped_relationship_diagnostic_plot(
         domain: padded_domain(minimum_y, maximum_y),
         range: (height - canvas.margin.bottom, canvas.margin.top),
     };
+    let x_ticks =
+        explicit_axis_ticks(opts, "x", x_axis_scale, &x_scale, "stats_relationship_plot")?;
+    let y_ticks =
+        explicit_axis_ticks(opts, "y", y_axis_scale, &y_scale, "stats_relationship_plot")?;
+    let x_grid_ticks = x_ticks
+        .as_ref()
+        .map(|ticks| {
+            ticks
+                .iter()
+                .map(|(position, _)| *position)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| x_scale.nice_ticks(5));
+    let y_grid_ticks = y_ticks
+        .as_ref()
+        .map(|ticks| {
+            ticks
+                .iter()
+                .map(|(position, _)| *position)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| y_scale.nice_ticks(5));
+    canvas.draw_cartesian_grid_with_ticks(&x_scale, &y_scale, &x_grid_ticks, &y_grid_ticks);
 
-    canvas.draw_cartesian_grid(&x_scale, &y_scale);
-
-    // ggplot2's discrete hues, recomputed for this group count.
-    let colors = crate::plot::hue_palette(fitted.len());
+    // ggplot2's discrete hues, recomputed for this group count, unless the
+    // caller pins a source figure's palette explicitly.
+    let colors = match opts.get("colors") {
+        Some(Value::List(values)) => {
+            let parsed = values
+                .iter()
+                .map(|value| {
+                    value.as_str().map(str::to_string).ok_or_else(|| {
+                        BioLangError::type_error(
+                            "stats_relationship_plot() colors must contain strings",
+                            None,
+                        )
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?;
+            if parsed.len() < fitted.len() {
+                return Err(BioLangError::runtime(
+                    ErrorKind::TypeError,
+                    format!(
+                        "stats_relationship_plot() colors has {} value(s) for {} groups",
+                        parsed.len(),
+                        fitted.len()
+                    ),
+                    None,
+                ));
+            }
+            parsed
+        }
+        Some(_) => {
+            return Err(BioLangError::type_error(
+                "stats_relationship_plot() colors must be a List of strings",
+                None,
+            ))
+        }
+        None => crate::plot::hue_palette(fitted.len()),
+    };
     // ggplot2's `geom_point()` is opaque by default; `alpha` restores the
     // translucency that helps when a dense cloud overplots itself.
     let point_alpha = opts
@@ -4917,6 +5858,33 @@ fn grouped_relationship_diagnostic_plot(
         .and_then(Value::as_float)
         .unwrap_or(1.0)
         .clamp(0.0, 1.0);
+    let point_style = opts
+        .get("point_style")
+        .and_then(Value::as_str)
+        .unwrap_or("filled");
+    if !matches!(point_style, "filled" | "open") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "stats_relationship_plot() point_style must be filled or open, got '{point_style}'"
+            ),
+            None,
+        ));
+    }
+    let point_color = opts.get("point_color").and_then(Value::as_str);
+    let label_color = opts
+        .get("label_color")
+        .and_then(Value::as_str)
+        .unwrap_or("#FF0000");
+    let label_size = opts
+        .get("label_size")
+        .and_then(Value::as_float)
+        .unwrap_or(9.8)
+        .max(1.0);
+    let label_offset = opts
+        .get("label_offset")
+        .and_then(Value::as_float)
+        .unwrap_or(5.0);
 
     // Bands go behind points and lines. `aes(col = ...)` maps colour but not
     // fill, so ggplot2 leaves every `geom_smooth()` ribbon at grey60/0.4
@@ -4958,7 +5926,12 @@ fn grouped_relationship_diagnostic_plot(
     // Draw every group's points in original row order. Emitting one whole
     // group and then the next would leave the later group sitting on top of
     // the earlier one everywhere they overlap, which ggplot2 does not do.
-    let stride = pair_count.div_ceil(10_000).max(1);
+    let max_points = opts
+        .get("max_points")
+        .and_then(Value::as_int)
+        .unwrap_or(10_000)
+        .clamp(100, 1_000_000) as usize;
+    let stride = pair_count.div_ceil(max_points).max(1);
     let mut points = fitted
         .iter()
         .enumerate()
@@ -4982,13 +5955,29 @@ fn grouped_relationship_diagnostic_plot(
             None => 2.6,
         };
         // `size = 1.5` and `stroke = 0.5` give a 2.6px radius at 96dpi.
-        canvas.add_circle_with_opacity(
-            x_scale.map(x),
-            y_scale.map(y),
-            radius,
-            &colors[index],
-            point_alpha,
-        );
+        let x_pixel = x_scale.map(x);
+        let y_pixel = y_scale.map(y);
+        let color = point_color.unwrap_or(&colors[index]);
+        if point_style == "open" {
+            canvas.add_stroked_circle(x_pixel, y_pixel, radius, "#FFFFFF", color, 1.0);
+        } else {
+            canvas.add_circle_with_opacity(x_pixel, y_pixel, radius, color, point_alpha);
+        }
+        if let Some(label) = point_labels
+            .as_ref()
+            .and_then(|labels| labels.get(row))
+            .and_then(|label| label.as_deref())
+        {
+            canvas.add_text_styled(
+                x_pixel + label_offset,
+                y_pixel + label_size * 0.34,
+                label,
+                "start",
+                label_size,
+                "normal",
+                label_color,
+            );
+        }
     }
     // Fitted lines sit above every point, as `geom_smooth()` does.
     for (index, group) in fitted.iter().enumerate() {
@@ -5006,74 +5995,93 @@ fn grouped_relationship_diagnostic_plot(
         );
     }
     let legend_x = width - canvas.margin.right + 22.0;
-    if let Some(sizes) = &point_sizes {
-        let size_title = opts
-            .get("size_legend_title")
-            .and_then(Value::as_str)
-            .unwrap_or("size");
-        let title_y = canvas.margin.top + 52.0 + 25.0 * fitted.len() as f64;
-        canvas.add_text(legend_x, title_y, size_title, "start", theme.legend_size);
-        let values = if (sizes.maximum - sizes.minimum).abs() <= f64::EPSILON {
-            vec![sizes.minimum]
-        } else {
-            vec![
-                sizes.minimum,
-                (sizes.minimum + sizes.maximum) / 2.0,
-                sizes.maximum,
-            ]
-        };
-        for (index, value) in values.into_iter().enumerate() {
-            let y = title_y + 27.0 + 27.0 * index as f64;
-            let radius = if (sizes.maximum - sizes.minimum).abs() <= f64::EPSILON {
-                4.5
+    if show_legend {
+        if let Some(sizes) = &point_sizes {
+            let size_title = opts
+                .get("size_legend_title")
+                .and_then(Value::as_str)
+                .unwrap_or("size");
+            let title_y = canvas.margin.top + 52.0 + 25.0 * fitted.len() as f64;
+            canvas.add_text(legend_x, title_y, size_title, "start", theme.legend_size);
+            let values = if (sizes.maximum - sizes.minimum).abs() <= f64::EPSILON {
+                vec![sizes.minimum]
             } else {
-                2.0 + 5.0 * ((value - sizes.minimum) / (sizes.maximum - sizes.minimum)).sqrt()
+                vec![
+                    sizes.minimum,
+                    (sizes.minimum + sizes.maximum) / 2.0,
+                    sizes.maximum,
+                ]
             };
-            canvas.add_circle(legend_x + 7.0, y - 3.0, radius, "#4b5563");
+            for (index, value) in values.into_iter().enumerate() {
+                let y = title_y + 27.0 + 27.0 * index as f64;
+                let radius = if (sizes.maximum - sizes.minimum).abs() <= f64::EPSILON {
+                    4.5
+                } else {
+                    2.0 + 5.0 * ((value - sizes.minimum) / (sizes.maximum - sizes.minimum)).sqrt()
+                };
+                canvas.add_circle(legend_x + 7.0, y - 3.0, radius, "#4b5563");
+                canvas.add_text(
+                    legend_x + 30.0,
+                    y + 1.0,
+                    &fmt_number(value),
+                    "start",
+                    theme.legend_size,
+                );
+            }
+        }
+    }
+    let x_label = opts.get("x_label").and_then(Value::as_str).unwrap_or("x");
+    let y_label = opts.get("y_label").and_then(Value::as_str).unwrap_or("y");
+    if let Some(ticks) = &x_ticks {
+        canvas.draw_x_axis_with_ticks(&x_scale, ticks, x_label);
+    } else {
+        canvas.draw_x_axis(&x_scale, x_label);
+    }
+    if let Some(ticks) = &y_ticks {
+        canvas.draw_y_axis_with_ticks(&y_scale, ticks, y_label);
+    } else {
+        canvas.draw_y_axis(&y_scale, y_label);
+    }
+    let title = opts
+        .get("title")
+        .and_then(Value::as_str)
+        .unwrap_or("Relationship by group");
+    if !title.is_empty() {
+        canvas.draw_title(title);
+    }
+
+    if show_legend {
+        canvas.add_text(
+            legend_x,
+            canvas.margin.top + 5.0,
+            legend_title,
+            "start",
+            theme.legend_size,
+        );
+        if matches!(theme.kind, crate::plot::PlotThemeKind::Ggplot) {
+            canvas.add_rect(
+                legend_x - 7.0,
+                canvas.margin.top + 15.0,
+                24.0,
+                25.0 * fitted.len() as f64,
+                theme.panel_colour,
+            );
+        }
+        for (index, group) in fitted.iter().enumerate() {
+            let color = colors[index].as_str();
+            let y = canvas.margin.top + 32.0 + 25.0 * index as f64;
+            canvas.add_circle(legend_x + 5.0, y - 3.0, 3.5, color);
+            if show_fit {
+                canvas.add_line(legend_x, y - 3.0, legend_x + 22.0, y - 3.0, color, 2.85);
+            }
             canvas.add_text(
                 legend_x + 30.0,
                 y + 1.0,
-                &fmt_number(value),
+                &group.data.label,
                 "start",
                 theme.legend_size,
             );
         }
-    }
-    canvas.draw_x_axis(
-        &x_scale,
-        opts.get("x_label").and_then(Value::as_str).unwrap_or("x"),
-    );
-    canvas.draw_y_axis(
-        &y_scale,
-        opts.get("y_label").and_then(Value::as_str).unwrap_or("y"),
-    );
-    canvas.draw_title(
-        opts.get("title")
-            .and_then(Value::as_str)
-            .unwrap_or("Relationship by group"),
-    );
-
-    canvas.add_text(
-        legend_x,
-        canvas.margin.top + 5.0,
-        legend_title,
-        "start",
-        theme.legend_size,
-    );
-    for (index, group) in fitted.iter().enumerate() {
-        let color = colors[index].as_str();
-        let y = canvas.margin.top + 32.0 + 25.0 * index as f64;
-        canvas.add_circle(legend_x + 5.0, y - 3.0, 3.5, color);
-        if show_fit {
-            canvas.add_line(legend_x, y - 3.0, legend_x + 22.0, y - 3.0, color, 2.85);
-        }
-        canvas.add_text(
-            legend_x + 30.0,
-            y + 1.0,
-            &group.data.label,
-            "start",
-            theme.legend_size,
-        );
     }
     let geometry_note = if show_fit {
         format!(
@@ -5098,9 +6106,11 @@ fn grouped_relationship_diagnostic_plot(
             )
         })
         .unwrap_or_default();
-    canvas.draw_caption(&format!(
-        "{pair_count} complete pairs; {excluded} excluded. {geometry_note}{size_note}"
-    ));
+    if show_note {
+        canvas.draw_caption(&format!(
+            "{pair_count} complete pairs; {excluded} excluded. {geometry_note}{size_note}"
+        ));
+    }
     Ok(text(canvas.render()))
 }
 
@@ -5216,6 +6226,35 @@ fn facet_plot(args: Vec<Value>) -> Result<Value> {
         .and_then(Value::as_int)
         .unwrap_or(30)
         .clamp(1, 1000) as usize;
+    let histogram_scale = opts
+        .get("histogram_scale")
+        .and_then(Value::as_str)
+        .unwrap_or("count");
+    if !matches!(histogram_scale, "count" | "density") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{FUNCTION}() option 'histogram_scale' must be count or density, got '{histogram_scale}'"
+            ),
+            None,
+        ));
+    }
+    let bin_width = opts
+        .get("bin_width")
+        .and_then(Value::as_float)
+        .filter(|width| width.is_finite() && *width > 0.0);
+    if opts.contains_key("bin_width") && bin_width.is_none() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("{FUNCTION}() option 'bin_width' must be a positive finite number"),
+            None,
+        ));
+    }
+    let bin_origin = opts
+        .get("bin_origin")
+        .and_then(Value::as_float)
+        .filter(|origin| origin.is_finite())
+        .unwrap_or(0.0);
     let pooled_x = grouped
         .iter()
         .flat_map(|(_, rows)| rows.iter().map(|(x, _)| *x))
@@ -5224,7 +6263,20 @@ fn facet_plot(args: Vec<Value>) -> Result<Value> {
         .iter()
         .flat_map(|(_, rows)| rows.iter().map(|(_, y)| *y))
         .collect::<Vec<_>>();
-    let shared_edges = crate::plot::histogram_ggplot_edges(&pooled_x, bins);
+    let make_edges = |values: &[f64]| {
+        if let Some(width) = bin_width {
+            let minimum = values.iter().copied().fold(f64::INFINITY, f64::min);
+            let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+            let first = ((minimum - bin_origin) / width).floor() as i64;
+            let last = (((maximum - bin_origin) / width).ceil() as i64).max(first + 1);
+            (first..=last)
+                .map(|index| bin_origin + width * index as f64)
+                .collect::<Vec<_>>()
+        } else {
+            crate::plot::histogram_ggplot_edges(values, bins)
+        }
+    };
+    let shared_edges = make_edges(&pooled_x);
     let shared_x = padded_domain(
         pooled_x.iter().copied().fold(f64::INFINITY, f64::min),
         pooled_x.iter().copied().fold(f64::NEG_INFINITY, f64::max),
@@ -5262,7 +6314,7 @@ fn facet_plot(args: Vec<Value>) -> Result<Value> {
     for (label, rows) in grouped {
         let edges = if kind == "histogram" && free_x {
             let xs = rows.iter().map(|(x, _)| *x).collect::<Vec<_>>();
-            crate::plot::histogram_ggplot_edges(&xs, bins)
+            make_edges(&xs)
         } else {
             shared_edges.clone()
         };
@@ -5302,19 +6354,47 @@ fn facet_plot(args: Vec<Value>) -> Result<Value> {
         });
     }
     if kind == "histogram" {
+        let bar_height = |panel: &FacetPanel, bin: usize| {
+            let count = panel.counts[bin] as f64;
+            if histogram_scale == "density" {
+                let width = panel.edges[bin + 1] - panel.edges[bin];
+                count / (width * panel.rows.len() as f64)
+            } else {
+                count
+            }
+        };
         let tallest = panels
             .iter()
-            .flat_map(|panel| panel.counts.iter().copied())
-            .max()
-            .unwrap_or(1)
-            .max(1);
+            .flat_map(|panel| (0..panel.counts.len()).map(|bin| bar_height(panel, bin)))
+            .fold(0.0_f64, f64::max)
+            .max(f64::EPSILON);
         for panel in &mut panels {
             let top = if free_y {
-                panel.counts.iter().copied().max().unwrap_or(1).max(1)
+                (0..panel.counts.len())
+                    .map(|bin| bar_height(panel, bin))
+                    .fold(0.0_f64, f64::max)
+                    .max(f64::EPSILON)
             } else {
                 tallest
             };
-            panel.y_domain = (0.0, top as f64 * 1.05);
+            panel.y_domain = (0.0, top * 1.05);
+        }
+    }
+
+    let x_limits = requested_limits(&opts, "x_limits");
+    let y_limits = requested_limits(&opts, "y_limits");
+    for panel in &mut panels {
+        if let Some((low, high)) = x_limits {
+            panel.x_domain = (
+                low.unwrap_or(panel.x_domain.0),
+                high.unwrap_or(panel.x_domain.1),
+            );
+        }
+        if let Some((low, high)) = y_limits {
+            panel.y_domain = (
+                low.unwrap_or(panel.y_domain.0),
+                high.unwrap_or(panel.y_domain.1),
+            );
         }
     }
 
@@ -5354,11 +6434,50 @@ fn facet_plot(args: Vec<Value>) -> Result<Value> {
     canvas.margin.top = 52.0;
     canvas.margin.bottom = 74.0;
 
-    const STRIP: f64 = 22.0;
     const GAP: f64 = 12.0;
+    let strip_position = opts
+        .get("strip_position")
+        .and_then(Value::as_str)
+        .unwrap_or("top");
+    if !matches!(strip_position, "top" | "below") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "{FUNCTION}() option 'strip_position' must be top or below, got '{strip_position}'"
+            ),
+            None,
+        ));
+    }
+    let strip_height = if strip_position == "below" {
+        38.0
+    } else {
+        22.0
+    };
+    let axes_all = opts.get("axes").and_then(Value::as_str) == Some("all");
+    let strip_prefix = opts
+        .get("strip_prefix")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let strip_band = opts
+        .get("strip_band")
+        .and_then(Value::as_bool)
+        .unwrap_or(strip_position == "top");
+    let bar_fill = opts
+        .get("bar_fill")
+        .and_then(Value::as_str)
+        .unwrap_or("#595959");
+    let bar_stroke = opts
+        .get("bar_stroke")
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    let bar_stroke_width = opts
+        .get("bar_stroke_width")
+        .and_then(Value::as_float)
+        .unwrap_or(if bar_stroke == "none" { 0.0 } else { 1.0 })
+        .max(0.0);
     let panel_width = (canvas.plot_width() - GAP * (columns as f64 - 1.0)) / columns as f64;
     let panel_height =
-        (canvas.plot_height() - (panel_rows as f64 - 1.0) * GAP) / panel_rows as f64 - STRIP;
+        (canvas.plot_height() - (panel_rows as f64 - 1.0) * GAP) / panel_rows as f64 - strip_height;
     if panel_width < 30.0 || panel_height < 30.0 {
         return Err(BioLangError::runtime(
             ErrorKind::TypeError,
@@ -5374,8 +6493,12 @@ fn facet_plot(args: Vec<Value>) -> Result<Value> {
         let row = index / columns;
         let column = index % columns;
         let left = canvas.margin.left + column as f64 * (panel_width + GAP);
-        let strip_top = canvas.margin.top + row as f64 * (panel_height + STRIP + GAP);
-        let top = strip_top + STRIP;
+        let strip_top = canvas.margin.top + row as f64 * (panel_height + strip_height + GAP);
+        let top = if strip_position == "top" {
+            strip_top + strip_height
+        } else {
+            strip_top
+        };
         let x_scale = Scale {
             domain: panel.x_domain,
             range: (left, left + panel_width),
@@ -5411,12 +6534,18 @@ fn facet_plot(args: Vec<Value>) -> Result<Value> {
             }
         }
 
-        // ggplot2's facet strip: a grey band carrying the level's name.
-        canvas.add_rect(left, strip_top, panel_width, STRIP, "#d5d5d5");
+        let strip_y = if strip_position == "top" {
+            strip_top
+        } else {
+            top + panel_height
+        };
+        if strip_band {
+            canvas.add_rect(left, strip_y, panel_width, strip_height, "#d5d5d5");
+        }
         canvas.add_text(
             left + panel_width / 2.0,
-            strip_top + STRIP - 7.0,
-            &panel.label,
+            strip_y + strip_height - 7.0,
+            &format!("{strip_prefix}{}", panel.label),
             "middle",
             11.0,
         );
@@ -5428,13 +6557,21 @@ fn facet_plot(args: Vec<Value>) -> Result<Value> {
                 }
                 let bar_left = x_scale.map(panel.edges[bin]);
                 let bar_right = x_scale.map(panel.edges[bin + 1]);
-                let bar_top = y_scale.map(*count as f64);
-                canvas.add_rect(
+                let height = if histogram_scale == "density" {
+                    *count as f64
+                        / ((panel.edges[bin + 1] - panel.edges[bin]) * panel.rows.len() as f64)
+                } else {
+                    *count as f64
+                };
+                let bar_top = y_scale.map(height);
+                canvas.add_stroked_rect(
                     bar_left,
                     bar_top,
                     (bar_right - bar_left).max(0.5),
                     (top + panel_height - bar_top).max(0.0),
-                    "#595959",
+                    bar_fill,
+                    bar_stroke,
+                    bar_stroke_width,
                 );
             }
         } else {
@@ -5453,39 +6590,73 @@ fn facet_plot(args: Vec<Value>) -> Result<Value> {
         // With a shared scale only the outer panels need their axis labelled,
         // which is what keeps a wall of small panels readable.
         let is_bottom_row = index + columns >= panels.len();
-        if is_bottom_row || free_x {
-            let ticks = x_scale.nice_ticks(4);
-            let decimals = crate::plot::tick_decimals(&ticks);
-            for tick in ticks {
-                canvas.add_text(
-                    x_scale.map(tick),
-                    top + panel_height + 14.0,
-                    &format!("{tick:.decimals$}"),
-                    "middle",
-                    9.5,
+        if axes_all || is_bottom_row || free_x {
+            let ticks =
+                explicit_axis_ticks(&opts, "x", DiagnosticAxisScale::Linear, &x_scale, FUNCTION)?
+                    .unwrap_or_else(|| {
+                        let values = x_scale.nice_ticks(4);
+                        let decimals = crate::plot::tick_decimals(&values);
+                        values
+                            .into_iter()
+                            .map(|tick| (tick, format!("{tick:.decimals$}")))
+                            .collect()
+                    });
+            let axis_y = top + panel_height;
+            canvas.add_line(
+                left,
+                axis_y,
+                left + panel_width,
+                axis_y,
+                theme.axis_colour,
+                theme.axis_width,
+            );
+            for (tick, label) in ticks {
+                let x = x_scale.map(tick);
+                canvas.add_line(
+                    x,
+                    axis_y,
+                    x,
+                    axis_y + 4.0,
+                    theme.axis_colour,
+                    theme.axis_width,
                 );
+                canvas.add_text(x, top + panel_height + 14.0, &label, "middle", 9.5);
             }
         }
-        if column == 0 || free_y {
-            let ticks = y_scale.nice_ticks(4);
-            let decimals = crate::plot::tick_decimals(&ticks);
-            for tick in ticks {
-                canvas.add_text(
-                    left - 6.0,
-                    y_scale.map(tick) + 3.0,
-                    &format!("{tick:.decimals$}"),
-                    "end",
-                    9.5,
-                );
+        if axes_all || column == 0 || free_y {
+            let ticks =
+                explicit_axis_ticks(&opts, "y", DiagnosticAxisScale::Linear, &y_scale, FUNCTION)?
+                    .unwrap_or_else(|| {
+                        let values = y_scale.nice_ticks(4);
+                        let decimals = crate::plot::tick_decimals(&values);
+                        values
+                            .into_iter()
+                            .map(|tick| (tick, format!("{tick:.decimals$}")))
+                            .collect()
+                    });
+            canvas.add_line(
+                left,
+                top,
+                left,
+                top + panel_height,
+                theme.axis_colour,
+                theme.axis_width,
+            );
+            for (tick, label) in ticks {
+                let y = y_scale.map(tick);
+                canvas.add_line(left - 4.0, y, left, y, theme.axis_colour, theme.axis_width);
+                canvas.add_text(left - 6.0, y + 3.0, &label, "end", 9.5);
             }
         }
     }
 
-    canvas.draw_title(
-        opts.get("title")
-            .and_then(Value::as_str)
-            .unwrap_or("Faceted distribution"),
-    );
+    let title = opts
+        .get("title")
+        .and_then(Value::as_str)
+        .unwrap_or("Faceted distribution");
+    if !title.is_empty() {
+        canvas.draw_title(title);
+    }
     let x_label = opts
         .get("x_label")
         .and_then(Value::as_str)
@@ -5498,10 +6669,12 @@ fn facet_plot(args: Vec<Value>) -> Result<Value> {
     let centre_y = canvas.margin.top + canvas.plot_height() / 2.0;
     canvas.add_axis_title(centre_x, height - 40.0, x_label, "x", None);
     canvas.add_axis_title(20.0, centre_y, y_label, "y", Some(-90.0));
-    canvas.draw_caption(&format!(
-        "{observations} observations in {} panels; {excluded} excluded; scales: {scales}.",
-        panels.len()
-    ));
+    if opts.get("note").and_then(Value::as_bool).unwrap_or(true) {
+        canvas.draw_caption(&format!(
+            "{observations} observations in {} panels; {excluded} excluded; scales: {scales}.",
+            panels.len()
+        ));
+    }
     Ok(text(canvas.render()))
 }
 
@@ -5591,7 +6764,13 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         }
         None => None,
     };
-    let groups = grouped_values(&args[0], &args[1], "stats_group_plot", missing_label)?;
+    let mut groups = grouped_values(&args[0], &args[1], "stats_group_plot", missing_label)?;
+    let y_axis_scale = diagnostic_axis_scale(&opts, "y", "stats_group_plot")?;
+    for (_, values) in &mut groups {
+        for value in values {
+            *value = y_axis_scale.transform(*value, "stats_group_plot", "y")?;
+        }
+    }
     let all = groups
         .iter()
         .flat_map(|(_, values)| values.iter().copied())
@@ -5665,6 +6844,7 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         domain: y_domain,
         range: (height - 70.0, 45.0),
     };
+    let y_ticks = explicit_axis_ticks(&opts, "y", y_axis_scale, &y_scale, "stats_group_plot")?;
     let theme = crate::plot::stats_plot_theme(&opts);
     let mut canvas = SvgCanvas::with_theme(width, height, theme);
     canvas.margin.left = 70.0;
@@ -5698,6 +6878,20 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         }
     };
     let group_fills = fill_by_group.then(|| crate::plot::hue_palette(groups.len()));
+    let show_box = match opts.get("box") {
+        None | Some(Value::Bool(true)) => true,
+        Some(Value::Bool(false)) => false,
+        Some(other) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!(
+                    "stats_group_plot() option 'box' must be Bool, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
     let legend_enabled = match opts.get("legend") {
         None | Some(Value::Bool(true)) => fill_by_group,
         Some(Value::Bool(false)) => false,
@@ -5716,6 +6910,21 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         .get("legend_title")
         .and_then(Value::as_str)
         .unwrap_or("group");
+    let show_n = match opts.get("show_n") {
+        None | Some(Value::Bool(true)) => true,
+        Some(Value::Bool(false)) => false,
+        Some(other) => {
+            return Err(BioLangError::runtime(
+                ErrorKind::TypeError,
+                format!(
+                    "stats_group_plot() option 'show_n' must be Bool, got {}",
+                    other.type_of()
+                ),
+                None,
+            ))
+        }
+    };
+    let x_label = opts.get("x_label").and_then(Value::as_str).unwrap_or("");
     if legend_enabled {
         let widest = groups
             .iter()
@@ -5742,47 +6951,123 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
             None,
         ));
     }
-    canvas.draw_categorical_grid(&y_scale);
+    let point_style = opts
+        .get("point_style")
+        .and_then(Value::as_str)
+        .unwrap_or("filled");
+    if !matches!(point_style, "filled" | "open") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!(
+                "stats_group_plot() option 'point_style' must be 'filled' or 'open', got '{point_style}'"
+            ),
+            None,
+        ));
+    }
+    let point_radius = opts
+        .get("point_radius")
+        .and_then(Value::as_float)
+        .unwrap_or(2.6)
+        .clamp(1.0, 12.0);
+    let y_grid_ticks = y_ticks
+        .as_ref()
+        .map(|ticks| {
+            ticks
+                .iter()
+                .map(|(position, _)| *position)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| y_scale.nice_ticks(5));
+    canvas.draw_categorical_grid_with_ticks(&y_scale, groups.len(), &y_grid_ticks);
+    if opts
+        .get("panel_border")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        canvas.draw_panel_border();
+    }
     let step = canvas.plot_width() / groups.len() as f64;
     for (group_index, (name, values)) in groups.iter().enumerate() {
         let x = canvas.margin.left + step * (group_index as f64 + 0.5);
         let geometry = box_geometry(name, values, "type7", 1.5);
-        canvas.add_line(
-            x,
-            y_scale.map(geometry.whisker_low),
-            x,
-            y_scale.map(geometry.whisker_high),
-            box_stroke,
-            box_width,
-        );
-        canvas.add_stroked_rect(
-            x - step * 0.22,
-            y_scale.map(geometry.q3),
-            step * 0.44,
-            (y_scale.map(geometry.q1) - y_scale.map(geometry.q3))
-                .abs()
-                .max(1.0),
-            group_fills
-                .as_ref()
-                .map(|fills| fills[group_index].as_str())
-                .unwrap_or(box_fill),
-            box_stroke,
-            box_width,
-        );
-        canvas.add_line(
-            x - step * 0.22,
-            y_scale.map(geometry.median),
-            x + step * 0.22,
-            y_scale.map(geometry.median),
-            box_stroke,
-            median_width,
-        );
+        if show_box {
+            canvas.add_line(
+                x,
+                y_scale.map(geometry.whisker_low),
+                x,
+                y_scale.map(geometry.whisker_high),
+                box_stroke,
+                box_width,
+            );
+            canvas.add_stroked_rect(
+                x - step * 0.22,
+                y_scale.map(geometry.q3),
+                step * 0.44,
+                (y_scale.map(geometry.q1) - y_scale.map(geometry.q3))
+                    .abs()
+                    .max(1.0),
+                group_fills
+                    .as_ref()
+                    .map(|fills| fills[group_index].as_str())
+                    .unwrap_or(box_fill),
+                box_stroke,
+                box_width,
+            );
+            canvas.add_line(
+                x - step * 0.22,
+                y_scale.map(geometry.median),
+                x + step * 0.22,
+                y_scale.map(geometry.median),
+                box_stroke,
+                median_width,
+            );
+        }
         match points_mode {
             // ggplot2 `geom_boxplot()` marks only the points beyond the
             // whiskers.
-            "outliers" => {
+            "outliers" if show_box => {
                 for (_, value) in &geometry.outliers {
-                    canvas.add_circle_with_opacity(x, y_scale.map(*value), 2.6, box_stroke, 1.0);
+                    if point_style == "open" {
+                        canvas.add_stroked_circle(
+                            x,
+                            y_scale.map(*value),
+                            point_radius,
+                            "#ffffff",
+                            box_stroke,
+                            1.0,
+                        );
+                    } else {
+                        canvas.add_circle_with_opacity(
+                            x,
+                            y_scale.map(*value),
+                            point_radius,
+                            box_stroke,
+                            1.0,
+                        );
+                    }
+                }
+            }
+            "outliers" => {
+                for (index, value) in values.iter().enumerate() {
+                    let jitter = (((index * 37) % 101) as f64 / 100.0 - 0.5) * step * 0.32;
+                    if point_style == "open" {
+                        canvas.add_stroked_circle(
+                            x + jitter,
+                            y_scale.map(*value),
+                            point_radius,
+                            "#ffffff",
+                            box_stroke,
+                            1.0,
+                        );
+                    } else {
+                        canvas.add_circle_with_opacity(
+                            x + jitter,
+                            y_scale.map(*value),
+                            point_radius,
+                            box_stroke,
+                            1.0,
+                        );
+                    }
                 }
             }
             "none" => {}
@@ -5790,30 +7075,70 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
                 let stride = values.len().div_ceil(1_000).max(1);
                 for (index, value) in values.iter().enumerate().step_by(stride) {
                     let jitter = (((index * 37) % 101) as f64 / 100.0 - 0.5) * step * 0.32;
-                    canvas.add_circle(x + jitter, y_scale.map(*value), 2.5, "#475569");
+                    if point_style == "open" {
+                        canvas.add_stroked_circle(
+                            x + jitter,
+                            y_scale.map(*value),
+                            point_radius,
+                            "#ffffff",
+                            box_stroke,
+                            1.0,
+                        );
+                    } else {
+                        canvas.add_circle(x + jitter, y_scale.map(*value), point_radius, "#475569");
+                    }
                 }
             }
         }
-        canvas.add_text(x, height - 42.0, name, "middle", 11.0);
         canvas.add_text(
             x,
-            height - 27.0,
-            &format!("n={}", values.len()),
+            if show_n { height - 42.0 } else { height - 30.0 },
+            name,
             "middle",
-            9.0,
+            11.0,
+        );
+        if show_n {
+            canvas.add_text(
+                x,
+                height - 27.0,
+                &format!("n={}", values.len()),
+                "middle",
+                9.0,
+            );
+        }
+    }
+    let y_label = opts
+        .get("y_label")
+        .and_then(Value::as_str)
+        .unwrap_or("value");
+    if let Some(ticks) = &y_ticks {
+        let rotation = opts
+            .get("y_tick_rotation")
+            .and_then(Value::as_float)
+            .unwrap_or(0.0)
+            .clamp(-90.0, 90.0);
+        canvas.draw_y_axis_with_ticks_rotated(&y_scale, ticks, y_label, rotation);
+    } else {
+        canvas.draw_y_axis(&y_scale, y_label);
+    }
+    let title = opts
+        .get("title")
+        .and_then(Value::as_str)
+        .unwrap_or("Grouped distribution diagnostic");
+    if opts.get("title_align").and_then(Value::as_str) == Some("center") {
+        canvas.draw_title_centered(title);
+    } else {
+        canvas.draw_title(title);
+    }
+    if !x_label.is_empty() {
+        canvas.add_text(
+            canvas.margin.left + canvas.plot_width() / 2.0,
+            height - 8.0,
+            x_label,
+            "middle",
+            11.0,
         );
     }
-    canvas.draw_y_axis(
-        &y_scale,
-        opts.get("y_label")
-            .and_then(Value::as_str)
-            .unwrap_or("value"),
-    );
-    canvas.draw_title(
-        opts.get("title")
-            .and_then(Value::as_str)
-            .unwrap_or("Grouped distribution diagnostic"),
-    );
     if legend_enabled {
         let legend_x = width - canvas.margin.right + 22.0;
         canvas.add_text(
@@ -5826,7 +7151,14 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         for (index, (name, _)) in groups.iter().enumerate() {
             let y = canvas.margin.top + 27.0 + 24.0 * index as f64;
             let colour = &group_fills.as_ref().expect("group legend requires fills")[index];
-            canvas.add_stroked_rect(legend_x, y - 10.0, 13.0, 13.0, colour, box_stroke, 0.8);
+            if show_box {
+                let middle = legend_x + 7.0;
+                canvas.add_line(middle, y - 13.0, middle, y + 7.0, box_stroke, 0.8);
+                canvas.add_stroked_rect(legend_x, y - 9.0, 14.0, 12.0, colour, box_stroke, 0.8);
+                canvas.add_line(legend_x, y - 3.0, legend_x + 14.0, y - 3.0, box_stroke, 1.2);
+            } else {
+                canvas.add_stroked_rect(legend_x, y - 10.0, 13.0, 13.0, colour, box_stroke, 0.8);
+            }
             canvas.add_text(legend_x + 21.0, y + 1.0, name, "start", theme.legend_size);
         }
     }

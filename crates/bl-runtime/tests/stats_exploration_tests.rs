@@ -23,6 +23,20 @@ fn strings(values: &[&str]) -> Value {
     )
 }
 
+fn numeric_table(columns: &[(&str, &[f64])]) -> Value {
+    let names = columns.iter().map(|(name, _)| (*name).into()).collect();
+    let row_count = columns.first().map(|(_, values)| values.len()).unwrap_or(0);
+    let rows = (0..row_count)
+        .map(|row| {
+            columns
+                .iter()
+                .map(|(_, values)| Value::Float(values[row]))
+                .collect()
+        })
+        .collect();
+    Value::Table(Table::new(names, rows))
+}
+
 fn field<'a>(value: &'a Value, name: &str) -> &'a Value {
     let Value::Record(record) = value else {
         panic!("expected Record, got {value:?}");
@@ -481,6 +495,34 @@ fn diagnostic_visuals_have_ascii_and_svg_paths() {
     assert!(
         matches!(relationship_band, Value::Str(ref svg) if svg.contains("<polygon") && svg.contains("prediction band"))
     );
+    let relationship_points_only = call_stats_builtin(
+        "stats_relationship_plot",
+        vec![
+            numbers(&[1.0, 2.0, 3.0, 4.0]),
+            numbers(&[2.1, 3.9, 6.2, 7.8]),
+            Value::Record(HashMap::from([("fit".into(), Value::Bool(false))]).into()),
+        ],
+    )
+    .unwrap();
+    assert!(matches!(relationship_points_only, Value::Str(ref svg)
+        if svg.contains("Points only; no fitted model is drawn")
+            && !svg.contains("Line: least-squares fit")));
+    let points_only_interval = call_stats_builtin(
+        "stats_relationship_plot",
+        vec![
+            numbers(&[1.0, 2.0, 3.0, 4.0]),
+            numbers(&[2.1, 3.9, 6.2, 7.8]),
+            Value::Record(
+                HashMap::from([
+                    ("fit".into(), Value::Bool(false)),
+                    ("interval".into(), Value::Str("confidence".into())),
+                ])
+                .into(),
+            ),
+        ],
+    );
+    assert!(matches!(points_only_interval, Err(ref error)
+        if error.to_string().contains("interval bands require fit: true")));
     let grouped_relationship = call_stats_builtin(
         "stats_relationship_plot",
         vec![
@@ -532,6 +574,25 @@ fn diagnostic_visuals_have_ascii_and_svg_paths() {
             && svg.contains("#00bfc4")
             && svg.contains("no fitted model is drawn")
             && !svg.contains("group least-squares fits")));
+    let pinned_group_palette = call_stats_builtin(
+        "stats_relationship_plot",
+        vec![
+            numbers(&[1.0, 2.0, 3.0]),
+            numbers(&[1.0, 4.0, 9.0]),
+            Value::Record(
+                HashMap::from([
+                    ("group".into(), strings(&["NA", "TRUE", "FALSE"])),
+                    ("fit".into(), Value::Bool(false)),
+                    ("group_order".into(), strings(&["FALSE", "TRUE", "NA"])),
+                    ("colors".into(), strings(&["#F8766D", "#00BFC4", "#999999"])),
+                ])
+                .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    assert!(matches!(pinned_group_palette, Value::Str(ref svg)
+        if svg.contains("#F8766D") && svg.contains("#00BFC4") && svg.contains("#999999")));
     let grouped_sized_points = call_stats_builtin(
         "stats_relationship_plot",
         vec![
@@ -574,6 +635,26 @@ fn diagnostic_visuals_have_ascii_and_svg_paths() {
     )
     .unwrap();
     assert!(matches!(group_svg, Value::Str(ref svg) if svg.starts_with("<svg")));
+    let source_box_svg = call_stats_builtin(
+        "stats_group_plot",
+        vec![
+            numbers(&[1.0, 2.0, 4.0, 5.0]),
+            strings(&["a", "a", "b", "b"]),
+            Value::Record(
+                HashMap::from([
+                    ("theme".into(), Value::Str("ggplot".into())),
+                    ("fill".into(), Value::Str("group".into())),
+                    ("show_n".into(), Value::Bool(false)),
+                    ("x_label".into(), Value::Str("dataset".into())),
+                    ("title".into(), Value::Str("".into())),
+                ])
+                .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    assert!(matches!(source_box_svg, Value::Str(ref svg)
+        if svg.contains(">dataset</text>") && !svg.contains("n=2")));
     let missing_group_svg = call_stats_builtin(
         "stats_group_plot",
         vec![
@@ -607,6 +688,73 @@ fn diagnostic_visuals_have_ascii_and_svg_paths() {
             && svg.matches("fill=\"#ffffff\" stroke=\"#333333\" stroke-width=\"1.42\"").count() == 4));
     let alias = call_stats_builtin("normal_qq_plot", vec![numbers(&[1.0, 2.0, 3.0, 4.0])]).unwrap();
     assert!(matches!(alias, Value::Str(ref svg) if svg.starts_with("<svg")));
+}
+
+#[test]
+fn scatterplot_matrix_supports_square_boxed_panels_and_parameterized_spacing() {
+    let data = numeric_table(&[
+        ("V2", &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]),
+        ("V3", &[1.1, 1.8, 3.4, 3.7, 5.5, 5.6, 7.2, 7.8]),
+        ("V4", &[8.0, 6.7, 6.1, 5.2, 3.9, 3.2, 2.0, 1.3]),
+    ]);
+    let ordinary = call_stats_builtin(
+        "scatterplot_matrix",
+        vec![
+            data.clone(),
+            Value::Record(HashMap::from([("title".into(), Value::Str("".into()))]).into()),
+        ],
+    )
+    .unwrap();
+    let Value::Str(ordinary) = ordinary else {
+        panic!("matrix should be an SVG String");
+    };
+    assert!(ordinary.contains(r#"width="616" height="496""#));
+    assert!(!ordinary.contains(r##"fill="none" stroke="#000000" stroke-width="1.00""##));
+
+    let ticks = Value::Record(
+        HashMap::from([(
+            "V2".into(),
+            Value::List((1..=8).map(Value::Int).collect::<Vec<_>>().into()),
+        )])
+        .into(),
+    );
+    let boxed = call_stats_builtin(
+        "scatterplot_matrix",
+        vec![
+            data,
+            Value::Record(
+                HashMap::from([
+                    ("title".into(), Value::Str("".into())),
+                    ("boxed_panels".into(), Value::Bool(true)),
+                    ("panel_size".into(), Value::Float(100.0)),
+                    ("margin".into(), Value::Float(30.0)),
+                    ("panel_gap".into(), Value::Float(10.0)),
+                    ("padding".into(), Value::Float(7.0)),
+                    ("ticks".into(), ticks),
+                ])
+                .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    let Value::Str(boxed) = boxed else {
+        panic!("matrix should be an SVG String");
+    };
+    assert!(boxed.contains(r#"width="380" height="380""#));
+    assert!(boxed.contains(r#"x="140.0" y="30.0" width="100.0" height="100.0""#));
+    assert!(
+        boxed.contains(r##"<circle cx="150.2" cy="119.8" r="1.7" fill="none" stroke="#000000""##)
+    );
+    assert_eq!(
+        boxed
+            .matches(r##"fill="none" stroke="#000000" stroke-width="1.00""##)
+            .count(),
+        9
+    );
+    assert!(boxed.contains("#00CD00"));
+    assert!(boxed.contains("#FF0000"));
+    assert!(boxed.contains("stroke-dasharray"));
+    assert!(boxed.contains(">1</text>") && boxed.contains(">8</text>"));
 }
 
 #[test]
@@ -1576,4 +1724,79 @@ fn a_facet_reports_its_panels_and_rejects_a_bad_scale() {
         format!("{error}").contains("scales"),
         "error should name the option: {error}"
     );
+}
+
+#[test]
+fn facet_histogram_can_reproduce_ldahist_density_panels() {
+    let options = Value::Record(
+        HashMap::from([
+            ("histogram_scale".into(), Value::Str("density".into())),
+            ("bin_width".into(), Value::Float(0.5)),
+            ("bin_origin".into(), Value::Float(-0.0005)),
+            ("columns".into(), Value::Int(1)),
+            ("strip_position".into(), Value::Str("below".into())),
+            ("strip_prefix".into(), Value::Str("group ".into())),
+            ("strip_band".into(), Value::Bool(false)),
+            ("axes".into(), Value::Str("all".into())),
+            ("bar_fill".into(), Value::Str("#00FFFF".into())),
+            ("bar_stroke".into(), Value::Str("#000000".into())),
+            ("y_breaks".into(), numbers(&[0.0, 0.2, 0.4])),
+            ("y_labels".into(), strings(&["0.0", "0.2", "0.4"])),
+            ("title".into(), Value::Str(String::new())),
+            ("note".into(), Value::Bool(false)),
+        ])
+        .into(),
+    );
+    let result = call_stats_builtin(
+        "stats_facet_plot",
+        vec![
+            numbers(&[-1.1, -0.8, -0.2, 0.4, 0.9, 1.3]),
+            strings(&["1", "1", "2", "2", "3", "3"]),
+            options,
+        ],
+    )
+    .expect("source-style histogram failed");
+    let Value::Str(svg) = result else {
+        panic!("expected SVG string")
+    };
+    assert!(svg.contains("group 1") && svg.contains("group 2") && svg.contains("group 3"));
+    assert!(svg.contains("fill=\"#00FFFF\" stroke=\"#000000\""));
+    assert!(svg.contains(">0.0</text>") && svg.contains(">0.4</text>"));
+    assert!(!svg.contains("fill=\"#d5d5d5\""));
+}
+
+#[test]
+fn grouped_relationship_can_draw_open_points_with_right_hand_labels() {
+    let options = Value::Record(
+        HashMap::from([
+            ("group".into(), strings(&["1", "2", "3"])),
+            ("labels".into(), strings(&["1", "2", "3"])),
+            ("fit".into(), Value::Bool(false)),
+            ("legend".into(), Value::Bool(false)),
+            ("note".into(), Value::Bool(false)),
+            ("point_style".into(), Value::Str("open".into())),
+            ("point_color".into(), Value::Str("#000000".into())),
+            ("label_color".into(), Value::Str("#FF0000".into())),
+            ("title".into(), Value::Str(String::new())),
+        ])
+        .into(),
+    );
+    let result = call_stats_builtin(
+        "stats_relationship_plot",
+        vec![
+            numbers(&[-1.0, 0.0, 1.0]),
+            numbers(&[1.0, 0.0, -1.0]),
+            options,
+        ],
+    )
+    .expect("labelled relationship plot failed");
+    let Value::Str(svg) = result else {
+        panic!("expected SVG string")
+    };
+    assert_eq!(
+        svg.matches("fill=\"#FFFFFF\" stroke=\"#000000\"").count(),
+        3
+    );
+    assert_eq!(svg.matches("fill=\"#FF0000\"").count(), 3);
+    assert!(!svg.contains(">group</text>") && !svg.contains("Relationship by group"));
 }
