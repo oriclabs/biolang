@@ -2606,6 +2606,24 @@ pub(super) fn builtin_alignment_view(args: Vec<Value>) -> Result<Value> {
         }
     }
 
+    // Clustal-style amino-acid groups: residues with similar chemical
+    // properties share a colour, making conserved substitutions easier to
+    // distinguish than an undifferentiated grey fallback.
+    fn protein_color(ch: char) -> &'static str {
+        match ch.to_ascii_uppercase() {
+            'A' | 'I' | 'L' | 'M' | 'F' | 'W' | 'V' => "#80A0F0",
+            'K' | 'R' => "#F01505",
+            'E' | 'D' => "#C048C0",
+            'N' | 'Q' | 'S' | 'T' => "#15C015",
+            'C' => "#F08080",
+            'G' => "#F09048",
+            'P' => "#C0C000",
+            'H' | 'Y' => "#15A4A4",
+            '-' => "#FFFFFF",
+            _ => "#CCCCCC",
+        }
+    }
+
     fn conservation_color(score: f64) -> String {
         let t = score.clamp(0.0, 1.0);
         let r = (255.0 * (1.0 - t * 0.7)) as u8;
@@ -2647,10 +2665,10 @@ pub(super) fn builtin_alignment_view(args: Vec<Value>) -> Result<Value> {
                 let pos = start + di;
                 let ch = seq.chars().nth(pos).unwrap_or('-');
                 let x = c.margin.left + di as f64 * actual_cell_w;
-                let fill = if color_by == "conservation" {
-                    conservation_color(conservation[di])
-                } else {
-                    nuc_color(ch).to_string()
+                let fill = match color_by.as_str() {
+                    "conservation" => conservation_color(conservation[di]),
+                    "protein" | "amino_acid" => protein_color(ch).to_string(),
+                    _ => nuc_color(ch).to_string(),
                 };
                 c.elements.push(format!(
                     r#"<rect x="{x:.1}" y="{y:.1}" width="{actual_cell_w:.1}" height="{:.1}" fill="{fill}" opacity="0.6" />"#,

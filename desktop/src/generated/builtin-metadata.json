@@ -10984,6 +10984,23 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "nexus_tree",
+      "signature": "nexus_tree(arg1)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "parameters": [
+        "arg1"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 1,
+        "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
       "name": "nf_parse",
       "signature": "nf_parse(arg1)",
       "category": "runtime",
@@ -15368,6 +15385,24 @@
       "metadataQuality": "curated"
     },
     {
+      "name": "scatterplot_matrix",
+      "signature": "scatterplot_matrix(table, options?) → Str",
+      "category": "stats",
+      "summary": "Shared-scale scatterplot matrix with diagonal densities, optional boxed panels, and parameterized margin, panel gap, and padding.",
+      "parameters": [
+        "table",
+        "options?"
+      ],
+      "returnType": "Str",
+      "example": "scatterplot_matrix(table, {boxed_panels: true, panel_gap: 8, margin: 45, padding: 5})",
+      "arity": {
+        "kind": "range",
+        "minimum": 1,
+        "maximum": 2
+      },
+      "metadataQuality": "curated"
+    },
+    {
       "name": "score_matrix",
       "signature": "score_matrix(arg1)",
       "category": "runtime",
@@ -18500,6 +18535,24 @@
         "kind": "exact",
         "minimum": 1,
         "maximum": 1
+      },
+      "metadataQuality": "runtime"
+    },
+    {
+      "name": "tree_mrca",
+      "signature": "tree_mrca(arg1, arg2)",
+      "category": "runtime",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "parameters": [
+        "arg1",
+        "arg2"
+      ],
+      "returnType": null,
+      "example": null,
+      "arity": {
+        "kind": "exact",
+        "minimum": 2,
+        "maximum": 2
       },
       "metadataQuality": "runtime"
     },

@@ -821,6 +821,127 @@ fn hierarchical_heatmap_validates_options_and_ward_distance() {
 }
 
 #[test]
+fn hierarchical_heatmap_supports_pearson_distance_for_expression_profiles() {
+    let matrix = Value::Matrix(
+        Matrix {
+            data: vec![1.0, 2.0, 3.0, 2.0, 4.0, 6.0, 3.0, 2.0, 1.0],
+            nrow: 3,
+            ncol: 3,
+            row_names: Some(vec!["same-a".into(), "same-b".into(), "opposite".into()]),
+            col_names: Some(vec!["s1".into(), "s2".into(), "s3".into()]),
+        }
+        .into(),
+    );
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("order", Value::Str("hierarchical".into())),
+        ("distance", Value::Str("pearson".into())),
+        ("linkage", Value::Str("complete".into())),
+        ("dendrogram", Value::Str("row".into())),
+    ]);
+    let Value::Str(svg) = call_bio_plots_builtin("clustered_heatmap", vec![matrix, opts]).unwrap()
+    else {
+        panic!("expected SVG")
+    };
+    assert!(svg.contains("data-distance=\"pearson\""));
+    assert!(svg.contains("data-row-heights=\"0.000000000000,2.000000000000\""));
+}
+
+#[test]
+fn hierarchical_heatmap_can_pin_leaf_orientation_and_annotate_columns() {
+    let matrix = Value::Matrix(
+        Matrix {
+            data: vec![1.0, 2.0, 3.0, 3.0, 2.0, 1.0],
+            nrow: 2,
+            ncol: 3,
+            row_names: Some(vec!["gene-a".into(), "gene-b".into()]),
+            col_names: Some(vec![
+                "sample-a".into(),
+                "sample-b".into(),
+                "sample-c".into(),
+            ]),
+        }
+        .into(),
+    );
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("theme", Value::Str("publication".into())),
+        ("order", Value::Str("hierarchical".into())),
+        ("dendrogram", Value::Str("both".into())),
+        (
+            "row_order",
+            Value::List(vec![Value::Str("gene-a".into()), Value::Str("gene-b".into())].into()),
+        ),
+        (
+            "column_order",
+            Value::List(
+                vec![
+                    Value::Str("sample-a".into()),
+                    Value::Str("sample-b".into()),
+                    Value::Str("sample-c".into()),
+                ]
+                .into(),
+            ),
+        ),
+        (
+            "column_annotations",
+            Value::Record(
+                HashMap::from([(
+                    "condition".into(),
+                    Value::List(
+                        vec![
+                            Value::Str("control".into()),
+                            Value::Str("treated".into()),
+                            Value::Str("treated".into()),
+                        ]
+                        .into(),
+                    ),
+                )])
+                .into(),
+            ),
+        ),
+        (
+            "annotation_colors",
+            Value::Record(
+                HashMap::from([(
+                    "condition".into(),
+                    Value::Record(
+                        HashMap::from([
+                            ("control".into(), Value::Str("#9999FF".into())),
+                            ("treated".into(), Value::Str("#FF66FF".into())),
+                        ])
+                        .into(),
+                    ),
+                )])
+                .into(),
+            ),
+        ),
+        ("row_labels_side", Value::Str("right".into())),
+        ("row_dendrogram_width", Value::Float(58.0)),
+        ("column_dendrogram_height", Value::Float(65.0)),
+        ("annotation_row_height", Value::Float(10.0)),
+        ("annotation_gap", Value::Float(3.0)),
+        ("dendrogram_gap", Value::Float(3.0)),
+        ("top_padding", Value::Float(0.0)),
+    ]);
+    let Value::Str(svg) = call_bio_plots_builtin("clustered_heatmap", vec![matrix, opts]).unwrap()
+    else {
+        panic!("expected SVG")
+    };
+    assert!(svg.contains("data-row-order=\"0,1\""));
+    assert!(svg.contains("data-column-order=\"0,1,2\""));
+    assert!(svg.contains("data-biolang-column-annotations=\"condition\""));
+    assert!(svg.contains("#9999FF") && svg.contains("#FF66FF"));
+    assert!(svg.contains(">condition</text>"));
+    assert!(
+        svg.matches("<line ").count() >= 9,
+        "both trees should remain visible"
+    );
+    let row_label = svg.find(">gene-a</text>").expect("row label");
+    assert!(svg[row_label.saturating_sub(180)..row_label].contains("text-anchor=\"start\""));
+}
+
+#[test]
 fn hierarchical_heatmap_survives_notebook_and_journal_widths() {
     for width in [321_i64, 680, 800] {
         let matrix = Value::Matrix(
@@ -970,6 +1091,79 @@ fn test_pca_plot_svg() {
     );
     let r = call_bio_plots_builtin("pca_plot", vec![t, publication_svg_opts()]).unwrap();
     assert_publication_svg(&r);
+}
+
+#[test]
+fn pca_plot_can_render_pinned_precomputed_scores_with_ggplot_colours() {
+    let table = make_table(
+        vec!["sample", "dex", "PC1", "PC2"],
+        vec![
+            vec![
+                Value::Str("S1".into()),
+                Value::Str("control".into()),
+                Value::Float(-2.0),
+                Value::Float(1.0),
+            ],
+            vec![
+                Value::Str("S2".into()),
+                Value::Str("treated".into()),
+                Value::Float(2.0),
+                Value::Float(-1.0),
+            ],
+        ],
+    );
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("precomputed", Value::Bool(true)),
+        ("group_col", Value::Str("dex".into())),
+        ("palette", Value::Str("ggplot".into())),
+        ("legend_title", Value::Str("group".into())),
+        ("pc1_variance_percent", Value::Float(32.0)),
+        ("pc2_variance_percent", Value::Float(24.0)),
+        ("x_label", Value::Str("PC1: 32% variance".into())),
+        ("y_label", Value::Str("PC2: 24% variance".into())),
+    ]);
+    let Value::Str(svg) = call_bio_plots_builtin("pca_plot", vec![table, opts]).unwrap() else {
+        panic!("expected SVG")
+    };
+    assert!(svg.contains("#f8766d"));
+    assert!(svg.contains("#00bfc4"));
+    assert!(svg.contains("PC1: 32% variance"));
+    assert!(svg.contains("PC2: 24% variance"));
+    assert!(svg.contains(">group</text>"));
+}
+
+#[test]
+fn pca_plot_can_reproduce_the_white_gridded_plotpca_panel() {
+    let table = make_table(
+        vec!["sample", "dex", "PC1", "PC2"],
+        vec![
+            vec![
+                Value::Str("S1".into()),
+                Value::Str("control".into()),
+                Value::Float(-2.0),
+                Value::Float(1.0),
+            ],
+            vec![
+                Value::Str("S2".into()),
+                Value::Str("treated".into()),
+                Value::Float(2.0),
+                Value::Float(-1.0),
+            ],
+        ],
+    );
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("precomputed", Value::Bool(true)),
+        ("group_col", Value::Str("dex".into())),
+        ("theme", Value::Str("publication".into())),
+        ("panel_border", Value::Bool(true)),
+    ]);
+    let Value::Str(svg) = call_bio_plots_builtin("pca_plot", vec![table, opts]).unwrap() else {
+        panic!("expected SVG")
+    };
+    assert!(svg.matches("stroke=\"#e5e7eb\"").count() >= 4);
+    assert!(svg.contains("fill=\"none\" stroke=\"#303238\""));
 }
 
 #[test]
@@ -1268,9 +1462,233 @@ fn test_phylo_tree_svg() {
 }
 
 #[test]
+fn phylo_tree_rectangular_connectors_join_immediate_children() {
+    let newick = Value::Str("((A:1,B:1):1,(C:1,D:1):1);".into());
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("theme", Value::Str("publication".into())),
+        ("title", Value::Str("".into())),
+        ("width", Value::Int(400)),
+        ("height", Value::Int(400)),
+        ("show_tip_labels", Value::Bool(false)),
+        ("show_tip_points", Value::Bool(false)),
+    ]);
+    let Value::Str(svg) = call_bio_plots_builtin("phylo_tree", vec![newick, opts]).unwrap() else {
+        panic!("expected SVG")
+    };
+
+    // The root joins the two child-node centres (111 and 289), not the
+    // descendant-tip extrema (66.5 and 333.5).
+    assert!(svg.contains(r##"<line x1="30.0" y1="111.0" x2="30.0" y2="289.0" stroke="#111111""##));
+    assert!(!svg.contains(r#"x1="30.0" y1="66.5" x2="30.0" y2="333.5""#));
+}
+
+#[test]
+fn phylo_tree_uses_ggtree_dotted_line_rhythm() {
+    let newick = Value::Str("(A:1,B:1);".into());
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("line_type", Value::Str("3".into())),
+        ("line_width", Value::Float(2.0)),
+    ]);
+    let Value::Str(svg) = call_bio_plots_builtin("phylo_tree", vec![newick, opts]).unwrap() else {
+        panic!("expected SVG")
+    };
+    assert!(svg.contains(r#"stroke-dasharray="2.0,6.0""#));
+}
+
+#[test]
 fn test_phylo_tree_wrong_type() {
     let r = call_bio_plots_builtin("phylo_tree", vec![Value::Int(0)]);
     assert!(r.is_err());
+}
+
+#[test]
+fn phylo_tree_reproduces_ggtree_numbering_annotations_and_aesthetics() {
+    let newick = Value::Str(
+        "(((((((A:4,B:4):6,C:5):8,D:6):3,E:21):10,((F:4,G:12):14,H:8):13):13,((I:5,J:2):30,(K:11,L:11):2):17):4,M:56);".into(),
+    );
+    let record = |values: Vec<(&str, Value)>| {
+        Value::Record(
+            values
+                .into_iter()
+                .map(|(key, value)| (key.to_string(), value))
+                .collect::<HashMap<_, _>>()
+                .into(),
+        )
+    };
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("theme", Value::Str("publication".into())),
+        ("show_tip_labels", Value::Bool(true)),
+        ("show_tip_points", Value::Bool(true)),
+        ("show_node_points", Value::Bool(true)),
+        ("show_node_labels", Value::Bool(true)),
+        ("scale_axis", Value::Bool(true)),
+        ("tip_shape", Value::Str("diamond".into())),
+        ("tip_color", Value::Str("#9932CC".into())),
+        ("tip_label_color", Value::Str("#9932CC".into())),
+        (
+            "tip_order",
+            Value::List(
+                [
+                    "B", "A", "C", "D", "E", "G", "F", "H", "L", "K", "J", "I", "M",
+                ]
+                .into_iter()
+                .map(|value| Value::Str(value.into()))
+                .collect::<Vec<_>>()
+                .into(),
+            ),
+        ),
+        (
+            "clade_highlights",
+            Value::List(
+                vec![record(vec![
+                    ("node", Value::Int(19)),
+                    ("fill", Value::Str("#3333CC".into())),
+                ])]
+                .into(),
+            ),
+        ),
+        (
+            "clade_labels",
+            Value::List(
+                vec![record(vec![
+                    ("node", Value::Int(17)),
+                    ("label", Value::Str("Superclade 17".into())),
+                    ("color", Value::Str("#CC2200".into())),
+                ])]
+                .into(),
+            ),
+        ),
+        (
+            "taxa_links",
+            Value::List(
+                vec![record(vec![
+                    ("from", Value::Str("C".into())),
+                    ("to", Value::Str("E".into())),
+                    ("dashed", Value::Bool(true)),
+                ])]
+                .into(),
+            ),
+        ),
+    ]);
+    let Value::Str(svg) = call_bio_plots_builtin("phylo_tree", vec![newick, opts]).unwrap() else {
+        panic!("expected SVG")
+    };
+    assert!(svg.contains("data-clade-node=\"19\""));
+    assert!(svg.contains("data-taxa-link=\"C,E\""));
+    assert!(svg.contains("stroke-dasharray=\"5,5\""));
+    assert!(svg.contains(">Superclade 17</text>"));
+    assert!(svg.contains(">17</text>") && svg.contains(">21</text>"));
+    assert!(svg.contains("#9932CC"));
+    assert!(svg.contains(">B</text>") && svg.contains(">M</text>"));
+}
+
+#[test]
+fn phylo_tree_supports_slanted_circular_and_faceted_layouts() {
+    let newick = Value::Str("((A:1,B:1):1,(C:1,D:1):1);".into());
+    for layout in ["slanted", "circular"] {
+        let opts = make_opts(vec![
+            ("format", Value::Str("svg".into())),
+            ("layout", Value::Str(layout.into())),
+            ("branch_length", Value::Str("none".into())),
+            ("show_tip_labels", Value::Bool(false)),
+            ("line_color", Value::Str("red".into())),
+        ]);
+        let Value::Str(svg) =
+            call_bio_plots_builtin("phylo_tree", vec![newick.clone(), opts]).unwrap()
+        else {
+            panic!("expected SVG")
+        };
+        assert!(svg.contains("stroke=\"red\""));
+        assert!(svg.contains(&format!("in {layout} layout")));
+    }
+
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("columns", Value::Int(2)),
+        ("title", Value::Str("Many trees".into())),
+    ]);
+    let Value::Str(svg) = call_bio_plots_builtin(
+        "phylo_tree",
+        vec![Value::List(vec![newick.clone(), newick].into()), opts],
+    )
+    .unwrap() else {
+        panic!("expected SVG")
+    };
+    assert!(svg.contains(">Tree #1</text>") && svg.contains(">Tree #2</text>"));
+
+    // ggtree's multiPhylo facets number tips from the bottom upward.  Keep
+    // that orientation separate from the labelled single-tree renderer,
+    // whose explicit tip_order is read from top to bottom.
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("columns", Value::Int(1)),
+        ("title", Value::Str("Faceted tree".into())),
+        ("width", Value::Float(600.0)),
+        ("height", Value::Float(400.0)),
+    ]);
+    let Value::Str(svg) = call_bio_plots_builtin(
+        "phylo_tree",
+        vec![
+            Value::List(vec![Value::Str("(A:1,B:3);".into())].into()),
+            opts,
+        ],
+    )
+    .unwrap() else {
+        panic!("expected SVG")
+    };
+    assert!(
+        svg.contains(r#"x1="20.5" y1="303.8" x2="207.9" y2="303.8""#),
+        "the first traversed tip must occupy the lower faceted-tree row"
+    );
+}
+
+#[test]
+fn phylo_tree_rejects_incomplete_tip_order() {
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        (
+            "tip_order",
+            Value::List(vec![Value::Str("A".into())].into()),
+        ),
+    ]);
+    let error = call_bio_plots_builtin("phylo_tree", vec![Value::Str("(A:1,B:1);".into()), opts])
+        .unwrap_err();
+    assert!(error.to_string().contains("tip_order must name every leaf"));
+}
+
+#[test]
+fn alignment_view_supports_clustal_style_protein_colours() {
+    let alignment = make_table(
+        vec!["id", "seq"],
+        vec![
+            vec![Value::Str("one".into()), Value::Str("AKDEC".into())],
+            vec![Value::Str("two".into()), Value::Str("AKDEC".into())],
+        ],
+    );
+    let opts = make_opts(vec![
+        ("format", Value::Str("svg".into())),
+        ("color_by", Value::Str("protein".into())),
+    ]);
+    let Value::Str(svg) = call_bio_plots_builtin("alignment_view", vec![alignment, opts]).unwrap()
+    else {
+        panic!("alignment_view should return SVG");
+    };
+    assert!(
+        svg.contains("#80A0F0"),
+        "hydrophobic residues need a protein colour"
+    );
+    assert!(
+        svg.contains("#F01505"),
+        "positive residues need a protein colour"
+    );
+    assert!(
+        svg.contains("#C048C0"),
+        "negative residues need a protein colour"
+    );
+    assert!(svg.contains("#F08080"), "cysteine needs a protein colour");
 }
 
 // ── 18. lollipop ────────────────────────────────────────────────

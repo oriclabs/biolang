@@ -61,12 +61,61 @@ pub(super) fn render_pca_scores_svg(
     pct2: f64,
     opts: &HashMap<String, Value>,
 ) -> Result<String> {
-    let xr = col_range(pc1);
-    let yr = col_range(pc2);
+    // ggplot2 continuous scales expand five percent on either side. Besides
+    // matching plotPCA(), this keeps point labels away from the panel border.
+    let expand = |domain: (f64, f64)| {
+        let span = (domain.1 - domain.0).abs();
+        let padding = if span <= f64::EPSILON {
+            domain.0.abs().max(1.0) * 0.05
+        } else {
+            span * 0.05
+        };
+        (domain.0 - padding, domain.1 + padding)
+    };
+    let xr = expand(col_range(pc1));
+    let yr = expand(col_range(pc2));
     let w = get_opt_f64(opts, "width", 600.0);
     let h = get_opt_f64(opts, "height", 400.0);
     let title = get_opt_str(opts, "title", "PCA Plot").to_string();
     let mut canvas = themed_canvas(w, h, opts);
+    let finite_rows = (0..pc1.len().min(pc2.len()))
+        .filter(|&index| pc1[index].is_finite() && pc2[index].is_finite())
+        .collect::<Vec<_>>();
+    let mut colour_map: HashMap<String, usize> = HashMap::new();
+    let mut next_colour = 0;
+    if let Some(values) = labels {
+        for &index in &finite_rows {
+            if !colour_map.contains_key(&values[index]) {
+                colour_map.insert(values[index].clone(), next_colour);
+                next_colour += 1;
+            }
+        }
+    }
+    let colours = if get_opt_str(opts, "palette", "").eq_ignore_ascii_case("ggplot") {
+        hue_palette(next_colour.max(1))
+    } else {
+        (0..next_colour.max(1))
+            .map(|index| PALETTE[index % PALETTE.len()].to_string())
+            .collect::<Vec<_>>()
+    };
+    let mut legend_entries = Vec::new();
+    if let Some(values) = labels {
+        for &index in &finite_rows {
+            if !legend_entries.contains(&values[index]) {
+                legend_entries.push(values[index].clone());
+            }
+        }
+        let legend_title = get_opt_str(opts, "legend_title", "group");
+        let widest = legend_entries
+            .iter()
+            .map(|entry| estimate_text_width(entry, 10.0))
+            .chain(std::iter::once(estimate_text_width(legend_title, 10.0)))
+            .fold(0.0, f64::max);
+        canvas.margin.right = canvas
+            .margin
+            .right
+            .max((widest + 42.0).clamp(92.0, w * 0.28));
+    }
     let x_scale = Scale {
         domain: xr,
         range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
@@ -75,32 +124,24 @@ pub(super) fn render_pca_scores_svg(
         domain: yr,
         range: (canvas.margin.top + canvas.plot_height(), canvas.margin.top),
     };
-    let finite_rows = (0..pc1.len().min(pc2.len()))
-        .filter(|&index| pc1[index].is_finite() && pc2[index].is_finite())
-        .collect::<Vec<_>>();
-    let mut colour_map: HashMap<String, usize> = HashMap::new();
-    let mut next_colour = 0;
+    canvas.draw_cartesian_grid(&x_scale, &y_scale);
     let mut points: Vec<(f64, f64, &str)> = Vec::with_capacity(finite_rows.len());
     for &index in &finite_rows {
-        let colour_index = labels
-            .map(|values| {
-                let entry = colour_map.entry(values[index].clone()).or_insert_with(|| {
-                    let value = next_colour;
-                    next_colour += 1;
-                    value
-                });
-                *entry
-            })
-            .unwrap_or(0);
+        let colour_index = labels.map(|values| colour_map[&values[index]]).unwrap_or(0);
         points.push((
             x_scale.map(pc1[index]),
             y_scale.map(pc2[index]),
-            PALETTE[colour_index % PALETTE.len()],
+            colours[colour_index].as_str(),
         ));
     }
     let raster = raster_choice(opts, "pca_plot", finite_rows.len())?;
     let area = canvas.point_area();
-    canvas.add_scatter(&points, 4.0, area, raster);
+    canvas.add_scatter(
+        &points,
+        get_opt_f64(opts, "point_radius", 4.0).clamp(1.0, 12.0),
+        area,
+        raster,
+    );
     if let Some(names) = row_names {
         for &index in &finite_rows {
             canvas.add_text(
@@ -112,34 +153,53 @@ pub(super) fn render_pca_scores_svg(
             );
         }
     }
-    if let Some(values) = labels {
-        let mut seen: Vec<String> = Vec::new();
-        for &index in &finite_rows {
-            if !seen.contains(&values[index]) {
-                seen.push(values[index].clone());
-            }
-        }
-        for (index, name) in seen.iter().enumerate() {
-            let lx = canvas.margin.left + canvas.plot_width() - 80.0;
-            let ly = canvas.margin.top + 15.0 + index as f64 * 16.0;
-            canvas.add_circle(lx, ly, 4.0, PALETTE[index % PALETTE.len()]);
+    if labels.is_some() {
+        let lx = canvas.margin.left + canvas.plot_width() + 22.0;
+        let legend_title = get_opt_str(opts, "legend_title", "group");
+        canvas.add_text(
+            lx - 4.0,
+            canvas.margin.top + 8.0,
+            legend_title,
+            "start",
+            10.0,
+        );
+        for (index, name) in legend_entries.iter().enumerate() {
+            let ly = canvas.margin.top + 26.0 + index as f64 * 18.0;
+            canvas.add_circle(lx, ly, 4.0, &colours[index]);
             canvas.add_text(lx + 8.0, ly + 4.0, name, "start", 10.0);
         }
     }
+    let x_label = opts
+        .get("x_label")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .unwrap_or_else(|| format!("PC1 ({pct1:.1}%)"));
+    let y_label = opts
+        .get("y_label")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .unwrap_or_else(|| format!("PC2 ({pct2:.1}%)"));
     canvas.draw_x_axis(
         &Scale {
             domain: xr,
             range: xr,
         },
-        &format!("PC1 ({pct1:.1}%)"),
+        &x_label,
     );
     canvas.draw_y_axis(
         &Scale {
             domain: yr,
             range: yr,
         },
-        &format!("PC2 ({pct2:.1}%)"),
+        &y_label,
     );
+    if opts
+        .get("panel_border")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        canvas.draw_panel_border();
+    }
     canvas.draw_title(&title);
     canvas.draw_subtitle(get_opt_str(opts, "subtitle", ""));
     canvas.draw_caption(get_opt_str(opts, "caption", ""));
@@ -420,6 +480,66 @@ pub(super) fn builtin_pca_plot(args: Vec<Value>) -> Result<Value> {
             _ => None,
         })
         .unwrap_or(false);
+
+    if opts
+        .get("precomputed")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        let Value::Table(table) = &args[0] else {
+            return Err(BioLangError::type_error(
+                "pca_plot() precomputed scores require a Table",
+                None,
+            ));
+        };
+        let pc1_col = get_opt_str(&opts, "pc1_col", "PC1");
+        let pc2_col = get_opt_str(&opts, "pc2_col", "PC2");
+        let pc1 = extract_table_col(table, pc1_col)?;
+        let pc2 = extract_table_col(table, pc2_col)?;
+        let labels = if !group_col.is_empty() && table.col_index(&group_col).is_some() {
+            extract_str_col(table, &group_col).ok()
+        } else {
+            None
+        };
+        let row_names = if show_labels {
+            let label_col = get_opt_str(&opts, "label_col", "");
+            if label_col.is_empty() {
+                None
+            } else {
+                Some(extract_str_col(table, label_col)?)
+            }
+        } else {
+            None
+        };
+        let pct1 = get_opt_f64(&opts, "pc1_variance_percent", 0.0);
+        let pct2 = get_opt_f64(&opts, "pc2_variance_percent", 0.0);
+        if fmt == "svg" {
+            return render_pca_scores_svg(
+                &pc1,
+                &pc2,
+                labels.as_deref(),
+                row_names.as_deref(),
+                pct1,
+                pct2,
+                &opts,
+            )
+            .map(Value::Str);
+        }
+        let spec = pca_plot_spec_value(
+            &pc1,
+            &pc2,
+            labels.as_deref(),
+            row_names.as_deref(),
+            pct1,
+            pct2,
+            2,
+            &opts,
+        )?;
+        if matches!(fmt.as_str(), "spec" | "data") {
+            return Ok(spec);
+        }
+        return render_pca_plot_spec_value(&spec, &opts);
+    }
 
     // Extract numeric matrix and optional group labels
     let (data, nrow, ncol, labels, row_names) = match &args[0] {

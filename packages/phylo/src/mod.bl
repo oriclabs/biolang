@@ -17,8 +17,10 @@ import "phylo/src/diversity" as div
 
 fn load(path)                           { tree.load(path) }
 fn from_string(nw_str)                  { tree.from_string(nw_str) }
+fn from_nexus(nexus_text)                { tree.from_nexus(nexus_text) }
 fn leaves(t)                            { tree.leaves(t) }
 fn n_leaves(t)                          { tree.n_leaves(t) }
+fn mrca(t, taxa)                         { tree.mrca(t, taxa) }
 fn distance(t, a, b)                    { tree.distance(t, a, b) }
 fn distance_matrix(t)                   { tree.distance_matrix(t) }
 fn build_upgma(labels, dmat)            { tree.build_upgma(labels, dmat) }

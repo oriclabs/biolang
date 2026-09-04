@@ -5,6 +5,19 @@
 
 use super::*;
 
+fn green_black_red_color(t: f64) -> String {
+    let t = t.clamp(0.0, 1.0);
+    if t <= 1.0 / 3.0 {
+        let green = (255.0 * (1.0 - t * 3.0)).round() as u8;
+        format!("#00{green:02x}00")
+    } else if t < 2.0 / 3.0 {
+        "#000000".to_string()
+    } else {
+        let red = (255.0 * ((t - 2.0 / 3.0) * 3.0)).round() as u8;
+        format!("#{red:02x}0000")
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub(super) enum HeatmapLinkage {
     Complete,
@@ -44,6 +57,7 @@ impl HeatmapLinkage {
 pub(super) enum HeatmapDistance {
     Euclidean,
     Manhattan,
+    Pearson,
 }
 
 impl HeatmapDistance {
@@ -51,10 +65,11 @@ impl HeatmapDistance {
         match value.to_ascii_lowercase().as_str() {
             "euclidean" => Ok(Self::Euclidean),
             "manhattan" => Ok(Self::Manhattan),
+            "pearson" | "correlation" => Ok(Self::Pearson),
             _ => Err(BioLangError::runtime(
                 ErrorKind::TypeError,
                 format!(
-                    "clustered_heatmap() distance must be euclidean or manhattan; got '{value}'"
+                    "clustered_heatmap() distance must be euclidean, manhattan, or pearson; got '{value}'"
                 ),
                 None,
             )),
@@ -65,6 +80,7 @@ impl HeatmapDistance {
         match self {
             Self::Euclidean => "euclidean",
             Self::Manhattan => "manhattan",
+            Self::Pearson => "pearson",
         }
     }
 }
@@ -88,6 +104,35 @@ pub(super) fn heatmap_observation_distance(
     method: HeatmapDistance,
 ) -> Option<f64> {
     let dimensions = left.len().min(right.len());
+    if matches!(method, HeatmapDistance::Pearson) {
+        let pairs = left
+            .iter()
+            .zip(right.iter())
+            .filter_map(|(&x, &y)| (x.is_finite() && y.is_finite()).then_some((x, y)))
+            .collect::<Vec<_>>();
+        if pairs.len() < 2 {
+            return None;
+        }
+        let mean_left = pairs.iter().map(|(x, _)| x).sum::<f64>() / pairs.len() as f64;
+        let mean_right = pairs.iter().map(|(_, y)| y).sum::<f64>() / pairs.len() as f64;
+        let covariance = pairs
+            .iter()
+            .map(|(x, y)| (x - mean_left) * (y - mean_right))
+            .sum::<f64>();
+        let left_ss = pairs
+            .iter()
+            .map(|(x, _)| (x - mean_left).powi(2))
+            .sum::<f64>();
+        let right_ss = pairs
+            .iter()
+            .map(|(_, y)| (y - mean_right).powi(2))
+            .sum::<f64>();
+        let denominator = (left_ss * right_ss).sqrt();
+        if denominator <= f64::EPSILON {
+            return None;
+        }
+        return Some((1.0 - covariance / denominator).clamp(0.0, 2.0));
+    }
     let mut compared = 0usize;
     let mut total = 0.0;
     for (&x, &y) in left.iter().zip(right.iter()) {
@@ -96,6 +141,7 @@ pub(super) fn heatmap_observation_distance(
             total += match method {
                 HeatmapDistance::Euclidean => delta * delta,
                 HeatmapDistance::Manhattan => delta,
+                HeatmapDistance::Pearson => unreachable!("handled above"),
             };
             compared += 1;
         }
@@ -108,6 +154,7 @@ pub(super) fn heatmap_observation_distance(
     Some(match method {
         HeatmapDistance::Euclidean => scaled.sqrt(),
         HeatmapDistance::Manhattan => scaled,
+        HeatmapDistance::Pearson => unreachable!("handled above"),
     })
 }
 
@@ -369,6 +416,119 @@ pub(super) fn draw_column_dendrogram(
     }
 }
 
+#[derive(Clone, Debug)]
+struct HeatmapColumnAnnotation {
+    name: String,
+    values: Vec<String>,
+    levels: Vec<String>,
+    colours: Vec<String>,
+}
+
+fn heatmap_column_annotations(
+    opts: &HashMap<String, Value>,
+    ncols: usize,
+) -> Result<Vec<HeatmapColumnAnnotation>> {
+    let Some(Value::Record(annotation_values)) = opts.get("column_annotations") else {
+        return Ok(Vec::new());
+    };
+    let requested_order = match opts.get("annotation_order") {
+        Some(Value::List(items)) => items
+            .iter()
+            .map(|item| {
+                item.as_str().map(str::to_string).ok_or_else(|| {
+                    BioLangError::type_error(
+                        "clustered_heatmap() annotation_order must contain strings",
+                        None,
+                    )
+                })
+            })
+            .collect::<Result<Vec<_>>>()?,
+        Some(_) => {
+            return Err(BioLangError::type_error(
+                "clustered_heatmap() annotation_order must be a List",
+                None,
+            ))
+        }
+        None => {
+            let mut names = annotation_values.keys().cloned().collect::<Vec<_>>();
+            names.sort();
+            names
+        }
+    };
+    let colour_options = match opts.get("annotation_colors") {
+        Some(Value::Record(values)) => Some(values.as_ref()),
+        Some(_) => {
+            return Err(BioLangError::type_error(
+                "clustered_heatmap() annotation_colors must be a Record",
+                None,
+            ))
+        }
+        None => None,
+    };
+    let mut annotations = Vec::with_capacity(requested_order.len());
+    for name in requested_order {
+        let Some(Value::List(items)) = annotation_values.get(&name) else {
+            return Err(BioLangError::type_error(
+                format!("clustered_heatmap() column annotation '{name}' must be a List"),
+                None,
+            ));
+        };
+        if items.len() != ncols {
+            return Err(BioLangError::type_error(
+                format!(
+                    "clustered_heatmap() column annotation '{name}' has {} values for {ncols} columns",
+                    items.len()
+                ),
+                None,
+            ));
+        }
+        let values = items
+            .iter()
+            .map(|item| {
+                item.as_str().map(str::to_string).ok_or_else(|| {
+                    BioLangError::type_error(
+                        format!(
+                            "clustered_heatmap() column annotation '{name}' must contain strings"
+                        ),
+                        None,
+                    )
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let mut levels = Vec::new();
+        for value in &values {
+            if !levels.contains(value) {
+                levels.push(value.clone());
+            }
+        }
+        let configured = colour_options
+            .and_then(|root| root.get(&name))
+            .and_then(|value| match value {
+                Value::Record(values) => Some(values.as_ref()),
+                _ => None,
+            });
+        let fallback = hue_palette(levels.len().max(1));
+        let colours = levels
+            .iter()
+            .enumerate()
+            .map(|(index, level)| {
+                configured
+                    .and_then(|values| values.get(level))
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+                    .unwrap_or_else(|| fallback[index].clone())
+            })
+            .collect();
+        annotations.push(HeatmapColumnAnnotation {
+            name,
+            values,
+            levels,
+            colours,
+        });
+    }
+    Ok(annotations)
+}
+
 pub(super) fn hidden_heatmap_order(
     opts: &HashMap<String, Value>,
     key: &str,
@@ -401,6 +561,59 @@ pub(super) fn hidden_heatmap_order(
         return Err(BioLangError::runtime(
             ErrorKind::TypeError,
             format!("clustered_heatmap() internal option '{key}' is not a permutation"),
+            None,
+        ));
+    }
+    Ok(Some(order))
+}
+
+fn heatmap_order_option(
+    opts: &HashMap<String, Value>,
+    public_key: &str,
+    internal_key: &str,
+    labels: &[String],
+) -> Result<Option<Vec<usize>>> {
+    let Some(value) = opts.get(public_key) else {
+        return hidden_heatmap_order(opts, internal_key, labels.len());
+    };
+    let Value::List(items) = value else {
+        return Err(BioLangError::type_error(
+            format!("clustered_heatmap() {public_key} must be a List"),
+            None,
+        ));
+    };
+    let mut order = Vec::with_capacity(items.len());
+    for item in items.iter() {
+        if let Some(number) = item.as_float() {
+            order.push(number as usize);
+            continue;
+        }
+        let Some(label) = item.as_str() else {
+            return Err(BioLangError::type_error(
+                format!("clustered_heatmap() {public_key} must contain indices or labels"),
+                None,
+            ));
+        };
+        let matches = labels
+            .iter()
+            .enumerate()
+            .filter_map(|(index, candidate)| (candidate == label).then_some(index))
+            .collect::<Vec<_>>();
+        if matches.len() != 1 {
+            return Err(BioLangError::type_error(
+                format!(
+                    "clustered_heatmap() {public_key} label '{label}' must identify exactly one input item"
+                ),
+                None,
+            ));
+        }
+        order.push(matches[0]);
+    }
+    let mut sorted = order.clone();
+    sorted.sort_unstable();
+    if order.len() != labels.len() || sorted != (0..labels.len()).collect::<Vec<_>>() {
+        return Err(BioLangError::type_error(
+            format!("clustered_heatmap() {public_key} must be a complete permutation"),
             None,
         ));
     }
@@ -1177,12 +1390,13 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
             None,
         ));
     }
+    let column_annotations = heatmap_column_annotations(&opts, ncols)?;
     let col_data: Vec<Vec<f64>> = (0..ncols)
         .map(|c| (0..nrows).map(|r| data[r][c]).collect())
         .collect();
-    let frozen_row_order = hidden_heatmap_order(&opts, "__row_order", nrows)?;
-    let frozen_col_order = hidden_heatmap_order(&opts, "__col_order", ncols)?;
-    let row_tree = if hierarchical {
+    let frozen_row_order = heatmap_order_option(&opts, "row_order", "__row_order", &row_names)?;
+    let frozen_col_order = heatmap_order_option(&opts, "column_order", "__col_order", &col_names)?;
+    let mut row_tree = if hierarchical {
         if let Some(order) = frozen_row_order.as_deref() {
             match hidden_heatmap_tree(&opts, "__row_tree", order)? {
                 Some(tree) => Some(tree),
@@ -1194,7 +1408,7 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
     } else {
         None
     };
-    let column_tree = if hierarchical {
+    let mut column_tree = if hierarchical {
         if let Some(order) = frozen_col_order.as_deref() {
             match hidden_heatmap_tree(&opts, "__column_tree", order)? {
                 Some(tree) => Some(tree),
@@ -1206,6 +1420,12 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
     } else {
         None
     };
+    if let (Some(tree), Some(order)) = (&mut row_tree, frozen_row_order.as_deref()) {
+        tree.order = order.to_vec();
+    }
+    if let (Some(tree), Some(order)) = (&mut column_tree, frozen_col_order.as_deref()) {
+        tree.order = order.to_vec();
+    }
     let row_order = frozen_row_order.unwrap_or_else(|| {
         row_tree
             .as_ref()
@@ -1252,7 +1472,9 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
         (vmin, vmax)
     };
 
-    if matches!(fmt.as_str(), "spec" | "data" | "html" | "canvas") {
+    if matches!(fmt.as_str(), "spec" | "data")
+        || (column_annotations.is_empty() && matches!(fmt.as_str(), "html" | "canvas"))
+    {
         let spec = clustered_heatmap_spec_value(
             &data,
             &row_names,
@@ -1273,8 +1495,16 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
         }
         return render_clustered_heatmap_spec_value(&spec, &opts);
     }
+    let green_black_red = matches!(
+        get_opt_str(&opts, "colors", "")
+            .to_ascii_lowercase()
+            .as_str(),
+        "green-black-red" | "green_black_red" | "nmf"
+    );
     let colour = |t: f64| {
-        if publication_theme {
+        if green_black_red {
+            green_black_red_color(t)
+        } else if publication_theme {
             if use_diverging {
                 publication_diverging_color(t)
             } else {
@@ -1285,25 +1515,50 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
         }
     };
 
-    if fmt == "svg" {
+    if matches!(fmt.as_str(), "svg" | "html" | "canvas") {
         let w = get_opt_f64(&opts, "width", 800.0);
         let h = get_opt_f64(&opts, "height", 600.0);
         let mut c = SvgCanvas::with_theme(w, h, theme);
         let row_dendrogram_width = if draw_row_tree {
-            (w * 0.12).clamp(28.0, 80.0).min(w * 0.18)
+            get_opt_f64(
+                &opts,
+                "row_dendrogram_width",
+                (w * 0.12).clamp(28.0, 80.0).min(w * 0.18),
+            )
+            .clamp(20.0, w * 0.24)
         } else {
             0.0
         };
         let column_dendrogram_height = if draw_column_tree {
-            (h * 0.12).clamp(28.0, 70.0).min(h * 0.18)
+            get_opt_f64(
+                &opts,
+                "column_dendrogram_height",
+                (h * 0.12).clamp(28.0, 70.0).min(h * 0.18),
+            )
+            .clamp(20.0, h * 0.24)
         } else {
             0.0
         };
+        let annotation_row_height =
+            get_opt_f64(&opts, "annotation_row_height", 14.0).clamp(6.0, 28.0);
+        let annotation_gap = if column_annotations.is_empty() {
+            0.0
+        } else {
+            get_opt_f64(&opts, "annotation_gap", 7.0).clamp(0.0, 24.0)
+        };
+        let dendrogram_gap = if draw_column_tree {
+            get_opt_f64(&opts, "dendrogram_gap", 7.0).clamp(0.0, 24.0)
+        } else {
+            0.0
+        };
+        let row_labels_right = get_opt_str(&opts, "row_labels_side", "left") == "right";
+        let annotation_height = annotation_row_height * column_annotations.len() as f64;
+        let widest_row = row_names
+            .iter()
+            .map(|label| estimate_text_width(label, theme.tick_size))
+            .fold(0.0, f64::max);
+        let label_margin = (widest_row + 12.0).clamp(52.0, w * 0.27);
         if theme.is_adaptive() {
-            let widest_row = row_names
-                .iter()
-                .map(|label| estimate_text_width(label, theme.tick_size))
-                .fold(0.0, f64::max);
             let widest_col = col_names
                 .iter()
                 .map(|label| estimate_text_width(label, theme.tick_size))
@@ -1312,26 +1567,54 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
                 .iter()
                 .map(|value| estimate_text_width(&format!("{value:.2}"), theme.legend_size))
                 .fold(0.0, f64::max);
-            let label_margin = (widest_row + 12.0).clamp(52.0, w * 0.27);
-            c.margin.left =
-                (label_margin + row_dendrogram_width + if draw_row_tree { 8.0 } else { 0.0 })
-                    .min(w * 0.43);
-            c.margin.right = (42.0
-                + legend_label.max(estimate_text_width(&legend_title, theme.legend_size)))
-            .clamp(78.0, w * 0.31);
-            c.margin.top = if title.is_empty() {
-                20.0
-            } else if subtitle.is_empty() {
-                48.0
+            c.margin.left = if row_labels_right {
+                (20.0 + row_dendrogram_width + if draw_row_tree { 8.0 } else { 0.0 }).min(w * 0.34)
             } else {
-                66.0
-            } + column_dendrogram_height
-                + if draw_column_tree { 7.0 } else { 0.0 };
+                (label_margin + row_dendrogram_width + if draw_row_tree { 8.0 } else { 0.0 })
+                    .min(w * 0.43)
+            };
+            let widest_annotation_legend = column_annotations
+                .iter()
+                .flat_map(|annotation| {
+                    annotation.levels.iter().map(move |level| {
+                        estimate_text_width(
+                            &format!("{}: {level}", annotation.name),
+                            theme.legend_size,
+                        )
+                    })
+                })
+                .fold(0.0, f64::max);
+            let legend_margin = (42.0
+                + legend_label
+                    .max(estimate_text_width(&legend_title, theme.legend_size))
+                    .max(widest_annotation_legend))
+            .clamp(78.0, w * 0.34);
+            c.margin.right = if row_labels_right {
+                (legend_margin + label_margin + 16.0).min(w * 0.48)
+            } else {
+                legend_margin
+            };
+            c.margin.top = opts
+                .get("top_padding")
+                .and_then(Value::as_float)
+                .unwrap_or_else(|| {
+                    if title.is_empty() {
+                        20.0
+                    } else if subtitle.is_empty() {
+                        48.0
+                    } else {
+                        66.0
+                    }
+                })
+                + column_dendrogram_height
+                + dendrogram_gap;
+            c.margin.top += annotation_height + annotation_gap;
             c.margin.bottom = (widest_col * 0.72 + 18.0).clamp(48.0, h * 0.28)
                 + if caption.is_empty() { 0.0 } else { 18.0 };
         } else {
             c.margin.left = 80.0 + row_dendrogram_width + if draw_row_tree { 8.0 } else { 0.0 };
-            c.margin.top += column_dendrogram_height + if draw_column_tree { 7.0 } else { 0.0 };
+            c.margin.top +=
+                column_dendrogram_height + dendrogram_gap + annotation_height + annotation_gap;
             c.margin.bottom = 60.0;
         }
         let cw = c.plot_width() / ncols as f64;
@@ -1354,6 +1637,43 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
                     ));
                 }
             }
+        }
+        if !column_annotations.is_empty() {
+            let annotation_top = c.margin.top - annotation_height - annotation_gap;
+            c.elements.push(format!(
+                r#"<g data-biolang-column-annotations="{}">"#,
+                column_annotations
+                    .iter()
+                    .map(|annotation| annotation.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            ));
+            for (row, annotation) in column_annotations.iter().enumerate() {
+                let y = annotation_top + row as f64 * annotation_row_height;
+                for (display_col, &source_col) in col_order.iter().enumerate() {
+                    let level = &annotation.values[source_col];
+                    let level_index = annotation
+                        .levels
+                        .iter()
+                        .position(|candidate| candidate == level)
+                        .expect("annotation level was collected from its values");
+                    c.add_rect(
+                        c.margin.left + display_col as f64 * cw,
+                        y,
+                        cw,
+                        annotation_row_height - 1.0,
+                        &annotation.colours[level_index],
+                    );
+                }
+                c.add_text(
+                    c.margin.left - 5.0,
+                    y + annotation_row_height - 3.0,
+                    &annotation.name,
+                    "end",
+                    theme.tick_size,
+                );
+            }
+            c.elements.push("</g>".to_string());
         }
         if hierarchical {
             let row_heights = row_tree
@@ -1416,7 +1736,7 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
                         &mut c,
                         tree,
                         heatmap_left,
-                        heatmap_top,
+                        heatmap_top - annotation_height - annotation_gap,
                         cw,
                         column_dendrogram_height,
                     );
@@ -1430,11 +1750,16 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
             1
         };
         for (ri, &row_i) in row_order.iter().enumerate().step_by(row_step) {
+            let row_label_x = if row_labels_right {
+                c.margin.left + c.plot_width() + 8.0
+            } else {
+                c.margin.left - row_dendrogram_width - if draw_row_tree { 7.0 } else { 3.0 }
+            };
             c.add_text(
-                c.margin.left - row_dendrogram_width - if draw_row_tree { 7.0 } else { 3.0 },
+                row_label_x,
                 c.margin.top + (ri as f64 + 0.5) * ch + 4.0,
                 &row_names[row_i],
-                "end",
+                if row_labels_right { "start" } else { "end" },
                 if theme.is_adaptive() {
                     theme.tick_size
                 } else {
@@ -1456,7 +1781,13 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
                 );
             }
 
-            let legend_x = c.margin.left + c.plot_width() + 14.0;
+            let legend_x = c.margin.left
+                + c.plot_width()
+                + if row_labels_right {
+                    label_margin + 20.0
+                } else {
+                    14.0
+                };
             let legend_top = c.margin.top;
             let legend_height = c.plot_height().min(180.0);
             c.add_text(
@@ -1492,6 +1823,29 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
                     theme.legend_size,
                 );
             }
+            let mut categorical_y = legend_top + legend_height + 24.0;
+            for annotation in &column_annotations {
+                c.add_text(
+                    legend_x,
+                    categorical_y,
+                    &annotation.name,
+                    "start",
+                    theme.legend_size,
+                );
+                categorical_y += 15.0;
+                for (level, colour) in annotation.levels.iter().zip(&annotation.colours) {
+                    c.add_rect(legend_x, categorical_y - 8.0, 9.0, 9.0, colour);
+                    c.add_text(
+                        legend_x + 14.0,
+                        categorical_y,
+                        level,
+                        "start",
+                        theme.legend_size,
+                    );
+                    categorical_y += 14.0;
+                }
+                categorical_y += 7.0;
+            }
         }
         c.set_accessible_description(if hierarchical {
             format!(
@@ -1510,7 +1864,12 @@ pub(super) fn builtin_clustered_heatmap(args: Vec<Value>) -> Result<Value> {
             c.draw_subtitle(&subtitle);
             c.draw_caption(&caption);
         }
-        return Ok(Value::Str(c.render()));
+        let svg = c.render();
+        return if fmt == "svg" {
+            Ok(Value::Str(svg))
+        } else {
+            Ok(Value::Str(crate::plot::standalone_plot_html(&svg, &title)))
+        };
     }
 
     let max_rl = row_names.iter().map(|s| s.len()).max().unwrap_or(0);

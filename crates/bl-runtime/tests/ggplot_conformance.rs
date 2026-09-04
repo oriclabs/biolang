@@ -267,6 +267,115 @@ fn the_named_themes_match_their_ggplot_originals() {
     );
 }
 
+/// ggplot scale transformations move the geometry but keep tick labels in the
+/// original units. Pre-transforming the vectors and drawing a linear axis is
+/// not equivalent: it labels 1, 3 and 5 instead of 1e+01, 1e+03 and 1e+05.
+#[test]
+fn log10_relationship_axes_keep_source_unit_labels() {
+    let rendered = svg(call_stats_builtin(
+        "stats_relationship_plot",
+        vec![
+            numbers(&[1.0, 10.0, 100.0, 1_000.0, 100_000.0]),
+            numbers(&[2.0, 20.0, 200.0, 2_000.0, 200_000.0]),
+            options(&[
+                ("fit", Value::Bool(false)),
+                ("x_scale", Value::Str("log10".into())),
+                ("y_scale", Value::Str("log10".into())),
+                ("x_breaks", numbers(&[10.0, 1_000.0, 100_000.0])),
+                ("y_breaks", numbers(&[10.0, 1_000.0, 100_000.0])),
+            ]),
+        ],
+    )
+    .expect("log relationship plot failed"));
+    for label in ["1e+01", "1e+03", "1e+05"] {
+        assert!(
+            rendered.contains(&format!(">{label}</text>")),
+            "log axis should retain source-unit label {label}"
+        );
+    }
+}
+
+/// A colour grouping changes the legend and point palette, not the meaning of
+/// a continuous scale. MA plots need the same source-unit labels whether or
+/// not significance is mapped to colour.
+#[test]
+fn grouped_log10_relationship_axes_keep_source_unit_labels() {
+    let rendered = svg(call_stats_builtin(
+        "stats_relationship_plot",
+        vec![
+            numbers(&[1.0, 10.0, 100.0, 1_000.0, 100_000.0]),
+            numbers(&[-1.0, -0.5, 0.0, 0.5, 1.0]),
+            options(&[
+                ("group", strings(&["FALSE", "FALSE", "TRUE", "TRUE", "NA"])),
+                ("fit", Value::Bool(false)),
+                ("x_scale", Value::Str("log10".into())),
+                ("x_breaks", numbers(&[1.0, 100.0, 10_000.0])),
+                ("x_tick_format", Value::Str("plain".into())),
+                ("note", Value::Bool(false)),
+            ]),
+        ],
+    )
+    .expect("grouped log relationship plot failed"));
+    for label in ["1", "100", "10000"] {
+        assert!(
+            rendered.contains(&format!(">{label}</text>")),
+            "grouped log axis should retain source-unit label {label}"
+        );
+    }
+    assert!(!rendered.contains("complete pairs;"));
+}
+
+/// A discrete ggplot x scale has major gridlines at the category centres, not
+/// only horizontal rules. This is visible in the source CRISPLD2 boxplot.
+#[test]
+fn categorical_ggplot_panels_include_vertical_major_gridlines() {
+    let rendered = svg(call_stats_builtin(
+        "stats_group_plot",
+        vec![
+            numbers(&[700.0, 800.0, 900.0, 3_000.0, 5_000.0, 6_000.0]),
+            strings(&[
+                "control", "control", "control", "treated", "treated", "treated",
+            ]),
+            options(&[("theme", Value::Str("ggplot".into()))]),
+        ],
+    )
+    .expect("group plot failed"));
+    let white_grid_lines = rendered.matches("stroke=\"#ffffff\"").count();
+    assert!(
+        white_grid_lines >= 5,
+        "expected three horizontal and two categorical gridlines, got {white_grid_lines}"
+    );
+}
+
+/// A base-R-style point panel needs open circles and a complete border. These
+/// are explicit options so ordinary ggplot boxplots keep their defaults.
+#[test]
+fn group_plot_can_draw_open_points_and_a_full_panel_border() {
+    let rendered = svg(call_stats_builtin(
+        "stats_group_plot",
+        vec![
+            numbers(&[700.0, 800.0, 5_000.0, 6_000.0]),
+            strings(&["control", "control", "treated", "treated"]),
+            options(&[
+                ("box", Value::Bool(false)),
+                ("points", Value::Str("jitter".into())),
+                ("point_style", Value::Str("open".into())),
+                ("panel_border", Value::Bool(true)),
+                ("theme", Value::Str("classic".into())),
+            ]),
+        ],
+    )
+    .expect("open point plot failed"));
+    assert!(
+        rendered.contains("fill=\"#ffffff\" stroke=\"#333333\""),
+        "open circles should have a white centre and dark outline"
+    );
+    assert!(
+        rendered.contains("fill=\"none\" stroke=\"#000000\""),
+        "the requested base-style panel border should surround all four sides"
+    );
+}
+
 /// `geom_boxplot()` is a white box outlined in grey20, with the median drawn
 /// at twice the box line weight (`fatten = 2`), and only outliers marked.
 #[test]

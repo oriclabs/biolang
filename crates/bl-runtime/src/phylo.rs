@@ -1,7 +1,7 @@
 //! Phylogenetics builtins.
 //!
-//! Functions: nw_parse, tree_leaves, patristic_distance,
-//! nw_to_distance_matrix, upgma.
+//! Functions: nw_parse, nexus_tree, tree_leaves, tree_mrca,
+//! patristic_distance, nw_to_distance_matrix, upgma.
 
 use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::value::{Arity, Table, Value};
@@ -12,7 +12,9 @@ use std::collections::HashMap;
 pub fn phylo_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
         ("nw_parse", Arity::Exact(1)),
+        ("nexus_tree", Arity::Exact(1)),
         ("tree_leaves", Arity::Exact(1)),
+        ("tree_mrca", Arity::Exact(2)),
         ("patristic_distance", Arity::Exact(3)),
         ("nw_to_distance_matrix", Arity::Exact(1)),
         ("upgma", Arity::Exact(2)),
@@ -22,14 +24,22 @@ pub fn phylo_builtin_list() -> Vec<(&'static str, Arity)> {
 pub fn is_phylo_builtin(name: &str) -> bool {
     matches!(
         name,
-        "nw_parse" | "tree_leaves" | "patristic_distance" | "nw_to_distance_matrix" | "upgma"
+        "nw_parse"
+            | "nexus_tree"
+            | "tree_leaves"
+            | "tree_mrca"
+            | "patristic_distance"
+            | "nw_to_distance_matrix"
+            | "upgma"
     )
 }
 
 pub fn call_phylo_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
     match name {
         "nw_parse" => builtin_nw_parse(args),
+        "nexus_tree" => builtin_nexus_tree(args),
         "tree_leaves" => builtin_tree_leaves(args),
+        "tree_mrca" => builtin_tree_mrca(args),
         "patristic_distance" => builtin_patristic_distance(args),
         "nw_to_distance_matrix" => builtin_nw_to_distance_matrix(args),
         "upgma" => builtin_upgma(args),
@@ -246,6 +256,142 @@ fn builtin_nw_parse(args: Vec<Value>) -> Result<Value> {
     Ok(nodes_to_table(&nodes))
 }
 
+// ── nexus_tree ──────────────────────────────────────────────────────
+
+/// Extract the first tree from a Nexus/BEAST text document as ordinary
+/// Newick. Translation-table tip identifiers are expanded and square-bracket
+/// annotations are deliberately removed. The original Nexus text remains the
+/// authoritative source for posterior support, rates, node heights, and other
+/// specialist metadata.
+fn builtin_nexus_tree(args: Vec<Value>) -> Result<Value> {
+    let source = require_str(&args[0], "nexus_tree")?;
+    let lines = source.lines().collect::<Vec<_>>();
+    let translate_start = lines
+        .iter()
+        .position(|line| line.trim().eq_ignore_ascii_case("translate"));
+    let mut translations = HashMap::new();
+    if let Some(start) = translate_start {
+        for line in lines.iter().skip(start + 1) {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            let ends_block = trimmed.ends_with(';');
+            let entry = trimmed.trim_end_matches([',', ';']).trim();
+            if !entry.is_empty() {
+                let split_at = entry
+                    .find(char::is_whitespace)
+                    .ok_or_else(|| nexus_error("malformed Translate entry"))?;
+                let key = entry[..split_at].trim();
+                let value = entry[split_at..]
+                    .trim()
+                    .trim_matches('\'')
+                    .trim_matches('"');
+                if !key.is_empty() && !value.is_empty() {
+                    translations.insert(key.to_string(), value.to_string());
+                }
+            }
+            if ends_block {
+                break;
+            }
+        }
+    }
+
+    let tree_start = lines
+        .iter()
+        .position(|line| line.trim_start().to_ascii_lowercase().starts_with("tree "))
+        .ok_or_else(|| nexus_error("no tree statement found"))?;
+    let mut statement = String::new();
+    for line in lines.iter().skip(tree_start) {
+        if !statement.is_empty() {
+            statement.push(' ');
+        }
+        statement.push_str(line.trim());
+        if line.trim_end().ends_with(';') {
+            break;
+        }
+    }
+    let equals = statement
+        .find('=')
+        .ok_or_else(|| nexus_error("tree statement is missing '='"))?;
+    let raw_tree = statement[equals + 1..].trim();
+    let stripped = strip_nexus_annotations(raw_tree)?;
+    let tree = expand_nexus_tip_ids(&stripped, &translations);
+    if !tree.contains('(') || !tree.trim_end().ends_with(';') {
+        return Err(nexus_error("tree statement does not contain valid Newick"));
+    }
+    Ok(Value::Str(tree))
+}
+
+fn nexus_error(message: &str) -> BioLangError {
+    BioLangError::runtime(
+        ErrorKind::TypeError,
+        format!("nexus_tree(): {message}"),
+        None,
+    )
+}
+
+fn strip_nexus_annotations(source: &str) -> Result<String> {
+    let mut output = String::with_capacity(source.len());
+    let mut depth = 0usize;
+    for ch in source.chars() {
+        match ch {
+            '[' => depth += 1,
+            ']' if depth > 0 => depth -= 1,
+            _ if depth == 0 => output.push(ch),
+            _ => {}
+        }
+    }
+    if depth != 0 {
+        return Err(nexus_error("unbalanced square-bracket annotation"));
+    }
+    Ok(output.trim().to_string())
+}
+
+fn expand_nexus_tip_ids(source: &str, translations: &HashMap<String, String>) -> String {
+    if translations.is_empty() {
+        return source.to_string();
+    }
+    let chars = source.chars().collect::<Vec<_>>();
+    let mut output = String::with_capacity(source.len());
+    let mut index = 0usize;
+    let mut expect_tip = false;
+    while index < chars.len() {
+        let ch = chars[index];
+        if ch == '(' || ch == ',' {
+            expect_tip = true;
+            output.push(ch);
+            index += 1;
+            continue;
+        }
+        if expect_tip && ch.is_ascii_whitespace() {
+            output.push(ch);
+            index += 1;
+            continue;
+        }
+        if expect_tip && ch.is_ascii_digit() {
+            let start = index;
+            while index < chars.len() && chars[index].is_ascii_digit() {
+                index += 1;
+            }
+            let key = chars[start..index].iter().collect::<String>();
+            if let Some(label) = translations.get(&key) {
+                output.push_str(label);
+            } else {
+                output.push_str(&key);
+            }
+            expect_tip = false;
+            continue;
+        }
+        if !ch.is_ascii_whitespace() {
+            expect_tip = false;
+        }
+        output.push(ch);
+        index += 1;
+    }
+    output
+}
+
 // ── tree_leaves ──────────────────────────────────────────────────────
 
 fn builtin_tree_leaves(args: Vec<Value>) -> Result<Value> {
@@ -261,6 +407,107 @@ fn builtin_tree_leaves(args: Vec<Value>) -> Result<Value> {
         .collect();
 
     Ok(Value::List((leaves).into()))
+}
+
+// ── tree_mrca ──────────────────────────────────────────────────────
+
+/// Return the ape/ggtree-compatible node number for the most recent common
+/// ancestor of two or more named tips. Tips are numbered 1..N in Newick order;
+/// internal nodes are numbered N+1.. in preorder, matching the convention used
+/// by the BDSR ggtree chapter and by `geom_cladelabel(node=...)`.
+fn builtin_tree_mrca(args: Vec<Value>) -> Result<Value> {
+    let table = require_table(&args[0], "tree_mrca")?;
+    let Value::List(values) = &args[1] else {
+        return Err(BioLangError::type_error(
+            "tree_mrca() requires a List of tip labels",
+            None,
+        ));
+    };
+    if values.len() < 2 {
+        return Err(BioLangError::type_error(
+            "tree_mrca() requires at least two tip labels",
+            None,
+        ));
+    }
+    let nodes = table_to_nodes(table)?;
+    let id_map: HashMap<i64, &Node> = nodes.iter().map(|node| (node.id, node)).collect();
+    let label_map: HashMap<&str, i64> = nodes
+        .iter()
+        .filter(|node| !node.label.is_empty())
+        .map(|node| (node.label.as_str(), node.id))
+        .collect();
+    let targets = values
+        .iter()
+        .map(|value| {
+            let label = value.as_str().ok_or_else(|| {
+                BioLangError::type_error("tree_mrca() tip labels must be strings", None)
+            })?;
+            label_map.get(label).copied().ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::NameError,
+                    format!("tree_mrca(): label '{label}' not found"),
+                    None,
+                )
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let ancestor_path = |start: i64| {
+        let mut path = Vec::new();
+        let mut current = start;
+        loop {
+            path.push(current);
+            let Some(node) = id_map.get(&current) else {
+                break;
+            };
+            if node.parent < 0 {
+                break;
+            }
+            current = node.parent;
+        }
+        path
+    };
+    let other_paths = targets
+        .iter()
+        .skip(1)
+        .map(|&target| {
+            ancestor_path(target)
+                .into_iter()
+                .collect::<std::collections::HashSet<_>>()
+        })
+        .collect::<Vec<_>>();
+    let current_mrca = ancestor_path(targets[0])
+        .into_iter()
+        .find(|candidate| other_paths.iter().all(|path| path.contains(candidate)))
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "tree_mrca(): tips do not share a root",
+                None,
+            )
+        })?;
+
+    let parent_ids = nodes
+        .iter()
+        .filter_map(|node| (node.parent >= 0).then_some(node.parent))
+        .collect::<std::collections::HashSet<_>>();
+    let leaf_count = nodes
+        .iter()
+        .filter(|node| !parent_ids.contains(&node.id))
+        .count();
+    let mut internal_ids = parent_ids.into_iter().collect::<Vec<_>>();
+    internal_ids.sort_unstable();
+    let ggtree_node = internal_ids
+        .iter()
+        .position(|&id| id == current_mrca)
+        .map(|index| leaf_count + 1 + index)
+        .ok_or_else(|| {
+            BioLangError::runtime(
+                ErrorKind::TypeError,
+                "tree_mrca(): common ancestor is not an internal node",
+                None,
+            )
+        })?;
+    Ok(Value::Int(ggtree_node as i64))
 }
 
 // ── patristic_distance ───────────────────────────────────────────────

@@ -240,6 +240,8 @@ pub(super) fn survival_plot_spec_value(
         "p_value",
         "p_label",
         "legend_title",
+        "legend",
+        "palette",
         "colors",
     ] {
         if let Some(value) = opts.get(key) {
@@ -450,7 +452,8 @@ pub(super) fn render_survival_svg(
                 r#"<path d="{censor_path}" fill="none" stroke="{colour}" stroke-width="1.5" />"#
             ));
         }
-        if groups.len() > 1 {
+        let show_legend = opts.get("legend").and_then(Value::as_bool).unwrap_or(true);
+        if groups.len() > 1 && show_legend {
             let legend_x = canvas.margin.left + canvas.plot_width() + 12.0;
             let legend_title = get_opt_str(opts, "legend_title", "");
             if group_index == 0 && !legend_title.is_empty() {
@@ -530,7 +533,9 @@ fn survival_log_interval(step: &SurvivalStep) -> (f64, f64) {
 
 fn survival_colours(opts: &HashMap<String, Value>, groups: usize) -> Result<Vec<String>> {
     let Some(value) = opts.get("colors") else {
-        if get_opt_str(opts, "theme", "").eq_ignore_ascii_case("ggplot") {
+        if get_opt_str(opts, "theme", "").eq_ignore_ascii_case("ggplot")
+            || get_opt_str(opts, "palette", "").eq_ignore_ascii_case("ggplot")
+        {
             return Ok(hue_palette(groups));
         }
         return Ok((0..groups)

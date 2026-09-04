@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "counts": {
     "language": 30,
-    "builtin": 1130,
+    "builtin": 1133,
     "tutorial": 0,
     "example": 392
   },
@@ -8990,6 +8990,20 @@
       "keywords": "next next(stream) → value|nil table biolang table builtin."
     },
     {
+      "id": "builtin:nexus_tree",
+      "kind": "builtin",
+      "title": "nexus_tree",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 1 argument(s).",
+      "body": "# nexus_tree\n\nRegistered BioLang builtin accepting 1 argument(s).\n\n## Signature\n\n```biolang\nnexus_tree(arg1)\n```\n\n**Arity:** exact, minimum 1, maximum 1",
+      "signature": "nexus_tree(arg1)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "nexus_tree nexus_tree(arg1) runtime registered biolang builtin accepting 1 argument(s)."
+    },
+    {
       "id": "builtin:nf_parse",
       "kind": "builtin",
       "title": "nf_parse",
@@ -12420,6 +12434,20 @@
       "keywords": "scatter_by scatter_by(list, key_fn) → map{key → list} hof biolang hof builtin."
     },
     {
+      "id": "builtin:scatterplot_matrix",
+      "kind": "builtin",
+      "title": "scatterplot_matrix",
+      "category": "stats",
+      "collection": "Runtime builtins",
+      "summary": "Shared-scale scatterplot matrix with diagonal densities, optional boxed panels, and parameterized margin, panel gap, and padding.",
+      "body": "# scatterplot_matrix\n\nShared-scale scatterplot matrix with diagonal densities, optional boxed panels, and parameterized margin, panel gap, and padding.\n\n## Signature\n\n```biolang\nscatterplot_matrix(table, options?) → Str\n```\n\n## Example\n\n```biolang\nscatterplot_matrix(table, {boxed_panels: true, panel_gap: 8, margin: 45, padding: 5})\n```\n\n**Returns:** `Str`\n\n**Arity:** range, minimum 1, maximum 2",
+      "signature": "scatterplot_matrix(table, options?) → Str",
+      "example": "scatterplot_matrix(table, {boxed_panels: true, panel_gap: 8, margin: 45, padding: 5})",
+      "returnType": "Str",
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "scatterplot_matrix scatterplot_matrix(table, options?) → str stats shared-scale scatterplot matrix with diagonal densities, optional boxed panels, and parameterized margin, panel gap, and padding."
+    },
+    {
       "id": "builtin:score_matrix",
       "kind": "builtin",
       "title": "score_matrix",
@@ -14882,6 +14910,20 @@
       "returnType": null,
       "sourcePath": "desktop/src/generated/builtin-metadata.json",
       "keywords": "tree_leaves tree_leaves(arg1) runtime 1"
+    },
+    {
+      "id": "builtin:tree_mrca",
+      "kind": "builtin",
+      "title": "tree_mrca",
+      "category": "runtime",
+      "collection": "Runtime builtins",
+      "summary": "Registered BioLang builtin accepting 2 argument(s).",
+      "body": "# tree_mrca\n\nRegistered BioLang builtin accepting 2 argument(s).\n\n## Signature\n\n```biolang\ntree_mrca(arg1, arg2)\n```\n\n**Arity:** exact, minimum 2, maximum 2",
+      "signature": "tree_mrca(arg1, arg2)",
+      "example": null,
+      "returnType": null,
+      "sourcePath": "desktop/src/generated/builtin-metadata.json",
+      "keywords": "tree_mrca tree_mrca(arg1, arg2) runtime registered biolang builtin accepting 2 argument(s)."
     },
     {
       "id": "builtin:trim",

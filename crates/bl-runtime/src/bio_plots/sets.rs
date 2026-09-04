@@ -446,6 +446,7 @@ pub(super) fn builtin_sequence_logo(args: Vec<Value>) -> Result<Value> {
 
 #[derive(Clone)]
 pub(super) struct TreeNode {
+    id: usize,
     name: String,
     branch_len: f64,
     children: Vec<TreeNode>,
@@ -503,6 +504,7 @@ pub(super) fn parse_newick_node(data: &[u8], mut pos: usize) -> Result<(TreeNode
     }
     Ok((
         TreeNode {
+            id: 0,
             name: name.trim().to_string(),
             branch_len: bl,
             children,
@@ -512,36 +514,38 @@ pub(super) fn parse_newick_node(data: &[u8], mut pos: usize) -> Result<(TreeNode
 }
 
 pub(super) fn builtin_phylo_tree(args: Vec<Value>) -> Result<Value> {
-    let newick = match &args[0] {
-        Value::Str(s) => s.clone(),
-        _ => {
-            return Err(BioLangError::type_error(
-                "phylo_tree() requires Str (Newick format)",
-                None,
-            ))
-        }
-    };
     let opts = parse_options(&args);
     let fmt = get_opt_str(&opts, "format", "svg").to_string();
-
-    let root = parse_newick(&newick)?;
 
     if fmt == "svg" {
         let w = get_opt_f64(&opts, "width", 600.0);
         let h = get_opt_f64(&opts, "height", 400.0);
         let mut c = themed_canvas(w, h, &opts);
-        c.margin.left = 40.0;
-        c.margin.right = 100.0;
-        let leaves = count_leaves(&root);
-        let max_depth = max_tree_depth(&root);
-        let ml = c.margin.left;
-        let mt = c.margin.top;
-        let pw = c.plot_width();
-        let ph = c.plot_height();
-        draw_tree_svg(&mut c, &root, 0.0, max_depth, 0, leaves, ml, mt, pw, ph);
-        finish_themed_canvas(&mut c, &opts, "Phylogenetic Tree");
+        if let Value::List(values) = &args[0] {
+            render_phylo_facets(&mut c, values, &opts)?;
+        } else {
+            let newick = args[0].as_str().ok_or_else(|| {
+                BioLangError::type_error(
+                    "phylo_tree() requires a Newick Str or a List of Newick strings",
+                    None,
+                )
+            })?;
+            let root = parse_numbered_newick(newick)?;
+            render_phylo_single(&mut c, &root, &opts)?;
+        }
+        let title = get_opt_str(&opts, "title", "Phylogenetic Tree");
+        if !title.is_empty() {
+            c.draw_title(title);
+        }
+        c.draw_subtitle(get_opt_str(&opts, "subtitle", ""));
+        c.draw_caption(get_opt_str(&opts, "caption", ""));
         return Ok(Value::Str(c.render()));
     }
+
+    let newick = args[0].as_str().ok_or_else(|| {
+        BioLangError::type_error("phylo_tree() ASCII output requires a Newick Str", None)
+    })?;
+    let root = parse_newick(newick)?;
 
     let mut out = String::from("  Phylogenetic Tree\n");
     render_tree_ascii(&root, &mut out, "", true);
@@ -549,24 +553,658 @@ pub(super) fn builtin_phylo_tree(args: Vec<Value>) -> Result<Value> {
     Ok(Value::Nil)
 }
 
+#[derive(Clone, Debug)]
+struct PhyloPoint {
+    id: usize,
+    name: String,
+    x: f64,
+    y: f64,
+    leaf: bool,
+    min_y: f64,
+    max_y: f64,
+}
+
+#[derive(Clone, Debug)]
+struct PhyloLayout {
+    points: HashMap<usize, PhyloPoint>,
+    edges: Vec<(usize, usize)>,
+    max_x: f64,
+    leaf_count: usize,
+}
+
+fn parse_numbered_newick(newick: &str) -> Result<TreeNode> {
+    let mut root = parse_newick(newick)?;
+    let leaves = count_leaves(&root);
+    let mut tip_id = 1usize;
+    let mut internal_id = leaves + 1;
+    assign_tree_ids(&mut root, &mut tip_id, &mut internal_id);
+    Ok(root)
+}
+
+fn assign_tree_ids(node: &mut TreeNode, tip_id: &mut usize, internal_id: &mut usize) {
+    if node.children.is_empty() {
+        node.id = *tip_id;
+        *tip_id += 1;
+        return;
+    }
+    node.id = *internal_id;
+    *internal_id += 1;
+    for child in &mut node.children {
+        assign_tree_ids(child, tip_id, internal_id);
+    }
+}
+
+fn tree_height_edges(node: &TreeNode) -> usize {
+    if node.children.is_empty() {
+        0
+    } else {
+        1 + node
+            .children
+            .iter()
+            .map(tree_height_edges)
+            .max()
+            .unwrap_or(0)
+    }
+}
+
+fn collect_tip_names(node: &TreeNode, names: &mut Vec<String>) {
+    if node.children.is_empty() {
+        names.push(node.name.clone());
+    } else {
+        for child in &node.children {
+            collect_tip_names(child, names);
+        }
+    }
+}
+
+fn requested_tip_order(
+    root: &TreeNode,
+    opts: &HashMap<String, Value>,
+) -> Result<HashMap<String, usize>> {
+    let mut leaves = Vec::new();
+    collect_tip_names(root, &mut leaves);
+    let order = match opts.get("tip_order") {
+        Some(Value::List(items)) => items
+            .iter()
+            .map(|item| {
+                item.as_str().map(str::to_string).ok_or_else(|| {
+                    BioLangError::type_error("phylo_tree() tip_order must contain strings", None)
+                })
+            })
+            .collect::<Result<Vec<_>>>()?,
+        Some(_) => {
+            return Err(BioLangError::type_error(
+                "phylo_tree() tip_order must be a List",
+                None,
+            ))
+        }
+        None => leaves.clone(),
+    };
+    let mut expected = leaves;
+    expected.sort();
+    let mut observed = order.clone();
+    observed.sort();
+    if observed != expected {
+        return Err(BioLangError::type_error(
+            "phylo_tree() tip_order must name every leaf exactly once",
+            None,
+        ));
+    }
+    Ok(order
+        .into_iter()
+        .enumerate()
+        .map(|(index, label)| (label, index))
+        .collect())
+}
+
+fn build_phylo_layout(root: &TreeNode, opts: &HashMap<String, Value>) -> Result<PhyloLayout> {
+    let tip_order = requested_tip_order(root, opts)?;
+    let use_lengths = get_opt_str(opts, "branch_length", "scaled") != "none";
+    let max_height = tree_height_edges(root) as f64;
+    let mut points = HashMap::new();
+    let mut edges = Vec::new();
+
+    fn walk(
+        node: &TreeNode,
+        parent_x: f64,
+        use_lengths: bool,
+        max_height: f64,
+        tip_order: &HashMap<String, usize>,
+        points: &mut HashMap<usize, PhyloPoint>,
+        edges: &mut Vec<(usize, usize)>,
+    ) -> Result<(f64, f64, f64)> {
+        let x = if use_lengths {
+            parent_x + node.branch_len
+        } else {
+            max_height - tree_height_edges(node) as f64
+        };
+        if node.children.is_empty() {
+            let y = *tip_order.get(&node.name).ok_or_else(|| {
+                BioLangError::runtime(
+                    ErrorKind::NameError,
+                    format!(
+                        "phylo_tree() leaf '{}' is missing from tip_order",
+                        node.name
+                    ),
+                    None,
+                )
+            })? as f64
+                + 0.5;
+            points.insert(
+                node.id,
+                PhyloPoint {
+                    id: node.id,
+                    name: node.name.clone(),
+                    x,
+                    y,
+                    leaf: true,
+                    min_y: y,
+                    max_y: y,
+                },
+            );
+            return Ok((y, y, y));
+        }
+        let mut child_ys = Vec::new();
+        let mut min_y = f64::INFINITY;
+        let mut max_y = f64::NEG_INFINITY;
+        for child in &node.children {
+            edges.push((node.id, child.id));
+            let (child_y, child_min, child_max) =
+                walk(child, x, use_lengths, max_height, tip_order, points, edges)?;
+            child_ys.push(child_y);
+            min_y = min_y.min(child_min);
+            max_y = max_y.max(child_max);
+        }
+        let y = child_ys.iter().sum::<f64>() / child_ys.len().max(1) as f64;
+        points.insert(
+            node.id,
+            PhyloPoint {
+                id: node.id,
+                name: node.name.clone(),
+                x,
+                y,
+                leaf: false,
+                min_y,
+                max_y,
+            },
+        );
+        Ok((y, min_y, max_y))
+    }
+
+    walk(
+        root,
+        0.0,
+        use_lengths,
+        max_height,
+        &tip_order,
+        &mut points,
+        &mut edges,
+    )?;
+    let max_x = points
+        .values()
+        .map(|point| point.x)
+        .fold(0.0f64, f64::max)
+        .max(1.0);
+    Ok(PhyloLayout {
+        points,
+        edges,
+        max_x,
+        leaf_count: tip_order.len(),
+    })
+}
+
+fn phylo_bool(opts: &HashMap<String, Value>, key: &str, default: bool) -> bool {
+    opts.get(key).and_then(Value::as_bool).unwrap_or(default)
+}
+
+fn svg_dash_line(
+    canvas: &mut SvgCanvas,
+    x1: f64,
+    y1: f64,
+    x2: f64,
+    y2: f64,
+    colour: &str,
+    width: f64,
+    line_type: &str,
+) {
+    match line_type {
+        "dashed" | "2" => canvas.add_dashed_line(x1, y1, x2, y2, colour, width, 6.0),
+        "dotted" | "3" => {
+            canvas.add_patterned_line(x1, y1, x2, y2, colour, width, width, width * 3.0)
+        }
+        _ => canvas.add_line(x1, y1, x2, y2, colour, width),
+    }
+}
+
+fn render_phylo_single(
+    canvas: &mut SvgCanvas,
+    root: &TreeNode,
+    opts: &HashMap<String, Value>,
+) -> Result<()> {
+    let show_tip_labels = phylo_bool(opts, "show_tip_labels", true);
+    let show_tip_points = phylo_bool(opts, "show_tip_points", true);
+    let show_node_points = phylo_bool(opts, "show_node_points", false);
+    let show_node_labels = phylo_bool(opts, "show_node_labels", false);
+    let show_scale = phylo_bool(opts, "scale_axis", false);
+    let layout_name = get_opt_str(opts, "layout", "rectangular").to_ascii_lowercase();
+    let line_colour = get_opt_str(opts, "line_color", "#111111");
+    let line_width = get_opt_f64(opts, "line_width", 1.2).clamp(0.3, 8.0);
+    let line_type = opts
+        .get("line_type")
+        .map(|value| match value {
+            Value::Int(number) => number.to_string(),
+            _ => value.as_str().unwrap_or("solid").to_string(),
+        })
+        .unwrap_or_else(|| "solid".to_string());
+    let layout = build_phylo_layout(root, opts)?;
+
+    canvas.margin.left = get_opt_f64(opts, "left_padding", 30.0);
+    canvas.margin.right = get_opt_f64(
+        opts,
+        "right_padding",
+        if show_tip_labels { 70.0 } else { 30.0 },
+    );
+    canvas.margin.top = get_opt_f64(
+        opts,
+        "top_padding",
+        if get_opt_str(opts, "title", "").is_empty() {
+            22.0
+        } else {
+            50.0
+        },
+    );
+    canvas.margin.bottom =
+        get_opt_f64(opts, "bottom_padding", if show_scale { 45.0 } else { 22.0 });
+    let left = canvas.margin.left;
+    let top = canvas.margin.top;
+    let width = canvas.plot_width();
+    let height = canvas.plot_height();
+    let domain_max = get_opt_f64(opts, "x_max", layout.max_x).max(layout.max_x);
+    let x_expand = if layout_name == "circular" {
+        0.0
+    } else {
+        get_opt_f64(opts, "x_expand", 0.0).clamp(0.0, 0.5)
+    };
+    let expanded_x = domain_max * x_expand;
+    let x_scale = Scale {
+        domain: (-expanded_x, domain_max + expanded_x),
+        range: (left, left + width),
+    };
+    let y_scale = Scale {
+        domain: (0.0, layout.leaf_count as f64),
+        range: (top, top + height),
+    };
+    let position = |point: &PhyloPoint| -> (f64, f64) {
+        if layout_name == "circular" {
+            let radius = x_scale.map(point.x) - left;
+            let max_radius = width.min(height) * 0.47;
+            let scaled_radius = radius / width.max(1.0) * max_radius;
+            let angle = -std::f64::consts::FRAC_PI_2
+                + 2.0 * std::f64::consts::PI * point.y / layout.leaf_count.max(1) as f64;
+            (
+                left + width / 2.0 + scaled_radius * angle.cos(),
+                top + height / 2.0 + scaled_radius * angle.sin(),
+            )
+        } else {
+            (x_scale.map(point.x), y_scale.map(point.y))
+        }
+    };
+
+    if layout_name != "circular" {
+        if let Some(Value::List(highlights)) = opts.get("clade_highlights") {
+            for highlight in highlights.iter() {
+                let Value::Record(record) = highlight else {
+                    continue;
+                };
+                let Some(node) = record.get("node").and_then(Value::as_int) else {
+                    continue;
+                };
+                let Some(point) = layout.points.get(&(node as usize)) else {
+                    continue;
+                };
+                let fill = record
+                    .get("fill")
+                    .and_then(Value::as_str)
+                    .unwrap_or("#FFD700");
+                let opacity = record
+                    .get("opacity")
+                    .and_then(Value::as_float)
+                    .unwrap_or(0.45)
+                    .clamp(0.0, 1.0);
+                let x = x_scale.map(point.x) - 2.0;
+                let descendant_max_x = layout
+                    .points
+                    .values()
+                    .filter(|candidate| {
+                        candidate.leaf && candidate.y >= point.min_y && candidate.y <= point.max_y
+                    })
+                    .map(|candidate| candidate.x)
+                    .fold(point.x, f64::max);
+                let highlight_right = x_scale.map(descendant_max_x) + 2.0;
+                let y = y_scale.map((point.min_y - 0.48).max(0.0));
+                let y2 = y_scale.map((point.max_y + 0.48).min(layout.leaf_count as f64));
+                canvas.elements.push(format!(
+                    r#"<rect x="{x:.2}" y="{:.2}" width="{:.2}" height="{:.2}" fill="{fill}" fill-opacity="{opacity:.3}" stroke="none" data-clade-node="{}"/>"#,
+                    y.min(y2),
+                    highlight_right - x,
+                    (y2 - y).abs(),
+                    point.id
+                ));
+            }
+        }
+    }
+
+    if layout_name == "rectangular" {
+        for point in layout.points.values().filter(|point| !point.leaf) {
+            let x = x_scale.map(point.x);
+            // A rectangular phylogram's vertical connector joins the positions
+            // of this node's immediate children.  Descendant extrema are kept
+            // separately for clade highlights; using them here stretches every
+            // connector across the entire clade and does not match ape/ggtree.
+            let mut child_ys = layout.edges.iter().filter_map(|(parent_id, child_id)| {
+                (*parent_id == point.id).then(|| layout.points[child_id].y)
+            });
+            let Some(first_child_y) = child_ys.next() else {
+                continue;
+            };
+            let (min_child_y, max_child_y) = child_ys.fold(
+                (first_child_y, first_child_y),
+                |(minimum, maximum), child_y| (minimum.min(child_y), maximum.max(child_y)),
+            );
+            let y1 = y_scale.map(min_child_y);
+            let y2 = y_scale.map(max_child_y);
+            svg_dash_line(canvas, x, y1, x, y2, line_colour, line_width, &line_type);
+        }
+    }
+    for &(parent_id, child_id) in &layout.edges {
+        let parent = &layout.points[&parent_id];
+        let child = &layout.points[&child_id];
+        let (px, py) = position(parent);
+        let (cx, cy) = position(child);
+        if layout_name == "rectangular" {
+            svg_dash_line(canvas, px, cy, cx, cy, line_colour, line_width, &line_type);
+        } else {
+            svg_dash_line(canvas, px, py, cx, cy, line_colour, line_width, &line_type);
+        }
+    }
+
+    if layout_name != "circular" {
+        if let Some(Value::List(links)) = opts.get("taxa_links") {
+            let labels = layout
+                .points
+                .values()
+                .filter(|point| point.leaf)
+                .map(|point| (point.name.as_str(), point))
+                .collect::<HashMap<_, _>>();
+            for link in links.iter() {
+                let Value::Record(record) = link else {
+                    continue;
+                };
+                let Some(from) = record.get("from").and_then(Value::as_str) else {
+                    continue;
+                };
+                let Some(to) = record.get("to").and_then(Value::as_str) else {
+                    continue;
+                };
+                let (Some(start), Some(end)) = (labels.get(from), labels.get(to)) else {
+                    continue;
+                };
+                let (x1, y1) = position(start);
+                let (x2, y2) = position(end);
+                let colour = record
+                    .get("color")
+                    .and_then(Value::as_str)
+                    .unwrap_or("#555555");
+                let curvature = record
+                    .get("curvature")
+                    .and_then(Value::as_float)
+                    .unwrap_or(0.35);
+                let dashed = record
+                    .get("dashed")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false);
+                let bend = width * curvature * 0.22;
+                canvas.elements.push(format!(
+                    r#"<path d="M {x1:.2} {y1:.2} C {:.2} {:.2}, {:.2} {:.2}, {x2:.2} {y2:.2}" fill="none" stroke="{colour}" stroke-width="1.3"{} data-taxa-link="{from},{to}"/>"#,
+                    x1 + bend,
+                    y1,
+                    x2 + bend,
+                    y2,
+                    if dashed { " stroke-dasharray=\"5,5\"" } else { "" }
+                ));
+            }
+        }
+    }
+
+    let tip_colour = get_opt_str(opts, "tip_color", PALETTE[0]);
+    let tip_label_colour = get_opt_str(opts, "tip_label_color", canvas.theme.text_colour);
+    let node_colour = get_opt_str(opts, "node_color", "#DAA520");
+    let node_opacity = get_opt_f64(opts, "node_opacity", 0.5).clamp(0.0, 1.0);
+    let tip_radius = get_opt_f64(opts, "tip_radius", 3.0).clamp(1.0, 10.0);
+    let node_radius = get_opt_f64(opts, "node_radius", 6.0).clamp(1.0, 14.0);
+    let tip_shape = get_opt_str(opts, "tip_shape", "circle");
+    for point in layout.points.values() {
+        let (x, y) = position(point);
+        if point.leaf && show_tip_points {
+            if tip_shape == "diamond" {
+                canvas.add_polygon_with_opacity(
+                    &[
+                        (x, y - tip_radius),
+                        (x + tip_radius, y),
+                        (x, y + tip_radius),
+                        (x - tip_radius, y),
+                    ],
+                    tip_colour,
+                    1.0,
+                );
+            } else {
+                canvas.add_circle_with_opacity(x, y, tip_radius, tip_colour, 1.0);
+            }
+        } else if !point.leaf && show_node_points {
+            canvas.add_circle_with_opacity(x, y, node_radius, node_colour, node_opacity);
+        }
+        if point.leaf && show_tip_labels && layout_name != "circular" {
+            canvas.add_text_styled(
+                x + 6.0,
+                y + 4.0,
+                &point.name,
+                "start",
+                get_opt_f64(opts, "tip_label_size", 11.0),
+                "normal",
+                tip_label_colour,
+            );
+        }
+        if show_node_labels && layout_name != "circular" {
+            canvas.add_text(x + 5.0, y + 4.0, &point.id.to_string(), "start", 10.0);
+        }
+    }
+
+    if layout_name != "circular" {
+        if let Some(Value::List(labels)) = opts.get("clade_labels") {
+            for label in labels.iter() {
+                let Value::Record(record) = label else {
+                    continue;
+                };
+                let Some(node) = record.get("node").and_then(Value::as_int) else {
+                    continue;
+                };
+                let Some(point) = layout.points.get(&(node as usize)) else {
+                    continue;
+                };
+                let text = record.get("label").and_then(Value::as_str).unwrap_or("");
+                let colour = record
+                    .get("color")
+                    .and_then(Value::as_str)
+                    .unwrap_or("#CC2222");
+                let offset = record
+                    .get("offset")
+                    .and_then(Value::as_float)
+                    .unwrap_or(0.8);
+                let align = record
+                    .get("align")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false);
+                let descendant_max_x = layout
+                    .points
+                    .values()
+                    .filter(|candidate| {
+                        candidate.leaf && candidate.y >= point.min_y && candidate.y <= point.max_y
+                    })
+                    .map(|candidate| candidate.x)
+                    .fold(point.x, f64::max);
+                let bar_x = if align {
+                    x_scale.map(layout.max_x + offset)
+                } else {
+                    x_scale.map(descendant_max_x + offset)
+                };
+                let y1 = y_scale.map(point.min_y);
+                let y2 = y_scale.map(point.max_y);
+                canvas.add_line(bar_x, y1, bar_x, y2, colour, 1.2);
+                canvas.add_text_styled(
+                    bar_x + 6.0,
+                    (y1 + y2) / 2.0 + 4.0,
+                    text,
+                    "start",
+                    11.0,
+                    "normal",
+                    colour,
+                );
+            }
+        }
+    }
+
+    if show_scale && layout_name != "circular" {
+        canvas.draw_x_axis_with_tick_domain(
+            &x_scale,
+            (0.0, domain_max),
+            get_opt_str(opts, "x_label", ""),
+        );
+    }
+    canvas.set_accessible_description(format!(
+        "Phylogenetic tree with {} tips in {} layout; branch lengths {}.",
+        layout.leaf_count,
+        layout_name,
+        if get_opt_str(opts, "branch_length", "scaled") == "none" {
+            "suppressed"
+        } else {
+            "shown"
+        }
+    ));
+    Ok(())
+}
+
+fn render_phylo_facets(
+    canvas: &mut SvgCanvas,
+    values: &[Value],
+    opts: &HashMap<String, Value>,
+) -> Result<()> {
+    if values.is_empty() {
+        return Err(BioLangError::type_error(
+            "phylo_tree() requires at least one Newick tree",
+            None,
+        ));
+    }
+    let columns = get_opt_usize(opts, "columns", 4).clamp(1, 8);
+    let rows = values.len().div_ceil(columns);
+    // Match ggplot2's facet_wrap geometry rather than treating each facet as
+    // a touching cell.  The explicit gutters are especially important for
+    // dense 50- and 100-tip trees: without them the strip labels and branches
+    // visually run into the neighbouring panel.
+    canvas.margin.left = 11.0;
+    canvas.margin.right = 8.0;
+    canvas.margin.top = if get_opt_str(opts, "title", "").is_empty() {
+        8.0
+    } else {
+        31.0
+    };
+    canvas.margin.bottom = 8.0;
+    let column_gap = get_opt_f64(opts, "facet_column_gap", 12.0).clamp(0.0, 40.0);
+    let row_gap = get_opt_f64(opts, "facet_row_gap", 8.0).clamp(0.0, 40.0);
+    let panel_width =
+        (canvas.plot_width() - column_gap * columns.saturating_sub(1) as f64) / columns as f64;
+    let panel_height =
+        (canvas.plot_height() - row_gap * rows.saturating_sub(1) as f64) / rows as f64;
+    for (index, value) in values.iter().enumerate() {
+        let newick = value.as_str().ok_or_else(|| {
+            BioLangError::type_error("phylo_tree() tree List must contain strings", None)
+        })?;
+        let root = parse_numbered_newick(newick)?;
+        let layout = build_phylo_layout(&root, &HashMap::new())?;
+        let column = index % columns;
+        let row = index / columns;
+        let x0 = canvas.margin.left + column as f64 * (panel_width + column_gap);
+        let y0 = canvas.margin.top + row as f64 * (panel_height + row_gap);
+        let strip_h = 22.0;
+        canvas.add_stroked_rect(x0, y0, panel_width, strip_h, "#D9D9D9", "#333333", 0.5);
+        canvas.add_text(
+            x0 + panel_width / 2.0,
+            y0 + 16.0,
+            &format!("Tree #{}", index + 1),
+            "middle",
+            12.0,
+        );
+        let left = x0 + 9.5;
+        let top = y0 + strip_h + 2.5;
+        let width = (panel_width - 18.75).max(1.0);
+        let height = (panel_height - strip_h - 8.0).max(1.0);
+        let x_scale = Scale {
+            domain: (0.0, layout.max_x),
+            range: (left, left + width),
+        };
+        let y_scale = Scale {
+            domain: (0.0, layout.leaf_count as f64),
+            // ggtree numbers tips from the bottom of a panel upward.  A
+            // faceted multiPhylo plot therefore displays the traversal order
+            // bottom-to-top, unlike BioLang's labelled single-tree view.
+            range: (top + height, top),
+        };
+        for point in layout.points.values().filter(|point| !point.leaf) {
+            let x = x_scale.map(point.x);
+            let mut child_ys = layout.edges.iter().filter_map(|(parent_id, child_id)| {
+                (*parent_id == point.id).then(|| layout.points[child_id].y)
+            });
+            let Some(first_child_y) = child_ys.next() else {
+                continue;
+            };
+            let (min_child_y, max_child_y) = child_ys.fold(
+                (first_child_y, first_child_y),
+                |(minimum, maximum), child_y| (minimum.min(child_y), maximum.max(child_y)),
+            );
+            canvas.add_line(
+                x,
+                y_scale.map(min_child_y),
+                x,
+                y_scale.map(max_child_y),
+                "#111111",
+                0.9,
+            );
+        }
+        for (parent_id, child_id) in layout.edges {
+            let parent = &layout.points[&parent_id];
+            let child = &layout.points[&child_id];
+            canvas.add_line(
+                x_scale.map(parent.x),
+                y_scale.map(child.y),
+                x_scale.map(child.x),
+                y_scale.map(child.y),
+                "#111111",
+                0.9,
+            );
+        }
+    }
+    canvas.set_accessible_description(format!(
+        "Faceted comparison of {} phylogenetic trees in {} columns.",
+        values.len(),
+        columns
+    ));
+    Ok(())
+}
+
 pub(super) fn count_leaves(node: &TreeNode) -> usize {
     if node.children.is_empty() {
         1
     } else {
         node.children.iter().map(count_leaves).sum()
-    }
-}
-
-pub(super) fn max_tree_depth(node: &TreeNode) -> f64 {
-    if node.children.is_empty() {
-        node.branch_len
-    } else {
-        node.branch_len
-            + node
-                .children
-                .iter()
-                .map(max_tree_depth)
-                .fold(0.0f64, f64::max)
     }
 }
 
@@ -599,57 +1237,6 @@ pub(super) fn render_tree_ascii(node: &TreeNode, out: &mut String, prefix: &str,
     for (i, child) in node.children.iter().enumerate() {
         render_tree_ascii(child, out, &child_prefix, i == node.children.len() - 1);
     }
-}
-
-pub(super) fn draw_tree_svg(
-    c: &mut SvgCanvas,
-    node: &TreeNode,
-    x: f64,
-    max_d: f64,
-    leaf_idx: usize,
-    total_leaves: usize,
-    left: f64,
-    top: f64,
-    pw: f64,
-    ph: f64,
-) -> (f64, usize) {
-    let x_pos = left + (x / max_d.max(0.001)) * pw;
-    if node.children.is_empty() {
-        let y_pos = top + (leaf_idx as f64 + 0.5) / total_leaves as f64 * ph;
-        c.add_circle(x_pos, y_pos, 3.0, PALETTE[0]);
-        if !node.name.is_empty() {
-            c.add_text(x_pos + 8.0, y_pos + 4.0, &node.name, "start", 10.0);
-        }
-        return (y_pos, leaf_idx + 1);
-    }
-    let mut child_ys = Vec::new();
-    let mut li = leaf_idx;
-    for child in &node.children {
-        let child_x = x + child.branch_len;
-        let (cy, new_li) = draw_tree_svg(
-            c,
-            child,
-            child_x,
-            max_d,
-            li,
-            total_leaves,
-            left,
-            top,
-            pw,
-            ph,
-        );
-        let cx = left + (child_x / max_d.max(0.001)) * pw;
-        c.add_line(x_pos, cy, cx, cy, "#333", 1.5);
-        child_ys.push(cy);
-        li = new_li;
-    }
-    if child_ys.len() >= 2 {
-        let y_min = child_ys.iter().cloned().fold(f64::INFINITY, f64::min);
-        let y_max = child_ys.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-        c.add_line(x_pos, y_min, x_pos, y_max, "#333", 1.5);
-    }
-    let mid_y = child_ys.iter().sum::<f64>() / child_ys.len() as f64;
-    (mid_y, li)
 }
 
 // ── 18. lollipop ────────────────────────────────────────────────

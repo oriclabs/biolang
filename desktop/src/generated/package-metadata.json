@@ -1787,7 +1787,7 @@
           "summary": "BioLang package function build_upgma.",
           "fields": [],
           "sourcePath": "packages/phylo/src/mod.bl",
-          "line": 24
+          "line": 26
         },
         {
           "name": "distance",
@@ -1795,7 +1795,7 @@
           "summary": "BioLang package function distance.",
           "fields": [],
           "sourcePath": "packages/phylo/src/mod.bl",
-          "line": 22
+          "line": 24
         },
         {
           "name": "distance_matrix",
@@ -1803,7 +1803,7 @@
           "summary": "BioLang package function distance_matrix.",
           "fields": [],
           "sourcePath": "packages/phylo/src/mod.bl",
-          "line": 23
+          "line": 25
         },
         {
           "name": "faith_pd",
@@ -1811,7 +1811,15 @@
           "summary": "BioLang package function faith_pd.",
           "fields": [],
           "sourcePath": "packages/phylo/src/mod.bl",
-          "line": 25
+          "line": 27
+        },
+        {
+          "name": "from_nexus",
+          "signature": "from_nexus(nexus_text)",
+          "summary": "BioLang package function from_nexus.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 20
         },
         {
           "name": "from_string",
@@ -1827,7 +1835,7 @@
           "summary": "BioLang package function leaves.",
           "fields": [],
           "sourcePath": "packages/phylo/src/mod.bl",
-          "line": 20
+          "line": 21
         },
         {
           "name": "load",
@@ -1843,7 +1851,15 @@
           "summary": "BioLang package function mean_pairwise_distance.",
           "fields": [],
           "sourcePath": "packages/phylo/src/mod.bl",
-          "line": 26
+          "line": 28
+        },
+        {
+          "name": "mrca",
+          "signature": "mrca(t, taxa)",
+          "summary": "BioLang package function mrca.",
+          "fields": [],
+          "sourcePath": "packages/phylo/src/mod.bl",
+          "line": 23
         },
         {
           "name": "n_leaves",
@@ -1851,7 +1867,7 @@
           "summary": "BioLang package function n_leaves.",
           "fields": [],
           "sourcePath": "packages/phylo/src/mod.bl",
-          "line": 21
+          "line": 22
         },
         {
           "name": "nearest_taxon_distance",
@@ -1859,7 +1875,7 @@
           "summary": "BioLang package function nearest_taxon_distance.",
           "fields": [],
           "sourcePath": "packages/phylo/src/mod.bl",
-          "line": 27
+          "line": 29
         }
       ]
     },

@@ -231,6 +231,49 @@ fn test_tree_leaves() {
 }
 
 #[test]
+fn test_tree_mrca_uses_ggtree_node_numbers() {
+    let nw = "(((((((A:4,B:4):6,C:5):8,D:6):3,E:21):10,((F:4,G:12):14,H:8):13):13,((I:5,J:2):30,(K:11,L:11):2):17):4,M:56);";
+    let tree = call_ok("phylo", "nw_parse", vec![str_(nw)]);
+    let taxa = |labels: &[&str]| {
+        Value::List(
+            labels
+                .iter()
+                .map(|label| str_(label))
+                .collect::<Vec<_>>()
+                .into(),
+        )
+    };
+    assert_eq!(
+        call_ok("phylo", "tree_mrca", vec![tree.clone(), taxa(&["C", "E"])]),
+        Value::Int(17)
+    );
+    assert_eq!(
+        call_ok("phylo", "tree_mrca", vec![tree.clone(), taxa(&["G", "H"])]),
+        Value::Int(21)
+    );
+    assert_eq!(
+        call_ok("phylo", "tree_mrca", vec![tree.clone(), taxa(&["B", "C"])]),
+        Value::Int(19)
+    );
+    assert_eq!(
+        call_ok("phylo", "tree_mrca", vec![tree, taxa(&["L", "J"])]),
+        Value::Int(23)
+    );
+}
+
+#[test]
+fn test_nexus_tree_expands_tip_ids_and_drops_beast_annotations() {
+    let nexus = Value::Str(
+        "#NEXUS\nBegin trees;\nTranslate\n  1 A/Human/2013,\n  2 B/Swine/2012;\ntree TREE1 = [&R] (1[&height=0.0]:1.5,2[&height=1.0]:2.5)[&posterior=0.9];\nEnd;"
+            .into(),
+    );
+    assert_eq!(
+        call_ok("phylo", "nexus_tree", vec![nexus]),
+        Value::Str("(A/Human/2013:1.5,B/Swine/2012:2.5);".into())
+    );
+}
+
+#[test]
 fn test_patristic_distance() {
     // Simple star: (A:1.0,B:2.0); — distance A→B = 1+2 = 3
     let nw = "(A:1.0,B:2.0);";

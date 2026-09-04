@@ -3056,6 +3056,12 @@ export interface BioLangSessionBuiltinMethods {
   "next"(stream: unknown): BioJsValue;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
+   * BioLang: `nexus_tree(arg1)`
+   * @category runtime
+   */
+  "nexusTree"(arg1: unknown): BioJsValue;
+  /**
+   * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `nfr_enrichment(arg1)`
    * @category runtime
    */
@@ -3818,6 +3824,12 @@ export interface BioLangSessionBuiltinMethods {
    */
   "readQualityDist"(arg1: unknown): BioJsValue;
   /**
+   * BioLang fs builtin.
+   * BioLang: `read_text(path) → Str`
+   * @category fs
+   */
+  "readText"(path: unknown): string;
+  /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `read_tsv(arg1)`
    * @category runtime
@@ -4206,6 +4218,13 @@ export interface BioLangSessionBuiltinMethods {
    * @category hof
    */
   "scatterBy"(list: unknown, key_fn: unknown): Record<string, BioJsValue> | BioValueHandle;
+  /**
+   * Shared-scale scatterplot matrix with diagonal densities, regression, smooth, spread, and optional boxed panels.
+   * BioLang: `scatterplot_matrix(table, options?) → Str`
+   * @category stats
+   * @example scatterplot_matrix(table, {boxed_panels: true})
+   */
+  "scatterplotMatrix"(table: unknown, options?: unknown): string;
   /**
    * Registered BioLang builtin accepting 1 argument(s).
    * BioLang: `score_matrix(arg1)`
@@ -5132,6 +5151,12 @@ export interface BioLangSessionBuiltinMethods {
    * @category runtime
    */
   "treeLeaves"(arg1: unknown): BioJsValue;
+  /**
+   * Registered BioLang builtin accepting 2 argument(s).
+   * BioLang: `tree_mrca(arg1, arg2)`
+   * @category runtime
+   */
+  "treeMrca"(arg1: unknown, arg2: unknown): BioJsValue;
   /**
    * BioLang string builtin.
    * BioLang: `trim(str) → Str`

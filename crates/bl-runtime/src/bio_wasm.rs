@@ -1,7 +1,8 @@
 //! WASM-safe bio file parsers using the fetch hook instead of noodles/filesystem.
 //!
-//! Provides `read_fasta`, `read_fastq`, `read_vcf`, `read_bed`, `read_gff` for
-//! WASM builds. These parse the full file text returned by `__blFetch.sync`.
+//! Provides `read_text`, `read_fasta`, `read_fastq`, `read_vcf`, `read_bed`,
+//! `read_gff`, and `read_gtf` for WASM builds. These read the full file text
+//! returned by `__blFetch.sync`; format-specific readers then parse it.
 
 use bl_core::error::{BioLangError, ErrorKind, Result};
 use bl_core::value::{Arity, BioSequence, Table, Value};
@@ -11,6 +12,7 @@ use std::collections::HashMap;
 
 pub fn bio_wasm_builtin_list() -> Vec<(&'static str, Arity)> {
     vec![
+        ("read_text", Arity::Exact(1)),
         ("read_fasta", Arity::Exact(1)),
         ("read_fastq", Arity::Exact(1)),
         ("read_vcf", Arity::Exact(1)),
@@ -23,12 +25,19 @@ pub fn bio_wasm_builtin_list() -> Vec<(&'static str, Arity)> {
 pub fn is_bio_wasm_builtin(name: &str) -> bool {
     matches!(
         name,
-        "read_fasta" | "read_fastq" | "read_vcf" | "read_bed" | "read_gff" | "read_gtf"
+        "read_text"
+            | "read_fasta"
+            | "read_fastq"
+            | "read_vcf"
+            | "read_bed"
+            | "read_gff"
+            | "read_gtf"
     )
 }
 
 pub fn call_bio_wasm_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
     match name {
+        "read_text" => read_text(args),
         "read_fasta" => parse_fasta(args),
         "read_fastq" => parse_fastq(args),
         "read_vcf" => parse_vcf(args),
@@ -41,6 +50,11 @@ pub fn call_bio_wasm_builtin(name: &str, args: Vec<Value>) -> Result<Value> {
             None,
         )),
     }
+}
+
+fn read_text(args: Vec<Value>) -> Result<Value> {
+    let path = require_str(&args, "read_text")?;
+    Ok(Value::Str(fetch_file_text(&path, "read_text")?))
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -81,6 +95,30 @@ fn require_str(args: &[Value], fn_name: &str) -> std::result::Result<String, Bio
 }
 
 // ── FASTA ───────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn browser_text_reader_is_registered() {
+        assert!(is_bio_wasm_builtin("read_text"));
+        assert_eq!(
+            bio_wasm_builtin_list()
+                .into_iter()
+                .find(|(name, _)| *name == "read_text")
+                .map(|(_, arity)| arity),
+            Some(Arity::Exact(1))
+        );
+    }
+
+    #[test]
+    fn browser_text_reader_validates_the_path_type() {
+        let error = call_bio_wasm_builtin("read_text", vec![Value::Int(1)]).unwrap_err();
+        assert_eq!(error.kind, ErrorKind::TypeError);
+        assert!(error.message.contains("read_text expects a string path"));
+    }
+}
 
 fn parse_fasta(args: Vec<Value>) -> Result<Value> {
     let path = require_str(&args, "read_fasta")?;

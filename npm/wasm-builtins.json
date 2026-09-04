@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "count": 902,
+  "count": 906,
   "builtins": [
     {
       "name": "abs",
@@ -2019,6 +2019,10 @@
       "arity": "Exact(1)"
     },
     {
+      "name": "nexus_tree",
+      "arity": "Exact(1)"
+    },
+    {
       "name": "nfr_enrichment",
       "arity": "Exact(1)"
     },
@@ -2523,6 +2527,10 @@
       "arity": "Exact(1)"
     },
     {
+      "name": "read_text",
+      "arity": "Exact(1)"
+    },
+    {
       "name": "read_tsv",
       "arity": "Exact(1)"
     },
@@ -2777,6 +2785,10 @@
     {
       "name": "scatter_by",
       "arity": "Exact(2)"
+    },
+    {
+      "name": "scatterplot_matrix",
+      "arity": "Range(1, 2)"
     },
     {
       "name": "score_matrix",
@@ -3361,6 +3373,10 @@
     {
       "name": "tree_leaves",
       "arity": "Exact(1)"
+    },
+    {
+      "name": "tree_mrca",
+      "arity": "Exact(2)"
     },
     {
       "name": "trim",

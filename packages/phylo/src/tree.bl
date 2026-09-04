@@ -8,8 +8,13 @@ fn from_string(nw_str) {
   nw_parse(nw_str)
 }
 
+fn from_nexus(nexus_text) {
+  nexus_tree(nexus_text) |> nw_parse
+}
+
 fn leaves(tree)               { tree_leaves(tree) }
 fn n_leaves(tree)             { tree_leaves(tree) |> len }
+fn mrca(tree, taxa)            { tree_mrca(tree, taxa) }
 fn distance(tree, a, b)       { patristic_distance(tree, a, b) }
 fn distance_matrix(tree)      { nw_to_distance_matrix(tree) }
 fn build_upgma(labels, dmat)  { upgma(labels, dmat) }

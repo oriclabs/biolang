@@ -267,6 +267,25 @@ impl SvgCanvas {
         ));
     }
 
+    /// A line with independently controlled dash and gap lengths. R's
+    /// numbered line types use unequal patterns (notably `linetype = 3`,
+    /// whose one-to-three dotted rhythm is common in ggtree figures).
+    pub(crate) fn add_patterned_line(
+        &mut self,
+        x1: f64,
+        y1: f64,
+        x2: f64,
+        y2: f64,
+        stroke: &str,
+        width: f64,
+        dash: f64,
+        gap: f64,
+    ) {
+        self.elements.push(format!(
+            r#"<line x1="{x1:.1}" y1="{y1:.1}" x2="{x2:.1}" y2="{y2:.1}" stroke="{stroke}" stroke-width="{width}" stroke-dasharray="{dash:.1},{gap:.1}" />"#
+        ));
+    }
+
     /// Add a connected, unfilled path. Keeping this primitive on the shared
     /// canvas lets forecast and diagnostic plots use the same escaping,
     /// sizing, theme, and export path as the established plot families.
@@ -537,6 +556,26 @@ impl SvgCanvas {
 
     /// Draw publication-theme grid lines before marks are added.
     pub(crate) fn draw_cartesian_grid(&mut self, x_scale: &Scale, y_scale: &Scale) {
+        self.draw_cartesian_grid_with_ticks(
+            x_scale,
+            y_scale,
+            &x_scale.nice_ticks(5),
+            &y_scale.nice_ticks(5),
+        );
+    }
+
+    /// Draw a cartesian panel using caller-supplied tick positions.
+    ///
+    /// Positions are expressed in the scales' coordinate systems. This is
+    /// useful for transformed axes: a raw value of 1,000 is placed at 3 on a
+    /// base-10 scale while its label can remain "1000" or "1e+03".
+    pub(crate) fn draw_cartesian_grid_with_ticks(
+        &mut self,
+        x_scale: &Scale,
+        y_scale: &Scale,
+        x_ticks: &[f64],
+        y_ticks: &[f64],
+    ) {
         if self.theme.grid_width <= 0.0 {
             return;
         }
@@ -555,8 +594,8 @@ impl SvgCanvas {
             domain: x_scale.domain,
             range: (left, right),
         };
-        for tick in x_scale.nice_ticks(5) {
-            let x = mapped_x.map(tick);
+        for tick in x_ticks {
+            let x = mapped_x.map(*tick);
             self.add_line(
                 x,
                 top,
@@ -570,8 +609,8 @@ impl SvgCanvas {
             domain: y_scale.domain,
             range: (bottom, top),
         };
-        for tick in y_scale.nice_ticks(5) {
-            let y = mapped_y.map(tick);
+        for tick in y_ticks {
+            let y = mapped_y.map(*tick);
             self.add_line(
                 left,
                 y,
@@ -589,6 +628,21 @@ impl SvgCanvas {
     /// with groups along the bottom still needs the themed panel that
     /// `draw_cartesian_grid` would otherwise supply.
     pub(crate) fn draw_categorical_grid(&mut self, y_scale: &Scale) {
+        self.draw_categorical_grid_for_groups(y_scale, 0);
+    }
+
+    /// Draw a themed categorical panel, including ggplot2's vertical major
+    /// grid line through each category centre.
+    pub(crate) fn draw_categorical_grid_for_groups(&mut self, y_scale: &Scale, group_count: usize) {
+        self.draw_categorical_grid_with_ticks(y_scale, group_count, &y_scale.nice_ticks(5));
+    }
+
+    pub(crate) fn draw_categorical_grid_with_ticks(
+        &mut self,
+        y_scale: &Scale,
+        group_count: usize,
+        y_ticks: &[f64],
+    ) {
         if self.theme.grid_width <= 0.0 {
             return;
         }
@@ -603,12 +657,26 @@ impl SvgCanvas {
             self.plot_height(),
             self.theme.panel_colour,
         );
+        if group_count > 0 {
+            let step = self.plot_width() / group_count as f64;
+            for index in 0..group_count {
+                let x = left + step * (index as f64 + 0.5);
+                self.add_line(
+                    x,
+                    top,
+                    x,
+                    bottom,
+                    self.theme.grid_colour,
+                    self.theme.grid_width,
+                );
+            }
+        }
         let mapped_y = Scale {
             domain: y_scale.domain,
             range: (bottom, top),
         };
-        for tick in y_scale.nice_ticks(5) {
-            let y = mapped_y.map(tick);
+        for tick in y_ticks {
+            let y = mapped_y.map(*tick);
             self.add_line(
                 left,
                 y,
@@ -620,8 +688,66 @@ impl SvgCanvas {
         }
     }
 
+    /// Outline the complete plotting panel, as base R does by default.
+    pub(crate) fn draw_panel_border(&mut self) {
+        self.add_stroked_rect(
+            self.margin.left,
+            self.margin.top,
+            self.plot_width(),
+            self.plot_height(),
+            "none",
+            self.theme.axis_colour,
+            self.theme.axis_width,
+        );
+    }
+
     pub(crate) fn draw_x_axis(&mut self, scale: &Scale, label: &str) {
         self.draw_x_axis_with_tick_domain(scale, scale.domain, label);
+    }
+
+    /// Draw an x axis at explicit positions with explicit labels.
+    pub(crate) fn draw_x_axis_with_ticks(
+        &mut self,
+        scale: &Scale,
+        ticks: &[(f64, String)],
+        label: &str,
+    ) {
+        let y = self.margin.top + self.plot_height();
+        self.add_line(
+            self.margin.left,
+            y,
+            self.margin.left + self.plot_width(),
+            y,
+            self.theme.axis_colour,
+            self.theme.axis_width,
+        );
+        let x_scale = Scale {
+            domain: scale.domain,
+            range: (self.margin.left, self.margin.left + self.plot_width()),
+        };
+        for (tick, text) in ticks {
+            let x = x_scale.map(*tick);
+            self.add_line(
+                x,
+                y,
+                x,
+                y + 5.0,
+                self.theme.axis_colour,
+                self.theme.axis_width,
+            );
+            self.add_text(x, y + 18.0, text, "middle", self.theme.tick_size);
+        }
+        self.add_axis_title(
+            self.margin.left + self.plot_width() / 2.0,
+            if self.theme.is_adaptive() {
+                y + 36.0
+            } else {
+                self.height - 5.0
+            },
+            label,
+            "x",
+            None,
+        );
     }
 
     /// Draw an axis using `scale` for pixel placement while choosing labels
@@ -739,6 +865,61 @@ impl SvgCanvas {
         self.draw_y_axis_with_tick_domain(scale, scale.domain, label);
     }
 
+    /// Draw a y axis at explicit positions with explicit labels.
+    pub(crate) fn draw_y_axis_with_ticks(
+        &mut self,
+        scale: &Scale,
+        ticks: &[(f64, String)],
+        label: &str,
+    ) {
+        self.draw_y_axis_with_ticks_rotated(scale, ticks, label, 0.0);
+    }
+
+    pub(crate) fn draw_y_axis_with_ticks_rotated(
+        &mut self,
+        scale: &Scale,
+        ticks: &[(f64, String)],
+        label: &str,
+        rotation: f64,
+    ) {
+        let x = self.margin.left;
+        self.add_line(
+            x,
+            self.margin.top,
+            x,
+            self.margin.top + self.plot_height(),
+            self.theme.axis_colour,
+            self.theme.axis_width,
+        );
+        let y_scale = Scale {
+            domain: scale.domain,
+            range: (self.margin.top + self.plot_height(), self.margin.top),
+        };
+        for (tick, text) in ticks {
+            let y = y_scale.map(*tick);
+            self.add_line(
+                x - 5.0,
+                y,
+                x,
+                y,
+                self.theme.axis_colour,
+                self.theme.axis_width,
+            );
+            if rotation.abs() <= f64::EPSILON {
+                self.add_text(x - 8.0, y + 4.0, text, "end", self.theme.tick_size);
+            } else {
+                self.add_text_rotated(x - 17.0, y, text, rotation, "middle", self.theme.tick_size);
+            }
+        }
+        self.add_axis_title(
+            15.0,
+            self.margin.top + self.plot_height() / 2.0,
+            label,
+            "y",
+            Some(-90.0),
+        );
+    }
+
     /// Y-axis counterpart to [`Self::draw_x_axis_with_tick_domain`].
     pub(crate) fn draw_y_axis_with_tick_domain(
         &mut self,
@@ -813,6 +994,19 @@ impl SvgCanvas {
                 self.theme.title_size,
             );
         }
+    }
+
+    pub(crate) fn draw_title_centered(&mut self, title: &str) {
+        self.accessible_label = Some(title.to_string());
+        self.add_text_styled(
+            self.width / 2.0,
+            25.0,
+            title,
+            "middle",
+            self.theme.title_size,
+            "600",
+            self.theme.text_colour,
+        );
     }
 
     pub(crate) fn draw_subtitle(&mut self, subtitle: &str) {

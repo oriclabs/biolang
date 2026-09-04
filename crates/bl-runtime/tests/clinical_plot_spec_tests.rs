@@ -187,6 +187,38 @@ fn kaplan_meier_ggplot_theme_matches_r_hue_palette_and_numeric_strata_order() {
 }
 
 #[test]
+fn kaplan_meier_can_pair_survminer_classic_styling_with_ggplot_palette_and_hide_legend() {
+    let specification = call_bio_plots_builtin(
+        "kaplan_meier",
+        vec![
+            survival_input(),
+            opts(vec![
+                ("group", Value::Str("arm".into())),
+                ("theme", Value::Str("classic".into())),
+                ("palette", Value::Str("ggplot".into())),
+                ("legend", Value::Bool(false)),
+                ("format", Value::Str("spec".into())),
+            ]),
+        ],
+    )
+    .unwrap();
+    let map = record(&specification);
+    let Some(Value::Record(options)) = map.get("options") else {
+        panic!("survival specification options missing")
+    };
+    assert_eq!(options.get("palette"), Some(&Value::Str("ggplot".into())));
+    assert_eq!(options.get("legend"), Some(&Value::Bool(false)));
+
+    let Value::Str(svg) = render(specification) else {
+        panic!("expected SVG")
+    };
+    assert!(svg.contains("#f8766d"));
+    assert!(svg.contains("#00bfc4"));
+    assert!(!svg.contains(">control<"));
+    assert!(!svg.contains(">treated<"));
+}
+
+#[test]
 fn kaplan_meier_stops_each_curve_at_its_own_last_follow_up() {
     let plotted = call_bio_plots_builtin(
         "kaplan_meier",

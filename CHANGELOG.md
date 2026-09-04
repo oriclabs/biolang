@@ -11,6 +11,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Shared-scale scatterplot matrices.** `scatterplot_matrix()` renders one
+  coordinated SVG with diagonal densities, open observations, least-squares
+  lines, LOESS curves, and dashed conditional-spread curves. Square panels and
+  panel borders are independent opt-ins; `boxed_panels: true` enables the
+  compact contiguous base-R style, while explicit per-variable ticks support
+  source-faithful teaching figures.
+
 - **Composable JavaScript/WASM SDK.** Every WASM builtin is available through
   an isolated `BioLang` session. Direct `bl.*` calls now return decoded values
   and throw `Error` objects, so typed sequences, tables, matrices, handles and

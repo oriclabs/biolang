@@ -102,6 +102,7 @@ fn long_violin_spec_preserves_first_seen_groups_and_exact_publication_replay() {
         ("group", Value::Str("condition".into())),
         ("theme", Value::Str("publication".into())),
         ("title", Value::Str("Marker expression".into())),
+        ("xlab", Value::Str("condition".into())),
     ];
     let direct = call_bio_plots_builtin(
         "violin_plot",
@@ -132,6 +133,7 @@ fn long_violin_spec_preserves_first_seen_groups_and_exact_publication_replay() {
     assert_eq!(data.rows[511][3], Value::Float(3.0));
     assert_eq!(data.rows[512][3], Value::Float(4.0));
     assert_eq!(data.rows[1023][3], Value::Float(9.0));
+    assert!(matches!(direct, Value::Str(ref svg) if svg.contains(">condition</text>")));
     assert_eq!(direct, render(specification));
 }
 
