@@ -243,6 +243,40 @@ pub(super) fn survival_plot_spec_value(
         "legend",
         "palette",
         "colors",
+        "legend_position",
+        "line_width",
+        "censor_size",
+        "censor_width",
+        "confidence_alpha",
+        "scale_expansion",
+        "scale_expansion_fraction",
+        "panel_border",
+        "x_ticks",
+        "y_ticks",
+        "x_tick_decimals",
+        "y_tick_decimals",
+        "y_tick_rotation",
+        "x_title_y",
+        "y_title_x",
+        "p_x",
+        "p_y",
+        "text_scale",
+        "margin_left",
+        "margin_right",
+        "margin_top",
+        "margin_bottom",
+        "title_align",
+        "risk_table_title",
+        "risk_table_xlabel",
+        "risk_table_ylabel",
+        "risk_table_colored_labels",
+        "risk_table_top_offset",
+        "risk_table_title_gap",
+        "risk_table_row_spacing",
+        "risk_table_axis_gap",
+        "risk_table_tick_offset",
+        "risk_table_xlabel_offset",
+        "risk_table_ylabel_x",
     ] {
         if let Some(value) = opts.get(key) {
             options.insert(key.into(), value.clone());
@@ -338,28 +372,50 @@ pub(super) fn render_survival_svg(
     }
     let width = get_opt_f64(opts, "width", 640.0);
     let height = get_opt_f64(opts, "height", 440.0);
-    let theme = plot_theme(opts);
+    let mut theme = plot_theme(opts);
+    let text_scale = get_opt_f64(opts, "text_scale", 1.0).clamp(0.5, 4.0);
+    theme.title_size *= text_scale;
+    theme.subtitle_size *= text_scale;
+    theme.axis_title_size *= text_scale;
+    theme.tick_size *= text_scale;
+    theme.legend_size *= text_scale;
+    theme.caption_size *= text_scale;
     let mut canvas = SvgCanvas::with_theme(width, height, theme);
     let subtitle = get_opt_str(opts, "subtitle", "");
     let caption = get_opt_str(opts, "caption", "");
-    canvas.margin.left = 62.0_f64.min(width * 0.23);
-    canvas.margin.right = if groups.len() > 1 {
+    let legend_position = get_opt_str(opts, "legend_position", "right");
+    if !matches!(legend_position, "right" | "top") {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            "kaplan_meier() option 'legend_position' must be right or top",
+            None,
+        ));
+    }
+    let show_legend = opts.get("legend").and_then(Value::as_bool).unwrap_or(true);
+    let top_legend = groups.len() > 1 && show_legend && legend_position == "top";
+    let default_left = 62.0_f64.min(width * 0.23);
+    let default_right = if groups.len() > 1 && show_legend && !top_legend {
         130.0_f64.min(width * 0.30)
     } else {
         20.0
     };
-    canvas.margin.top = if subtitle.is_empty() { 52.0 } else { 70.0 };
+    let default_top =
+        if subtitle.is_empty() { 52.0 } else { 70.0 } + if top_legend { 42.0 } else { 0.0 };
     let risk_table = opts
         .get("risk_table")
         .and_then(Value::as_bool)
         .unwrap_or(false);
-    canvas.margin.bottom = if risk_table {
+    let default_bottom = if risk_table {
         82.0 + groups.len() as f64 * 20.0 + if caption.is_empty() { 0.0 } else { 18.0 }
     } else if caption.is_empty() {
         52.0
     } else {
         70.0
     };
+    canvas.margin.left = get_opt_f64(opts, "margin_left", default_left);
+    canvas.margin.right = get_opt_f64(opts, "margin_right", default_right);
+    canvas.margin.top = get_opt_f64(opts, "margin_top", default_top);
+    canvas.margin.bottom = get_opt_f64(opts, "margin_bottom", default_bottom);
     let tmax = groups
         .iter()
         .flat_map(|group| group.steps.iter().map(|step| step.time))
@@ -369,9 +425,21 @@ pub(super) fn render_survival_svg(
     // the geometry. Keep the scientific tick domain at 0..tmax and 0..1, but
     // do not pin the first survival step and its confidence band directly to
     // the axes.
-    let ggplot_expansion = get_opt_str(opts, "theme", "").eq_ignore_ascii_case("ggplot");
-    let x_padding = if ggplot_expansion { tmax * 0.05 } else { 0.0 };
-    let y_padding = if ggplot_expansion { 0.05 } else { 0.0 };
+    let ggplot_expansion = opts
+        .get("scale_expansion")
+        .and_then(Value::as_bool)
+        .unwrap_or_else(|| get_opt_str(opts, "theme", "").eq_ignore_ascii_case("ggplot"));
+    let expansion_fraction = get_opt_f64(opts, "scale_expansion_fraction", 0.05).clamp(0.0, 0.5);
+    let x_padding = if ggplot_expansion {
+        tmax * expansion_fraction
+    } else {
+        0.0
+    };
+    let y_padding = if ggplot_expansion {
+        expansion_fraction
+    } else {
+        0.0
+    };
     let xs = Scale {
         domain: (-x_padding, tmax + x_padding),
         range: (canvas.margin.left, canvas.margin.left + canvas.plot_width()),
@@ -388,6 +456,10 @@ pub(super) fn render_survival_svg(
         .get("confidence")
         .and_then(Value::as_bool)
         .unwrap_or(false);
+    let confidence_alpha = get_opt_f64(opts, "confidence_alpha", 0.14).clamp(0.0, 1.0);
+    let line_width = get_opt_f64(opts, "line_width", 2.0).clamp(0.25, 12.0);
+    let censor_size = get_opt_f64(opts, "censor_size", 4.0).clamp(1.0, 20.0);
+    let censor_width = get_opt_f64(opts, "censor_width", 1.5).clamp(0.25, 12.0);
     let colours = survival_colours(opts, groups.len())?;
     for (group_index, group) in groups.iter().enumerate() {
         let colour = colours[group_index].as_str();
@@ -417,7 +489,7 @@ pub(super) fn render_survival_svg(
                 .collect::<Vec<_>>()
                 .join(" ");
             canvas.elements.push(format!(
-                r#"<polygon points="{points}" fill="{colour}" fill-opacity="0.14" stroke="none" />"#
+                r#"<polygon points="{points}" fill="{colour}" fill-opacity="{confidence_alpha:.2}" stroke="none" />"#
             ));
         }
         let mut previous_survival = 1.0;
@@ -433,85 +505,304 @@ pub(super) fn render_survival_svg(
                 let y = ys.map(step.survival);
                 censor_path.push_str(&format!(
                     " M {:.2} {:.2} H {:.2} M {:.2} {:.2} V {:.2}",
-                    x - 4.0,
+                    x - censor_size,
                     y,
-                    x + 4.0,
+                    x + censor_size,
                     x,
-                    y - 4.0,
-                    y + 4.0
+                    y - censor_size,
+                    y + censor_size
                 ));
             }
             previous_survival = step.survival;
         }
         path.push_str(&format!(" H {:.2}", xs.map(group_tmax)));
         canvas.elements.push(format!(
-            r#"<path d="{path}" fill="none" stroke="{colour}" stroke-width="2" />"#
+            r#"<path d="{path}" fill="none" stroke="{colour}" stroke-width="{line_width}" />"#
         ));
         if !censor_path.is_empty() {
             canvas.elements.push(format!(
-                r#"<path d="{censor_path}" fill="none" stroke="{colour}" stroke-width="1.5" />"#
+                r#"<path d="{censor_path}" fill="none" stroke="{colour}" stroke-width="{censor_width}" />"#
             ));
         }
-        let show_legend = opts.get("legend").and_then(Value::as_bool).unwrap_or(true);
-        if groups.len() > 1 && show_legend {
+    }
+    if groups.len() > 1 && show_legend {
+        let legend_title = get_opt_str(opts, "legend_title", "");
+        if top_legend {
+            let swatch = 18.0 * text_scale;
+            let gap = 14.0 * text_scale;
+            let title_width = if legend_title.is_empty() {
+                0.0
+            } else {
+                estimate_text_width(legend_title, theme.legend_size) + gap
+            };
+            let entries_width = groups
+                .iter()
+                .map(|group| {
+                    swatch
+                        + 8.0 * text_scale
+                        + estimate_text_width(&group.name, theme.legend_size)
+                        + gap
+                })
+                .sum::<f64>();
+            let mut x = canvas.margin.left
+                + ((canvas.plot_width() - title_width - entries_width) / 2.0).max(0.0);
+            let y = canvas.margin.top - 38.0 * text_scale.min(2.0);
+            if !legend_title.is_empty() {
+                canvas.add_text(
+                    x,
+                    y + theme.legend_size * 0.35,
+                    legend_title,
+                    "start",
+                    theme.legend_size,
+                );
+                x += title_width;
+            }
+            for (index, group) in groups.iter().enumerate() {
+                let colour = colours[index].as_str();
+                if confidence {
+                    canvas.elements.push(format!(
+                        r#"<rect x="{x:.1}" y="{:.1}" width="{swatch:.1}" height="{:.1}" fill="{colour}" fill-opacity="{confidence_alpha:.2}" stroke="none" />"#,
+                        y - 8.0 * text_scale,
+                        16.0 * text_scale,
+                    ));
+                }
+                canvas.add_line(x, y, x + swatch, y, colour, line_width);
+                if censor_marks {
+                    let middle = x + swatch / 2.0;
+                    canvas.add_line(
+                        middle,
+                        y - censor_size,
+                        middle,
+                        y + censor_size,
+                        colour,
+                        censor_width,
+                    );
+                }
+                x += swatch + 8.0 * text_scale;
+                canvas.add_text(
+                    x,
+                    y + theme.legend_size * 0.35,
+                    &group.name,
+                    "start",
+                    theme.legend_size,
+                );
+                x += estimate_text_width(&group.name, theme.legend_size) + gap;
+            }
+        } else {
             let legend_x = canvas.margin.left + canvas.plot_width() + 12.0;
-            let legend_title = get_opt_str(opts, "legend_title", "");
-            if group_index == 0 && !legend_title.is_empty() {
+            if !legend_title.is_empty() {
                 canvas.add_text(
                     legend_x,
                     canvas.margin.top + 4.0,
                     legend_title,
                     "start",
-                    10.0,
+                    theme.legend_size,
                 );
             }
-            let legend_y = canvas.margin.top
-                + if legend_title.is_empty() { 16.0 } else { 26.0 }
-                + group_index as f64 * 20.0;
-            canvas.add_line(legend_x, legend_y, legend_x + 18.0, legend_y, colour, 2.0);
-            canvas.add_text(legend_x + 24.0, legend_y + 4.0, &group.name, "start", 10.0);
+            for (group_index, group) in groups.iter().enumerate() {
+                let legend_y = canvas.margin.top
+                    + if legend_title.is_empty() { 16.0 } else { 26.0 }
+                    + group_index as f64 * 20.0 * text_scale;
+                canvas.add_line(
+                    legend_x,
+                    legend_y,
+                    legend_x + 18.0 * text_scale,
+                    legend_y,
+                    &colours[group_index],
+                    line_width,
+                );
+                canvas.add_text(
+                    legend_x + 24.0 * text_scale,
+                    legend_y + theme.legend_size * 0.35,
+                    &group.name,
+                    "start",
+                    theme.legend_size,
+                );
+            }
         }
     }
     if let Some(label) = survival_p_label(opts) {
+        let label_x = opts
+            .get("p_x")
+            .and_then(Value::as_float)
+            .map(|value| xs.map(value))
+            .unwrap_or(canvas.margin.left + 8.0);
+        let label_y = opts
+            .get("p_y")
+            .and_then(Value::as_float)
+            .map(|value| ys.map(value))
+            .unwrap_or(canvas.margin.top + 18.0);
+        canvas.add_text(label_x, label_y, &label, "start", theme.legend_size);
+    }
+    let xlabel = get_opt_str(opts, "xlabel", "Time");
+    let axis_xlabel = if opts.contains_key("x_title_y") {
+        ""
+    } else {
+        xlabel
+    };
+    if let Some(ticks) = survival_axis_ticks(opts, "x_ticks", "x_tick_decimals")? {
+        canvas.draw_x_axis_with_ticks(&xs, &ticks, axis_xlabel);
+    } else {
+        canvas.draw_x_axis_with_tick_domain(&xs, (0.0, tmax), axis_xlabel);
+    }
+    if let Some(y) = opts.get("x_title_y").and_then(Value::as_float) {
         canvas.add_text(
-            canvas.margin.left + 8.0,
-            canvas.margin.top + 18.0,
-            &label,
-            "start",
-            11.0,
+            canvas.margin.left + canvas.plot_width() / 2.0,
+            y,
+            xlabel,
+            "middle",
+            theme.axis_title_size,
         );
     }
-    canvas.draw_x_axis_with_tick_domain(&xs, (0.0, tmax), get_opt_str(opts, "xlabel", "Time"));
-    canvas.draw_y_axis_with_tick_domain(
-        &ys,
-        (0.0, 1.0),
-        get_opt_str(opts, "ylabel", "Survival probability"),
-    );
+    let ylabel = get_opt_str(opts, "ylabel", "Survival probability");
+    let axis_ylabel = if opts.contains_key("y_title_x") {
+        ""
+    } else {
+        ylabel
+    };
+    if let Some(ticks) = survival_axis_ticks(opts, "y_ticks", "y_tick_decimals")? {
+        canvas.draw_y_axis_with_ticks_rotated(
+            &ys,
+            &ticks,
+            axis_ylabel,
+            get_opt_f64(opts, "y_tick_rotation", 0.0).clamp(-90.0, 90.0),
+        );
+    } else {
+        canvas.draw_y_axis_with_tick_domain(&ys, (0.0, 1.0), axis_ylabel);
+    }
+    if let Some(x) = opts.get("y_title_x").and_then(Value::as_float) {
+        canvas.add_text_rotated(
+            x,
+            canvas.margin.top + canvas.plot_height() / 2.0,
+            ylabel,
+            -90.0,
+            "middle",
+            theme.axis_title_size,
+        );
+    }
+    if opts
+        .get("panel_border")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        canvas.draw_panel_border();
+    }
     if risk_table {
         let risk_times = survival_risk_times(opts, tmax)?;
-        let table_top = canvas.margin.top + canvas.plot_height() + 46.0;
+        let plot_bottom = canvas.margin.top + canvas.plot_height();
+        let title_y = plot_bottom + get_opt_f64(opts, "risk_table_top_offset", 30.0);
+        let title_gap = get_opt_f64(opts, "risk_table_title_gap", 16.0);
+        let row_spacing = get_opt_f64(opts, "risk_table_row_spacing", 20.0);
+        let first_row_y = title_y + title_gap;
         canvas.add_text(
             canvas.margin.left,
-            table_top - 16.0,
-            "Number at risk",
+            title_y,
+            get_opt_str(opts, "risk_table_title", "Number at risk"),
             "start",
-            11.0,
+            theme.axis_title_size,
         );
+        let coloured_labels = opts
+            .get("risk_table_colored_labels")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
         for (group_index, group) in groups.iter().enumerate() {
-            let y = table_top + group_index as f64 * 20.0;
-            canvas.add_text(canvas.margin.left - 18.0, y + 4.0, &group.name, "end", 10.0);
+            let y = first_row_y + group_index as f64 * row_spacing;
+            if coloured_labels {
+                canvas.add_text_styled(
+                    canvas.margin.left - 18.0,
+                    y + theme.legend_size * 0.35,
+                    &group.name,
+                    "end",
+                    theme.legend_size,
+                    "normal",
+                    &colours[group_index],
+                );
+            } else {
+                canvas.add_text(
+                    canvas.margin.left - 18.0,
+                    y + theme.legend_size * 0.35,
+                    &group.name,
+                    "end",
+                    theme.legend_size,
+                );
+            }
             for time in &risk_times {
                 canvas.add_text(
                     xs.map(*time),
-                    y + 4.0,
+                    y + theme.tick_size * 0.35,
                     &survival_at_risk(group, *time).to_string(),
                     "middle",
-                    10.0,
+                    theme.tick_size,
+                );
+            }
+        }
+        let risk_xlabel = get_opt_str(opts, "risk_table_xlabel", "");
+        let risk_ylabel = get_opt_str(opts, "risk_table_ylabel", "");
+        if !risk_xlabel.is_empty() || !risk_ylabel.is_empty() {
+            let axis_y = first_row_y
+                + (groups.len().saturating_sub(1) as f64) * row_spacing
+                + get_opt_f64(opts, "risk_table_axis_gap", 24.0 * text_scale);
+            canvas.add_line(
+                canvas.margin.left,
+                axis_y,
+                canvas.margin.left + canvas.plot_width(),
+                axis_y,
+                theme.axis_colour,
+                theme.axis_width,
+            );
+            for time in &risk_times {
+                let x = xs.map(*time);
+                canvas.add_line(
+                    x,
+                    axis_y,
+                    x,
+                    axis_y + 5.0,
+                    theme.axis_colour,
+                    theme.axis_width,
+                );
+                canvas.add_text(
+                    x,
+                    axis_y + get_opt_f64(opts, "risk_table_tick_offset", 18.0 * text_scale),
+                    &format!("{time:.0}"),
+                    "middle",
+                    theme.tick_size,
+                );
+            }
+            if !risk_xlabel.is_empty() {
+                canvas.add_text(
+                    canvas.margin.left + canvas.plot_width() / 2.0,
+                    axis_y + get_opt_f64(opts, "risk_table_xlabel_offset", 42.0 * text_scale),
+                    risk_xlabel,
+                    "middle",
+                    theme.axis_title_size,
+                );
+            }
+            if !risk_ylabel.is_empty() {
+                canvas.add_text_rotated(
+                    get_opt_f64(opts, "risk_table_ylabel_x", 18.0 * text_scale),
+                    first_row_y + (groups.len().saturating_sub(1) as f64) * row_spacing / 2.0,
+                    risk_ylabel,
+                    -90.0,
+                    "middle",
+                    theme.axis_title_size,
                 );
             }
         }
     }
-    canvas.draw_title(get_opt_str(opts, "title", "Kaplan-Meier"));
+    let title = get_opt_str(opts, "title", "Kaplan-Meier");
+    if get_opt_str(opts, "title_align", "center") == "left" {
+        canvas.add_text_styled(
+            canvas.margin.left,
+            25.0 * text_scale.min(2.0),
+            title,
+            "start",
+            theme.title_size,
+            "normal",
+            theme.text_colour,
+        );
+    } else {
+        canvas.draw_title(title);
+    }
     canvas.draw_subtitle(subtitle);
     canvas.draw_caption(caption);
     canvas.set_accessible_description(format!(
@@ -519,6 +810,45 @@ pub(super) fn render_survival_svg(
         groups.len()
     ));
     Ok(canvas.render())
+}
+
+fn survival_axis_ticks(
+    opts: &HashMap<String, Value>,
+    key: &str,
+    decimals_key: &str,
+) -> Result<Option<Vec<(f64, String)>>> {
+    let Some(value) = opts.get(key) else {
+        return Ok(None);
+    };
+    let Value::List(values) = value else {
+        return Err(BioLangError::type_error(
+            format!("kaplan_meier() option '{key}' must be a numeric List"),
+            None,
+        ));
+    };
+    let decimals = opts
+        .get(decimals_key)
+        .and_then(Value::as_int)
+        .unwrap_or(0)
+        .clamp(0, 8) as usize;
+    let mut ticks = Vec::with_capacity(values.len());
+    for value in values.iter() {
+        let Some(number) = value.as_float().filter(|number| number.is_finite()) else {
+            return Err(BioLangError::type_error(
+                format!("kaplan_meier() option '{key}' must contain finite numbers"),
+                None,
+            ));
+        };
+        ticks.push((number, format!("{number:.decimals$}")));
+    }
+    if ticks.is_empty() {
+        return Err(BioLangError::runtime(
+            ErrorKind::TypeError,
+            format!("kaplan_meier() option '{key}' cannot be empty"),
+            None,
+        ));
+    }
+    Ok(Some(ticks))
 }
 
 fn survival_log_interval(step: &SurvivalStep) -> (f64, f64) {

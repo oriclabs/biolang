@@ -219,6 +219,56 @@ fn kaplan_meier_can_pair_survminer_classic_styling_with_ggplot_palette_and_hide_
 }
 
 #[test]
+fn kaplan_meier_can_reproduce_survminer_axes_top_legend_and_risk_table_layout() {
+    let specification = call_bio_plots_builtin(
+        "kaplan_meier",
+        vec![
+            survival_input(),
+            opts(vec![
+                ("group", Value::Str("arm".into())),
+                ("theme", Value::Str("classic".into())),
+                ("palette", Value::Str("ggplot".into())),
+                ("legend_title", Value::Str("Treatment".into())),
+                ("legend_position", Value::Str("top".into())),
+                ("scale_expansion", Value::Bool(true)),
+                (
+                    "x_ticks",
+                    Value::List(
+                        vec![Value::Float(0.0), Value::Float(2.0), Value::Float(4.0)].into(),
+                    ),
+                ),
+                (
+                    "y_ticks",
+                    Value::List(
+                        vec![Value::Float(0.0), Value::Float(0.5), Value::Float(1.0)].into(),
+                    ),
+                ),
+                ("y_tick_decimals", Value::Int(2)),
+                ("risk_table", Value::Bool(true)),
+                ("risk_table_xlabel", Value::Str("Time".into())),
+                ("risk_table_ylabel", Value::Str("Treatment".into())),
+                ("risk_table_colored_labels", Value::Bool(true)),
+                ("p_label", Value::Str("p = 0.0123".into())),
+                ("p_x", Value::Float(0.2)),
+                ("p_y", Value::Float(0.2)),
+                ("panel_border", Value::Bool(true)),
+                ("format", Value::Str("spec".into())),
+            ]),
+        ],
+    )
+    .unwrap();
+    let Value::Str(svg) = render(specification) else {
+        panic!("expected SVG")
+    };
+    assert!(svg.contains(">Treatment</text>"));
+    assert!(svg.contains(">0.50</text>"));
+    assert!(svg.contains(">p = 0.0123</text>"));
+    assert!(svg.contains("data-biolang-axis-title=\"y\""));
+    assert!(svg.matches(">Time</text>").count() >= 2);
+    assert!(svg.contains("fill=\"#f8766d\">control</text>"));
+}
+
+#[test]
 fn kaplan_meier_stops_each_curve_at_its_own_last_follow_up() {
     let plotted = call_bio_plots_builtin(
         "kaplan_meier",

@@ -6765,6 +6765,25 @@ fn group_diagnostic_plot(args: Vec<Value>) -> Result<Value> {
         None => None,
     };
     let mut groups = grouped_values(&args[0], &args[1], "stats_group_plot", missing_label)?;
+    if let Some(requested) = opts.get("group_order") {
+        let Value::List(requested) = requested else {
+            return Err(BioLangError::type_error(
+                "stats_group_plot() option 'group_order' must be a List of strings",
+                None,
+            ));
+        };
+        let mut order = HashMap::new();
+        for (index, value) in requested.iter().enumerate() {
+            let Some(label) = value.as_str() else {
+                return Err(BioLangError::type_error(
+                    "stats_group_plot() option 'group_order' must contain strings",
+                    None,
+                ));
+            };
+            order.entry(label.to_string()).or_insert(index);
+        }
+        groups.sort_by_key(|(label, _)| order.get(label).copied().unwrap_or(usize::MAX));
+    }
     let y_axis_scale = diagnostic_axis_scale(&opts, "y", "stats_group_plot")?;
     for (_, values) in &mut groups {
         for value in values {

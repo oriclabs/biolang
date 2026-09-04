@@ -686,6 +686,28 @@ fn diagnostic_visuals_have_ascii_and_svg_paths() {
     assert!(matches!(missing_group_svg, Value::Str(ref svg)
         if svg.contains(">NA</text>")
             && svg.matches("fill=\"#ffffff\" stroke=\"#333333\" stroke-width=\"1.42\"").count() == 4));
+    let ordered_group_svg = call_stats_builtin(
+        "stats_group_plot",
+        vec![
+            numbers(&[20.0, 21.0, 22.0, 23.0, 24.0, 25.0]),
+            strings(&["Current", "Current", "Former", "Former", "Never", "Never"]),
+            Value::Record(
+                HashMap::from([(
+                    "group_order".into(),
+                    strings(&["Never", "Current", "Former"]),
+                )])
+                .into(),
+            ),
+        ],
+    )
+    .unwrap();
+    let Value::Str(ordered_group_svg) = ordered_group_svg else {
+        panic!("ordered group plot should be SVG");
+    };
+    assert!(
+        ordered_group_svg.find(">Never</text>").unwrap()
+            < ordered_group_svg.find(">Current</text>").unwrap()
+    );
     let alias = call_stats_builtin("normal_qq_plot", vec![numbers(&[1.0, 2.0, 3.0, 4.0])]).unwrap();
     assert!(matches!(alias, Value::Str(ref svg) if svg.starts_with("<svg")));
 }
