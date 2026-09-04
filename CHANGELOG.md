@@ -18,6 +18,17 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   compact contiguous base-R style, while explicit per-variable ticks support
   source-faithful teaching figures.
 
+- **Nexus trees and common ancestors.** `nexus_tree()` extracts the first tree
+  from a Nexus/BEAST document as ordinary Newick, expanding translation-table
+  tip identifiers and dropping square-bracket annotations; the Nexus text stays
+  authoritative for posterior support, rates and node heights. `tree_mrca()`
+  returns the most recent common ancestor of two or more tip labels. The phylo
+  package exposes both as `phylo.from_nexus` and `phylo.mrca`.
+
+- **`read_text()` in the browser runtime.** The filesystem builtin is now
+  registered in the bio/WASM surface, so the JavaScript SDK reaches it like any
+  other builtin rather than only the native CLI.
+
 - **Composable JavaScript/WASM SDK.** Every WASM builtin is available through
   an isolated `BioLang` session. Direct `bl.*` calls now return decoded values
   and throw `Error` objects, so typed sequences, tables, matrices, handles and
