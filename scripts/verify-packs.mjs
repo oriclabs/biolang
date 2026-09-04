@@ -145,6 +145,35 @@ if (packIds.length === 0) {
 const reports = [];
 for (const packId of packIds) reports.push(await verifyPack(packId));
 
+// A pack that quietly stops asserting its answers would leave every gate below
+// green while checking strictly less. The floor is a ratchet: raise it when a
+// pack gains coverage, never lower it to make a red build pass. Withholding a
+// pack's source from the website deploy does not touch these numbers.
+const floor = JSON.parse(
+  await readFile(path.join(repositoryRoot, "packs", "coverage-floor.json"), "utf8"),
+).packs;
+const coverageErrors = [];
+for (const [packId, expected] of Object.entries(floor)) {
+  const report = reports.find((candidate) => candidate.packId === packId);
+  if (!report) {
+    coverageErrors.push(`${packId} is named in coverage-floor.json but no longer exists under packs/`);
+    continue;
+  }
+  if (report.total < expected.problems) {
+    coverageErrors.push(
+      `${packId} has ${report.total} problems, below its floor of ${expected.problems}`,
+    );
+  }
+  if (report.counts.asserted < expected.asserted) {
+    coverageErrors.push(
+      `${packId} asserts ${report.counts.asserted} answers, below its floor of ${expected.asserted}`,
+    );
+  }
+}
+if (coverageErrors.length > 0) {
+  reports.push({ packId: "coverage floor", counts: null, hermetic: [], errors: coverageErrors });
+}
+
 const failuresFound = reports.some((report) => report.errors.length > 0);
 
 // `bl test <dir>` would also pick up the network problems, so CI asks for the

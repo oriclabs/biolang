@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "A ratchet on Rosalind answer coverage, enforced by scripts/verify-packs.mjs,",
+    "which CI runs before every other pack gate.",
+    "",
+    "Without it a pack could quietly stop asserting its answers -- flip problems to",
+    "network, drop files, or mark them unasserted -- and every gate below would stay",
+    "green while checking less. Withholding pack source from the website deploy",
+    "(pack.toml `publish_source`) deliberately does not touch any of these numbers.",
+    "",
+    "Raise a floor when a pack gains coverage. Never lower one to make a build pass:",
+    "that is the exact failure this file exists to catch."
+  ],
+  "packs": {
+    "rosalind-algorithmic-heights": { "problems": 34, "asserted": 34 },
+    "rosalind-armory": { "problems": 15, "asserted": 13 },
+    "rosalind-stronghold": { "problems": 105, "asserted": 105 },
+    "rosalind-textbook": { "problems": 124, "asserted": 124 }
+  }
+}
