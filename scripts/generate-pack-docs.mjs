@@ -499,9 +499,9 @@ async function renderPack(packId, available) {
         <p class="text-sm text-slate-500 mb-8">${manifest.problem.length} problems &mdash;
         ${counts.solved} solved, ${counts.partial} partial.
         ${counts.asserted} carry assertions that run on every commit;
-        ${counts.network} need a network connection and are checked separately.
+        ${counts.network} need a network connection and are checked separately.${publishesSource(manifest) ? `
         Press <strong>Run</strong> on any block to execute it in your browser, or
-        <a href="/workbench/?pack=${escape(packId)}" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">open the whole pack in the workbench</a>.</p>
+        <a href="/workbench/?pack=${escape(packId)}" target="_blank" rel="noopener" class="text-violet-400 hover:text-violet-300">open the whole pack in the workbench</a>.` : ""}</p>
 
         ${manifest.pack.statements_license ? `<p class="text-sm text-slate-500 mb-8">${escape(manifest.pack.statements_license)}</p>
 
