@@ -170,7 +170,7 @@ fn proxy_from_env() -> Option<ureq::Proxy> {
 }
 
 /// Minimal percent-encoding for form values.
-fn urlencod(s: &str) -> String {
+pub(crate) fn urlencod(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for b in s.bytes() {
         match b {

@@ -5,13 +5,19 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::client::BaseClient;
+use crate::client::{urlencod, BaseClient};
 use crate::config;
 use crate::error::Result;
 
 fn base_url() -> String {
-    config::resolve_url("biomart", "https://www.ensembl.org/biomart/martservice")
+    // The canonical www host currently redirects BioMart traffic to an archive
+    // host.  Heavy comparative-genomics queries can then time out before the
+    // archive sends a status line.  Ensembl's regional mirror serves the same
+    // current mart directly and avoids that redirect.
+    config::resolve_url("biomart", "https://useast.ensembl.org/biomart/martservice")
 }
+
+const BIOMART_USER_AGENT: &str = concat!("BioLang/", env!("CARGO_PKG_VERSION"), " curl-compatible");
 
 /// BioMart / Ensembl BioMart client.
 pub struct BioMartClient {
@@ -58,11 +64,19 @@ impl BioMartClient {
         BioMartClient { base }
     }
 
+    fn get_text(&self, url: &str) -> Result<String> {
+        // Ensembl's BioMart gateway currently rejects generic Rust HTTP-client
+        // user agents. Identify BioLang while marking this request as compatible
+        // with the command-line data-client traffic that the gateway accepts.
+        self.base
+            .get_text_with_headers(url, &[("User-Agent", BIOMART_USER_AGENT)])
+    }
+
     /// List available datasets.
     pub fn list_datasets(&self) -> Result<Vec<Dataset>> {
         let base = base_url();
         let url = format!("{base}?type=datasets&mart=ENSEMBL_MART_ENSEMBL");
-        let text = self.base.get_text(&url)?;
+        let text = self.get_text(&url)?;
         let mut datasets = Vec::new();
         for line in text.lines() {
             let cols: Vec<&str> = line.split('\t').collect();
@@ -80,7 +94,7 @@ impl BioMartClient {
     pub fn list_attributes(&self, dataset: &str) -> Result<Vec<Attribute>> {
         let base = base_url();
         let url = format!("{base}?type=attributes&dataset={dataset}");
-        let text = self.base.get_text(&url)?;
+        let text = self.get_text(&url)?;
         let mut attrs = Vec::new();
         for line in text.lines() {
             let cols: Vec<&str> = line.split('\t').collect();
@@ -98,7 +112,7 @@ impl BioMartClient {
     pub fn list_filters(&self, dataset: &str) -> Result<Vec<Filter>> {
         let base = base_url();
         let url = format!("{base}?type=filters&dataset={dataset}");
-        let text = self.base.get_text(&url)?;
+        let text = self.get_text(&url)?;
         let mut filters = Vec::new();
         for line in text.lines() {
             let cols: Vec<&str> = line.split('\t').collect();
@@ -122,8 +136,11 @@ impl BioMartClient {
     ) -> Result<Vec<Vec<String>>> {
         let xml = build_query_xml(dataset, attributes, filters);
         let base = base_url();
-        let url = format!("{base}?query={xml}");
-        let text = self.base.get_text(&url)?;
+        // BioMart accepts the XML query as a form-encoded query parameter.
+        // Passing raw XML happens to work through some redirects but is
+        // rejected by the regional endpoints with HTTP 403.
+        let url = format!("{base}?query={}", urlencod(&xml));
+        let text = self.get_text(&url)?;
         let mut rows = Vec::new();
         for line in text.lines() {
             let line = line.trim();
@@ -196,4 +213,28 @@ fn build_query_xml(dataset: &str, attributes: &[&str], filters: &[(&str, &str)])
     }
     xml.push_str("</Dataset></Query>");
     xml
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn biomart_query_xml_is_safe_for_a_url_query_parameter() {
+        let xml = build_query_xml(
+            "hsapiens_gene_ensembl",
+            &[
+                "external_gene_name",
+                "mmusculus_homolog_associated_gene_name",
+            ],
+            &[("external_gene_name", "TP53,BRCA1,KRAS")],
+        );
+        let encoded = urlencod(&xml);
+
+        assert!(!encoded.contains('<'));
+        assert!(!encoded.contains('>'));
+        assert!(!encoded.contains(' '));
+        assert!(encoded.contains("TP53%2CBRCA1%2CKRAS"));
+        assert!(encoded.contains("%3CQuery"));
+    }
 }
